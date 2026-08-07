@@ -7,7 +7,9 @@ import "package:cedarflake_ame/features/library/application/library_catalog.dart
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
-import "package:cedarflake_ame/features/library/presentation/library_screen.dart";
+import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
+import "package:cedarflake_ame/features/library/presentation/unified_library_screen.dart";
+import "package:cedarflake_ame/features/storage/application/storage_settings.dart";
 import "package:cedarflake_ame/src/rust/frb_generated.dart";
 import "package:file_selector/file_selector.dart";
 import "package:flutter/material.dart";
@@ -68,7 +70,7 @@ void main() {
     await tester.tap(find.byKey(const Key("library-import-button")));
     await tester.pump();
 
-    final libraryContext = tester.element(find.byType(LibraryScreen));
+    final libraryContext = tester.element(find.byType(UnifiedLibraryScreen));
     final container = ProviderScope.containerOf(libraryContext);
 
     final exitCode = await pickerAutomation.exitCode.timeout(
@@ -90,7 +92,8 @@ void main() {
           LibraryStatus.empty,
       timeout: const Duration(seconds: 10),
     );
-    expect(find.text("No folder imported"), findsOneWidget);
+    expect(find.byKey(const Key("library-empty-state")), findsOneWidget);
+    expect(find.text(LibraryStrings.emptyLibraryTitle), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pumpAndSettle();
@@ -148,6 +151,9 @@ void main() {
     expect(find.byKey(const Key("library-import-button")), findsOneWidget);
     expect(find.text("Read-only validation"), findsNothing);
 
+    final libraryContext = tester.element(find.byType(UnifiedLibraryScreen));
+    final container = ProviderScope.containerOf(libraryContext);
+
     final pickerAutomation = await _startPickerConfirmationAutomation();
     final output = pickerAutomation.stdout
         .transform(const Utf8Decoder(allowMalformed: true))
@@ -174,12 +180,12 @@ void main() {
 
     await _pumpUntil(
       tester,
-      () => find.text("Catalog ready").evaluate().isNotEmpty,
+      () =>
+          container.read(libraryControllerProvider).status ==
+          LibraryStatus.completed,
       timeout: const Duration(seconds: 30),
     );
 
-    final libraryContext = tester.element(find.byType(LibraryScreen));
-    final container = ProviderScope.containerOf(libraryContext);
     await _pumpUntil(tester, () {
       final current = container.read(libraryControllerProvider);
       return current.assets.length == 1 &&
@@ -197,7 +203,7 @@ void main() {
     expect(state.roots.single.availability, LibraryRootAvailability.available);
     expect(state.issueCount, 1);
     expect(state.isScanLimited, isFalse);
-    expect(find.byKey(const Key("library-grid")), findsOneWidget);
+    expect(find.byKey(const Key("library-photo-wall")), findsOneWidget);
 
     final asset = state.assets.single;
     final catalogPath = state.catalogPath;
@@ -215,20 +221,9 @@ void main() {
     expect(await corruptSource.readAsBytes(), corruptBytes);
     expect(await sourceDirectory.list().length, 2);
 
-    await tester.tap(find.byKey(const Key("storage-settings-button")));
-    await _pumpUntil(
-      tester,
-      () => find
-          .byKey(const Key("storage-settings-dialog"))
-          .evaluate()
-          .isNotEmpty,
-      timeout: const Duration(seconds: 10),
-    );
-    expect(find.text("Migration required"), findsOneWidget);
-    expect(find.text(catalogPath), findsOneWidget);
-    expect(find.textContaining("Settings file:"), findsOneWidget);
-    await tester.tap(find.text("Close"));
-    await tester.pumpAndSettle();
+    final storageStatus = await const RustStorageSettingsGateway().load();
+    expect(storageStatus.activeCatalogPath, catalogPath);
+    expect(storageStatus.settingsPath, isNotEmpty);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pumpAndSettle();
@@ -267,13 +262,12 @@ void main() {
     );
     await _pumpUntil(tester, () {
       final current = ProviderScope.containerOf(
-        tester.element(find.byType(LibraryScreen)),
+        tester.element(find.byType(UnifiedLibraryScreen)),
       ).read(libraryControllerProvider);
       return current.assets.single.previewStatus == LibraryPreviewStatus.ready;
     }, timeout: const Duration(seconds: 30));
 
-    expect(find.text("Catalog ready"), findsOneWidget);
-    expect(find.byKey(const Key("library-grid")), findsOneWidget);
+    expect(find.byKey(const Key("library-photo-wall")), findsOneWidget);
 
     final secondPickerAutomation = await _startPickerConfirmationAutomation();
     final secondOutput = secondPickerAutomation.stdout
@@ -303,7 +297,7 @@ void main() {
     );
     expect(secondAutomationOutput, contains("NATIVE_PICKER_CONFIRMED"));
 
-    final restoredContext = tester.element(find.byType(LibraryScreen));
+    final restoredContext = tester.element(find.byType(UnifiedLibraryScreen));
     final restoredContainer = ProviderScope.containerOf(restoredContext);
     await _pumpUntil(tester, () {
       final current = restoredContainer.read(libraryControllerProvider);
