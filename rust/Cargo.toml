@@ -1,0 +1,25 @@
+[package]
+name = "rust_lib_cedarflake_ame"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib", "staticlib"]
+
+[dependencies]
+blake3 = "1.8.6"
+directories = "6.0.0"
+flutter_rust_bridge = "=2.12.0"
+image = { version = "0.25", default-features = false, features = ["bmp", "gif", "ico", "jpeg", "png", "tiff", "webp"] }
+kamadak-exif = "=0.6.1"
+rusqlite = { version = "0.40.1", features = ["bundled"] }
+thiserror = "2.0.19"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }
+
+[target."cfg(windows)".dependencies]
+windows-sys = { version = "0.61.2", features = ["Win32_Storage_FileSystem"] }
+
+[dev-dependencies]
+tempfile = "3.27.0"

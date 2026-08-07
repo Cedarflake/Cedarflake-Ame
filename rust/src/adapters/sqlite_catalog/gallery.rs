@@ -1,0 +1,483 @@
+use rusqlite::types::Value;
+use rusqlite::{OptionalExtension, Transaction, params_from_iter};
+
+use crate::domain::{
+    AssetLocationView, CatalogCursor, GalleryQuery, GallerySortDirection, GallerySortKey,
+    GalleryTimeAnchor, ScanError,
+};
+
+use super::{
+    database_error, natural_name_key, normalize_relative_folder, read_stored_asset, sqlite_integer,
+    stored_asset_view,
+};
+
+pub(super) struct BuiltGalleryQuery {
+    pub(super) sql: String,
+    pub(super) parameters: Vec<Value>,
+}
+
+struct GalleryOrderExpressions {
+    missing: &'static str,
+    text: &'static str,
+    number: &'static str,
+    month: Option<&'static str>,
+}
+
+pub(super) fn validate_gallery_query(query: &GalleryQuery) -> Result<(), ScanError> {
+    if query.search_text.chars().count() > 512 {
+        return Err(ScanError::new(
+            "catalog_search_invalid",
+            "Gallery search text cannot exceed 512 characters",
+        ));
+    }
+    if query.folder_relative_path.is_some() && query.root_id.is_none() {
+        return Err(ScanError::new(
+            "catalog_source_scope_invalid",
+            "A folder scope requires a library root",
+        ));
+    }
+    if let Some(folder) = &query.folder_relative_path {
+        let normalized = normalize_relative_folder(folder);
+        if normalized.is_empty()
+            || normalized.starts_with('/')
+            || normalized.split('/').any(|component| component == "..")
+        {
+            return Err(ScanError::new(
+                "catalog_source_scope_invalid",
+                "A folder scope must stay inside its library root",
+            ));
+        }
+    }
+    Ok(())
+}
+
+pub(super) fn build_gallery_asset_query(
+    query: &GalleryQuery,
+    after: Option<&CatalogCursor>,
+    before: Option<&CatalogCursor>,
+    anchor: Option<&GalleryTimeAnchor>,
+    sql_limit: i64,
+) -> Result<BuiltGalleryQuery, ScanError> {
+    let order = gallery_order_expressions(&query.sort_key);
+    let is_backward = before.is_some();
+    let primary_direction = gallery_window_direction_sql(&query.sort_direction, is_backward);
+    let missing_direction = if is_backward { "DESC" } else { "ASC" };
+    let tie_direction = if is_backward { "DESC" } else { "ASC" };
+    let mut clauses = Vec::new();
+    let mut parameters = Vec::new();
+    push_gallery_filters(query, &mut clauses, &mut parameters);
+    if let Some(anchor) = anchor {
+        push_time_anchor_filter(query, anchor, &order, &mut clauses, &mut parameters)?;
+    }
+    if let Some(cursor) = after {
+        push_cursor_filter(
+            cursor,
+            &order,
+            &query.sort_direction,
+            false,
+            &mut clauses,
+            &mut parameters,
+        );
+    }
+    if let Some(cursor) = before {
+        push_cursor_filter(
+            cursor,
+            &order,
+            &query.sort_direction,
+            true,
+            &mut clauses,
+            &mut parameters,
+        );
+    }
+    let where_clause = if clauses.is_empty() {
+        String::new()
+    } else {
+        format!("WHERE {}", clauses.join(" AND "))
+    };
+    parameters.push(Value::Integer(sql_limit));
+    Ok(BuiltGalleryQuery {
+        sql: format!(
+            "SELECT locations.asset_id, locations.location_id, locations.root_id,
+                    locations.absolute_path, locations.relative_path,
+                    locations.preview_path, locations.file_size,
+                    locations.created_unix_ms, locations.modified_unix_ms,
+                    locations.width, locations.height,
+                    locations.preview_status, locations.preview_issue_code,
+                    locations.preview_issue_message, locations.metadata_engine_id,
+                    locations.metadata_engine_version, locations.capture_local_time,
+                    locations.capture_offset_minutes, locations.capture_time_source,
+                    locations.capture_raw_value, locations.file_identity_scheme,
+                    locations.file_identity_value
+             FROM library_roots AS roots
+             JOIN asset_locations AS locations
+               ON locations.scan_id = roots.active_scan_id
+             {where_clause}
+             ORDER BY {missing} {missing_direction},
+                      {text} {primary_direction}, {number} {primary_direction},
+                      locations.root_id {tie_direction},
+                      locations.location_id {tie_direction}
+             LIMIT ?",
+            missing = order.missing,
+            text = order.text,
+            number = order.number,
+            missing_direction = missing_direction,
+            primary_direction = primary_direction,
+            tie_direction = tie_direction,
+        ),
+        parameters,
+    })
+}
+
+pub(super) fn resolve_gallery_anchor_cursor(
+    transaction: &Transaction<'_>,
+    revision: u64,
+    query: &GalleryQuery,
+    query_id: &str,
+    anchor: &GalleryTimeAnchor,
+) -> Result<CatalogCursor, ScanError> {
+    let order = gallery_order_expressions(&query.sort_key);
+    let Some(month_expression) = order.month else {
+        return Err(ScanError::new(
+            "catalog_time_anchor_unavailable",
+            "Name-sorted gallery results do not have a chronological time anchor",
+        ));
+    };
+    let mut clauses = Vec::new();
+    let mut parameters = Vec::new();
+    push_gallery_filters(query, &mut clauses, &mut parameters);
+    match &anchor.month_key {
+        Some(month_key) => {
+            validate_month_key_text(month_key)?;
+            clauses.push(format!("{month_expression} = ?"));
+            parameters.push(Value::Text(month_key.clone()));
+        }
+        None if matches!(query.sort_key, GallerySortKey::ModifiedTime) => {
+            return Err(ScanError::new(
+                "catalog_time_anchor_invalid",
+                "Modification-time results do not contain an unknown-date section",
+            ));
+        }
+        None => clauses.push(format!("{month_expression} IS NULL")),
+    }
+    let preceding_offset = sqlite_integer(
+        anchor.item_offset.saturating_sub(1),
+        "gallery time-anchor item offset",
+    )?;
+    parameters.push(Value::Integer(preceding_offset));
+    let direction = gallery_direction_sql(&query.sort_direction);
+    let sql = format!(
+        "SELECT locations.asset_id, locations.location_id, locations.root_id,
+                locations.absolute_path, locations.relative_path,
+                locations.preview_path, locations.file_size,
+                locations.created_unix_ms, locations.modified_unix_ms,
+                locations.width, locations.height,
+                locations.preview_status, locations.preview_issue_code,
+                locations.preview_issue_message, locations.metadata_engine_id,
+                locations.metadata_engine_version, locations.capture_local_time,
+                locations.capture_offset_minutes, locations.capture_time_source,
+                locations.capture_raw_value, locations.file_identity_scheme,
+                locations.file_identity_value
+         FROM library_roots AS roots
+         JOIN asset_locations AS locations
+           ON locations.scan_id = roots.active_scan_id
+         WHERE {where_clause}
+         ORDER BY {missing}, {text} {direction}, {number} {direction},
+                  locations.root_id, locations.location_id
+         LIMIT 1 OFFSET ?",
+        where_clause = clauses.join(" AND "),
+        missing = order.missing,
+        text = order.text,
+        number = order.number,
+    );
+    let mut statement = transaction.prepare(&sql).map_err(database_error)?;
+    let stored = statement
+        .query_row(params_from_iter(parameters.iter()), read_stored_asset)
+        .optional()
+        .map_err(database_error)?
+        .ok_or_else(|| {
+            ScanError::new(
+                "catalog_time_anchor_invalid",
+                "The selected position is outside its gallery time bucket",
+            )
+        })?;
+    let asset = stored_asset_view(stored)?;
+    Ok(gallery_cursor_for_asset(revision, query_id, query, &asset))
+}
+
+pub(super) fn build_gallery_timeline_query(query: &GalleryQuery) -> BuiltGalleryQuery {
+    let order = gallery_order_expressions(&query.sort_key);
+    let mut clauses = Vec::new();
+    let mut parameters = Vec::new();
+    push_gallery_filters(query, &mut clauses, &mut parameters);
+    let where_clause = if clauses.is_empty() {
+        String::new()
+    } else {
+        format!("WHERE {}", clauses.join(" AND "))
+    };
+    let month = order.month.unwrap_or("NULL");
+    let direction = gallery_direction_sql(&query.sort_direction);
+    BuiltGalleryQuery {
+        sql: format!(
+            "SELECT {month} AS month_key,
+                    COUNT(*),
+                    SUM(
+                      CASE
+                        WHEN locations.width <= 0 OR locations.height <= 0 THEN 1000
+                        WHEN locations.width * 5 < locations.height THEN 200
+                        WHEN locations.width > locations.height * 5 THEN 5000
+                        ELSE (locations.width * 1000) / locations.height
+                      END
+                    ) AS aspect_ratio_milli_sum
+             FROM library_roots AS roots
+             JOIN asset_locations AS locations
+               ON locations.scan_id = roots.active_scan_id
+             {where_clause}
+             GROUP BY {month}
+             ORDER BY (month_key IS NULL), month_key {direction}",
+        ),
+        parameters,
+    }
+}
+
+pub(super) fn gallery_cursor_for_asset(
+    revision: u64,
+    query_id: &str,
+    query: &GalleryQuery,
+    asset: &AssetLocationView,
+) -> CatalogCursor {
+    let (primary_missing, primary_text, primary_number) = match query.sort_key {
+        GallerySortKey::CaptureTime => (
+            asset.capture_time.is_none(),
+            asset
+                .capture_time
+                .as_ref()
+                .map(|capture| capture.local_time.clone())
+                .unwrap_or_default(),
+            asset.modified_unix_ms,
+        ),
+        GallerySortKey::CreatedTime => (
+            asset.created_unix_ms.is_none(),
+            String::new(),
+            asset.created_unix_ms.unwrap_or_default(),
+        ),
+        GallerySortKey::ModifiedTime => (false, String::new(), asset.modified_unix_ms),
+        GallerySortKey::FileName => (false, natural_name_key(&asset.relative_path), 0),
+    };
+    CatalogCursor {
+        revision,
+        query_id: query_id.to_owned(),
+        primary_missing,
+        primary_text,
+        primary_number,
+        root_id: asset.root_id.clone(),
+        location_id: asset.location_id.clone(),
+    }
+}
+
+fn gallery_order_expressions(sort_key: &GallerySortKey) -> GalleryOrderExpressions {
+    match sort_key {
+        GallerySortKey::CaptureTime => GalleryOrderExpressions {
+            missing: "(locations.capture_local_time IS NULL)",
+            text: "IFNULL(locations.capture_local_time, '')",
+            number: "locations.modified_unix_ms",
+            month: Some(
+                "CASE WHEN locations.capture_local_time IS NULL THEN NULL \
+                 ELSE substr(locations.capture_local_time, 1, 7) END",
+            ),
+        },
+        GallerySortKey::CreatedTime => GalleryOrderExpressions {
+            missing: "(locations.created_unix_ms IS NULL)",
+            text: "CAST('' AS TEXT)",
+            number: "IFNULL(locations.created_unix_ms, 0)",
+            month: Some(
+                "CASE WHEN locations.created_unix_ms IS NULL THEN NULL \
+                 ELSE strftime('%Y-%m', locations.created_unix_ms / 1000, 'unixepoch', 'localtime') END",
+            ),
+        },
+        GallerySortKey::ModifiedTime => GalleryOrderExpressions {
+            missing: "CAST(0 AS INTEGER)",
+            text: "CAST('' AS TEXT)",
+            number: "locations.modified_unix_ms",
+            month: Some(
+                "strftime('%Y-%m', locations.modified_unix_ms / 1000, 'unixepoch', 'localtime')",
+            ),
+        },
+        GallerySortKey::FileName => GalleryOrderExpressions {
+            missing: "CAST(0 AS INTEGER)",
+            text: "locations.natural_name_key",
+            number: "CAST(0 AS INTEGER)",
+            month: None,
+        },
+    }
+}
+
+fn gallery_direction_sql(direction: &GallerySortDirection) -> &'static str {
+    match direction {
+        GallerySortDirection::Ascending => "ASC",
+        GallerySortDirection::Descending => "DESC",
+    }
+}
+
+fn gallery_window_direction_sql(
+    direction: &GallerySortDirection,
+    is_backward: bool,
+) -> &'static str {
+    match (direction, is_backward) {
+        (GallerySortDirection::Ascending, false) | (GallerySortDirection::Descending, true) => {
+            "ASC"
+        }
+        (GallerySortDirection::Descending, false) | (GallerySortDirection::Ascending, true) => {
+            "DESC"
+        }
+    }
+}
+
+fn gallery_cursor_comparison(direction: &GallerySortDirection, is_backward: bool) -> &'static str {
+    match (direction, is_backward) {
+        (GallerySortDirection::Ascending, false) | (GallerySortDirection::Descending, true) => ">",
+        (GallerySortDirection::Descending, false) | (GallerySortDirection::Ascending, true) => "<",
+    }
+}
+
+fn push_gallery_filters(
+    query: &GalleryQuery,
+    clauses: &mut Vec<String>,
+    parameters: &mut Vec<Value>,
+) {
+    if let Some(root_id) = &query.root_id {
+        clauses.push("locations.root_id = ?".to_owned());
+        parameters.push(Value::Text(root_id.clone()));
+    }
+    if let Some(folder) = &query.folder_relative_path {
+        let folder = normalize_relative_folder(folder);
+        if query.include_descendants {
+            clauses.push(
+                "(locations.parent_relative_path = ? OR \
+                 substr(locations.parent_relative_path, 1, length(?) + 1) = ? || '/')"
+                    .to_owned(),
+            );
+            parameters.extend([
+                Value::Text(folder.clone()),
+                Value::Text(folder.clone()),
+                Value::Text(folder),
+            ]);
+        } else {
+            clauses.push("locations.parent_relative_path = ?".to_owned());
+            parameters.push(Value::Text(folder));
+        }
+    }
+    let search = query.search_text.trim();
+    if !search.is_empty() {
+        clauses.push(
+            "(instr(lower(locations.absolute_path), lower(?)) > 0 OR \
+             instr(lower(locations.relative_path), lower(?)) > 0)"
+                .to_owned(),
+        );
+        parameters.extend([
+            Value::Text(search.to_owned()),
+            Value::Text(search.to_owned()),
+        ]);
+    }
+}
+
+fn push_time_anchor_filter(
+    query: &GalleryQuery,
+    anchor: &GalleryTimeAnchor,
+    order: &GalleryOrderExpressions,
+    clauses: &mut Vec<String>,
+    parameters: &mut Vec<Value>,
+) -> Result<(), ScanError> {
+    let Some(month_expression) = order.month else {
+        return Err(ScanError::new(
+            "catalog_time_anchor_unavailable",
+            "Name-sorted gallery results do not have a chronological time anchor",
+        ));
+    };
+    match &anchor.month_key {
+        Some(month_key) => {
+            validate_month_key_text(month_key)?;
+            let comparison = gallery_cursor_comparison(&query.sort_direction, false);
+            clauses.push(format!(
+                "({month_expression} IS NULL OR {month_expression} {comparison}= ?)"
+            ));
+            parameters.push(Value::Text(month_key.clone()));
+        }
+        None if matches!(query.sort_key, GallerySortKey::ModifiedTime) => {
+            return Err(ScanError::new(
+                "catalog_time_anchor_invalid",
+                "Modification-time results do not contain an unknown-date section",
+            ));
+        }
+        None => clauses.push(format!("{month_expression} IS NULL")),
+    }
+    Ok(())
+}
+
+fn push_cursor_filter(
+    cursor: &CatalogCursor,
+    order: &GalleryOrderExpressions,
+    direction: &GallerySortDirection,
+    is_backward: bool,
+    clauses: &mut Vec<String>,
+    parameters: &mut Vec<Value>,
+) {
+    let primary_comparison = gallery_cursor_comparison(direction, is_backward);
+    let missing_comparison = if is_backward { "<" } else { ">" };
+    let tie_comparison = if is_backward { "<" } else { ">" };
+    clauses.push(format!(
+        "(
+          {missing} {missing_comparison} ?
+          OR ({missing} = ? AND {text} {primary_comparison} ?)
+          OR ({missing} = ? AND {text} = ? AND {number} {primary_comparison} ?)
+          OR ({missing} = ? AND {text} = ? AND {number} = ?
+              AND locations.root_id {tie_comparison} ?)
+          OR ({missing} = ? AND {text} = ? AND {number} = ?
+              AND locations.root_id = ? AND locations.location_id {tie_comparison} ?)
+        )",
+        missing = order.missing,
+        text = order.text,
+        number = order.number,
+        missing_comparison = missing_comparison,
+        primary_comparison = primary_comparison,
+        tie_comparison = tie_comparison,
+    ));
+    let missing = Value::Integer(i64::from(cursor.primary_missing));
+    let text = Value::Text(cursor.primary_text.clone());
+    let number = Value::Integer(cursor.primary_number);
+    let root = Value::Text(cursor.root_id.clone());
+    parameters.extend([
+        missing.clone(),
+        missing.clone(),
+        text.clone(),
+        missing.clone(),
+        text.clone(),
+        number.clone(),
+        missing.clone(),
+        text.clone(),
+        number.clone(),
+        root.clone(),
+        missing,
+        text,
+        number,
+        root,
+        Value::Text(cursor.location_id.clone()),
+    ]);
+}
+
+fn validate_month_key_text(month_key: &str) -> Result<(), ScanError> {
+    let bytes = month_key.as_bytes();
+    let valid_shape = bytes.len() == 7
+        && bytes[4] == b'-'
+        && bytes[..4].iter().all(u8::is_ascii_digit)
+        && bytes[5..].iter().all(u8::is_ascii_digit);
+    let month = valid_shape
+        .then(|| month_key[5..].parse::<u8>().ok())
+        .flatten();
+    if matches!(month, Some(1..=12)) {
+        return Ok(());
+    }
+    Err(ScanError::new(
+        "catalog_time_anchor_invalid",
+        "A gallery month anchor must use YYYY-MM with a month from 01 through 12",
+    ))
+}
