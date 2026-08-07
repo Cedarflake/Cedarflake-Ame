@@ -84,7 +84,7 @@ function(apply_cargokit target manifest_dir lib_name any_symbol_name)
         # target depend on it
         add_custom_target(
             "${target}_cargokit"
-            DEPENDS ${OUTPUT_LIB}
+            DEPENDS ${OUTPUT_LIB} "${CMAKE_CURRENT_BINARY_DIR}/_phony_"
         )
         add_dependencies("${target}" "${target}_cargokit")
         target_link_libraries("${target}" PRIVATE "${OUTPUT_LIB}${IMPORT_LIB_EXTENSION}")
@@ -96,7 +96,7 @@ function(apply_cargokit target manifest_dir lib_name any_symbol_name)
         add_custom_target(
             "${target}_cargokit"
             ALL
-            DEPENDS ${OUTPUT_LIB}
+            DEPENDS ${OUTPUT_LIB} "${CMAKE_CURRENT_BINARY_DIR}/_phony_"
         )
     endif()
 

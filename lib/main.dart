@@ -1,18 +1,18 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "adapters/rust_library_loader.dart";
 import "app/ame_app.dart";
 import "features/library/application/library_catalog.dart";
 import "features/library/application/library_controller.dart";
 import "features/library/domain/library_models.dart";
 import "features/library/domain/library_state.dart";
-import "src/rust/frb_generated.dart";
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    await RustLib.init();
+    await initializeRustLibrary();
     const catalog = RustLibraryCatalog();
     const query = LibraryGalleryQuery();
     final snapshot = await catalog.load(
