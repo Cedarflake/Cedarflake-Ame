@@ -199,9 +199,9 @@ class _LibraryImageViewerState extends State<LibraryImageViewer> {
     );
     final sceneCenter = _transformationController.toScene(viewportCenter);
     _transformationController.value = Matrix4.identity()
-      ..translate(viewportCenter.dx, viewportCenter.dy)
-      ..scale(nextScale)
-      ..translate(-sceneCenter.dx, -sceneCenter.dy);
+      ..translateByDouble(viewportCenter.dx, viewportCenter.dy, 0, 1)
+      ..scaleByDouble(nextScale, nextScale, nextScale, 1)
+      ..translateByDouble(-sceneCenter.dx, -sceneCenter.dy, 0, 1);
   }
 
   double _sliderValueForScale(double scale) {
