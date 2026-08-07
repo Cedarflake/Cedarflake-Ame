@@ -51,11 +51,16 @@ try {
         throw "Packaged Rust library is older than the current Rust bridge sources"
     }
 
-    $releaseProcess = Start-Process `
-        -FilePath $releaseExecutable `
-        -WorkingDirectory $repositoryRoot `
-        -WindowStyle Hidden `
-        -PassThru
+    $releaseStartInfo = [System.Diagnostics.ProcessStartInfo]::new()
+    $releaseStartInfo.FileName = $releaseExecutable
+    $releaseStartInfo.WorkingDirectory = $repositoryRoot
+    $releaseStartInfo.UseShellExecute = $false
+    $releaseStartInfo.CreateNoWindow = $true
+    $releaseStartInfo.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden
+    $releaseProcess = [System.Diagnostics.Process]::Start($releaseStartInfo)
+    if ($null -eq $releaseProcess) {
+        throw "Windows release application process was not created"
+    }
     $loadedRustLibrary = $null
     for ($attempt = 0; $attempt -lt 40; $attempt++) {
         Start-Sleep -Milliseconds 250
