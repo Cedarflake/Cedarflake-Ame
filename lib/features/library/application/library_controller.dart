@@ -1,5 +1,4 @@
 import "dart:async";
-import "dart:collection";
 
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
@@ -7,35 +6,38 @@ import "../../../adapters/directory_picker.dart";
 import "../domain/library_models.dart";
 import "../domain/library_state.dart";
 import "library_catalog.dart";
+import "library_preview_queue.dart";
 import "library_previewer.dart";
+import "library_scan_session.dart";
 import "library_scanner.dart";
 
 const _previewEdge = 512;
-const _recentIssueLimit = 20;
 const _maxActivePreviews = 2;
 
 class LibraryController extends Notifier<LibraryState> {
   StreamSubscription<LibraryScanUpdate>? _subscription;
   int _scanSequence = 0;
-  String? _activeScanId;
-  RecoverableLibraryScan? _activeScan;
-  RecoverableLibraryScan? _pausedScan;
-  final Queue<LibraryAsset> _previewQueue = Queue();
-  final Set<String> _queuedPreviewIds = {};
-  final Set<String> _activePreviewIds = {};
+  final LibraryScanSession _scanSession = LibraryScanSession();
+  LibraryPreviewQueue? _previewQueue;
   bool _isDisposed = false;
+
+  LibraryPreviewQueue get _previews => _previewQueue ??= LibraryPreviewQueue(
+    previewer: ref.read(libraryPreviewerProvider),
+    previewEdge: _previewEdge,
+    maxActive: _maxActivePreviews,
+    onResult: _replaceAsset,
+  );
 
   @override
   LibraryState build() {
     final scanner = ref.read(libraryScannerProvider);
     ref.onDispose(() {
       _isDisposed = true;
-      final scanId = _activeScanId;
+      final scanId = _scanSession.activeScanId;
       if (scanId != null) {
         scanner.cancel(scanId);
       }
-      _previewQueue.clear();
-      _queuedPreviewIds.clear();
+      _previewQueue?.dispose();
       unawaited(_subscription?.cancel());
     });
     Future<void>.microtask(_resumeInterruptedScanIfAvailable);
@@ -97,17 +99,17 @@ class LibraryController extends Notifier<LibraryState> {
     bool isResuming = false,
   }) async {
     await _subscription?.cancel();
-    _activeScanId = scanId;
-    _pausedScan = null;
-    _activeScan = RecoverableLibraryScan(
-      scanId: scanId,
-      rootPath: rootPath,
-      itemLimit: itemLimit,
-      entryLimit: entryLimit,
-      previewEdge: previewEdge,
-      visitedEntries: visitedEntries,
-      acceptedItems: acceptedItems,
-      issueCount: issueCount,
+    _scanSession.begin(
+      RecoverableLibraryScan(
+        scanId: scanId,
+        rootPath: rootPath,
+        itemLimit: itemLimit,
+        entryLimit: entryLimit,
+        previewEdge: previewEdge,
+        visitedEntries: visitedEntries,
+        acceptedItems: acceptedItems,
+        issueCount: issueCount,
+      ),
     );
 
     state = state.copyWith(
@@ -165,7 +167,7 @@ class LibraryController extends Notifier<LibraryState> {
   }
 
   Future<void> resumePausedScan() async {
-    final pausedScan = _pausedScan;
+    final pausedScan = _scanSession.pausedScan;
     if (pausedScan != null && state.status == LibraryStatus.paused) {
       await _resumeScan(pausedScan);
     }
@@ -216,8 +218,7 @@ class LibraryController extends Notifier<LibraryState> {
       return false;
     }
     final requestSequence = ++_scanSequence;
-    _previewQueue.clear();
-    _queuedPreviewIds.clear();
+    _previewQueue?.clearPending();
     state = state.copyWith(
       status: LibraryStatus.refreshing,
       query: normalized,
@@ -452,8 +453,7 @@ class LibraryController extends Notifier<LibraryState> {
           message: "The catalog changed while navigating the timeline",
         );
       }
-      _previewQueue.clear();
-      _queuedPreviewIds.clear();
+      _previewQueue?.clearPending();
       state = state.copyWith(
         roots: snapshot.roots,
         assets: snapshot.assets,
@@ -547,64 +547,11 @@ class LibraryController extends Notifier<LibraryState> {
   }
 
   void requestPreview(LibraryAsset asset, {bool retry = false}) {
-    if (_isDisposed || asset.previewStatus == LibraryPreviewStatus.ready) {
-      return;
-    }
-    if (asset.previewStatus == LibraryPreviewStatus.failed && !retry) {
-      return;
-    }
-    if (_queuedPreviewIds.contains(asset.locationId) ||
-        _activePreviewIds.contains(asset.locationId)) {
-      return;
-    }
-    _previewQueue.addLast(asset);
-    _queuedPreviewIds.add(asset.locationId);
-    _drainPreviewQueue();
+    _previews.request(asset, retry: retry);
   }
 
   void cancelPreview(String locationId) {
-    if (!_queuedPreviewIds.remove(locationId)) {
-      return;
-    }
-    _previewQueue.removeWhere((asset) => asset.locationId == locationId);
-  }
-
-  void _drainPreviewQueue() {
-    while (!_isDisposed &&
-        _activePreviewIds.length < _maxActivePreviews &&
-        _previewQueue.isNotEmpty) {
-      final asset = _previewQueue.removeFirst();
-      _queuedPreviewIds.remove(asset.locationId);
-      _activePreviewIds.add(asset.locationId);
-      unawaited(_loadPreview(asset));
-    }
-  }
-
-  Future<void> _loadPreview(LibraryAsset asset) async {
-    try {
-      final previewed = await ref
-          .read(libraryPreviewerProvider)
-          .materialize(locationId: asset.locationId, previewEdge: _previewEdge);
-      if (!_isDisposed) {
-        _replaceAsset(previewed);
-      }
-    } on Object catch (error) {
-      if (!_isDisposed) {
-        _replaceAsset(
-          asset.withPreview(
-            previewPath: asset.previewPath,
-            width: asset.width,
-            height: asset.height,
-            previewStatus: LibraryPreviewStatus.failed,
-            previewIssueCode: "preview_request_failed",
-            previewIssueMessage: error.toString(),
-          ),
-        );
-      }
-    } finally {
-      _activePreviewIds.remove(asset.locationId);
-      _drainPreviewQueue();
-    }
+    _previewQueue?.cancel(locationId);
   }
 
   void _replaceAsset(LibraryAsset replacement) {
@@ -620,134 +567,19 @@ class LibraryController extends Notifier<LibraryState> {
   }
 
   void _handleUpdate(LibraryScanUpdate update) {
-    switch (update) {
-      case LibraryScanStarted(
-        :final scanId,
-        :final rootPath,
-        :final itemLimit,
-        :final entryLimit,
-      ):
-        _activeScanId = scanId;
-        state = state.copyWith(
-          status: LibraryStatus.scanning,
-          scanId: scanId,
-          rootPath: rootPath,
-          itemLimit: itemLimit,
-          entryLimit: entryLimit,
-        );
-      case LibraryScanProgress(
-        :final visitedEntries,
-        :final acceptedItems,
-        :final issueCount,
-      ):
-        _updateActiveProgress(
-          visitedEntries: visitedEntries,
-          acceptedItems: acceptedItems,
-          issueCount: issueCount,
-        );
-        state = state.copyWith(
-          visitedEntries: visitedEntries,
-          stagedAssetCount: acceptedItems,
-          issueCount: issueCount,
-        );
-      case LibraryAssetDiscovered():
-        state = state.copyWith(
-          stagedAssetCount: state.stagedAssetCount + 1,
-          visitedEntries: state.visitedEntries + 1,
-        );
-      case LibraryIssueDiscovered(:final issue):
-        final issues = [...state.recentIssues, issue];
-        state = state.copyWith(
-          issueCount: state.issueCount + 1,
-          recentIssues: List.unmodifiable(
-            issues.length > _recentIssueLimit
-                ? issues.sublist(issues.length - _recentIssueLimit)
-                : issues,
-          ),
-        );
-      case LibraryScanCompleted(
-        :final issueCount,
-        :final catalogPath,
-        :final wasLimited,
-      ):
-        _activeScanId = null;
-        _activeScan = null;
-        state = state.copyWith(
-          status: LibraryStatus.refreshing,
-          issueCount: issueCount,
-          catalogPath: catalogPath,
-          isScanLimited: wasLimited,
-          isResumingScan: false,
-        );
-        unawaited(_reloadPublishedCatalog(_scanSequence));
-      case LibraryScanCancelled(:final issueCount):
-        _activeScanId = null;
-        _activeScan = null;
-        state = state.copyWith(
-          status: LibraryStatus.cancelled,
-          issueCount: issueCount,
-          isResumingScan: false,
-        );
-      case LibraryScanPaused(
-        :final visitedEntries,
-        :final acceptedItems,
-        :final issueCount,
-      ):
-        final activeScan = _activeScan;
-        _activeScanId = null;
-        _activeScan = null;
-        if (activeScan != null) {
-          _pausedScan = RecoverableLibraryScan(
-            scanId: activeScan.scanId,
-            rootPath: activeScan.rootPath,
-            itemLimit: activeScan.itemLimit,
-            entryLimit: activeScan.entryLimit,
-            previewEdge: activeScan.previewEdge,
-            visitedEntries: visitedEntries,
-            acceptedItems: acceptedItems,
-            issueCount: issueCount,
-          );
-        }
-        state = state.copyWith(
-          status: LibraryStatus.paused,
-          visitedEntries: visitedEntries,
-          stagedAssetCount: acceptedItems,
-          issueCount: issueCount,
-          isResumingScan: false,
-        );
-      case LibraryScanStale(:final issueCount):
-        _activeScanId = null;
-        _activeScan = null;
-        state = state.copyWith(
-          status: LibraryStatus.stale,
-          issueCount: issueCount,
-          isResumingScan: false,
-        );
+    final transition = _scanSession.apply(state, update);
+    state = transition.state;
+    if (transition.shouldReloadCatalog) {
+      unawaited(_reloadPublishedCatalog(_scanSequence));
     }
   }
 
   void _handleError(Object error, StackTrace stackTrace) {
-    _activeScanId = null;
-    _activeScan = null;
-    state = state.copyWith(
-      status: LibraryStatus.failed,
-      isResumingScan: false,
-      errorMessage: error.toString(),
-    );
+    state = _scanSession.fail(state, error);
   }
 
   void _handleDone() {
-    if (state.status == LibraryStatus.scanning ||
-        state.status == LibraryStatus.pausing ||
-        state.status == LibraryStatus.cancelling) {
-      _activeScanId = null;
-      _activeScan = null;
-      state = state.copyWith(
-        status: LibraryStatus.failed,
-        isResumingScan: false,
-        errorMessage: "The scan ended without a completion event",
-      );
-    }
+    state = _scanSession.finish(state);
   }
 
   Future<void> _reloadPublishedCatalog(int scanSequence) async {
@@ -780,7 +612,7 @@ class LibraryController extends Notifier<LibraryState> {
       if (_isDisposed || paused == null || state.isBusy) {
         return;
       }
-      _pausedScan = paused;
+      _scanSession.restorePaused(paused);
       state = state.copyWith(
         status: LibraryStatus.paused,
         scanId: paused.scanId,
@@ -815,27 +647,6 @@ class LibraryController extends Notifier<LibraryState> {
       acceptedItems: scan.acceptedItems,
       issueCount: scan.issueCount,
       isResuming: true,
-    );
-  }
-
-  void _updateActiveProgress({
-    required int visitedEntries,
-    required int acceptedItems,
-    required int issueCount,
-  }) {
-    final activeScan = _activeScan;
-    if (activeScan == null) {
-      return;
-    }
-    _activeScan = RecoverableLibraryScan(
-      scanId: activeScan.scanId,
-      rootPath: activeScan.rootPath,
-      itemLimit: activeScan.itemLimit,
-      entryLimit: activeScan.entryLimit,
-      previewEdge: activeScan.previewEdge,
-      visitedEntries: visitedEntries,
-      acceptedItems: acceptedItems,
-      issueCount: issueCount,
     );
   }
 
