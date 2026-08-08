@@ -1,8 +1,13 @@
+import "dart:async";
+
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 
+import "../../../../app/ame_menu.dart";
+import "../../../../app/ame_popup_menu_position.dart";
 import "../../domain/library_models.dart";
 import "../library_strings.dart";
+import "library_path_text.dart";
 
 class LibrarySourceNavigationTile extends StatefulWidget {
   const LibrarySourceNavigationTile({
@@ -37,7 +42,6 @@ class LibrarySourceNavigationTile extends StatefulWidget {
 
 class _LibrarySourceNavigationTileState
     extends State<LibrarySourceNavigationTile> {
-  final MenuController _menuController = MenuController();
   final FocusNode _focusNode = FocusNode(debugLabel: "Library source");
 
   @override
@@ -55,29 +59,11 @@ class _LibrarySourceNavigationTileState
       LibraryRootAvailability.inaccessible => Icons.lock_outline,
       LibraryRootAvailability.offline => Icons.cloud_off_outlined,
     };
-    final menuChildren = [
-      MenuItemButton(
-        leadingIcon: const Icon(Icons.refresh),
-        onPressed: widget.isBusy ? null : widget.onUpdate,
-        child: const Text(LibraryStrings.updateLibrary),
-      ),
-      MenuItemButton(
-        leadingIcon: const Icon(Icons.folder_open_outlined),
-        onPressed: widget.onOpen,
-        child: const Text(LibraryStrings.openInExplorer),
-      ),
-      const Divider(height: 1),
-      MenuItemButton(
-        leadingIcon: const Icon(Icons.remove_circle_outline),
-        onPressed: widget.isBusy ? null : widget.onRemove,
-        child: const Text(LibraryStrings.removeFromAme),
-      ),
-    ];
     final tile = widget.isCompact
         ? IconButton(
             focusNode: _focusNode,
             isSelected: widget.isSelected,
-            tooltip: widget.root.path,
+            tooltip: widget.root.displayPath,
             onPressed: widget.isBusy ? null : widget.onSelect,
             icon: Icon(icon),
           )
@@ -85,7 +71,8 @@ class _LibrarySourceNavigationTileState
             focusNode: _focusNode,
             icon: icon,
             iconKey: ValueKey("source-icon-${widget.root.id}"),
-            title: librarySourceName(widget.root.path),
+            title: librarySourceName(widget.root.displayPath),
+            path: widget.root.displayPath,
             titleKey: ValueKey("source-title-${widget.root.id}"),
             subtitle:
                 widget.root.availability == LibraryRootAvailability.available
@@ -109,38 +96,115 @@ class _LibrarySourceNavigationTileState
                           : Icons.keyboard_arrow_down,
                     ),
                   ),
-                  IconButton(
-                    key: ValueKey("source-more-${widget.root.id}"),
-                    tooltip: LibraryStrings.more,
-                    onPressed: _menuController.open,
-                    icon: const Icon(Icons.more_vert),
+                  Builder(
+                    builder: (buttonContext) => IconButton(
+                      key: ValueKey("source-more-${widget.root.id}"),
+                      tooltip: LibraryStrings.more,
+                      onPressed: () {
+                        unawaited(_showMenuBelow(buttonContext));
+                      },
+                      icon: const Icon(Icons.more_vert),
+                    ),
                   ),
                 ],
               ),
             ),
             onTap: widget.isBusy ? null : widget.onSelect,
           );
-    return MenuAnchor(
-      controller: _menuController,
-      childFocusNode: _focusNode,
-      menuChildren: menuChildren,
-      child: CallbackShortcuts(
-        bindings: {
-          const SingleActivator(LogicalKeyboardKey.contextMenu):
-              _menuController.open,
-          const SingleActivator(LogicalKeyboardKey.f10, shift: true):
-              _menuController.open,
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.contextMenu): () {
+          final anchorContext = _focusNode.context;
+          if (anchorContext != null) {
+            unawaited(_showMenuBelow(anchorContext));
+          }
         },
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onSecondaryTapDown: (details) {
-            _focusNode.requestFocus();
-            _menuController.open(position: details.localPosition);
-          },
-          child: tile,
-        ),
+        const SingleActivator(LogicalKeyboardKey.f10, shift: true): () {
+          final anchorContext = _focusNode.context;
+          if (anchorContext != null) {
+            unawaited(_showMenuBelow(anchorContext));
+          }
+        },
+      },
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onSecondaryTapDown: (details) {
+          unawaited(_showMenuAtGlobalPosition(details.globalPosition));
+        },
+        child: tile,
       ),
     );
+  }
+
+  Future<void> _showMenuBelow(BuildContext anchorContext) async {
+    final position = amePopupMenuBelowAnchor(
+      context: context,
+      anchorContext: anchorContext,
+    );
+    if (position != null) {
+      await _showMenu(position);
+    }
+  }
+
+  Future<void> _showMenuAtGlobalPosition(Offset globalPosition) async {
+    _focusNode.requestFocus();
+    final position = amePopupMenuAtGlobalPosition(
+      context: context,
+      globalPosition: globalPosition,
+    );
+    if (position != null) {
+      await _showMenu(position);
+    }
+  }
+
+  Future<void> _showMenu(RelativeRect position) async {
+    const labels = [
+      LibraryStrings.updateLibrary,
+      LibraryStrings.openInExplorer,
+      LibraryStrings.removeFromAme,
+    ];
+    final action = await showAmePopupMenu<_LibrarySourceMenuAction>(
+      context: context,
+      position: position,
+      labels: labels,
+      items: [
+        PopupMenuItem(
+          value: _LibrarySourceMenuAction.update,
+          enabled: !widget.isBusy,
+          child: const AmeMenuItemContent(
+            icon: Icons.refresh,
+            label: LibraryStrings.updateLibrary,
+          ),
+        ),
+        const PopupMenuItem(
+          value: _LibrarySourceMenuAction.open,
+          child: AmeMenuItemContent(
+            icon: Icons.folder_open_outlined,
+            label: LibraryStrings.openInExplorer,
+          ),
+        ),
+        const PopupMenuDivider(height: AmeMenuMetrics.dividerHeight),
+        PopupMenuItem(
+          value: _LibrarySourceMenuAction.remove,
+          enabled: !widget.isBusy,
+          child: const AmeMenuItemContent(
+            icon: Icons.remove_circle_outline,
+            label: LibraryStrings.removeFromAme,
+          ),
+        ),
+      ],
+    );
+    if (!mounted || action == null) {
+      return;
+    }
+    switch (action) {
+      case _LibrarySourceMenuAction.update:
+        widget.onUpdate();
+      case _LibrarySourceMenuAction.open:
+        widget.onOpen();
+      case _LibrarySourceMenuAction.remove:
+        widget.onRemove();
+    }
   }
 
   static String _availabilityLabel(LibraryRootAvailability availability) {
@@ -153,6 +217,8 @@ class _LibrarySourceNavigationTileState
     };
   }
 }
+
+enum _LibrarySourceMenuAction { update, open, remove }
 
 class PendingLibrarySourceTile extends StatelessWidget {
   const PendingLibrarySourceTile({
@@ -193,6 +259,7 @@ class PendingLibrarySourceTile extends StatelessWidget {
       icon: Icons.folder_outlined,
       iconKey: const Key("pending-source-icon"),
       title: librarySourceName(path),
+      path: path,
       titleKey: const Key("pending-source-title"),
       subtitle: "正在添加",
       trailing: const SizedBox(
@@ -217,7 +284,6 @@ class PendingLibrarySourceTile extends StatelessWidget {
 
 String librarySourceName(String path) {
   final segments = path
-      .replaceAll("/", "\\")
       .split("\\")
       .where((segment) => segment.isNotEmpty)
       .toList(growable: false);
@@ -228,6 +294,7 @@ class _ExpandedSourceTile extends StatelessWidget {
   const _ExpandedSourceTile({
     required this.icon,
     required this.title,
+    required this.path,
     required this.trailing,
     this.iconKey,
     this.titleKey,
@@ -241,6 +308,7 @@ class _ExpandedSourceTile extends StatelessWidget {
   final IconData icon;
   final Key? iconKey;
   final String title;
+  final String path;
   final Key? titleKey;
   final String? subtitle;
   final bool isSelected;
@@ -260,12 +328,7 @@ class _ExpandedSourceTile extends StatelessWidget {
       minLeadingWidth: 24,
       horizontalTitleGap: 12,
       leading: SizedBox(key: iconKey, width: 24, child: Icon(icon)),
-      title: Text(
-        title,
-        key: titleKey,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
+      title: LibraryPathText(text: title, path: path, textKey: titleKey),
       subtitle: subtitle == null
           ? null
           : Text(subtitle!, maxLines: 1, overflow: TextOverflow.ellipsis),

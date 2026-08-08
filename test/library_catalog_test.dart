@@ -10,7 +10,8 @@ void main() {
         assetId: "asset-1",
         locationId: "location-1",
         rootId: "root-1",
-        absolutePath: "C:\\Pictures\\capture.jpg",
+        absolutePath: r"\\?\C:\Pictures\capture.jpg",
+        displayPath: "C:\\Pictures\\capture.jpg",
         relativePath: "capture.jpg",
         previewPath: "",
         fileSize: BigInt.from(123),
@@ -34,6 +35,8 @@ void main() {
     );
 
     expect(asset.metadataEngineId, "kamadak-exif");
+    expect(asset.sourcePath, r"\\?\C:\Pictures\capture.jpg");
+    expect(asset.displayPath, r"C:\Pictures\capture.jpg");
     expect(asset.metadataEngineVersion, "0.6.1");
     expect(asset.fileIdentity?.scheme, "windows-file-id-128-v1");
     expect(
@@ -56,6 +59,7 @@ void main() {
         locationId: "location-2",
         rootId: "root-1",
         absolutePath: "C:\\Pictures\\plain.png",
+        displayPath: "C:\\Pictures\\plain.png",
         relativePath: "plain.png",
         previewPath: "",
         fileSize: BigInt.from(42),

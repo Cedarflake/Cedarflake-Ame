@@ -5,6 +5,7 @@ mod preview_cache;
 mod sqlite_catalog;
 mod storage_settings;
 
+pub(crate) use local_files::user_visible_path;
 pub use local_files::{
     FileDiscovery, FileVisitOutcome, inspect_root_availability, revalidate_file_state,
 };

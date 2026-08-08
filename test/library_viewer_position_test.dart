@@ -66,6 +66,7 @@ LibraryState _libraryState() {
         locationId: "location-$index",
         rootId: "root-1",
         sourcePath: "C:\\Pictures\\$index.jpg",
+        displayPath: "C:\\Pictures\\$index.jpg",
         relativePath: "$index.jpg",
         previewPath: "",
         fileSize: BigInt.one,
@@ -84,6 +85,7 @@ LibraryState _libraryState() {
         LibraryRoot(
           id: "root-1",
           path: "C:\\Pictures",
+          displayPath: "C:\\Pictures",
           createdUnixMs: 1,
           assetCount: assets.length,
           issueCount: 0,

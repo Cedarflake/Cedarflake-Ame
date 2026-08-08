@@ -47,7 +47,7 @@ class LibraryScanSession {
           state: state.copyWith(
             status: LibraryStatus.scanning,
             scanId: scanId,
-            rootPath: rootPath,
+            displayRootPath: rootPath,
             itemLimit: itemLimit,
             entryLimit: entryLimit,
           ),
@@ -124,6 +124,7 @@ class LibraryScanSession {
           _pausedScan = RecoverableLibraryScan(
             scanId: activeScan.scanId,
             rootPath: activeScan.rootPath,
+            displayRootPath: activeScan.displayRootPath,
             itemLimit: activeScan.itemLimit,
             entryLimit: activeScan.entryLimit,
             previewEdge: activeScan.previewEdge,
@@ -188,6 +189,7 @@ class LibraryScanSession {
     _activeScan = RecoverableLibraryScan(
       scanId: activeScan.scanId,
       rootPath: activeScan.rootPath,
+      displayRootPath: activeScan.displayRootPath,
       itemLimit: activeScan.itemLimit,
       entryLimit: activeScan.entryLimit,
       previewEdge: activeScan.previewEdge,

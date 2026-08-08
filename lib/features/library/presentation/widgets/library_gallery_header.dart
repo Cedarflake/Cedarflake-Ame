@@ -1,6 +1,7 @@
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 
+import "../../../../app/ame_menu.dart";
 import "../../domain/library_models.dart";
 import "../gallery_view_options.dart";
 import "../library_strings.dart";
@@ -17,9 +18,7 @@ class LibraryGalleryHeader extends StatelessWidget {
     required this.sortDirection,
     required this.onBeginSelection,
     required this.onCancelSelection,
-    required this.onViewSelected,
     required this.onSelectAll,
-    required this.onDeselectAll,
     required this.onLayoutShapeChanged,
     required this.onThumbnailSizeChanged,
     required this.onSortKeyChanged,
@@ -37,9 +36,7 @@ class LibraryGalleryHeader extends StatelessWidget {
   final LibraryGallerySortDirection sortDirection;
   final VoidCallback onBeginSelection;
   final VoidCallback onCancelSelection;
-  final VoidCallback onViewSelected;
   final VoidCallback onSelectAll;
-  final VoidCallback onDeselectAll;
   final ValueChanged<GalleryLayoutShape> onLayoutShapeChanged;
   final ValueChanged<GalleryThumbnailSize> onThumbnailSizeChanged;
   final ValueChanged<LibraryGallerySortKey> onSortKeyChanged;
@@ -49,82 +46,84 @@ class LibraryGalleryHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final title = isSelecting ? "已选择 $selectedCount 个项目" : galleryTitle;
     final subtitle = isSelecting ? galleryTitle : "$totalItems 张图片";
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 104),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(28, 18, 20, 16),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final titleBlock = Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(title, style: Theme.of(context).textTheme.headlineSmall),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  key: const Key("library-summary"),
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            );
-            final toolbar = isSelecting
-                ? _SelectionToolbar(
-                    hasSelection: selectedCount > 0,
-                    onCancel: onCancelSelection,
-                    onView: onViewSelected,
-                  )
-                : _BrowsingToolbar(
-                    hasSelection: selectedCount > 0,
-                    layoutShape: layoutShape,
-                    thumbnailSize: thumbnailSize,
-                    sortKey: sortKey,
-                    sortDirection: sortDirection,
-                    onBeginSelection: onBeginSelection,
-                    onSelectAll: onSelectAll,
-                    onDeselectAll: onDeselectAll,
-                    onLayoutShapeChanged: onLayoutShapeChanged,
-                    onThumbnailSizeChanged: onThumbnailSizeChanged,
-                    onSortKeyChanged: onSortKeyChanged,
-                    onSortDirectionChanged: onSortDirectionChanged,
-                  );
-            if (constraints.maxWidth < 760) {
-              return Column(
+    return SizedBox(
+      key: const Key("library-gallery-header"),
+      width: double.infinity,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 104),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(28, 18, 20, 16),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final titleBlock = Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  titleBlock,
-                  const SizedBox(height: 12),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: toolbar,
+                  Text(
+                    title,
+                    key: const Key("library-gallery-title"),
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    key: const Key("library-summary"),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               );
-            }
-            return Row(
-              children: [
-                titleBlock,
-                const SizedBox(width: 24),
-                Expanded(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    reverse: true,
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        minWidth: constraints.maxWidth - 210,
-                      ),
-                      child: Align(
-                        alignment: Alignment.centerRight,
-                        child: toolbar,
+              final toolbar = isSelecting
+                  ? _SelectionToolbar(onCancel: onCancelSelection)
+                  : _BrowsingToolbar(
+                      layoutShape: layoutShape,
+                      thumbnailSize: thumbnailSize,
+                      sortKey: sortKey,
+                      sortDirection: sortDirection,
+                      onBeginSelection: onBeginSelection,
+                      onSelectAll: onSelectAll,
+                      onLayoutShapeChanged: onLayoutShapeChanged,
+                      onThumbnailSizeChanged: onThumbnailSizeChanged,
+                      onSortKeyChanged: onSortKeyChanged,
+                      onSortDirectionChanged: onSortDirectionChanged,
+                    );
+              if (constraints.maxWidth < 760) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    titleBlock,
+                    const SizedBox(height: 12),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: toolbar,
+                    ),
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  titleBlock,
+                  const SizedBox(width: 24),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      reverse: true,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minWidth: constraints.maxWidth - 210,
+                        ),
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: toolbar,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
-            );
-          },
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
@@ -133,28 +132,24 @@ class LibraryGalleryHeader extends StatelessWidget {
 
 class _BrowsingToolbar extends StatelessWidget {
   const _BrowsingToolbar({
-    required this.hasSelection,
     required this.layoutShape,
     required this.thumbnailSize,
     required this.sortKey,
     required this.sortDirection,
     required this.onBeginSelection,
     required this.onSelectAll,
-    required this.onDeselectAll,
     required this.onLayoutShapeChanged,
     required this.onThumbnailSizeChanged,
     required this.onSortKeyChanged,
     required this.onSortDirectionChanged,
   });
 
-  final bool hasSelection;
   final GalleryLayoutShape layoutShape;
   final GalleryThumbnailSize thumbnailSize;
   final LibraryGallerySortKey sortKey;
   final LibraryGallerySortDirection sortDirection;
   final VoidCallback onBeginSelection;
   final VoidCallback onSelectAll;
-  final VoidCallback onDeselectAll;
   final ValueChanged<GalleryLayoutShape> onLayoutShapeChanged;
   final ValueChanged<GalleryThumbnailSize> onThumbnailSizeChanged;
   final ValueChanged<LibraryGallerySortKey> onSortKeyChanged;
@@ -184,26 +179,16 @@ class _BrowsingToolbar extends StatelessWidget {
           onShapeChanged: onLayoutShapeChanged,
           onSizeChanged: onThumbnailSizeChanged,
         ),
-        _MoreMenu(
-          hasSelection: hasSelection,
-          onSelectAll: onSelectAll,
-          onDeselectAll: onDeselectAll,
-        ),
+        _MoreMenu(onSelectAll: onSelectAll),
       ],
     );
   }
 }
 
 class _SelectionToolbar extends StatelessWidget {
-  const _SelectionToolbar({
-    required this.hasSelection,
-    required this.onCancel,
-    required this.onView,
-  });
+  const _SelectionToolbar({required this.onCancel});
 
-  final bool hasSelection;
   final VoidCallback onCancel;
-  final VoidCallback onView;
 
   @override
   Widget build(BuildContext context) {
@@ -216,11 +201,6 @@ class _SelectionToolbar extends StatelessWidget {
           onPressed: onCancel,
           icon: const Icon(Icons.close),
           label: const Text(LibraryStrings.cancel),
-        ),
-        TextButton.icon(
-          onPressed: hasSelection ? onView : null,
-          icon: const Icon(Icons.open_in_full),
-          label: const Text(LibraryStrings.view),
         ),
       ],
     );
@@ -249,7 +229,7 @@ class _SortMenuState extends State<_SortMenu> {
 
   @override
   Widget build(BuildContext context) {
-    return MenuAnchor(
+    return AmeMenuAnchor(
       controller: _controller,
       menuChildren: [
         _menuChoice(
@@ -280,7 +260,7 @@ class _SortMenuState extends State<_SortMenu> {
           onPressed: () =>
               widget.onSortKeyChanged(LibraryGallerySortKey.fileName),
         ),
-        const Divider(height: 1),
+        const Divider(height: AmeMenuMetrics.dividerHeight),
         _menuChoice(
           label: LibraryStrings.ascending,
           icon: Icons.arrow_upward,
@@ -335,7 +315,7 @@ class _LayoutMenuState extends State<_LayoutMenu> {
 
   @override
   Widget build(BuildContext context) {
-    return MenuAnchor(
+    return AmeMenuAnchor(
       controller: _controller,
       menuChildren: [
         _menuChoice(
@@ -351,7 +331,7 @@ class _LayoutMenuState extends State<_LayoutMenu> {
           isSelected: widget.shape == GalleryLayoutShape.square,
           onPressed: () => widget.onShapeChanged(GalleryLayoutShape.square),
         ),
-        const Divider(height: 1),
+        const Divider(height: AmeMenuMetrics.dividerHeight),
         _menuChoice(
           label: LibraryStrings.small,
           icon: Icons.grid_4x4_outlined,
@@ -388,15 +368,9 @@ class _LayoutMenuState extends State<_LayoutMenu> {
 }
 
 class _MoreMenu extends StatefulWidget {
-  const _MoreMenu({
-    required this.hasSelection,
-    required this.onSelectAll,
-    required this.onDeselectAll,
-  });
+  const _MoreMenu({required this.onSelectAll});
 
-  final bool hasSelection;
   final VoidCallback onSelectAll;
-  final VoidCallback onDeselectAll;
 
   @override
   State<_MoreMenu> createState() => _MoreMenuState();
@@ -407,23 +381,19 @@ class _MoreMenuState extends State<_MoreMenu> {
 
   @override
   Widget build(BuildContext context) {
-    return MenuAnchor(
+    return AmeMenuAnchor(
       controller: _controller,
       menuChildren: [
         MenuItemButton(
-          leadingIcon: const Icon(Icons.select_all),
           shortcut: const SingleActivator(
             LogicalKeyboardKey.keyA,
             control: true,
           ),
           onPressed: widget.onSelectAll,
-          child: const Text(LibraryStrings.selectAll),
-        ),
-        MenuItemButton(
-          leadingIcon: const Icon(Icons.deselect),
-          shortcut: const SingleActivator(LogicalKeyboardKey.escape),
-          onPressed: widget.hasSelection ? widget.onDeselectAll : null,
-          child: const Text(LibraryStrings.deselectAll),
+          child: const AmeMenuItemContent(
+            icon: Icons.select_all,
+            label: LibraryStrings.selectAll,
+          ),
         ),
       ],
       builder: (context, controller, child) => IconButton(
@@ -443,8 +413,10 @@ MenuItemButton _menuChoice({
   required VoidCallback onPressed,
 }) {
   return MenuItemButton(
-    leadingIcon: Icon(isSelected ? Icons.circle : icon, size: 18),
     onPressed: onPressed,
-    child: Text(label),
+    child: AmeMenuItemContent(
+      icon: isSelected ? Icons.circle : icon,
+      label: label,
+    ),
   );
 }

@@ -558,27 +558,28 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   AssetLocationView dco_decode_asset_location_view(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 18)
-      throw Exception('unexpected arr length: expect 18 but see ${arr.length}');
+    if (arr.length != 19)
+      throw Exception('unexpected arr length: expect 19 but see ${arr.length}');
     return AssetLocationView(
       assetId: dco_decode_String(arr[0]),
       locationId: dco_decode_String(arr[1]),
       rootId: dco_decode_String(arr[2]),
       absolutePath: dco_decode_String(arr[3]),
-      relativePath: dco_decode_String(arr[4]),
-      previewPath: dco_decode_String(arr[5]),
-      fileSize: dco_decode_u_64(arr[6]),
-      createdUnixMs: dco_decode_opt_box_autoadd_i_64(arr[7]),
-      modifiedUnixMs: dco_decode_i_64(arr[8]),
-      fileIdentity: dco_decode_opt_box_autoadd_file_identity_evidence(arr[9]),
-      width: dco_decode_u_32(arr[10]),
-      height: dco_decode_u_32(arr[11]),
-      previewStatus: dco_decode_preview_status(arr[12]),
-      previewIssueCode: dco_decode_opt_String(arr[13]),
-      previewIssueMessage: dco_decode_opt_String(arr[14]),
-      metadataEngineId: dco_decode_String(arr[15]),
-      metadataEngineVersion: dco_decode_String(arr[16]),
-      captureTime: dco_decode_opt_box_autoadd_capture_time_evidence(arr[17]),
+      displayPath: dco_decode_String(arr[4]),
+      relativePath: dco_decode_String(arr[5]),
+      previewPath: dco_decode_String(arr[6]),
+      fileSize: dco_decode_u_64(arr[7]),
+      createdUnixMs: dco_decode_opt_box_autoadd_i_64(arr[8]),
+      modifiedUnixMs: dco_decode_i_64(arr[9]),
+      fileIdentity: dco_decode_opt_box_autoadd_file_identity_evidence(arr[10]),
+      width: dco_decode_u_32(arr[11]),
+      height: dco_decode_u_32(arr[12]),
+      previewStatus: dco_decode_preview_status(arr[13]),
+      previewIssueCode: dco_decode_opt_String(arr[14]),
+      previewIssueMessage: dco_decode_opt_String(arr[15]),
+      metadataEngineId: dco_decode_String(arr[16]),
+      metadataEngineVersion: dco_decode_String(arr[17]),
+      captureTime: dco_decode_opt_box_autoadd_capture_time_evidence(arr[18]),
     );
   }
 
@@ -893,17 +894,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   LibraryRootView dco_decode_library_root_view(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 8)
-      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+    if (arr.length != 9)
+      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
     return LibraryRootView(
       rootId: dco_decode_String(arr[0]),
       path: dco_decode_String(arr[1]),
-      activeScanId: dco_decode_opt_String(arr[2]),
-      createdUnixMs: dco_decode_i_64(arr[3]),
-      assetCount: dco_decode_u_64(arr[4]),
-      issueCount: dco_decode_u_64(arr[5]),
-      availability: dco_decode_library_root_availability(arr[6]),
-      availabilityMessage: dco_decode_opt_String(arr[7]),
+      displayPath: dco_decode_String(arr[2]),
+      activeScanId: dco_decode_opt_String(arr[3]),
+      createdUnixMs: dco_decode_i_64(arr[4]),
+      assetCount: dco_decode_u_64(arr[5]),
+      issueCount: dco_decode_u_64(arr[6]),
+      availability: dco_decode_library_root_availability(arr[7]),
+      availabilityMessage: dco_decode_opt_String(arr[8]),
     );
   }
 
@@ -1025,17 +1027,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   RecoverableScan dco_decode_recoverable_scan(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 8)
-      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+    if (arr.length != 9)
+      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
     return RecoverableScan(
       scanId: dco_decode_String(arr[0]),
       rootPath: dco_decode_String(arr[1]),
-      maxItems: dco_decode_opt_box_autoadd_u_32(arr[2]),
-      maxEntries: dco_decode_opt_box_autoadd_u_32(arr[3]),
-      previewEdge: dco_decode_u_32(arr[4]),
-      visitedEntries: dco_decode_u_64(arr[5]),
-      acceptedItems: dco_decode_u_64(arr[6]),
-      issueCount: dco_decode_u_64(arr[7]),
+      displayRootPath: dco_decode_String(arr[2]),
+      maxItems: dco_decode_opt_box_autoadd_u_32(arr[3]),
+      maxEntries: dco_decode_opt_box_autoadd_u_32(arr[4]),
+      previewEdge: dco_decode_u_32(arr[5]),
+      visitedEntries: dco_decode_u_64(arr[6]),
+      acceptedItems: dco_decode_u_64(arr[7]),
+      issueCount: dco_decode_u_64(arr[8]),
     );
   }
 
@@ -1157,18 +1160,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   StorageStatus dco_decode_storage_status(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 9)
-      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
+    if (arr.length != 11)
+      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
     return StorageStatus(
       settingsPath: dco_decode_String(arr[0]),
       activeCatalogPath: dco_decode_String(arr[1]),
       activePreviewRoot: dco_decode_String(arr[2]),
       configuredCatalogPath: dco_decode_String(arr[3]),
       configuredPreviewRoot: dco_decode_String(arr[4]),
-      previewBudgetBytes: dco_decode_u_64(arr[5]),
-      previewUsedBytes: dco_decode_u_64(arr[6]),
-      catalogUsedBytes: dco_decode_u_64(arr[7]),
-      requiresRestart: dco_decode_bool(arr[8]),
+      configuredCatalogDisplayPath: dco_decode_String(arr[5]),
+      configuredPreviewDisplayPath: dco_decode_String(arr[6]),
+      previewBudgetBytes: dco_decode_u_64(arr[7]),
+      previewUsedBytes: dco_decode_u_64(arr[8]),
+      catalogUsedBytes: dco_decode_u_64(arr[9]),
+      requiresRestart: dco_decode_bool(arr[10]),
     );
   }
 
@@ -1227,6 +1232,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_locationId = sse_decode_String(deserializer);
     var var_rootId = sse_decode_String(deserializer);
     var var_absolutePath = sse_decode_String(deserializer);
+    var var_displayPath = sse_decode_String(deserializer);
     var var_relativePath = sse_decode_String(deserializer);
     var var_previewPath = sse_decode_String(deserializer);
     var var_fileSize = sse_decode_u_64(deserializer);
@@ -1250,6 +1256,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       locationId: var_locationId,
       rootId: var_rootId,
       absolutePath: var_absolutePath,
+      displayPath: var_displayPath,
       relativePath: var_relativePath,
       previewPath: var_previewPath,
       fileSize: var_fileSize,
@@ -1638,6 +1645,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_rootId = sse_decode_String(deserializer);
     var var_path = sse_decode_String(deserializer);
+    var var_displayPath = sse_decode_String(deserializer);
     var var_activeScanId = sse_decode_opt_String(deserializer);
     var var_createdUnixMs = sse_decode_i_64(deserializer);
     var var_assetCount = sse_decode_u_64(deserializer);
@@ -1647,6 +1655,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return LibraryRootView(
       rootId: var_rootId,
       path: var_path,
+      displayPath: var_displayPath,
       activeScanId: var_activeScanId,
       createdUnixMs: var_createdUnixMs,
       assetCount: var_assetCount,
@@ -1851,6 +1860,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_scanId = sse_decode_String(deserializer);
     var var_rootPath = sse_decode_String(deserializer);
+    var var_displayRootPath = sse_decode_String(deserializer);
     var var_maxItems = sse_decode_opt_box_autoadd_u_32(deserializer);
     var var_maxEntries = sse_decode_opt_box_autoadd_u_32(deserializer);
     var var_previewEdge = sse_decode_u_32(deserializer);
@@ -1860,6 +1870,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return RecoverableScan(
       scanId: var_scanId,
       rootPath: var_rootPath,
+      displayRootPath: var_displayRootPath,
       maxItems: var_maxItems,
       maxEntries: var_maxEntries,
       previewEdge: var_previewEdge,
@@ -2011,6 +2022,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_activePreviewRoot = sse_decode_String(deserializer);
     var var_configuredCatalogPath = sse_decode_String(deserializer);
     var var_configuredPreviewRoot = sse_decode_String(deserializer);
+    var var_configuredCatalogDisplayPath = sse_decode_String(deserializer);
+    var var_configuredPreviewDisplayPath = sse_decode_String(deserializer);
     var var_previewBudgetBytes = sse_decode_u_64(deserializer);
     var var_previewUsedBytes = sse_decode_u_64(deserializer);
     var var_catalogUsedBytes = sse_decode_u_64(deserializer);
@@ -2021,6 +2034,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       activePreviewRoot: var_activePreviewRoot,
       configuredCatalogPath: var_configuredCatalogPath,
       configuredPreviewRoot: var_configuredPreviewRoot,
+      configuredCatalogDisplayPath: var_configuredCatalogDisplayPath,
+      configuredPreviewDisplayPath: var_configuredPreviewDisplayPath,
       previewBudgetBytes: var_previewBudgetBytes,
       previewUsedBytes: var_previewUsedBytes,
       catalogUsedBytes: var_catalogUsedBytes,
@@ -2093,6 +2108,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.locationId, serializer);
     sse_encode_String(self.rootId, serializer);
     sse_encode_String(self.absolutePath, serializer);
+    sse_encode_String(self.displayPath, serializer);
     sse_encode_String(self.relativePath, serializer);
     sse_encode_String(self.previewPath, serializer);
     sse_encode_u_64(self.fileSize, serializer);
@@ -2448,6 +2464,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.rootId, serializer);
     sse_encode_String(self.path, serializer);
+    sse_encode_String(self.displayPath, serializer);
     sse_encode_opt_String(self.activeScanId, serializer);
     sse_encode_i_64(self.createdUnixMs, serializer);
     sse_encode_u_64(self.assetCount, serializer);
@@ -2646,6 +2663,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.scanId, serializer);
     sse_encode_String(self.rootPath, serializer);
+    sse_encode_String(self.displayRootPath, serializer);
     sse_encode_opt_box_autoadd_u_32(self.maxItems, serializer);
     sse_encode_opt_box_autoadd_u_32(self.maxEntries, serializer);
     sse_encode_u_32(self.previewEdge, serializer);
@@ -2779,6 +2797,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.activePreviewRoot, serializer);
     sse_encode_String(self.configuredCatalogPath, serializer);
     sse_encode_String(self.configuredPreviewRoot, serializer);
+    sse_encode_String(self.configuredCatalogDisplayPath, serializer);
+    sse_encode_String(self.configuredPreviewDisplayPath, serializer);
     sse_encode_u_64(self.previewBudgetBytes, serializer);
     sse_encode_u_64(self.previewUsedBytes, serializer);
     sse_encode_u_64(self.catalogUsedBytes, serializer);

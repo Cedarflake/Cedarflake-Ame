@@ -5,13 +5,15 @@ import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../adapters/windows_library_platform_actions.dart";
+import "../../settings/application/ame_preferences.dart";
+import "../../settings/presentation/ame_settings_page.dart";
 import "../application/library_controller.dart";
 import "../application/library_folder_controller.dart";
+import "../application/library_view_preferences.dart";
 import "../domain/library_folder_models.dart";
 import "../domain/library_models.dart";
 import "../domain/library_state.dart";
 import "gallery_selection.dart";
-import "gallery_view_options.dart";
 import "library_strings.dart";
 import "widgets/library_asset_information_sheet.dart";
 import "widgets/library_gallery_header.dart";
@@ -20,7 +22,9 @@ import "widgets/library_gallery_states.dart";
 import "widgets/library_gallery_wall.dart";
 import "widgets/library_global_bar.dart";
 import "widgets/library_image_viewer.dart";
+import "widgets/library_main_surface.dart";
 import "widgets/library_navigation.dart";
+import "widgets/library_navigation_resize_handle.dart";
 import "widgets/library_task_surface.dart";
 import "widgets/library_time_navigation.dart";
 
@@ -36,12 +40,14 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   final ScrollController _galleryScrollController = ScrollController();
   late final TextEditingController _searchController;
   late GallerySelection _selection;
-  GalleryLayoutShape _layoutShape = GalleryLayoutShape.equalHeight;
-  GalleryThumbnailSize _thumbnailSize = GalleryThumbnailSize.medium;
+  late GalleryLayoutShape _layoutShape;
+  late GalleryThumbnailSize _thumbnailSize;
+  late double _sidebarWidth;
   String? _viewerLocationId;
   bool _isSelecting = false;
   bool _isNavigatingViewer = false;
   bool _isRestoringPreviousWindow = false;
+  _LibraryDestination _destination = _LibraryDestination.gallery;
   LibraryGalleryLayoutMetrics? _galleryLayoutMetrics;
   LibraryGalleryVisiblePosition? _visibleGalleryPosition;
   Timer? _searchDebounce;
@@ -50,8 +56,15 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   void initState() {
     super.initState();
     final state = ref.read(libraryControllerProvider);
+    final viewPreferences = ref.read(initialLibraryViewPreferencesProvider);
+    final amePreferences = ref.read(initialAmePreferencesProvider);
     _searchController = TextEditingController(text: state.query.searchText);
     _selection = GallerySelection.empty(_queryId(state));
+    _layoutShape = viewPreferences.layoutShape;
+    _thumbnailSize = viewPreferences.thumbnailSize;
+    _sidebarWidth = amePreferences.sidebarWidth
+        .clamp(ameMinimumSidebarWidth, ameMaximumSidebarWidth)
+        .toDouble();
   }
 
   @override
@@ -65,6 +78,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(libraryControllerProvider);
+    final amePreferences = ref.watch(amePreferencesControllerProvider);
     final controller = ref.read(libraryControllerProvider.notifier);
     final queryId = _queryId(state);
     if (_selection.queryId != queryId) {
@@ -81,84 +95,92 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
           );
 
     return CallbackShortcuts(
-      bindings: {
-        const SingleActivator(LogicalKeyboardKey.keyA, control: true): () =>
-            _selectAll(state),
-        const SingleActivator(LogicalKeyboardKey.escape): _cancelCurrentMode,
-        const SingleActivator(LogicalKeyboardKey.keyD, control: true):
-            _clearSelection,
-      },
+      bindings: viewerAsset == null
+          ? {
+              const SingleActivator(
+                LogicalKeyboardKey.keyA,
+                control: true,
+              ): () =>
+                  _selectAll(state),
+              const SingleActivator(LogicalKeyboardKey.escape):
+                  _cancelCurrentMode,
+              const SingleActivator(LogicalKeyboardKey.keyD, control: true):
+                  _clearSelection,
+            }
+          : {
+              const SingleActivator(LogicalKeyboardKey.escape):
+                  _cancelCurrentMode,
+            },
       child: Focus(
         autofocus: true,
         child: Scaffold(
-          body: SafeArea(
-            child: Stack(
-              children: [
-                IndexedStack(
-                  index: viewerAsset == null ? 0 : 1,
-                  children: [
-                    Column(
-                      children: [
-                        LibraryGlobalBar(
-                          isBusy: state.isBusy,
-                          searchController: _searchController,
-                          onSearchChanged: _onSearchChanged,
-                          onImport: controller.chooseDirectoryAndScan,
+          backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
+          body: Stack(
+            children: [
+              IndexedStack(
+                index: viewerAsset == null ? 0 : 1,
+                children: [
+                  Column(
+                    children: [
+                      LibraryGlobalBar(
+                        isBusy: state.isBusy,
+                        searchController: _searchController,
+                        onSearchChanged: _onSearchChanged,
+                      ),
+                      Expanded(
+                        child: _buildLibrary(
+                          context,
+                          state,
+                          controller,
+                          amePreferences,
                         ),
-                        Divider(
-                          height: 1,
-                          color: Theme.of(context).colorScheme.outlineVariant,
-                        ),
-                        Expanded(
-                          child: _buildLibrary(context, state, controller),
-                        ),
-                      ],
+                      ),
+                    ],
+                  ),
+                  if (viewerAsset == null)
+                    const SizedBox.shrink()
+                  else
+                    LibraryImageViewer(
+                      asset: viewerAsset,
+                      wheelBehavior: amePreferences.viewerWheelBehavior,
+                      openBehavior: amePreferences.viewerOpenBehavior,
+                      position: viewerIndex < 0
+                          ? null
+                          : state.windowStartItemOffset + viewerIndex + 1,
+                      totalItems: _totalItems(state),
+                      onPrevious:
+                          viewerIndex > 0 ||
+                              (state.hasPreviousAssets && !_isNavigatingViewer)
+                          ? () => unawaited(_openAdjacentAsset(-1))
+                          : null,
+                      onNext:
+                          viewerIndex >= 0 &&
+                              (viewerIndex < state.assets.length - 1 ||
+                                  (state.hasMoreAssets && !_isNavigatingViewer))
+                          ? () => unawaited(_openAdjacentAsset(1))
+                          : null,
+                      onBack: () => setState(() => _viewerLocationId = null),
+                      onInformation: () => _showAssetInformation(viewerAsset),
+                      onCopyPath: () => _copyAssetPath(viewerAsset),
+                      onRevealFile: () => _revealAsset(viewerAsset),
                     ),
-                    if (viewerAsset == null)
-                      const SizedBox.shrink()
-                    else
-                      LibraryImageViewer(
-                        asset: viewerAsset,
-                        position: viewerIndex < 0
-                            ? null
-                            : state.windowStartItemOffset + viewerIndex + 1,
-                        totalItems: _totalItems(state),
-                        onPrevious:
-                            viewerIndex > 0 ||
-                                (state.hasPreviousAssets &&
-                                    !_isNavigatingViewer)
-                            ? () => unawaited(_openAdjacentAsset(-1))
-                            : null,
-                        onNext:
-                            viewerIndex >= 0 &&
-                                (viewerIndex < state.assets.length - 1 ||
-                                    (state.hasMoreAssets &&
-                                        !_isNavigatingViewer))
-                            ? () => unawaited(_openAdjacentAsset(1))
-                            : null,
-                        onBack: () => setState(() => _viewerLocationId = null),
-                        onInformation: () => _showAssetInformation(viewerAsset),
-                        onCopyPath: () => _copyAssetPath(viewerAsset),
-                        onRevealFile: () => _revealAsset(viewerAsset),
-                      ),
-                  ],
-                ),
-                if (viewerAsset == null && _showsTaskSurface(state))
-                  Align(
-                    alignment: Alignment.bottomCenter,
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 24),
-                      child: LibraryTaskSurface(
-                        state: state,
-                        onPause: controller.pauseScan,
-                        onCancel: controller.cancelScan,
-                        onResume: controller.resumePausedScan,
-                        onRetry: controller.retry,
-                      ),
+                ],
+              ),
+              if (viewerAsset == null && _showsTaskSurface(state))
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 24),
+                    child: LibraryTaskSurface(
+                      state: state,
+                      onPause: controller.pauseScan,
+                      onCancel: controller.cancelScan,
+                      onResume: controller.resumePausedScan,
+                      onRetry: controller.retry,
                     ),
                   ),
-              ],
-            ),
+                ),
+            ],
           ),
         ),
       ),
@@ -169,35 +191,30 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     BuildContext context,
     LibraryState state,
     LibraryController controller,
+    AmePreferences amePreferences,
   ) {
     final folderTree = ref.watch(libraryFolderControllerProvider);
     final folderController = ref.read(libraryFolderControllerProvider.notifier);
     return LayoutBuilder(
       builder: (context, constraints) {
         final isCompactNavigation = constraints.maxWidth < 940;
-        return Row(
+        final navigationWidth = isCompactNavigation ? 76.0 : _sidebarWidth;
+        final content = Row(
           children: [
             LibraryNavigation(
               isCompact: isCompactNavigation,
+              width: navigationWidth,
+              isSettingsSelected: _destination == _LibraryDestination.settings,
               roots: state.roots,
               selectedRootId: state.query.rootId,
               selectedFolderRelativePath: state.query.folderRelativePath,
               transientRootPath: _transientRootPath(state),
               folderTree: folderTree,
               isBusy: state.isBusy,
-              onSelectLibrary: () => _applyQuery(
-                state.query.copyWith(rootId: null, folderRelativePath: null),
-              ),
-              onSelectRoot: (root) => _applyQuery(
-                state.query.copyWith(rootId: root.id, folderRelativePath: null),
-              ),
-              onSelectFolder: (root, folder) => _applyQuery(
-                state.query.copyWith(
-                  rootId: root.id,
-                  folderRelativePath: folder.relativePath,
-                  includeDescendants: true,
-                ),
-              ),
+              onSelectLibrary: () => _selectLibrary(state),
+              onSelectRoot: (root) => _selectRoot(state, root),
+              onSelectFolder: (root, folder) =>
+                  _selectFolder(state, root, folder),
               onExpandFolder: (rootId, parentRelativePath) => _loadFolderBranch(
                 folderController,
                 state,
@@ -213,49 +230,70 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                     loadMore: true,
                   ),
               onAddSource: controller.chooseDirectoryAndScan,
+              onOpenSettings: _openSettings,
               onUpdateRoot: controller.scanDirectory,
               onOpenRoot: _openRoot,
               onOpenFolder: _openFolder,
               onRemoveRoot: _confirmRemoveRoot,
             ),
-            VerticalDivider(
-              width: 1,
-              color: Theme.of(context).colorScheme.outlineVariant,
-            ),
+            if (isCompactNavigation) const SizedBox(width: 1),
             Expanded(
-              child: Column(
-                children: [
-                  LibraryGalleryHeader(
-                    galleryTitle: _galleryTitle(state),
-                    totalItems: _totalItems(state),
-                    selectedCount: _selection.selectedCount(_totalItems(state)),
-                    isSelecting: _isSelecting,
-                    layoutShape: _layoutShape,
-                    thumbnailSize: _thumbnailSize,
-                    sortKey: state.query.sortKey,
-                    sortDirection: state.query.sortDirection,
-                    onBeginSelection: () => setState(() => _isSelecting = true),
-                    onCancelSelection: _clearSelection,
-                    onViewSelected: () => _openFirstSelected(state.assets),
-                    onSelectAll: () => _selectAll(state),
-                    onDeselectAll: _clearSelection,
-                    onLayoutShapeChanged: (value) =>
-                        setState(() => _layoutShape = value),
-                    onThumbnailSizeChanged: (value) =>
-                        setState(() => _thumbnailSize = value),
-                    onSortKeyChanged: (value) =>
-                        _applyQuery(state.query.copyWith(sortKey: value)),
-                    onSortDirectionChanged: (value) =>
-                        _applyQuery(state.query.copyWith(sortDirection: value)),
-                  ),
-                  Divider(
-                    height: 1,
-                    color: Theme.of(context).colorScheme.outlineVariant,
-                  ),
-                  if (state.isLoadingTimeAnchor)
-                    const LinearProgressIndicator(minHeight: 2),
-                  Expanded(child: _buildGalleryBody(state, controller)),
-                ],
+              child: LibraryMainSurface(
+                child: _destination == _LibraryDestination.settings
+                    ? AmeSettingsPage(hasLibraryRoots: state.roots.isNotEmpty)
+                    : Column(
+                        children: [
+                          LibraryGalleryHeader(
+                            galleryTitle: _galleryTitle(state),
+                            totalItems: _totalItems(state),
+                            selectedCount: _selection.selectedCount(
+                              _totalItems(state),
+                            ),
+                            isSelecting: _isSelecting,
+                            layoutShape: _layoutShape,
+                            thumbnailSize: _thumbnailSize,
+                            sortKey: state.query.sortKey,
+                            sortDirection: state.query.sortDirection,
+                            onBeginSelection: () =>
+                                setState(() => _isSelecting = true),
+                            onCancelSelection: _clearSelection,
+                            onSelectAll: () => _selectAll(state),
+                            onLayoutShapeChanged: _changeLayoutShape,
+                            onThumbnailSizeChanged: _changeThumbnailSize,
+                            onSortKeyChanged: (value) =>
+                                _changeSortKey(state, value),
+                            onSortDirectionChanged: (value) =>
+                                _changeSortDirection(state, value),
+                          ),
+                          if (state.isLoadingTimeAnchor)
+                            const LinearProgressIndicator(minHeight: 2),
+                          Expanded(child: _buildGalleryBody(state, controller)),
+                        ],
+                      ),
+              ),
+            ),
+          ],
+        );
+        if (isCompactNavigation) {
+          return content;
+        }
+        return Stack(
+          children: [
+            content,
+            Positioned(
+              left:
+                  navigationWidth -
+                  LibraryNavigationResizeHandle.hitTargetWidth / 2,
+              top: 0,
+              bottom: 0,
+              child: LibraryNavigationResizeHandle(
+                width: _sidebarWidth,
+                minimumWidth: ameMinimumSidebarWidth,
+                maximumWidth: ameMaximumSidebarWidth,
+                defaultWidth: ameDefaultSidebarWidth,
+                onWidthChanged: _changeSidebarWidth,
+                onWidthChangeEnd: (width) =>
+                    unawaited(_persistSidebarWidth(amePreferences, width)),
               ),
             ),
           ],
@@ -395,6 +433,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   }
 
   void _onSearchChanged(String value) {
+    if (_destination != _LibraryDestination.gallery) {
+      setState(() => _destination = _LibraryDestination.gallery);
+    }
     _searchDebounce?.cancel();
     _searchDebounce = Timer(const Duration(milliseconds: 250), () {
       if (!mounted) {
@@ -421,6 +462,78 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     }
   }
 
+  void _changeLayoutShape(GalleryLayoutShape value) {
+    setState(() => _layoutShape = value);
+    unawaited(_persistViewPreferences());
+  }
+
+  void _changeThumbnailSize(GalleryThumbnailSize value) {
+    setState(() => _thumbnailSize = value);
+    unawaited(_persistViewPreferences());
+  }
+
+  void _changeSortKey(LibraryState state, LibraryGallerySortKey value) {
+    final query = state.query.copyWith(sortKey: value);
+    unawaited(_applyQuery(query));
+    unawaited(_persistViewPreferences(query: query));
+  }
+
+  void _changeSortDirection(
+    LibraryState state,
+    LibraryGallerySortDirection value,
+  ) {
+    final query = state.query.copyWith(sortDirection: value);
+    unawaited(_applyQuery(query));
+    unawaited(_persistViewPreferences(query: query));
+  }
+
+  Future<void> _persistViewPreferences({LibraryGalleryQuery? query}) async {
+    final currentQuery = query ?? ref.read(libraryControllerProvider).query;
+    try {
+      await ref
+          .read(libraryViewPreferenceStoreProvider)
+          .saveLibraryViewPreferences(
+            LibraryViewPreferences(
+              layoutShape: _layoutShape,
+              thumbnailSize: _thumbnailSize,
+              sortKey: currentQuery.sortKey,
+              sortDirection: currentQuery.sortDirection,
+            ),
+          );
+    } on Object catch (error) {
+      if (mounted) {
+        _showMessage("无法保存图库显示设置：$error");
+      }
+    }
+  }
+
+  void _changeSidebarWidth(double width) {
+    final nextWidth = width
+        .clamp(ameMinimumSidebarWidth, ameMaximumSidebarWidth)
+        .toDouble();
+    if ((nextWidth - _sidebarWidth).abs() < 0.1) {
+      return;
+    }
+    setState(() => _sidebarWidth = nextWidth);
+  }
+
+  Future<void> _persistSidebarWidth(
+    AmePreferences preferences,
+    double width,
+  ) async {
+    final previousWidth = preferences.sidebarWidth;
+    try {
+      await ref
+          .read(amePreferencesControllerProvider.notifier)
+          .update(preferences.copyWith(sidebarWidth: width));
+    } on Object catch (error) {
+      if (mounted) {
+        setState(() => _sidebarWidth = previousWidth);
+        _showMessage("无法保存侧栏宽度：$error");
+      }
+    }
+  }
+
   void _cancelCurrentMode() {
     if (_viewerLocationId != null) {
       setState(() => _viewerLocationId = null);
@@ -428,21 +541,18 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     }
     if (_isSelecting) {
       _clearSelection();
+      return;
     }
-  }
-
-  void _openFirstSelected(List<LibraryAsset> assets) {
-    for (final asset in assets) {
-      if (_selection.contains(asset.locationId)) {
-        _openAsset(asset);
-        return;
-      }
+    if (_destination == _LibraryDestination.settings) {
+      setState(() => _destination = _LibraryDestination.gallery);
     }
   }
 
   Future<void> _copyAssetPath(LibraryAsset asset) async {
     try {
-      await ref.read(libraryPlatformActionsProvider).copyText(asset.sourcePath);
+      await ref
+          .read(libraryPlatformActionsProvider)
+          .copyText(asset.displayPath);
       if (mounted) {
         _showMessage("已复制文件路径");
       }
@@ -512,7 +622,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       builder: (context) => AlertDialog(
         title: const Text("从 Ame 中移除文件夹？"),
         content: Text(
-          "将停止在 Ame 中显示“${librarySourceName(root.path)}”。"
+          "将停止在 Ame 中显示“${librarySourceName(root.displayPath)}”。"
           "磁盘上的文件夹和图片不会被删除或修改。",
         ),
         actions: [
@@ -536,6 +646,47 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     if (mounted && didRemove) {
       _showMessage("已从 Ame 中移除，原图片未作任何修改");
     }
+  }
+
+  void _openSettings() {
+    setState(() {
+      _destination = _LibraryDestination.settings;
+      _selection = _selection.clear();
+      _isSelecting = false;
+    });
+  }
+
+  void _selectLibrary(LibraryState state) {
+    setState(() => _destination = _LibraryDestination.gallery);
+    unawaited(
+      _applyQuery(state.query.copyWith(rootId: null, folderRelativePath: null)),
+    );
+  }
+
+  void _selectRoot(LibraryState state, LibraryRoot root) {
+    setState(() => _destination = _LibraryDestination.gallery);
+    unawaited(
+      _applyQuery(
+        state.query.copyWith(rootId: root.id, folderRelativePath: null),
+      ),
+    );
+  }
+
+  void _selectFolder(
+    LibraryState state,
+    LibraryRoot root,
+    LibraryFolder folder,
+  ) {
+    setState(() => _destination = _LibraryDestination.gallery);
+    unawaited(
+      _applyQuery(
+        state.query.copyWith(
+          rootId: root.id,
+          folderRelativePath: folder.relativePath,
+          includeDescendants: true,
+        ),
+      ),
+    );
   }
 
   Future<void> _loadPreviousPagePreservingPosition(
@@ -657,7 +808,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     }
     for (final root in state.roots) {
       if (root.id == rootId) {
-        return librarySourceName(root.path);
+        return librarySourceName(root.displayPath);
       }
     }
     return LibraryStrings.library;
@@ -676,8 +827,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   }
 
   static String? _transientRootPath(LibraryState state) {
-    final rootPath = state.rootPath;
-    if (rootPath == null || state.roots.any((root) => root.path == rootPath)) {
+    final rootPath = state.displayRootPath;
+    if (rootPath == null ||
+        state.roots.any((root) => root.displayPath == rootPath)) {
       return null;
     }
     return rootPath;
@@ -688,3 +840,5 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
         state.status != LibraryStatus.completed;
   }
 }
+
+enum _LibraryDestination { gallery, settings }

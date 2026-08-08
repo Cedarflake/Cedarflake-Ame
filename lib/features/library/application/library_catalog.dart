@@ -249,6 +249,7 @@ class RustLibraryCatalog implements LibraryCatalog, LibraryFolderCatalog {
     return LibraryRoot(
       id: root.rootId,
       path: root.path,
+      displayPath: root.displayPath,
       activeScanId: root.activeScanId,
       createdUnixMs: root.createdUnixMs,
       assetCount: root.assetCount.toInt(),
@@ -278,6 +279,7 @@ LibraryAsset mapRustLibraryAsset(rust_domain.AssetLocationView asset) {
     locationId: asset.locationId,
     rootId: asset.rootId,
     sourcePath: asset.absolutePath,
+    displayPath: asset.displayPath,
     relativePath: asset.relativePath,
     previewPath: asset.previewPath,
     fileSize: asset.fileSize,

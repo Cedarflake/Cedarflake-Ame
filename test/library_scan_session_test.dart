@@ -94,6 +94,7 @@ RecoverableLibraryScan _scan() {
   return const RecoverableLibraryScan(
     scanId: "scan-1",
     rootPath: "C:\\Pictures",
+    displayRootPath: "C:\\Pictures",
     previewEdge: 512,
     visitedEntries: 0,
     acceptedItems: 0,

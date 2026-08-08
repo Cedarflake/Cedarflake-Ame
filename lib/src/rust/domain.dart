@@ -13,6 +13,7 @@ class AssetLocationView {
   final String locationId;
   final String rootId;
   final String absolutePath;
+  final String displayPath;
   final String relativePath;
   final String previewPath;
   final BigInt fileSize;
@@ -33,6 +34,7 @@ class AssetLocationView {
     required this.locationId,
     required this.rootId,
     required this.absolutePath,
+    required this.displayPath,
     required this.relativePath,
     required this.previewPath,
     required this.fileSize,
@@ -55,6 +57,7 @@ class AssetLocationView {
       locationId.hashCode ^
       rootId.hashCode ^
       absolutePath.hashCode ^
+      displayPath.hashCode ^
       relativePath.hashCode ^
       previewPath.hashCode ^
       fileSize.hashCode ^
@@ -79,6 +82,7 @@ class AssetLocationView {
           locationId == other.locationId &&
           rootId == other.rootId &&
           absolutePath == other.absolutePath &&
+          displayPath == other.displayPath &&
           relativePath == other.relativePath &&
           previewPath == other.previewPath &&
           fileSize == other.fileSize &&
@@ -474,6 +478,7 @@ enum LibraryRootAvailability {
 class LibraryRootView {
   final String rootId;
   final String path;
+  final String displayPath;
   final String? activeScanId;
   final PlatformInt64 createdUnixMs;
   final BigInt assetCount;
@@ -484,6 +489,7 @@ class LibraryRootView {
   const LibraryRootView({
     required this.rootId,
     required this.path,
+    required this.displayPath,
     this.activeScanId,
     required this.createdUnixMs,
     required this.assetCount,
@@ -496,6 +502,7 @@ class LibraryRootView {
   int get hashCode =>
       rootId.hashCode ^
       path.hashCode ^
+      displayPath.hashCode ^
       activeScanId.hashCode ^
       createdUnixMs.hashCode ^
       assetCount.hashCode ^
@@ -510,6 +517,7 @@ class LibraryRootView {
           runtimeType == other.runtimeType &&
           rootId == other.rootId &&
           path == other.path &&
+          displayPath == other.displayPath &&
           activeScanId == other.activeScanId &&
           createdUnixMs == other.createdUnixMs &&
           assetCount == other.assetCount &&
@@ -541,6 +549,7 @@ enum PreviewStatus { pending, ready, failed }
 class RecoverableScan {
   final String scanId;
   final String rootPath;
+  final String displayRootPath;
   final int? maxItems;
   final int? maxEntries;
   final int previewEdge;
@@ -551,6 +560,7 @@ class RecoverableScan {
   const RecoverableScan({
     required this.scanId,
     required this.rootPath,
+    required this.displayRootPath,
     this.maxItems,
     this.maxEntries,
     required this.previewEdge,
@@ -563,6 +573,7 @@ class RecoverableScan {
   int get hashCode =>
       scanId.hashCode ^
       rootPath.hashCode ^
+      displayRootPath.hashCode ^
       maxItems.hashCode ^
       maxEntries.hashCode ^
       previewEdge.hashCode ^
@@ -577,6 +588,7 @@ class RecoverableScan {
           runtimeType == other.runtimeType &&
           scanId == other.scanId &&
           rootPath == other.rootPath &&
+          displayRootPath == other.displayRootPath &&
           maxItems == other.maxItems &&
           maxEntries == other.maxEntries &&
           previewEdge == other.previewEdge &&
@@ -741,6 +753,8 @@ class StorageStatus {
   final String activePreviewRoot;
   final String configuredCatalogPath;
   final String configuredPreviewRoot;
+  final String configuredCatalogDisplayPath;
+  final String configuredPreviewDisplayPath;
   final BigInt previewBudgetBytes;
   final BigInt previewUsedBytes;
   final BigInt catalogUsedBytes;
@@ -752,6 +766,8 @@ class StorageStatus {
     required this.activePreviewRoot,
     required this.configuredCatalogPath,
     required this.configuredPreviewRoot,
+    required this.configuredCatalogDisplayPath,
+    required this.configuredPreviewDisplayPath,
     required this.previewBudgetBytes,
     required this.previewUsedBytes,
     required this.catalogUsedBytes,
@@ -765,6 +781,8 @@ class StorageStatus {
       activePreviewRoot.hashCode ^
       configuredCatalogPath.hashCode ^
       configuredPreviewRoot.hashCode ^
+      configuredCatalogDisplayPath.hashCode ^
+      configuredPreviewDisplayPath.hashCode ^
       previewBudgetBytes.hashCode ^
       previewUsedBytes.hashCode ^
       catalogUsedBytes.hashCode ^
@@ -780,6 +798,8 @@ class StorageStatus {
           activePreviewRoot == other.activePreviewRoot &&
           configuredCatalogPath == other.configuredCatalogPath &&
           configuredPreviewRoot == other.configuredPreviewRoot &&
+          configuredCatalogDisplayPath == other.configuredCatalogDisplayPath &&
+          configuredPreviewDisplayPath == other.configuredPreviewDisplayPath &&
           previewBudgetBytes == other.previewBudgetBytes &&
           previewUsedBytes == other.previewUsedBytes &&
           catalogUsedBytes == other.catalogUsedBytes &&

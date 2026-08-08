@@ -5,6 +5,8 @@ class StorageStatusModel {
     required this.activePreviewRoot,
     required this.configuredCatalogPath,
     required this.configuredPreviewRoot,
+    required this.configuredCatalogDisplayPath,
+    required this.configuredPreviewDisplayPath,
     required this.previewBudgetBytes,
     required this.previewUsedBytes,
     required this.catalogUsedBytes,
@@ -16,6 +18,8 @@ class StorageStatusModel {
   final String activePreviewRoot;
   final String configuredCatalogPath;
   final String configuredPreviewRoot;
+  final String configuredCatalogDisplayPath;
+  final String configuredPreviewDisplayPath;
   final BigInt previewBudgetBytes;
   final BigInt previewUsedBytes;
   final BigInt catalogUsedBytes;

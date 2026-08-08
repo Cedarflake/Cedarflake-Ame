@@ -3,6 +3,7 @@ import "dart:io";
 import "package:flutter/material.dart";
 
 import "../../domain/library_models.dart";
+import "library_loading_indicator.dart";
 
 class LibraryViewerImage extends StatefulWidget {
   const LibraryViewerImage({required this.asset, super.key});
@@ -54,7 +55,11 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
           fit: StackFit.expand,
           children: [
             if (_hasPreview) _buildPreview(),
-            const Center(child: CircularProgressIndicator()),
+            const LibraryLoadingIndicator(
+              maximumDimension: 36,
+              minimumInset: 0,
+              strokeWidth: 4,
+            ),
           ],
         );
       },

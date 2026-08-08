@@ -30,13 +30,28 @@ Use one unified gallery with these presentation rules.
 
 ### Shell and navigation
 
-- The global bar contains application identity, centered gallery search, Import, and Settings.
+- The global bar contains application identity and centered gallery search. App-drawn window controls
+  may share this surface as defined by ADR 0012, but library import and settings do not.
+- The global bar and sidebar share the Material `surfaceContainerLow` application backdrop. The
+  gallery or settings canvas is one `surfaceContainerLowest` Material pane with a rounded leading
+  top corner. Tonal surface hierarchy and spacing separate these regions; full-window header and
+  navigation dividers do not define the shell.
 - The sidebar contains Library, Favorites when functional, one aligned folder-source list, and
-  albums when functional.
+  albums when functional. The Library row owns Add folder, while Settings remains pinned to the
+  sidebar bottom rather than scrolling with folder sources.
+- On desktop, the expanded sidebar is user-resizable from 220 to 420 logical pixels by dragging its
+  trailing resize boundary. Double activation restores the 260-pixel default, the chosen width
+  persists as a presentation preference, and constrained windows still collapse to the fixed icon
+  rail. The resize target remains visually transparent before, during, and after dragging; surface
+  contrast, the resize cursor, keyboard focus, and semantics communicate the boundary without a
+  persistent blue rule.
 - Local, cloud-backed, unavailable, and removable sources remain folders in one list. Availability
   is row status, not a separate provider hierarchy.
-- Timeline, classification, search, sorting, settings, task activity, and duplicate review are not
-  sidebar destinations.
+- Truncated source and folder labels expose their complete user-readable path through a tooltip.
+  Windows device prefixes such as `\\?\` remain an adapter detail and are never shown as part of a
+  path presented to the user.
+- Timeline, classification, search, sorting, task activity, and duplicate review are not sidebar
+  destinations.
 
 ### Contextual gallery header
 
@@ -73,8 +88,10 @@ Use one unified gallery with these presentation rules.
 ### Image viewer
 
 - The viewer remains a state of the unified gallery rather than a separate library destination.
-  While active it replaces browsing chrome with one image-focused toolbar. Returning to the gallery
-  preserves the existing gallery widget, query, selection, and scroll position.
+  While active it replaces browsing chrome with one image-focused toolbar. That toolbar also remains
+  the visible application window chrome: its path region owns native window dragging and its trailing
+  edge reuses the caption controls accepted by ADR 0012. Returning to the gallery preserves the
+  existing gallery widget, query, selection, and scroll position.
 - Flutter `InteractiveViewer` and `TransformationController` own image panning and zoom transforms.
   Material `Slider`, `IconButton`, `MenuAnchor`, and modal bottom-sheet primitives own zoom input,
   navigation, read-only actions, and information presentation. The product-specific layer only
@@ -82,10 +99,22 @@ Use one unified gallery with these presentation rules.
 - The source image is loaded for viewing. A derived preview may be shown while it loads or as an
   explicitly labelled fallback when the source is unavailable; a preview is never presented as the
   original without that state being visible.
+- Thumbnail and viewer loading indicators remain square and shrink against the shortest available
+  edge instead of accepting non-square constraints. Viewer zoom actions remain first-party Material
+  Slider, IconButton, TextButton, and Divider components, with explicit padding between the zoom and
+  display-mode groups.
+- The viewer toolbar identifies the current physical file by filename. The filename remains
+  single-line and uses trailing ellipsis when space is constrained; hovering it always exposes the
+  user-readable absolute path in a tooltip. Windows device prefixes remain hidden.
 - Fit-to-window and actual size are distinct commands. The displayed percentage represents image
   pixels relative to their actual size, not merely the `InteractiveViewer` transform. Pointer,
   trackpad, Material controls, double activation, and keyboard shortcuts share one transformation
   state.
+- Opening the viewer explicitly moves focus into its shortcut scope even when the previously
+  focused gallery tile remains mounted offstage. `Esc`, Backspace, and the browser Back key return
+  to the gallery; Left and Right navigate; Plus and Minus zoom; `0` fits the image; and `1` shows
+  actual pixels. The Ctrl-modified zoom, fit, and actual-size forms remain available. Gallery-only
+  selection shortcuts are inactive while the viewer is open.
 - Previous and next navigation follow the active gallery query and may extend the bounded loaded
   window through the existing catalog paging contract. Viewer actions remain read-only: view
   information, copy path, and open in File Explorer.
@@ -120,7 +149,17 @@ Use one unified gallery with these presentation rules.
 
 - Import and update work uses temporary action-specific bottom progress with cancellation; there is
   no permanent task destination.
-- Settings is opened from the global gear and uses shallow, plain-language Material rows.
+- Settings is a sidebar-selected destination rendered in the existing main canvas. It keeps the
+  global bar and source sidebar visible and never opens an application-settings dialog.
+- The settings canvas uses shallow, plain-language Material rows grouped as Personalization,
+  Browsing, Storage, and About. Each row has an icon, a user-facing name, one short explanation,
+  and a right-side Material control where the setting is actionable.
+- Flutter `Card` and `ListTile` own settings grouping and row semantics. `DropdownMenu`,
+  `OutlinedButton`, and progress indicators own choices, actions, and storage feedback; custom code
+  only supplies the responsive page composition and Ame-owned state connections.
+- Internal database versions, task queues, worker counts, hash engines, and analysis parameters are
+  not user settings. Account, cloud-service, media-editing, and cache-cleanup controls remain absent
+  until their workflows exist end to end.
 - Simplified Chinese is the initial user-facing language. Paths and source metadata preserve their
   original text.
 - Classification, perceptual or semantic similarity, people, editing, and source-file mutation
@@ -139,6 +178,17 @@ A custom layer must not recreate framework-owned pointer, focus, keyboard, seman
 behavior. The justified photo-wall calculation is an Ame-owned layout policy because Flutter's
 built-in Wrap and regular SliverGrid delegates cannot solve aspect-ratio rows to a shared width.
 
+Flutter 3.44.9 was verified to provide Material shape clipping, `ClipRRect`, and the
+`surfaceContainerLow` and `surfaceContainerLowest` color roles. The shell therefore composes
+first-party `Material`, `Row`, and `Column` primitives; the only product-specific gap is the
+resizable sidebar hit target, whose interaction remains built from Flutter focus, pointer,
+gesture, cursor, and semantics primitives.
+
+The official Material 3 Slider and Icon button components remain the basis of viewer zoom input.
+Flutter 3.44.9 was verified to provide `Slider`, `IconButton`, `TextButton`, `VerticalDivider`, and
+`CircularProgressIndicator`; Ame adds only responsive square constraints and group spacing around
+those primitives.
+
 ## Consequences
 
 - Production integration must adapt catalog state into this UI instead of restoring the legacy
@@ -153,7 +203,7 @@ built-in Wrap and regular SliverGrid delegates cannot solve aspect-ratio rows to
 
 - The user accepted the Windows interactive prototype after reviewing the unified shell, flattened
   source list, right-aligned contextual actions, grouped Sort, Filter, and Layout menus, selection
-  exit, settings presentation, and single gallery canvas.
+  exit, main-canvas settings presentation, and single gallery canvas.
 - DPI-aware Windows inspection confirmed that the annotated timeline is the sole visible scrollbar,
   Material arrow controls align with the Slider axis, and endpoint nodes remain enclosed.
 - Widget tests cover desktop and constrained widths, selection replacement, source alignment,

@@ -13,6 +13,7 @@ pub struct ScanRequest {
 pub struct RecoverableScan {
     pub scan_id: String,
     pub root_path: String,
+    pub display_root_path: String,
     pub max_items: Option<u32>,
     pub max_entries: Option<u32>,
     pub preview_edge: u32,
@@ -43,6 +44,8 @@ pub struct StorageStatus {
     pub active_preview_root: String,
     pub configured_catalog_path: String,
     pub configured_preview_root: String,
+    pub configured_catalog_display_path: String,
+    pub configured_preview_display_path: String,
     pub preview_budget_bytes: u64,
     pub preview_used_bytes: u64,
     pub catalog_used_bytes: u64,
@@ -68,6 +71,7 @@ pub struct AssetLocationView {
     pub location_id: String,
     pub root_id: String,
     pub absolute_path: String,
+    pub display_path: String,
     pub relative_path: String,
     pub preview_path: String,
     pub file_size: u64,
@@ -131,6 +135,7 @@ pub struct PreviewRequest {
 pub struct LibraryRootView {
     pub root_id: String,
     pub path: String,
+    pub display_path: String,
     pub active_scan_id: Option<String>,
     pub created_unix_ms: i64,
     pub asset_count: u64,

@@ -23,7 +23,7 @@ class LibraryTaskSurface extends StatelessWidget {
   Widget build(BuildContext context) {
     final title = switch (state.status) {
       LibraryStatus.choosingDirectory => "正在选择文件夹…",
-      LibraryStatus.scanning => "正在添加文件夹“${_rootName(state.rootPath)}”…",
+      LibraryStatus.scanning => "正在添加文件夹“${_rootName(state.displayRootPath)}”…",
       LibraryStatus.pausing => "正在暂停…",
       LibraryStatus.cancelling => "正在取消…",
       LibraryStatus.refreshing => "正在更新图库…",

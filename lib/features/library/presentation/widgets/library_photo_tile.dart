@@ -4,9 +4,11 @@ import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../../app/ame_menu.dart";
 import "../../application/library_controller.dart";
 import "../../domain/library_models.dart";
 import "../library_strings.dart";
+import "library_loading_indicator.dart";
 
 class LibraryPhotoTile extends ConsumerStatefulWidget {
   const LibraryPhotoTile({
@@ -88,30 +90,38 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
     return SizedBox(
       width: widget.width,
       height: widget.height,
-      child: MenuAnchor(
+      child: AmeMenuAnchor(
         controller: _menuController,
         childFocusNode: _focusNode,
         menuChildren: [
           MenuItemButton(
-            leadingIcon: const Icon(Icons.open_in_full),
             onPressed: () => widget.onOpen(widget.asset),
-            child: const Text(LibraryStrings.open),
+            child: const AmeMenuItemContent(
+              icon: Icons.open_in_full,
+              label: LibraryStrings.open,
+            ),
           ),
           MenuItemButton(
-            leadingIcon: const Icon(Icons.info_outline),
             onPressed: () => widget.onViewInformation(widget.asset),
-            child: const Text(LibraryStrings.viewInformation),
+            child: const AmeMenuItemContent(
+              icon: Icons.info_outline,
+              label: LibraryStrings.viewInformation,
+            ),
           ),
-          const Divider(height: 1),
+          const Divider(height: AmeMenuMetrics.dividerHeight),
           MenuItemButton(
-            leadingIcon: const Icon(Icons.content_copy_outlined),
             onPressed: () => widget.onCopyPath(widget.asset),
-            child: const Text(LibraryStrings.copyPath),
+            child: const AmeMenuItemContent(
+              icon: Icons.content_copy_outlined,
+              label: LibraryStrings.copyPath,
+            ),
           ),
           MenuItemButton(
-            leadingIcon: const Icon(Icons.folder_open_outlined),
             onPressed: () => widget.onRevealFile(widget.asset),
-            child: const Text(LibraryStrings.openInExplorer),
+            child: const AmeMenuItemContent(
+              icon: Icons.folder_open_outlined,
+              label: LibraryStrings.openInExplorer,
+            ),
           ),
         ],
         child: CallbackShortcuts(
@@ -192,9 +202,8 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
   Widget _buildPreview(BuildContext context) {
     final asset = widget.asset;
     return switch (asset.previewStatus) {
-      LibraryPreviewStatus.pending => const Center(
+      LibraryPreviewStatus.pending => const LibraryLoadingIndicator(
         key: Key("library-preview-pending"),
-        child: CircularProgressIndicator(strokeWidth: 3),
       ),
       LibraryPreviewStatus.failed => Center(
         child: Column(

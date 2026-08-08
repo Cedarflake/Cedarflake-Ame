@@ -1,12 +1,17 @@
 import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/adapters/windows_library_platform_actions.dart";
+import "package:cedarflake_ame/app/ame_menu.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_platform_actions.dart";
+import "package:cedarflake_ame/features/library/application/library_view_preferences.dart";
 import "package:cedarflake_ame/features/library/domain/library_folder_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_main_surface.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_navigation_resize_handle.dart";
+import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
 import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
@@ -26,14 +31,235 @@ void main() {
     expect(find.byKey(const Key("library-empty-state")), findsOneWidget);
     expect(find.text("Read-only validation"), findsNothing);
     expect(find.byKey(const Key("library-task-activity-button")), findsNothing);
-    expect(find.byKey(const Key("library-import-button")), findsOneWidget);
+    expect(find.byKey(const Key("library-import-button")), findsNothing);
+    expect(find.byKey(const Key("library-sidebar-import")), findsOneWidget);
+    expect(find.byKey(const Key("library-sidebar-settings")), findsOneWidget);
+    expect(find.text("Cedarflake Ame"), findsNothing);
+    expect(find.text("Ame"), findsOneWidget);
     expect(
       find.ancestor(
-        of: find.byKey(const Key("library-import-button")),
-        matching: find.byType(AppBar),
+        of: find.byKey(const Key("window-close")),
+        matching: find.byKey(const Key("library-global-bar")),
+      ),
+      findsOneWidget,
+    );
+    final searchCenter = tester.getCenter(
+      find.byKey(const Key("library-search")),
+    );
+    final globalBarCenter = tester.getCenter(
+      find.byKey(const Key("library-global-bar")),
+    );
+    final closeCenter = tester.getCenter(find.byKey(const Key("window-close")));
+    expect(searchCenter.dy, closeTo(globalBarCenter.dy, 0.1));
+    expect(tester.getSize(find.byKey(const Key("library-search"))).height, 44);
+    expect(closeCenter.dy, closeTo(globalBarCenter.dy, 0.1));
+    expect(
+      find.ancestor(
+        of: find.byKey(const Key("library-search")),
+        matching: find.byKey(const Key("library-global-bar")),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const Key("library-sidebar-settings")));
+    await tester.pump();
+    expect(find.byKey(const Key("ame-settings-page")), findsOneWidget);
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.byKey(const Key("library-global-bar")), findsOneWidget);
+    expect(
+      tester
+          .widget<ListTile>(find.byKey(const Key("library-sidebar-settings")))
+          .selected,
+      isTrue,
+    );
+
+    await tester.tap(find.byKey(const Key("library-sidebar-library")));
+    await tester.pump();
+    expect(find.byKey(const Key("ame-settings-page")), findsNothing);
+    expect(find.byKey(const Key("library-empty-state")), findsOneWidget);
+  });
+
+  testWidgets("pins desktop caption controls to the maximized right edge", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(2048, 1200);
+    tester.view.devicePixelRatio = 1;
+    tester.view.padding = const FakeViewPadding(top: 8, right: 24);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPadding);
+
+    await tester.pumpWidget(const ProviderScope(child: AmeApp()));
+
+    expect(
+      tester.getTopLeft(find.byKey(const Key("library-global-bar"))).dy,
+      0,
+    );
+    expect(tester.getTopRight(find.byKey(const Key("window-close"))).dx, 2040);
+  });
+
+  testWidgets("separates the application shell with Material surfaces", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(const ProviderScope(child: AmeApp()));
+    await tester.pump();
+
+    final context = tester.element(
+      find.byKey(const Key("library-main-surface")),
+    );
+    final colorScheme = Theme.of(context).colorScheme;
+    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
+    final globalSurface = tester.widget<Material>(
+      find.byKey(const Key("library-global-surface")),
+    );
+    final navigationSurface = tester.widget<Material>(
+      find.byKey(const Key("library-navigation-surface")),
+    );
+    final mainSurface = tester.widget<Material>(
+      find.byKey(const Key("library-main-surface")),
+    );
+
+    expect(scaffold.backgroundColor, colorScheme.surfaceContainerLow);
+    expect(globalSurface.color, colorScheme.surfaceContainerLow);
+    expect(navigationSurface.color, colorScheme.surfaceContainerLow);
+    expect(mainSurface.color, colorScheme.surfaceContainerLowest);
+    expect(mainSurface.clipBehavior, Clip.antiAlias);
+    expect(
+      (mainSurface.shape as RoundedRectangleBorder).borderRadius,
+      LibraryMainSurface.borderRadius,
+    );
+    expect(
+      find.ancestor(
+        of: find.byKey(const Key("library-gallery-header")),
+        matching: find.byKey(const Key("library-main-surface")),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets("resizes, resets, and persists the expanded sidebar width", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    const preferences = AmePreferences(sidebarWidth: 300);
+    final preferenceStore = _RecordingAmePreferenceStore(preferences);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          initialAmePreferencesProvider.overrideWithValue(preferences),
+          amePreferenceStoreProvider.overrideWithValue(preferenceStore),
+        ],
+        child: const AmeApp(),
+      ),
+    );
+    await tester.pump();
+
+    expect(
+      tester.getSize(find.byKey(const Key("library-navigation"))).width,
+      300,
+    );
+    final resizeHandle = find.byKey(const Key("library-sidebar-resize-handle"));
+    final navigation = find.byKey(const Key("library-navigation"));
+    final mainSurface = find.byKey(const Key("library-main-surface"));
+    final boundaryX = tester.getTopRight(navigation).dx;
+    expect(tester.getTopLeft(mainSurface).dx, boundaryX);
+    expect(
+      tester.getSize(resizeHandle).width,
+      LibraryNavigationResizeHandle.hitTargetWidth,
+    );
+    expect(tester.getCenter(resizeHandle).dx, boundaryX);
+
+    await tester.drag(resizeHandle, const Offset(64, 0));
+    await tester.pump();
+
+    expect(
+      tester.getSize(find.byKey(const Key("library-navigation"))).width,
+      closeTo(364, 1),
+    );
+    expect(preferenceStore.saved.last.sidebarWidth, closeTo(364, 1));
+    expect(
+      find.descendant(
+        of: resizeHandle,
+        matching: find.byType(AnimatedContainer),
       ),
       findsNothing,
     );
+
+    final handleCenter = tester.getCenter(resizeHandle);
+    await tester.tapAt(handleCenter);
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.tapAt(handleCenter);
+    await tester.pump();
+    expect(
+      tester.getSize(find.byKey(const Key("library-navigation"))).width,
+      ameDefaultSidebarWidth,
+    );
+    expect(preferenceStore.saved.last.sidebarWidth, ameDefaultSidebarWidth);
+
+    final anchoredHandleCenter = tester.getCenter(resizeHandle);
+    final gesture = await tester.startGesture(anchoredHandleCenter);
+    await gesture.moveBy(const Offset(240, 0));
+    await tester.pump();
+    expect(
+      tester.getSize(find.byKey(const Key("library-navigation"))).width,
+      ameMaximumSidebarWidth,
+    );
+
+    await gesture.moveBy(const Offset(-40, 0));
+    await tester.pump();
+    expect(
+      tester.getSize(find.byKey(const Key("library-navigation"))).width,
+      ameMaximumSidebarWidth,
+    );
+
+    await gesture.moveBy(const Offset(-80, 0));
+    await gesture.up();
+    await tester.pump();
+    expect(
+      tester.getSize(find.byKey(const Key("library-navigation"))).width,
+      closeTo(380, 1),
+    );
+    expect(preferenceStore.saved.last.sidebarWidth, closeTo(380, 1));
+  });
+
+  testWidgets("keeps the fused window bar usable at minimum width", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 560);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(const ProviderScope(child: AmeApp()));
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text("Cedarflake Ame"), findsNothing);
+    expect(find.text("Ame"), findsNothing);
+    expect(find.byKey(const Key("library-search")), findsOneWidget);
+    expect(find.byKey(const Key("library-import-button")), findsNothing);
+    expect(find.byKey(const Key("library-sidebar-import")), findsOneWidget);
+    expect(find.byKey(const Key("library-sidebar-settings")), findsOneWidget);
+    expect(find.byKey(const Key("window-minimize")), findsOneWidget);
+    expect(find.byKey(const Key("window-maximize")), findsOneWidget);
+    expect(find.byKey(const Key("window-close")), findsOneWidget);
+    final galleryHeader = tester.getRect(
+      find.byKey(const Key("library-gallery-header")),
+    );
+    final galleryTitle = tester.getRect(
+      find.byKey(const Key("library-gallery-title")),
+    );
+    expect(galleryHeader.left, 77);
+    expect(galleryHeader.right, 800);
+    expect(galleryTitle.left, 105);
   });
 
   testWidgets("shows scan controls in temporary import feedback", (
@@ -117,6 +343,91 @@ void main() {
     expect(find.text(LibraryStrings.unknownCaptureDate), findsNothing);
   });
 
+  testWidgets("restores and saves stable gallery display preferences", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final initialState = _populatedState(totalItems: 1);
+    final catalog = _RecordingQueryCatalog(
+      LibrarySnapshot(
+        catalogPath: initialState.catalogPath ?? "",
+        revision: initialState.catalogRevision ?? BigInt.zero,
+        queryId: "preferences-result",
+        roots: initialState.roots,
+        assets: initialState.assets,
+      ),
+    );
+    const initialPreferences = LibraryViewPreferences(
+      layoutShape: GalleryLayoutShape.square,
+      thumbnailSize: GalleryThumbnailSize.large,
+    );
+    final preferenceStore = _RecordingViewPreferenceStore(initialPreferences);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(initialState),
+          initialLibraryViewPreferencesProvider.overrideWithValue(
+            initialPreferences,
+          ),
+          libraryCatalogProvider.overrideWithValue(catalog),
+          libraryViewPreferenceStoreProvider.overrideWithValue(preferenceStore),
+        ],
+        child: const AmeApp(),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key("library-layout-menu")));
+    await tester.pumpAndSettle();
+    expect(find.byType(AmeMenuItemContent), findsNWidgets(5));
+    expect(
+      find.descendant(
+        of: find.ancestor(
+          of: find.text(LibraryStrings.square),
+          matching: find.byType(MenuItemButton),
+        ),
+        matching: find.byIcon(Icons.circle),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.ancestor(
+          of: find.text(LibraryStrings.large),
+          matching: find.byType(MenuItemButton),
+        ),
+        matching: find.byIcon(Icons.circle),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text(LibraryStrings.equalHeight));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key("library-layout-menu")));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(LibraryStrings.small));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key("library-sort-menu")));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(LibraryStrings.fileName).last);
+    await tester.pumpAndSettle();
+
+    expect(preferenceStore.saved, isNotEmpty);
+    expect(
+      preferenceStore.saved.last.layoutShape,
+      GalleryLayoutShape.equalHeight,
+    );
+    expect(
+      preferenceStore.saved.last.thumbnailSize,
+      GalleryThumbnailSize.small,
+    );
+    expect(preferenceStore.saved.last.sortKey, LibraryGallerySortKey.fileName);
+  });
+
   testWidgets(
     "uses folder rows as gallery scopes and keeps Explorer in the context menu",
     (tester) async {
@@ -189,6 +500,7 @@ void main() {
         buttons: kSecondaryMouseButton,
       );
       await tester.pumpAndSettle();
+      expect(find.byType(AmeMenuItemContent), findsOneWidget);
       await tester.tap(find.text(LibraryStrings.openInExplorer).last);
       await tester.pumpAndSettle();
       expect(platformActions.openedLibraryFolders, [
@@ -253,6 +565,7 @@ void main() {
           LibraryRoot(
             id: "root-1",
             path: "C:\\Pictures",
+            displayPath: "C:\\Pictures",
             activeScanId: "scan-1",
             createdUnixMs: 1,
             assetCount: 2,
@@ -265,6 +578,7 @@ void main() {
             locationId: "location-1",
             rootId: "root-1",
             sourcePath: "C:\\Pictures\\one.png",
+            displayPath: "C:\\Pictures\\one.png",
             relativePath: "one.png",
             previewPath: "C:\\Missing\\one.jpg",
             fileSize: BigInt.one,
@@ -325,6 +639,7 @@ void main() {
         LibraryRoot(
           id: "root-1",
           path: "C:\\Pictures",
+          displayPath: "C:\\Pictures",
           activeScanId: "scan-1",
           createdUnixMs: 1,
           assetCount: 3,
@@ -337,6 +652,7 @@ void main() {
           locationId: "location-1",
           rootId: "root-1",
           sourcePath: "C:\\Pictures\\one.png",
+          displayPath: "C:\\Pictures\\one.png",
           relativePath: "one.png",
           previewPath: "C:\\Missing\\one.jpg",
           fileSize: BigInt.one,
@@ -350,6 +666,7 @@ void main() {
           locationId: "location-2",
           rootId: "root-1",
           sourcePath: "C:\\Pictures\\two.png",
+          displayPath: "C:\\Pictures\\two.png",
           relativePath: "two.png",
           previewPath: "C:\\Missing\\two.jpg",
           fileSize: BigInt.one,
@@ -363,6 +680,7 @@ void main() {
           locationId: "location-3",
           rootId: "root-1",
           sourcePath: "C:\\Pictures\\fallback.png",
+          displayPath: "C:\\Pictures\\fallback.png",
           relativePath: "fallback.png",
           previewPath: "C:\\Missing\\fallback.jpg",
           fileSize: BigInt.one,
@@ -415,6 +733,7 @@ void main() {
         LibraryRoot(
           id: "missing-root",
           path: "E:\\DisconnectedPictures",
+          displayPath: "E:\\DisconnectedPictures",
           activeScanId: "scan-1",
           createdUnixMs: 1,
           assetCount: 42,
@@ -474,6 +793,7 @@ void main() {
     await tester.pump();
     expect(find.byKey(const Key("library-selection-toolbar")), findsOneWidget);
     expect(find.text("已选择 1 个项目"), findsOneWidget);
+    expect(find.text("查看"), findsNothing);
 
     await mouse.moveTo(Offset.zero);
     await tester.pump();
@@ -511,6 +831,7 @@ void main() {
     expect(find.text("复制路径"), findsOneWidget);
     expect(find.text("在文件资源管理器中打开"), findsOneWidget);
     expect(find.text("删除"), findsNothing);
+    expect(find.byType(AmeMenuItemContent), findsNWidgets(4));
   });
 
   testWidgets("opens one source menu from overflow or secondary click", (
@@ -533,11 +854,22 @@ void main() {
     );
     await tester.pump();
 
-    await tester.tap(find.byKey(const ValueKey("source-more-root-1")));
+    final sourceMore = find.byKey(const ValueKey("source-more-root-1"));
+    final sourceMoreRect = tester.getRect(sourceMore);
+    await tester.tap(sourceMore);
     await tester.pumpAndSettle();
     expect(find.text("更新图库"), findsOneWidget);
     expect(find.text("在文件资源管理器中打开"), findsOneWidget);
     expect(find.text("从 Ame 中移除"), findsOneWidget);
+    expect(find.byType(AmeMenuItemContent), findsNWidgets(3));
+    final updateMenuItem = find.ancestor(
+      of: find.text("更新图库"),
+      matching: find.byWidgetPredicate((widget) => widget is PopupMenuItem),
+    );
+    expect(
+      tester.getRect(updateMenuItem).right,
+      closeTo(sourceMoreRect.right, 1),
+    );
 
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
@@ -568,6 +900,7 @@ void main() {
 
     await tester.tap(find.byKey(const Key("library-more-menu")));
     await tester.pumpAndSettle();
+    expect(find.text("不选择任何项目"), findsNothing);
     await tester.tap(find.text("全选"));
     await tester.pumpAndSettle();
 
@@ -643,6 +976,7 @@ void main() {
           locationId: "location-$index",
           rootId: "root-1",
           sourcePath: "C:\\Pictures\\$index.png",
+          displayPath: "C:\\Pictures\\$index.png",
           relativePath: "$index.png",
           previewPath: "C:\\Missing\\$index.jpg",
           fileSize: BigInt.one,
@@ -664,6 +998,7 @@ void main() {
         LibraryRoot(
           id: "root-1",
           path: "C:\\Pictures",
+          displayPath: "C:\\Pictures",
           activeScanId: "scan-1",
           createdUnixMs: 1,
           assetCount: 120,
@@ -747,6 +1082,7 @@ void main() {
         LibraryRoot(
           id: "root-1",
           path: "C:\\Pictures",
+          displayPath: "C:\\Pictures",
           activeScanId: "scan-1",
           createdUnixMs: 1,
           assetCount: 90,
@@ -877,6 +1213,7 @@ LibraryAsset _galleryAsset({
     locationId: id,
     rootId: "root-1",
     sourcePath: "C:\\Pictures\\$id.png",
+    displayPath: "C:\\Pictures\\$id.png",
     relativePath: "$id.png",
     previewPath: "C:\\Missing\\$id.jpg",
     fileSize: BigInt.one,
@@ -900,6 +1237,7 @@ LibraryState _populatedState({required int totalItems}) {
       LibraryRoot(
         id: "root-1",
         path: "C:\\Pictures",
+        displayPath: "C:\\Pictures",
         activeScanId: "scan-1",
         createdUnixMs: 1,
         assetCount: totalItems,
@@ -913,6 +1251,7 @@ LibraryState _populatedState({required int totalItems}) {
         locationId: "location-1",
         rootId: "root-1",
         sourcePath: "C:\\Pictures\\one.png",
+        displayPath: "C:\\Pictures\\one.png",
         relativePath: "one.png",
         previewPath: "C:\\Missing\\one.jpg",
         fileSize: BigInt.one,
@@ -1053,4 +1392,38 @@ class _RecordingPlatformActions implements LibraryPlatformActions {
 
   @override
   Future<void> revealFile(String path) async {}
+}
+
+class _RecordingViewPreferenceStore implements LibraryViewPreferenceStore {
+  _RecordingViewPreferenceStore(this.initialPreferences);
+
+  final LibraryViewPreferences initialPreferences;
+  final List<LibraryViewPreferences> saved = [];
+
+  @override
+  Future<LibraryViewPreferences> loadLibraryViewPreferences() async {
+    return initialPreferences;
+  }
+
+  @override
+  Future<void> saveLibraryViewPreferences(
+    LibraryViewPreferences preferences,
+  ) async {
+    saved.add(preferences);
+  }
+}
+
+class _RecordingAmePreferenceStore implements AmePreferenceStore {
+  _RecordingAmePreferenceStore(this.initialPreferences);
+
+  final AmePreferences initialPreferences;
+  final List<AmePreferences> saved = [];
+
+  @override
+  Future<AmePreferences> loadAmePreferences() async => initialPreferences;
+
+  @override
+  Future<void> saveAmePreferences(AmePreferences preferences) async {
+    saved.add(preferences);
+  }
 }

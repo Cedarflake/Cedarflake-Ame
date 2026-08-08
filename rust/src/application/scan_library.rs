@@ -7,6 +7,7 @@ use blake3::Hasher;
 
 use crate::adapters::{
     FileDiscovery, FileVisitOutcome, LocalMediaInspector, SqliteCatalog, revalidate_file_state,
+    user_visible_path,
 };
 use crate::domain::{
     AssetLocationView, DiscoveredFile, PreviewStatus, RecoverableScan, ScanError, ScanEvent,
@@ -63,7 +64,7 @@ fn run_scan_with_storage(
 
     if !publish(ScanEvent::Started {
         scan_id: request.scan_id.clone(),
-        root_path,
+        root_path: user_visible_path(&root_path),
         item_limit: request.max_items,
         entry_limit: request.max_entries,
     }) {
@@ -110,7 +111,7 @@ fn run_scan_with_storage(
                     checkpoint.issue_count = issue_count;
                     if !publish(ScanEvent::Issue {
                         scan_id: request.scan_id.clone(),
-                        issue,
+                        issue: user_visible_issue(issue),
                     }) {
                         catalog.abandon_scan(&request.scan_id, "detached", issue_count)?;
                         return Ok(());
@@ -156,7 +157,7 @@ fn run_scan_with_storage(
             catalog.record_issue(&request.scan_id, &issue)?;
             publish(ScanEvent::Issue {
                 scan_id: request.scan_id.clone(),
-                issue,
+                issue: user_visible_issue(issue),
             });
             catalog.abandon_scan(&request.scan_id, "stale", issue_count)?;
             publish(ScanEvent::Stale {
@@ -227,7 +228,7 @@ fn run_scan_with_storage(
                         catalog.record_issue(&request.scan_id, &issue)?;
                         discovered_event = Some(ScanEvent::Issue {
                             scan_id: request.scan_id.clone(),
-                            issue,
+                            issue: user_visible_issue(issue),
                         });
                     }
                     FileVisitOutcome::File(file) => {
@@ -236,7 +237,7 @@ fn run_scan_with_storage(
                             catalog.record_issue(&request.scan_id, issue)?;
                             if !publish(ScanEvent::Issue {
                                 scan_id: request.scan_id.clone(),
-                                issue: issue.clone(),
+                                issue: user_visible_issue(issue.clone()),
                             }) {
                                 catalog.abandon_scan(&request.scan_id, "detached", issue_count)?;
                                 return Ok(());
@@ -332,7 +333,7 @@ fn run_scan_with_storage(
                                     catalog.record_issue(&request.scan_id, &issue)?;
                                     if !publish(ScanEvent::Issue {
                                         scan_id: request.scan_id.clone(),
-                                        issue,
+                                        issue: user_visible_issue(issue),
                                     }) {
                                         catalog.abandon_scan(
                                             &request.scan_id,
@@ -355,6 +356,7 @@ fn run_scan_with_storage(
                                     asset_id,
                                     location_id,
                                     root_id: root_id.clone(),
+                                    display_path: user_visible_path(&file.absolute_path),
                                     absolute_path: file.absolute_path,
                                     relative_path: file.relative_path,
                                     preview_path,
@@ -383,7 +385,7 @@ fn run_scan_with_storage(
                                 catalog.record_issue(&request.scan_id, &issue)?;
                                 discovered_event = Some(ScanEvent::Issue {
                                     scan_id: request.scan_id.clone(),
-                                    issue,
+                                    issue: user_visible_issue(issue),
                                 });
                             }
                         }
@@ -459,7 +461,7 @@ fn run_scan_with_storage(
             catalog.record_issue(&request.scan_id, &issue)?;
             if !publish(ScanEvent::Issue {
                 scan_id: request.scan_id.clone(),
-                issue,
+                issue: user_visible_issue(issue),
             }) {
                 catalog.abandon_scan(&request.scan_id, "detached", issue_count)?;
                 return Ok(());
@@ -494,6 +496,11 @@ fn run_scan_with_storage(
         was_limited,
     });
     Ok(())
+}
+
+fn user_visible_issue(mut issue: ScanIssue) -> ScanIssue {
+    issue.path = issue.path.as_deref().map(user_visible_path);
+    issue
 }
 
 pub fn cancel_scan(scan_id: &str) -> bool {

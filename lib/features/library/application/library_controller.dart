@@ -90,6 +90,7 @@ class LibraryController extends Notifier<LibraryState> {
   Future<void> _startScan({
     required String scanId,
     required String rootPath,
+    String? displayRootPath,
     required int? itemLimit,
     required int? entryLimit,
     required int previewEdge,
@@ -103,6 +104,7 @@ class LibraryController extends Notifier<LibraryState> {
       RecoverableLibraryScan(
         scanId: scanId,
         rootPath: rootPath,
+        displayRootPath: displayRootPath ?? rootPath,
         itemLimit: itemLimit,
         entryLimit: entryLimit,
         previewEdge: previewEdge,
@@ -116,6 +118,7 @@ class LibraryController extends Notifier<LibraryState> {
       status: LibraryStatus.scanning,
       scanId: scanId,
       rootPath: rootPath,
+      displayRootPath: displayRootPath ?? rootPath,
       recentIssues: const [],
       visitedEntries: visitedEntries,
       stagedAssetCount: acceptedItems,
@@ -545,7 +548,7 @@ class LibraryController extends Notifier<LibraryState> {
         return false;
       }
       if (state.rootPath == root.path) {
-        state = state.copyWith(rootPath: null);
+        state = state.copyWith(rootPath: null, displayRootPath: null);
       }
       return true;
     } on Object catch (error) {
@@ -630,6 +633,7 @@ class LibraryController extends Notifier<LibraryState> {
         status: LibraryStatus.paused,
         scanId: paused.scanId,
         rootPath: paused.rootPath,
+        displayRootPath: paused.displayRootPath,
         visitedEntries: paused.visitedEntries,
         stagedAssetCount: paused.acceptedItems,
         issueCount: paused.issueCount,
@@ -653,6 +657,7 @@ class LibraryController extends Notifier<LibraryState> {
     return _startScan(
       scanId: scan.scanId,
       rootPath: scan.rootPath,
+      displayRootPath: scan.displayRootPath,
       itemLimit: scan.itemLimit,
       entryLimit: scan.entryLimit,
       previewEdge: scan.previewEdge,
@@ -707,10 +712,12 @@ class LibraryController extends Notifier<LibraryState> {
       return;
     }
     final rootPath = state.rootPath;
+    final displayRootPath = state.displayRootPath;
     final recentIssues = state.recentIssues;
     final isScanLimited = state.isScanLimited;
     state = LibraryState.fromSnapshot(snapshot, query: query).copyWith(
       rootPath: rootPath,
+      displayRootPath: displayRootPath,
       recentIssues: recentIssues,
       isScanLimited: isScanLimited,
       timeline: timeline,

@@ -1,6 +1,7 @@
-enum GalleryLayoutShape { equalHeight, square }
+import "../application/library_view_preferences.dart";
 
-enum GalleryThumbnailSize { small, medium, large }
+export "../application/library_view_preferences.dart"
+    show GalleryLayoutShape, GalleryThumbnailSize;
 
 extension GalleryThumbnailSizeValue on GalleryThumbnailSize {
   double get targetExtent => switch (this) {

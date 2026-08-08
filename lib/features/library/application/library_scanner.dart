@@ -54,6 +54,7 @@ class RustLibraryScanner implements LibraryScanner {
       return RecoverableLibraryScan(
         scanId: scan.scanId,
         rootPath: scan.rootPath,
+        displayRootPath: scan.displayRootPath,
         itemLimit: scan.maxItems,
         entryLimit: scan.maxEntries,
         previewEdge: scan.previewEdge,

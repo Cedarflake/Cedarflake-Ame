@@ -46,6 +46,17 @@ fn stable_ids_change_with_namespace() {
 }
 
 #[test]
+fn scan_issue_presentation_path_hides_windows_device_prefixes() {
+    let issue = user_visible_issue(ScanIssue {
+        path: Some(r"\\?\C:\Pictures\broken.png".to_owned()),
+        code: "fixture".to_owned(),
+        message: "fixture".to_owned(),
+    });
+
+    assert_eq!(issue.path.as_deref(), Some(r"C:\Pictures\broken.png"));
+}
+
+#[test]
 fn discovery_accepts_png_magic_with_wrong_extension() {
     let directory = tempdir().expect("temporary directory");
     let file_path = directory.path().join("image.data");
@@ -101,6 +112,14 @@ fn completed_scan_publishes_metadata_then_materializes_an_external_preview() {
         fs::read(&source_path).expect("source after scan"),
         original_bytes,
     );
+    let started_root_path = events
+        .iter()
+        .find_map(|event| match event {
+            ScanEvent::Started { root_path, .. } => Some(root_path),
+            _ => None,
+        })
+        .expect("started event");
+    assert_eq!(started_root_path, &user_visible_path(started_root_path));
     let pending_asset = events
         .iter()
         .find_map(|event| match event {

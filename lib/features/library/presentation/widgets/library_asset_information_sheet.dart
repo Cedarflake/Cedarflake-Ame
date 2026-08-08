@@ -2,6 +2,7 @@ import "package:flutter/material.dart";
 
 import "../../domain/library_models.dart";
 import "../library_strings.dart";
+import "library_path_text.dart";
 
 Future<void> showLibraryAssetInformation(
   BuildContext context,
@@ -23,9 +24,12 @@ Future<void> showLibraryAssetInformation(
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
-            _InformationRow(label: "文件", value: asset.relativePath),
-            _InformationRow(label: "路径", value: asset.sourcePath),
-            _InformationRow(label: "类型", value: _fileType(asset.sourcePath)),
+            _InformationRow(
+              label: "文件",
+              value: displayLibraryFileName(asset.displayPath),
+            ),
+            _InformationRow(label: "路径", value: asset.displayPath),
+            _InformationRow(label: "类型", value: _fileType(asset.displayPath)),
             _InformationRow(
               label: "尺寸",
               value: asset.width > 0 && asset.height > 0

@@ -1,5 +1,7 @@
 import "package:flutter/material.dart";
 
+import "ame_menu.dart";
+
 ThemeData buildAmeTheme({Brightness brightness = Brightness.light}) {
   final colorScheme = ColorScheme.fromSeed(
     seedColor: const Color(0xFF0B57D0),
@@ -11,6 +13,9 @@ ThemeData buildAmeTheme({Brightness brightness = Brightness.light}) {
     scaffoldBackgroundColor: colorScheme.surface,
     useMaterial3: true,
     visualDensity: VisualDensity.standard,
+    menuTheme: buildAmeMenuTheme(colorScheme),
+    menuButtonTheme: buildAmeMenuButtonTheme(),
+    popupMenuTheme: buildAmePopupMenuTheme(colorScheme),
     searchBarTheme: SearchBarThemeData(
       elevation: const WidgetStatePropertyAll(0),
       backgroundColor: WidgetStatePropertyAll(

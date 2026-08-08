@@ -1,5 +1,8 @@
+import "dart:math" as math;
+
 import "package:flutter/material.dart";
 
+import "../../../../app/window/ame_window_chrome.dart";
 import "../library_strings.dart";
 
 class LibraryGlobalBar extends StatelessWidget {
@@ -7,66 +10,95 @@ class LibraryGlobalBar extends StatelessWidget {
     required this.isBusy,
     required this.searchController,
     required this.onSearchChanged,
-    required this.onImport,
     super.key,
   });
 
   final bool isBusy;
   final TextEditingController searchController;
   final ValueChanged<String> onSearchChanged;
-  final VoidCallback onImport;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 64,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Row(
-          children: [
-            const SizedBox(
-              width: 244,
-              child: Row(
-                children: [
-                  Icon(Icons.photo_library_outlined),
-                  SizedBox(width: 12),
-                  Text(LibraryStrings.appName),
-                ],
-              ),
-            ),
-            const Spacer(),
-            Flexible(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 720),
-                child: SearchBar(
-                  key: const Key("library-search"),
-                  controller: searchController,
-                  enabled: !isBusy,
-                  hintText: LibraryStrings.searchHint,
-                  leading: const Icon(Icons.search),
-                  trailing: [
-                    if (searchController.text.isNotEmpty)
-                      IconButton(
-                        tooltip: LibraryStrings.clearSearch,
-                        onPressed: () {
-                          searchController.clear();
-                          onSearchChanged("");
-                        },
-                        icon: const Icon(Icons.close),
-                      ),
-                  ],
-                  onChanged: onSearchChanged,
+    return Material(
+      key: const Key("library-global-surface"),
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      child: SizedBox(
+        key: const Key("library-global-bar"),
+        height: 64,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isCompact = constraints.maxWidth < 980;
+            final leadingWidth = isCompact ? 72.0 : 244.0;
+            const captionWidth = 48.0 * 3 + 8;
+            final edgeReserve = math.max(leadingWidth, captionWidth);
+            final searchWidth = math.min(
+              720.0,
+              math.max(360.0, constraints.maxWidth - edgeReserve * 2 - 32),
+            );
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                const Positioned.fill(
+                  child: AmeWindowDragRegion(child: SizedBox.expand()),
                 ),
-              ),
-            ),
-            const Spacer(),
-            FilledButton.tonalIcon(
-              key: const Key("library-import-button"),
-              onPressed: isBusy ? null : onImport,
-              icon: const Icon(Icons.add_photo_alternate_outlined),
-              label: const Text(LibraryStrings.import),
-            ),
-          ],
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: AmeWindowDragRegion(
+                    child: SizedBox(
+                      width: leadingWidth,
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 18),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.photo_library_outlined),
+                            if (!isCompact) ...[
+                              const SizedBox(width: 12),
+                              const Text(LibraryStrings.appName),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Align(
+                  child: SizedBox(
+                    width: searchWidth,
+                    child: Align(
+                      key: const Key("library-search-alignment"),
+                      child: SearchBar(
+                        key: const Key("library-search"),
+                        constraints: const BoxConstraints(
+                          minHeight: 44,
+                          maxHeight: 44,
+                        ),
+                        controller: searchController,
+                        enabled: !isBusy,
+                        hintText: LibraryStrings.searchHint,
+                        leading: const Icon(Icons.search),
+                        trailing: [
+                          if (searchController.text.isNotEmpty)
+                            IconButton(
+                              tooltip: LibraryStrings.clearSearch,
+                              onPressed: () {
+                                searchController.clear();
+                                onSearchChanged("");
+                              },
+                              icon: const Icon(Icons.close),
+                            ),
+                        ],
+                        onChanged: onSearchChanged,
+                      ),
+                    ),
+                  ),
+                ),
+                const Align(
+                  alignment: Alignment.centerRight,
+                  child: AmeWindowCaptionControls(height: 64),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );

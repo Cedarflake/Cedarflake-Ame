@@ -97,6 +97,7 @@ LibraryAsset _asset(
     locationId: id,
     rootId: "root",
     sourcePath: "C:\\Pictures\\$id.png",
+    displayPath: "C:\\Pictures\\$id.png",
     relativePath: "$id.png",
     previewPath: "C:\\Cache\\$id.png",
     fileSize: BigInt.one,

@@ -18,7 +18,8 @@ void main() {
         roots: const [
           LibraryRoot(
             id: "root-1",
-            path: "C:\\Pictures",
+            path: r"\\?\C:\Pictures",
+            displayPath: "C:\\Pictures",
             activeScanId: "scan-test",
             createdUnixMs: 1,
             assetCount: 1,
@@ -31,7 +32,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         directoryPickerProvider.overrideWithValue(
-          const _FakeDirectoryPicker("C:\\Pictures"),
+          const _FakeDirectoryPicker(r"\\?\C:\Pictures"),
         ),
         libraryScannerProvider.overrideWithValue(scanner),
         libraryCatalogProvider.overrideWithValue(catalog),
@@ -60,6 +61,7 @@ void main() {
           locationId: "location-1",
           rootId: "root-1",
           sourcePath: "C:\\Pictures\\one.png",
+          displayPath: "C:\\Pictures\\one.png",
           relativePath: "one.png",
           previewPath: "C:\\AmeCache\\one.jpg",
           fileSize: BigInt.from(128),
@@ -70,6 +72,14 @@ void main() {
       ),
     );
     await Future<void>.delayed(Duration.zero);
+    expect(
+      container.read(libraryControllerProvider).rootPath,
+      r"\\?\C:\Pictures",
+    );
+    expect(
+      container.read(libraryControllerProvider).displayRootPath,
+      r"C:\Pictures",
+    );
     expect(container.read(libraryControllerProvider).assets, isEmpty);
     scanner.add(
       const LibraryScanCompleted(
@@ -146,7 +156,8 @@ void main() {
     final scanner = _FakeLibraryScanner(
       recoverableScan: const RecoverableLibraryScan(
         scanId: "scan-recover",
-        rootPath: "C:\\Pictures",
+        rootPath: r"\\?\C:\Pictures",
+        displayRootPath: "C:\\Pictures",
         itemLimit: 500,
         entryLimit: 2000,
         previewEdge: 512,
@@ -184,7 +195,8 @@ void main() {
     final scanner = _FakeLibraryScanner(
       pausedScan: const RecoverableLibraryScan(
         scanId: "scan-paused",
-        rootPath: "C:\\Pictures",
+        rootPath: r"\\?\C:\Pictures",
+        displayRootPath: "C:\\Pictures",
         itemLimit: 500,
         entryLimit: 2000,
         previewEdge: 512,
@@ -268,6 +280,7 @@ void main() {
       LibraryRoot(
         id: "root-1",
         path: "C:\\Pictures",
+        displayPath: "C:\\Pictures",
         activeScanId: "scan-test",
         createdUnixMs: 1,
         assetCount: 2,
@@ -319,6 +332,7 @@ void main() {
         LibraryRoot(
           id: "root-1",
           path: "C:\\Pictures",
+          displayPath: "C:\\Pictures",
           activeScanId: "scan-1",
           createdUnixMs: 1,
           assetCount: 19,
@@ -394,6 +408,7 @@ void main() {
     const removedRoot = LibraryRoot(
       id: "root-remove",
       path: "C:\\Remove",
+      displayPath: "C:\\Remove",
       activeScanId: "scan-remove",
       createdUnixMs: 1,
       assetCount: 1,
@@ -402,6 +417,7 @@ void main() {
     const keptRoot = LibraryRoot(
       id: "root-keep",
       path: "C:\\Keep",
+      displayPath: "C:\\Keep",
       activeScanId: "scan-keep",
       createdUnixMs: 2,
       assetCount: 1,
@@ -448,6 +464,7 @@ void main() {
         LibraryRoot(
           id: "root-1",
           path: "C:\\Pictures",
+          displayPath: "C:\\Pictures",
           activeScanId: "scan-1",
           createdUnixMs: 1,
           assetCount: 2,
@@ -463,6 +480,7 @@ void main() {
         LibraryRoot(
           id: "root-1",
           path: "C:\\Pictures",
+          displayPath: "C:\\Pictures",
           activeScanId: "scan-2",
           createdUnixMs: 1,
           assetCount: 1,
@@ -588,6 +606,7 @@ LibraryAsset _asset({String suffix = "1", String? previewPath}) {
     locationId: "location-$suffix",
     rootId: "root-1",
     sourcePath: "C:\\Pictures\\$suffix.png",
+    displayPath: "C:\\Pictures\\$suffix.png",
     relativePath: "$suffix.png",
     previewPath: previewPath ?? "C:\\AmeCache\\$suffix.jpg",
     fileSize: BigInt.from(128),
@@ -603,6 +622,7 @@ LibraryAsset _pendingAsset(String suffix) {
     locationId: "location-$suffix",
     rootId: "root-1",
     sourcePath: "C:\\Pictures\\$suffix.png",
+    displayPath: "C:\\Pictures\\$suffix.png",
     relativePath: "$suffix.png",
     previewPath: "",
     fileSize: BigInt.from(128),

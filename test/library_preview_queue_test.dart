@@ -94,6 +94,7 @@ LibraryAsset _asset(String id) {
     locationId: id,
     rootId: "root",
     sourcePath: "C:\\Pictures\\$id.png",
+    displayPath: "C:\\Pictures\\$id.png",
     relativePath: "$id.png",
     previewPath: "",
     fileSize: BigInt.one,

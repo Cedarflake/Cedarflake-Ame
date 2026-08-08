@@ -1,8 +1,10 @@
 import "dart:math" as math;
 
+import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 
+import "../../../settings/application/ame_preferences.dart";
 import "../../domain/library_models.dart";
 import "library_viewer_controls.dart";
 import "library_viewer_image.dart";
@@ -14,6 +16,8 @@ class LibraryImageViewer extends StatefulWidget {
     required this.onInformation,
     required this.onCopyPath,
     required this.onRevealFile,
+    this.wheelBehavior = ImageViewerWheelBehavior.zoom,
+    this.openBehavior = ImageViewerOpenBehavior.fitWindow,
     this.onPrevious,
     this.onNext,
     this.position,
@@ -26,6 +30,8 @@ class LibraryImageViewer extends StatefulWidget {
   final VoidCallback onInformation;
   final VoidCallback onCopyPath;
   final VoidCallback onRevealFile;
+  final ImageViewerWheelBehavior wheelBehavior;
+  final ImageViewerOpenBehavior openBehavior;
   final VoidCallback? onPrevious;
   final VoidCallback? onNext;
   final int? position;
@@ -40,16 +46,22 @@ class _LibraryImageViewerState extends State<LibraryImageViewer> {
   static const _defaultMaximumScale = 8.0;
   static const _zoomStep = 1.25;
 
+  final FocusNode _viewerFocusNode = FocusNode(
+    debugLabel: "library-image-viewer",
+  );
   final TransformationController _transformationController =
       TransformationController();
   Size _viewportSize = Size.zero;
   double _scale = 1;
   bool _isConstrainingTransform = false;
+  bool _shouldApplyOpeningBehavior = true;
+  DateTime? _lastWheelNavigationAt;
 
   @override
   void initState() {
     super.initState();
     _transformationController.addListener(_handleTransformationChanged);
+    _requestViewerFocus();
   }
 
   @override
@@ -57,11 +69,19 @@ class _LibraryImageViewerState extends State<LibraryImageViewer> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.asset.locationId != widget.asset.locationId) {
       _fitToWindow();
+      _shouldApplyOpeningBehavior = true;
+      _requestViewerFocus();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _applyOpeningBehaviorIfNeeded();
+        }
+      });
     }
   }
 
   @override
   void dispose() {
+    _viewerFocusNode.dispose();
     _transformationController
       ..removeListener(_handleTransformationChanged)
       ..dispose();
@@ -72,27 +92,40 @@ class _LibraryImageViewerState extends State<LibraryImageViewer> {
   Widget build(BuildContext context) {
     return CallbackShortcuts(
       bindings: {
+        const SingleActivator(LogicalKeyboardKey.escape): widget.onBack,
+        const SingleActivator(LogicalKeyboardKey.backspace): widget.onBack,
+        const SingleActivator(LogicalKeyboardKey.browserBack): widget.onBack,
         const SingleActivator(LogicalKeyboardKey.arrowLeft):
             _showPreviousFromKeyboard,
         const SingleActivator(LogicalKeyboardKey.arrowRight):
             _showNextFromKeyboard,
         const SingleActivator(LogicalKeyboardKey.add): _zoomIn,
+        const SingleActivator(LogicalKeyboardKey.equal, shift: true): _zoomIn,
+        const SingleActivator(LogicalKeyboardKey.minus): _zoomOut,
         const SingleActivator(LogicalKeyboardKey.numpadAdd): _zoomIn,
         const SingleActivator(LogicalKeyboardKey.numpadSubtract): _zoomOut,
         const SingleActivator(LogicalKeyboardKey.equal, control: true): _zoomIn,
+        const SingleActivator(
+          LogicalKeyboardKey.equal,
+          control: true,
+          shift: true,
+        ): _zoomIn,
         const SingleActivator(LogicalKeyboardKey.minus, control: true):
             _zoomOut,
+        const SingleActivator(LogicalKeyboardKey.digit0): _fitToWindow,
         const SingleActivator(LogicalKeyboardKey.digit0, control: true):
             _fitToWindow,
+        const SingleActivator(LogicalKeyboardKey.digit1): _showActualSize,
         const SingleActivator(LogicalKeyboardKey.digit1, control: true):
             _showActualSize,
       },
       child: Focus(
+        focusNode: _viewerFocusNode,
         autofocus: true,
         child: Column(
           children: [
             LibraryViewerTopBar(
-              relativePath: widget.asset.relativePath,
+              displayPath: widget.asset.displayPath,
               positionLabel: _positionLabel,
               onBack: widget.onBack,
               onInformation: widget.onInformation,
@@ -117,6 +150,7 @@ class _LibraryImageViewerState extends State<LibraryImageViewer> {
             _viewportSize = nextViewportSize;
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted) {
+                _applyOpeningBehaviorIfNeeded();
                 _constrainTransform();
               }
             });
@@ -124,22 +158,27 @@ class _LibraryImageViewerState extends State<LibraryImageViewer> {
           return Stack(
             fit: StackFit.expand,
             children: [
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onDoubleTap: _toggleActualSize,
-                child: InteractiveViewer(
-                  key: const Key("library-image-interactive-viewer"),
-                  transformationController: _transformationController,
-                  alignment: Alignment.topLeft,
-                  boundaryMargin: const EdgeInsets.all(double.infinity),
-                  minScale: _minimumScale,
-                  maxScale: _maximumScale,
-                  scaleFactor: 180,
-                  trackpadScrollCausesScale: true,
-                  child: SizedBox(
-                    width: constraints.maxWidth,
-                    height: constraints.maxHeight,
-                    child: LibraryViewerImage(asset: widget.asset),
+              Listener(
+                onPointerSignal: _handlePointerSignal,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onDoubleTap: _toggleActualSize,
+                  child: InteractiveViewer(
+                    key: const Key("library-image-interactive-viewer"),
+                    transformationController: _transformationController,
+                    alignment: Alignment.topLeft,
+                    boundaryMargin: const EdgeInsets.all(double.infinity),
+                    minScale: _minimumScale,
+                    maxScale: _maximumScale,
+                    scaleFactor: 180,
+                    scaleEnabled:
+                        widget.wheelBehavior == ImageViewerWheelBehavior.zoom,
+                    trackpadScrollCausesScale: true,
+                    child: SizedBox(
+                      width: constraints.maxWidth,
+                      height: constraints.maxHeight,
+                      child: LibraryViewerImage(asset: widget.asset),
+                    ),
                   ),
                 ),
               ),
@@ -185,6 +224,14 @@ class _LibraryImageViewerState extends State<LibraryImageViewer> {
     if (mounted && (nextScale - _scale).abs() > 0.001) {
       setState(() => _scale = nextScale);
     }
+  }
+
+  void _requestViewerFocus() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _viewerFocusNode.requestFocus();
+      }
+    });
   }
 
   void _constrainTransform() {
@@ -236,6 +283,37 @@ class _LibraryImageViewerState extends State<LibraryImageViewer> {
 
   void _fitToWindow() {
     _transformationController.value = Matrix4.identity();
+  }
+
+  void _applyOpeningBehaviorIfNeeded() {
+    if (!_shouldApplyOpeningBehavior || !_hasImageDimensions) {
+      return;
+    }
+    _shouldApplyOpeningBehavior = false;
+    _fitToWindow();
+    if (widget.openBehavior == ImageViewerOpenBehavior.actualSize) {
+      _showActualSize();
+    }
+  }
+
+  void _handlePointerSignal(PointerSignalEvent event) {
+    if (widget.wheelBehavior != ImageViewerWheelBehavior.previousOrNext ||
+        event is! PointerScrollEvent ||
+        event.scrollDelta.dy == 0) {
+      return;
+    }
+    final now = DateTime.now();
+    final lastNavigation = _lastWheelNavigationAt;
+    if (lastNavigation != null &&
+        now.difference(lastNavigation) < const Duration(milliseconds: 240)) {
+      return;
+    }
+    _lastWheelNavigationAt = now;
+    if (event.scrollDelta.dy < 0) {
+      widget.onPrevious?.call();
+    } else {
+      widget.onNext?.call();
+    }
   }
 
   void _showActualSize() {

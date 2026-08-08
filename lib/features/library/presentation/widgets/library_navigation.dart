@@ -14,6 +14,8 @@ export "library_source_navigation_tile.dart" show librarySourceName;
 class LibraryNavigation extends StatefulWidget {
   const LibraryNavigation({
     required this.isCompact,
+    required this.width,
+    required this.isSettingsSelected,
     required this.roots,
     required this.selectedRootId,
     required this.selectedFolderRelativePath,
@@ -26,6 +28,7 @@ class LibraryNavigation extends StatefulWidget {
     required this.onExpandFolder,
     required this.onLoadMoreFolders,
     required this.onAddSource,
+    required this.onOpenSettings,
     required this.onUpdateRoot,
     required this.onOpenRoot,
     required this.onOpenFolder,
@@ -34,6 +37,8 @@ class LibraryNavigation extends StatefulWidget {
   });
 
   final bool isCompact;
+  final double width;
+  final bool isSettingsSelected;
   final List<LibraryRoot> roots;
   final String? selectedRootId;
   final String? selectedFolderRelativePath;
@@ -48,6 +53,7 @@ class LibraryNavigation extends StatefulWidget {
   final Future<void> Function(String rootId, String parentRelativePath)
   onLoadMoreFolders;
   final VoidCallback onAddSource;
+  final VoidCallback onOpenSettings;
   final ValueChanged<String> onUpdateRoot;
   final ValueChanged<LibraryRoot> onOpenRoot;
   final void Function(LibraryRoot root, LibraryFolder folder) onOpenFolder;
@@ -63,83 +69,136 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: widget.isCompact ? 76 : 260,
+      key: const Key("library-navigation"),
+      width: widget.width,
       child: Material(
-        color: Theme.of(context).colorScheme.surfaceContainerLowest,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(8, 12, 8, 20),
+        key: const Key("library-navigation-surface"),
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
+        child: Column(
           children: [
-            if (widget.isCompact)
-              IconButton(
-                isSelected: widget.selectedRootId == null,
-                tooltip: LibraryStrings.library,
-                onPressed: widget.isBusy ? null : widget.onSelectLibrary,
-                icon: const Icon(Icons.photo_library_outlined),
-              )
-            else
-              ListTile(
-                selected: widget.selectedRootId == null,
-                selectedTileColor: Theme.of(
-                  context,
-                ).colorScheme.secondaryContainer,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                contentPadding: const EdgeInsets.only(left: 16, right: 4),
-                minLeadingWidth: 24,
-                horizontalTitleGap: 12,
-                leading: const SizedBox(
-                  width: 24,
-                  child: Icon(Icons.photo_library_outlined),
-                ),
-                title: const Text(LibraryStrings.library),
-                trailing: SizedBox(
-                  width: 48,
-                  child: IconButton(
-                    key: const Key("library-sidebar-import"),
-                    tooltip: LibraryStrings.addFolder,
-                    onPressed: widget.isBusy ? null : widget.onAddSource,
-                    icon: const Icon(Icons.create_new_folder_outlined),
-                  ),
-                ),
-                onTap: widget.isBusy ? null : widget.onSelectLibrary,
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
+                children: [
+                  if (widget.isCompact) ...[
+                    IconButton(
+                      key: const Key("library-sidebar-library"),
+                      isSelected:
+                          !widget.isSettingsSelected &&
+                          widget.selectedRootId == null,
+                      tooltip: LibraryStrings.library,
+                      onPressed: widget.isBusy ? null : widget.onSelectLibrary,
+                      icon: const Icon(Icons.photo_library_outlined),
+                    ),
+                    IconButton(
+                      key: const Key("library-sidebar-import"),
+                      tooltip: LibraryStrings.addFolder,
+                      onPressed: widget.isBusy ? null : widget.onAddSource,
+                      icon: const Icon(Icons.create_new_folder_outlined),
+                    ),
+                  ] else
+                    ListTile(
+                      key: const Key("library-sidebar-library"),
+                      selected:
+                          !widget.isSettingsSelected &&
+                          widget.selectedRootId == null,
+                      selectedTileColor: Theme.of(
+                        context,
+                      ).colorScheme.secondaryContainer,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      contentPadding: const EdgeInsets.only(left: 16, right: 4),
+                      minLeadingWidth: 24,
+                      horizontalTitleGap: 12,
+                      leading: const SizedBox(
+                        width: 24,
+                        child: Icon(Icons.photo_library_outlined),
+                      ),
+                      title: const Text(LibraryStrings.library),
+                      trailing: SizedBox(
+                        width: 48,
+                        child: IconButton(
+                          key: const Key("library-sidebar-import"),
+                          tooltip: LibraryStrings.addFolder,
+                          onPressed: widget.isBusy ? null : widget.onAddSource,
+                          icon: const Icon(Icons.create_new_folder_outlined),
+                        ),
+                      ),
+                      onTap: widget.isBusy ? null : widget.onSelectLibrary,
+                    ),
+                  const SizedBox(height: 12),
+                  if (widget.roots.isEmpty && widget.transientRootPath == null)
+                    if (widget.isCompact)
+                      const IconButton(
+                        tooltip: LibraryStrings.noFolder,
+                        onPressed: null,
+                        icon: Icon(Icons.folder_off_outlined),
+                      )
+                    else
+                      const ListTile(
+                        leading: Icon(Icons.folder_off_outlined),
+                        title: Text(LibraryStrings.noFolder),
+                      ),
+                  for (final root in widget.roots) ...[
+                    LibrarySourceNavigationTile(
+                      root: root,
+                      isCompact: widget.isCompact,
+                      isSelected:
+                          !widget.isSettingsSelected &&
+                          widget.selectedRootId == root.id &&
+                          widget.selectedFolderRelativePath == null,
+                      isExpanded: _isExpanded(root.id, ""),
+                      isBusy: widget.isBusy,
+                      onSelect: () => widget.onSelectRoot(root),
+                      onToggleExpansion: () => _toggleBranch(root.id, ""),
+                      onUpdate: () => widget.onUpdateRoot(root.path),
+                      onOpen: () => widget.onOpenRoot(root),
+                      onRemove: () => widget.onRemoveRoot(root),
+                    ),
+                    if (!widget.isCompact && _isExpanded(root.id, ""))
+                      ..._buildFolderBranch(root, "", 1),
+                  ],
+                  if (widget.transientRootPath case final path?)
+                    PendingLibrarySourceTile(
+                      path: path,
+                      isCompact: widget.isCompact,
+                    ),
+                ],
               ),
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 10),
-              child: Divider(height: 1),
             ),
-            if (widget.roots.isEmpty && widget.transientRootPath == null)
-              if (widget.isCompact)
-                const IconButton(
-                  tooltip: LibraryStrings.noFolder,
-                  onPressed: null,
-                  icon: Icon(Icons.folder_off_outlined),
-                )
-              else
-                const ListTile(
-                  leading: Icon(Icons.folder_off_outlined),
-                  title: Text(LibraryStrings.noFolder),
-                ),
-            for (final root in widget.roots) ...[
-              LibrarySourceNavigationTile(
-                root: root,
-                isCompact: widget.isCompact,
-                isSelected:
-                    widget.selectedRootId == root.id &&
-                    widget.selectedFolderRelativePath == null,
-                isExpanded: _isExpanded(root.id, ""),
-                isBusy: widget.isBusy,
-                onSelect: () => widget.onSelectRoot(root),
-                onToggleExpansion: () => _toggleBranch(root.id, ""),
-                onUpdate: () => widget.onUpdateRoot(root.path),
-                onOpen: () => widget.onOpenRoot(root),
-                onRemove: () => widget.onRemoveRoot(root),
-              ),
-              if (!widget.isCompact && _isExpanded(root.id, ""))
-                ..._buildFolderBranch(root, "", 1),
-            ],
-            if (widget.transientRootPath case final path?)
-              PendingLibrarySourceTile(path: path, isCompact: widget.isCompact),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
+              child: widget.isCompact
+                  ? IconButton(
+                      key: const Key("library-sidebar-settings"),
+                      isSelected: widget.isSettingsSelected,
+                      tooltip: LibraryStrings.settings,
+                      onPressed: widget.onOpenSettings,
+                      icon: const Icon(Icons.settings_outlined),
+                    )
+                  : ListTile(
+                      key: const Key("library-sidebar-settings"),
+                      selected: widget.isSettingsSelected,
+                      selectedTileColor: Theme.of(
+                        context,
+                      ).colorScheme.secondaryContainer,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                      ),
+                      minLeadingWidth: 24,
+                      horizontalTitleGap: 12,
+                      leading: const SizedBox(
+                        width: 24,
+                        child: Icon(Icons.settings_outlined),
+                      ),
+                      title: const Text(LibraryStrings.settings),
+                      onTap: widget.onOpenSettings,
+                    ),
+            ),
           ],
         ),
       ),
@@ -174,6 +233,7 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
           folder: folder,
           depth: depth,
           isSelected:
+              !widget.isSettingsSelected &&
               widget.selectedRootId == root.id &&
               widget.selectedFolderRelativePath == folder.relativePath,
           isExpanded: isExpanded,

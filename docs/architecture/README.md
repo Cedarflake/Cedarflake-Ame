@@ -26,3 +26,5 @@ Recorded decisions:
 - [ADR 0009: Accepted unified gallery UI contract](0009-accepted-unified-gallery-ui-contract.md)
 - [ADR 0010: Dual-level gallery time navigation](0010-dual-level-time-navigation.md)
 - [ADR 0011: Bidirectional gallery keyset around time anchors](0011-bidirectional-gallery-keyset.md)
+- [ADR 0012: Draw the Windows title bar inside Ame](0012-app-drawn-windows-chrome.md)
+- [ADR 0013: Persist stable UI preferences outside the catalog](0013-persist-ui-preferences.md)

@@ -1,10 +1,16 @@
+import "dart:async";
+
 import "package:flutter/material.dart";
 
+import "../../../../app/ame_menu.dart";
+import "../../../../app/ame_popup_menu_position.dart";
+import "../../../../app/window/ame_window_chrome.dart";
 import "../library_strings.dart";
+import "library_path_text.dart";
 
 class LibraryViewerTopBar extends StatelessWidget {
   const LibraryViewerTopBar({
-    required this.relativePath,
+    required this.displayPath,
     required this.onBack,
     required this.onInformation,
     required this.onCopyPath,
@@ -13,7 +19,7 @@ class LibraryViewerTopBar extends StatelessWidget {
     super.key,
   });
 
-  final String relativePath;
+  final String displayPath;
   final String? positionLabel;
   final VoidCallback onBack;
   final VoidCallback onInformation;
@@ -22,66 +28,115 @@ class LibraryViewerTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 72,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+    return Material(
+      key: const Key("viewer-window-bar"),
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      child: SizedBox(
+        height: 64,
         child: Row(
           children: [
+            const SizedBox(width: 8),
             IconButton(
-              tooltip: LibraryStrings.backToLibrary,
+              tooltip: "${LibraryStrings.backToLibrary}（Esc）",
               onPressed: onBack,
               icon: const Icon(Icons.arrow_back),
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: Text(
-                relativePath,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-            ),
-            if (positionLabel case final label?) ...[
-              Text(
-                label,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+              child: AmeWindowDragRegion(
+                key: const Key("viewer-window-drag-region"),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: DefaultTextStyle.merge(
+                        style: Theme.of(context).textTheme.titleMedium,
+                        child: LibraryPathText(
+                          text: displayLibraryFileName(displayPath),
+                          path: displayPath,
+                          alwaysShowPathTooltip: true,
+                          textKey: const Key("viewer-source-path"),
+                        ),
+                      ),
+                    ),
+                    if (positionLabel case final label?) ...[
+                      const SizedBox(width: 16),
+                      Text(
+                        label,
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(width: 8),
+                  ],
                 ),
               ),
-              const SizedBox(width: 8),
-            ],
+            ),
             IconButton(
               tooltip: LibraryStrings.viewInformation,
               onPressed: onInformation,
               icon: const Icon(Icons.info_outline),
             ),
-            MenuAnchor(
-              menuChildren: [
-                MenuItemButton(
-                  leadingIcon: const Icon(Icons.content_copy_outlined),
-                  onPressed: onCopyPath,
-                  child: const Text(LibraryStrings.copyPath),
-                ),
-                MenuItemButton(
-                  leadingIcon: const Icon(Icons.folder_open_outlined),
-                  onPressed: onRevealFile,
-                  child: const Text(LibraryStrings.openInExplorer),
-                ),
-              ],
-              builder: (context, controller, child) => IconButton(
+            Builder(
+              builder: (buttonContext) => IconButton(
+                key: const Key("viewer-more-menu"),
                 tooltip: LibraryStrings.more,
-                onPressed: () =>
-                    controller.isOpen ? controller.close() : controller.open(),
+                onPressed: () {
+                  unawaited(_showMoreMenu(buttonContext));
+                },
                 icon: const Icon(Icons.more_horiz),
               ),
             ),
+            const AmeWindowCaptionControls(height: 64),
           ],
         ),
       ),
     );
   }
+
+  Future<void> _showMoreMenu(BuildContext anchorContext) async {
+    final position = amePopupMenuBelowAnchor(
+      context: anchorContext,
+      anchorContext: anchorContext,
+      viewportRightMargin: 16,
+    );
+    if (position == null) {
+      return;
+    }
+    const labels = [LibraryStrings.copyPath, LibraryStrings.openInExplorer];
+    final action = await showAmePopupMenu<_ViewerMenuAction>(
+      context: anchorContext,
+      position: position,
+      labels: labels,
+      items: const [
+        PopupMenuItem(
+          value: _ViewerMenuAction.copyPath,
+          child: AmeMenuItemContent(
+            icon: Icons.content_copy_outlined,
+            label: LibraryStrings.copyPath,
+          ),
+        ),
+        PopupMenuItem(
+          value: _ViewerMenuAction.revealFile,
+          child: AmeMenuItemContent(
+            icon: Icons.folder_open_outlined,
+            label: LibraryStrings.openInExplorer,
+          ),
+        ),
+      ],
+    );
+    switch (action) {
+      case _ViewerMenuAction.copyPath:
+        onCopyPath();
+      case _ViewerMenuAction.revealFile:
+        onRevealFile();
+      case null:
+        return;
+    }
+  }
 }
+
+enum _ViewerMenuAction { copyPath, revealFile }
 
 class LibraryViewerNavigationButton extends StatelessWidget {
   const LibraryViewerNavigationButton.previous({
@@ -147,55 +202,68 @@ class LibraryViewerZoomControls extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Material(
+      key: const Key("viewer-zoom-controls"),
       color: colorScheme.surfaceContainerHigh.withValues(alpha: 0.94),
       elevation: 2,
       borderRadius: BorderRadius.circular(28),
       child: SizedBox(
         height: 52,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              tooltip: "缩小（Ctrl+-）",
-              onPressed: canZoomOut ? onZoomOut : null,
-              icon: const Icon(Icons.remove),
-            ),
-            SizedBox(
-              width: 164,
-              child: Slider(
-                value: sliderValue,
-                onChanged: onSliderChanged,
-                semanticFormatterCallback: sliderSemanticFormatter,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                tooltip: "缩小（- / Ctrl+-）",
+                onPressed: canZoomOut ? onZoomOut : null,
+                icon: const Icon(Icons.remove),
               ),
-            ),
-            SizedBox(
-              width: 58,
-              child: Text(
-                "$zoomPercent%",
-                key: const Key("viewer-zoom-percentage"),
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.labelLarge,
+              SizedBox(
+                width: 164,
+                child: Slider(
+                  value: sliderValue,
+                  onChanged: onSliderChanged,
+                  semanticFormatterCallback: sliderSemanticFormatter,
+                ),
               ),
-            ),
-            IconButton(
-              tooltip: "放大（Ctrl++）",
-              onPressed: canZoomIn ? onZoomIn : null,
-              icon: const Icon(Icons.add),
-            ),
-            const SizedBox(height: 28, child: VerticalDivider(width: 1)),
-            IconButton(
-              key: const Key("viewer-fit"),
-              tooltip: "适合窗口（Ctrl+0）",
-              onPressed: onFitToWindow,
-              icon: const Icon(Icons.fit_screen_outlined),
-            ),
-            TextButton(
-              key: const Key("viewer-actual-size"),
-              onPressed: canShowActualSize ? onShowActualSize : null,
-              child: const Text("1:1"),
-            ),
-            const SizedBox(width: 4),
-          ],
+              SizedBox(
+                width: 58,
+                child: Text(
+                  "$zoomPercent%",
+                  key: const Key("viewer-zoom-percentage"),
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
+              ),
+              IconButton(
+                tooltip: "放大（+ / Ctrl++）",
+                onPressed: canZoomIn ? onZoomIn : null,
+                icon: const Icon(Icons.add),
+              ),
+              const SizedBox(
+                key: Key("viewer-zoom-group-divider"),
+                width: 24,
+                height: 28,
+                child: VerticalDivider(width: 24),
+              ),
+              IconButton(
+                key: const Key("viewer-fit"),
+                tooltip: "适合窗口（0 / Ctrl+0）",
+                onPressed: onFitToWindow,
+                icon: const Icon(Icons.fit_screen_outlined),
+              ),
+              const SizedBox(width: 4),
+              Tooltip(
+                message: "实际大小（1 / Ctrl+1）",
+                child: TextButton(
+                  key: const Key("viewer-actual-size"),
+                  onPressed: canShowActualSize ? onShowActualSize : null,
+                  child: const Text("1:1"),
+                ),
+              ),
+              const SizedBox(width: 4),
+            ],
+          ),
         ),
       ),
     );

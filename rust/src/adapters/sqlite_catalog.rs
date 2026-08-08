@@ -12,6 +12,8 @@ use crate::domain::{
 };
 use crate::ports::CatalogRepository;
 
+use super::user_visible_path;
+
 mod folders;
 mod gallery;
 mod migrations;
@@ -1159,6 +1161,7 @@ fn load_root_views(transaction: &Transaction<'_>) -> Result<Vec<LibraryRootView>
             row.map_err(database_error)?;
         roots.push(LibraryRootView {
             root_id,
+            display_path: user_visible_path(&path),
             path,
             active_scan_id,
             created_unix_ms,
@@ -1387,6 +1390,7 @@ fn stored_asset_view(stored: StoredAssetRow) -> Result<AssetLocationView, ScanEr
         asset_id: stored.asset_id,
         location_id: stored.location_id,
         root_id: stored.root_id,
+        display_path: user_visible_path(&stored.absolute_path),
         absolute_path: stored.absolute_path,
         relative_path: stored.relative_path,
         preview_path: stored.preview_path,
@@ -1529,6 +1533,7 @@ fn load_scan_with_status(
             )| {
                 Ok(RecoverableScan {
                     scan_id,
+                    display_root_path: user_visible_path(&root_path),
                     root_path,
                     max_items: optional_sqlite_u32(max_items, "item limit")?,
                     max_entries: optional_sqlite_u32(max_entries, "entry limit")?,

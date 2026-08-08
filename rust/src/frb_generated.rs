@@ -538,6 +538,7 @@ impl SseDecode for crate::domain::AssetLocationView {
         let mut var_locationId = <String>::sse_decode(deserializer);
         let mut var_rootId = <String>::sse_decode(deserializer);
         let mut var_absolutePath = <String>::sse_decode(deserializer);
+        let mut var_displayPath = <String>::sse_decode(deserializer);
         let mut var_relativePath = <String>::sse_decode(deserializer);
         let mut var_previewPath = <String>::sse_decode(deserializer);
         let mut var_fileSize = <u64>::sse_decode(deserializer);
@@ -559,6 +560,7 @@ impl SseDecode for crate::domain::AssetLocationView {
             location_id: var_locationId,
             root_id: var_rootId,
             absolute_path: var_absolutePath,
+            display_path: var_displayPath,
             relative_path: var_relativePath,
             preview_path: var_previewPath,
             file_size: var_fileSize,
@@ -863,6 +865,7 @@ impl SseDecode for crate::domain::LibraryRootView {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_rootId = <String>::sse_decode(deserializer);
         let mut var_path = <String>::sse_decode(deserializer);
+        let mut var_displayPath = <String>::sse_decode(deserializer);
         let mut var_activeScanId = <Option<String>>::sse_decode(deserializer);
         let mut var_createdUnixMs = <i64>::sse_decode(deserializer);
         let mut var_assetCount = <u64>::sse_decode(deserializer);
@@ -873,6 +876,7 @@ impl SseDecode for crate::domain::LibraryRootView {
         return crate::domain::LibraryRootView {
             root_id: var_rootId,
             path: var_path,
+            display_path: var_displayPath,
             active_scan_id: var_activeScanId,
             created_unix_ms: var_createdUnixMs,
             asset_count: var_assetCount,
@@ -1078,6 +1082,7 @@ impl SseDecode for crate::domain::RecoverableScan {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_scanId = <String>::sse_decode(deserializer);
         let mut var_rootPath = <String>::sse_decode(deserializer);
+        let mut var_displayRootPath = <String>::sse_decode(deserializer);
         let mut var_maxItems = <Option<u32>>::sse_decode(deserializer);
         let mut var_maxEntries = <Option<u32>>::sse_decode(deserializer);
         let mut var_previewEdge = <u32>::sse_decode(deserializer);
@@ -1087,6 +1092,7 @@ impl SseDecode for crate::domain::RecoverableScan {
         return crate::domain::RecoverableScan {
             scan_id: var_scanId,
             root_path: var_rootPath,
+            display_root_path: var_displayRootPath,
             max_items: var_maxItems,
             max_entries: var_maxEntries,
             preview_edge: var_previewEdge,
@@ -1264,6 +1270,8 @@ impl SseDecode for crate::domain::StorageStatus {
         let mut var_activePreviewRoot = <String>::sse_decode(deserializer);
         let mut var_configuredCatalogPath = <String>::sse_decode(deserializer);
         let mut var_configuredPreviewRoot = <String>::sse_decode(deserializer);
+        let mut var_configuredCatalogDisplayPath = <String>::sse_decode(deserializer);
+        let mut var_configuredPreviewDisplayPath = <String>::sse_decode(deserializer);
         let mut var_previewBudgetBytes = <u64>::sse_decode(deserializer);
         let mut var_previewUsedBytes = <u64>::sse_decode(deserializer);
         let mut var_catalogUsedBytes = <u64>::sse_decode(deserializer);
@@ -1274,6 +1282,8 @@ impl SseDecode for crate::domain::StorageStatus {
             active_preview_root: var_activePreviewRoot,
             configured_catalog_path: var_configuredCatalogPath,
             configured_preview_root: var_configuredPreviewRoot,
+            configured_catalog_display_path: var_configuredCatalogDisplayPath,
+            configured_preview_display_path: var_configuredPreviewDisplayPath,
             preview_budget_bytes: var_previewBudgetBytes,
             preview_used_bytes: var_previewUsedBytes,
             catalog_used_bytes: var_catalogUsedBytes,
@@ -1374,6 +1384,7 @@ impl flutter_rust_bridge::IntoDart for crate::domain::AssetLocationView {
             self.location_id.into_into_dart().into_dart(),
             self.root_id.into_into_dart().into_dart(),
             self.absolute_path.into_into_dart().into_dart(),
+            self.display_path.into_into_dart().into_dart(),
             self.relative_path.into_into_dart().into_dart(),
             self.preview_path.into_into_dart().into_dart(),
             self.file_size.into_into_dart().into_dart(),
@@ -1750,6 +1761,7 @@ impl flutter_rust_bridge::IntoDart for crate::domain::LibraryRootView {
         [
             self.root_id.into_into_dart().into_dart(),
             self.path.into_into_dart().into_dart(),
+            self.display_path.into_into_dart().into_dart(),
             self.active_scan_id.into_into_dart().into_dart(),
             self.created_unix_ms.into_into_dart().into_dart(),
             self.asset_count.into_into_dart().into_dart(),
@@ -1814,6 +1826,7 @@ impl flutter_rust_bridge::IntoDart for crate::domain::RecoverableScan {
         [
             self.scan_id.into_into_dart().into_dart(),
             self.root_path.into_into_dart().into_dart(),
+            self.display_root_path.into_into_dart().into_dart(),
             self.max_items.into_into_dart().into_dart(),
             self.max_entries.into_into_dart().into_dart(),
             self.preview_edge.into_into_dart().into_dart(),
@@ -2024,6 +2037,12 @@ impl flutter_rust_bridge::IntoDart for crate::domain::StorageStatus {
             self.active_preview_root.into_into_dart().into_dart(),
             self.configured_catalog_path.into_into_dart().into_dart(),
             self.configured_preview_root.into_into_dart().into_dart(),
+            self.configured_catalog_display_path
+                .into_into_dart()
+                .into_dart(),
+            self.configured_preview_display_path
+                .into_into_dart()
+                .into_dart(),
             self.preview_budget_bytes.into_into_dart().into_dart(),
             self.preview_used_bytes.into_into_dart().into_dart(),
             self.catalog_used_bytes.into_into_dart().into_dart(),
@@ -2071,6 +2090,7 @@ impl SseEncode for crate::domain::AssetLocationView {
         <String>::sse_encode(self.location_id, serializer);
         <String>::sse_encode(self.root_id, serializer);
         <String>::sse_encode(self.absolute_path, serializer);
+        <String>::sse_encode(self.display_path, serializer);
         <String>::sse_encode(self.relative_path, serializer);
         <String>::sse_encode(self.preview_path, serializer);
         <u64>::sse_encode(self.file_size, serializer);
@@ -2315,6 +2335,7 @@ impl SseEncode for crate::domain::LibraryRootView {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.root_id, serializer);
         <String>::sse_encode(self.path, serializer);
+        <String>::sse_encode(self.display_path, serializer);
         <Option<String>>::sse_encode(self.active_scan_id, serializer);
         <i64>::sse_encode(self.created_unix_ms, serializer);
         <u64>::sse_encode(self.asset_count, serializer);
@@ -2494,6 +2515,7 @@ impl SseEncode for crate::domain::RecoverableScan {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.scan_id, serializer);
         <String>::sse_encode(self.root_path, serializer);
+        <String>::sse_encode(self.display_root_path, serializer);
         <Option<u32>>::sse_encode(self.max_items, serializer);
         <Option<u32>>::sse_encode(self.max_entries, serializer);
         <u32>::sse_encode(self.preview_edge, serializer);
@@ -2641,6 +2663,8 @@ impl SseEncode for crate::domain::StorageStatus {
         <String>::sse_encode(self.active_preview_root, serializer);
         <String>::sse_encode(self.configured_catalog_path, serializer);
         <String>::sse_encode(self.configured_preview_root, serializer);
+        <String>::sse_encode(self.configured_catalog_display_path, serializer);
+        <String>::sse_encode(self.configured_preview_display_path, serializer);
         <u64>::sse_encode(self.preview_budget_bytes, serializer);
         <u64>::sse_encode(self.preview_used_bytes, serializer);
         <u64>::sse_encode(self.catalog_used_bytes, serializer);
@@ -2694,27 +2718,3 @@ mod io {
 }
 #[cfg(not(target_family = "wasm"))]
 pub use io::*;
-
-/// cbindgen:ignore
-#[cfg(target_family = "wasm")]
-mod web {
-    // This file is automatically generated, so please do not edit it.
-    // @generated by `flutter_rust_bridge`@ 2.12.0.
-
-    // Section: imports
-
-    use super::*;
-    use flutter_rust_bridge::for_generated::byteorder::{
-        NativeEndian, ReadBytesExt, WriteBytesExt,
-    };
-    use flutter_rust_bridge::for_generated::wasm_bindgen;
-    use flutter_rust_bridge::for_generated::wasm_bindgen::prelude::*;
-    use flutter_rust_bridge::for_generated::{Lifetimeable, Lockable, transform_result_dco};
-    use flutter_rust_bridge::{Handler, IntoIntoDart};
-
-    // Section: boilerplate
-
-    flutter_rust_bridge::frb_generated_boilerplate_web!();
-}
-#[cfg(target_family = "wasm")]
-pub use web::*;

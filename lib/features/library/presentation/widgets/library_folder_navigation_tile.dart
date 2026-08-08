@@ -1,9 +1,11 @@
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 
+import "../../../../app/ame_menu.dart";
 import "../../domain/library_folder_models.dart";
 import "../../domain/library_models.dart";
 import "../library_strings.dart";
+import "library_path_text.dart";
 
 class LibraryFolderNavigationTile extends StatefulWidget {
   const LibraryFolderNavigationTile({
@@ -48,14 +50,16 @@ class _LibraryFolderNavigationTileState
   @override
   Widget build(BuildContext context) {
     final keySuffix = "${widget.root.id}-${widget.folder.relativePath}";
-    return MenuAnchor(
+    return AmeMenuAnchor(
       controller: _menuController,
       childFocusNode: _focusNode,
       menuChildren: [
         MenuItemButton(
-          leadingIcon: const Icon(Icons.folder_open_outlined),
           onPressed: widget.onOpen,
-          child: const Text(LibraryStrings.openInExplorer),
+          child: const AmeMenuItemContent(
+            icon: Icons.folder_open_outlined,
+            label: LibraryStrings.openInExplorer,
+          ),
         ),
       ],
       child: CallbackShortcuts(
@@ -90,11 +94,13 @@ class _LibraryFolderNavigationTileState
               width: 24,
               child: Icon(Icons.folder_outlined),
             ),
-            title: Text(
-              widget.folder.name,
-              key: ValueKey("folder-title-$keySuffix"),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            title: LibraryPathText(
+              text: widget.folder.name,
+              path: displayLibraryFolderPath(
+                widget.root.displayPath,
+                widget.folder.relativePath,
+              ),
+              textKey: ValueKey("folder-title-$keySuffix"),
             ),
             trailing: SizedBox(
               width: 48,

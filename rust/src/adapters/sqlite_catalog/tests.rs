@@ -744,6 +744,7 @@ fn capture_time_evidence_round_trips_with_engine_identity() {
                 location_id: "location-capture".to_owned(),
                 root_id: "root-capture".to_owned(),
                 absolute_path: "C:\\Pictures\\capture.jpg".to_owned(),
+                display_path: "C:\\Pictures\\capture.jpg".to_owned(),
                 relative_path: "capture.jpg".to_owned(),
                 preview_path: String::new(),
                 file_size: 20,
@@ -864,10 +865,11 @@ fn directory_entry_frontier_is_idempotent_sorted_and_windowed() {
 fn persists_and_validates_a_recoverable_scan_checkpoint() {
     let directory = tempdir().expect("temporary directory");
     let path = directory.path().join("catalog.sqlite3");
-    let request = fixture_request("scan-resume", "C:\\Pictures");
+    let raw_root_path = r"\\?\C:\Pictures";
+    let request = fixture_request("scan-resume", raw_root_path);
     let mut catalog = SqliteCatalog::open(path.clone()).expect("catalog");
     let initial = catalog
-        .begin_scan(&request, "root-resume", "C:\\Pictures")
+        .begin_scan(&request, "root-resume", raw_root_path)
         .expect("begin scan");
     assert_eq!(initial.visited_entries, 0);
     let checkpoint = ScanCheckpoint {
@@ -887,12 +889,13 @@ fn persists_and_validates_a_recoverable_scan_checkpoint() {
         .expect("recoverable scan")
         .expect("stored running scan");
     assert_eq!(recoverable.scan_id, "scan-resume");
-    assert_eq!(recoverable.root_path, "C:\\Pictures");
+    assert_eq!(recoverable.root_path, raw_root_path);
+    assert_eq!(recoverable.display_root_path, "C:\\Pictures");
     assert_eq!(recoverable.visited_entries, 128);
     assert_eq!(recoverable.accepted_items, 40);
     assert_eq!(recoverable.issue_count, 3);
     let resumed = restored
-        .begin_scan(&request, "root-resume", "C:\\Pictures")
+        .begin_scan(&request, "root-resume", raw_root_path)
         .expect("resume scan");
     assert_eq!(
         resumed.last_visited_relative_path,
@@ -1666,6 +1669,7 @@ fn publish_fixture(
                 location_id: location_id.to_owned(),
                 root_id: root_id.to_owned(),
                 absolute_path: format!("{root_path}\\one.png"),
+                display_path: format!("{root_path}\\one.png"),
                 relative_path: "one.png".to_owned(),
                 preview_path: format!("C:\\Cache\\{scan_id}.jpg"),
                 file_size: 20,
@@ -1727,6 +1731,7 @@ fn publish_gallery_query_fixture(
                     location_id: (*location_id).to_owned(),
                     root_id: root_id.to_owned(),
                     absolute_path: format!("{root_path}\\{}", relative_path.replace('/', "\\")),
+                    display_path: format!("{root_path}\\{}", relative_path.replace('/', "\\")),
                     relative_path: (*relative_path).to_owned(),
                     preview_path: String::new(),
                     file_size: 20,
@@ -1781,6 +1786,7 @@ fn publish_gallery_dimension_fixture(
                     location_id: (*location_id).to_owned(),
                     root_id: root_id.to_owned(),
                     absolute_path: format!("{root_path}\\{location_id}.png"),
+                    display_path: format!("{root_path}\\{location_id}.png"),
                     relative_path: format!("{location_id}.png"),
                     preview_path: String::new(),
                     file_size: 20,

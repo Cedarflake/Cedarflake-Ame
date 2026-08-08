@@ -4,6 +4,7 @@ class LibraryAsset {
     required this.locationId,
     required this.rootId,
     required this.sourcePath,
+    required this.displayPath,
     required this.relativePath,
     required this.previewPath,
     required this.fileSize,
@@ -24,6 +25,7 @@ class LibraryAsset {
   final String locationId;
   final String rootId;
   final String sourcePath;
+  final String displayPath;
   final String relativePath;
   final String previewPath;
   final BigInt fileSize;
@@ -52,6 +54,7 @@ class LibraryAsset {
       locationId: locationId,
       rootId: rootId,
       sourcePath: sourcePath,
+      displayPath: displayPath,
       relativePath: relativePath,
       previewPath: previewPath,
       fileSize: fileSize,
@@ -106,6 +109,7 @@ class LibraryRoot {
   const LibraryRoot({
     required this.id,
     required this.path,
+    required this.displayPath,
     required this.createdUnixMs,
     required this.assetCount,
     required this.issueCount,
@@ -116,6 +120,7 @@ class LibraryRoot {
 
   final String id;
   final String path;
+  final String displayPath;
   final String? activeScanId;
   final int createdUnixMs;
   final int assetCount;
@@ -294,6 +299,7 @@ class RecoverableLibraryScan {
   const RecoverableLibraryScan({
     required this.scanId,
     required this.rootPath,
+    required this.displayRootPath,
     required this.previewEdge,
     required this.visitedEntries,
     required this.acceptedItems,
@@ -304,6 +310,7 @@ class RecoverableLibraryScan {
 
   final String scanId;
   final String rootPath;
+  final String displayRootPath;
   final int? itemLimit;
   final int? entryLimit;
   final int previewEdge;

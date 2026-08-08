@@ -19,6 +19,7 @@ class LibraryState {
     this.status = LibraryStatus.empty,
     this.scanId,
     this.rootPath,
+    this.displayRootPath,
     this.roots = const [],
     this.assets = const [],
     this.recentIssues = const [],
@@ -53,6 +54,7 @@ class LibraryState {
   final LibraryStatus status;
   final String? scanId;
   final String? rootPath;
+  final String? displayRootPath;
   final List<LibraryRoot> roots;
   final List<LibraryAsset> assets;
   final List<LibraryIssue> recentIssues;
@@ -126,6 +128,7 @@ class LibraryState {
     LibraryStatus? status,
     Object? scanId = _unchanged,
     Object? rootPath = _unchanged,
+    Object? displayRootPath = _unchanged,
     List<LibraryRoot>? roots,
     List<LibraryAsset>? assets,
     List<LibraryIssue>? recentIssues,
@@ -158,6 +161,9 @@ class LibraryState {
       status: status ?? this.status,
       scanId: scanId == _unchanged ? this.scanId : scanId as String?,
       rootPath: rootPath == _unchanged ? this.rootPath : rootPath as String?,
+      displayRootPath: displayRootPath == _unchanged
+          ? this.displayRootPath
+          : displayRootPath as String?,
       roots: roots ?? this.roots,
       assets: assets ?? this.assets,
       recentIssues: recentIssues ?? this.recentIssues,

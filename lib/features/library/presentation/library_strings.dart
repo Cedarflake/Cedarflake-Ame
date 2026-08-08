@@ -8,7 +8,6 @@ abstract final class LibraryStrings {
   static const settings = "设置";
   static const select = "选择";
   static const cancel = "取消";
-  static const view = "查看";
   static const layout = "布局";
   static const sort = "排序";
   static const captureDate = "拍摄日期";
@@ -24,7 +23,6 @@ abstract final class LibraryStrings {
   static const large = "大";
   static const more = "更多";
   static const selectAll = "全选";
-  static const deselectAll = "不选择任何项目";
   static const open = "打开";
   static const viewInformation = "查看信息";
   static const copyPath = "复制路径";

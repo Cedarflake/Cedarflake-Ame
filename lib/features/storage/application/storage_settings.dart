@@ -55,6 +55,8 @@ class RustStorageSettingsGateway implements StorageSettingsGateway {
       activePreviewRoot: status.activePreviewRoot,
       configuredCatalogPath: status.configuredCatalogPath,
       configuredPreviewRoot: status.configuredPreviewRoot,
+      configuredCatalogDisplayPath: status.configuredCatalogDisplayPath,
+      configuredPreviewDisplayPath: status.configuredPreviewDisplayPath,
       previewBudgetBytes: status.previewBudgetBytes,
       previewUsedBytes: status.previewUsedBytes,
       catalogUsedBytes: status.catalogUsedBytes,
@@ -84,7 +86,7 @@ class PlatformStorageDirectoryPicker implements StorageDirectoryPicker {
   Future<String?> pick({required String initialDirectory}) {
     return getDirectoryPath(
       initialDirectory: initialDirectory,
-      confirmButtonText: "Use this folder",
+      confirmButtonText: "选择此文件夹",
     );
   }
 }

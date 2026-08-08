@@ -4,7 +4,7 @@ use std::sync::OnceLock;
 
 use directories::ProjectDirs;
 
-use crate::adapters::{SqliteCatalog, SqliteStorageSettings};
+use crate::adapters::{SqliteCatalog, SqliteStorageSettings, user_visible_path};
 use crate::domain::{
     GalleryQuery, ScanError, StorageConfiguration, StorageSettingsUpdate, StorageStatus,
 };
@@ -266,6 +266,8 @@ fn storage_status(
         active_preview_root: active_preview_root.clone(),
         configured_catalog_path: configured.catalog_path.clone(),
         configured_preview_root: configured.preview_root.clone(),
+        configured_catalog_display_path: user_visible_path(&configured.catalog_path),
+        configured_preview_display_path: user_visible_path(&configured.preview_root),
         preview_budget_bytes: configured.preview_budget_bytes,
         preview_used_bytes: directory_size(&active.preview_root)?,
         catalog_used_bytes: catalog_size(&active.catalog_path)?,
@@ -384,5 +386,33 @@ mod tests {
             active.preview_root.to_string_lossy()
         );
         assert_eq!(status.configured_preview_root, configured.preview_root);
+    }
+
+    #[test]
+    fn storage_status_separates_access_and_display_paths() {
+        let storage = tempdir().expect("storage");
+        let active = StoragePaths {
+            catalog_path: storage.path().join("catalog").join("ame.sqlite3"),
+            preview_root: storage.path().join("previews"),
+            preview_budget_bytes: DEFAULT_PREVIEW_BUDGET_BYTES,
+            settings_path: storage.path().join("settings.sqlite3"),
+        };
+        let configured = StorageConfiguration {
+            catalog_path: r"\\?\C:\AmeData\ame.sqlite3".to_owned(),
+            preview_root: r"\\?\C:\AmeCache\previews".to_owned(),
+            preview_budget_bytes: DEFAULT_PREVIEW_BUDGET_BYTES,
+        };
+
+        let status = storage_status(&active, &configured).expect("status");
+
+        assert_eq!(status.configured_catalog_path, configured.catalog_path);
+        assert_eq!(
+            status.configured_catalog_display_path,
+            r"C:\AmeData\ame.sqlite3",
+        );
+        assert_eq!(
+            status.configured_preview_display_path,
+            r"C:\AmeCache\previews",
+        );
     }
 }
