@@ -70,6 +70,26 @@ Use one unified gallery with these presentation rules.
 - Complete-query selection is represented by query identity plus explicit exclusions so it remains
   bounded. A query change clears selection rather than silently changing what the selection means.
 
+### Image viewer
+
+- The viewer remains a state of the unified gallery rather than a separate library destination.
+  While active it replaces browsing chrome with one image-focused toolbar. Returning to the gallery
+  preserves the existing gallery widget, query, selection, and scroll position.
+- Flutter `InteractiveViewer` and `TransformationController` own image panning and zoom transforms.
+  Material `Slider`, `IconButton`, `MenuAnchor`, and modal bottom-sheet primitives own zoom input,
+  navigation, read-only actions, and information presentation. The product-specific layer only
+  calculates fit-to-window versus actual-pixel scale and connects gallery navigation.
+- The source image is loaded for viewing. A derived preview may be shown while it loads or as an
+  explicitly labelled fallback when the source is unavailable; a preview is never presented as the
+  original without that state being visible.
+- Fit-to-window and actual size are distinct commands. The displayed percentage represents image
+  pixels relative to their actual size, not merely the `InteractiveViewer` transform. Pointer,
+  trackpad, Material controls, double activation, and keyboard shortcuts share one transformation
+  state.
+- Previous and next navigation follow the active gallery query and may extend the bounded loaded
+  window through the existing catalog paging contract. Viewer actions remain read-only: view
+  information, copy path, and open in File Explorer.
+
 ### Gallery and time navigation
 
 - The default `等高` layout uses one density-selected height for every photo row. Complete rows

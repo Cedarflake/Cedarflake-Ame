@@ -13,6 +13,7 @@ import "../domain/library_state.dart";
 import "gallery_selection.dart";
 import "gallery_view_options.dart";
 import "library_strings.dart";
+import "widgets/library_asset_information_sheet.dart";
 import "widgets/library_gallery_header.dart";
 import "widgets/library_gallery_layout.dart";
 import "widgets/library_gallery_states.dart";
@@ -39,6 +40,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   GalleryThumbnailSize _thumbnailSize = GalleryThumbnailSize.medium;
   String? _viewerLocationId;
   bool _isSelecting = false;
+  bool _isNavigatingViewer = false;
   bool _isRestoringPreviousWindow = false;
   LibraryGalleryLayoutMetrics? _galleryLayoutMetrics;
   LibraryGalleryVisiblePosition? _visibleGalleryPosition;
@@ -72,6 +74,11 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     final viewerAsset = _viewerLocationId == null
         ? null
         : _assetByLocation(state.assets, _viewerLocationId!);
+    final viewerIndex = viewerAsset == null
+        ? -1
+        : state.assets.indexWhere(
+            (asset) => asset.locationId == viewerAsset.locationId,
+          );
 
     return CallbackShortcuts(
       bindings: {
@@ -87,39 +94,56 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
           body: SafeArea(
             child: Stack(
               children: [
-                Column(
+                IndexedStack(
+                  index: viewerAsset == null ? 0 : 1,
                   children: [
-                    LibraryGlobalBar(
-                      isBusy: state.isBusy,
-                      searchController: _searchController,
-                      onSearchChanged: _onSearchChanged,
-                      onImport: controller.chooseDirectoryAndScan,
+                    Column(
+                      children: [
+                        LibraryGlobalBar(
+                          isBusy: state.isBusy,
+                          searchController: _searchController,
+                          onSearchChanged: _onSearchChanged,
+                          onImport: controller.chooseDirectoryAndScan,
+                        ),
+                        Divider(
+                          height: 1,
+                          color: Theme.of(context).colorScheme.outlineVariant,
+                        ),
+                        Expanded(
+                          child: _buildLibrary(context, state, controller),
+                        ),
+                      ],
                     ),
-                    Divider(
-                      height: 1,
-                      color: Theme.of(context).colorScheme.outlineVariant,
-                    ),
-                    Expanded(
-                      child: IndexedStack(
-                        index: viewerAsset == null ? 0 : 1,
-                        children: [
-                          _buildLibrary(context, state, controller),
-                          if (viewerAsset == null)
-                            const SizedBox.shrink()
-                          else
-                            LibraryImageViewer(
-                              asset: viewerAsset,
-                              onBack: () =>
-                                  setState(() => _viewerLocationId = null),
-                              onInformation: () =>
-                                  _showAssetInformation(viewerAsset),
-                            ),
-                        ],
+                    if (viewerAsset == null)
+                      const SizedBox.shrink()
+                    else
+                      LibraryImageViewer(
+                        asset: viewerAsset,
+                        position: viewerIndex < 0
+                            ? null
+                            : state.windowStartItemOffset + viewerIndex + 1,
+                        totalItems: _totalItems(state),
+                        onPrevious:
+                            viewerIndex > 0 ||
+                                (state.hasPreviousAssets &&
+                                    !_isNavigatingViewer)
+                            ? () => unawaited(_openAdjacentAsset(-1))
+                            : null,
+                        onNext:
+                            viewerIndex >= 0 &&
+                                (viewerIndex < state.assets.length - 1 ||
+                                    (state.hasMoreAssets &&
+                                        !_isNavigatingViewer))
+                            ? () => unawaited(_openAdjacentAsset(1))
+                            : null,
+                        onBack: () => setState(() => _viewerLocationId = null),
+                        onInformation: () => _showAssetInformation(viewerAsset),
+                        onCopyPath: () => _copyAssetPath(viewerAsset),
+                        onRevealFile: () => _revealAsset(viewerAsset),
                       ),
-                    ),
                   ],
                 ),
-                if (_showsTaskSurface(state))
+                if (viewerAsset == null && _showsTaskSurface(state))
                   Align(
                     alignment: Alignment.bottomCenter,
                     child: Padding(
@@ -294,6 +318,56 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
 
   void _openAsset(LibraryAsset asset) {
     setState(() => _viewerLocationId = asset.locationId);
+  }
+
+  Future<void> _openAdjacentAsset(int direction) async {
+    final currentLocationId = _viewerLocationId;
+    if (currentLocationId == null || _isNavigatingViewer) {
+      return;
+    }
+    setState(() => _isNavigatingViewer = true);
+    try {
+      var state = ref.read(libraryControllerProvider);
+      var currentIndex = state.assets.indexWhere(
+        (asset) => asset.locationId == currentLocationId,
+      );
+      var targetIndex = currentIndex + direction;
+      if (targetIndex < 0 && state.hasPreviousAssets) {
+        await _loadPreviousAssetsForViewer(
+          ref.read(libraryControllerProvider.notifier),
+        );
+      } else if (targetIndex >= state.assets.length && state.hasMoreAssets) {
+        await ref.read(libraryControllerProvider.notifier).loadNextPage();
+      }
+      if (!mounted || _viewerLocationId != currentLocationId) {
+        return;
+      }
+      state = ref.read(libraryControllerProvider);
+      currentIndex = state.assets.indexWhere(
+        (asset) => asset.locationId == currentLocationId,
+      );
+      targetIndex = currentIndex + direction;
+      if (currentIndex < 0 ||
+          targetIndex < 0 ||
+          targetIndex >= state.assets.length) {
+        return;
+      }
+      setState(() => _viewerLocationId = state.assets[targetIndex].locationId);
+    } finally {
+      if (mounted) {
+        setState(() => _isNavigatingViewer = false);
+      }
+    }
+  }
+
+  Future<void> _loadPreviousAssetsForViewer(
+    LibraryController controller,
+  ) async {
+    if (_galleryScrollController.hasClients) {
+      await _loadPreviousPagePreservingPosition(controller);
+      return;
+    }
+    await controller.loadPreviousPage();
   }
 
   void _toggleSelection(LibraryAsset asset) {
