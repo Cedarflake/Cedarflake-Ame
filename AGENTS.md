@@ -88,6 +88,10 @@ decision. Never fill missing context with a convenient assumption merely to keep
 ## 4. Scope and delivery discipline
 
 - Stay aligned with the user's named problem. Do not add adjacent product ideas without approval.
+- A delegated subagent must complete its assigned work itself and must not create another subagent,
+  child task, peer task, or delegated execution chain unless the user explicitly authorizes nested
+  delegation for the current task. The parent agent must state this restriction in every delegation
+  prompt, keep the active delegation count bounded, and stop replaced or duplicate executors.
 - When a new requirement appears, evaluate the architecture and ownership boundaries first, then implement the smallest maintainable slice; split responsibilities early so a single file does not grow into an unmaintainable monolith.
 - Prefer a small end-to-end vertical slice over disconnected backend, UI, or placeholder work.
 - Do not count navigation shells, mocked data, screenshots, compilation, or code existence as a
@@ -258,6 +262,10 @@ Regardless of framework:
 - avoid sending full-resolution images or unbounded result sets across the desktop bridge;
 - organize components as behavior first, structure second, and presentation last.
 
+## 10. File encoding
+
+- Read, write, and create text files using UTF-8 consistently; do not rely on the system default encoding.
+
 Framework-specific defaults apply only when that framework is present:
 
 - TypeScript must use strict mode without `any`, `@ts-ignore`, or unjustified non-null assertions.
@@ -265,6 +273,18 @@ Framework-specific defaults apply only when that framework is present:
   `camelCase` or `kebab-case` convention.
 - Dart files use `snake_case`, types use `PascalCase`, and variables and functions use `camelCase`.
 - Prefer generated, typed bridge contracts over hand-maintained loosely typed maps.
+
+### 10.1 Local Flutter toolchain
+
+- The installed Flutter SDK root on this workstation is
+  `%USERPROFILE%\develop\flutter`.
+- PowerShell does not currently expose `flutter` or `dart` through `PATH`. Invoke the verified
+  executables explicitly instead of searching for, downloading, or installing another SDK:
+  - Flutter: `%USERPROFILE%\develop\flutter\bin\flutter.bat`
+  - Dart: `%USERPROFILE%\develop\flutter\bin\cache\dart-sdk\bin\dart.exe`
+- Run Flutter formatting, analysis, tests, and builds serially on this workstation. If a command
+  hangs or leaves a tester process behind, stop and inspect that process before starting another
+  Flutter command.
 
 ## 10. Rust engineering
 
