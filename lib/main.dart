@@ -1,11 +1,11 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
-import "adapters/rust_library_loader.dart";
-import "adapters/shared_preferences_ame_store.dart";
-import "adapters/window_manager_actions.dart";
+import "app/bootstrap/rust_library_loader.dart";
+import "app/window/window_manager_actions.dart";
 import "app/ame_app.dart";
-import "app/ame_window_frame.dart";
+import "app/window/ame_window_frame.dart";
+import "features/settings/adapters/shared_preferences_ame_store.dart";
 import "app/window/ame_window_actions.dart";
 import "features/library/application/library_catalog.dart";
 import "features/library/application/library_controller.dart";

@@ -3,7 +3,7 @@ import "dart:io";
 import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
-import "../features/library/application/library_platform_actions.dart";
+import "../application/library_platform_actions.dart";
 
 class WindowsLibraryPlatformActions implements LibraryPlatformActions {
   const WindowsLibraryPlatformActions();

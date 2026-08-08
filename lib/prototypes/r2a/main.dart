@@ -1,6 +1,6 @@
 import "package:flutter/material.dart";
 
-import "app/r2a_prototype_app.dart";
+import "r2a_prototype_app.dart";
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();

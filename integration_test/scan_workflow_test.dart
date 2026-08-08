@@ -1,7 +1,7 @@
 import "dart:convert";
 import "dart:io";
 
-import "package:cedarflake_ame/adapters/directory_picker.dart";
+import "package:cedarflake_ame/features/library/adapters/directory_picker.dart";
 import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";

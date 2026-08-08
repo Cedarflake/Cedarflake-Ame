@@ -2,8 +2,8 @@ import "dart:async";
 
 import "package:flutter/material.dart";
 
-import "../../../../app/ame_menu.dart";
-import "../../../../app/ame_popup_menu_position.dart";
+import "../../../../app/presentation/ame_menu.dart";
+import "../../../../app/presentation/ame_popup_menu_position.dart";
 import "../../../../app/window/ame_window_chrome.dart";
 import "../library_strings.dart";
 import "library_path_text.dart";

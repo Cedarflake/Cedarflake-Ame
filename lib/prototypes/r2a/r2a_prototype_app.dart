@@ -1,7 +1,7 @@
 import "package:flutter/material.dart";
 
-import "../features/library/presentation/r2a/r2a_gallery_prototype.dart";
-import "ame_theme.dart";
+import "../../app/presentation/ame_theme.dart";
+import "r2a_gallery_prototype.dart";
 
 class R2aPrototypeApp extends StatelessWidget {
   const R2aPrototypeApp({super.key});

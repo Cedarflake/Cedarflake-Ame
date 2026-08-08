@@ -5,8 +5,8 @@ import "package:flutter/material.dart";
 import "package:screen_retriever/screen_retriever.dart";
 import "package:window_manager/window_manager.dart";
 
-import "../app/window/ame_window_actions.dart";
-import "../app/window/ame_window_placement.dart";
+import "ame_window_actions.dart";
+import "ame_window_placement.dart";
 
 const _minimumWindowSize = Size(800, 560);
 

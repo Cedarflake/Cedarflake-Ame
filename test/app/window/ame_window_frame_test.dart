@@ -1,4 +1,4 @@
-import "package:cedarflake_ame/app/ame_window_frame.dart";
+import "package:cedarflake_ame/app/window/ame_window_frame.dart";
 import "package:cedarflake_ame/app/window/ame_window_actions.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";

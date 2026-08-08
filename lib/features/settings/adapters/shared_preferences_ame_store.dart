@@ -2,10 +2,10 @@ import "dart:convert";
 
 import "package:shared_preferences/shared_preferences.dart";
 
-import "../app/window/ame_window_placement.dart";
-import "../features/library/application/library_view_preferences.dart";
-import "../features/library/domain/library_models.dart";
-import "../features/settings/application/ame_preferences.dart";
+import "../../../app/window/ame_window_placement.dart";
+import "../../library/application/library_view_preferences.dart";
+import "../../library/domain/library_models.dart";
+import "../application/ame_preferences.dart";
 
 class SharedPreferencesAmeStore
     implements

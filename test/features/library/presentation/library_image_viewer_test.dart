@@ -1,5 +1,5 @@
-import "package:cedarflake_ame/app/ame_menu.dart";
-import "package:cedarflake_ame/app/ame_theme.dart";
+import "package:cedarflake_ame/app/presentation/ame_menu.dart";
+import "package:cedarflake_ame/app/presentation/ame_theme.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_asset_information_sheet.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_image_viewer.dart";

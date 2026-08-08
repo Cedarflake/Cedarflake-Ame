@@ -1,4 +1,4 @@
-import "package:cedarflake_ame/adapters/shared_preferences_ame_store.dart";
+import "package:cedarflake_ame/features/settings/adapters/shared_preferences_ame_store.dart";
 import "package:cedarflake_ame/app/window/ame_window_placement.dart";
 import "package:cedarflake_ame/features/library/application/library_view_preferences.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";

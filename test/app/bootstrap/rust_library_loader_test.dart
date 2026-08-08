@@ -1,4 +1,4 @@
-import "package:cedarflake_ame/adapters/rust_library_loader.dart";
+import "package:cedarflake_ame/app/bootstrap/rust_library_loader.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {

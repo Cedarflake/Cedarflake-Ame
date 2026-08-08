@@ -1,6 +1,6 @@
 import "package:cedarflake_ame/app/ame_app.dart";
-import "package:cedarflake_ame/adapters/windows_library_platform_actions.dart";
-import "package:cedarflake_ame/app/ame_menu.dart";
+import "package:cedarflake_ame/app/presentation/ame_menu.dart";
+import "package:cedarflake_ame/features/library/adapters/windows_library_platform_actions.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_platform_actions.dart";

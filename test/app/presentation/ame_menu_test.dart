@@ -1,5 +1,5 @@
-import "package:cedarflake_ame/app/ame_menu.dart";
-import "package:cedarflake_ame/app/ame_theme.dart";
+import "package:cedarflake_ame/app/presentation/ame_menu.dart";
+import "package:cedarflake_ame/app/presentation/ame_theme.dart";
 import "package:flutter/material.dart";
 import "package:flutter_test/flutter_test.dart";
 

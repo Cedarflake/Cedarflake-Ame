@@ -2,8 +2,8 @@ import "dart:async";
 
 import "package:flutter/material.dart";
 
-import "../widgets/annotated_time_rail.dart";
-import "../widgets/justified_gallery_layout.dart";
+import "../../features/library/presentation/widgets/annotated_time_rail.dart";
+import "../../features/library/presentation/widgets/justified_gallery_layout.dart";
 import "r2a_fixture_data.dart";
 import "r2a_models.dart";
 import "r2a_settings_page.dart";

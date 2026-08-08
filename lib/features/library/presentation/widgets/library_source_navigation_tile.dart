@@ -3,8 +3,8 @@ import "dart:async";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 
-import "../../../../app/ame_menu.dart";
-import "../../../../app/ame_popup_menu_position.dart";
+import "../../../../app/presentation/ame_menu.dart";
+import "../../../../app/presentation/ame_popup_menu_position.dart";
 import "../../domain/library_models.dart";
 import "../library_strings.dart";
 import "library_path_text.dart";

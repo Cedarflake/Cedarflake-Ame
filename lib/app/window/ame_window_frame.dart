@@ -1,6 +1,6 @@
 import "package:flutter/material.dart";
 
-import "window/ame_window_chrome.dart";
+import "ame_window_chrome.dart";
 
 class AmeWindowFrame extends StatelessWidget {
   const AmeWindowFrame({required this.child, super.key});

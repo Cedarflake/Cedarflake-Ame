@@ -1,4 +1,4 @@
-import "package:cedarflake_ame/app/r2a_prototype_app.dart";
+import "package:cedarflake_ame/prototypes/r2a/r2a_prototype_app.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
