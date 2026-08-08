@@ -92,13 +92,19 @@ The code is split into Ame-owned boundaries:
 - `rust/src/ports.rs`: catalog, media-inspection, metadata, and preview contracts;
 - `rust/src/adapters`: filesystem, SQLite, and preview-cache implementations;
 - `rust/src/api`: the narrow desktop bridge surface;
+- `lib/app`: bootstrap, shared application presentation, and desktop window integration;
 - `lib/features/library/domain`: Flutter-owned presentation models;
 - `lib/features/library/application`: catalog and scan bridge mapping plus Riverpod orchestration;
+- `lib/features/library/adapters`: directory selection and Windows library platform integration;
 - `lib/features/library/presentation`: Material 3 gallery states and lazy rendering;
-- `lib/features/storage`: storage bridge mapping, directory selection, and Material 3 settings;
-- `lib/adapters`: platform capabilities such as directory selection.
+- `lib/features/settings`: typed preferences, platform persistence, and Material 3 settings;
+- `lib/features/storage`: storage bridge mapping and storage-domain contracts;
+- `lib/prototypes`: isolated validation applications that production code does not import;
+- `test`: tests arranged to mirror their owning Dart source area.
 
-Accepted technical decisions are recorded in [`docs/architecture`](docs/architecture/README.md).
+The complete ownership map is recorded in
+[`docs/development/repository-layout.md`](docs/development/repository-layout.md). Accepted technical
+decisions are indexed under [`docs/architecture`](docs/architecture/README.md).
 
 ## Lap reference policy
 
