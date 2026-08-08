@@ -67,7 +67,7 @@ void main() {
         .join();
     addTearDown(() => pickerAutomation.kill());
 
-    await tester.tap(find.byKey(const Key("library-import-button")));
+    await tester.tap(find.byKey(const Key("library-sidebar-import")));
     await tester.pump();
 
     final libraryContext = tester.element(find.byType(UnifiedLibraryScreen));
@@ -83,7 +83,7 @@ void main() {
     final automationOutput = await output;
     final automationError = await error;
     expect(exitCode, 0, reason: "$automationOutput\n$automationError");
-    expect(automationOutput, contains("NATIVE_PICKER_ESCAPE_SENT"));
+    expect(automationOutput, contains("NATIVE_PICKER_CANCELLED"));
 
     await _pumpUntil(
       tester,
@@ -148,7 +148,7 @@ void main() {
       ),
     );
 
-    expect(find.byKey(const Key("library-import-button")), findsOneWidget);
+    expect(find.byKey(const Key("library-sidebar-import")), findsOneWidget);
     expect(find.text("Read-only validation"), findsNothing);
 
     final libraryContext = tester.element(find.byType(UnifiedLibraryScreen));
@@ -163,7 +163,7 @@ void main() {
         .join();
     addTearDown(() => pickerAutomation.kill());
 
-    await tester.tap(find.byKey(const Key("library-import-button")));
+    await tester.tap(find.byKey(const Key("library-sidebar-import")));
     await tester.pump();
 
     final exitCode = await pickerAutomation.exitCode.timeout(
@@ -278,7 +278,7 @@ void main() {
         .join();
     addTearDown(() => secondPickerAutomation.kill());
 
-    await tester.tap(find.byKey(const Key("library-import-button")));
+    await tester.tap(find.byKey(const Key("library-sidebar-import")));
     await tester.pump();
 
     final secondExitCode = await secondPickerAutomation.exitCode.timeout(
@@ -370,19 +370,21 @@ String _normalizedPath(String path) {
 }
 
 Future<Process> _startPickerCancellationAutomation() {
-  const script = """
-Start-Sleep -Milliseconds 750
-\$shell = New-Object -ComObject WScript.Shell
-\$shell.SendKeys("{ESC}")
-Write-Output "NATIVE_PICKER_ESCAPE_SENT"
-""";
+  final scriptPath =
+      "${Directory.current.path}${Platform.pathSeparator}integration_test"
+      "${Platform.pathSeparator}support${Platform.pathSeparator}"
+      "control_native_directory.ps1";
 
   return Process.start("powershell.exe", [
     "-NoLogo",
     "-NoProfile",
     "-NonInteractive",
-    "-Command",
-    script,
+    "-File",
+    scriptPath,
+    "-TargetProcessId",
+    "$pid",
+    "-Action",
+    "Cancel",
   ]);
 }
 
@@ -390,7 +392,7 @@ Future<Process> _startPickerConfirmationAutomation() {
   final scriptPath =
       "${Directory.current.path}${Platform.pathSeparator}integration_test"
       "${Platform.pathSeparator}support${Platform.pathSeparator}"
-      "confirm_native_directory.ps1";
+      "control_native_directory.ps1";
 
   return Process.start("powershell.exe", [
     "-NoLogo",

@@ -1,0 +1,8 @@
+{
+  "recommendations": [
+    "Dart-Code.flutter",
+    "EditorConfig.EditorConfig",
+    "ms-vscode.powershell",
+    "rust-lang.rust-analyzer"
+  ]
+}

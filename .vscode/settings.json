@@ -1,5 +1,22 @@
 {
+  "dart.lineLength": 100,
+  "editor.rulers": [
+    100
+  ],
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "rust-analyzer.check.allTargets": true,
+  "rust-analyzer.check.command": "clippy",
   "rust-analyzer.linkedProjects": [
     "rust/Cargo.toml"
-  ]
+  ],
+  "[dart]": {
+    "editor.defaultFormatter": "Dart-Code.dart-code",
+    "editor.formatOnSave": true
+  },
+  "[rust]": {
+    "editor.defaultFormatter": "rust-lang.rust-analyzer",
+    "editor.formatOnSave": true
+  }
 }

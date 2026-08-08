@@ -10,6 +10,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot "quality_common.ps1")
 $requiredToken = "CEDARFLAKE_AME_READ_ONLY_ACCEPTANCE_V1"
 if ($AuthorizationToken -cne $requiredToken) {
     throw "The exact current read-only acceptance authorization token is required"
@@ -42,8 +43,8 @@ foreach ($name in $environment.Keys) {
 }
 
 try {
-    $repositoryRoot = Split-Path -Parent $PSScriptRoot
-    $cargo = (Get-Command cargo -ErrorAction Stop).Source
+    $repositoryRoot = Get-AmeRepositoryRoot
+    $cargo = (Get-AmeToolchain).Cargo
     & $cargo test --manifest-path (Join-Path $repositoryRoot "rust\Cargo.toml") `
         user_authorized_combined_catalog_load_acceptance `
         -- --ignored --nocapture --test-threads=1

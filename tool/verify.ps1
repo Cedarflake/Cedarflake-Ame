@@ -1,44 +1,22 @@
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot "quality_common.ps1")
 
-function Invoke-Checked {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$Command,
-        [Parameter(Mandatory = $true)]
-        [string[]]$Arguments
-    )
-
-    & $Command @Arguments
-    if ($LASTEXITCODE -ne 0) {
-        throw "$Command failed with exit code $LASTEXITCODE"
-    }
-}
-
-$repositoryRoot = Split-Path -Parent $PSScriptRoot
+$repositoryRoot = Get-AmeRepositoryRoot
+$toolchain = Get-AmeToolchain
 Push-Location $repositoryRoot
 
 try {
-    Invoke-Checked "cargo" @("fmt", "--manifest-path", "rust\Cargo.toml", "--", "--check")
-    Invoke-Checked "cargo" @(
-        "clippy",
+    & (Join-Path $PSScriptRoot "lint.ps1")
+    Invoke-AmeChecked $toolchain.Cargo @(
+        "test",
+        "--locked",
         "--manifest-path",
         "rust\Cargo.toml",
         "--all-targets",
-        "--",
-        "-D",
-        "warnings"
+        "--all-features"
     )
-    Invoke-Checked "cargo" @("test", "--manifest-path", "rust\Cargo.toml", "--all-targets")
-    Invoke-Checked "dart" @(
-        "format",
-        "--output=none",
-        "--set-exit-if-changed",
-        "lib",
-        "test",
-        "integration_test"
-    )
-    Invoke-Checked "flutter" @("analyze")
-    Invoke-Checked "flutter" @("test")
+    Invoke-AmeChecked $toolchain.Flutter @("test")
+    & (Join-Path $PSScriptRoot "test_windows_integration.ps1")
 
     $rustHashLine = Select-String -LiteralPath "rust\src\frb_generated.rs" -Pattern (
         "FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH"
@@ -52,7 +30,7 @@ try {
         throw "Generated Rust and Dart bridge hashes do not match"
     }
 
-    Invoke-Checked "git" @("diff", "--check")
+    Invoke-AmeChecked $toolchain.Git @("diff", "HEAD", "--check", "--")
 } finally {
     Pop-Location
 }

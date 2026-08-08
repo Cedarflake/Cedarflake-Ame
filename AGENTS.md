@@ -18,6 +18,15 @@ here. Delivery plans belong in a separate roadmap document. Accepted technical d
 architecture decision records. Current implementation status is established from the working tree
 and verification evidence.
 
+The canonical active delivery plan for this local project is
+`docs/roadmap.md`.
+This path is a discovery pointer, not roadmap content. Before planning a stage, reporting roadmap
+status, resuming material product work after compaction, starting a new project session, or
+delegating product work, read that file completely after recovering the latest relevant original
+conversation. Do not create a competing roadmap copy. If the file is unavailable, report the exact
+continuity gap before changing product scope or stage order. The roadmap remains lower authority
+than the user's current instruction, this contract, accepted ADRs, and verified live implementation.
+
 Do not turn a temporary implementation choice into a permanent rule in this file. Amend this
 contract only when a project-wide constraint has genuinely changed.
 
@@ -302,6 +311,21 @@ Framework-specific defaults apply only when that framework is present:
 
 Repository configuration takes precedence over these defaults.
 
+The canonical formatting and lint configuration is:
+
+- `.gitattributes` for repository line-ending normalization and binary classification;
+- `.editorconfig` for encoding, line endings, final newlines, and editor-neutral whitespace;
+- `analysis_options.yaml` for Dart analyzer language strictness and lints;
+- `rustfmt.toml` for Rust formatting;
+- the `[lints]` tables in `rust/Cargo.toml` for Rust and Clippy policy;
+- `.vscode/settings.json` only for editor integration, never as the sole quality gate.
+
+Do not duplicate these rules in a second formatter or editor-only configuration. When a rule needs
+to change, update its owning configuration and the repository quality commands in the same change.
+Generated Flutter Rust Bridge Dart sources and transient build output may be excluded from style
+analysis only through the narrow paths recorded in `analysis_options.yaml`; they remain subject to
+compilation, tests, bridge-hash verification, and release packaging checks.
+
 - Use UTF-8.
 - Use two-space indentation outside Rust and standard `rustfmt` formatting in Rust.
 - TypeScript uses double quotes, no semicolons, trailing commas, and a 100-column target when the
@@ -341,6 +365,62 @@ Required test categories include, where applicable:
 Large-library benchmarks are separate acceptance evidence, not substitutes for correctness tests.
 Run heavyweight builds and benchmarks serially on this workstation. If a full check is blocked, run
 the strongest safe alternative and state the exact unverified gap.
+
+### 12.1 Repository quality commands
+
+Run quality commands from PowerShell. The scripts resolve Cargo from `PATH` or the user's Rustup
+installation and resolve Flutter and Dart from `PATH` or the pinned local SDK location in section
+10.1.
+
+- `./tool/format.ps1` applies `rustfmt` and `dart format` to repository-owned Rust and Dart trees.
+- `./tool/format.ps1 -Check` is the non-mutating formatting gate.
+- `./tool/lint.ps1` validates repository PowerShell and JSON configuration, runs the formatting
+  gate, runs Clippy for all targets and features with warnings denied, and runs the pinned Dart
+  analyzer with warnings and informational lints treated as failures.
+- `./tool/verify.ps1` is the daily gate. It runs the lint gate, Rust tests, Flutter tests, the
+  controlled Windows scan integration, generated bridge compatibility, and whitespace validation
+  for the complete tracked diff.
+- `./tool/benchmark_synthetic_library.ps1` is the explicit performance gate. It creates 10,000
+  temporary images and records cold, warm, pause, resume, memory, and storage evidence.
+- `./tool/accept_read_only_library.ps1` and `./tool/verify_read_only_library_catalog.ps1` are the
+  real-library gate. They require current authorization, explicit roots, and storage outside source
+  trees; they never become part of unattended daily verification.
+- `./tool/verify_windows_release.ps1` is the Windows packaging and release-bridge gate. Run it when
+  desktop integration, native packaging, generated bridge loading, or release behavior changes.
+- `./tool/verify_release.ps1` is the release-candidate orchestrator. It runs the daily, Windows
+  release, and synthetic performance gates in order, and adds retained real-library validation only
+  when explicitly requested with all authorization-bound paths.
+
+The complete gate definitions and commands are recorded in `docs/acceptance/quality-gates.md`.
+
+Do not replace these entrypoints with remembered command fragments in normal work. A focused test
+may be run directly for fast feedback, but it does not replace the applicable repository gate.
+
+### 12.2 Required engineering workflow
+
+For every material code or configuration change:
+
+1. Re-establish scope from the current instruction, recent history when required, `git status`, the
+   live implementation, and owning architecture records.
+2. Identify unrelated working-tree changes and choose explicit files that this task owns. Never
+   mutate, format, stage, or revert another task's files merely to make a gate pass.
+3. State the smallest complete outcome, affected layers, safety constraints, and the focused test
+   that will prove the behavior before editing.
+4. Implement the narrowest maintainable change and add or update tests in the same boundary.
+5. Format agent-owned files. Run `./tool/format.ps1` only when the working tree is clean or every
+   file it can rewrite belongs to the current task. In a dirty shared tree, format explicit owned
+   files with the underlying language formatter, then use `./tool/format.ps1 -Check` as evidence.
+6. Run focused tests for the changed behavior, followed by `./tool/lint.ps1`.
+7. Run `./tool/verify.ps1` before declaring the change complete. Add the Windows release gate when
+   required by section 12.1 and any task-specific integration or acceptance checks.
+8. Inspect `git diff --check`, the final diff, generated files, and `git status`. Report exact checks,
+   ignored tests, unavailable gates, remaining risks, and unrelated preserved changes.
+
+Warnings are failures. Do not weaken a repository rule, add broad exclusions, use ignore comments,
+or hand-edit generated output to make a gate pass. Fix the cause, use the narrowest justified
+suppression when the rule is genuinely inapplicable, and record non-obvious exceptions next to the
+owning configuration. A quality-tool change must prove both a passing case and that the configured
+gate rejects a representative violation where practical.
 
 ## 13. Architecture documentation
 

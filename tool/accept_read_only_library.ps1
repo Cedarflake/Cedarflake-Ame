@@ -15,6 +15,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot "quality_common.ps1")
 $requiredToken = "CEDARFLAKE_AME_READ_ONLY_ACCEPTANCE_V1"
 if ($AuthorizationToken -cne $requiredToken) {
     throw "The exact current read-only acceptance authorization token is required"
@@ -58,8 +59,8 @@ if (Test-Path -LiteralPath $resolvedStorage) {
     New-Item -ItemType Directory -Path $resolvedStorage -Force | Out-Null
 }
 
-$repositoryRoot = Split-Path -Parent $PSScriptRoot
-$cargo = (Get-Command cargo -ErrorAction Stop).Source
+$repositoryRoot = Get-AmeRepositoryRoot
+$cargo = (Get-AmeToolchain).Cargo
 $startedAt = Get-Date
 $processInfo = [System.Diagnostics.ProcessStartInfo]::new()
 $processInfo.FileName = $cargo

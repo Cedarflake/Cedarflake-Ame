@@ -1,6 +1,8 @@
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot "quality_common.ps1")
 
-$repositoryRoot = Split-Path -Parent $PSScriptRoot
+$repositoryRoot = Get-AmeRepositoryRoot
+$toolchain = Get-AmeToolchain
 $buildRoot = Join-Path $repositoryRoot "build"
 $releaseRoot = Join-Path $buildRoot "windows\x64\runner\Release"
 $releaseExecutable = Join-Path $releaseRoot "cedarflake_ame.exe"
@@ -11,16 +13,7 @@ $resolvedScratchRoot = [System.IO.Path]::GetFullPath($scratchRoot)
 $releaseLibraryAlias = Join-Path (
     $resolvedScratchRoot
 ) "rust_lib_cedarflake_ame_release_smoke.dll"
-$flutterCommand = Get-Command "flutter" -ErrorAction SilentlyContinue
-$flutterExecutable = if ($null -ne $flutterCommand) {
-    $flutterCommand.Source
-} else {
-    Join-Path $env:USERPROFILE "develop\flutter\bin\flutter.bat"
-}
-
-if (-not (Test-Path -LiteralPath $flutterExecutable -PathType Leaf)) {
-    throw "Flutter executable was not found on PATH or under the user development directory"
-}
+$flutterExecutable = $toolchain.Flutter
 
 if (-not $resolvedScratchRoot.StartsWith(
     "$resolvedBuildRoot$([System.IO.Path]::DirectorySeparatorChar)",

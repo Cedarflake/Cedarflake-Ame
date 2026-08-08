@@ -1,6 +1,8 @@
 param(
   [Parameter(Mandatory = $true)]
-  [int]$TargetProcessId
+  [int]$TargetProcessId,
+  [ValidateSet("Confirm", "Cancel")]
+  [string]$Action = "Confirm"
 )
 
 $ErrorActionPreference = "Stop"
@@ -12,7 +14,7 @@ using System;
 using System.Runtime.InteropServices;
 using System.Text;
 
-public static class AmeNativePicker {
+public static class AmeNativeDirectoryPicker {
   private delegate bool EnumWindowsProc(IntPtr window, IntPtr state);
 
   [DllImport("user32.dll")]
@@ -73,6 +75,12 @@ $dialogCondition = New-Object System.Windows.Automation.PropertyCondition(
 )
 $deadline = [DateTime]::UtcNow.AddSeconds(12)
 $dialog = $null
+$controlId = if ($Action -eq "Confirm") { 1 } else { 2 }
+$successMarker = if ($Action -eq "Confirm") {
+  "NATIVE_PICKER_CONFIRMED"
+} else {
+  "NATIVE_PICKER_CANCELLED"
+}
 
 do {
   $app = [System.Windows.Automation.AutomationElement]::RootElement.FindFirst(
@@ -86,19 +94,19 @@ do {
     )
     if ($dialog) {
       $dialogHandle = [IntPtr]$dialog.Current.NativeWindowHandle
-      $buttonHandle = [AmeNativePicker]::FindDescendant(
+      $buttonHandle = [AmeNativeDirectoryPicker]::FindDescendant(
         $dialogHandle,
-        1,
+        $controlId,
         "Button"
       )
       if ($buttonHandle -ne [IntPtr]::Zero) {
-        [void][AmeNativePicker]::SendMessage(
+        [void][AmeNativeDirectoryPicker]::SendMessage(
           $buttonHandle,
           0x00F5,
           [IntPtr]::Zero,
           [IntPtr]::Zero
         )
-        Write-Output "NATIVE_PICKER_CONFIRMED"
+        Write-Output $successMarker
         exit 0
       }
     }
@@ -108,13 +116,13 @@ do {
 
 if ($dialog) {
   $dialogHandle = [IntPtr]$dialog.Current.NativeWindowHandle
-  $cancelHandle = [AmeNativePicker]::FindDescendant(
+    $cancelHandle = [AmeNativeDirectoryPicker]::FindDescendant(
     $dialogHandle,
     2,
     "Button"
   )
   if ($cancelHandle -ne [IntPtr]::Zero) {
-    [void][AmeNativePicker]::SendMessage(
+      [void][AmeNativeDirectoryPicker]::SendMessage(
       $cancelHandle,
       0x00F5,
       [IntPtr]::Zero,
@@ -123,5 +131,5 @@ if ($dialog) {
   }
 }
 
-Write-Error "Native directory picker confirmation button was not found"
+Write-Error "Native directory picker $Action button was not found"
 exit 2

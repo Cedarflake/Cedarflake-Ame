@@ -18,6 +18,10 @@ thiserror = "2.0.19"
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }
 
+[lints.clippy]
+dbg_macro = "deny"
+todo = "deny"
+
 [target."cfg(windows)".dependencies]
 windows-sys = { version = "0.61.2", features = ["Win32_Storage_FileSystem"] }
 

@@ -3,9 +3,10 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot "quality_common.ps1")
 
-$repositoryRoot = Split-Path -Parent $PSScriptRoot
-$cargo = (Get-Command cargo -ErrorAction Stop).Source
+$repositoryRoot = Get-AmeRepositoryRoot
+$cargo = (Get-AmeToolchain).Cargo
 $startedAt = Get-Date
 $processInfo = [System.Diagnostics.ProcessStartInfo]::new()
 $processInfo.FileName = $cargo
