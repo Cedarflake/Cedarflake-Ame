@@ -1,5 +1,5 @@
 use rusqlite::types::Value;
-use rusqlite::{OptionalExtension, Transaction, params_from_iter};
+use rusqlite::{OptionalExtension, Transaction, params, params_from_iter};
 
 use crate::domain::{
     AssetLocationView, CatalogCursor, GalleryQuery, GallerySortDirection, GallerySortKey,
@@ -7,8 +7,7 @@ use crate::domain::{
 };
 
 use super::{
-    database_error, natural_name_key, normalize_relative_folder, read_stored_asset, sqlite_integer,
-    stored_asset_view,
+    database_error, normalize_relative_folder, read_stored_asset, sqlite_integer, stored_asset_view,
 };
 
 pub(super) struct BuiltGalleryQuery {
@@ -201,7 +200,7 @@ pub(super) fn resolve_gallery_anchor_cursor(
             )
         })?;
     let asset = stored_asset_view(stored)?;
-    Ok(gallery_cursor_for_asset(revision, query_id, query, &asset))
+    gallery_cursor_for_asset(transaction, revision, query_id, query, &asset)
 }
 
 pub(super) fn build_gallery_timeline_query(query: &GalleryQuery) -> BuiltGalleryQuery {
@@ -240,30 +239,41 @@ pub(super) fn build_gallery_timeline_query(query: &GalleryQuery) -> BuiltGallery
 }
 
 pub(super) fn gallery_cursor_for_asset(
+    transaction: &Transaction<'_>,
     revision: u64,
     query_id: &str,
     query: &GalleryQuery,
     asset: &AssetLocationView,
-) -> CatalogCursor {
-    let (primary_missing, primary_text, primary_number) = match query.sort_key {
-        GallerySortKey::CaptureTime => (
-            asset.capture_time.is_none(),
-            asset
-                .capture_time
-                .as_ref()
-                .map(|capture| capture.local_time.clone())
-                .unwrap_or_default(),
-            asset.modified_unix_ms,
-        ),
-        GallerySortKey::CreatedTime => (
-            asset.created_unix_ms.is_none(),
-            String::new(),
-            asset.created_unix_ms.unwrap_or_default(),
-        ),
-        GallerySortKey::ModifiedTime => (false, String::new(), asset.modified_unix_ms),
-        GallerySortKey::FileName => (false, natural_name_key(&asset.relative_path), 0),
-    };
-    CatalogCursor {
+) -> Result<CatalogCursor, ScanError> {
+    let order = gallery_order_expressions(&query.sort_key);
+    let sql = format!(
+        "SELECT {missing}, {text}, {number}
+         FROM library_roots AS roots
+         JOIN asset_locations AS locations
+           ON locations.scan_id = roots.active_scan_id
+         WHERE locations.root_id = ?1 AND locations.location_id = ?2
+         LIMIT 1",
+        missing = order.missing,
+        text = order.text,
+        number = order.number,
+    );
+    let (primary_missing, primary_text, primary_number) = transaction
+        .query_row(&sql, params![asset.root_id, asset.location_id], |row| {
+            Ok((
+                row.get::<_, i64>(0)? != 0,
+                row.get::<_, String>(1)?,
+                row.get::<_, i64>(2)?,
+            ))
+        })
+        .optional()
+        .map_err(database_error)?
+        .ok_or_else(|| {
+            ScanError::new(
+                "catalog_cursor_asset_unavailable",
+                "The gallery item is no longer available in the active catalog",
+            )
+        })?;
+    Ok(CatalogCursor {
         revision,
         query_id: query_id.to_owned(),
         primary_missing,
@@ -271,27 +281,30 @@ pub(super) fn gallery_cursor_for_asset(
         primary_number,
         root_id: asset.root_id.clone(),
         location_id: asset.location_id.clone(),
-    }
+    })
 }
 
 fn gallery_order_expressions(sort_key: &GallerySortKey) -> GalleryOrderExpressions {
     match sort_key {
         GallerySortKey::CaptureTime => GalleryOrderExpressions {
-            missing: "(locations.capture_local_time IS NULL)",
-            text: "IFNULL(locations.capture_local_time, '')",
+            missing: "(COALESCE(locations.capture_local_time, locations.file_local_time) IS NULL)",
+            text: "IFNULL(COALESCE(locations.capture_local_time, locations.file_local_time), '')",
             number: "locations.modified_unix_ms",
             month: Some(
-                "CASE WHEN locations.capture_local_time IS NULL THEN NULL \
-                 ELSE substr(locations.capture_local_time, 1, 7) END",
+                "CASE \
+                   WHEN COALESCE(locations.capture_local_time, locations.file_local_time) IS NULL \
+                   THEN NULL \
+                   ELSE substr(COALESCE(locations.capture_local_time, locations.file_local_time), 1, 7) \
+                 END",
             ),
         },
         GallerySortKey::CreatedTime => GalleryOrderExpressions {
-            missing: "(locations.created_unix_ms IS NULL)",
-            text: "CAST('' AS TEXT)",
-            number: "IFNULL(locations.created_unix_ms, 0)",
+            missing: "(locations.file_local_time IS NULL)",
+            text: "IFNULL(locations.file_local_time, '')",
+            number: "locations.modified_unix_ms",
             month: Some(
-                "CASE WHEN locations.created_unix_ms IS NULL THEN NULL \
-                 ELSE strftime('%Y-%m', locations.created_unix_ms / 1000, 'unixepoch', 'localtime') END",
+                "CASE WHEN locations.file_local_time IS NULL THEN NULL \
+                 ELSE substr(locations.file_local_time, 1, 7) END",
             ),
         },
         GallerySortKey::ModifiedTime => GalleryOrderExpressions {

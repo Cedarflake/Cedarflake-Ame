@@ -22,7 +22,7 @@ use gallery::{
 };
 use migrations::migrate_schema;
 
-const SCHEMA_VERSION: i64 = 12;
+const SCHEMA_VERSION: i64 = 13;
 const LOCATION_STAGE_BATCH: usize = 128;
 
 pub struct SqliteCatalog {
@@ -958,30 +958,37 @@ impl CatalogRepository for SqliteCatalog {
         if before.is_some() {
             stored_assets.reverse();
         }
-        let previous_cursor = if before.is_some() {
-            has_more.then(|| {
-                stored_assets
-                    .first()
-                    .map(|asset| gallery_cursor_for_asset(revision, query_id, query, asset))
-            })
+        let previous_cursor = if before.is_some() && has_more {
+            stored_assets
+                .first()
+                .map(|asset| {
+                    gallery_cursor_for_asset(&transaction, revision, query_id, query, asset)
+                })
+                .transpose()?
         } else if after.is_some() || anchor.is_some() {
-            Some(
-                stored_assets
-                    .first()
-                    .map(|asset| gallery_cursor_for_asset(revision, query_id, query, asset)),
-            )
+            stored_assets
+                .first()
+                .map(|asset| {
+                    gallery_cursor_for_asset(&transaction, revision, query_id, query, asset)
+                })
+                .transpose()?
         } else {
             None
-        }
-        .flatten();
+        };
         let next_cursor = if before.is_some() {
             stored_assets
                 .last()
-                .map(|asset| gallery_cursor_for_asset(revision, query_id, query, asset))
+                .map(|asset| {
+                    gallery_cursor_for_asset(&transaction, revision, query_id, query, asset)
+                })
+                .transpose()?
         } else if has_more {
             stored_assets
                 .last()
-                .map(|asset| gallery_cursor_for_asset(revision, query_id, query, asset))
+                .map(|asset| {
+                    gallery_cursor_for_asset(&transaction, revision, query_id, query, asset)
+                })
+                .transpose()?
         } else {
             None
         };
@@ -1227,13 +1234,17 @@ fn persist_location(
             "INSERT INTO asset_locations(
                scan_id, asset_id, location_id, root_id, absolute_path, relative_path,
                preview_path, file_size, created_unix_ms, modified_unix_ms,
-               parent_relative_path, natural_name_key, width, height,
+               file_local_time, parent_relative_path, natural_name_key, width, height,
                preview_status, preview_issue_code, preview_issue_message,
                metadata_engine_id, metadata_engine_version, capture_local_time,
                capture_offset_minutes, capture_time_source, capture_raw_value,
                file_identity_scheme, file_identity_value
              ) VALUES (
                 ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10,
+                strftime(
+                  '%Y-%m-%dT%H:%M:%f', COALESCE(?9, ?10) / 1000.0,
+                  'unixepoch', 'localtime'
+                ),
                 ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20,
                 ?21, ?22, ?23, ?24, ?25
               )
@@ -1246,6 +1257,7 @@ fn persist_location(
                file_size = excluded.file_size,
                created_unix_ms = excluded.created_unix_ms,
                modified_unix_ms = excluded.modified_unix_ms,
+               file_local_time = excluded.file_local_time,
                parent_relative_path = excluded.parent_relative_path,
                natural_name_key = excluded.natural_name_key,
                width = excluded.width,

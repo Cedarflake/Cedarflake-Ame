@@ -18,7 +18,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
 
     if !has_schema_info {
         let transaction = connection.transaction().map_err(database_error)?;
-        create_schema_v12(&transaction)?;
+        create_schema_v13(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -41,6 +41,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             9 => migrate_v9_to_v10(connection)?,
             10 => migrate_v10_to_v11(connection)?,
             11 => migrate_v11_to_v12(connection)?,
+            12 => migrate_v12_to_v13(connection)?,
             _ => {
                 return Err(ScanError::new(
                     "catalog_schema_unsupported",
@@ -51,13 +52,13 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
     }
 }
 
-fn create_schema_v12(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+fn create_schema_v13(transaction: &Transaction<'_>) -> Result<(), ScanError> {
     transaction
         .execute_batch(
             "CREATE TABLE schema_info (
                version INTEGER NOT NULL
              );
-             INSERT INTO schema_info(version) VALUES (12);
+             INSERT INTO schema_info(version) VALUES (13);
              CREATE TABLE catalog_state (
                revision INTEGER NOT NULL CHECK(revision >= 0)
              );
@@ -102,6 +103,7 @@ fn create_schema_v12(transaction: &Transaction<'_>) -> Result<(), ScanError> {
                file_size INTEGER NOT NULL,
                created_unix_ms INTEGER,
                modified_unix_ms INTEGER NOT NULL,
+               file_local_time TEXT,
                parent_relative_path TEXT NOT NULL DEFAULT '',
                natural_name_key TEXT NOT NULL DEFAULT '',
                width INTEGER NOT NULL,
@@ -150,12 +152,14 @@ fn create_schema_v12(transaction: &Transaction<'_>) -> Result<(), ScanError> {
                ON asset_locations(asset_id);
              CREATE INDEX asset_locations_gallery_time
                ON asset_locations(
-                 (capture_local_time IS NULL), IFNULL(capture_local_time, '') DESC,
+                 (COALESCE(capture_local_time, file_local_time) IS NULL),
+                 IFNULL(COALESCE(capture_local_time, file_local_time), '') DESC,
                  modified_unix_ms DESC, root_id, location_id, scan_id
                );
              CREATE INDEX asset_locations_gallery_created
                ON asset_locations(
-                 (created_unix_ms IS NULL), IFNULL(created_unix_ms, 0),
+                 (file_local_time IS NULL), IFNULL(file_local_time, ''),
+                 modified_unix_ms,
                  root_id, location_id, scan_id
                );
              CREATE INDEX asset_locations_gallery_modified
@@ -465,6 +469,36 @@ fn migrate_v11_to_v12(connection: &mut Connection) -> Result<(), ScanError> {
              CREATE INDEX asset_locations_parent_folder
                ON asset_locations(root_id, parent_relative_path, scan_id, location_id);
              UPDATE schema_info SET version = 12;",
+        )
+        .map_err(database_error)?;
+    transaction.commit().map_err(database_error)
+}
+
+fn migrate_v12_to_v13(connection: &mut Connection) -> Result<(), ScanError> {
+    let transaction = connection.transaction().map_err(database_error)?;
+    transaction
+        .execute_batch(
+            "ALTER TABLE asset_locations ADD COLUMN file_local_time TEXT;
+             UPDATE asset_locations
+               SET file_local_time = strftime(
+                 '%Y-%m-%dT%H:%M:%f',
+                 COALESCE(created_unix_ms, modified_unix_ms) / 1000.0,
+                 'unixepoch', 'localtime'
+               );
+             DROP INDEX asset_locations_gallery_time;
+             DROP INDEX asset_locations_gallery_created;
+             CREATE INDEX asset_locations_gallery_time
+               ON asset_locations(
+                 (COALESCE(capture_local_time, file_local_time) IS NULL),
+                 IFNULL(COALESCE(capture_local_time, file_local_time), '') DESC,
+                 modified_unix_ms DESC, root_id, location_id, scan_id
+               );
+             CREATE INDEX asset_locations_gallery_created
+               ON asset_locations(
+                 (file_local_time IS NULL), IFNULL(file_local_time, ''),
+                 modified_unix_ms, root_id, location_id, scan_id
+               );
+             UPDATE schema_info SET version = 13;",
         )
         .map_err(database_error)?;
     transaction.commit().map_err(database_error)

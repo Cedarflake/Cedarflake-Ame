@@ -1,7 +1,7 @@
 # ADR 0008: Capture-time keyset for the unified gallery
 
 - Status: Accepted
-- Date: 2026-08-07
+- Date: 2026-08-08
 
 ## Context
 
@@ -11,8 +11,9 @@ separate block, date headings are not contiguous across roots, and a time rail c
 complete result set.
 
 Capture metadata is intentionally evidence-preserving. Many images have a normalized local capture
-time but no trustworthy timezone offset. File modification time exists for every accepted location,
-but it is not capture-time evidence and must not silently become one.
+time but no trustworthy timezone offset. File creation and modification timestamps are filesystem
+evidence, not capture-time evidence, but they can provide a deterministic display date without
+overwriting or relabeling the original metadata.
 
 The real two-root acceptance catalog contains 79,013 active locations. A gallery query must remain
 bounded, deterministic across equal timestamps, revision-safe during publication, and independent
@@ -29,40 +30,44 @@ Rejected. It cannot produce one cross-root timeline or a meaningful date distrib
 Rejected. Offsets are absent for a substantial class of personal images. Inventing an offset would
 turn uncertain metadata into false chronology and make date headings surprising.
 
-### Substitute file modification time when capture time is absent
+### Overwrite missing capture evidence with a filesystem timestamp
 
-Rejected as a display meaning. Modification time remains useful only as a deterministic ordering
-key inside an explicitly unknown-capture-time section.
+Rejected. Filesystem timestamps must not be stored or exposed as EXIF capture evidence.
 
-### Order by normalized local capture time with an explicit unknown section
+### Derive a separate gallery date with deterministic fallback
 
 Accepted. A personal gallery primarily presents the local date recorded by the camera or source.
-Known local capture values sort newest first across every active root. Unknown values follow in a
-separate section and sort by modification time without being relabeled as captures.
+When that value is absent or malformed, the gallery uses file creation time, then file modification
+time. The derived value controls ordering, headings, timeline buckets, and seeking while the stored
+capture evidence remains unchanged.
 
 ## Decision
 
-The default unified-gallery key is:
+The effective gallery date is selected in this order:
 
-1. capture-time-missing rank, ascending (`known` before `unknown`);
-2. normalized local capture time, descending;
-3. file modification time, descending;
-4. root identity, ascending;
-5. location identity, ascending.
+1. normalized local capture time;
+2. file creation time converted to a local display key;
+3. file modification time converted to a local display key.
+
+The default unified-gallery key is the effective gallery date, file modification time as a stable
+tie-breaker, root identity, then location identity. Creation-time sorting uses creation time with
+modification time as its fallback. Modification-time sorting continues to use modification time
+directly. An unknown date remains possible only when no timestamp can be represented.
 
 The final two keys provide deterministic ordering when timestamps are equal. The cursor carries the
 catalog revision and every ordering key. A publication invalidates an older cursor before any page
 is returned.
 
-SQLite schema v11 adds an index matching the gallery sort expressions. The migration is additive:
+SQLite schema v13 adds a rebuildable `file_local_time` key derived from creation time or modification
+time. Capture sorting uses `COALESCE(capture_local_time, file_local_time)`. The migration is additive:
 it does not rewrite media evidence or durable user data. Query-plan and multi-page contract tests
-must prove that the index is usable and that known and unknown timestamps cross page boundaries
-without duplicates or gaps.
+must prove that the indexed effective key remains bounded and crosses page boundaries without
+duplicates or gaps.
 
-Flutter consumes the server order. It does not sort a partial page locally. Contiguous known dates
-form localized date headings; all missing capture values form an explicit unknown-capture-time
-section. Automatic near-bottom loading remains a continuous-scroll behavior. A control is visible
-only for retry after a page error, not as ordinary pagination.
+Flutter consumes the server order. It does not sort a partial page locally. It derives the same
+capture, creation, then modification date for localized day headings. Automatic near-bottom loading
+remains a continuous-scroll behavior. A control is visible only for retry after a page error, not as
+ordinary pagination.
 
 This decision defines the default unfiltered order. Folder scope, search, alternate sorting, date
 distribution, and arbitrary time jumps must compose through later Ame-owned query contracts rather
@@ -72,8 +77,11 @@ than bypassing this keyset.
 
 - Local wall-clock order is honest about missing offsets but is not a globally normalized travel
   chronology.
-- Modified time changes the order inside the unknown section without changing its semantic label.
-- Cursor bridge types change and must be regenerated as one compatibility boundary.
+- Filesystem fallback changes gallery placement without changing capture-time provenance.
+- The derived local file key is rebuildable catalog data and may be regenerated if timezone policy
+  changes later.
+- The cursor bridge shape remains stable; cursor key values are read from the same SQLite
+  expressions that own ordering, avoiding a second timestamp formatter in Rust.
 - A future alternate sort requires a sort identity in the query and cursor; it must not reinterpret
   this cursor silently.
 - The first R2 slice can still retain more loaded records than the final viewport-window design.
@@ -81,27 +89,20 @@ than bypassing this keyset.
 
 ## Validation evidence
 
-- Schema v10 migrates to v11 without rewriting a stored capture value, and a query-plan test uses
-  `asset_locations_gallery_time` for the ordering expressions.
-- Cross-root fixtures prove descending known capture time, modified-time tie breaking, explicit
-  unknown ordering, 1,025-location keyset traversal, and stale-revision rejection.
-- The generated Rust/Dart bridge carries every new cursor key. Flutter analysis and tests verify
-  localized date grouping, the unknown heading, stable tile identity, automatic continuation, and
-  retry-only page controls.
-- All 52 non-ignored Rust tests and 18 Flutter tests pass with formatting, Clippy, analysis, bridge
-  hash, and diff checks.
-- The retained real catalog migrated to v11 and loaded 79,013 locations through 155 bounded windows
-  at revision 2. Every key was globally monotonic with no duplicate or gap. It contains 7,715 known
-  capture times from `2026-08-01T16:30:17` through `2006-11-29T17:15:41` and 71,298 explicitly
-  unknown capture times.
+- Schema v12 migrates to v13 without rewriting a stored capture value, and a query-plan test uses
+  `asset_locations_gallery_time` for the effective-date ordering expression.
+- Cross-root fixtures prove capture, creation, then modification fallback, indexed timeline
+  distribution, bidirectional month seeking, and gap-free keyset traversal.
+- Flutter tests verify localized capture, creation, and modification headings while preserving
+  stable tile identity, automatic continuation, and retry-only page controls.
+- Before this decision, the retained real catalog loaded 79,013 locations through 155 bounded
+  windows at revision 2. It contained 7,715 known capture times and 71,298 missing capture values.
 
-The real distribution confirms that the unknown section is a material product constraint rather
-than an edge case. Later date distribution and jump behavior must represent that population without
-silently relabeling modification time as capture time.
+The historical distribution confirms why a fallback is required: most files lack capture metadata.
+Schema v13 gives those items a useful gallery date while preserving their capture field as unknown.
 
 ## Replacement and rollback strategy
 
-The index can be dropped without discarding catalog rows. Replacing the ordering contract requires a
-new cursor shape or explicit sort identity, focused migration and query tests, regenerated bridge
-types, and an atomic Flutter adapter update. Old cursor values are ephemeral and may be rejected;
-catalog and user data remain preserved.
+The derived column and indexes can be rebuilt without discarding catalog rows. Replacing the
+ordering contract requires focused migration and query tests plus an atomic Flutter update. Old
+cursor values are ephemeral and may be rejected; catalog and user data remain preserved.

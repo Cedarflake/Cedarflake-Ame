@@ -76,7 +76,7 @@ fn migrates_v1_catalog_without_losing_the_active_location() {
         .expect("schema version");
     let snapshot = load_default_snapshot(&mut catalog, 10, None).expect("snapshot");
 
-    assert_eq!(version, 12);
+    assert_eq!(version, 13);
     assert_eq!(snapshot.revision, 1);
     assert_eq!(snapshot.roots.len(), 1);
     assert_eq!(snapshot.assets.len(), 1);
@@ -132,7 +132,7 @@ fn migrates_v2_catalog_revision_from_completed_scans() {
         )
         .expect("schema state");
 
-    assert_eq!(version, 12);
+    assert_eq!(version, 13);
     assert_eq!(revision, 1);
 }
 
@@ -188,7 +188,7 @@ fn migrates_v3_without_treating_an_uncheckpointed_scan_as_recoverable() {
         )
         .expect("migrated state");
 
-    assert_eq!(version, 12);
+    assert_eq!(version, 13);
     assert_eq!(running_status, "interrupted_unrecoverable");
     assert!(
         catalog
@@ -253,7 +253,7 @@ fn migrates_v4_tasks_without_inventing_a_missing_directory_frontier() {
         .collect::<rusqlite::Result<Vec<_>>>()
         .expect("stored statuses");
 
-    assert_eq!(version, 12);
+    assert_eq!(version, 13);
     assert_eq!(
         statuses,
         vec![
@@ -334,7 +334,7 @@ fn migrates_v5_tasks_without_inventing_a_missing_entry_snapshot() {
         })
         .expect("frontier count");
 
-    assert_eq!(version, 12);
+    assert_eq!(version, 13);
     assert_eq!(
         statuses,
         vec![
@@ -384,7 +384,7 @@ fn migrates_v6_previews_as_ready_without_losing_the_artifact_path() {
         )
         .expect("migrated preview");
 
-    assert_eq!(version, 12);
+    assert_eq!(version, 13);
     assert_eq!(preview_path, "C:\\Cache\\one.jpg");
     assert_eq!(preview_status, "ready");
     assert_eq!(engine_id, "unknown");
@@ -434,7 +434,7 @@ fn migrates_v7_locations_as_unanalyzed_metadata() {
             )
             .expect("migrated metadata state");
 
-    assert_eq!(version, 12);
+    assert_eq!(version, 13);
     assert_eq!(engine_id, "unknown");
     assert_eq!(engine_version, "0");
     assert!(capture_time.is_none());
@@ -485,7 +485,7 @@ fn migrates_v8_locations_with_unknown_file_identity() {
         )
         .expect("migrated file identity");
 
-    assert_eq!(version, 12);
+    assert_eq!(version, 13);
     assert!(scheme.is_none());
     assert!(value.is_none());
 }
@@ -544,7 +544,7 @@ fn migrates_v9_with_bounded_reconciliation_indexes() {
         .collect::<Result<HashSet<_>, _>>()
         .expect("index names");
 
-    assert_eq!(version, 12);
+    assert_eq!(version, 13);
     assert_eq!(asset_id, "asset-1");
     assert_eq!(
         identity_value,
@@ -608,11 +608,64 @@ fn migrates_v10_by_adding_the_gallery_time_index_without_rewriting_rows() {
         )
         .expect("gallery index");
 
-    assert_eq!(version, 12);
+    assert_eq!(version, 13);
     assert_eq!(capture_time, "2025-08-07T10:20:30.000000000");
     assert_eq!(parent_path, "Album");
     assert_eq!(name_key, natural_name_key("Album/img10.png"));
     assert_eq!(gallery_index, 1);
+}
+
+#[test]
+fn migrates_v12_by_materializing_the_file_time_fallback_key() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let connection = Connection::open(&path).expect("v12 catalog");
+    connection
+        .execute_batch(
+            "CREATE TABLE schema_info (version INTEGER NOT NULL);
+             INSERT INTO schema_info(version) VALUES (12);
+             CREATE TABLE asset_locations (
+               scan_id TEXT NOT NULL,
+               location_id TEXT NOT NULL,
+               root_id TEXT NOT NULL,
+               created_unix_ms INTEGER,
+               modified_unix_ms INTEGER NOT NULL,
+               capture_local_time TEXT,
+               PRIMARY KEY(scan_id, location_id)
+             );
+             INSERT INTO asset_locations VALUES (
+               'scan-1', 'location-1', 'root-1',
+               1749988800000, 1784116800000, NULL
+             );
+             CREATE INDEX asset_locations_gallery_time
+               ON asset_locations(
+                 (capture_local_time IS NULL), IFNULL(capture_local_time, '') DESC,
+                 modified_unix_ms DESC, root_id, location_id, scan_id
+               );
+             CREATE INDEX asset_locations_gallery_created
+               ON asset_locations(
+                 (created_unix_ms IS NULL), IFNULL(created_unix_ms, 0),
+                 root_id, location_id, scan_id
+               );",
+        )
+        .expect("v12 schema");
+    drop(connection);
+
+    let catalog = SqliteCatalog::open(path).expect("migrated catalog");
+    let (version, file_local_time, capture_local_time): (i64, String, Option<String>) = catalog
+        .connection
+        .query_row(
+            "SELECT schema_info.version, asset_locations.file_local_time,
+                    asset_locations.capture_local_time
+             FROM schema_info CROSS JOIN asset_locations",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .expect("migrated fallback row");
+
+    assert_eq!(version, 13);
+    assert!(file_local_time.starts_with("2025-06-"));
+    assert!(capture_local_time.is_none());
 }
 
 #[test]
@@ -625,8 +678,8 @@ fn gallery_time_query_uses_its_ordering_index() {
         .prepare(
             "EXPLAIN QUERY PLAN
                  SELECT location_id FROM asset_locations
-                 ORDER BY (capture_local_time IS NULL),
-                          IFNULL(capture_local_time, '') DESC,
+                 ORDER BY (COALESCE(capture_local_time, file_local_time) IS NULL),
+                          IFNULL(COALESCE(capture_local_time, file_local_time), '') DESC,
                           modified_unix_ms DESC, root_id, location_id
                  LIMIT 100",
         )
@@ -961,7 +1014,7 @@ fn keyset_walk_returns_each_location_once_across_many_pages() {
 }
 
 #[test]
-fn gallery_keyset_orders_known_capture_times_across_roots_before_unknown_times() {
+fn gallery_keyset_orders_capture_and_fallback_times_across_roots() {
     let directory = tempdir().expect("temporary directory");
     let path = directory.path().join("catalog.sqlite3");
     let mut catalog = SqliteCatalog::open(path).expect("catalog");
@@ -1009,6 +1062,64 @@ fn gallery_keyset_orders_known_capture_times_across_roots_before_unknown_times()
             "unknown-new",
             "unknown-old",
         ]
+    );
+}
+
+#[test]
+fn gallery_time_fallback_prefers_capture_then_creation_then_modification() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let mut catalog = SqliteCatalog::open(path).expect("catalog");
+    publish_gallery_query_fixture(
+        &mut catalog,
+        "fallback-scan",
+        "fallback-root",
+        "C:\\Pictures",
+        &[
+            (
+                "created-fallback",
+                "created.png",
+                None,
+                Some(1_749_988_800_000),
+                1_784_116_800_000,
+            ),
+            (
+                "modified-fallback",
+                "modified.png",
+                None,
+                None,
+                1_715_774_400_000,
+            ),
+            (
+                "capture",
+                "capture.png",
+                Some("2023-04-15T12:00:00.000000000"),
+                Some(1_784_116_800_000),
+                1_784_116_800_000,
+            ),
+        ],
+    );
+
+    let snapshot = load_default_snapshot(&mut catalog, 10, None).expect("fallback snapshot");
+    assert_eq!(
+        snapshot
+            .assets
+            .iter()
+            .map(|asset| asset.location_id.as_str())
+            .collect::<Vec<_>>(),
+        ["created-fallback", "modified-fallback", "capture"]
+    );
+    assert!(snapshot.assets[0].capture_time.is_none());
+    assert!(snapshot.assets[1].capture_time.is_none());
+
+    let timeline = load_default_timeline(&mut catalog).expect("fallback timeline");
+    assert_eq!(
+        timeline
+            .buckets
+            .iter()
+            .map(|bucket| bucket.month_key.as_deref())
+            .collect::<Vec<_>>(),
+        [Some("2025-06"), Some("2024-05"), Some("2023-04")]
     );
 }
 
@@ -1253,7 +1364,7 @@ fn folder_pages_are_bounded_scoped_and_revision_safe() {
 }
 
 #[test]
-fn gallery_timeline_covers_all_active_roots_and_keeps_unknown_explicit() {
+fn gallery_timeline_uses_file_time_when_capture_time_is_missing() {
     let directory = tempdir().expect("temporary directory");
     let path = directory.path().join("catalog.sqlite3");
     let mut catalog = SqliteCatalog::open(path).expect("catalog");
@@ -1302,7 +1413,7 @@ fn gallery_timeline_covers_all_active_roots_and_keeps_unknown_explicit() {
                 aspect_ratio_milli_sum: 800,
             },
             GalleryTimeBucket {
-                month_key: None,
+                month_key: Some("1970-01".to_owned()),
                 item_count: 2,
                 aspect_ratio_milli_sum: 1_600,
             },
@@ -1419,7 +1530,7 @@ fn unregistering_a_root_removes_only_catalog_state_and_preserves_source_bytes() 
 }
 
 #[test]
-fn gallery_anchor_cursors_begin_at_month_or_unknown_without_gaps() {
+fn gallery_anchor_cursors_begin_at_capture_or_fallback_month_without_gaps() {
     let directory = tempdir().expect("temporary directory");
     let path = directory.path().join("catalog.sqlite3");
     let mut catalog = SqliteCatalog::open(path).expect("catalog");
@@ -1514,25 +1625,25 @@ fn gallery_anchor_cursors_begin_at_month_or_unknown_without_gaps() {
     assert!(oldest_previous_page.previous_cursor.is_none());
     assert!(oldest_previous_page.next_cursor.is_some());
 
-    let unknown_anchor = GalleryTimeAnchor {
+    let fallback_anchor = GalleryTimeAnchor {
         revision: timeline.revision,
         query_id: TEST_QUERY_ID.to_owned(),
-        month_key: None,
+        month_key: Some("1970-01".to_owned()),
         item_offset: 0,
     };
-    let unknown_page = catalog
+    let fallback_page = catalog
         .load_snapshot(
             3,
             &GalleryQuery::default(),
             TEST_QUERY_ID,
             None,
             None,
-            Some(&unknown_anchor),
+            Some(&fallback_anchor),
         )
-        .expect("unknown page");
-    assert_eq!(unknown_page.assets.len(), 1);
-    assert_eq!(unknown_page.assets[0].location_id, "unknown");
-    assert!(unknown_page.next_cursor.is_none());
+        .expect("fallback page");
+    assert_eq!(fallback_page.assets.len(), 1);
+    assert_eq!(fallback_page.assets[0].location_id, "unknown");
+    assert!(fallback_page.next_cursor.is_none());
 }
 
 fn publish_fixture(
