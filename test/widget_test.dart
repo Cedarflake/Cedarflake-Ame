@@ -244,6 +244,7 @@ void main() {
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
+      final fallbackUnixMs = DateTime(2024, 3, 4).millisecondsSinceEpoch;
       final snapshot = LibrarySnapshot(
         catalogPath: "C:\\AmeData\\ame.sqlite3",
         revision: BigInt.one,
@@ -267,7 +268,7 @@ void main() {
             relativePath: "one.png",
             previewPath: "C:\\Missing\\one.jpg",
             fileSize: BigInt.one,
-            modifiedUnixMs: 1,
+            modifiedUnixMs: fallbackUnixMs,
             width: 1,
             height: 1,
           ),
@@ -296,7 +297,7 @@ void main() {
       await tester.pump();
 
       expect(find.byKey(const Key("library-load-more-button")), findsNothing);
-      expect(find.byKey(const Key("gallery-date-unknown")), findsOneWidget);
+      expect(find.byKey(const Key("gallery-date-2024-03-04")), findsOneWidget);
       final summary = tester.widget<Text>(
         find.byKey(const Key("library-summary")),
       );
@@ -304,7 +305,7 @@ void main() {
     },
   );
 
-  testWidgets("groups server-ordered assets under capture dates and unknown", (
+  testWidgets("groups server-ordered assets under capture and fallback dates", (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1280, 800);
@@ -361,11 +362,12 @@ void main() {
           assetId: "asset-3",
           locationId: "location-3",
           rootId: "root-1",
-          sourcePath: "C:\\Pictures\\unknown.png",
-          relativePath: "unknown.png",
-          previewPath: "C:\\Missing\\unknown.jpg",
+          sourcePath: "C:\\Pictures\\fallback.png",
+          relativePath: "fallback.png",
+          previewPath: "C:\\Missing\\fallback.jpg",
           fileSize: BigInt.one,
-          modifiedUnixMs: 1,
+          createdUnixMs: DateTime(2024, 3, 4).millisecondsSinceEpoch,
+          modifiedUnixMs: DateTime(2026, 5, 6).millisecondsSinceEpoch,
           width: 1,
           height: 1,
         ),
@@ -385,12 +387,13 @@ void main() {
     await tester.pump();
 
     final datedHeader = find.byKey(const Key("gallery-date-2025-08-07"));
-    final unknownHeader = find.byKey(const Key("gallery-date-unknown"));
+    final fallbackHeader = find.byKey(const Key("gallery-date-2024-03-04"));
     expect(datedHeader, findsOneWidget);
-    expect(unknownHeader, findsOneWidget);
+    expect(fallbackHeader, findsOneWidget);
+    expect(find.byKey(const Key("gallery-date-unknown")), findsNothing);
     expect(
       tester.getTopLeft(datedHeader).dy,
-      lessThan(tester.getTopLeft(unknownHeader).dy),
+      lessThan(tester.getTopLeft(fallbackHeader).dy),
     );
     expect(find.byKey(const ValueKey("location-1")), findsOneWidget);
     expect(find.byKey(const ValueKey("location-2")), findsOneWidget);
@@ -572,7 +575,7 @@ void main() {
     expect(find.byKey(const Key("library-cancel-selection")), findsOneWidget);
   });
 
-  testWidgets("renders the complete-result Material timeline", (tester) async {
+  testWidgets("renders the scroll-derived Material timeline", (tester) async {
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -606,7 +609,7 @@ void main() {
         child: const AmeApp(),
       ),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(find.byKey(const Key("library-time-rail")), findsOneWidget);
     expect(find.byKey(const Key("timeline-slider")), findsOneWidget);
@@ -614,8 +617,16 @@ void main() {
       find.byKey(const Key("current-month-native-scrollbar")),
       findsNothing,
     );
-    expect(find.byKey(const ValueKey("time-marker-2026-08")), findsOneWidget);
-    expect(find.byKey(const ValueKey("time-marker-2025-01")), findsOneWidget);
+    expect(find.byKey(const ValueKey("time-label-2026-08")), findsOneWidget);
+    expect(find.byKey(const ValueKey("time-marker-2026-08")), findsNothing);
+    expect(find.byKey(const ValueKey("time-marker-unknown")), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key("library-time-rail")),
+        matching: find.byType(MenuAnchor),
+      ),
+      findsNothing,
+    );
   });
 
   testWidgets("keeps the single time rail synchronized with gallery scroll", (
@@ -710,8 +721,19 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(galleryPosition.pixels, greaterThan(0));
-    expect(tester.widget<Slider>(timelineSlider).value, 1);
+    expect(tester.widget<Slider>(timelineSlider).value, lessThan(1));
     expect(catalog.timeAnchors, isEmpty);
+
+    final beforeSlider = galleryPosition.pixels;
+    tester.widget<Slider>(timelineSlider).onChanged?.call(0.25);
+    await tester.pump();
+    expect(galleryPosition.pixels, greaterThan(beforeSlider));
+    expect(tester.widget<Slider>(timelineSlider).value, closeTo(0.25, 0.001));
+
+    final beforeArrow = galleryPosition.pixels;
+    await tester.tap(find.byKey(const Key("timeline-previous")));
+    await tester.pumpAndSettle();
+    expect(galleryPosition.pixels, lessThan(beforeArrow));
   });
 
   testWidgets(

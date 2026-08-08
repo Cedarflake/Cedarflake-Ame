@@ -144,15 +144,17 @@ class LibraryGalleryLayoutEntry {
     switch (sortKey) {
       case LibraryGallerySortKey.captureTime:
         final localTime = asset.captureTime?.localTime;
-        if (localTime == null || localTime.length < 10) {
-          return null;
+        if (localTime != null && localTime.length >= 10) {
+          final value = localTime.substring(0, 10);
+          final match = RegExp(r"^\d{4}-\d{2}-\d{2}$").firstMatch(value);
+          if (match != null) {
+            return value;
+          }
         }
-        final value = localTime.substring(0, 10);
-        final match = RegExp(r"^\d{4}-\d{2}-\d{2}$").firstMatch(value);
-        return match == null ? null : value;
-      case LibraryGallerySortKey.createdTime:
         final createdUnixMs = asset.createdUnixMs;
-        return createdUnixMs == null ? null : _unixDateKey(createdUnixMs);
+        return _unixDateKey(createdUnixMs ?? asset.modifiedUnixMs);
+      case LibraryGallerySortKey.createdTime:
+        return _unixDateKey(asset.createdUnixMs ?? asset.modifiedUnixMs);
       case LibraryGallerySortKey.modifiedTime:
         return _unixDateKey(asset.modifiedUnixMs);
       case LibraryGallerySortKey.fileName:
@@ -174,6 +176,148 @@ class LibraryGalleryLayoutEntry {
     final parts = dateKey.split("-").map(int.parse).toList(growable: false);
     return "${parts[0]}年${parts[1]}月${parts[2]}日";
   }
+}
+
+class LibraryGalleryLayoutMetrics {
+  LibraryGalleryLayoutMetrics({
+    required this.contentExtent,
+    required this.photoRowHeight,
+    required this.dateAnchors,
+    required this.locationOffsets,
+    required this.itemOffsets,
+  });
+
+  factory LibraryGalleryLayoutMetrics.fromEntries(
+    List<LibraryGalleryLayoutEntry> entries, {
+    required double topPadding,
+    required double bottomPadding,
+  }) {
+    final anchors = <LibraryGalleryDateAnchor>[];
+    final offsets = <String, double>{};
+    final itemOffsets = <double>[];
+    var runningOffset = topPadding;
+    var photoRowHeight = 0.0;
+    for (final entry in entries) {
+      final dateKey = entry.dateKey;
+      final headerLabel = entry.headerLabel;
+      if (dateKey != null || headerLabel != null) {
+        anchors.add(
+          LibraryGalleryDateAnchor(
+            id: dateKey ?? "unknown",
+            label: headerLabel ?? LibraryStrings.unknownCaptureDate,
+            scrollOffset: runningOffset,
+            year: dateKey == null
+                ? null
+                : int.tryParse(dateKey.substring(0, 4)),
+            isUnknown: dateKey == null,
+          ),
+        );
+      }
+      if (entry.cells.isNotEmpty) {
+        photoRowHeight = entry.rowHeight;
+        for (final cell in entry.cells) {
+          offsets[cell.asset.locationId] = runningOffset;
+          itemOffsets.add(runningOffset);
+        }
+      }
+      runningOffset += entry.extent;
+    }
+    return LibraryGalleryLayoutMetrics(
+      contentExtent: runningOffset + bottomPadding,
+      photoRowHeight: photoRowHeight,
+      dateAnchors: List.unmodifiable(anchors),
+      locationOffsets: Map.unmodifiable(offsets),
+      itemOffsets: List.unmodifiable(itemOffsets),
+    );
+  }
+
+  final double contentExtent;
+  final double photoRowHeight;
+  final List<LibraryGalleryDateAnchor> dateAnchors;
+  final Map<String, double> locationOffsets;
+  final List<double> itemOffsets;
+
+  double? offsetForLocation(String? locationId) {
+    if (locationId == null) {
+      return null;
+    }
+    return locationOffsets[locationId];
+  }
+
+  double? offsetForItemIndex(int itemIndex) {
+    if (itemIndex < 0 || itemIndex >= itemOffsets.length) {
+      return null;
+    }
+    return itemOffsets[itemIndex];
+  }
+
+  int itemIndexForScrollOffset(double scrollOffset) {
+    if (itemOffsets.isEmpty) {
+      return 0;
+    }
+    var lower = 0;
+    var upper = itemOffsets.length;
+    while (lower < upper) {
+      final middle = lower + ((upper - lower) >> 1);
+      if (itemOffsets[middle] <= scrollOffset) {
+        lower = middle + 1;
+      } else {
+        upper = middle;
+      }
+    }
+    var index = (lower - 1).clamp(0, itemOffsets.length - 1).toInt();
+    final rowOffset = itemOffsets[index];
+    while (index > 0 && (itemOffsets[index - 1] - rowOffset).abs() < 0.01) {
+      index -= 1;
+    }
+    return index;
+  }
+
+  bool hasSameGeometry(LibraryGalleryLayoutMetrics other) {
+    if ((contentExtent - other.contentExtent).abs() > 0.01 ||
+        (photoRowHeight - other.photoRowHeight).abs() > 0.01 ||
+        dateAnchors.length != other.dateAnchors.length ||
+        locationOffsets.length != other.locationOffsets.length ||
+        itemOffsets.length != other.itemOffsets.length) {
+      return false;
+    }
+    for (var index = 0; index < dateAnchors.length; index++) {
+      final anchor = dateAnchors[index];
+      final otherAnchor = other.dateAnchors[index];
+      if (anchor.id != otherAnchor.id ||
+          (anchor.scrollOffset - otherAnchor.scrollOffset).abs() > 0.01) {
+        return false;
+      }
+    }
+    for (final entry in locationOffsets.entries) {
+      final otherOffset = other.locationOffsets[entry.key];
+      if (otherOffset == null || (entry.value - otherOffset).abs() > 0.01) {
+        return false;
+      }
+    }
+    for (var index = 0; index < itemOffsets.length; index++) {
+      if ((itemOffsets[index] - other.itemOffsets[index]).abs() > 0.01) {
+        return false;
+      }
+    }
+    return true;
+  }
+}
+
+class LibraryGalleryDateAnchor {
+  const LibraryGalleryDateAnchor({
+    required this.id,
+    required this.label,
+    required this.scrollOffset,
+    required this.year,
+    required this.isUnknown,
+  });
+
+  final String id;
+  final String label;
+  final double scrollOffset;
+  final int? year;
+  final bool isUnknown;
 }
 
 class LibraryGalleryLayoutCell {

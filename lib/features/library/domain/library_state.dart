@@ -31,6 +31,7 @@ class LibraryState {
     this.catalogRevision,
     this.query = const LibraryGalleryQuery(),
     this.queryId = "",
+    this.windowStartItemOffset = 0,
     this.previousCursor,
     this.nextCursor,
     this.timeline,
@@ -64,6 +65,7 @@ class LibraryState {
   final BigInt? catalogRevision;
   final LibraryGalleryQuery query;
   final String queryId;
+  final int windowStartItemOffset;
   final LibraryCatalogCursor? previousCursor;
   final LibraryCatalogCursor? nextCursor;
   final LibraryTimeline? timeline;
@@ -136,6 +138,7 @@ class LibraryState {
     Object? catalogRevision = _unchanged,
     LibraryGalleryQuery? query,
     String? queryId,
+    int? windowStartItemOffset,
     Object? previousCursor = _unchanged,
     Object? nextCursor = _unchanged,
     Object? timeline = _unchanged,
@@ -173,6 +176,8 @@ class LibraryState {
           : catalogRevision as BigInt?,
       query: query ?? this.query,
       queryId: queryId ?? this.queryId,
+      windowStartItemOffset:
+          windowStartItemOffset ?? this.windowStartItemOffset,
       previousCursor: previousCursor == _unchanged
           ? this.previousCursor
           : previousCursor as LibraryCatalogCursor?,

@@ -223,6 +223,7 @@ class LibraryController extends Notifier<LibraryState> {
       status: LibraryStatus.refreshing,
       query: normalized,
       queryId: "",
+      windowStartItemOffset: 0,
       assets: const [],
       previousCursor: null,
       nextCursor: null,
@@ -361,6 +362,10 @@ class LibraryController extends Notifier<LibraryState> {
       final precedingIds = {
         for (final asset in snapshot.assets) asset.locationId,
       };
+      final existingIds = {for (final asset in state.assets) asset.locationId};
+      final addedItemCount = snapshot.assets
+          .where((asset) => !existingIds.contains(asset.locationId))
+          .length;
       final mergedAssets = [
         ...snapshot.assets,
         for (final asset in state.assets)
@@ -372,6 +377,9 @@ class LibraryController extends Notifier<LibraryState> {
         catalogPath: snapshot.catalogPath,
         catalogRevision: snapshot.revision,
         queryId: snapshot.queryId,
+        windowStartItemOffset: (state.windowStartItemOffset - addedItemCount)
+            .clamp(0, state.timeline?.totalItems ?? 0)
+            .toInt(),
         previousCursor: snapshot.previousCursor,
         isLoadingPreviousPage: false,
       );
@@ -460,6 +468,11 @@ class LibraryController extends Notifier<LibraryState> {
         catalogPath: snapshot.catalogPath,
         catalogRevision: snapshot.revision,
         queryId: snapshot.queryId,
+        windowStartItemOffset: _globalItemOffsetForAnchor(
+          timeline,
+          bucket,
+          anchor.itemOffset,
+        ),
         previousCursor: snapshot.previousCursor,
         nextCursor: snapshot.nextCursor,
         activeTimeAnchor: anchor,
@@ -648,6 +661,24 @@ class LibraryController extends Notifier<LibraryState> {
       issueCount: scan.issueCount,
       isResuming: true,
     );
+  }
+
+  static int _globalItemOffsetForAnchor(
+    LibraryTimeline timeline,
+    LibraryTimeBucket selectedBucket,
+    int itemOffset,
+  ) {
+    var precedingItems = 0;
+    for (final bucket in timeline.buckets) {
+      if (identical(bucket, selectedBucket) ||
+          bucket.monthKey == selectedBucket.monthKey) {
+        return (precedingItems + itemOffset)
+            .clamp(0, timeline.totalItems)
+            .toInt();
+      }
+      precedingItems += bucket.itemCount;
+    }
+    return 0;
   }
 
   Future<void> _reloadFirstCatalogPage(int scanSequence) async {

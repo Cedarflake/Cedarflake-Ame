@@ -57,7 +57,7 @@ void main() {
     expect(header.right - toolbar.right, closeTo(20, 0.01));
   });
 
-  testWidgets("justifies every complete photo row to one gallery width", (
+  testWidgets("keeps fixed rows and justifies only complete rows", (
     tester,
   ) async {
     await pumpPrototype(tester);
@@ -83,8 +83,12 @@ void main() {
 
       expect(tileRects, isNotEmpty);
       expect(tileRects.first.left, closeTo(rowRect.left, 0.01));
-      expect(tileRects.last.right, closeTo(rowRect.right, 0.01));
       expect(tileRects.map((rect) => rect.height).toSet(), hasLength(1));
+      if (rowIndex == 0) {
+        expect(tileRects.last.right, closeTo(rowRect.right, 0.01));
+      } else {
+        expect(tileRects.last.right, lessThan(rowRect.right));
+      }
     }
   });
 
@@ -142,17 +146,15 @@ void main() {
     expect(slider.allowedInteraction, SliderInteraction.tapAndSlide);
     expect(slider.padding, const EdgeInsets.symmetric(horizontal: 12));
     expect(slider.semanticFormatterCallback?.call(1), "2026 年 8 月");
-    expect(sliderTheme.data.trackHeight, 16);
+    expect(sliderTheme.data.trackHeight, 1);
     expect(sliderTheme.data.trackShape, isA<RoundedRectSliderTrackShape>());
-    expect(sliderTheme.data.thumbShape, isA<HandleThumbShape>());
+    expect(sliderTheme.data.thumbShape, same(SliderComponentShape.noThumb));
+    expect(sliderTheme.data.overlayShape, same(SliderComponentShape.noOverlay));
     expect(
       find.ancestor(of: photoWall, matching: find.byType(Scrollbar)),
       findsNothing,
     );
-    expect(
-      sliderTheme.data.thumbSize?.resolve(<WidgetState>{}),
-      const Size(4, 28),
-    );
+    expect(find.byKey(const Key("timeline-current-line")), findsOneWidget);
 
     final sliderAxis = tester.getCenter(sliderFinder).dx;
     final previousArrow = find.descendant(
@@ -168,12 +170,12 @@ void main() {
     );
     expect(tester.getRect(sliderFinder).width, kMinInteractiveDimension);
     expect(sliderAxis - yearMarker.right, greaterThanOrEqualTo(12));
-    expect(
-      tester.getCenter(find.byKey(const ValueKey("time-marker-2026-08"))).dy,
-      closeTo(tester.getRect(sliderFinder).top + 12, 0.01),
+    final firstAnnotation = tester.getCenter(
+      find.byKey(const ValueKey("time-label-2026-08")),
     );
-    final firstMarker = tester.getCenter(
-      find.byKey(const ValueKey("time-marker-2026-08")),
+    expect(
+      firstAnnotation.dy,
+      closeTo(tester.getRect(sliderFinder).top + 12, 0.01),
     );
     final lastMarker = tester.getCenter(
       find.byKey(const ValueKey("time-marker-unknown")),
@@ -181,8 +183,8 @@ void main() {
     final trackBackground = tester.getRect(
       find.byKey(const Key("timeline-track-background")),
     );
-    expect(firstMarker.dy - trackBackground.top, 12);
-    expect(trackBackground.bottom - lastMarker.dy, 12);
+    expect(firstAnnotation.dy - trackBackground.top, 12);
+    expect(trackBackground.bottom - lastMarker.dy, greaterThan(12));
     expect(tester.getCenter(previousArrow).dx, closeTo(sliderAxis, 0.01));
     expect(tester.getCenter(nextArrow).dx, closeTo(sliderAxis, 0.01));
     expect(
@@ -230,13 +232,13 @@ void main() {
   ) async {
     await pumpPrototype(tester);
 
-    final august = tester.getTopLeft(
-      find.byKey(const ValueKey("time-marker-2026-08")),
+    final august = tester.getCenter(
+      find.byKey(const ValueKey("time-label-2026-08")),
     );
-    final july = tester.getTopLeft(
+    final july = tester.getCenter(
       find.byKey(const ValueKey("time-marker-2026-07")),
     );
-    final june = tester.getTopLeft(
+    final june = tester.getCenter(
       find.byKey(const ValueKey("time-marker-2026-06")),
     );
 

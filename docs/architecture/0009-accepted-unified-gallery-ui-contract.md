@@ -72,16 +72,27 @@ Use one unified gallery with these presentation rules.
 
 ### Gallery and time navigation
 
-- The default `等高` layout is an aspect-preserving justified photo wall. Every complete row has
-  one height and fills the available width; sparse rows have a bounded enlargement policy.
+- The default `等高` layout uses one density-selected height for every photo row. Complete rows
+  distribute their aspect-weighted cell widths across the available width, while the final sparse
+  row keeps natural widths and remains left aligned. Existing `BoxFit.cover` rendering handles any
+  necessary crop inside a cell.
 - The `方形` layout is a uniform square grid. Small, medium, and large density choices remain
   independent from shape.
-- Date headings and explicit unknown capture time are part of one continuous gallery.
-- The right-side annotated time rail is the only visible scroll-position control. It represents the
-  complete filtered result rather than only loaded widgets.
-- Flutter's Material Slider owns pointer, keyboard, focus, hover, track, handle, and semantics. A
-  thin rotation adapter provides vertical orientation. Ame adds only nonuniform timeline annotations
-  and a background extension needed to keep endpoint nodes visually enclosed.
+- Date headings use capture time, then file creation time, then file modification time as defined by
+  ADR 0008. An unrepresentable date remains an explicit unknown section in the same continuous
+  gallery.
+- The right-side annotated time rail is the only visible scroll-position control. Its controlled
+  Material Slider derives its stable full range from the complete catalog timeline and its current
+  value from the gallery's sole `ScrollController` plus the materialized window's global start
+  offset; it never owns an independent committed month or timeline position. Loading another page
+  must not extend the rail. Exact day offsets are used where rows are materialized, while bounded
+  off-window seeking uses the catalog time-anchor contract.
+- Flutter's Material Slider owns pointer, keyboard, focus, and semantics for the rail through a thin
+  rotation adapter. Its visual track and handle are hidden. Ame draws a passive current-position
+  line, a hover preview line, exact-offset annotations, and the background needed to keep endpoint
+  nodes visually enclosed.
+- Colliding annotations are hidden deterministically without being moved or merged. The timeline
+  does not create clusters, badges, hover menus, or a second selection surface.
 - Timeline arrows use first-party Material IconButton and Icon components. Arrows, Slider axis,
   handle, and month nodes share one geometric axis.
 

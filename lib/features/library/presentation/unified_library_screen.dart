@@ -13,8 +13,8 @@ import "../domain/library_state.dart";
 import "gallery_selection.dart";
 import "gallery_view_options.dart";
 import "library_strings.dart";
-import "widgets/annotated_time_rail.dart";
 import "widgets/library_gallery_header.dart";
+import "widgets/library_gallery_layout.dart";
 import "widgets/library_gallery_states.dart";
 import "widgets/library_gallery_wall.dart";
 import "widgets/library_global_bar.dart";
@@ -40,9 +40,8 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   String? _viewerLocationId;
   bool _isSelecting = false;
   bool _isRestoringPreviousWindow = false;
-  double _galleryContentExtent = 0;
-  GalleryTimeNavigationState _timeNavigation =
-      const GalleryTimeNavigationState();
+  LibraryGalleryLayoutMetrics? _galleryLayoutMetrics;
+  LibraryGalleryVisiblePosition? _visibleGalleryPosition;
   Timer? _searchDebounce;
 
   @override
@@ -101,15 +100,22 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                       color: Theme.of(context).colorScheme.outlineVariant,
                     ),
                     Expanded(
-                      child: viewerAsset == null
-                          ? _buildLibrary(context, state, controller)
-                          : LibraryImageViewer(
+                      child: IndexedStack(
+                        index: viewerAsset == null ? 0 : 1,
+                        children: [
+                          _buildLibrary(context, state, controller),
+                          if (viewerAsset == null)
+                            const SizedBox.shrink()
+                          else
+                            LibraryImageViewer(
                               asset: viewerAsset,
                               onBack: () =>
                                   setState(() => _viewerLocationId = null),
                               onInformation: () =>
                                   _showAssetInformation(viewerAsset),
                             ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -247,7 +253,6 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
         onImport: controller.chooseDirectoryAndScan,
       );
     }
-    final railBuckets = _railBuckets(state.timeline);
     return Row(
       children: [
         Expanded(
@@ -265,26 +270,23 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
             onCopyPath: _copyAssetPath,
             onRevealFile: _revealAsset,
             onVisiblePositionChanged: (position) {
-              if (!_isRestoringPreviousWindow) {
-                _updateTimelineFromVisiblePosition(railBuckets, position);
-              }
+              _visibleGalleryPosition = position;
             },
             onLoadPrevious: () =>
                 _loadPreviousPagePreservingPosition(controller),
-            onContentExtentChanged: (value) => _galleryContentExtent = value,
+            onLayoutChanged: _handleGalleryLayoutChanged,
           ),
         ),
         LibraryTimeNavigation(
           isLoading: state.isLoadingTimeline,
-          buckets: railBuckets,
-          navigationState: _timeNavigation,
-          onNavigationStateChanged: (nextState) {
-            if (!identical(nextState, _timeNavigation)) {
-              setState(() => _timeNavigation = nextState);
-            }
-          },
-          onBucketActivated: (bucket) =>
-              unawaited(_jumpToTimelineBucket(state, bucket)),
+          scrollController: _galleryScrollController,
+          layoutMetrics: _galleryLayoutMetrics,
+          timeline: state.timeline,
+          layoutShape: _layoutShape,
+          windowStartItemOffset: state.windowStartItemOffset,
+          loadedItemCount: state.assets.length,
+          onSeek: (bucket, itemOffset) =>
+              _seekTimeline(controller, bucket, itemOffset),
         ),
       ],
     );
@@ -336,7 +338,10 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     if (!mounted || !didUpdate) {
       return;
     }
-    setState(() => _timeNavigation = const GalleryTimeNavigationState());
+    setState(() {
+      _galleryLayoutMetrics = null;
+      _visibleGalleryPosition = null;
+    });
     if (_galleryScrollController.hasClients) {
       _galleryScrollController.jumpTo(0);
     }
@@ -459,51 +464,6 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     }
   }
 
-  Future<void> _jumpToTimelineBucket(
-    LibraryState state,
-    TimelineRailBucket railBucket,
-  ) async {
-    final bucket = state.timeline?.buckets
-        .where(
-          (candidate) => (candidate.monthKey ?? "unknown") == railBucket.id,
-        )
-        .firstOrNull;
-    if (bucket == null) {
-      return;
-    }
-    final didJump = await ref
-        .read(libraryControllerProvider.notifier)
-        .jumpToTime(bucket);
-    if (!mounted) {
-      return;
-    }
-    if (didJump) {
-      final nextState = ref.read(libraryControllerProvider);
-      final nextNavigation = _timeNavigation.publish(
-        buckets: _railBuckets(nextState.timeline),
-        bucketId: railBucket.id,
-      );
-      if (!identical(nextNavigation, _timeNavigation)) {
-        setState(() => _timeNavigation = nextNavigation);
-      }
-      if (_galleryScrollController.hasClients &&
-          _galleryScrollController.offset > 0) {
-        await _galleryScrollController.animateTo(
-          0,
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOutCubic,
-        );
-      }
-      return;
-    }
-    final error = ref
-        .read(libraryControllerProvider)
-        .timeNavigationErrorMessage;
-    if (error != null) {
-      _showMessage("无法跳转到所选日期：$error");
-    }
-  }
-
   Future<void> _loadPreviousPagePreservingPosition(
     LibraryController controller,
   ) async {
@@ -512,7 +472,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     }
     final position = _galleryScrollController.position;
     final previousPixels = position.pixels;
-    final previousContentExtent = _galleryContentExtent;
+    final previousContentExtent = _galleryLayoutMetrics?.contentExtent ?? 0;
     _isRestoringPreviousWindow = true;
     try {
       final didLoad = await controller.loadPreviousPage();
@@ -525,7 +485,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
         return;
       }
       final nextPosition = _galleryScrollController.position;
-      final addedExtent = _galleryContentExtent - previousContentExtent;
+      final addedExtent =
+          (_galleryLayoutMetrics?.contentExtent ?? previousContentExtent) -
+          previousContentExtent;
       if (addedExtent > 0) {
         nextPosition.jumpTo(
           (previousPixels + addedExtent)
@@ -538,18 +500,55 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     }
   }
 
-  void _updateTimelineFromVisiblePosition(
-    List<TimelineRailBucket> railBuckets,
-    LibraryGalleryVisiblePosition position,
-  ) {
-    final bucketId = position.monthKey ?? "unknown";
-    final nextNavigation = _timeNavigation.publish(
-      buckets: railBuckets,
-      bucketId: bucketId,
-    );
-    if (!identical(nextNavigation, _timeNavigation) && mounted) {
-      setState(() => _timeNavigation = nextNavigation);
+  Future<bool> _seekTimeline(
+    LibraryController controller,
+    LibraryTimeBucket bucket,
+    int itemOffset,
+  ) async {
+    final didSeek = await controller.jumpToTime(bucket, itemOffset: itemOffset);
+    if (!mounted) {
+      return false;
     }
+    if (!didSeek) {
+      final error = ref
+          .read(libraryControllerProvider)
+          .timeNavigationErrorMessage;
+      if (error != null) {
+        _showMessage("无法跳转到所选日期：$error");
+      }
+    }
+    return didSeek;
+  }
+
+  void _handleGalleryLayoutChanged(LibraryGalleryLayoutMetrics nextMetrics) {
+    final previousMetrics = _galleryLayoutMetrics;
+    if (previousMetrics?.hasSameGeometry(nextMetrics) ?? false) {
+      return;
+    }
+    final anchorLocationId = _visibleGalleryPosition?.locationId;
+    final previousAnchorOffset = previousMetrics?.offsetForLocation(
+      anchorLocationId,
+    );
+    final nextAnchorOffset = nextMetrics.offsetForLocation(anchorLocationId);
+    final previousPixels = _galleryScrollController.hasClients
+        ? _galleryScrollController.position.pixels
+        : 0.0;
+    if (mounted) {
+      setState(() => _galleryLayoutMetrics = nextMetrics);
+    }
+    if (_isRestoringPreviousWindow ||
+        previousAnchorOffset == null ||
+        nextAnchorOffset == null ||
+        !_galleryScrollController.hasClients) {
+      return;
+    }
+    final position = _galleryScrollController.position;
+    final target = previousPixels + nextAnchorOffset - previousAnchorOffset;
+    position.jumpTo(
+      target
+          .clamp(position.minScrollExtent, position.maxScrollExtent)
+          .toDouble(),
+    );
   }
 
   Future<void> _showAssetInformation(LibraryAsset asset) =>
@@ -588,36 +587,6 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       }
     }
     return LibraryStrings.library;
-  }
-
-  List<TimelineRailBucket> _railBuckets(LibraryTimeline? timeline) {
-    if (timeline == null) {
-      return const [];
-    }
-    return [
-      for (final bucket in timeline.buckets)
-        TimelineRailBucket(
-          id: bucket.monthKey ?? "unknown",
-          label: _monthLabel(bucket.monthKey),
-          contentExtent: _layoutShape == GalleryLayoutShape.square
-              ? bucket.itemCount.toDouble()
-              : bucket.aspectRatioSum > 0
-              ? bucket.aspectRatioSum
-              : bucket.itemCount.toDouble(),
-          year: bucket.monthKey == null
-              ? null
-              : int.tryParse(bucket.monthKey!.substring(0, 4)),
-          isUnknown: bucket.isUnknown,
-        ),
-    ];
-  }
-
-  static String _monthLabel(String? monthKey) {
-    if (monthKey == null) {
-      return LibraryStrings.unknownCaptureDate;
-    }
-    final parts = monthKey.split("-");
-    return "${parts[0]}年${int.parse(parts[1])}月";
   }
 
   static LibraryAsset? _assetByLocation(

@@ -369,6 +369,7 @@ void main() {
     expect(state.nextCursor, isNotNull);
     expect(state.activeTimeAnchor?.monthKey, "2024-05");
     expect(state.activeTimeAnchor?.itemOffset, 9);
+    expect(state.windowStartItemOffset, 9);
     expect(catalog.anchors, hasLength(1));
     expect(catalog.anchors.single.revision, initialSnapshot.revision);
     expect(catalog.anchors.single.itemOffset, 9);
@@ -385,6 +386,7 @@ void main() {
     ]);
     expect(expandedState.previousCursor, isNull);
     expect(expandedState.nextCursor, same(nextCursor));
+    expect(expandedState.windowStartItemOffset, 8);
     expect(catalog.befores.single, same(previousCursor));
   });
 

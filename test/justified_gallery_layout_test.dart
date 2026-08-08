@@ -2,7 +2,7 @@ import "package:cedarflake_ame/features/library/presentation/widgets/justified_g
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
-  test("fills balanced photo rows to the available width", () {
+  test("keeps every photo row at the selected fixed height", () {
     const availableWidth = 1146.0;
     const spacing = 6.0;
     const layout = JustifiedGalleryLayout(
@@ -28,18 +28,23 @@ void main() {
     );
 
     expect(rows, hasLength(2));
-    for (final row in rows) {
-      final imageWidth = row.cells.fold<double>(
-        0,
-        (sum, cell) => sum + cell.width,
-      );
-      final totalWidth = imageWidth + spacing * (row.cells.length - 1);
-      expect(row.isJustified, isTrue);
-      expect(totalWidth, closeTo(availableWidth, 0.001));
-    }
+    expect(rows.every((row) => row.height == 138), isTrue);
+    final completeRow = rows.first;
+    final completeRowWidth =
+        completeRow.cells.fold<double>(0, (sum, cell) => sum + cell.width) +
+        spacing * (completeRow.cells.length - 1);
+    expect(completeRow.isJustified, isTrue);
+    expect(completeRowWidth, closeTo(availableWidth, 0.001));
+
+    final sparseRow = rows.last;
+    final sparseRowWidth =
+        sparseRow.cells.fold<double>(0, (sum, cell) => sum + cell.width) +
+        spacing * (sparseRow.cells.length - 1);
+    expect(sparseRow.isJustified, isFalse);
+    expect(sparseRowWidth, lessThan(availableWidth));
   });
 
-  test("does not enlarge a sparse row beyond the configured limit", () {
+  test("keeps a sparse final row at natural width", () {
     const layout = JustifiedGalleryLayout(targetRowHeight: 138, spacing: 6);
 
     final rows = layout.compute(

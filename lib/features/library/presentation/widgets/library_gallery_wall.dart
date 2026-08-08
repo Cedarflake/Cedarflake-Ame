@@ -38,7 +38,7 @@ class LibraryGalleryWall extends StatelessWidget {
     required this.onRevealFile,
     required this.onVisiblePositionChanged,
     required this.onLoadPrevious,
-    required this.onContentExtentChanged,
+    required this.onLayoutChanged,
     super.key,
   });
 
@@ -56,7 +56,7 @@ class LibraryGalleryWall extends StatelessWidget {
   final ValueChanged<LibraryAsset> onRevealFile;
   final ValueChanged<LibraryGalleryVisiblePosition> onVisiblePositionChanged;
   final Future<void> Function() onLoadPrevious;
-  final ValueChanged<double> onContentExtentChanged;
+  final ValueChanged<LibraryGalleryLayoutMetrics> onLayoutChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -70,9 +70,14 @@ class LibraryGalleryWall extends StatelessWidget {
           thumbnailSize: thumbnailSize,
           sortKey: state.query.sortKey,
         );
-        onContentExtentChanged(
-          entries.fold<double>(90, (total, entry) => total + entry.extent),
+        final layoutMetrics = LibraryGalleryLayoutMetrics.fromEntries(
+          entries,
+          topPadding: 18,
+          bottomPadding: 72,
         );
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          onLayoutChanged(layoutMetrics);
+        });
         return ScrollConfiguration(
           behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
           child: Stack(
@@ -130,8 +135,10 @@ class LibraryGalleryWall extends StatelessWidget {
                           16,
                           72,
                         ),
-                        sliver: SliverList.builder(
+                        sliver: SliverVariedExtentList.builder(
                           itemCount: entries.length,
+                          itemExtentBuilder: (index, _) =>
+                              entries[index].extent,
                           itemBuilder: (context, index) {
                             final entry = entries[index];
                             if (entry.headerLabel case final label?) {

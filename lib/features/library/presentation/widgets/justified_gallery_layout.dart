@@ -2,12 +2,10 @@ class JustifiedGalleryLayout {
   const JustifiedGalleryLayout({
     required this.targetRowHeight,
     required this.spacing,
-    this.maximumRowHeightFactor = 1.5,
   });
 
   final double targetRowHeight;
   final double spacing;
-  final double maximumRowHeightFactor;
 
   List<JustifiedGalleryRow> compute({
     required List<double> aspectRatios,
@@ -18,77 +16,81 @@ class JustifiedGalleryLayout {
     }
 
     final ratios = aspectRatios.map(_normalizeAspectRatio).toList();
-    final totalAspectRatio = ratios.fold<double>(
-      0,
-      (sum, ratio) => sum + ratio,
-    );
-    final targetAspectRatio = availableWidth / targetRowHeight;
-    final rowCount = (totalAspectRatio / targetAspectRatio)
-        .round()
-        .clamp(1, ratios.length)
-        .toInt();
     final rows = <JustifiedGalleryRow>[];
-    var itemIndex = 0;
-    var remainingAspectRatio = totalAspectRatio;
+    var rowStart = 0;
+    var naturalRowWidth = 0.0;
 
-    for (var rowIndex = 0; rowIndex < rowCount; rowIndex++) {
-      final remainingRows = rowCount - rowIndex;
-      final rowStart = itemIndex;
-      var rowAspectRatio = 0.0;
-
-      if (remainingRows == 1) {
-        while (itemIndex < ratios.length) {
-          rowAspectRatio += ratios[itemIndex];
-          itemIndex++;
-        }
-      } else {
-        final idealAspectRatio = remainingAspectRatio / remainingRows;
-        final lastAllowedIndex = ratios.length - (remainingRows - 1);
-        while (itemIndex < lastAllowedIndex) {
-          final nextAspectRatio = rowAspectRatio + ratios[itemIndex];
-          if (rowAspectRatio > 0 &&
-              (rowAspectRatio - idealAspectRatio).abs() <
-                  (nextAspectRatio - idealAspectRatio).abs()) {
-            break;
-          }
-          rowAspectRatio = nextAspectRatio;
-          itemIndex++;
-        }
-      }
-
-      final rowRatios = ratios.sublist(rowStart, itemIndex);
-      final imageWidth = availableWidth - spacing * (rowRatios.length - 1);
-      final justifiedHeight = imageWidth / rowAspectRatio;
-      final maximumRowHeight = targetRowHeight * maximumRowHeightFactor;
-      final isJustified = justifiedHeight <= maximumRowHeight;
-      final rowHeight = isJustified
-          ? justifiedHeight
-          : justifiedHeight.clamp(0.0, targetRowHeight).toDouble();
-      final cells = <JustifiedGalleryCell>[];
-      var occupiedWidth = 0.0;
-
-      for (var cellIndex = 0; cellIndex < rowRatios.length; cellIndex++) {
-        final isLastCell = cellIndex == rowRatios.length - 1;
-        final width = isLastCell && isJustified
-            ? imageWidth - occupiedWidth
-            : rowHeight * rowRatios[cellIndex];
-        cells.add(
-          JustifiedGalleryCell(itemIndex: rowStart + cellIndex, width: width),
+    for (var itemIndex = 0; itemIndex < ratios.length; itemIndex++) {
+      final naturalWidth = targetRowHeight * ratios[itemIndex];
+      final nextWidth = naturalRowWidth == 0
+          ? naturalWidth
+          : naturalRowWidth + spacing + naturalWidth;
+      if (naturalRowWidth > 0 && nextWidth > availableWidth) {
+        rows.add(
+          _buildRow(
+            ratios: ratios,
+            start: rowStart,
+            end: itemIndex,
+            availableWidth: availableWidth,
+            shouldFillWidth: true,
+          ),
         );
-        occupiedWidth += width;
+        rowStart = itemIndex;
+        naturalRowWidth = naturalWidth;
+      } else {
+        naturalRowWidth = nextWidth;
       }
-
-      rows.add(
-        JustifiedGalleryRow(
-          height: rowHeight,
-          cells: cells,
-          isJustified: isJustified,
-        ),
-      );
-      remainingAspectRatio -= rowAspectRatio;
     }
 
+    rows.add(
+      _buildRow(
+        ratios: ratios,
+        start: rowStart,
+        end: ratios.length,
+        availableWidth: availableWidth,
+        shouldFillWidth: false,
+      ),
+    );
     return rows;
+  }
+
+  JustifiedGalleryRow _buildRow({
+    required List<double> ratios,
+    required int start,
+    required int end,
+    required double availableWidth,
+    required bool shouldFillWidth,
+  }) {
+    final rowRatios = ratios.sublist(start, end);
+    final availableImageWidth =
+        availableWidth - spacing * (rowRatios.length - 1);
+    final naturalImageWidth = rowRatios.fold<double>(
+      0,
+      (sum, ratio) => sum + (targetRowHeight * ratio),
+    );
+    final widthScale = shouldFillWidth && naturalImageWidth > 0
+        ? availableImageWidth / naturalImageWidth
+        : 1.0;
+    final cells = <JustifiedGalleryCell>[];
+    var occupiedWidth = 0.0;
+
+    for (var cellIndex = 0; cellIndex < rowRatios.length; cellIndex++) {
+      final isLastCell = cellIndex == rowRatios.length - 1;
+      final naturalWidth = targetRowHeight * rowRatios[cellIndex];
+      final width = shouldFillWidth && isLastCell
+          ? availableImageWidth - occupiedWidth
+          : (naturalWidth * widthScale).clamp(0.0, availableImageWidth);
+      cells.add(
+        JustifiedGalleryCell(itemIndex: start + cellIndex, width: width),
+      );
+      occupiedWidth += width;
+    }
+
+    return JustifiedGalleryRow(
+      height: targetRowHeight,
+      cells: cells,
+      isJustified: shouldFillWidth,
+    );
   }
 
   static double _normalizeAspectRatio(double value) {

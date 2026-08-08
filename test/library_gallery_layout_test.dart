@@ -1,15 +1,21 @@
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/presentation/gallery_view_options.dart";
-import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_layout.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
-  test("groups capture dates while preserving gallery order", () {
+  test("groups capture, creation, and modification fallback dates", () {
     final assets = [
-      _asset("one", captureLocalTime: "2026-01-02T03:04:05"),
-      _asset("two", captureLocalTime: "2026-01-02T10:11:12"),
-      _asset("unknown"),
+      _asset("capture", captureLocalTime: "2026-01-02T03:04:05"),
+      _asset(
+        "created",
+        createdUnixMs: DateTime(2025, 2, 3).millisecondsSinceEpoch,
+        modifiedUnixMs: DateTime(2026, 4, 5).millisecondsSinceEpoch,
+      ),
+      _asset(
+        "modified",
+        modifiedUnixMs: DateTime(2024, 3, 4).millisecondsSinceEpoch,
+      ),
     ];
 
     final entries = LibraryGalleryLayoutEntry.build(
@@ -22,16 +28,42 @@ void main() {
 
     expect(
       entries.map((entry) => entry.headerLabel).whereType<String>().toList(),
-      ["2026年1月2日", LibraryStrings.unknownCaptureDate],
+      ["2026年1月2日", "2025年2月3日", "2024年3月4日"],
     );
     expect(
       entries
           .expand((entry) => entry.cells)
           .map((cell) => cell.asset.locationId)
           .toList(),
-      ["one", "two", "unknown"],
+      ["capture", "created", "modified"],
     );
     expect(entries.every((entry) => entry.extent > 0), isTrue);
+    final photoRows = entries.where((entry) => entry.cells.isNotEmpty);
+    expect(
+      photoRows.every(
+        (entry) => entry.rowHeight == GalleryThumbnailSize.medium.targetExtent,
+      ),
+      isTrue,
+    );
+
+    final metrics = LibraryGalleryLayoutMetrics.fromEntries(
+      entries,
+      topPadding: 18,
+      bottomPadding: 72,
+    );
+    expect(metrics.dateAnchors.map((anchor) => anchor.id), [
+      "2026-01-02",
+      "2025-02-03",
+      "2024-03-04",
+    ]);
+    expect(metrics.offsetForLocation("capture"), isNotNull);
+    expect(metrics.offsetForItemIndex(0), metrics.offsetForLocation("capture"));
+    expect(metrics.itemIndexForScrollOffset(metrics.itemOffsets[1]), 1);
+    expect(
+      metrics.offsetForItemIndex(2),
+      metrics.offsetForLocation("modified"),
+    );
+    expect(metrics.photoRowHeight, GalleryThumbnailSize.medium.targetExtent);
   });
 
   test("file name layout omits chronological headers", () {
@@ -54,7 +86,12 @@ void main() {
   });
 }
 
-LibraryAsset _asset(String id, {String? captureLocalTime}) {
+LibraryAsset _asset(
+  String id, {
+  String? captureLocalTime,
+  int? createdUnixMs,
+  int modifiedUnixMs = 1,
+}) {
   return LibraryAsset(
     assetId: "asset-$id",
     locationId: id,
@@ -63,7 +100,8 @@ LibraryAsset _asset(String id, {String? captureLocalTime}) {
     relativePath: "$id.png",
     previewPath: "C:\\Cache\\$id.png",
     fileSize: BigInt.one,
-    modifiedUnixMs: 1,
+    createdUnixMs: createdUnixMs,
+    modifiedUnixMs: modifiedUnixMs,
     width: 160,
     height: 90,
     captureTime: captureLocalTime == null
