@@ -8,7 +8,8 @@ $ErrorActionPreference = "Stop"
 
 $repositoryRoot = Get-AmeRepositoryRoot
 $toolchain = Get-AmeToolchain
-$dartPaths = @("lib", "test", "integration_test", "test_driver")
+$dartPaths = @("lib", "test", "integration_test")
+$toolLock = Enter-AmeRepositoryToolLock
 
 Push-Location $repositoryRoot
 try {
@@ -26,4 +27,5 @@ try {
     Invoke-AmeChecked $toolchain.Dart $dartArguments
 } finally {
     Pop-Location
+    Exit-AmeRepositoryToolLock $toolLock
 }

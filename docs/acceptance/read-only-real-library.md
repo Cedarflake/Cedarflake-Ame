@@ -14,7 +14,7 @@ entry limit, so a complete run may take hours.
 
 ## Safety contract
 
-`tool/accept_read_only_library.ps1` refuses to start unless all of these conditions hold:
+`tool/acceptance_run_read_only_library.ps1` refuses to start unless all of these conditions hold:
 
 - the exact authorization token is supplied;
 - the source root and acceptance-storage root are explicit absolute directories;
@@ -41,7 +41,7 @@ It is a guard against accidental execution, not a substitute for current user au
 Run the guard and terminal-state regression before a real-root run:
 
 ```powershell
-.\tool\test_read_only_acceptance.ps1
+.\tool\acceptance_test_read_only_guardrails.ps1
 ```
 
 The harness uses the repository's application icon as a controlled source and verifies:
@@ -63,7 +63,7 @@ the assertions complete.
 The exact source must be within the current authorization before replacing the placeholders below:
 
 ```powershell
-.\tool\accept_read_only_library.ps1 `
+.\tool\acceptance_run_read_only_library.ps1 `
   -RootPath "<approved absolute source root>" `
   -StorageRoot "<dedicated absolute acceptance storage>" `
   -ScanId "<stable scan identifier>" `

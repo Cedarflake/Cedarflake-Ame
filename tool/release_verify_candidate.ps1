@@ -9,6 +9,9 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot "quality_common.ps1")
+
+$toolLock = Enter-AmeRepositoryToolLock
 
 $realLibraryArguments = @(
     $AcceptanceStorageRoot,
@@ -26,15 +29,19 @@ if (-not $IncludeRealLibrary -and $hasAnyRealLibraryArgument) {
     throw "Real-library paths require the explicit IncludeRealLibrary switch"
 }
 
-& (Join-Path $PSScriptRoot "verify.ps1")
-& (Join-Path $PSScriptRoot "verify_windows_release.ps1")
-& (Join-Path $PSScriptRoot "benchmark_synthetic_library.ps1") `
-    -MaxPeakWorkingSetBytes $MaxPeakWorkingSetBytes
+try {
+    & (Join-Path $PSScriptRoot "quality_verify_daily.ps1")
+    & (Join-Path $PSScriptRoot "release_verify_windows.ps1")
+    & (Join-Path $PSScriptRoot "performance_benchmark_synthetic_library.ps1") `
+        -MaxPeakWorkingSetBytes $MaxPeakWorkingSetBytes
 
-if ($IncludeRealLibrary) {
-    & (Join-Path $PSScriptRoot "verify_read_only_library_catalog.ps1") `
-        -StorageRoot $AcceptanceStorageRoot `
-        -RootA $RootA `
-        -RootB $RootB `
-        -AuthorizationToken $AuthorizationToken
+    if ($IncludeRealLibrary) {
+        & (Join-Path $PSScriptRoot "acceptance_verify_read_only_catalog.ps1") `
+            -StorageRoot $AcceptanceStorageRoot `
+            -RootA $RootA `
+            -RootB $RootB `
+            -AuthorizationToken $AuthorizationToken
+    }
+} finally {
+    Exit-AmeRepositoryToolLock $toolLock
 }

@@ -3,10 +3,11 @@ $ErrorActionPreference = "Stop"
 
 $repositoryRoot = Get-AmeRepositoryRoot
 $toolchain = Get-AmeToolchain
+$toolLock = Enter-AmeRepositoryToolLock
 Push-Location $repositoryRoot
 
 try {
-    & (Join-Path $PSScriptRoot "lint.ps1")
+    & (Join-Path $PSScriptRoot "quality_lint.ps1")
     Invoke-AmeChecked $toolchain.Cargo @(
         "test",
         "--locked",
@@ -15,8 +16,8 @@ try {
         "--all-targets",
         "--all-features"
     )
-    Invoke-AmeChecked $toolchain.Flutter @("test")
-    & (Join-Path $PSScriptRoot "test_windows_integration.ps1")
+    & (Join-Path $PSScriptRoot "quality_test_flutter.ps1")
+    & (Join-Path $PSScriptRoot "integration_test_windows.ps1")
 
     $rustHashLine = Select-String -LiteralPath "rust\src\frb_generated.rs" -Pattern (
         "FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH"
@@ -33,4 +34,5 @@ try {
     Invoke-AmeChecked $toolchain.Git @("diff", "HEAD", "--check", "--")
 } finally {
     Pop-Location
+    Exit-AmeRepositoryToolLock $toolLock
 }

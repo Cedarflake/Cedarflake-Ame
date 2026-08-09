@@ -51,11 +51,33 @@ lib/
 - Keep prototypes isolated. Production code must not import from `lib/prototypes`.
 - Keep tests under the corresponding `test/app`, `test/features`, or `test/prototypes` path.
 
+## Test ownership
+
+- Keep unit, widget, and application tests under `test`, mirroring the source area they verify.
+- Keep device-backed and cross-layer workflows under Flutter's `integration_test` convention.
+- Put scripts and fixtures used only by an integration workflow under `integration_test/support`.
+- Add a top-level `test_driver` directory only when a checked-in `flutter drive --driver` command
+  requires a host-side driver, such as a web or performance workflow. Desktop integration tests
+  executed with `flutter test integration_test/... -d windows` do not require one.
+
 ## Stable tool entrypoints
 
 Quality and acceptance scripts stay directly under `tool` because their paths are public repository
 commands documented in `AGENTS.md` and acceptance contracts. Internal helpers may move into a
 support directory when more than one helper exists, but entrypoint paths must remain stable.
+
+Script names begin with an ownership category so related commands sort together:
+
+- `quality_*` for formatting, linting, daily verification, and their shared implementation;
+- `integration_*` for device-backed integration workflows;
+- `acceptance_*` for authorization-bound real-library checks and their guardrail tests;
+- `performance_*` for explicit benchmarks;
+- `release_*` for packaging and release-candidate verification;
+- `bridge_*` for generated bridge maintenance.
+
+Flutter-focused commands under `quality_*` share a repository-wide named mutex. Focused tests use
+`quality_test_flutter.ps1`, which starts one test file at a time with Flutter concurrency fixed to
+one. Direct parallel Flutter test processes are outside the supported repository workflow.
 
 ## Generated and local data
 

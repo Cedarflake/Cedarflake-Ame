@@ -64,7 +64,7 @@ function Invoke-ControlledAcceptance {
     if ($PauseAfter -gt 0) {
         $arguments.PauseAfter = $PauseAfter
     }
-    return (& "$PSScriptRoot\accept_read_only_library.ps1" @arguments | Out-String)
+    return (& "$PSScriptRoot\acceptance_run_read_only_library.ps1" @arguments | Out-String)
 }
 
 $sourceHashBefore = Get-FileSha256 $sourceFile
@@ -74,7 +74,7 @@ New-Item -ItemType Directory -Path $resolvedTestRoot -Force | Out-Null
 Push-Location $repositoryRoot
 try {
     try {
-        & "$PSScriptRoot\accept_read_only_library.ps1" `
+        & "$PSScriptRoot\acceptance_run_read_only_library.ps1" `
             -RootPath "Z:\must-not-be-read" `
             -StorageRoot (Join-Path $resolvedTestRoot "must-not-exist") `
             -ScanId "refusal" `
@@ -87,7 +87,7 @@ try {
     $cloudRoot = Join-Path $resolvedTestRoot "OneDrive-guard"
     New-Item -ItemType Directory -Path $cloudRoot -Force | Out-Null
     try {
-        & "$PSScriptRoot\accept_read_only_library.ps1" `
+        & "$PSScriptRoot\acceptance_run_read_only_library.ps1" `
             -RootPath $cloudRoot `
             -StorageRoot (Join-Path $resolvedTestRoot "cloud-storage") `
             -ScanId "cloud-refusal" `
@@ -98,7 +98,7 @@ try {
     }
 
     try {
-        & "$PSScriptRoot\accept_read_only_library.ps1" `
+        & "$PSScriptRoot\acceptance_run_read_only_library.ps1" `
             -RootPath $sourceRoot `
             -StorageRoot (Join-Path $sourceRoot "overlap") `
             -ScanId "overlap-refusal" `
@@ -116,7 +116,7 @@ try {
     Assert-Contains $completed "source_hash_samples=1"
 
     try {
-        & "$PSScriptRoot\accept_read_only_library.ps1" `
+        & "$PSScriptRoot\acceptance_run_read_only_library.ps1" `
             -RootPath $sourceRoot `
             -StorageRoot (Join-Path $resolvedTestRoot "controlled-completed") `
             -ScanId "storage-refusal" `

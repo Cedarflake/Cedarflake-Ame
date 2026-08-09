@@ -24,6 +24,7 @@ if (-not $resolvedScratchRoot.StartsWith(
 
 $previousLibraryPath = $env:CEDARFLAKE_AME_TEST_LIBRARY_PATH
 $releaseProcess = $null
+$toolLock = Enter-AmeRepositoryToolLock
 
 Push-Location $repositoryRoot
 try {
@@ -108,4 +109,5 @@ try {
     if (Test-Path -LiteralPath $resolvedScratchRoot) {
         Remove-Item -LiteralPath $resolvedScratchRoot -Recurse -Force
     }
+    Exit-AmeRepositoryToolLock $toolLock
 }

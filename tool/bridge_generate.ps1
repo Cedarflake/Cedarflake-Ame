@@ -1,6 +1,8 @@
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot "quality_common.ps1")
 
-$repositoryRoot = Split-Path -Parent $PSScriptRoot
+$repositoryRoot = Get-AmeRepositoryRoot
+$toolLock = Enter-AmeRepositoryToolLock
 Push-Location $repositoryRoot
 
 try {
@@ -36,4 +38,5 @@ try {
     }
 } finally {
     Pop-Location
+    Exit-AmeRepositoryToolLock $toolLock
 }

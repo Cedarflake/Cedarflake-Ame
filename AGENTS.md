@@ -294,6 +294,15 @@ Framework-specific defaults apply only when that framework is present:
 - Run Flutter formatting, analysis, tests, and builds serially on this workstation. If a command
   hangs or leaves a tester process behind, stop and inspect that process before starting another
   Flutter command.
+- Use the repository's lock-aware quality entrypoints for Flutter work. Run focused widget tests
+  through `./tool/quality_test_flutter.ps1 -TestPath <path>` instead of launching a parallel
+  `flutter test` process. Never terminate Dart or Flutter processes merely because they appeared
+  after a test began; cleanup must be limited to descendants or executables proven to belong to the
+  current command.
+- In a workspace-only agent sandbox, `flutter.bat` must still update its SDK-owned
+  `bin/cache/flutter.bat.lock`. If the batch process loops before creating a Dart child, rerun the
+  same scoped repository command with the required sandbox approval. Do not delete the SDK lock
+  file or infer that an unrelated Dart process owns it without an exclusive-open check.
 
 ## 10. Rust engineering
 
@@ -372,22 +381,39 @@ Run quality commands from PowerShell. The scripts resolve Cargo from `PATH` or t
 installation and resolve Flutter and Dart from `PATH` or the pinned local SDK location in section
 10.1.
 
-- `./tool/format.ps1` applies `rustfmt` and `dart format` to repository-owned Rust and Dart trees.
-- `./tool/format.ps1 -Check` is the non-mutating formatting gate.
-- `./tool/lint.ps1` validates repository PowerShell and JSON configuration, runs the formatting
+Tool scripts use `snake_case` filenames beginning with an ownership category. Do not name a script
+only after its immediate action, such as `format.ps1`, `lint.ps1`, `verify.ps1`, or `generate.ps1`.
+Use these prefixes:
+
+- `quality_*` for formatting, linting, daily verification, and shared quality implementation;
+- `integration_*` for device-backed integration workflows;
+- `acceptance_*` for authorization-bound acceptance checks and their guardrail tests;
+- `performance_*` for explicit benchmarks and performance evidence;
+- `release_*` for packaging and release-candidate verification;
+- `bridge_*` for generated bridge maintenance.
+
+Choose the narrowest existing category before introducing another one. When a public script is
+added or renamed, update its callers, repository instructions, and documentation in the same
+change. Do not retain an undocumented alias that creates two canonical entrypoints.
+
+- `./tool/quality_format.ps1` applies `rustfmt` and `dart format` to repository-owned Rust and Dart trees.
+- `./tool/quality_format.ps1 -Check` is the non-mutating formatting gate.
+- `./tool/quality_lint.ps1` validates repository PowerShell and JSON configuration, runs the formatting
   gate, runs Clippy for all targets and features with warnings denied, and runs the pinned Dart
   analyzer with warnings and informational lints treated as failures.
-- `./tool/verify.ps1` is the daily gate. It runs the lint gate, Rust tests, Flutter tests, the
+- `./tool/quality_test_flutter.ps1` expands the requested widget-test paths and runs each test file
+  in its own `flutter test --concurrency=1` process while holding the repository tool lock.
+- `./tool/quality_verify_daily.ps1` is the daily gate. It runs the lint gate, Rust tests, Flutter tests, the
   controlled Windows scan integration, generated bridge compatibility, and whitespace validation
   for the complete tracked diff.
-- `./tool/benchmark_synthetic_library.ps1` is the explicit performance gate. It creates 10,000
+- `./tool/performance_benchmark_synthetic_library.ps1` is the explicit performance gate. It creates 10,000
   temporary images and records cold, warm, pause, resume, memory, and storage evidence.
-- `./tool/accept_read_only_library.ps1` and `./tool/verify_read_only_library_catalog.ps1` are the
+- `./tool/acceptance_run_read_only_library.ps1` and `./tool/acceptance_verify_read_only_catalog.ps1` are the
   real-library gate. They require current authorization, explicit roots, and storage outside source
   trees; they never become part of unattended daily verification.
-- `./tool/verify_windows_release.ps1` is the Windows packaging and release-bridge gate. Run it when
+- `./tool/release_verify_windows.ps1` is the Windows packaging and release-bridge gate. Run it when
   desktop integration, native packaging, generated bridge loading, or release behavior changes.
-- `./tool/verify_release.ps1` is the release-candidate orchestrator. It runs the daily, Windows
+- `./tool/release_verify_candidate.ps1` is the release-candidate orchestrator. It runs the daily, Windows
   release, and synthetic performance gates in order, and adds retained real-library validation only
   when explicitly requested with all authorization-bound paths.
 
@@ -407,11 +433,11 @@ For every material code or configuration change:
 3. State the smallest complete outcome, affected layers, safety constraints, and the focused test
    that will prove the behavior before editing.
 4. Implement the narrowest maintainable change and add or update tests in the same boundary.
-5. Format agent-owned files. Run `./tool/format.ps1` only when the working tree is clean or every
+5. Format agent-owned files. Run `./tool/quality_format.ps1` only when the working tree is clean or every
    file it can rewrite belongs to the current task. In a dirty shared tree, format explicit owned
-   files with the underlying language formatter, then use `./tool/format.ps1 -Check` as evidence.
-6. Run focused tests for the changed behavior, followed by `./tool/lint.ps1`.
-7. Run `./tool/verify.ps1` before declaring the change complete. Add the Windows release gate when
+   files with the underlying language formatter, then use `./tool/quality_format.ps1 -Check` as evidence.
+6. Run focused tests for the changed behavior, followed by `./tool/quality_lint.ps1`.
+7. Run `./tool/quality_verify_daily.ps1` before declaring the change complete. Add the Windows release gate when
    required by section 12.1 and any task-specific integration or acceptance checks.
 8. Inspect `git diff --check`, the final diff, generated files, and `git status`. Report exact checks,
    ignored tests, unavailable gates, remaining risks, and unrelated preserved changes.
@@ -444,6 +470,11 @@ completion tracker.
 ## 14. Git discipline
 
 - Inspect the working tree before editing and preserve unrelated changes.
+- When the current task is only to package already-validated working-tree changes into commits,
+  keep commit-time verification lightweight. Inspect the staged boundary, run `git diff --check`,
+  and add only a focused test when required evidence is missing. Do not rerun daily, release,
+  performance, acceptance, or other heavyweight gates merely because a commit is being created.
+  A commit request does not invalidate successful verification already obtained for the same diff.
 - Do not use destructive reset or checkout operations unless explicitly requested.
 - Do not rewrite history, stage, commit, push, or create releases without current authorization.
 - Stage explicit files rather than broad paths when commits are requested.

@@ -87,3 +87,55 @@ function Invoke-AmeJsonSyntaxCheck {
         Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json | Out-Null
     }
 }
+
+function Assert-AmeToolScriptNames {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string[]]$Names
+    )
+
+    $namePattern = "^(quality|integration|acceptance|performance|release|bridge)_[a-z0-9_]+\.ps1$"
+    $invalidNames = @($Names | Where-Object { $_ -notmatch $namePattern })
+    if ($invalidNames.Count -gt 0) {
+        throw "Tool scripts require an approved category prefix: $($invalidNames -join ', ')"
+    }
+}
+
+function Enter-AmeRepositoryToolLock {
+    param(
+        [int]$TimeoutMinutes = 30
+    )
+
+    $mutex = [System.Threading.Mutex]::new(
+        $false,
+        "Local\CedarflakeAmeRepositoryToolingV1"
+    )
+    try {
+        if ($mutex.WaitOne(0)) {
+            return $mutex
+        }
+        Write-Host "Waiting for another Cedarflake Ame tool command to finish..."
+        if (-not $mutex.WaitOne([TimeSpan]::FromMinutes($TimeoutMinutes))) {
+            throw "Timed out waiting for the Cedarflake Ame repository tool lock"
+        }
+        return $mutex
+    } catch [System.Threading.AbandonedMutexException] {
+        return $mutex
+    } catch {
+        $mutex.Dispose()
+        throw
+    }
+}
+
+function Exit-AmeRepositoryToolLock {
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.Threading.Mutex]$Mutex
+    )
+
+    try {
+        $Mutex.ReleaseMutex()
+    } finally {
+        $Mutex.Dispose()
+    }
+}

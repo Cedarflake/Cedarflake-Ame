@@ -3,17 +3,22 @@ $ErrorActionPreference = "Stop"
 
 $repositoryRoot = Get-AmeRepositoryRoot
 $toolchain = Get-AmeToolchain
+$toolLock = Enter-AmeRepositoryToolLock
 
 Push-Location $repositoryRoot
 try {
-    $powerShellPaths = Get-ChildItem -LiteralPath "tool" -Filter "*.ps1" -File |
+    $powerShellFiles = @(Get-ChildItem -LiteralPath "tool" -Filter "*.ps1" -File)
+    Assert-AmeToolScriptNames (
+        $powerShellFiles | Select-Object -ExpandProperty Name
+    )
+    $powerShellPaths = $powerShellFiles |
         Select-Object -ExpandProperty FullName
     Invoke-AmePowerShellSyntaxCheck $powerShellPaths
     Invoke-AmeJsonSyntaxCheck @(
         (Join-Path $repositoryRoot ".vscode\extensions.json"),
         (Join-Path $repositoryRoot ".vscode\settings.json")
     )
-    & (Join-Path $PSScriptRoot "format.ps1") -Check
+    & (Join-Path $PSScriptRoot "quality_format.ps1") -Check
     Invoke-AmeChecked $toolchain.Cargo @(
         "clippy",
         "--locked",
@@ -32,4 +37,5 @@ try {
     )
 } finally {
     Pop-Location
+    Exit-AmeRepositoryToolLock $toolLock
 }
