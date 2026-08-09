@@ -4,11 +4,10 @@ Cedarflake Ame is a local-first Windows photo-library application for understand
 personal image collections. It builds a derived catalog and bounded preview cache without modifying
 source media or requiring a second full copy of the library.
 
-The current implementation contains the accepted R0 technical-validation slice and the R1
-multi-root, progressive-query, recoverable traversal, storage-governance, lazy-preview, and
-capture-time-evidence slices, including incremental path reconciliation and a repeatable synthetic
-large-library acceptance gate. It connects a Flutter Material 3 desktop interface to a Rust core
-through generated, typed `flutter_rust_bridge` contracts.
+The current implementation contains the accepted R0 technical-validation and R1 progressive
+multi-root catalog foundations plus the active R2b unified-gallery production integration. It
+connects a Flutter Material 3 desktop interface to a Rust core through generated, typed
+`flutter_rust_bridge` contracts.
 
 ## Current workflow
 
@@ -55,8 +54,9 @@ The working vertical slice supports:
     or hydrating its contents;
 26. rebuilding a visible preview when its rebuildable cache artifact has disappeared.
 
-Validation scans currently stop after either 2,000 visited directory entries or 500 accepted
-images. A limited result is labeled as such and is not presented as a complete library scan.
+Normal imports perform complete scans without an item or directory-entry cap. Explicit limits remain
+available only to deterministic fixtures and controlled acceptance commands, and a limited result
+is never presented as a complete library scan.
 
 ## Safety guarantees
 
@@ -129,20 +129,27 @@ Required tools:
 Generate the bridge after changing public Rust API types:
 
 ```powershell
-.\tool\generate_bridge.ps1
+.\tool\bridge_generate.ps1
 ```
 
 Run the verified checks serially:
 
 ```powershell
-.\tool\verify.ps1
+.\tool\quality_verify_daily.ps1
+```
+
+Run one or more focused Flutter test paths through the same lock-aware serial entrypoint:
+
+```powershell
+.\tool\quality_test_flutter.ps1 `
+  -TestPath test\features\library\presentation\unified_library_screen_test.dart
 ```
 
 Run the manual 10,000-file synthetic scan, pause/resume, cancellation, catalog-growth, source-byte,
 and peak-working-set acceptance gate:
 
 ```powershell
-.\tool\benchmark_synthetic_library.ps1
+.\tool\performance_benchmark_synthetic_library.ps1
 ```
 
 The benchmark enforces 60-second cold, warm, and resumed scan limits, five-second pause and cancel
@@ -153,7 +160,7 @@ Run the controlled guard and terminal-state regression for the prepared real-lib
 tool:
 
 ```powershell
-.\tool\test_read_only_acceptance.ps1
+.\tool\acceptance_test_read_only_guardrails.ps1
 ```
 
 The real-root tool must not be run merely because it exists. Its explicit authorization, isolated
@@ -164,7 +171,7 @@ contract are documented in
 Run the Windows end-to-end acceptance test serially with isolated catalog and cache storage:
 
 ```powershell
-.\tool\test_windows_integration.ps1
+.\tool\integration_test_windows.ps1
 ```
 
 This test opens the production directory picker, cancels it once, then imports two controlled
@@ -199,6 +206,9 @@ flutter run -d windows
 - The synthetic large-library gate uses 10,000 tiny local PNG fixtures. It exercises bounded catalog
   behavior and recovery but does not represent decoder cost, cloud availability, or the media mix of
   the real 259 GB collection.
-- Exact duplicates, date-grouped browsing, broader metadata display, search, categories, and the
-  time rail are not part of this first validation slice.
-- No controlled real-library acceptance scan has been run by Ame.
+- Exact-duplicate evidence and review remain an R3 capability; perceptual similarity and automatic
+  classification remain later stages. Date-grouped browsing, bounded filename and path search, and
+  the complete-result time rail are active R2b production behavior.
+- Both authorized real-library roots completed controlled read-only catalog acceptance. Full-library
+  preview generation was deliberately excluded, and future real-root scans still require the
+  guarded acceptance workflow and current authorization.
