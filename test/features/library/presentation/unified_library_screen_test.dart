@@ -771,7 +771,11 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    final state = _populatedState(totalItems: 1);
+    final state = _populatedState(
+      totalItems: 1,
+      assetWidth: 1,
+      assetHeight: 1000,
+    );
 
     await tester.pumpWidget(
       ProviderScope(
@@ -790,6 +794,12 @@ void main() {
     await mouse.moveTo(tester.getCenter(tile));
     await tester.pump();
     expect(checkbox, findsOneWidget);
+    final tileRect = tester.getRect(tile);
+    final checkboxRect = tester.getRect(checkbox);
+    expect(checkboxRect.left, greaterThanOrEqualTo(tileRect.left));
+    expect(checkboxRect.right, lessThanOrEqualTo(tileRect.right));
+    expect(checkboxRect.top, greaterThanOrEqualTo(tileRect.top));
+    expect(checkboxRect.bottom, lessThanOrEqualTo(tileRect.bottom));
 
     await tester.tap(checkbox);
     await tester.pump();
@@ -800,6 +810,12 @@ void main() {
     await mouse.moveTo(Offset.zero);
     await tester.pump();
     expect(checkbox, findsOneWidget);
+
+    await tester.tap(checkbox);
+    await tester.pump();
+    expect(find.byKey(const Key("library-selection-toolbar")), findsNothing);
+    expect(find.text("已选择 1 个项目"), findsNothing);
+    expect(find.byKey(const Key("library-browsing-toolbar")), findsOneWidget);
   });
 
   testWidgets("opens the read-only photo context menu on secondary click", (
@@ -1230,7 +1246,11 @@ LibraryAsset _galleryAsset({
   );
 }
 
-LibraryState _populatedState({required int totalItems}) {
+LibraryState _populatedState({
+  required int totalItems,
+  int assetWidth = 4,
+  int assetHeight = 3,
+}) {
   final snapshot = LibrarySnapshot(
     catalogPath: "C:\\AmeData\\ame.sqlite3",
     revision: BigInt.one,
@@ -1258,8 +1278,8 @@ LibraryState _populatedState({required int totalItems}) {
         previewPath: "C:\\Missing\\one.jpg",
         fileSize: BigInt.one,
         modifiedUnixMs: 1,
-        width: 4,
-        height: 3,
+        width: assetWidth,
+        height: assetHeight,
       ),
     ],
   );

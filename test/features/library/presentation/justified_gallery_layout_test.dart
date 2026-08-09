@@ -56,4 +56,16 @@ void main() {
     expect(rows.single.height, 138);
     expect(rows.single.cells.single.width, closeTo(99.36, 0.001));
   });
+
+  test("keeps extreme portrait cells wide enough for tile actions", () {
+    const layout = JustifiedGalleryLayout(targetRowHeight: 96, spacing: 6);
+
+    final rows = layout.compute(
+      aspectRatios: const [0.01],
+      availableWidth: 1146,
+    );
+
+    expect(rows.single.height, 96);
+    expect(rows.single.cells.single.width, 48);
+  });
 }

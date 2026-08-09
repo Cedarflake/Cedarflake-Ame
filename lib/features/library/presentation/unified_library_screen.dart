@@ -409,9 +409,10 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   }
 
   void _toggleSelection(LibraryAsset asset) {
+    final totalItems = _totalItems(ref.read(libraryControllerProvider));
     setState(() {
-      _isSelecting = true;
       _selection = _selection.toggle(asset.locationId);
+      _isSelecting = _selection.selectedCount(totalItems) > 0;
     });
   }
 

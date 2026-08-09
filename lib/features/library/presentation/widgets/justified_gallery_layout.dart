@@ -1,11 +1,15 @@
+import "dart:math" as math;
+
 class JustifiedGalleryLayout {
   const JustifiedGalleryLayout({
     required this.targetRowHeight,
     required this.spacing,
+    this.minimumCellWidth = 48,
   });
 
   final double targetRowHeight;
   final double spacing;
+  final double minimumCellWidth;
 
   List<JustifiedGalleryRow> compute({
     required List<double> aspectRatios,
@@ -15,7 +19,13 @@ class JustifiedGalleryLayout {
       return const [];
     }
 
-    final ratios = aspectRatios.map(_normalizeAspectRatio).toList();
+    final minimumAspectRatio =
+        math.min(minimumCellWidth, availableWidth) / targetRowHeight;
+    final ratios = aspectRatios
+        .map(
+          (value) => math.max(_normalizeAspectRatio(value), minimumAspectRatio),
+        )
+        .toList();
     final rows = <JustifiedGalleryRow>[];
     var rowStart = 0;
     var naturalRowWidth = 0.0;
