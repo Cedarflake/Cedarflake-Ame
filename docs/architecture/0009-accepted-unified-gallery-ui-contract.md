@@ -58,7 +58,8 @@ Use one unified gallery with these presentation rules.
 - The title and result count remain left aligned.
 - Browsing actions are right aligned in this order: Select, Sort, Filter, Layout, More.
 - Selection replaces the browsing action set with Cancel and selection-specific actions. It does
-  not create or nest another page.
+  not create or nest another page. Deselecting the final selected asset exits selection mode and
+  restores the browsing action set automatically.
 - When favorites become functional, Favorite or Unfavorite is a selection-specific command in this
   same upper-right contextual area. It changes the favorite state of the selected assets. The
   Favorites row in the sidebar has a separate navigation responsibility: it scopes the unified
@@ -118,11 +119,13 @@ Use one unified gallery with these presentation rules.
   pixels relative to their actual size, not merely the `InteractiveViewer` transform. Pointer,
   trackpad, Material controls, double activation, and keyboard shortcuts share one transformation
   state.
-- Programmatic zoom, fit, and actual-size commands animate one uniform scale-and-translation state
-  through Flutter `AnimationController`; direct slider and pointer manipulation remain immediate and
-  cancel an active command animation. Flutter 3.44.9's `Matrix4Tween` supports translation only, so
-  Ame interpolates the existing controller's uniform scale and translation without replacing
-  `InteractiveViewer` gesture ownership.
+- Programmatic zoom, fit, actual-size commands, and discrete mouse-wheel zoom animate one uniform
+  scale-and-translation state through Flutter `AnimationController`. Direct slider manipulation,
+  image dragging, and touch or trackpad gestures remain immediate and cancel an active command
+  animation. Mouse-wheel zoom retains the focal-point transform calculated by `InteractiveViewer`
+  and eases from the pre-event transform to that target. Flutter 3.44.9's `Matrix4Tween` supports
+  translation only, so Ame interpolates the existing controller's uniform scale and translation
+  without replacing `InteractiveViewer` gesture ownership.
 - Viewer controls occupy a reserved full-width bottom command surface rather than floating over the
   image. Fit and actual-size actions align to the leading edge, zoom actions align to the trailing
   edge, and the center remains clear at supported window widths.
@@ -141,6 +144,9 @@ Use one unified gallery with these presentation rules.
   distribute their aspect-weighted cell widths across the available width, while the final sparse
   row keeps natural widths and remains left aligned. Existing `BoxFit.cover` rendering handles any
   necessary crop inside a cell.
+- Equal-height tiles retain the minimum width required by their Material selection affordance.
+  Extremely narrow source images may be center-cropped in the derived thumbnail so selection,
+  focus, and pointer targets remain fully visible; source media is never changed.
 - The `方形` layout is a uniform square grid. Small, medium, and large density choices remain
   independent from shape.
 - Date headings use capture time, then file creation time, then file modification time as defined by
