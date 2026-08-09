@@ -59,6 +59,11 @@ Use one unified gallery with these presentation rules.
 - Browsing actions are right aligned in this order: Select, Sort, Filter, Layout, More.
 - Selection replaces the browsing action set with Cancel and selection-specific actions. It does
   not create or nest another page.
+- When favorites become functional, Favorite or Unfavorite is a selection-specific command in this
+  same upper-right contextual area. It changes the favorite state of the selected assets. The
+  Favorites row in the sidebar has a separate navigation responsibility: it scopes the unified
+  gallery to assets already marked as favorites and does not modify favorite state. Neither control
+  is shown as an inert placeholder before its owning use case exists.
 - A tile reveals its upper-right checkbox on pointer hover or keyboard focus. Selection mode shows
   checkboxes on all visible tiles; selected tiles keep their check mark and primary outline. Tile
   activation opens the viewer while checkbox activation only changes selection. Touch and assistive
@@ -74,6 +79,9 @@ Use one unified gallery with these presentation rules.
   multi-selection.
 - R2b exposes only connected read-only actions: Open, View information, Copy path, and Open in File
   Explorer. Duplicate-location and favorite actions appear only when their owning stages exist.
+- Open in File Explorer reveals the physical file or configured folder selected in its parent
+  directory. Windows device-path translation stays inside the platform adapter and never becomes a
+  presentation concern.
 - A source row's overflow action, secondary click, and keyboard gesture open one shared menu for
   Rescan, Open in File Explorer, and Remove from Ame. Removing a root unregisters catalog state and
   never deletes its directory or files.
@@ -110,6 +118,14 @@ Use one unified gallery with these presentation rules.
   pixels relative to their actual size, not merely the `InteractiveViewer` transform. Pointer,
   trackpad, Material controls, double activation, and keyboard shortcuts share one transformation
   state.
+- Programmatic zoom, fit, and actual-size commands animate one uniform scale-and-translation state
+  through Flutter `AnimationController`; direct slider and pointer manipulation remain immediate and
+  cancel an active command animation. Flutter 3.44.9's `Matrix4Tween` supports translation only, so
+  Ame interpolates the existing controller's uniform scale and translation without replacing
+  `InteractiveViewer` gesture ownership.
+- Viewer controls occupy a reserved full-width bottom command surface rather than floating over the
+  image. Fit and actual-size actions align to the leading edge, zoom actions align to the trailing
+  edge, and the center remains clear at supported window widths.
 - Opening the viewer explicitly moves focus into its shortcut scope even when the previously
   focused gallery tile remains mounted offstage. `Esc`, Backspace, and the browser Back key return
   to the gallery; Left and Right navigate; Plus and Minus zoom; `0` fits the image; and `1` shows

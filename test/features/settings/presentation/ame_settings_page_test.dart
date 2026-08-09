@@ -57,9 +57,11 @@ void main() {
       of: find.byKey(const Key("preview-budget-setting")),
       matching: find.byType(DropdownMenu<BigInt>),
     );
-    await tester.tap(budgetMenu);
+    await tester.ensureVisible(budgetMenu);
     await tester.pumpAndSettle();
-    await tester.tap(find.text("8 GB").last);
+    await tester.tap(budgetMenu.hitTestable());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text("8 GB").hitTestable());
     await tester.pumpAndSettle();
 
     expect(gateway.lastPreviewBudgetBytes, _gibibytes(8));

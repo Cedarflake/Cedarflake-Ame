@@ -577,7 +577,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
 
   Future<void> _openRoot(LibraryRoot root) async {
     try {
-      await ref.read(libraryPlatformActionsProvider).openDirectory(root.path);
+      await ref.read(libraryPlatformActionsProvider).revealDirectory(root.path);
     } on Object catch (error) {
       if (mounted) {
         _showMessage("无法在文件资源管理器中打开：$error");
@@ -589,7 +589,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     try {
       await ref
           .read(libraryPlatformActionsProvider)
-          .openLibraryFolder(root.path, folder.relativePath);
+          .revealLibraryFolder(root.path, folder.relativePath);
     } on Object catch (error) {
       if (mounted) {
         _showMessage("无法在文件资源管理器中打开：$error");

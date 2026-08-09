@@ -90,6 +90,7 @@ ButtonStyle _captionButtonStyle(double height) {
   return ButtonStyle(
     fixedSize: WidgetStatePropertyAll(Size.square(diameter)),
     minimumSize: WidgetStatePropertyAll(Size.square(diameter)),
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
     padding: const WidgetStatePropertyAll(EdgeInsets.zero),
     shape: const WidgetStatePropertyAll(CircleBorder()),
   );

@@ -2,7 +2,6 @@ import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
-import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_photo_tile.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
@@ -41,9 +40,11 @@ void main() {
 
     final tile = find.byType(LibraryPhotoTile).hitTestable().first;
     final tileRect = tester.getRect(tile);
-    await tester.tapAt(Offset(tileRect.left + 16, tileRect.bottom - 16));
+    await tester.tapAt(tileRect.topLeft + const Offset(16, 16));
     await tester.pump();
-    await tester.tap(find.byTooltip(LibraryStrings.backToLibrary));
+    final backButton = find.byKey(const Key("viewer-back-button"));
+    expect(backButton, findsOneWidget);
+    await tester.tap(backButton);
     await tester.pump();
 
     final restoredScrollable = find.descendant(
@@ -68,12 +69,12 @@ LibraryState _libraryState() {
         sourcePath: "C:\\Pictures\\$index.jpg",
         displayPath: "C:\\Pictures\\$index.jpg",
         relativePath: "$index.jpg",
-        previewPath: "",
+        previewPath: "C:\\Ame\\previews\\$index.jpg",
         fileSize: BigInt.one,
         modifiedUnixMs: index,
         width: 4,
         height: 3,
-        previewStatus: LibraryPreviewStatus.failed,
+        previewStatus: LibraryPreviewStatus.ready,
       ),
   ];
   return LibraryState.fromSnapshot(

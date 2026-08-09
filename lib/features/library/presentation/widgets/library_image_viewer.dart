@@ -41,16 +41,21 @@ class LibraryImageViewer extends StatefulWidget {
   State<LibraryImageViewer> createState() => _LibraryImageViewerState();
 }
 
-class _LibraryImageViewerState extends State<LibraryImageViewer> {
+class _LibraryImageViewerState extends State<LibraryImageViewer>
+    with SingleTickerProviderStateMixin {
   static const _defaultMinimumScale = 0.25;
   static const _defaultMaximumScale = 8.0;
   static const _zoomStep = 1.25;
+  static const _zoomAnimationDuration = Duration(milliseconds: 180);
 
   final FocusNode _viewerFocusNode = FocusNode(
     debugLabel: "library-image-viewer",
   );
   final TransformationController _transformationController =
       TransformationController();
+  late final AnimationController _zoomAnimationController;
+  Matrix4? _zoomAnimationStart;
+  Matrix4? _zoomAnimationEnd;
   Size _viewportSize = Size.zero;
   double _scale = 1;
   bool _isConstrainingTransform = false;
@@ -60,6 +65,10 @@ class _LibraryImageViewerState extends State<LibraryImageViewer> {
   @override
   void initState() {
     super.initState();
+    _zoomAnimationController = AnimationController(
+      vsync: this,
+      duration: _zoomAnimationDuration,
+    )..addListener(_handleZoomAnimation);
     _transformationController.addListener(_handleTransformationChanged);
     _requestViewerFocus();
   }
@@ -68,7 +77,7 @@ class _LibraryImageViewerState extends State<LibraryImageViewer> {
   void didUpdateWidget(covariant LibraryImageViewer oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.asset.locationId != widget.asset.locationId) {
-      _fitToWindow();
+      _fitToWindow(animate: false);
       _shouldApplyOpeningBehavior = true;
       _requestViewerFocus();
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -82,6 +91,7 @@ class _LibraryImageViewerState extends State<LibraryImageViewer> {
   @override
   void dispose() {
     _viewerFocusNode.dispose();
+    _zoomAnimationController.dispose();
     _transformationController
       ..removeListener(_handleTransformationChanged)
       ..dispose();
@@ -145,7 +155,14 @@ class _LibraryImageViewerState extends State<LibraryImageViewer> {
       color: Theme.of(context).colorScheme.surfaceContainerLowest,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final nextViewportSize = constraints.biggest;
+          final nextViewportSize = Size(
+            constraints.maxWidth,
+            math.max(
+              0,
+              constraints.maxHeight -
+                  LibraryViewerZoomControls.commandBarHeight,
+            ),
+          );
           if (nextViewportSize != _viewportSize) {
             _viewportSize = nextViewportSize;
             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -155,63 +172,63 @@ class _LibraryImageViewerState extends State<LibraryImageViewer> {
               }
             });
           }
-          return Stack(
-            fit: StackFit.expand,
+          return Column(
             children: [
-              Listener(
-                onPointerSignal: _handlePointerSignal,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onDoubleTap: _toggleActualSize,
-                  child: InteractiveViewer(
-                    key: const Key("library-image-interactive-viewer"),
-                    transformationController: _transformationController,
-                    alignment: Alignment.topLeft,
-                    boundaryMargin: const EdgeInsets.all(double.infinity),
-                    minScale: _minimumScale,
-                    maxScale: _maximumScale,
-                    scaleFactor: 180,
-                    scaleEnabled:
-                        widget.wheelBehavior == ImageViewerWheelBehavior.zoom,
-                    trackpadScrollCausesScale: true,
-                    child: SizedBox(
-                      width: constraints.maxWidth,
-                      height: constraints.maxHeight,
-                      child: LibraryViewerImage(asset: widget.asset),
-                    ),
-                  ),
-                ),
-              ),
-              LibraryViewerNavigationButton.previous(
-                onPressed: widget.onPrevious,
-              ),
-              LibraryViewerNavigationButton.next(onPressed: widget.onNext),
-              Positioned(
-                left: 16,
-                right: 16,
-                bottom: 20,
-                child: Center(
-                  child: LibraryViewerZoomControls(
-                    sliderValue: _sliderValueForScale(_scale),
-                    zoomPercent: _zoomPercent.round(),
-                    canZoomOut: _scale > _minimumScale + 0.001,
-                    canZoomIn: _scale < _maximumScale - 0.001,
-                    canShowActualSize: _hasImageDimensions,
-                    onSliderChanged: (value) =>
-                        _setScale(_scaleForSliderValue(value)),
-                    sliderSemanticFormatter: (value) =>
-                        "${_zoomPercentForScale(_scaleForSliderValue(value)).round()}%",
-                    onZoomOut: _zoomOut,
-                    onZoomIn: _zoomIn,
-                    onFitToWindow: _fitToWindow,
-                    onShowActualSize: _showActualSize,
-                  ),
-                ),
+              Expanded(child: _buildImageViewport()),
+              LibraryViewerZoomControls(
+                sliderValue: _sliderValueForScale(_scale),
+                zoomPercent: _zoomPercent.round(),
+                canZoomOut: _scale > _minimumScale + 0.001,
+                canZoomIn: _scale < _maximumScale - 0.001,
+                canShowActualSize: _hasImageDimensions,
+                onSliderChanged: (value) =>
+                    _setScale(_scaleForSliderValue(value), animate: false),
+                sliderSemanticFormatter: (value) =>
+                    "${_zoomPercentForScale(_scaleForSliderValue(value)).round()}%",
+                onZoomOut: _zoomOut,
+                onZoomIn: _zoomIn,
+                onFitToWindow: _fitToWindow,
+                onShowActualSize: _showActualSize,
               ),
             ],
           );
         },
       ),
+    );
+  }
+
+  Widget _buildImageViewport() {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Listener(
+          onPointerSignal: _handlePointerSignal,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onDoubleTap: _toggleActualSize,
+            child: InteractiveViewer(
+              key: const Key("library-image-interactive-viewer"),
+              transformationController: _transformationController,
+              alignment: Alignment.topLeft,
+              boundaryMargin: const EdgeInsets.all(double.infinity),
+              minScale: _minimumScale,
+              maxScale: _maximumScale,
+              scaleFactor: 180,
+              scaleEnabled:
+                  widget.wheelBehavior == ImageViewerWheelBehavior.zoom,
+              trackpadScrollCausesScale: true,
+              onInteractionStart: (_) => _zoomAnimationController.stop(),
+              child: SizedBox(
+                width: _viewportSize.width,
+                height: _viewportSize.height,
+                child: LibraryViewerImage(asset: widget.asset),
+              ),
+            ),
+          ),
+        ),
+        LibraryViewerNavigationButton.previous(onPressed: widget.onPrevious),
+        LibraryViewerNavigationButton.next(onPressed: widget.onNext),
+      ],
     );
   }
 
@@ -281,8 +298,8 @@ class _LibraryImageViewerState extends State<LibraryImageViewer> {
     _isConstrainingTransform = false;
   }
 
-  void _fitToWindow() {
-    _transformationController.value = Matrix4.identity();
+  void _fitToWindow({bool animate = true}) {
+    _setTransform(Matrix4.identity(), animate: animate);
   }
 
   void _applyOpeningBehaviorIfNeeded() {
@@ -290,9 +307,9 @@ class _LibraryImageViewerState extends State<LibraryImageViewer> {
       return;
     }
     _shouldApplyOpeningBehavior = false;
-    _fitToWindow();
+    _fitToWindow(animate: false);
     if (widget.openBehavior == ImageViewerOpenBehavior.actualSize) {
-      _showActualSize();
+      _showActualSize(animate: false);
     }
   }
 
@@ -316,9 +333,9 @@ class _LibraryImageViewerState extends State<LibraryImageViewer> {
     }
   }
 
-  void _showActualSize() {
+  void _showActualSize({bool animate = true}) {
     if (_hasImageDimensions) {
-      _setScale(_actualSizeScale);
+      _setScale(_actualSizeScale, animate: animate);
     }
   }
 
@@ -334,7 +351,7 @@ class _LibraryImageViewerState extends State<LibraryImageViewer> {
 
   void _zoomOut() => _setScale(_scale / _zoomStep);
 
-  void _setScale(double value) {
+  void _setScale(double value, {bool animate = true}) {
     if (_viewportSize.isEmpty) {
       return;
     }
@@ -344,11 +361,50 @@ class _LibraryImageViewerState extends State<LibraryImageViewer> {
       _viewportSize.height / 2,
     );
     final sceneCenter = _transformationController.toScene(viewportCenter);
-    _transformationController.value = Matrix4.identity()
+    final target = Matrix4.identity()
       ..translateByDouble(viewportCenter.dx, viewportCenter.dy, 0, 1)
       ..scaleByDouble(nextScale, nextScale, nextScale, 1)
       ..translateByDouble(-sceneCenter.dx, -sceneCenter.dy, 0, 1);
+    _setTransform(target, animate: animate);
   }
+
+  void _setTransform(Matrix4 target, {required bool animate}) {
+    _zoomAnimationController.stop();
+    if (!animate) {
+      _transformationController.value = target;
+      return;
+    }
+    _zoomAnimationStart = _transformationController.value.clone();
+    _zoomAnimationEnd = target;
+    _zoomAnimationController.forward(from: 0);
+  }
+
+  void _handleZoomAnimation() {
+    final start = _zoomAnimationStart;
+    final end = _zoomAnimationEnd;
+    if (start == null || end == null) {
+      return;
+    }
+    final progress = Curves.easeOutCubic.transform(
+      _zoomAnimationController.value,
+    );
+    final startTranslation = start.getTranslation();
+    final endTranslation = end.getTranslation();
+    final startScale = start.getMaxScaleOnAxis();
+    final endScale = end.getMaxScaleOnAxis();
+    final scale = _lerp(startScale, endScale, progress);
+    _transformationController.value = Matrix4.identity()
+      ..translateByDouble(
+        _lerp(startTranslation.x, endTranslation.x, progress),
+        _lerp(startTranslation.y, endTranslation.y, progress),
+        0,
+        1,
+      )
+      ..scaleByDouble(scale, scale, scale, 1);
+  }
+
+  double _lerp(double start, double end, double progress) =>
+      start + (end - start) * progress;
 
   double _sliderValueForScale(double scale) {
     final bounded = scale.clamp(_minimumScale, _maximumScale).toDouble();

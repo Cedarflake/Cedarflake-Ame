@@ -1,3 +1,4 @@
+import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 
@@ -60,6 +61,7 @@ class _LibraryNavigationResizeHandleState
           child: GestureDetector(
             key: const Key("library-sidebar-resize-handle"),
             behavior: HitTestBehavior.opaque,
+            dragStartBehavior: DragStartBehavior.down,
             onTap: _focusNode.requestFocus,
             onHorizontalDragStart: (details) {
               _focusNode.requestFocus();

@@ -207,6 +207,71 @@ Future<WindowManagerActions> initializeAmeWindow(
     visibleScreenBounds: visibleBounds,
     minimumSize: _minimumWindowSize,
   );
+  final initialNormalPlacement = await restoreAmeWindowBeforeShow(
+    window: const _WindowManagerBootstrapActions(),
+    restoredPlacement: restoredPlacement,
+    shouldMaximize: savedPlacement?.isMaximized ?? false,
+  );
+  final actions = WindowManagerActions(
+    preferenceStore,
+    initialNormalPlacement: initialNormalPlacement,
+  );
+  await actions.initialize();
+  return actions;
+}
+
+@visibleForTesting
+abstract interface class AmeWindowBootstrapActions {
+  Future<void> waitUntilReadyToShow(WindowOptions options);
+
+  Future<void> setPosition(Offset position);
+
+  Future<Offset> getPosition();
+
+  Future<Size> getSize();
+
+  Future<void> maximize();
+
+  Future<void> show();
+
+  Future<void> focus();
+}
+
+class _WindowManagerBootstrapActions implements AmeWindowBootstrapActions {
+  const _WindowManagerBootstrapActions();
+
+  @override
+  Future<void> waitUntilReadyToShow(WindowOptions options) {
+    return windowManager.waitUntilReadyToShow(options);
+  }
+
+  @override
+  Future<void> setPosition(Offset position) {
+    return windowManager.setPosition(position);
+  }
+
+  @override
+  Future<Offset> getPosition() => windowManager.getPosition();
+
+  @override
+  Future<Size> getSize() => windowManager.getSize();
+
+  @override
+  Future<void> maximize() => windowManager.maximize();
+
+  @override
+  Future<void> show() => windowManager.show();
+
+  @override
+  Future<void> focus() => windowManager.focus();
+}
+
+@visibleForTesting
+Future<AmeWindowPlacement> restoreAmeWindowBeforeShow({
+  required AmeWindowBootstrapActions window,
+  required AmeWindowPlacement? restoredPlacement,
+  required bool shouldMaximize,
+}) async {
   final options = WindowOptions(
     size: restoredPlacement == null
         ? null
@@ -217,34 +282,27 @@ Future<WindowManagerActions> initializeAmeWindow(
     titleBarStyle: TitleBarStyle.hidden,
     windowButtonVisibility: false,
   );
-  AmeWindowPlacement? initialNormalPlacement;
-  await windowManager.waitUntilReadyToShow(options, () async {
-    if (restoredPlacement != null) {
-      await windowManager.setPosition(
-        Offset(restoredPlacement.left, restoredPlacement.top),
-      );
-    }
-    final position = await windowManager.getPosition();
-    final size = await windowManager.getSize();
-    initialNormalPlacement = AmeWindowPlacement(
-      left: position.dx,
-      top: position.dy,
-      width: size.width,
-      height: size.height,
-      isMaximized: false,
+  await window.waitUntilReadyToShow(options);
+  if (restoredPlacement != null) {
+    await window.setPosition(
+      Offset(restoredPlacement.left, restoredPlacement.top),
     );
-    if (savedPlacement?.isMaximized ?? false) {
-      await windowManager.maximize();
-    }
-    await windowManager.show();
-    await windowManager.focus();
-  });
-  final actions = WindowManagerActions(
-    preferenceStore,
-    initialNormalPlacement: initialNormalPlacement,
+  }
+  final position = await window.getPosition();
+  final size = await window.getSize();
+  final initialNormalPlacement = AmeWindowPlacement(
+    left: position.dx,
+    top: position.dy,
+    width: size.width,
+    height: size.height,
+    isMaximized: false,
   );
-  await actions.initialize();
-  return actions;
+  if (shouldMaximize) {
+    await window.maximize();
+  }
+  await window.show();
+  await window.focus();
+  return initialNormalPlacement;
 }
 
 Future<List<Rect>> _loadVisibleScreenBounds() async {

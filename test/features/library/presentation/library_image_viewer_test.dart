@@ -83,11 +83,23 @@ void main() {
 
     await tester.tap(find.byKey(const Key("viewer-actual-size")));
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
     expect(find.text("100%"), findsOneWidget);
 
     await tester.tap(find.byKey(const Key("viewer-fit")));
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
     expect(find.text("100%"), findsNothing);
+
+    final viewportRect = tester.getRect(
+      find.byKey(const Key("library-image-interactive-viewer")),
+    );
+    final controlsRect = tester.getRect(
+      find.byKey(const Key("viewer-zoom-controls")),
+    );
+    expect(viewportRect.bottom, lessThanOrEqualTo(controlsRect.top));
+    expect(controlsRect.left, 0);
+    expect(controlsRect.right, 1000);
   });
 
   testWidgets("viewer exposes adjacent navigation through controls and keys", (
@@ -188,11 +200,14 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.sendKeyEvent(LogicalKeyboardKey.digit1);
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
     expect(previousCount, 1);
     expect(nextCount, 1);
     expect(find.text("100%"), findsOneWidget);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.digit0);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pump();
     expect(find.text("100%"), findsNothing);
@@ -242,7 +257,9 @@ void main() {
     await tester.pump();
     expect(nextCount, 1);
 
-    await tester.pump(const Duration(milliseconds: 250));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 250)),
+    );
     await tester.sendEventToBinding(
       PointerScrollEvent(
         position: tester.getCenter(viewer),
@@ -293,6 +310,7 @@ void main() {
     for (var index = 0; index < 4; index++) {
       await tester.tap(zoomIn);
       await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
     }
     await tester.drag(viewer, const Offset(1600, 1000));
     await tester.pump();
@@ -314,7 +332,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
   });
 
-  testWidgets("viewer zoom controls keep action groups separated", (
+  testWidgets("viewer zoom controls align action groups to opposite edges", (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -339,18 +357,69 @@ void main() {
       ),
     );
 
-    final zoomIn = tester.getRect(find.byTooltip("放大（+ / Ctrl++）"));
-    final divider = tester.getRect(
-      find.byKey(const Key("viewer-zoom-group-divider")),
+    final controls = tester.getRect(
+      find.byKey(const Key("viewer-zoom-controls")),
     );
+    final zoomOut = tester.getRect(find.byTooltip("缩小（- / Ctrl+-）"));
+    final zoomIn = tester.getRect(find.byTooltip("放大（+ / Ctrl++）"));
     final fit = tester.getRect(find.byKey(const Key("viewer-fit")));
     final actualSize = tester.getRect(
       find.byKey(const Key("viewer-actual-size")),
     );
 
-    expect(divider.left - zoomIn.right, greaterThanOrEqualTo(0));
-    expect(fit.left - divider.right, greaterThanOrEqualTo(0));
     expect(actualSize.left - fit.right, greaterThanOrEqualTo(4));
+    expect(fit.center.dx, lessThan(controls.center.dx));
+    expect(actualSize.center.dx, lessThan(controls.center.dx));
+    expect(zoomOut.center.dx, greaterThan(controls.center.dx));
+    expect(zoomIn.center.dx, greaterThan(controls.center.dx));
+  });
+
+  testWidgets("viewer animates programmatic zoom and settles at the target", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1000, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: LibraryImageViewer(
+              asset: _asset(width: 1000, height: 500),
+              onBack: () {},
+              onInformation: () {},
+              onCopyPath: () {},
+              onRevealFile: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final viewer = find.byKey(const Key("library-image-interactive-viewer"));
+    final interactiveViewer = tester.widget<InteractiveViewer>(viewer);
+    final startScale = interactiveViewer.transformationController!.value
+        .getMaxScaleOnAxis();
+
+    await tester.tap(find.byTooltip("放大（+ / Ctrl++）"));
+    await tester.pump();
+    final initialScale = interactiveViewer.transformationController!.value
+        .getMaxScaleOnAxis();
+    await tester.pump(const Duration(milliseconds: 90));
+    final middleScale = interactiveViewer.transformationController!.value
+        .getMaxScaleOnAxis();
+    await tester.pump(const Duration(milliseconds: 100));
+    final endScale = interactiveViewer.transformationController!.value
+        .getMaxScaleOnAxis();
+
+    expect(initialScale, closeTo(startScale, 0.001));
+    expect(middleScale, greaterThan(startScale));
+    expect(middleScale, lessThan(startScale * 1.25));
+    expect(endScale, closeTo(startScale * 1.25, 0.001));
   });
 
   testWidgets("viewer information presents source and filesystem dates", (

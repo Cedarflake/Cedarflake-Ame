@@ -82,6 +82,10 @@ Admit `window_manager` 0.5.2 behind `AmeWindowActions`.
 - Ame does not intercept native close requests. Window placement is saved from bounded move, resize,
   maximize, and restore events; the close button delegates directly to the platform so preference
   persistence can never delay or block application exit.
+- Startup awaits `waitUntilReadyToShow` without an asynchronous callback, then restores normal
+  bounds, restores maximized state, and shows the window in that order. `window_manager` 0.5.2
+  declares the optional ready callback as `VoidCallback` and does not await a returned `Future`, so
+  placement work must not be scheduled inside that callback.
 
 ## Validation gates
 

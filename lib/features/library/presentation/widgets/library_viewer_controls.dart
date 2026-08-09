@@ -37,6 +37,7 @@ class LibraryViewerTopBar extends StatelessWidget {
           children: [
             const SizedBox(width: 8),
             IconButton(
+              key: const Key("viewer-back-button"),
               tooltip: "${LibraryStrings.backToLibrary}（Esc）",
               onPressed: onBack,
               icon: const Icon(Icons.arrow_back),
@@ -198,21 +199,36 @@ class LibraryViewerZoomControls extends StatelessWidget {
   final VoidCallback onFitToWindow;
   final VoidCallback onShowActualSize;
 
+  static const double commandBarHeight = 56;
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Material(
       key: const Key("viewer-zoom-controls"),
-      color: colorScheme.surfaceContainerHigh.withValues(alpha: 0.94),
-      elevation: 2,
-      borderRadius: BorderRadius.circular(28),
+      color: colorScheme.surfaceContainerLow,
       child: SizedBox(
-        height: 52,
+        height: commandBarHeight,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
+              IconButton(
+                key: const Key("viewer-fit"),
+                tooltip: "适合窗口（0 / Ctrl+0）",
+                onPressed: onFitToWindow,
+                icon: const Icon(Icons.fit_screen_outlined),
+              ),
+              const SizedBox(width: 4),
+              Tooltip(
+                message: "实际大小（1 / Ctrl+1）",
+                child: TextButton(
+                  key: const Key("viewer-actual-size"),
+                  onPressed: canShowActualSize ? onShowActualSize : null,
+                  child: const Text("1:1"),
+                ),
+              ),
+              const Spacer(key: Key("viewer-control-group-space")),
               IconButton(
                 tooltip: "缩小（- / Ctrl+-）",
                 onPressed: canZoomOut ? onZoomOut : null,
@@ -240,28 +256,6 @@ class LibraryViewerZoomControls extends StatelessWidget {
                 onPressed: canZoomIn ? onZoomIn : null,
                 icon: const Icon(Icons.add),
               ),
-              const SizedBox(
-                key: Key("viewer-zoom-group-divider"),
-                width: 24,
-                height: 28,
-                child: VerticalDivider(width: 24),
-              ),
-              IconButton(
-                key: const Key("viewer-fit"),
-                tooltip: "适合窗口（0 / Ctrl+0）",
-                onPressed: onFitToWindow,
-                icon: const Icon(Icons.fit_screen_outlined),
-              ),
-              const SizedBox(width: 4),
-              Tooltip(
-                message: "实际大小（1 / Ctrl+1）",
-                child: TextButton(
-                  key: const Key("viewer-actual-size"),
-                  onPressed: canShowActualSize ? onShowActualSize : null,
-                  child: const Text("1:1"),
-                ),
-              ),
-              const SizedBox(width: 4),
             ],
           ),
         ),

@@ -197,7 +197,7 @@ void main() {
     await tester.tapAt(handleCenter);
     await tester.pump(const Duration(milliseconds: 50));
     await tester.tapAt(handleCenter);
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
     expect(
       tester.getSize(find.byKey(const Key("library-navigation"))).width,
       ameDefaultSidebarWidth,
@@ -222,7 +222,7 @@ void main() {
 
     await gesture.moveBy(const Offset(-80, 0));
     await gesture.up();
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
     expect(
       tester.getSize(find.byKey(const Key("library-navigation"))).width,
       closeTo(380, 1),
@@ -278,6 +278,7 @@ void main() {
               status: LibraryStatus.scanning,
               scanId: "scan-1",
               rootPath: "C:\\Pictures",
+              displayRootPath: "C:\\Pictures",
               visitedEntries: 128,
               stagedAssetCount: 64,
             ),
@@ -520,6 +521,7 @@ void main() {
       status: LibraryStatus.scanning,
       scanId: "scan-pending",
       rootPath: "C:\\Documents",
+      displayRootPath: "C:\\Documents",
       visitedEntries: 12,
       stagedAssetCount: 3,
     );
@@ -1383,10 +1385,10 @@ class _RecordingPlatformActions implements LibraryPlatformActions {
   Future<void> copyText(String value) async {}
 
   @override
-  Future<void> openDirectory(String path) async {}
+  Future<void> revealDirectory(String path) async {}
 
   @override
-  Future<void> openLibraryFolder(String rootPath, String relativePath) async {
+  Future<void> revealLibraryFolder(String rootPath, String relativePath) async {
     openedLibraryFolders.add((rootPath: rootPath, relativePath: relativePath));
   }
 

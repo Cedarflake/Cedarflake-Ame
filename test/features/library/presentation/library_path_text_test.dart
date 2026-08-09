@@ -43,14 +43,18 @@ void main() {
     expect(find.text(readablePath), findsOneWidget);
   });
 
-  testWidgets("does not rewrite the backend-provided display path", (
+  testWidgets("always exposes the backend-provided readable display path", (
     tester,
   ) async {
-    const backendPath = r"\\?\C:\Pictures\sample.png";
+    const displayPath = r"C:\Pictures\sample.png";
     await tester.pumpWidget(
       const MaterialApp(
         home: Scaffold(
-          body: LibraryPathText(text: "sample.png", path: backendPath),
+          body: LibraryPathText(
+            text: "sample.png",
+            path: displayPath,
+            alwaysShowPathTooltip: true,
+          ),
         ),
       ),
     );
@@ -60,6 +64,6 @@ void main() {
     await mouse.moveTo(tester.getCenter(find.text("sample.png")));
     await tester.pump(const Duration(milliseconds: 600));
 
-    expect(find.text(backendPath), findsOneWidget);
+    expect(find.text(displayPath), findsOneWidget);
   });
 }
