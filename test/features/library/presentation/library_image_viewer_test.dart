@@ -1,3 +1,5 @@
+import "dart:math" as math;
+
 import "package:cedarflake_ame/app/presentation/ame_menu.dart";
 import "package:cedarflake_ame/app/presentation/ame_theme.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
@@ -420,6 +422,58 @@ void main() {
     expect(middleScale, greaterThan(startScale));
     expect(middleScale, lessThan(startScale * 1.25));
     expect(endScale, closeTo(startScale * 1.25, 0.001));
+  });
+
+  testWidgets("viewer animates mouse-wheel zoom and settles at the target", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1000, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: LibraryImageViewer(
+              asset: _asset(width: 1000, height: 500),
+              onBack: () {},
+              onInformation: () {},
+              onCopyPath: () {},
+              onRevealFile: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final viewer = find.byKey(const Key("library-image-interactive-viewer"));
+    final interactiveViewer = tester.widget<InteractiveViewer>(viewer);
+    final controller = interactiveViewer.transformationController!;
+    final startScale = controller.value.getMaxScaleOnAxis();
+    final expectedScale = startScale * math.exp(24 / 180);
+
+    await tester.sendEventToBinding(
+      PointerScrollEvent(
+        position: tester.getCenter(viewer),
+        scrollDelta: const Offset(0, -24),
+        kind: PointerDeviceKind.mouse,
+      ),
+    );
+    await tester.pump();
+    final initialScale = controller.value.getMaxScaleOnAxis();
+    await tester.pump(const Duration(milliseconds: 90));
+    final middleScale = controller.value.getMaxScaleOnAxis();
+    await tester.pump(const Duration(milliseconds: 100));
+    final endScale = controller.value.getMaxScaleOnAxis();
+
+    expect(initialScale, closeTo(startScale, 0.001));
+    expect(middleScale, greaterThan(startScale));
+    expect(middleScale, lessThan(expectedScale));
+    expect(endScale, closeTo(expectedScale, 0.001));
   });
 
   testWidgets("viewer information presents source and filesystem dates", (

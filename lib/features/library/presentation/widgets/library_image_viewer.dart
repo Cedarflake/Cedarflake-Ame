@@ -56,6 +56,7 @@ class _LibraryImageViewerState extends State<LibraryImageViewer>
   late final AnimationController _zoomAnimationController;
   Matrix4? _zoomAnimationStart;
   Matrix4? _zoomAnimationEnd;
+  Matrix4? _interactionStartTransform;
   Size _viewportSize = Size.zero;
   double _scale = 1;
   bool _isConstrainingTransform = false;
@@ -217,7 +218,7 @@ class _LibraryImageViewerState extends State<LibraryImageViewer>
               scaleEnabled:
                   widget.wheelBehavior == ImageViewerWheelBehavior.zoom,
               trackpadScrollCausesScale: true,
-              onInteractionStart: (_) => _zoomAnimationController.stop(),
+              onInteractionStart: _handleInteractionStart,
               child: SizedBox(
                 width: _viewportSize.width,
                 height: _viewportSize.height,
@@ -314,9 +315,18 @@ class _LibraryImageViewerState extends State<LibraryImageViewer>
   }
 
   void _handlePointerSignal(PointerSignalEvent event) {
-    if (widget.wheelBehavior != ImageViewerWheelBehavior.previousOrNext ||
-        event is! PointerScrollEvent ||
-        event.scrollDelta.dy == 0) {
+    if (event is! PointerScrollEvent || event.scrollDelta.dy == 0) {
+      return;
+    }
+    if (widget.wheelBehavior == ImageViewerWheelBehavior.zoom) {
+      final animationStart = _interactionStartTransform;
+      _interactionStartTransform = null;
+      if (animationStart == null) {
+        return;
+      }
+      final animationEnd = _transformationController.value.clone();
+      _transformationController.value = animationStart;
+      _setTransform(animationEnd, animate: true);
       return;
     }
     final now = DateTime.now();
@@ -331,6 +341,11 @@ class _LibraryImageViewerState extends State<LibraryImageViewer>
     } else {
       widget.onNext?.call();
     }
+  }
+
+  void _handleInteractionStart(ScaleStartDetails _) {
+    _zoomAnimationController.stop();
+    _interactionStartTransform = _transformationController.value.clone();
   }
 
   void _showActualSize({bool animate = true}) {
