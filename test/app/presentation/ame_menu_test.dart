@@ -74,6 +74,34 @@ void main() {
     expect(labelRect.left - iconRect.right, AmeMenuMetrics.iconLabelGap);
   });
 
+  testWidgets("keeps shortcuts inside constrained menu rows", (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildAmeTheme(),
+        home: const Scaffold(
+          body: Center(
+            child: SizedBox(
+              key: Key("constrained-menu-row"),
+              width: 123,
+              child: AmeMenuItemContent(
+                icon: Icons.select_all,
+                label: "全选",
+                shortcut: "Ctrl+A",
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final rowRect = tester.getRect(
+      find.byKey(const Key("constrained-menu-row")),
+    );
+    final shortcutRect = tester.getRect(find.text("Ctrl+A"));
+    expect(shortcutRect.right, lessThanOrEqualTo(rowRect.right));
+    expect(shortcutRect.left, greaterThan(rowRect.left));
+  });
+
   testWidgets("enables native animation for anchored menus", (tester) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -92,6 +120,7 @@ void main() {
 
   testWidgets("sizes popup menus from their longest label", (tester) async {
     late double shortWidth;
+    late double shortcutWidth;
     late double longWidth;
     late double cappedWidth;
 
@@ -103,6 +132,11 @@ void main() {
             shortWidth = amePopupMenuContentWidth(
               context: context,
               labels: const ["打开"],
+            );
+            shortcutWidth = amePopupMenuContentWidth(
+              context: context,
+              labels: const ["全选"],
+              shortcuts: const ["Ctrl+A"],
             );
             longWidth = amePopupMenuContentWidth(
               context: context,
@@ -119,6 +153,7 @@ void main() {
     );
 
     expect(shortWidth, AmeMenuMetrics.minimumWidth);
+    expect(shortcutWidth, greaterThan(shortWidth));
     expect(longWidth, greaterThan(shortWidth));
     expect(cappedWidth, AmeMenuMetrics.maximumWidth);
   });

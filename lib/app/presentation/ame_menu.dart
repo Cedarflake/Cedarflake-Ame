@@ -6,6 +6,7 @@ abstract final class AmeMenuMetrics {
   static const double itemHeight = 48;
   static const double iconSize = 24;
   static const double iconLabelGap = 12;
+  static const double shortcutGap = 24;
   static const double horizontalPadding = 12;
   static const double verticalPadding = 8;
   static const double dividerHeight = 1;
@@ -105,11 +106,13 @@ class AmeMenuItemContent extends StatelessWidget {
   const AmeMenuItemContent({
     required this.icon,
     required this.label,
+    this.shortcut,
     super.key,
   });
 
   final IconData icon;
   final String label;
+  final String? shortcut;
 
   @override
   Widget build(BuildContext context) {
@@ -118,12 +121,20 @@ class AmeMenuItemContent extends StatelessWidget {
       children: [
         Icon(icon, size: AmeMenuMetrics.iconSize),
         const SizedBox(width: AmeMenuMetrics.iconLabelGap),
-        ConstrainedBox(
-          constraints: const BoxConstraints(
-            maxWidth: AmeMenuMetrics.maximumLabelWidth,
+        Flexible(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: AmeMenuMetrics.maximumLabelWidth,
+            ),
+            child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
           ),
-          child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
         ),
+        if (shortcut case final shortcut?) ...[
+          const SizedBox(width: AmeMenuMetrics.shortcutGap),
+          Flexible(
+            child: Text(shortcut, maxLines: 1, overflow: TextOverflow.ellipsis),
+          ),
+        ],
       ],
     );
   }
@@ -132,6 +143,7 @@ class AmeMenuItemContent extends StatelessWidget {
 double amePopupMenuContentWidth({
   required BuildContext context,
   required Iterable<String> labels,
+  Iterable<String> shortcuts = const [],
   bool hasLeadingIcon = true,
 }) {
   final popupMenuTheme = PopupMenuTheme.of(context);
@@ -144,12 +156,21 @@ double amePopupMenuContentWidth({
     textScaler: MediaQuery.textScalerOf(context),
     maxLines: 1,
   );
-  var maximumTextWidth = 0.0;
-  for (final label in labels) {
+  final labelList = labels.toList(growable: false);
+  final shortcutList = shortcuts.toList(growable: false);
+  var maximumContentWidth = 0.0;
+  for (var index = 0; index < labelList.length; index += 1) {
+    final label = labelList[index];
     textPainter.text = TextSpan(text: label, style: textStyle);
     textPainter.layout();
-    if (textPainter.width > maximumTextWidth) {
-      maximumTextWidth = textPainter.width;
+    var contentWidth = textPainter.width;
+    if (index < shortcutList.length) {
+      textPainter.text = TextSpan(text: shortcutList[index], style: textStyle);
+      textPainter.layout();
+      contentWidth += AmeMenuMetrics.shortcutGap + textPainter.width;
+    }
+    if (contentWidth > maximumContentWidth) {
+      maximumContentWidth = contentWidth;
     }
   }
   textPainter.dispose();
@@ -158,7 +179,7 @@ double amePopupMenuContentWidth({
             AmeMenuMetrics.iconSize +
             AmeMenuMetrics.iconLabelGap
       : AmeMenuMetrics.horizontalPadding * 2;
-  return (maximumTextWidth + decorationWidth)
+  return (maximumContentWidth + decorationWidth)
       .clamp(AmeMenuMetrics.minimumWidth, AmeMenuMetrics.maximumWidth)
       .ceilToDouble();
 }
@@ -167,6 +188,7 @@ Future<T?> showAmePopupMenu<T>({
   required BuildContext context,
   required RelativeRect position,
   required Iterable<String> labels,
+  Iterable<String> shortcuts = const [],
   required List<PopupMenuEntry<T>> items,
 }) {
   return showMenu<T>(
@@ -174,7 +196,11 @@ Future<T?> showAmePopupMenu<T>({
     useRootNavigator: true,
     position: position,
     constraints: BoxConstraints.tightFor(
-      width: amePopupMenuContentWidth(context: context, labels: labels),
+      width: amePopupMenuContentWidth(
+        context: context,
+        labels: labels,
+        shortcuts: shortcuts,
+      ),
     ),
     items: items,
   );

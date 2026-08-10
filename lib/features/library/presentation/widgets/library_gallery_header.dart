@@ -399,20 +399,15 @@ class _MoreMenu extends StatelessWidget {
     final shouldSelectAll = await showAmePopupMenu<bool>(
       context: context,
       position: position,
-      labels: const ["${LibraryStrings.selectAll}    Ctrl+A"],
+      labels: const [LibraryStrings.selectAll],
+      shortcuts: const ["Ctrl+A"],
       items: const [
         PopupMenuItem(
           value: true,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AmeMenuItemContent(
-                icon: Icons.select_all,
-                label: LibraryStrings.selectAll,
-              ),
-              SizedBox(width: 24),
-              Text("Ctrl+A"),
-            ],
+          child: AmeMenuItemContent(
+            icon: Icons.select_all,
+            label: LibraryStrings.selectAll,
+            shortcut: "Ctrl+A",
           ),
         ),
       ],
