@@ -1,5 +1,7 @@
 name: cedarflake_ame
-description: "A local-first photo library for very large personal image collections."
+description: >-
+  A local-first Windows workspace for understanding and organizing very large personal image
+  collections.
 publish_to: "none"
 version: 0.1.0+1
 

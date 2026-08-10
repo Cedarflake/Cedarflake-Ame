@@ -402,16 +402,19 @@ position when possible.
   offsets, date anchors, and total extent from that manifest. Placeholder, failed-preview, and
   decoded states use the same rectangle. Preview completion or eviction must never recompose rows,
   change total extent, or move the viewport.
-- Full `LibraryAsset` details remain in bounded revision-safe keyset pages. A small page cache keeps
-  current and guard ranges, but no single page or 160-item replacement window is the gallery's
-  global presentation model.
+- Full `LibraryAsset` details are queried in bounded revision-safe keyset pages. The current
+  controller is known to merge those pages into a growing `state.assets` list; Profile evidence
+  determines its target-library cost before a high/low-watermark cache replaces that retained-list
+  baseline. No single page or 160-item replacement window is the gallery's global presentation
+  model.
 - Preview readiness lives in an identity-keyed store outside layout state. Visible and near-
   viewport previews receive priority, obsolete generations cannot publish, and expensive decoding
   may be deferred during high-velocity scrolling without deferring layout geometry.
-- Wheel, touchpad, keyboard, Slider drag, date click, restored position, source navigation, and
-  resize all submit typed intents to one navigation coordinator. The coordinator is the only writer
-  to the gallery `ScrollController`; it preserves one query- and revision-bound logical viewport
-  anchor rather than synchronizing several pixel offsets.
+- Wheel, touchpad, keyboard, accessibility, and ballistic movement remain native relative activity
+  on Flutter's one `Scrollable` and do not enter an asynchronous intent queue. Slider drag, date
+  click, restored position, source navigation, search navigation, and resize submit programmatic
+  intents to one coordinator only where their writes require arbitration. Both paths preserve one
+  query- and revision-bound logical viewport anchor rather than synchronizing several pixel offsets.
 - Wheel and touchpad movement use native relative scrolling. Crossing a detail-page boundary
   prefetches bounded pages before and after the viewport without replacing the canvas. A cold page
   immediately shows static placeholders in its final equal-height rectangles, never a generic
@@ -686,6 +689,25 @@ R2b - production behavior integration:
 R2b is delivered as small end-to-end slices after UI acceptance. A fixture-backed control, bridge
 type, database query, or rendered screenshot alone does not complete a use case.
 
+R2b does not require every optional ADR 0014 scale adaptation to be enabled merely to complete a
+migration checklist. Its remaining delivery order is:
+
+1. complete the applicable gates for the latest scan-lifecycle and Explorer-reveal maintenance;
+2. freeze the current wheel, time-rail, jump, and resize behavior as the comparison baseline;
+3. run resource-bounded Profile and long-session observation against a retained catalog without a
+   new real-root import;
+4. record retained detail count, process working set, garbage collection, page-publication copy
+   time, frame timing, preview latency, programmatic scroll writers, and flat-manifest cost;
+5. change only a condition that exceeds its recorded budget, one variable at a time;
+6. compare every change with the frozen baseline and reject a nearby-return, reversal, distant-jump,
+   resize, or native-input regression;
+7. pass real-library parity and Windows Release verification before closing R2b.
+
+Profile, builds, tests, scans, and acceptance runs remain serial on the project workstation. They
+reuse the retained catalog where the scenario permits, start with bounded durations, and stop at an
+explicit memory or runtime limit. Resource exhaustion is neither product acceptance evidence nor a
+reason to hide an unexecuted gate.
+
 The timeline slice is accepted only when focused geometry and widget tests plus a real large-library
 interaction run prove that dragging moves the gallery every frame, unloaded ranges materialize
 without changing the global position, rapid reversals retain the latest target, no stale window
@@ -710,6 +732,14 @@ task-center product. It closes the distinction between:
 - **continuous synchronization introduced in R2c**: Ame detects source changes, durably schedules
   the minimum necessary reconciliation, publishes bounded deltas, catches up after downtime, and
   reports when it can no longer guarantee freshness.
+
+R2c does not authorize a gallery hot-path, manifest, or navigation rewrite. It publishes stable
+identity and catalog-revision changes through bounded application contracts; the accepted R2b
+gallery decides how to preserve its logical anchor and visible interaction. Delivery slices R2c-A
+through R2c-F establish the first complete running-time synchronization and recovery workflow.
+R2c-G adds supported-volume downtime catch-up only after that workflow is trustworthy, and R2c-H
+provides large-library reliability evidence. USN catch-up therefore enhances R2c without blocking
+its first running-time value.
 
 User outcome:
 
@@ -1350,6 +1380,13 @@ Current priority:
    budgets, then validate the 79,000-, 250,000-, and 1,000,000-item cases before enabling the
    hierarchical representation or removing any rollback path.
 
+The current controller's retained-detail growth is not an open hypothesis. Forward paging rebuilds
+a map across all retained `state.assets`; backward paging rebuilds identity sets and a merged list.
+Observation measures the resulting memory, garbage collection, copy cost, frame impact, and whether
+repeated forward and reverse movement reaches a stable resource range. If the target workload stays
+inside its explicit budget, the cache may remain guarded work; if it exceeds the budget, the cache
+uses high and low watermarks with hysteresis rather than aggressive page-by-page eviction.
+
 On 2026-08-10 the user reported that the current gallery interaction feels acceptable and directed
 the project to avoid speculative or migration-driven performance changes that could create a
 negative optimization. Remaining ADR 0014 slices are therefore implementation options behind
@@ -1581,10 +1618,11 @@ justified transition when details became available. This confirms that the compa
 layout index previously described as optional parity work is a required R2b foundation.
 
 ADR 0014 is now the active accepted-for-validation correction. It introduces a chunked compact
-query-wide manifest, deterministic final-geometry layout snapshots, a bounded asset-detail page
-cache, identity-keyed preview publication, one navigation coordinator, latest-wins target loading,
-and logical-anchor resize preservation. It preserves the single `ScrollController`, Material
-Slider behavior, complete-result date annotations, revision-safe keysets, and read-only media
+query-wide manifest, deterministic final-geometry layout snapshots, a guarded bounded asset-detail
+page-cache path, identity-keyed preview publication, programmatic navigation coordination,
+latest-wins target loading, and logical-anchor resize preservation. Flutter's `Scrollable` retains
+native relative movement on the single `ScrollPosition`; the programmatic path preserves Material
+Slider behavior, complete-result date annotations, revision-safe keysets, and the read-only media
 boundary accepted in ADRs 0009 through 0011.
 
 ADR 0014's seven migration slices remain the architectural decomposition for any further work, but
@@ -1622,8 +1660,9 @@ Controller and presentation generations guard query, revision, target, state pub
 ownership, and post-frame alignment, so an obsolete completion cannot pull the viewport back.
 Visible-range intents can invalidate a disjoint active seek even when the user reverses into an
 already loaded range. The current controller still merges preceding and following detail pages into
-one growing `state.assets` list, so this lifecycle correction is not the bounded page cache required
-by migration slice 4.
+one growing `state.assets` list and rebuilds full retained-detail collections during publication.
+This is the known migration-slice-4 debt; Profile determines its target-library cost before a cache
+is allowed to replace the current interaction baseline.
 
 Aspect ratios are durable catalog data derived from stored width and height, so restarting Ame does
 not decode source images again merely to recover tile proportions. The in-process layout snapshot is
@@ -1654,8 +1693,9 @@ and menu corrections were integrated: Dart formatting and analysis reported no i
 reported 74 passed and 3 explicitly ignored tests; every Flutter test file passed serially; the
 Windows Debug build and native picker integration passed 2 of 2; bridge compatibility, Rust
 follow-up checks, and whitespace validation passed. These are deterministic and controlled-fixture
-results. ADR 0014 still requires Profile-mode frame evidence and the authorized 79,013-location
-real-library parity run before the migration or R2b can be accepted.
+results for that earlier baseline. They do not cover the later scan-lifecycle and Explorer-reveal
+commits. ADR 0014 still requires resource-bounded Profile evidence and the authorized
+79,013-location real-library parity run before the migration or R2b can be accepted.
 
 ### 10.4 R2a acceptance and R2b execution status
 
@@ -1699,16 +1739,18 @@ completed reference correction: pointer release commits only the final time targ
                                 direct-scroll separation observed in Lap and WinUI
 completed presentation correction: the drag label follows the active line, gray hover preview is
                                    absent during drag, and nearby date markers remain visible
-implemented scroll correction: wheel input moves the virtual canvas immediately and submits only
-                               the final unloaded target after scrolling settles
+implemented scroll correction: wheel input moves the virtual canvas immediately; settled viewport
+                               observation may request missing details but never queues the native
+                               delta as a programmatic position intent
 implemented resize correction: layout publication no longer rebuilds the entire unified screen;
                                redundant anchor writes and per-pixel thumbnail decode keys are gone
 rejected production target: real-library wheel, rapid time-rail, and resize evidence confirmed that
                             aggregate placeholder geometry plus one replacement window causes
                             visible layout substitution, blank or slow fill, and a second reflow
 accepted architecture: ADR 0014 replaces that interim target with a compact query-wide layout
-                       manifest, deterministic row snapshot, bounded detail-page cache, identity-
-                       keyed preview store, and one navigation coordinator
+                       manifest, deterministic row snapshot, guarded detail-page-cache path,
+                       identity-keyed preview store, native Flutter scrolling, and coordination
+                       for programmatic position changes that require arbitration
 completed implementation: migration slices 1 through 3 now have the revision-safe Rust query,
                           generated async bridge, flat and interim chunk-block Flutter stores,
                           cancellable all-or-nothing publication, deterministic query-wide layout,

@@ -2,6 +2,7 @@
 
 - Status: Accepted for validation
 - Date: 2026-08-09
+- Last amended: 2026-08-10
 - Amends: ADR 0010 and ADR 0011
 
 ## Context
@@ -113,15 +114,21 @@ painted. If the location disappeared, the nearest surviving ordinal becomes the 
 
 ### One navigation coordinator
 
-One `GalleryNavigationCoordinator` owns all writes to the gallery `ScrollController`. It accepts
-four typed intents:
+Flutter's `Scrollable` and its attached `ScrollPosition` own native relative movement from wheel,
+touchpad, keyboard, accessibility actions, and ballistic activity. Those deltas take effect
+immediately through the framework and must not be converted into an asynchronous application intent
+queue.
 
-- relative movement from wheel, touchpad, keyboard, or accessibility actions;
+One `GalleryNavigationCoordinator` owns programmatic position changes and their asynchronous
+lifecycle. It accepts three typed intents:
+
 - continuous direct manipulation from the annotated time rail;
 - discrete jumps from time annotations, search results, sources, or restored state;
 - relayout caused by viewport or presentation-setting changes.
 
-The coordinator keeps interaction state separate from data readiness. There is no scrub-only
+The coordinator observes the logical anchor produced by native scrolling, arbitrates only
+programmatic writers proven to conflict, and guards their detail requests with latest-wins
+generations. It keeps interaction state separate from data readiness. There is no scrub-only
 controller, loaded-window scroll position, or second canonical offset. Rail labels, the primary
 line, visible date headings, page prefetch, and restored position all derive from the same logical
 anchor and layout snapshot.
@@ -130,7 +137,7 @@ anchor and layout snapshot.
 
 | Input | Position behavior | Detail loading | Preview behavior |
 | --- | --- | --- | --- |
-| Wheel, touchpad, keyboard | Native relative scrolling on the one `Scrollable` | Prefetch bounded pages before and after the viewport; never replace the complete visible model | Visible and near-viewport work has priority; expensive decode may be deferred at high velocity |
+| Wheel, touchpad, keyboard | Native relative scrolling on the one `Scrollable`; the coordinator observes but does not enqueue deltas | Prefetch bounded pages before and after the viewport; never replace the complete visible model | Visible and near-viewport work has priority; expensive decode may be deferred at high velocity |
 | Time-rail drag | Update the exact manifest-backed position at most once per frame | Latest-wins target page requests at a measured bounded cadence; release promotes the final target | Reuse cached previews; otherwise show final-geometry placeholders |
 | Time-rail click or other distant jump | Jump directly to the resolved anchor without animating through the library | Request the target page and guard pages with highest priority | Publish cached or newly decoded previews without changing geometry |
 | Window resize | Preserve the logical anchor while one latest layout snapshot replaces the previous snapshot atomically | Reuse already loaded details; discard obsolete width computations | Reuse decode-width buckets and request only missing sizes after layout stabilizes |
@@ -142,12 +149,21 @@ preview work. They must not defer manifest geometry or convert the gallery into 
 ### Bounded asset-detail windows
 
 ADR 0011 keyset queries continue to retrieve full `LibraryAsset` details in bounded pages. The
-presentation keeps a small revision-bound page cache indexed by global range instead of treating
-one page as the gallery itself.
+long-term presentation boundary is a small revision-bound page cache indexed by global range rather
+than one page or an ever-growing merged list becoming the gallery itself.
+
+The current implementation is known to merge preceding and following pages into `state.assets` and
+to rebuild maps, sets, or lists across all retained details on each page publication. Profiling does
+not decide whether that growth exists; it measures retained memory, garbage collection, copy cost,
+frame impact, and whether repeated movement stabilizes inside the target 79,013-location workload.
+The current interaction remains the comparison baseline until a cache proves parity.
 
 - Current, preceding, following, and target guard pages are retained under an explicit memory
   budget.
-- Ordinary scrolling expands or evicts this cache without replacing the layout snapshot.
+- A cache uses high and low watermarks with hysteresis so ordinary scrolling does not repeatedly
+  evict and reload nearby details.
+- Eviction does not replace the layout snapshot and must preserve nearby return, rapid reversal,
+  and distant-jump behavior at least as well as the retained-list baseline.
 - Requests carry query revision, range, priority, and navigation generation.
 - Obsolete responses may populate a compatible cache but must never publish a stale active range or
   move the viewport.
@@ -192,10 +208,13 @@ synchronization cost is lower than the UI-thread cost; it is not assumed in adva
    publication cannot change layout geometry.
 3. Render the existing equal-height gallery from a complete `GalleryLayoutSnapshot`; use identical
    rectangles for unloaded, failed, and ready preview states.
-4. Replace the single replacement window with the bounded asset-detail page cache while preserving
-   ADR 0011 keyset and stale-revision behavior.
-5. Route wheel, time-rail drag, time-rail click, restoration, and source navigation through the one
-   coordinator; add latest-wins request generations and priority prefetch.
+4. Profile the known retained-detail growth, then introduce the bounded asset-detail page cache only
+   after a high/low-watermark design preserves the current interaction baseline while retaining ADR
+   0011 keyset and stale-revision behavior.
+5. Keep wheel, touchpad, keyboard, accessibility, and ballistic movement on Flutter's native
+   `Scrollable`. Trace time-rail, restoration, resize, search, source, and other programmatic
+   writers; consolidate only conflicts supported by evidence, with latest-wins request generations
+   and priority prefetch.
 6. Add atomic logical-anchor preservation for live window resizing and decode-width reuse.
 7. Remove aggregate unloaded geometry, generic square placeholder slivers, settle-only wheel seeks,
    and other superseded compensating paths only after parity tests pass.
@@ -211,6 +230,8 @@ This decision becomes **Accepted** only when all of the following pass:
   not change any row or item rectangle.
 - Normal wheel scrolling through page boundaries does not replace the gallery with a square grid,
   blank canvas, or different row composition.
+- Native wheel, touchpad, keyboard, accessibility, and ballistic movement adds no asynchronous
+  coordinator hop and does not regress the frozen interaction baseline.
 - Rapid drag, drag reversal, repeated distant clicks, and release publish only the latest compatible
   target; stale requests cannot move the viewport.
 - Time-rail input and its primary line update within one display frame while catalog and preview
@@ -222,6 +243,9 @@ This decision becomes **Accepted** only when all of the following pass:
 - Profile-mode frame evidence on the project workstation records P95 build and raster times within
   the 60 Hz frame budget for wheel, scrub, and resize scenarios, and records every UI-thread stall
   over 50 ms for investigation rather than hiding it in an average.
+- Long-session evidence records retained detail count, process working set, garbage-collection
+  behavior, page-publication copy time, and whether repeated forward and reverse movement reaches a
+  stable resource range.
 - Synthetic 79,000-, 250,000-, and 1,000,000-item manifests record build time, peak memory, retained
   bytes per item, resize recomputation time, page-cache bounds, and cancellation behavior.
 - The authorized 79,013-location library passes slow wheel, fast wheel, time-rail drag and reversal,
@@ -230,11 +254,16 @@ This decision becomes **Accepted** only when all of the following pass:
   quality gates pass serially.
 - Source-byte samples, source entries, and cloud-placeholder availability remain unchanged.
 
+R2b product acceptance and this ADR's final **Accepted** status are separate decisions. R2b may
+accept the measured target-library experience while this record remains **Accepted for validation**
+for an untriggered scale adaptation. No optional structural migration may be claimed complete or
+enabled merely to make the statuses match.
+
 Replacement conditions:
 
 - If the compact manifest exceeds its measured memory budget, replace only its storage
   representation with a hierarchical block index while preserving exact visible-block geometry and
-  the public coordinator contract.
+  the native-scroll and programmatic-coordinator contract.
 - If Dart layout misses the frame and resize gates, move the pure layout calculation behind a
   measured isolate or Rust port without moving widget, gesture, or scroll ownership out of Flutter.
 - If any step cannot preserve the single authoritative scroll position, stop and revise this ADR
@@ -254,6 +283,9 @@ Replacement conditions:
 - This decision removes interaction-specific patching pressure, but migration must be incremental;
   deleting the current fallback before the new path passes parity would recreate the blank-gallery
   failure.
+- The user-reported acceptable 2026-08-10 interaction is a preservation baseline, not proof that
+  retained details are already bounded. Structural work begins only after measurement and ships
+  only when it preserves or improves that baseline.
 - Source media remains read-only, and no new permission to scan, hydrate, move, rename, or delete a
   source is introduced.
 

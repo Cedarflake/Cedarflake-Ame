@@ -1,8 +1,8 @@
 # Cedarflake Ame
 
-Cedarflake Ame is a local-first Windows photo library for large personal image collections. It
-brings folders from different disks and cloud-backed locations into one continuous library without
-requiring a second complete copy of the source collection.
+Cedarflake Ame is a local-first Windows workspace for understanding and organizing very large
+personal image collections. It brings folders from different disks and cloud-backed locations into
+one continuous library without requiring a second complete copy of the source collection.
 
 Ame first builds an understandable view of a library, then supports deliberate organization through
 separately controlled file operations. Catalogs, previews, analysis evidence, and user decisions are
@@ -149,6 +149,7 @@ commands.
 
 ## Project documentation
 
+- [Product roadmap](docs/roadmap.md)
 - [Architecture decisions](docs/architecture/README.md)
 - [Repository layout](docs/development/repository-layout.md)
 - [Quality gates](docs/acceptance/quality-gates.md)
