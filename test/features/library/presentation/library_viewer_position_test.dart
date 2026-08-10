@@ -90,9 +90,7 @@ void main() {
     await tester.tap(find.byType(LibraryPhotoTile).hitTestable().first);
     await tester.pump();
     await _revealCurrentViewerFile(tester);
-    expect(platformActions.revealedFiles, [
-      r"\\?\G:\CloudLibrary\图片\0.jpg",
-    ]);
+    expect(platformActions.revealedFiles, [r"\\?\G:\CloudLibrary\图片\0.jpg"]);
 
     await tester.tap(find.byKey(const Key("viewer-next")));
     await tester.pump();
