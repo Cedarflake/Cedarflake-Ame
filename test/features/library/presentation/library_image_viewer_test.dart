@@ -37,25 +37,27 @@ void main() {
     var activeIndex = 0;
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: StatefulBuilder(
-          builder: (context, setState) {
-            final activeAsset = assets[activeIndex];
-            return Scaffold(
-              body: LibraryImageViewer(
-                asset: activeAsset,
-                onBack: () {},
-                onInformation: () {},
-                onCopyPath: () {},
-                onRevealFile: () {
-                  revealedFiles.add(activeAsset.sourcePath);
-                },
-                onNext: activeIndex < assets.length - 1
-                    ? () => setState(() => activeIndex += 1)
-                    : null,
-              ),
-            );
-          },
+      ProviderScope(
+        child: MaterialApp(
+          home: StatefulBuilder(
+            builder: (context, setState) {
+              final activeAsset = assets[activeIndex];
+              return Scaffold(
+                body: LibraryImageViewer(
+                  asset: activeAsset,
+                  onBack: () {},
+                  onInformation: () {},
+                  onCopyPath: () {},
+                  onRevealFile: () {
+                    revealedFiles.add(activeAsset.sourcePath);
+                  },
+                  onNext: activeIndex < assets.length - 1
+                      ? () => setState(() => activeIndex += 1)
+                      : null,
+                ),
+              );
+            },
+          ),
         ),
       ),
     );
