@@ -104,9 +104,11 @@ void main() {
 
 Future<void> _revealCurrentViewerFile(WidgetTester tester) async {
   await tester.tap(find.byKey(const Key("viewer-more-menu")));
-  await tester.pumpAndSettle();
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 500));
   await tester.tap(find.text(LibraryStrings.openInExplorer));
-  await tester.pumpAndSettle();
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 500));
 }
 
 LibraryState _libraryState({
