@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: Existing v-prefixed tag to verify
+        description: Existing v-prefixed tag to verify and publish
         required: true
         type: string
 
@@ -28,3 +28,84 @@ jobs:
       gate_mode: release
       checkout_ref: ${{ github.event.inputs.release_tag || github.sha }}
       release_tag: ${{ github.event.inputs.release_tag || github.ref_name }}
+
+  publish_portable:
+    name: Windows Portable ZIP
+    needs: release_windows
+    runs-on: windows-2025
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    env:
+      CI: "true"
+      AME_RELEASE_TAG: ${{ github.event.inputs.release_tag || github.ref_name }}
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.event.inputs.release_tag || github.sha }}
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: 3.44.9
+          cache: true
+          pub-cache: true
+
+      - name: Restore locked Dart dependencies
+        shell: pwsh
+        run: flutter pub get --enforce-lockfile
+
+      - name: Build Windows Release bundle
+        shell: pwsh
+        run: flutter build windows --release
+
+      - name: Package portable ZIP
+        shell: pwsh
+        run: |
+          $archivePath = (
+            ./tool/release_package_portable_windows.ps1 -Tag $env:AME_RELEASE_TAG |
+              Select-Object -Last 1
+          )
+          "AME_PORTABLE_ARCHIVE=$archivePath" >> $env:GITHUB_ENV
+
+      - name: Publish GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = "Continue"
+          gh release view $env:AME_RELEASE_TAG `
+            --repo $env:GITHUB_REPOSITORY `
+            --json tagName 2>$null | Out-Null
+          $releaseExists = $LASTEXITCODE -eq 0
+          $ErrorActionPreference = "Stop"
+          if ($releaseExists) {
+            gh release upload $env:AME_RELEASE_TAG `
+              $env:AME_PORTABLE_ARCHIVE `
+              --repo $env:GITHUB_REPOSITORY `
+              --clobber
+          } else {
+            $arguments = @(
+              "release",
+              "create",
+              $env:AME_RELEASE_TAG,
+              $env:AME_PORTABLE_ARCHIVE,
+              "--repo",
+              $env:GITHUB_REPOSITORY,
+              "--verify-tag",
+              "--title",
+              "Cedarflake Ame $env:AME_RELEASE_TAG",
+              "--generate-notes"
+            )
+            if ($env:AME_RELEASE_TAG.Contains("-")) {
+              $arguments += "--prerelease"
+            }
+            & gh $arguments
+          }
+          if ($LASTEXITCODE -ne 0) {
+            throw "GitHub Release publication failed"
+          }

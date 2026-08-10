@@ -4,21 +4,64 @@ on:
   release:
     types:
       - published
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Published v-prefixed tag to verify
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: release-published-${{ github.event.release.tag_name }}
+  group: release-published-${{ github.event.release.tag_name || github.event.inputs.release_tag }}
   cancel-in-progress: false
 
 jobs:
   release_windows:
-    name: Windows Published Gate
+    name: Windows Published ZIP
+    runs-on: windows-2025
+    timeout-minutes: 15
     permissions:
       contents: read
-    uses: ./.github/workflows/quality_gate_windows.yml
-    with:
-      gate_mode: release
-      checkout_ref: ${{ github.event.release.tag_name }}
-      release_tag: ${{ github.event.release.tag_name }}
+    env:
+      AME_RELEASE_TAG: ${{ github.event.release.tag_name || github.event.inputs.release_tag }}
+    steps:
+      - name: Check out published tag
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.event.release.tag_name || github.event.inputs.release_tag }}
+
+      - name: Validate release version
+        shell: pwsh
+        run: ./tool/release_validate_version.ps1 -Tag $env:AME_RELEASE_TAG
+
+      - name: Download published portable ZIP
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $artifactName = (
+            "Cedarflake-Ame-$env:AME_RELEASE_TAG-windows-x64-portable.zip"
+          )
+          $artifactDirectory = Join-Path $PWD "build\published-release"
+          New-Item -ItemType Directory -Path $artifactDirectory -Force | Out-Null
+          gh release download $env:AME_RELEASE_TAG `
+            --repo $env:GITHUB_REPOSITORY `
+            --pattern $artifactName `
+            --dir $artifactDirectory
+          if ($LASTEXITCODE -ne 0) {
+            throw "Published portable ZIP download failed"
+          }
+          "AME_PORTABLE_ARCHIVE=$(Join-Path $artifactDirectory $artifactName)" >> `
+            $env:GITHUB_ENV
+
+      - name: Verify published portable ZIP
+        shell: pwsh
+        run: |
+          ./tool/release_verify_portable_archive.ps1 `
+            -ArchivePath $env:AME_PORTABLE_ARCHIVE `
+            -Tag $env:AME_RELEASE_TAG
