@@ -236,6 +236,112 @@ class FileIdentityEvidence {
           value == other.value;
 }
 
+class GalleryLayoutDateGroup {
+  final String? dateKey;
+
+  const GalleryLayoutDateGroup({this.dateKey});
+
+  @override
+  int get hashCode => dateKey.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is GalleryLayoutDateGroup &&
+          runtimeType == other.runtimeType &&
+          dateKey == other.dateKey;
+}
+
+class GalleryLayoutManifestChunk {
+  final BigInt revision;
+  final String queryId;
+  final BigInt totalItems;
+  final BigInt startOrdinal;
+  final List<String> locationIds;
+  final Uint16List aspectRatioMilli;
+  final Uint16List dateGroupIndices;
+  final List<GalleryLayoutDateGroup> dateGroups;
+  final Uint8List flags;
+  final GalleryLayoutManifestCursor? nextCursor;
+
+  const GalleryLayoutManifestChunk({
+    required this.revision,
+    required this.queryId,
+    required this.totalItems,
+    required this.startOrdinal,
+    required this.locationIds,
+    required this.aspectRatioMilli,
+    required this.dateGroupIndices,
+    required this.dateGroups,
+    required this.flags,
+    this.nextCursor,
+  });
+
+  @override
+  int get hashCode =>
+      revision.hashCode ^
+      queryId.hashCode ^
+      totalItems.hashCode ^
+      startOrdinal.hashCode ^
+      locationIds.hashCode ^
+      aspectRatioMilli.hashCode ^
+      dateGroupIndices.hashCode ^
+      dateGroups.hashCode ^
+      flags.hashCode ^
+      nextCursor.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is GalleryLayoutManifestChunk &&
+          runtimeType == other.runtimeType &&
+          revision == other.revision &&
+          queryId == other.queryId &&
+          totalItems == other.totalItems &&
+          startOrdinal == other.startOrdinal &&
+          locationIds == other.locationIds &&
+          aspectRatioMilli == other.aspectRatioMilli &&
+          dateGroupIndices == other.dateGroupIndices &&
+          dateGroups == other.dateGroups &&
+          flags == other.flags &&
+          nextCursor == other.nextCursor;
+}
+
+class GalleryLayoutManifestCursor {
+  final BigInt revision;
+  final String queryId;
+  final BigInt totalItems;
+  final BigInt nextOrdinal;
+  final CatalogCursor after;
+
+  const GalleryLayoutManifestCursor({
+    required this.revision,
+    required this.queryId,
+    required this.totalItems,
+    required this.nextOrdinal,
+    required this.after,
+  });
+
+  @override
+  int get hashCode =>
+      revision.hashCode ^
+      queryId.hashCode ^
+      totalItems.hashCode ^
+      nextOrdinal.hashCode ^
+      after.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is GalleryLayoutManifestCursor &&
+          runtimeType == other.runtimeType &&
+          revision == other.revision &&
+          queryId == other.queryId &&
+          totalItems == other.totalItems &&
+          nextOrdinal == other.nextOrdinal &&
+          after == other.after;
+}
+
 class GalleryQuery {
   final String? rootId;
   final String? folderRelativePath;
@@ -529,11 +635,17 @@ class LibraryRootView {
 class PreviewRequest {
   final String locationId;
   final int previewEdge;
+  final bool retryFailed;
 
-  const PreviewRequest({required this.locationId, required this.previewEdge});
+  const PreviewRequest({
+    required this.locationId,
+    required this.previewEdge,
+    required this.retryFailed,
+  });
 
   @override
-  int get hashCode => locationId.hashCode ^ previewEdge.hashCode;
+  int get hashCode =>
+      locationId.hashCode ^ previewEdge.hashCode ^ retryFailed.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -541,7 +653,8 @@ class PreviewRequest {
       other is PreviewRequest &&
           runtimeType == other.runtimeType &&
           locationId == other.locationId &&
-          previewEdge == other.previewEdge;
+          previewEdge == other.previewEdge &&
+          retryFailed == other.retryFailed;
 }
 
 enum PreviewStatus { pending, ready, failed }

@@ -1,7 +1,8 @@
-# ADR 0006: Parse capture-time evidence behind an Ame metadata port
+# ADR 0006: Parse EXIF evidence behind Ame-owned media contracts
 
 - Status: Accepted
 - Date: 2026-08-07
+- Amended: 2026-08-10
 
 ## Context
 
@@ -10,6 +11,11 @@ implemented. EXIF timestamps are not ordinary instants: `DateTimeOriginal` often
 wall time without an offset, while subsecond and offset data are stored in separate fields. Treating
 every value as UTC or applying the workstation's current timezone would invent information and make
 the catalog unstable.
+
+The equal-height gallery also requires display-oriented dimensions before any preview is decoded.
+Many cameras store landscape pixel buffers plus EXIF Orientation rather than rewriting pixels. If
+the catalog keeps encoded dimensions while the viewer applies Orientation, gallery geometry and the
+opened image disagree.
 
 Writing an EXIF/TIFF parser inside Ame would duplicate a specialized parser and expand the hostile
 input surface. A parser must remain replaceable, must not leak its types into Ame's domain or schema,
@@ -77,10 +83,27 @@ Third-party fields, tags, errors, and date types cannot cross the adapter. Resca
 only when source size and modification time match and the stored engine identity and version match
 the active adapter.
 
+For display orientation, the admitted `image` 0.25 decoder reads EXIF Orientation and maps values
+1 through 8 immediately into an Ame-owned orientation value. Catalog width and height always mean
+post-orientation display dimensions; orientations 5 through 8 exchange the encoded width and
+height. Missing, malformed, or unsupported orientation evidence falls back to no transform and does
+not prevent the image from being cataloged.
+
+Preview generation applies the same Ame orientation to decoded pixels before resizing and writing
+the derived JPEG. The preview algorithm identity includes an orientation-aware version, so an old
+sideways artifact cannot satisfy the new cache key. The metadata evidence version also includes the
+Ame orientation-contract version. A complete explicit root rescan is the recovery boundary for an
+existing catalog: it reinspects bounded headers, publishes corrected dimensions atomically, and
+marks incompatible previews pending without deleting or modifying source media. Correcting only a
+visible preview is rejected because it would leave the query-wide layout manifest on stale durable
+dimensions.
+
 ## Validation gates
 
 - fixed JPEG fixtures cover original, digitized, generic, subsecond, offset, absent, and malformed
   timestamp cases;
+- fixed JPEG fixtures cover Orientation 1, 3, 6, 8, at least one mirrored orientation, invalid
+  orientation fallback, output corner placement, and post-orientation dimensions;
 - invalid month, day, leap-day, time, subsecond, and offset values cannot become trusted evidence;
 - an oversized raw EXIF block is rejected before the parser copies or traverses it;
 - metadata failure does not reject an otherwise valid image;
@@ -89,6 +112,8 @@ the active adapter.
 - Rust format, Clippy with warnings denied, tests, Flutter analysis and tests, Windows integration,
   and a Windows Release build pass;
 - controlled fixtures prove that source bytes remain unchanged.
+- an existing raw-dimension catalog fixture is recovered by a complete rescan, publishes a matching
+  orientation-corrected manifest ratio, and invalidates the old preview algorithm identity.
 
 ## Validation evidence
 
@@ -116,8 +141,8 @@ the active adapter.
 - `kamadak-exif` runs in process because it is pure Rust and returns recoverable errors. Hostile
   fixture coverage remains mandatory; any observed process termination triggers worker isolation or
   replacement.
-- This decision covers capture-time evidence only. It does not admit metadata writing, XMP, GPS,
-  camera details, RAW decoding, or video metadata.
+- This decision covers capture-time and display-orientation evidence only. It does not admit
+  metadata writing, XMP, GPS, camera details, RAW decoding, or video metadata.
 
 ## Replacement strategy
 

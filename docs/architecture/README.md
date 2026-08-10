@@ -20,7 +20,7 @@ Recorded decisions:
 - [ADR 0003: One unified gallery with contextual actions](0003-unified-gallery-information-architecture.md)
 - [ADR 0004: Admit narrow dependencies for the R0 vertical slice](0004-r0-dependency-admission.md)
 - [ADR 0005: Freeze active storage and enforce a preview budget](0005-storage-governance-and-budget.md)
-- [ADR 0006: Parse capture-time evidence behind an Ame metadata port](0006-exif-capture-time-adapter.md)
+- [ADR 0006: Parse EXIF evidence behind Ame-owned media contracts](0006-exif-capture-time-adapter.md)
 - [ADR 0007: Reconcile Windows locations with versioned file identity evidence](0007-windows-file-identity-reconciliation.md)
 - [ADR 0008: Capture-time keyset for the unified gallery](0008-capture-time-gallery-keyset.md)
 - [ADR 0009: Accepted unified gallery UI contract](0009-accepted-unified-gallery-ui-contract.md)
@@ -28,3 +28,4 @@ Recorded decisions:
 - [ADR 0011: Bidirectional gallery keyset around time anchors](0011-bidirectional-gallery-keyset.md)
 - [ADR 0012: Draw the Windows title bar inside Ame](0012-app-drawn-windows-chrome.md)
 - [ADR 0013: Persist stable UI preferences outside the catalog](0013-persist-ui-preferences.md)
+- [ADR 0014: Query-wide gallery layout manifest and unified navigation](0014-query-wide-gallery-layout-manifest.md)

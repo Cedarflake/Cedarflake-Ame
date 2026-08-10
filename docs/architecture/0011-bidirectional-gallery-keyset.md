@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-08
+- Last amended: 2026-08-09
 
 ## Context
 
@@ -46,8 +47,13 @@ before publishing the page.
   one bounded page plus lookahead, then reverse the returned records into canonical gallery order.
 - Flutter keeps previous-page loading separate from next-page loading and prepends results without
   duplicating stable location identities.
-- A mouse-wheel signal directed upward while the anchored gallery is at its local top starts the
-  previous query. Ordinary Material and `Scrollable` pointer behavior remains framework-owned.
+- In a complete-timeline gallery, an anchored page occupies its projected location inside ADR
+  0010's stable virtual scroll range. Wheel and touchpad movement can enter an unloaded range in
+  either direction; the latest visible position then starts a bounded time-anchor request instead
+  of treating the current asset window as a physical scroll boundary.
+- Previous and next cursors remain available for adjacent viewer navigation, explicit bounded page
+  expansion, and queries that cannot expose chronological anchors. Ordinary Material and
+  `Scrollable` pointer behavior remains framework-owned.
 - The justified gallery's already-computed row extents determine the exact prepend displacement.
   After a page is inserted, the scroll position advances by that displacement so the asset the user
   was viewing stays at the same screen position.
@@ -59,9 +65,9 @@ before publishing the page.
 - The Rust/Dart bridge changes atomically to carry the before cursor and previous page boundary.
 - A time-anchor page may perform one empty reverse query when the selected anchor is already the
   absolute first result; that response clears the speculative previous boundary.
-- Individual database reads remain bounded. The current presentation still retains pages visited
-  during one continuous browsing session; later retention eviction must preserve both boundary
-  cursors and the visible asset before it can replace that behavior safely.
+- Individual database reads remain bounded. Global gallery scrubbing replaces the materialized
+  window while preserving its virtual position; it does not retain every page crossed during a
+  continuous drag. Adjacent cursor expansion still preserves both boundaries and stable identities.
 - Source media remains read-only. The feature reads only catalog rows and rebuildable previews.
 
 ## Validation evidence

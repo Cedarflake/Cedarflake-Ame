@@ -19,6 +19,7 @@ struct GalleryOrderExpressions {
     missing: &'static str,
     text: &'static str,
     number: &'static str,
+    date: Option<&'static str>,
     month: Option<&'static str>,
 }
 
@@ -238,6 +239,78 @@ pub(super) fn build_gallery_timeline_query(query: &GalleryQuery) -> BuiltGallery
     }
 }
 
+pub(super) fn build_gallery_layout_manifest_query(
+    query: &GalleryQuery,
+    after: Option<&CatalogCursor>,
+    sql_limit: i64,
+) -> Result<BuiltGalleryQuery, ScanError> {
+    let order = gallery_order_expressions(&query.sort_key);
+    let mut clauses = Vec::new();
+    let mut parameters = Vec::new();
+    push_gallery_filters(query, &mut clauses, &mut parameters);
+    if let Some(cursor) = after {
+        push_cursor_filter(
+            cursor,
+            &order,
+            &query.sort_direction,
+            false,
+            &mut clauses,
+            &mut parameters,
+        );
+    }
+    let where_clause = if clauses.is_empty() {
+        String::new()
+    } else {
+        format!("WHERE {}", clauses.join(" AND "))
+    };
+    parameters.push(Value::Integer(sql_limit));
+    let primary_direction = gallery_direction_sql(&query.sort_direction);
+    let date = order.date.unwrap_or("NULL");
+    Ok(BuiltGalleryQuery {
+        sql: format!(
+            "SELECT locations.location_id, locations.root_id,
+                    locations.width, locations.height,
+                    {date} AS date_key,
+                    {missing} AS primary_missing,
+                    {text} AS primary_text,
+                    {number} AS primary_number
+             FROM library_roots AS roots
+             JOIN asset_locations AS locations
+               ON locations.scan_id = roots.active_scan_id
+             {where_clause}
+             ORDER BY {missing}, {text} {primary_direction},
+                      {number} {primary_direction},
+                      locations.root_id, locations.location_id
+             LIMIT ?",
+            missing = order.missing,
+            text = order.text,
+            number = order.number,
+        ),
+        parameters,
+    })
+}
+
+pub(super) fn build_gallery_count_query(query: &GalleryQuery) -> BuiltGalleryQuery {
+    let mut clauses = Vec::new();
+    let mut parameters = Vec::new();
+    push_gallery_filters(query, &mut clauses, &mut parameters);
+    let where_clause = if clauses.is_empty() {
+        String::new()
+    } else {
+        format!("WHERE {}", clauses.join(" AND "))
+    };
+    BuiltGalleryQuery {
+        sql: format!(
+            "SELECT COUNT(*)
+             FROM library_roots AS roots
+             JOIN asset_locations AS locations
+               ON locations.scan_id = roots.active_scan_id
+             {where_clause}"
+        ),
+        parameters,
+    }
+}
+
 pub(super) fn gallery_cursor_for_asset(
     transaction: &Transaction<'_>,
     revision: u64,
@@ -290,6 +363,13 @@ fn gallery_order_expressions(sort_key: &GallerySortKey) -> GalleryOrderExpressio
             missing: "(COALESCE(locations.capture_local_time, locations.file_local_time) IS NULL)",
             text: "IFNULL(COALESCE(locations.capture_local_time, locations.file_local_time), '')",
             number: "locations.modified_unix_ms",
+            date: Some(
+                "CASE \
+                   WHEN COALESCE(locations.capture_local_time, locations.file_local_time) IS NULL \
+                   THEN NULL \
+                   ELSE substr(COALESCE(locations.capture_local_time, locations.file_local_time), 1, 10) \
+                 END",
+            ),
             month: Some(
                 "CASE \
                    WHEN COALESCE(locations.capture_local_time, locations.file_local_time) IS NULL \
@@ -302,6 +382,10 @@ fn gallery_order_expressions(sort_key: &GallerySortKey) -> GalleryOrderExpressio
             missing: "(locations.file_local_time IS NULL)",
             text: "IFNULL(locations.file_local_time, '')",
             number: "locations.modified_unix_ms",
+            date: Some(
+                "CASE WHEN locations.file_local_time IS NULL THEN NULL \
+                 ELSE substr(locations.file_local_time, 1, 10) END",
+            ),
             month: Some(
                 "CASE WHEN locations.file_local_time IS NULL THEN NULL \
                  ELSE substr(locations.file_local_time, 1, 7) END",
@@ -311,6 +395,9 @@ fn gallery_order_expressions(sort_key: &GallerySortKey) -> GalleryOrderExpressio
             missing: "CAST(0 AS INTEGER)",
             text: "CAST('' AS TEXT)",
             number: "locations.modified_unix_ms",
+            date: Some(
+                "strftime('%Y-%m-%d', locations.modified_unix_ms / 1000, 'unixepoch', 'localtime')",
+            ),
             month: Some(
                 "strftime('%Y-%m', locations.modified_unix_ms / 1000, 'unixepoch', 'localtime')",
             ),
@@ -319,6 +406,7 @@ fn gallery_order_expressions(sort_key: &GallerySortKey) -> GalleryOrderExpressio
             missing: "CAST(0 AS INTEGER)",
             text: "locations.natural_name_key",
             number: "CAST(0 AS INTEGER)",
+            date: None,
             month: None,
         },
     }

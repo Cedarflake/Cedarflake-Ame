@@ -16,6 +16,7 @@ class AnnotatedTimeRail extends StatefulWidget {
     required this.onChanged,
     this.maximumScrollOffset,
     this.projection,
+    this.onChangeStart,
     this.onChangeEnd,
     this.onStep,
     super.key,
@@ -26,8 +27,11 @@ class AnnotatedTimeRail extends StatefulWidget {
   final double? maximumScrollOffset;
   final TimelineLinearProjection? projection;
   final ValueChanged<double> onChanged;
+  final ValueChanged<double>? onChangeStart;
   final ValueChanged<double>? onChangeEnd;
   final ValueChanged<int>? onStep;
+
+  static const double width = 80;
 
   @override
   State<AnnotatedTimeRail> createState() => _AnnotatedTimeRailState();
@@ -42,10 +46,10 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
   static const double _labelMinimumGap = 16;
   static const double _positionLineHeight = 3;
   static const double _positionLineWidth = 30;
-  static const double _railWidth = 80;
-  static const double _axisX = _railWidth - (_controlWidth / 2);
+  static const double _axisX = AnnotatedTimeRail.width - (_controlWidth / 2);
 
   double? _hoverValue;
+  bool _isDragging = false;
 
   @override
   Widget build(BuildContext context) {
@@ -59,10 +63,10 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
         );
     final anchors = buildTimelineRailAnchors(widget.buckets, projection);
     if (anchors.isEmpty) {
-      return const SizedBox.shrink();
+      return const SizedBox(width: AnnotatedTimeRail.width);
     }
     return SizedBox(
-      width: _railWidth,
+      width: AnnotatedTimeRail.width,
       child: DecoratedBox(
         decoration: BoxDecoration(
           border: Border(left: BorderSide(color: colorScheme.outlineVariant)),
@@ -152,6 +156,9 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
                             child: VerticalMaterialTimelineSlider(
                               value: visualProjection.toVisual(widget.value),
                               endpointInset: _endpointInset,
+                              onChangeStart: (visualValue) => _startInteraction(
+                                visualProjection.toLogical(visualValue),
+                              ),
                               onChanged: (visualValue) => widget.onChanged(
                                 visualProjection.toLogical(visualValue),
                               ),
@@ -193,7 +200,18 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
                                   ),
                               isCurrent: currentBucketId == anchor.bucket.id,
                             ),
-                          if (_hoverValue case final hoverValue?)
+                          if (_isDragging)
+                            _buildPositionLabel(
+                              context,
+                              key: const Key("timeline-drag-label"),
+                              anchors: anchors,
+                              visualProjection: visualProjection,
+                              visualValue: visualProjection.toVisual(
+                                widget.value,
+                              ),
+                              railHeight: constraints.maxHeight,
+                            )
+                          else if (_hoverValue case final hoverValue?)
                             ..._buildHoverPreview(
                               context,
                               anchors: anchors,
@@ -270,10 +288,10 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
       if (!hasMarker) {
         return const [];
       }
-      return isCurrent ? const [] : [marker];
+      return [marker];
     }
     return [
-      if (hasMarker && (!isCurrent || anchor.bucket.isUnknown)) marker,
+      if (hasMarker) marker,
       Positioned(
         key: ValueKey("time-label-${anchor.bucket.id}"),
         left: 2,
@@ -328,12 +346,6 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
     required double railHeight,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
-    final lineTop = _topForValue(visualValue, railHeight);
-    final labelTop = (lineTop - 14).clamp(0.0, railHeight - 28).toDouble();
-    final label = timelineRailBucketAtValue(
-      anchors,
-      visualProjection.toLogical(visualValue),
-    ).bucket.label;
     return [
       _buildPositionLine(
         key: const Key("timeline-hover-line"),
@@ -341,31 +353,59 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
         railHeight: railHeight,
         color: colorScheme.onSurfaceVariant.withValues(alpha: 0.45),
       ),
-      Positioned(
-        right: _controlWidth - 8,
-        top: labelTop,
-        child: IgnorePointer(
-          child: Material(
-            elevation: 2,
-            color: colorScheme.inverseSurface,
-            borderRadius: BorderRadius.circular(6),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-              child: Text(
-                label,
-                key: const Key("timeline-hover-label"),
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: colorScheme.onInverseSurface,
-                ),
+      _buildPositionLabel(
+        context,
+        key: const Key("timeline-hover-label"),
+        anchors: anchors,
+        visualProjection: visualProjection,
+        visualValue: visualValue,
+        railHeight: railHeight,
+      ),
+    ];
+  }
+
+  Positioned _buildPositionLabel(
+    BuildContext context, {
+    required Key key,
+    required List<TimelineRailAnchor> anchors,
+    required TimelineVisualProjection visualProjection,
+    required double visualValue,
+    required double railHeight,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final lineTop = _topForValue(visualValue, railHeight);
+    final labelTop = (lineTop - 14).clamp(0.0, railHeight - 28).toDouble();
+    final label = timelineRailBucketAtValue(
+      anchors,
+      visualProjection.toLogical(visualValue),
+    ).bucket.label;
+    return Positioned(
+      right: _controlWidth - 8,
+      top: labelTop,
+      child: IgnorePointer(
+        child: Material(
+          elevation: 2,
+          color: colorScheme.inverseSurface,
+          borderRadius: BorderRadius.circular(6),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+            child: Text(
+              label,
+              key: key,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: colorScheme.onInverseSurface,
               ),
             ),
           ),
         ),
       ),
-    ];
+    );
   }
 
   void _updateHover(Offset localPosition, double railHeight) {
+    if (_isDragging) {
+      return;
+    }
     if (localPosition.dx < _axisX - (_markerExtent * 2)) {
       if (_hoverValue != null) {
         setState(() => _hoverValue = null);
@@ -396,7 +436,21 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
   }
 
   void _commit(double nextValue) {
+    if (_isDragging || _hoverValue != null) {
+      setState(() {
+        _isDragging = false;
+        _hoverValue = null;
+      });
+    }
     widget.onChangeEnd?.call(nextValue);
+  }
+
+  void _startInteraction(double value) {
+    setState(() {
+      _isDragging = true;
+      _hoverValue = null;
+    });
+    widget.onChangeStart?.call(value);
   }
 
   bool _isUnlabeledMarkerVisible({

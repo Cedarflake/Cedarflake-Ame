@@ -1,3 +1,5 @@
+import "dart:math" as math;
+
 import "package:flutter/material.dart";
 
 abstract final class AmeMenuMetrics {
@@ -11,6 +13,7 @@ abstract final class AmeMenuMetrics {
   static const double dividerHeight = 1;
   static const double elevation = 3;
   static const double borderRadius = 4;
+  static const double viewportPadding = 12;
   static const double maximumLabelWidth =
       maximumWidth - (horizontalPadding * 2) - iconSize - iconLabelGap;
 
@@ -89,13 +92,25 @@ class AmeMenuAnchor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MenuAnchor(
-      controller: controller,
-      childFocusNode: childFocusNode,
-      animated: true,
-      menuChildren: menuChildren,
-      builder: builder,
-      child: child,
+    final mediaQuery = MediaQuery.of(context);
+    final currentPadding = mediaQuery.padding;
+    final protectedPadding = EdgeInsets.fromLTRB(
+      math.max(currentPadding.left, AmeMenuMetrics.viewportPadding),
+      math.max(currentPadding.top, AmeMenuMetrics.viewportPadding),
+      math.max(currentPadding.right, AmeMenuMetrics.viewportPadding),
+      math.max(currentPadding.bottom, AmeMenuMetrics.viewportPadding),
+    );
+    return MediaQuery(
+      data: mediaQuery.copyWith(padding: protectedPadding),
+      child: MenuAnchor(
+        controller: controller,
+        childFocusNode: childFocusNode,
+        animated: true,
+        reservedPadding: const EdgeInsets.all(AmeMenuMetrics.viewportPadding),
+        menuChildren: menuChildren,
+        builder: builder,
+        child: child,
+      ),
     );
   }
 }

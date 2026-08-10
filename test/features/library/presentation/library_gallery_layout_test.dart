@@ -84,6 +84,28 @@ void main() {
       ["one", "two"],
     );
   });
+
+  test("resolves a global item to the first item in its rendered row", () {
+    final metrics = LibraryGalleryLayoutMetrics(
+      contentExtent: 400,
+      photoRowHeight: 100,
+      dateAnchors: const [],
+      locationOffsets: const {},
+      itemOffsets: const [18, 18, 18, 124, 124],
+      itemIndexBase: 100,
+      isQueryWide: true,
+    );
+
+    expect(metrics.rowStartGlobalItemIndex(100), 100);
+    expect(metrics.rowStartGlobalItemIndex(102), 100);
+    expect(metrics.rowStartGlobalItemIndex(104), 103);
+    expect(metrics.rowStartGlobalItemIndex(99), isNull);
+    expect(metrics.rowStartGlobalItemIndex(105), isNull);
+    expect(metrics.rowEndGlobalItemIndexExclusive(100), 103);
+    expect(metrics.rowEndGlobalItemIndexExclusive(102), 103);
+    expect(metrics.rowEndGlobalItemIndexExclusive(103), 105);
+    expect(metrics.rowEndGlobalItemIndexExclusive(105), isNull);
+  });
 }
 
 LibraryAsset _asset(

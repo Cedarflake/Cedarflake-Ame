@@ -185,12 +185,16 @@ class LibraryGalleryLayoutMetrics {
     required this.dateAnchors,
     required this.locationOffsets,
     required this.itemOffsets,
+    this.itemIndexBase = 0,
+    this.isQueryWide = false,
   });
 
   factory LibraryGalleryLayoutMetrics.fromEntries(
     List<LibraryGalleryLayoutEntry> entries, {
     required double topPadding,
     required double bottomPadding,
+    int itemIndexBase = 0,
+    bool isQueryWide = false,
   }) {
     final anchors = <LibraryGalleryDateAnchor>[];
     final offsets = <String, double>{};
@@ -228,6 +232,8 @@ class LibraryGalleryLayoutMetrics {
       dateAnchors: List.unmodifiable(anchors),
       locationOffsets: Map.unmodifiable(offsets),
       itemOffsets: List.unmodifiable(itemOffsets),
+      itemIndexBase: itemIndexBase,
+      isQueryWide: isQueryWide,
     );
   }
 
@@ -236,6 +242,10 @@ class LibraryGalleryLayoutMetrics {
   final List<LibraryGalleryDateAnchor> dateAnchors;
   final Map<String, double> locationOffsets;
   final List<double> itemOffsets;
+  final int itemIndexBase;
+  final bool isQueryWide;
+
+  int get itemCount => itemOffsets.length;
 
   double? offsetForLocation(String? locationId) {
     if (locationId == null) {
@@ -249,6 +259,38 @@ class LibraryGalleryLayoutMetrics {
       return null;
     }
     return itemOffsets[itemIndex];
+  }
+
+  double? offsetForGlobalItemIndex(int itemIndex) {
+    return offsetForItemIndex(itemIndex - itemIndexBase);
+  }
+
+  bool containsGlobalItemIndex(double itemIndex) {
+    return itemIndex >= itemIndexBase &&
+        itemIndex < itemIndexBase + itemOffsets.length;
+  }
+
+  int? rowStartGlobalItemIndex(int itemIndex) {
+    final localItemIndex = itemIndex - itemIndexBase;
+    if (localItemIndex < 0 || localItemIndex >= itemOffsets.length) {
+      return null;
+    }
+    return itemIndexBase +
+        itemIndexForScrollOffset(itemOffsets[localItemIndex]);
+  }
+
+  int? rowEndGlobalItemIndexExclusive(int itemIndex) {
+    final localItemIndex = itemIndex - itemIndexBase;
+    if (localItemIndex < 0 || localItemIndex >= itemOffsets.length) {
+      return null;
+    }
+    final rowOffset = itemOffsets[localItemIndex];
+    var endIndex = localItemIndex + 1;
+    while (endIndex < itemOffsets.length &&
+        (itemOffsets[endIndex] - rowOffset).abs() < 0.01) {
+      endIndex += 1;
+    }
+    return itemIndexBase + endIndex;
   }
 
   int itemIndexForScrollOffset(double scrollOffset) {
@@ -274,11 +316,16 @@ class LibraryGalleryLayoutMetrics {
   }
 
   bool hasSameGeometry(LibraryGalleryLayoutMetrics other) {
+    if (identical(this, other)) {
+      return true;
+    }
     if ((contentExtent - other.contentExtent).abs() > 0.01 ||
         (photoRowHeight - other.photoRowHeight).abs() > 0.01 ||
         dateAnchors.length != other.dateAnchors.length ||
         locationOffsets.length != other.locationOffsets.length ||
-        itemOffsets.length != other.itemOffsets.length) {
+        itemOffsets.length != other.itemOffsets.length ||
+        itemIndexBase != other.itemIndexBase ||
+        isQueryWide != other.isQueryWide) {
       return false;
     }
     for (var index = 0; index < dateAnchors.length; index++) {

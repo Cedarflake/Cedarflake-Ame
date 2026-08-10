@@ -4,11 +4,13 @@ import "package:cedarflake_ame/features/library/adapters/windows_library_platfor
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_platform_actions.dart";
+import "package:cedarflake_ame/features/library/application/library_scanner.dart";
 import "package:cedarflake_ame/features/library/application/library_view_preferences.dart";
 import "package:cedarflake_ame/features/library/domain/library_folder_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_exact_extent_sliver.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_main_surface.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_navigation_resize_handle.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
@@ -295,6 +297,63 @@ void main() {
     expect(find.byKey(const Key("library-task-activity-button")), findsNothing);
   });
 
+  testWidgets("keeps completed import feedback until it is acknowledged", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final state = _populatedState(totalItems: 64).copyWith(
+      scanId: "scan-completed",
+      rootPath: "C:\\Pictures",
+      displayRootPath: "C:\\Pictures",
+      visitedEntries: 128,
+      stagedAssetCount: 64,
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(state),
+          libraryScannerProvider.overrideWithValue(const _NoopLibraryScanner()),
+        ],
+        child: const AmeApp(),
+      ),
+    );
+    await tester.pump();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(AmeApp)),
+    );
+    expect(container.read(libraryControllerProvider).scanId, "scan-completed");
+    expect(find.byKey(const Key("library-task-surface")), findsOneWidget);
+    expect(find.text("导入完成"), findsOneWidget);
+    expect(find.text("已检查 128 个文件 · 已导入 64 张图片"), findsOneWidget);
+    expect(
+      find.byKey(const Key("library-task-dismiss-button")),
+      findsOneWidget,
+    );
+    final taskSurface = tester.widget<Material>(
+      find.byKey(const Key("library-task-surface")),
+    );
+    final theme = Theme.of(
+      tester.element(find.byKey(const Key("library-task-surface"))),
+    );
+    expect(taskSurface.color, theme.snackBarTheme.backgroundColor);
+    expect(taskSurface.elevation, theme.snackBarTheme.elevation);
+    expect(
+      tester.getSize(find.byKey(const Key("library-task-surface"))).width,
+      theme.snackBarTheme.width,
+    );
+
+    await tester.tap(find.byKey(const Key("library-task-dismiss-button")));
+    await tester.pump();
+
+    expect(find.text("导入完成"), findsNothing);
+    expect(find.byKey(const Key("library-task-dismiss-button")), findsNothing);
+  });
+
   testWidgets("connects source search and Material sort to one gallery query", (
     tester,
   ) async {
@@ -551,6 +610,35 @@ void main() {
     );
   });
 
+  testWidgets("uses one top line for scroll-triggered page loading", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final state = _populatedState(
+      totalItems: 2,
+    ).copyWith(isLoadingPage: true, isLoadingPreviousPage: true);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [initialLibraryStateProvider.overrideWithValue(state)],
+        child: const AmeApp(),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byKey(const Key("library-top-loading")), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key("library-photo-wall")),
+        matching: find.byType(CircularProgressIndicator),
+      ),
+      findsNothing,
+    );
+  });
+
   testWidgets(
     "keeps keyset continuation automatic without visible pagination",
     (tester) async {
@@ -661,6 +749,7 @@ void main() {
           modifiedUnixMs: 3,
           width: 1,
           height: 1,
+          previewStatus: LibraryPreviewStatus.pending,
           captureTime: capture,
         ),
         LibraryAsset(
@@ -718,6 +807,20 @@ void main() {
     expect(find.byKey(const ValueKey("location-1")), findsOneWidget);
     expect(find.byKey(const ValueKey("location-2")), findsOneWidget);
     expect(find.byKey(const ValueKey("location-3")), findsOneWidget);
+    final gallerySliver = tester.widget<LibraryExactExtentSliver>(
+      find.byType(LibraryExactExtentSliver),
+    );
+    expect(
+      (gallerySliver.delegate as SliverChildBuilderDelegate).addSemanticIndexes,
+      isFalse,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey("location-1")),
+        matching: find.byType(CircularProgressIndicator),
+      ),
+      findsNothing,
+    );
   });
 
   testWidgets("keeps a missing source visible with its cached catalog state", (
@@ -969,7 +1072,7 @@ void main() {
       findsNothing,
     );
     expect(find.byKey(const ValueKey("time-label-2026-08")), findsOneWidget);
-    expect(find.byKey(const ValueKey("time-marker-2026-08")), findsNothing);
+    expect(find.byKey(const ValueKey("time-marker-2026-08")), findsOneWidget);
     expect(find.byKey(const ValueKey("time-marker-unknown")), findsNothing);
     expect(
       find.descendant(
@@ -1193,6 +1296,14 @@ void main() {
       );
       expect(position.pixels, 0);
 
+      tester.view.physicalSize = const Size(1180, 760);
+      await tester.pump();
+      await tester.pump();
+
+      expect(tester.takeException(), isNull);
+      expect(find.byKey(const ValueKey("anchor-0")), findsOneWidget);
+      expect(catalog.beforeCursors, isEmpty);
+
       await tester.sendEventToBinding(
         PointerScrollEvent(
           position: tester.getCenter(photoWall),
@@ -1347,6 +1458,33 @@ class _RecordingQueryCatalog implements LibraryCatalog {
 
   @override
   Future<bool> unregisterRoot(String rootId) async => true;
+}
+
+class _NoopLibraryScanner implements LibraryScanner {
+  const _NoopLibraryScanner();
+
+  @override
+  bool cancel(String scanId) => false;
+
+  @override
+  Future<RecoverableLibraryScan?> loadPausedScan() async => null;
+
+  @override
+  Future<RecoverableLibraryScan?> loadRecoverableScan() async => null;
+
+  @override
+  bool pause(String scanId) => false;
+
+  @override
+  Stream<LibraryScanUpdate> scan({
+    required String scanId,
+    required String rootPath,
+    required int? itemLimit,
+    required int? entryLimit,
+    required int previewEdge,
+  }) {
+    return const Stream.empty();
+  }
 }
 
 class _RecordingFolderCatalog implements LibraryFolderCatalog {

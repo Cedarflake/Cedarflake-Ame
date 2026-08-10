@@ -48,7 +48,11 @@ fn materialize_preview_with_store(
     if matches!(location.preview_status, PreviewStatus::Ready)
         && !location.preview_path.is_empty()
         && Path::new(&location.preview_path).is_file()
+        && !request.retry_failed
     {
+        return Ok(location);
+    }
+    if matches!(location.preview_status, PreviewStatus::Failed) && !request.retry_failed {
         return Ok(location);
     }
 
@@ -72,7 +76,7 @@ fn materialize_preview_with_store(
         file_identity: location.file_identity.clone(),
         issues: Vec::new(),
     };
-    match preview_store.materialize(&file, request.preview_edge) {
+    match preview_store.materialize(&file, request.preview_edge, location.width, location.height) {
         Ok(preview) => {
             location.preview_path = preview.path;
             location.width = preview.width;

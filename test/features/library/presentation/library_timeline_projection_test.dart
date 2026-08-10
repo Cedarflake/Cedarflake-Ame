@@ -62,4 +62,21 @@ void main() {
     expect(target.itemOffset, 0);
     expect(target.globalItemOffset, 900);
   });
+
+  test("maps an exact global item to its owning time bucket", () {
+    final projection = LibraryTimelineProjection(
+      timeline: timeline,
+      useAspectRatioWeight: true,
+    );
+
+    final lastNewerItem = projection.targetForGlobalItemOffset(899);
+    final firstOlderItem = projection.targetForGlobalItemOffset(900);
+
+    expect(lastNewerItem.bucket.monthKey, "2026-08");
+    expect(lastNewerItem.itemOffset, 899);
+    expect(lastNewerItem.globalItemOffset, 899);
+    expect(firstOlderItem.bucket.monthKey, "2022-01");
+    expect(firstOlderItem.itemOffset, 0);
+    expect(firstOlderItem.globalItemOffset, 900);
+  });
 }

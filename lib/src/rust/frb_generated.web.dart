@@ -53,6 +53,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  GalleryLayoutManifestCursor
+  dco_decode_box_autoadd_gallery_layout_manifest_cursor(dynamic raw);
+
+  @protected
   GalleryQuery dco_decode_box_autoadd_gallery_query(dynamic raw);
 
   @protected
@@ -103,6 +107,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   FileIdentityEvidence dco_decode_file_identity_evidence(dynamic raw);
 
   @protected
+  GalleryLayoutDateGroup dco_decode_gallery_layout_date_group(dynamic raw);
+
+  @protected
+  GalleryLayoutManifestChunk dco_decode_gallery_layout_manifest_chunk(
+    dynamic raw,
+  );
+
+  @protected
+  GalleryLayoutManifestCursor dco_decode_gallery_layout_manifest_cursor(
+    dynamic raw,
+  );
+
+  @protected
   GalleryQuery dco_decode_gallery_query(dynamic raw);
 
   @protected
@@ -145,7 +162,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   LibraryRootView dco_decode_library_root_view(dynamic raw);
 
   @protected
+  List<String> dco_decode_list_String(dynamic raw);
+
+  @protected
   List<AssetLocationView> dco_decode_list_asset_location_view(dynamic raw);
+
+  @protected
+  List<GalleryLayoutDateGroup> dco_decode_list_gallery_layout_date_group(
+    dynamic raw,
+  );
 
   @protected
   List<GalleryTimeBucket> dco_decode_list_gallery_time_bucket(dynamic raw);
@@ -155,6 +180,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<LibraryRootView> dco_decode_list_library_root_view(dynamic raw);
+
+  @protected
+  Uint16List dco_decode_list_prim_u_16_strict(dynamic raw);
 
   @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
@@ -174,6 +202,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   FileIdentityEvidence? dco_decode_opt_box_autoadd_file_identity_evidence(
     dynamic raw,
   );
+
+  @protected
+  GalleryLayoutManifestCursor?
+  dco_decode_opt_box_autoadd_gallery_layout_manifest_cursor(dynamic raw);
 
   @protected
   int? dco_decode_opt_box_autoadd_i_16(dynamic raw);
@@ -218,6 +250,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   StorageStatus dco_decode_storage_status(dynamic raw);
+
+  @protected
+  int dco_decode_u_16(dynamic raw);
 
   @protected
   int dco_decode_u_32(dynamic raw);
@@ -267,6 +302,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   FileIdentityEvidence sse_decode_box_autoadd_file_identity_evidence(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  GalleryLayoutManifestCursor
+  sse_decode_box_autoadd_gallery_layout_manifest_cursor(
     SseDeserializer deserializer,
   );
 
@@ -337,6 +378,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  GalleryLayoutDateGroup sse_decode_gallery_layout_date_group(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  GalleryLayoutManifestChunk sse_decode_gallery_layout_manifest_chunk(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  GalleryLayoutManifestCursor sse_decode_gallery_layout_manifest_cursor(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   GalleryQuery sse_decode_gallery_query(SseDeserializer deserializer);
 
   @protected
@@ -393,7 +449,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   LibraryRootView sse_decode_library_root_view(SseDeserializer deserializer);
 
   @protected
+  List<String> sse_decode_list_String(SseDeserializer deserializer);
+
+  @protected
   List<AssetLocationView> sse_decode_list_asset_location_view(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<GalleryLayoutDateGroup> sse_decode_list_gallery_layout_date_group(
     SseDeserializer deserializer,
   );
 
@@ -413,6 +477,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  Uint16List sse_decode_list_prim_u_16_strict(SseDeserializer deserializer);
+
+  @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
 
   @protected
@@ -430,6 +497,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   FileIdentityEvidence? sse_decode_opt_box_autoadd_file_identity_evidence(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  GalleryLayoutManifestCursor?
+  sse_decode_opt_box_autoadd_gallery_layout_manifest_cursor(
     SseDeserializer deserializer,
   );
 
@@ -480,6 +553,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   StorageStatus sse_decode_storage_status(SseDeserializer deserializer);
+
+  @protected
+  int sse_decode_u_16(SseDeserializer deserializer);
 
   @protected
   int sse_decode_u_32(SseDeserializer deserializer);
@@ -538,6 +614,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_file_identity_evidence(
     FileIdentityEvidence self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_gallery_layout_manifest_cursor(
+    GalleryLayoutManifestCursor self,
     SseSerializer serializer,
   );
 
@@ -629,6 +711,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_gallery_layout_date_group(
+    GalleryLayoutDateGroup self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_gallery_layout_manifest_chunk(
+    GalleryLayoutManifestChunk self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_gallery_layout_manifest_cursor(
+    GalleryLayoutManifestCursor self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_gallery_query(GalleryQuery self, SseSerializer serializer);
 
   @protected
@@ -701,8 +801,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_String(List<String> self, SseSerializer serializer);
+
+  @protected
   void sse_encode_list_asset_location_view(
     List<AssetLocationView> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_gallery_layout_date_group(
+    List<GalleryLayoutDateGroup> self,
     SseSerializer serializer,
   );
 
@@ -721,6 +830,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_library_root_view(
     List<LibraryRootView> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_prim_u_16_strict(
+    Uint16List self,
     SseSerializer serializer,
   );
 
@@ -748,6 +863,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_file_identity_evidence(
     FileIdentityEvidence? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_gallery_layout_manifest_cursor(
+    GalleryLayoutManifestCursor? self,
     SseSerializer serializer,
   );
 
@@ -810,6 +931,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_storage_status(StorageStatus self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_u_16(int self, SseSerializer serializer);
 
   @protected
   void sse_encode_u_32(int self, SseSerializer serializer);

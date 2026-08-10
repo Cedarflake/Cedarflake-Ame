@@ -28,10 +28,7 @@ Future<void> main() async {
       sortKey: viewPreferences.sortKey,
       sortDirection: viewPreferences.sortDirection,
     );
-    final snapshot = await catalog.load(
-      maxItems: libraryCatalogWindow,
-      query: query,
-    );
+    final snapshot = await catalog.load(maxItems: libraryCatalogWindow, query: query);
     final initialState = LibraryState.fromSnapshot(snapshot, query: query);
     runApp(
       ProviderScope(
@@ -39,9 +36,7 @@ Future<void> main() async {
           ameWindowActionsProvider.overrideWithValue(windowActions),
           initialAmePreferencesProvider.overrideWithValue(amePreferences),
           amePreferenceStoreProvider.overrideWithValue(preferenceStore),
-          initialLibraryViewPreferencesProvider.overrideWithValue(
-            viewPreferences,
-          ),
+          initialLibraryViewPreferencesProvider.overrideWithValue(viewPreferences),
           libraryCatalogProvider.overrideWithValue(catalog),
           initialLibraryStateProvider.overrideWithValue(initialState),
           libraryViewPreferenceStoreProvider.overrideWithValue(preferenceStore),
@@ -89,10 +84,7 @@ class AmeBootstrapFailure extends StatelessWidget {
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                     const SizedBox(height: 12),
-                    SelectableText(
-                      error.toString(),
-                      textAlign: TextAlign.center,
-                    ),
+                    SelectableText(error.toString(), textAlign: TextAlign.center),
                   ],
                 ),
               ),

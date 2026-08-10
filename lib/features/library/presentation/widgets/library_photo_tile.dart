@@ -1,3 +1,4 @@
+import "dart:async";
 import "dart:io";
 
 import "package:flutter/material.dart";
@@ -6,9 +7,23 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../../app/presentation/ame_menu.dart";
 import "../../application/library_controller.dart";
+import "../../application/library_preview_store.dart";
 import "../../domain/library_models.dart";
 import "../library_strings.dart";
-import "library_loading_indicator.dart";
+
+int libraryPreviewDecodeWidth(double logicalWidth, double devicePixelRatio) {
+  final requestedWidth = (logicalWidth * devicePixelRatio).round().clamp(
+    1,
+    512,
+  );
+  if (requestedWidth <= 128) {
+    return 128;
+  }
+  if (requestedWidth <= 256) {
+    return 256;
+  }
+  return 512;
+}
 
 class LibraryPhotoTile extends ConsumerStatefulWidget {
   const LibraryPhotoTile({
@@ -44,6 +59,8 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
   final MenuController _menuController = MenuController();
   final FocusNode _focusNode = FocusNode(debugLabel: "Library photo tile");
   late final LibraryController _controller;
+  late Stream<void> _previewChanges;
+  LibraryPreviewSourceIdentity? _previewRepairSource;
   bool _isHovered = false;
   bool _isFocused = false;
 
@@ -51,35 +68,27 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
   void initState() {
     super.initState();
     _controller = ref.read(libraryControllerProvider.notifier);
-    _schedulePreview();
+    _previewChanges = _controller.watchPreview(widget.asset.locationId);
   }
 
   @override
   void didUpdateWidget(covariant LibraryPhotoTile oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.asset.locationId != widget.asset.locationId ||
-        oldWidget.asset.previewStatus != widget.asset.previewStatus) {
-      _controller.cancelPreview(oldWidget.asset.locationId);
-      _schedulePreview();
+    final locationChanged =
+        oldWidget.asset.locationId != widget.asset.locationId;
+    if (locationChanged) {
+      _previewChanges = _controller.watchPreview(widget.asset.locationId);
+    }
+    if (locationChanged ||
+        !libraryPreviewSourcesAreCompatible(oldWidget.asset, widget.asset)) {
+      _previewRepairSource = null;
     }
   }
 
   @override
   void dispose() {
-    _controller.cancelPreview(widget.asset.locationId);
     _focusNode.dispose();
     super.dispose();
-  }
-
-  void _schedulePreview() {
-    if (widget.asset.previewStatus != LibraryPreviewStatus.pending) {
-      return;
-    }
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _controller.requestPreview(widget.asset);
-      }
-    });
   }
 
   @override
@@ -95,7 +104,8 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
         childFocusNode: _focusNode,
         menuChildren: [
           MenuItemButton(
-            onPressed: () => widget.onOpen(widget.asset),
+            onPressed: () =>
+                widget.onOpen(_controller.resolvePreview(widget.asset)),
             child: const AmeMenuItemContent(
               icon: Icons.open_in_full,
               label: LibraryStrings.open,
@@ -157,7 +167,9 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
                     ),
                     clipBehavior: Clip.antiAlias,
                     child: InkWell(
-                      onTap: () => widget.onOpen(widget.asset),
+                      onTap: () => widget.onOpen(
+                        _controller.resolvePreview(widget.asset),
+                      ),
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
@@ -200,9 +212,20 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
   }
 
   Widget _buildPreview(BuildContext context) {
-    final asset = widget.asset;
+    return StreamBuilder<void>(
+      stream: _previewChanges,
+      builder: (context, _) {
+        return _buildPreviewAsset(
+          context,
+          _controller.resolvePreview(widget.asset),
+        );
+      },
+    );
+  }
+
+  Widget _buildPreviewAsset(BuildContext context, LibraryAsset asset) {
     return switch (asset.previewStatus) {
-      LibraryPreviewStatus.pending => const LibraryLoadingIndicator(
+      LibraryPreviewStatus.pending => const SizedBox.expand(
         key: Key("library-preview-pending"),
       ),
       LibraryPreviewStatus.failed => Center(
@@ -219,18 +242,74 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
           ],
         ),
       ),
-      LibraryPreviewStatus.ready => Image.file(
-        File(asset.previewPath),
-        fit: BoxFit.cover,
-        cacheWidth: (widget.width * MediaQuery.devicePixelRatioOf(context))
-            .round()
-            .clamp(64, 512),
-        filterQuality: FilterQuality.low,
-        errorBuilder: (context, error, stackTrace) {
-          return const Center(child: Icon(Icons.broken_image_outlined));
-        },
-      ),
+      LibraryPreviewStatus.ready => _buildReadyPreview(context, asset),
     };
+  }
+
+  Widget _buildReadyPreview(BuildContext context, LibraryAsset asset) {
+    final cacheWidth = libraryPreviewDecodeWidth(
+      widget.width,
+      MediaQuery.devicePixelRatioOf(context),
+    );
+    return Image.file(
+      File(asset.previewPath),
+      fit: BoxFit.cover,
+      cacheWidth: cacheWidth,
+      gaplessPlayback: true,
+      filterQuality: FilterQuality.low,
+      errorBuilder: (context, error, stackTrace) {
+        _schedulePreviewRepair(asset, cacheWidth);
+        return Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.broken_image_outlined),
+              const SizedBox(height: 4),
+              TextButton(
+                key: Key("preview-retry-${asset.locationId}"),
+                onPressed: () {
+                  _previewRepairSource = null;
+                  _schedulePreviewRepair(asset, cacheWidth);
+                },
+                child: const Text(LibraryStrings.retryPreview),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _schedulePreviewRepair(LibraryAsset asset, int cacheWidth) {
+    final source = LibraryPreviewSourceIdentity.fromAsset(asset);
+    if (_previewRepairSource == source) {
+      return;
+    }
+    _previewRepairSource = source;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      unawaited(_repairPreview(asset, cacheWidth));
+    });
+  }
+
+  Future<void> _repairPreview(LibraryAsset asset, int cacheWidth) async {
+    if (asset.previewPath.isNotEmpty) {
+      final provider = ResizeImage.resizeIfNeeded(
+        cacheWidth,
+        null,
+        FileImage(File(asset.previewPath)),
+      );
+      try {
+        await provider.evict();
+      } on Object {
+        // Cache eviction is best-effort; the backend still owns validation.
+      }
+    }
+    if (mounted) {
+      _controller.requestPreview(asset, retry: true);
+    }
   }
 
   void _openKeyboardMenu() {

@@ -10,7 +10,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 Stream<ScanEvent> scanLibrary({required ScanRequest request}) =>
     RustLib.instance.api.crateApiCatalogScanLibrary(request: request);
 
-CatalogSnapshot loadLibraryCatalog({
+Future<CatalogSnapshot> loadLibraryCatalog({
   required int maxItems,
   required GalleryQuery query,
   CatalogCursor? after,
@@ -27,6 +27,16 @@ GalleryTimeline loadLibraryGalleryTimeline({required GalleryQuery query}) =>
       query: query,
     );
 
+Future<GalleryLayoutManifestChunk> loadLibraryGalleryLayoutManifestChunk({
+  required int maxItems,
+  required GalleryQuery query,
+  GalleryLayoutManifestCursor? after,
+}) => RustLib.instance.api.crateApiCatalogLoadLibraryGalleryLayoutManifestChunk(
+  maxItems: maxItems,
+  query: query,
+  after: after,
+);
+
 LibraryFolderPage loadLibraryFolderPage({
   required String rootId,
   required String parentRelativePath,
@@ -39,7 +49,7 @@ LibraryFolderPage loadLibraryFolderPage({
   after: after,
 );
 
-CatalogSnapshot loadLibraryCatalogAtTime({
+Future<CatalogSnapshot> loadLibraryCatalogAtTime({
   required int maxItems,
   required GalleryQuery query,
   required GalleryTimeAnchor anchor,

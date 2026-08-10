@@ -2,9 +2,9 @@ use std::path::Path;
 
 use crate::adapters::{SqliteCatalog, inspect_root_availability};
 use crate::domain::{
-    CatalogCursor, CatalogSnapshot, GalleryQuery, GallerySortDirection, GallerySortKey,
-    GalleryTimeAnchor, GalleryTimeline, LibraryFolderCursor, LibraryFolderPage, PreviewStatus,
-    ScanError,
+    CatalogCursor, CatalogSnapshot, GalleryLayoutManifestChunk, GalleryLayoutManifestCursor,
+    GalleryQuery, GallerySortDirection, GallerySortKey, GalleryTimeAnchor, GalleryTimeline,
+    LibraryFolderCursor, LibraryFolderPage, PreviewStatus, ScanError,
 };
 use crate::ports::CatalogRepository;
 
@@ -62,6 +62,18 @@ pub fn load_gallery_timeline(query: GalleryQuery) -> Result<GalleryTimeline, Sca
     let storage = storage_paths()?;
     let mut catalog = SqliteCatalog::open(storage.catalog_path)?;
     catalog.load_gallery_timeline(&query, &query_id)
+}
+
+pub fn load_gallery_layout_manifest_chunk(
+    max_items: u32,
+    query: GalleryQuery,
+    after: Option<GalleryLayoutManifestCursor>,
+) -> Result<GalleryLayoutManifestChunk, ScanError> {
+    let query = normalize_gallery_query(query);
+    let query_id = gallery_query_identity(&query);
+    let storage = storage_paths()?;
+    let mut catalog = SqliteCatalog::open(storage.catalog_path)?;
+    catalog.load_gallery_layout_manifest_chunk(max_items, &query, &query_id, after.as_ref())
 }
 
 pub fn load_library_folders(

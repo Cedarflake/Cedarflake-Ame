@@ -9,6 +9,7 @@ abstract interface class LibraryPreviewer {
   Future<LibraryAsset> materialize({
     required String locationId,
     required int previewEdge,
+    bool retry = false,
   });
 }
 
@@ -19,12 +20,14 @@ class RustLibraryPreviewer implements LibraryPreviewer {
   Future<LibraryAsset> materialize({
     required String locationId,
     required int previewEdge,
+    bool retry = false,
   }) async {
     try {
       final asset = await rust_api.materializeLibraryPreview(
         request: rust_domain.PreviewRequest(
           locationId: locationId,
           previewEdge: previewEdge,
+          retryFailed: retry,
         ),
       );
       return mapRustLibraryAsset(asset);

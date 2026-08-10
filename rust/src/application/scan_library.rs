@@ -6,8 +6,8 @@ use std::sync::{Arc, Mutex, OnceLock};
 use blake3::Hasher;
 
 use crate::adapters::{
-    FileDiscovery, FileVisitOutcome, LocalMediaInspector, SqliteCatalog, revalidate_file_state,
-    user_visible_path,
+    FileDiscovery, FileVisitOutcome, LocalMediaInspector, SqliteCatalog,
+    is_current_preview_artifact, revalidate_file_state, user_visible_path,
 };
 use crate::domain::{
     AssetLocationView, DiscoveredFile, PreviewStatus, RecoverableScan, ScanError, ScanEvent,
@@ -346,9 +346,11 @@ fn run_scan_with_storage(
                                 let (preview_path, preview_status) = prior
                                     .as_ref()
                                     .filter(|prior| {
-                                        matches!(prior.preview_status, PreviewStatus::Ready)
+                                        compatible_metadata.is_some()
+                                            && matches!(prior.preview_status, PreviewStatus::Ready)
                                             && !prior.preview_path.is_empty()
                                             && Path::new(&prior.preview_path).is_file()
+                                            && is_current_preview_artifact(&prior.preview_path)
                                     })
                                     .map(|prior| (prior.preview_path.clone(), PreviewStatus::Ready))
                                     .unwrap_or_else(|| (String::new(), PreviewStatus::Pending));

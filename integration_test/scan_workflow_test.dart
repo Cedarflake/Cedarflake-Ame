@@ -189,7 +189,11 @@ void main() {
     await _pumpUntil(tester, () {
       final current = container.read(libraryControllerProvider);
       return current.assets.length == 1 &&
-          current.assets.single.previewStatus == LibraryPreviewStatus.ready;
+          container
+                  .read(libraryControllerProvider.notifier)
+                  .resolvePreview(current.assets.single)
+                  .previewStatus ==
+              LibraryPreviewStatus.ready;
     }, timeout: const Duration(seconds: 30));
     final state = container.read(libraryControllerProvider);
 
@@ -205,11 +209,13 @@ void main() {
     expect(state.isScanLimited, isFalse);
     expect(find.byKey(const Key("library-photo-wall")), findsOneWidget);
 
-    final asset = state.assets.single;
+    final asset = container
+        .read(libraryControllerProvider.notifier)
+        .resolvePreview(state.assets.single);
     final catalogPath = state.catalogPath;
     expect(catalogPath, isNotNull);
     expect(asset.metadataEngineId, "kamadak-exif");
-    expect(asset.metadataEngineVersion, "0.6.1");
+    expect(asset.metadataEngineVersion, "0.6.1+ame-orientation-1");
     expect(asset.captureTime, isNull);
     expect(asset.fileIdentity?.scheme, "windows-file-id-128-v1");
     expect(await File(asset.previewPath).exists(), isTrue);
@@ -261,10 +267,15 @@ void main() {
       ),
     );
     await _pumpUntil(tester, () {
-      final current = ProviderScope.containerOf(
+      final currentContainer = ProviderScope.containerOf(
         tester.element(find.byType(UnifiedLibraryScreen)),
-      ).read(libraryControllerProvider);
-      return current.assets.single.previewStatus == LibraryPreviewStatus.ready;
+      );
+      final current = currentContainer.read(libraryControllerProvider);
+      return currentContainer
+              .read(libraryControllerProvider.notifier)
+              .resolvePreview(current.assets.single)
+              .previewStatus ==
+          LibraryPreviewStatus.ready;
     }, timeout: const Duration(seconds: 30));
 
     expect(find.byKey(const Key("library-photo-wall")), findsOneWidget);
@@ -307,10 +318,14 @@ void main() {
 
     await _pumpUntil(tester, () {
       final current = restoredContainer.read(libraryControllerProvider);
+      final controller = restoredContainer.read(
+        libraryControllerProvider.notifier,
+      );
       return current.assets.length == 2 &&
-          current.assets.every(
-            (asset) => asset.previewStatus == LibraryPreviewStatus.ready,
-          );
+          current.assets.every((asset) {
+            return controller.resolvePreview(asset).previewStatus ==
+                LibraryPreviewStatus.ready;
+          });
     }, timeout: const Duration(seconds: 30));
     final previewedMultiRootState = restoredContainer.read(
       libraryControllerProvider,

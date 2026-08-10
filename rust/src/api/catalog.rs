@@ -1,10 +1,12 @@
 use crate::application::{
-    cancel_scan, load_catalog, load_catalog_at_time, load_gallery_timeline, load_library_folders,
-    load_paused_scan, load_recoverable_scan, pause_scan, run_scan, unregister_library_root,
+    cancel_scan, load_catalog, load_catalog_at_time, load_gallery_layout_manifest_chunk,
+    load_gallery_timeline, load_library_folders, load_paused_scan, load_recoverable_scan,
+    pause_scan, run_scan, unregister_library_root,
 };
 use crate::domain::{
-    CatalogCursor, CatalogSnapshot, GalleryQuery, GalleryTimeAnchor, GalleryTimeline,
-    LibraryFolderCursor, LibraryFolderPage, RecoverableScan, ScanError, ScanEvent, ScanRequest,
+    CatalogCursor, CatalogSnapshot, GalleryLayoutManifestChunk, GalleryLayoutManifestCursor,
+    GalleryQuery, GalleryTimeAnchor, GalleryTimeline, LibraryFolderCursor, LibraryFolderPage,
+    RecoverableScan, ScanError, ScanEvent, ScanRequest,
 };
 use crate::frb_generated::StreamSink;
 
@@ -12,7 +14,6 @@ pub fn scan_library(request: ScanRequest, sink: StreamSink<ScanEvent>) -> Result
     run_scan(request, |event| sink.add(event).is_ok())
 }
 
-#[flutter_rust_bridge::frb(sync)]
 pub fn load_library_catalog(
     max_items: u32,
     query: GalleryQuery,
@@ -27,6 +28,14 @@ pub fn load_library_gallery_timeline(query: GalleryQuery) -> Result<GalleryTimel
     load_gallery_timeline(query)
 }
 
+pub fn load_library_gallery_layout_manifest_chunk(
+    max_items: u32,
+    query: GalleryQuery,
+    after: Option<GalleryLayoutManifestCursor>,
+) -> Result<GalleryLayoutManifestChunk, ScanError> {
+    load_gallery_layout_manifest_chunk(max_items, query, after)
+}
+
 #[flutter_rust_bridge::frb(sync)]
 pub fn load_library_folder_page(
     root_id: String,
@@ -37,7 +46,6 @@ pub fn load_library_folder_page(
     load_library_folders(root_id, parent_relative_path, max_items, after)
 }
 
-#[flutter_rust_bridge::frb(sync)]
 pub fn load_library_catalog_at_time(
     max_items: u32,
     query: GalleryQuery,

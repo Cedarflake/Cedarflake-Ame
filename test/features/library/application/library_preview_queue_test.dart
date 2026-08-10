@@ -84,11 +84,298 @@ void main() {
     expect(results.single.previewIssueMessage, contains("decoder stopped"));
     queue.dispose();
   });
+
+  test("retains only pending previews from the replacement window", () async {
+    final previewer = _ControlledPreviewer();
+    final queue = LibraryPreviewQueue(
+      previewer: previewer,
+      previewEdge: 512,
+      maxActive: 1,
+      onResult: (_) {},
+    );
+
+    queue.request(_asset("active"));
+    queue.request(_asset("keep"));
+    queue.request(_asset("discard"));
+    queue.retainPending(const ["keep"]);
+    previewer.succeed("active", _readyAsset("active"));
+    await _flushAsyncWork();
+
+    expect(previewer.requests, ["active", "keep"]);
+    previewer.succeed("keep", _readyAsset("keep"));
+    await _flushAsyncWork();
+    queue.dispose();
+  });
+
+  test(
+    "starts visible work before an earlier near-direction request",
+    () async {
+      final previewer = _ControlledPreviewer();
+      final queue = LibraryPreviewQueue(
+        previewer: previewer,
+        previewEdge: 512,
+        maxActive: 1,
+        onResult: (_) {},
+      );
+
+      queue.request(_asset("active"));
+      queue.request(
+        _asset("near"),
+        priority: LibraryPreviewPriority.nearDirection,
+      );
+      queue.request(_asset("visible"));
+      previewer.succeed("active", _readyAsset("active"));
+      await _flushAsyncWork();
+
+      expect(previewer.requests, ["active", "visible"]);
+      previewer.succeed("visible", _readyAsset("visible"));
+      await _flushAsyncWork();
+      previewer.succeed("near", _readyAsset("near"));
+      await _flushAsyncWork();
+      queue.dispose();
+    },
+  );
+
+  test(
+    "drains a demand batch once after selecting its highest priority",
+    () async {
+      final previewer = _ControlledPreviewer();
+      final queue = LibraryPreviewQueue(
+        previewer: previewer,
+        previewEdge: 512,
+        maxActive: 1,
+        onResult: (_) {},
+      );
+
+      queue.requestAll([
+        (asset: _asset("near"), priority: LibraryPreviewPriority.nearDirection),
+        (asset: _asset("visible"), priority: LibraryPreviewPriority.visible),
+      ]);
+
+      expect(previewer.requests, ["visible"]);
+      previewer.succeed("visible", _readyAsset("visible"));
+      await _flushAsyncWork();
+      previewer.succeed("near", _readyAsset("near"));
+      await _flushAsyncWork();
+      queue.dispose();
+    },
+  );
+
+  test("replaces demand before draining the new batch", () async {
+    final previewer = _ControlledPreviewer();
+    final queue = LibraryPreviewQueue(
+      previewer: previewer,
+      previewEdge: 512,
+      maxActive: 1,
+      onResult: (_) {},
+    );
+
+    queue.request(_asset("active"));
+    queue.request(
+      _asset("near"),
+      priority: LibraryPreviewPriority.nearDirection,
+    );
+    queue.replaceDemandAndRequestAll(
+      {
+        "near": LibraryPreviewPriority.guard,
+        "visible": LibraryPreviewPriority.visible,
+      },
+      [
+        (asset: _asset("near"), priority: LibraryPreviewPriority.guard),
+        (asset: _asset("visible"), priority: LibraryPreviewPriority.visible),
+      ],
+    );
+    previewer.succeed("active", _readyAsset("active"));
+    await _flushAsyncWork();
+
+    expect(previewer.requests, ["active", "visible"]);
+    previewer.succeed("visible", _readyAsset("visible"));
+    await _flushAsyncWork();
+    previewer.succeed("near", _readyAsset("near"));
+    await _flushAsyncWork();
+    queue.dispose();
+  });
+
+  test("upgrades a pending location without duplicating it", () async {
+    final previewer = _ControlledPreviewer();
+    final queue = LibraryPreviewQueue(
+      previewer: previewer,
+      previewEdge: 512,
+      maxActive: 1,
+      onResult: (_) {},
+    );
+    final candidate = _asset("candidate");
+
+    queue.request(_asset("active"));
+    queue.request(candidate, priority: LibraryPreviewPriority.guard);
+    queue.request(
+      _asset("near"),
+      priority: LibraryPreviewPriority.nearDirection,
+    );
+    queue.request(candidate, priority: LibraryPreviewPriority.viewer);
+    previewer.succeed("active", _readyAsset("active"));
+    await _flushAsyncWork();
+
+    expect(previewer.requests, ["active", "candidate"]);
+    previewer.succeed("candidate", _readyAsset("candidate"));
+    await _flushAsyncWork();
+    previewer.succeed("near", _readyAsset("near"));
+    await _flushAsyncWork();
+    expect(
+      previewer.requests.where((locationId) => locationId == "candidate"),
+      hasLength(1),
+    );
+    queue.dispose();
+  });
+
+  test("demotes old demand before scheduling the new visible item", () async {
+    final previewer = _ControlledPreviewer();
+    final queue = LibraryPreviewQueue(
+      previewer: previewer,
+      previewEdge: 512,
+      maxActive: 1,
+      onResult: (_) {},
+    );
+
+    queue.request(_asset("active"));
+    queue.request(_asset("old-visible"));
+    queue.updatePendingDemand({
+      "old-visible": LibraryPreviewPriority.guard,
+      "new-visible": LibraryPreviewPriority.visible,
+    });
+    queue.request(_asset("new-visible"));
+    previewer.succeed("active", _readyAsset("active"));
+    await _flushAsyncWork();
+
+    expect(previewer.requests, ["active", "new-visible"]);
+    previewer.succeed("new-visible", _readyAsset("new-visible"));
+    await _flushAsyncWork();
+    previewer.succeed("old-visible", _readyAsset("old-visible"));
+    await _flushAsyncWork();
+    queue.dispose();
+  });
+
+  test(
+    "ignores an active result after the source generation changes",
+    () async {
+      final previewer = _ControlledPreviewer();
+      final results = <LibraryAsset>[];
+      final queue = LibraryPreviewQueue(
+        previewer: previewer,
+        previewEdge: 512,
+        maxActive: 1,
+        onResult: results.add,
+      );
+
+      queue.request(_asset("same", modifiedUnixMs: 1));
+      queue.request(_asset("same", modifiedUnixMs: 2));
+      previewer.succeed("same", _readyAsset("same", modifiedUnixMs: 1));
+      await _flushAsyncWork();
+
+      expect(results, isEmpty);
+      expect(previewer.requests, ["same", "same"]);
+
+      previewer.succeed("same", _readyAsset("same", modifiedUnixMs: 2));
+      await _flushAsyncWork();
+      expect(results.single.modifiedUnixMs, 2);
+      queue.dispose();
+    },
+  );
+
+  test(
+    "replaces obsolete active demand without publishing its result",
+    () async {
+      final previewer = _ControlledPreviewer();
+      final results = <LibraryAsset>[];
+      final queue = LibraryPreviewQueue(
+        previewer: previewer,
+        previewEdge: 512,
+        maxActive: 1,
+        onResult: results.add,
+      );
+
+      queue.updatePendingDemand({
+        "old-visible": LibraryPreviewPriority.visible,
+      });
+      queue.request(_asset("old-visible"));
+      queue.updatePendingDemand({
+        "new-visible": LibraryPreviewPriority.visible,
+      });
+      queue.request(_asset("new-visible"));
+
+      expect(previewer.requests, ["old-visible", "new-visible"]);
+      previewer.succeed("old-visible", _readyAsset("old-visible"));
+      previewer.succeed("new-visible", _readyAsset("new-visible"));
+      await _flushAsyncWork();
+
+      expect(results.map((asset) => asset.locationId), ["new-visible"]);
+      queue.dispose();
+    },
+  );
+
+  test("allows only one replacement decode beyond the active limit", () async {
+    final previewer = _ControlledPreviewer();
+    final queue = LibraryPreviewQueue(
+      previewer: previewer,
+      previewEdge: 512,
+      maxActive: 2,
+      onResult: (_) {},
+    );
+
+    queue.updatePendingDemand({
+      "old-one": LibraryPreviewPriority.visible,
+      "old-two": LibraryPreviewPriority.visible,
+    });
+    queue.request(_asset("old-one"));
+    queue.request(_asset("old-two"));
+    queue.updatePendingDemand({
+      "new-one": LibraryPreviewPriority.visible,
+      "new-two": LibraryPreviewPriority.visible,
+    });
+    queue.request(_asset("new-one"));
+    queue.request(_asset("new-two"));
+
+    expect(previewer.requests, ["old-one", "old-two", "new-one"]);
+
+    previewer.succeed("old-one", _readyAsset("old-one"));
+    await _flushAsyncWork();
+    expect(previewer.requests, ["old-one", "old-two", "new-one", "new-two"]);
+
+    previewer.succeed("old-two", _readyAsset("old-two"));
+    previewer.succeed("new-one", _readyAsset("new-one"));
+    previewer.succeed("new-two", _readyAsset("new-two"));
+    await _flushAsyncWork();
+    queue.dispose();
+  });
+
+  test("starts viewer demand while lower priority work is active", () async {
+    final previewer = _ControlledPreviewer();
+    final queue = LibraryPreviewQueue(
+      previewer: previewer,
+      previewEdge: 512,
+      maxActive: 1,
+      onResult: (_) {},
+    );
+
+    queue.updatePendingDemand({"guard": LibraryPreviewPriority.guard});
+    queue.request(_asset("guard"), priority: LibraryPreviewPriority.guard);
+    queue.updatePendingDemand({
+      "guard": LibraryPreviewPriority.guard,
+      "viewer": LibraryPreviewPriority.viewer,
+    });
+    queue.request(_asset("viewer"), priority: LibraryPreviewPriority.viewer);
+
+    expect(previewer.requests, ["guard", "viewer"]);
+    previewer.succeed("viewer", _readyAsset("viewer"));
+    previewer.succeed("guard", _readyAsset("guard"));
+    await _flushAsyncWork();
+    queue.dispose();
+  });
 }
 
 Future<void> _flushAsyncWork() => Future<void>.delayed(Duration.zero);
 
-LibraryAsset _asset(String id) {
+LibraryAsset _asset(String id, {int modifiedUnixMs = 1}) {
   return LibraryAsset(
     assetId: "asset-$id",
     locationId: id,
@@ -98,15 +385,15 @@ LibraryAsset _asset(String id) {
     relativePath: "$id.png",
     previewPath: "",
     fileSize: BigInt.one,
-    modifiedUnixMs: 1,
+    modifiedUnixMs: modifiedUnixMs,
     width: 160,
     height: 90,
     previewStatus: LibraryPreviewStatus.pending,
   );
 }
 
-LibraryAsset _readyAsset(String id) {
-  return _asset(id).withPreview(
+LibraryAsset _readyAsset(String id, {int modifiedUnixMs = 1}) {
+  return _asset(id, modifiedUnixMs: modifiedUnixMs).withPreview(
     previewPath: "C:\\Cache\\$id.png",
     width: 160,
     height: 90,
@@ -122,6 +409,7 @@ class _ControlledPreviewer implements LibraryPreviewer {
   Future<LibraryAsset> materialize({
     required String locationId,
     required int previewEdge,
+    bool retry = false,
   }) {
     requests.add(locationId);
     final completer = Completer<LibraryAsset>();

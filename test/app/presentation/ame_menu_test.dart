@@ -88,6 +88,49 @@ void main() {
     );
 
     expect(tester.widget<MenuAnchor>(find.byType(MenuAnchor)).animated, isTrue);
+    expect(
+      tester.widget<MenuAnchor>(find.byType(MenuAnchor)).reservedPadding,
+      const EdgeInsets.all(AmeMenuMetrics.viewportPadding),
+    );
+  });
+
+  testWidgets("keeps anchored menus away from the viewport edge", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(340, 230);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildAmeTheme(),
+        home: Scaffold(
+          body: Align(
+            alignment: Alignment.topRight,
+            child: AmeMenuAnchor(
+              menuChildren: [
+                MenuItemButton(onPressed: () {}, child: const Text("全选")),
+              ],
+              builder: (context, controller, child) => IconButton(
+                key: const Key("edge-menu-button"),
+                onPressed: controller.open,
+                icon: const Icon(Icons.more_horiz),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key("edge-menu-button")));
+    await tester.pumpAndSettle();
+
+    final menuRect = tester.getRect(find.byType(MenuItemButton));
+    expect(
+      tester.view.physicalSize.width - menuRect.right,
+      greaterThanOrEqualTo(AmeMenuMetrics.viewportPadding),
+    );
   });
 
   testWidgets("sizes popup menus from their longest label", (tester) async {

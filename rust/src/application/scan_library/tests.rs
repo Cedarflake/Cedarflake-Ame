@@ -1,7 +1,11 @@
 use std::fs;
+use std::io::Cursor;
 use std::path::PathBuf;
 
-use image::{ImageFormat, Rgba, RgbaImage};
+use exif::experimental::Writer;
+use exif::{Field, In, Tag, Value};
+use image::codecs::jpeg::JpegEncoder;
+use image::{ExtendedColorType, ImageEncoder, ImageFormat, Rgb, RgbImage, Rgba, RgbaImage};
 use rusqlite::Connection;
 use tempfile::tempdir;
 
@@ -21,6 +25,29 @@ fn load_test_snapshot(storage: &StoragePaths) -> crate::domain::CatalogSnapshot 
             None,
         )
         .expect("test snapshot")
+}
+
+fn orientation_jpeg_fixture(orientation: u16, width: u32, height: u32) -> Vec<u8> {
+    let mut exif_writer = Writer::new();
+    let orientation_field = Field {
+        tag: Tag::Orientation,
+        ifd_num: In::PRIMARY,
+        value: Value::Short(vec![orientation]),
+    };
+    exif_writer.push_field(&orientation_field);
+    let mut exif = Cursor::new(Vec::new());
+    exif_writer.write(&mut exif, false).expect("encode EXIF");
+
+    let pixels = vec![96; usize::try_from(width * height * 3).expect("pixel count")];
+    let mut jpeg = Vec::new();
+    let mut encoder = JpegEncoder::new(&mut jpeg);
+    encoder
+        .set_exif_metadata(exif.into_inner())
+        .expect("set orientation EXIF");
+    encoder
+        .encode(&pixels, width, height, ExtendedColorType::Rgb8)
+        .expect("encode orientation JPEG");
+    jpeg
 }
 
 #[test]
@@ -145,6 +172,7 @@ fn completed_scan_publishes_metadata_then_materializes_an_external_preview() {
         crate::domain::PreviewRequest {
             location_id: pending_asset.location_id,
             preview_edge: 256,
+            retry_failed: false,
         },
         StoragePaths {
             catalog_path: catalog_path.clone(),
@@ -154,13 +182,55 @@ fn completed_scan_publishes_metadata_then_materializes_an_external_preview() {
         },
     )
     .expect("materialized preview");
-    let preview_path = PathBuf::from(previewed.preview_path);
+    let preview_path = PathBuf::from(&previewed.preview_path);
     assert!(matches!(previewed.preview_status, PreviewStatus::Ready));
     assert!(preview_path.starts_with(&preview_root));
     assert!(!preview_path.starts_with(source.path()));
     assert!(preview_path.is_file());
     assert_eq!(
         fs::read(&source_path).expect("source after preview"),
+        original_bytes,
+    );
+
+    fs::write(&preview_path, b"truncated cached preview").expect("corrupt cached preview");
+    let unchanged = crate::application::preview::materialize_preview_with_storage(
+        crate::domain::PreviewRequest {
+            location_id: previewed.location_id.clone(),
+            preview_edge: 256,
+            retry_failed: false,
+        },
+        StoragePaths {
+            catalog_path: catalog_path.clone(),
+            preview_root: preview_root.clone(),
+            preview_budget_bytes: 64 * 1024 * 1024,
+            settings_path: storage.path().join("settings.sqlite3"),
+        },
+    )
+    .expect("ordinary ready request");
+    assert!(matches!(unchanged.preview_status, PreviewStatus::Ready));
+    assert_eq!(
+        fs::read(&preview_path).expect("unchanged corrupt preview"),
+        b"truncated cached preview"
+    );
+
+    let repaired = crate::application::preview::materialize_preview_with_storage(
+        crate::domain::PreviewRequest {
+            location_id: previewed.location_id,
+            preview_edge: 256,
+            retry_failed: true,
+        },
+        StoragePaths {
+            catalog_path: catalog_path.clone(),
+            preview_root: preview_root.clone(),
+            preview_budget_bytes: 64 * 1024 * 1024,
+            settings_path: storage.path().join("settings.sqlite3"),
+        },
+    )
+    .expect("repair ready preview");
+    assert!(matches!(repaired.preview_status, PreviewStatus::Ready));
+    image::open(&preview_path).expect("repaired preview decodes");
+    assert_eq!(
+        fs::read(&source_path).expect("source after repair"),
         original_bytes,
     );
 
@@ -181,6 +251,82 @@ fn completed_scan_publishes_metadata_then_materializes_an_external_preview() {
         .expect("active scan");
     assert_eq!(status, "completed");
     assert_eq!(active_scan, "end-to-end-scan");
+}
+
+#[test]
+fn failed_preview_requires_an_explicit_retry_before_reading_source_again() {
+    let source = tempdir().expect("source directory");
+    let storage = tempdir().expect("storage directory");
+    let source_path = source.path().join("source.png");
+    RgbaImage::from_pixel(16, 12, Rgba([40, 80, 120, 255]))
+        .save(&source_path)
+        .expect("fixture image");
+    let storage_paths = StoragePaths {
+        catalog_path: storage.path().join("catalog").join("ame.sqlite3"),
+        preview_root: storage.path().join("previews"),
+        preview_budget_bytes: 1,
+        settings_path: storage.path().join("settings.sqlite3"),
+    };
+
+    run_scan_with_storage(
+        ScanRequest {
+            scan_id: "failed-preview-retry".to_owned(),
+            root_path: source.path().to_string_lossy().into_owned(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 256,
+        },
+        |_| true,
+        storage_paths.clone(),
+    )
+    .expect("completed scan");
+    let location_id = load_test_snapshot(&storage_paths).assets[0]
+        .location_id
+        .clone();
+
+    let failed = crate::application::preview::materialize_preview_with_storage(
+        crate::domain::PreviewRequest {
+            location_id: location_id.clone(),
+            preview_edge: 256,
+            retry_failed: false,
+        },
+        storage_paths.clone(),
+    )
+    .expect("failed preview state");
+    assert!(matches!(failed.preview_status, PreviewStatus::Failed));
+    assert_eq!(
+        failed.preview_issue_code.as_deref(),
+        Some("preview_cache_budget_exceeded")
+    );
+
+    fs::remove_file(&source_path).expect("remove source after failure");
+    let retained = crate::application::preview::materialize_preview_with_storage(
+        crate::domain::PreviewRequest {
+            location_id: location_id.clone(),
+            preview_edge: 256,
+            retry_failed: false,
+        },
+        storage_paths.clone(),
+    )
+    .expect("retained failure state");
+    assert_eq!(
+        retained.preview_issue_code.as_deref(),
+        Some("preview_cache_budget_exceeded")
+    );
+
+    let retried = crate::application::preview::materialize_preview_with_storage(
+        crate::domain::PreviewRequest {
+            location_id,
+            preview_edge: 256,
+            retry_failed: true,
+        },
+        storage_paths,
+    )
+    .expect("retried failure state");
+    assert_eq!(
+        retried.preview_issue_code.as_deref(),
+        Some("source_revalidation_failed")
+    );
 }
 
 #[test]
@@ -260,7 +406,7 @@ fn unchanged_file_is_reinspected_when_metadata_engine_identity_changes() {
 
     assert_eq!(scan_id, "metadata-engine-second");
     assert_eq!(engine_id, "kamadak-exif");
-    assert_eq!(engine_version, "0.6.1");
+    assert_eq!(engine_version, "0.6.1+ame-orientation-1");
     assert!(capture_local_time.is_none());
     assert_eq!(
         fs::read(&source_path).expect("source after reinspection"),
@@ -338,10 +484,115 @@ fn unchanged_file_reuses_capture_evidence_from_the_active_metadata_engine() {
             .expect("active metadata evidence");
 
     assert_eq!(engine_id, "kamadak-exif");
-    assert_eq!(engine_version, "0.6.1");
+    assert_eq!(engine_version, "0.6.1+ame-orientation-1");
     assert_eq!(
         capture_local_time.as_deref(),
         Some("1999-01-01T00:00:00.000000000")
+    );
+}
+
+#[test]
+fn rescan_repairs_legacy_orientation_dimensions_and_invalidates_old_preview() {
+    let source = tempdir().expect("source directory");
+    let storage = tempdir().expect("storage directory");
+    let source_path = source.path().join("portrait.jpg");
+    let original_bytes = orientation_jpeg_fixture(6, 80, 60);
+    fs::write(&source_path, &original_bytes).expect("write orientation source");
+    let storage_paths = StoragePaths {
+        catalog_path: storage.path().join("catalog").join("ame.sqlite3"),
+        preview_root: storage.path().join("previews"),
+        preview_budget_bytes: 64 * 1024 * 1024,
+        settings_path: storage.path().join("settings.sqlite3"),
+    };
+
+    run_scan_with_storage(
+        ScanRequest {
+            scan_id: "orientation-recovery-first".to_owned(),
+            root_path: source.path().to_string_lossy().into_owned(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 256,
+        },
+        |_| true,
+        storage_paths.clone(),
+    )
+    .expect("first orientation scan");
+
+    fs::create_dir_all(&storage_paths.preview_root).expect("preview root");
+    let legacy_preview_path = storage_paths.preview_root.join("legacy-thumbnail-v1.jpg");
+    RgbImage::from_pixel(80, 60, Rgb([96, 96, 96]))
+        .save(&legacy_preview_path)
+        .expect("legacy preview fixture");
+    let legacy_preview_text = legacy_preview_path.to_string_lossy().into_owned();
+    let connection = Connection::open(&storage_paths.catalog_path).expect("published catalog");
+    connection
+        .execute(
+            "UPDATE asset_locations
+                 SET width = 80, height = 60,
+                     metadata_engine_version = '0.6.1',
+                     preview_path = ?1, preview_status = 'ready'
+                 WHERE scan_id = 'orientation-recovery-first'",
+            [&legacy_preview_text],
+        )
+        .expect("install legacy orientation evidence");
+    drop(connection);
+
+    run_scan_with_storage(
+        ScanRequest {
+            scan_id: "orientation-recovery-second".to_owned(),
+            root_path: source.path().to_string_lossy().into_owned(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 256,
+        },
+        |_| true,
+        storage_paths.clone(),
+    )
+    .expect("orientation recovery rescan");
+
+    let recovered = load_test_snapshot(&storage_paths)
+        .assets
+        .into_iter()
+        .next()
+        .expect("recovered asset");
+    assert_eq!((recovered.width, recovered.height), (60, 80));
+    assert_eq!(recovered.metadata_engine_version, "0.6.1+ame-orientation-1");
+    assert!(matches!(recovered.preview_status, PreviewStatus::Pending));
+    assert!(recovered.preview_path.is_empty());
+
+    let mut catalog = SqliteCatalog::open(storage_paths.catalog_path.clone()).expect("catalog");
+    let manifest = catalog
+        .load_gallery_layout_manifest_chunk(
+            100,
+            &GalleryQuery::default(),
+            "orientation-recovery-query",
+            None,
+        )
+        .expect("orientation-corrected manifest");
+    assert_eq!(manifest.aspect_ratio_milli, [750]);
+    drop(catalog);
+
+    let previewed = crate::application::preview::materialize_preview_with_storage(
+        crate::domain::PreviewRequest {
+            location_id: recovered.location_id,
+            preview_edge: 256,
+            retry_failed: false,
+        },
+        storage_paths.clone(),
+    )
+    .expect("materialize recovered preview");
+    assert_eq!((previewed.width, previewed.height), (60, 80));
+    assert_ne!(PathBuf::from(&previewed.preview_path), legacy_preview_path);
+    assert!(crate::adapters::is_current_preview_artifact(
+        &previewed.preview_path
+    ));
+    assert_eq!(
+        image::image_dimensions(&previewed.preview_path).expect("preview dimensions"),
+        (192, 256)
+    );
+    assert_eq!(
+        fs::read(&source_path).expect("source after recovery"),
+        original_bytes,
     );
 }
 
@@ -386,6 +637,7 @@ fn rescans_reconcile_rename_edit_replacement_and_removal_without_stale_rows() {
         crate::domain::PreviewRequest {
             location_id: first_asset.location_id.clone(),
             preview_edge: 256,
+            retry_failed: false,
         },
         storage_paths.clone(),
     )

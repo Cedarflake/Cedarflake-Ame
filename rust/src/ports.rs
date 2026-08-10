@@ -2,9 +2,10 @@ use std::path::Path;
 
 use crate::domain::{
     AssetLocationView, CatalogCursor, CatalogSnapshot, DiscoveredFile, ExpectedFileState,
-    FileIdentityEvidence, GalleryQuery, GalleryTimeAnchor, GalleryTimeline, LibraryFolderCursor,
-    LibraryFolderPage, MediaInspection, MetadataInspection, PreviewArtifact, RecoverableScan,
-    ScanCheckpoint, ScanError, ScanIssue, ScanRequest, StorageConfiguration,
+    FileIdentityEvidence, GalleryLayoutManifestChunk, GalleryLayoutManifestCursor, GalleryQuery,
+    GalleryTimeAnchor, GalleryTimeline, LibraryFolderCursor, LibraryFolderPage, MediaInspection,
+    MetadataInspection, PreviewArtifact, RecoverableScan, ScanCheckpoint, ScanError, ScanIssue,
+    ScanRequest, StorageConfiguration,
 };
 
 pub trait CatalogRepository {
@@ -104,6 +105,13 @@ pub trait CatalogRepository {
         query: &GalleryQuery,
         query_id: &str,
     ) -> Result<GalleryTimeline, ScanError>;
+    fn load_gallery_layout_manifest_chunk(
+        &mut self,
+        max_items: u32,
+        query: &GalleryQuery,
+        query_id: &str,
+        after: Option<&GalleryLayoutManifestCursor>,
+    ) -> Result<GalleryLayoutManifestChunk, ScanError>;
     fn load_folder_page(
         &mut self,
         root_id: &str,
@@ -127,6 +135,8 @@ pub trait PreviewStore {
         &self,
         file: &DiscoveredFile,
         preview_edge: u32,
+        source_width: u32,
+        source_height: u32,
     ) -> Result<PreviewArtifact, ScanIssue>;
 }
 

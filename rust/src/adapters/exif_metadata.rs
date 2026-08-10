@@ -4,7 +4,7 @@ use crate::domain::{CaptureTimeEvidence, CaptureTimeSource, MetadataInspection, 
 use crate::ports::MetadataExtractor;
 
 pub(crate) const METADATA_ENGINE_ID: &str = "kamadak-exif";
-pub(crate) const METADATA_ENGINE_VERSION: &str = "0.6.1";
+pub(crate) const METADATA_ENGINE_VERSION: &str = "0.6.1+ame-orientation-1";
 const MAX_EXIF_BYTES: usize = 4 * 1024 * 1024;
 const MAX_CAPTURE_FIELD_BYTES: usize = 64;
 

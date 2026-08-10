@@ -64,19 +64,28 @@ class LibraryTimelineProjection {
     final globalItemOffset = globalItemOffsetForValue(
       value,
     ).floor().clamp(0, _timeline.totalItems - 1).toInt();
+    return targetForGlobalItemOffset(globalItemOffset);
+  }
+
+  LibraryTimelineTarget targetForGlobalItemOffset(int globalItemOffset) {
+    assert(_timeline.buckets.isNotEmpty);
+    assert(_timeline.totalItems > 0);
+    final boundedGlobalItemOffset = globalItemOffset
+        .clamp(0, _timeline.totalItems - 1)
+        .toInt();
     var precedingItems = 0;
     for (var index = 0; index < _timeline.buckets.length; index++) {
       final source = _timeline.buckets[index];
       final bucketEnd = precedingItems + source.itemCount;
       final isLast = index == _timeline.buckets.length - 1;
-      if (globalItemOffset < bucketEnd || isLast) {
-        final itemOffset = (globalItemOffset - precedingItems)
+      if (boundedGlobalItemOffset < bucketEnd || isLast) {
+        final itemOffset = (boundedGlobalItemOffset - precedingItems)
             .clamp(0, source.itemCount - 1)
             .toInt();
         return LibraryTimelineTarget(
           bucket: source,
           itemOffset: itemOffset,
-          globalItemOffset: globalItemOffset,
+          globalItemOffset: boundedGlobalItemOffset,
         );
       }
       precedingItems = bucketEnd;

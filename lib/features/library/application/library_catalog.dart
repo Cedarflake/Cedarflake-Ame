@@ -6,6 +6,7 @@ import "../domain/library_folder_models.dart";
 import "../domain/library_models.dart";
 
 const libraryCatalogWindow = 500;
+const libraryTimelineWindow = 160;
 const libraryFolderWindow = 200;
 
 abstract interface class LibraryCatalog {
@@ -47,32 +48,34 @@ class RustLibraryCatalog implements LibraryCatalog, LibraryFolderCatalog {
     LibraryCatalogCursor? before,
   }) async {
     try {
-      final snapshot = rust_api.loadLibraryCatalog(
-        maxItems: maxItems,
-        query: _mapQuery(query),
-        after: after == null
-            ? null
-            : rust_domain.CatalogCursor(
-                revision: after.revision,
-                queryId: after.queryId,
-                primaryMissing: after.primaryMissing,
-                primaryText: after.primaryText,
-                primaryNumber: after.primaryNumber,
-                rootId: after.rootId,
-                locationId: after.locationId,
-              ),
-        before: before == null
-            ? null
-            : rust_domain.CatalogCursor(
-                revision: before.revision,
-                queryId: before.queryId,
-                primaryMissing: before.primaryMissing,
-                primaryText: before.primaryText,
-                primaryNumber: before.primaryNumber,
-                rootId: before.rootId,
-                locationId: before.locationId,
-              ),
-      );
+      final Future<rust_domain.CatalogSnapshot> pendingSnapshot = rust_api
+          .loadLibraryCatalog(
+            maxItems: maxItems,
+            query: _mapQuery(query),
+            after: after == null
+                ? null
+                : rust_domain.CatalogCursor(
+                    revision: after.revision,
+                    queryId: after.queryId,
+                    primaryMissing: after.primaryMissing,
+                    primaryText: after.primaryText,
+                    primaryNumber: after.primaryNumber,
+                    rootId: after.rootId,
+                    locationId: after.locationId,
+                  ),
+            before: before == null
+                ? null
+                : rust_domain.CatalogCursor(
+                    revision: before.revision,
+                    queryId: before.queryId,
+                    primaryMissing: before.primaryMissing,
+                    primaryText: before.primaryText,
+                    primaryNumber: before.primaryNumber,
+                    rootId: before.rootId,
+                    locationId: before.locationId,
+                  ),
+          );
+      final snapshot = await pendingSnapshot;
       return _mapSnapshot(snapshot);
     } on Object catch (error) {
       throw _mapFailure(error, "bridge_catalog_load_failed");
@@ -162,16 +165,18 @@ class RustLibraryCatalog implements LibraryCatalog, LibraryFolderCatalog {
     required LibraryTimeAnchor anchor,
   }) async {
     try {
-      final snapshot = rust_api.loadLibraryCatalogAtTime(
-        maxItems: maxItems,
-        query: _mapQuery(query),
-        anchor: rust_domain.GalleryTimeAnchor(
-          revision: anchor.revision,
-          queryId: anchor.queryId,
-          monthKey: anchor.monthKey,
-          itemOffset: BigInt.from(anchor.itemOffset),
-        ),
-      );
+      final Future<rust_domain.CatalogSnapshot> pendingSnapshot = rust_api
+          .loadLibraryCatalogAtTime(
+            maxItems: maxItems,
+            query: _mapQuery(query),
+            anchor: rust_domain.GalleryTimeAnchor(
+              revision: anchor.revision,
+              queryId: anchor.queryId,
+              monthKey: anchor.monthKey,
+              itemOffset: BigInt.from(anchor.itemOffset),
+            ),
+          );
+      final snapshot = await pendingSnapshot;
       return _mapSnapshot(snapshot);
     } on Object catch (error) {
       throw _mapFailure(error, "bridge_time_anchor_load_failed");
@@ -222,27 +227,7 @@ class RustLibraryCatalog implements LibraryCatalog, LibraryFolderCatalog {
   }
 
   rust_domain.GalleryQuery _mapQuery(LibraryGalleryQuery query) {
-    return rust_domain.GalleryQuery(
-      rootId: query.rootId,
-      folderRelativePath: query.folderRelativePath,
-      includeDescendants: query.includeDescendants,
-      searchText: query.searchText,
-      sortKey: switch (query.sortKey) {
-        LibraryGallerySortKey.captureTime =>
-          rust_domain.GallerySortKey.captureTime,
-        LibraryGallerySortKey.createdTime =>
-          rust_domain.GallerySortKey.createdTime,
-        LibraryGallerySortKey.modifiedTime =>
-          rust_domain.GallerySortKey.modifiedTime,
-        LibraryGallerySortKey.fileName => rust_domain.GallerySortKey.fileName,
-      },
-      sortDirection: switch (query.sortDirection) {
-        LibraryGallerySortDirection.ascending =>
-          rust_domain.GallerySortDirection.ascending,
-        LibraryGallerySortDirection.descending =>
-          rust_domain.GallerySortDirection.descending,
-      },
-    );
+    return mapLibraryGalleryQueryToRust(query);
   }
 
   LibraryRoot _mapRoot(rust_domain.LibraryRootView root) {
@@ -269,6 +254,32 @@ class RustLibraryCatalog implements LibraryCatalog, LibraryFolderCatalog {
       availabilityMessage: root.availabilityMessage,
     );
   }
+}
+
+rust_domain.GalleryQuery mapLibraryGalleryQueryToRust(
+  LibraryGalleryQuery query,
+) {
+  return rust_domain.GalleryQuery(
+    rootId: query.rootId,
+    folderRelativePath: query.folderRelativePath,
+    includeDescendants: query.includeDescendants,
+    searchText: query.searchText,
+    sortKey: switch (query.sortKey) {
+      LibraryGallerySortKey.captureTime =>
+        rust_domain.GallerySortKey.captureTime,
+      LibraryGallerySortKey.createdTime =>
+        rust_domain.GallerySortKey.createdTime,
+      LibraryGallerySortKey.modifiedTime =>
+        rust_domain.GallerySortKey.modifiedTime,
+      LibraryGallerySortKey.fileName => rust_domain.GallerySortKey.fileName,
+    },
+    sortDirection: switch (query.sortDirection) {
+      LibraryGallerySortDirection.ascending =>
+        rust_domain.GallerySortDirection.ascending,
+      LibraryGallerySortDirection.descending =>
+        rust_domain.GallerySortDirection.descending,
+    },
+  );
 }
 
 LibraryAsset mapRustLibraryAsset(rust_domain.AssetLocationView asset) {

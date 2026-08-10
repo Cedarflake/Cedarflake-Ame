@@ -106,6 +106,82 @@ void main() {
     );
   });
 
+  testWidgets("shows one drag label and suppresses the hover preview", (
+    tester,
+  ) async {
+    var value = 0.0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Align(
+            alignment: Alignment.centerRight,
+            child: StatefulBuilder(
+              builder: (context, setState) => AnnotatedTimeRail(
+                value: value,
+                maximumScrollOffset: 1000,
+                buckets: const [
+                  TimelineRailBucket(
+                    id: "head",
+                    label: "2026年5月12日",
+                    contentExtent: 600,
+                    scrollOffset: 0,
+                    year: 2026,
+                  ),
+                  TimelineRailBucket(
+                    id: "tail",
+                    label: "2026年4月10日",
+                    contentExtent: 400,
+                    scrollOffset: 600,
+                    year: 2026,
+                  ),
+                ],
+                onChanged: (nextValue) => setState(() => value = nextValue),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final hoverRegion = tester.getRect(
+      find.byKey(const Key("timeline-hover-region")),
+    );
+    tester
+        .widget<Listener>(find.byKey(const Key("timeline-hover-region")))
+        .onPointerHover
+        ?.call(
+          PointerHoverEvent(
+            position: Offset(56, hoverRegion.height * 0.75),
+            kind: PointerDeviceKind.mouse,
+          ),
+        );
+    await tester.pump();
+    expect(find.byKey(const Key("timeline-hover-line")), findsOneWidget);
+
+    final slider = tester.widget<Slider>(
+      find.byKey(const Key("timeline-slider")),
+    );
+    slider.onChangeStart?.call(slider.value);
+    slider.onChanged?.call(0.25);
+    await tester.pump();
+
+    expect(find.byKey(const Key("timeline-hover-line")), findsNothing);
+    expect(find.byKey(const Key("timeline-hover-label")), findsNothing);
+    expect(
+      tester.widget<Text>(find.byKey(const Key("timeline-drag-label"))).data,
+      "2026年4月10日",
+    );
+
+    tester
+        .widget<Slider>(find.byKey(const Key("timeline-slider")))
+        .onChangeEnd
+        ?.call(0.25);
+    await tester.pump();
+
+    expect(find.byKey(const Key("timeline-drag-label")), findsNothing);
+    expect(find.byKey(const Key("timeline-hover-line")), findsNothing);
+  });
+
   testWidgets("separates colliding year labels when the rail has room", (
     tester,
   ) async {
@@ -424,7 +500,7 @@ void main() {
     );
 
     expect(find.byKey(const Key("timeline-current-line")), findsOneWidget);
-    expect(find.byKey(const ValueKey("time-marker-a")), findsNothing);
+    expect(find.byKey(const ValueKey("time-marker-a")), findsOneWidget);
     expect(find.byType(MenuAnchor), findsNothing);
     expect(find.byType(MenuItemButton), findsNothing);
   });

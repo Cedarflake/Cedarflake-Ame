@@ -96,6 +96,15 @@ void main() {
     expect(state.status, LibraryStatus.completed);
     expect(state.assets.single.relativePath, "1.png");
     expect(state.catalogPath, "C:\\AmeData\\ame.sqlite3");
+    expect(state.scanId, "scan-test");
+    expect(state.visitedEntries, 1);
+    expect(state.stagedAssetCount, 1);
+
+    controller.dismissCompletedImport();
+    final dismissedState = container.read(libraryControllerProvider);
+    expect(dismissedState.status, LibraryStatus.completed);
+    expect(dismissedState.scanId, isNull);
+    expect(dismissedState.assets.single.relativePath, "1.png");
   });
 
   test("forwards cancellation to the active Rust scan", () async {
@@ -387,6 +396,7 @@ void main() {
     expect(catalog.anchors, hasLength(1));
     expect(catalog.anchors.single.revision, initialSnapshot.revision);
     expect(catalog.anchors.single.itemOffset, 9);
+    expect(catalog.timeWindowSizes.single, libraryTimelineWindow);
 
     final loadedPrevious = await container
         .read(libraryControllerProvider.notifier)
@@ -402,6 +412,460 @@ void main() {
     expect(expandedState.nextCursor, same(nextCursor));
     expect(expandedState.windowStartItemOffset, 8);
     expect(catalog.befores.single, same(previousCursor));
+  });
+
+  test(
+    "does not schedule catalog work while the visible rows are loaded",
+    () async {
+      final initialSnapshot = _snapshot(
+        assets: [
+          _asset(suffix: "visible-10"),
+          _asset(suffix: "visible-11"),
+          _asset(suffix: "visible-12"),
+        ],
+      );
+      final catalog = _FakeLibraryCatalog.sequence(
+        const [],
+        initialRevision: initialSnapshot.revision,
+      );
+      final initialState = LibraryState.fromSnapshot(initialSnapshot).copyWith(
+        windowStartItemOffset: 10,
+        timeline: LibraryTimeline(
+          revision: initialSnapshot.revision,
+          queryId: initialSnapshot.queryId,
+          totalItems: 100,
+          buckets: const [
+            LibraryTimeBucket(
+              monthKey: "2024-05",
+              itemCount: 100,
+              aspectRatioSum: 100,
+            ),
+          ],
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(initialState),
+          libraryCatalogProvider.overrideWithValue(catalog),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final controller = container.read(libraryControllerProvider.notifier);
+      for (var offset = 10; offset < 13; offset++) {
+        controller.ensureVisibleRange(
+          startItemOffset: offset,
+          endItemOffsetExclusive: offset + 1,
+        );
+      }
+      await Future<void>.delayed(Duration.zero);
+
+      expect(catalog.anchors, isEmpty);
+      expect(catalog.afters, isEmpty);
+      expect(catalog.befores, isEmpty);
+    },
+  );
+
+  test(
+    "fills an overlapping visible range on both window boundaries",
+    () async {
+      final previousCursor = _cursor(suffix: "visible-previous");
+      final nextCursor = _cursor(suffix: "visible-next");
+      final initialSnapshot = _snapshot(
+        assets: [
+          _asset(suffix: "visible-10"),
+          _asset(suffix: "visible-11"),
+        ],
+        previousCursor: previousCursor,
+        nextCursor: nextCursor,
+      );
+      final catalog = _FakeLibraryCatalog.sequence([
+        _snapshot(assets: [_asset(suffix: "visible-9")]),
+        _snapshot(assets: [_asset(suffix: "visible-12")]),
+      ], initialRevision: initialSnapshot.revision);
+      final initialState = LibraryState.fromSnapshot(initialSnapshot).copyWith(
+        windowStartItemOffset: 10,
+        timeline: LibraryTimeline(
+          revision: initialSnapshot.revision,
+          queryId: initialSnapshot.queryId,
+          totalItems: 100,
+          buckets: const [
+            LibraryTimeBucket(
+              monthKey: "2024-05",
+              itemCount: 100,
+              aspectRatioSum: 100,
+            ),
+          ],
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(initialState),
+          libraryCatalogProvider.overrideWithValue(catalog),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container
+          .read(libraryControllerProvider.notifier)
+          .ensureVisibleRange(startItemOffset: 9, endItemOffsetExclusive: 13);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      final state = container.read(libraryControllerProvider);
+      expect(state.windowStartItemOffset, 9);
+      expect(state.assets.map((asset) => asset.locationId), [
+        "location-visible-9",
+        "location-visible-10",
+        "location-visible-11",
+        "location-visible-12",
+      ]);
+      expect(catalog.befores, [same(previousCursor), isNull]);
+      expect(catalog.afters, [isNull, same(nextCursor)]);
+    },
+  );
+
+  test("loads a detail window for a disjoint visible range", () async {
+    const olderBucket = LibraryTimeBucket(
+      monthKey: "2024-04",
+      itemCount: 30,
+      aspectRatioSum: 30,
+    );
+    const newerBucket = LibraryTimeBucket(
+      monthKey: "2024-05",
+      itemCount: 70,
+      aspectRatioSum: 70,
+    );
+    final initialSnapshot = _snapshot(
+      assets: [_asset(suffix: "visible-initial")],
+    );
+    final catalog = _FakeLibraryCatalog.sequence([
+      _snapshot(assets: [_asset(suffix: "visible-target")]),
+    ], initialRevision: initialSnapshot.revision);
+    final initialState = LibraryState.fromSnapshot(initialSnapshot).copyWith(
+      timeline: LibraryTimeline(
+        revision: initialSnapshot.revision,
+        queryId: initialSnapshot.queryId,
+        totalItems: 100,
+        buckets: const [olderBucket, newerBucket],
+      ),
+    );
+    final container = ProviderContainer(
+      overrides: [
+        initialLibraryStateProvider.overrideWithValue(initialState),
+        libraryCatalogProvider.overrideWithValue(catalog),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    container
+        .read(libraryControllerProvider.notifier)
+        .ensureVisibleRange(startItemOffset: 70, endItemOffsetExclusive: 75);
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+
+    final state = container.read(libraryControllerProvider);
+    expect(catalog.anchors, hasLength(1));
+    expect(catalog.anchors.single.monthKey, "2024-05");
+    expect(catalog.anchors.single.itemOffset, 40);
+    expect(state.windowStartItemOffset, 70);
+    expect(state.assets.single.locationId, "location-visible-target");
+  });
+
+  test("runs only the latest time target after an active request", () async {
+    const bucket = LibraryTimeBucket(
+      monthKey: "2024-05",
+      itemCount: 100,
+      aspectRatioSum: 100,
+    );
+    final initialSnapshot = _snapshot(assets: [_asset(suffix: "initial")]);
+    final firstResponse = Completer<LibrarySnapshot>();
+    final latestResponse = Completer<LibrarySnapshot>();
+    final catalog = _FakeLibraryCatalog.sequence([
+      firstResponse.future,
+      latestResponse.future,
+    ], initialRevision: initialSnapshot.revision);
+    final container = ProviderContainer(
+      overrides: [
+        initialLibraryStateProvider.overrideWithValue(
+          LibraryState.fromSnapshot(initialSnapshot).copyWith(
+            timeline: LibraryTimeline(
+              revision: initialSnapshot.revision,
+              queryId: initialSnapshot.queryId,
+              totalItems: 100,
+              buckets: const [bucket],
+            ),
+          ),
+        ),
+        libraryCatalogProvider.overrideWithValue(catalog),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final controller = container.read(libraryControllerProvider.notifier);
+    final firstJump = controller.jumpToTime(bucket, itemOffset: 10);
+    await Future<void>.delayed(Duration.zero);
+    expect(catalog.anchors.map((anchor) => anchor.itemOffset), [10]);
+
+    final latestJump = controller.jumpToTime(bucket, itemOffset: 80);
+    firstResponse.complete(_snapshot(assets: [_asset(suffix: "obsolete")]));
+
+    expect(await firstJump, isFalse);
+    await Future<void>.delayed(Duration.zero);
+    final stateAfterObsoleteResponse = container.read(
+      libraryControllerProvider,
+    );
+    expect(catalog.anchors.map((anchor) => anchor.itemOffset), [10, 80]);
+    expect(stateAfterObsoleteResponse.windowStartItemOffset, 0);
+    expect(
+      stateAfterObsoleteResponse.assets.single.locationId,
+      "location-initial",
+    );
+    expect(stateAfterObsoleteResponse.isLoadingTimeAnchor, isTrue);
+
+    latestResponse.complete(_snapshot(assets: [_asset(suffix: "latest")]));
+    expect(await latestJump, isTrue);
+    final state = container.read(libraryControllerProvider);
+    expect(catalog.anchors.map((anchor) => anchor.itemOffset), [10, 80]);
+    expect(state.activeTimeAnchor?.itemOffset, 80);
+    expect(state.windowStartItemOffset, 80);
+    expect(state.assets.single.locationId, "location-latest");
+  });
+
+  test("shares an active time request for the same global target", () async {
+    const bucket = LibraryTimeBucket(
+      monthKey: "2024-05",
+      itemCount: 100,
+      aspectRatioSum: 100,
+    );
+    final initialSnapshot = _snapshot(assets: [_asset(suffix: "initial")]);
+    final response = Completer<LibrarySnapshot>();
+    final catalog = _FakeLibraryCatalog.sequence([
+      response.future,
+    ], initialRevision: initialSnapshot.revision);
+    final container = ProviderContainer(
+      overrides: [
+        initialLibraryStateProvider.overrideWithValue(
+          LibraryState.fromSnapshot(initialSnapshot).copyWith(
+            timeline: LibraryTimeline(
+              revision: initialSnapshot.revision,
+              queryId: initialSnapshot.queryId,
+              totalItems: 100,
+              buckets: const [bucket],
+            ),
+          ),
+        ),
+        libraryCatalogProvider.overrideWithValue(catalog),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final controller = container.read(libraryControllerProvider.notifier);
+    final firstJump = controller.jumpToTime(bucket, itemOffset: 20);
+    await Future<void>.delayed(Duration.zero);
+    final duplicateJump = controller.jumpToTime(bucket, itemOffset: 20);
+
+    expect(catalog.anchors.map((anchor) => anchor.itemOffset), [20]);
+    response.complete(_snapshot(assets: [_asset(suffix: "target")]));
+    expect(await firstJump, isTrue);
+    expect(await duplicateJump, isTrue);
+    expect(catalog.anchors.map((anchor) => anchor.itemOffset), [20]);
+  });
+
+  test(
+    "an active disjoint range cannot publish after returning to loaded rows",
+    () async {
+      const bucket = LibraryTimeBucket(
+        monthKey: "2024-05",
+        itemCount: 100,
+        aspectRatioSum: 100,
+      );
+      final initialSnapshot = _snapshot(assets: [_asset(suffix: "initial")]);
+      final disjointResponse = Completer<LibrarySnapshot>();
+      final catalog = _FakeLibraryCatalog.sequence([
+        disjointResponse.future,
+      ], initialRevision: initialSnapshot.revision);
+      final container = ProviderContainer(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(
+            LibraryState.fromSnapshot(initialSnapshot).copyWith(
+              timeline: LibraryTimeline(
+                revision: initialSnapshot.revision,
+                queryId: initialSnapshot.queryId,
+                totalItems: 100,
+                buckets: const [bucket],
+              ),
+            ),
+          ),
+          libraryCatalogProvider.overrideWithValue(catalog),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final controller = container.read(libraryControllerProvider.notifier);
+      controller.ensureVisibleRange(
+        startItemOffset: 70,
+        endItemOffsetExclusive: 75,
+      );
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      expect(catalog.anchors.map((anchor) => anchor.itemOffset), [70]);
+
+      controller.ensureVisibleRange(
+        startItemOffset: 0,
+        endItemOffsetExclusive: 1,
+      );
+      disjointResponse.complete(
+        _snapshot(assets: [_asset(suffix: "obsolete")]),
+      );
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      final state = container.read(libraryControllerProvider);
+      expect(state.windowStartItemOffset, 0);
+      expect(state.assets.single.locationId, "location-initial");
+      expect(state.isLoadingTimeAnchor, isFalse);
+    },
+  );
+
+  test("sequence invalidation releases time loading and its future", () async {
+    const bucket = LibraryTimeBucket(
+      monthKey: "2024-05",
+      itemCount: 100,
+      aspectRatioSum: 100,
+    );
+    final initialSnapshot = _snapshot(assets: [_asset(suffix: "initial")]);
+    final timeResponse = Completer<LibrarySnapshot>();
+    final scanner = _FakeLibraryScanner();
+    final catalog = _FakeLibraryCatalog.sequence([
+      timeResponse.future,
+    ], initialRevision: initialSnapshot.revision);
+    final container = ProviderContainer(
+      overrides: [
+        initialLibraryStateProvider.overrideWithValue(
+          LibraryState.fromSnapshot(initialSnapshot).copyWith(
+            timeline: LibraryTimeline(
+              revision: initialSnapshot.revision,
+              queryId: initialSnapshot.queryId,
+              totalItems: 100,
+              buckets: const [bucket],
+            ),
+          ),
+        ),
+        libraryCatalogProvider.overrideWithValue(catalog),
+        libraryScannerProvider.overrideWithValue(scanner),
+      ],
+    );
+    addTearDown(container.dispose);
+    addTearDown(scanner.dispose);
+
+    final controller = container.read(libraryControllerProvider.notifier);
+    final timeJump = controller.jumpToTime(bucket, itemOffset: 60);
+    await Future<void>.delayed(Duration.zero);
+    expect(
+      container.read(libraryControllerProvider).isLoadingTimeAnchor,
+      isTrue,
+    );
+
+    await controller.scanDirectory("C:\\Replacement");
+    timeResponse.complete(_snapshot(assets: [_asset(suffix: "obsolete")]));
+
+    expect(await timeJump.timeout(const Duration(seconds: 1)), isFalse);
+    final state = container.read(libraryControllerProvider);
+    expect(state.status, LibraryStatus.scanning);
+    expect(state.isLoadingTimeAnchor, isFalse);
+    expect(state.assets.single.locationId, "location-initial");
+    expect(state.windowStartItemOffset, 0);
+  });
+
+  test("disposal settles active and pending time navigation futures", () async {
+    const bucket = LibraryTimeBucket(
+      monthKey: "2024-05",
+      itemCount: 100,
+      aspectRatioSum: 100,
+    );
+    final initialSnapshot = _snapshot(assets: [_asset(suffix: "initial")]);
+    final activeResponse = Completer<LibrarySnapshot>();
+    final catalog = _FakeLibraryCatalog.sequence([
+      activeResponse.future,
+    ], initialRevision: initialSnapshot.revision);
+    final container = ProviderContainer(
+      overrides: [
+        initialLibraryStateProvider.overrideWithValue(
+          LibraryState.fromSnapshot(initialSnapshot).copyWith(
+            timeline: LibraryTimeline(
+              revision: initialSnapshot.revision,
+              queryId: initialSnapshot.queryId,
+              totalItems: 100,
+              buckets: const [bucket],
+            ),
+          ),
+        ),
+        libraryCatalogProvider.overrideWithValue(catalog),
+      ],
+    );
+
+    final controller = container.read(libraryControllerProvider.notifier);
+    final activeJump = controller.jumpToTime(bucket, itemOffset: 10);
+    await Future<void>.delayed(Duration.zero);
+    final pendingJump = controller.jumpToTime(bucket, itemOffset: 80);
+
+    container.dispose();
+
+    expect(await activeJump.timeout(const Duration(seconds: 1)), isFalse);
+    expect(await pendingJump.timeout(const Duration(seconds: 1)), isFalse);
+  });
+
+  test("retains a time target while adjacent pagination is busy", () async {
+    const bucket = LibraryTimeBucket(
+      monthKey: "2024-05",
+      itemCount: 100,
+      aspectRatioSum: 100,
+    );
+    final nextCursor = _cursor(suffix: "next");
+    final initialSnapshot = _snapshot(
+      assets: [_asset(suffix: "initial")],
+      nextCursor: nextCursor,
+    );
+    final pageResponse = Completer<LibrarySnapshot>();
+    final catalog = _FakeLibraryCatalog.sequence([
+      pageResponse.future,
+      _snapshot(assets: [_asset(suffix: "target")]),
+    ], initialRevision: initialSnapshot.revision);
+    final container = ProviderContainer(
+      overrides: [
+        initialLibraryStateProvider.overrideWithValue(
+          LibraryState.fromSnapshot(initialSnapshot).copyWith(
+            timeline: LibraryTimeline(
+              revision: initialSnapshot.revision,
+              queryId: initialSnapshot.queryId,
+              totalItems: 100,
+              buckets: const [bucket],
+            ),
+          ),
+        ),
+        libraryCatalogProvider.overrideWithValue(catalog),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final controller = container.read(libraryControllerProvider.notifier);
+    final pageLoad = controller.loadNextPage();
+    final targetLoad = controller.jumpToTime(bucket, itemOffset: 70);
+    await Future<void>.delayed(Duration.zero);
+    expect(container.read(libraryControllerProvider).isLoadingPage, isTrue);
+    expect(catalog.anchors, isEmpty);
+
+    pageResponse.complete(_snapshot(assets: [_asset(suffix: "page")]));
+    await pageLoad;
+    await Future<void>.delayed(const Duration(milliseconds: 150));
+
+    expect(await targetLoad, isTrue);
+    final state = container.read(libraryControllerProvider);
+    expect(catalog.anchors.single.itemOffset, 70);
+    expect(state.windowStartItemOffset, 70);
+    expect(state.assets.single.locationId, "location-target");
   });
 
   test("unregisters one root and reloads the remaining catalog", () async {
@@ -537,6 +1001,7 @@ void main() {
     addTearDown(scanner.dispose);
 
     final controller = container.read(libraryControllerProvider.notifier);
+    final assetList = container.read(libraryControllerProvider).assets;
     for (final asset in initialSnapshot.assets) {
       controller.requestPreview(asset);
     }
@@ -549,7 +1014,11 @@ void main() {
 
     expect(previewer.requests, ["location-1", "location-2", "location-3"]);
     expect(
-      container.read(libraryControllerProvider).assets.first.previewStatus,
+      identical(container.read(libraryControllerProvider).assets, assetList),
+      isTrue,
+    );
+    expect(
+      controller.resolvePreview(initialSnapshot.assets.first).previewStatus,
       LibraryPreviewStatus.ready,
     );
   });
@@ -575,29 +1044,144 @@ void main() {
     addTearDown(scanner.dispose);
 
     final controller = container.read(libraryControllerProvider.notifier);
+    final assetList = container.read(libraryControllerProvider).assets;
     controller.requestPreview(pending);
     previewer.fail("location-1", StateError("decoder stopped"));
     await Future<void>.delayed(Duration.zero);
     await Future<void>.delayed(Duration.zero);
 
-    final failed = container.read(libraryControllerProvider).assets.single;
+    final failed = controller.resolvePreview(pending);
     expect(failed.previewStatus, LibraryPreviewStatus.failed);
     expect(failed.previewIssueCode, "preview_request_failed");
+    expect(
+      identical(container.read(libraryControllerProvider).assets, assetList),
+      isTrue,
+    );
 
     controller.requestPreview(failed);
     expect(previewer.requests, ["location-1"]);
     controller.requestPreview(failed, retry: true);
     expect(previewer.requests, ["location-1", "location-1"]);
+    expect(previewer.retryRequests, [false, true]);
 
     previewer.succeed("location-1", _asset(suffix: "1"), attempt: 1);
     await Future<void>.delayed(Duration.zero);
     await Future<void>.delayed(Duration.zero);
 
     expect(
-      container.read(libraryControllerProvider).assets.single.previewStatus,
+      controller.resolvePreview(pending).previewStatus,
       LibraryPreviewStatus.ready,
     );
   });
+
+  test(
+    "maps the latest gallery viewport demand onto preview priorities",
+    () async {
+      final scanner = _FakeLibraryScanner();
+      final previewer = _FakeLibraryPreviewer();
+      final assets = [
+        for (var index = 1; index <= 4; index++) _pendingAsset("$index"),
+      ];
+      final initialSnapshot = _snapshot(assets: assets);
+      final container = ProviderContainer(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(
+            LibraryState.fromSnapshot(initialSnapshot),
+          ),
+          libraryScannerProvider.overrideWithValue(scanner),
+          libraryCatalogProvider.overrideWithValue(
+            _FakeLibraryCatalog(initialSnapshot),
+          ),
+          libraryPreviewerProvider.overrideWithValue(previewer),
+        ],
+      );
+      addTearDown(container.dispose);
+      addTearDown(scanner.dispose);
+
+      final controller = container.read(libraryControllerProvider.notifier);
+      final assetList = container.read(libraryControllerProvider).assets;
+      controller.updateGalleryPreviewDemand(
+        visible: assets.sublist(2),
+        nearDirection: assets.sublist(0, 2),
+      );
+
+      expect(previewer.requests, ["location-3", "location-4"]);
+
+      controller.updateGalleryPreviewDemand(
+        visible: [assets.first],
+        guard: assets.sublist(2),
+      );
+      expect(previewer.requests, ["location-3", "location-4", "location-1"]);
+      previewer.succeed("location-3", _asset(suffix: "3"));
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(previewer.requests, ["location-3", "location-4", "location-1"]);
+      expect(
+        identical(container.read(libraryControllerProvider).assets, assetList),
+        isTrue,
+      );
+    },
+  );
+
+  test(
+    "publishes preview readiness only to the matching location identity",
+    () async {
+      final scanner = _FakeLibraryScanner();
+      final previewer = _FakeLibraryPreviewer();
+      final first = _pendingAsset("1");
+      final second = _pendingAsset("2");
+      final initialSnapshot = _snapshot(assets: [first, second]);
+      final container = ProviderContainer(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(
+            LibraryState.fromSnapshot(initialSnapshot),
+          ),
+          libraryScannerProvider.overrideWithValue(scanner),
+          libraryCatalogProvider.overrideWithValue(
+            _FakeLibraryCatalog(initialSnapshot),
+          ),
+          libraryPreviewerProvider.overrideWithValue(previewer),
+        ],
+      );
+      addTearDown(container.dispose);
+      addTearDown(scanner.dispose);
+
+      final controller = container.read(libraryControllerProvider.notifier);
+      final assetList = container.read(libraryControllerProvider).assets;
+      var firstPublications = 0;
+      var secondPublications = 0;
+      final firstSubscription = controller
+          .watchPreview(first.locationId)
+          .listen((_) => firstPublications++);
+      final secondSubscription = controller
+          .watchPreview(second.locationId)
+          .listen((_) => secondPublications++);
+
+      controller.requestPreview(first);
+      previewer.succeed(first.locationId, _asset(suffix: "1"));
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        identical(container.read(libraryControllerProvider).assets, assetList),
+        isTrue,
+      );
+      expect(firstPublications, 1);
+      expect(secondPublications, 0);
+      expect(
+        controller.resolvePreview(first).previewStatus,
+        LibraryPreviewStatus.ready,
+      );
+      expect(
+        controller.resolvePreview(second).previewStatus,
+        LibraryPreviewStatus.pending,
+      );
+
+      await firstSubscription.cancel();
+      await secondSubscription.cancel();
+    },
+  );
 }
 
 LibraryAsset _asset({String suffix = "1", String? previewPath}) {
@@ -744,6 +1328,7 @@ class _FakeLibraryCatalog implements LibraryCatalog {
   final List<LibraryCatalogCursor?> afters = [];
   final List<LibraryCatalogCursor?> befores = [];
   final List<LibraryTimeAnchor> anchors = [];
+  final List<int> timeWindowSizes = [];
   final List<String> unregisteredRootIds = [];
   BigInt _lastRevision;
 
@@ -766,6 +1351,7 @@ class _FakeLibraryCatalog implements LibraryCatalog {
     required LibraryTimeAnchor anchor,
   }) async {
     anchors.add(anchor);
+    timeWindowSizes.add(maxItems);
     return _nextSnapshot();
   }
 
@@ -785,7 +1371,7 @@ class _FakeLibraryCatalog implements LibraryCatalog {
     return true;
   }
 
-  LibrarySnapshot _nextSnapshot() {
+  Future<LibrarySnapshot> _nextSnapshot() async {
     if (_responses.isEmpty) {
       throw StateError("No fake catalog response remains");
     }
@@ -794,20 +1380,28 @@ class _FakeLibraryCatalog implements LibraryCatalog {
       _lastRevision = response.revision;
       return response;
     }
+    if (response is Future<LibrarySnapshot>) {
+      final snapshot = await response;
+      _lastRevision = snapshot.revision;
+      return snapshot;
+    }
     throw response;
   }
 }
 
 class _FakeLibraryPreviewer implements LibraryPreviewer {
   final List<String> requests = [];
+  final List<bool> retryRequests = [];
   final Map<String, List<Completer<LibraryAsset>>> _attempts = {};
 
   @override
   Future<LibraryAsset> materialize({
     required String locationId,
     required int previewEdge,
+    bool retry = false,
   }) {
     requests.add(locationId);
+    retryRequests.add(retry);
     final completer = Completer<LibraryAsset>();
     _attempts.putIfAbsent(locationId, () => []).add(completer);
     return completer.future;

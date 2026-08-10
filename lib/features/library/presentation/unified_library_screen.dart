@@ -9,7 +9,9 @@ import "../../settings/application/ame_preferences.dart";
 import "../../settings/presentation/ame_settings_page.dart";
 import "../application/library_controller.dart";
 import "../application/library_folder_controller.dart";
+import "../application/library_layout_manifest_catalog.dart";
 import "../application/library_view_preferences.dart";
+import "../domain/gallery_layout_manifest.dart";
 import "../domain/library_folder_models.dart";
 import "../domain/library_models.dart";
 import "../domain/library_state.dart";
@@ -27,6 +29,7 @@ import "widgets/library_navigation.dart";
 import "widgets/library_navigation_resize_handle.dart";
 import "widgets/library_task_surface.dart";
 import "widgets/library_time_navigation.dart";
+import "widgets/library_virtual_gallery_geometry.dart";
 
 class UnifiedLibraryScreen extends ConsumerStatefulWidget {
   const UnifiedLibraryScreen({super.key});
@@ -48,7 +51,8 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   bool _isNavigatingViewer = false;
   bool _isRestoringPreviousWindow = false;
   _LibraryDestination _destination = _LibraryDestination.gallery;
-  LibraryGalleryLayoutMetrics? _galleryLayoutMetrics;
+  late final ValueNotifier<_LibraryGalleryLayoutSnapshot?>
+  _galleryLayoutSnapshot;
   LibraryGalleryVisiblePosition? _visibleGalleryPosition;
   Timer? _searchDebounce;
 
@@ -59,6 +63,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     final viewPreferences = ref.read(initialLibraryViewPreferencesProvider);
     final amePreferences = ref.read(initialAmePreferencesProvider);
     _searchController = TextEditingController(text: state.query.searchText);
+    _galleryLayoutSnapshot = ValueNotifier(null);
     _selection = GallerySelection.empty(_queryId(state));
     _layoutShape = viewPreferences.layoutShape;
     _thumbnailSize = viewPreferences.thumbnailSize;
@@ -69,8 +74,14 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
 
   @override
   void dispose() {
+    if (_viewerLocationId != null) {
+      ref
+          .read(libraryControllerProvider.notifier)
+          .updateViewerPreviewDemand(null);
+    }
     _searchDebounce?.cancel();
     _galleryScrollController.dispose();
+    _galleryLayoutSnapshot.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -81,21 +92,45 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     final amePreferences = ref.watch(amePreferencesControllerProvider);
     final controller = ref.read(libraryControllerProvider.notifier);
     final queryId = _queryId(state);
+    final catalogRevision = state.catalogRevision;
+    final manifestRequest =
+        _layoutShape == GalleryLayoutShape.equalHeight &&
+            catalogRevision != null &&
+            state.queryId.isNotEmpty
+        ? LibraryGalleryLayoutManifestRequest(
+            query: state.query,
+            revision: catalogRevision,
+            queryId: state.queryId,
+          )
+        : null;
+    final layoutManifest = manifestRequest == null
+        ? null
+        : ref
+              .watch(libraryGalleryLayoutManifestProvider(manifestRequest))
+              .value;
     if (_selection.queryId != queryId) {
       _selection = GallerySelection.empty(queryId);
       _isSelecting = false;
     }
-    final viewerAsset = _viewerLocationId == null
+    final viewerCatalogAsset = _viewerLocationId == null
         ? null
         : _assetByLocation(state.assets, _viewerLocationId!);
-    final viewerIndex = viewerAsset == null
+    final viewerIndex = viewerCatalogAsset == null
         ? -1
         : state.assets.indexWhere(
-            (asset) => asset.locationId == viewerAsset.locationId,
+            (asset) => asset.locationId == viewerCatalogAsset.locationId,
           );
+    if (viewerCatalogAsset != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _viewerLocationId != viewerCatalogAsset.locationId) {
+          return;
+        }
+        controller.updateViewerPreviewDemand(viewerCatalogAsset);
+      });
+    }
 
     return CallbackShortcuts(
-      bindings: viewerAsset == null
+      bindings: viewerCatalogAsset == null
           ? {
               const SingleActivator(
                 LogicalKeyboardKey.keyA,
@@ -118,7 +153,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
           body: Stack(
             children: [
               IndexedStack(
-                index: viewerAsset == null ? 0 : 1,
+                index: viewerCatalogAsset == null ? 0 : 1,
                 children: [
                   Column(
                     children: [
@@ -133,40 +168,54 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                           state,
                           controller,
                           amePreferences,
+                          layoutManifest,
                         ),
                       ),
                     ],
                   ),
-                  if (viewerAsset == null)
+                  if (viewerCatalogAsset == null)
                     const SizedBox.shrink()
                   else
-                    LibraryImageViewer(
-                      asset: viewerAsset,
-                      wheelBehavior: amePreferences.viewerWheelBehavior,
-                      openBehavior: amePreferences.viewerOpenBehavior,
-                      position: viewerIndex < 0
-                          ? null
-                          : state.windowStartItemOffset + viewerIndex + 1,
-                      totalItems: _totalItems(state),
-                      onPrevious:
-                          viewerIndex > 0 ||
-                              (state.hasPreviousAssets && !_isNavigatingViewer)
-                          ? () => unawaited(_openAdjacentAsset(-1))
-                          : null,
-                      onNext:
-                          viewerIndex >= 0 &&
-                              (viewerIndex < state.assets.length - 1 ||
-                                  (state.hasMoreAssets && !_isNavigatingViewer))
-                          ? () => unawaited(_openAdjacentAsset(1))
-                          : null,
-                      onBack: () => setState(() => _viewerLocationId = null),
-                      onInformation: () => _showAssetInformation(viewerAsset),
-                      onCopyPath: () => _copyAssetPath(viewerAsset),
-                      onRevealFile: () => _revealAsset(viewerAsset),
+                    StreamBuilder<void>(
+                      stream: controller.watchPreview(
+                        viewerCatalogAsset.locationId,
+                      ),
+                      builder: (context, snapshot) {
+                        final viewerAsset = controller.resolvePreview(
+                          viewerCatalogAsset,
+                        );
+                        return LibraryImageViewer(
+                          asset: viewerAsset,
+                          wheelBehavior: amePreferences.viewerWheelBehavior,
+                          openBehavior: amePreferences.viewerOpenBehavior,
+                          position: viewerIndex < 0
+                              ? null
+                              : state.windowStartItemOffset + viewerIndex + 1,
+                          totalItems: _totalItems(state),
+                          onPrevious:
+                              viewerIndex > 0 ||
+                                  (state.hasPreviousAssets &&
+                                      !_isNavigatingViewer)
+                              ? () => unawaited(_openAdjacentAsset(-1))
+                              : null,
+                          onNext:
+                              viewerIndex >= 0 &&
+                                  (viewerIndex < state.assets.length - 1 ||
+                                      (state.hasMoreAssets &&
+                                          !_isNavigatingViewer))
+                              ? () => unawaited(_openAdjacentAsset(1))
+                              : null,
+                          onBack: _closeViewer,
+                          onInformation: () =>
+                              _showAssetInformation(viewerAsset),
+                          onCopyPath: () => _copyAssetPath(viewerAsset),
+                          onRevealFile: () => _revealAsset(viewerAsset),
+                        );
+                      },
                     ),
                 ],
               ),
-              if (viewerAsset == null && _showsTaskSurface(state))
+              if (viewerCatalogAsset == null && _showsTaskSurface(state))
                 Align(
                   alignment: Alignment.bottomCenter,
                   child: Padding(
@@ -177,6 +226,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                       onCancel: controller.cancelScan,
                       onResume: controller.resumePausedScan,
                       onRetry: controller.retry,
+                      onDismiss: controller.dismissCompletedImport,
                     ),
                   ),
                 ),
@@ -192,6 +242,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     LibraryState state,
     LibraryController controller,
     AmePreferences amePreferences,
+    LibraryGalleryLayoutManifest? layoutManifest,
   ) {
     final folderTree = ref.watch(libraryFolderControllerProvider);
     final folderController = ref.read(libraryFolderControllerProvider.notifier);
@@ -265,9 +316,21 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                             onSortDirectionChanged: (value) =>
                                 _changeSortDirection(state, value),
                           ),
-                          if (state.isLoadingTimeAnchor)
-                            const LinearProgressIndicator(minHeight: 2),
-                          Expanded(child: _buildGalleryBody(state, controller)),
+                          if (state.isLoadingPage ||
+                              state.isLoadingPreviousPage ||
+                              state.isLoadingTimeAnchor)
+                            const LinearProgressIndicator(
+                              key: Key("library-top-loading"),
+                              minHeight: 2,
+                              semanticsLabel: "正在加载图片",
+                            ),
+                          Expanded(
+                            child: _buildGalleryBody(
+                              state,
+                              controller,
+                              layoutManifest,
+                            ),
+                          ),
                         ],
                       ),
               ),
@@ -302,7 +365,11 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     );
   }
 
-  Widget _buildGalleryBody(LibraryState state, LibraryController controller) {
+  Widget _buildGalleryBody(
+    LibraryState state,
+    LibraryController controller,
+    LibraryGalleryLayoutManifest? layoutManifest,
+  ) {
     if (state.assets.isEmpty) {
       if (state.status == LibraryStatus.refreshing || state.isLoadingTimeline) {
         return const GalleryLoadingState();
@@ -337,25 +404,45 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
             onLoadPrevious: () =>
                 _loadPreviousPagePreservingPosition(controller),
             onLayoutChanged: _handleGalleryLayoutChanged,
+            layoutManifest: layoutManifest,
           ),
         ),
-        LibraryTimeNavigation(
-          isLoading: state.isLoadingTimeline,
-          scrollController: _galleryScrollController,
-          layoutMetrics: _galleryLayoutMetrics,
-          timeline: state.timeline,
-          layoutShape: _layoutShape,
-          windowStartItemOffset: state.windowStartItemOffset,
-          loadedItemCount: state.assets.length,
-          onSeek: (bucket, itemOffset) =>
-              _seekTimeline(controller, bucket, itemOffset),
+        ValueListenableBuilder<_LibraryGalleryLayoutSnapshot?>(
+          valueListenable: _galleryLayoutSnapshot,
+          builder: (context, snapshot, child) {
+            final activeSnapshot = snapshot?.matches(state) ?? false
+                ? snapshot
+                : null;
+            return LibraryTimeNavigation(
+              isLoading: state.isLoadingTimeline,
+              scrollController: _galleryScrollController,
+              layoutMetrics: activeSnapshot?.metrics,
+              timeline: state.timeline,
+              layoutShape: _layoutShape,
+              virtualGeometry: activeSnapshot?.virtualGeometry,
+              windowStartItemOffset: state.windowStartItemOffset,
+              loadedItemCount: state.assets.length,
+              onSeek: (bucket, itemOffset) =>
+                  _seekTimeline(controller, bucket, itemOffset),
+            );
+          },
         ),
       ],
     );
   }
 
   void _openAsset(LibraryAsset asset) {
+    ref
+        .read(libraryControllerProvider.notifier)
+        .updateViewerPreviewDemand(asset);
     setState(() => _viewerLocationId = asset.locationId);
+  }
+
+  void _closeViewer() {
+    ref
+        .read(libraryControllerProvider.notifier)
+        .updateViewerPreviewDemand(null);
+    setState(() => _viewerLocationId = null);
   }
 
   Future<void> _openAdjacentAsset(int direction) async {
@@ -390,7 +477,11 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
           targetIndex >= state.assets.length) {
         return;
       }
-      setState(() => _viewerLocationId = state.assets[targetIndex].locationId);
+      final target = state.assets[targetIndex];
+      ref
+          .read(libraryControllerProvider.notifier)
+          .updateViewerPreviewDemand(target);
+      setState(() => _viewerLocationId = target.locationId);
     } finally {
       if (mounted) {
         setState(() => _isNavigatingViewer = false);
@@ -454,10 +545,8 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     if (!mounted || !didUpdate) {
       return;
     }
-    setState(() {
-      _galleryLayoutMetrics = null;
-      _visibleGalleryPosition = null;
-    });
+    _galleryLayoutSnapshot.value = null;
+    _visibleGalleryPosition = null;
     if (_galleryScrollController.hasClients) {
       _galleryScrollController.jumpTo(0);
     }
@@ -537,7 +626,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
 
   void _cancelCurrentMode() {
     if (_viewerLocationId != null) {
-      setState(() => _viewerLocationId = null);
+      _closeViewer();
       return;
     }
     if (_isSelecting) {
@@ -698,7 +787,10 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     }
     final position = _galleryScrollController.position;
     final previousPixels = position.pixels;
-    final previousContentExtent = _galleryLayoutMetrics?.contentExtent ?? 0;
+    final previousSnapshot = _galleryLayoutSnapshot.value;
+    final previousContentExtent = previousSnapshot?.metrics.contentExtent ?? 0;
+    final previousLeadingExtent =
+        previousSnapshot?.virtualGeometry.leadingExtent ?? 0;
     _isRestoringPreviousWindow = true;
     try {
       final didLoad = await controller.loadPreviousPage();
@@ -711,12 +803,18 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
         return;
       }
       final nextPosition = _galleryScrollController.position;
+      final nextSnapshot = _galleryLayoutSnapshot.value;
       final addedExtent =
-          (_galleryLayoutMetrics?.contentExtent ?? previousContentExtent) -
+          (nextSnapshot?.metrics.contentExtent ?? previousContentExtent) -
           previousContentExtent;
-      if (addedExtent > 0) {
+      final leadingDelta =
+          (nextSnapshot?.virtualGeometry.leadingExtent ??
+              previousLeadingExtent) -
+          previousLeadingExtent;
+      final displacement = addedExtent + leadingDelta;
+      if (displacement.abs() > 0.01) {
         nextPosition.jumpTo(
-          (previousPixels + addedExtent)
+          (previousPixels + displacement)
               .clamp(nextPosition.minScrollExtent, nextPosition.maxScrollExtent)
               .toDouble(),
         );
@@ -746,35 +844,80 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     return didSeek;
   }
 
-  void _handleGalleryLayoutChanged(LibraryGalleryLayoutMetrics nextMetrics) {
-    final previousMetrics = _galleryLayoutMetrics;
-    if (previousMetrics?.hasSameGeometry(nextMetrics) ?? false) {
+  void _handleGalleryLayoutChanged(
+    LibraryGalleryLayoutMetrics nextMetrics,
+    LibraryVirtualGalleryGeometry nextVirtualGeometry,
+  ) {
+    if (!mounted) {
       return;
     }
-    final anchorLocationId = _visibleGalleryPosition?.locationId;
-    final previousAnchorOffset = previousMetrics?.offsetForLocation(
-      anchorLocationId,
+    final currentState = ref.read(libraryControllerProvider);
+    if (currentState.windowStartItemOffset !=
+            nextVirtualGeometry.windowStartItemOffset ||
+        currentState.assets.length != nextVirtualGeometry.loadedItemCount ||
+        currentState.queryId != nextVirtualGeometry.queryId) {
+      return;
+    }
+    final previousSnapshot = _galleryLayoutSnapshot.value;
+    final previousMetrics = previousSnapshot?.metrics;
+    final previousVirtualGeometry = previousSnapshot?.virtualGeometry;
+    final hasSameMetrics =
+        previousMetrics?.hasSameGeometry(nextMetrics) ?? false;
+    if (hasSameMetrics && nextMetrics.isQueryWide) {
+      return;
+    }
+    if (hasSameMetrics &&
+        (previousVirtualGeometry?.hasSameGeometry(nextVirtualGeometry) ??
+            false)) {
+      return;
+    }
+    _galleryLayoutSnapshot.value = _LibraryGalleryLayoutSnapshot(
+      metrics: nextMetrics,
+      virtualGeometry: nextVirtualGeometry,
+      catalogRevision: currentState.catalogRevision,
     );
-    final nextAnchorOffset = nextMetrics.offsetForLocation(anchorLocationId);
+    if (nextMetrics.isQueryWide) {
+      return;
+    }
+    final anchorItemIndex = _visibleGalleryPosition?.globalItemIndex;
+    final previousAnchorOffset = anchorItemIndex == null
+        ? null
+        : previousMetrics?.offsetForGlobalItemIndex(anchorItemIndex);
+    final nextAnchorOffset = anchorItemIndex == null
+        ? null
+        : nextMetrics.offsetForGlobalItemIndex(anchorItemIndex);
     final previousPixels = _galleryScrollController.hasClients
         ? _galleryScrollController.position.pixels
         : 0.0;
-    if (mounted) {
-      setState(() => _galleryLayoutMetrics = nextMetrics);
-    }
-    if (_isRestoringPreviousWindow ||
-        previousAnchorOffset == null ||
-        nextAnchorOffset == null ||
-        !_galleryScrollController.hasClients) {
+    final previousValue = previousVirtualGeometry?.valueForScrollOffset(
+      previousPixels,
+    );
+    if (_isRestoringPreviousWindow || !_galleryScrollController.hasClients) {
       return;
     }
     final position = _galleryScrollController.position;
-    final target = previousPixels + nextAnchorOffset - previousAnchorOffset;
-    position.jumpTo(
-      target
-          .clamp(position.minScrollExtent, position.maxScrollExtent)
-          .toDouble(),
-    );
+    final previousAnchorPixels =
+        previousAnchorOffset == null || previousVirtualGeometry == null
+        ? null
+        : previousAnchorOffset +
+              (previousMetrics?.isQueryWide ?? false
+                  ? 0
+                  : previousVirtualGeometry.leadingExtent);
+    final nextAnchorPixels = nextAnchorOffset == null
+        ? null
+        : nextAnchorOffset +
+              (nextMetrics.isQueryWide ? 0 : nextVirtualGeometry.leadingExtent);
+    final target = previousAnchorPixels != null && nextAnchorPixels != null
+        ? previousPixels + nextAnchorPixels - previousAnchorPixels
+        : previousValue == null
+        ? previousPixels
+        : nextVirtualGeometry.scrollOffsetForValue(previousValue);
+    final boundedTarget = target
+        .clamp(position.minScrollExtent, position.maxScrollExtent)
+        .toDouble();
+    if ((position.pixels - boundedTarget).abs() >= 0.5) {
+      position.jumpTo(boundedTarget);
+    }
   }
 
   Future<void> _showAssetInformation(LibraryAsset asset) =>
@@ -837,9 +980,38 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   }
 
   static bool _showsTaskSurface(LibraryState state) {
-    return state.status != LibraryStatus.empty &&
-        state.status != LibraryStatus.completed;
+    return switch (state.status) {
+      LibraryStatus.empty => false,
+      LibraryStatus.completed => state.scanId != null,
+      _ => true,
+    };
   }
 }
 
 enum _LibraryDestination { gallery, settings }
+
+class _LibraryGalleryLayoutSnapshot {
+  const _LibraryGalleryLayoutSnapshot({
+    required this.metrics,
+    required this.virtualGeometry,
+    required this.catalogRevision,
+  });
+
+  final LibraryGalleryLayoutMetrics metrics;
+  final LibraryVirtualGalleryGeometry virtualGeometry;
+  final BigInt? catalogRevision;
+
+  bool matches(LibraryState state) {
+    if (virtualGeometry.queryId != state.queryId ||
+        catalogRevision != state.catalogRevision) {
+      return false;
+    }
+    if (metrics.isQueryWide) {
+      return virtualGeometry.totalItemCount ==
+          (state.timeline?.totalItems ?? state.assets.length);
+    }
+    return virtualGeometry.windowStartItemOffset ==
+            state.windowStartItemOffset &&
+        virtualGeometry.loadedItemCount == state.assets.length;
+  }
+}

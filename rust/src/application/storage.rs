@@ -4,13 +4,14 @@ use std::sync::OnceLock;
 
 use directories::ProjectDirs;
 
-use crate::adapters::{SqliteCatalog, SqliteStorageSettings, user_visible_path};
+use crate::adapters::{
+    PREVIEW_CACHE_VERSION, SqliteCatalog, SqliteStorageSettings, user_visible_path,
+};
 use crate::domain::{
     GalleryQuery, ScanError, StorageConfiguration, StorageSettingsUpdate, StorageStatus,
 };
 use crate::ports::{CatalogRepository, StorageSettingsRepository};
 
-const PREVIEW_CACHE_VERSION: &str = "ame-jpeg-thumbnail-v1";
 const DEFAULT_PREVIEW_BUDGET_BYTES: u64 = 4 * 1024 * 1024 * 1024;
 const MIN_PREVIEW_BUDGET_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_PREVIEW_BUDGET_BYTES: u64 = 1024 * 1024 * 1024 * 1024;

@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 
+import "../../../../app/presentation/ame_theme.dart";
 import "../../domain/library_state.dart";
 import "library_navigation.dart";
 
@@ -10,6 +11,7 @@ class LibraryTaskSurface extends StatelessWidget {
     required this.onCancel,
     required this.onResume,
     required this.onRetry,
+    required this.onDismiss,
     super.key,
   });
 
@@ -18,6 +20,7 @@ class LibraryTaskSurface extends StatelessWidget {
   final VoidCallback onCancel;
   final Future<void> Function() onResume;
   final Future<void> Function() onRetry;
+  final VoidCallback onDismiss;
 
   @override
   Widget build(BuildContext context) {
@@ -31,17 +34,23 @@ class LibraryTaskSurface extends StatelessWidget {
       LibraryStatus.paused => "已暂停添加文件夹",
       LibraryStatus.stale => "源文件发生变化，需要重新更新",
       LibraryStatus.failed => "添加文件夹失败",
-      LibraryStatus.empty || LibraryStatus.completed => "",
+      LibraryStatus.completed => "导入完成",
+      LibraryStatus.empty => "",
     };
+    final completedDetail =
+        "已检查 ${state.visitedEntries} 个文件 · 已导入 ${state.stagedAssetCount} 张图片";
     final detail =
         state.errorMessage ??
-        "已检查 ${state.visitedEntries} 个文件 · 已找到 ${state.stagedAssetCount} 张图片";
+        (state.status == LibraryStatus.completed
+            ? completedDetail
+            : "已检查 ${state.visitedEntries} 个文件 · 已找到 ${state.stagedAssetCount} 张图片");
     return Material(
-      elevation: 3,
+      key: const Key("library-task-surface"),
+      elevation: ameNotificationElevation,
       color: Theme.of(context).colorScheme.surfaceContainerHigh,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(ameNotificationRadius),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 680),
+        constraints: const BoxConstraints.tightFor(width: ameNotificationWidth),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 14, 12, 12),
           child: Column(
@@ -77,6 +86,12 @@ class LibraryTaskSurface extends StatelessWidget {
                       key: const Key("library-retry-button"),
                       onPressed: onRetry,
                       child: const Text("重试"),
+                    )
+                  else if (state.status == LibraryStatus.completed)
+                    TextButton(
+                      key: const Key("library-task-dismiss-button"),
+                      onPressed: onDismiss,
+                      child: const Text("知道了"),
                     ),
                 ],
               ),

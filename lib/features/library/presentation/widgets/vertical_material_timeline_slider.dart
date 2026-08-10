@@ -5,6 +5,7 @@ class VerticalMaterialTimelineSlider extends StatefulWidget {
     required this.value,
     required this.endpointInset,
     required this.onChanged,
+    required this.onChangeStart,
     required this.onChangeEnd,
     required this.semanticLabelFor,
     super.key,
@@ -13,6 +14,7 @@ class VerticalMaterialTimelineSlider extends StatefulWidget {
   final double value;
   final double endpointInset;
   final ValueChanged<double> onChanged;
+  final ValueChanged<double> onChangeStart;
   final ValueChanged<double> onChangeEnd;
   final String Function(double value) semanticLabelFor;
 
@@ -68,6 +70,7 @@ class _VerticalMaterialTimelineSliderState
               key: const Key("timeline-slider"),
               value: 1 - widget.value.clamp(0.0, 1.0).toDouble(),
               onChanged: (value) => widget.onChanged(1 - value),
+              onChangeStart: (value) => widget.onChangeStart(1 - value),
               onChangeEnd: (value) => widget.onChangeEnd(1 - value),
               allowedInteraction: SliderInteraction.tapAndSlide,
               focusNode: _focusNode,

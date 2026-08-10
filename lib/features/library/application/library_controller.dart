@@ -7,25 +7,58 @@ import "../domain/library_models.dart";
 import "../domain/library_state.dart";
 import "library_catalog.dart";
 import "library_preview_queue.dart";
+import "library_preview_store.dart";
 import "library_previewer.dart";
 import "library_scan_session.dart";
 import "library_scanner.dart";
 
 const _previewEdge = 512;
 const _maxActivePreviews = 2;
+const _timeNavigationRetryDelay = Duration(milliseconds: 120);
+const _maxVisibleRangePageLoads = 2;
+
+class _PendingTimeNavigation {
+  _PendingTimeNavigation({
+    required this.generation,
+    required this.query,
+    required this.timeline,
+    required this.anchor,
+    required this.globalItemOffset,
+  });
+
+  final int generation;
+  final LibraryGalleryQuery query;
+  final LibraryTimeline timeline;
+  final LibraryTimeAnchor anchor;
+  final int globalItemOffset;
+  final Completer<bool> completion = Completer<bool>();
+}
 
 class LibraryController extends Notifier<LibraryState> {
   StreamSubscription<LibraryScanUpdate>? _subscription;
   int _scanSequence = 0;
   final LibraryScanSession _scanSession = LibraryScanSession();
+  final LibraryPreviewStore _previewStore = LibraryPreviewStore();
   LibraryPreviewQueue? _previewQueue;
+  _PendingTimeNavigation? _pendingTimeNavigation;
+  _PendingTimeNavigation? _activeTimeNavigation;
+  Timer? _timeNavigationRetryTimer;
+  bool _isRunningTimeNavigation = false;
+  int _timeNavigationGeneration = 0;
+  int? _loadingTimeNavigationGeneration;
+  ({int start, int end})? _pendingVisibleRange;
+  bool _isEnsuringVisibleRange = false;
+  bool _isVisibleRangeDrainScheduled = false;
+  Map<String, ({LibraryAsset asset, LibraryPreviewPriority priority})>
+  _galleryPreviewDemand = const {};
+  LibraryAsset? _viewerPreviewDemand;
   bool _isDisposed = false;
 
   LibraryPreviewQueue get _previews => _previewQueue ??= LibraryPreviewQueue(
     previewer: ref.read(libraryPreviewerProvider),
     previewEdge: _previewEdge,
     maxActive: _maxActivePreviews,
-    onResult: _replaceAsset,
+    onResult: _publishPreview,
   );
 
   @override
@@ -38,6 +71,21 @@ class LibraryController extends Notifier<LibraryState> {
         scanner.cancel(scanId);
       }
       _previewQueue?.dispose();
+      _previewStore.dispose();
+      _timeNavigationRetryTimer?.cancel();
+      _pendingVisibleRange = null;
+      final pendingTimeNavigation = _pendingTimeNavigation;
+      _pendingTimeNavigation = null;
+      if (pendingTimeNavigation != null &&
+          !pendingTimeNavigation.completion.isCompleted) {
+        pendingTimeNavigation.completion.complete(false);
+      }
+      final activeTimeNavigation = _activeTimeNavigation;
+      _activeTimeNavigation = null;
+      if (activeTimeNavigation != null &&
+          !activeTimeNavigation.completion.isCompleted) {
+        activeTimeNavigation.completion.complete(false);
+      }
       unawaited(_subscription?.cancel());
     });
     Future<void>.microtask(_resumeInterruptedScanIfAvailable);
@@ -52,6 +100,11 @@ class LibraryController extends Notifier<LibraryState> {
 
     state = state.copyWith(
       status: LibraryStatus.choosingDirectory,
+      scanId: null,
+      rootPath: null,
+      displayRootPath: null,
+      visitedEntries: 0,
+      stagedAssetCount: 0,
       errorMessage: null,
     );
 
@@ -159,6 +212,22 @@ class LibraryController extends Notifier<LibraryState> {
     }
   }
 
+  void dismissCompletedImport() {
+    if (state.status != LibraryStatus.completed || state.scanId == null) {
+      return;
+    }
+    state = state.copyWith(
+      scanId: null,
+      rootPath: null,
+      displayRootPath: null,
+      visitedEntries: 0,
+      stagedAssetCount: 0,
+      itemLimit: null,
+      entryLimit: null,
+      isScanLimited: false,
+    );
+  }
+
   void pauseScan() {
     final scanId = state.scanId;
     if (scanId == null || state.status != LibraryStatus.scanning) {
@@ -221,7 +290,7 @@ class LibraryController extends Notifier<LibraryState> {
       return false;
     }
     final requestSequence = ++_scanSequence;
-    _previewQueue?.clearPending();
+    _invalidatePreviewContext();
     state = state.copyWith(
       status: LibraryStatus.refreshing,
       query: normalized,
@@ -420,19 +489,11 @@ class LibraryController extends Notifier<LibraryState> {
     }
   }
 
-  Future<bool> jumpToTime(
-    LibraryTimeBucket bucket, {
-    int itemOffset = 0,
-  }) async {
+  Future<bool> jumpToTime(LibraryTimeBucket bucket, {int itemOffset = 0}) {
     final timeline = state.timeline;
-    if (timeline == null ||
-        state.isBusy ||
-        state.isLoadingPage ||
-        state.isLoadingPreviousPage ||
-        state.isLoadingTimeAnchor) {
-      return false;
+    if (timeline == null) {
+      return Future.value(false);
     }
-    final requestSequence = ++_scanSequence;
     final anchor = LibraryTimeAnchor(
       revision: timeline.revision,
       queryId: timeline.queryId,
@@ -442,6 +503,130 @@ class LibraryController extends Notifier<LibraryState> {
         bucket.itemCount > 0 ? bucket.itemCount - 1 : 0,
       ),
     );
+    final globalItemOffset = _globalItemOffsetForAnchor(
+      timeline,
+      bucket,
+      anchor.itemOffset,
+    );
+    final pending = _pendingTimeNavigation;
+    if (pending != null &&
+        _matchesTimeNavigationTarget(
+          pending,
+          timeline,
+          state.query,
+          globalItemOffset,
+        )) {
+      return pending.completion.future;
+    }
+    final active = _activeTimeNavigation;
+    if (active != null &&
+        active.generation == _timeNavigationGeneration &&
+        _matchesTimeNavigationTarget(
+          active,
+          timeline,
+          state.query,
+          globalItemOffset,
+        )) {
+      return active.completion.future;
+    }
+    final generation = ++_timeNavigationGeneration;
+    final request = _PendingTimeNavigation(
+      generation: generation,
+      query: state.query,
+      timeline: timeline,
+      anchor: anchor,
+      globalItemOffset: globalItemOffset,
+    );
+    final previousPending = _pendingTimeNavigation;
+    _pendingTimeNavigation = request;
+    if (previousPending != null && !previousPending.completion.isCompleted) {
+      previousPending.completion.complete(false);
+    }
+    _scheduleTimeNavigationDrain();
+    return request.completion.future;
+  }
+
+  bool _matchesTimeNavigationTarget(
+    _PendingTimeNavigation request,
+    LibraryTimeline timeline,
+    LibraryGalleryQuery query,
+    int globalItemOffset,
+  ) {
+    return request.query == query &&
+        request.timeline.revision == timeline.revision &&
+        request.timeline.queryId == timeline.queryId &&
+        request.globalItemOffset == globalItemOffset;
+  }
+
+  void _scheduleTimeNavigationDrain() {
+    if (_isDisposed || _isRunningTimeNavigation) {
+      return;
+    }
+    _timeNavigationRetryTimer?.cancel();
+    _timeNavigationRetryTimer = null;
+    unawaited(Future<void>.microtask(_drainTimeNavigation));
+  }
+
+  Future<void> _drainTimeNavigation() async {
+    if (_isDisposed || _isRunningTimeNavigation) {
+      return;
+    }
+    final request = _pendingTimeNavigation;
+    if (request == null) {
+      return;
+    }
+    if (!_isCompatibleTimeNavigation(request)) {
+      _pendingTimeNavigation = null;
+      if (!request.completion.isCompleted) {
+        request.completion.complete(false);
+      }
+      _scheduleTimeNavigationDrain();
+      return;
+    }
+    if (_isTimeNavigationBlocked) {
+      _timeNavigationRetryTimer ??= Timer(
+        _timeNavigationRetryDelay,
+        _scheduleTimeNavigationDrain,
+      );
+      return;
+    }
+
+    _pendingTimeNavigation = null;
+    _isRunningTimeNavigation = true;
+    _activeTimeNavigation = request;
+    try {
+      final didLoad = await _loadTimeNavigation(request);
+      final isLatest = request.generation == _timeNavigationGeneration;
+      if (!request.completion.isCompleted) {
+        request.completion.complete(didLoad && isLatest);
+      }
+    } finally {
+      if (identical(_activeTimeNavigation, request)) {
+        _activeTimeNavigation = null;
+      }
+      _isRunningTimeNavigation = false;
+      _scheduleTimeNavigationDrain();
+    }
+  }
+
+  bool get _isTimeNavigationBlocked =>
+      state.isProcessing ||
+      state.status == LibraryStatus.paused ||
+      state.isLoadingPage ||
+      state.isLoadingPreviousPage ||
+      state.isLoadingTimeAnchor;
+
+  bool _isCompatibleTimeNavigation(_PendingTimeNavigation request) {
+    final timeline = state.timeline;
+    return timeline != null &&
+        timeline.revision == request.timeline.revision &&
+        timeline.queryId == request.timeline.queryId &&
+        state.query == request.query;
+  }
+
+  Future<bool> _loadTimeNavigation(_PendingTimeNavigation request) async {
+    final requestSequence = ++_scanSequence;
+    _loadingTimeNavigationGeneration = request.generation;
     state = state.copyWith(
       isLoadingTimeAnchor: true,
       timeNavigationErrorMessage: null,
@@ -450,41 +635,39 @@ class LibraryController extends Notifier<LibraryState> {
       final snapshot = await ref
           .read(libraryCatalogProvider)
           .loadAtTime(
-            maxItems: libraryCatalogWindow,
-            query: state.query,
-            anchor: anchor,
+            maxItems: libraryTimelineWindow,
+            query: request.query,
+            anchor: request.anchor,
           );
-      if (_isDisposed || requestSequence != _scanSequence) {
+      if (!_canPublishTimeNavigation(request, requestSequence)) {
         return false;
       }
-      if (snapshot.revision != timeline.revision ||
-          snapshot.queryId != timeline.queryId) {
+      if (snapshot.revision != request.timeline.revision ||
+          snapshot.queryId != request.timeline.queryId) {
         throw const LibraryCatalogFailure(
           code: "catalog_cursor_stale",
           message: "The catalog changed while navigating the timeline",
         );
       }
-      _previewQueue?.clearPending();
+      _previewQueue?.retainPending(
+        snapshot.assets.map((asset) => asset.locationId),
+      );
       state = state.copyWith(
         roots: snapshot.roots,
         assets: snapshot.assets,
         catalogPath: snapshot.catalogPath,
         catalogRevision: snapshot.revision,
         queryId: snapshot.queryId,
-        windowStartItemOffset: _globalItemOffsetForAnchor(
-          timeline,
-          bucket,
-          anchor.itemOffset,
-        ),
+        windowStartItemOffset: request.globalItemOffset,
         previousCursor: snapshot.previousCursor,
         nextCursor: snapshot.nextCursor,
-        activeTimeAnchor: anchor,
+        activeTimeAnchor: request.anchor,
         isLoadingTimeAnchor: false,
         pageErrorMessage: null,
       );
       return true;
     } on LibraryCatalogFailure catch (error) {
-      if (_isDisposed || requestSequence != _scanSequence) {
+      if (!_canPublishTimeNavigation(request, requestSequence)) {
         return false;
       }
       if (error.code == "catalog_cursor_stale") {
@@ -506,13 +689,35 @@ class LibraryController extends Notifier<LibraryState> {
       );
       return false;
     } on Object catch (error) {
-      if (!_isDisposed && requestSequence == _scanSequence) {
+      if (_canPublishTimeNavigation(request, requestSequence)) {
         state = state.copyWith(
           isLoadingTimeAnchor: false,
           timeNavigationErrorMessage: error.toString(),
         );
       }
       return false;
+    } finally {
+      _releaseTimeNavigationLoading(request);
+    }
+  }
+
+  bool _canPublishTimeNavigation(
+    _PendingTimeNavigation request,
+    int requestSequence,
+  ) {
+    return !_isDisposed &&
+        requestSequence == _scanSequence &&
+        request.generation == _timeNavigationGeneration &&
+        _isCompatibleTimeNavigation(request);
+  }
+
+  void _releaseTimeNavigationLoading(_PendingTimeNavigation request) {
+    if (_loadingTimeNavigationGeneration != request.generation) {
+      return;
+    }
+    _loadingTimeNavigationGeneration = null;
+    if (!_isDisposed && state.isLoadingTimeAnchor) {
+      state = state.copyWith(isLoadingTimeAnchor: false);
     }
   }
 
@@ -562,24 +767,287 @@ class LibraryController extends Notifier<LibraryState> {
     }
   }
 
-  void requestPreview(LibraryAsset asset, {bool retry = false}) {
-    _previews.request(asset, retry: retry);
-  }
-
-  void cancelPreview(String locationId) {
-    _previewQueue?.cancel(locationId);
-  }
-
-  void _replaceAsset(LibraryAsset replacement) {
-    final index = state.assets.indexWhere(
-      (asset) => asset.locationId == replacement.locationId,
-    );
-    if (index < 0) {
+  void requestPreview(
+    LibraryAsset asset, {
+    bool retry = false,
+    LibraryPreviewPriority priority = LibraryPreviewPriority.visible,
+  }) {
+    final resolved = _previewStore.resolve(asset);
+    if (resolved.previewStatus == LibraryPreviewStatus.ready && !retry) {
       return;
     }
-    final assets = [...state.assets];
-    assets[index] = replacement;
-    state = state.copyWith(assets: List.unmodifiable(assets));
+    _previews.request(resolved, retry: retry, priority: priority);
+  }
+
+  LibraryAsset resolvePreview(LibraryAsset asset) {
+    return _previewStore.resolve(asset);
+  }
+
+  Stream<void> watchPreview(String locationId) {
+    return _previewStore.changesFor(locationId);
+  }
+
+  void updateGalleryPreviewDemand({
+    Iterable<LibraryAsset> visible = const <LibraryAsset>[],
+    Iterable<LibraryAsset> nearDirection = const <LibraryAsset>[],
+    Iterable<LibraryAsset> guard = const <LibraryAsset>[],
+    Iterable<LibraryAsset> idle = const <LibraryAsset>[],
+  }) {
+    if (_isDisposed) {
+      return;
+    }
+    final requests =
+        <String, ({LibraryAsset asset, LibraryPreviewPriority priority})>{};
+
+    void addRequests(
+      Iterable<LibraryAsset> assets,
+      LibraryPreviewPriority priority,
+    ) {
+      for (final asset in assets) {
+        final current = requests[asset.locationId];
+        if (current == null || priority.index > current.priority.index) {
+          requests[asset.locationId] = (asset: asset, priority: priority);
+        }
+      }
+    }
+
+    addRequests(idle, LibraryPreviewPriority.idle);
+    addRequests(guard, LibraryPreviewPriority.guard);
+    addRequests(nearDirection, LibraryPreviewPriority.nearDirection);
+    addRequests(visible, LibraryPreviewPriority.visible);
+    if (_hasSameGalleryPreviewDemand(requests)) {
+      return;
+    }
+    _galleryPreviewDemand = requests;
+    _applyPreviewDemand();
+  }
+
+  bool _hasSameGalleryPreviewDemand(
+    Map<String, ({LibraryAsset asset, LibraryPreviewPriority priority})> next,
+  ) {
+    if (_galleryPreviewDemand.length != next.length) {
+      return false;
+    }
+    for (final entry in next.entries) {
+      final current = _galleryPreviewDemand[entry.key];
+      if (current == null ||
+          current.priority != entry.value.priority ||
+          !libraryPreviewSourcesAreCompatible(
+            current.asset,
+            entry.value.asset,
+          )) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  void updateViewerPreviewDemand(LibraryAsset? viewer) {
+    if (_isDisposed) {
+      return;
+    }
+    _viewerPreviewDemand = viewer;
+    _applyPreviewDemand();
+  }
+
+  void _applyPreviewDemand() {
+    final requests = {..._galleryPreviewDemand};
+    final viewer = _viewerPreviewDemand;
+    if (viewer != null) {
+      requests[viewer.locationId] = (
+        asset: viewer,
+        priority: LibraryPreviewPriority.viewer,
+      );
+    }
+    _previewStore.retain(requests.keys);
+    final priorities = {
+      for (final MapEntry(key: locationId, value: request) in requests.entries)
+        locationId: request.priority,
+    };
+    if (priorities.isEmpty) {
+      _previewQueue?.updatePendingDemand(priorities);
+      return;
+    }
+    _previews.replaceDemandAndRequestAll(priorities, [
+      for (final priority in LibraryPreviewPriority.values.reversed)
+        for (final request in requests.values)
+          if (request.priority == priority)
+            (
+              asset: _previewStore.resolve(request.asset),
+              priority: request.priority,
+            ),
+    ]);
+  }
+
+  void _invalidatePreviewContext() {
+    _previewQueue?.invalidateAll();
+    _previewStore.clear();
+    _galleryPreviewDemand = const {};
+    _viewerPreviewDemand = null;
+  }
+
+  void ensureVisibleRange({
+    required int startItemOffset,
+    required int endItemOffsetExclusive,
+  }) {
+    if (_isDisposed || endItemOffsetExclusive <= startItemOffset) {
+      return;
+    }
+    final totalItems = state.timeline?.totalItems ?? 0;
+    if (totalItems <= 0) {
+      return;
+    }
+    final start = startItemOffset.clamp(0, totalItems - 1).toInt();
+    final end = endItemOffsetExclusive.clamp(start + 1, totalItems).toInt();
+    final range = (start: start, end: end);
+    _retainTimeNavigationForVisibleRange(range);
+    final loadedStart = state.windowStartItemOffset;
+    final loadedEnd = loadedStart + state.assets.length;
+    if (range.start >= loadedStart && range.end <= loadedEnd) {
+      _pendingVisibleRange = null;
+      return;
+    }
+    if (_pendingVisibleRange == range) {
+      return;
+    }
+    _pendingVisibleRange = range;
+    _scheduleVisibleRangeDrain();
+  }
+
+  void _retainTimeNavigationForVisibleRange(({int start, int end}) range) {
+    bool contains(_PendingTimeNavigation request) {
+      return request.globalItemOffset >= range.start &&
+          request.globalItemOffset < range.end;
+    }
+
+    final pending = _pendingTimeNavigation;
+    if (pending != null && !contains(pending)) {
+      if (pending.generation == _timeNavigationGeneration) {
+        _timeNavigationGeneration += 1;
+      }
+      _pendingTimeNavigation = null;
+      if (!pending.completion.isCompleted) {
+        pending.completion.complete(false);
+      }
+    }
+    final active = _activeTimeNavigation;
+    if (active != null &&
+        !contains(active) &&
+        active.generation == _timeNavigationGeneration) {
+      _timeNavigationGeneration += 1;
+    }
+    if (_pendingTimeNavigation == null) {
+      _timeNavigationRetryTimer?.cancel();
+      _timeNavigationRetryTimer = null;
+    }
+  }
+
+  void _scheduleVisibleRangeDrain() {
+    if (_isDisposed ||
+        _isEnsuringVisibleRange ||
+        _isVisibleRangeDrainScheduled ||
+        _pendingVisibleRange == null) {
+      return;
+    }
+    _isVisibleRangeDrainScheduled = true;
+    unawaited(
+      Future<void>.microtask(() {
+        _isVisibleRangeDrainScheduled = false;
+        return _drainVisibleRange();
+      }),
+    );
+  }
+
+  Future<void> _drainVisibleRange() async {
+    _isVisibleRangeDrainScheduled = false;
+    if (_isDisposed || _isEnsuringVisibleRange) {
+      return;
+    }
+    _isEnsuringVisibleRange = true;
+    try {
+      while (!_isDisposed) {
+        final range = _pendingVisibleRange;
+        _pendingVisibleRange = null;
+        if (range == null) {
+          return;
+        }
+        await _loadVisibleRange(range);
+      }
+    } finally {
+      _isEnsuringVisibleRange = false;
+      if (_pendingVisibleRange != null && !_isDisposed) {
+        _scheduleVisibleRangeDrain();
+      }
+    }
+  }
+
+  Future<void> _loadVisibleRange(({int start, int end}) range) async {
+    for (var attempt = 0; attempt < _maxVisibleRangePageLoads; attempt++) {
+      if (_isDisposed || state.assets.isEmpty) {
+        return;
+      }
+      final loadedStart = state.windowStartItemOffset;
+      final loadedEnd = loadedStart + state.assets.length;
+      if (range.end <= loadedStart || range.start >= loadedEnd) {
+        await _loadDisjointVisibleRange(range.start);
+        return;
+      }
+      if (range.start < loadedStart) {
+        final previousStart = loadedStart;
+        final didLoad = await loadPreviousPage();
+        if (!didLoad || state.windowStartItemOffset >= previousStart) {
+          return;
+        }
+        continue;
+      }
+      if (range.end > loadedEnd) {
+        final previousEnd = loadedEnd;
+        await loadNextPage();
+        final nextEnd = state.windowStartItemOffset + state.assets.length;
+        if (nextEnd <= previousEnd) {
+          return;
+        }
+        continue;
+      }
+      return;
+    }
+  }
+
+  Future<void> _loadDisjointVisibleRange(int globalItemOffset) async {
+    final timeline = state.timeline;
+    if (timeline == null || timeline.buckets.isEmpty) {
+      return;
+    }
+    final target = globalItemOffset
+        .clamp(0, timeline.totalItems > 0 ? timeline.totalItems - 1 : 0)
+        .toInt();
+    var precedingItems = 0;
+    for (final bucket in timeline.buckets) {
+      final bucketEnd = precedingItems + bucket.itemCount;
+      if (target < bucketEnd) {
+        await jumpToTime(bucket, itemOffset: target - precedingItems);
+        return;
+      }
+      precedingItems = bucketEnd;
+    }
+    final lastBucket = timeline.buckets.last;
+    await jumpToTime(
+      lastBucket,
+      itemOffset: lastBucket.itemCount > 0 ? lastBucket.itemCount - 1 : 0,
+    );
+  }
+
+  void _publishPreview(LibraryAsset replacement) {
+    for (final asset in state.assets) {
+      if (asset.locationId != replacement.locationId) {
+        continue;
+      }
+      if (!libraryPreviewSourcesAreCompatible(asset, replacement)) {
+        return;
+      }
+      break;
+    }
+    _previewStore.publish(replacement);
   }
 
   void _handleUpdate(LibraryScanUpdate update) {
@@ -713,11 +1181,25 @@ class LibraryController extends Notifier<LibraryState> {
     }
     final rootPath = state.rootPath;
     final displayRootPath = state.displayRootPath;
+    final scanId = state.scanId;
+    final visitedEntries = state.visitedEntries;
+    final stagedAssetCount = state.stagedAssetCount;
+    final itemLimit = state.itemLimit;
+    final entryLimit = state.entryLimit;
     final recentIssues = state.recentIssues;
     final isScanLimited = state.isScanLimited;
+    if (state.catalogRevision != snapshot.revision ||
+        state.queryId != snapshot.queryId) {
+      _invalidatePreviewContext();
+    }
     state = LibraryState.fromSnapshot(snapshot, query: query).copyWith(
       rootPath: rootPath,
       displayRootPath: displayRootPath,
+      scanId: scanId,
+      visitedEntries: visitedEntries,
+      stagedAssetCount: stagedAssetCount,
+      itemLimit: itemLimit,
+      entryLimit: entryLimit,
       recentIssues: recentIssues,
       isScanLimited: isScanLimited,
       timeline: timeline,

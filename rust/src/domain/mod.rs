@@ -118,6 +118,33 @@ pub struct MetadataInspection {
     pub issues: Vec<ScanIssue>,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum ImageOrientation {
+    #[default]
+    Normal,
+    FlipHorizontal,
+    Rotate180,
+    FlipVertical,
+    Rotate90FlipHorizontal,
+    Rotate90,
+    Rotate270FlipHorizontal,
+    Rotate270,
+}
+
+impl ImageOrientation {
+    pub fn display_dimensions(self, width: u32, height: u32) -> (u32, u32) {
+        match self {
+            Self::Rotate90
+            | Self::Rotate270
+            | Self::Rotate90FlipHorizontal
+            | Self::Rotate270FlipHorizontal => (height, width),
+            Self::Normal | Self::FlipHorizontal | Self::Rotate180 | Self::FlipVertical => {
+                (width, height)
+            }
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct MediaInspection {
     pub width: u32,
@@ -129,6 +156,7 @@ pub struct MediaInspection {
 pub struct PreviewRequest {
     pub location_id: String,
     pub preview_edge: u32,
+    pub retry_failed: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -231,6 +259,34 @@ pub struct GalleryTimeline {
     pub query_id: String,
     pub total_items: u64,
     pub buckets: Vec<GalleryTimeBucket>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct GalleryLayoutDateGroup {
+    pub date_key: Option<String>,
+}
+
+#[derive(Clone, Debug)]
+pub struct GalleryLayoutManifestCursor {
+    pub revision: u64,
+    pub query_id: String,
+    pub total_items: u64,
+    pub next_ordinal: u64,
+    pub after: CatalogCursor,
+}
+
+#[derive(Clone, Debug)]
+pub struct GalleryLayoutManifestChunk {
+    pub revision: u64,
+    pub query_id: String,
+    pub total_items: u64,
+    pub start_ordinal: u64,
+    pub location_ids: Vec<String>,
+    pub aspect_ratio_milli: Vec<u16>,
+    pub date_group_indices: Vec<u16>,
+    pub date_groups: Vec<GalleryLayoutDateGroup>,
+    pub flags: Vec<u8>,
+    pub next_cursor: Option<GalleryLayoutManifestCursor>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
