@@ -23,6 +23,7 @@ try {
     Invoke-AmePowerShellSyntaxCheck $powerShellPaths
     & (Join-Path $PSScriptRoot "quality_test_naming_contract.ps1")
     & (Join-Path $PSScriptRoot "release_test_version_validation.ps1")
+    & (Join-Path $PSScriptRoot "release_test_portable_archive.ps1")
     Invoke-AmeJsonSyntaxCheck @(
         (Join-Path $repositoryRoot ".vscode\extensions.json"),
         (Join-Path $repositoryRoot ".vscode\settings.json")
