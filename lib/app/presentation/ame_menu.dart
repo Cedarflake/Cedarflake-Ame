@@ -1,5 +1,3 @@
-import "dart:math" as math;
-
 import "package:flutter/material.dart";
 
 abstract final class AmeMenuMetrics {
@@ -92,25 +90,13 @@ class AmeMenuAnchor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mediaQuery = MediaQuery.of(context);
-    final currentPadding = mediaQuery.padding;
-    final protectedPadding = EdgeInsets.fromLTRB(
-      math.max(currentPadding.left, AmeMenuMetrics.viewportPadding),
-      math.max(currentPadding.top, AmeMenuMetrics.viewportPadding),
-      math.max(currentPadding.right, AmeMenuMetrics.viewportPadding),
-      math.max(currentPadding.bottom, AmeMenuMetrics.viewportPadding),
-    );
-    return MediaQuery(
-      data: mediaQuery.copyWith(padding: protectedPadding),
-      child: MenuAnchor(
-        controller: controller,
-        childFocusNode: childFocusNode,
-        animated: true,
-        reservedPadding: const EdgeInsets.all(AmeMenuMetrics.viewportPadding),
-        menuChildren: menuChildren,
-        builder: builder,
-        child: child,
-      ),
+    return MenuAnchor(
+      controller: controller,
+      childFocusNode: childFocusNode,
+      animated: true,
+      menuChildren: menuChildren,
+      builder: builder,
+      child: child,
     );
   }
 }

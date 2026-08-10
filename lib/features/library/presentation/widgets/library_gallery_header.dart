@@ -1,7 +1,7 @@
 import "package:flutter/material.dart";
-import "package:flutter/services.dart";
 
 import "../../../../app/presentation/ame_menu.dart";
+import "../../../../app/presentation/ame_popup_menu_position.dart";
 import "../../domain/library_models.dart";
 import "../gallery_view_options.dart";
 import "../library_strings.dart";
@@ -367,42 +367,59 @@ class _LayoutMenuState extends State<_LayoutMenu> {
   }
 }
 
-class _MoreMenu extends StatefulWidget {
+class _MoreMenu extends StatelessWidget {
   const _MoreMenu({required this.onSelectAll});
 
   final VoidCallback onSelectAll;
 
   @override
-  State<_MoreMenu> createState() => _MoreMenuState();
-}
-
-class _MoreMenuState extends State<_MoreMenu> {
-  final MenuController _controller = MenuController();
-
-  @override
   Widget build(BuildContext context) {
-    return AmeMenuAnchor(
-      controller: _controller,
-      menuChildren: [
-        MenuItemButton(
-          shortcut: const SingleActivator(
-            LogicalKeyboardKey.keyA,
-            control: true,
-          ),
-          onPressed: widget.onSelectAll,
-          child: const AmeMenuItemContent(
-            icon: Icons.select_all,
-            label: LibraryStrings.selectAll,
-          ),
-        ),
-      ],
-      builder: (context, controller, child) => IconButton(
+    return Builder(
+      builder: (anchorContext) => IconButton(
         key: const Key("library-more-menu"),
         tooltip: LibraryStrings.more,
-        onPressed: controller.open,
+        onPressed: () => _showMenu(context, anchorContext),
         icon: const Icon(Icons.more_horiz),
       ),
     );
+  }
+
+  Future<void> _showMenu(
+    BuildContext context,
+    BuildContext anchorContext,
+  ) async {
+    final position = amePopupMenuBelowAnchor(
+      context: context,
+      anchorContext: anchorContext,
+      viewportRightMargin: AmeMenuMetrics.viewportPadding,
+    );
+    if (position == null) {
+      return;
+    }
+    final shouldSelectAll = await showAmePopupMenu<bool>(
+      context: context,
+      position: position,
+      labels: const ["${LibraryStrings.selectAll}    Ctrl+A"],
+      items: const [
+        PopupMenuItem(
+          value: true,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AmeMenuItemContent(
+                icon: Icons.select_all,
+                label: LibraryStrings.selectAll,
+              ),
+              SizedBox(width: 24),
+              Text("Ctrl+A"),
+            ],
+          ),
+        ),
+      ],
+    );
+    if (shouldSelectAll == true && context.mounted) {
+      onSelectAll();
+    }
   }
 }
 

@@ -1022,6 +1022,14 @@ void main() {
     await tester.tap(find.byKey(const Key("library-more-menu")));
     await tester.pumpAndSettle();
     expect(find.text("不选择任何项目"), findsNothing);
+    final selectAllMenuItem = find.ancestor(
+      of: find.text("全选"),
+      matching: find.byWidgetPredicate((widget) => widget is PopupMenuItem),
+    );
+    expect(
+      tester.view.physicalSize.width - tester.getRect(selectAllMenuItem).right,
+      closeTo(AmeMenuMetrics.viewportPadding, 1),
+    );
     await tester.tap(find.text("全选"));
     await tester.pumpAndSettle();
 
