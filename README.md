@@ -1,214 +1,156 @@
 # Cedarflake Ame
 
-Cedarflake Ame is a local-first Windows photo-library application for understanding very large
-personal image collections. It builds a derived catalog and bounded preview cache without modifying
-source media or requiring a second full copy of the library.
+Cedarflake Ame is a local-first Windows photo library for large personal image collections. It
+brings folders from different disks and cloud-backed locations into one continuous library without
+requiring a second complete copy of the source collection.
 
-The current implementation contains the accepted R0 technical-validation and R1 progressive
-multi-root catalog foundations plus the active R2b unified-gallery production integration. It
-connects a Flutter Material 3 desktop interface to a Rust core through generated, typed
-`flutter_rust_bridge` contracts.
+Ame first builds an understandable view of a library, then supports deliberate organization through
+separately controlled file operations. Catalogs, previews, analysis evidence, and user decisions are
+stored apart from source media. Ame is not a backup service, cloud synchronization client, or pixel
+editor.
 
-## Current workflow
+## Product model
 
-The working vertical slice supports:
+Ame treats a personal image collection as one library rather than a collection of unrelated tools:
 
-1. selecting multiple local directories, one at a time, through the operating-system picker;
-2. bounded, read-only discovery in Rust with disk-backed, windowed enumeration for very wide
-   directories;
-3. skipping cloud-only Windows placeholders instead of hydrating them;
-4. isolating unreadable or unsupported files as per-item issues;
-5. probing image dimensions without full pixel decoding and publishing preview work as pending;
-6. parsing bounded EXIF capture-time evidence behind a versioned metadata adapter without inventing
-   a timezone when the source omits one;
-7. staging distinct library-root, asset, and location records in a Rust-owned SQLite catalog;
-8. recording optional Windows volume-and-file identity evidence without treating it as content
-   identity or duplicate evidence;
-9. staging locations in bounded transactions and using indexed active-snapshot reconciliation so
-   scan publication and cancellation do not degrade into full-table nested scans;
-10. preserving one logical asset across a same-volume rename or in-place edit while invalidating
-   derived results when observable file state changes;
-11. giving a replacement at the same path a new asset identity and removing absent locations only
-    after atomic publication;
-12. revalidating indexed source size, modification time, and available file identity before
-    publication;
-13. publishing each root atomically without replacing previously completed roots;
-14. streaming typed progress, assets, issues, completion, cancellation, and stale state to Flutter;
-15. reloading the last completed bounded catalog at application startup and after every scan;
-16. preserving the previous trusted gallery while a replacement scan is incomplete;
-17. loading further catalog rows through revision-protected keyset cursors rather than page
-    numbers or deep SQL offsets;
-18. persisting the current directory, pending-directory frontier, and deterministic entry
-    checkpoints so an unexpectedly interrupted scan resumes at application startup without walking
-    previously completed directories;
-19. replaying staged locations and issues idempotently without publishing partial recovery state;
-20. pausing a scan from the upper action area, preserving its private checkpoint, and resuming only
-    after an explicit user action;
-21. requesting previews only for lazily built gallery tiles, cancelling queued off-screen work,
-    and generating at most two previews concurrently;
-22. displaying and configuring catalog storage, versioned preview storage, and the preview budget
-    from the upper action area;
-23. freezing active storage for the lifetime of the process and requiring restart for changes;
-24. stopping new preview publication safely when its atomically enforced capacity is exhausted;
-25. reporting each configured root as available, missing, inaccessible, or offline without walking
-    or hydrating its contents;
-26. rebuilding a visible preview when its rebuildable cache artifact has disappeared.
+- imported folders are sources that scope the same gallery;
+- folder, date, search, sort, layout, and analysis state compose within one browsing canvas;
+- the gallery loads continuously while the backend reads bounded, revision-safe windows;
+- one logical asset may have more than one physical file location;
+- exact duplicate evidence, similarity evidence, and later local classification remain distinct;
+- file-changing operations are introduced as separate workflows only after they can be proposed,
+  reviewed, revalidated, logged, and explicitly authorized.
 
-Normal imports perform complete scans without an item or directory-entry cap. Explicit limits remain
-available only to deterministic fixtures and controlled acceptance commands, and a limited result
-is never presented as a complete library scan.
+The interface follows an accepted Microsoft Photos-like information architecture while using
+Flutter Material 3 components and interaction behavior. Sources and albums belong in the sidebar,
+search remains global, and contextual gallery actions replace separate feature pages.
 
-## Safety guarantees
+## Design principles
 
-- Source files are opened only for metadata and format detection during discovery; full decoding is
-  deferred until a gallery item requests a preview.
-- Source files are never renamed, moved, deleted, or rewritten.
-- Catalogs and previews are stored in operating-system application data and cache directories, not
-  inside imported folders.
-- A cancelled, detached, or failed scan never replaces the last completed catalog for a source.
-- Unexpectedly interrupted `running` scans resume automatically, `paused` scans wait for an explicit
-  resume action, and user cancellation remains terminal.
-- A file changed by another process makes the scan stale instead of publishing mixed-time state.
-- A file whose Windows identity changes during a scan is treated as replaced, even when size and
-  modification time still match.
-- OneDrive and other files marked offline or recall-on-access are recorded as issues and skipped.
-- Locked files are isolated as per-item open failures, and missing or changed files prevent the
-  incomplete scan from being published.
-- The Windows runner is long-path aware, and the scanner is verified with a source path longer than
-  260 characters.
-- Image decoding has explicit dimension and allocation limits.
-- Raw EXIF parsing has a 4 MiB limit, retained capture fields have a 64-byte limit, and malformed
-  metadata remains an isolated issue rather than invalidating a readable image.
-- Storage paths that overlap an imported source root are rejected.
-- Existing catalogs cannot be relocated without a future explicit migration workflow, and storage
-  updates never move or delete existing data automatically.
+### Local first
+
+Cataloging, previews, metadata, and future analysis run locally. Source paths and derived data do
+not need a hosted service.
+
+### Separate analysis from file operations
+
+Indexing, browsing, and analysis do not silently change source media. Move, copy, rename,
+recycle-bin, and delete operations are planned organization capabilities with separate review,
+current-state revalidation, explicit authorization, operation history, and a recovery strategy where
+applicable. Cloud-only placeholders are detected without automatically downloading them.
+
+### Large-library by design
+
+Discovery, catalog queries, gallery rendering, and preview work are bounded. Long-running work is
+observable, cancellable, recoverable, and isolated from individual corrupt or inaccessible files.
+
+### Evidence over assumptions
+
+Ame distinguishes a logical asset, its physical locations, source-state evidence, content identity,
+and versioned analysis results. A path or file extension alone is not treated as permanent identity
+or proof of image content.
+
+### Replaceable engines
+
+SQLite, media inspection, metadata, duplicate analysis, similarity, classification, and platform
+integration sit behind Ame-owned contracts. External libraries may provide mature capabilities,
+but their types and storage formats do not define the product domain.
+
+## How it works
+
+1. Rust discovers supported media and records structured per-file issues without failing the whole
+   library.
+2. A Rust-owned SQLite catalog publishes completed source state atomically and exposes bounded
+   query windows.
+3. Derived previews are generated on demand into a capacity-limited cache outside source folders.
+4. Generated `flutter_rust_bridge` contracts connect the Rust application layer to Flutter.
+5. Flutter renders the unified Material 3 gallery, viewer, source navigation, and settings without
+   accessing the filesystem or database directly.
+
+The core concepts remain separate: `LibraryRoot`, `Asset`, `AssetLocation`, source-state evidence,
+versioned analysis runs, durable user decisions, and reviewed operation plans.
+
+## Current state
+
+Ame is under active development. The repository contains a working Windows desktop application with
+non-mutating multi-root indexing and browsing, bounded gallery queries, lazy previews, source
+scoping, local search and sorting, date navigation, selection, and an image viewer. Scans are
+resumable and preserve the last trustworthy completed catalog when replacement work is cancelled,
+interrupted, or stale.
+
+Move, copy, rename, recycle-bin, and delete controls are not yet available; they remain planned
+organization capabilities and will be introduced only with reviewed plans, revalidation, operation
+history, and explicit authorization. Exact duplicate review, perceptual similarity, and local
+classification are also not yet available. These future capabilities must use the same catalog,
+safety, and replaceability boundaries rather than forming separate applications.
 
 ## Architecture
 
-The code is split into Ame-owned boundaries:
+The repository keeps presentation, application policy, and replaceable infrastructure separate:
 
-- `rust/src/domain`: stable scan DTOs and structured errors;
-- `rust/src/application`: scan orchestration, cancellation, budgets, and publication policy;
-- `rust/src/ports.rs`: catalog, media-inspection, metadata, and preview contracts;
-- `rust/src/adapters`: filesystem, SQLite, and preview-cache implementations;
-- `rust/src/api`: the narrow desktop bridge surface;
-- `lib/app`: bootstrap, shared application presentation, and desktop window integration;
-- `lib/features/library/domain`: Flutter-owned presentation models;
-- `lib/features/library/application`: catalog and scan bridge mapping plus Riverpod orchestration;
-- `lib/features/library/adapters`: directory selection and Windows library platform integration;
-- `lib/features/library/presentation`: Material 3 gallery states and lazy rendering;
-- `lib/features/settings`: typed preferences, platform persistence, and Material 3 settings;
-- `lib/features/storage`: storage bridge mapping and storage-domain contracts;
-- `lib/prototypes`: isolated validation applications that production code does not import;
-- `test`: tests arranged to mirror their owning Dart source area.
+| Area | Responsibility |
+| --- | --- |
+| `lib/app` | Flutter bootstrap, shared presentation, and Windows desktop integration |
+| `lib/features` | Feature-owned Dart domain, application, adapter, and presentation code |
+| `rust/src` | Rust domain, application use cases, ports, adapters, persistence, and bridge API |
+| `test` | Dart tests arranged to mirror their owning source area |
+| `integration_test` | Cross-layer Windows and Flutter integration workflows |
+| `tool` | Stable formatting, quality, integration, acceptance, performance, bridge, and release commands |
+| `docs` | Architecture decisions, acceptance contracts, and development documentation |
 
-The complete ownership map is recorded in
-[`docs/development/repository-layout.md`](docs/development/repository-layout.md). Accepted technical
-decisions are indexed under [`docs/architecture`](docs/architecture/README.md).
+The complete ownership map is documented in
+[`docs/development/repository-layout.md`](docs/development/repository-layout.md).
 
-## Lap reference policy
+## Independent implementation
 
-[Lap](https://github.com/julyx10/lap) is an external GPL product and implementation reference. Ame
-uses it to compare workflows, performance risks, and failure behavior. Ame does not vendor, link,
-copy, or adapt Lap source code, UI components, assets, schema, or other implementation material.
+Ame is implemented independently. Lap and other photo-library applications may be inspected as
+external product, architecture, performance, and failure references. Their source code, UI
+components, assets, schemas, and internal types are not copied or vendored into this repository.
 
-The first risk carried over from reference testing is explicit: a large-library scan must be
-bounded and recoverable. Ame therefore starts with entry and accepted-image budgets, per-file issue
-isolation, cancellation, and atomic publication before attempting the real 259 GB collection.
+## Development
 
-## Development setup
+### Requirements
 
-Required tools:
-
-- Flutter stable with Windows desktop enabled;
+- Windows 11 x64;
+- Flutter stable with Windows desktop support;
 - stable Rust with the `x86_64-pc-windows-msvc` target;
-- Visual Studio 2022 with **Desktop development with C++**, MSVC, Windows SDK, and CMake tools;
-- `flutter_rust_bridge_codegen` 2.12.0;
-- `cargo-expand` for bridge generation.
+- Visual Studio 2022 with Desktop development with C++, MSVC, Windows SDK, and CMake tools;
+- the bridge-generation tools declared by the repository.
 
-Generate the bridge after changing public Rust API types:
+Install Dart dependencies and run the application:
+
+```powershell
+flutter pub get
+flutter run -d windows
+```
+
+After changing public Rust bridge types, regenerate the typed bridge:
 
 ```powershell
 .\tool\bridge_generate.ps1
 ```
 
-Run the verified checks serially:
-
-```powershell
-.\tool\quality_verify_daily.ps1
-```
-
-Run one or more focused Flutter test paths through the same lock-aware serial entrypoint:
+Run a focused Flutter test through the repository's serial, lock-aware entrypoint:
 
 ```powershell
 .\tool\quality_test_flutter.ps1 `
   -TestPath test\features\library\presentation\unified_library_screen_test.dart
 ```
 
-Run the manual 10,000-file synthetic scan, pause/resume, cancellation, catalog-growth, source-byte,
-and peak-working-set acceptance gate:
+Run the daily quality gate:
 
 ```powershell
-.\tool\performance_benchmark_synthetic_library.ps1
+.\tool\quality_verify_daily.ps1
 ```
 
-The benchmark enforces 60-second cold, warm, and resumed scan limits, five-second pause and cancel
-limits, a 64 MiB catalog-file limit, and a 512 MiB test-process working-set limit. These are local
-debug-build regression gates, not release throughput claims.
+Windows packaging and real-library acceptance have separate, explicitly invoked gates. Their
+requirements and safety constraints are documented rather than folded into ordinary development
+commands.
 
-Run the controlled guard and terminal-state regression for the prepared real-library acceptance
-tool:
+## Project documentation
 
-```powershell
-.\tool\acceptance_test_read_only_guardrails.ps1
-```
-
-The real-root tool must not be run merely because it exists. Its explicit authorization, isolated
-storage, OneDrive acknowledgement, retained evidence, interruption recovery, and ordered execution
-contract are documented in
-[`docs/acceptance/read-only-real-library.md`](docs/acceptance/read-only-real-library.md).
-
-Run the Windows end-to-end acceptance test serially with isolated catalog and cache storage:
-
-```powershell
-.\tool\integration_test_windows.ps1
-```
-
-This test opens the production directory picker, cancels it once, then imports two controlled
-fixture directories through the real picker. It verifies corrupt-file isolation, external catalog
-and preview placement, multi-root persistence, versioned metadata evidence,
-application-state reconstruction, rendered results, and unchanged source bytes. Test storage is
-removed when the script exits.
-
-Build and run the Windows application after Visual Studio reports the required components:
-
-```powershell
-flutter doctor -v
-flutter run -d windows
-```
-
-## Current limitations
-
-- Catalog rows load progressively in bounded 500-location keyset windows. Preview generation uses a
-  two-worker visible-item queue; already active decode work is not preempted when a tile scrolls away.
-- Recovery replays at most the current directory up to its saved entry checkpoint. Completed and
-  pending directories plus directory-entry snapshots are tracked durably in 256-entry batches and
-  read through 256-entry keyset windows.
-- Catalog relocation, preview migration, and old-cache cleanup are not automated. Preview-location
-  changes apply after restart and existing cache roots must be retained until a verified cleanup
-  workflow is implemented.
-- The preview budget currently uses admission control without least-recently-used eviction.
-- The preview adapter currently covers BMP, GIF, ICO, JPEG, PNG, TIFF, and WebP. HEIF/HEIC and AVIF
-  need a separately evaluated decoder adapter.
-- Windows file identity is local reconciliation evidence only. It may be unavailable or reused by a
-  filesystem and cannot establish byte identity, cross-computer identity, or permission for a file
-  operation. Cross-volume moves remain new assets until exact content evidence is available.
-- The synthetic large-library gate uses 10,000 tiny local PNG fixtures. It exercises bounded catalog
-  behavior and recovery but does not represent decoder cost, cloud availability, or the media mix of
-  the real 259 GB collection.
-- Exact-duplicate evidence and review remain an R3 capability; perceptual similarity and automatic
-  classification remain later stages. Date-grouped browsing, bounded filename and path search, and
-  the complete-result time rail are active R2b production behavior.
-- Both authorized real-library roots completed controlled read-only catalog acceptance. Full-library
-  preview generation was deliberately excluded, and future real-root scans still require the
-  guarded acceptance workflow and current authorization.
+- [Architecture decisions](docs/architecture/README.md)
+- [Repository layout](docs/development/repository-layout.md)
+- [Quality gates](docs/acceptance/quality-gates.md)
+- [Read-only real-library acceptance](docs/acceptance/read-only-real-library.md)
+- [Project engineering contract](AGENTS.md)

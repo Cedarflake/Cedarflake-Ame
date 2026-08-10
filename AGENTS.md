@@ -40,8 +40,11 @@ The project owns its product workflow, domain model, catalog, task orchestration
 and presentation. Mature external libraries may provide specialized capabilities through adapters,
 but Ame must remain maintainable when an engine or UI technology is replaced.
 
-Original media is irreplaceable user data. Read-only behavior is the default, and convenience never
-justifies silently changing, downloading, moving, renaming, or deleting source files.
+Original media is irreplaceable user data. Cataloging, browsing, and analysis must not modify it.
+Move, copy, rename, recycle-bin, and delete capabilities remain in product scope as later, separate
+workflows with explicit authorization, current-state revalidation, operation history, and recovery
+safeguards where applicable. Convenience never justifies silently changing or downloading source
+files.
 
 ## 3. Instruction and decision precedence
 
