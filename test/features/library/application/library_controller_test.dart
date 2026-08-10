@@ -13,14 +13,14 @@ import "package:flutter_test/flutter_test.dart";
 void main() {
   test("publishes streamed assets only after a completed scan event", () async {
     final scanner = _FakeLibraryScanner();
-    final catalog = _FakeLibraryCatalog(
-      _snapshot(
-        roots: const [
+    final catalog = _FakeLibraryCatalog.dynamic(
+      () => _snapshot(
+        roots: [
           LibraryRoot(
             id: "root-1",
             path: r"\\?\C:\Pictures",
             displayPath: "C:\\Pictures",
-            activeScanId: "scan-test",
+            activeScanId: scanner.startedScanId,
             createdUnixMs: 1,
             assetCount: 1,
             issueCount: 0,
@@ -50,10 +50,9 @@ void main() {
     );
     expect(scanner.startedItemLimit, isNull);
     expect(scanner.startedEntryLimit, isNull);
+    final scanId = scanner.startedScanId ?? fail("scan did not start");
 
-    scanner.add(
-      const LibraryScanStarted(scanId: "scan-test", rootPath: "C:\\Pictures"),
-    );
+    scanner.add(LibraryScanStarted(scanId: scanId, rootPath: "C:\\Pictures"));
     scanner.add(
       LibraryAssetDiscovered(
         LibraryAsset(
@@ -104,7 +103,7 @@ void main() {
     expect(state.status, LibraryStatus.completed);
     expect(state.assets.single.relativePath, "1.png");
     expect(state.catalogPath, "C:\\AmeData\\ame.sqlite3");
-    expect(state.scanId, "scan-test");
+    expect(state.scanId, scanId);
     expect(state.visitedEntries, 1);
     expect(state.stagedAssetCount, 1);
 
