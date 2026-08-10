@@ -41,6 +41,7 @@ class UnifiedLibraryScreen extends ConsumerStatefulWidget {
 
 class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   final ScrollController _galleryScrollController = ScrollController();
+  late final LibraryController _libraryController;
   late final TextEditingController _searchController;
   late GallerySelection _selection;
   late GalleryLayoutShape _layoutShape;
@@ -59,6 +60,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   @override
   void initState() {
     super.initState();
+    _libraryController = ref.read(libraryControllerProvider.notifier);
     final state = ref.read(libraryControllerProvider);
     final viewPreferences = ref.read(initialLibraryViewPreferencesProvider);
     final amePreferences = ref.read(initialAmePreferencesProvider);
@@ -75,9 +77,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   @override
   void dispose() {
     if (_viewerLocationId != null) {
-      ref
-          .read(libraryControllerProvider.notifier)
-          .updateViewerPreviewDemand(null);
+      _libraryController.updateViewerPreviewDemand(null);
     }
     _searchDebounce?.cancel();
     _galleryScrollController.dispose();
@@ -90,7 +90,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(libraryControllerProvider);
     final amePreferences = ref.watch(amePreferencesControllerProvider);
-    final controller = ref.read(libraryControllerProvider.notifier);
+    final controller = _libraryController;
     final queryId = _queryId(state);
     final catalogRevision = state.catalogRevision;
     final manifestRequest =
