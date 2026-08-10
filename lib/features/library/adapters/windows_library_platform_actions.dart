@@ -43,7 +43,7 @@ class WindowsLibraryPlatformActions implements LibraryPlatformActions {
 
   Future<void> _revealPath(String path) {
     final shellPath = _explorerCompatiblePath(path);
-    return _launchExplorer(["/select,$shellPath"]);
+    return _launchExplorer(["/select,", shellPath]);
   }
 }
 

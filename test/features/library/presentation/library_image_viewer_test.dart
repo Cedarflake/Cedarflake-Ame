@@ -3,6 +3,7 @@ import "dart:math" as math;
 import "package:cedarflake_ame/app/presentation/ame_menu.dart";
 import "package:cedarflake_ame/app/presentation/ame_theme.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
+import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_asset_information_sheet.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_image_viewer.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_controls.dart";
@@ -14,6 +15,61 @@ import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  testWidgets("viewer actions follow the active asset after navigation", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1000, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final assets = [
+      _asset(
+        sourcePath: r"\\?\G:\CloudLibrary\图片\第一张.jpg",
+        displayPath: r"G:\CloudLibrary\图片\第一张.jpg",
+      ),
+      _asset(
+        sourcePath: r"\\?\G:\CloudLibrary\图片\第二张.jpg",
+        displayPath: r"G:\CloudLibrary\图片\第二张.jpg",
+        locationId: "location-2",
+      ),
+    ];
+    final revealedFiles = <String>[];
+    var activeIndex = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StatefulBuilder(
+          builder: (context, setState) {
+            final activeAsset = assets[activeIndex];
+            return Scaffold(
+              body: LibraryImageViewer(
+                asset: activeAsset,
+                onBack: () {},
+                onInformation: () {},
+                onCopyPath: () {},
+                onRevealFile: () {
+                  revealedFiles.add(activeAsset.sourcePath);
+                },
+                onNext: activeIndex < assets.length - 1
+                    ? () => setState(() => activeIndex += 1)
+                    : null,
+              ),
+            );
+          },
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await _revealViewerFile(tester);
+    expect(revealedFiles, [assets.first.sourcePath]);
+
+    await tester.tap(find.byKey(const Key("viewer-next")));
+    await tester.pump();
+    await _revealViewerFile(tester);
+    expect(revealedFiles, [assets.first.sourcePath, assets.last.sourcePath]);
+  });
+
   testWidgets("viewer distinguishes fit-to-window from actual pixel size", (
     tester,
   ) async {
@@ -516,7 +572,15 @@ void main() {
   });
 }
 
+Future<void> _revealViewerFile(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key("viewer-more-menu")));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(LibraryStrings.openInExplorer));
+  await tester.pumpAndSettle();
+}
+
 LibraryAsset _asset({
+  String locationId = "location-1",
   int width = 4000,
   int height = 2000,
   String sourcePath = r"C:\Pictures\sample.png",
@@ -528,7 +592,7 @@ LibraryAsset _asset({
 }) {
   return LibraryAsset(
     assetId: "asset-1",
-    locationId: "location-1",
+    locationId: locationId,
     rootId: "root-1",
     sourcePath: sourcePath,
     displayPath: displayPath ?? sourcePath,

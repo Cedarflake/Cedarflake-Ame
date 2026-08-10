@@ -1,7 +1,10 @@
 import "package:cedarflake_ame/app/ame_app.dart";
+import "package:cedarflake_ame/features/library/adapters/windows_library_platform_actions.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
+import "package:cedarflake_ame/features/library/application/library_platform_actions.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
+import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_photo_tile.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
@@ -57,17 +60,71 @@ void main() {
     expect(identical(positionAfter, positionBefore), isTrue);
     expect(positionAfter.pixels, closeTo(offsetBefore, 0.01));
   });
+
+  testWidgets("reveals the active viewer file after adjacent navigation", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final platformActions = _RecordingPlatformActions();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(
+            _libraryState(
+              assetCount: 2,
+              sourceRoot: r"\\?\G:\CloudLibrary\图片",
+              displayRoot: r"G:\CloudLibrary\图片",
+            ),
+          ),
+          libraryPlatformActionsProvider.overrideWithValue(platformActions),
+        ],
+        child: const AmeApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(LibraryPhotoTile).hitTestable().first);
+    await tester.pump();
+    await _revealCurrentViewerFile(tester);
+    expect(platformActions.revealedFiles, [
+      r"\\?\G:\CloudLibrary\图片\0.jpg",
+    ]);
+
+    await tester.tap(find.byKey(const Key("viewer-next")));
+    await tester.pump();
+    await _revealCurrentViewerFile(tester);
+    expect(platformActions.revealedFiles, [
+      r"\\?\G:\CloudLibrary\图片\0.jpg",
+      r"\\?\G:\CloudLibrary\图片\1.jpg",
+    ]);
+  });
 }
 
-LibraryState _libraryState() {
+Future<void> _revealCurrentViewerFile(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key("viewer-more-menu")));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(LibraryStrings.openInExplorer));
+  await tester.pumpAndSettle();
+}
+
+LibraryState _libraryState({
+  int assetCount = 120,
+  String sourceRoot = r"C:\Pictures",
+  String? displayRoot,
+}) {
+  final readableRoot = displayRoot ?? sourceRoot;
   final assets = [
-    for (var index = 0; index < 120; index++)
+    for (var index = 0; index < assetCount; index++)
       LibraryAsset(
         assetId: "asset-$index",
         locationId: "location-$index",
         rootId: "root-1",
-        sourcePath: "C:\\Pictures\\$index.jpg",
-        displayPath: "C:\\Pictures\\$index.jpg",
+        sourcePath: "$sourceRoot\\$index.jpg",
+        displayPath: "$readableRoot\\$index.jpg",
         relativePath: "$index.jpg",
         previewPath: "C:\\Ame\\previews\\$index.jpg",
         fileSize: BigInt.one,
@@ -85,8 +142,8 @@ LibraryState _libraryState() {
       roots: [
         LibraryRoot(
           id: "root-1",
-          path: "C:\\Pictures",
-          displayPath: "C:\\Pictures",
+          path: sourceRoot,
+          displayPath: readableRoot,
           createdUnixMs: 1,
           assetCount: assets.length,
           issueCount: 0,
@@ -95,4 +152,25 @@ LibraryState _libraryState() {
       assets: assets,
     ),
   );
+}
+
+class _RecordingPlatformActions implements LibraryPlatformActions {
+  final List<String> revealedFiles = [];
+
+  @override
+  Future<void> copyText(String value) async {}
+
+  @override
+  Future<void> revealDirectory(String path) async {}
+
+  @override
+  Future<void> revealFile(String path) async {
+    revealedFiles.add(path);
+  }
+
+  @override
+  Future<void> revealLibraryFolder(
+    String rootPath,
+    String relativePath,
+  ) async {}
 }
