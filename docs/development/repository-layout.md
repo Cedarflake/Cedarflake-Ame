@@ -7,6 +7,7 @@ This layout keeps product ownership visible while preserving Flutter, Rust, and
 
 | Path | Ownership |
 | --- | --- |
+| `.github/workflows` | Category-prefixed hosted quality and release workflow entrypoints |
 | `lib/app` | Application bootstrap, shared presentation primitives, and desktop window integration |
 | `lib/features` | Product features, each split by domain, application, adapters, and presentation as needed |
 | `lib/src/rust` | Generated Dart bridge code; do not reorganize or edit by hand |
@@ -71,6 +72,11 @@ Script names begin with an ownership category so related commands sort together:
 - `performance_*` for explicit benchmarks;
 - `release_*` for packaging and release-candidate verification;
 - `bridge_*` for generated bridge maintenance.
+
+Workflow files under `.github/workflows` use the same `snake_case` ownership prefixes. Generic
+filenames such as `ci.yml`, `build.yml`, `test.yml`, and `release.yml` are not valid repository
+entrypoints. The quality lint gate enforces both script and workflow filename categories.
+Hosted CI additionally runs `quality_lint_workflows.ps1` with a checksum-verified actionlint binary.
 
 Flutter-focused commands under `quality_*` share a repository-wide named mutex. Focused tests use
 `quality_test_flutter.ps1`, which starts one test file at a time with Flutter concurrency fixed to

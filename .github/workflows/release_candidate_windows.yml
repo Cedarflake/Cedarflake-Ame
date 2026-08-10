@@ -1,0 +1,30 @@
+name: Release / Candidate Windows
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing v-prefixed tag to verify
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-candidate-${{ github.event.inputs.release_tag || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release_windows:
+    name: Windows Candidate Gate
+    permissions:
+      contents: read
+    uses: ./.github/workflows/quality_gate_windows.yml
+    with:
+      gate_mode: release
+      checkout_ref: ${{ github.event.inputs.release_tag || github.sha }}
+      release_tag: ${{ github.event.inputs.release_tag || github.ref_name }}

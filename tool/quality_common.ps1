@@ -101,6 +101,19 @@ function Assert-AmeToolScriptNames {
     }
 }
 
+function Assert-AmeWorkflowNames {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string[]]$Names
+    )
+
+    $namePattern = "^(quality|integration|acceptance|performance|release|bridge)_[a-z0-9_]+\.ya?ml$"
+    $invalidNames = @($Names | Where-Object { $_ -notmatch $namePattern })
+    if ($invalidNames.Count -gt 0) {
+        throw "Workflow files require an approved category prefix: $($invalidNames -join ', ')"
+    }
+}
+
 function Enter-AmeRepositoryToolLock {
     param(
         [int]$TimeoutMinutes = 30

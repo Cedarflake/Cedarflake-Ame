@@ -404,6 +404,18 @@ Use these prefixes:
 - `release_*` for packaging and release-candidate verification;
 - `bridge_*` for generated bridge maintenance.
 
+GitHub Actions workflow files under `.github/workflows` follow the same `snake_case` ownership
+prefixes. Do not add generic names such as `ci.yml`, `build.yml`, `test.yml`, or `release.yml`.
+Workflow display names and job IDs must retain the same ownership boundary so branch-protection
+checks remain understandable and stable. Reusable workflows are named for the gate they own, not
+only for the fact that they are reusable.
+
+Repository workflows must use the narrowest required `GITHUB_TOKEN` permissions, must not use
+`pull_request_target` to execute untrusted pull-request code, and must pin external actions to full
+commit SHAs. Normal push and pull-request CI may use dependency caches but must not restore compiled
+application or library output as trusted build evidence. Authorization-bound real-library paths,
+tokens, catalogs, and scans never enter GitHub-hosted workflows.
+
 Choose the narrowest existing category before introducing another one. When a public script is
 added or renamed, update its callers, repository instructions, and documentation in the same
 change. Do not retain an undocumented alias that creates two canonical entrypoints.
@@ -413,11 +425,16 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
 - `./tool/quality_lint.ps1` validates repository PowerShell and JSON configuration, runs the formatting
   gate, runs Clippy for all targets and features with warnings denied, and runs the pinned Dart
   analyzer with warnings and informational lints treated as failures.
+- `./tool/quality_lint_workflows.ps1 -ActionlintPath <path>` validates all hosted workflows with a
+  caller-provided `actionlint` executable. Hosted CI supplies a fixed version with a verified
+  checksum; the daily workstation gate does not silently download tools.
 - `./tool/quality_test_flutter.ps1` expands the requested widget-test paths and runs each test file
   in its own `flutter test --concurrency=1` process while holding the repository tool lock.
 - `./tool/quality_verify_daily.ps1` is the daily gate. It runs the lint gate, Rust tests, Flutter tests, the
   controlled Windows scan integration, generated bridge compatibility, and whitespace validation
   for the complete tracked diff.
+- `./tool/quality_verify_git_range.ps1` checks committed whitespace over an explicit Git revision
+  range so a clean hosted checkout does not turn `git diff HEAD --check` into an empty gate.
 - `./tool/performance_benchmark_synthetic_library.ps1` is the explicit performance gate. It creates 10,000
   temporary images and records cold, warm, pause, resume, memory, and storage evidence.
 - `./tool/acceptance_run_read_only_library.ps1` and `./tool/acceptance_verify_read_only_catalog.ps1` are the
@@ -428,6 +445,16 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
 - `./tool/release_verify_candidate.ps1` is the release-candidate orchestrator. It runs the daily, Windows
   release, and synthetic performance gates in order, and adds retained real-library validation only
   when explicitly requested with all authorization-bound paths.
+- `./tool/release_validate_version.ps1` requires a `v`-prefixed semantic version and verifies that
+  the tag, Flutter application version, and Rust package version agree before a release gate runs.
+
+Hosted workflow ownership is:
+
+- `.github/workflows/quality_ci.yml` for pushes to `main`, pull requests, merge queues, and manual
+  daily-gate runs;
+- `.github/workflows/quality_gate_windows.yml` for the shared Windows daily or release gate;
+- `.github/workflows/release_candidate_windows.yml` for version-tag and manual release candidates;
+- `.github/workflows/release_verify_published.yml` for post-publication source-tag verification.
 
 The complete gate definitions and commands are recorded in `docs/acceptance/quality-gates.md`.
 

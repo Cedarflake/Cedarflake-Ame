@@ -1,0 +1,132 @@
+name: Quality / Windows Gate
+
+on:
+  workflow_call:
+    inputs:
+      gate_mode:
+        description: Repository gate to execute
+        required: false
+        default: daily
+        type: string
+      base_revision:
+        description: Base commit used by the committed whitespace check
+        required: false
+        default: ""
+        type: string
+      checkout_ref:
+        description: Optional branch, tag, or commit to check out
+        required: false
+        default: ""
+        type: string
+      release_tag:
+        description: Version tag required by the release gate
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  quality_windows:
+    name: Windows Gate
+    runs-on: windows-2025
+    timeout-minutes: 120
+    env:
+      CI: "true"
+    steps:
+      - name: Validate gate request
+        shell: pwsh
+        env:
+          AME_GATE_MODE: ${{ inputs.gate_mode }}
+          AME_RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          if ($env:AME_GATE_MODE -notin @("daily", "release")) {
+            throw "Unsupported gate mode: $env:AME_GATE_MODE"
+          }
+          if (
+            $env:AME_GATE_MODE -eq "release" -and
+            [string]::IsNullOrWhiteSpace($env:AME_RELEASE_TAG)
+          ) {
+            throw "Release gate requires a version tag"
+          }
+
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ inputs.checkout_ref || github.sha }}
+
+      - name: Install pinned actionlint
+        id: actionlint
+        shell: pwsh
+        run: |
+          $version = "1.7.12"
+          $archiveName = "actionlint_${version}_windows_amd64.zip"
+          $archivePath = Join-Path $env:RUNNER_TEMP $archiveName
+          $installPath = Join-Path $env:RUNNER_TEMP "actionlint-$version"
+          $expectedHash = "6e7241b51e6817ea6a047693d8e6fed13b31819c9a0dd6c5a726e1592d22f6e9"
+          $downloadUri = (
+            "https://github.com/rhysd/actionlint/releases/download/" +
+            "v$version/$archiveName"
+          )
+          $ProgressPreference = "SilentlyContinue"
+          Invoke-WebRequest -Uri $downloadUri -OutFile $archivePath
+          $actualHash = (
+            Get-FileHash -LiteralPath $archivePath -Algorithm SHA256
+          ).Hash.ToLowerInvariant()
+          if ($actualHash -ne $expectedHash) {
+            throw "actionlint checksum mismatch: $actualHash"
+          }
+          Expand-Archive -LiteralPath $archivePath -DestinationPath $installPath
+          "path=$installPath\actionlint.exe" >> $env:GITHUB_OUTPUT
+
+      - name: Lint GitHub Actions workflows
+        shell: pwsh
+        env:
+          AME_ACTIONLINT_PATH: ${{ steps.actionlint.outputs.path }}
+        run: ./tool/quality_lint_workflows.ps1 -ActionlintPath $env:AME_ACTIONLINT_PATH
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: 3.44.9
+          cache: true
+          pub-cache: true
+
+      - name: Report toolchain
+        shell: pwsh
+        run: |
+          flutter --version
+          dart --version
+          rustc --version
+          cargo --version
+
+      - name: Restore locked Dart dependencies
+        shell: pwsh
+        run: flutter pub get --enforce-lockfile
+
+      - name: Run daily quality gate
+        if: inputs.gate_mode == 'daily'
+        shell: pwsh
+        run: ./tool/quality_verify_daily.ps1
+
+      - name: Validate release version
+        if: inputs.gate_mode == 'release'
+        shell: pwsh
+        env:
+          AME_RELEASE_TAG: ${{ inputs.release_tag }}
+        run: ./tool/release_validate_version.ps1 -Tag $env:AME_RELEASE_TAG
+
+      - name: Run release candidate gate
+        if: inputs.gate_mode == 'release'
+        shell: pwsh
+        run: ./tool/release_verify_candidate.ps1
+
+      - name: Check committed whitespace
+        shell: pwsh
+        env:
+          AME_BASE_REVISION: ${{ inputs.base_revision }}
+        run: ./tool/quality_verify_git_range.ps1 -BaseRevision $env:AME_BASE_REVISION

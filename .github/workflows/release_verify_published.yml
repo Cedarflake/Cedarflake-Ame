@@ -1,0 +1,24 @@
+name: Release / Published Verification
+
+on:
+  release:
+    types:
+      - published
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-published-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  release_windows:
+    name: Windows Published Gate
+    permissions:
+      contents: read
+    uses: ./.github/workflows/quality_gate_windows.yml
+    with:
+      gate_mode: release
+      checkout_ref: ${{ github.event.release.tag_name }}
+      release_tag: ${{ github.event.release.tag_name }}

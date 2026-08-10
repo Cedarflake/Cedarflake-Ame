@@ -1,0 +1,30 @@
+name: Quality / CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  merge_group:
+    types:
+      - checks_requested
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality_windows:
+    name: Windows Gate
+    permissions:
+      contents: read
+    uses: ./.github/workflows/quality_gate_windows.yml
+    with:
+      gate_mode: daily
+      base_revision: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before || '' }}

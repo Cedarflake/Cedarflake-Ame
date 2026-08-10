@@ -11,9 +11,18 @@ try {
     Assert-AmeToolScriptNames (
         $powerShellFiles | Select-Object -ExpandProperty Name
     )
+    $workflowFiles = @(
+        Get-ChildItem -LiteralPath ".github\workflows" -File |
+            Where-Object { $_.Extension -in @(".yml", ".yaml") }
+    )
+    Assert-AmeWorkflowNames (
+        $workflowFiles | Select-Object -ExpandProperty Name
+    )
     $powerShellPaths = $powerShellFiles |
         Select-Object -ExpandProperty FullName
     Invoke-AmePowerShellSyntaxCheck $powerShellPaths
+    & (Join-Path $PSScriptRoot "quality_test_naming_contract.ps1")
+    & (Join-Path $PSScriptRoot "release_test_version_validation.ps1")
     Invoke-AmeJsonSyntaxCheck @(
         (Join-Path $repositoryRoot ".vscode\extensions.json"),
         (Join-Path $repositoryRoot ".vscode\settings.json")
