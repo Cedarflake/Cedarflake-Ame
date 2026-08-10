@@ -19,7 +19,7 @@ Recorded decisions:
 - [ADR 0002: Rust-owned catalog and recoverable media boundaries](0002-rust-owned-catalog-and-media-boundaries.md)
 - [ADR 0003: One unified gallery with contextual actions](0003-unified-gallery-information-architecture.md)
 - [ADR 0004: Admit narrow dependencies for the R0 vertical slice](0004-r0-dependency-admission.md)
-- [ADR 0005: Freeze active storage and enforce a preview budget](0005-storage-governance-and-budget.md)
+- [ADR 0005: Govern storage and the bounded preview lifecycle](0005-storage-governance-and-budget.md)
 - [ADR 0006: Parse EXIF evidence behind Ame-owned media contracts](0006-exif-capture-time-adapter.md)
 - [ADR 0007: Reconcile Windows locations with versioned file identity evidence](0007-windows-file-identity-reconciliation.md)
 - [ADR 0008: Capture-time keyset for the unified gallery](0008-capture-time-gallery-keyset.md)

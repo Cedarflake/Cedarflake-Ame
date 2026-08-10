@@ -398,6 +398,12 @@ position when possible.
   bounded chunks, and Flutter stores compact typed data rather than full asset records, paths,
   metadata, or previews. Its memory cost and fallback representation must pass the gates in ADR
   0014.
+- Orientation-corrected width and height are durable catalog evidence, not preview-cache metadata.
+  They remain authoritative across restart, preview failure or cleanup, viewport resize, and an
+  identity-proven rename or move. A temporarily unavailable source retains its last trustworthy
+  dimensions together with separate availability evidence. Source replacement, incompatible media
+  inspection, or a confirmed content edit requires reinspection and one atomic catalog revision;
+  an authoritative location removal is the only normal path that removes its dimensions.
 - One deterministic layout snapshot derives final row membership, item rectangles, cumulative row
   offsets, date anchors, and total extent from that manifest. Placeholder, failed-preview, and
   decoded states use the same rectangle. Preview completion or eviction must never recompose rows,
@@ -410,6 +416,11 @@ position when possible.
 - Preview readiness lives in an identity-keyed store outside layout state. Visible and near-
   viewport previews receive priority, obsolete generations cannot publish, and expensive decoding
   may be deferred during high-velocity scrolling without deferring layout geometry.
+- A preview is a rebuildable, budgeted artifact whose identity includes stable location and source
+  state, preview algorithm and version, orientation contract, and a bounded physical-pixel size
+  bucket. Ame selects the smallest compatible bucket that satisfies the current display size and
+  scale, rather than generating an unbounded variant for every logical pixel width. Preview
+  absence, failure, staleness, regeneration, or eviction never changes durable dimensions.
 - Wheel, touchpad, keyboard, accessibility, and ballistic movement remain native relative activity
   on Flutter's one `Scrollable` and do not enter an asynchronous intent queue. Slider drag, date
   click, restored position, source navigation, search navigation, and resize submit programmatic
@@ -520,13 +531,20 @@ Initial settings are limited to behavior that is understandable and connected en
   开源软件声明
 ```
 
-Storage labels and descriptions must explain the consequence instead of exposing implementation
-terms:
+After the R2b preview lifecycle is complete, storage labels and descriptions use the following
+target wording and explain the consequence instead of exposing implementation terms:
 
 - `图库数据位置`: `保存 Ame 的图库索引和设置，不会移动或复制原图片`;
 - `缩略图位置`: `保存可重新生成的预览，不会保存第二份原图`;
 - `缩略图最大占用空间`: `达到上限后自动清理较少使用的缩略图`;
 - `清理缩略图`: `缩略图会在需要时重新生成，不会删除原图片`.
+
+While ADR 0005's complete preview lifecycle remains partially implemented, the product must not
+claim that automatic or manual reclamation has occurred. The current-state wording must instead
+explain that reaching the limit pauses new preview generation, that existing previews remain
+available, and that changing the limit or location takes effect after restart. The target wording
+above replaces that interim text only when the complete reclamation and recovery workflow is
+connected end to end.
 
 Changing a storage location must show whether restart or migration is required before confirmation.
 Clearing thumbnails must name the rebuild cost and confirm that source files are untouched. Theme,
@@ -535,6 +553,18 @@ on, and `默认加入的相册` initially defaults to `收藏夹`. When promptin
 is preselected in the dialog and may be changed for that operation. When prompting is off, the same
 setting is the direct destination. These rows remain absent until R6 connects album membership end
 to end.
+
+Clearing previews removes only rebuildable artifact files and resets compatible preview-index
+entries to pending. It retains catalog width and height, orientation evidence, capture metadata,
+source configuration, user decisions, and operation history. Before and after cleanup, a fixed query
+and viewport must produce the same row membership, item rectangles, total extent, and logical scroll
+anchor; visible pixels then regenerate through normal demand priority.
+
+ADR 0005 owns high/low-watermark eviction, verified cleanup, startup recovery, bounded variants, and
+switch-and-regenerate preview relocation. R2b must implement and validate that accepted lifecycle
+before enabling the target cleanup behavior. Until then, the admission-only implementation remains
+an honest runtime fallback, Ame retains the old root, and it must not claim that it reclaimed those
+files; it never silently migrates or deletes them.
 
 Do not expose database schema, catalog revisions, adapter or engine names, worker counts, queue
 depth, hash algorithms, cache keys, memory limits, analysis-run identifiers, or other engineering
@@ -684,10 +714,57 @@ R2b - production behavior integration:
 - temporary import progress connected to the persisted scan state;
 - persisted theme, viewer, catalog-location, preview-location, preview-budget, and clear-preview
   settings with the safety explanations defined in section 4.11;
+- durable orientation-corrected aspect-ratio evidence and a bounded preview lifecycle that preserve
+  final gallery geometry through restart, cleanup, failure, regeneration, and eviction;
 - responsive, keyboard, focus, scaling, and accessibility behavior.
 
 R2b is delivered as small end-to-end slices after UI acceptance. A fixture-backed control, bridge
 type, database query, or rendered screenshot alone does not complete a use case.
+
+R2b owns two deliberately separate lifecycles:
+
+- **Aspect-ratio evidence**: media inspection records orientation-corrected width and height with
+  compatible source state and engine identity. Restart and preview-cache operations reuse those
+  dimensions without decoding the source merely to recover layout. An unknown dimension uses one
+  stable documented fallback until a complete newer catalog revision supplies trustworthy evidence;
+  preview readiness never upgrades layout geometry on its own.
+- **Preview artifacts**: demand moves a compatible artifact through absent, pending, generating,
+  ready, failed, stale, and evictable conditions without turning those conditions into layout state.
+  Persistent representation may combine states where safe, but failure evidence, stale-publication
+  guards, and recovery behavior remain explicit and testable.
+
+R2b proves these contracts through initial scan, explicit rescan, restart, preview demand, cleanup,
+and storage transitions. R2c reuses the same retain-or-invalidate semantics when it adds automatic
+source-change detection; it does not create a second dimensions or preview lifecycle.
+
+The preview-artifact lifecycle is complete only when all of the following hold:
+
+1. viewer, visible, movement-direction-near, guard, and idle demand use the documented priority
+   order with bounded generation and decode concurrency;
+2. publication is atomic and generation-guarded against a newer query, catalog revision, source
+   state, algorithm version, orientation contract, or requested size bucket;
+3. compatible unchanged files and identity-proven renames or moves reuse artifacts, while content
+   edits, same-path replacements, and incompatible algorithm or orientation contracts invalidate
+   them without exposing stale pixels as current;
+4. the preview index can account for artifact path, byte size, bounded size bucket, compatibility
+   identity, and coarsened last-use evidence without writing persistent state on every scroll tick;
+5. capacity uses a high watermark and a lower reclamation target so cleanup does not oscillate at
+   the configured limit. Temporary and unreferenced files, obsolete algorithms, incompatible or
+   superseded size variants, and then least-recently-used distant artifacts are reclaimed in that
+   order;
+6. the active viewer item, visible items, directional guard demand, and in-flight atomic publication
+   are pinned for the current reclamation pass. Eviction never enters the pointer-to-scroll path;
+7. startup reconciles reserved bytes, interrupted temporary files, missing ready files, and
+   unreferenced artifacts in bounded work. A missing derived file returns to pending demand rather
+   than becoming a permanent gallery failure;
+8. manual cleanup and preview-location change expose progress, cancellation, completion, and
+   failure honestly, preserve source media and durable dimensions, and leave one recoverable active
+   storage configuration after restart;
+9. size buckets and reclamation thresholds are selected from display-scale, quality, latency,
+   storage, and churn measurements. They are bounded policy, not a per-pixel cache-key expansion;
+10. fixed fixtures prove EXIF Orientation 1 through 8, unknown-dimension fallback, missing and failed
+    previews, manual cleanup, automatic reclamation, restart recovery, and cache-boundary repetition
+    without changing final geometry or mutating source media.
 
 R2b does not require every optional ADR 0014 scale adaptation to be enabled merely to complete a
 migration checklist. Its remaining delivery order is:
@@ -697,11 +774,15 @@ migration checklist. Its remaining delivery order is:
 3. run resource-bounded Profile and long-session observation against a retained catalog without a
    new real-root import;
 4. record retained detail count, process working set, garbage collection, page-publication copy
-   time, frame timing, preview latency, programmatic scroll writers, and flat-manifest cost;
-5. change only a condition that exceeds its recorded budget, one variable at a time;
-6. compare every change with the frozen baseline and reject a nearby-return, reversal, distant-jump,
+   time, frame timing, preview latency, cache bytes, bucket reuse, reclamation churn, programmatic
+   scroll writers, and flat-manifest cost;
+5. implement and validate ADR 0005's correctness-required aspect-ratio and preview lifecycle before
+   enabling target cleanup, reclamation, or preview-root transition behavior;
+6. change any remaining performance structure only when it exceeds its recorded budget, one
+   variable at a time;
+7. compare every change with the frozen baseline and reject a nearby-return, reversal, distant-jump,
    resize, or native-input regression;
-7. pass real-library parity and Windows Release verification before closing R2b.
+8. pass real-library parity and Windows Release verification before closing R2b.
 
 Profile, builds, tests, scans, and acceptance runs remain serial on the project workstation. They
 reuse the retained catalog where the scenario permits, start with bounded durations, and stop at an
@@ -897,18 +978,21 @@ For every stable path or subtree intent:
 Required semantics:
 
 - New local file: add a location; do not infer permanent logical identity from its path.
-- Unchanged file: do not repeat metadata analysis or preview generation and do not create a
-  meaningless visible refresh.
+- Unchanged file: retain orientation-corrected dimensions and compatible preview artifacts; do not
+  repeat metadata analysis or preview generation and do not create a meaningless visible refresh.
 - In-place edit: preserve logical asset identity when accepted platform evidence supports it, while
-  invalidating stale preview, metadata, fingerprint, similarity, and classification evidence.
+  invalidating stale dimensions, preview, metadata, fingerprint, similarity, and classification
+  evidence. Continue publishing the last trustworthy revision until replacement dimensions and the
+  complete bounded delta can publish atomically.
 - Same-volume rename or move: preserve the asset when identity matches and replace its location
-  atomically; compatible derived evidence follows the stable asset instead of remaining attached to
-  an obsolete path.
+  atomically; compatible dimensions and preview artifacts follow the stable identity instead of
+  remaining attached to an obsolete path.
 - Replacement at the same path: create a new asset and prevent it from inheriting the former
-  file's derived evidence or user decisions.
+  file's dimensions, preview artifacts, other derived evidence, or user decisions.
 - Removal: remove the published location only after an authoritative observation; do not let a
   delayed delete remove a new replacement now occupying that path. When the last active location is
-  authoritatively removed, current derived projections must no longer surface the asset.
+  authoritatively removed, current derived projections must no longer surface the asset and its
+  unreferenced previews become eligible for bounded reclamation.
 - Cross-volume move: treat delete and create evidence conservatively unless a separately admitted
   stronger identity proves continuity; never transfer classification merely because names match.
 - Directory change: enumerate only the minimum subtree in bounded windows. Absence is authoritative
@@ -928,6 +1012,14 @@ work does not replace trustworthy state.
 - A rename must not briefly appear as both a removed tile and an unrelated new tile.
 - An edited visible image invalidates and recreates only the necessary preview; off-screen previews
   remain bounded and demand-driven.
+- A dimensions change publishes with the same atomic catalog revision as its source-state change.
+  Flutter assembles the replacement manifest and layout snapshot separately, keeps the last
+  trustworthy geometry until the replacement is complete, and preserves a compatible logical
+  viewport anchor. It never clears a tile to a transient square merely because reinspection or
+  preview generation is pending.
+- Preview demand and publication carry compatible location, source-state, revision, algorithm,
+  orientation, and size-bucket identity. A late result may populate only the matching preview entry;
+  it cannot restore an obsolete path, overwrite newer evidence, or mutate layout dimensions.
 - Every bounded delta exposes enough stable identity and evidence disposition for later analysis
   consumers to retain compatible results after a rename, invalidate them after content change or
   replacement, and remove them from current projections after authoritative deletion. R2c defines
@@ -1111,7 +1203,9 @@ R2c-H - large-library reliability:
 
 #### R2c.12 Acceptance evidence
 
-R2c is not complete until all applicable evidence exists:
+R2c is not complete until all applicable evidence exists. Its preview evidence is limited to
+retain-or-invalidate behavior caused by automatic source changes; cache capacity, reclamation,
+manual cleanup, storage relocation, and restart reconciliation remain R2b-owned contracts.
 
 - create, modify, same-volume rename/move, same-path replacement, and removal update the gallery
   incrementally;
@@ -1124,6 +1218,9 @@ R2c is not complete until all applicable evidence exists:
 - queued work survives a controlled process interruption without duplicate publication;
 - a watcher overflow or failure marks the root degraded and recovers through the documented ladder;
 - an offline or disconnected root retains its last catalog and does not publish mass removals;
+- controlled content edits, same-path replacement, identity-proven rename or move, temporary
+  unavailability, and authoritative removal produce the documented retain, atomic dimensions
+  replacement, preview invalidation, or removal eligibility without a transient layout change;
 - OneDrive and other recall placeholders are not hydrated by observation, catch-up, or audit;
 - the production Flutter gallery refreshes through bounded contracts and preserves stable identity
   and scroll position where the owning query remains valid;
@@ -1378,7 +1475,10 @@ Current priority:
 3. retain the flat exact manifest while it remains inside the recorded memory and frame budgets.
    Introduce block summaries plus bounded exact blocks only for result sizes that exceed those
    budgets, then validate the 79,000-, 250,000-, and 1,000,000-item cases before enabling the
-   hierarchical representation or removing any rollback path.
+   hierarchical representation or removing any rollback path;
+4. complete the R2b preview lifecycle as storage correctness work, not as a gallery hot-path
+   rewrite. Implement ADR 0005, measure bucket quality and reclamation churn, and pass its validation
+   gates before enabling automatic cleanup or verified old-root reclamation.
 
 The current controller's retained-detail growth is not an open hypothesis. Forward paging rebuilds
 a map across all retained `state.assets`; backward paging rebuilds identity sets and a merged list.
@@ -1479,6 +1579,10 @@ not classification and not additional analysis engines.
 - preview capacity includes existing artifacts and uses atomic reservation before publication; an
   exhausted budget becomes an isolated per-file issue without a partial cache file or source-media
   mutation;
+- the current preview budget remains admission-only: it does not yet track bounded size variants or
+  coarsened last use, evict to high/low watermarks, reconcile all orphan classes, transition existing
+  preview entries through a switch-and-regenerate root transition, or reclaim an old preview root.
+  Those behaviors are required R2b work, not completed implementation evidence;
 - scan discovery probes image dimensions without full pixel decoding; lazily built Flutter tiles
   request previews through a queue limited to two active decodes, and queued off-screen requests are
   cancelled;
@@ -1491,7 +1595,8 @@ not classification and not additional analysis engines.
   at 4 MiB, and malformed metadata does not reject an otherwise readable image;
 - unchanged sources reuse capture evidence only when metadata engine identity and version match;
   incompatible evidence is reanalyzed and all provenance survives the generated bridge;
-- incremental rescans use Windows volume and 128-bit file ID as local reconciliation evidence:
+- subsequent explicit full rescans use Windows volume and 128-bit file ID as local reconciliation
+  evidence:
   same-volume rename and in-place edit preserve logical asset identity, changed state invalidates
   derived evidence, a replacement at the same path receives a new asset, and removed locations are
   published only at the atomic snapshot boundary;
@@ -1575,12 +1680,12 @@ completed: isolate missing, locked, long-path, and Windows offline fixtures with
 completed: add deterministic traversal checkpoints and automatic interrupted-task recovery
 completed: add explicit pause/resume while keeping cancel terminal and paused tasks non-automatic
 completed: persist the current directory and pending frontier for bounded deep-tree recovery
-completed: expose catalog and preview-cache locations and atomically enforced preview budgets
+completed: expose catalog and preview-cache locations with atomically enforced admission-only budgets
 completed: window enumeration inside an extremely wide single directory
 completed: report root availability without source enumeration or cloud hydration
 completed: schedule bounded preview generation from lazily rendered gallery tiles
 completed: persist trustworthy, versioned capture-time evidence without inventing timezone data
-completed: reconcile unchanged, edited, renamed, replaced, and removed locations incrementally
+completed: reconcile unchanged, edited, renamed, replaced, and removed locations across explicit rescans
 completed: record synthetic large-library performance, memory, cancellation, and recovery evidence
 completed: prepare and regression-test the explicitly authorized read-only real-root harness
 completed: execute the authorized local-primary and cloud-primary read-only acceptance sequence
@@ -1669,6 +1774,14 @@ not decode source images again merely to recover tile proportions. The in-proces
 keyed by query manifest identity, viewport width, thumbnail density, and sort key. A cross-startup
 cache of final row rectangles remains an optional later optimization and must use that complete key;
 it is not allowed to replace or contradict the catalog dimensions.
+
+The current preview implementation provides external storage, atomic capacity reservation,
+identity-keyed UI publication, bounded demand priority, structured failure, and visible
+missing-file regeneration. It does not yet implement the complete preview lifecycle required above:
+automatic high/low-watermark reclamation, durable bounded size-variant evidence, coarsened usage
+accounting, full startup orphan reconciliation, verified manual cleanup, or a switch-and-regenerate
+preview-root transition. Preview cleanup must therefore not be reported as complete merely because
+the admission budget and settings row exist.
 
 Resize now captures a query- and revision-bound logical anchor from the old snapshot before the
 first size change, accepts only the newest width and viewport in a frame, and applies one

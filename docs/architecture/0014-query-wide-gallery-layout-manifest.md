@@ -177,6 +177,10 @@ Preview state is removed from the collection object that owns layout. A `Preview
 changes by stable location identity, allowing one tile to repaint without replacing the complete
 asset list or recomputing rows.
 
+ADR 0005 owns preview artifact identity, bounded physical-pixel variants, storage accounting,
+reclamation, cleanup, recovery, and preview-root transition. This ADR owns the separation between
+preview publication and deterministic gallery geometry plus the demand-priority contract below.
+
 The scheduler uses explicit priorities:
 
 1. the current viewer item;
