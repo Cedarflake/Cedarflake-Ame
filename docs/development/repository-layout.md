@@ -16,7 +16,7 @@ This layout keeps product ownership visible while preserving Flutter, Rust, and
 | `integration_test` | Cross-layer Flutter and Windows integration workflows plus their private support files |
 | `tool` | Stable repository command entrypoints used by contributors, agents, and CI |
 | `docs` | Architecture decisions, acceptance contracts, and development documentation |
-| `rust_builder` | Tracked Flutter/Rust build scaffold required by the local path dependency |
+| `rust_builder` | Tracked Flutter/Rust build scaffold required by the local path dependency; vendored Cargokit sources are outside Ame-owned Dart linting |
 | `windows` | Flutter Windows runner and generated plugin registration |
 
 ## Dart ownership
