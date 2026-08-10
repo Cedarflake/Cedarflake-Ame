@@ -9,7 +9,6 @@ This layout keeps product ownership visible while preserving Flutter, Rust, and
 | --- | --- |
 | `lib/app` | Application bootstrap, shared presentation primitives, and desktop window integration |
 | `lib/features` | Product features, each split by domain, application, adapters, and presentation as needed |
-| `lib/prototypes` | Isolated validation code that is not part of the production startup path |
 | `lib/src/rust` | Generated Dart bridge code; do not reorganize or edit by hand |
 | `rust/src` | Ame-owned Rust domain, application, ports, adapters, and bridge API |
 | `test` | Tests arranged to mirror their owning Dart source area |
@@ -40,7 +39,6 @@ lib/
 │  └─ storage/
 │     ├─ application/
 │     └─ domain/
-├─ prototypes/r2a/
 └─ src/rust/
 ```
 
@@ -48,8 +46,7 @@ lib/
 - Put cross-feature application bootstrap in `lib/app`, not in a global adapter bucket.
 - Put reusable visual primitives in `lib/app/presentation` only when more than one feature owns no
   better home for them.
-- Keep prototypes isolated. Production code must not import from `lib/prototypes`.
-- Keep tests under the corresponding `test/app`, `test/features`, or `test/prototypes` path.
+- Keep tests under the corresponding `test/app` or `test/features` path.
 
 ## Test ownership
 
