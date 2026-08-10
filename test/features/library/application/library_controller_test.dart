@@ -71,7 +71,12 @@ void main() {
         ),
       ),
     );
-    await Future<void>.delayed(Duration.zero);
+    await _waitForLibraryState(
+      container,
+      (state) =>
+          state.displayRootPath == r"C:\Pictures" &&
+          state.stagedAssetCount == 1,
+    );
     expect(
       container.read(libraryControllerProvider).rootPath,
       r"\\?\C:\Pictures",
@@ -89,8 +94,11 @@ void main() {
         wasLimited: false,
       ),
     );
-    await Future<void>.delayed(Duration.zero);
-    await Future<void>.delayed(Duration.zero);
+    await _waitForLibraryState(
+      container,
+      (state) =>
+          state.status == LibraryStatus.completed && state.assets.length == 1,
+    );
 
     final state = container.read(libraryControllerProvider);
     expect(state.status, LibraryStatus.completed);
@@ -1475,6 +1483,30 @@ LibraryCatalogCursor _cursor({String suffix = "1"}) {
     rootId: "root-1",
     locationId: "location-$suffix",
   );
+}
+
+Future<void> _waitForLibraryState(
+  ProviderContainer container,
+  bool Function(LibraryState state) predicate,
+) async {
+  if (predicate(container.read(libraryControllerProvider))) {
+    return;
+  }
+  final completer = Completer<void>();
+  final subscription = container.listen<LibraryState>(
+    libraryControllerProvider,
+    (_, next) {
+      if (!completer.isCompleted && predicate(next)) {
+        completer.complete();
+      }
+    },
+    fireImmediately: true,
+  );
+  try {
+    await completer.future.timeout(const Duration(seconds: 2));
+  } finally {
+    subscription.close();
+  }
 }
 
 class _FakeDirectoryPicker implements DirectoryPicker {
