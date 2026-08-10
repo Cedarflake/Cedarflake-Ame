@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 use rusqlite::{Connection, OptionalExtension, Row, Transaction, params, params_from_iter};
 
@@ -31,6 +32,7 @@ const SCHEMA_VERSION: i64 = 13;
 const LOCATION_STAGE_BATCH: usize = 128;
 const MAX_LAYOUT_MANIFEST_CHUNK_ITEMS: u32 = 4_096;
 const LAYOUT_FLAG_DIMENSIONS_KNOWN: u8 = 1;
+const SQLITE_BUSY_TIMEOUT: Duration = Duration::from_secs(5);
 
 pub struct SqliteCatalog {
     path: PathBuf,
@@ -68,8 +70,19 @@ impl SqliteCatalog {
         }
         let mut connection = Connection::open(&path).map_err(database_error)?;
         connection
-            .execute_batch("PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;")
+            .busy_timeout(SQLITE_BUSY_TIMEOUT)
             .map_err(database_error)?;
+        connection
+            .execute_batch("PRAGMA foreign_keys = ON;")
+            .map_err(database_error)?;
+        let journal_mode = connection
+            .query_row("PRAGMA journal_mode", [], |row| row.get::<_, String>(0))
+            .map_err(database_error)?;
+        if !journal_mode.eq_ignore_ascii_case("wal") {
+            connection
+                .execute_batch("PRAGMA journal_mode = WAL;")
+                .map_err(database_error)?;
+        }
         migrate_schema(&mut connection)?;
 
         Ok(Self {
@@ -729,43 +742,75 @@ impl CatalogRepository for SqliteCatalog {
         Ok(())
     }
 
-    fn staged_file_states(&mut self, scan_id: &str) -> Result<Vec<ExpectedFileState>, ScanError> {
+    fn count_staged_file_states(&mut self, scan_id: &str) -> Result<u64, ScanError> {
         self.flush_pending_locations()?;
+        let count = self
+            .connection
+            .query_row(
+                "SELECT COUNT(*) FROM asset_locations WHERE scan_id = ?1",
+                [scan_id],
+                |row| row.get::<_, i64>(0),
+            )
+            .map_err(database_error)?;
+        sqlite_unsigned(count, "staged file state count")
+    }
+
+    fn load_staged_file_state_window(
+        &self,
+        scan_id: &str,
+        after_location_id: Option<&str>,
+        limit: u32,
+    ) -> Result<Vec<(String, ExpectedFileState)>, ScanError> {
         let mut statement = self
             .connection
             .prepare(
-                "SELECT absolute_path, file_size, modified_unix_ms,
+                "SELECT location_id, absolute_path, file_size, modified_unix_ms,
                         file_identity_scheme, file_identity_value
-                 FROM asset_locations WHERE scan_id = ?1 ORDER BY location_id",
+                 FROM asset_locations
+                 WHERE scan_id = ?1 AND (?2 IS NULL OR location_id > ?2)
+                 ORDER BY location_id LIMIT ?3",
             )
             .map_err(database_error)?;
         let rows = statement
-            .query_map([scan_id], |row| {
-                Ok((
-                    row.get::<_, String>(0)?,
-                    row.get::<_, i64>(1)?,
-                    row.get::<_, i64>(2)?,
-                    row.get::<_, Option<String>>(3)?,
-                    row.get::<_, Option<String>>(4)?,
-                ))
-            })
+            .query_map(
+                params![scan_id, after_location_id, i64::from(limit)],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, i64>(2)?,
+                        row.get::<_, i64>(3)?,
+                        row.get::<_, Option<String>>(4)?,
+                        row.get::<_, Option<String>>(5)?,
+                    ))
+                },
+            )
             .map_err(database_error)?;
         let mut states = Vec::new();
         for row in rows {
-            let (absolute_path, file_size, modified_unix_ms, identity_scheme, identity_value) =
-                row.map_err(database_error)?;
+            let (
+                location_id,
+                absolute_path,
+                file_size,
+                modified_unix_ms,
+                identity_scheme,
+                identity_value,
+            ) = row.map_err(database_error)?;
             let file_size = u64::try_from(file_size).map_err(|_| {
                 ScanError::new(
                     "catalog_integer_invalid",
                     "A staged file size is outside the supported range",
                 )
             })?;
-            states.push(ExpectedFileState {
-                absolute_path,
-                file_size,
-                modified_unix_ms,
-                file_identity: stored_file_identity(identity_scheme, identity_value)?,
-            });
+            states.push((
+                location_id,
+                ExpectedFileState {
+                    absolute_path,
+                    file_size,
+                    modified_unix_ms,
+                    file_identity: stored_file_identity(identity_scheme, identity_value)?,
+                },
+            ));
         }
         Ok(states)
     }
@@ -1745,6 +1790,23 @@ fn load_scan_with_status(
 }
 
 fn database_error(error: rusqlite::Error) -> ScanError {
+    if let rusqlite::Error::SqliteFailure(failure, _) = &error {
+        match failure.code {
+            rusqlite::ErrorCode::DatabaseBusy => {
+                return ScanError::new(
+                    "catalog_database_busy",
+                    format!("The catalog database remained busy after waiting: {error}"),
+                );
+            }
+            rusqlite::ErrorCode::DatabaseLocked => {
+                return ScanError::new(
+                    "catalog_database_locked",
+                    format!("The catalog database is locked: {error}"),
+                );
+            }
+            _ => {}
+        }
+    }
     ScanError::new("catalog_database_error", error.to_string())
 }
 

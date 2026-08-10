@@ -77,7 +77,13 @@ pub trait CatalogRepository {
         checkpoint: &ScanCheckpoint,
     ) -> Result<(), ScanError>;
     fn pause_scan(&mut self, scan_id: &str, checkpoint: &ScanCheckpoint) -> Result<(), ScanError>;
-    fn staged_file_states(&mut self, scan_id: &str) -> Result<Vec<ExpectedFileState>, ScanError>;
+    fn count_staged_file_states(&mut self, scan_id: &str) -> Result<u64, ScanError>;
+    fn load_staged_file_state_window(
+        &self,
+        scan_id: &str,
+        after_location_id: Option<&str>,
+        limit: u32,
+    ) -> Result<Vec<(String, ExpectedFileState)>, ScanError>;
     fn publish_scan(
         &mut self,
         scan_id: &str,

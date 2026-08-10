@@ -34,8 +34,21 @@ class _PendingTimeNavigation {
   final Completer<bool> completion = Completer<bool>();
 }
 
+class _ActiveScanRun {
+  _ActiveScanRun({required this.scanId, required this.generation});
+
+  final String scanId;
+  final int generation;
+  final Completer<void> streamDone = Completer<void>();
+  bool didStart = false;
+  bool didReceiveTerminal = false;
+}
+
 class LibraryController extends Notifier<LibraryState> {
   StreamSubscription<LibraryScanUpdate>? _subscription;
+  _ActiveScanRun? _activeScanRun;
+  int _scanRunGeneration = 0;
+  Future<void> _scanStartQueue = Future<void>.value();
   int _scanSequence = 0;
   final LibraryScanSession _scanSession = LibraryScanSession();
   final LibraryPreviewStore _previewStore = LibraryPreviewStore();
@@ -66,6 +79,11 @@ class LibraryController extends Notifier<LibraryState> {
     final scanner = ref.read(libraryScannerProvider);
     ref.onDispose(() {
       _isDisposed = true;
+      final activeScanRun = _activeScanRun;
+      _activeScanRun = null;
+      if (activeScanRun != null && !activeScanRun.streamDone.isCompleted) {
+        activeScanRun.streamDone.complete();
+      }
       final scanId = _scanSession.activeScanId;
       if (scanId != null) {
         scanner.cancel(scanId);
@@ -105,6 +123,9 @@ class LibraryController extends Notifier<LibraryState> {
       displayRootPath: null,
       visitedEntries: 0,
       stagedAssetCount: 0,
+      scanPhase: LibraryScanPhase.discovering,
+      validatedAssetCount: 0,
+      validationAssetCount: 0,
       errorMessage: null,
     );
 
@@ -128,16 +149,55 @@ class LibraryController extends Notifier<LibraryState> {
   }
 
   Future<void> scanDirectory(String rootPath) async {
-    _scanSequence += 1;
-    final scanId =
-        "ame-${DateTime.now().microsecondsSinceEpoch}-$_scanSequence";
-    await _startScan(
-      scanId: scanId,
-      rootPath: rootPath,
-      itemLimit: null,
-      entryLimit: null,
-      previewEdge: _previewEdge,
+    await _enqueueScanStart(
+      allowedBusyStatus: LibraryStatus.choosingDirectory,
+      start: () async {
+        _scanSequence += 1;
+        final scanId =
+            "ame-${DateTime.now().microsecondsSinceEpoch}-$_scanSequence";
+        await _startScan(
+          scanId: scanId,
+          rootPath: rootPath,
+          itemLimit: null,
+          entryLimit: null,
+          previewEdge: _previewEdge,
+        );
+      },
     );
+  }
+
+  Future<void> _enqueueScanStart({
+    required LibraryStatus? allowedBusyStatus,
+    required Future<void> Function() start,
+  }) {
+    final previous = _scanStartQueue;
+    final completion = Completer<void>();
+    _scanStartQueue = completion.future;
+    return () async {
+      await previous;
+      try {
+        final terminalRun = _activeScanRun;
+        if (terminalRun != null && terminalRun.didReceiveTerminal) {
+          await terminalRun.streamDone.future;
+        }
+        final hasConflictingScan = _activeScanRun != null || state.isScanning;
+        final hasProtectedPausedScan =
+            state.status == LibraryStatus.paused &&
+            allowedBusyStatus != LibraryStatus.paused;
+        final hasDifferentPicker =
+            state.status == LibraryStatus.choosingDirectory &&
+            allowedBusyStatus != LibraryStatus.choosingDirectory;
+        if (_isDisposed ||
+            hasConflictingScan ||
+            hasProtectedPausedScan ||
+            hasDifferentPicker) {
+          return;
+        }
+        await start();
+      } finally {
+        completion.complete();
+      }
+    }();
   }
 
   Future<void> _startScan({
@@ -152,6 +212,9 @@ class LibraryController extends Notifier<LibraryState> {
     int issueCount = 0,
     bool isResuming = false,
   }) async {
+    if (_activeScanRun != null) {
+      throw StateError("Cannot replace an active scan run");
+    }
     await _subscription?.cancel();
     _scanSession.begin(
       RecoverableLibraryScan(
@@ -175,6 +238,9 @@ class LibraryController extends Notifier<LibraryState> {
       recentIssues: const [],
       visitedEntries: visitedEntries,
       stagedAssetCount: acceptedItems,
+      scanPhase: LibraryScanPhase.discovering,
+      validatedAssetCount: 0,
+      validationAssetCount: 0,
       issueCount: issueCount,
       itemLimit: itemLimit,
       entryLimit: entryLimit,
@@ -185,21 +251,34 @@ class LibraryController extends Notifier<LibraryState> {
       errorMessage: null,
     );
 
-    _subscription = ref
-        .read(libraryScannerProvider)
-        .scan(
-          scanId: scanId,
-          rootPath: rootPath,
-          itemLimit: itemLimit,
-          entryLimit: entryLimit,
-          previewEdge: previewEdge,
-        )
-        .listen(
-          _handleUpdate,
-          onError: _handleError,
-          onDone: _handleDone,
-          cancelOnError: true,
-        );
+    final run = _ActiveScanRun(
+      scanId: scanId,
+      generation: ++_scanRunGeneration,
+    );
+    _activeScanRun = run;
+    try {
+      final stream = ref
+          .read(libraryScannerProvider)
+          .scan(
+            scanId: scanId,
+            rootPath: rootPath,
+            itemLimit: itemLimit,
+            entryLimit: entryLimit,
+            previewEdge: previewEdge,
+          );
+      _subscription = stream.listen(
+        (update) => _handleUpdate(run, update),
+        onError: (Object error, StackTrace stackTrace) {
+          _handleError(run, error, stackTrace);
+        },
+        onDone: () => _handleDone(run),
+        cancelOnError: true,
+      );
+    } on Object catch (error) {
+      _releaseScanRun(run);
+      state = _scanSession.fail(state, error);
+      rethrow;
+    }
   }
 
   void cancelScan() {
@@ -222,6 +301,9 @@ class LibraryController extends Notifier<LibraryState> {
       displayRootPath: null,
       visitedEntries: 0,
       stagedAssetCount: 0,
+      scanPhase: LibraryScanPhase.discovering,
+      validatedAssetCount: 0,
+      validationAssetCount: 0,
       itemLimit: null,
       entryLimit: null,
       isScanLimited: false,
@@ -1050,20 +1132,175 @@ class LibraryController extends Notifier<LibraryState> {
     _previewStore.publish(replacement);
   }
 
-  void _handleUpdate(LibraryScanUpdate update) {
+  void _handleUpdate(_ActiveScanRun run, LibraryScanUpdate update) {
+    if (!_ownsScanRun(run)) {
+      return;
+    }
+    if (update case LibraryScanStarted(
+      :final scanId,
+    ) when scanId != run.scanId) {
+      _handleError(
+        run,
+        const LibraryScanFailure(
+          code: "bridge_scan_id_mismatch",
+          message: "Received a start event for a different scan",
+        ),
+        StackTrace.current,
+      );
+      return;
+    }
+    if (update is LibraryScanStarted) {
+      run.didStart = true;
+    }
     final transition = _scanSession.apply(state, update);
     state = transition.state;
+    if (_isTerminalScanUpdate(update)) {
+      run.didReceiveTerminal = true;
+    }
     if (transition.shouldReloadCatalog) {
       unawaited(_reloadPublishedCatalog(_scanSequence));
     }
   }
 
-  void _handleError(Object error, StackTrace stackTrace) {
+  void _handleError(_ActiveScanRun run, Object error, StackTrace stackTrace) {
+    if (!_ownsScanRun(run)) {
+      return;
+    }
+    _releaseScanRun(run);
     state = _scanSession.fail(state, error);
   }
 
-  void _handleDone() {
-    state = _scanSession.finish(state);
+  void _handleDone(_ActiveScanRun run) {
+    if (!_ownsScanRun(run)) {
+      if (!run.streamDone.isCompleted) {
+        run.streamDone.complete();
+      }
+      return;
+    }
+    if (run.didReceiveTerminal) {
+      _releaseScanRun(run);
+      return;
+    }
+    if (!run.streamDone.isCompleted) {
+      run.streamDone.complete();
+    }
+    unawaited(_reconcileEndedScan(run, _scanSequence));
+  }
+
+  void _releaseScanRun(_ActiveScanRun run) {
+    if (identical(_activeScanRun, run)) {
+      _activeScanRun = null;
+    }
+    if (!run.streamDone.isCompleted) {
+      run.streamDone.complete();
+    }
+  }
+
+  bool _ownsScanRun(_ActiveScanRun run) {
+    final active = _activeScanRun;
+    return !_isDisposed &&
+        identical(active, run) &&
+        active?.generation == run.generation &&
+        active?.scanId == run.scanId;
+  }
+
+  bool _isTerminalScanUpdate(LibraryScanUpdate update) {
+    return update is LibraryScanCompleted ||
+        update is LibraryScanCancelled ||
+        update is LibraryScanPaused ||
+        update is LibraryScanStale ||
+        update is LibraryScanFailed;
+  }
+
+  Future<void> _reconcileEndedScan(_ActiveScanRun run, int scanSequence) async {
+    try {
+      final snapshot = await ref
+          .read(libraryCatalogProvider)
+          .load(maxItems: libraryCatalogWindow, query: state.query);
+      if (!_ownsScanRun(run) || scanSequence != _scanSequence) {
+        return;
+      }
+      LibraryRoot? publishedRoot;
+      for (final root in snapshot.roots) {
+        if (root.activeScanId == run.scanId) {
+          publishedRoot = root;
+          break;
+        }
+      }
+      if (run.didStart && publishedRoot != null) {
+        final transition = _scanSession.apply(
+          state,
+          LibraryScanCompleted(
+            assetCount: publishedRoot.assetCount,
+            issueCount: publishedRoot.issueCount,
+            catalogPath: snapshot.catalogPath,
+            wasLimited: _didReachScanLimit(publishedRoot),
+          ),
+        );
+        state = transition.state;
+        await _reloadFirstCatalogPage(scanSequence);
+        if (_ownsScanRun(run)) {
+          _releaseScanRun(run);
+        }
+        return;
+      }
+      final paused = await ref.read(libraryScannerProvider).loadPausedScan();
+      if (!_ownsScanRun(run) || scanSequence != _scanSequence) {
+        return;
+      }
+      final pausedScan = paused;
+      if (pausedScan != null && pausedScan.scanId == run.scanId) {
+        _releaseScanRun(run);
+        _scanSession.restorePaused(pausedScan);
+        state = state.copyWith(
+          status: LibraryStatus.paused,
+          visitedEntries: pausedScan.visitedEntries,
+          stagedAssetCount: pausedScan.acceptedItems,
+          issueCount: pausedScan.issueCount,
+          isResumingScan: false,
+        );
+        return;
+      }
+      _releaseScanRun(run);
+      if (state.status == LibraryStatus.cancelling) {
+        state = _scanSession
+            .apply(
+              state,
+              LibraryScanCancelled(
+                acceptedItems: state.stagedAssetCount,
+                issueCount: state.issueCount,
+              ),
+            )
+            .state;
+        return;
+      }
+      state = _scanSession.finish(state);
+    } on Object catch (error) {
+      if (!_ownsScanRun(run) || scanSequence != _scanSequence) {
+        return;
+      }
+      _releaseScanRun(run);
+      state = _scanSession.fail(
+        state,
+        LibraryScanFailure(
+          code: "scan_terminal_reconciliation_failed",
+          message: error.toString(),
+        ),
+      );
+    } finally {
+      if (_ownsScanRun(run)) {
+        _releaseScanRun(run);
+      }
+    }
+  }
+
+  bool _didReachScanLimit(LibraryRoot publishedRoot) {
+    final itemLimit = state.itemLimit;
+    if (itemLimit != null && publishedRoot.assetCount >= itemLimit) {
+      return true;
+    }
+    final entryLimit = state.entryLimit;
+    return entryLimit != null && state.visitedEntries >= entryLimit;
   }
 
   Future<void> _reloadPublishedCatalog(int scanSequence) async {
@@ -1121,18 +1358,23 @@ class LibraryController extends Notifier<LibraryState> {
   }
 
   Future<void> _resumeScan(RecoverableLibraryScan scan) {
-    _scanSequence += 1;
-    return _startScan(
-      scanId: scan.scanId,
-      rootPath: scan.rootPath,
-      displayRootPath: scan.displayRootPath,
-      itemLimit: scan.itemLimit,
-      entryLimit: scan.entryLimit,
-      previewEdge: scan.previewEdge,
-      visitedEntries: scan.visitedEntries,
-      acceptedItems: scan.acceptedItems,
-      issueCount: scan.issueCount,
-      isResuming: true,
+    return _enqueueScanStart(
+      allowedBusyStatus: LibraryStatus.paused,
+      start: () {
+        _scanSequence += 1;
+        return _startScan(
+          scanId: scan.scanId,
+          rootPath: scan.rootPath,
+          displayRootPath: scan.displayRootPath,
+          itemLimit: scan.itemLimit,
+          entryLimit: scan.entryLimit,
+          previewEdge: scan.previewEdge,
+          visitedEntries: scan.visitedEntries,
+          acceptedItems: scan.acceptedItems,
+          issueCount: scan.issueCount,
+          isResuming: true,
+        );
+      },
     );
   }
 
@@ -1184,6 +1426,9 @@ class LibraryController extends Notifier<LibraryState> {
     final scanId = state.scanId;
     final visitedEntries = state.visitedEntries;
     final stagedAssetCount = state.stagedAssetCount;
+    final scanPhase = state.scanPhase;
+    final validatedAssetCount = state.validatedAssetCount;
+    final validationAssetCount = state.validationAssetCount;
     final itemLimit = state.itemLimit;
     final entryLimit = state.entryLimit;
     final recentIssues = state.recentIssues;
@@ -1198,6 +1443,9 @@ class LibraryController extends Notifier<LibraryState> {
       scanId: scanId,
       visitedEntries: visitedEntries,
       stagedAssetCount: stagedAssetCount,
+      scanPhase: scanPhase,
+      validatedAssetCount: validatedAssetCount,
+      validationAssetCount: validationAssetCount,
       itemLimit: itemLimit,
       entryLimit: entryLimit,
       recentIssues: recentIssues,

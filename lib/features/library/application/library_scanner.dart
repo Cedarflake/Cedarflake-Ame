@@ -88,7 +88,7 @@ class RustLibraryScanner implements LibraryScanner {
             previewEdge: previewEdge,
           ),
         )
-        .map(_mapEvent)
+        .map((event) => _mapEvent(event, scanId))
         .handleError((Object error) {
           if (error case rust_domain.ScanError(:final code, :final message)) {
             throw LibraryScanFailure(code: code, message: message);
@@ -110,7 +110,16 @@ class RustLibraryScanner implements LibraryScanner {
     return rust_api.pauseLibraryScan(scanId: scanId);
   }
 
-  LibraryScanUpdate _mapEvent(rust_domain.ScanEvent event) {
+  LibraryScanUpdate _mapEvent(
+    rust_domain.ScanEvent event,
+    String expectedScanId,
+  ) {
+    if (event.scanId != expectedScanId) {
+      throw LibraryScanFailure(
+        code: "bridge_scan_id_mismatch",
+        message: "Received an event for a different scan",
+      );
+    }
     return switch (event) {
       rust_domain.ScanEvent_Started(
         :final scanId,
@@ -130,6 +139,20 @@ class RustLibraryScanner implements LibraryScanner {
         :final issueCount,
       ) =>
         LibraryScanProgress(
+          visitedEntries: visitedEntries.toInt(),
+          acceptedItems: acceptedItems.toInt(),
+          issueCount: issueCount.toInt(),
+        ),
+      rust_domain.ScanEvent_Finalizing(
+        :final validatedItems,
+        :final totalItems,
+        :final visitedEntries,
+        :final acceptedItems,
+        :final issueCount,
+      ) =>
+        LibraryScanFinalizing(
+          validatedItems: validatedItems.toInt(),
+          totalItems: totalItems.toInt(),
           visitedEntries: visitedEntries.toInt(),
           acceptedItems: acceptedItems.toInt(),
           issueCount: issueCount.toInt(),
@@ -178,6 +201,8 @@ class RustLibraryScanner implements LibraryScanner {
           acceptedItems: acceptedItems.toInt(),
           issueCount: issueCount.toInt(),
         ),
+      rust_domain.ScanEvent_Failed(:final code, :final message) =>
+        LibraryScanFailed(code: code, message: message),
     };
   }
 }

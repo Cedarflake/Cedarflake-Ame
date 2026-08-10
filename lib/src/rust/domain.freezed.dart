@@ -86,18 +86,20 @@ extension ScanEventPatterns on ScanEvent {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( ScanEvent_Started value)?  started,TResult Function( ScanEvent_Progress value)?  progress,TResult Function( ScanEvent_AssetDiscovered value)?  assetDiscovered,TResult Function( ScanEvent_Issue value)?  issue,TResult Function( ScanEvent_Completed value)?  completed,TResult Function( ScanEvent_Cancelled value)?  cancelled,TResult Function( ScanEvent_Paused value)?  paused,TResult Function( ScanEvent_Stale value)?  stale,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( ScanEvent_Started value)?  started,TResult Function( ScanEvent_Progress value)?  progress,TResult Function( ScanEvent_Finalizing value)?  finalizing,TResult Function( ScanEvent_AssetDiscovered value)?  assetDiscovered,TResult Function( ScanEvent_Issue value)?  issue,TResult Function( ScanEvent_Completed value)?  completed,TResult Function( ScanEvent_Cancelled value)?  cancelled,TResult Function( ScanEvent_Paused value)?  paused,TResult Function( ScanEvent_Stale value)?  stale,TResult Function( ScanEvent_Failed value)?  failed,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case ScanEvent_Started() when started != null:
 return started(_that);case ScanEvent_Progress() when progress != null:
-return progress(_that);case ScanEvent_AssetDiscovered() when assetDiscovered != null:
+return progress(_that);case ScanEvent_Finalizing() when finalizing != null:
+return finalizing(_that);case ScanEvent_AssetDiscovered() when assetDiscovered != null:
 return assetDiscovered(_that);case ScanEvent_Issue() when issue != null:
 return issue(_that);case ScanEvent_Completed() when completed != null:
 return completed(_that);case ScanEvent_Cancelled() when cancelled != null:
 return cancelled(_that);case ScanEvent_Paused() when paused != null:
 return paused(_that);case ScanEvent_Stale() when stale != null:
-return stale(_that);case _:
+return stale(_that);case ScanEvent_Failed() when failed != null:
+return failed(_that);case _:
   return orElse();
 
 }
@@ -115,18 +117,20 @@ return stale(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( ScanEvent_Started value)  started,required TResult Function( ScanEvent_Progress value)  progress,required TResult Function( ScanEvent_AssetDiscovered value)  assetDiscovered,required TResult Function( ScanEvent_Issue value)  issue,required TResult Function( ScanEvent_Completed value)  completed,required TResult Function( ScanEvent_Cancelled value)  cancelled,required TResult Function( ScanEvent_Paused value)  paused,required TResult Function( ScanEvent_Stale value)  stale,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( ScanEvent_Started value)  started,required TResult Function( ScanEvent_Progress value)  progress,required TResult Function( ScanEvent_Finalizing value)  finalizing,required TResult Function( ScanEvent_AssetDiscovered value)  assetDiscovered,required TResult Function( ScanEvent_Issue value)  issue,required TResult Function( ScanEvent_Completed value)  completed,required TResult Function( ScanEvent_Cancelled value)  cancelled,required TResult Function( ScanEvent_Paused value)  paused,required TResult Function( ScanEvent_Stale value)  stale,required TResult Function( ScanEvent_Failed value)  failed,}){
 final _that = this;
 switch (_that) {
 case ScanEvent_Started():
 return started(_that);case ScanEvent_Progress():
-return progress(_that);case ScanEvent_AssetDiscovered():
+return progress(_that);case ScanEvent_Finalizing():
+return finalizing(_that);case ScanEvent_AssetDiscovered():
 return assetDiscovered(_that);case ScanEvent_Issue():
 return issue(_that);case ScanEvent_Completed():
 return completed(_that);case ScanEvent_Cancelled():
 return cancelled(_that);case ScanEvent_Paused():
 return paused(_that);case ScanEvent_Stale():
-return stale(_that);}
+return stale(_that);case ScanEvent_Failed():
+return failed(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -140,18 +144,20 @@ return stale(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( ScanEvent_Started value)?  started,TResult? Function( ScanEvent_Progress value)?  progress,TResult? Function( ScanEvent_AssetDiscovered value)?  assetDiscovered,TResult? Function( ScanEvent_Issue value)?  issue,TResult? Function( ScanEvent_Completed value)?  completed,TResult? Function( ScanEvent_Cancelled value)?  cancelled,TResult? Function( ScanEvent_Paused value)?  paused,TResult? Function( ScanEvent_Stale value)?  stale,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( ScanEvent_Started value)?  started,TResult? Function( ScanEvent_Progress value)?  progress,TResult? Function( ScanEvent_Finalizing value)?  finalizing,TResult? Function( ScanEvent_AssetDiscovered value)?  assetDiscovered,TResult? Function( ScanEvent_Issue value)?  issue,TResult? Function( ScanEvent_Completed value)?  completed,TResult? Function( ScanEvent_Cancelled value)?  cancelled,TResult? Function( ScanEvent_Paused value)?  paused,TResult? Function( ScanEvent_Stale value)?  stale,TResult? Function( ScanEvent_Failed value)?  failed,}){
 final _that = this;
 switch (_that) {
 case ScanEvent_Started() when started != null:
 return started(_that);case ScanEvent_Progress() when progress != null:
-return progress(_that);case ScanEvent_AssetDiscovered() when assetDiscovered != null:
+return progress(_that);case ScanEvent_Finalizing() when finalizing != null:
+return finalizing(_that);case ScanEvent_AssetDiscovered() when assetDiscovered != null:
 return assetDiscovered(_that);case ScanEvent_Issue() when issue != null:
 return issue(_that);case ScanEvent_Completed() when completed != null:
 return completed(_that);case ScanEvent_Cancelled() when cancelled != null:
 return cancelled(_that);case ScanEvent_Paused() when paused != null:
 return paused(_that);case ScanEvent_Stale() when stale != null:
-return stale(_that);case _:
+return stale(_that);case ScanEvent_Failed() when failed != null:
+return failed(_that);case _:
   return null;
 
 }
@@ -168,17 +174,19 @@ return stale(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String scanId,  String rootPath,  int? itemLimit,  int? entryLimit)?  started,TResult Function( String scanId,  BigInt visitedEntries,  BigInt acceptedItems,  BigInt issueCount)?  progress,TResult Function( String scanId,  AssetLocationView asset)?  assetDiscovered,TResult Function( String scanId,  ScanIssue issue)?  issue,TResult Function( String scanId,  String rootId,  BigInt assetCount,  BigInt issueCount,  String catalogPath,  bool wasLimited)?  completed,TResult Function( String scanId,  BigInt acceptedItems,  BigInt issueCount)?  cancelled,TResult Function( String scanId,  BigInt visitedEntries,  BigInt acceptedItems,  BigInt issueCount)?  paused,TResult Function( String scanId,  BigInt acceptedItems,  BigInt issueCount)?  stale,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String scanId,  String rootPath,  int? itemLimit,  int? entryLimit)?  started,TResult Function( String scanId,  BigInt visitedEntries,  BigInt acceptedItems,  BigInt issueCount)?  progress,TResult Function( String scanId,  BigInt validatedItems,  BigInt totalItems,  BigInt visitedEntries,  BigInt acceptedItems,  BigInt issueCount)?  finalizing,TResult Function( String scanId,  AssetLocationView asset)?  assetDiscovered,TResult Function( String scanId,  ScanIssue issue)?  issue,TResult Function( String scanId,  String rootId,  BigInt assetCount,  BigInt issueCount,  String catalogPath,  bool wasLimited)?  completed,TResult Function( String scanId,  BigInt acceptedItems,  BigInt issueCount)?  cancelled,TResult Function( String scanId,  BigInt visitedEntries,  BigInt acceptedItems,  BigInt issueCount)?  paused,TResult Function( String scanId,  BigInt acceptedItems,  BigInt issueCount)?  stale,TResult Function( String scanId,  String code,  String message)?  failed,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case ScanEvent_Started() when started != null:
 return started(_that.scanId,_that.rootPath,_that.itemLimit,_that.entryLimit);case ScanEvent_Progress() when progress != null:
-return progress(_that.scanId,_that.visitedEntries,_that.acceptedItems,_that.issueCount);case ScanEvent_AssetDiscovered() when assetDiscovered != null:
+return progress(_that.scanId,_that.visitedEntries,_that.acceptedItems,_that.issueCount);case ScanEvent_Finalizing() when finalizing != null:
+return finalizing(_that.scanId,_that.validatedItems,_that.totalItems,_that.visitedEntries,_that.acceptedItems,_that.issueCount);case ScanEvent_AssetDiscovered() when assetDiscovered != null:
 return assetDiscovered(_that.scanId,_that.asset);case ScanEvent_Issue() when issue != null:
 return issue(_that.scanId,_that.issue);case ScanEvent_Completed() when completed != null:
 return completed(_that.scanId,_that.rootId,_that.assetCount,_that.issueCount,_that.catalogPath,_that.wasLimited);case ScanEvent_Cancelled() when cancelled != null:
 return cancelled(_that.scanId,_that.acceptedItems,_that.issueCount);case ScanEvent_Paused() when paused != null:
 return paused(_that.scanId,_that.visitedEntries,_that.acceptedItems,_that.issueCount);case ScanEvent_Stale() when stale != null:
-return stale(_that.scanId,_that.acceptedItems,_that.issueCount);case _:
+return stale(_that.scanId,_that.acceptedItems,_that.issueCount);case ScanEvent_Failed() when failed != null:
+return failed(_that.scanId,_that.code,_that.message);case _:
   return orElse();
 
 }
@@ -196,17 +204,19 @@ return stale(_that.scanId,_that.acceptedItems,_that.issueCount);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String scanId,  String rootPath,  int? itemLimit,  int? entryLimit)  started,required TResult Function( String scanId,  BigInt visitedEntries,  BigInt acceptedItems,  BigInt issueCount)  progress,required TResult Function( String scanId,  AssetLocationView asset)  assetDiscovered,required TResult Function( String scanId,  ScanIssue issue)  issue,required TResult Function( String scanId,  String rootId,  BigInt assetCount,  BigInt issueCount,  String catalogPath,  bool wasLimited)  completed,required TResult Function( String scanId,  BigInt acceptedItems,  BigInt issueCount)  cancelled,required TResult Function( String scanId,  BigInt visitedEntries,  BigInt acceptedItems,  BigInt issueCount)  paused,required TResult Function( String scanId,  BigInt acceptedItems,  BigInt issueCount)  stale,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String scanId,  String rootPath,  int? itemLimit,  int? entryLimit)  started,required TResult Function( String scanId,  BigInt visitedEntries,  BigInt acceptedItems,  BigInt issueCount)  progress,required TResult Function( String scanId,  BigInt validatedItems,  BigInt totalItems,  BigInt visitedEntries,  BigInt acceptedItems,  BigInt issueCount)  finalizing,required TResult Function( String scanId,  AssetLocationView asset)  assetDiscovered,required TResult Function( String scanId,  ScanIssue issue)  issue,required TResult Function( String scanId,  String rootId,  BigInt assetCount,  BigInt issueCount,  String catalogPath,  bool wasLimited)  completed,required TResult Function( String scanId,  BigInt acceptedItems,  BigInt issueCount)  cancelled,required TResult Function( String scanId,  BigInt visitedEntries,  BigInt acceptedItems,  BigInt issueCount)  paused,required TResult Function( String scanId,  BigInt acceptedItems,  BigInt issueCount)  stale,required TResult Function( String scanId,  String code,  String message)  failed,}) {final _that = this;
 switch (_that) {
 case ScanEvent_Started():
 return started(_that.scanId,_that.rootPath,_that.itemLimit,_that.entryLimit);case ScanEvent_Progress():
-return progress(_that.scanId,_that.visitedEntries,_that.acceptedItems,_that.issueCount);case ScanEvent_AssetDiscovered():
+return progress(_that.scanId,_that.visitedEntries,_that.acceptedItems,_that.issueCount);case ScanEvent_Finalizing():
+return finalizing(_that.scanId,_that.validatedItems,_that.totalItems,_that.visitedEntries,_that.acceptedItems,_that.issueCount);case ScanEvent_AssetDiscovered():
 return assetDiscovered(_that.scanId,_that.asset);case ScanEvent_Issue():
 return issue(_that.scanId,_that.issue);case ScanEvent_Completed():
 return completed(_that.scanId,_that.rootId,_that.assetCount,_that.issueCount,_that.catalogPath,_that.wasLimited);case ScanEvent_Cancelled():
 return cancelled(_that.scanId,_that.acceptedItems,_that.issueCount);case ScanEvent_Paused():
 return paused(_that.scanId,_that.visitedEntries,_that.acceptedItems,_that.issueCount);case ScanEvent_Stale():
-return stale(_that.scanId,_that.acceptedItems,_that.issueCount);}
+return stale(_that.scanId,_that.acceptedItems,_that.issueCount);case ScanEvent_Failed():
+return failed(_that.scanId,_that.code,_that.message);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -220,17 +230,19 @@ return stale(_that.scanId,_that.acceptedItems,_that.issueCount);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String scanId,  String rootPath,  int? itemLimit,  int? entryLimit)?  started,TResult? Function( String scanId,  BigInt visitedEntries,  BigInt acceptedItems,  BigInt issueCount)?  progress,TResult? Function( String scanId,  AssetLocationView asset)?  assetDiscovered,TResult? Function( String scanId,  ScanIssue issue)?  issue,TResult? Function( String scanId,  String rootId,  BigInt assetCount,  BigInt issueCount,  String catalogPath,  bool wasLimited)?  completed,TResult? Function( String scanId,  BigInt acceptedItems,  BigInt issueCount)?  cancelled,TResult? Function( String scanId,  BigInt visitedEntries,  BigInt acceptedItems,  BigInt issueCount)?  paused,TResult? Function( String scanId,  BigInt acceptedItems,  BigInt issueCount)?  stale,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String scanId,  String rootPath,  int? itemLimit,  int? entryLimit)?  started,TResult? Function( String scanId,  BigInt visitedEntries,  BigInt acceptedItems,  BigInt issueCount)?  progress,TResult? Function( String scanId,  BigInt validatedItems,  BigInt totalItems,  BigInt visitedEntries,  BigInt acceptedItems,  BigInt issueCount)?  finalizing,TResult? Function( String scanId,  AssetLocationView asset)?  assetDiscovered,TResult? Function( String scanId,  ScanIssue issue)?  issue,TResult? Function( String scanId,  String rootId,  BigInt assetCount,  BigInt issueCount,  String catalogPath,  bool wasLimited)?  completed,TResult? Function( String scanId,  BigInt acceptedItems,  BigInt issueCount)?  cancelled,TResult? Function( String scanId,  BigInt visitedEntries,  BigInt acceptedItems,  BigInt issueCount)?  paused,TResult? Function( String scanId,  BigInt acceptedItems,  BigInt issueCount)?  stale,TResult? Function( String scanId,  String code,  String message)?  failed,}) {final _that = this;
 switch (_that) {
 case ScanEvent_Started() when started != null:
 return started(_that.scanId,_that.rootPath,_that.itemLimit,_that.entryLimit);case ScanEvent_Progress() when progress != null:
-return progress(_that.scanId,_that.visitedEntries,_that.acceptedItems,_that.issueCount);case ScanEvent_AssetDiscovered() when assetDiscovered != null:
+return progress(_that.scanId,_that.visitedEntries,_that.acceptedItems,_that.issueCount);case ScanEvent_Finalizing() when finalizing != null:
+return finalizing(_that.scanId,_that.validatedItems,_that.totalItems,_that.visitedEntries,_that.acceptedItems,_that.issueCount);case ScanEvent_AssetDiscovered() when assetDiscovered != null:
 return assetDiscovered(_that.scanId,_that.asset);case ScanEvent_Issue() when issue != null:
 return issue(_that.scanId,_that.issue);case ScanEvent_Completed() when completed != null:
 return completed(_that.scanId,_that.rootId,_that.assetCount,_that.issueCount,_that.catalogPath,_that.wasLimited);case ScanEvent_Cancelled() when cancelled != null:
 return cancelled(_that.scanId,_that.acceptedItems,_that.issueCount);case ScanEvent_Paused() when paused != null:
 return paused(_that.scanId,_that.visitedEntries,_that.acceptedItems,_that.issueCount);case ScanEvent_Stale() when stale != null:
-return stale(_that.scanId,_that.acceptedItems,_that.issueCount);case _:
+return stale(_that.scanId,_that.acceptedItems,_that.issueCount);case ScanEvent_Failed() when failed != null:
+return failed(_that.scanId,_that.code,_that.message);case _:
   return null;
 
 }
@@ -373,6 +385,82 @@ class _$ScanEvent_ProgressCopyWithImpl<$Res>
   return _then(ScanEvent_Progress(
 scanId: null == scanId ? _self.scanId : scanId // ignore: cast_nullable_to_non_nullable
 as String,visitedEntries: null == visitedEntries ? _self.visitedEntries : visitedEntries // ignore: cast_nullable_to_non_nullable
+as BigInt,acceptedItems: null == acceptedItems ? _self.acceptedItems : acceptedItems // ignore: cast_nullable_to_non_nullable
+as BigInt,issueCount: null == issueCount ? _self.issueCount : issueCount // ignore: cast_nullable_to_non_nullable
+as BigInt,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class ScanEvent_Finalizing extends ScanEvent {
+  const ScanEvent_Finalizing({required this.scanId, required this.validatedItems, required this.totalItems, required this.visitedEntries, required this.acceptedItems, required this.issueCount}): super._();
+
+
+@override final  String scanId;
+ final  BigInt validatedItems;
+ final  BigInt totalItems;
+ final  BigInt visitedEntries;
+ final  BigInt acceptedItems;
+ final  BigInt issueCount;
+
+/// Create a copy of ScanEvent
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ScanEvent_FinalizingCopyWith<ScanEvent_Finalizing> get copyWith => _$ScanEvent_FinalizingCopyWithImpl<ScanEvent_Finalizing>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ScanEvent_Finalizing&&(identical(other.scanId, scanId) || other.scanId == scanId)&&(identical(other.validatedItems, validatedItems) || other.validatedItems == validatedItems)&&(identical(other.totalItems, totalItems) || other.totalItems == totalItems)&&(identical(other.visitedEntries, visitedEntries) || other.visitedEntries == visitedEntries)&&(identical(other.acceptedItems, acceptedItems) || other.acceptedItems == acceptedItems)&&(identical(other.issueCount, issueCount) || other.issueCount == issueCount));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,scanId,validatedItems,totalItems,visitedEntries,acceptedItems,issueCount);
+
+@override
+String toString() {
+  return 'ScanEvent.finalizing(scanId: $scanId, validatedItems: $validatedItems, totalItems: $totalItems, visitedEntries: $visitedEntries, acceptedItems: $acceptedItems, issueCount: $issueCount)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $ScanEvent_FinalizingCopyWith<$Res> implements $ScanEventCopyWith<$Res> {
+  factory $ScanEvent_FinalizingCopyWith(ScanEvent_Finalizing value, $Res Function(ScanEvent_Finalizing) _then) = _$ScanEvent_FinalizingCopyWithImpl;
+@override @useResult
+$Res call({
+ String scanId, BigInt validatedItems, BigInt totalItems, BigInt visitedEntries, BigInt acceptedItems, BigInt issueCount
+});
+
+
+
+
+}
+/// @nodoc
+class _$ScanEvent_FinalizingCopyWithImpl<$Res>
+    implements $ScanEvent_FinalizingCopyWith<$Res> {
+  _$ScanEvent_FinalizingCopyWithImpl(this._self, this._then);
+
+  final ScanEvent_Finalizing _self;
+  final $Res Function(ScanEvent_Finalizing) _then;
+
+/// Create a copy of ScanEvent
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? scanId = null,Object? validatedItems = null,Object? totalItems = null,Object? visitedEntries = null,Object? acceptedItems = null,Object? issueCount = null,}) {
+  return _then(ScanEvent_Finalizing(
+scanId: null == scanId ? _self.scanId : scanId // ignore: cast_nullable_to_non_nullable
+as String,validatedItems: null == validatedItems ? _self.validatedItems : validatedItems // ignore: cast_nullable_to_non_nullable
+as BigInt,totalItems: null == totalItems ? _self.totalItems : totalItems // ignore: cast_nullable_to_non_nullable
+as BigInt,visitedEntries: null == visitedEntries ? _self.visitedEntries : visitedEntries // ignore: cast_nullable_to_non_nullable
 as BigInt,acceptedItems: null == acceptedItems ? _self.acceptedItems : acceptedItems // ignore: cast_nullable_to_non_nullable
 as BigInt,issueCount: null == issueCount ? _self.issueCount : issueCount // ignore: cast_nullable_to_non_nullable
 as BigInt,
@@ -800,6 +888,76 @@ scanId: null == scanId ? _self.scanId : scanId // ignore: cast_nullable_to_non_n
 as String,acceptedItems: null == acceptedItems ? _self.acceptedItems : acceptedItems // ignore: cast_nullable_to_non_nullable
 as BigInt,issueCount: null == issueCount ? _self.issueCount : issueCount // ignore: cast_nullable_to_non_nullable
 as BigInt,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class ScanEvent_Failed extends ScanEvent {
+  const ScanEvent_Failed({required this.scanId, required this.code, required this.message}): super._();
+
+
+@override final  String scanId;
+ final  String code;
+ final  String message;
+
+/// Create a copy of ScanEvent
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ScanEvent_FailedCopyWith<ScanEvent_Failed> get copyWith => _$ScanEvent_FailedCopyWithImpl<ScanEvent_Failed>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ScanEvent_Failed&&(identical(other.scanId, scanId) || other.scanId == scanId)&&(identical(other.code, code) || other.code == code)&&(identical(other.message, message) || other.message == message));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,scanId,code,message);
+
+@override
+String toString() {
+  return 'ScanEvent.failed(scanId: $scanId, code: $code, message: $message)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $ScanEvent_FailedCopyWith<$Res> implements $ScanEventCopyWith<$Res> {
+  factory $ScanEvent_FailedCopyWith(ScanEvent_Failed value, $Res Function(ScanEvent_Failed) _then) = _$ScanEvent_FailedCopyWithImpl;
+@override @useResult
+$Res call({
+ String scanId, String code, String message
+});
+
+
+
+
+}
+/// @nodoc
+class _$ScanEvent_FailedCopyWithImpl<$Res>
+    implements $ScanEvent_FailedCopyWith<$Res> {
+  _$ScanEvent_FailedCopyWithImpl(this._self, this._then);
+
+  final ScanEvent_Failed _self;
+  final $Res Function(ScanEvent_Failed) _then;
+
+/// Create a copy of ScanEvent
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? scanId = null,Object? code = null,Object? message = null,}) {
+  return _then(ScanEvent_Failed(
+scanId: null == scanId ? _self.scanId : scanId // ignore: cast_nullable_to_non_nullable
+as String,code: null == code ? _self.code : code // ignore: cast_nullable_to_non_nullable
+as String,message: null == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
+as String,
   ));
 }
 

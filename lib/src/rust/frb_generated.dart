@@ -1222,16 +1222,25 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           issueCount: dco_decode_u_64(raw[4]),
         );
       case 2:
+        return ScanEvent_Finalizing(
+          scanId: dco_decode_String(raw[1]),
+          validatedItems: dco_decode_u_64(raw[2]),
+          totalItems: dco_decode_u_64(raw[3]),
+          visitedEntries: dco_decode_u_64(raw[4]),
+          acceptedItems: dco_decode_u_64(raw[5]),
+          issueCount: dco_decode_u_64(raw[6]),
+        );
+      case 3:
         return ScanEvent_AssetDiscovered(
           scanId: dco_decode_String(raw[1]),
           asset: dco_decode_box_asset_location_view(raw[2]),
         );
-      case 3:
+      case 4:
         return ScanEvent_Issue(
           scanId: dco_decode_String(raw[1]),
           issue: dco_decode_box_autoadd_scan_issue(raw[2]),
         );
-      case 4:
+      case 5:
         return ScanEvent_Completed(
           scanId: dco_decode_String(raw[1]),
           rootId: dco_decode_String(raw[2]),
@@ -1240,24 +1249,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           catalogPath: dco_decode_String(raw[5]),
           wasLimited: dco_decode_bool(raw[6]),
         );
-      case 5:
+      case 6:
         return ScanEvent_Cancelled(
           scanId: dco_decode_String(raw[1]),
           acceptedItems: dco_decode_u_64(raw[2]),
           issueCount: dco_decode_u_64(raw[3]),
         );
-      case 6:
+      case 7:
         return ScanEvent_Paused(
           scanId: dco_decode_String(raw[1]),
           visitedEntries: dco_decode_u_64(raw[2]),
           acceptedItems: dco_decode_u_64(raw[3]),
           issueCount: dco_decode_u_64(raw[4]),
         );
-      case 7:
+      case 8:
         return ScanEvent_Stale(
           scanId: dco_decode_String(raw[1]),
           acceptedItems: dco_decode_u_64(raw[2]),
           issueCount: dco_decode_u_64(raw[3]),
+        );
+      case 9:
+        return ScanEvent_Failed(
+          scanId: dco_decode_String(raw[1]),
+          code: dco_decode_String(raw[2]),
+          message: dco_decode_String(raw[3]),
         );
       default:
         throw Exception("unreachable");
@@ -2193,13 +2208,28 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         );
       case 2:
         var var_scanId = sse_decode_String(deserializer);
+        var var_validatedItems = sse_decode_u_64(deserializer);
+        var var_totalItems = sse_decode_u_64(deserializer);
+        var var_visitedEntries = sse_decode_u_64(deserializer);
+        var var_acceptedItems = sse_decode_u_64(deserializer);
+        var var_issueCount = sse_decode_u_64(deserializer);
+        return ScanEvent_Finalizing(
+          scanId: var_scanId,
+          validatedItems: var_validatedItems,
+          totalItems: var_totalItems,
+          visitedEntries: var_visitedEntries,
+          acceptedItems: var_acceptedItems,
+          issueCount: var_issueCount,
+        );
+      case 3:
+        var var_scanId = sse_decode_String(deserializer);
         var var_asset = sse_decode_box_asset_location_view(deserializer);
         return ScanEvent_AssetDiscovered(scanId: var_scanId, asset: var_asset);
-      case 3:
+      case 4:
         var var_scanId = sse_decode_String(deserializer);
         var var_issue = sse_decode_box_autoadd_scan_issue(deserializer);
         return ScanEvent_Issue(scanId: var_scanId, issue: var_issue);
-      case 4:
+      case 5:
         var var_scanId = sse_decode_String(deserializer);
         var var_rootId = sse_decode_String(deserializer);
         var var_assetCount = sse_decode_u_64(deserializer);
@@ -2214,7 +2244,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           catalogPath: var_catalogPath,
           wasLimited: var_wasLimited,
         );
-      case 5:
+      case 6:
         var var_scanId = sse_decode_String(deserializer);
         var var_acceptedItems = sse_decode_u_64(deserializer);
         var var_issueCount = sse_decode_u_64(deserializer);
@@ -2223,7 +2253,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           acceptedItems: var_acceptedItems,
           issueCount: var_issueCount,
         );
-      case 6:
+      case 7:
         var var_scanId = sse_decode_String(deserializer);
         var var_visitedEntries = sse_decode_u_64(deserializer);
         var var_acceptedItems = sse_decode_u_64(deserializer);
@@ -2234,7 +2264,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           acceptedItems: var_acceptedItems,
           issueCount: var_issueCount,
         );
-      case 7:
+      case 8:
         var var_scanId = sse_decode_String(deserializer);
         var var_acceptedItems = sse_decode_u_64(deserializer);
         var var_issueCount = sse_decode_u_64(deserializer);
@@ -2242,6 +2272,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           scanId: var_scanId,
           acceptedItems: var_acceptedItems,
           issueCount: var_issueCount,
+        );
+      case 9:
+        var var_scanId = sse_decode_String(deserializer);
+        var var_code = sse_decode_String(deserializer);
+        var var_message = sse_decode_String(deserializer);
+        return ScanEvent_Failed(
+          scanId: var_scanId,
+          code: var_code,
+          message: var_message,
         );
       default:
         throw UnimplementedError('');
@@ -3083,12 +3122,27 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_u_64(visitedEntries, serializer);
         sse_encode_u_64(acceptedItems, serializer);
         sse_encode_u_64(issueCount, serializer);
-      case ScanEvent_AssetDiscovered(scanId: final scanId, asset: final asset):
+      case ScanEvent_Finalizing(
+        scanId: final scanId,
+        validatedItems: final validatedItems,
+        totalItems: final totalItems,
+        visitedEntries: final visitedEntries,
+        acceptedItems: final acceptedItems,
+        issueCount: final issueCount,
+      ):
         sse_encode_i_32(2, serializer);
+        sse_encode_String(scanId, serializer);
+        sse_encode_u_64(validatedItems, serializer);
+        sse_encode_u_64(totalItems, serializer);
+        sse_encode_u_64(visitedEntries, serializer);
+        sse_encode_u_64(acceptedItems, serializer);
+        sse_encode_u_64(issueCount, serializer);
+      case ScanEvent_AssetDiscovered(scanId: final scanId, asset: final asset):
+        sse_encode_i_32(3, serializer);
         sse_encode_String(scanId, serializer);
         sse_encode_box_asset_location_view(asset, serializer);
       case ScanEvent_Issue(scanId: final scanId, issue: final issue):
-        sse_encode_i_32(3, serializer);
+        sse_encode_i_32(4, serializer);
         sse_encode_String(scanId, serializer);
         sse_encode_box_autoadd_scan_issue(issue, serializer);
       case ScanEvent_Completed(
@@ -3099,7 +3153,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         catalogPath: final catalogPath,
         wasLimited: final wasLimited,
       ):
-        sse_encode_i_32(4, serializer);
+        sse_encode_i_32(5, serializer);
         sse_encode_String(scanId, serializer);
         sse_encode_String(rootId, serializer);
         sse_encode_u_64(assetCount, serializer);
@@ -3111,7 +3165,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         acceptedItems: final acceptedItems,
         issueCount: final issueCount,
       ):
-        sse_encode_i_32(5, serializer);
+        sse_encode_i_32(6, serializer);
         sse_encode_String(scanId, serializer);
         sse_encode_u_64(acceptedItems, serializer);
         sse_encode_u_64(issueCount, serializer);
@@ -3121,7 +3175,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         acceptedItems: final acceptedItems,
         issueCount: final issueCount,
       ):
-        sse_encode_i_32(6, serializer);
+        sse_encode_i_32(7, serializer);
         sse_encode_String(scanId, serializer);
         sse_encode_u_64(visitedEntries, serializer);
         sse_encode_u_64(acceptedItems, serializer);
@@ -3131,10 +3185,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         acceptedItems: final acceptedItems,
         issueCount: final issueCount,
       ):
-        sse_encode_i_32(7, serializer);
+        sse_encode_i_32(8, serializer);
         sse_encode_String(scanId, serializer);
         sse_encode_u_64(acceptedItems, serializer);
         sse_encode_u_64(issueCount, serializer);
+      case ScanEvent_Failed(
+        scanId: final scanId,
+        code: final code,
+        message: final message,
+      ):
+        sse_encode_i_32(9, serializer);
+        sse_encode_String(scanId, serializer);
+        sse_encode_String(code, serializer);
+        sse_encode_String(message, serializer);
     }
   }
 

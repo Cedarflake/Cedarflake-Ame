@@ -21,6 +21,7 @@ static ACTIVE_SCANS: OnceLock<Mutex<HashMap<String, Arc<AtomicU8>>>> = OnceLock:
 const CHECKPOINT_INTERVAL: u64 = 128;
 const DIRECTORY_ENTRY_BATCH: usize = 256;
 const DIRECTORY_ENTRY_WINDOW: u32 = 256;
+const FINALIZATION_WINDOW: u32 = 256;
 const CONTROL_RUNNING: u8 = 0;
 const CONTROL_PAUSE: u8 = 1;
 const CONTROL_CANCEL: u8 = 2;
@@ -448,34 +449,85 @@ fn run_scan_with_storage(
         return Ok(());
     }
 
-    for expected in catalog.staged_file_states(&request.scan_id)? {
-        if finish_if_controlled(
-            control.load(Ordering::Relaxed),
-            &mut catalog,
-            &request,
-            &checkpoint,
-            &mut publish,
-        )? {
-            return Ok(());
+    let total_items = catalog.count_staged_file_states(&request.scan_id)?;
+    if !publish(ScanEvent::Finalizing {
+        scan_id: request.scan_id.clone(),
+        validated_items: 0,
+        total_items,
+        visited_entries,
+        accepted_items,
+        issue_count,
+    }) {
+        catalog.abandon_scan(&request.scan_id, "detached", issue_count)?;
+        return Ok(());
+    }
+    let mut validated_items = 0_u64;
+    let mut after_location_id = None;
+    loop {
+        let window = catalog.load_staged_file_state_window(
+            &request.scan_id,
+            after_location_id.as_deref(),
+            FINALIZATION_WINDOW,
+        )?;
+        if window.is_empty() {
+            break;
         }
-        if let Err(issue) = revalidate_file_state(&expected) {
-            issue_count += 1;
-            catalog.record_issue(&request.scan_id, &issue)?;
-            if !publish(ScanEvent::Issue {
-                scan_id: request.scan_id.clone(),
-                issue: user_visible_issue(issue),
-            }) {
+        for (location_id, expected) in window {
+            if finish_if_controlled(
+                control.load(Ordering::Relaxed),
+                &mut catalog,
+                &request,
+                &checkpoint,
+                &mut publish,
+            )? {
+                return Ok(());
+            }
+            if let Err(issue) = revalidate_file_state(&expected) {
+                issue_count += 1;
+                catalog.record_issue(&request.scan_id, &issue)?;
+                if !publish(ScanEvent::Issue {
+                    scan_id: request.scan_id.clone(),
+                    issue: user_visible_issue(issue),
+                }) {
+                    catalog.abandon_scan(&request.scan_id, "detached", issue_count)?;
+                    return Ok(());
+                }
+                catalog.abandon_scan(&request.scan_id, "stale", issue_count)?;
+                publish(ScanEvent::Stale {
+                    scan_id: request.scan_id,
+                    accepted_items,
+                    issue_count,
+                });
+                return Ok(());
+            }
+            validated_items = validated_items.checked_add(1).ok_or_else(|| {
+                ScanError::new(
+                    "finalization_count_overflow",
+                    "The final validation progress exceeded the supported range",
+                )
+            })?;
+            after_location_id = Some(location_id);
+            if (validated_items == total_items
+                || validated_items.is_multiple_of(CHECKPOINT_INTERVAL))
+                && !publish(ScanEvent::Finalizing {
+                    scan_id: request.scan_id.clone(),
+                    validated_items,
+                    total_items,
+                    visited_entries,
+                    accepted_items,
+                    issue_count,
+                })
+            {
                 catalog.abandon_scan(&request.scan_id, "detached", issue_count)?;
                 return Ok(());
             }
-            catalog.abandon_scan(&request.scan_id, "stale", issue_count)?;
-            publish(ScanEvent::Stale {
-                scan_id: request.scan_id,
-                accepted_items,
-                issue_count,
-            });
-            return Ok(());
         }
+    }
+    if validated_items != total_items {
+        return Err(ScanError::new(
+            "finalization_count_changed",
+            "The staged catalog changed during final validation",
+        ));
     }
 
     if finish_if_controlled(

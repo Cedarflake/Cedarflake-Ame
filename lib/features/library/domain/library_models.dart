@@ -349,6 +349,22 @@ class LibraryScanProgress extends LibraryScanUpdate {
   final int issueCount;
 }
 
+class LibraryScanFinalizing extends LibraryScanUpdate {
+  const LibraryScanFinalizing({
+    required this.validatedItems,
+    required this.totalItems,
+    required this.visitedEntries,
+    required this.acceptedItems,
+    required this.issueCount,
+  });
+
+  final int validatedItems;
+  final int totalItems;
+  final int visitedEntries;
+  final int acceptedItems;
+  final int issueCount;
+}
+
 class LibraryAssetDiscovered extends LibraryScanUpdate {
   const LibraryAssetDiscovered(this.asset);
 
@@ -405,6 +421,13 @@ class LibraryScanStale extends LibraryScanUpdate {
 
   final int acceptedItems;
   final int issueCount;
+}
+
+class LibraryScanFailed extends LibraryScanUpdate {
+  const LibraryScanFailed({required this.code, required this.message});
+
+  final String code;
+  final String message;
 }
 
 class LibraryScanFailure implements Exception {

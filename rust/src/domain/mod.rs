@@ -344,6 +344,14 @@ pub enum ScanEvent {
         accepted_items: u64,
         issue_count: u64,
     },
+    Finalizing {
+        scan_id: String,
+        validated_items: u64,
+        total_items: u64,
+        visited_entries: u64,
+        accepted_items: u64,
+        issue_count: u64,
+    },
     AssetDiscovered {
         scan_id: String,
         asset: Box<AssetLocationView>,
@@ -375,6 +383,11 @@ pub enum ScanEvent {
         scan_id: String,
         accepted_items: u64,
         issue_count: u64,
+    },
+    Failed {
+        scan_id: String,
+        code: String,
+        message: String,
     },
 }
 

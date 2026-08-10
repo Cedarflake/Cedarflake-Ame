@@ -26,7 +26,10 @@ class LibraryTaskSurface extends StatelessWidget {
   Widget build(BuildContext context) {
     final title = switch (state.status) {
       LibraryStatus.choosingDirectory => "正在选择文件夹…",
-      LibraryStatus.scanning => "正在添加文件夹“${_rootName(state.displayRootPath)}”…",
+      LibraryStatus.scanning =>
+        state.scanPhase == LibraryScanPhase.finalizing
+            ? "正在核对文件夹“${_rootName(state.displayRootPath)}”…"
+            : "正在添加文件夹“${_rootName(state.displayRootPath)}”…",
       LibraryStatus.pausing => "正在暂停…",
       LibraryStatus.cancelling => "正在取消…",
       LibraryStatus.refreshing => "正在更新图库…",
@@ -39,11 +42,18 @@ class LibraryTaskSurface extends StatelessWidget {
     };
     final completedDetail =
         "已检查 ${state.visitedEntries} 个文件 · 已导入 ${state.stagedAssetCount} 张图片";
+    final isFinalizing =
+        state.status == LibraryStatus.scanning &&
+        state.scanPhase == LibraryScanPhase.finalizing;
+    final scanningDetail = isFinalizing
+        ? "正在核对 ${state.validatedAssetCount} / ${state.validationAssetCount} 张图片 · "
+              "已检查 ${state.visitedEntries} 个文件"
+        : "已检查 ${state.visitedEntries} 个文件 · 已找到 ${state.stagedAssetCount} 张图片";
     final detail =
         state.errorMessage ??
         (state.status == LibraryStatus.completed
             ? completedDetail
-            : "已检查 ${state.visitedEntries} 个文件 · 已找到 ${state.stagedAssetCount} 张图片");
+            : scanningDetail);
     return Material(
       key: const Key("library-task-surface"),
       elevation: ameNotificationElevation,
@@ -104,7 +114,14 @@ class LibraryTaskSurface extends StatelessWidget {
               ),
               if (state.isProcessing) ...[
                 const SizedBox(height: 10),
-                const LinearProgressIndicator(),
+                LinearProgressIndicator(
+                  value:
+                      state.status == LibraryStatus.scanning &&
+                          state.scanPhase == LibraryScanPhase.finalizing &&
+                          state.validationAssetCount > 0
+                      ? state.validatedAssetCount / state.validationAssetCount
+                      : null,
+                ),
               ],
             ],
           ),

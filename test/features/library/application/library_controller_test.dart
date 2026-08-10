@@ -161,6 +161,236 @@ void main() {
     );
   });
 
+  test(
+    "preserves a terminal Rust failure instead of reporting stream end",
+    () async {
+      final scanner = _FakeLibraryScanner();
+      final container = ProviderContainer(
+        overrides: [
+          libraryScannerProvider.overrideWithValue(scanner),
+          libraryCatalogProvider.overrideWithValue(
+            _FakeLibraryCatalog(_snapshot()),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      addTearDown(scanner.dispose);
+
+      final controller = container.read(libraryControllerProvider.notifier);
+      await controller.scanDirectory("C:\\Pictures");
+      final scanId = scanner.startedScanId ?? fail("scan did not start");
+      scanner.add(LibraryScanStarted(scanId: scanId, rootPath: "C:\\Pictures"));
+      scanner.add(
+        const LibraryScanFailed(
+          code: "catalog_database_busy",
+          message: "The catalog database remained busy after waiting",
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      final state = container.read(libraryControllerProvider);
+      expect(state.status, LibraryStatus.failed);
+      expect(
+        state.errorMessage,
+        "catalog_database_busy: The catalog database remained busy after waiting",
+      );
+    },
+  );
+
+  test(
+    "reconciles an atomically published scan after its terminal event is lost",
+    () async {
+      const bucket = LibraryTimeBucket(
+        monthKey: "2024-05",
+        itemCount: 100,
+        aspectRatioSum: 100,
+      );
+      final scanner = _FakeLibraryScanner();
+      final initialSnapshot = _snapshot(
+        roots: const [
+          LibraryRoot(
+            id: "root-old",
+            path: "C:\\Old",
+            displayPath: "C:\\Old",
+            activeScanId: "scan-old",
+            createdUnixMs: 1,
+            assetCount: 1,
+            issueCount: 0,
+          ),
+        ],
+        assets: [_asset(suffix: "old")],
+      );
+      final catalog = _FakeLibraryCatalog.dynamic(() {
+        final scanId = scanner.startedScanId;
+        return _snapshot(
+          revision: BigInt.two,
+          roots: [
+            LibraryRoot(
+              id: "root-new",
+              path: "C:\\Pictures",
+              displayPath: "C:\\Pictures",
+              activeScanId: scanId,
+              createdUnixMs: 2,
+              assetCount: 80,
+              issueCount: 2,
+            ),
+          ],
+          assets: [_asset(suffix: "published")],
+        );
+      });
+      final container = ProviderContainer(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(
+            LibraryState.fromSnapshot(initialSnapshot).copyWith(
+              timeline: LibraryTimeline(
+                revision: initialSnapshot.revision,
+                queryId: initialSnapshot.queryId,
+                totalItems: 100,
+                buckets: const [bucket],
+              ),
+            ),
+          ),
+          libraryScannerProvider.overrideWithValue(scanner),
+          libraryCatalogProvider.overrideWithValue(catalog),
+        ],
+      );
+      addTearDown(container.dispose);
+      addTearDown(scanner.dispose);
+
+      final controller = container.read(libraryControllerProvider.notifier);
+      await controller.scanDirectory("C:\\Pictures");
+      final scanId = scanner.startedScanId ?? fail("scan did not start");
+      scanner.add(LibraryScanStarted(scanId: scanId, rootPath: "C:\\Pictures"));
+      scanner.add(
+        const LibraryScanProgress(
+          visitedEntries: 100,
+          acceptedItems: 80,
+          issueCount: 2,
+        ),
+      );
+      final pendingJumps = [
+        for (var index = 0; index < 20; index += 1)
+          controller.jumpToTime(bucket, itemOffset: index),
+      ];
+      await Future<void>.delayed(Duration.zero);
+      await scanner.close();
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      final state = container.read(libraryControllerProvider);
+      expect(state.status, LibraryStatus.completed);
+      expect(state.errorMessage, isNull);
+      expect(state.scanId, scanner.startedScanId);
+      expect(state.stagedAssetCount, 80);
+      expect(state.assets.single.locationId, "location-published");
+      expect(catalog.anchors, isEmpty);
+      expect(await Future.wait(pendingJumps), everyElement(isFalse));
+    },
+  );
+
+  test("serializes overlapping scan starts", () async {
+    final scanner = _FakeLibraryScanner();
+    final container = ProviderContainer(
+      overrides: [
+        libraryScannerProvider.overrideWithValue(scanner),
+        libraryCatalogProvider.overrideWithValue(
+          _FakeLibraryCatalog(_snapshot()),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    addTearDown(scanner.dispose);
+
+    final controller = container.read(libraryControllerProvider.notifier);
+    await Future.wait([
+      controller.scanDirectory("C:\\First"),
+      controller.scanDirectory("C:\\Second"),
+    ]);
+
+    expect(scanner.scanCallCount, 1);
+    expect(container.read(libraryControllerProvider).rootPath, "C:\\First");
+  });
+
+  test("releases scan ownership when stream creation throws", () async {
+    final scanner = _FakeLibraryScanner(throwFirstScan: true);
+    final container = ProviderContainer(
+      overrides: [
+        directoryPickerProvider.overrideWithValue(
+          const _FakeDirectoryPicker("C:\\Pictures"),
+        ),
+        libraryScannerProvider.overrideWithValue(scanner),
+        libraryCatalogProvider.overrideWithValue(
+          _FakeLibraryCatalog(_snapshot()),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    addTearDown(scanner.dispose);
+
+    final controller = container.read(libraryControllerProvider.notifier);
+    await controller.chooseDirectoryAndScan();
+    expect(
+      container.read(libraryControllerProvider).status,
+      LibraryStatus.failed,
+    );
+
+    await controller.retry();
+
+    expect(scanner.scanCallCount, 2);
+    expect(
+      container.read(libraryControllerProvider).status,
+      LibraryStatus.scanning,
+    );
+  });
+
+  test(
+    "waits for a paused stream to close before resuming the same scan",
+    () async {
+      final scanner = _DelayedDoneLibraryScanner();
+      final container = ProviderContainer(
+        overrides: [
+          libraryScannerProvider.overrideWithValue(scanner),
+          libraryCatalogProvider.overrideWithValue(
+            _FakeLibraryCatalog(_snapshot()),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      addTearDown(scanner.dispose);
+
+      final controller = container.read(libraryControllerProvider.notifier);
+      await controller.scanDirectory("C:\\Pictures");
+      final scanId = scanner.startedScanIds.single;
+      scanner.add(
+        0,
+        LibraryScanStarted(scanId: scanId, rootPath: "C:\\Pictures"),
+      );
+      scanner.add(
+        0,
+        const LibraryScanPaused(
+          visitedEntries: 128,
+          acceptedItems: 80,
+          issueCount: 1,
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      final resume = controller.resumePausedScan();
+      await Future<void>.delayed(Duration.zero);
+      expect(scanner.startedScanIds, [scanId]);
+
+      await scanner.close(0);
+      await resume;
+
+      expect(scanner.startedScanIds, [scanId, scanId]);
+      expect(
+        container.read(libraryControllerProvider).status,
+        LibraryStatus.scanning,
+      );
+    },
+  );
+
   test("automatically resumes a persisted interrupted scan", () async {
     final scanner = _FakeLibraryScanner(
       recoverableScan: const RecoverableLibraryScan(
@@ -1257,23 +1487,37 @@ class _FakeDirectoryPicker implements DirectoryPicker {
 }
 
 class _FakeLibraryScanner implements LibraryScanner {
-  _FakeLibraryScanner({this.recoverableScan, this.pausedScan});
+  _FakeLibraryScanner({
+    this.recoverableScan,
+    this.pausedScan,
+    this.throwFirstScan = false,
+  });
 
   final _controller = StreamController<LibraryScanUpdate>.broadcast();
   final RecoverableLibraryScan? recoverableScan;
   final RecoverableLibraryScan? pausedScan;
+  final bool throwFirstScan;
   String? cancelledScanId;
   String? pausedScanId;
   String? startedScanId;
   int? startedItemLimit;
   int? startedEntryLimit;
+  int scanCallCount = 0;
 
   void add(LibraryScanUpdate update) {
     _controller.add(update);
   }
 
   void dispose() {
-    unawaited(_controller.close());
+    if (!_controller.isClosed) {
+      unawaited(_controller.close());
+    }
+  }
+
+  Future<void> close() async {
+    if (!_controller.isClosed) {
+      await _controller.close();
+    }
   }
 
   @override
@@ -1306,6 +1550,10 @@ class _FakeLibraryScanner implements LibraryScanner {
     required int? entryLimit,
     required int previewEdge,
   }) {
+    scanCallCount += 1;
+    if (throwFirstScan && scanCallCount == 1) {
+      throw StateError("synthetic stream creation failure");
+    }
     startedScanId = scanId;
     startedItemLimit = itemLimit;
     startedEntryLimit = entryLimit;
@@ -1316,15 +1564,23 @@ class _FakeLibraryScanner implements LibraryScanner {
 class _FakeLibraryCatalog implements LibraryCatalog {
   _FakeLibraryCatalog(LibrarySnapshot snapshot)
     : _responses = [snapshot],
-      _lastRevision = snapshot.revision;
+      _lastRevision = snapshot.revision,
+      _snapshotFactory = null;
 
   _FakeLibraryCatalog.sequence(
     List<Object> responses, {
     required BigInt initialRevision,
   }) : _responses = List.of(responses),
-       _lastRevision = initialRevision;
+       _lastRevision = initialRevision,
+       _snapshotFactory = null;
+
+  _FakeLibraryCatalog.dynamic(LibrarySnapshot Function() snapshotFactory)
+    : _responses = const [],
+      _lastRevision = BigInt.one,
+      _snapshotFactory = snapshotFactory;
 
   final List<Object> _responses;
+  final LibrarySnapshot Function()? _snapshotFactory;
   final List<LibraryCatalogCursor?> afters = [];
   final List<LibraryCatalogCursor?> befores = [];
   final List<LibraryTimeAnchor> anchors = [];
@@ -1372,6 +1628,12 @@ class _FakeLibraryCatalog implements LibraryCatalog {
   }
 
   Future<LibrarySnapshot> _nextSnapshot() async {
+    final snapshotFactory = _snapshotFactory;
+    if (snapshotFactory != null) {
+      final snapshot = snapshotFactory();
+      _lastRevision = snapshot.revision;
+      return snapshot;
+    }
     if (_responses.isEmpty) {
       throw StateError("No fake catalog response remains");
     }
@@ -1386,6 +1648,51 @@ class _FakeLibraryCatalog implements LibraryCatalog {
       return snapshot;
     }
     throw response;
+  }
+}
+
+class _DelayedDoneLibraryScanner implements LibraryScanner {
+  final List<StreamController<LibraryScanUpdate>> _controllers = [];
+  final List<String> startedScanIds = [];
+
+  void add(int index, LibraryScanUpdate update) {
+    _controllers[index].add(update);
+  }
+
+  Future<void> close(int index) => _controllers[index].close();
+
+  void dispose() {
+    for (final controller in _controllers) {
+      if (!controller.isClosed) {
+        unawaited(controller.close());
+      }
+    }
+  }
+
+  @override
+  bool cancel(String scanId) => true;
+
+  @override
+  Future<RecoverableLibraryScan?> loadPausedScan() async => null;
+
+  @override
+  Future<RecoverableLibraryScan?> loadRecoverableScan() async => null;
+
+  @override
+  bool pause(String scanId) => true;
+
+  @override
+  Stream<LibraryScanUpdate> scan({
+    required String scanId,
+    required String rootPath,
+    required int? itemLimit,
+    required int? entryLimit,
+    required int previewEdge,
+  }) {
+    startedScanIds.add(scanId);
+    final controller = StreamController<LibraryScanUpdate>();
+    _controllers.add(controller);
+    return controller.stream;
   }
 }
 

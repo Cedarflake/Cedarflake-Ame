@@ -76,6 +76,52 @@ void main() {
     expect(session.activeScanId, isNull);
   });
 
+  test("tracks final validation separately from discovery counters", () {
+    final session = LibraryScanSession();
+    session.begin(_scan());
+
+    final transition = session.apply(
+      const LibraryState(
+        status: LibraryStatus.scanning,
+        visitedEntries: 50304,
+        stagedAssetCount: 48384,
+      ),
+      const LibraryScanFinalizing(
+        validatedItems: 128,
+        totalItems: 48384,
+        visitedEntries: 50304,
+        acceptedItems: 48384,
+        issueCount: 2,
+      ),
+    );
+
+    expect(transition.state.scanPhase, LibraryScanPhase.finalizing);
+    expect(transition.state.validatedAssetCount, 128);
+    expect(transition.state.validationAssetCount, 48384);
+    expect(transition.state.visitedEntries, 50304);
+    expect(transition.state.stagedAssetCount, 48384);
+  });
+
+  test("preserves the Rust failure code when a scan fails", () {
+    final session = LibraryScanSession();
+    session.begin(_scan());
+
+    final transition = session.apply(
+      const LibraryState(status: LibraryStatus.scanning),
+      const LibraryScanFailed(
+        code: "catalog_database_busy",
+        message: "The catalog database remained busy after waiting",
+      ),
+    );
+
+    expect(transition.state.status, LibraryStatus.failed);
+    expect(
+      transition.state.errorMessage,
+      "catalog_database_busy: The catalog database remained busy after waiting",
+    );
+    expect(session.activeScanId, isNull);
+  });
+
   test("marks an active scan failed when its stream ends unexpectedly", () {
     final session = LibraryScanSession();
     session.begin(_scan());

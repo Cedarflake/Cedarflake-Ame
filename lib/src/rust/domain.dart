@@ -744,6 +744,14 @@ sealed class ScanEvent with _$ScanEvent {
     required BigInt acceptedItems,
     required BigInt issueCount,
   }) = ScanEvent_Progress;
+  const factory ScanEvent.finalizing({
+    required String scanId,
+    required BigInt validatedItems,
+    required BigInt totalItems,
+    required BigInt visitedEntries,
+    required BigInt acceptedItems,
+    required BigInt issueCount,
+  }) = ScanEvent_Finalizing;
   const factory ScanEvent.assetDiscovered({
     required String scanId,
     required AssetLocationView asset,
@@ -776,6 +784,11 @@ sealed class ScanEvent with _$ScanEvent {
     required BigInt acceptedItems,
     required BigInt issueCount,
   }) = ScanEvent_Stale;
+  const factory ScanEvent.failed({
+    required String scanId,
+    required String code,
+    required String message,
+  }) = ScanEvent_Failed;
 }
 
 class ScanIssue {

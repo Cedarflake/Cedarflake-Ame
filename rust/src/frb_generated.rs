@@ -1304,6 +1304,22 @@ impl SseDecode for crate::domain::ScanEvent {
             }
             2 => {
                 let mut var_scanId = <String>::sse_decode(deserializer);
+                let mut var_validatedItems = <u64>::sse_decode(deserializer);
+                let mut var_totalItems = <u64>::sse_decode(deserializer);
+                let mut var_visitedEntries = <u64>::sse_decode(deserializer);
+                let mut var_acceptedItems = <u64>::sse_decode(deserializer);
+                let mut var_issueCount = <u64>::sse_decode(deserializer);
+                return crate::domain::ScanEvent::Finalizing {
+                    scan_id: var_scanId,
+                    validated_items: var_validatedItems,
+                    total_items: var_totalItems,
+                    visited_entries: var_visitedEntries,
+                    accepted_items: var_acceptedItems,
+                    issue_count: var_issueCount,
+                };
+            }
+            3 => {
+                let mut var_scanId = <String>::sse_decode(deserializer);
                 let mut var_asset =
                     <Box<crate::domain::AssetLocationView>>::sse_decode(deserializer);
                 return crate::domain::ScanEvent::AssetDiscovered {
@@ -1311,7 +1327,7 @@ impl SseDecode for crate::domain::ScanEvent {
                     asset: var_asset,
                 };
             }
-            3 => {
+            4 => {
                 let mut var_scanId = <String>::sse_decode(deserializer);
                 let mut var_issue = <crate::domain::ScanIssue>::sse_decode(deserializer);
                 return crate::domain::ScanEvent::Issue {
@@ -1319,7 +1335,7 @@ impl SseDecode for crate::domain::ScanEvent {
                     issue: var_issue,
                 };
             }
-            4 => {
+            5 => {
                 let mut var_scanId = <String>::sse_decode(deserializer);
                 let mut var_rootId = <String>::sse_decode(deserializer);
                 let mut var_assetCount = <u64>::sse_decode(deserializer);
@@ -1335,7 +1351,7 @@ impl SseDecode for crate::domain::ScanEvent {
                     was_limited: var_wasLimited,
                 };
             }
-            5 => {
+            6 => {
                 let mut var_scanId = <String>::sse_decode(deserializer);
                 let mut var_acceptedItems = <u64>::sse_decode(deserializer);
                 let mut var_issueCount = <u64>::sse_decode(deserializer);
@@ -1345,7 +1361,7 @@ impl SseDecode for crate::domain::ScanEvent {
                     issue_count: var_issueCount,
                 };
             }
-            6 => {
+            7 => {
                 let mut var_scanId = <String>::sse_decode(deserializer);
                 let mut var_visitedEntries = <u64>::sse_decode(deserializer);
                 let mut var_acceptedItems = <u64>::sse_decode(deserializer);
@@ -1357,7 +1373,7 @@ impl SseDecode for crate::domain::ScanEvent {
                     issue_count: var_issueCount,
                 };
             }
-            7 => {
+            8 => {
                 let mut var_scanId = <String>::sse_decode(deserializer);
                 let mut var_acceptedItems = <u64>::sse_decode(deserializer);
                 let mut var_issueCount = <u64>::sse_decode(deserializer);
@@ -1365,6 +1381,16 @@ impl SseDecode for crate::domain::ScanEvent {
                     scan_id: var_scanId,
                     accepted_items: var_acceptedItems,
                     issue_count: var_issueCount,
+                };
+            }
+            9 => {
+                let mut var_scanId = <String>::sse_decode(deserializer);
+                let mut var_code = <String>::sse_decode(deserializer);
+                let mut var_message = <String>::sse_decode(deserializer);
+                return crate::domain::ScanEvent::Failed {
+                    scan_id: var_scanId,
+                    code: var_code,
+                    message: var_message,
                 };
             }
             _ => {
@@ -2139,14 +2165,31 @@ impl flutter_rust_bridge::IntoDart for crate::domain::ScanEvent {
                 issue_count.into_into_dart().into_dart(),
             ]
             .into_dart(),
-            crate::domain::ScanEvent::AssetDiscovered { scan_id, asset } => [
+            crate::domain::ScanEvent::Finalizing {
+                scan_id,
+                validated_items,
+                total_items,
+                visited_entries,
+                accepted_items,
+                issue_count,
+            } => [
                 2.into_dart(),
+                scan_id.into_into_dart().into_dart(),
+                validated_items.into_into_dart().into_dart(),
+                total_items.into_into_dart().into_dart(),
+                visited_entries.into_into_dart().into_dart(),
+                accepted_items.into_into_dart().into_dart(),
+                issue_count.into_into_dart().into_dart(),
+            ]
+            .into_dart(),
+            crate::domain::ScanEvent::AssetDiscovered { scan_id, asset } => [
+                3.into_dart(),
                 scan_id.into_into_dart().into_dart(),
                 asset.into_into_dart().into_dart(),
             ]
             .into_dart(),
             crate::domain::ScanEvent::Issue { scan_id, issue } => [
-                3.into_dart(),
+                4.into_dart(),
                 scan_id.into_into_dart().into_dart(),
                 issue.into_into_dart().into_dart(),
             ]
@@ -2159,7 +2202,7 @@ impl flutter_rust_bridge::IntoDart for crate::domain::ScanEvent {
                 catalog_path,
                 was_limited,
             } => [
-                4.into_dart(),
+                5.into_dart(),
                 scan_id.into_into_dart().into_dart(),
                 root_id.into_into_dart().into_dart(),
                 asset_count.into_into_dart().into_dart(),
@@ -2173,7 +2216,7 @@ impl flutter_rust_bridge::IntoDart for crate::domain::ScanEvent {
                 accepted_items,
                 issue_count,
             } => [
-                5.into_dart(),
+                6.into_dart(),
                 scan_id.into_into_dart().into_dart(),
                 accepted_items.into_into_dart().into_dart(),
                 issue_count.into_into_dart().into_dart(),
@@ -2185,7 +2228,7 @@ impl flutter_rust_bridge::IntoDart for crate::domain::ScanEvent {
                 accepted_items,
                 issue_count,
             } => [
-                6.into_dart(),
+                7.into_dart(),
                 scan_id.into_into_dart().into_dart(),
                 visited_entries.into_into_dart().into_dart(),
                 accepted_items.into_into_dart().into_dart(),
@@ -2197,10 +2240,21 @@ impl flutter_rust_bridge::IntoDart for crate::domain::ScanEvent {
                 accepted_items,
                 issue_count,
             } => [
-                7.into_dart(),
+                8.into_dart(),
                 scan_id.into_into_dart().into_dart(),
                 accepted_items.into_into_dart().into_dart(),
                 issue_count.into_into_dart().into_dart(),
+            ]
+            .into_dart(),
+            crate::domain::ScanEvent::Failed {
+                scan_id,
+                code,
+                message,
+            } => [
+                9.into_dart(),
+                scan_id.into_into_dart().into_dart(),
+                code.into_into_dart().into_dart(),
+                message.into_into_dart().into_dart(),
             ]
             .into_dart(),
             _ => {
@@ -2884,13 +2938,29 @@ impl SseEncode for crate::domain::ScanEvent {
                 <u64>::sse_encode(accepted_items, serializer);
                 <u64>::sse_encode(issue_count, serializer);
             }
-            crate::domain::ScanEvent::AssetDiscovered { scan_id, asset } => {
+            crate::domain::ScanEvent::Finalizing {
+                scan_id,
+                validated_items,
+                total_items,
+                visited_entries,
+                accepted_items,
+                issue_count,
+            } => {
                 <i32>::sse_encode(2, serializer);
+                <String>::sse_encode(scan_id, serializer);
+                <u64>::sse_encode(validated_items, serializer);
+                <u64>::sse_encode(total_items, serializer);
+                <u64>::sse_encode(visited_entries, serializer);
+                <u64>::sse_encode(accepted_items, serializer);
+                <u64>::sse_encode(issue_count, serializer);
+            }
+            crate::domain::ScanEvent::AssetDiscovered { scan_id, asset } => {
+                <i32>::sse_encode(3, serializer);
                 <String>::sse_encode(scan_id, serializer);
                 <Box<crate::domain::AssetLocationView>>::sse_encode(asset, serializer);
             }
             crate::domain::ScanEvent::Issue { scan_id, issue } => {
-                <i32>::sse_encode(3, serializer);
+                <i32>::sse_encode(4, serializer);
                 <String>::sse_encode(scan_id, serializer);
                 <crate::domain::ScanIssue>::sse_encode(issue, serializer);
             }
@@ -2902,7 +2972,7 @@ impl SseEncode for crate::domain::ScanEvent {
                 catalog_path,
                 was_limited,
             } => {
-                <i32>::sse_encode(4, serializer);
+                <i32>::sse_encode(5, serializer);
                 <String>::sse_encode(scan_id, serializer);
                 <String>::sse_encode(root_id, serializer);
                 <u64>::sse_encode(asset_count, serializer);
@@ -2915,7 +2985,7 @@ impl SseEncode for crate::domain::ScanEvent {
                 accepted_items,
                 issue_count,
             } => {
-                <i32>::sse_encode(5, serializer);
+                <i32>::sse_encode(6, serializer);
                 <String>::sse_encode(scan_id, serializer);
                 <u64>::sse_encode(accepted_items, serializer);
                 <u64>::sse_encode(issue_count, serializer);
@@ -2926,7 +2996,7 @@ impl SseEncode for crate::domain::ScanEvent {
                 accepted_items,
                 issue_count,
             } => {
-                <i32>::sse_encode(6, serializer);
+                <i32>::sse_encode(7, serializer);
                 <String>::sse_encode(scan_id, serializer);
                 <u64>::sse_encode(visited_entries, serializer);
                 <u64>::sse_encode(accepted_items, serializer);
@@ -2937,10 +3007,20 @@ impl SseEncode for crate::domain::ScanEvent {
                 accepted_items,
                 issue_count,
             } => {
-                <i32>::sse_encode(7, serializer);
+                <i32>::sse_encode(8, serializer);
                 <String>::sse_encode(scan_id, serializer);
                 <u64>::sse_encode(accepted_items, serializer);
                 <u64>::sse_encode(issue_count, serializer);
+            }
+            crate::domain::ScanEvent::Failed {
+                scan_id,
+                code,
+                message,
+            } => {
+                <i32>::sse_encode(9, serializer);
+                <String>::sse_encode(scan_id, serializer);
+                <String>::sse_encode(code, serializer);
+                <String>::sse_encode(message, serializer);
             }
             _ => {
                 unimplemented!("");

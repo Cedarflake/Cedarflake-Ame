@@ -50,6 +50,9 @@ class LibraryScanSession {
             displayRootPath: rootPath,
             itemLimit: itemLimit,
             entryLimit: entryLimit,
+            scanPhase: LibraryScanPhase.discovering,
+            validatedAssetCount: 0,
+            validationAssetCount: 0,
           ),
         );
       case LibraryScanProgress(
@@ -64,6 +67,31 @@ class LibraryScanSession {
         );
         return LibraryScanTransition(
           state: state.copyWith(
+            visitedEntries: visitedEntries,
+            stagedAssetCount: acceptedItems,
+            scanPhase: LibraryScanPhase.discovering,
+            validatedAssetCount: 0,
+            validationAssetCount: 0,
+            issueCount: issueCount,
+          ),
+        );
+      case LibraryScanFinalizing(
+        :final validatedItems,
+        :final totalItems,
+        :final visitedEntries,
+        :final acceptedItems,
+        :final issueCount,
+      ):
+        _updateActiveProgress(
+          visitedEntries: visitedEntries,
+          acceptedItems: acceptedItems,
+          issueCount: issueCount,
+        );
+        return LibraryScanTransition(
+          state: state.copyWith(
+            scanPhase: LibraryScanPhase.finalizing,
+            validatedAssetCount: validatedItems,
+            validationAssetCount: totalItems,
             visitedEntries: visitedEntries,
             stagedAssetCount: acceptedItems,
             issueCount: issueCount,
@@ -89,6 +117,7 @@ class LibraryScanSession {
           ),
         );
       case LibraryScanCompleted(
+        :final assetCount,
         :final issueCount,
         :final catalogPath,
         :final wasLimited,
@@ -97,6 +126,7 @@ class LibraryScanSession {
         return LibraryScanTransition(
           state: state.copyWith(
             status: LibraryStatus.refreshing,
+            stagedAssetCount: assetCount,
             issueCount: issueCount,
             catalogPath: catalogPath,
             isScanLimited: wasLimited,
@@ -149,6 +179,18 @@ class LibraryScanSession {
             status: LibraryStatus.stale,
             issueCount: issueCount,
             isResumingScan: false,
+          ),
+        );
+      case LibraryScanFailed(:final code, :final message):
+        _clearActive();
+        return LibraryScanTransition(
+          state: state.copyWith(
+            status: LibraryStatus.failed,
+            isResumingScan: false,
+            errorMessage: LibraryScanFailure(
+              code: code,
+              message: message,
+            ).toString(),
           ),
         );
     }

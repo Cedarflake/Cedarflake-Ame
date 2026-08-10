@@ -1,5 +1,7 @@
 import "library_models.dart";
 
+enum LibraryScanPhase { discovering, finalizing }
+
 enum LibraryStatus {
   empty,
   choosingDirectory,
@@ -25,6 +27,9 @@ class LibraryState {
     this.recentIssues = const [],
     this.visitedEntries = 0,
     this.stagedAssetCount = 0,
+    this.scanPhase = LibraryScanPhase.discovering,
+    this.validatedAssetCount = 0,
+    this.validationAssetCount = 0,
     this.issueCount = 0,
     this.itemLimit,
     this.entryLimit,
@@ -60,6 +65,9 @@ class LibraryState {
   final List<LibraryIssue> recentIssues;
   final int visitedEntries;
   final int stagedAssetCount;
+  final LibraryScanPhase scanPhase;
+  final int validatedAssetCount;
+  final int validationAssetCount;
   final int issueCount;
   final int? itemLimit;
   final int? entryLimit;
@@ -134,6 +142,9 @@ class LibraryState {
     List<LibraryIssue>? recentIssues,
     int? visitedEntries,
     int? stagedAssetCount,
+    LibraryScanPhase? scanPhase,
+    int? validatedAssetCount,
+    int? validationAssetCount,
     int? issueCount,
     Object? itemLimit = _unchanged,
     Object? entryLimit = _unchanged,
@@ -169,6 +180,9 @@ class LibraryState {
       recentIssues: recentIssues ?? this.recentIssues,
       visitedEntries: visitedEntries ?? this.visitedEntries,
       stagedAssetCount: stagedAssetCount ?? this.stagedAssetCount,
+      scanPhase: scanPhase ?? this.scanPhase,
+      validatedAssetCount: validatedAssetCount ?? this.validatedAssetCount,
+      validationAssetCount: validationAssetCount ?? this.validationAssetCount,
       issueCount: issueCount ?? this.issueCount,
       itemLimit: itemLimit == _unchanged ? this.itemLimit : itemLimit as int?,
       entryLimit: entryLimit == _unchanged

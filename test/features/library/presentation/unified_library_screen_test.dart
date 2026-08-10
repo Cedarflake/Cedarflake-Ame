@@ -297,6 +297,43 @@ void main() {
     expect(find.byKey(const Key("library-task-activity-button")), findsNothing);
   });
 
+  testWidgets("shows determinate progress while validating staged images", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(
+            const LibraryState(
+              status: LibraryStatus.scanning,
+              scanId: "scan-1",
+              rootPath: "C:\\Pictures",
+              displayRootPath: "C:\\Pictures",
+              visitedEntries: 50304,
+              stagedAssetCount: 48384,
+              scanPhase: LibraryScanPhase.finalizing,
+              validatedAssetCount: 128,
+              validationAssetCount: 48384,
+            ),
+          ),
+        ],
+        child: const AmeApp(),
+      ),
+    );
+
+    expect(find.text("正在核对文件夹“Pictures”…"), findsOneWidget);
+    expect(find.text("正在核对 128 / 48384 张图片 · 已检查 50304 个文件"), findsOneWidget);
+    final progress = tester.widget<LinearProgressIndicator>(
+      find.byType(LinearProgressIndicator),
+    );
+    expect(progress.value, closeTo(128 / 48384, 0.000001));
+  });
+
   testWidgets("keeps completed import feedback until it is acknowledged", (
     tester,
   ) async {

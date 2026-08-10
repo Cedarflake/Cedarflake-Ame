@@ -159,6 +159,18 @@ fn completed_scan_publishes_metadata_then_materializes_an_external_preview() {
         pending_asset.preview_status,
         PreviewStatus::Pending
     ));
+    let finalization_progress = events
+        .iter()
+        .filter_map(|event| match event {
+            ScanEvent::Finalizing {
+                validated_items,
+                total_items,
+                ..
+            } => Some((*validated_items, *total_items)),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(finalization_progress, [(0, 1), (1, 1)]);
     assert!(matches!(
         events.last(),
         Some(ScanEvent::Completed {
@@ -251,6 +263,84 @@ fn completed_scan_publishes_metadata_then_materializes_an_external_preview() {
         .expect("active scan");
     assert_eq!(status, "completed");
     assert_eq!(active_scan, "end-to-end-scan");
+}
+
+#[test]
+fn final_validation_crosses_windows_without_skipping_or_repeating_assets() {
+    const ASSET_COUNT: u64 = 257;
+
+    let source = tempdir().expect("source directory");
+    let storage = tempdir().expect("storage directory");
+    let fixture_path = storage.path().join("fixture.png");
+    RgbaImage::from_pixel(1, 1, Rgba([24, 48, 96, 255]))
+        .save(&fixture_path)
+        .expect("fixture image");
+    let fixture = fs::read(&fixture_path).expect("fixture bytes");
+    for index in 0..ASSET_COUNT {
+        fs::write(
+            source.path().join(format!("asset-{index:03}.png")),
+            &fixture,
+        )
+        .expect("copy fixture image");
+    }
+    let catalog_path = storage.path().join("catalog").join("ame.sqlite3");
+    let request = ScanRequest {
+        scan_id: "windowed-final-validation".to_owned(),
+        root_path: source.path().to_string_lossy().into_owned(),
+        max_items: None,
+        max_entries: None,
+        preview_edge: 256,
+    };
+    let mut events = Vec::new();
+
+    run_scan_with_storage(
+        request,
+        |event| {
+            events.push(event);
+            true
+        },
+        StoragePaths {
+            catalog_path: catalog_path.clone(),
+            preview_root: storage.path().join("previews"),
+            preview_budget_bytes: 64 * 1024 * 1024,
+            settings_path: storage.path().join("settings.sqlite3"),
+        },
+    )
+    .expect("completed windowed scan");
+
+    let finalization_progress = events
+        .iter()
+        .filter_map(|event| match event {
+            ScanEvent::Finalizing {
+                validated_items,
+                total_items,
+                ..
+            } => Some((*validated_items, *total_items)),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        finalization_progress,
+        [(0, 257), (128, 257), (256, 257), (257, 257)]
+    );
+    assert!(matches!(
+        events.last(),
+        Some(ScanEvent::Completed {
+            asset_count: ASSET_COUNT,
+            issue_count: 0,
+            ..
+        })
+    ));
+
+    let connection = Connection::open(catalog_path).expect("published catalog");
+    let published_locations: i64 = connection
+        .query_row(
+            "SELECT COUNT(*) FROM asset_locations WHERE scan_id = 'windowed-final-validation'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("published asset count");
+    assert_eq!(published_locations, 257);
 }
 
 #[test]

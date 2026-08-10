@@ -1,4 +1,7 @@
 use std::collections::HashSet;
+use std::sync::mpsc;
+use std::thread;
+use std::time::{Duration, Instant};
 
 use tempfile::tempdir;
 
@@ -39,6 +42,104 @@ fn load_default_layout_manifest_chunk(
         TEST_QUERY_ID,
         after,
     )
+}
+
+#[test]
+fn catalog_reads_open_without_waiting_for_an_active_writer() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let holder = SqliteCatalog::open(path.clone()).expect("lock holder catalog");
+
+    holder
+        .connection
+        .execute_batch("BEGIN IMMEDIATE")
+        .expect("hold catalog writer lock");
+    let reader = thread::spawn(move || {
+        let started = Instant::now();
+        let mut catalog = SqliteCatalog::open(path)?;
+        let snapshot = load_default_snapshot(&mut catalog, 1, None)?;
+        Ok::<_, ScanError>((started.elapsed(), snapshot))
+    });
+    let (elapsed, snapshot) = reader
+        .join()
+        .expect("catalog reader thread")
+        .expect("open and read catalog while writer is active");
+    holder
+        .connection
+        .execute_batch("ROLLBACK")
+        .expect("release catalog writer lock");
+    assert!(snapshot.roots.is_empty());
+    assert!(elapsed < Duration::from_secs(1));
+}
+
+#[test]
+fn catalog_writers_wait_for_short_writer_contention() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let holder = SqliteCatalog::open(path.clone()).expect("lock holder catalog");
+    let contender = SqliteCatalog::open(path).expect("contending catalog");
+    let configured_timeout: i64 = contender
+        .connection
+        .query_row("PRAGMA busy_timeout", [], |row| row.get(0))
+        .expect("configured busy timeout");
+    assert_eq!(configured_timeout, 5_000);
+    holder
+        .connection
+        .execute_batch("BEGIN IMMEDIATE")
+        .expect("hold catalog writer lock");
+    let attempt_started = Instant::now();
+    let (ready_sender, ready_receiver) = mpsc::sync_channel(0);
+    let writer = thread::spawn(move || {
+        ready_sender.send(()).expect("announce writer attempt");
+        contender
+            .connection
+            .execute("UPDATE catalog_state SET revision = revision", [])
+    });
+    ready_receiver.recv().expect("writer attempt ready");
+    thread::sleep(Duration::from_millis(100));
+    assert!(
+        !writer.is_finished(),
+        "contending writer must wait for the lock"
+    );
+    holder
+        .connection
+        .execute_batch("COMMIT")
+        .expect("release catalog writer lock");
+    assert_eq!(writer.join().expect("contending writer thread"), Ok(1));
+    assert!(attempt_started.elapsed() >= Duration::from_millis(100));
+}
+
+#[test]
+fn catalog_writer_timeout_has_a_specific_error_code() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let holder = SqliteCatalog::open(path.clone()).expect("lock holder catalog");
+    let contender = SqliteCatalog::open(path).expect("contending catalog");
+    contender
+        .connection
+        .busy_timeout(Duration::from_millis(20))
+        .expect("short test timeout");
+    holder
+        .connection
+        .execute_batch("BEGIN IMMEDIATE")
+        .expect("hold catalog writer lock");
+
+    let error = contender
+        .connection
+        .execute("UPDATE catalog_state SET revision = revision", [])
+        .expect_err("writer must time out while the lock is held");
+    let error = database_error(error);
+
+    holder
+        .connection
+        .execute_batch("ROLLBACK")
+        .expect("release catalog writer lock");
+    assert_eq!(error.code, "catalog_database_busy");
+    assert!(
+        error
+            .message
+            .starts_with("The catalog database remained busy after waiting")
+    );
 }
 
 #[test]
