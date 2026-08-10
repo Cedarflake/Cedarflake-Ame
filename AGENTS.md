@@ -447,14 +447,19 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   when explicitly requested with all authorization-bound paths.
 - `./tool/release_validate_version.ps1` requires a `v`-prefixed semantic version and verifies that
   the tag, Flutter application version, and Rust package version agree before a release gate runs.
+- `./tool/release_package_portable_windows.ps1` packages the complete Windows x64 Release directory
+  as a versioned portable ZIP after release verification.
+- `./tool/release_verify_portable_archive.ps1` verifies the portable ZIP filename, single-root
+  layout, safe entry paths, and required Flutter and Rust runtime payload without extracting it.
 
 Hosted workflow ownership is:
 
 - `.github/workflows/quality_ci.yml` for pushes to `main`, pull requests, merge queues, and manual
   daily-gate runs;
 - `.github/workflows/quality_gate_windows.yml` for the shared Windows daily or release gate;
-- `.github/workflows/release_candidate_windows.yml` for version-tag and manual release candidates;
-- `.github/workflows/release_verify_published.yml` for post-publication source-tag verification.
+- `.github/workflows/release_candidate_windows.yml` for version-tag and manual release candidates,
+  followed by portable ZIP publication;
+- `.github/workflows/release_verify_published.yml` for post-publication attachment verification.
 
 The complete gate definitions and commands are recorded in `docs/acceptance/quality-gates.md`.
 

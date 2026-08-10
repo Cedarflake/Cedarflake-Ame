@@ -11,7 +11,8 @@ acceptance work. A passing lower gate never claims that a higher gate ran.
 | Daily | `./tool/quality_verify_daily.ps1` | Format, lint, Rust and Flutter tests, controlled Windows scan integration, bridge hash, tracked diff whitespace | Every material change |
 | Performance | `./tool/performance_benchmark_synthetic_library.ps1` | 10,000 temporary images, cold and warm scans, pause and resume, bounded memory | Scan pipeline, persistence, concurrency, or performance changes |
 | Real library | `./tool/acceptance_run_read_only_library.ps1` and `./tool/acceptance_verify_read_only_catalog.ps1` | Explicitly authorized source scan, source integrity sampling, retained multi-root catalog validation | Only with current authorization and explicit paths |
-| Release | `./tool/release_verify_candidate.ps1` | Daily gate, Windows Release packaging and bridge smoke, synthetic performance gate, optional retained real-library validation | Before a release candidate |
+| Release | `./tool/release_verify_candidate.ps1` | Daily gate, Windows Release and bridge smoke, synthetic performance gate, optional retained real-library validation | Before a release candidate |
+| Portable artifact | `./tool/release_package_portable_windows.ps1` | Versioned Windows x64 ZIP plus archive-structure verification | After a release build passes |
 
 ## Hosted workflow lifecycle
 
@@ -21,8 +22,9 @@ The hosted Windows gate is implemented once in
 - `quality_ci.yml` runs the daily gate for pushes to `main`, pull requests targeting `main`, merge
   queue checks, and manual dispatches;
 - `release_candidate_windows.yml` runs the release-candidate gate for an existing `v*.*.*` tag or
-  an explicitly named tag selected by manual dispatch;
-- `release_verify_published.yml` reruns the release-candidate gate against the published release tag.
+  an explicitly named tag selected by manual dispatch, then publishes the verified portable ZIP;
+- `release_verify_published.yml` downloads the exact published ZIP and independently verifies its
+  identity and archive structure.
 
 The push gate intentionally targets `main` rather than every feature branch. Feature work is
 validated by the pull-request event, avoiding duplicate push and pull-request runs for the same
@@ -33,19 +35,23 @@ Every hosted workflow uses `windows-2025`, Flutter 3.44.9, and the repository Ru
 restoring project dependencies, the shared gate downloads actionlint 1.7.12, verifies the official
 Windows x64 SHA-256, and validates every workflow through
 `./tool/quality_lint_workflows.ps1`. External actions are pinned to complete commit SHAs, checkout
-credentials are not persisted, and the workflow token has read-only repository contents permission.
-Pull-request jobs receive no release secrets or write permission. The workstation daily gate does
-not download actionlint implicitly; contributors may run the same script with an explicitly supplied
-executable.
+credentials are not persisted, and ordinary workflow jobs have read-only repository contents
+permission. Only the portable-publication job receives `contents: write`, and it starts only after
+the read-only candidate gate succeeds. Pull-request jobs receive no release secrets or write
+permission. The workstation daily gate does not download actionlint implicitly; contributors may
+run the same script with an explicitly supplied executable.
 
-Before either release workflow executes the release candidate gate,
+Before the release-candidate workflow executes its gate,
 `./tool/release_validate_version.ps1` checks that the `v`-prefixed tag, `pubspec.yaml` application
 version without its build suffix, and `rust/Cargo.toml` package version are identical. The daily
 lint gate runs a passing prerelease fixture and representative rejection cases for this contract.
+It also builds a controlled portable fixture and proves that missing runtime files and unsafe
+archive paths are rejected.
 
-The published-release workflow currently revalidates the immutable source tag and release build. It
-does not yet claim to verify downloadable release attachments; checksum and attachment verification
-becomes required when repository-owned artifact publication is introduced.
+The published-release workflow resolves the version contract from the published tag, downloads only
+`Cedarflake-Ame-<tag>-windows-x64-portable.zip`, and validates that attachment without extracting or
+executing it. Signing, provenance, and checksums remain deferred supply-chain work rather than
+claims of the current gate.
 
 GitHub-hosted workflows never receive real-library paths or authorization tokens and never run the
 real-library gate. A version-tag gate may run the synthetic performance benchmark, but retained real
@@ -118,6 +124,17 @@ smoke test, and the synthetic performance gate:
 ```powershell
 ./tool/release_verify_candidate.ps1
 ```
+
+After that gate has produced a complete Windows Release directory, create the portable artifact:
+
+```powershell
+./tool/release_package_portable_windows.ps1 -Tag "v0.1.0"
+```
+
+The artifact is written to `build/release-artifacts/` with one `Cedarflake-Ame/` archive root. A tag
+push performs this step automatically only after its candidate gate passes. The accepted identity,
+x64-only support boundary, and deferred installer decisions are recorded in
+[ADR 0015](../architecture/0015-windows-release-distribution.md).
 
 When current authorization exists and the retained real-library catalog is applicable to the
 release, append its validation explicitly:
