@@ -1,12 +1,12 @@
 # Read-only real-library acceptance
 
-Status: completed for the two named real roots on 2026-08-07
+Status: completed for the two logical real roots on 2026-08-07
 
 This procedure is the R1 gate between controlled fixtures and the user's real image libraries. On
-2026-08-07 the user explicitly authorized read-only access to `local-primary` and
-`cloud-primary` and instructed the project to continue. The authorization covers the
-ordered acceptance runs below. It does not authorize source mutation, placeholder hydration, or an
-unrelated future run after this acceptance sequence.
+2026-08-07 the user explicitly authorized read-only access to `local-primary` and `cloud-primary`
+and instructed the project to continue. Their exact paths remain in the ignored local context. The
+authorization covered the ordered acceptance runs below. It does not authorize source mutation,
+placeholder hydration, or an unrelated future run after this acceptance sequence.
 
 The acceptance harness calls the production Rust discovery, metadata, reconciliation, checkpoint,
 and SQLite publication path without generating previews or modifying source media. It has no item or
@@ -77,7 +77,7 @@ Use `-PauseAfter <accepted-image-count>` to inject a persisted pause and then re
 the same command. If the process itself is interrupted, rerun the original command with the same scan
 ID and add `-UseExistingStorage`.
 
-For the approved OneDrive root, add `-AllowCloudBackedRoot`. This does not permit placeholder
+For the approved `cloud-primary` root, add `-AllowCloudBackedRoot`. This does not permit placeholder
 hydration; it only acknowledges that the named directory is cloud-backed.
 
 ## Evidence
@@ -106,11 +106,8 @@ A short controlled scan may finish between operating-system samples and report n
 
 ## Completed run evidence
 
-Retained derived storage:
-
-```text
-<LOCAL_ACCEPTANCE_STORAGE>
-```
+Retained derived storage remains machine-local and outside the repository and both source trees.
+Its exact path is intentionally not repository documentation.
 
 | Run | Visited | Accepted | Issues | Elapsed | Peak working set | Result |
 | --- | ---: | ---: | ---: | ---: | ---: | --- |
@@ -119,10 +116,11 @@ Retained derived storage:
 | cloud-primary cancellation | 512 | 420 | 8 | 1.205 s | 24,223,744 B | cancelled in 231 ms; local-primary remained active |
 | cloud-primary cold scan | 50,384 | 48,384 | 1,264 | 154.698 s | 66,826,240 B | completed and active |
 
-The local-primary cancellation run predated the visited-entry cancellation correction and reached its trigger
-at 512 accepted images and 565 visited entries. The OneDrive trial and current tool semantics use a
-visited-entry threshold. A restricted-process cloud-primary probe returned access denied without
-publishing data; the accepted OneDrive runs used the explicitly authorized external read context.
+The `local-primary` cancellation run predated the visited-entry cancellation correction and reached
+its trigger at 512 accepted images and 565 visited entries. The `cloud-primary` trial and current
+tool semantics use a visited-entry threshold. A restricted-process cloud-backed probe returned
+access denied without publishing data; the accepted runs used the explicitly authorized external
+read context.
 
 The completed scans retained 35 and 44 deterministic source-hash samples respectively. Their final
 catalog contains two active roots and 79,013 active locations. The production `load_catalog` API
@@ -130,12 +128,8 @@ then loaded every location through 155 bounded 512-item windows at catalog revis
 duplicate location identity or gap. Both roots were reported available and every preview remained
 pending, confirming that the catalog-only run did not generate a full-library preview cache.
 
-Retained reports:
-
-- `acceptance-local-primary-cancel-20260807.log`;
-- `acceptance-local-primary-cold-20260807.log`;
-- `acceptance-cloud-primary-cancel-v4-20260807.log`;
-- `acceptance-cloud-primary-cold-20260807.log`.
+Retained reports remain in the ignored acceptance storage under their historical scan IDs. Their
+machine-specific names and paths are intentionally not repository documentation.
 
 ## Ordered real-root gate
 
@@ -143,12 +137,13 @@ The gate completed in this order:
 
 1. use the authorized roots and the isolated acceptance storage recorded in the run log;
 2. run the controlled harness;
-3. run a cancellation trial on `local-primary` and inspect the retained report;
+3. resolve `local-primary` from the ignored local context, run a cancellation trial, and inspect
+   the retained report;
 4. run a complete cold scan of `local-primary` with a new scan ID;
 5. confirm the authorized `cloud-primary` root remains available;
 6. run a cancellation trial with `-AllowCloudBackedRoot` and inspect
    placeholder issues before considering a complete scan;
-7. run the approved complete OneDrive scan into the same catalog only with
+7. run the approved complete `cloud-primary` scan into the same catalog only with
    `-UseExistingStorage`;
 8. verify the combined catalog through the Windows application before closing R1.
 

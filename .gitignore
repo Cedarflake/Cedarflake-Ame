@@ -38,6 +38,7 @@ migrate_working_dir/
 .env
 .env.*
 *.local
+.agents/local-context.toml
 
 # Symbolication related
 app.*.symbols

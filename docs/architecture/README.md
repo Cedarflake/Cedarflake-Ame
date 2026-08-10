@@ -1,7 +1,7 @@
 # Architecture Decisions
 
 This directory records decisions that constrain Cedarflake Ame's implementation. Product delivery
-order and current progress belong in the external temporary roadmap, not in these records.
+order and current progress belong in the repository-owned `docs/roadmap.md`, not in these records.
 
 Decision statuses:
 

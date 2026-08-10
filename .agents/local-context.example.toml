@@ -1,0 +1,15 @@
+schema_version = 1
+
+# Copy this file to local-context.toml and replace only the placeholder paths.
+# The local file is ignored by Git and is discovery data, not execution authorization.
+
+[[library_roots]]
+id = "local-primary"
+kind = "local"
+path = "<LOCAL_LIBRARY_PATH>"
+
+[[library_roots]]
+id = "cloud-primary"
+kind = "cloud_backed"
+provider = "onedrive"
+path = "<CLOUD_LIBRARY_PATH>"

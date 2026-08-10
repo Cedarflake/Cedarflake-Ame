@@ -18,14 +18,23 @@ here. Delivery plans belong in a separate roadmap document. Accepted technical d
 architecture decision records. Current implementation status is established from the working tree
 and verification evidence.
 
-The canonical active delivery plan for this local project is
-`docs/roadmap.md`.
-This path is a discovery pointer, not roadmap content. Before planning a stage, reporting roadmap
+The canonical active delivery plan is the repository-owned `docs/roadmap.md`.
+This relative path is a discovery pointer, not roadmap content. Before planning a stage, reporting roadmap
 status, resuming material product work after compaction, starting a new project session, or
 delegating product work, read that file completely after recovering the latest relevant original
 conversation. Do not create a competing roadmap copy. If the file is unavailable, report the exact
 continuity gap before changing product scope or stage order. The roadmap remains lower authority
 than the user's current instruction, this contract, accepted ADRs, and verified live implementation.
+
+Tracked files refer to the two real large-library roots only as `local-primary` and
+`cloud-primary`. Their machine-specific paths belong in the Git-ignored
+`.agents/local-context.toml`, whose tracked shape is documented by
+`.agents/local-context.example.toml`. When a task requires real-root discovery, read the local
+mapping if it exists, but never copy its paths, account labels, or machine identity into tracked
+files, test snapshots, logs intended for commit, commit messages, or user-facing documentation.
+The mapping is discovery data only: its presence does not grant source mutation, cloud hydration,
+or authorization for a new real-library acceptance run. If it is absent, retain the two logical
+roots in planning and report that exact local execution is unavailable.
 
 Do not turn a temporary implementation choice into a permanent rule in this file. Amend this
 contract only when a project-wide constraint has genuinely changed.
@@ -288,12 +297,12 @@ Framework-specific defaults apply only when that framework is present:
 
 ### 10.1 Local Flutter toolchain
 
-- The installed Flutter SDK root on this workstation is
-  `%USERPROFILE%\develop\flutter`.
+- The installed Flutter SDK root on this workstation is resolved from
+  `$env:USERPROFILE\develop\flutter`; do not commit the expanded user-specific path.
 - PowerShell does not currently expose `flutter` or `dart` through `PATH`. Invoke the verified
   executables explicitly instead of searching for, downloading, or installing another SDK:
-  - Flutter: `%USERPROFILE%\develop\flutter\bin\flutter.bat`
-  - Dart: `%USERPROFILE%\develop\flutter\bin\cache\dart-sdk\bin\dart.exe`
+  - Flutter: `& "$env:USERPROFILE\develop\flutter\bin\flutter.bat"`
+  - Dart: `& "$env:USERPROFILE\develop\flutter\bin\cache\dart-sdk\bin\dart.exe"`
 - Run Flutter formatting, analysis, tests, and builds serially on this workstation. If a command
   hangs or leaves a tester process behind, stop and inspect that process before starting another
   Flutter command.
