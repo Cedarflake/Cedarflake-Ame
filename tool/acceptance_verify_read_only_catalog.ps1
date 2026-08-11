@@ -19,14 +19,37 @@ if ($AuthorizationToken -cne $requiredToken) {
 $resolvedStorage = [System.IO.Path]::GetFullPath($StorageRoot)
 $resolvedRootA = [System.IO.Path]::GetFullPath($RootA)
 $resolvedRootB = [System.IO.Path]::GetFullPath($RootB)
-$catalogPath = Join-Path $resolvedStorage "catalog\ame.sqlite3"
-if (-not (Test-Path -LiteralPath $catalogPath -PathType Leaf)) {
-    throw "The retained acceptance catalog is missing: $catalogPath"
-}
 foreach ($root in @($resolvedRootA, $resolvedRootB)) {
     if (-not (Test-Path -LiteralPath $root -PathType Container)) {
         throw "An expected library root is unavailable: $root"
     }
+}
+
+$normalize = {
+    param([string]$Path)
+    return $Path.Replace("/", "\").TrimEnd("\").ToLowerInvariant()
+}
+$normalizedStorage = & $normalize $resolvedStorage
+$normalizedRoots = @(
+    (& $normalize $resolvedRootA),
+    (& $normalize $resolvedRootB)
+)
+if ($normalizedRoots[0] -eq $normalizedRoots[1]) {
+    throw "The retained acceptance roots must be distinct"
+}
+foreach ($normalizedRoot in $normalizedRoots) {
+    if (
+        $normalizedRoot -eq $normalizedStorage -or
+        $normalizedRoot.StartsWith("$normalizedStorage\") -or
+        $normalizedStorage.StartsWith("$normalizedRoot\")
+    ) {
+        throw "Acceptance storage must remain outside every source root"
+    }
+}
+
+$catalogPath = Join-Path $resolvedStorage "catalog\ame.sqlite3"
+if (-not (Test-Path -LiteralPath $catalogPath -PathType Leaf)) {
+    throw "The retained acceptance catalog is missing: $catalogPath"
 }
 
 $environment = @{

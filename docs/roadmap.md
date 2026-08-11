@@ -601,20 +601,17 @@ Initial settings are limited to behavior that is understandable and connected en
   开源软件声明
 ```
 
-After the R2b preview lifecycle is complete, storage labels and descriptions use the following
-target wording and explain the consequence instead of exposing implementation terms:
+The completed R2b preview lifecycle uses the following storage labels and descriptions. They
+explain the consequence instead of exposing implementation terms:
 
 - `图库数据位置`: `保存 Ame 的图库索引和设置，不会移动或复制原图片`;
 - `缩略图位置`: `保存可重新生成的预览，不会保存第二份原图`;
 - `缩略图最大占用空间`: `达到上限后自动清理较少使用的缩略图`;
 - `清理缩略图`: `缩略图会在需要时重新生成，不会删除原图片`.
 
-While ADR 0005's complete preview lifecycle remains partially implemented, the product must not
-claim that automatic or manual reclamation has occurred. The current-state wording must instead
-explain that reaching the limit pauses new preview generation, that existing previews remain
-available, and that changing the limit or location takes effect after restart. The target wording
-above replaces that interim text only when the complete reclamation and recovery workflow is
-connected end to end.
+Automatic reclamation, foreground cleanup, and startup recovery are connected end to end, so this
+target wording replaces the earlier admission-only fallback text. A future partial implementation
+must not claim that reclamation occurred until the corresponding verified workflow is restored.
 
 Changing a storage location must show whether restart or migration is required before confirmation.
 Clearing thumbnails must name the rebuild cost and confirm that source files are untouched. Theme,
@@ -631,10 +628,10 @@ and viewport must produce the same row membership, item rectangles, total extent
 anchor; visible pixels then regenerate through normal demand priority.
 
 ADR 0005 owns high/low-watermark eviction, verified cleanup, startup recovery, bounded variants, and
-switch-and-regenerate preview relocation. R2b must implement and validate that accepted lifecycle
-before enabling the target cleanup behavior. Until then, the admission-only implementation remains
-an honest runtime fallback, Ame retains the old root, and it must not claim that it reclaimed those
-files; it never silently migrates or deletes them.
+switch-and-regenerate preview relocation. R2b implements that lifecycle: a new root activates after
+restart, the previous root becomes explicitly retired only after successful activation, and cleanup
+removes only verified Ame-managed artifacts after confirmation. Ame never silently migrates or
+deletes source files or unrelated files from either root.
 
 Do not expose database schema, catalog revisions, adapter or engine names, worker counts, queue
 depth, hash algorithms, cache keys, memory limits, analysis-run identifiers, or other engineering
@@ -857,22 +854,21 @@ is stable. Moving either later workflow out of R2b requires an explicit amendmen
 roadmap does not silently weaken an accepted architecture decision merely to shorten the stage.
 
 R2b does not require every optional ADR 0014 scale adaptation to be enabled merely to complete a
-migration checklist. Its remaining delivery order is:
+migration checklist. Its acceptance policy is:
 
-1. complete the applicable gates for the latest scan-lifecycle and Explorer-reveal maintenance;
-2. freeze the current wheel, time-rail, jump, and resize behavior as the comparison baseline;
-3. run resource-bounded Profile and long-session observation against a retained catalog without a
+1. freeze the current wheel, time-rail, jump, and resize behavior as the comparison baseline;
+2. run resource-bounded Profile and long-session observation against a retained catalog without a
    new real-root import;
-4. record retained detail count, process working set, garbage collection, page-publication copy
+3. record retained detail count, process working set, garbage collection, page-publication copy
    time, frame timing, preview latency, cache bytes, bucket reuse, reclamation churn, programmatic
    scroll writers, and flat-manifest cost;
-5. implement and validate ADR 0005's correctness-required aspect-ratio and preview lifecycle before
-   enabling target cleanup, reclamation, or preview-root transition behavior;
-6. change any remaining performance structure only when it exceeds its recorded budget, one
+4. implement and validate ADR 0005's preview lifecycle before enabling target cleanup, reclamation,
+   or preview-root transition behavior; the accepted aspect-ratio contract remains fixed;
+5. change any remaining performance structure only when it exceeds its recorded budget, one
    variable at a time;
-7. compare every change with the frozen baseline and reject a nearby-return, reversal, distant-jump,
+6. compare every change with the frozen baseline and reject a nearby-return, reversal, distant-jump,
    resize, or native-input regression;
-8. pass real-library parity and Windows Release verification before closing R2b.
+7. pass current-authorized real-library parity and Windows Release verification before closing R2b.
 
 Profile, builds, tests, scans, and acceptance runs remain serial on the project workstation. They
 reuse the retained catalog where the scenario permits, start with bounded durations, and stop at an
@@ -1671,37 +1667,23 @@ may serve as benchmarks or fallbacks but are not automatically preferred over ma
 
 ## 10. Current active stage
 
-Active stage: **R2b - production behavior integration**
+Active stage: **R2c - continuous directory synchronization and incremental indexing**
 
-Planned next stage: **R2c - continuous directory synchronization and incremental indexing**.
-R2c does not become active until R2b is accepted; R3 remains blocked behind R2c catalog-freshness
-acceptance.
+Planned next stage: **R3 - exact duplicate detection**. R3 remains blocked behind R2c
+catalog-freshness acceptance.
 
-Current priority:
+R2b was accepted on 2026-08-11. Its milestone definition above remains the stable acceptance record;
+the R2c milestone definition owns current product scope. Do not reconstruct another active backlog
+from implementation options or ADR migration sequences.
 
-1. preserve the current wheel, time-rail, jump, and resize interaction as the user-directed
-   preservation baseline; first run resource-bounded Profile-mode and long-session observation on a
-   retained catalog, recording frame time, memory, retained detail growth, preview latency, and
-   programmatic scroll ownership without changing the interaction implementation;
-2. design the ADR 0014 bounded detail-page cache against that baseline, but publish it only after
-   focused parity evidence proves that returning to nearby content, rapid reversal, distant jumps,
-   and native wheel or touchpad input are no worse. Consolidate only programmatic scroll writers
-   proven by traces to conflict; native Flutter `Scrollable` movement must remain immediate and
-   must not be routed through an asynchronous intent queue;
-3. retain the flat exact manifest while it remains inside the recorded memory and frame budgets.
-   Introduce block summaries plus bounded exact blocks only for result sizes that exceed those
-   budgets, then validate the 79,000-, 250,000-, and 1,000,000-item cases before enabling the
-   hierarchical representation or removing any rollback path;
-4. complete the R2b preview lifecycle as storage correctness work, not as a gallery hot-path
-   rewrite. Implement ADR 0005, measure bucket quality and reclamation churn, and pass its validation
-   gates before enabling automatic cleanup or verified old-root reclamation.
+The accepted R2b interaction comparison revision is
+`6d3f0686a91b85402251fe07fcc1690f268effd5`. It remains historical A/B evidence rather than a moving
+current-status pointer. R2c must preserve the accepted native interaction contract, but new R2c
+behavior establishes task-specific evidence against the current accepted implementation.
 
-The current controller's retained-detail growth is not an open hypothesis. Forward paging rebuilds
-a map across all retained `state.assets`; backward paging rebuilds identity sets and a merged list.
-Observation measures the resulting memory, garbage collection, copy cost, frame impact, and whether
-repeated forward and reverse movement reaches a stable resource range. If the target workload stays
-inside its explicit budget, the cache may remain guarded work; if it exceeds the budget, the cache
-uses high and low watermarks with hysteresis rather than aggressive page-by-page eviction.
+R2b Profile evidence reproduced retained-detail growth and triggered one guarded change. The
+accepted controller now uses high and low watermarks with hysteresis rather than aggressive
+page-by-page eviction; it did not replace the native scroll, time-rail, jump, or resize paths.
 
 On 2026-08-10 the user reported that the current gallery interaction feels acceptable and directed
 the project to avoid speculative or migration-driven performance changes that could create a
@@ -1710,30 +1692,41 @@ measured thresholds and behavior-parity gates, not authorization to rewrite the 
 path merely to complete the migration sequence. Bounded-memory requirements remain binding, but
 their production implementation must preserve or improve the reported interaction baseline.
 
-The visible Flutter shell is the active R2b production surface and must not be discarded or treated
+Every conditional interaction change is evaluated one variable at a time against the frozen
+baseline in the same build mode. It is rejected when P95 build or raster time leaves the 60 Hz frame
+budget, regresses by more than 10 percent, adds UI-thread stalls above 50 ms, increases nearby-return
+or reversal placeholder exposure, adds avoidable catalog requests, delays the time-rail position
+line beyond one display frame, or exceeds ADR 0014's two-logical-pixel settled resize drift. Profile
+evidence compares Profile with Profile; final hand-feel acceptance uses Windows Release. A rejected
+change is rolled back instead of being retained behind compensating debounce or synchronization.
+
+The visible Flutter shell is the accepted production surface and must not be discarded or treated
 as a fixture-only prototype. It is not yet a fully accepted product release. The current priority is
-not classification and not additional analysis engines.
+R2c catalog freshness, not classification or additional analysis engines.
 
 ### 10.1 Verified implementation snapshot
 
-This snapshot was synchronized on 2026-08-11 against a clean `main` working tree that matched
-`origin/main`. The live working tree, current schema, accepted ADRs, and fresh verification remain
-authoritative; this roadmap does not preserve drifting commit hashes or duplicate complete test
-transcripts.
+This snapshot was synchronized on 2026-08-11 against the live working tree and fresh local gates.
+The live working tree, current schema, accepted ADRs, and fresh verification remain authoritative;
+this roadmap does not preserve drifting commit hashes or duplicate complete test transcripts.
 
 - R0 and R1 are accepted. The Rust-owned SQLite catalog, Flutter/Rust bridge, external preview
   storage, resumable multi-root scanning, atomic publication, per-file issue isolation, file
   identity, and revision-safe bounded queries are connected end to end.
-- The catalog schema is v13. It includes the earlier root, scan, asset, location, frontier, preview,
-  capture-evidence, and identity migrations plus creation-time, natural-name, parent-folder, and
-  local file-time query evidence.
+- The catalog schema is v14 and the storage-settings schema is v2. They add a transactional preview
+  artifact index and explicit pending or retired preview-root ownership without losing earlier root,
+  scan, asset, location, frontier, capture-evidence, identity, or query evidence.
 - The authorized read-only target-library acceptance published 30,629 locations for
   `local-primary` and 48,384 for `cloud-primary`, for 79,013 active locations in one retained
   catalog. Sampled source bytes and source entries remained unchanged, and cloud-only placeholders
   were not intentionally hydrated.
+- The authorized R2b retained-catalog parity gate reloaded those 79,013 locations through 155
+  revision-safe 512-item pages using the effective capture, creation, then modification date keyset.
+  Both roots remained available, every location appeared once, and all previews remained pending;
+  the gate did not start a source scan or materialize media.
 - R2a is accepted and its obsolete prototype entry point has been removed. ADR 0009 owns the
   production unified-gallery UI contract.
-- The active R2b shell provides the source tree, search, complete-query sorting, equal-height and
+- The accepted R2b shell provides the source tree, search, complete-query sorting, equal-height and
   square layouts, density choices, selection, bounded complete-query selection, context menus,
   viewer, settings, temporary scan feedback, and right-side time navigation.
 - The query-wide revision-bound manifest, deterministic equal-height layout snapshot, exact-extent
@@ -1742,22 +1735,26 @@ transcripts.
 - Native wheel, touchpad, keyboard, accessibility, and ballistic movement remain owned by Flutter's
   `Scrollable`. Programmatic navigation is generation-guarded and may be coordinated only where
   measured traces show competing writes.
-- The current controller still merges loaded detail pages into a growing `state.assets` list.
-  Profile and long-session evidence determine whether the guarded high/low-watermark page-cache
-  path must replace that baseline for the target workload.
-- The flat manifest remains accepted while measured inside budget. Existing evidence recorded about
-  5.9 MB for 79,013 items and 18.8 MB for 250,000 items; the million-item interim representation
-  remains conditional scale evidence, not a completed hierarchical fallback.
-- Preview storage currently has safe external placement, atomic admission reservation, bounded
-  demand concurrency, structured failure, and visible missing-file regeneration. ADR 0005's
-  automatic reclamation, bounded variants, startup recovery, manual cleanup, and preview-root
-  transition are not yet implementation-complete.
-- R2c has no production watcher, durable change queue, freshness state, delta publisher, or catch-up
-  adapter yet. R3 and the later duplicate, review, classification, similarity, semantic,
+- Retained-catalog Profile evidence reproduced unbounded detail growth, so the controller now keeps
+  one contiguous detail window behind soft 5,000-item and 3,500-item watermarks. A 240-iteration
+  reversal run reached 5,000 retained details and settled at 4,000; P95 build and raster times were
+  2.611 ms and 1.047 ms with no UI-thread stall above 50 ms. Source-media materialization remained
+  disabled during this evidence run.
+- The manifest implementation contains flat and hierarchical storage paths behind a 64 MiB estimate.
+  Existing evidence recorded about 5.9 MB for 79,013 items and 18.8 MB for 250,000 items, so the
+  target workload remains flat. The million-item path is selected as hierarchical in current code,
+  but its complete build, layout, resize, cancellation, and interaction performance evidence remains
+  conditional scale validation rather than an R2b target-workload blocker.
+- Preview storage has safe external placement, atomic admission reservation, bounded size variants,
+  protected high/low-watermark reclamation, structured failure, bounded startup recovery, verified
+  foreground cleanup, and restart-safe preview-root activation with explicit retired-root cleanup.
+  All paths preserve durable geometry and exclude source media and unrelated files.
+- R2c begins without a production watcher, durable change queue, freshness state, delta publisher,
+  or catch-up adapter. R3 and the later duplicate, review, classification, similarity, semantic,
   organization-plan, and operation-journal domains have not started.
-- Hosted quality and release workflows, version validation, Windows release verification, and
-  portable-archive tooling exist as cross-cutting infrastructure. Their presence does not complete
-  R10 or substitute for current-stage acceptance evidence.
+- The accepted R2b working tree passed the complete local Daily gate and Windows Release gate on
+  2026-08-11, including packaged Rust-library loading and the release bridge smoke test. This is
+  current-stage evidence, not a release candidate or completion of R10.
 - Local Flutter and Dart commands use the repository-pinned SDK resolved from
   `$env:USERPROFILE\develop\flutter`; they are not assumed available through `PATH`.
 
@@ -1796,23 +1793,32 @@ R2b completed foundation:
 - EXIF Orientation 1 through 8 reflected in durable dimensions and preview pixels;
 - scan finalization, failure publication, and Explorer reveal corrections present in current
   history;
-- deterministic fixture coverage and an earlier full daily-gate baseline.
+- deterministic fixture coverage and a successful hosted Daily gate for the frozen comparison
+  revision.
 
-R2b remaining acceptance:
+R2b acceptance: **accepted on 2026-08-11**
 
-1. establish a frozen Profile and long-session baseline on the retained target catalog;
-2. record frame timing, memory, garbage collection, retained-detail growth, copy cost, preview
-   latency, cache bytes, reclamation churn, and programmatic scroll writers;
-3. enable the guarded detail-page cache only if the retained-list baseline exceeds budget and the
-   replacement passes nearby-return, reversal, distant-jump, resize, and native-input parity;
-4. retain the flat manifest unless a measured size crosses its memory or frame budget;
-5. complete the accepted ADR 0005 preview lifecycle, prioritizing automatic bounded resource safety
-   before foreground cleanup and preview-root transition;
-6. establish current-head daily and Windows Release evidence rather than inheriting the earlier
-   baseline across later scan, preview, CI, and packaging changes;
-7. pass the authorized retained-catalog real-library parity scenarios without source mutation or
-   cloud-placeholder hydration;
-8. close R2b after those gates, then begin R2c rather than adding ordinary album breadth.
+1. **Complete** - frozen Profile and long-session evidence on the retained catalog;
+2. **Complete** - accepted ADR 0005 preview lifecycle and deterministic recovery, cleanup, storage,
+   geometry, and source-safety tests;
+3. **Complete** - current local Daily and Windows Release gates;
+4. **Complete** - currently authorized retained-catalog real-library parity without source mutation
+   or cloud-placeholder hydration;
+5. The active stage is now R2c rather than ordinary album breadth.
+
+R2b conditional-adaptation decisions:
+
+1. **Triggered and complete** - retained-detail growth exceeded the stable-range requirement. The
+   guarded high/low-watermark detail cache passed reversal, resize, viewer, native-input, and frozen
+   Profile frame gates without changing the scroll, time-rail, or resize implementations.
+2. **Not required for the target workload** - the 79,013-item flat manifest remains inside budget;
+   the existing hierarchical fallback remains conditional scale validation.
+3. **Not required** - traces did not reproduce competing programmatic position writers. Native
+   Flutter `Scrollable` movement remains immediate and outside an asynchronous intent queue.
+
+An untriggered conditional adaptation is a resolved **not required** decision, not unfinished R2b
+work. Do not implement one merely to complete an ADR migration sequence or count it as a blocker
+without the corresponding measurement or trace evidence.
 
 ### 10.3 Status maintenance rule
 
@@ -1820,4 +1826,5 @@ Historical commands, individual test transcripts, superseded prototype steps, an
 identifiers belong in Git history, ADR evidence, acceptance reports, or release records rather than
 this active plan. When implementation status changes, update this concise snapshot and its date only
 after checking the live working tree and applicable verification. Never infer completion from the
-existence of code, a workflow file, or an older passing gate.
+existence of code, a workflow file, or an older passing gate. The accepted R2b comparison revision
+in section 10 remains stable historical A/B evidence; it is not an active-stage status pointer.

@@ -84,6 +84,17 @@ try {
         Assert-Contains $_.Exception.Message "exact current read-only acceptance authorization token"
     }
 
+    try {
+        & "$PSScriptRoot\acceptance_verify_read_only_catalog.ps1" `
+            -StorageRoot "Z:\must-not-be-read" `
+            -RootA "Z:\must-not-be-read-a" `
+            -RootB "Z:\must-not-be-read-b" `
+            -AuthorizationToken "wrong"
+        throw "Invalid retained-catalog authorization unexpectedly succeeded"
+    } catch {
+        Assert-Contains $_.Exception.Message "exact current read-only acceptance authorization token"
+    }
+
     $cloudRoot = Join-Path $resolvedTestRoot "OneDrive-guard"
     New-Item -ItemType Directory -Path $cloudRoot -Force | Out-Null
     try {
@@ -95,6 +106,28 @@ try {
         throw "Cloud-backed acceptance unexpectedly omitted its explicit switch"
     } catch {
         Assert-Contains $_.Exception.Message "AllowCloudBackedRoot"
+    }
+
+    try {
+        & "$PSScriptRoot\acceptance_verify_read_only_catalog.ps1" `
+            -StorageRoot (Join-Path $resolvedTestRoot "verify-distinct-storage") `
+            -RootA $sourceRoot `
+            -RootB $sourceRoot `
+            -AuthorizationToken "CEDARFLAKE_AME_READ_ONLY_ACCEPTANCE_V1"
+        throw "Duplicate retained-catalog roots unexpectedly succeeded"
+    } catch {
+        Assert-Contains $_.Exception.Message "roots must be distinct"
+    }
+
+    try {
+        & "$PSScriptRoot\acceptance_verify_read_only_catalog.ps1" `
+            -StorageRoot $sourceRoot `
+            -RootA $sourceRoot `
+            -RootB $cloudRoot `
+            -AuthorizationToken "CEDARFLAKE_AME_READ_ONLY_ACCEPTANCE_V1"
+        throw "Overlapping retained-catalog storage unexpectedly succeeded"
+    } catch {
+        Assert-Contains $_.Exception.Message "outside every source root"
     }
 
     try {
