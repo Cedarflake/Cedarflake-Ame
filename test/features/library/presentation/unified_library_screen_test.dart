@@ -1,11 +1,17 @@
+import "dart:async";
+import "dart:typed_data";
+
 import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/app/presentation/ame_menu.dart";
 import "package:cedarflake_ame/features/library/adapters/windows_library_platform_actions.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
+import "package:cedarflake_ame/features/library/application/library_layout_manifest_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_platform_actions.dart";
+import "package:cedarflake_ame/features/library/application/library_previewer.dart";
 import "package:cedarflake_ame/features/library/application/library_scanner.dart";
 import "package:cedarflake_ame/features/library/application/library_view_preferences.dart";
+import "package:cedarflake_ame/features/library/domain/gallery_layout_manifest.dart";
 import "package:cedarflake_ame/features/library/domain/library_folder_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
@@ -79,6 +85,111 @@ void main() {
     expect(find.byKey(const Key("ame-settings-page")), findsNothing);
     expect(find.byKey(const Key("library-empty-state")), findsOneWidget);
   });
+
+  testWidgets(
+    "batches recovered preview dimensions into dynamic gallery geometry",
+    (tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final assets = [
+        for (var index = 0; index < 8; index++)
+          LibraryAsset(
+            assetId: "asset-$index",
+            locationId: "location-$index",
+            rootId: "root-1",
+            sourcePath: "C:\\Pictures\\$index.jpg",
+            displayPath: "C:\\Pictures\\$index.jpg",
+            relativePath: "$index.jpg",
+            previewPath: "",
+            fileSize: BigInt.one,
+            modifiedUnixMs: 1,
+            width: 0,
+            height: 0,
+            previewStatus: LibraryPreviewStatus.pending,
+          ),
+      ];
+      final snapshot = LibrarySnapshot(
+        catalogPath: "C:\\AmeData\\ame.sqlite3",
+        revision: BigInt.one,
+        queryId: "query-1",
+        roots: const [
+          LibraryRoot(
+            id: "root-1",
+            path: "C:\\Pictures",
+            displayPath: "C:\\Pictures",
+            activeScanId: "scan-1",
+            createdUnixMs: 1,
+            assetCount: 8,
+            issueCount: 0,
+          ),
+        ],
+        assets: assets,
+      );
+      final initialState = LibraryState.fromSnapshot(snapshot).copyWith(
+        timeline: LibraryTimeline(
+          revision: BigInt.one,
+          queryId: "query-1",
+          totalItems: assets.length,
+          buckets: [
+            LibraryTimeBucket(
+              itemCount: assets.length,
+              aspectRatioSum: assets.length.toDouble(),
+            ),
+          ],
+        ),
+      );
+      final previewer = _ControlledLibraryPreviewer(assets);
+      final manifest = _unknownDimensionManifest(assets);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            initialLibraryStateProvider.overrideWithValue(initialState),
+            libraryPreviewerProvider.overrideWithValue(previewer),
+            libraryGalleryLayoutManifestLoaderProvider.overrideWithValue(
+              _FixedLayoutManifestLoader(manifest),
+            ),
+          ],
+          child: const AmeApp(),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(previewer.requests, containsAll(["location-0", "location-1"]));
+      final firstTile = find.byKey(const ValueKey("location-0"));
+      final secondTile = find.byKey(const ValueKey("location-1"));
+      expect(firstTile, findsOneWidget);
+      expect(secondTile, findsOneWidget);
+      final firstWidthBefore = tester.getSize(firstTile).width;
+      final secondWidthBefore = tester.getSize(secondTile).width;
+
+      previewer.succeed("location-0", width: 800, height: 400);
+      previewer.succeed("location-1", width: 200, height: 400);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(tester.getSize(firstTile).width, firstWidthBefore);
+      expect(tester.getSize(secondTile).width, secondWidthBefore);
+
+      expect(previewer.requests, containsAll(["location-2", "location-3"]));
+      previewer.succeed("location-2", width: 800, height: 400);
+      previewer.succeed("location-3", width: 200, height: 400);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 319));
+      expect(tester.getSize(firstTile).width, firstWidthBefore);
+      expect(tester.getSize(secondTile).width, secondWidthBefore);
+
+      await tester.pump(const Duration(milliseconds: 2));
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+
+      expect(tester.getSize(firstTile).width, greaterThan(firstWidthBefore));
+      expect(tester.getSize(secondTile).width, lessThan(secondWidthBefore));
+    },
+  );
 
   testWidgets("pins desktop caption controls to the maximized right edge", (
     tester,
@@ -1128,6 +1239,73 @@ void main() {
     );
   });
 
+  testWidgets(
+    "preserves the first timeline target when the manifest takes ownership",
+    (tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final initialState = _populatedState(totalItems: 120);
+      final snapshot = LibrarySnapshot(
+        catalogPath: initialState.catalogPath ?? "",
+        revision: initialState.catalogRevision ?? BigInt.zero,
+        queryId: initialState.queryId,
+        roots: initialState.roots,
+        assets: initialState.assets,
+      );
+      final catalog = _RecordingQueryCatalog(snapshot);
+      final manifestLoader = _ControlledLayoutManifestLoader();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            initialLibraryStateProvider.overrideWithValue(initialState),
+            libraryCatalogProvider.overrideWithValue(catalog),
+            libraryGalleryLayoutManifestLoaderProvider.overrideWithValue(
+              manifestLoader,
+            ),
+          ],
+          child: const AmeApp(),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      var slider = tester.widget<Slider>(
+        find.byKey(const Key("timeline-slider")),
+      );
+      slider.onChangeStart?.call(slider.value);
+      slider.onChanged?.call(0.25);
+      slider.onChangeEnd?.call(0.25);
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(catalog.timeAnchors, hasLength(1));
+      slider = tester.widget<Slider>(find.byKey(const Key("timeline-slider")));
+      final selectedValue = slider.value;
+      final selectedOffset = catalog.timeAnchors.single.itemOffset;
+      expect(selectedOffset, greaterThan(0));
+      expect(_galleryScrollPosition(tester).pixels, greaterThan(0));
+
+      manifestLoader.complete(
+        _queryWideManifest(
+          totalItems: 120,
+          loadedItemIndex: selectedOffset,
+          loadedLocationId: initialState.assets.single.locationId,
+        ),
+      );
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(_galleryScrollPosition(tester).pixels, greaterThan(0));
+      expect(
+        tester.widget<Slider>(find.byKey(const Key("timeline-slider"))).value,
+        closeTo(selectedValue, 0.001),
+      );
+    },
+  );
+
   testWidgets("keeps the single time rail synchronized with gallery scroll", (
     tester,
   ) async {
@@ -1452,6 +1630,137 @@ LibraryState _populatedState({
       ],
     ),
   );
+}
+
+LibraryGalleryLayoutManifest _unknownDimensionManifest(
+  List<LibraryAsset> assets,
+) {
+  final builder = LibraryGalleryLayoutManifestBuilder(
+    revision: BigInt.one,
+    queryId: "query-1",
+    totalItems: assets.length,
+  );
+  builder.append(
+    LibraryGalleryLayoutManifestChunk(
+      revision: BigInt.one,
+      queryId: "query-1",
+      totalItems: assets.length,
+      startOrdinal: 0,
+      locationIds: [for (final asset in assets) asset.locationId],
+      aspectRatioMilli: Uint16List.fromList(List.filled(assets.length, 1000)),
+      dateGroupIndices: Uint16List(assets.length),
+      dateGroups: const [null],
+      flags: Uint8List(assets.length),
+    ),
+  );
+  return builder.build();
+}
+
+LibraryGalleryLayoutManifest _queryWideManifest({
+  required int totalItems,
+  required int loadedItemIndex,
+  required String loadedLocationId,
+}) {
+  final builder = LibraryGalleryLayoutManifestBuilder(
+    revision: BigInt.one,
+    queryId: "query-1",
+    totalItems: totalItems,
+  );
+  builder.append(
+    LibraryGalleryLayoutManifestChunk(
+      revision: BigInt.one,
+      queryId: "query-1",
+      totalItems: totalItems,
+      startOrdinal: 0,
+      locationIds: [
+        for (var index = 0; index < totalItems; index++)
+          index == loadedItemIndex
+              ? loadedLocationId
+              : "manifest-location-$index",
+      ],
+      aspectRatioMilli: Uint16List.fromList(List.filled(totalItems, 1333)),
+      dateGroupIndices: Uint16List(totalItems),
+      dateGroups: const ["2026-08-05"],
+      flags: Uint8List.fromList(
+        List.filled(totalItems, libraryGalleryLayoutDimensionsKnownFlag),
+      ),
+    ),
+  );
+  return builder.build();
+}
+
+ScrollPosition _galleryScrollPosition(WidgetTester tester) {
+  final scrollable = find.descendant(
+    of: find.byKey(const Key("library-photo-wall")),
+    matching: find.byType(Scrollable),
+  );
+  return tester.state<ScrollableState>(scrollable).position;
+}
+
+class _FixedLayoutManifestLoader implements LibraryGalleryLayoutManifestLoader {
+  const _FixedLayoutManifestLoader(this.manifest);
+
+  final LibraryGalleryLayoutManifest manifest;
+
+  @override
+  Future<LibraryGalleryLayoutManifest> load(
+    LibraryGalleryQuery query, {
+    bool Function()? isCancelled,
+  }) async {
+    return manifest;
+  }
+}
+
+class _ControlledLayoutManifestLoader
+    implements LibraryGalleryLayoutManifestLoader {
+  final Completer<LibraryGalleryLayoutManifest> _completer = Completer();
+
+  @override
+  Future<LibraryGalleryLayoutManifest> load(
+    LibraryGalleryQuery query, {
+    bool Function()? isCancelled,
+  }) {
+    return _completer.future;
+  }
+
+  void complete(LibraryGalleryLayoutManifest manifest) {
+    _completer.complete(manifest);
+  }
+}
+
+class _ControlledLibraryPreviewer implements LibraryPreviewer {
+  _ControlledLibraryPreviewer(Iterable<LibraryAsset> assets)
+    : _assets = {for (final asset in assets) asset.locationId: asset};
+
+  final Map<String, LibraryAsset> _assets;
+  final Map<String, Completer<LibraryAsset>> _completers = {};
+  final List<String> requests = [];
+
+  @override
+  Future<LibraryAsset> materialize({
+    required String locationId,
+    required int previewEdge,
+    bool retry = false,
+    Iterable<String> protectedLocationIds = const [],
+  }) {
+    requests.add(locationId);
+    return (_completers[locationId] ??= Completer<LibraryAsset>()).future;
+  }
+
+  void succeed(String locationId, {required int width, required int height}) {
+    final asset = _assets[locationId];
+    if (asset == null) {
+      throw StateError("Unknown preview asset $locationId");
+    }
+    _completers[locationId]?.complete(
+      asset.withPreview(
+        previewPath: "C:\\AmeCache\\$locationId.jpg",
+        width: width,
+        height: height,
+        previewStatus: LibraryPreviewStatus.ready,
+      ),
+    );
+  }
 }
 
 class _RecordingQueryCatalog implements LibraryCatalog {

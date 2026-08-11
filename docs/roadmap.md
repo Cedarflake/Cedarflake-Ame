@@ -2,9 +2,9 @@
 
 Status: active delivery plan
 
-Last confirmed with the user: 2026-08-11
+Last confirmed with the user: 2026-08-12
 
-Last implementation-status synchronization: 2026-08-11
+Last implementation-status synchronization: 2026-08-12
 
 Repository: this repository root
 
@@ -474,8 +474,10 @@ position when possible.
   an authoritative location removal is the only normal path that removes its dimensions.
 - One deterministic layout snapshot derives final row membership, item rectangles, cumulative row
   offsets, date anchors, and total extent from that manifest. Placeholder, failed-preview, and
-  decoded states use the same rectangle. Preview completion or eviction must never recompose rows,
-  change total extent, or move the viewport.
+  decoded states use the same rectangle. Preview completion or eviction with already-known
+  dimensions must never recompose rows. When compatible decoding first recovers previously unknown
+  dimensions, Ame coalesces that geometry evidence and atomically replaces the snapshot while
+  preserving the logical viewport anchor instead of reflowing once per thumbnail.
 - Full `LibraryAsset` details are queried in bounded revision-safe keyset pages. The current
   controller is known to merge those pages into a growing `state.assets` list; Profile evidence
   determines its target-library cost before a high/low-watermark cache replaces that retained-list
@@ -585,6 +587,7 @@ Initial settings are limited to behavior that is understandable and connected en
 浏览
   查看图片时的鼠标滚轮     放大或缩小 / 上一张或下一张
   打开图片时               适应窗口 / 实际大小
+  缩略图加载速度           小 / 中 / 大
 
 相册（R4 接通后）
   加入相册前询问           开 / 关
@@ -615,8 +618,10 @@ must not claim that reclamation occurred until the corresponding verified workfl
 
 Changing a storage location must show whether restart or migration is required before confirmation.
 Clearing thumbnails must name the rebuild cost and confirm that source files are untouched. Theme,
-viewer, album, and storage choices persist across restarts. `加入相册前询问` initially defaults to
-on, and `默认加入的相册` initially defaults to `收藏夹`. When prompting is on, the configured group
+viewer, preview loading speed, album, and storage choices persist across restarts. Preview loading
+speed defaults to `中`; changing it applies to subsequent queue starts without cancelling active
+decodes. `加入相册前询问` initially defaults to on, and `默认加入的相册` initially defaults to
+`收藏夹`. When prompting is on, the configured group
 is preselected in the dialog and may be changed for that operation. When prompting is off, the same
 setting is the direct destination. These rows remain absent until R4 connects album membership end
 to end.
@@ -633,7 +638,7 @@ restart, the previous root becomes explicitly retired only after successful acti
 removes only verified Ame-managed artifacts after confirmation. Ame never silently migrates or
 deletes source files or unrelated files from either root.
 
-Do not expose database schema, catalog revisions, adapter or engine names, worker counts, queue
+Do not expose database schema, catalog revisions, adapter or engine names, raw worker counts, queue
 depth, hash algorithms, cache keys, memory limits, analysis-run identifiers, or other engineering
 vocabulary in ordinary settings. Diagnostics may later be exported from `关于`, but do not become a
 permanent settings dashboard. Account, OneDrive-account, Clipchamp, video, and classification rows
@@ -807,8 +812,9 @@ R2b owns two deliberately separate lifecycles:
 - **Aspect-ratio evidence**: media inspection records orientation-corrected width and height with
   compatible source state and engine identity. Restart and preview-cache operations reuse those
   dimensions without decoding the source merely to recover layout. An unknown dimension uses one
-  stable documented fallback until a complete newer catalog revision supplies trustworthy evidence;
-  preview readiness never upgrades layout geometry on its own.
+  stable documented fallback until a complete newer catalog revision or compatible bounded
+  geometry-evidence epoch supplies trustworthy evidence. Preview readiness never upgrades layout
+  geometry on its own; first-time dimension recovery is coalesced and identity-checked separately.
 - **Preview artifacts**: demand moves a compatible artifact through absent, pending, generating,
   ready, failed, stale, and evictable conditions without turning those conditions into layout state.
   Persistent representation may combine states where safe, but failure evidence, stale-publication
@@ -843,9 +849,9 @@ The preview-artifact lifecycle is complete only when all of the following hold:
    storage configuration after restart;
 9. size buckets and reclamation thresholds are selected from display-scale, quality, latency,
    storage, and churn measurements. They are bounded policy, not a per-pixel cache-key expansion;
-10. fixed fixtures prove EXIF Orientation 1 through 8, unknown-dimension fallback, missing and failed
-    previews, manual cleanup, automatic reclamation, restart recovery, and cache-boundary repetition
-    without changing final geometry or mutating source media.
+10. fixed fixtures prove EXIF Orientation 1 through 8, unknown-dimension fallback and settled
+    recovery, missing and failed previews, manual cleanup, automatic reclamation, restart recovery,
+    and cache-boundary repetition without per-preview geometry churn or source-media mutation.
 
 Within the currently accepted ADR 0005 lifecycle, resource-safety work comes first: artifact
 accounting, bounded variants, high/low-watermark reclamation, stale-publication guards, and bounded
@@ -1731,7 +1737,16 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   viewer, settings, temporary scan feedback, and right-side time navigation.
 - The query-wide revision-bound manifest, deterministic equal-height layout snapshot, exact-extent
   lazy sliver, orientation-corrected dimensions, identity-keyed preview store, latest-wins target
-  loading, and logical-anchor resize correction are implemented.
+  loading, logical-anchor resize correction, and first-publication migration from temporary window
+  geometry to the query-wide wall are implemented. Late initial manifest publication cannot replace
+  a completed timeline target with the new scroll position's default top offset.
+- When compatible preview work first recovers dimensions that were previously unknown, the
+  controller publishes query-, revision-, ordinal-, and identity-bound geometry evidence. Flutter
+  coalesces visible-row evidence behind minimum-batch, quiet, and maximum-latency boundaries,
+  defers directional and guard-prefetch evidence until its rows become visible, overlays each
+  published batch on the compact manifest, and atomically replaces the layout while preserving the
+  logical viewport anchor. Existing dimensions and ordinary preview readiness still cannot trigger
+  geometry churn.
 - Native wheel, touchpad, keyboard, accessibility, and ballistic movement remain owned by Flutter's
   `Scrollable`. Programmatic navigation is generation-guarded and may be coordinated only where
   measured traces show competing writes.

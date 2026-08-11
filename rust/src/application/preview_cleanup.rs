@@ -4,7 +4,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, OnceLock, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::adapters::{
-    SqliteCatalog, SqliteStorageSettings, is_managed_preview_cleanup_entry, user_visible_path,
+    SqliteCatalog, SqliteStorageSettings, is_ame_preview_cache_entry, user_visible_path,
 };
 use crate::domain::{PreviewCleanupEvent, ScanError, ScanIssue};
 use crate::ports::{CatalogRepository, StorageSettingsRepository};
@@ -240,7 +240,7 @@ fn clear_preview_scope(
                 }
             };
             let path = entry.path();
-            if !path.is_file() || !is_managed_preview_cleanup_entry(&path) {
+            if !path.is_file() || !is_ame_preview_cache_entry(&path) {
                 continue;
             }
             processed_files = processed_files.saturating_add(1);
@@ -353,7 +353,7 @@ fn summarize_managed_files(
             ScanError::new("preview_cleanup_entry_unavailable", error.to_string())
         })?;
         let path = entry.path();
-        if !path.is_file() || !is_managed_preview_cleanup_entry(&path) {
+        if !path.is_file() || !is_ame_preview_cache_entry(&path) {
             continue;
         }
         summary.files = summary.files.saturating_add(1);
@@ -487,9 +487,13 @@ mod tests {
             "ame-jpeg-thumbnail-v2-orientation-{}.123-1.tmp",
             "b".repeat(64)
         ));
+        let legacy_path = preview_root.join(format!("{}.jpg", "e".repeat(64)));
+        let foreign_hash_path = preview_root.join(format!("{}.jpg", "F".repeat(64)));
         let unrelated_path = preview_root.join("keep.txt");
         fs::write(&artifact_path, b"artifact").expect("artifact");
         fs::write(&temporary_path, b"temporary").expect("temporary");
+        fs::write(&legacy_path, b"legacy").expect("legacy");
+        fs::write(&foreign_hash_path, b"foreign hash").expect("foreign hash");
         fs::write(&unrelated_path, b"unrelated").expect("unrelated");
         let storage_paths = StoragePaths {
             catalog_path: storage.path().join("catalog").join("ame.sqlite3"),
@@ -515,6 +519,11 @@ mod tests {
 
         assert!(!artifact_path.exists());
         assert!(!temporary_path.exists());
+        assert!(!legacy_path.exists());
+        assert_eq!(
+            fs::read(&foreign_hash_path).expect("foreign hash after"),
+            b"foreign hash"
+        );
         assert_eq!(
             fs::read(&unrelated_path).expect("unrelated after"),
             b"unrelated"
@@ -533,7 +542,7 @@ mod tests {
         assert!(matches!(
             events.last(),
             Some(PreviewCleanupEvent::Completed {
-                removed_files: 2,
+                removed_files: 3,
                 issue_count: 0,
                 ..
             })

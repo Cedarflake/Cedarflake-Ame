@@ -9,9 +9,11 @@ use crate::domain::{DiscoveredFile, ImageOrientation, PreviewArtifact, ScanIssue
 use crate::ports::PreviewStore;
 
 use super::image_orientation::{apply_image_orientation, from_image_orientation};
+use super::jpeg_preview::decode_scaled_jpeg;
 
 pub(crate) const PREVIEW_CACHE_VERSION: &str = "ame-jpeg-thumbnail-v2-orientation";
 const PREVIEW_ALGORITHM: &str = PREVIEW_CACHE_VERSION;
+const LEGACY_PREVIEW_ALGORITHM: &str = "ame-jpeg-thumbnail-v1";
 pub(crate) const PREVIEW_ALGORITHM_ID: &str = "ame-jpeg-thumbnail";
 pub(crate) const PREVIEW_ALGORITHM_VERSION: u32 = 2;
 pub(crate) const PREVIEW_ORIENTATION_CONTRACT: &str = "exif-display-v1";
@@ -26,6 +28,7 @@ pub struct LocalPreviewStore {
     budget_bytes: u64,
     used_bytes: AtomicU64,
     rejected_reservation_bytes: AtomicU64,
+    has_legacy_artifacts: bool,
 }
 
 impl LocalPreviewStore {
@@ -35,12 +38,13 @@ impl LocalPreviewStore {
             code: "preview_cache_unavailable".to_owned(),
             message: error.to_string(),
         })?;
-        let used_bytes = cache_usage(&root)?;
+        let (used_bytes, has_legacy_artifacts) = cache_inventory(&root)?;
         Ok(Self {
             root,
             budget_bytes,
             used_bytes: AtomicU64::new(used_bytes),
             rejected_reservation_bytes: AtomicU64::new(0),
+            has_legacy_artifacts,
         })
     }
 
@@ -54,6 +58,33 @@ impl LocalPreviewStore {
         preview_cache_key(PREVIEW_ALGORITHM, file, preview_edge)
             .to_hex()
             .to_string()
+    }
+
+    fn legacy_artifact_path(&self, file: &DiscoveredFile, preview_edge: u32) -> PathBuf {
+        let artifact_key = preview_cache_key(LEGACY_PREVIEW_ALGORITHM, file, preview_edge);
+        self.root.join(format!("{}.jpg", artifact_key.to_hex()))
+    }
+
+    fn promote_legacy_artifact(
+        &self,
+        file: &DiscoveredFile,
+        edge: u32,
+        artifact_path: &Path,
+    ) -> Result<Option<(u32, u32)>, ScanIssue> {
+        if !self.has_legacy_artifacts {
+            return Ok(None);
+        }
+        let legacy_path = self.legacy_artifact_path(file, edge);
+        let Some(encoded_dimensions) = cached_artifact_dimensions(&legacy_path, edge) else {
+            return Ok(None);
+        };
+        if !source_uses_default_orientation(Path::new(&file.absolute_path)) {
+            return Ok(None);
+        }
+        if fs::rename(&legacy_path, artifact_path).is_ok() {
+            return Ok(Some(encoded_dimensions));
+        }
+        Ok(cached_artifact_dimensions(artifact_path, edge))
     }
 }
 
@@ -108,9 +139,38 @@ impl PreviewStore for LocalPreviewStore {
             self.release(invalid_size);
         }
 
+        if source_width > 0
+            && source_height > 0
+            && let Some(encoded_dimensions) =
+                self.promote_legacy_artifact(file, edge, &artifact_path)?
+        {
+            return preview_artifact(
+                file,
+                artifact_key,
+                artifact_path,
+                edge,
+                source_width,
+                source_height,
+                Some(encoded_dimensions),
+            );
+        }
+
         let mut reader = ImageReader::open(source_path)
             .and_then(|reader| reader.with_guessed_format())
             .map_err(|error| preview_issue(file, "image_open_failed", error))?;
+        if reader.format() == Some(ImageFormat::Jpeg)
+            && let Some(decoded) = decode_scaled_jpeg(source_path, edge, MAX_DECODER_ALLOCATION)
+        {
+            return publish_preview(
+                self,
+                file,
+                artifact_key,
+                artifact_path,
+                edge,
+                decoded.image,
+                (decoded.source_width, decoded.source_height),
+            );
+        }
         let mut limits = Limits::default();
         limits.max_image_width = Some(MAX_SOURCE_DIMENSION);
         limits.max_image_height = Some(MAX_SOURCE_DIMENSION);
@@ -129,57 +189,77 @@ impl PreviewStore for LocalPreviewStore {
         let width = image.width();
         let height = image.height();
 
-        if !artifact_path.exists() {
-            let thumbnail = image.thumbnail(edge, edge);
-            let temporary_path = artifact_path.with_extension(format!(
-                "{}-{}.tmp",
-                std::process::id(),
-                TEMPORARY_SEQUENCE.fetch_add(1, Ordering::Relaxed)
-            ));
-            if let Err(error) = thumbnail.save_with_format(&temporary_path, ImageFormat::Jpeg) {
-                let _ = fs::remove_file(&temporary_path);
-                return Err(preview_issue(file, "preview_write_failed", error));
-            }
-            let preview_size = match temporary_path.metadata() {
-                Ok(metadata) => metadata.len(),
-                Err(error) => {
-                    let _ = fs::remove_file(&temporary_path);
-                    return Err(preview_issue(file, "preview_size_unavailable", error));
-                }
-            };
-            if !self.reserve(preview_size) {
-                let _ = fs::remove_file(&temporary_path);
-                return Err(ScanIssue {
-                    path: Some(file.absolute_path.clone()),
-                    code: "preview_cache_budget_exceeded".to_owned(),
-                    message: format!(
-                        "The preview cache budget of {} bytes is exhausted",
-                        self.budget_bytes
-                    ),
-                });
-            }
-            if let Err(error) = fs::rename(&temporary_path, &artifact_path) {
-                self.release(preview_size);
-                if is_valid_cached_artifact(&artifact_path, edge) {
-                    let _ = fs::remove_file(&temporary_path);
-                } else {
-                    let _ = fs::remove_file(&temporary_path);
-                    return Err(preview_issue(file, "preview_publish_failed", error));
-                }
-            }
-        }
-
-        let encoded_dimensions = cached_artifact_dimensions(&artifact_path, edge);
-        preview_artifact(
+        publish_preview(
+            self,
             file,
             artifact_key,
             artifact_path,
             edge,
-            width,
-            height,
-            encoded_dimensions,
+            image,
+            (width, height),
         )
     }
+}
+
+fn publish_preview(
+    store: &LocalPreviewStore,
+    file: &DiscoveredFile,
+    artifact_key: String,
+    artifact_path: PathBuf,
+    edge: u32,
+    image: DynamicImage,
+    source_dimensions: (u32, u32),
+) -> Result<PreviewArtifact, ScanIssue> {
+    if !artifact_path.exists() {
+        let thumbnail = image.thumbnail(edge, edge);
+        let temporary_path = artifact_path.with_extension(format!(
+            "{}-{}.tmp",
+            std::process::id(),
+            TEMPORARY_SEQUENCE.fetch_add(1, Ordering::Relaxed)
+        ));
+        if let Err(error) = thumbnail.save_with_format(&temporary_path, ImageFormat::Jpeg) {
+            let _ = fs::remove_file(&temporary_path);
+            return Err(preview_issue(file, "preview_write_failed", error));
+        }
+        let preview_size = match temporary_path.metadata() {
+            Ok(metadata) => metadata.len(),
+            Err(error) => {
+                let _ = fs::remove_file(&temporary_path);
+                return Err(preview_issue(file, "preview_size_unavailable", error));
+            }
+        };
+        if !store.reserve(preview_size) {
+            let _ = fs::remove_file(&temporary_path);
+            return Err(ScanIssue {
+                path: Some(file.absolute_path.clone()),
+                code: "preview_cache_budget_exceeded".to_owned(),
+                message: format!(
+                    "The preview cache budget of {} bytes is exhausted",
+                    store.budget_bytes
+                ),
+            });
+        }
+        if let Err(error) = fs::rename(&temporary_path, &artifact_path) {
+            store.release(preview_size);
+            if is_valid_cached_artifact(&artifact_path, edge) {
+                let _ = fs::remove_file(&temporary_path);
+            } else {
+                let _ = fs::remove_file(&temporary_path);
+                return Err(preview_issue(file, "preview_publish_failed", error));
+            }
+        }
+    }
+
+    let encoded_dimensions = cached_artifact_dimensions(&artifact_path, edge);
+    preview_artifact(
+        file,
+        artifact_key,
+        artifact_path,
+        edge,
+        source_dimensions.0,
+        source_dimensions.1,
+        encoded_dimensions,
+    )
 }
 
 fn preview_size_bucket(requested_edge: u32) -> u32 {
@@ -282,6 +362,22 @@ fn is_artifact_hash(value: &str) -> bool {
     value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
+fn is_legacy_preview_artifact(path: &Path) -> bool {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .and_then(|name| name.strip_suffix(".jpg"))
+        .is_some_and(|hash| {
+            hash.len() == 64
+                && hash
+                    .bytes()
+                    .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+        })
+}
+
+pub(crate) fn is_ame_preview_cache_entry(path: &Path) -> bool {
+    is_managed_preview_cleanup_entry(path) || is_legacy_preview_artifact(path)
+}
+
 fn is_valid_cached_artifact(path: &Path, edge: u32) -> bool {
     cached_artifact_dimensions(path, edge).is_some()
 }
@@ -304,6 +400,25 @@ fn cached_artifact_dimensions(path: &Path, edge: u32) -> Option<(u32, u32)> {
     };
     let (width, height) = (image.width(), image.height());
     (width > 0 && height > 0 && width <= edge && height <= edge).then_some((width, height))
+}
+
+fn source_uses_default_orientation(path: &Path) -> bool {
+    let Ok(mut reader) = ImageReader::open(path).and_then(|reader| reader.with_guessed_format())
+    else {
+        return false;
+    };
+    let mut limits = Limits::default();
+    limits.max_image_width = Some(MAX_SOURCE_DIMENSION);
+    limits.max_image_height = Some(MAX_SOURCE_DIMENSION);
+    limits.max_alloc = Some(MAX_DECODER_ALLOCATION);
+    reader.limits(limits);
+    let Ok(mut decoder) = reader.into_decoder() else {
+        return false;
+    };
+    decoder
+        .orientation()
+        .map(from_image_orientation)
+        .is_ok_and(|orientation| orientation == ImageOrientation::Normal)
 }
 
 fn preview_artifact(
@@ -339,8 +454,9 @@ fn preview_artifact(
     })
 }
 
-fn cache_usage(root: &Path) -> Result<u64, ScanIssue> {
+fn cache_inventory(root: &Path) -> Result<(u64, bool), ScanIssue> {
     let mut used_bytes = 0_u64;
+    let mut has_legacy_artifacts = false;
     let entries = fs::read_dir(root).map_err(|error| ScanIssue {
         path: Some(root.to_string_lossy().into_owned()),
         code: "preview_cache_usage_unavailable".to_owned(),
@@ -357,11 +473,12 @@ fn cache_usage(root: &Path) -> Result<u64, ScanIssue> {
             code: "preview_cache_usage_unavailable".to_owned(),
             message: error.to_string(),
         })?;
-        if metadata.is_file() && is_managed_preview_cleanup_entry(&entry.path()) {
+        if metadata.is_file() && is_ame_preview_cache_entry(&entry.path()) {
             used_bytes = used_bytes.saturating_add(metadata.len());
+            has_legacy_artifacts |= is_legacy_preview_artifact(&entry.path());
         }
     }
-    Ok(used_bytes)
+    Ok((used_bytes, has_legacy_artifacts))
 }
 
 fn preview_issue(file: &DiscoveredFile, code: &str, error: impl std::fmt::Display) -> ScanIssue {
@@ -451,6 +568,131 @@ mod tests {
     }
 
     #[test]
+    fn valid_legacy_preview_is_promoted_without_reencoding_source_or_cache() {
+        let storage = tempdir().expect("storage");
+        let source_path = storage.path().join("source.jpg");
+        RgbImage::from_pixel(640, 480, Rgb([24, 96, 192]))
+            .save(&source_path)
+            .expect("source image");
+        let source_before = fs::read(&source_path).expect("source before");
+        let metadata = source_path.metadata().expect("source metadata");
+        let file = DiscoveredFile {
+            absolute_path: source_path.to_string_lossy().into_owned(),
+            relative_path: "source.jpg".to_owned(),
+            file_size: metadata.len(),
+            created_unix_ms: None,
+            modified_unix_ms: 8,
+            file_identity: None,
+            issues: Vec::new(),
+        };
+        let preview_root = storage.path().join("previews");
+        fs::create_dir_all(&preview_root).expect("preview root");
+        let legacy_path = legacy_fixture_path(&preview_root, &file, 512);
+        RgbImage::from_pixel(64, 48, Rgb([12, 34, 56]))
+            .save(&legacy_path)
+            .expect("legacy preview");
+        let legacy_before = fs::read(&legacy_path).expect("legacy bytes");
+        let store = LocalPreviewStore::new(preview_root, 1024 * 1024).expect("preview store");
+        let current_path = store.artifact_path(&file, 512);
+
+        let preview = store
+            .materialize(&file, 512, 640, 480)
+            .expect("promoted preview");
+
+        assert_eq!(PathBuf::from(preview.path), current_path);
+        assert!(!legacy_path.exists());
+        assert_eq!(
+            fs::read(&current_path).expect("current bytes"),
+            legacy_before
+        );
+        assert_eq!(
+            store.used_bytes(),
+            u64::try_from(legacy_before.len()).expect("legacy size")
+        );
+        assert_eq!(fs::read(source_path).expect("source after"), source_before);
+    }
+
+    #[test]
+    fn oriented_legacy_preview_is_left_untouched_and_rebuilt() {
+        let storage = tempdir().expect("storage");
+        let source_path = storage.path().join("oriented.jpg");
+        let source_bytes = orientation_jpeg(6);
+        fs::write(&source_path, &source_bytes).expect("oriented source");
+        let file = DiscoveredFile {
+            absolute_path: source_path.to_string_lossy().into_owned(),
+            relative_path: "oriented.jpg".to_owned(),
+            file_size: u64::try_from(source_bytes.len()).expect("source size"),
+            created_unix_ms: None,
+            modified_unix_ms: 9,
+            file_identity: None,
+            issues: Vec::new(),
+        };
+        let preview_root = storage.path().join("previews");
+        fs::create_dir_all(&preview_root).expect("preview root");
+        let legacy_path = legacy_fixture_path(&preview_root, &file, 512);
+        RgbImage::from_pixel(80, 60, Rgb([12, 34, 56]))
+            .save(&legacy_path)
+            .expect("legacy preview");
+        let legacy_before = fs::read(&legacy_path).expect("legacy bytes");
+        let store = LocalPreviewStore::new(preview_root, 1024 * 1024).expect("preview store");
+
+        let preview = store
+            .materialize(&file, 512, 60, 80)
+            .expect("rebuilt preview");
+
+        assert!(is_current_preview_artifact(&preview.path));
+        assert_eq!(fs::read(&legacy_path).expect("legacy after"), legacy_before);
+        assert_ne!(
+            fs::read(&preview.path).expect("current bytes"),
+            legacy_before
+        );
+        assert_eq!(fs::read(source_path).expect("source after"), source_bytes);
+    }
+
+    #[test]
+    fn legacy_promotion_keeps_accounting_constant_when_over_budget() {
+        let storage = tempdir().expect("storage");
+        let source_path = storage.path().join("source.jpg");
+        RgbImage::from_pixel(32, 24, Rgb([24, 96, 192]))
+            .save(&source_path)
+            .expect("source image");
+        let source_before = fs::read(&source_path).expect("source before");
+        let metadata = source_path.metadata().expect("source metadata");
+        let file = DiscoveredFile {
+            absolute_path: source_path.to_string_lossy().into_owned(),
+            relative_path: "source.jpg".to_owned(),
+            file_size: metadata.len(),
+            created_unix_ms: None,
+            modified_unix_ms: 10,
+            file_identity: None,
+            issues: Vec::new(),
+        };
+        let preview_root = storage.path().join("previews");
+        fs::create_dir_all(&preview_root).expect("preview root");
+        let legacy_path = legacy_fixture_path(&preview_root, &file, 512);
+        RgbImage::from_pixel(16, 12, Rgb([12, 34, 56]))
+            .save(&legacy_path)
+            .expect("legacy preview");
+        let legacy_before = fs::read(&legacy_path).expect("legacy bytes");
+        let store = LocalPreviewStore::new(preview_root, 1).expect("preview store");
+
+        let preview = store
+            .materialize(&file, 512, 32, 24)
+            .expect("zero-growth legacy promotion");
+
+        assert!(!legacy_path.exists());
+        assert_eq!(
+            fs::read(preview.path).expect("promoted preview"),
+            legacy_before
+        );
+        assert_eq!(
+            store.used_bytes(),
+            u64::try_from(legacy_before.len()).expect("legacy size")
+        );
+        assert_eq!(fs::read(source_path).expect("source after"), source_before);
+    }
+
+    #[test]
     fn corrupt_cached_artifact_is_rebuilt_from_source() {
         let storage = tempdir().expect("storage");
         let source_path = storage.path().join("source.png");
@@ -482,6 +724,36 @@ mod tests {
         assert_eq!(PathBuf::from(preview.path), artifact_path);
         assert!(is_valid_cached_artifact(&artifact_path, 256));
         assert_eq!(fs::read(&source_path).expect("source after"), source_before);
+    }
+
+    #[test]
+    fn malformed_jpeg_fast_path_falls_back_to_a_structured_decode_failure() {
+        let storage = tempdir().expect("storage");
+        let source_path = storage.path().join("malformed.data");
+        let source_bytes = b"\xFF\xD8\xFF\xE0not-a-complete-jpeg";
+        fs::write(&source_path, source_bytes).expect("malformed jpeg fixture");
+        let file = DiscoveredFile {
+            absolute_path: source_path.to_string_lossy().into_owned(),
+            relative_path: "malformed.data".to_owned(),
+            file_size: u64::try_from(source_bytes.len()).expect("source size"),
+            created_unix_ms: None,
+            modified_unix_ms: 12,
+            file_identity: None,
+            issues: Vec::new(),
+        };
+        let preview_root = storage.path().join("previews");
+        let store = LocalPreviewStore::new(preview_root.clone(), 4096).expect("preview store");
+
+        let issue = store
+            .materialize(&file, 256, 0, 0)
+            .expect_err("malformed jpeg issue");
+
+        assert_eq!(issue.code, "image_decode_failed");
+        assert_eq!(fs::read(&source_path).expect("source after"), source_bytes);
+        assert_eq!(
+            fs::read_dir(preview_root).expect("preview entries").count(),
+            0
+        );
     }
 
     #[test]
@@ -543,10 +815,21 @@ mod tests {
         assert!(!is_managed_preview_cleanup_entry(Path::new(
             "unrelated.tmp",
         )));
+        assert!(!is_managed_preview_cleanup_entry(Path::new(&format!(
+            "{hash}.jpg"
+        ))));
+        assert!(is_ame_preview_cache_entry(Path::new(&format!(
+            "{hash}.jpg"
+        ))));
+        assert!(!is_ame_preview_cache_entry(Path::new(&format!(
+            "{}.jpg",
+            "A".repeat(64)
+        ))));
+        assert!(!is_ame_preview_cache_entry(Path::new("keep.jpg")));
     }
 
     #[test]
-    fn cache_usage_counts_only_ame_managed_entries() {
+    fn cache_inventory_counts_current_and_legacy_artifacts() {
         let directory = tempdir().expect("preview directory");
         let hash = "b".repeat(64);
         let artifact = directory
@@ -555,12 +838,17 @@ mod tests {
         let temporary = directory
             .path()
             .join(format!("{PREVIEW_ALGORITHM}-{hash}.123-4.tmp"));
+        let legacy = directory.path().join(format!("{hash}.jpg"));
         let foreign = directory.path().join("keep.bin");
         fs::write(&artifact, vec![1_u8; 7]).expect("artifact");
         fs::write(&temporary, vec![2_u8; 5]).expect("temporary");
+        fs::write(&legacy, vec![3_u8; 13]).expect("legacy");
         fs::write(&foreign, vec![3_u8; 11]).expect("foreign");
 
-        assert_eq!(cache_usage(directory.path()).expect("cache usage"), 12);
+        assert_eq!(
+            cache_inventory(directory.path()).expect("cache inventory"),
+            (25, true)
+        );
     }
 
     #[test]
@@ -626,6 +914,13 @@ mod tests {
     const GREEN: [u8; 3] = [24, 220, 24];
     const BLUE: [u8; 3] = [24, 24, 240];
     const YELLOW: [u8; 3] = [240, 220, 24];
+
+    fn legacy_fixture_path(root: &Path, file: &DiscoveredFile, edge: u32) -> PathBuf {
+        root.join(format!(
+            "{}.jpg",
+            preview_cache_key(LEGACY_PREVIEW_ALGORITHM, file, edge).to_hex()
+        ))
+    }
 
     fn orientation_jpeg(orientation: u16) -> Vec<u8> {
         let image = RgbImage::from_fn(80, 60, |x, y| match (x < 40, y < 30) {

@@ -1,6 +1,7 @@
 import "dart:async";
 
 import "package:flutter/material.dart";
+import "package:flutter/rendering.dart";
 import "package:flutter/scheduler.dart";
 
 import "../../domain/library_models.dart";
@@ -68,6 +69,9 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
   var _stableLoadedItemCount = 0;
 
   bool get _isSeeking => _activeSeekGenerations.isNotEmpty;
+
+  bool get _hasCurrentSeek =>
+      _activeSeekGenerations.contains(_seekIntentGeneration);
 
   @override
   void initState() {
@@ -404,7 +408,7 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
       );
       return;
     }
-    if (!_isDragging && _pendingFrameValue == null) {
+    if (!_isDragging && _pendingFrameValue == null && !_hasCurrentSeek) {
       setState(() => _interactiveValue = null);
     }
   }
@@ -474,18 +478,18 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
     if (!mounted || _isDragging) {
       return;
     }
-    if (_isSeeking) {
-      _seekIntentGeneration += 1;
-    }
     final projection = _projectionForCurrentTimeline();
     final metrics = widget.layoutMetrics;
     final position = widget.scrollController.hasClients
         ? widget.scrollController.position
         : null;
-    if (projection == null ||
-        metrics == null ||
-        position == null ||
-        !position.hasContentDimensions) {
+    if (position == null || !position.hasContentDimensions) {
+      return;
+    }
+    if (_isUserControlledScroll(position)) {
+      _cancelTimelineIntentForUserScroll();
+    }
+    if (projection == null || metrics == null) {
       return;
     }
     if (metrics.isQueryWide) {
@@ -530,6 +534,26 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
         intent: _LibraryTimelineSeekIntent.prefetch,
       );
     });
+  }
+
+  bool _isUserControlledScroll(ScrollPosition position) {
+    return position.userScrollDirection != ScrollDirection.idle ||
+        position.isScrollingNotifier.value;
+  }
+
+  void _cancelTimelineIntentForUserScroll() {
+    if (!_isSeeking &&
+        _pendingSeekValue == null &&
+        _seekTimer == null &&
+        _interactiveValue == null) {
+      return;
+    }
+    _seekIntentGeneration += 1;
+    _pendingFrameValue = null;
+    _clearPendingSeek();
+    if (_interactiveValue != null) {
+      setState(() => _interactiveValue = null);
+    }
   }
 
   void _cancelGalleryScrollSettle() {
@@ -630,6 +654,7 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
     if (!widget.scrollController.hasClients || metrics.photoRowHeight <= 0) {
       return;
     }
+    _cancelTimelineIntentForUserScroll();
     final position = widget.scrollController.position;
     if (!position.hasContentDimensions) {
       return;

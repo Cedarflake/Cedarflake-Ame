@@ -30,6 +30,42 @@ class LibraryGalleryVisiblePosition {
   final int globalItemIndex;
 }
 
+class LibraryGalleryVisibleRange {
+  const LibraryGalleryVisibleRange({
+    required this.queryId,
+    required this.revision,
+    required this.startGlobalItemIndex,
+    required this.endGlobalItemIndexExclusive,
+  });
+
+  final String queryId;
+  final BigInt revision;
+  final int startGlobalItemIndex;
+  final int endGlobalItemIndexExclusive;
+
+  bool contains({
+    required String queryId,
+    required BigInt revision,
+    required int globalItemIndex,
+  }) {
+    return this.queryId == queryId &&
+        this.revision == revision &&
+        containsGlobalItemIndex(globalItemIndex);
+  }
+
+  bool containsGlobalItemIndex(int globalItemIndex) {
+    return globalItemIndex >= startGlobalItemIndex &&
+        globalItemIndex < endGlobalItemIndexExclusive;
+  }
+
+  bool matches(LibraryGalleryVisibleRange other) {
+    return queryId == other.queryId &&
+        revision == other.revision &&
+        startGlobalItemIndex == other.startGlobalItemIndex &&
+        endGlobalItemIndexExclusive == other.endGlobalItemIndexExclusive;
+  }
+}
+
 class _LibraryGalleryViewportAnchor {
   const _LibraryGalleryViewportAnchor({
     required this.queryId,
@@ -65,6 +101,7 @@ class LibraryGalleryWall extends StatelessWidget {
     required this.onCopyPath,
     required this.onRevealFile,
     required this.onVisiblePositionChanged,
+    this.onVisibleRangeChanged,
     required this.onLoadPrevious,
     required this.onLayoutChanged,
     this.layoutManifest,
@@ -84,6 +121,7 @@ class LibraryGalleryWall extends StatelessWidget {
   final ValueChanged<LibraryAsset> onCopyPath;
   final ValueChanged<LibraryAsset> onRevealFile;
   final ValueChanged<LibraryGalleryVisiblePosition> onVisiblePositionChanged;
+  final ValueChanged<LibraryGalleryVisibleRange>? onVisibleRangeChanged;
   final Future<void> Function() onLoadPrevious;
   final LibraryGalleryLayoutManifest? layoutManifest;
   final void Function(
@@ -132,6 +170,7 @@ class LibraryGalleryWall extends StatelessWidget {
         onCopyPath: onCopyPath,
         onRevealFile: onRevealFile,
         onVisiblePositionChanged: onVisiblePositionChanged,
+        onVisibleRangeChanged: onVisibleRangeChanged,
         onLoadPrevious: onLoadPrevious,
         onLayoutChanged: onLayoutChanged,
       );
@@ -700,6 +739,7 @@ class _ManifestLibraryGalleryWall extends StatefulWidget {
     required this.onCopyPath,
     required this.onRevealFile,
     required this.onVisiblePositionChanged,
+    this.onVisibleRangeChanged,
     required this.onLoadPrevious,
     required this.onLayoutChanged,
   });
@@ -717,6 +757,7 @@ class _ManifestLibraryGalleryWall extends StatefulWidget {
   final ValueChanged<LibraryAsset> onCopyPath;
   final ValueChanged<LibraryAsset> onRevealFile;
   final ValueChanged<LibraryGalleryVisiblePosition> onVisiblePositionChanged;
+  final ValueChanged<LibraryGalleryVisibleRange>? onVisibleRangeChanged;
   final Future<void> Function() onLoadPrevious;
   final void Function(
     LibraryGalleryLayoutMetrics metrics,
@@ -1001,7 +1042,7 @@ class _ManifestLibraryGalleryWallState
     }
     if (current != null &&
         LibraryGalleryWall._hasUsableAvailableWidth(current.availableWidth) &&
-        current.matchesInputs(
+        current.canReplaceGeometry(
           otherManifest: widget.manifest,
           otherThumbnailSize: widget.thumbnailSize,
           otherSortKey: widget.state.query.sortKey,
@@ -1060,6 +1101,14 @@ class _ManifestLibraryGalleryWallState
     if (firstVisibleRowStart == null || lastVisibleRowEnd == null) {
       return;
     }
+    widget.onVisibleRangeChanged?.call(
+      LibraryGalleryVisibleRange(
+        queryId: snapshot.manifest.queryId,
+        revision: snapshot.manifest.revision,
+        startGlobalItemIndex: firstVisibleRowStart,
+        endGlobalItemIndexExclusive: lastVisibleRowEnd,
+      ),
+    );
     LibraryGalleryWall._updatePreviewDemand(
       controller: widget.controller,
       state: widget.state,

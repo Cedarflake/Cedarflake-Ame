@@ -2,7 +2,9 @@ import "dart:async";
 
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../settings/application/ame_preferences.dart";
 import "../adapters/directory_picker.dart";
+import "../domain/gallery_layout_manifest.dart";
 import "../domain/library_models.dart";
 import "../domain/library_state.dart";
 import "library_catalog.dart";
@@ -13,7 +15,6 @@ import "library_scan_session.dart";
 import "library_scanner.dart";
 
 const _previewEdge = 512;
-const _maxActivePreviews = 2;
 const _timeNavigationRetryDelay = Duration(milliseconds: 120);
 const _maxVisibleRangePageLoads = 2;
 const _retainedDetailHighWatermark = 5000;
@@ -68,6 +69,8 @@ class LibraryController extends Notifier<LibraryState> {
   int _scanSequence = 0;
   final LibraryScanSession _scanSession = LibraryScanSession();
   final LibraryPreviewStore _previewStore = LibraryPreviewStore();
+  final StreamController<LibraryGalleryLayoutDimensionUpdate>
+  _layoutDimensionUpdates = StreamController.broadcast(sync: true);
   LibraryPreviewQueue? _previewQueue;
   _PendingTimeNavigation? _pendingTimeNavigation;
   _PendingTimeNavigation? _activeTimeNavigation;
@@ -87,12 +90,21 @@ class LibraryController extends Notifier<LibraryState> {
   LibraryPreviewQueue get _previews => _previewQueue ??= LibraryPreviewQueue(
     previewer: ref.read(libraryPreviewerProvider),
     previewEdge: _previewEdge,
-    maxActive: _maxActivePreviews,
+    maxActive: _maxActivePreviewsFor(
+      ref.read(amePreferencesControllerProvider).previewLoadingSpeed,
+    ),
     onResult: _publishPreview,
   );
 
   @override
   LibraryState build() {
+    ref.listen(
+      amePreferencesControllerProvider.select(
+        (preferences) => preferences.previewLoadingSpeed,
+      ),
+      (_, speed) =>
+          _previewQueue?.updateMaxActive(_maxActivePreviewsFor(speed)),
+    );
     final scanner = ref.read(libraryScannerProvider);
     ref.onDispose(() {
       _isDisposed = true;
@@ -107,6 +119,7 @@ class LibraryController extends Notifier<LibraryState> {
       }
       _previewQueue?.dispose();
       _previewStore.dispose();
+      unawaited(_layoutDimensionUpdates.close());
       _timeNavigationRetryTimer?.cancel();
       _pendingVisibleRange = null;
       final pendingTimeNavigation = _pendingTimeNavigation;
@@ -1195,16 +1208,40 @@ class LibraryController extends Notifier<LibraryState> {
   }
 
   void _publishPreview(LibraryAsset replacement) {
-    for (final asset in state.assets) {
+    LibraryGalleryLayoutDimensionUpdate? dimensionUpdate;
+    for (var index = 0; index < state.assets.length; index++) {
+      final asset = state.assets[index];
       if (asset.locationId != replacement.locationId) {
         continue;
       }
       if (!libraryPreviewSourcesAreCompatible(asset, replacement)) {
         return;
       }
+      final revision = state.catalogRevision;
+      if ((asset.width <= 0 || asset.height <= 0) &&
+          replacement.width > 0 &&
+          replacement.height > 0 &&
+          revision != null &&
+          state.queryId.isNotEmpty) {
+        dimensionUpdate = LibraryGalleryLayoutDimensionUpdate(
+          revision: revision,
+          queryId: state.queryId,
+          globalItemIndex: state.windowStartItemOffset + index,
+          locationId: replacement.locationId,
+          width: replacement.width,
+          height: replacement.height,
+        );
+      }
       break;
     }
     _previewStore.publish(replacement);
+    if (dimensionUpdate != null) {
+      _layoutDimensionUpdates.add(dimensionUpdate);
+    }
+  }
+
+  Stream<LibraryGalleryLayoutDimensionUpdate> watchLayoutDimensionUpdates() {
+    return _layoutDimensionUpdates.stream;
   }
 
   void _handleUpdate(_ActiveScanRun run, LibraryScanUpdate update) {
@@ -1663,6 +1700,14 @@ class LibraryController extends Notifier<LibraryState> {
       }
     }
   }
+}
+
+int _maxActivePreviewsFor(PreviewLoadingSpeed speed) {
+  return switch (speed) {
+    PreviewLoadingSpeed.small => 1,
+    PreviewLoadingSpeed.medium => 2,
+    PreviewLoadingSpeed.large => 4,
+  };
 }
 
 final initialLibraryStateProvider = Provider<LibraryState>((ref) {

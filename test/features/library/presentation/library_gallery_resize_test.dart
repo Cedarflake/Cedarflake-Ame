@@ -15,6 +15,28 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  test("visible range excludes surrounding prefetch evidence", () {
+    final range = LibraryGalleryVisibleRange(
+      queryId: "query-1",
+      revision: BigInt.one,
+      startGlobalItemIndex: 20,
+      endGlobalItemIndexExclusive: 30,
+    );
+
+    expect(range.containsGlobalItemIndex(19), isFalse);
+    expect(range.containsGlobalItemIndex(20), isTrue);
+    expect(range.containsGlobalItemIndex(29), isTrue);
+    expect(range.containsGlobalItemIndex(30), isFalse);
+    expect(
+      range.contains(
+        queryId: "stale-query",
+        revision: BigInt.one,
+        globalItemIndex: 24,
+      ),
+      isFalse,
+    );
+  });
+
   testWidgets("preserves a deep logical anchor through a latest-only resize", (
     tester,
   ) async {
@@ -247,6 +269,125 @@ void main() {
     expect(controller.timeSeekRequests, 0);
     expect(previousRequests, 0);
   });
+
+  testWidgets(
+    "preserves the logical anchor when recovered dimensions replace geometry",
+    (tester) async {
+      const itemCount = 4000;
+      const wallSize = Size(900, 620);
+      final initialManifest = _manifest(itemCount, dimensionsKnown: false);
+      final manifest = ValueNotifier(initialManifest);
+      final state = _state(itemCount);
+      final controller = _RecordingGalleryController();
+      final scrollController = ScrollController();
+      LibraryGalleryVisiblePosition? visiblePosition;
+      addTearDown(() async {
+        scrollController.dispose();
+        manifest.dispose();
+        await tester.binding.setSurfaceSize(null);
+      });
+      await tester.binding.setSurfaceSize(const Size(1100, 760));
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: ValueListenableBuilder(
+              valueListenable: manifest,
+              builder: (context, currentManifest, child) => Align(
+                alignment: Alignment.topLeft,
+                child: SizedBox(
+                  width: wallSize.width,
+                  height: wallSize.height,
+                  child: LibraryGalleryWall(
+                    state: state,
+                    controller: controller,
+                    scrollController: scrollController,
+                    layoutShape: GalleryLayoutShape.equalHeight,
+                    thumbnailSize: GalleryThumbnailSize.medium,
+                    selection: GallerySelection.empty(state.queryId),
+                    isSelecting: false,
+                    layoutManifest: currentManifest,
+                    onOpen: (_) {},
+                    onToggleSelection: (_) {},
+                    onViewInformation: (_) {},
+                    onCopyPath: (_) {},
+                    onRevealFile: (_) {},
+                    onVisiblePositionChanged: (position) {
+                      visiblePosition = position;
+                    },
+                    onLoadPrevious: controller.loadPreviousPage,
+                    onLayoutChanged: (_, _) {},
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final initialSnapshot = LibraryGalleryLayoutSnapshot.build(
+        manifest: initialManifest,
+        availableWidth: wallSize.width - 40,
+        thumbnailSize: GalleryThumbnailSize.medium,
+        sortKey: LibraryGallerySortKey.captureTime,
+      );
+      scrollController.jumpTo(
+        initialSnapshot.metrics.itemOffsets[3000] - wallSize.height * 0.5,
+      );
+      await tester.pump();
+      await tester.pump();
+
+      final anchorBefore = visiblePosition;
+      expect(anchorBefore, isNotNull);
+      final anchorFinder = find.byKey(ValueKey(anchorBefore!.locationId!));
+      expect(anchorFinder, findsOneWidget);
+      final anchorTopBefore = tester.getTopLeft(anchorFinder).dy;
+
+      final recovered = initialManifest.withDimensionUpdates([
+        for (var index = 0; index < itemCount; index++)
+          LibraryGalleryLayoutDimensionUpdate(
+            revision: initialManifest.revision,
+            queryId: initialManifest.queryId,
+            globalItemIndex: index,
+            locationId: "location-$index",
+            width: 650 + (index * 277) % 2350,
+            height: 1000,
+          ),
+      ]);
+      final recoveredSnapshot = LibraryGalleryLayoutSnapshot.build(
+        manifest: recovered,
+        availableWidth: wallSize.width - 40,
+        thumbnailSize: GalleryThumbnailSize.medium,
+        sortKey: LibraryGallerySortKey.captureTime,
+      );
+      expect(
+        recoveredSnapshot.metrics.contentExtent,
+        isNot(closeTo(initialSnapshot.metrics.contentExtent, 0.01)),
+      );
+
+      manifest.value = recovered;
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+
+      final recoveredSliver = tester.widget<LibraryExactExtentSliver>(
+        find.byType(LibraryExactExtentSliver),
+      );
+      expect(
+        recoveredSliver.itemStartOffsets,
+        recoveredSnapshot.entryStartOffsets,
+      );
+      expect(anchorFinder, findsOneWidget);
+      expect(tester.getTopLeft(anchorFinder).dy, closeTo(anchorTopBefore, 2));
+      expect(
+        scrollController.position.maxScrollExtent,
+        closeTo(
+          recoveredSnapshot.metrics.contentExtent - wallSize.height,
+          0.01,
+        ),
+      );
+    },
+  );
 
   testWidgets(
     "requests details for visible rows crossing either window boundary",
@@ -483,7 +624,10 @@ LibraryAsset _asset(int index, String previewIssueMessage) {
   );
 }
 
-LibraryGalleryLayoutManifest _manifest(int itemCount) {
+LibraryGalleryLayoutManifest _manifest(
+  int itemCount, {
+  bool dimensionsKnown = true,
+}) {
   final revision = BigInt.one;
   final builder = LibraryGalleryLayoutManifestBuilder(
     revision: revision,
@@ -501,7 +645,7 @@ LibraryGalleryLayoutManifest _manifest(int itemCount) {
       ],
       aspectRatioMilli: Uint16List.fromList([
         for (var index = 0; index < itemCount; index++)
-          650 + (index * 277) % 2350,
+          dimensionsKnown ? 650 + (index * 277) % 2350 : 1000,
       ]),
       dateGroupIndices: Uint16List.fromList([
         for (var index = 0; index < itemCount; index++) index ~/ 500,
@@ -517,7 +661,10 @@ LibraryGalleryLayoutManifest _manifest(int itemCount) {
         "2026-08-03",
       ],
       flags: Uint8List.fromList(
-        List.filled(itemCount, libraryGalleryLayoutDimensionsKnownFlag),
+        List.filled(
+          itemCount,
+          dimensionsKnown ? libraryGalleryLayoutDimensionsKnownFlag : 0,
+        ),
       ),
     ),
   );

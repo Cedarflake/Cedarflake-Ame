@@ -240,6 +240,18 @@ class LibraryGalleryLayoutSnapshot {
         sortKey == otherSortKey;
   }
 
+  bool canReplaceGeometry({
+    required LibraryGalleryLayoutManifest otherManifest,
+    required GalleryThumbnailSize otherThumbnailSize,
+    required LibraryGallerySortKey otherSortKey,
+  }) {
+    return manifest.queryId == otherManifest.queryId &&
+        manifest.revision == otherManifest.revision &&
+        manifest.itemCount == otherManifest.itemCount &&
+        thumbnailSize == otherThumbnailSize &&
+        sortKey == otherSortKey;
+  }
+
   int entryIndexForScrollOffset(double scrollOffset) {
     if (entryStartOffsets.isEmpty) {
       return -1;

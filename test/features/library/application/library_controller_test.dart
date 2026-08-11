@@ -5,8 +5,10 @@ import "package:cedarflake_ame/features/library/application/library_catalog.dart
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_previewer.dart";
 import "package:cedarflake_ame/features/library/application/library_scanner.dart";
+import "package:cedarflake_ame/features/library/domain/gallery_layout_manifest.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
+import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
@@ -1371,6 +1373,78 @@ void main() {
     );
   });
 
+  test(
+    "applies preview loading speed changes without cancelling work",
+    () async {
+      final scanner = _FakeLibraryScanner();
+      final previewer = _FakeLibraryPreviewer();
+      final initialSnapshot = _snapshot(
+        assets: [
+          for (var index = 1; index <= 6; index++) _pendingAsset("$index"),
+        ],
+      );
+      final container = ProviderContainer(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(
+            LibraryState.fromSnapshot(initialSnapshot),
+          ),
+          libraryScannerProvider.overrideWithValue(scanner),
+          libraryCatalogProvider.overrideWithValue(
+            _FakeLibraryCatalog(initialSnapshot),
+          ),
+          libraryPreviewerProvider.overrideWithValue(previewer),
+        ],
+      );
+      addTearDown(container.dispose);
+      addTearDown(scanner.dispose);
+
+      final controller = container.read(libraryControllerProvider.notifier);
+      for (final asset in initialSnapshot.assets) {
+        controller.requestPreview(asset);
+      }
+      expect(previewer.requests, ["location-1", "location-2"]);
+
+      await container
+          .read(amePreferencesControllerProvider.notifier)
+          .update(
+            const AmePreferences(
+              previewLoadingSpeed: PreviewLoadingSpeed.large,
+            ),
+          );
+      expect(previewer.requests, [
+        "location-1",
+        "location-2",
+        "location-3",
+        "location-4",
+      ]);
+
+      await container
+          .read(amePreferencesControllerProvider.notifier)
+          .update(
+            const AmePreferences(
+              previewLoadingSpeed: PreviewLoadingSpeed.small,
+            ),
+          );
+      for (var index = 1; index <= 3; index++) {
+        previewer.succeed("location-$index", _asset(suffix: "$index"));
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(previewer.requests, hasLength(4));
+
+      previewer.succeed("location-4", _asset(suffix: "4"));
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      expect(previewer.requests, [
+        "location-1",
+        "location-2",
+        "location-3",
+        "location-4",
+        "location-5",
+      ]);
+    },
+  );
+
   test("records a preview failure and requires an explicit retry", () async {
     final scanner = _FakeLibraryScanner();
     final previewer = _FakeLibraryPreviewer();
@@ -1530,6 +1604,60 @@ void main() {
       await secondSubscription.cancel();
     },
   );
+
+  test(
+    "publishes recovered dimensions with the active global gallery identity",
+    () async {
+      final scanner = _FakeLibraryScanner();
+      final previewer = _FakeLibraryPreviewer();
+      final unknown = _unknownDimensionAsset("1");
+      final known = _pendingAsset("2");
+      final initialSnapshot = _snapshot(assets: [unknown, known]);
+      final container = ProviderContainer(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(
+            LibraryState.fromSnapshot(
+              initialSnapshot,
+            ).copyWith(windowStartItemOffset: 40),
+          ),
+          libraryScannerProvider.overrideWithValue(scanner),
+          libraryCatalogProvider.overrideWithValue(
+            _FakeLibraryCatalog(initialSnapshot),
+          ),
+          libraryPreviewerProvider.overrideWithValue(previewer),
+        ],
+      );
+      addTearDown(container.dispose);
+      addTearDown(scanner.dispose);
+
+      final controller = container.read(libraryControllerProvider.notifier);
+      final updates = <LibraryGalleryLayoutDimensionUpdate>[];
+      final subscription = controller.watchLayoutDimensionUpdates().listen(
+        updates.add,
+      );
+      addTearDown(subscription.cancel);
+
+      controller.requestPreview(unknown);
+      previewer.succeed(unknown.locationId, _asset(suffix: "1"));
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(updates, hasLength(1));
+      expect(updates.single.revision, initialSnapshot.revision);
+      expect(updates.single.queryId, initialSnapshot.queryId);
+      expect(updates.single.globalItemIndex, 40);
+      expect(updates.single.locationId, unknown.locationId);
+      expect(updates.single.width, 320);
+      expect(updates.single.height, 240);
+
+      controller.requestPreview(known);
+      previewer.succeed(known.locationId, _asset(suffix: "2"));
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(updates, hasLength(1));
+    },
+  );
 }
 
 LibraryAsset _asset({String suffix = "1", String? previewPath}) {
@@ -1561,6 +1689,23 @@ LibraryAsset _pendingAsset(String suffix) {
     modifiedUnixMs: 42,
     width: 320,
     height: 240,
+    previewStatus: LibraryPreviewStatus.pending,
+  );
+}
+
+LibraryAsset _unknownDimensionAsset(String suffix) {
+  return LibraryAsset(
+    assetId: "asset-$suffix",
+    locationId: "location-$suffix",
+    rootId: "root-1",
+    sourcePath: "C:\\Pictures\\$suffix.png",
+    displayPath: "C:\\Pictures\\$suffix.png",
+    relativePath: "$suffix.png",
+    previewPath: "",
+    fileSize: BigInt.from(128),
+    modifiedUnixMs: 42,
+    width: 0,
+    height: 0,
     previewStatus: LibraryPreviewStatus.pending,
   );
 }

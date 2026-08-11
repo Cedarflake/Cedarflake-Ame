@@ -2,7 +2,7 @@
 
 - Status: Accepted for validation
 - Date: 2026-08-09
-- Last amended: 2026-08-10
+- Last amended: 2026-08-12
 - Amends: ADR 0010 and ADR 0011
 
 ## Context
@@ -42,6 +42,8 @@ plus one replacement asset window is sufficient presentation state.
 - Full asset records, paths, and decoded media must remain bounded and lazy.
 - Catalog requests and preview work must be cancellable or made harmless through revision and
   generation checks.
+- Previously unknown dimensions must recover in the current session without requiring a restart,
+  while preserving the accepted native-scroll baseline.
 - Original media remains read-only and cloud-only placeholders must not be hydrated.
 
 ## Decision
@@ -78,13 +80,21 @@ anchors, and total extent in compact arrays.
 
 - Equal-height justified rows are computed across detail-page boundaries, not independently inside
   each loaded page.
-- An unknown aspect ratio uses one documented stable fallback until a later catalog revision
-  supplies trustworthy dimensions. Preview readiness never supplies layout dimensions.
+- An unknown aspect ratio uses one documented stable fallback until trustworthy dimensions arrive
+  through a newer catalog revision or a compatible bounded geometry-evidence epoch. Preview
+  readiness alone never supplies layout dimensions.
 - The placeholder, failed-preview state, and decoded thumbnail use the exact same item rectangle.
 - Publishing or evicting a preview must not change row membership, item bounds, total extent, or the
   user's scroll position.
-- Only a query, sort, filter, layout, density, catalog revision, or viewport-width change may create
-  a new layout snapshot.
+- A preview decode that recovers valid dimensions for an item whose catalog dimensions were unknown
+  may publish separate geometry evidence. Compatible updates are validated against revision, query,
+  global ordinal, and stable location identity. Evidence for visible rows is coalesced behind both a
+  minimum batch threshold and a bounded maximum delay before it creates one replacement layout
+  snapshot. Evidence recovered only by directional or guard prefetch remains deferred until its row
+  enters the visible range, so offscreen work cannot repeatedly repack the date group around the
+  current viewport. Updates never reflow one tile per completion.
+- Only a query, sort, filter, layout, density, catalog revision, compatible geometry-evidence epoch,
+  or viewport-width change may create a new layout snapshot.
 
 Image width and height remain durable catalog columns and are the authoritative source for aspect
 ratio after restart; reopening Ame must not decode source media merely to recover tile proportions.
@@ -111,6 +121,15 @@ The stable navigation value is a `GalleryViewportAnchor`, not a raw pixel offset
 Pixels are derived from the current layout snapshot. A resize or compatible catalog refresh
 re-resolves the same anchor and applies one layout-time correction before the new snapshot is
 painted. If the location disappeared, the nearest surviving ordinal becomes the explicit fallback.
+The same atomic replacement and anchor correction apply when a bounded geometry-evidence epoch
+replaces unknown fallback ratios with trustworthy dimensions.
+
+The first query-wide manifest may finish after the initial detail window and time rail are already
+interactive. Ownership transfer from the temporary window layout to the query-wide wall must
+migrate the loaded visible logical item into the new scroll position. If that item is no longer in
+the active window, the current window start is the fallback. The newly attached scroll position's
+default pixel zero is never accepted as navigation intent, so a completed first timeline seek
+cannot be pulled back to the top by late manifest publication.
 
 ### One navigation coordinator
 
@@ -177,6 +196,17 @@ Preview state is removed from the collection object that owns layout. A `Preview
 changes by stable location identity, allowing one tile to repaint without replacing the complete
 asset list or recomputing rows.
 
+Preview pixel publication and geometry evidence remain distinct. When compatible preview work is
+also the first successful media inspection for a previously unknown dimension, the controller may
+emit a compact geometry update carrying query, catalog revision, global ordinal, stable location
+identity, and orientation-corrected width and height. Flutter coalesces these updates behind a
+quiet boundary, a minimum batch size, and a maximum latency boundary. Only evidence intersecting the
+current visible rows enters that active batch; other compatible evidence stays query-bounded until
+the user reaches its rows. Flutter overlays each published batch on the compact manifest without
+copying its base storage and publishes the replacement snapshot with the logical anchor correction
+above. A ready, failed, retried, evicted, or regenerated preview with already-known dimensions emits
+no geometry update.
+
 ADR 0005 owns preview artifact identity, bounded physical-pixel variants, storage accounting,
 reclamation, cleanup, recovery, and preview-root transition. This ADR owns the separation between
 preview publication and deterministic gallery geometry plus the demand-priority contract below.
@@ -232,6 +262,10 @@ This decision becomes **Accepted** only when all of the following pass:
 
 - A deterministic fixture proves preview pending, ready, failed, retry, and eviction transitions do
   not change any row or item rectangle.
+- A deterministic unknown-dimension fixture proves that several compatible recovered dimensions
+  coalesce into one replacement geometry, a partial batch waits for the bounded deadline, offscreen
+  guard evidence remains deferred, stale query or identity evidence is ignored, and the visible
+  logical anchor remains within two logical pixels.
 - Normal wheel scrolling through page boundaries does not replace the gallery with a square grid,
   blank canvas, or different row composition.
 - Native wheel, touchpad, keyboard, accessibility, and ballistic movement adds no asynchronous
@@ -279,6 +313,9 @@ Replacement conditions:
   This intentionally trades a small measured memory cost for stable geometry and continuous input.
 - Cold caches still cannot display source pixels instantly. The guaranteed outcome is a responsive
   gallery with final geometry, not an impossible zero-latency full-library preview build.
+- Catalogs with missing dimensions may initially use stable square fallback geometry. Compatible
+  recovery produces a controlled batched reflow after demand settles; this is an explicit recovery
+  transition rather than a preview-ready side effect.
 - Resize now has one potentially expensive deterministic calculation. Coalescing, typed storage,
   profiling, and an explicit computation replacement boundary prevent per-widget work from
   becoming the architecture.

@@ -159,6 +159,60 @@ void main() {
       ),
     );
   });
+
+  test(
+    "overlays compatible recovered dimensions without copying manifest storage",
+    () {
+      final revision = BigInt.one;
+      final builder = LibraryGalleryLayoutManifestBuilder(
+        revision: revision,
+        queryId: "query",
+        totalItems: 2,
+      );
+      builder.append(
+        LibraryGalleryLayoutManifestChunk(
+          revision: revision,
+          queryId: "query",
+          totalItems: 2,
+          startOrdinal: 0,
+          locationIds: const ["one", "two"],
+          aspectRatioMilli: Uint16List.fromList([1000, 1000]),
+          dateGroupIndices: Uint16List.fromList([0, 0]),
+          dateGroups: const ["2026-08-09"],
+          flags: Uint8List(2),
+        ),
+      );
+      final manifest = builder.build();
+
+      final updated = manifest.withDimensionUpdates([
+        LibraryGalleryLayoutDimensionUpdate(
+          revision: revision,
+          queryId: "query",
+          globalItemIndex: 0,
+          locationId: "one",
+          width: 1600,
+          height: 900,
+        ),
+        LibraryGalleryLayoutDimensionUpdate(
+          revision: revision,
+          queryId: "stale-query",
+          globalItemIndex: 1,
+          locationId: "two",
+          width: 900,
+          height: 1600,
+        ),
+      ]);
+
+      expect(updated, isNot(same(manifest)));
+      expect(updated.storageKind, manifest.storageKind);
+      expect(updated.locationIdAt(0), "one");
+      expect(updated.aspectRatioAt(0), 1.777);
+      expect(updated.hasKnownDimensionsAt(0), isTrue);
+      expect(updated.aspectRatioAt(1), 1);
+      expect(updated.hasKnownDimensionsAt(1), isFalse);
+      expect(updated.primitiveByteLength, manifest.primitiveByteLength + 8);
+    },
+  );
 }
 
 LibraryGalleryLayoutManifestCursor _cursor({

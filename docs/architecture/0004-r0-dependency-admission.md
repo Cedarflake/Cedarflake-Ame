@@ -23,12 +23,14 @@ models.
 | Directory picker | `file_selector` | 1.1.0 | BSD-3-Clause | Flutter-maintained desktop plugin with a small platform capability surface |
 | SQLite | `rusqlite` | 0.40.1 | MIT | Mature direct SQLite binding, explicit transactions, bundled library for predictable packaging |
 | Raster previews | `image` | 0.25.10 | MIT or Apache-2.0 | Pure Rust decoders, explicit allocation and dimension limits, selectable format features |
+| Large JPEG previews | `jpeg-decoder` | 0.3.2 | MIT or Apache-2.0 | Decoder-level DCT scaling behind the preview adapter, without adding a native runtime |
 | Application paths | `directories` | 6.0.0 | MIT or Apache-2.0 | Cross-platform application data and cache directory discovery |
 | Derived identifiers | `blake3` | 1.8.6 | CC0-1.0 or Apache-2.0 | Versioned fast stable identifiers without using absolute paths as asset identity |
 
-The Flutter, Riverpod, file-selector, bridge, SQLite, and image license texts were inspected from
-the resolved local packages before this decision was recorded. Transitive dependencies remain
-captured in `pubspec.lock` and `rust/Cargo.lock` and require review before distribution.
+The Flutter, Riverpod, file-selector, bridge, SQLite, image, and jpeg-decoder license texts were
+inspected from the resolved local packages before this decision was recorded. Transitive
+dependencies remain captured in `pubspec.lock` and `rust/Cargo.lock` and require review before
+distribution.
 
 ## Considered alternatives
 
@@ -61,10 +63,13 @@ the supervised worker boundary remains unimplemented.
   `lib/src/rust`; Ame maps them at the API and Flutter scanner adapters.
 - Riverpod does not own catalog or scan policy.
 - `file_selector` is wrapped by `DirectoryPicker`.
-- `rusqlite`, `image`, and `directories` remain inside Rust adapters or application
+- `rusqlite`, `image`, `jpeg-decoder`, and `directories` remain inside Rust adapters or application
   composition.
 - Image default features are disabled. Only BMP, GIF, ICO, JPEG, PNG, TIFF, and WebP are compiled
   into the R0 adapter.
+- jpeg-decoder default features are disabled so its optional Rayon pool cannot introduce nested
+  preview concurrency; unsupported color models and decode failures fall back to the existing
+  `image` path.
 
 ## Validation evidence
 
@@ -84,6 +89,8 @@ the supervised worker boundary remains unimplemented.
 - Public Rust API changes require bridge regeneration and generated-code review.
 - Bundled SQLite increases binary size but removes a system SQLite dependency.
 - In-process pure Rust decoders still require hostile-fixture and memory-budget testing.
+- jpeg-decoder is in maintenance mode, so it remains a private optimization that can be removed
+  without changing preview cache identity or application contracts.
 - The current adapter intentionally reports HEIF/HEIC and AVIF as unsupported rather than admitting
   a native codec prematurely.
 - Package upgrades require contract tests, license review, and regenerated bridge artifacts.

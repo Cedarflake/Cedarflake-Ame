@@ -145,6 +145,42 @@ class AmeSettingsPage extends ConsumerWidget {
                               },
                             ),
                           ),
+                          SettingsRow(
+                            key: const Key("preview-loading-speed-setting"),
+                            icon: Icons.speed_outlined,
+                            title: "缩略图加载速度",
+                            subtitle: const Text("档位越大，同时加载越多，占用资源也越高"),
+                            trailing: SettingsChoice<PreviewLoadingSpeed>(
+                              value: preferences.previewLoadingSpeed,
+                              entries: const [
+                                DropdownMenuEntry(
+                                  value: PreviewLoadingSpeed.small,
+                                  label: "小",
+                                ),
+                                DropdownMenuEntry(
+                                  value: PreviewLoadingSpeed.medium,
+                                  label: "中",
+                                ),
+                                DropdownMenuEntry(
+                                  value: PreviewLoadingSpeed.large,
+                                  label: "大",
+                                ),
+                              ],
+                              onSelected: (value) {
+                                if (value != null) {
+                                  unawaited(
+                                    _savePreferences(
+                                      context,
+                                      ref,
+                                      preferences.copyWith(
+                                        previewLoadingSpeed: value,
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 28),

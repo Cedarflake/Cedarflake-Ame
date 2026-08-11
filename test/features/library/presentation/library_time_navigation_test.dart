@@ -584,6 +584,106 @@ void main() {
     },
   );
 
+  testWidgets(
+    "programmatic gallery correction preserves an active timeline target",
+    (tester) async {
+      tester.view.physicalSize = const Size(1000, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final scrollController = ScrollController();
+      addTearDown(scrollController.dispose);
+      final requests = _ControlledSeekRequests();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: _LatestSeekHarness(
+              scrollController: scrollController,
+              requests: requests,
+              hideLayoutDuringSeek: true,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final slider = tester.widget<Slider>(
+        find.byKey(const Key("timeline-slider")),
+      );
+      slider.onChangeStart?.call(slider.value);
+      slider.onChanged?.call(0.2);
+      slider.onChangeEnd?.call(0.2);
+      await tester.pump();
+      await tester.pump();
+
+      expect(requests.offsets, hasLength(1));
+      expect(scrollController.offset, greaterThan(7000));
+
+      scrollController.jumpTo(3000);
+      await tester.pump();
+      expect(
+        tester.widget<Slider>(find.byKey(const Key("timeline-slider"))).value,
+        closeTo(0.2, 0.001),
+      );
+
+      requests.completers.single.complete(true);
+      await tester.pumpAndSettle();
+
+      expect(scrollController.offset, greaterThan(7000));
+    },
+  );
+
+  testWidgets("native gallery scrolling cancels an active timeline target", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1000, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final scrollController = ScrollController();
+    addTearDown(scrollController.dispose);
+    final requests = _ControlledSeekRequests();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: _LatestSeekHarness(
+            scrollController: scrollController,
+            requests: requests,
+            hideLayoutDuringSeek: true,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final slider = tester.widget<Slider>(
+      find.byKey(const Key("timeline-slider")),
+    );
+    slider.onChangeStart?.call(slider.value);
+    slider.onChanged?.call(0.2);
+    slider.onChangeEnd?.call(0.2);
+    await tester.pump();
+    await tester.pump();
+
+    expect(requests.offsets, hasLength(1));
+    expect(
+      tester.widget<Slider>(find.byKey(const Key("timeline-slider"))).value,
+      closeTo(0.2, 0.001),
+    );
+
+    await tester.drag(find.byType(ListView), const Offset(0, 1000));
+    await tester.pump();
+
+    expect(
+      tester.widget<Slider>(find.byKey(const Key("timeline-slider"))).value,
+      isNot(closeTo(0.2, 0.001)),
+    );
+  });
+
   testWidgets("an obsolete seek completion cannot pull back a newer target", (
     tester,
   ) async {
@@ -777,10 +877,12 @@ class _LatestSeekHarness extends StatefulWidget {
   const _LatestSeekHarness({
     required this.scrollController,
     required this.requests,
+    this.hideLayoutDuringSeek = false,
   });
 
   final ScrollController scrollController;
   final _ControlledSeekRequests requests;
+  final bool hideLayoutDuringSeek;
 
   @override
   State<_LatestSeekHarness> createState() => _LatestSeekHarnessState();
@@ -818,6 +920,7 @@ class _LatestSeekHarnessState extends State<_LatestSeekHarness> {
       );
 
   var _windowStartItemOffset = 0;
+  var _activeLoads = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -832,18 +935,28 @@ class _LatestSeekHarnessState extends State<_LatestSeekHarness> {
         LibraryTimeNavigation(
           isLoading: false,
           scrollController: widget.scrollController,
-          layoutMetrics: _metrics,
+          layoutMetrics: widget.hideLayoutDuringSeek && _activeLoads > 0
+              ? null
+              : _metrics,
           timeline: _timeline,
           layoutShape: GalleryLayoutShape.equalHeight,
           windowStartItemOffset: _windowStartItemOffset,
           loadedItemCount: 100,
           onSeek: (_, itemOffset) async {
             final completion = Completer<bool>();
-            widget.requests.offsets.add(itemOffset);
-            widget.requests.completers.add(completion);
+            setState(() {
+              _activeLoads += 1;
+              widget.requests.offsets.add(itemOffset);
+              widget.requests.completers.add(completion);
+            });
             final didSeek = await completion.future;
-            if (didSeek && mounted) {
-              setState(() => _windowStartItemOffset = itemOffset);
+            if (mounted) {
+              setState(() {
+                _activeLoads -= 1;
+                if (didSeek) {
+                  _windowStartItemOffset = itemOffset;
+                }
+              });
             }
             return didSeek;
           },

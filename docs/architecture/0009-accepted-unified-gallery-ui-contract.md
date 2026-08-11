@@ -179,9 +179,11 @@ Use one unified gallery with these presentation rules.
 - Flutter `Card` and `ListTile` own settings grouping and row semantics. `DropdownMenu`,
   `OutlinedButton`, and progress indicators own choices, actions, and storage feedback; custom code
   only supplies the responsive page composition and Ame-owned state connections.
-- Internal database versions, task queues, worker counts, hash engines, and analysis parameters are
-  not user settings. Account, cloud-service, media-editing, and cache-cleanup controls remain absent
-  until their workflows exist end to end.
+- Internal database versions, task queues, raw worker counts, hash engines, and analysis parameters
+  are not user settings. The preview loading preference is the narrow exception: it exposes only
+  `small`, `medium`, and `large` resource policies while ADR 0005 retains ownership of the internal
+  concurrency limits. Account, cloud-service, and media-editing controls remain absent until their
+  workflows exist end to end.
 - Simplified Chinese is the initial user-facing language. Paths and source metadata preserve their
   original text.
 - Classification, perceptual or semantic similarity, people, editing, and source-file mutation
@@ -210,6 +212,11 @@ The official Material 3 Slider and Icon button components remain the basis of vi
 Flutter 3.44.9 was verified to provide `Slider`, `IconButton`, `TextButton`, `VerticalDivider`, and
 `CircularProgressIndicator`; Ame adds only responsive square constraints and group spacing around
 those primitives.
+
+The official Material 3 menu catalog remains the basis of settings choices. Flutter 3.44.9 was
+verified to provide controlled `DropdownMenu` selection, selection callbacks, disabled search, and
+select-only behavior. Preview loading speed therefore reuses the repository-owned `SettingsChoice`
+composition and adds no custom pointer, focus, keyboard, or semantics layer.
 
 ## Consequences
 

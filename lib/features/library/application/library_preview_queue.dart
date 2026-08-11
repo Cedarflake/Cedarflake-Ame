@@ -13,6 +13,9 @@ class LibraryPreviewQueue {
     required int maxActive,
     required void Function(LibraryAsset asset) onResult,
   }) {
+    if (maxActive < 1) {
+      throw ArgumentError.value(maxActive, "maxActive", "must be positive");
+    }
     return LibraryPreviewQueue._(previewer, previewEdge, maxActive, onResult);
   }
 
@@ -25,7 +28,7 @@ class LibraryPreviewQueue {
 
   final LibraryPreviewer _previewer;
   final int _previewEdge;
-  final int _maxActive;
+  int _maxActive;
   final void Function(LibraryAsset asset) _onResult;
   final Map<String, _PreviewRequest> _pending = {};
   final Map<String, _PreviewRequest> _active = {};
@@ -142,6 +145,17 @@ class LibraryPreviewQueue {
 
   void updatePendingDemand(Map<String, LibraryPreviewPriority> priorities) {
     _replacePendingDemand(priorities);
+    _drain();
+  }
+
+  void updateMaxActive(int maxActive) {
+    if (maxActive < 1) {
+      throw ArgumentError.value(maxActive, "maxActive", "must be positive");
+    }
+    if (_maxActive == maxActive) {
+      return;
+    }
+    _maxActive = maxActive;
     _drain();
   }
 

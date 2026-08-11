@@ -6,6 +6,8 @@ enum ImageViewerWheelBehavior { zoom, previousOrNext }
 
 enum ImageViewerOpenBehavior { fitWindow, actualSize }
 
+enum PreviewLoadingSpeed { small, medium, large }
+
 const ameDefaultSidebarWidth = 260.0;
 const ameMinimumSidebarWidth = 220.0;
 const ameMaximumSidebarWidth = 420.0;
@@ -15,24 +17,28 @@ class AmePreferences {
     this.theme = AmeThemePreference.system,
     this.viewerWheelBehavior = ImageViewerWheelBehavior.zoom,
     this.viewerOpenBehavior = ImageViewerOpenBehavior.fitWindow,
+    this.previewLoadingSpeed = PreviewLoadingSpeed.medium,
     this.sidebarWidth = ameDefaultSidebarWidth,
   });
 
   final AmeThemePreference theme;
   final ImageViewerWheelBehavior viewerWheelBehavior;
   final ImageViewerOpenBehavior viewerOpenBehavior;
+  final PreviewLoadingSpeed previewLoadingSpeed;
   final double sidebarWidth;
 
   AmePreferences copyWith({
     AmeThemePreference? theme,
     ImageViewerWheelBehavior? viewerWheelBehavior,
     ImageViewerOpenBehavior? viewerOpenBehavior,
+    PreviewLoadingSpeed? previewLoadingSpeed,
     double? sidebarWidth,
   }) {
     return AmePreferences(
       theme: theme ?? this.theme,
       viewerWheelBehavior: viewerWheelBehavior ?? this.viewerWheelBehavior,
       viewerOpenBehavior: viewerOpenBehavior ?? this.viewerOpenBehavior,
+      previewLoadingSpeed: previewLoadingSpeed ?? this.previewLoadingSpeed,
       sidebarWidth: sidebarWidth ?? this.sidebarWidth,
     );
   }

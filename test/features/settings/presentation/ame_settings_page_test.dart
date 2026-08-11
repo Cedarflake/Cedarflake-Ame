@@ -1,5 +1,6 @@
 import "dart:async";
 
+import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
 import "package:cedarflake_ame/features/settings/presentation/ame_settings_page.dart";
 import "package:cedarflake_ame/features/storage/application/storage_settings.dart";
 import "package:cedarflake_ame/features/storage/domain/storage_models.dart";
@@ -28,6 +29,7 @@ void main() {
     expect(find.byType(AlertDialog), findsNothing);
     expect(find.text("个性化"), findsOneWidget);
     expect(find.text("浏览"), findsOneWidget);
+    expect(find.text("缩略图加载速度"), findsOneWidget);
     expect(find.text("存储"), findsOneWidget);
     expect(find.text("关于"), findsOneWidget);
     expect(find.text("图库数据位置"), findsOneWidget);
@@ -39,6 +41,41 @@ void main() {
       findsOneWidget,
     );
     expect(find.textContaining(r"\\?\C:\AmeData"), findsNothing);
+  });
+
+  testWidgets("changes the persisted preview loading speed", (tester) async {
+    final gateway = _FakeStorageSettingsGateway(_status());
+    final preferenceStore = _RecordingAmePreferenceStore();
+    addTearDown(gateway.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          amePreferenceStoreProvider.overrideWithValue(preferenceStore),
+          storageSettingsGatewayProvider.overrideWithValue(gateway),
+        ],
+        child: const MaterialApp(
+          home: Scaffold(body: AmeSettingsPage(hasLibraryRoots: true)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final speedMenu = find.descendant(
+      of: find.byKey(const Key("preview-loading-speed-setting")),
+      matching: find.byType(DropdownMenu<PreviewLoadingSpeed>),
+    );
+    await tester.ensureVisible(speedMenu);
+    await tester.pumpAndSettle();
+    await tester.tap(speedMenu.hitTestable());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text("大").hitTestable());
+    await tester.pumpAndSettle();
+
+    expect(
+      preferenceStore.saved?.previewLoadingSpeed,
+      PreviewLoadingSpeed.large,
+    );
   });
 
   testWidgets("saves the preview budget without a dialog save action", (
@@ -306,5 +343,19 @@ class _FakeStorageSettingsGateway implements StorageSettingsGateway {
       retiredPreviewRoots: status.retiredPreviewRoots,
     );
     return status;
+  }
+}
+
+class _RecordingAmePreferenceStore implements AmePreferenceStore {
+  AmePreferences? saved;
+
+  @override
+  Future<AmePreferences> loadAmePreferences() async {
+    return saved ?? const AmePreferences();
+  }
+
+  @override
+  Future<void> saveAmePreferences(AmePreferences preferences) async {
+    saved = preferences;
   }
 }

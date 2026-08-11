@@ -6,7 +6,7 @@ use directories::ProjectDirs;
 
 use crate::adapters::{
     LocalPreviewStore, PREVIEW_CACHE_VERSION, SqliteCatalog, SqliteStorageSettings,
-    is_managed_preview_cleanup_entry, user_visible_path,
+    is_ame_preview_cache_entry, user_visible_path,
 };
 use crate::domain::{
     GalleryQuery, RetiredPreviewRootView, ScanError, StorageConfiguration, StorageSettingsUpdate,
@@ -374,7 +374,7 @@ fn directory_size(path: &Path) -> Result<u64, ScanError> {
     for entry in entries {
         let entry = entry
             .map_err(|error| ScanError::new("storage_usage_unavailable", error.to_string()))?;
-        if !is_managed_preview_cleanup_entry(&entry.path()) {
+        if !is_ame_preview_cache_entry(&entry.path()) {
             continue;
         }
         let metadata = match entry.metadata() {
@@ -620,5 +620,33 @@ mod tests {
             status.configured_preview_display_path,
             r"C:\AmeCache\previews",
         );
+    }
+
+    #[test]
+    fn storage_status_counts_current_and_legacy_preview_bytes() {
+        let storage = tempdir().expect("storage");
+        let preview_root = storage.path().join("previews");
+        fs::create_dir_all(&preview_root).expect("preview root");
+        let current = preview_root.join(format!("{PREVIEW_CACHE_VERSION}-{}.jpg", "a".repeat(64)));
+        let legacy = preview_root.join(format!("{}.jpg", "b".repeat(64)));
+        let foreign = preview_root.join("keep.jpg");
+        fs::write(current, vec![1_u8; 7]).expect("current preview");
+        fs::write(legacy, vec![2_u8; 13]).expect("legacy preview");
+        fs::write(foreign, vec![3_u8; 17]).expect("foreign file");
+        let active = StoragePaths {
+            catalog_path: storage.path().join("catalog").join("ame.sqlite3"),
+            preview_root: preview_root.clone(),
+            preview_budget_bytes: DEFAULT_PREVIEW_BUDGET_BYTES,
+            settings_path: storage.path().join("settings.sqlite3"),
+        };
+        let configured = StorageConfiguration {
+            catalog_path: active.catalog_path.to_string_lossy().into_owned(),
+            preview_root: preview_root.to_string_lossy().into_owned(),
+            preview_budget_bytes: DEFAULT_PREVIEW_BUDGET_BYTES,
+        };
+
+        let status = storage_status(&active, &configured).expect("storage status");
+
+        assert_eq!(status.preview_used_bytes, 20);
     }
 }

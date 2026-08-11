@@ -4,7 +4,8 @@ use std::path::Path;
 
 use crate::adapters::{
     LocalPreviewStore, PREVIEW_ALGORITHM_ID, PREVIEW_ALGORITHM_VERSION,
-    PREVIEW_ORIENTATION_CONTRACT, SqliteCatalog, is_managed_preview_cleanup_entry,
+    PREVIEW_ORIENTATION_CONTRACT, SqliteCatalog, is_ame_preview_cache_entry,
+    is_managed_preview_cleanup_entry,
 };
 use crate::domain::ScanError;
 use crate::ports::CatalogRepository;
@@ -15,6 +16,7 @@ const RECLAMATION_TARGET_NUMERATOR: u64 = 4;
 const RECLAMATION_TARGET_DENOMINATOR: u64 = 5;
 const RECLAMATION_BATCH: u32 = 256;
 const MAX_RECLAMATION_PASSES: u32 = 16;
+const MAX_UNINDEXED_RECLAMATION_ENTRIES: usize = 65_536;
 
 pub(crate) fn reclaim_preview_capacity(
     storage: &StoragePaths,
@@ -99,7 +101,7 @@ fn remove_interrupted_and_unreferenced(
             format!("Could not inspect preview storage for reclamation: {error}"),
         )
     })?;
-    for entry in entries.take(RECLAMATION_BATCH as usize) {
+    for entry in entries.take(MAX_UNINDEXED_RECLAMATION_ENTRIES) {
         if preview_store.used_bytes() <= target {
             break;
         }
@@ -107,7 +109,7 @@ fn remove_interrupted_and_unreferenced(
             continue;
         };
         let path = entry.path();
-        if !is_managed_preview_cleanup_entry(&path) {
+        if !is_ame_preview_cache_entry(&path) {
             continue;
         }
         let is_temporary = path.extension().and_then(|extension| extension.to_str()) == Some("tmp");
@@ -193,6 +195,37 @@ mod tests {
         assert!(matches!(protected.preview_status, PreviewStatus::Ready));
         assert!(matches!(reclaimed.preview_status, PreviewStatus::Pending));
         assert_eq!((reclaimed.width, reclaimed.height), (4_032, 3_024));
+    }
+
+    #[test]
+    fn reclamation_counts_and_removes_legacy_previews_under_pressure() {
+        let _test_lock = crate::application::PREVIEW_LIFECYCLE_TEST_LOCK
+            .lock()
+            .expect("preview lifecycle test lock");
+        let directory = tempdir().expect("temporary directory");
+        let preview_root = directory.path().join("previews");
+        fs::create_dir_all(&preview_root).expect("preview root");
+        let legacy_paths = (0_u32..300)
+            .map(|index| preview_root.join(format!("{index:064x}.jpg")))
+            .collect::<Vec<_>>();
+        for path in &legacy_paths {
+            fs::write(path, [1_u8]).expect("legacy preview");
+        }
+        let storage = StoragePaths {
+            catalog_path: directory.path().join("catalog").join("ame.sqlite3"),
+            preview_root: preview_root.clone(),
+            preview_budget_bytes: 300,
+            settings_path: directory.path().join("settings.sqlite3"),
+        };
+        SqliteCatalog::open(storage.catalog_path.clone()).expect("catalog");
+        let store = LocalPreviewStore::new(preview_root, 300).expect("preview store");
+
+        let removed =
+            reclaim_preview_capacity(&storage, &store, &[], 300).expect("legacy reclamation");
+
+        assert_eq!(removed, 300);
+        assert_eq!(store.used_bytes(), 0);
+        assert!(legacy_paths.iter().all(|path| !path.exists()));
     }
 
     fn managed_artifact_path(root: &Path, hash_character: char) -> PathBuf {

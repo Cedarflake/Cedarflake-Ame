@@ -31,6 +31,7 @@ void main() {
       theme: AmeThemePreference.dark,
       viewerWheelBehavior: ImageViewerWheelBehavior.previousOrNext,
       viewerOpenBehavior: ImageViewerOpenBehavior.actualSize,
+      previewLoadingSpeed: PreviewLoadingSpeed.large,
       sidebarWidth: 348,
     );
 
@@ -58,6 +59,10 @@ void main() {
     expect(
       restoredPresentation.viewerOpenBehavior,
       presentation.viewerOpenBehavior,
+    );
+    expect(
+      restoredPresentation.previewLoadingSpeed,
+      presentation.previewLoadingSpeed,
     );
     expect(restoredPresentation.sidebarWidth, presentation.sidebarWidth);
   });
@@ -93,6 +98,11 @@ void main() {
             (value) => value.viewerOpenBehavior,
             "viewerOpenBehavior",
             ImageViewerOpenBehavior.fitWindow,
+          )
+          .having(
+            (value) => value.previewLoadingSpeed,
+            "previewLoadingSpeed",
+            PreviewLoadingSpeed.medium,
           ),
     );
   });

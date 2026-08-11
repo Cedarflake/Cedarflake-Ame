@@ -272,9 +272,11 @@ mod tests {
         let hash = "a".repeat(64);
         let unreferenced = preview_root.join(format!("{PREVIEW_CACHE_VERSION}-{hash}.jpg"));
         let temporary = preview_root.join(format!("{PREVIEW_CACHE_VERSION}-{hash}.123-4.tmp"));
+        let legacy = preview_root.join(format!("{}.jpg", "d".repeat(64)));
         let foreign = preview_root.join("keep.txt");
         fs::write(&unreferenced, b"unreferenced").expect("unreferenced preview");
         fs::write(&temporary, b"temporary").expect("temporary preview");
+        fs::write(&legacy, b"legacy").expect("legacy preview");
         fs::write(&foreign, b"foreign").expect("foreign file");
         let storage = StoragePaths {
             catalog_path: directory.path().join("catalog").join("ame.sqlite3"),
@@ -291,6 +293,7 @@ mod tests {
 
         assert!(!unreferenced.exists());
         assert!(!temporary.exists());
+        assert_eq!(fs::read(&legacy).expect("legacy after"), b"legacy");
         assert_eq!(fs::read(&foreign).expect("foreign after"), b"foreign");
         let snapshot = preview_recovery_snapshot();
         assert_eq!(snapshot.phase, PreviewRecoveryPhase::Completed);
