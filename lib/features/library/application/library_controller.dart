@@ -8,6 +8,7 @@ import "../domain/gallery_layout_manifest.dart";
 import "../domain/library_models.dart";
 import "../domain/library_state.dart";
 import "library_catalog.dart";
+import "library_preview_coordinator.dart";
 import "library_preview_queue.dart";
 import "library_preview_store.dart";
 import "library_previewer.dart";
@@ -68,10 +69,9 @@ class LibraryController extends Notifier<LibraryState> {
   Future<void> _scanStartQueue = Future<void>.value();
   int _scanSequence = 0;
   final LibraryScanSession _scanSession = LibraryScanSession();
-  final LibraryPreviewStore _previewStore = LibraryPreviewStore();
   final StreamController<LibraryGalleryLayoutDimensionUpdate>
   _layoutDimensionUpdates = StreamController.broadcast(sync: true);
-  LibraryPreviewQueue? _previewQueue;
+  LibraryPreviewCoordinator? _previewCoordinator;
   _PendingTimeNavigation? _pendingTimeNavigation;
   _PendingTimeNavigation? _activeTimeNavigation;
   Timer? _timeNavigationRetryTimer;
@@ -81,25 +81,19 @@ class LibraryController extends Notifier<LibraryState> {
   ({int start, int end})? _pendingVisibleRange;
   bool _isEnsuringVisibleRange = false;
   bool _isVisibleRangeDrainScheduled = false;
-  Map<
-    String,
-    ({LibraryAsset asset, LibraryPreviewPriority priority, int previewEdge})
-  >
-  _galleryPreviewDemand = const {};
-  final Map<String, ({LibraryPreviewSourceIdentity source, int previewEdge})>
-  _verifiedPreviewSizes = {};
-  LibraryAsset? _viewerPreviewDemand;
   final List<_RetainedCatalogPage> _retainedCatalogPages = [];
   bool _isDisposed = false;
 
-  LibraryPreviewQueue get _previews => _previewQueue ??= LibraryPreviewQueue(
-    previewer: ref.read(libraryPreviewerProvider),
-    previewEdge: _previewEdge,
-    maxActive: _maxActivePreviewsFor(
-      ref.read(amePreferencesControllerProvider).previewLoadingSpeed,
-    ),
-    onResult: _publishPreview,
-  );
+  LibraryPreviewCoordinator get _previews =>
+      _previewCoordinator ??= LibraryPreviewCoordinator(
+        previewer: ref.read(libraryPreviewerProvider),
+        defaultPreviewEdge: _previewEdge,
+        maxActive: _maxActivePreviewsFor(
+          ref.read(amePreferencesControllerProvider).previewLoadingSpeed,
+        ),
+        canPublish: _canPublishPreview,
+        onPublished: _handlePreviewPublished,
+      );
 
   @override
   LibraryState build() {
@@ -108,7 +102,7 @@ class LibraryController extends Notifier<LibraryState> {
         (preferences) => preferences.previewLoadingSpeed,
       ),
       (_, speed) =>
-          _previewQueue?.updateMaxActive(_maxActivePreviewsFor(speed)),
+          _previewCoordinator?.updateMaxActive(_maxActivePreviewsFor(speed)),
     );
     final scanner = ref.read(libraryScannerProvider);
     ref.onDispose(() {
@@ -122,8 +116,7 @@ class LibraryController extends Notifier<LibraryState> {
       if (scanId != null) {
         scanner.cancel(scanId);
       }
-      _previewQueue?.dispose();
-      _previewStore.dispose();
+      _previewCoordinator?.dispose();
       unawaited(_layoutDimensionUpdates.close());
       _timeNavigationRetryTimer?.cancel();
       _pendingVisibleRange = null;
@@ -818,7 +811,7 @@ class LibraryController extends Notifier<LibraryState> {
           message: "The catalog changed while navigating the timeline",
         );
       }
-      _previewQueue?.retainPending(
+      _previewCoordinator?.retainPending(
         snapshot.assets.map((asset) => asset.locationId),
       );
       _resetRetainedCatalogPages(
@@ -948,12 +941,8 @@ class LibraryController extends Notifier<LibraryState> {
     LibraryPreviewPriority priority = LibraryPreviewPriority.visible,
     int previewEdge = _previewEdge,
   }) {
-    final resolved = _previewStore.resolve(asset);
-    if (resolved.previewStatus == LibraryPreviewStatus.ready && !retry) {
-      return;
-    }
     _previews.request(
-      resolved,
+      asset,
       retry: retry,
       priority: priority,
       previewEdge: previewEdge,
@@ -961,11 +950,11 @@ class LibraryController extends Notifier<LibraryState> {
   }
 
   LibraryAsset resolvePreview(LibraryAsset asset) {
-    return _previewStore.resolve(asset);
+    return _previews.resolve(asset);
   }
 
   Stream<void> watchPreview(String locationId) {
-    return _previewStore.changesFor(locationId);
+    return _previews.watch(locationId);
   }
 
   void updateGalleryPreviewDemand({
@@ -975,130 +964,21 @@ class LibraryController extends Notifier<LibraryState> {
     Iterable<LibraryAsset> idle = const <LibraryAsset>[],
     Map<String, int> previewEdges = const <String, int>{},
   }) {
-    if (_isDisposed) {
-      return;
-    }
-    final requests =
-        <
-          String,
-          ({
-            LibraryAsset asset,
-            LibraryPreviewPriority priority,
-            int previewEdge,
-          })
-        >{};
-
-    void addRequests(
-      Iterable<LibraryAsset> assets,
-      LibraryPreviewPriority priority,
-    ) {
-      for (final asset in assets) {
-        final current = requests[asset.locationId];
-        if (current == null || priority.index > current.priority.index) {
-          requests[asset.locationId] = (
-            asset: asset,
-            priority: priority,
-            previewEdge: previewEdges[asset.locationId] ?? _previewEdge,
-          );
-        }
-      }
-    }
-
-    addRequests(idle, LibraryPreviewPriority.idle);
-    addRequests(guard, LibraryPreviewPriority.guard);
-    addRequests(nearDirection, LibraryPreviewPriority.nearDirection);
-    addRequests(visible, LibraryPreviewPriority.visible);
-    if (_hasSameGalleryPreviewDemand(requests)) {
-      return;
-    }
-    _galleryPreviewDemand = requests;
-    _applyPreviewDemand();
-  }
-
-  bool _hasSameGalleryPreviewDemand(
-    Map<
-      String,
-      ({LibraryAsset asset, LibraryPreviewPriority priority, int previewEdge})
-    >
-    next,
-  ) {
-    if (_galleryPreviewDemand.length != next.length) {
-      return false;
-    }
-    for (final entry in next.entries) {
-      final current = _galleryPreviewDemand[entry.key];
-      if (current == null ||
-          current.priority != entry.value.priority ||
-          current.previewEdge != entry.value.previewEdge ||
-          !libraryPreviewSourcesAreCompatible(
-            current.asset,
-            entry.value.asset,
-          )) {
-        return false;
-      }
-    }
-    return true;
+    _previews.updateGalleryDemand(
+      visible: visible,
+      nearDirection: nearDirection,
+      guard: guard,
+      idle: idle,
+      previewEdges: previewEdges,
+    );
   }
 
   void updateViewerPreviewDemand(LibraryAsset? viewer) {
-    if (_isDisposed) {
-      return;
-    }
-    _viewerPreviewDemand = viewer;
-    _applyPreviewDemand();
-  }
-
-  void _applyPreviewDemand() {
-    final requests = {..._galleryPreviewDemand};
-    final viewer = _viewerPreviewDemand;
-    if (viewer != null) {
-      requests[viewer.locationId] = (
-        asset: viewer,
-        priority: LibraryPreviewPriority.viewer,
-        previewEdge: _previewEdge,
-      );
-    }
-    _verifiedPreviewSizes.removeWhere(
-      (locationId, _) => !requests.containsKey(locationId),
-    );
-    _previewStore.retain(requests.keys);
-    final priorities = {
-      for (final MapEntry(key: locationId, value: request) in requests.entries)
-        locationId: request.priority,
-    };
-    if (priorities.isEmpty) {
-      _previewQueue?.updatePendingDemand(priorities);
-      return;
-    }
-    _previews.replaceDemandAndRequestSizedAll(priorities, [
-      for (final priority in LibraryPreviewPriority.values.reversed)
-        for (final request in requests.values)
-          if (request.priority == priority)
-            (
-              asset: _previewStore.resolve(request.asset),
-              priority: request.priority,
-              previewEdge: request.previewEdge,
-              ensureSize: !_isPreviewSizeVerified(
-                request.asset,
-                request.previewEdge,
-              ),
-            ),
-    ]);
-  }
-
-  bool _isPreviewSizeVerified(LibraryAsset asset, int previewEdge) {
-    final verified = _verifiedPreviewSizes[asset.locationId];
-    return verified != null &&
-        verified.previewEdge >= previewEdge &&
-        verified.source.isCompatibleWith(asset);
+    _previews.updateViewerDemand(viewer);
   }
 
   void _invalidatePreviewContext() {
-    _previewQueue?.invalidateAll();
-    _previewStore.clear();
-    _galleryPreviewDemand = const {};
-    _verifiedPreviewSizes.clear();
-    _viewerPreviewDemand = null;
+    _previewCoordinator?.invalidateAll();
   }
 
   void ensureVisibleRange({
@@ -1252,15 +1132,20 @@ class LibraryController extends Notifier<LibraryState> {
     );
   }
 
-  void _publishPreview(LibraryAsset replacement) {
-    LibraryGalleryLayoutDimensionUpdate? dimensionUpdate;
+  bool _canPublishPreview(LibraryAsset replacement) {
+    for (final asset in state.assets) {
+      if (asset.locationId == replacement.locationId) {
+        return libraryPreviewSourcesAreCompatible(asset, replacement);
+      }
+    }
+    return true;
+  }
+
+  void _handlePreviewPublished(LibraryAsset replacement) {
     for (var index = 0; index < state.assets.length; index++) {
       final asset = state.assets[index];
       if (asset.locationId != replacement.locationId) {
         continue;
-      }
-      if (!libraryPreviewSourcesAreCompatible(asset, replacement)) {
-        return;
       }
       final revision = state.catalogRevision;
       if ((asset.width <= 0 || asset.height <= 0) &&
@@ -1268,36 +1153,18 @@ class LibraryController extends Notifier<LibraryState> {
           replacement.height > 0 &&
           revision != null &&
           state.queryId.isNotEmpty) {
-        dimensionUpdate = LibraryGalleryLayoutDimensionUpdate(
-          revision: revision,
-          queryId: state.queryId,
-          globalItemIndex: state.windowStartItemOffset + index,
-          locationId: replacement.locationId,
-          width: replacement.width,
-          height: replacement.height,
+        _layoutDimensionUpdates.add(
+          LibraryGalleryLayoutDimensionUpdate(
+            revision: revision,
+            queryId: state.queryId,
+            globalItemIndex: state.windowStartItemOffset + index,
+            locationId: replacement.locationId,
+            width: replacement.width,
+            height: replacement.height,
+          ),
         );
       }
       break;
-    }
-    _previewStore.publish(replacement);
-    if (replacement.previewStatus == LibraryPreviewStatus.ready) {
-      var requestedEdge =
-          _galleryPreviewDemand[replacement.locationId]?.previewEdge;
-      if (_viewerPreviewDemand?.locationId == replacement.locationId &&
-          (requestedEdge == null || _previewEdge > requestedEdge)) {
-        requestedEdge = _previewEdge;
-      }
-      if (requestedEdge != null) {
-        _verifiedPreviewSizes[replacement.locationId] = (
-          source: LibraryPreviewSourceIdentity.fromAsset(replacement),
-          previewEdge: requestedEdge,
-        );
-      }
-    } else {
-      _verifiedPreviewSizes.remove(replacement.locationId);
-    }
-    if (dimensionUpdate != null) {
-      _layoutDimensionUpdates.add(dimensionUpdate);
     }
   }
 
