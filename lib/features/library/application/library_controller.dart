@@ -16,6 +16,22 @@ const _previewEdge = 512;
 const _maxActivePreviews = 2;
 const _timeNavigationRetryDelay = Duration(milliseconds: 120);
 const _maxVisibleRangePageLoads = 2;
+const _retainedDetailHighWatermark = 5000;
+const _retainedDetailLowWatermark = 3500;
+
+class _RetainedCatalogPage {
+  const _RetainedCatalogPage({
+    required this.assets,
+    required this.startItemOffset,
+    required this.previousCursor,
+    required this.nextCursor,
+  });
+
+  final List<LibraryAsset> assets;
+  final int startItemOffset;
+  final LibraryCatalogCursor? previousCursor;
+  final LibraryCatalogCursor? nextCursor;
+}
 
 class _PendingTimeNavigation {
   _PendingTimeNavigation({
@@ -65,6 +81,7 @@ class LibraryController extends Notifier<LibraryState> {
   Map<String, ({LibraryAsset asset, LibraryPreviewPriority priority})>
   _galleryPreviewDemand = const {};
   LibraryAsset? _viewerPreviewDemand;
+  final List<_RetainedCatalogPage> _retainedCatalogPages = [];
   bool _isDisposed = false;
 
   LibraryPreviewQueue get _previews => _previewQueue ??= LibraryPreviewQueue(
@@ -106,9 +123,16 @@ class LibraryController extends Notifier<LibraryState> {
       }
       unawaited(_subscription?.cancel());
     });
+    final initialState = ref.watch(initialLibraryStateProvider);
+    _resetRetainedCatalogPages(
+      assets: initialState.assets,
+      startItemOffset: initialState.windowStartItemOffset,
+      previousCursor: initialState.previousCursor,
+      nextCursor: initialState.nextCursor,
+    );
     Future<void>.microtask(_resumeInterruptedScanIfAvailable);
     Future<void>.microtask(_loadInitialTimeline);
-    return ref.watch(initialLibraryStateProvider);
+    return initialState;
   }
 
   Future<void> chooseDirectoryAndScan() async {
@@ -433,18 +457,43 @@ class LibraryController extends Notifier<LibraryState> {
           message: "The gallery query changed while loading another window",
         );
       }
-      final assetsByLocation = {
-        for (final asset in state.assets) asset.locationId: asset,
-      };
-      for (final asset in snapshot.assets) {
-        assetsByLocation[asset.locationId] = asset;
+      _ensureRetainedCatalogPagesCurrent();
+      final existingIds = {for (final asset in state.assets) asset.locationId};
+      _mergeRetainedCatalogAssetUpdates(snapshot.assets);
+      final addedAssets = [
+        for (final asset in snapshot.assets)
+          if (!existingIds.contains(asset.locationId)) asset,
+      ];
+      if (addedAssets.isNotEmpty) {
+        _retainedCatalogPages.add(
+          _RetainedCatalogPage(
+            assets: List.unmodifiable(addedAssets),
+            startItemOffset: state.windowStartItemOffset + state.assets.length,
+            previousCursor: snapshot.previousCursor,
+            nextCursor: snapshot.nextCursor,
+          ),
+        );
+      } else if (_retainedCatalogPages.isNotEmpty) {
+        final lastIndex = _retainedCatalogPages.length - 1;
+        final lastPage = _retainedCatalogPages[lastIndex];
+        _retainedCatalogPages[lastIndex] = _RetainedCatalogPage(
+          assets: lastPage.assets,
+          startItemOffset: lastPage.startItemOffset,
+          previousCursor: lastPage.previousCursor,
+          nextCursor: snapshot.nextCursor,
+        );
       }
+      _trimRetainedCatalogPages(trimLeading: true);
+      final retainedAssets = _retainedCatalogAssets();
+      final firstPage = _retainedCatalogPages.first;
       state = state.copyWith(
         roots: snapshot.roots,
-        assets: List.unmodifiable(assetsByLocation.values),
+        assets: retainedAssets,
         catalogPath: snapshot.catalogPath,
         catalogRevision: snapshot.revision,
         queryId: snapshot.queryId,
+        windowStartItemOffset: firstPage.startItemOffset,
+        previousCursor: firstPage.previousCursor,
         nextCursor: snapshot.nextCursor,
         isLoadingPage: false,
       );
@@ -513,28 +562,48 @@ class LibraryController extends Notifier<LibraryState> {
           message: "The gallery changed while loading the previous window",
         );
       }
-      final precedingIds = {
-        for (final asset in snapshot.assets) asset.locationId,
-      };
+      _ensureRetainedCatalogPagesCurrent();
       final existingIds = {for (final asset in state.assets) asset.locationId};
-      final addedItemCount = snapshot.assets
-          .where((asset) => !existingIds.contains(asset.locationId))
-          .length;
-      final mergedAssets = [
-        ...snapshot.assets,
-        for (final asset in state.assets)
-          if (!precedingIds.contains(asset.locationId)) asset,
+      _mergeRetainedCatalogAssetUpdates(snapshot.assets);
+      final addedAssets = [
+        for (final asset in snapshot.assets)
+          if (!existingIds.contains(asset.locationId)) asset,
       ];
+      final addedItemCount = addedAssets.length;
+      if (addedAssets.isNotEmpty) {
+        _retainedCatalogPages.insert(
+          0,
+          _RetainedCatalogPage(
+            assets: List.unmodifiable(addedAssets),
+            startItemOffset: (state.windowStartItemOffset - addedItemCount)
+                .clamp(0, state.timeline?.totalItems ?? 0)
+                .toInt(),
+            previousCursor: snapshot.previousCursor,
+            nextCursor: snapshot.nextCursor,
+          ),
+        );
+      } else if (_retainedCatalogPages.isNotEmpty) {
+        final firstPage = _retainedCatalogPages.first;
+        _retainedCatalogPages[0] = _RetainedCatalogPage(
+          assets: firstPage.assets,
+          startItemOffset: firstPage.startItemOffset,
+          previousCursor: snapshot.previousCursor,
+          nextCursor: firstPage.nextCursor,
+        );
+      }
+      _trimRetainedCatalogPages(trimLeading: false);
+      final retainedAssets = _retainedCatalogAssets();
+      final firstPage = _retainedCatalogPages.first;
+      final lastPage = _retainedCatalogPages.last;
       state = state.copyWith(
         roots: snapshot.roots,
-        assets: List.unmodifiable(mergedAssets),
+        assets: retainedAssets,
         catalogPath: snapshot.catalogPath,
         catalogRevision: snapshot.revision,
         queryId: snapshot.queryId,
-        windowStartItemOffset: (state.windowStartItemOffset - addedItemCount)
-            .clamp(0, state.timeline?.totalItems ?? 0)
-            .toInt(),
-        previousCursor: snapshot.previousCursor,
+        windowStartItemOffset: firstPage.startItemOffset,
+        previousCursor: firstPage.previousCursor,
+        nextCursor: lastPage.nextCursor,
         isLoadingPreviousPage: false,
       );
       return snapshot.assets.isNotEmpty;
@@ -733,6 +802,12 @@ class LibraryController extends Notifier<LibraryState> {
       }
       _previewQueue?.retainPending(
         snapshot.assets.map((asset) => asset.locationId),
+      );
+      _resetRetainedCatalogPages(
+        assets: snapshot.assets,
+        startItemOffset: request.globalItemOffset,
+        previousCursor: snapshot.previousCursor,
+        nextCursor: snapshot.nextCursor,
       );
       state = state.copyWith(
         roots: snapshot.roots,
@@ -1396,6 +1471,99 @@ class LibraryController extends Notifier<LibraryState> {
     return 0;
   }
 
+  void _resetRetainedCatalogPages({
+    required List<LibraryAsset> assets,
+    required int startItemOffset,
+    required LibraryCatalogCursor? previousCursor,
+    required LibraryCatalogCursor? nextCursor,
+  }) {
+    _retainedCatalogPages
+      ..clear()
+      ..addAll(
+        assets.isEmpty
+            ? const []
+            : [
+                _RetainedCatalogPage(
+                  assets: List.unmodifiable(assets),
+                  startItemOffset: startItemOffset,
+                  previousCursor: previousCursor,
+                  nextCursor: nextCursor,
+                ),
+              ],
+      );
+  }
+
+  void _ensureRetainedCatalogPagesCurrent() {
+    final retainedCount = _retainedCatalogPages.fold(
+      0,
+      (total, page) => total + page.assets.length,
+    );
+    if (_retainedCatalogPages.isNotEmpty &&
+        retainedCount == state.assets.length &&
+        _retainedCatalogPages.first.startItemOffset ==
+            state.windowStartItemOffset) {
+      return;
+    }
+    _resetRetainedCatalogPages(
+      assets: state.assets,
+      startItemOffset: state.windowStartItemOffset,
+      previousCursor: state.previousCursor,
+      nextCursor: state.nextCursor,
+    );
+  }
+
+  void _mergeRetainedCatalogAssetUpdates(List<LibraryAsset> updates) {
+    final replacements = {for (final asset in updates) asset.locationId: asset};
+    if (replacements.isEmpty) {
+      return;
+    }
+    for (var index = 0; index < _retainedCatalogPages.length; index++) {
+      final page = _retainedCatalogPages[index];
+      var didChange = false;
+      final assets = [
+        for (final asset in page.assets)
+          replacements[asset.locationId] ?? asset,
+      ];
+      for (var assetIndex = 0; assetIndex < page.assets.length; assetIndex++) {
+        if (!identical(page.assets[assetIndex], assets[assetIndex])) {
+          didChange = true;
+          break;
+        }
+      }
+      if (didChange) {
+        _retainedCatalogPages[index] = _RetainedCatalogPage(
+          assets: List.unmodifiable(assets),
+          startItemOffset: page.startItemOffset,
+          previousCursor: page.previousCursor,
+          nextCursor: page.nextCursor,
+        );
+      }
+    }
+  }
+
+  void _trimRetainedCatalogPages({required bool trimLeading}) {
+    var retainedCount = _retainedCatalogPages.fold(
+      0,
+      (total, page) => total + page.assets.length,
+    );
+    if (retainedCount <= _retainedDetailHighWatermark) {
+      return;
+    }
+    while (_retainedCatalogPages.length > 1 &&
+        retainedCount > _retainedDetailLowWatermark) {
+      final removed = trimLeading
+          ? _retainedCatalogPages.removeAt(0)
+          : _retainedCatalogPages.removeLast();
+      retainedCount -= removed.assets.length;
+    }
+  }
+
+  List<LibraryAsset> _retainedCatalogAssets() {
+    return List.unmodifiable([
+      for (final page in _retainedCatalogPages) ...page.assets,
+    ]);
+  }
+
   Future<void> _reloadFirstCatalogPage(int scanSequence) async {
     final catalog = ref.read(libraryCatalogProvider);
     final query = state.query;
@@ -1437,6 +1605,12 @@ class LibraryController extends Notifier<LibraryState> {
         state.queryId != snapshot.queryId) {
       _invalidatePreviewContext();
     }
+    _resetRetainedCatalogPages(
+      assets: snapshot.assets,
+      startItemOffset: 0,
+      previousCursor: snapshot.previousCursor,
+      nextCursor: snapshot.nextCursor,
+    );
     state = LibraryState.fromSnapshot(snapshot, query: query).copyWith(
       rootPath: rootPath,
       displayRootPath: displayRootPath,

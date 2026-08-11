@@ -567,6 +567,117 @@ void main() {
     expect(catalog.afters.single, same(cursor));
   });
 
+  test(
+    "refreshes the previous cursor when a page only updates assets",
+    () async {
+      final cursor = _cursor(suffix: "current");
+      final refreshedCursor = _cursor(suffix: "refreshed");
+      final initialSnapshot = _snapshot(
+        assets: [_asset()],
+        previousCursor: cursor,
+      );
+      final catalog = _FakeLibraryCatalog.sequence([
+        _snapshot(
+          assets: [_asset(previewPath: "C:\\AmeCache\\one-updated.jpg")],
+          previousCursor: refreshedCursor,
+        ),
+      ], initialRevision: initialSnapshot.revision);
+      final container = ProviderContainer(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(
+            LibraryState.fromSnapshot(initialSnapshot),
+          ),
+          libraryCatalogProvider.overrideWithValue(catalog),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final didLoad = await container
+          .read(libraryControllerProvider.notifier)
+          .loadPreviousPage();
+
+      final state = container.read(libraryControllerProvider);
+      expect(didLoad, isTrue);
+      expect(state.assets, hasLength(1));
+      expect(state.assets.single.previewPath, endsWith("one-updated.jpg"));
+      expect(state.previousCursor, same(refreshedCursor));
+      expect(catalog.befores.single, same(cursor));
+    },
+  );
+
+  test(
+    "soft detail budget trims distant pages and preserves nearby reversal",
+    () async {
+      List<LibraryAsset> pageAssets(int page) {
+        return [
+          for (var index = 0; index < libraryCatalogWindow; index++)
+            _asset(suffix: "${page * libraryCatalogWindow + index}"),
+        ];
+      }
+
+      LibraryCatalogCursor boundary(int page) => _cursor(suffix: "page-$page");
+      final initialSnapshot = _snapshot(
+        assets: pageAssets(0),
+        nextCursor: boundary(1),
+      );
+      final responses = <LibrarySnapshot>[
+        for (var page = 1; page <= 10; page++)
+          _snapshot(
+            assets: pageAssets(page),
+            previousCursor: boundary(page - 1),
+            nextCursor: boundary(page + 1),
+          ),
+        _snapshot(
+          assets: pageAssets(3),
+          previousCursor: boundary(2),
+          nextCursor: boundary(4),
+        ),
+      ];
+      final catalog = _FakeLibraryCatalog.sequence(
+        responses,
+        initialRevision: initialSnapshot.revision,
+      );
+      final initialState = LibraryState.fromSnapshot(initialSnapshot).copyWith(
+        timeline: LibraryTimeline(
+          revision: initialSnapshot.revision,
+          queryId: initialSnapshot.queryId,
+          totalItems: 79_030,
+          buckets: const [],
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(initialState),
+          libraryCatalogProvider.overrideWithValue(catalog),
+        ],
+      );
+      addTearDown(container.dispose);
+      final controller = container.read(libraryControllerProvider.notifier);
+
+      for (var page = 1; page <= 10; page++) {
+        await controller.loadNextPage();
+      }
+
+      final trimmed = container.read(libraryControllerProvider);
+      expect(trimmed.assets, hasLength(3500));
+      expect(trimmed.windowStartItemOffset, 2000);
+      expect(trimmed.assets.first.locationId, "location-2000");
+      expect(trimmed.assets.last.locationId, "location-5499");
+      expect(trimmed.previousCursor?.locationId, "location-page-3");
+
+      final loadedPrevious = await controller.loadPreviousPage();
+      final reversed = container.read(libraryControllerProvider);
+
+      expect(loadedPrevious, isTrue);
+      expect(reversed.assets, hasLength(4000));
+      expect(reversed.windowStartItemOffset, 1500);
+      expect(reversed.assets.first.locationId, "location-1500");
+      expect(reversed.assets.last.locationId, "location-5499");
+      expect(catalog.afters.whereType<LibraryCatalogCursor>(), hasLength(10));
+      expect(catalog.befores.whereType<LibraryCatalogCursor>(), hasLength(1));
+    },
+  );
+
   test("loads both sides of a bounded window after a timeline jump", () async {
     const bucket = LibraryTimeBucket(
       monthKey: "2024-05",
@@ -1737,6 +1848,7 @@ class _FakeLibraryPreviewer implements LibraryPreviewer {
     required String locationId,
     required int previewEdge,
     bool retry = false,
+    Iterable<String> protectedLocationIds = const [],
   }) {
     requests.add(locationId);
     retryRequests.add(retry);
