@@ -38,7 +38,11 @@ pub trait CatalogRepository {
     ) -> Result<(), ScanError>;
     fn reset_all_previews_for_cleanup(&mut self) -> Result<u64, ScanError>;
     fn reset_previews_outside_root(&mut self, preview_root_prefix: &str) -> Result<u64, ScanError>;
-    fn is_preview_artifact_path_indexed(&self, path: &str) -> Result<bool, ScanError>;
+    fn is_preview_artifact_path_indexed(
+        &self,
+        path: &str,
+        artifact_key: Option<&str>,
+    ) -> Result<bool, ScanError>;
     fn load_preview_recovery_artifacts(
         &self,
         preview_root_prefix: &str,
@@ -173,6 +177,7 @@ pub trait StorageSettingsRepository {
     ) -> Result<(), ScanError>;
     fn load_pending_preview_roots(&mut self) -> Result<Vec<String>, ScanError>;
     fn activate_preview_root(&mut self, preview_root: &str) -> Result<(), ScanError>;
+    fn restore_pending_preview_roots(&mut self, preview_roots: &[String]) -> Result<(), ScanError>;
     fn load_retired_preview_roots(&mut self) -> Result<Vec<String>, ScanError>;
     fn forget_retired_preview_root(&mut self, preview_root: &str) -> Result<bool, ScanError>;
 }

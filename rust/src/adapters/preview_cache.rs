@@ -346,17 +346,16 @@ impl LocalPreviewStore {
 }
 
 pub(crate) fn is_current_preview_artifact(path: &str) -> bool {
-    let Some(file_name) = Path::new(path).file_name().and_then(|name| name.to_str()) else {
-        return false;
-    };
-    let Some(hash) = file_name
+    current_preview_artifact_key(Path::new(path)).is_some()
+}
+
+pub(crate) fn current_preview_artifact_key(path: &Path) -> Option<&str> {
+    let file_name = path.file_name().and_then(|name| name.to_str())?;
+    let hash = file_name
         .strip_prefix(PREVIEW_ALGORITHM)
         .and_then(|suffix| suffix.strip_prefix('-'))
-        .and_then(|suffix| suffix.strip_suffix(".jpg"))
-    else {
-        return false;
-    };
-    is_artifact_hash(hash)
+        .and_then(|suffix| suffix.strip_suffix(".jpg"))?;
+    is_artifact_hash(hash).then_some(hash)
 }
 
 pub(crate) fn is_managed_preview_cleanup_entry(path: &Path) -> bool {

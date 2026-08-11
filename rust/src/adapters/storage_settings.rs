@@ -188,6 +188,24 @@ impl StorageSettingsRepository for SqliteStorageSettings {
         transaction.commit().map_err(settings_error)
     }
 
+    fn restore_pending_preview_roots(&mut self, preview_roots: &[String]) -> Result<(), ScanError> {
+        let transaction = self.connection.transaction().map_err(settings_error)?;
+        let recorded_unix_ms = current_unix_ms()?;
+        for preview_root in preview_roots {
+            transaction
+                .execute(
+                    "INSERT INTO preview_root_ownership(preview_root, state, recorded_unix_ms)
+                     VALUES (?1, 'pending', ?2)
+                     ON CONFLICT(preview_root) DO UPDATE SET
+                       state = 'pending',
+                       recorded_unix_ms = excluded.recorded_unix_ms",
+                    params![preview_root, recorded_unix_ms],
+                )
+                .map_err(settings_error)?;
+        }
+        transaction.commit().map_err(settings_error)
+    }
+
     fn load_retired_preview_roots(&mut self) -> Result<Vec<String>, ScanError> {
         self.load_preview_roots("retired")
     }

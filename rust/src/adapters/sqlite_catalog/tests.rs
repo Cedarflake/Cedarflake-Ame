@@ -120,6 +120,86 @@ fn preview_artifact_index_rolls_back_when_active_location_is_stale() {
 }
 
 #[test]
+fn preview_publication_rejects_same_timestamp_file_identity_replacement() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let mut catalog = SqliteCatalog::open(path).expect("catalog");
+    publish_fixture(
+        &mut catalog,
+        "preview-original-scan",
+        "preview-identity-root",
+        "C:\\PreviewIdentitySource",
+        "preview-identity-location",
+    );
+    let mut original = catalog
+        .load_active_location("preview-identity-location")
+        .expect("original location query")
+        .expect("original location");
+    let replacement_scan = fixture_request("preview-replacement-scan", "C:\\PreviewIdentitySource");
+    let mut replacement = original.clone();
+    replacement.absolute_path = "C:\\PreviewIdentitySource\\replacement.png".to_owned();
+    replacement.display_path = replacement.absolute_path.clone();
+    replacement.relative_path = "replacement.png".to_owned();
+    replacement.file_identity = Some(FileIdentityEvidence {
+        scheme: "windows-file-id-v1".to_owned(),
+        value: "volume:replacement".to_owned(),
+    });
+    replacement.preview_path.clear();
+    replacement.preview_status = PreviewStatus::Pending;
+    catalog
+        .begin_scan(
+            &replacement_scan,
+            "preview-identity-root",
+            &replacement_scan.root_path,
+        )
+        .expect("begin replacement scan");
+    catalog
+        .stage_location(
+            &replacement_scan.scan_id,
+            "preview-identity-root",
+            &replacement,
+        )
+        .expect("stage replacement");
+    catalog
+        .publish_scan(&replacement_scan.scan_id, "preview-identity-root", 1, 0)
+        .expect("publish replacement scan");
+    original.preview_path = "C:\\AmeCache\\stale-preview.jpg".to_owned();
+    original.preview_status = PreviewStatus::Ready;
+    let artifact = PreviewArtifact {
+        artifact_key: "stale-preview-artifact".to_owned(),
+        algorithm_id: "ame-jpeg-thumbnail".to_owned(),
+        algorithm_version: 2,
+        orientation_contract: "exif-display-v1".to_owned(),
+        size_bucket: 256,
+        path: original.preview_path.clone(),
+        byte_size: 1_024,
+        encoded_width: 256,
+        encoded_height: 192,
+        width: original.width,
+        height: original.height,
+    };
+
+    let error = catalog
+        .update_active_preview(&original, Some(&artifact))
+        .expect_err("stale identity publication");
+    let artifact_count: i64 = catalog
+        .connection
+        .query_row("SELECT COUNT(*) FROM preview_artifacts", [], |row| {
+            row.get(0)
+        })
+        .expect("artifact count");
+
+    assert_eq!(error.code, "active_preview_location_stale");
+    assert_eq!(artifact_count, 0);
+    let active = catalog
+        .load_active_location("preview-identity-location")
+        .expect("active replacement query")
+        .expect("active replacement");
+    assert_eq!(active.absolute_path, replacement.absolute_path);
+    assert!(matches!(active.preview_status, PreviewStatus::Pending));
+}
+
+#[test]
 fn preview_usage_touches_are_coarsened_to_page_publication_intervals() {
     let directory = tempdir().expect("temporary directory");
     let path = directory.path().join("catalog.sqlite3");
@@ -243,6 +323,14 @@ fn preview_root_activation_resets_only_artifacts_outside_the_new_root() {
         })
         .expect("artifact count");
     assert_eq!(artifact_count, 1);
+    assert!(
+        catalog
+            .is_preview_artifact_path_indexed(
+                "C:\\EquivalentPreviewAlias\\current.jpg",
+                Some("root-switch-current"),
+            )
+            .expect("artifact-key ownership lookup")
+    );
 }
 
 #[test]
@@ -304,7 +392,7 @@ fn preview_reclamation_orders_stale_before_lru_and_preserves_protected_locations
             "ame-jpeg-thumbnail",
             2,
             "exif-display-v1",
-            "C:\\AmeCache\\",
+            "c:\\amecache\\",
             8,
         )
         .expect("reclamation candidates");

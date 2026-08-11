@@ -4,8 +4,8 @@ use std::path::Path;
 
 use crate::adapters::{
     LocalPreviewStore, PREVIEW_ALGORITHM_ID, PREVIEW_ALGORITHM_VERSION,
-    PREVIEW_ORIENTATION_CONTRACT, SqliteCatalog, is_ame_preview_cache_entry,
-    is_managed_preview_cleanup_entry,
+    PREVIEW_ORIENTATION_CONTRACT, SqliteCatalog, current_preview_artifact_key,
+    is_ame_preview_cache_entry, is_managed_preview_cleanup_entry,
 };
 use crate::domain::ScanError;
 use crate::ports::CatalogRepository;
@@ -113,8 +113,9 @@ fn remove_interrupted_and_unreferenced(
             continue;
         }
         let is_temporary = path.extension().and_then(|extension| extension.to_str()) == Some("tmp");
-        let is_unreferenced =
-            !is_temporary && !catalog.is_preview_artifact_path_indexed(&path.to_string_lossy())?;
+        let artifact_key = current_preview_artifact_key(&path);
+        let is_unreferenced = !is_temporary
+            && !catalog.is_preview_artifact_path_indexed(&path.to_string_lossy(), artifact_key)?;
         if !is_temporary && !is_unreferenced {
             continue;
         }

@@ -69,7 +69,10 @@ pub fn update_storage_settings(update: StorageSettingsUpdate) -> Result<StorageS
 
     if let Some(catalog_directory) = update.catalog_directory {
         let directory = validate_absolute_directory(&catalog_directory, "catalog")?;
-        let candidate = directory.join("ame.sqlite3");
+        let candidate = preserve_active_path_if_equivalent(
+            directory.join("ame.sqlite3"),
+            &active.catalog_path,
+        )?;
         if !resolved_paths_same(&candidate, &active.catalog_path)?
             && active_catalog_has_roots(&active.catalog_path)?
         {
@@ -82,10 +85,12 @@ pub fn update_storage_settings(update: StorageSettingsUpdate) -> Result<StorageS
     }
     if let Some(preview_cache_directory) = update.preview_cache_directory {
         let directory = validate_absolute_directory(&preview_cache_directory, "preview cache")?;
-        configured.preview_root = directory
-            .join(PREVIEW_CACHE_VERSION)
-            .to_string_lossy()
-            .into_owned();
+        configured.preview_root = preserve_active_path_if_equivalent(
+            directory.join(PREVIEW_CACHE_VERSION),
+            &active.preview_root,
+        )?
+        .to_string_lossy()
+        .into_owned();
     }
     configured.preview_budget_bytes = update.preview_budget_bytes;
     validate_configuration_paths(&active.catalog_path, &configured)?;
@@ -153,22 +158,62 @@ fn activate_configured_preview_root_with(
     let target = PathBuf::from(&configured.preview_root);
     let mut settings = SqliteStorageSettings::open(settings_path.to_path_buf())?;
     let pending_roots = settings.load_pending_preview_roots()?;
+    if let Err(validation_error) = validate_preview_root_outside_sources(catalog_path, &target) {
+        return initialize_previous_preview_root(
+            &pending_roots,
+            configured.preview_budget_bytes,
+            &mut initialize,
+        )
+        .ok_or(validation_error);
+    }
     if let Err(target_error) = initialize(&target, configured.preview_budget_bytes) {
-        for pending_root in pending_roots {
-            let previous = PathBuf::from(pending_root);
-            if initialize(&previous, configured.preview_budget_bytes).is_ok() {
-                return Ok(previous);
-            }
-        }
-        return Err(target_error);
+        return initialize_previous_preview_root(
+            &pending_roots,
+            configured.preview_budget_bytes,
+            &mut initialize,
+        )
+        .ok_or(target_error);
     }
 
-    if !pending_roots.is_empty() && catalog_path.exists() {
-        let mut catalog = SqliteCatalog::open(catalog_path.to_path_buf())?;
-        catalog.reset_previews_outside_root(&preview_root_prefix(&target))?;
+    if let Err(activation_error) = settings.activate_preview_root(&configured.preview_root) {
+        return initialize_previous_preview_root(
+            &pending_roots,
+            configured.preview_budget_bytes,
+            &mut initialize,
+        )
+        .ok_or(activation_error);
     }
-    settings.activate_preview_root(&configured.preview_root)?;
+    if !pending_roots.is_empty() && catalog_path.exists() {
+        let reset_result =
+            SqliteCatalog::open(catalog_path.to_path_buf()).and_then(|mut catalog| {
+                catalog
+                    .reset_previews_outside_root(&preview_root_prefix(&target))
+                    .map(|_| ())
+            });
+        if let Err(reset_error) = reset_result {
+            settings.restore_pending_preview_roots(&pending_roots)?;
+            return initialize_previous_preview_root(
+                &pending_roots,
+                configured.preview_budget_bytes,
+                &mut initialize,
+            )
+            .ok_or(reset_error);
+        }
+    }
     Ok(target)
+}
+
+fn initialize_previous_preview_root(
+    pending_roots: &[String],
+    preview_budget_bytes: u64,
+    initialize: &mut impl FnMut(&Path, u64) -> Result<(), ScanError>,
+) -> Option<PathBuf> {
+    pending_roots.iter().find_map(|pending_root| {
+        let previous = PathBuf::from(pending_root);
+        initialize(&previous, preview_budget_bytes)
+            .is_ok()
+            .then_some(previous)
+    })
 }
 
 fn initialize_preview_root(path: &Path, budget_bytes: u64) -> Result<(), ScanError> {
@@ -267,6 +312,16 @@ fn validate_absolute_directory(value: &str, label: &str) -> Result<PathBuf, Scan
     Ok(path)
 }
 
+fn preserve_active_path_if_equivalent(
+    candidate: PathBuf,
+    active: &Path,
+) -> Result<PathBuf, ScanError> {
+    if resolved_paths_same(&candidate, active)? {
+        return Ok(active.to_path_buf());
+    }
+    Ok(candidate)
+}
+
 fn validate_configuration_paths(
     active_catalog_path: &Path,
     configuration: &StorageConfiguration,
@@ -297,11 +352,41 @@ pub(crate) fn validate_source_root_storage_paths(
     source_root: &Path,
     storage: &StoragePaths,
 ) -> Result<(), ScanError> {
-    for (label, storage_path) in [
-        ("catalog", storage.catalog_path.as_path()),
-        ("preview cache", storage.preview_root.as_path()),
-        ("settings", storage.settings_path.as_path()),
-    ] {
+    validate_source_root_against_paths(
+        source_root,
+        [
+            ("catalog", storage.catalog_path.as_path()),
+            ("preview cache", storage.preview_root.as_path()),
+            ("settings", storage.settings_path.as_path()),
+        ],
+    )?;
+    if !storage.settings_path.exists() {
+        return Ok(());
+    }
+    let defaults = StorageConfiguration {
+        catalog_path: storage.catalog_path.to_string_lossy().into_owned(),
+        preview_root: storage.preview_root.to_string_lossy().into_owned(),
+        preview_budget_bytes: storage.preview_budget_bytes,
+    };
+    let mut settings = SqliteStorageSettings::open(storage.settings_path.clone())?;
+    let configured = settings.load_or_initialize(&defaults)?;
+    validate_source_root_against_paths(
+        source_root,
+        [
+            ("configured catalog", Path::new(&configured.catalog_path)),
+            (
+                "configured preview cache",
+                Path::new(&configured.preview_root),
+            ),
+        ],
+    )
+}
+
+fn validate_source_root_against_paths<'a>(
+    source_root: &Path,
+    storage_paths: impl IntoIterator<Item = (&'a str, &'a Path)>,
+) -> Result<(), ScanError> {
+    for (label, storage_path) in storage_paths {
         if resolved_paths_overlap(source_root, storage_path)? {
             return Err(ScanError::new(
                 "source_root_overlaps_storage",
@@ -360,9 +445,7 @@ fn active_catalog_has_roots(path: &Path) -> Result<bool, ScanError> {
 fn paths_overlap(left: &Path, right: &Path) -> bool {
     let left = normalized_path(left);
     let right = normalized_path(right);
-    left == right
-        || left.starts_with(&format!("{right}\\"))
-        || right.starts_with(&format!("{left}\\"))
+    normalized_path_is_within(&left, &right) || normalized_path_is_within(&right, &left)
 }
 
 pub(crate) fn resolved_paths_overlap(left: &Path, right: &Path) -> Result<bool, ScanError> {
@@ -371,9 +454,18 @@ pub(crate) fn resolved_paths_overlap(left: &Path, right: &Path) -> Result<bool, 
     }
     let left = resolved_normalized_path(left)?;
     let right = resolved_normalized_path(right)?;
-    Ok(left == right
-        || left.starts_with(&format!("{right}\\"))
-        || right.starts_with(&format!("{left}\\")))
+    Ok(normalized_path_is_within(&left, &right) || normalized_path_is_within(&right, &left))
+}
+
+pub(crate) fn resolved_path_is_within(path: &Path, root: &Path) -> Result<bool, ScanError> {
+    let path_text = normalized_path(path);
+    let root_text = normalized_path(root);
+    if normalized_path_is_within(&path_text, &root_text) {
+        return Ok(true);
+    }
+    let path_text = resolved_normalized_path(path)?;
+    let root_text = resolved_normalized_path(root)?;
+    Ok(normalized_path_is_within(&path_text, &root_text))
 }
 
 pub(crate) fn resolved_paths_same(left: &Path, right: &Path) -> Result<bool, ScanError> {
@@ -445,6 +537,10 @@ fn normalize_path_text(path: &str) -> String {
     path.replace('/', "\\")
         .trim_end_matches('\\')
         .to_lowercase()
+}
+
+fn normalized_path_is_within(path: &str, root: &str) -> bool {
+    path == root || path.starts_with(&format!("{root}\\"))
 }
 
 fn storage_status(
@@ -542,6 +638,7 @@ fn catalog_size(path: &Path) -> Result<u64, ScanError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::{AssetLocationView, PreviewStatus, ScanRequest};
     use crate::ports::StorageSettingsRepository;
     use tempfile::tempdir;
 
@@ -599,6 +696,28 @@ mod tests {
     }
 
     #[test]
+    fn equivalent_storage_candidate_preserves_the_active_path_identity() {
+        let directory = tempdir().expect("temporary directory");
+        let active = directory
+            .path()
+            .join("previews")
+            .join(PREVIEW_CACHE_VERSION);
+        let nested = directory.path().join("nested");
+        fs::create_dir_all(&active).expect("active preview root");
+        fs::create_dir_all(&nested).expect("alias parent");
+        let candidate = nested
+            .join("..")
+            .join("previews")
+            .join(PREVIEW_CACHE_VERSION);
+
+        assert_eq!(
+            preserve_active_path_if_equivalent(candidate, &active)
+                .expect("equivalent storage path"),
+            active
+        );
+    }
+
+    #[test]
     fn source_root_cannot_contain_active_storage() {
         let directory = tempdir().expect("temporary directory");
         let source = directory.path().join("source");
@@ -613,6 +732,38 @@ mod tests {
 
         let error = validate_source_root_storage_paths(&source, &storage)
             .expect_err("overlapping source must be rejected");
+
+        assert_eq!(error.code, "source_root_overlaps_storage");
+    }
+
+    #[test]
+    fn source_root_cannot_contain_a_configured_preview_target() {
+        let directory = tempdir().expect("temporary directory");
+        let source = directory.path().join("source");
+        let active_preview_root = directory.path().join("active-previews");
+        let storage = StoragePaths {
+            catalog_path: directory.path().join("catalog").join("ame.sqlite3"),
+            preview_root: active_preview_root.clone(),
+            preview_budget_bytes: DEFAULT_PREVIEW_BUDGET_BYTES,
+            settings_path: directory.path().join("settings").join("storage.sqlite3"),
+        };
+        let configured = StorageConfiguration {
+            catalog_path: storage.catalog_path.to_string_lossy().into_owned(),
+            preview_root: source
+                .join("pending-previews")
+                .to_string_lossy()
+                .into_owned(),
+            preview_budget_bytes: DEFAULT_PREVIEW_BUDGET_BYTES,
+        };
+        fs::create_dir_all(&source).expect("source root");
+        let mut settings =
+            SqliteStorageSettings::open(storage.settings_path.clone()).expect("storage settings");
+        settings
+            .save(&configured, Some(&active_preview_root.to_string_lossy()))
+            .expect("save configured preview target");
+
+        let error = validate_source_root_storage_paths(&source, &storage)
+            .expect_err("configured preview overlap must be rejected");
 
         assert_eq!(error.code, "source_root_overlaps_storage");
     }
@@ -779,6 +930,122 @@ mod tests {
     }
 
     #[test]
+    fn overlapping_preview_root_activation_keeps_the_previous_root() {
+        let storage = tempdir().expect("storage");
+        let source_root = storage.path().join("source");
+        let catalog_path = storage.path().join("catalog.sqlite3");
+        let settings_path = storage.path().join("settings.sqlite3");
+        let old_root = storage.path().join("old-previews");
+        let target_root = source_root.join("target-previews");
+        publish_storage_fixture(&catalog_path, &source_root, &old_root);
+        let configured =
+            save_pending_preview_target(&settings_path, &catalog_path, &old_root, &target_root);
+        let mut initialized = Vec::new();
+
+        let active_root = activate_configured_preview_root_with(
+            &settings_path,
+            &catalog_path,
+            &configured,
+            |path, _| {
+                initialized.push(path.to_path_buf());
+                Ok(())
+            },
+        )
+        .expect("fall back from overlapping target");
+
+        assert_eq!(active_root, old_root);
+        assert_eq!(initialized.as_slice(), std::slice::from_ref(&old_root));
+        let mut settings = SqliteStorageSettings::open(settings_path).expect("settings");
+        assert_eq!(
+            settings
+                .load_pending_preview_roots()
+                .expect("pending roots"),
+            vec![old_root.to_string_lossy().into_owned()]
+        );
+    }
+
+    #[test]
+    fn settings_activation_failure_keeps_the_previous_preview_root() {
+        let storage = tempdir().expect("storage");
+        let catalog_path = storage.path().join("catalog.sqlite3");
+        let settings_path = storage.path().join("settings.sqlite3");
+        let old_root = storage.path().join("old-previews");
+        let target_root = storage.path().join("target-previews");
+        let configured =
+            save_pending_preview_target(&settings_path, &catalog_path, &old_root, &target_root);
+        rusqlite::Connection::open(&settings_path)
+            .expect("settings trigger connection")
+            .execute_batch(
+                "CREATE TRIGGER fail_preview_root_activation
+                 BEFORE UPDATE OF state ON preview_root_ownership
+                 BEGIN SELECT RAISE(ABORT, 'activation failure'); END;",
+            )
+            .expect("activation failure trigger");
+
+        let active_root = activate_configured_preview_root_with(
+            &settings_path,
+            &catalog_path,
+            &configured,
+            |_, _| Ok(()),
+        )
+        .expect("fall back after settings activation failure");
+
+        assert_eq!(active_root, old_root);
+        let mut settings = SqliteStorageSettings::open(settings_path).expect("settings");
+        assert_eq!(
+            settings
+                .load_pending_preview_roots()
+                .expect("pending roots"),
+            vec![old_root.to_string_lossy().into_owned()]
+        );
+    }
+
+    #[test]
+    fn catalog_reset_failure_restores_the_previous_preview_root() {
+        let storage = tempdir().expect("storage");
+        let source_root = storage.path().join("source");
+        let catalog_path = storage.path().join("catalog.sqlite3");
+        let settings_path = storage.path().join("settings.sqlite3");
+        let old_root = storage.path().join("old-previews");
+        let target_root = storage.path().join("target-previews");
+        publish_storage_fixture(&catalog_path, &source_root, &old_root);
+        let configured =
+            save_pending_preview_target(&settings_path, &catalog_path, &old_root, &target_root);
+        rusqlite::Connection::open(&catalog_path)
+            .expect("catalog trigger connection")
+            .execute_batch(
+                "CREATE TRIGGER fail_preview_reset
+                 BEFORE UPDATE OF preview_path ON asset_locations
+                 BEGIN SELECT RAISE(ABORT, 'reset failure'); END;",
+            )
+            .expect("preview reset failure trigger");
+
+        let active_root = activate_configured_preview_root_with(
+            &settings_path,
+            &catalog_path,
+            &configured,
+            |_, _| Ok(()),
+        )
+        .expect("restore previous root after reset failure");
+
+        assert_eq!(active_root, old_root);
+        let mut settings = SqliteStorageSettings::open(settings_path).expect("settings");
+        assert_eq!(
+            settings
+                .load_pending_preview_roots()
+                .expect("pending roots"),
+            vec![old_root.to_string_lossy().into_owned()]
+        );
+        let catalog = SqliteCatalog::open(catalog_path).expect("catalog");
+        let location = catalog
+            .load_active_location("storage-location")
+            .expect("active location")
+            .expect("stored location");
+        assert!(matches!(location.preview_status, PreviewStatus::Ready));
+        assert!(Path::new(&location.preview_path).starts_with(&old_root));
+    }
+
+    #[test]
     fn storage_status_separates_access_and_display_paths() {
         let storage = tempdir().expect("storage");
         let active = StoragePaths {
@@ -832,5 +1099,80 @@ mod tests {
         let status = storage_status(&active, &configured).expect("storage status");
 
         assert_eq!(status.preview_used_bytes, 20);
+    }
+
+    fn save_pending_preview_target(
+        settings_path: &Path,
+        catalog_path: &Path,
+        old_root: &Path,
+        target_root: &Path,
+    ) -> StorageConfiguration {
+        let defaults = StorageConfiguration {
+            catalog_path: catalog_path.to_string_lossy().into_owned(),
+            preview_root: old_root.to_string_lossy().into_owned(),
+            preview_budget_bytes: MIN_PREVIEW_BUDGET_BYTES,
+        };
+        let configured = StorageConfiguration {
+            preview_root: target_root.to_string_lossy().into_owned(),
+            ..defaults.clone()
+        };
+        let mut settings =
+            SqliteStorageSettings::open(settings_path.to_path_buf()).expect("storage settings");
+        settings
+            .load_or_initialize(&defaults)
+            .expect("initialize storage settings");
+        settings
+            .save(&configured, Some(&defaults.preview_root))
+            .expect("save pending preview target");
+        configured
+    }
+
+    fn publish_storage_fixture(catalog_path: &Path, source_root: &Path, preview_root: &Path) {
+        fs::create_dir_all(source_root).expect("source root");
+        fs::create_dir_all(preview_root).expect("preview root");
+        let mut catalog = SqliteCatalog::open(catalog_path.to_path_buf()).expect("catalog");
+        let request = ScanRequest {
+            scan_id: "storage-scan".to_owned(),
+            root_path: source_root.to_string_lossy().into_owned(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 512,
+        };
+        catalog
+            .begin_scan(&request, "storage-root", &request.root_path)
+            .expect("begin storage scan");
+        catalog
+            .stage_location(
+                &request.scan_id,
+                "storage-root",
+                &AssetLocationView {
+                    asset_id: "storage-asset".to_owned(),
+                    location_id: "storage-location".to_owned(),
+                    root_id: "storage-root".to_owned(),
+                    absolute_path: source_root.join("one.png").to_string_lossy().into_owned(),
+                    display_path: "source\\one.png".to_owned(),
+                    relative_path: "one.png".to_owned(),
+                    preview_path: preview_root
+                        .join("preview.jpg")
+                        .to_string_lossy()
+                        .into_owned(),
+                    file_size: 20,
+                    created_unix_ms: Some(25),
+                    modified_unix_ms: 30,
+                    file_identity: None,
+                    width: 40,
+                    height: 50,
+                    preview_status: PreviewStatus::Ready,
+                    preview_issue_code: None,
+                    preview_issue_message: None,
+                    metadata_engine_id: "fixture-metadata".to_owned(),
+                    metadata_engine_version: "1".to_owned(),
+                    capture_time: None,
+                },
+            )
+            .expect("stage storage location");
+        catalog
+            .publish_scan(&request.scan_id, "storage-root", 1, 0)
+            .expect("publish storage scan");
     }
 }

@@ -413,9 +413,10 @@ impl CatalogRepository for SqliteCatalog {
                      preview_status = ?5, preview_issue_code = ?6,
                      preview_issue_message = ?7
                  WHERE location_id = ?1 AND file_size = ?8 AND modified_unix_ms = ?9
-                   AND scan_id IN (
-                     SELECT active_scan_id FROM library_roots
-                     WHERE active_scan_id IS NOT NULL
+                   AND root_id = ?10 AND absolute_path = ?11
+                   AND file_identity_scheme IS ?12 AND file_identity_value IS ?13
+                   AND scan_id = (
+                     SELECT active_scan_id FROM library_roots WHERE id = ?10
                    )",
                 params![
                     location.location_id,
@@ -427,6 +428,16 @@ impl CatalogRepository for SqliteCatalog {
                     location.preview_issue_message,
                     file_size,
                     location.modified_unix_ms,
+                    location.root_id,
+                    location.absolute_path,
+                    location
+                        .file_identity
+                        .as_ref()
+                        .map(|identity| &identity.scheme),
+                    location
+                        .file_identity
+                        .as_ref()
+                        .map(|identity| &identity.value),
                 ],
             )
             .map_err(database_error)?;
@@ -499,13 +510,19 @@ impl CatalogRepository for SqliteCatalog {
         })
     }
 
-    fn is_preview_artifact_path_indexed(&self, path: &str) -> Result<bool, ScanError> {
+    fn is_preview_artifact_path_indexed(
+        &self,
+        path: &str,
+        artifact_key: Option<&str>,
+    ) -> Result<bool, ScanError> {
         self.connection
             .query_row(
                 "SELECT EXISTS(
-                   SELECT 1 FROM preview_artifacts WHERE artifact_path = ?1
+                   SELECT 1 FROM preview_artifacts
+                   WHERE lower(artifact_path) = lower(?1)
+                      OR (?2 IS NOT NULL AND artifact_key = ?2)
                  )",
-                [path],
+                params![path, artifact_key],
                 |row| row.get(0),
             )
             .map_err(database_error)
@@ -665,7 +682,7 @@ impl CatalogRepository for SqliteCatalog {
         let query = format!(
             "SELECT artifact_key, location_id, artifact_path
              FROM preview_artifacts
-             WHERE substr(artifact_path, 1, length(?4)) = ?4
+             WHERE lower(substr(artifact_path, 1, length(?4))) = lower(?4)
              {protected_clause}
              ORDER BY
                CASE

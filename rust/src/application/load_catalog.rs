@@ -8,7 +8,7 @@ use crate::domain::{
 };
 use crate::ports::CatalogRepository;
 
-use super::storage_paths;
+use super::{storage::resolved_path_is_within, storage_paths};
 
 pub fn load_catalog(
     max_items: u32,
@@ -64,9 +64,8 @@ fn reconcile_snapshot_previews(
     snapshot: &mut CatalogSnapshot,
 ) -> Result<(), ScanError> {
     for asset in &mut snapshot.assets {
-        if matches!(asset.preview_status, PreviewStatus::Ready)
-            && !is_active_preview_artifact(&asset.preview_path, active_preview_root)
-        {
+        let is_active = is_active_preview_artifact(&asset.preview_path, active_preview_root)?;
+        if matches!(asset.preview_status, PreviewStatus::Ready) && !is_active {
             asset.preview_path.clear();
             asset.preview_status = PreviewStatus::Pending;
             asset.preview_issue_code = None;
@@ -77,12 +76,15 @@ fn reconcile_snapshot_previews(
     Ok(())
 }
 
-fn is_active_preview_artifact(path: &str, active_preview_root: &Path) -> bool {
+fn is_active_preview_artifact(path: &str, active_preview_root: &Path) -> Result<bool, ScanError> {
     let path = Path::new(path);
-    !path.as_os_str().is_empty()
-        && path.starts_with(active_preview_root)
-        && path.is_file()
-        && is_current_preview_artifact(&path.to_string_lossy())
+    if path.as_os_str().is_empty()
+        || !path.is_file()
+        || !is_current_preview_artifact(&path.to_string_lossy())
+    {
+        return Ok(false);
+    }
+    resolved_path_is_within(path, active_preview_root)
 }
 
 pub fn load_gallery_timeline(query: GalleryQuery) -> Result<GalleryTimeline, ScanError> {
@@ -305,6 +307,20 @@ mod tests {
                 None,
             )
             .expect("snapshot");
+
+        let alias_parent = old_preview_root.join("nested");
+        fs::create_dir_all(&alias_parent).expect("preview alias parent");
+        let equivalent_preview_root = alias_parent.join("..");
+        reconcile_snapshot_previews(&mut catalog, &equivalent_preview_root, &mut snapshot)
+            .expect("equivalent preview-root reconciliation");
+        assert!(matches!(
+            snapshot.assets[0].preview_status,
+            PreviewStatus::Ready
+        ));
+        assert_eq!(
+            Path::new(&snapshot.assets[0].preview_path),
+            old_artifact.as_path()
+        );
 
         reconcile_snapshot_previews(&mut catalog, &new_preview_root, &mut snapshot)
             .expect("preview-root reconciliation");
