@@ -366,6 +366,7 @@ void main() {
     queue.request(_asset("viewer"), priority: LibraryPreviewPriority.viewer);
 
     expect(previewer.requests, ["guard", "viewer"]);
+    expect(previewer.protectedRequests["viewer"], {"guard", "viewer"});
     previewer.succeed("viewer", _readyAsset("viewer"));
     previewer.succeed("guard", _readyAsset("guard"));
     await _flushAsyncWork();
@@ -403,6 +404,7 @@ LibraryAsset _readyAsset(String id, {int modifiedUnixMs = 1}) {
 
 class _ControlledPreviewer implements LibraryPreviewer {
   final requests = <String>[];
+  final protectedRequests = <String, Set<String>>{};
   final Map<String, Queue<Completer<LibraryAsset>>> _attempts = {};
 
   @override
@@ -410,8 +412,10 @@ class _ControlledPreviewer implements LibraryPreviewer {
     required String locationId,
     required int previewEdge,
     bool retry = false,
+    Iterable<String> protectedLocationIds = const [],
   }) {
     requests.add(locationId);
+    protectedRequests[locationId] = protectedLocationIds.toSet();
     final completer = Completer<LibraryAsset>();
     (_attempts[locationId] ??= Queue()).addLast(completer);
     return completer.future;

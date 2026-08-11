@@ -11,6 +11,7 @@ class StorageStatusModel {
     required this.previewUsedBytes,
     required this.catalogUsedBytes,
     required this.requiresRestart,
+    required this.retiredPreviewRoots,
   });
 
   final String settingsPath;
@@ -24,6 +25,17 @@ class StorageStatusModel {
   final BigInt previewUsedBytes;
   final BigInt catalogUsedBytes;
   final bool requiresRestart;
+  final List<RetiredPreviewRootModel> retiredPreviewRoots;
+}
+
+class RetiredPreviewRootModel {
+  const RetiredPreviewRootModel({
+    required this.previewRoot,
+    required this.displayPath,
+  });
+
+  final String previewRoot;
+  final String displayPath;
 }
 
 class StorageSettingsFailure implements Exception {
@@ -34,4 +46,36 @@ class StorageSettingsFailure implements Exception {
 
   @override
   String toString() => "$code: $message";
+}
+
+enum PreviewCleanupPhase { started, running, completed, cancelled, failed }
+
+class PreviewCleanupUpdate {
+  const PreviewCleanupUpdate({
+    required this.operationId,
+    required this.phase,
+    required this.processedFiles,
+    required this.totalFiles,
+    required this.removedFiles,
+    required this.removedBytes,
+    required this.issueCount,
+    this.issueMessage,
+    this.errorMessage,
+  });
+
+  final String operationId;
+  final PreviewCleanupPhase phase;
+  final BigInt processedFiles;
+  final BigInt totalFiles;
+  final BigInt removedFiles;
+  final BigInt removedBytes;
+  final BigInt issueCount;
+  final String? issueMessage;
+  final String? errorMessage;
+
+  bool get isActive =>
+      phase == PreviewCleanupPhase.started ||
+      phase == PreviewCleanupPhase.running;
+
+  bool get isTerminal => !isActive;
 }

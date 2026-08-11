@@ -1,3 +1,5 @@
+import "dart:async";
+
 import "package:cedarflake_ame/features/settings/presentation/ame_settings_page.dart";
 import "package:cedarflake_ame/features/storage/application/storage_settings.dart";
 import "package:cedarflake_ame/features/storage/domain/storage_models.dart";
@@ -10,6 +12,7 @@ void main() {
     tester,
   ) async {
     final gateway = _FakeStorageSettingsGateway(_status());
+    addTearDown(gateway.dispose);
 
     await tester.pumpWidget(
       ProviderScope(
@@ -42,6 +45,7 @@ void main() {
     tester,
   ) async {
     final gateway = _FakeStorageSettingsGateway(_status());
+    addTearDown(gateway.dispose);
 
     await tester.pumpWidget(
       ProviderScope(
@@ -72,9 +76,159 @@ void main() {
     expect(find.text("现有文件不会被移动或删除"), findsOneWidget);
     expect(find.byKey(const Key("storage-settings-save-button")), findsNothing);
   });
+
+  testWidgets("confirms and reports foreground preview cleanup", (
+    tester,
+  ) async {
+    final gateway = _FakeStorageSettingsGateway(_status());
+    addTearDown(gateway.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [storageSettingsGatewayProvider.overrideWithValue(gateway)],
+        child: const MaterialApp(
+          home: Scaffold(body: AmeSettingsPage(hasLibraryRoots: true)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final cleanupRow = find.byKey(const Key("preview-cleanup-setting"));
+    final cleanupButton = find.descendant(
+      of: cleanupRow,
+      matching: find.text("清理"),
+    );
+    await Scrollable.ensureVisible(
+      tester.element(cleanupButton),
+      alignment: 0.5,
+      duration: Duration.zero,
+    );
+    await tester.pumpAndSettle();
+    await tester.pumpAndSettle();
+    await tester.tap(cleanupButton.hitTestable());
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AlertDialog), findsOneWidget);
+    expect(find.text("清理缩略图？"), findsOneWidget);
+    expect(find.textContaining("不会删除或修改原图片"), findsOneWidget);
+
+    await tester.tap(find.text("开始清理"));
+    await tester.pump();
+    final operationId = gateway.lastCleanupOperationId!;
+    gateway.cleanupController.add(
+      PreviewCleanupUpdate(
+        operationId: operationId,
+        phase: PreviewCleanupPhase.started,
+        processedFiles: BigInt.zero,
+        totalFiles: BigInt.from(2),
+        removedFiles: BigInt.zero,
+        removedBytes: BigInt.zero,
+        issueCount: BigInt.zero,
+      ),
+    );
+    await tester.pump();
+    gateway.cleanupController.add(
+      PreviewCleanupUpdate(
+        operationId: operationId,
+        phase: PreviewCleanupPhase.running,
+        processedFiles: BigInt.one,
+        totalFiles: BigInt.from(2),
+        removedFiles: BigInt.one,
+        removedBytes: BigInt.from(1024),
+        issueCount: BigInt.zero,
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text("正在清理缩略图"), findsOneWidget);
+    expect(find.textContaining("已处理 1 / 2 个文件"), findsOneWidget);
+    expect(
+      find.descendant(of: cleanupRow, matching: find.text("取消")),
+      findsOneWidget,
+    );
+
+    gateway.cleanupController.add(
+      PreviewCleanupUpdate(
+        operationId: operationId,
+        phase: PreviewCleanupPhase.completed,
+        processedFiles: BigInt.from(2),
+        totalFiles: BigInt.from(2),
+        removedFiles: BigInt.from(2),
+        removedBytes: BigInt.from(2048),
+        issueCount: BigInt.zero,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text("缩略图清理完成"), findsOneWidget);
+    expect(find.textContaining("已移除 2 个文件"), findsOneWidget);
+    expect(find.text("清理"), findsOneWidget);
+  });
+
+  testWidgets("cleans only an owned retired preview root after confirmation", (
+    tester,
+  ) async {
+    final retiredRoot = RetiredPreviewRootModel(
+      previewRoot: "D:\\OldAmePreviews\\ame-jpeg-thumbnail-v2-orientation",
+      displayPath: "D:\\OldAmePreviews\\ame-jpeg-thumbnail-v2-orientation",
+    );
+    final gateway = _FakeStorageSettingsGateway(
+      _status(retiredPreviewRoots: [retiredRoot]),
+    );
+    addTearDown(gateway.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [storageSettingsGatewayProvider.overrideWithValue(gateway)],
+        child: const MaterialApp(
+          home: Scaffold(body: AmeSettingsPage(hasLibraryRoots: true)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final retiredRow = find.byKey(
+      ValueKey("retired-preview-root-${retiredRoot.previewRoot}"),
+    );
+    final cleanupButton = find.descendant(
+      of: retiredRow,
+      matching: find.text("清理旧目录"),
+    );
+    await Scrollable.ensureVisible(
+      tester.element(cleanupButton),
+      alignment: 0.5,
+      duration: Duration.zero,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(cleanupButton.hitTestable());
+    await tester.pumpAndSettle();
+
+    expect(find.text("清理旧缩略图目录？"), findsOneWidget);
+    expect(find.textContaining("不会删除原图片或目录中的其他文件"), findsOneWidget);
+    await tester.tap(find.text("开始清理"));
+    await tester.pump();
+
+    expect(gateway.lastRetiredPreviewRoot, retiredRoot.previewRoot);
+    final operationId = gateway.lastCleanupOperationId!;
+    gateway.cleanupController.add(
+      PreviewCleanupUpdate(
+        operationId: operationId,
+        phase: PreviewCleanupPhase.completed,
+        processedFiles: BigInt.one,
+        totalFiles: BigInt.one,
+        removedFiles: BigInt.one,
+        removedBytes: BigInt.from(1024),
+        issueCount: BigInt.zero,
+      ),
+    );
+    await tester.pumpAndSettle();
+  });
 }
 
-StorageStatusModel _status({bool requiresRestart = false}) {
+StorageStatusModel _status({
+  bool requiresRestart = false,
+  List<RetiredPreviewRootModel> retiredPreviewRoots = const [],
+}) {
   return StorageStatusModel(
     settingsPath: "C:\\AmeConfig\\settings.sqlite3",
     activeCatalogPath: "C:\\AmeData\\catalog\\ame.sqlite3",
@@ -87,6 +241,7 @@ StorageStatusModel _status({bool requiresRestart = false}) {
     previewUsedBytes: BigInt.from(128 * 1024 * 1024),
     catalogUsedBytes: BigInt.from(4096),
     requiresRestart: requiresRestart,
+    retiredPreviewRoots: retiredPreviewRoots,
   );
 }
 
@@ -99,9 +254,35 @@ class _FakeStorageSettingsGateway implements StorageSettingsGateway {
 
   StorageStatusModel status;
   BigInt? lastPreviewBudgetBytes;
+  String? lastCleanupOperationId;
+  String? lastRetiredPreviewRoot;
+  final cleanupController = StreamController<PreviewCleanupUpdate>.broadcast();
 
   @override
   Future<StorageStatusModel> load() async => status;
+
+  @override
+  Stream<PreviewCleanupUpdate> clearPreviews({required String operationId}) {
+    lastCleanupOperationId = operationId;
+    return cleanupController.stream;
+  }
+
+  @override
+  Stream<PreviewCleanupUpdate> clearRetiredPreviews({
+    required String previewRoot,
+    required String operationId,
+  }) {
+    lastRetiredPreviewRoot = previewRoot;
+    lastCleanupOperationId = operationId;
+    return cleanupController.stream;
+  }
+
+  @override
+  Future<bool> cancelPreviewCleanup({required String operationId}) async {
+    return operationId == lastCleanupOperationId;
+  }
+
+  Future<void> dispose() => cleanupController.close();
 
   @override
   Future<StorageStatusModel> update({
@@ -122,6 +303,7 @@ class _FakeStorageSettingsGateway implements StorageSettingsGateway {
       previewUsedBytes: status.previewUsedBytes,
       catalogUsedBytes: status.catalogUsedBytes,
       requiresRestart: true,
+      retiredPreviewRoots: status.retiredPreviewRoots,
     );
     return status;
   }

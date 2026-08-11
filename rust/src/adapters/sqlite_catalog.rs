@@ -1,8 +1,9 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+use rusqlite::types::Value;
 use rusqlite::{Connection, OptionalExtension, Row, Transaction, params, params_from_iter};
 
 use crate::domain::{
@@ -10,8 +11,8 @@ use crate::domain::{
     ExpectedFileState, FileIdentityEvidence, GalleryLayoutDateGroup, GalleryLayoutManifestChunk,
     GalleryLayoutManifestCursor, GalleryQuery, GallerySortKey, GalleryTimeAnchor,
     GalleryTimeBucket, GalleryTimeline, LibraryFolderCursor, LibraryFolderPage,
-    LibraryRootAvailability, LibraryRootView, PreviewStatus, RecoverableScan, ScanCheckpoint,
-    ScanError, ScanIssue, ScanRequest,
+    LibraryRootAvailability, LibraryRootView, PreviewArtifact, PreviewReclamationCandidate,
+    PreviewStatus, RecoverableScan, ScanCheckpoint, ScanError, ScanIssue, ScanRequest,
 };
 use crate::ports::CatalogRepository;
 
@@ -28,9 +29,10 @@ use gallery::{
 };
 use migrations::migrate_schema;
 
-const SCHEMA_VERSION: i64 = 13;
+const SCHEMA_VERSION: i64 = 14;
 const LOCATION_STAGE_BATCH: usize = 128;
 const MAX_LAYOUT_MANIFEST_CHUNK_ITEMS: u32 = 4_096;
+const MAX_CATALOG_PAGE_ITEMS: u32 = 4_096;
 const LAYOUT_FLAG_DIMENSIONS_KNOWN: u8 = 1;
 const SQLITE_BUSY_TIMEOUT: Duration = Duration::from_secs(5);
 
@@ -322,10 +324,89 @@ impl CatalogRepository for SqliteCatalog {
         Ok(())
     }
 
-    fn update_active_preview(&mut self, location: &AssetLocationView) -> Result<(), ScanError> {
+    fn update_active_preview(
+        &mut self,
+        location: &AssetLocationView,
+        artifact: Option<&PreviewArtifact>,
+    ) -> Result<(), ScanError> {
         let file_size = sqlite_integer(location.file_size, "file size")?;
-        let updated = self
-            .connection
+        let transaction = self.connection.transaction().map_err(database_error)?;
+        if let Some(artifact) = artifact {
+            let artifact_bytes = sqlite_integer(artifact.byte_size, "preview artifact size")?;
+            transaction
+                .execute(
+                    "UPDATE preview_artifacts
+                     SET lifecycle_state = 'stale'
+                     WHERE location_id = ?1
+                       AND algorithm_id = ?2
+                       AND orientation_contract = ?3
+                       AND size_bucket = ?4
+                       AND artifact_key <> ?5
+                       AND lifecycle_state = 'ready'",
+                    params![
+                        location.location_id,
+                        artifact.algorithm_id,
+                        artifact.orientation_contract,
+                        i64::from(artifact.size_bucket),
+                        artifact.artifact_key,
+                    ],
+                )
+                .map_err(database_error)?;
+            transaction
+                .execute(
+                    "INSERT INTO preview_artifacts(
+                       artifact_key, location_id, source_file_size, source_modified_unix_ms,
+                       source_identity_scheme, source_identity_value, algorithm_id,
+                       algorithm_version, orientation_contract, size_bucket, encoded_width,
+                       encoded_height, artifact_path, byte_size, lifecycle_state,
+                       created_unix_ms, last_used_unix_ms
+                     ) VALUES (
+                       ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14,
+                       'ready', ?15, ?15
+                     )
+                     ON CONFLICT(artifact_key) DO UPDATE SET
+                       location_id = excluded.location_id,
+                       source_file_size = excluded.source_file_size,
+                       source_modified_unix_ms = excluded.source_modified_unix_ms,
+                       source_identity_scheme = excluded.source_identity_scheme,
+                       source_identity_value = excluded.source_identity_value,
+                       algorithm_id = excluded.algorithm_id,
+                       algorithm_version = excluded.algorithm_version,
+                       orientation_contract = excluded.orientation_contract,
+                       size_bucket = excluded.size_bucket,
+                       encoded_width = excluded.encoded_width,
+                       encoded_height = excluded.encoded_height,
+                       artifact_path = excluded.artifact_path,
+                       byte_size = excluded.byte_size,
+                       lifecycle_state = 'ready',
+                       last_used_unix_ms = excluded.last_used_unix_ms",
+                    params![
+                        artifact.artifact_key,
+                        location.location_id,
+                        file_size,
+                        location.modified_unix_ms,
+                        location
+                            .file_identity
+                            .as_ref()
+                            .map(|identity| &identity.scheme),
+                        location
+                            .file_identity
+                            .as_ref()
+                            .map(|identity| &identity.value),
+                        artifact.algorithm_id,
+                        i64::from(artifact.algorithm_version),
+                        artifact.orientation_contract,
+                        i64::from(artifact.size_bucket),
+                        i64::from(artifact.encoded_width),
+                        i64::from(artifact.encoded_height),
+                        artifact.path,
+                        artifact_bytes,
+                        unix_time_ms(),
+                    ],
+                )
+                .map_err(database_error)?;
+        }
+        let updated = transaction
             .execute(
                 "UPDATE asset_locations
                  SET preview_path = ?2, width = ?3, height = ?4,
@@ -355,7 +436,299 @@ impl CatalogRepository for SqliteCatalog {
                 "The active catalog location changed before its preview was updated",
             ));
         }
-        Ok(())
+        transaction.commit().map_err(database_error)
+    }
+
+    fn reset_all_previews_for_cleanup(&mut self) -> Result<u64, ScanError> {
+        self.flush_pending_locations()?;
+        let transaction = self.connection.transaction().map_err(database_error)?;
+        let updated = transaction
+            .execute(
+                "UPDATE asset_locations
+                 SET preview_path = '', preview_status = 'pending',
+                     preview_issue_code = NULL, preview_issue_message = NULL
+                 WHERE preview_path <> '' OR preview_status <> 'pending'
+                   OR preview_issue_code IS NOT NULL OR preview_issue_message IS NOT NULL",
+                [],
+            )
+            .map_err(database_error)?;
+        transaction
+            .execute("DELETE FROM preview_artifacts", [])
+            .map_err(database_error)?;
+        transaction.commit().map_err(database_error)?;
+        u64::try_from(updated).map_err(|_| {
+            ScanError::new(
+                "preview_cleanup_count_invalid",
+                "The preview cleanup update count exceeds the supported range",
+            )
+        })
+    }
+
+    fn reset_previews_outside_root(&mut self, preview_root_prefix: &str) -> Result<u64, ScanError> {
+        if preview_root_prefix.is_empty() {
+            return Err(ScanError::new(
+                "preview_root_prefix_empty",
+                "The active preview root prefix is required",
+            ));
+        }
+        self.flush_pending_locations()?;
+        let transaction = self.connection.transaction().map_err(database_error)?;
+        let updated = transaction
+            .execute(
+                "UPDATE asset_locations
+                 SET preview_path = '', preview_status = 'pending',
+                     preview_issue_code = NULL, preview_issue_message = NULL
+                 WHERE preview_path <> ''
+                   AND lower(substr(preview_path, 1, length(?1))) <> lower(?1)",
+                [preview_root_prefix],
+            )
+            .map_err(database_error)?;
+        transaction
+            .execute(
+                "DELETE FROM preview_artifacts
+                 WHERE lower(substr(artifact_path, 1, length(?1))) <> lower(?1)",
+                [preview_root_prefix],
+            )
+            .map_err(database_error)?;
+        transaction.commit().map_err(database_error)?;
+        u64::try_from(updated).map_err(|_| {
+            ScanError::new(
+                "preview_root_reset_count_invalid",
+                "The preview-root reset count exceeds the supported range",
+            )
+        })
+    }
+
+    fn is_preview_artifact_path_indexed(&self, path: &str) -> Result<bool, ScanError> {
+        self.connection
+            .query_row(
+                "SELECT EXISTS(
+                   SELECT 1 FROM preview_artifacts WHERE artifact_path = ?1
+                 )",
+                [path],
+                |row| row.get(0),
+            )
+            .map_err(database_error)
+    }
+
+    fn load_preview_recovery_artifacts(
+        &self,
+        preview_root_prefix: &str,
+        after_artifact_key: Option<&str>,
+        limit: u32,
+    ) -> Result<Vec<PreviewReclamationCandidate>, ScanError> {
+        if preview_root_prefix.is_empty() || limit == 0 || limit > 4_096 {
+            return Err(ScanError::new(
+                "preview_recovery_query_invalid",
+                "Preview recovery requires a root prefix and a limit between 1 and 4096",
+            ));
+        }
+        let mut statement = self
+            .connection
+            .prepare(
+                "SELECT artifact_key, location_id, artifact_path
+                 FROM preview_artifacts
+                 WHERE lower(substr(artifact_path, 1, length(?1))) = lower(?1)
+                   AND (?2 IS NULL OR artifact_key > ?2)
+                 ORDER BY artifact_key
+                 LIMIT ?3",
+            )
+            .map_err(database_error)?;
+        let rows = statement
+            .query_map(
+                params![preview_root_prefix, after_artifact_key, i64::from(limit)],
+                |row| {
+                    Ok(PreviewReclamationCandidate {
+                        artifact_key: row.get(0)?,
+                        location_id: row.get(1)?,
+                        path: row.get(2)?,
+                    })
+                },
+            )
+            .map_err(database_error)?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(database_error)?;
+        Ok(rows)
+    }
+
+    fn reconcile_preview_artifact_bytes(
+        &mut self,
+        candidate: &PreviewReclamationCandidate,
+        actual_bytes: u64,
+    ) -> Result<bool, ScanError> {
+        let actual_bytes = i64::try_from(actual_bytes).map_err(|_| {
+            ScanError::new(
+                "preview_artifact_size_invalid",
+                "The preview artifact size exceeds the catalog range",
+            )
+        })?;
+        let updated = self
+            .connection
+            .execute(
+                "UPDATE preview_artifacts
+                 SET byte_size = ?4
+                 WHERE artifact_key = ?1 AND location_id = ?2 AND artifact_path = ?3
+                   AND byte_size <> ?4",
+                params![
+                    candidate.artifact_key,
+                    candidate.location_id,
+                    candidate.path,
+                    actual_bytes,
+                ],
+            )
+            .map_err(database_error)?;
+        Ok(updated != 0)
+    }
+
+    fn touch_preview_artifacts(
+        &mut self,
+        artifacts: &[(String, String)],
+    ) -> Result<u64, ScanError> {
+        if artifacts.len() > 4_096 {
+            return Err(ScanError::new(
+                "preview_touch_batch_too_large",
+                "Preview usage updates are limited to 4096 artifacts per batch",
+            ));
+        }
+        if artifacts.is_empty() {
+            return Ok(0);
+        }
+        let now = unix_time_ms();
+        let oldest_retained = now.saturating_sub(60_000);
+        let transaction = self.connection.transaction().map_err(database_error)?;
+        let mut statement = transaction
+            .prepare_cached(
+                "UPDATE preview_artifacts
+                 SET last_used_unix_ms = ?3
+                 WHERE location_id = ?1 AND artifact_path = ?2
+                   AND last_used_unix_ms < ?4",
+            )
+            .map_err(database_error)?;
+        let mut updated = 0_usize;
+        for (location_id, artifact_path) in artifacts {
+            updated = updated.saturating_add(
+                statement
+                    .execute(params![location_id, artifact_path, now, oldest_retained])
+                    .map_err(database_error)?,
+            );
+        }
+        drop(statement);
+        transaction.commit().map_err(database_error)?;
+        u64::try_from(updated).map_err(|_| {
+            ScanError::new(
+                "preview_touch_count_invalid",
+                "The preview usage update count exceeds the supported range",
+            )
+        })
+    }
+
+    fn load_preview_reclamation_candidates(
+        &self,
+        protected_location_ids: &[String],
+        current_algorithm_id: &str,
+        current_algorithm_version: u32,
+        current_orientation_contract: &str,
+        current_preview_root_prefix: &str,
+        limit: u32,
+    ) -> Result<Vec<PreviewReclamationCandidate>, ScanError> {
+        if limit == 0 || limit > 4_096 {
+            return Err(ScanError::new(
+                "preview_reclamation_limit_invalid",
+                "Preview reclamation candidate limits must be between 1 and 4096",
+            ));
+        }
+        let protected = protected_location_ids
+            .iter()
+            .filter(|location_id| !location_id.is_empty())
+            .collect::<HashSet<_>>();
+        let mut values = vec![
+            Value::Text(current_algorithm_id.to_owned()),
+            Value::Integer(i64::from(current_algorithm_version)),
+            Value::Text(current_orientation_contract.to_owned()),
+            Value::Text(current_preview_root_prefix.to_owned()),
+        ];
+        let protected_clause = if protected.is_empty() {
+            String::new()
+        } else {
+            let placeholders = protected
+                .iter()
+                .map(|location_id| {
+                    values.push(Value::Text((*location_id).clone()));
+                    format!("?{}", values.len())
+                })
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("AND location_id NOT IN ({placeholders})")
+        };
+        values.push(Value::Integer(i64::from(limit)));
+        let limit_parameter = values.len();
+        let query = format!(
+            "SELECT artifact_key, location_id, artifact_path
+             FROM preview_artifacts
+             WHERE substr(artifact_path, 1, length(?4)) = ?4
+             {protected_clause}
+             ORDER BY
+               CASE
+                 WHEN lifecycle_state <> 'ready' THEN 0
+                 WHEN algorithm_id <> ?1 OR algorithm_version <> ?2
+                   OR orientation_contract <> ?3 THEN 1
+                 ELSE 2
+               END,
+               last_used_unix_ms, artifact_key
+             LIMIT ?{limit_parameter}"
+        );
+        let mut statement = self.connection.prepare(&query).map_err(database_error)?;
+        let rows = statement
+            .query_map(params_from_iter(values), |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            })
+            .map_err(database_error)?;
+        let mut candidates = Vec::new();
+        for row in rows {
+            let (artifact_key, location_id, path) = row.map_err(database_error)?;
+            candidates.push(PreviewReclamationCandidate {
+                artifact_key,
+                location_id,
+                path,
+            });
+        }
+        Ok(candidates)
+    }
+
+    fn remove_reclaimed_preview(
+        &mut self,
+        candidate: &PreviewReclamationCandidate,
+    ) -> Result<bool, ScanError> {
+        let transaction = self.connection.transaction().map_err(database_error)?;
+        transaction
+            .execute(
+                "UPDATE asset_locations
+                 SET preview_path = '', preview_status = 'pending',
+                     preview_issue_code = NULL, preview_issue_message = NULL
+                 WHERE location_id = ?1 AND preview_path = ?2",
+                params![candidate.location_id, candidate.path],
+            )
+            .map_err(database_error)?;
+        let deleted = transaction
+            .execute(
+                "DELETE FROM preview_artifacts
+                 WHERE artifact_key = ?1 AND location_id = ?2 AND artifact_path = ?3",
+                params![
+                    candidate.artifact_key,
+                    candidate.location_id,
+                    candidate.path
+                ],
+            )
+            .map_err(database_error)?;
+        if deleted != 1 {
+            return Ok(false);
+        }
+        transaction.commit().map_err(database_error)?;
+        Ok(true)
     }
 
     fn record_issue(&mut self, scan_id: &str, issue: &ScanIssue) -> Result<(), ScanError> {
@@ -941,10 +1314,12 @@ impl CatalogRepository for SqliteCatalog {
         before: Option<&CatalogCursor>,
         anchor: Option<&GalleryTimeAnchor>,
     ) -> Result<CatalogSnapshot, ScanError> {
-        if max_items == 0 {
+        if max_items == 0 || max_items > MAX_CATALOG_PAGE_ITEMS {
             return Err(ScanError::new(
                 "catalog_page_limit_invalid",
-                "The catalog page limit must be greater than zero",
+                format!(
+                    "The catalog page limit must be between 1 and {MAX_CATALOG_PAGE_ITEMS} items"
+                ),
             ));
         }
         validate_gallery_query(query)?;

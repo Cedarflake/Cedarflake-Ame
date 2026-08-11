@@ -232,6 +232,7 @@ class LibraryPreviewQueue {
         locationId: request.asset.locationId,
         previewEdge: _previewEdge,
         retry: request.retry,
+        protectedLocationIds: {..._demandPriorities.keys, ..._active.keys},
       );
       if (_canPublish(request, previewed)) {
         _onResult(previewed);

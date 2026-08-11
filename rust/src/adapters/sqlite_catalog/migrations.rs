@@ -18,7 +18,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
 
     if !has_schema_info {
         let transaction = connection.transaction().map_err(database_error)?;
-        create_schema_v13(&transaction)?;
+        create_schema_v14(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -42,6 +42,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             10 => migrate_v10_to_v11(connection)?,
             11 => migrate_v11_to_v12(connection)?,
             12 => migrate_v12_to_v13(connection)?,
+            13 => migrate_v13_to_v14(connection)?,
             _ => {
                 return Err(ScanError::new(
                     "catalog_schema_unsupported",
@@ -52,13 +53,13 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
     }
 }
 
-fn create_schema_v13(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+fn create_schema_v14(transaction: &Transaction<'_>) -> Result<(), ScanError> {
     transaction
         .execute_batch(
             "CREATE TABLE schema_info (
                version INTEGER NOT NULL
              );
-             INSERT INTO schema_info(version) VALUES (13);
+             INSERT INTO schema_info(version) VALUES (14);
              CREATE TABLE catalog_state (
                revision INTEGER NOT NULL CHECK(revision >= 0)
              );
@@ -193,6 +194,40 @@ fn create_schema_v13(transaction: &Transaction<'_>) -> Result<(), ScanError> {
                relative_path TEXT NOT NULL,
                PRIMARY KEY(scan_id, directory_relative_path, relative_path),
                FOREIGN KEY(scan_id) REFERENCES scan_runs(id)
+             );
+             CREATE TABLE preview_artifacts (
+               artifact_key TEXT PRIMARY KEY,
+               location_id TEXT NOT NULL,
+               source_file_size INTEGER NOT NULL CHECK(source_file_size >= 0),
+               source_modified_unix_ms INTEGER NOT NULL,
+               source_identity_scheme TEXT,
+               source_identity_value TEXT,
+               algorithm_id TEXT NOT NULL,
+               algorithm_version INTEGER NOT NULL CHECK(algorithm_version >= 0),
+               orientation_contract TEXT NOT NULL,
+               size_bucket INTEGER NOT NULL CHECK(size_bucket > 0),
+               encoded_width INTEGER NOT NULL CHECK(encoded_width > 0),
+               encoded_height INTEGER NOT NULL CHECK(encoded_height > 0),
+               artifact_path TEXT NOT NULL UNIQUE,
+               byte_size INTEGER NOT NULL CHECK(byte_size >= 0),
+               lifecycle_state TEXT NOT NULL
+                 CHECK(lifecycle_state IN ('ready', 'stale', 'evictable')),
+               created_unix_ms INTEGER NOT NULL,
+               last_used_unix_ms INTEGER NOT NULL,
+               CHECK(
+                 (source_identity_scheme IS NULL AND source_identity_value IS NULL)
+                 OR
+                 (source_identity_scheme IS NOT NULL AND source_identity_value IS NOT NULL)
+               )
+             );
+             CREATE INDEX preview_artifacts_location
+               ON preview_artifacts(location_id, size_bucket, lifecycle_state);
+             CREATE INDEX preview_artifacts_reclamation
+               ON preview_artifacts(lifecycle_state, last_used_unix_ms, artifact_key);
+             CREATE INDEX preview_artifacts_compatibility
+               ON preview_artifacts(
+                 location_id, source_file_size, source_modified_unix_ms,
+                 algorithm_id, algorithm_version, orientation_contract, size_bucket
              );",
         )
         .map_err(database_error)
@@ -499,6 +534,50 @@ fn migrate_v12_to_v13(connection: &mut Connection) -> Result<(), ScanError> {
                  modified_unix_ms, root_id, location_id, scan_id
                );
              UPDATE schema_info SET version = 13;",
+        )
+        .map_err(database_error)?;
+    transaction.commit().map_err(database_error)
+}
+
+fn migrate_v13_to_v14(connection: &mut Connection) -> Result<(), ScanError> {
+    let transaction = connection.transaction().map_err(database_error)?;
+    transaction
+        .execute_batch(
+            "CREATE TABLE preview_artifacts (
+               artifact_key TEXT PRIMARY KEY,
+               location_id TEXT NOT NULL,
+               source_file_size INTEGER NOT NULL CHECK(source_file_size >= 0),
+               source_modified_unix_ms INTEGER NOT NULL,
+               source_identity_scheme TEXT,
+               source_identity_value TEXT,
+               algorithm_id TEXT NOT NULL,
+               algorithm_version INTEGER NOT NULL CHECK(algorithm_version >= 0),
+               orientation_contract TEXT NOT NULL,
+               size_bucket INTEGER NOT NULL CHECK(size_bucket > 0),
+               encoded_width INTEGER NOT NULL CHECK(encoded_width > 0),
+               encoded_height INTEGER NOT NULL CHECK(encoded_height > 0),
+               artifact_path TEXT NOT NULL UNIQUE,
+               byte_size INTEGER NOT NULL CHECK(byte_size >= 0),
+               lifecycle_state TEXT NOT NULL
+                 CHECK(lifecycle_state IN ('ready', 'stale', 'evictable')),
+               created_unix_ms INTEGER NOT NULL,
+               last_used_unix_ms INTEGER NOT NULL,
+               CHECK(
+                 (source_identity_scheme IS NULL AND source_identity_value IS NULL)
+                 OR
+                 (source_identity_scheme IS NOT NULL AND source_identity_value IS NOT NULL)
+               )
+             );
+             CREATE INDEX preview_artifacts_location
+               ON preview_artifacts(location_id, size_bucket, lifecycle_state);
+             CREATE INDEX preview_artifacts_reclamation
+               ON preview_artifacts(lifecycle_state, last_used_unix_ms, artifact_key);
+             CREATE INDEX preview_artifacts_compatibility
+               ON preview_artifacts(
+                 location_id, source_file_size, source_modified_unix_ms,
+                 algorithm_id, algorithm_version, orientation_contract, size_bucket
+               );
+             UPDATE schema_info SET version = 14;",
         )
         .map_err(database_error)?;
     transaction.commit().map_err(database_error)

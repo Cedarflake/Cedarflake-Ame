@@ -12,6 +12,9 @@ pub use local_files::{
 };
 pub(crate) use media_inspector::LocalMediaInspector;
 pub use preview_cache::LocalPreviewStore;
-pub(crate) use preview_cache::{PREVIEW_CACHE_VERSION, is_current_preview_artifact};
+pub(crate) use preview_cache::{
+    PREVIEW_ALGORITHM_ID, PREVIEW_ALGORITHM_VERSION, PREVIEW_CACHE_VERSION,
+    PREVIEW_ORIENTATION_CONTRACT, is_current_preview_artifact, is_managed_preview_cleanup_entry,
+};
 pub use sqlite_catalog::SqliteCatalog;
 pub use storage_settings::SqliteStorageSettings;

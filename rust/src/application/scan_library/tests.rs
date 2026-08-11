@@ -185,6 +185,7 @@ fn completed_scan_publishes_metadata_then_materializes_an_external_preview() {
             location_id: pending_asset.location_id,
             preview_edge: 256,
             retry_failed: false,
+            protected_location_ids: Vec::new(),
         },
         StoragePaths {
             catalog_path: catalog_path.clone(),
@@ -210,6 +211,7 @@ fn completed_scan_publishes_metadata_then_materializes_an_external_preview() {
             location_id: previewed.location_id.clone(),
             preview_edge: 256,
             retry_failed: false,
+            protected_location_ids: Vec::new(),
         },
         StoragePaths {
             catalog_path: catalog_path.clone(),
@@ -230,6 +232,7 @@ fn completed_scan_publishes_metadata_then_materializes_an_external_preview() {
             location_id: previewed.location_id,
             preview_edge: 256,
             retry_failed: true,
+            protected_location_ids: Vec::new(),
         },
         StoragePaths {
             catalog_path: catalog_path.clone(),
@@ -261,8 +264,37 @@ fn completed_scan_publishes_metadata_then_materializes_an_external_preview() {
             |row| row.get(0),
         )
         .expect("active scan");
+    let artifact: (String, i64, i64, i64, String, i64, String) = connection
+        .query_row(
+            "SELECT location_id, source_file_size, size_bucket, encoded_width,
+                    lifecycle_state, byte_size, artifact_path
+             FROM preview_artifacts",
+            [],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                    row.get(5)?,
+                    row.get(6)?,
+                ))
+            },
+        )
+        .expect("preview artifact evidence");
     assert_eq!(status, "completed");
     assert_eq!(active_scan, "end-to-end-scan");
+    assert_eq!(artifact.0, repaired.location_id);
+    assert_eq!(
+        artifact.1,
+        i64::try_from(original_bytes.len()).expect("source size")
+    );
+    assert_eq!(artifact.2, 256);
+    assert!(artifact.3 > 0);
+    assert_eq!(artifact.4, "ready");
+    assert!(artifact.5 > 0);
+    assert_eq!(PathBuf::from(artifact.6), preview_path);
 }
 
 #[test]
@@ -379,6 +411,7 @@ fn failed_preview_requires_an_explicit_retry_before_reading_source_again() {
             location_id: location_id.clone(),
             preview_edge: 256,
             retry_failed: false,
+            protected_location_ids: Vec::new(),
         },
         storage_paths.clone(),
     )
@@ -395,6 +428,7 @@ fn failed_preview_requires_an_explicit_retry_before_reading_source_again() {
             location_id: location_id.clone(),
             preview_edge: 256,
             retry_failed: false,
+            protected_location_ids: Vec::new(),
         },
         storage_paths.clone(),
     )
@@ -409,6 +443,7 @@ fn failed_preview_requires_an_explicit_retry_before_reading_source_again() {
             location_id,
             preview_edge: 256,
             retry_failed: true,
+            protected_location_ids: Vec::new(),
         },
         storage_paths,
     )
@@ -416,6 +451,101 @@ fn failed_preview_requires_an_explicit_retry_before_reading_source_again() {
     assert_eq!(
         retried.preview_issue_code.as_deref(),
         Some("source_revalidation_failed")
+    );
+}
+
+#[test]
+fn budget_exhaustion_reclaims_an_unprotected_preview_and_retries_once() {
+    let source = tempdir().expect("source directory");
+    let storage = tempdir().expect("storage directory");
+    let first_source = source.path().join("first.png");
+    let second_source = source.path().join("second.png");
+    let pixels = RgbaImage::from_pixel(64, 48, Rgba([80, 120, 200, 255]));
+    pixels
+        .save_with_format(&first_source, ImageFormat::Png)
+        .expect("first source");
+    pixels
+        .save_with_format(&second_source, ImageFormat::Png)
+        .expect("second source");
+    let first_source_bytes = fs::read(&first_source).expect("first source bytes");
+    let second_source_bytes = fs::read(&second_source).expect("second source bytes");
+    let mut storage_paths = StoragePaths {
+        catalog_path: storage.path().join("catalog").join("ame.sqlite3"),
+        preview_root: storage.path().join("previews"),
+        preview_budget_bytes: 64 * 1024 * 1024,
+        settings_path: storage.path().join("settings.sqlite3"),
+    };
+    run_scan_with_storage(
+        ScanRequest {
+            scan_id: "preview-reclamation-scan".to_owned(),
+            root_path: source.path().to_string_lossy().into_owned(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 256,
+        },
+        |_| true,
+        storage_paths.clone(),
+    )
+    .expect("completed scan");
+    let snapshot = load_test_snapshot(&storage_paths);
+    let first = snapshot
+        .assets
+        .iter()
+        .find(|asset| asset.relative_path == "first.png")
+        .expect("first asset");
+    let second = snapshot
+        .assets
+        .iter()
+        .find(|asset| asset.relative_path == "second.png")
+        .expect("second asset");
+
+    let first_preview = crate::application::preview::materialize_preview_with_storage(
+        crate::domain::PreviewRequest {
+            location_id: first.location_id.clone(),
+            preview_edge: 256,
+            retry_failed: false,
+            protected_location_ids: Vec::new(),
+        },
+        storage_paths.clone(),
+    )
+    .expect("first preview");
+    let first_preview_path = PathBuf::from(&first_preview.preview_path);
+    let first_preview_size = first_preview_path
+        .metadata()
+        .expect("first preview metadata")
+        .len();
+    storage_paths.preview_budget_bytes = first_preview_size.saturating_add(1);
+
+    let second_preview = crate::application::preview::materialize_preview_with_storage(
+        crate::domain::PreviewRequest {
+            location_id: second.location_id.clone(),
+            preview_edge: 256,
+            retry_failed: false,
+            protected_location_ids: vec![second.location_id.clone()],
+        },
+        storage_paths.clone(),
+    )
+    .expect("second preview after reclamation");
+
+    assert!(matches!(
+        second_preview.preview_status,
+        PreviewStatus::Ready
+    ));
+    assert!(!first_preview_path.exists());
+    let catalog = SqliteCatalog::open(storage_paths.catalog_path).expect("catalog");
+    let reclaimed = catalog
+        .load_active_location(&first.location_id)
+        .expect("reclaimed location query")
+        .expect("reclaimed location");
+    assert!(matches!(reclaimed.preview_status, PreviewStatus::Pending));
+    assert_eq!((reclaimed.width, reclaimed.height), (64, 48));
+    assert_eq!(
+        fs::read(first_source).expect("first source after"),
+        first_source_bytes
+    );
+    assert_eq!(
+        fs::read(second_source).expect("second source after"),
+        second_source_bytes,
     );
 }
 
@@ -667,6 +797,7 @@ fn rescan_repairs_legacy_orientation_dimensions_and_invalidates_old_preview() {
             location_id: recovered.location_id,
             preview_edge: 256,
             retry_failed: false,
+            protected_location_ids: Vec::new(),
         },
         storage_paths.clone(),
     )
@@ -728,6 +859,7 @@ fn rescans_reconcile_rename_edit_replacement_and_removal_without_stale_rows() {
             location_id: first_asset.location_id.clone(),
             preview_edge: 256,
             retry_failed: false,
+            protected_location_ids: Vec::new(),
         },
         storage_paths.clone(),
     )

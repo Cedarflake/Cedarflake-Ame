@@ -4,8 +4,8 @@ use crate::domain::{
     AssetLocationView, CatalogCursor, CatalogSnapshot, DiscoveredFile, ExpectedFileState,
     FileIdentityEvidence, GalleryLayoutManifestChunk, GalleryLayoutManifestCursor, GalleryQuery,
     GalleryTimeAnchor, GalleryTimeline, LibraryFolderCursor, LibraryFolderPage, MediaInspection,
-    MetadataInspection, PreviewArtifact, RecoverableScan, ScanCheckpoint, ScanError, ScanIssue,
-    ScanRequest, StorageConfiguration,
+    MetadataInspection, PreviewArtifact, PreviewReclamationCandidate, RecoverableScan,
+    ScanCheckpoint, ScanError, ScanIssue, ScanRequest, StorageConfiguration,
 };
 
 pub trait CatalogRepository {
@@ -31,7 +31,40 @@ pub trait CatalogRepository {
         root_id: &str,
         location: &AssetLocationView,
     ) -> Result<(), ScanError>;
-    fn update_active_preview(&mut self, location: &AssetLocationView) -> Result<(), ScanError>;
+    fn update_active_preview(
+        &mut self,
+        location: &AssetLocationView,
+        artifact: Option<&PreviewArtifact>,
+    ) -> Result<(), ScanError>;
+    fn reset_all_previews_for_cleanup(&mut self) -> Result<u64, ScanError>;
+    fn reset_previews_outside_root(&mut self, preview_root_prefix: &str) -> Result<u64, ScanError>;
+    fn is_preview_artifact_path_indexed(&self, path: &str) -> Result<bool, ScanError>;
+    fn load_preview_recovery_artifacts(
+        &self,
+        preview_root_prefix: &str,
+        after_artifact_key: Option<&str>,
+        limit: u32,
+    ) -> Result<Vec<PreviewReclamationCandidate>, ScanError>;
+    fn reconcile_preview_artifact_bytes(
+        &mut self,
+        candidate: &PreviewReclamationCandidate,
+        actual_bytes: u64,
+    ) -> Result<bool, ScanError>;
+    fn touch_preview_artifacts(&mut self, artifacts: &[(String, String)])
+    -> Result<u64, ScanError>;
+    fn load_preview_reclamation_candidates(
+        &self,
+        protected_location_ids: &[String],
+        current_algorithm_id: &str,
+        current_algorithm_version: u32,
+        current_orientation_contract: &str,
+        current_preview_root_prefix: &str,
+        limit: u32,
+    ) -> Result<Vec<PreviewReclamationCandidate>, ScanError>;
+    fn remove_reclaimed_preview(
+        &mut self,
+        candidate: &PreviewReclamationCandidate,
+    ) -> Result<bool, ScanError>;
     fn record_issue(&mut self, scan_id: &str, issue: &ScanIssue) -> Result<(), ScanError>;
     fn checkpoint_scan(
         &mut self,
@@ -133,7 +166,15 @@ pub trait StorageSettingsRepository {
         &mut self,
         defaults: &StorageConfiguration,
     ) -> Result<StorageConfiguration, ScanError>;
-    fn save(&mut self, configuration: &StorageConfiguration) -> Result<(), ScanError>;
+    fn save(
+        &mut self,
+        configuration: &StorageConfiguration,
+        pending_preview_root: Option<&str>,
+    ) -> Result<(), ScanError>;
+    fn load_pending_preview_roots(&mut self) -> Result<Vec<String>, ScanError>;
+    fn activate_preview_root(&mut self, preview_root: &str) -> Result<(), ScanError>;
+    fn load_retired_preview_roots(&mut self) -> Result<Vec<String>, ScanError>;
+    fn forget_retired_preview_root(&mut self, preview_root: &str) -> Result<bool, ScanError>;
 }
 
 pub trait PreviewStore {

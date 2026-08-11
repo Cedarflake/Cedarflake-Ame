@@ -10,6 +10,7 @@ abstract interface class LibraryPreviewer {
     required String locationId,
     required int previewEdge,
     bool retry = false,
+    Iterable<String> protectedLocationIds = const [],
   });
 }
 
@@ -21,6 +22,7 @@ class RustLibraryPreviewer implements LibraryPreviewer {
     required String locationId,
     required int previewEdge,
     bool retry = false,
+    Iterable<String> protectedLocationIds = const [],
   }) async {
     try {
       final asset = await rust_api.materializeLibraryPreview(
@@ -28,6 +30,7 @@ class RustLibraryPreviewer implements LibraryPreviewer {
           locationId: locationId,
           previewEdge: previewEdge,
           retryFailed: retry,
+          protectedLocationIds: protectedLocationIds.toList(growable: false),
         ),
       );
       return mapRustLibraryAsset(asset);

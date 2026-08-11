@@ -12,7 +12,11 @@ use super::image_orientation::{apply_image_orientation, from_image_orientation};
 
 pub(crate) const PREVIEW_CACHE_VERSION: &str = "ame-jpeg-thumbnail-v2-orientation";
 const PREVIEW_ALGORITHM: &str = PREVIEW_CACHE_VERSION;
+pub(crate) const PREVIEW_ALGORITHM_ID: &str = "ame-jpeg-thumbnail";
+pub(crate) const PREVIEW_ALGORITHM_VERSION: u32 = 2;
+pub(crate) const PREVIEW_ORIENTATION_CONTRACT: &str = "exif-display-v1";
 const MAX_PREVIEW_EDGE: u32 = 1024;
+const PREVIEW_SIZE_BUCKETS: [u32; 4] = [128, 256, 512, MAX_PREVIEW_EDGE];
 const MAX_SOURCE_DIMENSION: u32 = 100_000;
 const MAX_DECODER_ALLOCATION: u64 = 256 * 1024 * 1024;
 static TEMPORARY_SEQUENCE: AtomicU64 = AtomicU64::new(0);
@@ -21,6 +25,7 @@ pub struct LocalPreviewStore {
     root: PathBuf,
     budget_bytes: u64,
     used_bytes: AtomicU64,
+    rejected_reservation_bytes: AtomicU64,
 }
 
 impl LocalPreviewStore {
@@ -35,13 +40,20 @@ impl LocalPreviewStore {
             root,
             budget_bytes,
             used_bytes: AtomicU64::new(used_bytes),
+            rejected_reservation_bytes: AtomicU64::new(0),
         })
     }
 
     fn artifact_path(&self, file: &DiscoveredFile, preview_edge: u32) -> PathBuf {
-        let hash = preview_cache_key(PREVIEW_ALGORITHM, file, preview_edge);
+        let artifact_key = self.artifact_key(file, preview_edge);
         self.root
-            .join(format!("{PREVIEW_ALGORITHM}-{}.jpg", hash.to_hex()))
+            .join(format!("{PREVIEW_ALGORITHM}-{artifact_key}.jpg"))
+    }
+
+    fn artifact_key(&self, file: &DiscoveredFile, preview_edge: u32) -> String {
+        preview_cache_key(PREVIEW_ALGORITHM, file, preview_edge)
+            .to_hex()
+            .to_string()
     }
 }
 
@@ -69,20 +81,24 @@ impl PreviewStore for LocalPreviewStore {
         source_width: u32,
         source_height: u32,
     ) -> Result<PreviewArtifact, ScanIssue> {
-        let edge = preview_edge.clamp(96, MAX_PREVIEW_EDGE);
+        let edge = preview_size_bucket(preview_edge);
         let source_path = Path::new(&file.absolute_path);
+        let artifact_key = self.artifact_key(file, edge);
         let artifact_path = self.artifact_path(file, edge);
 
-        let has_valid_artifact =
-            artifact_path.is_file() && is_valid_cached_artifact(&artifact_path, edge);
-        if source_width > 0 && source_height > 0 && has_valid_artifact {
-            return Ok(PreviewArtifact {
-                path: artifact_path.to_string_lossy().into_owned(),
-                width: source_width,
-                height: source_height,
-            });
+        let cached_dimensions = cached_artifact_dimensions(&artifact_path, edge);
+        if source_width > 0 && source_height > 0 && cached_dimensions.is_some() {
+            return preview_artifact(
+                file,
+                artifact_key,
+                artifact_path,
+                edge,
+                source_width,
+                source_height,
+                cached_dimensions,
+            );
         }
-        if artifact_path.exists() && !has_valid_artifact {
+        if artifact_path.exists() && cached_dimensions.is_none() {
             let invalid_size = artifact_path
                 .metadata()
                 .map_or(0, |metadata| metadata.len());
@@ -153,12 +169,25 @@ impl PreviewStore for LocalPreviewStore {
             }
         }
 
-        Ok(PreviewArtifact {
-            path: artifact_path.to_string_lossy().into_owned(),
+        let encoded_dimensions = cached_artifact_dimensions(&artifact_path, edge);
+        preview_artifact(
+            file,
+            artifact_key,
+            artifact_path,
+            edge,
             width,
             height,
-        })
+            encoded_dimensions,
+        )
     }
+}
+
+fn preview_size_bucket(requested_edge: u32) -> u32 {
+    let requested_edge = requested_edge.clamp(96, MAX_PREVIEW_EDGE);
+    PREVIEW_SIZE_BUCKETS
+        .into_iter()
+        .find(|bucket| *bucket >= requested_edge)
+        .unwrap_or(MAX_PREVIEW_EDGE)
 }
 
 impl LocalPreviewStore {
@@ -167,6 +196,8 @@ impl LocalPreviewStore {
         loop {
             let next = used_bytes.saturating_add(preview_size);
             if next > self.budget_bytes {
+                self.rejected_reservation_bytes
+                    .fetch_max(preview_size, Ordering::AcqRel);
                 return false;
             }
             match self.used_bytes.compare_exchange_weak(
@@ -181,7 +212,7 @@ impl LocalPreviewStore {
         }
     }
 
-    fn release(&self, preview_size: u64) {
+    pub(crate) fn release(&self, preview_size: u64) {
         let mut used_bytes = self.used_bytes.load(Ordering::Acquire);
         loop {
             let next = used_bytes.saturating_sub(preview_size);
@@ -196,6 +227,14 @@ impl LocalPreviewStore {
             }
         }
     }
+
+    pub(crate) fn used_bytes(&self) -> u64 {
+        self.used_bytes.load(Ordering::Acquire)
+    }
+
+    pub(crate) fn take_rejected_reservation_bytes(&self) -> u64 {
+        self.rejected_reservation_bytes.swap(0, Ordering::AcqRel)
+    }
 }
 
 pub(crate) fn is_current_preview_artifact(path: &str) -> bool {
@@ -209,16 +248,51 @@ pub(crate) fn is_current_preview_artifact(path: &str) -> bool {
     else {
         return false;
     };
-    hash.len() == 64 && hash.bytes().all(|byte| byte.is_ascii_hexdigit())
+    is_artifact_hash(hash)
 }
 
-fn is_valid_cached_artifact(path: &Path, edge: u32) -> bool {
-    let Ok(mut reader) = ImageReader::open(path).and_then(|reader| reader.with_guessed_format())
+pub(crate) fn is_managed_preview_cleanup_entry(path: &Path) -> bool {
+    if is_current_preview_artifact(&path.to_string_lossy()) {
+        return true;
+    }
+    let Some(file_name) = path.file_name().and_then(|name| name.to_str()) else {
+        return false;
+    };
+    let Some(body) = file_name
+        .strip_prefix(PREVIEW_ALGORITHM)
+        .and_then(|suffix| suffix.strip_prefix('-'))
+        .and_then(|suffix| suffix.strip_suffix(".tmp"))
     else {
         return false;
     };
-    if reader.format() != Some(ImageFormat::Jpeg) {
+    let Some((hash, temporary_id)) = body.split_once('.') else {
         return false;
+    };
+    let Some((process_id, sequence)) = temporary_id.split_once('-') else {
+        return false;
+    };
+    is_artifact_hash(hash)
+        && !process_id.is_empty()
+        && process_id.bytes().all(|byte| byte.is_ascii_digit())
+        && !sequence.is_empty()
+        && sequence.bytes().all(|byte| byte.is_ascii_digit())
+}
+
+fn is_artifact_hash(value: &str) -> bool {
+    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
+fn is_valid_cached_artifact(path: &Path, edge: u32) -> bool {
+    cached_artifact_dimensions(path, edge).is_some()
+}
+
+fn cached_artifact_dimensions(path: &Path, edge: u32) -> Option<(u32, u32)> {
+    let Ok(mut reader) = ImageReader::open(path).and_then(|reader| reader.with_guessed_format())
+    else {
+        return None;
+    };
+    if reader.format() != Some(ImageFormat::Jpeg) {
+        return None;
     }
     let mut limits = Limits::default();
     limits.max_image_width = Some(edge);
@@ -226,10 +300,43 @@ fn is_valid_cached_artifact(path: &Path, edge: u32) -> bool {
     limits.max_alloc = Some(MAX_DECODER_ALLOCATION);
     reader.limits(limits);
     let Ok(image) = reader.decode() else {
-        return false;
+        return None;
     };
     let (width, height) = (image.width(), image.height());
-    width > 0 && height > 0 && width <= edge && height <= edge
+    (width > 0 && height > 0 && width <= edge && height <= edge).then_some((width, height))
+}
+
+fn preview_artifact(
+    file: &DiscoveredFile,
+    artifact_key: String,
+    artifact_path: PathBuf,
+    size_bucket: u32,
+    width: u32,
+    height: u32,
+    encoded_dimensions: Option<(u32, u32)>,
+) -> Result<PreviewArtifact, ScanIssue> {
+    let (encoded_width, encoded_height) = encoded_dimensions.ok_or_else(|| ScanIssue {
+        path: Some(artifact_path.to_string_lossy().into_owned()),
+        code: "preview_cache_publish_invalid".to_owned(),
+        message: "The published preview artifact could not be validated".to_owned(),
+    })?;
+    let byte_size = artifact_path
+        .metadata()
+        .map_err(|error| preview_issue(file, "preview_size_unavailable", error))?
+        .len();
+    Ok(PreviewArtifact {
+        artifact_key,
+        algorithm_id: PREVIEW_ALGORITHM_ID.to_owned(),
+        algorithm_version: PREVIEW_ALGORITHM_VERSION,
+        orientation_contract: PREVIEW_ORIENTATION_CONTRACT.to_owned(),
+        size_bucket,
+        path: artifact_path.to_string_lossy().into_owned(),
+        byte_size,
+        encoded_width,
+        encoded_height,
+        width,
+        height,
+    })
 }
 
 fn cache_usage(root: &Path) -> Result<u64, ScanIssue> {
@@ -250,7 +357,7 @@ fn cache_usage(root: &Path) -> Result<u64, ScanIssue> {
             code: "preview_cache_usage_unavailable".to_owned(),
             message: error.to_string(),
         })?;
-        if metadata.is_file() {
+        if metadata.is_file() && is_managed_preview_cleanup_entry(&entry.path()) {
             used_bytes = used_bytes.saturating_add(metadata.len());
         }
     }
@@ -378,12 +485,94 @@ mod tests {
     }
 
     #[test]
+    fn requested_edges_share_a_finite_physical_size_bucket() {
+        let storage = tempdir().expect("storage");
+        let source_path = storage.path().join("source.png");
+        RgbImage::from_pixel(640, 480, Rgb([48, 96, 144]))
+            .save(&source_path)
+            .expect("source image");
+        let source_before = fs::read(&source_path).expect("source before");
+        let metadata = source_path.metadata().expect("source metadata");
+        let file = DiscoveredFile {
+            absolute_path: source_path.to_string_lossy().into_owned(),
+            relative_path: "source.png".to_owned(),
+            file_size: metadata.len(),
+            created_unix_ms: None,
+            modified_unix_ms: 13,
+            file_identity: None,
+            issues: Vec::new(),
+        };
+        let preview_root = storage.path().join("previews");
+        let store =
+            LocalPreviewStore::new(preview_root.clone(), 1024 * 1024).expect("preview store");
+
+        let first = store
+            .materialize(&file, 129, 640, 480)
+            .expect("first bucket request");
+        let second = store
+            .materialize(&file, 255, 640, 480)
+            .expect("second bucket request");
+
+        assert_eq!(first.size_bucket, 256);
+        assert_eq!(second.size_bucket, 256);
+        assert_eq!(first.artifact_key, second.artifact_key);
+        assert_eq!(first.path, second.path);
+        assert_eq!(
+            fs::read_dir(preview_root).expect("preview entries").count(),
+            1
+        );
+        assert_eq!(fs::read(source_path).expect("source after"), source_before);
+    }
+
+    #[test]
+    fn cleanup_entry_matching_rejects_foreign_files() {
+        let hash = "a".repeat(64);
+
+        assert!(is_managed_preview_cleanup_entry(Path::new(&format!(
+            "{PREVIEW_ALGORITHM}-{hash}.jpg"
+        ))));
+        assert!(is_managed_preview_cleanup_entry(Path::new(&format!(
+            "{PREVIEW_ALGORITHM}-{hash}.123-4.tmp"
+        ))));
+        assert!(!is_managed_preview_cleanup_entry(Path::new(&format!(
+            "{PREVIEW_ALGORITHM}-{hash}.notes.tmp"
+        ))));
+        assert!(!is_managed_preview_cleanup_entry(Path::new(&format!(
+            "{PREVIEW_ALGORITHM}-{hash}.123-4-extra.tmp"
+        ))));
+        assert!(!is_managed_preview_cleanup_entry(Path::new(
+            "unrelated.tmp",
+        )));
+    }
+
+    #[test]
+    fn cache_usage_counts_only_ame_managed_entries() {
+        let directory = tempdir().expect("preview directory");
+        let hash = "b".repeat(64);
+        let artifact = directory
+            .path()
+            .join(format!("{PREVIEW_ALGORITHM}-{hash}.jpg"));
+        let temporary = directory
+            .path()
+            .join(format!("{PREVIEW_ALGORITHM}-{hash}.123-4.tmp"));
+        let foreign = directory.path().join("keep.bin");
+        fs::write(&artifact, vec![1_u8; 7]).expect("artifact");
+        fs::write(&temporary, vec![2_u8; 5]).expect("temporary");
+        fs::write(&foreign, vec![3_u8; 11]).expect("foreign");
+
+        assert_eq!(cache_usage(directory.path()).expect("cache usage"), 12);
+    }
+
+    #[test]
     fn exif_orientation_transforms_preview_pixels_dimensions_and_cache_identity() {
         let cases = [
             (1, (80, 60), (256, 192), [RED, GREEN, BLUE, YELLOW]),
+            (2, (80, 60), (256, 192), [GREEN, RED, YELLOW, BLUE]),
             (3, (80, 60), (256, 192), [YELLOW, BLUE, GREEN, RED]),
+            (4, (80, 60), (256, 192), [BLUE, YELLOW, RED, GREEN]),
             (5, (60, 80), (192, 256), [RED, BLUE, GREEN, YELLOW]),
             (6, (60, 80), (192, 256), [BLUE, RED, YELLOW, GREEN]),
+            (7, (60, 80), (192, 256), [YELLOW, GREEN, BLUE, RED]),
             (8, (60, 80), (192, 256), [GREEN, YELLOW, RED, BLUE]),
             (9, (80, 60), (256, 192), [RED, GREEN, BLUE, YELLOW]),
         ];

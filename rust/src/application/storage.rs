@@ -5,10 +5,12 @@ use std::sync::OnceLock;
 use directories::ProjectDirs;
 
 use crate::adapters::{
-    PREVIEW_CACHE_VERSION, SqliteCatalog, SqliteStorageSettings, user_visible_path,
+    LocalPreviewStore, PREVIEW_CACHE_VERSION, SqliteCatalog, SqliteStorageSettings,
+    is_managed_preview_cleanup_entry, user_visible_path,
 };
 use crate::domain::{
-    GalleryQuery, ScanError, StorageConfiguration, StorageSettingsUpdate, StorageStatus,
+    GalleryQuery, RetiredPreviewRootView, ScanError, StorageConfiguration, StorageSettingsUpdate,
+    StorageStatus,
 };
 use crate::ports::{CatalogRepository, StorageSettingsRepository};
 
@@ -36,7 +38,7 @@ pub(crate) fn storage_paths() -> Result<StoragePaths, ScanError> {
                 "CEDARFLAKE_AME_TEST_STORAGE_ROOT must be an absolute path",
             ));
         }
-        return Ok(StoragePaths {
+        let storage = StoragePaths {
             catalog_path: test_root.join("catalog").join("ame.sqlite3"),
             preview_root: test_root
                 .join("cache")
@@ -44,12 +46,14 @@ pub(crate) fn storage_paths() -> Result<StoragePaths, ScanError> {
                 .join(PREVIEW_CACHE_VERSION),
             preview_budget_bytes: DEFAULT_PREVIEW_BUDGET_BYTES,
             settings_path: test_root.join("settings").join("storage.sqlite3"),
-        });
+        };
+        return Ok(storage);
     }
 
-    ACTIVE_STORAGE
+    let storage = ACTIVE_STORAGE
         .get_or_init(resolve_configured_storage)
-        .clone()
+        .clone()?;
+    Ok(storage)
 }
 
 pub fn load_storage_status() -> Result<StorageStatus, ScanError> {
@@ -102,7 +106,11 @@ pub fn update_storage_settings(update: StorageSettingsUpdate) -> Result<StorageS
         )
     })?;
     let mut settings = SqliteStorageSettings::open(active.settings_path.clone())?;
-    settings.save(&configured)?;
+    let active_preview_root = active.preview_root.to_string_lossy();
+    let pending_preview_root =
+        (!paths_same(Path::new(&configured.preview_root), &active.preview_root))
+            .then_some(active_preview_root.as_ref());
+    settings.save(&configured, pending_preview_root)?;
     storage_status(&active, &configured)
 }
 
@@ -110,12 +118,72 @@ fn resolve_configured_storage() -> Result<StoragePaths, ScanError> {
     let (settings_path, defaults) = default_storage()?;
     let configured = load_or_initialize_configuration(&settings_path, &defaults)?;
     validate_configuration(&configured)?;
+    let preview_root = activate_configured_preview_root(
+        &settings_path,
+        Path::new(&configured.catalog_path),
+        &configured,
+    )?;
     Ok(StoragePaths {
         catalog_path: PathBuf::from(configured.catalog_path),
-        preview_root: PathBuf::from(configured.preview_root),
+        preview_root,
         preview_budget_bytes: configured.preview_budget_bytes,
         settings_path,
     })
+}
+
+fn activate_configured_preview_root(
+    settings_path: &Path,
+    catalog_path: &Path,
+    configured: &StorageConfiguration,
+) -> Result<PathBuf, ScanError> {
+    activate_configured_preview_root_with(
+        settings_path,
+        catalog_path,
+        configured,
+        initialize_preview_root,
+    )
+}
+
+fn activate_configured_preview_root_with(
+    settings_path: &Path,
+    catalog_path: &Path,
+    configured: &StorageConfiguration,
+    mut initialize: impl FnMut(&Path, u64) -> Result<(), ScanError>,
+) -> Result<PathBuf, ScanError> {
+    let target = PathBuf::from(&configured.preview_root);
+    let mut settings = SqliteStorageSettings::open(settings_path.to_path_buf())?;
+    let pending_roots = settings.load_pending_preview_roots()?;
+    if let Err(target_error) = initialize(&target, configured.preview_budget_bytes) {
+        for pending_root in pending_roots {
+            let previous = PathBuf::from(pending_root);
+            if initialize(&previous, configured.preview_budget_bytes).is_ok() {
+                return Ok(previous);
+            }
+        }
+        return Err(target_error);
+    }
+
+    if !pending_roots.is_empty() && catalog_path.exists() {
+        let mut catalog = SqliteCatalog::open(catalog_path.to_path_buf())?;
+        catalog.reset_previews_outside_root(&preview_root_prefix(&target))?;
+    }
+    settings.activate_preview_root(&configured.preview_root)?;
+    Ok(target)
+}
+
+fn initialize_preview_root(path: &Path, budget_bytes: u64) -> Result<(), ScanError> {
+    LocalPreviewStore::new(path.to_path_buf(), budget_bytes)
+        .map(|_| ())
+        .map_err(|issue| ScanError::new(issue.code, issue.message))
+}
+
+fn preview_root_prefix(path: &Path) -> String {
+    let mut prefix = path
+        .to_string_lossy()
+        .trim_end_matches(['\\', '/'])
+        .to_owned();
+    prefix.push(std::path::MAIN_SEPARATOR);
+    prefix
 }
 
 fn load_configured_storage(active: &StoragePaths) -> Result<StorageConfiguration, ScanError> {
@@ -243,7 +311,7 @@ fn paths_overlap(left: &Path, right: &Path) -> bool {
         || right.starts_with(&format!("{left}\\"))
 }
 
-fn paths_same(left: &Path, right: &Path) -> bool {
+pub(crate) fn paths_same(left: &Path, right: &Path) -> bool {
     normalized_path(left) == normalized_path(right)
 }
 
@@ -261,6 +329,19 @@ fn storage_status(
 ) -> Result<StorageStatus, ScanError> {
     let active_catalog_path = active.catalog_path.to_string_lossy().into_owned();
     let active_preview_root = active.preview_root.to_string_lossy().into_owned();
+    let mut settings = SqliteStorageSettings::open(active.settings_path.clone())?;
+    let retired_preview_roots = settings
+        .load_retired_preview_roots()?
+        .into_iter()
+        .filter(|preview_root| {
+            !paths_same(Path::new(preview_root), &active.preview_root)
+                && !paths_same(Path::new(preview_root), Path::new(&configured.preview_root))
+        })
+        .map(|preview_root| RetiredPreviewRootView {
+            display_path: user_visible_path(&preview_root),
+            preview_root,
+        })
+        .collect();
     Ok(StorageStatus {
         settings_path: active.settings_path.to_string_lossy().into_owned(),
         active_catalog_path: active_catalog_path.clone(),
@@ -275,6 +356,7 @@ fn storage_status(
         requires_restart: active_catalog_path != configured.catalog_path
             || active_preview_root != configured.preview_root
             || active.preview_budget_bytes != configured.preview_budget_bytes,
+        retired_preview_roots,
     })
 }
 
@@ -292,9 +374,19 @@ fn directory_size(path: &Path) -> Result<u64, ScanError> {
     for entry in entries {
         let entry = entry
             .map_err(|error| ScanError::new("storage_usage_unavailable", error.to_string()))?;
-        let metadata = entry
-            .metadata()
-            .map_err(|error| ScanError::new("storage_usage_unavailable", error.to_string()))?;
+        if !is_managed_preview_cleanup_entry(&entry.path()) {
+            continue;
+        }
+        let metadata = match entry.metadata() {
+            Ok(metadata) => metadata,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(error) => {
+                return Err(ScanError::new(
+                    "storage_usage_unavailable",
+                    error.to_string(),
+                ));
+            }
+        };
         if metadata.is_file() {
             size = size.saturating_add(metadata.len());
         }
@@ -376,7 +468,7 @@ mod tests {
         };
         SqliteStorageSettings::open(active.settings_path.clone())
             .expect("settings")
-            .save(&configured)
+            .save(&configured, Some(&active.preview_root.to_string_lossy()))
             .expect("save configuration");
 
         let status = storage_status(&active, &configured).expect("status");
@@ -387,6 +479,119 @@ mod tests {
             active.preview_root.to_string_lossy()
         );
         assert_eq!(status.configured_preview_root, configured.preview_root);
+    }
+
+    #[test]
+    fn successful_preview_root_activation_retires_the_previous_root() {
+        let storage = tempdir().expect("storage");
+        let settings_path = storage.path().join("settings.sqlite3");
+        let old_root = storage.path().join("old-previews");
+        let target_root = storage.path().join("target-previews");
+        let defaults = StorageConfiguration {
+            catalog_path: storage
+                .path()
+                .join("catalog.sqlite3")
+                .to_string_lossy()
+                .into_owned(),
+            preview_root: old_root.to_string_lossy().into_owned(),
+            preview_budget_bytes: MIN_PREVIEW_BUDGET_BYTES,
+        };
+        let configured = StorageConfiguration {
+            preview_root: target_root.to_string_lossy().into_owned(),
+            ..defaults.clone()
+        };
+        let mut settings = SqliteStorageSettings::open(settings_path.clone()).expect("settings");
+        settings
+            .load_or_initialize(&defaults)
+            .expect("initialize settings");
+        settings
+            .save(&configured, Some(&defaults.preview_root))
+            .expect("save pending target");
+        drop(settings);
+
+        let active_root = activate_configured_preview_root_with(
+            &settings_path,
+            Path::new(&configured.catalog_path),
+            &configured,
+            |_, _| Ok(()),
+        )
+        .expect("activate target");
+
+        assert_eq!(active_root, target_root);
+        let mut settings = SqliteStorageSettings::open(settings_path).expect("settings");
+        assert!(
+            settings
+                .load_pending_preview_roots()
+                .expect("pending roots")
+                .is_empty()
+        );
+        assert_eq!(
+            settings
+                .load_retired_preview_roots()
+                .expect("retired roots"),
+            vec![defaults.preview_root]
+        );
+    }
+
+    #[test]
+    fn failed_preview_root_activation_keeps_the_previous_root_pending() {
+        let storage = tempdir().expect("storage");
+        let settings_path = storage.path().join("settings.sqlite3");
+        let old_root = storage.path().join("old-previews");
+        let target_root = storage.path().join("target-previews");
+        let defaults = StorageConfiguration {
+            catalog_path: storage
+                .path()
+                .join("catalog.sqlite3")
+                .to_string_lossy()
+                .into_owned(),
+            preview_root: old_root.to_string_lossy().into_owned(),
+            preview_budget_bytes: MIN_PREVIEW_BUDGET_BYTES,
+        };
+        let configured = StorageConfiguration {
+            preview_root: target_root.to_string_lossy().into_owned(),
+            ..defaults.clone()
+        };
+        let mut settings = SqliteStorageSettings::open(settings_path.clone()).expect("settings");
+        settings
+            .load_or_initialize(&defaults)
+            .expect("initialize settings");
+        settings
+            .save(&configured, Some(&defaults.preview_root))
+            .expect("save pending target");
+        drop(settings);
+
+        let active_root = activate_configured_preview_root_with(
+            &settings_path,
+            Path::new(&configured.catalog_path),
+            &configured,
+            |path, _| {
+                if path == target_root {
+                    Err(ScanError::new(
+                        "preview_cache_unavailable",
+                        "target unavailable",
+                    ))
+                } else {
+                    Ok(())
+                }
+            },
+        )
+        .expect("fall back to previous root");
+
+        assert_eq!(active_root, old_root);
+        let mut settings = SqliteStorageSettings::open(settings_path).expect("settings");
+        assert_eq!(
+            settings
+                .load_pending_preview_roots()
+                .expect("pending roots"),
+            vec![defaults.preview_root]
+        );
+        assert!(
+            settings
+                .load_retired_preview_roots()
+                .expect("retired roots")
+                .is_empty()
+        );
     }
 
     #[test]

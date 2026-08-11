@@ -50,6 +50,13 @@ pub struct StorageStatus {
     pub preview_used_bytes: u64,
     pub catalog_used_bytes: u64,
     pub requires_restart: bool,
+    pub retired_preview_roots: Vec<RetiredPreviewRootView>,
+}
+
+#[derive(Clone, Debug)]
+pub struct RetiredPreviewRootView {
+    pub preview_root: String,
+    pub display_path: String,
 }
 
 #[derive(Clone, Debug)]
@@ -157,6 +164,7 @@ pub struct PreviewRequest {
     pub location_id: String,
     pub preview_edge: u32,
     pub retry_failed: bool,
+    pub protected_location_ids: Vec<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -392,6 +400,45 @@ pub enum ScanEvent {
 }
 
 #[derive(Clone, Debug)]
+pub enum PreviewCleanupEvent {
+    Started {
+        operation_id: String,
+        total_files: u64,
+        total_bytes: u64,
+    },
+    Progress {
+        operation_id: String,
+        processed_files: u64,
+        removed_files: u64,
+        removed_bytes: u64,
+        issue_count: u64,
+        total_files: u64,
+        total_bytes: u64,
+    },
+    Issue {
+        operation_id: String,
+        issue: ScanIssue,
+    },
+    Completed {
+        operation_id: String,
+        removed_files: u64,
+        removed_bytes: u64,
+        issue_count: u64,
+    },
+    Cancelled {
+        operation_id: String,
+        removed_files: u64,
+        removed_bytes: u64,
+        issue_count: u64,
+    },
+    Failed {
+        operation_id: String,
+        code: String,
+        message: String,
+    },
+}
+
+#[derive(Clone, Debug)]
 pub struct ScanError {
     pub code: String,
     pub message: String,
@@ -427,9 +474,24 @@ pub struct DiscoveredFile {
 
 #[derive(Clone, Debug)]
 pub struct PreviewArtifact {
+    pub artifact_key: String,
+    pub algorithm_id: String,
+    pub algorithm_version: u32,
+    pub orientation_contract: String,
+    pub size_bucket: u32,
     pub path: String,
+    pub byte_size: u64,
+    pub encoded_width: u32,
+    pub encoded_height: u32,
     pub width: u32,
     pub height: u32,
+}
+
+#[derive(Clone, Debug)]
+pub struct PreviewReclamationCandidate {
+    pub artifact_key: String,
+    pub location_id: String,
+    pub path: String,
 }
 
 #[derive(Clone, Debug)]

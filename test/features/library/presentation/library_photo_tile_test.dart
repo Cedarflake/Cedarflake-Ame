@@ -121,6 +121,7 @@ class _RecordingPreviewer implements LibraryPreviewer {
     required String locationId,
     required int previewEdge,
     bool retry = false,
+    Iterable<String> protectedLocationIds = const [],
   }) {
     requests.add((locationId: locationId, retry: retry));
     return Future.value(

@@ -69,7 +69,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => 513639527;
+  int get rustContentHash => 460083972;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -82,6 +82,17 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 
 abstract class RustLibApi extends BaseApi {
   bool crateApiCatalogCancelLibraryScan({required String scanId});
+
+  bool crateApiStorageCancelPreviewCacheCleanup({required String operationId});
+
+  Stream<PreviewCleanupEvent> crateApiStorageClearPreviewCache({
+    required String operationId,
+  });
+
+  Stream<PreviewCleanupEvent> crateApiStorageClearRetiredPreviewCache({
+    required String previewRoot,
+    required String operationId,
+  });
 
   Future<void> crateApiInitializationInitApp();
 
@@ -172,6 +183,110 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  bool crateApiStorageCancelPreviewCacheCleanup({required String operationId}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(operationId, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 2)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageCancelPreviewCacheCleanupConstMeta,
+        argValues: [operationId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageCancelPreviewCacheCleanupConstMeta =>
+      const TaskConstMeta(
+        debugName: "cancel_preview_cache_cleanup",
+        argNames: ["operationId"],
+      );
+
+  @override
+  Stream<PreviewCleanupEvent> crateApiStorageClearPreviewCache({
+    required String operationId,
+  }) {
+    final sink = RustStreamSink<PreviewCleanupEvent>();
+    unawaited(
+      handler.executeNormal(
+        NormalTask(
+          callFfi: (port_) {
+            final serializer = SseSerializer(generalizedFrbRustBinding);
+            sse_encode_String(operationId, serializer);
+            sse_encode_StreamSink_preview_cleanup_event_Sse(sink, serializer);
+            pdeCallFfi(
+              generalizedFrbRustBinding,
+              serializer,
+              funcId: 3,
+              port: port_,
+            );
+          },
+          codec: SseCodec(
+            decodeSuccessData: sse_decode_unit,
+            decodeErrorData: sse_decode_scan_error,
+          ),
+          constMeta: kCrateApiStorageClearPreviewCacheConstMeta,
+          argValues: [operationId, sink],
+          apiImpl: this,
+        ),
+      ),
+    );
+    return sink.stream;
+  }
+
+  TaskConstMeta get kCrateApiStorageClearPreviewCacheConstMeta =>
+      const TaskConstMeta(
+        debugName: "clear_preview_cache",
+        argNames: ["operationId", "sink"],
+      );
+
+  @override
+  Stream<PreviewCleanupEvent> crateApiStorageClearRetiredPreviewCache({
+    required String previewRoot,
+    required String operationId,
+  }) {
+    final sink = RustStreamSink<PreviewCleanupEvent>();
+    unawaited(
+      handler.executeNormal(
+        NormalTask(
+          callFfi: (port_) {
+            final serializer = SseSerializer(generalizedFrbRustBinding);
+            sse_encode_String(previewRoot, serializer);
+            sse_encode_String(operationId, serializer);
+            sse_encode_StreamSink_preview_cleanup_event_Sse(sink, serializer);
+            pdeCallFfi(
+              generalizedFrbRustBinding,
+              serializer,
+              funcId: 4,
+              port: port_,
+            );
+          },
+          codec: SseCodec(
+            decodeSuccessData: sse_decode_unit,
+            decodeErrorData: sse_decode_scan_error,
+          ),
+          constMeta: kCrateApiStorageClearRetiredPreviewCacheConstMeta,
+          argValues: [previewRoot, operationId, sink],
+          apiImpl: this,
+        ),
+      ),
+    );
+    return sink.stream;
+  }
+
+  TaskConstMeta get kCrateApiStorageClearRetiredPreviewCacheConstMeta =>
+      const TaskConstMeta(
+        debugName: "clear_retired_preview_cache",
+        argNames: ["previewRoot", "operationId", "sink"],
+      );
+
+  @override
   Future<void> crateApiInitializationInitApp() {
     return handler.executeNormal(
       NormalTask(
@@ -180,7 +295,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 2,
+            funcId: 5,
             port: port_,
           );
         },
@@ -216,7 +331,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 3,
+            funcId: 6,
             port: port_,
           );
         },
@@ -253,7 +368,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 4,
+            funcId: 7,
             port: port_,
           );
         },
@@ -289,7 +404,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_String(parentRelativePath, serializer);
           sse_encode_u_32(maxItems, serializer);
           sse_encode_opt_box_autoadd_library_folder_cursor(after, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 5)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 8)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_library_folder_page,
@@ -328,7 +443,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 6,
+            funcId: 9,
             port: port_,
           );
         },
@@ -360,7 +475,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_box_autoadd_gallery_query(query, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 7)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 10)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_gallery_timeline,
@@ -385,7 +500,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 8)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 11)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_opt_box_autoadd_recoverable_scan,
@@ -407,7 +522,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 9)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 12)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_opt_box_autoadd_recoverable_scan,
@@ -432,7 +547,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 10)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 13)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_storage_status,
@@ -460,7 +575,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 11,
+            funcId: 14,
             port: port_,
           );
         },
@@ -488,7 +603,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(scanId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 12)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 15)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
@@ -514,7 +629,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(rootId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 13)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 16)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
@@ -546,7 +661,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 14,
+              funcId: 17,
               port: port_,
             );
           },
@@ -577,7 +692,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_box_autoadd_storage_settings_update(update, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 15)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 18)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_storage_status,
@@ -600,6 +715,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   AnyhowException dco_decode_AnyhowException(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return AnyhowException(raw as String);
+  }
+
+  @protected
+  RustStreamSink<PreviewCleanupEvent>
+  dco_decode_StreamSink_preview_cleanup_event_Sse(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    throw UnimplementedError();
   }
 
   @protected
@@ -1079,6 +1201,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<RetiredPreviewRootView> dco_decode_list_retired_preview_root_view(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_retired_preview_root_view)
+        .toList();
+  }
+
+  @protected
   String? dco_decode_opt_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_String(raw);
@@ -1154,15 +1286,66 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  PreviewCleanupEvent dco_decode_preview_cleanup_event(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    switch (raw[0]) {
+      case 0:
+        return PreviewCleanupEvent_Started(
+          operationId: dco_decode_String(raw[1]),
+          totalFiles: dco_decode_u_64(raw[2]),
+          totalBytes: dco_decode_u_64(raw[3]),
+        );
+      case 1:
+        return PreviewCleanupEvent_Progress(
+          operationId: dco_decode_String(raw[1]),
+          processedFiles: dco_decode_u_64(raw[2]),
+          removedFiles: dco_decode_u_64(raw[3]),
+          removedBytes: dco_decode_u_64(raw[4]),
+          issueCount: dco_decode_u_64(raw[5]),
+          totalFiles: dco_decode_u_64(raw[6]),
+          totalBytes: dco_decode_u_64(raw[7]),
+        );
+      case 2:
+        return PreviewCleanupEvent_Issue(
+          operationId: dco_decode_String(raw[1]),
+          issue: dco_decode_box_autoadd_scan_issue(raw[2]),
+        );
+      case 3:
+        return PreviewCleanupEvent_Completed(
+          operationId: dco_decode_String(raw[1]),
+          removedFiles: dco_decode_u_64(raw[2]),
+          removedBytes: dco_decode_u_64(raw[3]),
+          issueCount: dco_decode_u_64(raw[4]),
+        );
+      case 4:
+        return PreviewCleanupEvent_Cancelled(
+          operationId: dco_decode_String(raw[1]),
+          removedFiles: dco_decode_u_64(raw[2]),
+          removedBytes: dco_decode_u_64(raw[3]),
+          issueCount: dco_decode_u_64(raw[4]),
+        );
+      case 5:
+        return PreviewCleanupEvent_Failed(
+          operationId: dco_decode_String(raw[1]),
+          code: dco_decode_String(raw[2]),
+          message: dco_decode_String(raw[3]),
+        );
+      default:
+        throw Exception("unreachable");
+    }
+  }
+
+  @protected
   PreviewRequest dco_decode_preview_request(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 3)
-      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
     return PreviewRequest(
       locationId: dco_decode_String(arr[0]),
       previewEdge: dco_decode_u_32(arr[1]),
       retryFailed: dco_decode_bool(arr[2]),
+      protectedLocationIds: dco_decode_list_String(arr[3]),
     );
   }
 
@@ -1188,6 +1371,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       visitedEntries: dco_decode_u_64(arr[6]),
       acceptedItems: dco_decode_u_64(arr[7]),
       issueCount: dco_decode_u_64(arr[8]),
+    );
+  }
+
+  @protected
+  RetiredPreviewRootView dco_decode_retired_preview_root_view(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return RetiredPreviewRootView(
+      previewRoot: dco_decode_String(arr[0]),
+      displayPath: dco_decode_String(arr[1]),
     );
   }
 
@@ -1324,8 +1519,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   StorageStatus dco_decode_storage_status(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 11)
-      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
+    if (arr.length != 12)
+      throw Exception('unexpected arr length: expect 12 but see ${arr.length}');
     return StorageStatus(
       settingsPath: dco_decode_String(arr[0]),
       activeCatalogPath: dco_decode_String(arr[1]),
@@ -1338,6 +1533,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       previewUsedBytes: dco_decode_u_64(arr[8]),
       catalogUsedBytes: dco_decode_u_64(arr[9]),
       requiresRestart: dco_decode_bool(arr[10]),
+      retiredPreviewRoots: dco_decode_list_retired_preview_root_view(arr[11]),
     );
   }
 
@@ -1376,6 +1572,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var inner = sse_decode_String(deserializer);
     return AnyhowException(inner);
+  }
+
+  @protected
+  RustStreamSink<PreviewCleanupEvent>
+  sse_decode_StreamSink_preview_cleanup_event_Sse(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    throw UnimplementedError('Unreachable ()');
   }
 
   @protected
@@ -2001,6 +2206,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<RetiredPreviewRootView> sse_decode_list_retired_preview_root_view(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <RetiredPreviewRootView>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_retired_preview_root_view(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   String? sse_decode_opt_String(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -2126,15 +2345,94 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  PreviewCleanupEvent sse_decode_preview_cleanup_event(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var tag_ = sse_decode_i_32(deserializer);
+    switch (tag_) {
+      case 0:
+        var var_operationId = sse_decode_String(deserializer);
+        var var_totalFiles = sse_decode_u_64(deserializer);
+        var var_totalBytes = sse_decode_u_64(deserializer);
+        return PreviewCleanupEvent_Started(
+          operationId: var_operationId,
+          totalFiles: var_totalFiles,
+          totalBytes: var_totalBytes,
+        );
+      case 1:
+        var var_operationId = sse_decode_String(deserializer);
+        var var_processedFiles = sse_decode_u_64(deserializer);
+        var var_removedFiles = sse_decode_u_64(deserializer);
+        var var_removedBytes = sse_decode_u_64(deserializer);
+        var var_issueCount = sse_decode_u_64(deserializer);
+        var var_totalFiles = sse_decode_u_64(deserializer);
+        var var_totalBytes = sse_decode_u_64(deserializer);
+        return PreviewCleanupEvent_Progress(
+          operationId: var_operationId,
+          processedFiles: var_processedFiles,
+          removedFiles: var_removedFiles,
+          removedBytes: var_removedBytes,
+          issueCount: var_issueCount,
+          totalFiles: var_totalFiles,
+          totalBytes: var_totalBytes,
+        );
+      case 2:
+        var var_operationId = sse_decode_String(deserializer);
+        var var_issue = sse_decode_box_autoadd_scan_issue(deserializer);
+        return PreviewCleanupEvent_Issue(
+          operationId: var_operationId,
+          issue: var_issue,
+        );
+      case 3:
+        var var_operationId = sse_decode_String(deserializer);
+        var var_removedFiles = sse_decode_u_64(deserializer);
+        var var_removedBytes = sse_decode_u_64(deserializer);
+        var var_issueCount = sse_decode_u_64(deserializer);
+        return PreviewCleanupEvent_Completed(
+          operationId: var_operationId,
+          removedFiles: var_removedFiles,
+          removedBytes: var_removedBytes,
+          issueCount: var_issueCount,
+        );
+      case 4:
+        var var_operationId = sse_decode_String(deserializer);
+        var var_removedFiles = sse_decode_u_64(deserializer);
+        var var_removedBytes = sse_decode_u_64(deserializer);
+        var var_issueCount = sse_decode_u_64(deserializer);
+        return PreviewCleanupEvent_Cancelled(
+          operationId: var_operationId,
+          removedFiles: var_removedFiles,
+          removedBytes: var_removedBytes,
+          issueCount: var_issueCount,
+        );
+      case 5:
+        var var_operationId = sse_decode_String(deserializer);
+        var var_code = sse_decode_String(deserializer);
+        var var_message = sse_decode_String(deserializer);
+        return PreviewCleanupEvent_Failed(
+          operationId: var_operationId,
+          code: var_code,
+          message: var_message,
+        );
+      default:
+        throw UnimplementedError('');
+    }
+  }
+
+  @protected
   PreviewRequest sse_decode_preview_request(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_locationId = sse_decode_String(deserializer);
     var var_previewEdge = sse_decode_u_32(deserializer);
     var var_retryFailed = sse_decode_bool(deserializer);
+    var var_protectedLocationIds = sse_decode_list_String(deserializer);
     return PreviewRequest(
       locationId: var_locationId,
       previewEdge: var_previewEdge,
       retryFailed: var_retryFailed,
+      protectedLocationIds: var_protectedLocationIds,
     );
   }
 
@@ -2167,6 +2465,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       visitedEntries: var_visitedEntries,
       acceptedItems: var_acceptedItems,
       issueCount: var_issueCount,
+    );
+  }
+
+  @protected
+  RetiredPreviewRootView sse_decode_retired_preview_root_view(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_previewRoot = sse_decode_String(deserializer);
+    var var_displayPath = sse_decode_String(deserializer);
+    return RetiredPreviewRootView(
+      previewRoot: var_previewRoot,
+      displayPath: var_displayPath,
     );
   }
 
@@ -2342,6 +2653,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_previewUsedBytes = sse_decode_u_64(deserializer);
     var var_catalogUsedBytes = sse_decode_u_64(deserializer);
     var var_requiresRestart = sse_decode_bool(deserializer);
+    var var_retiredPreviewRoots = sse_decode_list_retired_preview_root_view(
+      deserializer,
+    );
     return StorageStatus(
       settingsPath: var_settingsPath,
       activeCatalogPath: var_activeCatalogPath,
@@ -2354,6 +2668,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       previewUsedBytes: var_previewUsedBytes,
       catalogUsedBytes: var_catalogUsedBytes,
       requiresRestart: var_requiresRestart,
+      retiredPreviewRoots: var_retiredPreviewRoots,
     );
   }
 
@@ -2393,6 +2708,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.message, serializer);
+  }
+
+  @protected
+  void sse_encode_StreamSink_preview_cleanup_event_Sse(
+    RustStreamSink<PreviewCleanupEvent> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(
+      self.setupAndSerialize(
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_preview_cleanup_event,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+      ),
+      serializer,
+    );
   }
 
   @protected
@@ -2935,6 +3267,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_retired_preview_root_view(
+    List<RetiredPreviewRootView> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_retired_preview_root_view(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -3056,6 +3400,80 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_preview_cleanup_event(
+    PreviewCleanupEvent self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    switch (self) {
+      case PreviewCleanupEvent_Started(
+        operationId: final operationId,
+        totalFiles: final totalFiles,
+        totalBytes: final totalBytes,
+      ):
+        sse_encode_i_32(0, serializer);
+        sse_encode_String(operationId, serializer);
+        sse_encode_u_64(totalFiles, serializer);
+        sse_encode_u_64(totalBytes, serializer);
+      case PreviewCleanupEvent_Progress(
+        operationId: final operationId,
+        processedFiles: final processedFiles,
+        removedFiles: final removedFiles,
+        removedBytes: final removedBytes,
+        issueCount: final issueCount,
+        totalFiles: final totalFiles,
+        totalBytes: final totalBytes,
+      ):
+        sse_encode_i_32(1, serializer);
+        sse_encode_String(operationId, serializer);
+        sse_encode_u_64(processedFiles, serializer);
+        sse_encode_u_64(removedFiles, serializer);
+        sse_encode_u_64(removedBytes, serializer);
+        sse_encode_u_64(issueCount, serializer);
+        sse_encode_u_64(totalFiles, serializer);
+        sse_encode_u_64(totalBytes, serializer);
+      case PreviewCleanupEvent_Issue(
+        operationId: final operationId,
+        issue: final issue,
+      ):
+        sse_encode_i_32(2, serializer);
+        sse_encode_String(operationId, serializer);
+        sse_encode_box_autoadd_scan_issue(issue, serializer);
+      case PreviewCleanupEvent_Completed(
+        operationId: final operationId,
+        removedFiles: final removedFiles,
+        removedBytes: final removedBytes,
+        issueCount: final issueCount,
+      ):
+        sse_encode_i_32(3, serializer);
+        sse_encode_String(operationId, serializer);
+        sse_encode_u_64(removedFiles, serializer);
+        sse_encode_u_64(removedBytes, serializer);
+        sse_encode_u_64(issueCount, serializer);
+      case PreviewCleanupEvent_Cancelled(
+        operationId: final operationId,
+        removedFiles: final removedFiles,
+        removedBytes: final removedBytes,
+        issueCount: final issueCount,
+      ):
+        sse_encode_i_32(4, serializer);
+        sse_encode_String(operationId, serializer);
+        sse_encode_u_64(removedFiles, serializer);
+        sse_encode_u_64(removedBytes, serializer);
+        sse_encode_u_64(issueCount, serializer);
+      case PreviewCleanupEvent_Failed(
+        operationId: final operationId,
+        code: final code,
+        message: final message,
+      ):
+        sse_encode_i_32(5, serializer);
+        sse_encode_String(operationId, serializer);
+        sse_encode_String(code, serializer);
+        sse_encode_String(message, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_preview_request(
     PreviewRequest self,
     SseSerializer serializer,
@@ -3064,6 +3482,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.locationId, serializer);
     sse_encode_u_32(self.previewEdge, serializer);
     sse_encode_bool(self.retryFailed, serializer);
+    sse_encode_list_String(self.protectedLocationIds, serializer);
   }
 
   @protected
@@ -3087,6 +3506,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_u_64(self.visitedEntries, serializer);
     sse_encode_u_64(self.acceptedItems, serializer);
     sse_encode_u_64(self.issueCount, serializer);
+  }
+
+  @protected
+  void sse_encode_retired_preview_root_view(
+    RetiredPreviewRootView self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.previewRoot, serializer);
+    sse_encode_String(self.displayPath, serializer);
   }
 
   @protected
@@ -3244,6 +3673,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_u_64(self.previewUsedBytes, serializer);
     sse_encode_u_64(self.catalogUsedBytes, serializer);
     sse_encode_bool(self.requiresRestart, serializer);
+    sse_encode_list_retired_preview_root_view(
+      self.retiredPreviewRoots,
+      serializer,
+    );
   }
 
   @protected
