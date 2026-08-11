@@ -1,6 +1,7 @@
 import "dart:async";
 
 import "package:flutter/material.dart";
+import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_menu.dart";
 import "../../../../app/presentation/ame_popup_menu_position.dart";
@@ -40,7 +41,7 @@ class LibraryViewerTopBar extends StatelessWidget {
               key: const Key("viewer-back-button"),
               tooltip: "${LibraryStrings.backToLibrary}（Esc）",
               onPressed: onBack,
-              icon: const Icon(Icons.arrow_back),
+              icon: const Icon(Symbols.arrow_back_rounded),
             ),
             const SizedBox(width: 8),
             Expanded(
@@ -76,7 +77,7 @@ class LibraryViewerTopBar extends StatelessWidget {
             IconButton(
               tooltip: LibraryStrings.viewInformation,
               onPressed: onInformation,
-              icon: const Icon(Icons.info_outline),
+              icon: const Icon(Symbols.info_rounded),
             ),
             Builder(
               builder: (buttonContext) => IconButton(
@@ -85,7 +86,7 @@ class LibraryViewerTopBar extends StatelessWidget {
                 onPressed: () {
                   unawaited(_showMoreMenu(buttonContext));
                 },
-                icon: const Icon(Icons.more_horiz),
+                icon: const Icon(Symbols.more_horiz_rounded),
               ),
             ),
             const AmeWindowCaptionControls(height: 64),
@@ -113,14 +114,14 @@ class LibraryViewerTopBar extends StatelessWidget {
         PopupMenuItem(
           value: _ViewerMenuAction.copyPath,
           child: AmeMenuItemContent(
-            icon: Icons.content_copy_outlined,
+            icon: Symbols.content_copy_rounded,
             label: LibraryStrings.copyPath,
           ),
         ),
         PopupMenuItem(
           value: _ViewerMenuAction.revealFile,
           child: AmeMenuItemContent(
-            icon: Icons.folder_open_outlined,
+            icon: Symbols.folder_open_rounded,
             label: LibraryStrings.openInExplorer,
           ),
         ),
@@ -158,7 +159,11 @@ class LibraryViewerNavigationButton extends StatelessWidget {
         key: Key(isPrevious ? "viewer-previous" : "viewer-next"),
         tooltip: isPrevious ? "上一张（←）" : "下一张（→）",
         onPressed: onPressed,
-        icon: Icon(isPrevious ? Icons.chevron_left : Icons.chevron_right),
+        icon: Icon(
+          isPrevious
+              ? Symbols.chevron_left_rounded
+              : Symbols.chevron_right_rounded,
+        ),
       ),
     );
     return Positioned(
@@ -217,7 +222,7 @@ class LibraryViewerZoomControls extends StatelessWidget {
                 key: const Key("viewer-fit"),
                 tooltip: "适合窗口（0 / Ctrl+0）",
                 onPressed: onFitToWindow,
-                icon: const Icon(Icons.fit_screen_outlined),
+                icon: const Icon(Symbols.fit_screen_rounded),
               ),
               const SizedBox(width: 4),
               Tooltip(
@@ -232,7 +237,7 @@ class LibraryViewerZoomControls extends StatelessWidget {
               IconButton(
                 tooltip: "缩小（- / Ctrl+-）",
                 onPressed: canZoomOut ? onZoomOut : null,
-                icon: const Icon(Icons.remove),
+                icon: const Icon(Symbols.remove_rounded),
               ),
               SizedBox(
                 width: 164,
@@ -254,7 +259,7 @@ class LibraryViewerZoomControls extends StatelessWidget {
               IconButton(
                 tooltip: "放大（+ / Ctrl++）",
                 onPressed: canZoomIn ? onZoomIn : null,
-                icon: const Icon(Icons.add),
+                icon: const Icon(Symbols.add_rounded),
               ),
             ],
           ),

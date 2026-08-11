@@ -1,4 +1,5 @@
 import "package:flutter/material.dart";
+import "package:material_symbols_icons/symbols.dart";
 
 import "timeline_annotation_visibility.dart";
 import "timeline_linear_projection.dart";
@@ -76,7 +77,7 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
             _buildStepButton(
               key: const Key("timeline-previous"),
               tooltip: "向较新的内容移动一行",
-              icon: Icons.arrow_drop_up,
+              icon: Symbols.arrow_drop_up_rounded,
               direction: -1,
             ),
             Expanded(
@@ -229,7 +230,7 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
             _buildStepButton(
               key: const Key("timeline-next"),
               tooltip: "向较早的内容移动一行",
-              icon: Icons.arrow_drop_down,
+              icon: Symbols.arrow_drop_down_rounded,
               direction: 1,
             ),
           ],

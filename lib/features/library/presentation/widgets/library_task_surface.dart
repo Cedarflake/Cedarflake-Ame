@@ -1,4 +1,5 @@
 import "package:flutter/material.dart";
+import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_theme.dart";
 import "../../domain/library_state.dart";
@@ -69,7 +70,7 @@ class LibraryTaskSurface extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.info_outline, size: 20),
+                  const Icon(Symbols.info_rounded, size: 20),
                   const SizedBox(width: 12),
                   Expanded(child: Text(title)),
                   if (state.status == LibraryStatus.scanning) ...[

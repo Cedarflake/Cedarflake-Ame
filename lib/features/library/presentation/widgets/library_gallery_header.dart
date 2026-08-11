@@ -1,4 +1,5 @@
 import "package:flutter/material.dart";
+import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_menu.dart";
 import "../../../../app/presentation/ame_popup_menu_position.dart";
@@ -164,7 +165,7 @@ class _BrowsingToolbar extends StatelessWidget {
         TextButton.icon(
           key: const Key("library-select-button"),
           onPressed: onBeginSelection,
-          icon: const Icon(Icons.check_box_outlined),
+          icon: const Icon(Symbols.check_box_rounded),
           label: const Text(LibraryStrings.select),
         ),
         _SortMenu(
@@ -199,7 +200,7 @@ class _SelectionToolbar extends StatelessWidget {
         TextButton.icon(
           key: const Key("library-cancel-selection"),
           onPressed: onCancel,
-          icon: const Icon(Icons.close),
+          icon: const Icon(Symbols.close_rounded),
           label: const Text(LibraryStrings.cancel),
         ),
       ],
@@ -234,28 +235,28 @@ class _SortMenuState extends State<_SortMenu> {
       menuChildren: [
         _menuChoice(
           label: LibraryStrings.captureDate,
-          icon: Icons.calendar_month_outlined,
+          icon: Symbols.calendar_month_rounded,
           isSelected: widget.sortKey == LibraryGallerySortKey.captureTime,
           onPressed: () =>
               widget.onSortKeyChanged(LibraryGallerySortKey.captureTime),
         ),
         _menuChoice(
           label: LibraryStrings.createdDate,
-          icon: Icons.create_new_folder_outlined,
+          icon: Symbols.create_new_folder_rounded,
           isSelected: widget.sortKey == LibraryGallerySortKey.createdTime,
           onPressed: () =>
               widget.onSortKeyChanged(LibraryGallerySortKey.createdTime),
         ),
         _menuChoice(
           label: LibraryStrings.modifiedDate,
-          icon: Icons.edit_calendar_outlined,
+          icon: Symbols.edit_calendar_rounded,
           isSelected: widget.sortKey == LibraryGallerySortKey.modifiedTime,
           onPressed: () =>
               widget.onSortKeyChanged(LibraryGallerySortKey.modifiedTime),
         ),
         _menuChoice(
           label: LibraryStrings.fileName,
-          icon: Icons.text_fields,
+          icon: Symbols.text_fields_rounded,
           isSelected: widget.sortKey == LibraryGallerySortKey.fileName,
           onPressed: () =>
               widget.onSortKeyChanged(LibraryGallerySortKey.fileName),
@@ -263,14 +264,14 @@ class _SortMenuState extends State<_SortMenu> {
         const Divider(height: AmeMenuMetrics.dividerHeight),
         _menuChoice(
           label: LibraryStrings.ascending,
-          icon: Icons.arrow_upward,
+          icon: Symbols.arrow_upward_rounded,
           isSelected: widget.direction == LibraryGallerySortDirection.ascending,
           onPressed: () =>
               widget.onDirectionChanged(LibraryGallerySortDirection.ascending),
         ),
         _menuChoice(
           label: LibraryStrings.descending,
-          icon: Icons.arrow_downward,
+          icon: Symbols.arrow_downward_rounded,
           isSelected:
               widget.direction == LibraryGallerySortDirection.descending,
           onPressed: () =>
@@ -284,8 +285,8 @@ class _SortMenuState extends State<_SortMenu> {
         icon: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.swap_vert),
-            Icon(Icons.arrow_drop_down, size: 18),
+            Icon(Symbols.swap_vert_rounded),
+            Icon(Symbols.arrow_drop_down_rounded, size: 18),
           ],
         ),
       ),
@@ -320,33 +321,33 @@ class _LayoutMenuState extends State<_LayoutMenu> {
       menuChildren: [
         _menuChoice(
           label: LibraryStrings.equalHeight,
-          icon: Icons.view_quilt_outlined,
+          icon: Symbols.view_quilt_rounded,
           isSelected: widget.shape == GalleryLayoutShape.equalHeight,
           onPressed: () =>
               widget.onShapeChanged(GalleryLayoutShape.equalHeight),
         ),
         _menuChoice(
           label: LibraryStrings.square,
-          icon: Icons.grid_view_outlined,
+          icon: Symbols.grid_view_rounded,
           isSelected: widget.shape == GalleryLayoutShape.square,
           onPressed: () => widget.onShapeChanged(GalleryLayoutShape.square),
         ),
         const Divider(height: AmeMenuMetrics.dividerHeight),
         _menuChoice(
           label: LibraryStrings.small,
-          icon: Icons.grid_4x4_outlined,
+          icon: Symbols.grid_4x4_rounded,
           isSelected: widget.size == GalleryThumbnailSize.small,
           onPressed: () => widget.onSizeChanged(GalleryThumbnailSize.small),
         ),
         _menuChoice(
           label: LibraryStrings.medium,
-          icon: Icons.grid_view_outlined,
+          icon: Symbols.grid_view_rounded,
           isSelected: widget.size == GalleryThumbnailSize.medium,
           onPressed: () => widget.onSizeChanged(GalleryThumbnailSize.medium),
         ),
         _menuChoice(
           label: LibraryStrings.large,
-          icon: Icons.crop_square_outlined,
+          icon: Symbols.crop_square_rounded,
           isSelected: widget.size == GalleryThumbnailSize.large,
           onPressed: () => widget.onSizeChanged(GalleryThumbnailSize.large),
         ),
@@ -358,8 +359,8 @@ class _LayoutMenuState extends State<_LayoutMenu> {
         icon: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.grid_view_outlined),
-            Icon(Icons.arrow_drop_down, size: 18),
+            Icon(Symbols.grid_view_rounded),
+            Icon(Symbols.arrow_drop_down_rounded, size: 18),
           ],
         ),
       ),
@@ -379,7 +380,7 @@ class _MoreMenu extends StatelessWidget {
         key: const Key("library-more-menu"),
         tooltip: LibraryStrings.more,
         onPressed: () => _showMenu(context, anchorContext),
-        icon: const Icon(Icons.more_horiz),
+        icon: const Icon(Symbols.more_horiz_rounded),
       ),
     );
   }
@@ -405,7 +406,7 @@ class _MoreMenu extends StatelessWidget {
         PopupMenuItem(
           value: true,
           child: AmeMenuItemContent(
-            icon: Icons.select_all,
+            icon: Symbols.select_all_rounded,
             label: LibraryStrings.selectAll,
             shortcut: "Ctrl+A",
           ),
@@ -427,7 +428,7 @@ MenuItemButton _menuChoice({
   return MenuItemButton(
     onPressed: onPressed,
     child: AmeMenuItemContent(
-      icon: isSelected ? Icons.circle : icon,
+      icon: isSelected ? Symbols.circle_rounded : icon,
       label: label,
     ),
   );

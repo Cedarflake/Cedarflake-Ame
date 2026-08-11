@@ -1,6 +1,7 @@
 import "dart:math" as math;
 
 import "package:flutter/material.dart";
+import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/window/ame_window_chrome.dart";
 import "../library_strings.dart";
@@ -50,7 +51,7 @@ class LibraryGlobalBar extends StatelessWidget {
                         padding: const EdgeInsets.only(left: 18),
                         child: Row(
                           children: [
-                            const Icon(Icons.photo_library_outlined),
+                            const Icon(Symbols.photo_library_rounded),
                             if (!isCompact) ...[
                               const SizedBox(width: 12),
                               const Text(LibraryStrings.appName),
@@ -75,7 +76,7 @@ class LibraryGlobalBar extends StatelessWidget {
                         controller: searchController,
                         enabled: !isBusy,
                         hintText: LibraryStrings.searchHint,
-                        leading: const Icon(Icons.search),
+                        leading: const Icon(Symbols.search_rounded),
                         trailing: [
                           if (searchController.text.isNotEmpty)
                             IconButton(
@@ -84,7 +85,7 @@ class LibraryGlobalBar extends StatelessWidget {
                                 searchController.clear();
                                 onSearchChanged("");
                               },
-                              icon: const Icon(Icons.close),
+                              icon: const Icon(Symbols.close_rounded),
                             ),
                         ],
                         onChanged: onSearchChanged,

@@ -1,6 +1,7 @@
 import "dart:async";
 
 import "package:flutter/material.dart";
+import "package:material_symbols_icons/symbols.dart";
 
 import "../../application/library_folder_controller.dart";
 import "../../domain/library_folder_models.dart";
@@ -88,13 +89,13 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                           widget.selectedRootId == null,
                       tooltip: LibraryStrings.library,
                       onPressed: widget.isBusy ? null : widget.onSelectLibrary,
-                      icon: const Icon(Icons.photo_library_outlined),
+                      icon: const Icon(Symbols.photo_library_rounded),
                     ),
                     IconButton(
                       key: const Key("library-sidebar-import"),
                       tooltip: LibraryStrings.addFolder,
                       onPressed: widget.isBusy ? null : widget.onAddSource,
-                      icon: const Icon(Icons.create_new_folder_outlined),
+                      icon: const Icon(Symbols.create_new_folder_rounded),
                     ),
                   ] else
                     ListTile(
@@ -113,7 +114,7 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                       horizontalTitleGap: 12,
                       leading: const SizedBox(
                         width: 24,
-                        child: Icon(Icons.photo_library_outlined),
+                        child: Icon(Symbols.photo_library_rounded),
                       ),
                       title: const Text(LibraryStrings.library),
                       trailing: SizedBox(
@@ -122,7 +123,7 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                           key: const Key("library-sidebar-import"),
                           tooltip: LibraryStrings.addFolder,
                           onPressed: widget.isBusy ? null : widget.onAddSource,
-                          icon: const Icon(Icons.create_new_folder_outlined),
+                          icon: const Icon(Symbols.create_new_folder_rounded),
                         ),
                       ),
                       onTap: widget.isBusy ? null : widget.onSelectLibrary,
@@ -133,11 +134,11 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                       const IconButton(
                         tooltip: LibraryStrings.noFolder,
                         onPressed: null,
-                        icon: Icon(Icons.folder_off_outlined),
+                        icon: Icon(Symbols.folder_off_rounded),
                       )
                     else
                       const ListTile(
-                        leading: Icon(Icons.folder_off_outlined),
+                        leading: Icon(Symbols.folder_off_rounded),
                         title: Text(LibraryStrings.noFolder),
                       ),
                   for (final root in widget.roots) ...[
@@ -175,7 +176,7 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                       isSelected: widget.isSettingsSelected,
                       tooltip: LibraryStrings.settings,
                       onPressed: widget.onOpenSettings,
-                      icon: const Icon(Icons.settings_outlined),
+                      icon: const Icon(Symbols.settings_rounded),
                     )
                   : ListTile(
                       key: const Key("library-sidebar-settings"),
@@ -193,7 +194,7 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                       horizontalTitleGap: 12,
                       leading: const SizedBox(
                         width: 24,
-                        child: Icon(Icons.settings_outlined),
+                        child: Icon(Symbols.settings_rounded),
                       ),
                       title: const Text(LibraryStrings.settings),
                       onTap: widget.onOpenSettings,

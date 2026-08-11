@@ -2,6 +2,7 @@ import "package:cedarflake_ame/app/presentation/ame_menu.dart";
 import "package:cedarflake_ame/app/presentation/ame_theme.dart";
 import "package:flutter/material.dart";
 import "package:flutter_test/flutter_test.dart";
+import "package:material_symbols_icons/symbols.dart";
 
 void main() {
   test("uses one visual contract for anchored and popup menus", () {
@@ -62,13 +63,16 @@ void main() {
         theme: buildAmeTheme(),
         home: const Scaffold(
           body: Center(
-            child: AmeMenuItemContent(icon: Icons.folder_outlined, label: "图片"),
+            child: AmeMenuItemContent(
+              icon: Symbols.folder_rounded,
+              label: "图片",
+            ),
           ),
         ),
       ),
     );
 
-    final iconRect = tester.getRect(find.byIcon(Icons.folder_outlined));
+    final iconRect = tester.getRect(find.byIcon(Symbols.folder_rounded));
     final labelRect = tester.getRect(find.text("图片"));
     expect(iconRect.size, const Size.square(AmeMenuMetrics.iconSize));
     expect(labelRect.left - iconRect.right, AmeMenuMetrics.iconLabelGap);
@@ -84,7 +88,7 @@ void main() {
               key: Key("constrained-menu-row"),
               width: 123,
               child: AmeMenuItemContent(
-                icon: Icons.select_all,
+                icon: Symbols.select_all_rounded,
                 label: "全选",
                 shortcut: "Ctrl+A",
               ),

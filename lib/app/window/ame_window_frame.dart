@@ -1,4 +1,5 @@
 import "package:flutter/material.dart";
+import "package:material_symbols_icons/symbols.dart";
 
 import "ame_window_chrome.dart";
 
@@ -30,7 +31,7 @@ class AmeWindowFrame extends StatelessWidget {
                         padding: EdgeInsets.symmetric(horizontal: 14),
                         child: Row(
                           children: [
-                            Icon(Icons.photo_library_outlined, size: 18),
+                            Icon(Symbols.photo_library_rounded, size: 18),
                             SizedBox(width: 9),
                             Text("Cedarflake Ame"),
                           ],

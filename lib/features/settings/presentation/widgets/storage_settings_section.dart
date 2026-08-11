@@ -3,6 +3,7 @@ import "dart:io";
 
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:material_symbols_icons/symbols.dart";
 
 import "../../../storage/application/storage_settings.dart";
 import "../../../storage/domain/storage_models.dart";
@@ -273,7 +274,7 @@ class _StorageSettingsSectionState
           if (_errorMessage == null)
             const SettingsRow(
               key: Key("storage-settings-loading"),
-              icon: Icons.storage_outlined,
+              icon: Symbols.storage_rounded,
               title: "正在读取存储设置",
               subtitle: Text("正在检查图库数据与缩略图的保存位置"),
               trailing: SizedBox.square(
@@ -284,7 +285,7 @@ class _StorageSettingsSectionState
           else
             SettingsRow(
               key: const Key("storage-settings-load-error"),
-              icon: Icons.error_outline,
+              icon: Symbols.error_rounded,
               title: "无法读取存储设置",
               subtitle: Text(_errorMessage!),
               trailing: OutlinedButton(
@@ -302,13 +303,13 @@ class _StorageSettingsSectionState
         if (status.requiresRestart)
           const SettingsRow(
             key: Key("storage-settings-restart-notice"),
-            icon: Icons.restart_alt,
+            icon: Symbols.restart_alt_rounded,
             title: "重启 Ame 后应用新的存储设置",
             subtitle: Text("现有文件不会被移动或删除"),
           ),
         SettingsRow(
           key: const Key("catalog-location-setting"),
-          icon: Icons.storage_outlined,
+          icon: Symbols.storage_rounded,
           title: "图库数据位置",
           subtitle: Text(
             "保存图库索引和扫描结果\n"
@@ -324,7 +325,7 @@ class _StorageSettingsSectionState
         ),
         SettingsRow(
           key: const Key("preview-location-setting"),
-          icon: Icons.photo_library_outlined,
+          icon: Symbols.photo_library_rounded,
           title: "缩略图位置",
           subtitle: Text(
             "保存可随时重新生成的图片预览\n"
@@ -338,7 +339,7 @@ class _StorageSettingsSectionState
         for (final retiredRoot in status.retiredPreviewRoots)
           SettingsRow(
             key: ValueKey("retired-preview-root-${retiredRoot.previewRoot}"),
-            icon: Icons.folder_delete_outlined,
+            icon: Symbols.folder_delete_rounded,
             title: "旧缩略图目录",
             subtitle: Text(
               "新目录已启用；旧目录只会在确认后清理 Ame 管理的缩略图\n"
@@ -357,7 +358,7 @@ class _StorageSettingsSectionState
           ),
         SettingsRow(
           key: const Key("preview-budget-setting"),
-          icon: Icons.data_usage_outlined,
+          icon: Symbols.data_usage_rounded,
           title: "缩略图最大占用空间",
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -395,7 +396,7 @@ class _StorageSettingsSectionState
         ),
         SettingsRow(
           key: const Key("preview-cleanup-setting"),
-          icon: Icons.cleaning_services_outlined,
+          icon: Symbols.cleaning_services_rounded,
           title: _cleanupTitle(
             _cleanupUpdate,
             isRetiredRoot: _cleanupTargetPreviewRoot != null,
@@ -419,7 +420,7 @@ class _StorageSettingsSectionState
         if (_errorMessage != null)
           SettingsRow(
             key: const Key("storage-settings-error"),
-            icon: Icons.error_outline,
+            icon: Symbols.error_rounded,
             title: "未能保存存储设置",
             subtitle: Text(
               _errorMessage!,
@@ -429,7 +430,7 @@ class _StorageSettingsSectionState
         if (_isSaving)
           const SettingsRow(
             key: Key("storage-settings-saving"),
-            icon: Icons.sync,
+            icon: Symbols.sync_rounded,
             title: "正在保存",
             subtitle: Text("完成前不会改变当前正在使用的存储位置"),
             trailing: SizedBox.square(

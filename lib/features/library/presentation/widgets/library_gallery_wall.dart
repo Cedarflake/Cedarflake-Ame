@@ -3,6 +3,7 @@ import "dart:async";
 import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter/scheduler.dart";
+import "package:material_symbols_icons/symbols.dart";
 
 import "../../application/library_controller.dart";
 import "../../domain/gallery_layout_manifest.dart";
@@ -485,7 +486,7 @@ class LibraryGalleryWall extends StatelessWidget {
                         child: TextButton.icon(
                           key: const Key("library-load-previous-button"),
                           onPressed: onLoadPrevious,
-                          icon: const Icon(Icons.refresh),
+                          icon: const Icon(Symbols.refresh_rounded),
                           label: const Text(LibraryStrings.retryLoading),
                         ),
                       ),
@@ -525,7 +526,7 @@ class LibraryGalleryWall extends StatelessWidget {
       child: OutlinedButton.icon(
         key: const Key("library-load-more-button"),
         onPressed: controller.loadNextPage,
-        icon: const Icon(Icons.refresh),
+        icon: const Icon(Symbols.refresh_rounded),
         label: const Text(LibraryStrings.retryLoading),
       ),
     );
@@ -1005,7 +1006,7 @@ class _ManifestLibraryGalleryWallState
                         child: TextButton.icon(
                           key: const Key("library-load-previous-button"),
                           onPressed: widget.onLoadPrevious,
-                          icon: const Icon(Icons.refresh),
+                          icon: const Icon(Symbols.refresh_rounded),
                           label: const Text(LibraryStrings.retryLoading),
                         ),
                       ),
@@ -1030,7 +1031,7 @@ class _ManifestLibraryGalleryWallState
                         child: OutlinedButton.icon(
                           key: const Key("library-load-more-button"),
                           onPressed: widget.controller.loadNextPage,
-                          icon: const Icon(Icons.refresh),
+                          icon: const Icon(Symbols.refresh_rounded),
                           label: const Text(LibraryStrings.retryLoading),
                         ),
                       ),

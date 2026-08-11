@@ -25,6 +25,7 @@ import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
+import "package:material_symbols_icons/symbols.dart";
 
 void main() {
   testWidgets("shows the unified empty library shell", (tester) async {
@@ -598,7 +599,7 @@ void main() {
           of: find.text(LibraryStrings.square),
           matching: find.byType(MenuItemButton),
         ),
-        matching: find.byIcon(Icons.circle),
+        matching: find.byIcon(Symbols.circle_rounded),
       ),
       findsOneWidget,
     );
@@ -608,7 +609,7 @@ void main() {
           of: find.text(LibraryStrings.large),
           matching: find.byType(MenuItemButton),
         ),
-        matching: find.byIcon(Icons.circle),
+        matching: find.byIcon(Symbols.circle_rounded),
       ),
       findsOneWidget,
     );
@@ -1012,7 +1013,7 @@ void main() {
 
     expect(find.text("DisconnectedPictures"), findsOneWidget);
     expect(find.text("文件夹不存在"), findsOneWidget);
-    expect(find.byIcon(Icons.folder_off_outlined), findsOneWidget);
+    expect(find.byIcon(Symbols.folder_off_rounded), findsOneWidget);
   });
 
   testWidgets("reveals a checkbox on hover and keeps selection visible", (

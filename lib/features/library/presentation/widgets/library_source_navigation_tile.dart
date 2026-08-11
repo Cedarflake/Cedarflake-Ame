@@ -2,6 +2,7 @@ import "dart:async";
 
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
+import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_menu.dart";
 import "../../../../app/presentation/ame_popup_menu_position.dart";
@@ -54,10 +55,10 @@ class _LibrarySourceNavigationTileState
   Widget build(BuildContext context) {
     final icon = switch (widget.root.availability) {
       LibraryRootAvailability.available ||
-      LibraryRootAvailability.unknown => Icons.folder_outlined,
-      LibraryRootAvailability.missing => Icons.folder_off_outlined,
-      LibraryRootAvailability.inaccessible => Icons.lock_outline,
-      LibraryRootAvailability.offline => Icons.cloud_off_outlined,
+      LibraryRootAvailability.unknown => Symbols.folder_rounded,
+      LibraryRootAvailability.missing => Symbols.folder_off_rounded,
+      LibraryRootAvailability.inaccessible => Symbols.lock_rounded,
+      LibraryRootAvailability.offline => Symbols.cloud_off_rounded,
     };
     final tile = widget.isCompact
         ? IconButton(
@@ -92,8 +93,8 @@ class _LibrarySourceNavigationTileState
                     onPressed: widget.onToggleExpansion,
                     icon: Icon(
                       widget.isExpanded
-                          ? Icons.keyboard_arrow_up
-                          : Icons.keyboard_arrow_down,
+                          ? Symbols.keyboard_arrow_up_rounded
+                          : Symbols.keyboard_arrow_down_rounded,
                     ),
                   ),
                   Builder(
@@ -103,7 +104,7 @@ class _LibrarySourceNavigationTileState
                       onPressed: () {
                         unawaited(_showMenuBelow(buttonContext));
                       },
-                      icon: const Icon(Icons.more_vert),
+                      icon: const Icon(Symbols.more_vert_rounded),
                     ),
                   ),
                 ],
@@ -172,14 +173,14 @@ class _LibrarySourceNavigationTileState
           value: _LibrarySourceMenuAction.update,
           enabled: !widget.isBusy,
           child: const AmeMenuItemContent(
-            icon: Icons.refresh,
+            icon: Symbols.refresh_rounded,
             label: LibraryStrings.updateLibrary,
           ),
         ),
         const PopupMenuItem(
           value: _LibrarySourceMenuAction.open,
           child: AmeMenuItemContent(
-            icon: Icons.folder_open_outlined,
+            icon: Symbols.folder_open_rounded,
             label: LibraryStrings.openInExplorer,
           ),
         ),
@@ -188,7 +189,7 @@ class _LibrarySourceNavigationTileState
           value: _LibrarySourceMenuAction.remove,
           enabled: !widget.isBusy,
           child: const AmeMenuItemContent(
-            icon: Icons.remove_circle_outline,
+            icon: Symbols.remove_circle_rounded,
             label: LibraryStrings.removeFromAme,
           ),
         ),
@@ -240,7 +241,7 @@ class PendingLibrarySourceTile extends StatelessWidget {
           icon: Stack(
             clipBehavior: Clip.none,
             children: [
-              Icon(Icons.folder_outlined),
+              Icon(Symbols.folder_rounded),
               Positioned(
                 right: -5,
                 bottom: -5,
@@ -256,7 +257,7 @@ class PendingLibrarySourceTile extends StatelessWidget {
     }
     return _ExpandedSourceTile(
       key: const Key("pending-source-tile"),
-      icon: Icons.folder_outlined,
+      icon: Symbols.folder_rounded,
       iconKey: const Key("pending-source-icon"),
       title: librarySourceName(path),
       path: path,

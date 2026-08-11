@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:material_symbols_icons/symbols.dart";
 
 import "app/bootstrap/rust_library_loader.dart";
 import "app/window/window_manager_actions.dart";
@@ -82,7 +83,7 @@ class AmeBootstrapFailure extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.error_outline, size: 48),
+                    const Icon(Symbols.error_rounded, size: 48),
                     const SizedBox(height: 20),
                     Text(
                       "Cedarflake Ame could not start",

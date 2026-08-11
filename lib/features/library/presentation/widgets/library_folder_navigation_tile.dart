@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
+import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_menu.dart";
 import "../../domain/library_folder_models.dart";
@@ -57,7 +58,7 @@ class _LibraryFolderNavigationTileState
         MenuItemButton(
           onPressed: widget.onOpen,
           child: const AmeMenuItemContent(
-            icon: Icons.folder_open_outlined,
+            icon: Symbols.folder_open_rounded,
             label: LibraryStrings.openInExplorer,
           ),
         ),
@@ -92,7 +93,7 @@ class _LibraryFolderNavigationTileState
             horizontalTitleGap: 12,
             leading: const SizedBox(
               width: 24,
-              child: Icon(Icons.folder_outlined),
+              child: Icon(Symbols.folder_rounded),
             ),
             title: LibraryPathText(
               text: widget.folder.name,
@@ -114,8 +115,8 @@ class _LibraryFolderNavigationTileState
                       onPressed: widget.onToggleExpansion,
                       icon: Icon(
                         widget.isExpanded
-                            ? Icons.keyboard_arrow_up
-                            : Icons.keyboard_arrow_down,
+                            ? Symbols.keyboard_arrow_up_rounded
+                            : Symbols.keyboard_arrow_down_rounded,
                       ),
                     ),
             ),
@@ -168,7 +169,7 @@ class LibraryFolderErrorTile extends StatelessWidget {
       child: TextButton.icon(
         key: const Key("folder-tree-retry"),
         onPressed: onRetry,
-        icon: const Icon(Icons.refresh),
+        icon: const Icon(Symbols.refresh_rounded),
         label: const Text(LibraryStrings.retryFolders),
       ),
     );

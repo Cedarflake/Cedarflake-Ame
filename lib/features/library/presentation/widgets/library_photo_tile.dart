@@ -4,6 +4,7 @@ import "dart:io";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_menu.dart";
 import "../../application/library_controller.dart";
@@ -107,14 +108,14 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
             onPressed: () =>
                 widget.onOpen(_controller.resolvePreview(widget.asset)),
             child: const AmeMenuItemContent(
-              icon: Icons.open_in_full,
+              icon: Symbols.open_in_full_rounded,
               label: LibraryStrings.open,
             ),
           ),
           MenuItemButton(
             onPressed: () => widget.onViewInformation(widget.asset),
             child: const AmeMenuItemContent(
-              icon: Icons.info_outline,
+              icon: Symbols.info_rounded,
               label: LibraryStrings.viewInformation,
             ),
           ),
@@ -122,14 +123,14 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
           MenuItemButton(
             onPressed: () => widget.onCopyPath(widget.asset),
             child: const AmeMenuItemContent(
-              icon: Icons.content_copy_outlined,
+              icon: Symbols.content_copy_rounded,
               label: LibraryStrings.copyPath,
             ),
           ),
           MenuItemButton(
             onPressed: () => widget.onRevealFile(widget.asset),
             child: const AmeMenuItemContent(
-              icon: Icons.folder_open_outlined,
+              icon: Symbols.folder_open_rounded,
               label: LibraryStrings.openInExplorer,
             ),
           ),
@@ -232,7 +233,7 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.broken_image_outlined),
+            const Icon(Symbols.broken_image_rounded),
             const SizedBox(height: 4),
             TextButton(
               key: Key("preview-retry-${asset.locationId}"),
@@ -268,7 +269,7 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.broken_image_outlined),
+              const Icon(Symbols.broken_image_rounded),
               const SizedBox(height: 4),
               TextButton(
                 key: Key("preview-retry-${asset.locationId}"),
