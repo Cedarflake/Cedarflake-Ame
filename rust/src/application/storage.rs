@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::sync::OnceLock;
 
 use directories::ProjectDirs;
@@ -70,7 +70,7 @@ pub fn update_storage_settings(update: StorageSettingsUpdate) -> Result<StorageS
     if let Some(catalog_directory) = update.catalog_directory {
         let directory = validate_absolute_directory(&catalog_directory, "catalog")?;
         let candidate = directory.join("ame.sqlite3");
-        if !paths_same(&candidate, &active.catalog_path)
+        if !resolved_paths_same(&candidate, &active.catalog_path)?
             && active_catalog_has_roots(&active.catalog_path)?
         {
             return Err(ScanError::new(
@@ -108,7 +108,7 @@ pub fn update_storage_settings(update: StorageSettingsUpdate) -> Result<StorageS
     let mut settings = SqliteStorageSettings::open(active.settings_path.clone())?;
     let active_preview_root = active.preview_root.to_string_lossy();
     let pending_preview_root =
-        (!paths_same(Path::new(&configured.preview_root), &active.preview_root))
+        (!resolved_paths_same(Path::new(&configured.preview_root), &active.preview_root)?)
             .then_some(active_preview_root.as_ref());
     settings.save(&configured, pending_preview_root)?;
     storage_status(&active, &configured)
@@ -281,10 +281,64 @@ fn validate_configuration_paths(
     let configured_preview = Path::new(&configuration.preview_root);
     for root in snapshot.roots {
         let source = Path::new(&root.path);
-        if paths_overlap(source, configured_catalog) || paths_overlap(source, configured_preview) {
+        if resolved_paths_overlap(source, configured_catalog)?
+            || resolved_paths_overlap(source, configured_preview)?
+        {
             return Err(ScanError::new(
                 "storage_path_overlaps_source",
                 format!("Configured storage overlaps the source root {}", root.path),
+            ));
+        }
+    }
+    Ok(())
+}
+
+pub(crate) fn validate_source_root_storage_paths(
+    source_root: &Path,
+    storage: &StoragePaths,
+) -> Result<(), ScanError> {
+    for (label, storage_path) in [
+        ("catalog", storage.catalog_path.as_path()),
+        ("preview cache", storage.preview_root.as_path()),
+        ("settings", storage.settings_path.as_path()),
+    ] {
+        if resolved_paths_overlap(source_root, storage_path)? {
+            return Err(ScanError::new(
+                "source_root_overlaps_storage",
+                format!(
+                    "The selected library root overlaps Ame {label} storage at {}",
+                    storage_path.display()
+                ),
+            ));
+        }
+    }
+    Ok(())
+}
+
+pub(crate) fn validate_preview_root_outside_sources(
+    catalog_path: &Path,
+    preview_root: &Path,
+) -> Result<(), ScanError> {
+    if !catalog_path.exists() {
+        return Ok(());
+    }
+    let mut catalog = SqliteCatalog::open(catalog_path.to_path_buf())?;
+    let snapshot = catalog.load_snapshot(
+        1,
+        &GalleryQuery::default(),
+        "preview-cleanup-validation",
+        None,
+        None,
+        None,
+    )?;
+    for root in snapshot.roots {
+        if resolved_paths_overlap(Path::new(&root.path), preview_root)? {
+            return Err(ScanError::new(
+                "preview_root_overlaps_source",
+                format!(
+                    "The preview cache resolves inside the source root {}",
+                    root.path
+                ),
             ));
         }
     }
@@ -311,15 +365,85 @@ fn paths_overlap(left: &Path, right: &Path) -> bool {
         || right.starts_with(&format!("{left}\\"))
 }
 
+pub(crate) fn resolved_paths_overlap(left: &Path, right: &Path) -> Result<bool, ScanError> {
+    if paths_overlap(left, right) {
+        return Ok(true);
+    }
+    let left = resolved_normalized_path(left)?;
+    let right = resolved_normalized_path(right)?;
+    Ok(left == right
+        || left.starts_with(&format!("{right}\\"))
+        || right.starts_with(&format!("{left}\\")))
+}
+
+pub(crate) fn resolved_paths_same(left: &Path, right: &Path) -> Result<bool, ScanError> {
+    if paths_same(left, right) {
+        return Ok(true);
+    }
+    Ok(resolved_normalized_path(left)? == resolved_normalized_path(right)?)
+}
+
 pub(crate) fn paths_same(left: &Path, right: &Path) -> bool {
     normalized_path(left) == normalized_path(right)
 }
 
 fn normalized_path(path: &Path) -> String {
-    path.to_string_lossy()
-        .replace('/', "\\")
+    normalize_path_text(&path.to_string_lossy())
+}
+
+fn resolved_normalized_path(path: &Path) -> Result<String, ScanError> {
+    let mut existing = path;
+    while !existing.exists() {
+        existing = existing.parent().ok_or_else(|| {
+            ScanError::new(
+                "storage_path_resolution_failed",
+                format!("Could not resolve the storage path {}", path.display()),
+            )
+        })?;
+    }
+    let resolved = fs::canonicalize(existing).map_err(|error| {
+        ScanError::new(
+            "storage_path_resolution_failed",
+            format!(
+                "Could not resolve the storage path {}: {error}",
+                path.display()
+            ),
+        )
+    })?;
+    let suffix = path.strip_prefix(existing).map_err(|_| {
+        ScanError::new(
+            "storage_path_resolution_failed",
+            format!("Could not compare the storage path {}", path.display()),
+        )
+    })?;
+    let resolved = normalize_path_components(&resolved.join(suffix));
+    Ok(normalize_path_text(&resolved.to_string_lossy()))
+}
+
+fn normalize_path_components(path: &Path) -> PathBuf {
+    let mut normalized = PathBuf::new();
+    for component in path.components() {
+        match component {
+            Component::CurDir => {}
+            Component::ParentDir => {
+                normalized.pop();
+            }
+            Component::Prefix(_) | Component::RootDir | Component::Normal(_) => {
+                normalized.push(component.as_os_str());
+            }
+        }
+    }
+    normalized
+}
+
+fn normalize_path_text(path: &str) -> String {
+    let path = path.replace('/', "\\");
+    let path = path
+        .strip_prefix("\\\\?\\UNC\\")
+        .map(|path| format!("\\\\{path}"))
+        .unwrap_or_else(|| path.trim_start_matches("\\\\?\\").to_owned());
+    path.replace('/', "\\")
         .trim_end_matches('\\')
-        .trim_start_matches("\\\\?\\")
         .to_lowercase()
 }
 
@@ -353,9 +477,13 @@ fn storage_status(
         preview_budget_bytes: configured.preview_budget_bytes,
         preview_used_bytes: directory_size(&active.preview_root)?,
         catalog_used_bytes: catalog_size(&active.catalog_path)?,
-        requires_restart: active_catalog_path != configured.catalog_path
-            || active_preview_root != configured.preview_root
-            || active.preview_budget_bytes != configured.preview_budget_bytes,
+        requires_restart: !resolved_paths_same(
+            Path::new(&active_catalog_path),
+            Path::new(&configured.catalog_path),
+        )? || !resolved_paths_same(
+            Path::new(&active_preview_root),
+            Path::new(&configured.preview_root),
+        )? || active.preview_budget_bytes != configured.preview_budget_bytes,
         retired_preview_roots,
     })
 }
@@ -431,6 +559,62 @@ mod tests {
             Path::new("E:\\ExampleLibrary"),
             Path::new("E:\\AmeCache"),
         ));
+    }
+
+    #[test]
+    fn resolved_comparison_collapses_existing_path_aliases() {
+        let directory = tempdir().expect("temporary directory");
+        let source = directory.path().join("source");
+        let nested = source.join("nested");
+        let previews = source.join("previews");
+        fs::create_dir_all(&nested).expect("nested source");
+        fs::create_dir_all(&previews).expect("previews");
+        let aliased_previews = nested.join("..").join("previews");
+
+        assert!(resolved_paths_same(&aliased_previews, &previews).expect("resolved comparison"));
+        assert!(resolved_paths_overlap(&source, &aliased_previews).expect("resolved overlap"));
+    }
+
+    #[test]
+    fn resolved_comparison_normalizes_nonexistent_parent_segments() {
+        let directory = tempdir().expect("temporary directory");
+        let source = directory.path().join("source");
+        let previews = source.join("previews");
+        fs::create_dir_all(&source).expect("source");
+        let disguised_previews = directory
+            .path()
+            .join("not-created")
+            .join("..")
+            .join("source")
+            .join("previews");
+
+        assert!(
+            resolved_paths_same(&disguised_previews, &previews)
+                .expect("normalized resolved comparison")
+        );
+        assert!(
+            resolved_paths_overlap(&source, &disguised_previews)
+                .expect("normalized resolved overlap")
+        );
+    }
+
+    #[test]
+    fn source_root_cannot_contain_active_storage() {
+        let directory = tempdir().expect("temporary directory");
+        let source = directory.path().join("source");
+        let preview_root = source.join("previews");
+        fs::create_dir_all(&preview_root).expect("preview root");
+        let storage = StoragePaths {
+            catalog_path: directory.path().join("catalog").join("ame.sqlite3"),
+            preview_root,
+            preview_budget_bytes: DEFAULT_PREVIEW_BUDGET_BYTES,
+            settings_path: directory.path().join("settings").join("storage.sqlite3"),
+        };
+
+        let error = validate_source_root_storage_paths(&source, &storage)
+            .expect_err("overlapping source must be rejected");
+
+        assert_eq!(error.code, "source_root_overlaps_storage");
     }
 
     #[test]

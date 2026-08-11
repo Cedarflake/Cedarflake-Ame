@@ -15,6 +15,7 @@ use crate::domain::{
 };
 use crate::ports::{CatalogRepository, MediaInspector};
 
+use super::storage::validate_source_root_storage_paths;
 use super::{StoragePaths, storage_paths};
 
 static ACTIVE_SCANS: OnceLock<Mutex<HashMap<String, Arc<AtomicU8>>>> = OnceLock::new();
@@ -53,6 +54,7 @@ fn run_scan_with_storage(
     let media_inspector = LocalMediaInspector::new();
     let discovery = FileDiscovery::new(&request.root_path)?;
     let canonical_root = discovery.canonical_root()?;
+    validate_source_root_storage_paths(&canonical_root, &storage)?;
     let root_path = canonical_root.to_string_lossy().into_owned();
     let root_id = stable_id("library-root-v1", &root_path);
     let mut catalog = SqliteCatalog::open(storage.catalog_path)?;

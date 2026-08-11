@@ -1,10 +1,9 @@
-use std::path::Path;
 use std::sync::{Arc, Mutex, OnceLock};
 
 use crate::adapters::{LocalPreviewStore, SqliteCatalog, revalidate_file_state};
 use crate::domain::{
-    AssetLocationView, DiscoveredFile, ExpectedFileState, PreviewRequest, PreviewStatus, ScanError,
-    ScanIssue,
+    AssetLocationView, DiscoveredFile, ExpectedFileState, PreviewArtifact, PreviewRequest,
+    PreviewStatus, ScanError, ScanIssue,
 };
 use crate::ports::{CatalogRepository, PreviewStore};
 
@@ -70,13 +69,6 @@ fn materialize_preview_attempt(
                 "The requested location is not active in the catalog",
             )
         })?;
-    if matches!(location.preview_status, PreviewStatus::Ready)
-        && !location.preview_path.is_empty()
-        && Path::new(&location.preview_path).is_file()
-        && !request.retry_failed
-    {
-        return Ok(location);
-    }
     if matches!(location.preview_status, PreviewStatus::Failed) && !request.retry_failed {
         return Ok(location);
     }
@@ -107,15 +99,21 @@ fn materialize_preview_attempt(
         location.width,
         location.height,
     ) {
-        Ok(preview) => {
-            location.preview_path = preview.path.clone();
-            location.width = preview.width;
-            location.height = preview.height;
-            location.preview_status = PreviewStatus::Ready;
-            location.preview_issue_code = None;
-            location.preview_issue_message = None;
-            Some(preview)
-        }
+        Ok(preview) => match revalidate_materialized_preview(&expected, preview, preview_store) {
+            Ok(preview) => {
+                location.preview_path = preview.path.clone();
+                location.width = preview.width;
+                location.height = preview.height;
+                location.preview_status = PreviewStatus::Ready;
+                location.preview_issue_code = None;
+                location.preview_issue_message = None;
+                Some(preview)
+            }
+            Err(issue) => {
+                apply_failure(&mut location, &issue);
+                None
+            }
+        },
         Err(issue) if issue.code == "preview_cache_budget_exceeded" && can_reclaim => {
             let required_bytes = preview_store.take_rejected_reservation_bytes();
             drop(catalog);
@@ -139,6 +137,18 @@ fn materialize_preview_attempt(
     };
     catalog.update_active_preview(&location, artifact.as_ref())?;
     Ok(location)
+}
+
+fn revalidate_materialized_preview(
+    expected: &ExpectedFileState,
+    preview: PreviewArtifact,
+    preview_store: &LocalPreviewStore,
+) -> Result<PreviewArtifact, ScanIssue> {
+    if let Err(issue) = revalidate_file_state(expected) {
+        let _ = preview_store.discard(&preview);
+        return Err(issue);
+    }
+    Ok(preview)
 }
 
 pub(crate) fn active_preview_store(
@@ -214,4 +224,66 @@ fn validate_request(request: &PreviewRequest) -> Result<(), ScanError> {
         ));
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+    use std::path::Path;
+
+    use tempfile::tempdir;
+
+    use super::*;
+
+    #[test]
+    fn changed_source_is_rejected_after_preview_materialization() {
+        let directory = tempdir().expect("temporary directory");
+        let source_path = directory.path().join("source.jpg");
+        fs::write(&source_path, b"old").expect("source");
+        let expected = ExpectedFileState {
+            absolute_path: source_path.to_string_lossy().into_owned(),
+            file_size: 3,
+            modified_unix_ms: source_path_modified_unix_ms(&source_path),
+            file_identity: None,
+        };
+        let preview_root = directory.path().join("previews");
+        let store = LocalPreviewStore::new(preview_root.clone(), 1024 * 1024).expect("store");
+        let preview_path = preview_root.join(format!(
+            "{}-{}.jpg",
+            crate::adapters::PREVIEW_CACHE_VERSION,
+            "a".repeat(64)
+        ));
+        fs::write(&preview_path, b"preview").expect("preview");
+        fs::write(&source_path, b"new source bytes").expect("changed source");
+        let preview = PreviewArtifact {
+            artifact_key: "a".repeat(64),
+            path: preview_path.to_string_lossy().into_owned(),
+            byte_size: 7,
+            size_bucket: 256,
+            encoded_width: 256,
+            encoded_height: 192,
+            width: 4_032,
+            height: 3_024,
+            algorithm_id: crate::adapters::PREVIEW_ALGORITHM_ID.to_owned(),
+            algorithm_version: crate::adapters::PREVIEW_ALGORITHM_VERSION,
+            orientation_contract: crate::adapters::PREVIEW_ORIENTATION_CONTRACT.to_owned(),
+        };
+
+        let issue = revalidate_materialized_preview(&expected, preview, &store)
+            .expect_err("changed source must be rejected");
+
+        assert_eq!(issue.code, "source_changed_during_scan");
+        assert!(!preview_path.exists());
+    }
+
+    fn source_path_modified_unix_ms(path: &Path) -> i64 {
+        let modified = path
+            .metadata()
+            .expect("source metadata")
+            .modified()
+            .expect("source modified time")
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("source modified time after epoch");
+        i64::try_from(modified.as_millis()).expect("modified milliseconds")
+    }
 }

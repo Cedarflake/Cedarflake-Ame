@@ -1106,7 +1106,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
         visibleItemIndex >= currentState.windowStartItemOffset &&
         visibleItemIndex < loadedEnd;
     var targetItemIndex = currentState.windowStartItemOffset;
-    if (canRestoreVisibleItem && visibleItemIndex != null) {
+    if (canRestoreVisibleItem) {
       targetItemIndex = visibleItemIndex;
     }
     final itemOffset = metrics.offsetForGlobalItemIndex(targetItemIndex);

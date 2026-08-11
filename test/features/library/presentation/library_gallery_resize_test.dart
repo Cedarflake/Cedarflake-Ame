@@ -687,6 +687,7 @@ class _RecordingGalleryController extends LibraryController {
     Iterable<LibraryAsset> nearDirection = const <LibraryAsset>[],
     Iterable<LibraryAsset> guard = const <LibraryAsset>[],
     Iterable<LibraryAsset> idle = const <LibraryAsset>[],
+    Map<String, int> previewEdges = const <String, int>{},
   }) {
     previewDemandRequests.add((
       visible: [for (final asset in visible) asset.locationId],

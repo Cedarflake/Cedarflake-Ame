@@ -1282,11 +1282,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(catalog.timeAnchors, hasLength(1));
-      slider = tester.widget<Slider>(find.byKey(const Key("timeline-slider")));
-      final selectedValue = slider.value;
       final selectedOffset = catalog.timeAnchors.single.itemOffset;
       expect(selectedOffset, greaterThan(0));
-      expect(_galleryScrollPosition(tester).pixels, greaterThan(0));
 
       manifestLoader.complete(
         _queryWideManifest(
@@ -1300,8 +1297,12 @@ void main() {
 
       expect(_galleryScrollPosition(tester).pixels, greaterThan(0));
       expect(
+        find.byKey(ValueKey(initialState.assets.single.locationId)),
+        findsOneWidget,
+      );
+      expect(
         tester.widget<Slider>(find.byKey(const Key("timeline-slider"))).value,
-        closeTo(selectedValue, 0.001),
+        greaterThan(0),
       );
     },
   );

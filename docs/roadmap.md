@@ -1712,7 +1712,7 @@ R2c catalog freshness, not classification or additional analysis engines.
 
 ### 10.1 Verified implementation snapshot
 
-This snapshot was synchronized on 2026-08-11 against the live working tree and fresh local gates.
+This snapshot was synchronized on 2026-08-12 against the live working tree and fresh local gates.
 The live working tree, current schema, accepted ADRs, and fresh verification remain authoritative;
 this roadmap does not preserve drifting commit hashes or duplicate complete test transcripts.
 
@@ -1760,16 +1760,18 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   target workload remains flat. The million-item path is selected as hierarchical in current code,
   but its complete build, layout, resize, cancellation, and interaction performance evidence remains
   conditional scale validation rather than an R2b target-workload blocker.
-- Preview storage has safe external placement, atomic admission reservation, bounded size variants,
-  protected high/low-watermark reclamation, structured failure, bounded startup recovery, verified
-  foreground cleanup, and restart-safe preview-root activation with explicit retired-root cleanup.
-  All paths preserve durable geometry and exclude source media and unrelated files.
+- Preview storage has resolved-path ownership guards for import and cleanup, post-materialization
+  source-state revalidation, atomic admission reservation, display-driven 128/256/512 physical-pixel
+  buckets, on-demand legacy artifact adoption, protected high/low-watermark reclamation, structured
+  failure, bounded startup recovery, verified foreground cleanup, and restart-safe preview-root
+  activation with explicit retired-root cleanup. These paths preserve durable geometry and exclude
+  source media and unrelated files.
 - R2c begins without a production watcher, durable change queue, freshness state, delta publisher,
   or catch-up adapter. R3 and the later duplicate, review, classification, similarity, semantic,
   organization-plan, and operation-journal domains have not started.
-- The accepted R2b working tree passed the complete local Daily gate and Windows Release gate on
-  2026-08-11, including packaged Rust-library loading and the release bridge smoke test. This is
-  current-stage evidence, not a release candidate or completion of R10.
+- The accepted R2b follow-up working tree passed the complete local Daily gate and Windows Release
+  gate on 2026-08-12, including packaged Rust-library loading and the release bridge smoke test.
+  This is current-stage evidence, not a release candidate or completion of R10.
 - Local Flutter and Dart commands use the repository-pinned SDK resolved from
   `$env:USERPROFILE\develop\flutter`; they are not assumed available through `PATH`.
 

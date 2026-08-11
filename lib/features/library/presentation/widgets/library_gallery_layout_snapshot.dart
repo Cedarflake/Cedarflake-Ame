@@ -269,6 +269,24 @@ class LibraryGalleryLayoutSnapshot {
     return (lower - 1).clamp(0, entries.length - 1).toInt();
   }
 
+  double displayExtentForItemIndex(int itemIndex) {
+    if (itemIndex < 0 || itemIndex >= manifest.itemCount) {
+      return thumbnailSize.targetExtent;
+    }
+    final entryIndex = entryIndexForScrollOffset(
+      metrics.itemOffsets[itemIndex],
+    );
+    if (entryIndex < 0) {
+      return thumbnailSize.targetExtent;
+    }
+    final entry = entries[entryIndex];
+    final cellIndex = itemIndex - entry.startItemIndex;
+    if (cellIndex < 0 || cellIndex >= entry.cellWidths.length) {
+      return thumbnailSize.targetExtent;
+    }
+    return math.max(entry.rowHeight, entry.cellWidths[cellIndex]);
+  }
+
   ({double leading, double content, double trailing}) loadedWindowGeometry({
     required int startItemIndex,
     required int itemCount,

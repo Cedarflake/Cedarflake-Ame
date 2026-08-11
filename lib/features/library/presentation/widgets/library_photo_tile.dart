@@ -236,7 +236,11 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
             const SizedBox(height: 4),
             TextButton(
               key: Key("preview-retry-${asset.locationId}"),
-              onPressed: () => _controller.requestPreview(asset, retry: true),
+              onPressed: () => _controller.requestPreview(
+                asset,
+                retry: true,
+                previewEdge: _requestedPreviewEdge(context),
+              ),
               child: const Text(LibraryStrings.retryPreview),
             ),
           ],
@@ -251,6 +255,7 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
       widget.width,
       MediaQuery.devicePixelRatioOf(context),
     );
+    final previewEdge = _requestedPreviewEdge(context);
     return Image.file(
       File(asset.previewPath),
       fit: BoxFit.cover,
@@ -258,7 +263,7 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
       gaplessPlayback: true,
       filterQuality: FilterQuality.low,
       errorBuilder: (context, error, stackTrace) {
-        _schedulePreviewRepair(asset, cacheWidth);
+        _schedulePreviewRepair(asset, cacheWidth, previewEdge);
         return Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -269,7 +274,7 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
                 key: Key("preview-retry-${asset.locationId}"),
                 onPressed: () {
                   _previewRepairSource = null;
-                  _schedulePreviewRepair(asset, cacheWidth);
+                  _schedulePreviewRepair(asset, cacheWidth, previewEdge);
                 },
                 child: const Text(LibraryStrings.retryPreview),
               ),
@@ -280,7 +285,21 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
     );
   }
 
-  void _schedulePreviewRepair(LibraryAsset asset, int cacheWidth) {
+  int _requestedPreviewEdge(BuildContext context) {
+    final displayExtent = widget.width > widget.height
+        ? widget.width
+        : widget.height;
+    return libraryPreviewDecodeWidth(
+      displayExtent,
+      MediaQuery.devicePixelRatioOf(context),
+    );
+  }
+
+  void _schedulePreviewRepair(
+    LibraryAsset asset,
+    int cacheWidth,
+    int previewEdge,
+  ) {
     final source = LibraryPreviewSourceIdentity.fromAsset(asset);
     if (_previewRepairSource == source) {
       return;
@@ -290,11 +309,15 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
       if (!mounted) {
         return;
       }
-      unawaited(_repairPreview(asset, cacheWidth));
+      unawaited(_repairPreview(asset, cacheWidth, previewEdge));
     });
   }
 
-  Future<void> _repairPreview(LibraryAsset asset, int cacheWidth) async {
+  Future<void> _repairPreview(
+    LibraryAsset asset,
+    int cacheWidth,
+    int previewEdge,
+  ) async {
     if (asset.previewPath.isNotEmpty) {
       final provider = ResizeImage.resizeIfNeeded(
         cacheWidth,
@@ -308,7 +331,7 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
       }
     }
     if (mounted) {
-      _controller.requestPreview(asset, retry: true);
+      _controller.requestPreview(asset, retry: true, previewEdge: previewEdge);
     }
   }
 

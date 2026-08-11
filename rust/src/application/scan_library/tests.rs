@@ -206,7 +206,7 @@ fn completed_scan_publishes_metadata_then_materializes_an_external_preview() {
     );
 
     fs::write(&preview_path, b"truncated cached preview").expect("corrupt cached preview");
-    let unchanged = crate::application::preview::materialize_preview_with_storage(
+    let automatically_repaired = crate::application::preview::materialize_preview_with_storage(
         crate::domain::PreviewRequest {
             location_id: previewed.location_id.clone(),
             preview_edge: 256,
@@ -220,11 +220,15 @@ fn completed_scan_publishes_metadata_then_materializes_an_external_preview() {
             settings_path: storage.path().join("settings.sqlite3"),
         },
     )
-    .expect("ordinary ready request");
-    assert!(matches!(unchanged.preview_status, PreviewStatus::Ready));
+    .expect("ordinary ready request repairs corrupt cache");
+    assert!(matches!(
+        automatically_repaired.preview_status,
+        PreviewStatus::Ready
+    ));
+    image::open(&preview_path).expect("automatically repaired preview decodes");
     assert_eq!(
-        fs::read(&preview_path).expect("unchanged corrupt preview"),
-        b"truncated cached preview"
+        fs::read(&source_path).expect("source after automatic repair"),
+        original_bytes,
     );
 
     let repaired = crate::application::preview::materialize_preview_with_storage(

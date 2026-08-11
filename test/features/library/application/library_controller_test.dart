@@ -1525,9 +1525,11 @@ void main() {
       controller.updateGalleryPreviewDemand(
         visible: assets.sublist(2),
         nearDirection: assets.sublist(0, 2),
+        previewEdges: {"location-3": 128, "location-4": 512},
       );
 
       expect(previewer.requests, ["location-3", "location-4"]);
+      expect(previewer.previewEdges, [128, 512]);
 
       controller.updateGalleryPreviewDemand(
         visible: [assets.first],
@@ -1543,6 +1545,48 @@ void main() {
         identical(container.read(libraryControllerProvider).assets, assetList),
         isTrue,
       );
+    },
+  );
+
+  test(
+    "does not repeat a completed viewer size request for a visible asset",
+    () async {
+      final scanner = _FakeLibraryScanner();
+      final previewer = _FakeLibraryPreviewer();
+      final ready = _asset();
+      final initialSnapshot = _snapshot(assets: [ready]);
+      final container = ProviderContainer(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(
+            LibraryState.fromSnapshot(initialSnapshot),
+          ),
+          libraryScannerProvider.overrideWithValue(scanner),
+          libraryCatalogProvider.overrideWithValue(
+            _FakeLibraryCatalog(initialSnapshot),
+          ),
+          libraryPreviewerProvider.overrideWithValue(previewer),
+        ],
+      );
+      addTearDown(container.dispose);
+      addTearDown(scanner.dispose);
+
+      final controller = container.read(libraryControllerProvider.notifier);
+      controller.updateGalleryPreviewDemand(
+        visible: [ready],
+        previewEdges: {ready.locationId: 128},
+      );
+      previewer.succeed(ready.locationId, ready);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      controller.updateViewerPreviewDemand(ready);
+      expect(previewer.previewEdges, [128, 512]);
+      previewer.succeed(ready.locationId, ready, attempt: 1);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      controller.updateViewerPreviewDemand(ready);
+      expect(previewer.previewEdges, [128, 512]);
     },
   );
 
@@ -1986,6 +2030,7 @@ class _DelayedDoneLibraryScanner implements LibraryScanner {
 class _FakeLibraryPreviewer implements LibraryPreviewer {
   final List<String> requests = [];
   final List<bool> retryRequests = [];
+  final List<int> previewEdges = [];
   final Map<String, List<Completer<LibraryAsset>>> _attempts = {};
 
   @override
@@ -1997,6 +2042,7 @@ class _FakeLibraryPreviewer implements LibraryPreviewer {
   }) {
     requests.add(locationId);
     retryRequests.add(retry);
+    previewEdges.add(previewEdge);
     final completer = Completer<LibraryAsset>();
     _attempts.putIfAbsent(locationId, () => []).add(completer);
     return completer.future;

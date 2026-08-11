@@ -199,6 +199,15 @@ class LibraryGalleryWall extends StatelessWidget {
           itemIndexBase: state.windowStartItemOffset,
         );
         final entryStartOffsets = _entryStartOffsets(entries);
+        final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
+        final previewEdgesByLocation = <String, int>{
+          for (final entry in entries)
+            for (final cell in entry.cells)
+              cell.asset.locationId: libraryPreviewDecodeWidth(
+                cell.width > entry.rowHeight ? cell.width : entry.rowHeight,
+                devicePixelRatio,
+              ),
+        };
         final estimatedGeometry = LibraryVirtualGalleryGeometry.calculate(
           timeline: state.timeline,
           availableWidth: availableWidth,
@@ -239,6 +248,8 @@ class LibraryGalleryWall extends StatelessWidget {
               scrollOffset: metrics.pixels - virtualGeometry.leadingExtent,
               viewportDimension: metrics.viewportDimension,
               direction: _LibraryPreviewMovementDirection.idle,
+              previewEdgeFor: (asset, _) =>
+                  previewEdgesByLocation[asset.locationId] ?? 512,
             );
           }
         });
@@ -290,6 +301,8 @@ class LibraryGalleryWall extends StatelessWidget {
                         viewportDimension:
                             notification.metrics.viewportDimension,
                         direction: _previewDirectionFor(notification),
+                        previewEdgeFor: (asset, _) =>
+                            previewEdgesByLocation[asset.locationId] ?? 512,
                       );
                       final position = _positionAtOffset(
                         entries,
@@ -632,6 +645,8 @@ class LibraryGalleryWall extends StatelessWidget {
     required double scrollOffset,
     required double viewportDimension,
     required _LibraryPreviewMovementDirection direction,
+    required int Function(LibraryAsset asset, int globalItemIndex)
+    previewEdgeFor,
   }) {
     if (state.assets.isEmpty ||
         layoutMetrics.itemCount == 0 ||
@@ -663,6 +678,8 @@ class LibraryGalleryWall extends StatelessWidget {
       return layoutMetrics.rowEndGlobalItemIndexExclusive(item) ?? item + 1;
     }
 
+    final previewEdges = <String, int>{};
+
     List<LibraryAsset> assetsInRange(int start, int end) {
       final loadedStart = state.windowStartItemOffset;
       final loadedEnd = loadedStart + state.assets.length;
@@ -671,10 +688,13 @@ class LibraryGalleryWall extends StatelessWidget {
       if (boundedEnd <= boundedStart) {
         return const [];
       }
-      return state.assets.sublist(
-        boundedStart - loadedStart,
-        boundedEnd - loadedStart,
-      );
+      final assets = <LibraryAsset>[];
+      for (var itemIndex = boundedStart; itemIndex < boundedEnd; itemIndex++) {
+        final asset = state.assets[itemIndex - loadedStart];
+        previewEdges[asset.locationId] = previewEdgeFor(asset, itemIndex);
+        assets.add(asset);
+      }
+      return assets;
     }
 
     final visibleStart = rowStartAt(scrollOffset);
@@ -720,6 +740,7 @@ class LibraryGalleryWall extends StatelessWidget {
       visible: assetsInRange(visibleStart, visibleEnd),
       nearDirection: nearDirection,
       guard: guard,
+      previewEdges: previewEdges,
     );
   }
 }
@@ -1116,6 +1137,10 @@ class _ManifestLibraryGalleryWallState
       scrollOffset: metrics.pixels,
       viewportDimension: metrics.viewportDimension,
       direction: direction,
+      previewEdgeFor: (_, itemIndex) => libraryPreviewDecodeWidth(
+        snapshot.displayExtentForItemIndex(itemIndex),
+        MediaQuery.devicePixelRatioOf(context),
+      ),
     );
     if (widget.state.isLoadingPage || widget.state.isLoadingPreviousPage) {
       return;

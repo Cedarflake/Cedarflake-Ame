@@ -86,6 +86,34 @@ impl LocalPreviewStore {
         }
         Ok(cached_artifact_dimensions(artifact_path, edge))
     }
+
+    pub(crate) fn discard(&self, artifact: &PreviewArtifact) -> Result<(), ScanIssue> {
+        let path = Path::new(&artifact.path);
+        if path.parent() != Some(self.root.as_path())
+            || !is_current_preview_artifact(&path.to_string_lossy())
+        {
+            return Err(ScanIssue {
+                path: Some(artifact.path.clone()),
+                code: "preview_discard_path_invalid".to_owned(),
+                message: "The preview artifact is outside the active preview cache".to_owned(),
+            });
+        }
+        let byte_size = path
+            .metadata()
+            .map_or(artifact.byte_size, |metadata| metadata.len());
+        match fs::remove_file(path) {
+            Ok(()) => self.release(byte_size),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => {
+                return Err(ScanIssue {
+                    path: Some(path.to_string_lossy().into_owned()),
+                    code: "preview_discard_failed".to_owned(),
+                    message: error.to_string(),
+                });
+            }
+        }
+        Ok(())
+    }
 }
 
 fn preview_cache_key(algorithm: &str, file: &DiscoveredFile, preview_edge: u32) -> blake3::Hash {

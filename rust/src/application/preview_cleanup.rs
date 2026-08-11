@@ -25,6 +25,7 @@ enum CleanupScope {
     Active(StoragePaths),
     Retired {
         preview_root: PathBuf,
+        catalog_path: PathBuf,
         settings_path: PathBuf,
         stored_preview_root: String,
     },
@@ -35,6 +36,13 @@ impl CleanupScope {
         match self {
             Self::Active(storage) => &storage.preview_root,
             Self::Retired { preview_root, .. } => preview_root,
+        }
+    }
+
+    fn catalog_path(&self) -> &Path {
+        match self {
+            Self::Active(storage) => &storage.catalog_path,
+            Self::Retired { catalog_path, .. } => catalog_path,
         }
     }
 
@@ -120,28 +128,32 @@ pub fn clear_retired_previews(
         ));
     }
     let storage = storage_paths()?;
-    if super::storage::paths_same(&requested_root, &storage.preview_root) {
+    if super::storage::resolved_paths_same(&requested_root, &storage.preview_root)? {
         return Err(ScanError::new(
             "retired_preview_root_active",
             "The active preview root cannot be cleaned as a retired root",
         ));
     }
     let mut settings = SqliteStorageSettings::open(storage.settings_path.clone())?;
-    let stored_preview_root = settings
-        .load_retired_preview_roots()?
-        .into_iter()
-        .find(|stored| super::storage::paths_same(Path::new(stored), &requested_root))
-        .ok_or_else(|| {
-            ScanError::new(
-                "retired_preview_root_not_owned",
-                "The requested directory is not an Ame-owned retired preview root",
-            )
-        })?;
+    let mut stored_preview_root = None;
+    for stored in settings.load_retired_preview_roots()? {
+        if super::storage::resolved_paths_same(Path::new(&stored), &requested_root)? {
+            stored_preview_root = Some(stored);
+            break;
+        }
+    }
+    let stored_preview_root = stored_preview_root.ok_or_else(|| {
+        ScanError::new(
+            "retired_preview_root_not_owned",
+            "The requested directory is not an Ame-owned retired preview root",
+        )
+    })?;
     clear_preview_scope(
         operation_id,
         publish,
         CleanupScope::Retired {
             preview_root: PathBuf::from(&stored_preview_root),
+            catalog_path: storage.catalog_path,
             settings_path: storage.settings_path,
             stored_preview_root,
         },
@@ -183,6 +195,10 @@ fn clear_preview_scope(
     let _exclusive_access = preview_access()
         .write()
         .map_err(|_| ScanError::new("preview_access_unavailable", "Preview access is poisoned"))?;
+    super::storage::validate_preview_root_outside_sources(
+        scope.catalog_path(),
+        scope.preview_root(),
+    )?;
     let Some(summary) = summarize_managed_files(scope.preview_root(), &cancellation)? else {
         publish(cancelled_event(&operation_id, 0, 0, 0));
         return Ok(());
@@ -602,6 +618,39 @@ mod tests {
     }
 
     #[test]
+    fn cleanup_rejects_a_preview_root_that_resolves_inside_a_source() {
+        let _test_lock = crate::application::PREVIEW_LIFECYCLE_TEST_LOCK
+            .lock()
+            .expect("preview lifecycle test lock");
+        let storage = tempdir().expect("storage");
+        let catalog_parent = storage.path().join("catalog");
+        let preview_root = catalog_parent.join("source");
+        fs::create_dir_all(&preview_root).expect("preview root");
+        let artifact_path = preview_root.join(format!(
+            "ame-jpeg-thumbnail-v2-orientation-{}.jpg",
+            "d".repeat(64)
+        ));
+        fs::write(&artifact_path, b"source bytes").expect("source-like artifact");
+        let storage_paths = StoragePaths {
+            catalog_path: catalog_parent.join("ame.sqlite3"),
+            preview_root,
+            preview_budget_bytes: 64 * 1024 * 1024,
+            settings_path: storage.path().join("settings.sqlite3"),
+        };
+        publish_ready_location(&storage_paths, &artifact_path);
+
+        let error =
+            clear_previews_with_storage("overlap-cleanup-test".to_owned(), |_| true, storage_paths)
+                .expect_err("overlapping cleanup must be rejected");
+
+        assert_eq!(error.code, "preview_root_overlaps_source");
+        assert_eq!(
+            fs::read(&artifact_path).expect("preserved source-like file"),
+            b"source bytes"
+        );
+    }
+
+    #[test]
     fn retired_cleanup_requires_owned_root_and_preserves_foreign_files() {
         let _test_lock = crate::application::PREVIEW_LIFECYCLE_TEST_LOCK
             .lock()
@@ -652,6 +701,7 @@ mod tests {
             },
             CleanupScope::Retired {
                 preview_root: retired_root.clone(),
+                catalog_path: PathBuf::from(&initial.catalog_path),
                 settings_path: settings_path.clone(),
                 stored_preview_root: initial.preview_root,
             },
