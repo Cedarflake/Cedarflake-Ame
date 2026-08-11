@@ -2,9 +2,9 @@
 
 Status: active delivery plan
 
-Last confirmed with the user: 2026-08-10
+Last confirmed with the user: 2026-08-11
 
-Last implementation-status synchronization: 2026-08-10
+Last implementation-status synchronization: 2026-08-11
 
 Repository: this repository root
 
@@ -19,9 +19,15 @@ decisions remain in `docs/architecture/`.
 
 ## 1. Product definition
 
-Cedarflake Ame is an independently implemented, local-first Windows photo-library application for
-very large personal collections. Its core distinction is progressive large-library indexing with
-exact and perceptual duplicate understanding integrated into one unified gallery.
+Cedarflake Ame is an independently implemented, local-first Windows organizing workbench for more
+than 70,000 personal images. It is not another general-purpose photo album. Its central workflow is
+to establish a trustworthy catalog, collapse exact repetition, let machines process the bulk of
+image understanding, preserve human corrections and review progress, build virtual organization,
+and only then propose changes to real files.
+
+The unified gallery remains the primary working canvas, not the product endpoint. Source, time,
+search, duplicate state, classification, albums, and review sessions scope the same canvas rather
+than becoming separate competing applications.
 
 The real target library is approximately 259 GB across two machine-local roots:
 
@@ -33,9 +39,22 @@ Their exact filesystem paths and machine-specific identity are stored only in th
 logical IDs. The mapping is discovery data and does not itself authorize source mutation or a new
 real-library acceptance run.
 
-Ame must not require a second complete copy of these sources. Cataloging, browsing, and analysis do
-not modify original media. File-changing operations enter the product only in the separately
-approved safety stage defined by R8.
+Ame must not require a second complete copy of these sources. Cataloging, browsing, analysis,
+review, and virtual organization do not modify original media. R8 produces only an immutable,
+non-executable organization plan. File-changing operations enter the product only in the separately
+approved and freshly authorized R9 execution stage.
+
+Product success is measured by reduced human work and trustworthy decisions, not only by indexed
+file count or gallery feature breadth. Each applicable stage records:
+
+- exact duplicate groups and physical locations understood without source mutation;
+- model coverage split by confidence and the number of items still requiring human review;
+- review throughput, resumable progress, undo behavior, and durable user decisions;
+- virtual organization coverage and unresolved organization conflicts;
+- the proportion of a proposed physical plan that is ready, blocked, unchanged, or requires an
+  explicit choice;
+- source-state, cloud-placeholder, and operation-safety evidence proving that Ame never presented
+  guesses as user decisions or changed files before authorization.
 
 ## 2. Confirmed product decisions
 
@@ -54,13 +73,60 @@ approved safety stage defined by R8.
 - Gallery operations live in the upper-right contextual action area.
 - Selecting one or more items replaces browsing actions with selection-specific actions.
 - Exact duplicate display is distinct from perceptual and semantic similarity.
-- Automatic common-type classification is deliberately late because its quality must be evaluated.
-- Classification result groups are model-managed smart albums, not user albums or ordinary filter
-  choices. Users may browse them but cannot create, delete, rename, or edit their membership.
+- Exact duplicate understanding precedes model classification so byte-identical content can reuse
+  compatible analysis work rather than being processed repeatedly.
+- Common-type classification follows durable human-decision and review-session foundations. Model
+  quality, confidence calibration, and sampling evidence must be evaluated against the real target
+  library before high-confidence predictions can reduce the review queue.
+- Classification result groups are derived smart-album projections, not ordinary user albums.
+  Users cannot create, delete, rename, or directly edit smart-album membership, but they can correct
+  an asset's effective category through a durable `UserOverride`; the projection then updates from
+  that effective result.
+- A high-confidence prediction may be displayed by default or selected for sampling, but it is not
+  recorded as a user-confirmed decision. Model evidence, user intent, the effective category, and
+  review status remain distinct.
+- Review is a resumable productivity workflow with a stable query, cursor, progress, keyboard
+  actions, undo, and cross-restart continuation. It is not a temporary selection mode or a generic
+  background task entry.
+- User albums and Favorites are virtual, many-to-many organization. They never imply one physical
+  destination and never move or copy source files.
 - Person recognition, face clustering, identity naming, pixel editing, RAW development, cloud sync,
   and a Lightroom-style editor are outside this roadmap.
-- Delete, move, copy, rename, quarantine, and recycle-bin execution remain unavailable until a later
-  explicitly approved safety stage.
+- Delete, move, copy, rename, quarantine, and recycle-bin execution remain unavailable until R9 and
+  require a freshly authorized plan, current-state revalidation, an operation journal, and explicit
+  partial-failure and recovery behavior.
+
+### 2.1 Stable workbench concepts
+
+The roadmap keeps the following concepts distinct. A later ADR may refine storage or API shape but
+must preserve their authority boundaries:
+
+- `LibraryRoot`: one configured source and its availability, scan, and synchronization policy.
+- `Asset`: one stable logical visual item independent of an absolute path. It is not defined as a
+  content-hash group and may survive an identity-proven rename, move, or compatible in-place edit.
+- `AssetLocation`: one physical file instance belonging to a root.
+- `ContentFingerprint`: versioned evidence of exact byte identity for one compatible source state.
+- `ExactDuplicateGroup`: the current projection of assets or locations proven byte-identical by
+  compatible fingerprints. Folding this group in the gallery never merges durable identities or
+  authorizes removal of a physical copy.
+- `SimilarityGroup`: a reviewable candidate relationship between visually similar but non-identical
+  assets. It is never presented as exact duplicate evidence.
+- `ModelPrediction`: immutable engine output with model, version, parameters, confidence, evidence,
+  and analysis-run identity.
+- `UserOverride`: durable human intent that survives reanalysis and is never overwritten by a newer
+  model run.
+- `EffectiveCategory`: the current category projection resolved from compatible model evidence and
+  any applicable user override.
+- `ReviewStatus`: whether a result is unreviewed, selected for sampling, confirmed, deferred, or
+  otherwise requires attention; it is independent of prediction confidence.
+- `Album` and `AlbumMembership`: user-owned virtual many-to-many organization, including the
+  built-in Favorites group, without source-file mutation.
+- `ReviewSession`: a persistent review query, position, progress, shortcuts, decisions, and undo
+  boundary that can be resumed after restart.
+- `OperationPlan`: an immutable dry-run proposal describing intended filesystem actions, expected
+  source state, conflicts, targets, reasons, and estimated impact. It does not authorize execution.
+- `OperationJournal`: durable execution and recovery evidence created only by the authorized R9
+  workflow.
 
 ## 3. Reference application policy: Lap
 
@@ -108,23 +174,21 @@ repository-owned shared components, mature external packages, then the smallest 
 layer. A custom control requires a recorded capability gap and must compose around the framework
 primitive that owns interaction, focus, semantics, and platform behavior rather than replacing it.
 
-On 2026-08-07 the user confirmed that this structure is sufficiently decided for implementation to
-continue. R2a may refine spacing, responsive behavior, component details, and wording through visual
-review, but it must not reopen or silently reverse these accepted information-architecture choices:
+On 2026-08-07 the user accepted this structure after interactive review. ADR 0009 records the
+current authority and fully supersedes ADR 0003. Later work may refine spacing, responsive behavior,
+component details, and wording, but it must not silently reverse these accepted
+information-architecture choices:
 
 - one unified gallery rather than peer folder, timeline, category, search, or duplicate pages;
 - sources and albums only in the sidebar;
+- the Library row owns Add folder, and Settings remains pinned to the sidebar bottom;
 - duplicate display and review inside the gallery filter menu rather than a standalone action;
 - temporary action-specific import progress rather than permanent task navigation;
-- a plain-language settings page opened from the global gear rather than sidebar or engineering
-  dashboards;
+- a plain-language settings canvas rather than a dialog or engineering dashboard;
 - Simplified Chinese as the initial application language.
 
-ADR 0003 predates these corrections and currently conflicts with this section by retaining a
-standalone duplicate action, task activity, and sidebar settings. Before R2a implementation proceeds,
-its status must be amended so it cannot override the latest user decision. After the interactive
-prototype is accepted, a replacement UI ADR must record the verified layout and mark the obsolete
-parts of ADR 0003 fully superseded.
+ADR 0003 remains historical evidence only. Its standalone duplicate action, task activity, provider
+grouping, and other superseded surfaces are not current alternatives.
 
 Simplified Chinese (`zh-CN`) is the only initial application language. All user-visible titles,
 actions, menus, tooltips, accessible labels, progress text, empty states, confirmations, and error
@@ -137,21 +201,20 @@ R2 does not add a language selector or a complete localization runtime. User-fac
 a presentation-owned string catalog instead of being scattered through widgets, so formal i18n can
 be introduced later without rewriting the UI structure.
 
-R2 begins with an interactive UI prototype before additional business integration. Prototype-only
-fixtures may demonstrate confirmed states, but unavailable controls must not ship as dead production
-actions and a screenshot is not feature-completion evidence.
+The completed R2a prototype remains acceptance evidence, not a second application entry point.
+Unavailable controls must not ship as dead production actions, and a fixture or screenshot is not
+feature-completion evidence.
 
 ### 4.2 Global shell
 
 ```text
-Ame | [在图库中搜索] | 导入 | 设置 | 最小化 / 最大化 / 关闭
+Ame | [在图库中搜索] | 最小化 / 最大化 / 关闭
 ```
 
-The global `导入` action and the sidebar add-source icon are two discoverability entry points into
-the same Ame-owned `AddLibraryRoot` use case. In the current image-library scope, both open the same
-folder picker and share validation, progress, cancellation, and error state. They must not create two
-independent import implementations. A future device-import workflow may expand the global action
-only after that scope is separately accepted.
+The Library row's folder-plus action is the current entry point into the Ame-owned `AddLibraryRoot`
+use case. It opens the folder picker and owns validation, progress, cancellation, and error state.
+The global bar contains application identity, gallery search, and app-drawn window controls only;
+library import and settings do not appear there.
 
 There is no permanent Task button or task-center navigation entry. While an import or library update
 is active, a temporary bottom progress surface uses the concrete action name, reports progress and
@@ -163,7 +226,7 @@ retains the final counts, removes cancellation, and remains until the user ackno
 The sidebar contains only navigation and source scope:
 
 - `图库` with a trailing folder-plus add-source action;
-- an expandable `相册` section when R6 is functional, containing the system-provided `收藏夹` and
+- an expandable `相册` section when R4 is functional, containing the system-provided `收藏夹` and
   user-created album groups;
 - imported folders in one aligned source list, without separating OneDrive and local folders into
   different navigation hierarchies;
@@ -174,11 +237,11 @@ group for the default collection workflow. User-created groups use the same dura
 contract. Activating any album entry only scopes the unified gallery to that group and never moves,
 copies, renames, or deletes source files.
 
-When R7 is functional, the same `相册` navigation area also contains a distinct `智能相册` subsection
-whose result groups are created and maintained only by the admitted classification model. Smart
-albums are read-only navigation projections: users cannot create, delete, rename, manually add, or
-manually remove their images. They do not use ordinary album membership and never appear as targets
-in the `加入相册` dialog.
+When R5 is functional, the same `相册` navigation area also contains a distinct `智能相册` subsection.
+Its result groups are derived from `EffectiveCategory`, not ordinary album membership. Users cannot
+create, delete, rename, directly add, or directly remove their images, and smart albums never appear
+as targets in the `加入相册` dialog. Correcting a category through `UserOverride` recomputes the
+effective result and therefore moves the asset between derived groups without editing membership.
 
 Every imported root is a folder from the user's perspective. Cloud-backed, offline, unavailable,
 or removable-media properties may appear as a row status or badge, but they do not create separate
@@ -221,7 +284,7 @@ Selection state:
 The normal toolbar is replaced rather than nested when selection begins. Selection is keyed by
 stable Ame asset identity and survives lazy item disposal and scrolling.
 
-`加入相册` becomes visible only after R6 connects durable album membership. It is an action in this
+`加入相册` becomes visible only after R4 connects durable album membership. It is an action in this
 upper-right selection-specific area, while entries under the sidebar's `相册` section are navigation
 scopes. The action and entries share durable membership data but never share interaction
 responsibility.
@@ -256,8 +319,9 @@ retain the checkbox, check mark, and Material primary-color outline. Activating 
 the viewer; activating the checkbox changes selection without opening. Touch and assistive
 technology receive an always-available semantic selection action and do not depend on hover.
 
-Versions before R8 do not show disabled delete, move, or copy placeholders. Those actions are
-introduced only when their implementation and safety milestone are accepted.
+Versions before R9 do not show executable delete, move, or copy placeholders. R8 may show clearly
+non-executable plan actions only when the dry-run workflow is connected end to end; filesystem
+execution appears only when R9's implementation and safety gates are accepted.
 
 Every gallery item supports a Material context menu opened by secondary click or the platform
 keyboard context-menu gesture. It targets the item under the pointer without losing an existing
@@ -322,12 +386,16 @@ capabilities that Ame currently supports:
 审查重复组
 ```
 
-The menu contains two independent single-choice groups followed by one command. Initial defaults
-are `显示子文件夹 + 显示所有文件`. The first group selects whether the current source includes
-descendant folders. The second group selects one exact-duplicate display mode:
+The menu contains two independent single-choice groups followed by one command. Before R3 the
+available default is `显示子文件夹 + 显示所有文件`. After R3 has trustworthy exact evidence, the
+initial duplicate mode becomes `合并完全相同图片` so repeated physical copies do not multiply the
+user's review workload; the user can still select either other mode. The first group selects whether
+the current source includes descendant folders. The second group selects one exact-duplicate
+display mode:
 
 - `显示所有文件`: show every physical file instance;
-- `合并完全相同图片`: merge byte-identical copies into one representative item;
+- `合并完全相同图片`: fold byte-identical copies into one representative item without merging
+  durable identities;
 - `仅显示重复图片`: show only exact duplicate groups.
 
 `审查重复组` is a contextual command at the bottom of the same filter menu. It enters review in the
@@ -338,8 +406,8 @@ the production shell until R3 connects trustworthy exact-duplicate evidence.
 
 The current product indexes images, so the Microsoft Photos `所有媒体 / 照片 / 视频` group is not
 copied into the early UI. Video filters appear only after video indexing becomes accepted product
-scope. Classification and category choices do not become ordinary filter items. When R7 is
-functional, the model publishes them as read-only smart-album result groups under `相册`.
+scope. Classification and category choices do not become ordinary filter items. When R5 is
+functional, effective category projections appear as smart-album result groups under `相册`.
 
 A merged representative displays its copy count. Selecting a merged representative selects a
 logical group, not an arbitrary physical path. Any future path mutation requires expansion and
@@ -481,9 +549,10 @@ Bottom notifications and import feedback share one Material surface contract for
 corner radius, elevation, and placement. The same event must not produce competing gray and white
 notification surfaces.
 
-### 4.10 Required UI prototype states
+### 4.10 Accepted UI regression states
 
-The R2 UI prototype must make these states reviewable with deterministic fixtures:
+Deterministic presentation fixtures and focused regressions retain coverage for these accepted
+states without becoming production data paths:
 
 - empty library;
 - active import and import failure;
@@ -501,10 +570,11 @@ The R2 UI prototype must make these states reviewable with deterministic fixture
 
 ### 4.11 Settings page
 
-The global gear opens one shallow settings page. It is not a sidebar destination, engineering
-dashboard, or hierarchy of abstract configuration pages. The visual pattern follows Microsoft
-Photos: a clear `设置` title, a centered readable column, plain section headings, and full-width
-rows containing an icon, a user-facing title, one short explanation, and a control on the right.
+The Settings row pinned to the sidebar opens one shallow settings canvas while the global bar and
+sidebar remain visible. It is not a dialog, engineering dashboard, or hierarchy of abstract
+configuration pages. The visual pattern follows Microsoft Photos: a clear `设置` title, a centered
+readable column, plain section headings, and full-width rows containing an icon, a user-facing
+title, one short explanation, and a control on the right.
 
 Initial settings are limited to behavior that is understandable and connected end to end:
 
@@ -516,7 +586,7 @@ Initial settings are limited to behavior that is understandable and connected en
   查看图片时的鼠标滚轮     放大或缩小 / 上一张或下一张
   打开图片时               适应窗口 / 实际大小
 
-相册（R6 接通后）
+相册（R4 接通后）
   加入相册前询问           开 / 关
   默认加入的相册           收藏夹 / 用户创建的相册组
 
@@ -551,7 +621,7 @@ Clearing thumbnails must name the rebuild cost and confirm that source files are
 viewer, album, and storage choices persist across restarts. `加入相册前询问` initially defaults to
 on, and `默认加入的相册` initially defaults to `收藏夹`. When prompting is on, the configured group
 is preselected in the dialog and may be changed for that operation. When prompting is off, the same
-setting is the direct destination. These rows remain absent until R6 connects album membership end
+setting is the direct destination. These rows remain absent until R4 connects album membership end
 to end.
 
 Clearing previews removes only rebuildable artifact files and resets compatible preview-index
@@ -586,9 +656,23 @@ The current UI prototype and early production shell do not show:
 - delete, move, copy, rename, recycle-bin, quarantine, or dry-run execution controls;
 - a permanent task center, read-only-validation entry, cache diagnostics, or engineering limits.
 
-Classification remains an R7 feature. It later appears as model-managed smart albums that scope the
-same unified gallery without becoming filter choices, peer gallery applications, or editable user
-albums.
+Classification remains an R5 feature. It later appears as effective-category smart albums that
+scope the same unified gallery without becoming filter choices, peer gallery applications, or
+editable user albums. Users correct category authority through the review workflow rather than by
+directly editing derived smart-album membership.
+
+### 4.13 Review workflow
+
+When R4 introduces persistent `ReviewSession` state, Ame may show one lightweight contextual
+`继续整理` surface above the existing gallery. It appears only when review work exists and may
+summarize classification items, similarity groups, or other accepted queues. It is not a home
+dashboard, AI center, task center, or new sidebar destination.
+
+Activating it reuses the unified gallery with a session-owned query and visible progress. The
+review surface must support keyboard-first decisions, multi-selection where the decision is safe,
+undo, defer, issue states, and cross-restart continuation. Closing the application preserves the
+session's durable progress; reopening does not guess completion from model confidence or gallery
+scroll position.
 
 ## 5. Accepted technical baseline for R0 validation
 
@@ -766,6 +850,12 @@ The preview-artifact lifecycle is complete only when all of the following hold:
     previews, manual cleanup, automatic reclamation, restart recovery, and cache-boundary repetition
     without changing final geometry or mutating source media.
 
+Within the currently accepted ADR 0005 lifecycle, resource-safety work comes first: artifact
+accounting, bounded variants, high/low-watermark reclamation, stale-publication guards, and bounded
+startup recovery. User-facing manual cleanup and preview-root transition follow only after that core
+is stable. Moving either later workflow out of R2b requires an explicit amendment to ADR 0005; this
+roadmap does not silently weaken an accepted architecture decision merely to shorten the stage.
+
 R2b does not require every optional ADR 0014 scale adaptation to be enabled merely to complete a
 migration checklist. Its remaining delivery order is:
 
@@ -821,6 +911,12 @@ through R2c-F establish the first complete running-time synchronization and reco
 R2c-G adds supported-volume downtime catch-up only after that workflow is trustworthy, and R2c-H
 provides large-library reliability evidence. USN catch-up therefore enhances R2c without blocking
 its first running-time value.
+
+R2c unlocks R3 only after R2c-A through R2c-F and the target-library portions of R2c-H prove the
+running-time workflow, recovery ladder, bounded resource behavior, and truthful freshness state.
+R2c-G is conditional: it does not block R3 when startup can regain trustworthy freshness through a
+bounded authoritative reconciliation, but it remains the preferred supported-volume optimization
+when downtime catch-up cost or missed-change evidence exceeds the recorded budget.
 
 User outcome:
 
@@ -1023,7 +1119,7 @@ work does not replace trustworthy state.
 - Every bounded delta exposes enough stable identity and evidence disposition for later analysis
   consumers to retain compatible results after a rename, invalidate them after content change or
   replacement, and remove them from current projections after authoritative deletion. R2c defines
-  this contract without implementing R7 classification.
+  this contract without implementing R5 classification.
 - If the currently previewed file is removed, replaced, unavailable, or offline, the viewer presents
   a clear state and a safe return path instead of displaying stale bytes as current.
 - Synchronization remains part of the existing library and source workflow. It does not create a
@@ -1236,7 +1332,8 @@ manual cleanup, storage relocation, and restart reconciliation remain R2b-owned 
 
 #### R2c.13 Explicit exclusions and anti-drift constraints
 
-- Do not implement R3 hashing, R5 similarity, or R7 classification to avoid finishing freshness.
+- Do not implement R3 fingerprinting, R5 classification, or R6 similarity to avoid finishing
+  freshness.
 - Do not build a second asset-identity or metadata pipeline for watcher events.
 - Do not attach future classification or smart-album membership to a path or make Flutter infer
   retain-or-invalidate policy from a filesystem event.
@@ -1256,83 +1353,69 @@ manual cleanup, storage relocation, and restart reconciliation remain R2b-owned 
 
 User outcome:
 
-The gallery can show every physical instance, merge byte-identical copies, or display only exact
-duplicate groups. The user can inspect every path and estimated redundant size without modifying a
-file.
+The gallery folds byte-identical content by default so the user does not repeatedly review the same
+image. A folded representative shows its physical-copy count, and `查看重复位置` expands every real
+`AssetLocation`, availability state, and path without modifying a file. The user can still switch to
+show every physical instance or only exact duplicate groups.
 
 Scope:
 
 - written engine candidate evaluation and contract tests;
-- size grouping, candidate pruning, full identity evidence, and versioned analysis runs;
-- duplicate group representatives and `AssetLocation` expansion;
+- size grouping, candidate pruning, versioned `ContentFingerprint` evidence, and immutable analysis
+  runs;
+- exact groups derived from compatible fingerprint evidence without redefining `Asset` as a hash
+  group or permanently merging stable identities;
+- deterministic representative selection, copy-count badges, and `AssetLocation` expansion with
+  local, offline, unavailable, and cloud-backed state;
 - exact duplicate display modes and review command within the gallery filter menu;
-- contextual duplicate-group review in the existing canvas;
-- explicit distinction between logical group selection and physical-location selection.
+- contextual duplicate-group review in the existing canvas, including preferred-copy and ignore
+  decisions that remain durable but do not authorize deletion;
+- explicit distinction between logical group selection and physical-location selection;
+- compatible reuse of expensive later analysis across exact byte identity without presenting reused
+  model evidence as a human decision;
+- invalidation and regrouping through R2c when content changes, a same-path replacement occurs, a
+  location is removed, or compatible identity evidence changes.
 
-### R4 - Metadata and local search
+R3 acceptance includes cancellation, retry, stale-result rejection, wrong-extension and damaged
+files, cloud placeholders without hydration, exact group stability across restart, source-byte and
+source-entry preservation, and bounded memory, database, and bridge behavior on the target library.
+
+### R4 - Virtual organization and review foundation
 
 User outcome:
 
-Search and filters compose with source, time, and duplicate state using filenames and trustworthy
-local metadata.
+The user can place assets in Favorites and user-created virtual albums without changing source
+files, record durable decisions, and resume an interrupted organization or review session at the
+exact logical item and progress position.
 
 Scope:
 
-- EXIF and supported metadata extraction through an admitted adapter;
-- capture-time source and fallback evidence;
-- camera and basic metadata display;
-- SQLite FTS5 search with bounded result windows;
-- composed filters and recalculated time distribution;
-- no embedded metadata writes.
+- durable user-owned data separated from rebuildable catalog, preview, and model evidence;
+- one album-membership model containing the built-in Favorites group and user-created albums rather
+  than parallel favorite and album authorities;
+- virtual many-to-many membership that survives compatible reindexing and never implies a physical
+  destination;
+- an expandable `相册` sidebar section and the selection-owned `加入相册` workflow defined in section
+  4 without creating another gallery application;
+- durable `UserOverride` infrastructure that later analysis stages can consume without overwriting
+  human intent;
+- persistent `ReviewSession` identity, owning query, logical asset anchor, progress, decisions,
+  keyboard mapping, undo boundary, deferred items, issue state, and cross-restart continuation;
+- one lightweight `继续整理` entry in the existing gallery when resumable work exists;
+- migrations, backup or export, restoration, and tests proving that catalog rebuilds do not erase
+  albums, review progress, or user decisions.
 
-Completion of R4 defines the first genuinely useful catalog-and-analysis release before controlled
-file operations are introduced in R8.
+R4 does not yet invent model predictions. It establishes the durable authority and review mechanics
+that prevent later automation from being mistaken for human confirmation.
 
-### R5 - Perceptual similarity
-
-User outcome:
-
-The user reviews visually near-duplicate candidates such as recompressed, resized, or rotated images
-without confusing them with byte-identical copies.
-
-Scope:
-
-- comparative candidate-engine evaluation;
-- explainable threshold and evidence;
-- candidate groups, side-by-side comparison, confirm, and ignore decisions;
-- immutable analysis runs and durable user review state;
-- no automatic deletion or exact-duplicate label for perceptual results.
-
-### R6 - Personal organization
+### R5 - Metadata, primary classification, and human review
 
 User outcome:
 
-The user can place images in the built-in Favorites album and user-created album groups, then
-maintain tags, ratings, and other durable manual decisions without changing original media.
-
-Scope:
-
-- durable user-owned catalog data separated from rebuildable caches;
-- one album-membership model containing the system-provided `收藏夹` and user-created groups rather
-  than a parallel favorite flag and album system;
-- an expandable `相册` sidebar section whose entries scope the same unified gallery without changing
-  membership;
-- one `加入相册` command in the upper-right selection action area, with a multi-group Material
-  chooser, a default checked group, existing-membership and mixed-selection states, group creation,
-  confirmation, errors, and undo;
-- persisted settings for whether the chooser appears and which group is selected or used by
-  default; the initial defaults are prompt enabled and `收藏夹`;
-- durable many-to-many membership that survives reindexing and does not move or copy source media;
-- tags, ratings, review state, and data export or backup strategy;
-- migration and restoration evidence.
-
-### R7 - Local classification and semantic discovery
-
-User outcome:
-
-The user can browse model-generated smart albums for common primary image types and search images
-with natural-language queries. Smart albums stay current when indexed files are renamed, moved,
-edited, replaced, deleted, or become temporarily unavailable.
+Ame processes the bulk of common image understanding, publishes calibrated primary-category
+predictions, and asks the user to review only sampled, uncertain, conflicting, or failed results.
+The user can correct categories quickly, close the application, and continue from the same durable
+review session later.
 
 Primary taxonomy:
 
@@ -1347,35 +1430,131 @@ Primary taxonomy:
 
 Scope:
 
-- written model and runtime admission evidence;
-- local inference, model provenance, versioned parameters, and bounded model storage;
-- immutable classification results associated with stable `Asset` identity and `AnalysisRun`, never
-  an absolute path or an editable ordinary-album membership;
-- a model-managed smart-album projection for each published result group, including confidence and
-  model-generated `needs review` results;
-- no user creation, deletion, rename, manual add, manual removal, or direct membership correction
-  for smart albums; users only browse the model's published result groups;
-- atomic replacement of the visible smart-album projection when a model run is published, while
-  retaining older run evidence for traceability rather than mixing two active versions;
-- consumption of R2c evidence disposition: compatible classification survives an identity-proven
-  rename or move, content edits and same-path replacements invalidate old results, authoritative
-  deletion removes the asset from current groups, and unavailable roots retain the last trustworthy
-  result with explicit availability state;
-- bounded reanalysis for newly indexed or invalidated assets without rebuilding every result group;
-- CLIP-style semantic search and semantic similarity through a separate evidence type;
-- reanalysis without erasing historical engine results;
-- no face or identity recognition.
+- supported metadata extraction through admitted adapters, including capture evidence, dimensions,
+  camera or basic metadata where trustworthy, and no embedded metadata writes;
+- SQLite FTS5 and bounded structured search over filename, path, date, type, size, source, album,
+  category, and supported metadata;
+- written model and runtime admission evidence, local inference, bounded model storage, immutable
+  analysis runs, model provenance, versioned parameters, confidence, and failure evidence;
+- separate `ModelPrediction`, `UserOverride`, `EffectiveCategory`, and `ReviewStatus` persistence;
+- confidence bands calibrated against the target library rather than hard-coded assumptions: high
+  confidence may reduce routine review but remains eligible for sampling, medium and low confidence
+  enter review, and conflicts or analysis failures receive explicit queues;
+- compatible analysis reuse for byte-identical content without coupling user decisions to an
+  absolute path or silently copying an override to unrelated content;
+- effective-category smart albums derived atomically from the current compatible model run and
+  durable overrides;
+- keyboard-first individual and safe batch review, accept-model, category correction, defer, undo,
+  progress, estimated remaining work, and cross-restart continuation through R4's `ReviewSession`;
+- bounded analysis of newly indexed or invalidated assets without rebuilding every result group;
+- reanalysis that preserves older model evidence for traceability and never erases user intent;
+- no face recognition, identity naming, or automatic file operation.
 
-### R8 - Safety planning and explicitly authorized operations
+R5 acceptance records coverage and error evidence per confidence band, sampled high-confidence
+quality, the remaining human-review count, review throughput, override survival after reanalysis,
+and source preservation. Success is reduced trustworthy human work, not a large headline number of
+automatically labelled images.
 
-R8a first provides only an immutable, non-executable dry-run `OperationPlan` containing intended
-actions, reasons, expected file state, targets, cross-volume warnings, and estimated space impact.
+### R6 - Perceptual similarity review
 
-R8b may be planned only after fresh user approval. It requires execution-time revalidation,
-same-volume quarantine or system recycle-bin integration, operation logs, recovery evidence, and
-clear partial-failure behavior. Permanent deletion is not a default operation.
+User outcome:
 
-### R9 - Large-library maturity and release readiness
+The user reviews visually near-duplicate candidates such as recompressed, resized, or rotated images
+without confusing them with byte-identical copies or semantic search results.
+
+Scope:
+
+- comparative candidate-engine evaluation;
+- versioned, explainable thresholds and evidence for recompression, resize, rotation, crop, watermark,
+  or other admitted transformations;
+- candidate groups, side-by-side comparison, dimensions and file-size evidence, preferred-copy,
+  keep-both, confirm, and not-similar decisions;
+- immutable analysis runs plus durable review decisions and progress through `ReviewSession`;
+- bounded candidate generation, cancellation, retry, stale-result rejection, and reanalysis without
+  erasing historical evidence;
+- no automatic deletion, exact-duplicate label, or implicit physical-location choice.
+
+### R7 - Semantic discovery and advanced search
+
+User outcome:
+
+The user can compose trustworthy structured search with natural-language visual discovery while
+semantic relationships remain clearly separate from duplicates, categories, and file-operation
+authority.
+
+Scope:
+
+- composed bounded queries over source, folder, date, exact-duplicate state, effective category,
+  album, review status, dimensions, type, filename, path, and admitted metadata;
+- an admitted local embedding runtime with versioned parameters, bounded model and index storage,
+  cancellation, replacement tests, and traceable analysis runs;
+- CLIP-style natural-language image search and semantic-neighbor discovery as separate evidence
+  types;
+- query-wide result manifests, stable identity, time distribution where meaningful, and bounded
+  detail windows in the existing gallery;
+- no use of semantic similarity as exact duplicate proof, category override, automatic keep/delete
+  decision, or filesystem-operation authority.
+
+### R8 - Physical organization dry-run
+
+User outcome:
+
+The user can define how virtual knowledge would map to a target filesystem, inspect the complete
+result, and resolve conflicts without Ame changing any source or target file.
+
+Scope:
+
+- organization rules based on effective category, selected virtual albums, date, source, or explicit
+  user choices;
+- target-root and path-template preview with invalid-name, reserved-name, path-length, unsupported
+  target, and source-overlap validation;
+- explicit handling when one asset belongs to multiple albums selected for physical materialization:
+  choose a primary album, keep the current location, use effective category, or exclude the item;
+- deterministic target-collision, existing-file, unavailable-source, cloud-placeholder, permission,
+  cross-volume, and insufficient-space analysis;
+- an immutable, non-executable `OperationPlan` containing source and target, action kind, reason,
+  expected source state and fingerprint evidence, target preconditions, conflicts, warnings, and
+  estimated space impact;
+- summary counts for move, copy, rename, keep-in-place, exact duplicate locations, conflicts,
+  collisions, unavailable items, and items requiring another decision;
+- plan review, filtering, export, and regeneration as a new plan rather than mutation of historical
+  evidence;
+- no filesystem execution control, delete shortcut, implicit conflict resolution, or authorization
+  carried forward into R9.
+
+R8 acceptance proves that repeated generation from the same trustworthy inputs is deterministic,
+that stale or incomplete evidence is reported rather than guessed, and that source and target trees
+remain byte-for-byte and entry-for-entry unchanged.
+
+### R9 - Explicitly authorized filesystem execution
+
+User outcome:
+
+After reviewing a specific current plan, the user can freshly authorize its supported actions.
+Ame revalidates every item, records durable execution evidence, handles partial failure, and can
+recover safely after interruption.
+
+Scope:
+
+- fresh authorization bound to one immutable `OperationPlan`; viewing or generating a plan never
+  authorizes execution;
+- immediate per-item revalidation of root generation, physical identity, source state, compatible
+  fingerprint evidence, target state, available space, and permissions before mutation;
+- same-volume move or rename behavior with explicit overwrite policy and recoverable intermediate
+  state;
+- cross-volume copy to a temporary target, bounded content verification, atomic target publication,
+  catalog update, and only then the separately planned source recycle-bin or quarantine action;
+- durable `OperationJournal` entries for intended action, before evidence, each state transition,
+  verification, result, failure, compensation, and recovery decision;
+- idempotent restart recovery, cancellation at safe boundaries, retry, skip, and clear partial-
+  failure reporting without presenting an incomplete run as success;
+- atomic or explicitly staged catalog reconciliation after verified physical changes;
+- source and target safety fixtures for Chinese and long paths, conflicts, locked files, unavailable
+  roots, cloud placeholders, cross-volume interruption, database failure, and process termination;
+- permanent deletion remains unavailable by default and requires a separately accepted policy and
+  explicit action-level authorization if ever introduced.
+
+### R10 - Large-library maturity and release readiness
 
 Scope:
 
@@ -1383,15 +1562,37 @@ Scope:
 - cancellation latency and crash recovery;
 - peak memory and cache-size enforcement;
 - catalog migration and application upgrade tests;
+- remaining condition-triggered million-item manifest adaptation and extended synchronization
+  catch-up evidence that was not required for earlier target-library value;
 - installer, signing strategy, diagnostics export, and recovery documentation;
 - formal i18n infrastructure and additional locale catalogs only after product copy is stable and
   the supported locales are separately confirmed;
 - controlled read-only combined scan of both real roots;
 - regression comparison against recorded Lap behavior without importing Lap code.
 
+Release packaging, hosted quality workflows, and portable-archive verification may be built earlier
+as cross-cutting infrastructure. Their existence does not make R10 complete or turn release work
+into a second active product stage.
+
+### Product value checkpoints
+
+These checkpoints describe user value and do not redefine the repository's current semantic
+version, which is managed by the release process:
+
+| Checkpoint | Required stages | User value |
+| --- | --- | --- |
+| Trustworthy foundation | R2b and R2c | Stable large-library canvas with continuously trustworthy source state |
+| Exact and virtual organization | R3 and R4 | Exact repetition is folded, physical locations are inspectable, and durable virtual organization can begin |
+| Machine-assisted review | R5 | Classification reduces manual work while corrections and review progress remain durable |
+| Similarity understanding | R6 | Near-duplicate candidates can be compared and reviewed without automatic deletion |
+| Advanced discovery | R7 | Structured and semantic search help rediscover understood content |
+| Safe physical proposal | R8 | A complete non-executable organization plan can be inspected and resolved |
+| Authorized organization | R9 | Reviewed filesystem changes execute with revalidation, journaling, and recovery |
+| Release maturity | R10 | Installation, migration, diagnostics, resource limits, and long-term reliability are ready |
+
 ## 7. Large-library test ladder
 
-Large testing starts during R1 rather than waiting for R9:
+Large testing starts during R1 rather than waiting for R10:
 
 1. deterministic fixtures for corrupt, locked, unavailable, Chinese, long-path, and wrong-extension
    media;
@@ -1400,9 +1601,15 @@ Large testing starts during R1 rather than waiting for R9:
 4. controlled read-only scan of `local-primary`;
 5. controlled read-only scan of `cloud-primary` after availability checks;
 6. controlled read-only combined scan;
-7. warm incremental scan after known additions, removals, and modifications.
+7. warm incremental scan after known additions, removals, and modifications;
 8. live create, modify, rename, replacement, removal, and event-storm reconciliation during R2c;
-9. closed-application change catch-up and forced notification/journal fallback during R2c.
+9. closed-application change catch-up and forced notification/journal fallback during R2c;
+10. exact-fingerprint reuse, regrouping, cancellation, and target-library duplicate coverage during
+    R3;
+11. resumable review, override durability, and confidence-band sampling during R4 and R5;
+12. perceptual-candidate quality and bounded index evidence during R6;
+13. immutable dry-run determinism and unchanged source and target trees during R8;
+14. separately authorized operation fixtures and recovery evidence during R9.
 
 Every large run records file counts, duration, throughput, structured issue counts, cancellation
 behavior, recovery behavior, peak resource observations where available, cache growth, and whether
@@ -1434,12 +1641,20 @@ may serve as benchmarks or fallbacks but are not automatically preferred over ma
 - Do not mix English placeholder text into the initial Simplified Chinese UI or introduce a language
   selector before formal i18n scope is accepted.
 - Do not turn classification, similarity, or search into separate competing gallery applications.
-- Do not expose classification, category filters, smart albums, or model placeholders before R7.
-- Do not represent classification as an ordinary filter or editable album membership. R7 smart
-  albums are read-only model projections over current trustworthy catalog and analysis evidence.
+- Do not expose classification, category filters, smart albums, or model placeholders before R5.
+- Do not represent classification as an ordinary filter or editable album membership. R5 smart
+  albums are derived `EffectiveCategory` projections over current trustworthy catalog, compatible
+  model evidence, and durable user overrides.
 - Do not let users create, delete, rename, add to, or remove from a smart album result group.
+- Do not interpret that membership rule as a ban on category correction. Users correct category
+  authority through `UserOverride`, and the derived projection must follow the effective result.
+- Do not record a high-confidence model prediction as user-confirmed or completed review.
+- Do not erase, replace, or silently reinterpret a durable user decision when a model is rerun.
 - Do not key smart-album membership by path or allow rename, move, edit, replacement, deletion, or
   root unavailability to leave stale visible results.
+- Do not turn review sessions into a dashboard, AI center, task center, or second gallery.
+- Do not define `Asset` as an exact hash group or let one fingerprint merge durable identities.
+- Do not call perceptual or semantic similarity an exact duplicate.
 - Do not turn internal scan, preview, hash, or analysis jobs into a permanent Task navigation entry.
 - Do not display a chronological time rail or date headings while the active sort is by name.
 - Do not sort only the currently loaded Flutter window; every sort and direction requires a bounded
@@ -1449,7 +1664,8 @@ may serve as benchmarks or fallbacks but are not automatically preferred over ma
 - Do not start R3 until R2c can prove that the catalog does not silently remain stale.
 - Do not treat filesystem notifications or USN records as authoritative file or asset state.
 - Do not respond to ordinary source changes by repeatedly scanning every configured root.
-- Do not mutate source media before the authorized portion of R8.
+- Do not mutate source or target media during R8, and do not execute an R9 action without fresh
+  authorization bound to the exact immutable plan and current-state revalidation.
 - Do not silently change the UI framework, bridge, database, taxonomy, or reference policy.
 - After context compaction, query recent task history and verify live files before resuming.
 
@@ -1498,440 +1714,110 @@ The visible Flutter shell is the active R2b production surface and must not be d
 as a fixture-only prototype. It is not yet a fully accepted product release. The current priority is
 not classification and not additional analysis engines.
 
-### 10.1 Historical implementation and verification evidence
+### 10.1 Verified implementation snapshot
 
-<details>
-<summary>Expanded repository evidence through the completed R1 acceptance</summary>
+This snapshot was synchronized on 2026-08-11 against a clean `main` working tree that matched
+`origin/main`. The live working tree, current schema, accepted ADRs, and fresh verification remain
+authoritative; this roadmap does not preserve drifting commit hashes or duplicate complete test
+transcripts.
 
-- Git history is now established on `main`; the verified 2026-08-09 baseline before the current
-  maintenance work was `010c870 docs(structure): document repository ownership`. Live Git history
-  remains authoritative if this historical identifier later changes.
-- The 2026-08-10 R2b production-integration changes are committed through
-  `58c2d97 style(dart): format bootstrap code`; live Git history remains authoritative for later
-  commits and rollback boundaries.
-- ADRs 0001 through 0008 record the Flutter/Rust stack, Rust-owned catalog boundaries, admitted
-  dependencies, storage governance, capture-time extraction, Windows file-identity reconciliation,
-  and capture-time gallery keyset. ADR 0003 contains superseded legacy UI choices and is not current
-  authority for the conflicting R2a surfaces identified in section 4.1.
+- R0 and R1 are accepted. The Rust-owned SQLite catalog, Flutter/Rust bridge, external preview
+  storage, resumable multi-root scanning, atomic publication, per-file issue isolation, file
+  identity, and revision-safe bounded queries are connected end to end.
+- The catalog schema is v13. It includes the earlier root, scan, asset, location, frontier, preview,
+  capture-evidence, and identity migrations plus creation-time, natural-name, parent-folder, and
+  local file-time query evidence.
+- The authorized read-only target-library acceptance published 30,629 locations for
+  `local-primary` and 48,384 for `cloud-primary`, for 79,013 active locations in one retained
+  catalog. Sampled source bytes and source entries remained unchanged, and cloud-only placeholders
+  were not intentionally hydrated.
+- R2a is accepted and its obsolete prototype entry point has been removed. ADR 0009 owns the
+  production unified-gallery UI contract.
+- The active R2b shell provides the source tree, search, complete-query sorting, equal-height and
+  square layouts, density choices, selection, bounded complete-query selection, context menus,
+  viewer, settings, temporary scan feedback, and right-side time navigation.
+- The query-wide revision-bound manifest, deterministic equal-height layout snapshot, exact-extent
+  lazy sliver, orientation-corrected dimensions, identity-keyed preview store, latest-wins target
+  loading, and logical-anchor resize correction are implemented.
+- Native wheel, touchpad, keyboard, accessibility, and ballistic movement remain owned by Flutter's
+  `Scrollable`. Programmatic navigation is generation-guarded and may be coordinated only where
+  measured traces show competing writes.
+- The current controller still merges loaded detail pages into a growing `state.assets` list.
+  Profile and long-session evidence determine whether the guarded high/low-watermark page-cache
+  path must replace that baseline for the target workload.
+- The flat manifest remains accepted while measured inside budget. Existing evidence recorded about
+  5.9 MB for 79,013 items and 18.8 MB for 250,000 items; the million-item interim representation
+  remains conditional scale evidence, not a completed hierarchical fallback.
+- Preview storage currently has safe external placement, atomic admission reservation, bounded
+  demand concurrency, structured failure, and visible missing-file regeneration. ADR 0005's
+  automatic reclamation, bounded variants, startup recovery, manual cleanup, and preview-root
+  transition are not yet implementation-complete.
+- R2c has no production watcher, durable change queue, freshness state, delta publisher, or catch-up
+  adapter yet. R3 and the later duplicate, review, classification, similarity, semantic,
+  organization-plan, and operation-journal domains have not started.
+- Hosted quality and release workflows, version validation, Windows release verification, and
+  portable-archive tooling exist as cross-cutting infrastructure. Their presence does not complete
+  R10 or substitute for current-stage acceptance evidence.
+- Local Flutter and Dart commands use the repository-pinned SDK resolved from
+  `$env:USERPROFILE\develop\flutter`; they are not assumed available through `PATH`.
 
-- Flutter 3.44.9, stable Rust 1.97.1, `flutter_rust_bridge` 2.12.0, and code-generation tooling are
-  installed; Flutter and Cargo are present in the Windows user PATH;
-- the Material 3 gallery, directory picker, Riverpod controller, typed bridge, bounded Rust scan,
-  cancellation, per-file issues, external preview cache, and atomic SQLite publication are
-  implemented;
-- schema v2 persists `LibraryRoot`, `Asset`, and `AssetLocation` separately and migrates the R0 v1
-  catalog forward without discarding the active published location;
-- the Rust application API returns a bounded catalog snapshot; Flutter loads it at startup and
-  after atomic publication instead of treating streamed scan candidates as trusted gallery data;
-- multiple completed roots remain visible in a scrollable source list and a rescan reuses the prior
-  asset identity for the same location;
-- schema v3 adds an atomically incremented catalog revision and forward migration from both prior
-  schemas;
-- schema v4 persists scan parameters, traversal checkpoints, and progress counters; migrations from
-  v1, v2, and v3 are tested, while an old uncheckpointed running task is never guessed as resumable;
-- schema v5 persists the current directory and pending-directory frontier; migration from v4 marks
-  old active tasks unrecoverable because their missing frontier cannot be reconstructed safely;
-- schema v6 snapshots directory entries in SQLite in 256-entry batches and consumes them through
-  256-entry keyset windows; active v5 tasks are marked unrecoverable because their absent entry
-  snapshot cannot be reconstructed safely;
-- schema v7 records pending, ready, and failed preview state with structured failure evidence;
-  existing v6 preview paths migrate as ready;
-- schema v8 records metadata engine identity and version plus normalized local capture time, optional
-  offset, source tag, and bounded raw evidence; existing v7 locations migrate as explicitly
-  unanalyzed;
-- schema v9 records optional Ame-owned file-identity evidence; existing v8 locations migrate with
-  identity explicitly unknown and are backfilled conservatively by later scans;
-- schema v10 adds indexed active identity, location identity, and asset-reference lookup; v9
-  migration preserves identity evidence, and a query-plan test proves terminal orphan cleanup uses
-  the asset-reference index rather than a nested full-table scan;
-- schema v11 adds the cross-root gallery-time index and replaces root/path pagination with a
-  revision-protected keyset over capture availability, local capture time, modification time, root,
-  and stable location identity;
-- catalog rows load in bounded keyset windows; a publication invalidates old cursors explicitly,
-  Flutter refreshes the first page, and page merges deduplicate by stable location identity;
-- a 1,025-row SQLite fixture is read across multiple keyset windows without a duplicate or gap;
-- Windows offline and recall attributes are checked before image content access; an actual file
-  marked offline is skipped without decoding, hydration, or source-byte changes;
-- an exclusively locked image is isolated as a structured per-file issue, while the scan completes;
-- a source that disappears during final revalidation marks the scan stale instead of publishing;
-- an image behind a path longer than 260 characters is discovered and previewed without changing
-  the source, and the Windows runner manifest is explicitly long-path aware;
-- deterministic traversal checkpoints are written every 128 entries, staged rows are replay-safe,
-  and only unexpectedly interrupted running tasks are eligible for automatic startup recovery;
-- a 130-image interruption fixture resumes from the checkpoint and publishes 130 distinct locations
-  without a duplicate or gap; a missing checkpoint path becomes stale instead of being published;
-- Flutter restores the persisted scan identity, parameters, and counts at startup and exposes an
-  explicit resuming state; user cancellation remains terminal;
-- the upper action area can pause a running scan; `paused` persists its private checkpoint across
-  application restarts but never resumes until the user explicitly continues it;
-- a Rust pause/resume fixture proves the staged scan is not published while paused and that explicit
-  resume publishes every location once; Flutter tests cover paused-state restoration and controls;
-- a deep-tree interruption fixture leaves completed directories behind, resumes only the persisted
-  current directory, and publishes 130 unique locations; terminal tasks clear their frontier;
-- a 1,025-entry single-directory fixture is enumerated and consumed through bounded windows without
-  a duplicate or gap;
-- a fixed configuration database stores catalog location, versioned preview location, and preview
-  budget independently from the catalog it controls;
-- active storage is frozen for one process lifetime; path or budget updates report restart-required
-  state and never migrate or delete existing data automatically;
-- storage paths overlapping an imported source root are rejected, and catalog relocation is locked
-  after a source has been imported until a verified migration workflow exists;
-- preview capacity includes existing artifacts and uses atomic reservation before publication; an
-  exhausted budget becomes an isolated per-file issue without a partial cache file or source-media
-  mutation;
-- the current preview budget remains admission-only: it does not yet track bounded size variants or
-  coarsened last use, evict to high/low watermarks, reconcile all orphan classes, transition existing
-  preview entries through a switch-and-regenerate root transition, or reclaim an old preview root.
-  Those behaviors are required R2b work, not completed implementation evidence;
-- scan discovery probes image dimensions without full pixel decoding; lazily built Flutter tiles
-  request previews through a queue limited to two active decodes, and queued off-screen requests are
-  cancelled;
-- failed preview requests retain structured evidence and require explicit retry; a missing derived
-  preview is exposed as pending and rebuilt when the tile becomes visible;
-- catalog loading reports configured roots as available, missing, inaccessible, or offline using
-  root metadata only, without walking or hydrating their contents;
-- capture-time inspection uses the admitted `kamadak-exif` 0.6.1 adapter behind Ame-owned ports;
-  source values are calendar-validated, timezone absence remains unknown, raw EXIF parsing is capped
-  at 4 MiB, and malformed metadata does not reject an otherwise readable image;
-- unchanged sources reuse capture evidence only when metadata engine identity and version match;
-  incompatible evidence is reanalyzed and all provenance survives the generated bridge;
-- subsequent explicit full rescans use Windows volume and 128-bit file ID as local reconciliation
-  evidence:
-  same-volume rename and in-place edit preserve logical asset identity, changed state invalidates
-  derived evidence, a replacement at the same path receives a new asset, and removed locations are
-  published only at the atomic snapshot boundary;
-- a five-scan controlled fixture covers rename, edit, same-path replacement, and removal; inactive
-  snapshot rows, terminal staged locations, and orphan derived asset rows are cleaned without
-  touching source media outside the fixture's explicit setup actions;
-- a repeatable 10,000-file synthetic benchmark covers cold scan, warm scan, pause, persisted resume,
-  cancellation, catalog growth, bounded working set, final row counts, and unchanged source bytes;
-  the latest debug run records 22.570-second cold, 21.030-second warm, 26-millisecond pause,
-  20.033-second resume, 117-millisecond cancellation, a 27,262,976-byte catalog, and a
-  15,659,008-byte peak test-process working set;
-- a separately ignored real-library acceptance harness now requires an exact authorization token,
-  one explicit root and scan ID, disjoint persistent storage, explicit reuse of nonempty storage,
-  and a second acknowledgement for OneDrive-like paths before source traversal can begin;
-- its controlled PowerShell 5.1 regression proves pre-access refusal, cloud and overlap guards,
-  complete atomic publication, cancellation with zero staged rows, persisted pause and resume,
-  process-memory reporting, retained evidence, and unchanged source bytes and entries; neither real
-  root was used by this regression;
-- on 2026-08-07 the user explicitly authorized read-only access to `local-primary` and
-  `cloud-primary`, removed the waiting-for-authorization hold, and directed the
-  project to continue; this authorization does not permit source mutation or cloud hydration;
-- the controlled real-root sequence completed against isolated external storage: local-primary published
-  30,629 locations in 106.905 seconds and cloud-primary published 48,384 locations in 154.698 seconds;
-- cancellation trials left zero staged locations, responded in 66 milliseconds for local-primary and 231
-  milliseconds for the authorized cloud-primary probe, and did not replace an already active root;
-- the combined catalog contains two active roots and 79,013 active locations in 158,298,112 bytes;
-  production `load_catalog` traversed all locations through 155 bounded windows at one stable
-  revision without a duplicate or gap;
-- real-scan reports retain structured issue-code evidence, representative messages, observed peak
-  working set, and 35 plus 44 unchanged source-hash samples; full-library previews were not built;
-- the legacy upper Material 3 engineering action area exposes storage status, cache usage, directory
-  selection, budget selection, migration restrictions, and restart activation; this remains
-  implementation evidence, not the accepted settings presentation defined in section 4.11;
-- normal user imports are complete scans with no validation-only item or entry cap; explicitly
-  bounded scans remain available to deterministic tests and controlled acceptance harnesses;
-- Before the interrupted timeline integration, Rust format, Clippy with warnings denied, 52
-  non-ignored Rust tests, Flutter analysis, and 19 Flutter tests passed;
-- a Rust release dynamic library builds successfully;
-- the Rust end-to-end fixture proves Chinese-path discovery, source-byte preservation, preview
-  placement outside the source, and completed-catalog publication;
-- Visual Studio Build Tools has the Desktop development with C++ workload, MSVC x64/x86 tools,
-  CMake tools, and Windows SDK registered; `flutter doctor -v` recognizes the Windows toolchain;
-- a Windows Debug runner build completes successfully at
-  `build/windows/x64/runner/Debug/cedarflake_ame.exe`;
-- Windows integration tests use an isolated catalog and cache, open and cancel the production
-  directory picker, then import two controlled roots through the real picker;
-- the Windows integration workflow reconstructs application state from SQLite twice and verifies
-  multi-root persistence, corrupt-file isolation, real preview rendering, external catalog and
-  preview placement, root availability, missing-preview regeneration, and unchanged source bytes
-  and source entries;
-- a Windows Release runner builds and launches successfully with
-  `flutter run --release --no-resident`;
-- both authorized real-library roots have completed Ame's read-only catalog acceptance;
-- the local Lap reference remains outside the Ame repository.
+### 10.2 Acceptance checkpoints
 
-</details>
-
-### 10.2 Completed acceptance checkpoints
-
-R0 acceptance result:
+R0 acceptance:
 
 ```text
-Windows Debug and Release runner launch
--> production native picker cancellation
--> controlled fixture selection through the real native picker
+Windows Debug and Release launch
+-> production native picker cancellation and controlled fixture import
 -> Rust bridge scan, per-file issue isolation, preview rendering, and atomic catalog publication
--> catalog and previews outside the source tree
+-> catalog and previews outside source trees
 -> unchanged source bytes and entries
--> repository quality gates
 -> accepted
 ```
 
-Completed R1 slice:
+R1 acceptance:
 
 ```text
-completed: persist LibraryRoot, Asset, and AssetLocation separately
-completed: reload the last completed bounded catalog when application state is rebuilt
-completed: add and retain more than one root without replacing prior roots
-completed: replace the single bounded snapshot with revision-protected keyset windows
-completed: isolate missing, locked, long-path, and Windows offline fixtures without hydration
-completed: add deterministic traversal checkpoints and automatic interrupted-task recovery
-completed: add explicit pause/resume while keeping cancel terminal and paused tasks non-automatic
-completed: persist the current directory and pending frontier for bounded deep-tree recovery
-completed: expose catalog and preview-cache locations with atomically enforced admission-only budgets
-completed: window enumeration inside an extremely wide single directory
-completed: report root availability without source enumeration or cloud hydration
-completed: schedule bounded preview generation from lazily rendered gallery tiles
-completed: persist trustworthy, versioned capture-time evidence without inventing timezone data
-completed: reconcile unchanged, edited, renamed, replaced, and removed locations across explicit rescans
-completed: record synthetic large-library performance, memory, cancellation, and recovery evidence
-completed: prepare and regression-test the explicitly authorized read-only real-root harness
-completed: execute the authorized local-primary and cloud-primary read-only acceptance sequence
-```
-
-R1 acceptance result:
-
-```text
-authorized local-primary cancellation and cold scan
--> authorized cloud-primary cancellation and cold scan
+resumable multi-root catalog and explicit-rescan reconciliation
+-> authorized local-primary and cloud-primary read-only scans
 -> two active roots and 79,013 active locations
--> production bounded catalog reload across 155 windows
--> unchanged sampled source bytes and no full-library preview generation
+-> bounded revision-safe catalog traversal without duplicate or gap
+-> unchanged sampled source bytes and no forced full-library preview generation
 -> accepted
 ```
 
-### 10.3 Production time-navigation foundation
+R2b completed foundation:
 
-The production gallery now uses Ame-owned Rust timeline-bucket and anchor types, SQLite complete-
-result month distribution, revision-bound month or unknown anchor queries, generated Rust-Dart
-bridge types, and the Flutter global virtual-scroll integration defined in section 4.8. The
-right-side rail is no longer confined to the isolated R2a prototype.
+- accepted production shell and unified-gallery interaction contract;
+- complete-result timeline, keyset sort and search, stable selection, viewer, source actions, and
+  scan feedback;
+- query-wide final geometry with unloaded, failed, and ready states sharing the same rectangles;
+- identity-keyed preview publication and bounded demand priority;
+- latest-wins time navigation, native relative scrolling, and logical-anchor resize preservation;
+- EXIF Orientation 1 through 8 reflected in durable dimensions and preview pixels;
+- scan finalization, failure publication, and Explorer reveal corrections present in current
+  history;
+- deterministic fixture coverage and an earlier full daily-gate baseline.
 
-The aggregate full-query extent, static placeholder slivers, settle-only wheel seek, and one
-replacement asset window now remain only in the rollback path. The active equal-height manifest
-path derives exact query-wide geometry and exposes it through an Ame-owned
-`LibraryExactExtentSliver`: offset-to-index lookup is logarithmic, index-to-offset and item extent
-are constant-time, and the render sliver publishes the exact content extent instead of estimating
-unbuilt children. Flutter still owns lazy child creation, scrolling, focus, and semantics.
+R2b remaining acceptance:
 
-Real-library wheel, rapid time-rail, and resize evidence on 2026-08-09 rejected the interim model as
-the production target. It showed layout recomposition during ordinary scrolling, slow pending-
-preview fill, extended square placeholder walls during rapid navigation, and a second square-to-
-justified transition when details became available. This confirms that the compact query-wide
-layout index previously described as optional parity work is a required R2b foundation.
+1. establish a frozen Profile and long-session baseline on the retained target catalog;
+2. record frame timing, memory, garbage collection, retained-detail growth, copy cost, preview
+   latency, cache bytes, reclamation churn, and programmatic scroll writers;
+3. enable the guarded detail-page cache only if the retained-list baseline exceeds budget and the
+   replacement passes nearby-return, reversal, distant-jump, resize, and native-input parity;
+4. retain the flat manifest unless a measured size crosses its memory or frame budget;
+5. complete the accepted ADR 0005 preview lifecycle, prioritizing automatic bounded resource safety
+   before foreground cleanup and preview-root transition;
+6. establish current-head daily and Windows Release evidence rather than inheriting the earlier
+   baseline across later scan, preview, CI, and packaging changes;
+7. pass the authorized retained-catalog real-library parity scenarios without source mutation or
+   cloud-placeholder hydration;
+8. close R2b after those gates, then begin R2c rather than adding ordinary album breadth.
 
-ADR 0014 is now the active accepted-for-validation correction. It introduces a chunked compact
-query-wide manifest, deterministic final-geometry layout snapshots, a guarded bounded asset-detail
-page-cache path, identity-keyed preview publication, programmatic navigation coordination,
-latest-wins target loading, and logical-anchor resize preservation. Flutter's `Scrollable` retains
-native relative movement on the single `ScrollPosition`; the programmatic path preserves Material
-Slider behavior, complete-result date annotations, revision-safe keysets, and the read-only media
-boundary accepted in ADRs 0009 through 0011.
+### 10.3 Status maintenance rule
 
-ADR 0014's seven migration slices remain the architectural decomposition for any further work, but
-the remaining slices are not an automatic delivery mandate. Existing aggregate placeholder and
-replacement-window paths remain only as a rollback boundary until a measured need, focused parity
-tests, and real-library evidence justify replacement; they must not receive further interaction-
-specific fixes or be removed prematurely.
-
-Migration slices 1 through 3 are connected. The Rust domain, application port, SQLite adapter, and
-generated bridge expose revision-checked manifest chunks of at most 4,096 items. Flutter has an
-Ame-owned chunk adapter, a sequential all-or-nothing loader, compact UTF-8 and typed-array flat
-storage, an interim chunk-block over-budget representation, a revision/query-keyed provider that
-publishes only a complete compatible manifest, deterministic final row snapshots, and the exact
-render sliver. Provider disposal stops the loader before another chunk can publish. The interim
-over-budget store still retains every exact block and the layout snapshot still allocates query-wide
-exact offsets, so it does not yet satisfy ADR 0014's block-summary plus bounded-exact-block
-requirement and must not be treated as the completed million-item fallback.
-
-The equal-height production gallery now derives one query-wide deterministic layout snapshot from
-that manifest. Loaded assets and unloaded placeholders occupy the same final rectangles in one
-`LibraryExactExtentSliver`; preview or detail publication fills those rectangles without replacing
-a square wall or changing row membership. While the complete manifest is unavailable, the rollback
-equal-height path no longer paints generic square leading or trailing placeholder slivers. The
-generic square painter remains only for the explicit square layout and as rollback code.
-
-Preview readiness is now separated from the asset collection through an identity-keyed
-`LibraryPreviewStore`. One tile subscribes to its own location identity, so preview completion does
-not clone the complete asset list or republish query-wide geometry. Gallery demand is derived from
-actual visible rows plus movement-direction and guard ranges. The bounded scheduler orders viewer,
-visible, near-direction, guard, and idle work. Pending demand can be upgraded or replaced
-atomically, and incompatible active generations cannot publish stale results.
-
-Time navigation now uses a single active request plus one replaceable latest pending target.
-Controller and presentation generations guard query, revision, target, state publication, loading
-ownership, and post-frame alignment, so an obsolete completion cannot pull the viewport back.
-Visible-range intents can invalidate a disjoint active seek even when the user reverses into an
-already loaded range. The current controller still merges preceding and following detail pages into
-one growing `state.assets` list and rebuilds full retained-detail collections during publication.
-This is the known migration-slice-4 debt; Profile determines its target-library cost before a cache
-is allowed to replace the current interaction baseline.
-
-Aspect ratios are durable catalog data derived from stored width and height, so restarting Ame does
-not decode source images again merely to recover tile proportions. The in-process layout snapshot is
-keyed by query manifest identity, viewport width, thumbnail density, and sort key. A cross-startup
-cache of final row rectangles remains an optional later optimization and must use that complete key;
-it is not allowed to replace or contradict the catalog dimensions.
-
-The current preview implementation provides external storage, atomic capacity reservation,
-identity-keyed UI publication, bounded demand priority, structured failure, and visible
-missing-file regeneration. It does not yet implement the complete preview lifecycle required above:
-automatic high/low-watermark reclamation, durable bounded size-variant evidence, coarsened usage
-accounting, full startup orphan reconciliation, verified manual cleanup, or a switch-and-regenerate
-preview-root transition. Preview cleanup must therefore not be reported as complete merely because
-the admission budget and settings row exist.
-
-Resize now captures a query- and revision-bound logical anchor from the old snapshot before the
-first size change, accepts only the newest width and viewport in a frame, and applies one
-generation-guarded `scrollOffsetCorrection` during exact-sliver layout. The command is cleared after
-the frame so rebuilding the render object cannot apply it twice. Programmatic resize and positioning
-do not authorize pagination.
-
-Resize-driven `ScrollStartNotification` events do not authorize catalog paging. Both the rollback
-wall and the manifest-backed wall restrict proximity paging to real scroll updates or completion,
-and defer provider-mutating page requests until the current frame has finished. This prevents a
-window-size change from modifying Riverpod state during layout and leaving the gallery frame empty.
-
-Focused 2026-08-09 evidence records 79,013 synthetic items as a 5,925,999-byte primitive flat
-manifest built in 63 ms, 250,000 items as an 18,750,024-byte primitive flat manifest built in 104 ms,
-and 1,000,000 items as a 73,006,860-byte interim chunk-block manifest built in 356 ms on the project
-workstation. That million-item number is evidence of the present cost, not acceptance of the bounded
-hierarchical design.
-
-On 2026-08-10 the repository daily gate passed after the exact sliver, latest-wins lifecycle,
-identity preview store, resize anchor, EXIF Orientation 1-through-8 correction, loading feedback,
-and menu corrections were integrated: Dart formatting and analysis reported no issues; Rust
-reported 74 passed and 3 explicitly ignored tests; every Flutter test file passed serially; the
-Windows Debug build and native picker integration passed 2 of 2; bridge compatibility, Rust
-follow-up checks, and whitespace validation passed. These are deterministic and controlled-fixture
-results for that earlier baseline. They do not cover the later scan-lifecycle and Explorer-reveal
-commits. ADR 0014 still requires resource-bounded Profile evidence and the authorized
-79,013-location real-library parity run before the migration or R2b can be accepted.
-
-### 10.4 R2a acceptance and R2b execution status
-
-```text
-completed foundation: capture-time keyset windows and explicit unknown capture-time ordering
-completed foundation: authorized two-root read-only catalog acceptance with 79,013 locations
-completed planning: exact current UI scope written into section 4
-completed reconciliation: obsolete ADR 0003 surfaces marked superseded for R2a validation
-completed stabilization: timeline controller race fixed and full Flutter/Rust gates passed
-completed prototype: isolated deterministic Flutter entry implements the confirmed section 4 flow
-completed verification: 17 focused gallery prototype and layout tests, 36 total Flutter tests,
-                        zero Flutter analysis issues, Windows Debug build, and DPI-aware visual
-                        inspection
-rejected detail: provider-grouped source rows and the static evenly distributed time rail
-completed correction: source rows flattened into one folder list with shared column constraints
-completed investigation: Material 3 defines vertical Slider and stops, while Flutter 3.44.9 lacks
-                         native orientation and only supports equidistant divisions;
-                         low-adoption or stale replacement packages were rejected
-completed implementation: Flutter Material Slider owns pointer, focus, keyboard, track, and handle;
-                          a thin orientation adapter maps top-to-bottom time without divisions
-completed implementation: nonuniform year/month annotations use complete-result content extent,
-                          synchronize bidirectionally with gallery scroll, and retain unknown time
-completed correction: year labels and the Slider use separate gutters; the continuous official
-                      track, 28 px handle, month points, and arrow controls remain on one axis
-completed correction: timeline-node centers use the Slider track coordinate instead of marker-box
-                      origins; the current year/month node now coincides with the handle center
-completed correction: the gallery no longer renders a second Flutter Scrollbar; the annotated
-                      timeline Slider is the sole visible scroll-position control
-completed correction: selection mode keeps Cancel outside the horizontally scrollable action area,
-                      and the tested action exits to the normal browsing toolbar
-completed correction: browsing actions align to the right edge of the gallery header
-completed correction: justified rows balance aspect ratios, fill one gallery width, and bound sparse
-                      row enlargement
-accepted review: user accepted the revised R2a visual and interaction contract on 2026-08-07
-completed architecture: ADR 0009 records the accepted contract and fully supersedes ADR 0003
-completed production integration: the real bounded gallery and complete-result timeline share one
-                                  stable global virtual-scroll model
-implemented performance correction: drag writes are frame-coalesced and unloaded regions move
-                                    immediately without catalog queries or asset-window replacement
-completed reference correction: pointer release commits only the final time target, matching the
-                                direct-scroll separation observed in Lap and WinUI
-completed presentation correction: the drag label follows the active line, gray hover preview is
-                                   absent during drag, and nearby date markers remain visible
-implemented scroll correction: wheel input moves the virtual canvas immediately; settled viewport
-                               observation may request missing details but never queues the native
-                               delta as a programmatic position intent
-implemented resize correction: layout publication no longer rebuilds the entire unified screen;
-                               redundant anchor writes and per-pixel thumbnail decode keys are gone
-rejected production target: real-library wheel, rapid time-rail, and resize evidence confirmed that
-                            aggregate placeholder geometry plus one replacement window causes
-                            visible layout substitution, blank or slow fill, and a second reflow
-accepted architecture: ADR 0014 replaces that interim target with a compact query-wide layout
-                       manifest, deterministic row snapshot, guarded detail-page-cache path,
-                       identity-keyed preview store, native Flutter scrolling, and coordination
-                       for programmatic position changes that require arbitration
-completed implementation: migration slices 1 through 3 now have the revision-safe Rust query,
-                          generated async bridge, flat and interim chunk-block Flutter stores,
-                          cancellable all-or-nothing publication, deterministic query-wide layout,
-                          and an exact-geometry lazy render sliver
-completed focused evidence: 79,013 and 250,000 flat manifests and a 1,000,000-item interim
-                            chunk-block manifest build within the recorded evidence; full Dart
-                            analysis passes; manifest, time-navigation, unified-gallery, and window
-                            focused widget suites pass serially
-completed stability correction: a loaded detail-window change no longer republishes query-wide
-                                row geometry; the time rail retains one fixed footprint while detail
-                                state is unavailable; invalid transient viewport constraints are
-                                excluded from layout snapshots; manifest failures do not enter
-                                Riverpod's periodic retry cycle; the final rail value resolves to
-                                the last valid item instead of an out-of-range ordinal
-completed navigation correction: post-jump wheel paging is a detail-prefetch intent and cannot
-                                 realign the gallery scroll position after the detail window
-                                 publishes; a focused widget regression preserves both pixels and
-                                 the derived rail value across that publication
-completed large-wall correction: pending gallery previews use their stable final rectangles
-                                 without one indeterminate animation per tile; redundant automatic
-                                 sliver row semantic indexes are disabled while photo and date
-                                 semantics remain; a clean retained-catalog Debug launch records no
-                                 AXTree, RangeError, or stderr output after startup
-completed preview separation: an identity-keyed preview store and viewer-visible-near-guard-idle
-                              scheduler update one tile without replacing the asset list; obsolete
-                              source and query generations cannot publish
-completed navigation lifecycle: one active and one replaceable latest pending seek, query/revision
-                                publication guards, request-owned loading cleanup, and visible-range
-                                invalidation prevent stale targets from publishing or realigning
-completed resize lifecycle: latest-only snapshot publication preserves the query-bound logical
-                            anchor through one exact-sliver layout correction without authorizing
-                            page loading
-completed orientation correction: EXIF Orientation 1 through 8 controls durable display dimensions
-                                  and preview pixels; incompatible catalogs and previews recover on
-                                  an explicit complete rescan without modifying source media
-completed feedback correction: scroll-triggered paging uses one top linear indicator; import
-                               completion retains final counts until acknowledgment; bottom notices
-                               share one surface contract; edge menus retain a viewport margin and
-                               constrain shortcut rows
-pending observation: freeze the current interaction baseline and measure Profile-mode frame time,
-                     long-session detail growth, preview latency, memory, and actual scroll-writer
-                     conflicts before changing the gallery hot path
-guarded implementation: validate a bounded asset-detail page cache against nearby-return, reversal,
-                        distant-jump, and native-wheel parity; enable it only when it preserves or
-                        improves the measured baseline
-conditional implementation: retain the flat exact manifest within budget; introduce ADR 0014 block
-                            summaries plus bounded exact blocks only when measured result sizes
-                            exceed the memory or frame budget
-pending verification: prove resource-bounded Profile behavior, Windows Release packaging after the
-                      current bridge and media changes, authorized real-library parity, and
-                      read-only safety behavior before removing any rollback path
-maintenance verification pending: the latest scan-lifecycle and Explorer-reveal fixes passed the
-                                  focused Rust tests, release build, formatting, Clippy, Dart
-                                  analysis, and whitespace checks, but the new complete daily and
-                                  Flutter widget gates were interrupted by workstation resource
-                                  exhaustion and must not inherit the earlier daily-gate result
-accepted R2b addition: Material context menus for gallery items and source folders, exposing only
-                       connected non-mutating or catalog-only actions
-accepted R2b addition: toolbar More menu and bounded complete-query Select all / Deselect all
-accepted R2b addition: hover/focus selection affordance with persistent selected state
-completed maintenance: repository Flutter checks now share a named cross-process mutex and execute
-                       widget tests one file at a time with concurrency fixed to one
-completed correction: caption controls use their intended 40 px fallback hit target; sidebar drag
-                      distance includes movement before the gesture threshold; readable-path,
-                      import-state, viewer-position, and storage-setting fixtures match current
-                      presentation contracts
-completed verification: on 2026-08-10, 74 Rust tests passed with 3 explicit heavy acceptances
-                        ignored; every Flutter test file passed serially; Windows Debug build and
-                        native picker integration passed 2 of 2; formatting, analysis, Clippy,
-                        bridge compatibility, Rust follow-up, and diff whitespace checks passed
-```
+Historical commands, individual test transcripts, superseded prototype steps, and rewritten commit
+identifiers belong in Git history, ADR evidence, acceptance reports, or release records rather than
+this active plan. When implementation status changes, update this concise snapshot and its date only
+after checking the live working tree and applicable verification. Never infer completion from the
+existence of code, a workflow file, or an older passing gate.
