@@ -122,7 +122,8 @@ decision. Never fill missing context with a convenient assumption merely to keep
 - Make assumptions only when they are reversible and do not materially change product behavior.
 - Unattended work does not broaden authorization or permit external publication, source-media
   mutation, large downloads, or destructive repository operations.
-- Do not stage, commit, push, publish, release, or contact third parties unless explicitly asked.
+- Git branch creation, staging, commits, and pushes follow the standing workflow in section 14.
+  Do not publish releases or contact third parties unless explicitly asked.
 
 ## 5. Architecture principles
 
@@ -514,14 +515,31 @@ completion tracker.
 ## 14. Git discipline
 
 - Inspect the working tree before editing and preserve unrelated changes.
+- Classify the requested change as small or large before editing. Scope and rollback risk determine
+  the classification; line count alone does not.
+- A large change must start on a dedicated `codex/<topic>` branch created before product edits.
+  Large changes include work that crosses multiple architectural layers or independent subsystems,
+  changes schemas or migrations, changes generated bridge or public application contracts, performs
+  a broad refactor, materially changes release or infrastructure behavior, changes an accepted
+  architecture boundary, or otherwise needs an isolated rollback boundary. Commit and push large
+  changes to that branch. Do not merge the branch into `main` without an explicit user request.
+- A small change stays on `main`; do not create a branch for it. After proportionate validation,
+  stage only the owned files, create a Conventional Commit, and push `main` directly. This is
+  standing authorization to commit and push a requested small repository change unless the user
+  explicitly says not to commit or not to push.
+- If the current checkout is on the wrong branch, has unrelated changes, or cannot switch safely,
+  resolve that state without moving, committing, or discarding unrelated work before applying the
+  branch rule.
 - When the current task is only to package already-validated working-tree changes into commits,
   keep commit-time verification lightweight. Inspect the staged boundary, run `git diff --check`,
   and add only a focused test when required evidence is missing. Do not rerun daily, release,
   performance, acceptance, or other heavyweight gates merely because a commit is being created.
   A commit request does not invalidate successful verification already obtained for the same diff.
 - Do not use destructive reset or checkout operations unless explicitly requested.
-- Do not rewrite history, stage, commit, push, or create releases without current authorization.
-- Stage explicit files rather than broad paths when commits are requested.
+- Do not rewrite history or create releases without explicit authorization. The small- and
+  large-change workflows above provide authorization only for their stated branch, commit, and push
+  operations.
+- Stage explicit files rather than broad paths when committing.
 - Use concise English Conventional Commit messages with a summary no longer than 20 words.
 - Split unrelated themes into separate commits so each rollback boundary remains coherent.
 - Do not commit generated caches, model files, local catalogs, source-media samples, build outputs,
