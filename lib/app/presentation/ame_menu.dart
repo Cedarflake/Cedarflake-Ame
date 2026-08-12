@@ -99,17 +99,43 @@ class AmeMenuAnchor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MenuAnchor(
-      controller: controller,
-      childFocusNode: childFocusNode,
-      style: style,
-      alignmentOffset: alignmentOffset ?? Offset.zero,
-      reservedPadding: reservedPadding,
-      animated: true,
-      menuChildren: menuChildren,
-      builder: builder,
-      child: child,
+    final anchorBuilder = builder;
+    final anchorChild = child;
+    final isolatedBuilder = anchorBuilder == null
+        ? null
+        : (BuildContext context, MenuController controller, Widget? child) =>
+              _AmeMenuTraversalBoundary(
+                child: anchorBuilder(context, controller, child),
+              );
+    return _AmeMenuTraversalBoundary(
+      child: MenuAnchor(
+        controller: controller,
+        childFocusNode: childFocusNode,
+        style: style,
+        alignmentOffset: alignmentOffset ?? Offset.zero,
+        reservedPadding: reservedPadding,
+        animated: true,
+        menuChildren: menuChildren,
+        builder: isolatedBuilder,
+        child: anchorChild == null
+            ? null
+            : _AmeMenuTraversalBoundary(child: anchorChild),
+      ),
     );
+  }
+}
+
+// Flutter 3.44 can merge nested OverlayPortal traversal parents into one
+// semantics node. Keep the menu portal and its tooltip anchor separate until
+// flutter/flutter#190344 and flutter/flutter#190431 reach the pinned SDK.
+class _AmeMenuTraversalBoundary extends StatelessWidget {
+  const _AmeMenuTraversalBoundary({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(container: true, explicitChildNodes: true, child: child);
   }
 }
 

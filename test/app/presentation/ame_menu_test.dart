@@ -1,6 +1,7 @@
 import "package:cedarflake_ame/app/presentation/ame_menu.dart";
 import "package:cedarflake_ame/app/presentation/ame_theme.dart";
 import "package:flutter/material.dart";
+import "package:flutter/semantics.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:material_symbols_icons/symbols.dart";
 
@@ -152,6 +153,59 @@ void main() {
     expect(tester.widget<MenuAnchor>(find.byType(MenuAnchor)).animated, isTrue);
   });
 
+  testWidgets("isolates menu and tooltip overlay traversal semantics", (
+    tester,
+  ) async {
+    final semanticsHandle = tester.ensureSemantics();
+    try {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildAmeTheme(),
+          home: Scaffold(
+            body: ListView(
+              children: [
+                AmeMenuAnchor(
+                  menuChildren: const [
+                    MenuItemButton(onPressed: null, child: Text("菜单项")),
+                  ],
+                  builder: (context, controller, child) => IconButton(
+                    key: const Key("menu-with-tooltip"),
+                    tooltip: "更多",
+                    onPressed: () => toggleAmeMenu(controller),
+                    icon: const Icon(Symbols.more_horiz_rounded),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      final traversalBoundaries = find.ancestor(
+        of: find.byKey(const Key("menu-with-tooltip")),
+        matching: find.byWidgetPredicate(
+          (widget) =>
+              widget is Semantics &&
+              widget.container &&
+              widget.explicitChildNodes,
+        ),
+      );
+      expect(traversalBoundaries, findsNWidgets(2));
+
+      var semanticsRoot = tester.getSemantics(
+        find.byKey(const Key("menu-with-tooltip")),
+      );
+      var parent = semanticsRoot.parent;
+      while (parent != null) {
+        semanticsRoot = parent;
+        parent = semanticsRoot.parent;
+      }
+      expect(_countTraversalParents(semanticsRoot), 2);
+    } finally {
+      semanticsHandle.dispose();
+    }
+  });
+
   testWidgets("toggles anchored menus from the same button", (tester) async {
     final controller = MenuController();
     await tester.pumpWidget(
@@ -228,4 +282,13 @@ T _require<T>(T? value, String description) {
     throw TestFailure("Missing $description");
   }
   return value;
+}
+
+int _countTraversalParents(SemanticsNode node) {
+  var count = node.getSemanticsData().traversalParentIdentifier == null ? 0 : 1;
+  node.visitChildren((child) {
+    count += _countTraversalParents(child);
+    return true;
+  });
+  return count;
 }
