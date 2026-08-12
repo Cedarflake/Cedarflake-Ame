@@ -213,7 +213,7 @@ verification, atomic activation, cancellation, progress, interrupted-run recover
 The existing storage baseline is covered by settings-database reload, budget-bound, path-overlap,
 restart-notice, atomic-reservation, Windows integration, and unchanged-source tests.
 
-The complete preview lifecycle additionally requires:
+Current deterministic lifecycle evidence covers:
 
 - EXIF Orientation 1 through 8, unknown dimensions, source edit, same-path replacement, identity-
   proven rename or move, temporary unavailability, and authoritative removal fixtures;
@@ -233,10 +233,16 @@ The complete preview lifecycle additionally requires:
 - bounded startup recovery of temporary, missing, unreferenced, and misaccounted artifacts;
 - truthful manual-cleanup progress, cancellation, interruption recovery, and visible regeneration;
 - preview-root activation failure and successful switch-and-regenerate fixtures;
-- Profile and retained-catalog evidence for frame time, preview latency, cache bytes, bucket reuse,
-  reclamation duration, and regeneration churn;
 - adapter, migration, application, Flutter geometry, Windows integration, daily, and Windows Release
   gates with source bytes and entries unchanged.
+
+Performance validation is a separate evidence class. It requires a bounded, read-only,
+source-readable workload that records cold and warm preview latency, cache-byte growth, bucket
+demand and reuse, reclamation duration, regeneration, and boundary churn while preserving source
+bytes and entries. A retained-gallery Profile whose preview adapter rejects source-media
+materialization can validate frame time, memory, query publication, and retained-detail behavior,
+but it cannot satisfy these preview metrics. Catalog-parity evidence that leaves all previews
+pending cannot satisfy them either.
 
 The scaled-JPEG admission additionally requires the fixed large-image fixture, EXIF Orientation 1
 through 8, corrupt-input fallback, and an optimized-build comparison against the existing full

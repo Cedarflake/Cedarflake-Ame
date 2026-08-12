@@ -10,7 +10,7 @@ acceptance work. A passing lower gate never claims that a higher gate ran.
 | Hosted CI | `.github/workflows/quality_ci.yml` | Daily gate plus committed revision-range whitespace validation on a pinned Windows toolchain | Push to `main`, pull request, merge queue, or manual run |
 | Daily | `./tool/quality_verify_daily.ps1` | Format, lint, Rust and Flutter tests, controlled Windows scan integration, bridge hash, tracked diff whitespace | Every material change |
 | Performance | `./tool/performance_benchmark_synthetic_library.ps1` | 10,000 temporary images, cold and warm scans, pause and resume, bounded memory | Scan pipeline, persistence, concurrency, or performance changes |
-| Retained Profile | `./tool/performance_profile_retained_gallery.ps1` | Frozen-interaction Profile frame, memory, garbage-collection, query, publication, and retained-detail evidence | Guarded R2b gallery adaptations on the retained catalog |
+| Retained Profile | `./tool/performance_profile_retained_gallery.ps1` | Frozen-interaction Profile frame, memory, garbage-collection, query, publication, and retained-detail evidence; no source preview materialization | Guarded R2b gallery adaptations on the retained catalog |
 | Real library | `./tool/acceptance_run_read_only_library.ps1` and `./tool/acceptance_verify_read_only_catalog.ps1` | Explicitly authorized source scan, source integrity sampling, retained multi-root catalog validation | Only with current authorization and explicit paths |
 | Release | `./tool/release_verify_candidate.ps1` | Daily gate, Windows Release and bridge smoke, synthetic performance gate, optional retained real-library validation | Before a release candidate |
 | Portable artifact | `./tool/release_package_portable_windows.ps1` | Versioned Windows x64 ZIP plus archive-structure verification | After a release build passes |
@@ -110,6 +110,15 @@ This supplementary run uses the retained catalog and derived preview storage whi
 previewer rejects source-media materialization. It records evidence under `build/performance`,
 does not replace the synthetic gate, and does not authorize a source scan, cloud-placeholder
 hydration, or a real-library acceptance run.
+
+The retained Profile is not a preview-throughput gate. It cannot measure source decode or preview
+materialization latency, bucket reuse, materialized cache growth, reclamation duration, or
+regeneration churn. When the roadmap requires those metrics, use a separate repository-owned
+entrypoint with explicit source-item authorization and item, time, memory, and cache limits. That
+run must read only locally available source media, keep derived storage outside every source tree,
+avoid root scanning and cloud-placeholder hydration, and verify sampled source bytes and entries
+unchanged. Until such an entrypoint has run, neither the retained Profile nor catalog parity may be
+reported as preview-performance acceptance evidence.
 
 ## Real-library gate
 

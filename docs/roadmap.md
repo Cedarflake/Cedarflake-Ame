@@ -866,15 +866,18 @@ migration checklist. Its acceptance policy is:
 2. run resource-bounded Profile and long-session observation against a retained catalog without a
    new real-root import;
 3. record retained detail count, process working set, garbage collection, page-publication copy
-   time, frame timing, preview latency, cache bytes, bucket reuse, reclamation churn, programmatic
-   scroll writers, and flat-manifest cost;
-4. implement and validate ADR 0005's preview lifecycle before enabling target cleanup, reclamation,
+   time, frame timing, programmatic scroll writers, and flat-manifest cost;
+4. separately run a bounded, read-only, source-readable preview workload and record cold and warm
+   preview latency, cache-byte growth, bucket demand and reuse, reclamation duration, regeneration,
+   and boundary churn. A retained-gallery Profile that rejects source-media materialization and a
+   catalog-parity run that leaves every preview pending do not satisfy this evidence;
+5. implement and validate ADR 0005's preview lifecycle before enabling target cleanup, reclamation,
    or preview-root transition behavior; the accepted aspect-ratio contract remains fixed;
-5. change any remaining performance structure only when it exceeds its recorded budget, one
+6. change any remaining performance structure only when it exceeds its recorded budget, one
    variable at a time;
-6. compare every change with the frozen baseline and reject a nearby-return, reversal, distant-jump,
+7. compare every change with the frozen baseline and reject a nearby-return, reversal, distant-jump,
    resize, or native-input regression;
-7. pass current-authorized real-library parity and Windows Release verification before closing R2b.
+8. pass current-authorized real-library parity and Windows Release verification before closing R2b.
 
 Profile, builds, tests, scans, and acceptance runs remain serial on the project workstation. They
 reuse the retained catalog where the scenario permits, start with bounded durations, and stop at an
@@ -1673,18 +1676,21 @@ may serve as benchmarks or fallbacks but are not automatically preferred over ma
 
 ## 10. Current active stage
 
-Active stage: **R2c - continuous directory synchronization and incremental indexing**
+Active stage: **R2b - preview performance acceptance closeout**
 
-Planned next stage: **R3 - exact duplicate detection**. R3 remains blocked behind R2c
-catalog-freshness acceptance.
+Planned next stage: **R2c - continuous directory synchronization and incremental indexing**. R3
+remains blocked behind R2c catalog-freshness acceptance.
 
-R2b was accepted on 2026-08-11. Its milestone definition above remains the stable acceptance record;
-the R2c milestone definition owns current product scope. Do not reconstruct another active backlog
-from implementation options or ADR migration sequences.
+R2b implementation, deterministic preview-lifecycle correctness, retained-catalog interaction
+Profile, real-library catalog parity, Daily, and Windows Release gates are complete. The milestone
+is not yet accepted because its bounded preview-performance evidence has not been produced: the
+retained-gallery Profile intentionally rejects source-media materialization, while the real-library
+parity run intentionally leaves every preview pending. Neither run can measure the source-readable
+preview metrics required by ADR 0005 and the R2b acceptance policy.
 
-The accepted R2b interaction comparison revision is
+The frozen R2b interaction comparison revision is
 `6d3f0686a91b85402251fe07fcc1690f268effd5`. It remains historical A/B evidence rather than a moving
-current-status pointer. R2c must preserve the accepted native interaction contract, but new R2c
+current-status pointer. R2c must preserve the frozen native interaction contract, but new R2c
 behavior establishes task-specific evidence against the current accepted implementation.
 
 R2b Profile evidence reproduced retained-detail growth and triggered one guarded change. The
@@ -1706,9 +1712,14 @@ line beyond one display frame, or exceeds ADR 0014's two-logical-pixel settled r
 evidence compares Profile with Profile; final hand-feel acceptance uses Windows Release. A rejected
 change is rolled back instead of being retained behind compensating debounce or synchronization.
 
-The visible Flutter shell is the accepted production surface and must not be discarded or treated
-as a fixture-only prototype. It is not yet a fully accepted product release. The current priority is
-R2c catalog freshness, not classification or additional analysis engines.
+The visible Flutter shell is the production surface and must not be discarded or treated as a
+fixture-only prototype. The current priority is one narrow preview-performance acceptance run, not
+another gallery rewrite, classification work, or additional analysis engines. The run requires
+separate current authorization for explicit locally available source items, reads source media only,
+uses preview storage outside every source tree, has explicit item, time, memory, and cache limits,
+does not start a root scan or hydrate cloud placeholders, and proves sampled source bytes and entries
+unchanged. Its measurements authorize no implementation change by themselves; any follow-up
+optimization remains threshold-triggered and must preserve the frozen interaction baseline.
 
 ### 10.1 Verified implementation snapshot
 
@@ -1769,10 +1780,10 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   failure cannot delete an existing artifact, and reclamation protects or resets every compatible
   referencing location. These paths preserve durable geometry and exclude source media and
   unrelated files.
-- R2c begins without a production watcher, durable change queue, freshness state, delta publisher,
-  or catch-up adapter. R3 and the later duplicate, review, classification, similarity, semantic,
-  organization-plan, and operation-journal domains have not started.
-- The accepted R2b follow-up working tree passed the complete local Daily gate and Windows Release
+- R2c remains next and currently has no production watcher, durable change queue, freshness state,
+  delta publisher, or catch-up adapter. R3 and the later duplicate, review, classification,
+  similarity, semantic, organization-plan, and operation-journal domains have not started.
+- The current R2b closeout working tree passed the complete local Daily gate and Windows Release
   gate on 2026-08-12, including packaged Rust-library loading and the release bridge smoke test.
   This is current-stage evidence, not a release candidate or completion of R10.
 - Local Flutter and Dart commands use the repository-pinned SDK resolved from
@@ -1816,15 +1827,16 @@ R2b completed foundation:
 - deterministic fixture coverage and a successful hosted Daily gate for the frozen comparison
   revision.
 
-R2b acceptance: **accepted on 2026-08-11**
+R2b acceptance: **pending bounded preview-performance evidence**
 
-1. **Complete** - frozen Profile and long-session evidence on the retained catalog;
-2. **Complete** - accepted ADR 0005 preview lifecycle and deterministic recovery, cleanup, storage,
-   geometry, and source-safety tests;
+1. **Complete** - frozen interaction Profile and long-session evidence on the retained catalog;
+2. **Complete** - ADR 0005 preview-lifecycle implementation and deterministic recovery, cleanup,
+   storage, geometry, and source-safety tests;
 3. **Complete** - current local Daily and Windows Release gates;
 4. **Complete** - currently authorized retained-catalog real-library parity without source mutation
    or cloud-placeholder hydration;
-5. The active stage is now R2c rather than ordinary album breadth.
+5. **Pending** - the separately authorized, bounded, source-readable preview workload required by
+   ADR 0005 and acceptance-policy step 4, with source bytes and entries unchanged.
 
 R2b conditional-adaptation decisions:
 
@@ -1846,5 +1858,5 @@ Historical commands, individual test transcripts, superseded prototype steps, an
 identifiers belong in Git history, ADR evidence, acceptance reports, or release records rather than
 this active plan. When implementation status changes, update this concise snapshot and its date only
 after checking the live working tree and applicable verification. Never infer completion from the
-existence of code, a workflow file, or an older passing gate. The accepted R2b comparison revision
+existence of code, a workflow file, or an older passing gate. The frozen R2b comparison revision
 in section 10 remains stable historical A/B evidence; it is not an active-stage status pointer.
