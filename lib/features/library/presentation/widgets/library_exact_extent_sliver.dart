@@ -1,4 +1,5 @@
 import "package:flutter/rendering.dart";
+import "package:flutter/scheduler.dart";
 import "package:flutter/widgets.dart";
 
 class LibraryExactExtentSliver extends SliverMultiBoxAdaptorWidget {
@@ -7,6 +8,7 @@ class LibraryExactExtentSliver extends SliverMultiBoxAdaptorWidget {
     required this.contentExtent,
     required NullableIndexedWidgetBuilder itemBuilder,
     this.layoutCorrection,
+    this.onLayoutCorrectionApplied,
     ChildIndexGetter? findChildIndexCallback,
     bool addAutomaticKeepAlives = true,
     bool addRepaintBoundaries = true,
@@ -32,6 +34,7 @@ class LibraryExactExtentSliver extends SliverMultiBoxAdaptorWidget {
   final List<double> itemStartOffsets;
   final double contentExtent;
   final LibraryExactExtentLayoutCorrection? layoutCorrection;
+  final ValueChanged<Object>? onLayoutCorrectionApplied;
 
   @override
   RenderLibraryExactExtentSliver createRenderObject(BuildContext context) {
@@ -40,6 +43,7 @@ class LibraryExactExtentSliver extends SliverMultiBoxAdaptorWidget {
       itemStartOffsets: itemStartOffsets,
       contentExtent: contentExtent,
       layoutCorrection: layoutCorrection,
+      onLayoutCorrectionApplied: onLayoutCorrectionApplied,
     );
   }
 
@@ -51,7 +55,8 @@ class LibraryExactExtentSliver extends SliverMultiBoxAdaptorWidget {
     renderObject
       ..itemStartOffsets = itemStartOffsets
       ..contentExtent = contentExtent
-      ..layoutCorrection = layoutCorrection;
+      ..layoutCorrection = layoutCorrection
+      ..onLayoutCorrectionApplied = onLayoutCorrectionApplied;
   }
 }
 
@@ -61,7 +66,7 @@ class LibraryExactExtentLayoutCorrection {
     required this.delta,
   });
 
-  final int generation;
+  final Object generation;
   final double delta;
 }
 
@@ -71,6 +76,7 @@ class RenderLibraryExactExtentSliver extends RenderSliverFixedExtentBoxAdaptor {
     required this._itemStartOffsets,
     required this._contentExtent,
     required LibraryExactExtentLayoutCorrection? layoutCorrection,
+    required this._onLayoutCorrectionApplied,
   }) : _layoutCorrection = layoutCorrection,
        _pendingLayoutCorrection = layoutCorrection;
 
@@ -97,9 +103,14 @@ class RenderLibraryExactExtentSliver extends RenderSliverFixedExtentBoxAdaptor {
   LibraryExactExtentLayoutCorrection? get layoutCorrection => _layoutCorrection;
   LibraryExactExtentLayoutCorrection? _layoutCorrection;
   LibraryExactExtentLayoutCorrection? _pendingLayoutCorrection;
-  int? _appliedLayoutCorrectionGeneration;
+  Object? _appliedLayoutCorrectionGeneration;
   var _appliedLayoutCorrectionCount = 0;
+  ValueChanged<Object>? _onLayoutCorrectionApplied;
   int get appliedLayoutCorrectionCount => _appliedLayoutCorrectionCount;
+
+  set onLayoutCorrectionApplied(ValueChanged<Object>? value) {
+    _onLayoutCorrectionApplied = value;
+  }
 
   set layoutCorrection(LibraryExactExtentLayoutCorrection? value) {
     if (value?.generation == _layoutCorrection?.generation) {
@@ -121,6 +132,12 @@ class RenderLibraryExactExtentSliver extends RenderSliverFixedExtentBoxAdaptor {
     if (correction != null) {
       _pendingLayoutCorrection = null;
       _appliedLayoutCorrectionGeneration = correction.generation;
+      final appliedGeneration = correction.generation;
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (_appliedLayoutCorrectionGeneration == appliedGeneration) {
+          _onLayoutCorrectionApplied?.call(appliedGeneration);
+        }
+      });
       if (correction.delta.abs() >= 0.001) {
         _appliedLayoutCorrectionCount += 1;
         geometry = SliverGeometry(scrollOffsetCorrection: correction.delta);

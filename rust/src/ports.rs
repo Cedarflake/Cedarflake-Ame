@@ -143,6 +143,13 @@ pub trait CatalogRepository {
         before: Option<&CatalogCursor>,
         anchor: Option<&GalleryTimeAnchor>,
     ) -> Result<CatalogSnapshot, ScanError>;
+    fn load_snapshot_around_location(
+        &mut self,
+        max_items: u32,
+        query: &GalleryQuery,
+        query_id: &str,
+        anchor_location_id: &str,
+    ) -> Result<CatalogSnapshot, ScanError>;
     fn load_gallery_timeline(
         &mut self,
         query: &GalleryQuery,

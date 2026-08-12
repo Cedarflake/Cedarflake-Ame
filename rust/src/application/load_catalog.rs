@@ -16,7 +16,7 @@ pub fn load_catalog(
     after: Option<CatalogCursor>,
     before: Option<CatalogCursor>,
 ) -> Result<CatalogSnapshot, ScanError> {
-    load_catalog_window(max_items, query, after, before, None)
+    load_catalog_window(max_items, query, after, before, None, None)
 }
 
 fn load_catalog_window(
@@ -25,19 +25,25 @@ fn load_catalog_window(
     after: Option<CatalogCursor>,
     before: Option<CatalogCursor>,
     anchor: Option<GalleryTimeAnchor>,
+    anchor_location_id: Option<String>,
 ) -> Result<CatalogSnapshot, ScanError> {
     let query = normalize_gallery_query(query);
     let query_id = gallery_query_identity(&query);
     let storage = storage_paths()?;
     let mut catalog = SqliteCatalog::open(storage.catalog_path.clone())?;
-    let mut snapshot = catalog.load_snapshot(
-        max_items,
-        &query,
-        &query_id,
-        after.as_ref(),
-        before.as_ref(),
-        anchor.as_ref(),
-    )?;
+    let mut snapshot = match anchor_location_id.as_deref() {
+        Some(location_id) => {
+            catalog.load_snapshot_around_location(max_items, &query, &query_id, location_id)?
+        }
+        None => catalog.load_snapshot(
+            max_items,
+            &query,
+            &query_id,
+            after.as_ref(),
+            before.as_ref(),
+            anchor.as_ref(),
+        )?,
+    };
     reconcile_snapshot_previews(&mut catalog, &storage.preview_root, &mut snapshot)?;
     let visible_preview_artifacts = snapshot
         .assets
@@ -140,7 +146,21 @@ pub fn load_catalog_at_time(
     query: GalleryQuery,
     anchor: GalleryTimeAnchor,
 ) -> Result<CatalogSnapshot, ScanError> {
-    load_catalog_window(max_items, query, None, None, Some(anchor))
+    load_catalog_window(max_items, query, None, None, Some(anchor), None)
+}
+
+pub fn load_catalog_around_location(
+    max_items: u32,
+    query: GalleryQuery,
+    anchor_location_id: String,
+) -> Result<CatalogSnapshot, ScanError> {
+    if anchor_location_id.trim().is_empty() {
+        return Err(ScanError::new(
+            "catalog_location_anchor_invalid",
+            "A gallery location anchor identifier is required",
+        ));
+    }
+    load_catalog_window(max_items, query, None, None, None, Some(anchor_location_id))
 }
 
 fn normalize_gallery_query(mut query: GalleryQuery) -> GalleryQuery {

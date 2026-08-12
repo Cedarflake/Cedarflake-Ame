@@ -183,6 +183,7 @@ class CatalogSnapshot {
   final List<AssetLocationView> assets;
   final CatalogCursor? previousCursor;
   final CatalogCursor? nextCursor;
+  final GalleryLocationAnchorResolution? queryAnchorResolution;
 
   const CatalogSnapshot({
     required this.catalogPath,
@@ -192,6 +193,7 @@ class CatalogSnapshot {
     required this.assets,
     this.previousCursor,
     this.nextCursor,
+    this.queryAnchorResolution,
   });
 
   @override
@@ -202,7 +204,8 @@ class CatalogSnapshot {
       roots.hashCode ^
       assets.hashCode ^
       previousCursor.hashCode ^
-      nextCursor.hashCode;
+      nextCursor.hashCode ^
+      queryAnchorResolution.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -215,7 +218,8 @@ class CatalogSnapshot {
           roots == other.roots &&
           assets == other.assets &&
           previousCursor == other.previousCursor &&
-          nextCursor == other.nextCursor;
+          nextCursor == other.nextCursor &&
+          queryAnchorResolution == other.queryAnchorResolution;
 }
 
 class FileIdentityEvidence {
@@ -340,6 +344,37 @@ class GalleryLayoutManifestCursor {
           totalItems == other.totalItems &&
           nextOrdinal == other.nextOrdinal &&
           after == other.after;
+}
+
+class GalleryLocationAnchorResolution {
+  final String requestedLocationId;
+  final String? locationId;
+  final BigInt? ordinal;
+  final BigInt windowStartOrdinal;
+
+  const GalleryLocationAnchorResolution({
+    required this.requestedLocationId,
+    this.locationId,
+    this.ordinal,
+    required this.windowStartOrdinal,
+  });
+
+  @override
+  int get hashCode =>
+      requestedLocationId.hashCode ^
+      locationId.hashCode ^
+      ordinal.hashCode ^
+      windowStartOrdinal.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is GalleryLocationAnchorResolution &&
+          runtimeType == other.runtimeType &&
+          requestedLocationId == other.requestedLocationId &&
+          locationId == other.locationId &&
+          ordinal == other.ordinal &&
+          windowStartOrdinal == other.windowStartOrdinal;
 }
 
 class GalleryQuery {

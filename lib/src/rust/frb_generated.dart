@@ -69,7 +69,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => 460083972;
+  int get rustContentHash => -550866117;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -101,6 +101,12 @@ abstract class RustLibApi extends BaseApi {
     required GalleryQuery query,
     CatalogCursor? after,
     CatalogCursor? before,
+  });
+
+  Future<CatalogSnapshot> crateApiCatalogLoadLibraryCatalogAroundLocation({
+    required int maxItems,
+    required GalleryQuery query,
+    required String anchorLocationId,
   });
 
   Future<CatalogSnapshot> crateApiCatalogLoadLibraryCatalogAtTime({
@@ -353,6 +359,43 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<CatalogSnapshot> crateApiCatalogLoadLibraryCatalogAroundLocation({
+    required int maxItems,
+    required GalleryQuery query,
+    required String anchorLocationId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_32(maxItems, serializer);
+          sse_encode_box_autoadd_gallery_query(query, serializer);
+          sse_encode_String(anchorLocationId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 7,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_catalog_snapshot,
+          decodeErrorData: sse_decode_scan_error,
+        ),
+        constMeta: kCrateApiCatalogLoadLibraryCatalogAroundLocationConstMeta,
+        argValues: [maxItems, query, anchorLocationId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCatalogLoadLibraryCatalogAroundLocationConstMeta =>
+      const TaskConstMeta(
+        debugName: "load_library_catalog_around_location",
+        argNames: ["maxItems", "query", "anchorLocationId"],
+      );
+
+  @override
   Future<CatalogSnapshot> crateApiCatalogLoadLibraryCatalogAtTime({
     required int maxItems,
     required GalleryQuery query,
@@ -368,7 +411,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 7,
+            funcId: 8,
             port: port_,
           );
         },
@@ -404,7 +447,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_String(parentRelativePath, serializer);
           sse_encode_u_32(maxItems, serializer);
           sse_encode_opt_box_autoadd_library_folder_cursor(after, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 8)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 9)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_library_folder_page,
@@ -443,7 +486,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 9,
+            funcId: 10,
             port: port_,
           );
         },
@@ -475,7 +518,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_box_autoadd_gallery_query(query, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 10)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 11)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_gallery_timeline,
@@ -500,7 +543,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 11)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 12)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_opt_box_autoadd_recoverable_scan,
@@ -522,7 +565,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 12)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 13)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_opt_box_autoadd_recoverable_scan,
@@ -547,7 +590,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 13)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 14)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_storage_status,
@@ -575,7 +618,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 14,
+            funcId: 15,
             port: port_,
           );
         },
@@ -603,7 +646,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(scanId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 15)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 16)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
@@ -629,7 +672,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(rootId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 16)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 17)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
@@ -661,7 +704,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 17,
+              funcId: 18,
               port: port_,
             );
           },
@@ -692,7 +735,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_box_autoadd_storage_settings_update(update, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 18)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 19)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_storage_status,
@@ -807,6 +850,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  GalleryLocationAnchorResolution
+  dco_decode_box_autoadd_gallery_location_anchor_resolution(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_gallery_location_anchor_resolution(raw);
+  }
+
+  @protected
   GalleryQuery dco_decode_box_autoadd_gallery_query(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_gallery_query(raw);
@@ -877,6 +927,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BigInt dco_decode_box_autoadd_u_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_u_64(raw);
+  }
+
+  @protected
   CaptureTimeEvidence dco_decode_capture_time_evidence(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -917,8 +973,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   CatalogSnapshot dco_decode_catalog_snapshot(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 7)
-      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    if (arr.length != 8)
+      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
     return CatalogSnapshot(
       catalogPath: dco_decode_String(arr[0]),
       revision: dco_decode_u_64(arr[1]),
@@ -927,6 +983,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       assets: dco_decode_list_asset_location_view(arr[4]),
       previousCursor: dco_decode_opt_box_autoadd_catalog_cursor(arr[5]),
       nextCursor: dco_decode_opt_box_autoadd_catalog_cursor(arr[6]),
+      queryAnchorResolution:
+          dco_decode_opt_box_autoadd_gallery_location_anchor_resolution(arr[7]),
     );
   }
 
@@ -989,6 +1047,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       totalItems: dco_decode_u_64(arr[2]),
       nextOrdinal: dco_decode_u_64(arr[3]),
       after: dco_decode_catalog_cursor(arr[4]),
+    );
+  }
+
+  @protected
+  GalleryLocationAnchorResolution dco_decode_gallery_location_anchor_resolution(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return GalleryLocationAnchorResolution(
+      requestedLocationId: dco_decode_String(arr[0]),
+      locationId: dco_decode_opt_String(arr[1]),
+      ordinal: dco_decode_opt_box_autoadd_u_64(arr[2]),
+      windowStartOrdinal: dco_decode_u_64(arr[3]),
     );
   }
 
@@ -1252,6 +1326,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  GalleryLocationAnchorResolution?
+  dco_decode_opt_box_autoadd_gallery_location_anchor_resolution(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_gallery_location_anchor_resolution(raw);
+  }
+
+  @protected
   int? dco_decode_opt_box_autoadd_i_16(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_i_16(raw);
@@ -1283,6 +1366,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   int? dco_decode_opt_box_autoadd_u_32(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_u_32(raw);
+  }
+
+  @protected
+  BigInt? dco_decode_opt_box_autoadd_u_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_u_64(raw);
   }
 
   @protected
@@ -1697,6 +1786,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  GalleryLocationAnchorResolution
+  sse_decode_box_autoadd_gallery_location_anchor_resolution(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_gallery_location_anchor_resolution(deserializer));
+  }
+
+  @protected
   GalleryQuery sse_decode_box_autoadd_gallery_query(
     SseDeserializer deserializer,
   ) {
@@ -1777,6 +1875,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BigInt sse_decode_box_autoadd_u_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_u_64(deserializer));
+  }
+
+  @protected
   CaptureTimeEvidence sse_decode_capture_time_evidence(
     SseDeserializer deserializer,
   ) {
@@ -1837,6 +1941,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_nextCursor = sse_decode_opt_box_autoadd_catalog_cursor(
       deserializer,
     );
+    var var_queryAnchorResolution =
+        sse_decode_opt_box_autoadd_gallery_location_anchor_resolution(
+          deserializer,
+        );
     return CatalogSnapshot(
       catalogPath: var_catalogPath,
       revision: var_revision,
@@ -1845,6 +1953,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       assets: var_assets,
       previousCursor: var_previousCursor,
       nextCursor: var_nextCursor,
+      queryAnchorResolution: var_queryAnchorResolution,
     );
   }
 
@@ -1915,6 +2024,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       totalItems: var_totalItems,
       nextOrdinal: var_nextOrdinal,
       after: var_after,
+    );
+  }
+
+  @protected
+  GalleryLocationAnchorResolution sse_decode_gallery_location_anchor_resolution(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_requestedLocationId = sse_decode_String(deserializer);
+    var var_locationId = sse_decode_opt_String(deserializer);
+    var var_ordinal = sse_decode_opt_box_autoadd_u_64(deserializer);
+    var var_windowStartOrdinal = sse_decode_u_64(deserializer);
+    return GalleryLocationAnchorResolution(
+      requestedLocationId: var_requestedLocationId,
+      locationId: var_locationId,
+      ordinal: var_ordinal,
+      windowStartOrdinal: var_windowStartOrdinal,
     );
   }
 
@@ -2286,6 +2412,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  GalleryLocationAnchorResolution?
+  sse_decode_opt_box_autoadd_gallery_location_anchor_resolution(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_gallery_location_anchor_resolution(
+        deserializer,
+      ));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   int? sse_decode_opt_box_autoadd_i_16(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -2339,6 +2481,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
     if (sse_decode_bool(deserializer)) {
       return (sse_decode_box_autoadd_u_32(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  BigInt? sse_decode_opt_box_autoadd_u_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_u_64(deserializer));
     } else {
       return null;
     }
@@ -2835,6 +2988,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_gallery_location_anchor_resolution(
+    GalleryLocationAnchorResolution self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_gallery_location_anchor_resolution(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_gallery_query(
     GalleryQuery self,
     SseSerializer serializer,
@@ -2928,6 +3090,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_u_64(BigInt self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_64(self, serializer);
+  }
+
+  @protected
   void sse_encode_capture_time_evidence(
     CaptureTimeEvidence self,
     SseSerializer serializer,
@@ -2973,6 +3141,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_list_asset_location_view(self.assets, serializer);
     sse_encode_opt_box_autoadd_catalog_cursor(self.previousCursor, serializer);
     sse_encode_opt_box_autoadd_catalog_cursor(self.nextCursor, serializer);
+    sse_encode_opt_box_autoadd_gallery_location_anchor_resolution(
+      self.queryAnchorResolution,
+      serializer,
+    );
   }
 
   @protected
@@ -3026,6 +3198,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_u_64(self.totalItems, serializer);
     sse_encode_u_64(self.nextOrdinal, serializer);
     sse_encode_catalog_cursor(self.after, serializer);
+  }
+
+  @protected
+  void sse_encode_gallery_location_anchor_resolution(
+    GalleryLocationAnchorResolution self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.requestedLocationId, serializer);
+    sse_encode_opt_String(self.locationId, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.ordinal, serializer);
+    sse_encode_u_64(self.windowStartOrdinal, serializer);
   }
 
   @protected
@@ -3341,6 +3525,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_opt_box_autoadd_gallery_location_anchor_resolution(
+    GalleryLocationAnchorResolution? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_gallery_location_anchor_resolution(
+        self,
+        serializer,
+      );
+    }
+  }
+
+  @protected
   void sse_encode_opt_box_autoadd_i_16(int? self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -3396,6 +3596,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_box_autoadd_u_32(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_u_64(BigInt? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_u_64(self, serializer);
     }
   }
 

@@ -13,6 +13,180 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  test(
+    "keeps the old query visible until an anchored query publishes",
+    () async {
+      final pending = Completer<LibrarySnapshot>();
+      final initial = _snapshot(assets: [_asset(suffix: "old")]);
+      final catalog = _QueryAnchorLibraryCatalog(
+        aroundResponses: [pending.future],
+        timeline: _timeline(queryId: "query-new", totalItems: 20),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(
+            LibraryState.fromSnapshot(initial),
+          ),
+          libraryCatalogProvider.overrideWithValue(catalog),
+        ],
+      );
+      addTearDown(container.dispose);
+      final controller = container.read(libraryControllerProvider.notifier);
+      final nextQuery = const LibraryGalleryQuery(
+        sortKey: LibraryGallerySortKey.fileName,
+      );
+      final update = controller.updateQuery(
+        nextQuery,
+        anchorLocationId: "location-old",
+      );
+      await Future<void>.delayed(Duration.zero);
+      var state = container.read(libraryControllerProvider);
+      expect(state.query, const LibraryGalleryQuery());
+      expect(state.assets.single.locationId, "location-old");
+      expect(state.status, LibraryStatus.refreshing);
+
+      pending.complete(
+        _snapshot(
+          queryId: "query-new",
+          assets: [
+            _asset(suffix: "before"),
+            _asset(suffix: "old"),
+          ],
+          queryAnchorResolution: const LibraryQueryAnchorResolution(
+            requestedLocationId: "location-old",
+            locationId: "location-old",
+            ordinal: 9,
+            windowStartItemOffset: 8,
+          ),
+        ),
+      );
+      expect(await update, isTrue);
+      state = container.read(libraryControllerProvider);
+      expect(state.query, nextQuery);
+      expect(state.windowStartItemOffset, 8);
+      expect(state.queryAnchorResolution?.ordinal, 9);
+    },
+  );
+
+  test(
+    "query updates are latest-wins and switching back cancels pending",
+    () async {
+      final first = Completer<LibrarySnapshot>();
+      final second = Completer<LibrarySnapshot>();
+      final initial = _snapshot(assets: [_asset(suffix: "old")]);
+      final catalog = _QueryAnchorLibraryCatalog(
+        aroundResponses: [first.future, second.future],
+        timeline: _timeline(queryId: "query-latest", totalItems: 1),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(
+            LibraryState.fromSnapshot(initial),
+          ),
+          libraryCatalogProvider.overrideWithValue(catalog),
+        ],
+      );
+      addTearDown(container.dispose);
+      final controller = container.read(libraryControllerProvider.notifier);
+      final firstUpdate = controller.updateQuery(
+        const LibraryGalleryQuery(sortKey: LibraryGallerySortKey.fileName),
+        anchorLocationId: "location-old",
+      );
+      final secondUpdate = controller.updateQuery(
+        const LibraryGalleryQuery(
+          sortKey: LibraryGallerySortKey.modifiedTime,
+          sortDirection: LibraryGallerySortDirection.ascending,
+        ),
+        anchorLocationId: "location-old",
+      );
+      first.complete(
+        _snapshot(
+          queryId: "query-latest",
+          assets: [_asset(suffix: "stale")],
+        ),
+      );
+      second.complete(
+        _snapshot(
+          queryId: "query-latest",
+          assets: [_asset(suffix: "latest")],
+        ),
+      );
+      expect(await firstUpdate, isFalse);
+      expect(await secondUpdate, isTrue);
+      expect(
+        container.read(libraryControllerProvider).assets.single.locationId,
+        "location-latest",
+      );
+
+      final third = Completer<LibrarySnapshot>();
+      catalog.aroundResponses.add(third.future);
+      final pending = controller.updateQuery(
+        const LibraryGalleryQuery(sortKey: LibraryGallerySortKey.fileName),
+        anchorLocationId: "location-latest",
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(
+        await controller.updateQuery(
+          const LibraryGalleryQuery(
+            sortKey: LibraryGallerySortKey.modifiedTime,
+            sortDirection: LibraryGallerySortDirection.ascending,
+          ),
+        ),
+        isTrue,
+      );
+      third.complete(
+        _snapshot(
+          queryId: "query-latest",
+          assets: [_asset(suffix: "wrong")],
+        ),
+      );
+      expect(await pending, isFalse);
+      expect(
+        container.read(libraryControllerProvider).assets.single.locationId,
+        "location-latest",
+      );
+    },
+  );
+
+  test("a scan takeover cannot restore a stale pending query base", () async {
+    final pending = Completer<LibrarySnapshot>();
+    final scanner = _FakeLibraryScanner();
+    final initial = _snapshot(assets: [_asset(suffix: "old")]);
+    final catalog = _QueryAnchorLibraryCatalog(
+      aroundResponses: [pending.future],
+      timeline: _timeline(queryId: "query-new", totalItems: 1),
+    );
+    final container = ProviderContainer(
+      overrides: [
+        initialLibraryStateProvider.overrideWithValue(
+          LibraryState.fromSnapshot(initial),
+        ),
+        libraryCatalogProvider.overrideWithValue(catalog),
+        libraryScannerProvider.overrideWithValue(scanner),
+      ],
+    );
+    addTearDown(container.dispose);
+    addTearDown(scanner.dispose);
+    final controller = container.read(libraryControllerProvider.notifier);
+    final update = controller.updateQuery(
+      const LibraryGalleryQuery(sortKey: LibraryGallerySortKey.fileName),
+      anchorLocationId: "location-old",
+    );
+    await Future<void>.delayed(Duration.zero);
+    await controller.scanDirectory("C:\\Incoming");
+    expect(container.read(libraryControllerProvider).isScanning, isTrue);
+    expect(await controller.updateQuery(const LibraryGalleryQuery()), isTrue);
+    expect(container.read(libraryControllerProvider).isScanning, isTrue);
+    pending.complete(
+      _snapshot(
+        queryId: "query-new",
+        assets: [_asset(suffix: "wrong")],
+      ),
+    );
+    expect(await update, isFalse);
+    expect(container.read(libraryControllerProvider).isScanning, isTrue);
+  });
+
   test("publishes streamed assets only after a completed scan event", () async {
     final scanner = _FakeLibraryScanner();
     final catalog = _FakeLibraryCatalog.dynamic(
@@ -1756,19 +1930,31 @@ LibraryAsset _unknownDimensionAsset(String suffix) {
 
 LibrarySnapshot _snapshot({
   BigInt? revision,
+  String queryId = "query-1",
   List<LibraryRoot> roots = const [],
   List<LibraryAsset> assets = const [],
   LibraryCatalogCursor? previousCursor,
   LibraryCatalogCursor? nextCursor,
+  LibraryQueryAnchorResolution? queryAnchorResolution,
 }) {
   return LibrarySnapshot(
     catalogPath: "C:\\AmeData\\ame.sqlite3",
     revision: revision ?? BigInt.one,
-    queryId: "query-1",
+    queryId: queryId,
     roots: roots,
     assets: assets,
     previousCursor: previousCursor,
     nextCursor: nextCursor,
+    queryAnchorResolution: queryAnchorResolution,
+  );
+}
+
+LibraryTimeline _timeline({required String queryId, required int totalItems}) {
+  return LibraryTimeline(
+    revision: BigInt.one,
+    queryId: queryId,
+    totalItems: totalItems,
+    buckets: const [],
   );
 }
 
@@ -1890,6 +2076,48 @@ class _FakeLibraryScanner implements LibraryScanner {
     startedEntryLimit = entryLimit;
     return _controller.stream;
   }
+}
+
+class _QueryAnchorLibraryCatalog
+    implements LibraryCatalog, LibraryQueryAnchorCatalog {
+  _QueryAnchorLibraryCatalog({
+    required List<Future<LibrarySnapshot>> aroundResponses,
+    required this.timeline,
+  }) : aroundResponses = List.of(aroundResponses);
+
+  final List<Future<LibrarySnapshot>> aroundResponses;
+  final LibraryTimeline timeline;
+
+  @override
+  Future<LibrarySnapshot> loadAroundLocation({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    required String anchorLocationId,
+  }) {
+    return aroundResponses.removeAt(0);
+  }
+
+  @override
+  Future<LibrarySnapshot> load({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    LibraryCatalogCursor? after,
+    LibraryCatalogCursor? before,
+  }) => aroundResponses.removeAt(0);
+
+  @override
+  Future<LibrarySnapshot> loadAtTime({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    required LibraryTimeAnchor anchor,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<LibraryTimeline> loadTimeline(LibraryGalleryQuery query) async =>
+      timeline;
+
+  @override
+  Future<bool> unregisterRoot(String rootId) async => false;
 }
 
 class _FakeLibraryCatalog implements LibraryCatalog {

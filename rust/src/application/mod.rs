@@ -7,8 +7,9 @@ mod scan_library;
 mod storage;
 
 pub use load_catalog::{
-    load_catalog, load_catalog_at_time, load_gallery_layout_manifest_chunk, load_gallery_timeline,
-    load_library_folders, unregister_library_root,
+    load_catalog, load_catalog_around_location, load_catalog_at_time,
+    load_gallery_layout_manifest_chunk, load_gallery_timeline, load_library_folders,
+    unregister_library_root,
 };
 pub use preview::materialize_preview;
 pub(crate) use preview_cleanup::{acquire_preview_generation, acquire_preview_reclamation};

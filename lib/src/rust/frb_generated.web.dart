@@ -61,6 +61,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_box_autoadd_gallery_layout_manifest_cursor(dynamic raw);
 
   @protected
+  GalleryLocationAnchorResolution
+  dco_decode_box_autoadd_gallery_location_anchor_resolution(dynamic raw);
+
+  @protected
   GalleryQuery dco_decode_box_autoadd_gallery_query(dynamic raw);
 
   @protected
@@ -96,6 +100,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int dco_decode_box_autoadd_u_32(dynamic raw);
 
   @protected
+  BigInt dco_decode_box_autoadd_u_64(dynamic raw);
+
+  @protected
   CaptureTimeEvidence dco_decode_capture_time_evidence(dynamic raw);
 
   @protected
@@ -120,6 +127,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   GalleryLayoutManifestCursor dco_decode_gallery_layout_manifest_cursor(
+    dynamic raw,
+  );
+
+  @protected
+  GalleryLocationAnchorResolution dco_decode_gallery_location_anchor_resolution(
     dynamic raw,
   );
 
@@ -217,6 +229,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_opt_box_autoadd_gallery_layout_manifest_cursor(dynamic raw);
 
   @protected
+  GalleryLocationAnchorResolution?
+  dco_decode_opt_box_autoadd_gallery_location_anchor_resolution(dynamic raw);
+
+  @protected
   int? dco_decode_opt_box_autoadd_i_16(dynamic raw);
 
   @protected
@@ -232,6 +248,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   int? dco_decode_opt_box_autoadd_u_32(dynamic raw);
+
+  @protected
+  BigInt? dco_decode_opt_box_autoadd_u_64(dynamic raw);
 
   @protected
   PreviewCleanupEvent dco_decode_preview_cleanup_event(dynamic raw);
@@ -331,6 +350,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  GalleryLocationAnchorResolution
+  sse_decode_box_autoadd_gallery_location_anchor_resolution(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   GalleryQuery sse_decode_box_autoadd_gallery_query(
     SseDeserializer deserializer,
   );
@@ -376,6 +401,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int sse_decode_box_autoadd_u_32(SseDeserializer deserializer);
 
   @protected
+  BigInt sse_decode_box_autoadd_u_64(SseDeserializer deserializer);
+
+  @protected
   CaptureTimeEvidence sse_decode_capture_time_evidence(
     SseDeserializer deserializer,
   );
@@ -408,6 +436,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   GalleryLayoutManifestCursor sse_decode_gallery_layout_manifest_cursor(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  GalleryLocationAnchorResolution sse_decode_gallery_location_anchor_resolution(
     SseDeserializer deserializer,
   );
 
@@ -531,6 +564,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  GalleryLocationAnchorResolution?
+  sse_decode_opt_box_autoadd_gallery_location_anchor_resolution(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   int? sse_decode_opt_box_autoadd_i_16(SseDeserializer deserializer);
 
   @protected
@@ -548,6 +587,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   int? sse_decode_opt_box_autoadd_u_32(SseDeserializer deserializer);
+
+  @protected
+  BigInt? sse_decode_opt_box_autoadd_u_64(SseDeserializer deserializer);
 
   @protected
   PreviewCleanupEvent sse_decode_preview_cleanup_event(
@@ -664,6 +706,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_gallery_location_anchor_resolution(
+    GalleryLocationAnchorResolution self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_gallery_query(
     GalleryQuery self,
     SseSerializer serializer,
@@ -724,6 +772,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_box_autoadd_u_32(int self, SseSerializer serializer);
 
   @protected
+  void sse_encode_box_autoadd_u_64(BigInt self, SseSerializer serializer);
+
+  @protected
   void sse_encode_capture_time_evidence(
     CaptureTimeEvidence self,
     SseSerializer serializer,
@@ -765,6 +816,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_gallery_layout_manifest_cursor(
     GalleryLayoutManifestCursor self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_gallery_location_anchor_resolution(
+    GalleryLocationAnchorResolution self,
     SseSerializer serializer,
   );
 
@@ -919,6 +976,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_gallery_location_anchor_resolution(
+    GalleryLocationAnchorResolution? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_i_16(int? self, SseSerializer serializer);
 
   @protected
@@ -941,6 +1004,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_opt_box_autoadd_u_32(int? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_box_autoadd_u_64(BigInt? self, SseSerializer serializer);
 
   @protected
   void sse_encode_preview_cleanup_event(

@@ -25,7 +25,7 @@ mod migrations;
 use gallery::{
     build_gallery_asset_query, build_gallery_count_query, build_gallery_layout_manifest_query,
     build_gallery_timeline_query, gallery_cursor_for_asset, resolve_gallery_anchor_cursor,
-    validate_gallery_query,
+    resolve_gallery_location_anchor, validate_gallery_query,
 };
 use migrations::migrate_schema;
 
@@ -1402,7 +1402,7 @@ impl CatalogRepository for SqliteCatalog {
         {
             return Err(ScanError::new(
                 "catalog_query_invalid",
-                "A gallery request accepts only one page cursor or time anchor",
+                "A gallery request accepts only one page cursor or anchor",
             ));
         }
 
@@ -1475,7 +1475,7 @@ impl CatalogRepository for SqliteCatalog {
                     gallery_cursor_for_asset(&transaction, revision, query_id, query, asset)
                 })
                 .transpose()?
-        } else if after.is_some() || anchor.is_some() {
+        } else if effective_after.is_some() || anchor.is_some() {
             stored_assets
                 .first()
                 .map(|asset| {
@@ -1514,7 +1514,52 @@ impl CatalogRepository for SqliteCatalog {
             assets,
             previous_cursor,
             next_cursor,
+            query_anchor_resolution: None,
         })
+    }
+
+    fn load_snapshot_around_location(
+        &mut self,
+        max_items: u32,
+        query: &GalleryQuery,
+        query_id: &str,
+        anchor_location_id: &str,
+    ) -> Result<CatalogSnapshot, ScanError> {
+        if max_items == 0 || max_items > MAX_CATALOG_PAGE_ITEMS {
+            return Err(ScanError::new(
+                "catalog_page_limit_invalid",
+                format!(
+                    "The catalog page limit must be between 1 and {MAX_CATALOG_PAGE_ITEMS} items"
+                ),
+            ));
+        }
+        validate_gallery_query(query)?;
+        for _ in 0..3 {
+            let transaction = self.connection.transaction().map_err(database_error)?;
+            let revision = load_catalog_revision(&transaction)?;
+            let (resolution, predecessor) = resolve_gallery_location_anchor(
+                &transaction,
+                revision,
+                query,
+                query_id,
+                anchor_location_id,
+                max_items,
+            )?;
+            transaction.commit().map_err(database_error)?;
+            match self.load_snapshot(max_items, query, query_id, predecessor.as_ref(), None, None) {
+                Ok(mut snapshot) if snapshot.revision == revision => {
+                    snapshot.query_anchor_resolution = Some(resolution);
+                    return Ok(snapshot);
+                }
+                Ok(_) => continue,
+                Err(error) if error.code == "catalog_cursor_stale" => continue,
+                Err(error) => return Err(error),
+            }
+        }
+        Err(ScanError::new(
+            "catalog_cursor_stale",
+            "The catalog kept changing while the gallery location anchor was resolved",
+        ))
     }
 
     fn load_gallery_timeline(

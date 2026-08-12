@@ -82,6 +82,8 @@ class LibraryController extends Notifier<LibraryState> {
   bool _isEnsuringVisibleRange = false;
   bool _isVisibleRangeDrainScheduled = false;
   final List<_RetainedCatalogPage> _retainedCatalogPages = [];
+  LibraryState? _queryTransitionBaseState;
+  int? _queryTransitionRequestSequence;
   bool _isDisposed = false;
 
   LibraryPreviewCoordinator get _previews =>
@@ -187,7 +189,7 @@ class LibraryController extends Notifier<LibraryState> {
     await _enqueueScanStart(
       allowedBusyStatus: LibraryStatus.choosingDirectory,
       start: () async {
-        _scanSequence += 1;
+        _advanceSequenceOutsideQueryTransition();
         final scanId =
             "ame-${DateTime.now().microsecondsSinceEpoch}-$_scanSequence";
         await _startScan(
@@ -390,14 +392,32 @@ class LibraryController extends Notifier<LibraryState> {
     }
   }
 
-  Future<bool> updateQuery(LibraryGalleryQuery query) async {
+  Future<bool> updateQuery(
+    LibraryGalleryQuery query, {
+    String? anchorLocationId,
+  }) async {
     final normalized = query.copyWith(
       folderRelativePath: query.folderRelativePath
           ?.replaceAll("\\", "/")
           .replaceAll(RegExp(r"^/+|/+$"), ""),
       searchText: query.searchText.trim(),
     );
-    if (normalized == state.query) {
+    final doesQueryTransitionOwnSequence =
+        _queryTransitionBaseState != null &&
+        _queryTransitionRequestSequence == _scanSequence;
+    if (_queryTransitionBaseState != null && !doesQueryTransitionOwnSequence) {
+      _queryTransitionBaseState = null;
+      _queryTransitionRequestSequence = null;
+    }
+    if (normalized == state.query && _queryTransitionBaseState == null) {
+      return true;
+    }
+    if (normalized == state.query && _queryTransitionBaseState != null) {
+      _scanSequence += 1;
+      final baseState = _queryTransitionBaseState!;
+      _queryTransitionBaseState = null;
+      _queryTransitionRequestSequence = null;
+      state = baseState;
       return true;
     }
     if (state.status == LibraryStatus.choosingDirectory ||
@@ -406,18 +426,17 @@ class LibraryController extends Notifier<LibraryState> {
         state.isLoadingTimeAnchor) {
       return false;
     }
+    final priorSequence = _scanSequence;
+    final isContinuingQueryTransition =
+        _queryTransitionBaseState != null &&
+        _queryTransitionRequestSequence == priorSequence;
     final requestSequence = ++_scanSequence;
-    _invalidatePreviewContext();
+    if (!isContinuingQueryTransition) {
+      _queryTransitionBaseState = state;
+    }
+    _queryTransitionRequestSequence = requestSequence;
     state = state.copyWith(
       status: LibraryStatus.refreshing,
-      query: normalized,
-      queryId: "",
-      windowStartItemOffset: 0,
-      assets: const [],
-      previousCursor: null,
-      nextCursor: null,
-      timeline: null,
-      activeTimeAnchor: null,
       isLoadingTimeline: true,
       pageErrorMessage: null,
       previousPageErrorMessage: null,
@@ -425,12 +444,86 @@ class LibraryController extends Notifier<LibraryState> {
       errorMessage: null,
     );
     try {
-      await _reloadFirstCatalogPage(requestSequence);
-      return !_isDisposed && requestSequence == _scanSequence;
+      final catalog = ref.read(libraryCatalogProvider);
+      final anchorCatalog = catalog is LibraryQueryAnchorCatalog
+          ? catalog as LibraryQueryAnchorCatalog
+          : null;
+      var snapshot = anchorLocationId == null || anchorCatalog == null
+          ? await catalog.load(
+              maxItems: libraryCatalogWindow,
+              query: normalized,
+            )
+          : await anchorCatalog.loadAroundLocation(
+              maxItems: libraryCatalogWindow,
+              query: normalized,
+              anchorLocationId: anchorLocationId,
+            );
+      final timeline = await catalog.loadTimeline(normalized);
+      if (snapshot.revision != timeline.revision ||
+          snapshot.queryId != timeline.queryId) {
+        snapshot = anchorLocationId == null || anchorCatalog == null
+            ? await catalog.load(
+                maxItems: libraryCatalogWindow,
+                query: normalized,
+              )
+            : await anchorCatalog.loadAroundLocation(
+                maxItems: libraryCatalogWindow,
+                query: normalized,
+                anchorLocationId: anchorLocationId,
+              );
+        if (snapshot.revision != timeline.revision ||
+            snapshot.queryId != timeline.queryId) {
+          throw const LibraryCatalogFailure(
+            code: "catalog_timeline_stale",
+            message: "The catalog changed while its timeline was loading",
+          );
+        }
+      }
+      if (_isDisposed || requestSequence != _scanSequence) {
+        return false;
+      }
+      final baseState = _queryTransitionBaseState ?? state;
+      final windowStart =
+          snapshot.queryAnchorResolution?.windowStartItemOffset ?? 0;
+      _invalidatePreviewContext();
+      _resetRetainedCatalogPages(
+        assets: snapshot.assets,
+        startItemOffset: windowStart,
+        previousCursor: snapshot.previousCursor,
+        nextCursor: snapshot.nextCursor,
+      );
+      state = LibraryState.fromSnapshot(snapshot, query: normalized).copyWith(
+        rootPath: baseState.rootPath,
+        displayRootPath: baseState.displayRootPath,
+        scanId: baseState.scanId,
+        visitedEntries: baseState.visitedEntries,
+        stagedAssetCount: baseState.stagedAssetCount,
+        scanPhase: baseState.scanPhase,
+        validatedAssetCount: baseState.validatedAssetCount,
+        validationAssetCount: baseState.validationAssetCount,
+        itemLimit: baseState.itemLimit,
+        entryLimit: baseState.entryLimit,
+        recentIssues: baseState.recentIssues,
+        isScanLimited: baseState.isScanLimited,
+        windowStartItemOffset: windowStart,
+        timeline: timeline,
+        activeTimeAnchor: null,
+        isLoadingTimeline: false,
+        isLoadingTimeAnchor: false,
+        pageErrorMessage: null,
+        previousPageErrorMessage: null,
+        timeNavigationErrorMessage: null,
+        errorMessage: null,
+      );
+      _queryTransitionBaseState = null;
+      _queryTransitionRequestSequence = null;
+      return true;
     } on Object catch (error) {
       if (!_isDisposed && requestSequence == _scanSequence) {
-        state = state.copyWith(
-          status: LibraryStatus.failed,
+        final baseState = _queryTransitionBaseState ?? state;
+        _queryTransitionBaseState = null;
+        _queryTransitionRequestSequence = null;
+        state = baseState.copyWith(
           isLoadingTimeline: false,
           errorMessage: error.toString(),
         );
@@ -787,7 +880,7 @@ class LibraryController extends Notifier<LibraryState> {
   }
 
   Future<bool> _loadTimeNavigation(_PendingTimeNavigation request) async {
-    final requestSequence = ++_scanSequence;
+    final requestSequence = _advanceSequenceOutsideQueryTransition();
     _loadingTimeNavigationGeneration = request.generation;
     state = state.copyWith(
       isLoadingTimeAnchor: true,
@@ -893,7 +986,7 @@ class LibraryController extends Notifier<LibraryState> {
     if (state.isBusy) {
       return false;
     }
-    final requestSequence = ++_scanSequence;
+    final requestSequence = _advanceSequenceOutsideQueryTransition();
     state = state.copyWith(
       status: LibraryStatus.refreshing,
       errorMessage: null,
@@ -1401,7 +1494,7 @@ class LibraryController extends Notifier<LibraryState> {
     return _enqueueScanStart(
       allowedBusyStatus: LibraryStatus.paused,
       start: () {
-        _scanSequence += 1;
+        _advanceSequenceOutsideQueryTransition();
         return _startScan(
           scanId: scan.scanId,
           rootPath: scan.rootPath,
@@ -1416,6 +1509,12 @@ class LibraryController extends Notifier<LibraryState> {
         );
       },
     );
+  }
+
+  int _advanceSequenceOutsideQueryTransition() {
+    _queryTransitionBaseState = null;
+    _queryTransitionRequestSequence = null;
+    return ++_scanSequence;
   }
 
   static int _globalItemOffsetForAnchor(

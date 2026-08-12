@@ -42,6 +42,7 @@ class LibraryState {
     this.nextCursor,
     this.timeline,
     this.activeTimeAnchor,
+    this.queryAnchorResolution,
     this.isScanLimited = false,
     this.isResumingScan = false,
     this.isLoadingPage = false,
@@ -80,6 +81,7 @@ class LibraryState {
   final LibraryCatalogCursor? nextCursor;
   final LibraryTimeline? timeline;
   final LibraryTimeAnchor? activeTimeAnchor;
+  final LibraryQueryAnchorResolution? queryAnchorResolution;
   final bool isScanLimited;
   final bool isResumingScan;
   final bool isLoadingPage;
@@ -129,6 +131,7 @@ class LibraryState {
       queryId: snapshot.queryId,
       previousCursor: snapshot.previousCursor,
       nextCursor: snapshot.nextCursor,
+      queryAnchorResolution: snapshot.queryAnchorResolution,
     );
   }
 
@@ -157,6 +160,7 @@ class LibraryState {
     Object? nextCursor = _unchanged,
     Object? timeline = _unchanged,
     Object? activeTimeAnchor = _unchanged,
+    Object? queryAnchorResolution = _unchanged,
     bool? isScanLimited,
     bool? isResumingScan,
     bool? isLoadingPage,
@@ -210,6 +214,9 @@ class LibraryState {
       activeTimeAnchor: activeTimeAnchor == _unchanged
           ? this.activeTimeAnchor
           : activeTimeAnchor as LibraryTimeAnchor?,
+      queryAnchorResolution: queryAnchorResolution == _unchanged
+          ? this.queryAnchorResolution
+          : queryAnchorResolution as LibraryQueryAnchorResolution?,
       isScanLimited: isScanLimited ?? this.isScanLimited,
       isResumingScan: isResumingScan ?? this.isResumingScan,
       isLoadingPage: isLoadingPage ?? this.isLoadingPage,

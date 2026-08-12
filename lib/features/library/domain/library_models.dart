@@ -146,6 +146,7 @@ class LibrarySnapshot {
     required this.assets,
     this.previousCursor,
     this.nextCursor,
+    this.queryAnchorResolution,
   });
 
   final String catalogPath;
@@ -155,6 +156,23 @@ class LibrarySnapshot {
   final List<LibraryAsset> assets;
   final LibraryCatalogCursor? previousCursor;
   final LibraryCatalogCursor? nextCursor;
+  final LibraryQueryAnchorResolution? queryAnchorResolution;
+}
+
+class LibraryQueryAnchorResolution {
+  const LibraryQueryAnchorResolution({
+    required this.requestedLocationId,
+    required this.windowStartItemOffset,
+    this.locationId,
+    this.ordinal,
+  });
+
+  final String requestedLocationId;
+  final String? locationId;
+  final int? ordinal;
+  final int windowStartItemOffset;
+
+  bool get didResolve => locationId != null && ordinal != null;
 }
 
 class LibraryCatalogCursor {

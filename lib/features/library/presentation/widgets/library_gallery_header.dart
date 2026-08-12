@@ -230,52 +230,84 @@ class _SortMenuState extends State<_SortMenu> {
 
   @override
   Widget build(BuildContext context) {
+    final menuWidth = amePopupMenuContentWidth(
+      context: context,
+      labels: const [
+        LibraryStrings.captureDate,
+        LibraryStrings.createdDate,
+        LibraryStrings.modifiedDate,
+        LibraryStrings.fileName,
+        LibraryStrings.ascending,
+        LibraryStrings.descending,
+      ],
+    );
+    Widget fixedWidthChoice(Widget choice) {
+      return ameFixedWidthMenuItem(width: menuWidth, child: choice);
+    }
+
     return AmeMenuAnchor(
       controller: _controller,
+      style: ameFixedWidthMenuStyle(menuWidth),
+      alignmentOffset: ameMenuBelowEndAlignment(menuWidth: menuWidth),
       menuChildren: [
-        _menuChoice(
-          label: LibraryStrings.captureDate,
-          icon: Symbols.calendar_month_rounded,
-          isSelected: widget.sortKey == LibraryGallerySortKey.captureTime,
-          onPressed: () =>
-              widget.onSortKeyChanged(LibraryGallerySortKey.captureTime),
+        fixedWidthChoice(
+          _menuChoice(
+            label: LibraryStrings.captureDate,
+            icon: Symbols.calendar_month_rounded,
+            isSelected: widget.sortKey == LibraryGallerySortKey.captureTime,
+            onPressed: () =>
+                widget.onSortKeyChanged(LibraryGallerySortKey.captureTime),
+          ),
         ),
-        _menuChoice(
-          label: LibraryStrings.createdDate,
-          icon: Symbols.create_new_folder_rounded,
-          isSelected: widget.sortKey == LibraryGallerySortKey.createdTime,
-          onPressed: () =>
-              widget.onSortKeyChanged(LibraryGallerySortKey.createdTime),
+        fixedWidthChoice(
+          _menuChoice(
+            label: LibraryStrings.createdDate,
+            icon: Symbols.create_new_folder_rounded,
+            isSelected: widget.sortKey == LibraryGallerySortKey.createdTime,
+            onPressed: () =>
+                widget.onSortKeyChanged(LibraryGallerySortKey.createdTime),
+          ),
         ),
-        _menuChoice(
-          label: LibraryStrings.modifiedDate,
-          icon: Symbols.edit_calendar_rounded,
-          isSelected: widget.sortKey == LibraryGallerySortKey.modifiedTime,
-          onPressed: () =>
-              widget.onSortKeyChanged(LibraryGallerySortKey.modifiedTime),
+        fixedWidthChoice(
+          _menuChoice(
+            label: LibraryStrings.modifiedDate,
+            icon: Symbols.edit_calendar_rounded,
+            isSelected: widget.sortKey == LibraryGallerySortKey.modifiedTime,
+            onPressed: () =>
+                widget.onSortKeyChanged(LibraryGallerySortKey.modifiedTime),
+          ),
         ),
-        _menuChoice(
-          label: LibraryStrings.fileName,
-          icon: Symbols.text_fields_rounded,
-          isSelected: widget.sortKey == LibraryGallerySortKey.fileName,
-          onPressed: () =>
-              widget.onSortKeyChanged(LibraryGallerySortKey.fileName),
+        fixedWidthChoice(
+          _menuChoice(
+            label: LibraryStrings.fileName,
+            icon: Symbols.text_fields_rounded,
+            isSelected: widget.sortKey == LibraryGallerySortKey.fileName,
+            onPressed: () =>
+                widget.onSortKeyChanged(LibraryGallerySortKey.fileName),
+          ),
         ),
         const Divider(height: AmeMenuMetrics.dividerHeight),
-        _menuChoice(
-          label: LibraryStrings.ascending,
-          icon: Symbols.arrow_upward_rounded,
-          isSelected: widget.direction == LibraryGallerySortDirection.ascending,
-          onPressed: () =>
-              widget.onDirectionChanged(LibraryGallerySortDirection.ascending),
+        fixedWidthChoice(
+          _menuChoice(
+            label: LibraryStrings.ascending,
+            icon: Symbols.arrow_upward_rounded,
+            isSelected:
+                widget.direction == LibraryGallerySortDirection.ascending,
+            onPressed: () => widget.onDirectionChanged(
+              LibraryGallerySortDirection.ascending,
+            ),
+          ),
         ),
-        _menuChoice(
-          label: LibraryStrings.descending,
-          icon: Symbols.arrow_downward_rounded,
-          isSelected:
-              widget.direction == LibraryGallerySortDirection.descending,
-          onPressed: () =>
-              widget.onDirectionChanged(LibraryGallerySortDirection.descending),
+        fixedWidthChoice(
+          _menuChoice(
+            label: LibraryStrings.descending,
+            icon: Symbols.arrow_downward_rounded,
+            isSelected:
+                widget.direction == LibraryGallerySortDirection.descending,
+            onPressed: () => widget.onDirectionChanged(
+              LibraryGallerySortDirection.descending,
+            ),
+          ),
         ),
       ],
       builder: (context, controller, child) => AmeTooltip(

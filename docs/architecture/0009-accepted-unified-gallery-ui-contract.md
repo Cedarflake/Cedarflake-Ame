@@ -149,6 +149,12 @@ Use one unified gallery with these presentation rules.
   focus, and pointer targets remain fully visible; source media is never changed.
 - The `方形` layout is a uniform square grid. Small, medium, and large density choices remain
   independent from shape.
+- Layout shape, density, and query changes (including sort field, direction, filters, and search)
+  preserve one logical viewport anchor identified by stable location ID plus row and viewport
+  fractions. A new query obtains the anchor's new ordinal from the application layer; only a
+  confirmed absence falls back intentionally to the first result. The replacement sliver applies
+  the new geometry through its first layout correction, before painting, rather than painting one
+  position and jumping afterward.
 - Date headings use capture time, then file creation time, then file modification time as defined by
   ADR 0008. An unrepresentable date remains an explicit unknown section in the same continuous
   gallery.
@@ -226,17 +232,33 @@ verified to provide controlled `DropdownMenu` selection, selection callbacks, di
 select-only behavior. Preview loading speed therefore reuses the repository-owned `SettingsChoice`
 composition and adds no custom pointer, focus, keyboard, or semantics layer.
 
-Flutter 3.44.9 has two retained `OverlayPortal` semantics failure modes that Ame must contain until
-the pinned SDK includes the corresponding engine and framework fixes. Sibling `Tooltip` and
-`MenuAnchor` anchors can exchange traversal ownership during an overlay transition, so Ame keeps
-the framework controls and isolates each overlay anchor with a dedicated `Semantics` container.
+Flutter 3.44.9 can publish retained `OverlayPortal` semantics updates that violate Windows
+`AccessibilityBridge` transaction preconditions. Sibling `Tooltip` and stable `MenuAnchor`
+controls can exchange traversal ownership during an overlay transition, so Ame keeps the framework
+controls and isolates those bounded anchors with a dedicated `Semantics` container. The pinned SDK's
+animated `MenuAnchor` can also paint a follower menu at its final visual position while its pointer
+hit-test geometry still resolves to content behind that menu. `AmeMenuAnchor` therefore leaves
+`animated` disabled and verifies a real item activation through the painted menu. Animation may be
+restored only after a Flutter SDK upgrade revalidates visual placement, pointer hit testing,
+keyboard behavior, and the native accessibility canary. A virtualized photo tile is different:
+retaining one `MenuAnchor` portal per visible tile multiplies the number of subtrees detached and
+introduced during sliver recycling. Photo tiles therefore keep their Material focus, pointer, and
+keyboard entry points but create one root-navigator popup route only when a menu is requested; idle
+and open tiles do not retain per-tile `MenuAnchor` portals. Dynamically expanded folder rows use the
+same on-demand route ownership rule.
+
 Material `Slider` also retains a value-indicator portal. When the gallery's timeline Slider becomes
 offstage inside the viewer `IndexedStack`, Flutter can prune that portal node and then serialize its
 old child identifier when the retained Slider returns. Ame therefore recreates only the timeline
 navigation subtree when the viewer closes; the gallery `Scrollable`, its `ScrollController`, and
-the logical viewport anchor remain intact. The regression harness forwards the real incremental
-semantics update while retaining prior nodes, then rejects missing children, multiple parents,
-cycles, and updated orphan nodes across tooltip, menu, Slider, and viewer transitions.
+the logical viewport anchor remain intact.
+
+The regression harness forwards real incremental Flutter semantics updates into a retained
+child-graph model. It commits a batch only after validating the initial root, child existence,
+single traversal ownership, cycle freedom, reachability, and the Windows requirement that a moved
+existing child receive an update in the same reparent transaction. This is an AXTree-precondition
+model rather than an implementation of Chromium AXTree ordering. The native Windows accessibility
+integration remains the authoritative canary for `AccessibilityBridge` stderr failures.
 
 Windows accent-color integration uses the operating system's documented
 `DwmGetColorizationColor` API and `WM_DWMCOLORIZATIONCOLORCHANGED` notification through an Ame-owned
@@ -267,10 +289,14 @@ theme type crossing into widgets or application contracts.
 - Widget tests cover desktop and constrained widths, selection replacement, source alignment,
   Windows hover behavior, bidirectional gallery and Slider synchronization, nonuniform time marks,
   duplicate filtering, settings, and temporary import progress.
-- Retained semantics tests exercise application-level tooltip, menu, timeline Slider, viewer
-  Slider, viewer menu, and viewer-return sequences against a retained Flutter semantics child-graph
-  model that verifies AXTree reachability preconditions. This does not replace a native Windows
-  `AccessibilityBridge` stderr canary for engine reparenting and update ordering.
+- Retained semantics tests exercise application-level tooltip, stable menus, timeline Slider,
+  viewer Slider, viewer menu, viewer-return sequences, and deep virtual-gallery jumps with repeated
+  on-demand photo menus against the retained Flutter semantics child-graph model.
+- The native Windows accessibility integration runs both a virtual-gallery stress sequence and a
+  populated application sequence covering stable toolbar and source menus, deep scrolling,
+  on-demand photo menus, timeline and viewer Sliders, viewer menus, and repeated viewer return. It
+  rejects any `AccessibilityBridge` `ui::AXTree` error captured from the engine and complements
+  rather than weakens the model's deterministic invariant coverage.
 - Pure layout and widget tests confirm balanced justified rows fill one gallery width and sparse rows
   do not exceed their enlargement limit.
 - Flutter analysis, the full Flutter test suite, and a Windows Debug build passed for the accepted

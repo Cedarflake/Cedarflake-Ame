@@ -204,6 +204,15 @@ pub struct CatalogSnapshot {
     pub assets: Vec<AssetLocationView>,
     pub previous_cursor: Option<CatalogCursor>,
     pub next_cursor: Option<CatalogCursor>,
+    pub query_anchor_resolution: Option<GalleryLocationAnchorResolution>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct GalleryLocationAnchorResolution {
+    pub requested_location_id: String,
+    pub location_id: Option<String>,
+    pub ordinal: Option<u64>,
+    pub window_start_ordinal: u64,
 }
 
 #[derive(Clone, Debug)]

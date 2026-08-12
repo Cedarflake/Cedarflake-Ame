@@ -18,6 +18,8 @@ import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_exact_extent_sliver.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_header.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_layout.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_main_surface.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_navigation_resize_handle.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
@@ -574,6 +576,462 @@ void main() {
     expect(find.text(LibraryStrings.unknownCaptureDate), findsNothing);
   });
 
+  testWidgets("keeps the sort menu hit-testable inside the desktop viewport", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(
+            _populatedState(totalItems: 1),
+          ),
+        ],
+        child: const AmeApp(),
+      ),
+    );
+    await tester.pump();
+
+    final button = find.byKey(const Key("library-sort-menu"));
+    final sortAnchor = find.ancestor(
+      of: button,
+      matching: find.byType(MenuAnchor),
+    );
+    expect(button, findsOneWidget);
+    expect(sortAnchor, findsOneWidget);
+    final controller = tester.widget<MenuAnchor>(sortAnchor).controller;
+    expect(controller?.isOpen, isFalse);
+    final viewRect = Offset.zero & tester.view.physicalSize;
+    expect(viewRect.contains(tester.getCenter(button)), isTrue);
+    await tester.tap(button);
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(controller?.isOpen, isTrue);
+
+    final item = _activeMenuItem(tester, LibraryStrings.fileName);
+    final itemRect = tester.getRect(item);
+    expect(itemRect.left, greaterThanOrEqualTo(AmeMenuMetrics.viewportPadding));
+    expect(
+      itemRect.right,
+      lessThanOrEqualTo(viewRect.right - AmeMenuMetrics.viewportPadding),
+    );
+    expect(itemRect.top, greaterThanOrEqualTo(AmeMenuMetrics.viewportPadding));
+    expect(
+      itemRect.bottom,
+      lessThanOrEqualTo(viewRect.bottom - AmeMenuMetrics.viewportPadding),
+    );
+    await tester.tapAt(itemRect.center);
+    await tester.pump();
+    expect(controller?.isOpen, isFalse);
+  });
+
+  testWidgets(
+    "keeps the visible location anchored through real sort query transitions",
+    (tester) async {
+      final previousHitTestWarningPolicy =
+          WidgetController.hitTestWarningShouldBeFatal;
+      WidgetController.hitTestWarningShouldBeFatal = true;
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(() {
+        WidgetController.hitTestWarningShouldBeFatal =
+            previousHitTestWarningPolicy;
+      });
+      final assets = [
+        for (var index = 0; index < 120; index++)
+          _galleryAsset(
+            id: "sort-anchor-$index",
+            captureLocalTime: "2026-08-05T00:00:00.000000000",
+          ),
+      ];
+      final initialSnapshot = LibrarySnapshot(
+        catalogPath: "C:\\AmeData\\ame.sqlite3",
+        revision: BigInt.one,
+        queryId: "sort-anchor-initial",
+        roots: const [
+          LibraryRoot(
+            id: "root-1",
+            path: "C:\\Pictures",
+            displayPath: "C:\\Pictures",
+            createdUnixMs: 1,
+            assetCount: 120,
+            issueCount: 0,
+          ),
+        ],
+        assets: assets,
+      );
+      final initialState = LibraryState.fromSnapshot(initialSnapshot).copyWith(
+        timeline: LibraryTimeline(
+          revision: BigInt.one,
+          queryId: initialSnapshot.queryId,
+          totalItems: assets.length,
+          buckets: const [
+            LibraryTimeBucket(
+              monthKey: "2026-08",
+              itemCount: 120,
+              aspectRatioSum: 160,
+            ),
+          ],
+        ),
+      );
+      final catalog = _AnchorResolvingQueryCatalog(initialSnapshot);
+
+      final container = ProviderContainer(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(initialState),
+          initialLibraryViewPreferencesProvider.overrideWithValue(
+            const LibraryViewPreferences(
+              layoutShape: GalleryLayoutShape.square,
+              thumbnailSize: GalleryThumbnailSize.medium,
+            ),
+          ),
+          libraryCatalogProvider.overrideWithValue(catalog),
+        ],
+      );
+      addTearDown(container.dispose);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(container: container, child: const AmeApp()),
+      );
+      await tester.pump();
+
+      final wall = find.byKey(const Key("library-photo-wall"));
+      final scrollPosition = _galleryScrollPosition(tester);
+      scrollPosition.jumpTo(scrollPosition.maxScrollExtent * 0.55);
+      await tester.pump();
+      await tester.pump();
+      final wallTop = tester.getTopLeft(wall).dy;
+      final visibleTopsBefore = <String, double>{};
+      for (final asset in assets) {
+        final finder = find.byKey(ValueKey(asset.locationId));
+        if (finder.evaluate().length == 1) {
+          visibleTopsBefore[asset.locationId] =
+              tester.getTopLeft(finder).dy - wallTop;
+        }
+      }
+      expect(visibleTopsBefore, isNotEmpty);
+      final deepScrollPixels = scrollPosition.pixels;
+
+      final fileNameItem = await _openSortMenu(tester, LibraryStrings.fileName);
+      await tester.tapAt(tester.getCenter(fileNameItem));
+      await tester.pump();
+
+      expect(catalog.requestedLocationIds, hasLength(1));
+      expect(
+        container.read(libraryControllerProvider).queryId,
+        catalog.lastSnapshot!.queryId,
+      );
+      await tester.pump();
+      final resolvedLocationId = catalog.requestedLocationIds.single;
+      expect(visibleTopsBefore, contains(resolvedLocationId));
+      final resolvedFinder = find.byKey(ValueKey(resolvedLocationId));
+      expect(resolvedFinder, findsOneWidget);
+      final topAfterFirstLayout =
+          tester.getTopLeft(resolvedFinder).dy - tester.getTopLeft(wall).dy;
+      expect(
+        topAfterFirstLayout,
+        closeTo(visibleTopsBefore[resolvedLocationId]!, 2),
+      );
+      expect(scrollPosition.pixels, greaterThan(0));
+      expect(scrollPosition.pixels, lessThan(scrollPosition.maxScrollExtent));
+      final pixelsAfterFirstLayout = scrollPosition.pixels;
+      await tester.pump();
+      expect(scrollPosition.pixels, closeTo(pixelsAfterFirstLayout, 0.01));
+      expect(
+        tester.getTopLeft(resolvedFinder).dy - tester.getTopLeft(wall).dy,
+        closeTo(topAfterFirstLayout, 0.01),
+      );
+
+      catalog.shouldResolveAnchor = false;
+      final createdDateItem = await _openSortMenu(
+        tester,
+        LibraryStrings.createdDate,
+      );
+      await tester.tapAt(tester.getCenter(createdDateItem));
+      await tester.pump();
+
+      expect(catalog.requestedLocationIds, hasLength(2));
+      expect(catalog.lastSnapshot?.queryAnchorResolution, isNull);
+      expect(
+        container.read(libraryControllerProvider).queryId,
+        catalog.lastSnapshot!.queryId,
+      );
+      await tester.pump();
+      final fallbackFirst = catalog.lastSnapshot!.assets.first.locationId;
+      expect(find.byKey(ValueKey(fallbackFirst)), findsOneWidget);
+      final fallbackTop =
+          tester.getTopLeft(find.byKey(ValueKey(fallbackFirst))).dy -
+          tester.getTopLeft(wall).dy;
+      expect(fallbackTop, closeTo(0, 0.01));
+      expect(scrollPosition.pixels, greaterThanOrEqualTo(0));
+      expect(scrollPosition.pixels, lessThan(deepScrollPixels));
+      final fallbackPixels = scrollPosition.pixels;
+      await tester.pump();
+      expect(scrollPosition.pixels, closeTo(fallbackPixels, 0.01));
+    },
+  );
+
+  testWidgets("keeps the frozen anchor when a pending sort returns to base", (
+    tester,
+  ) async {
+    final previousHitTestWarningPolicy =
+        WidgetController.hitTestWarningShouldBeFatal;
+    WidgetController.hitTestWarningShouldBeFatal = true;
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(() {
+      WidgetController.hitTestWarningShouldBeFatal =
+          previousHitTestWarningPolicy;
+    });
+    final assets = [
+      for (var index = 0; index < 120; index++)
+        _galleryAsset(
+          id: "cancel-anchor-$index",
+          captureLocalTime: "2026-08-05T00:00:00.000000000",
+        ),
+    ];
+    final snapshot = LibrarySnapshot(
+      catalogPath: "C:\\AmeData\\ame.sqlite3",
+      revision: BigInt.one,
+      queryId: "cancel-anchor-initial",
+      roots: const [
+        LibraryRoot(
+          id: "root-1",
+          path: "C:\\Pictures",
+          displayPath: "C:\\Pictures",
+          createdUnixMs: 1,
+          assetCount: 120,
+          issueCount: 0,
+        ),
+      ],
+      assets: assets,
+    );
+    final initialState = LibraryState.fromSnapshot(snapshot).copyWith(
+      timeline: LibraryTimeline(
+        revision: BigInt.one,
+        queryId: snapshot.queryId,
+        totalItems: assets.length,
+        buckets: const [
+          LibraryTimeBucket(
+            monthKey: "2026-08",
+            itemCount: 120,
+            aspectRatioSum: 160,
+          ),
+        ],
+      ),
+    );
+    final catalog = _AnchorResolvingQueryCatalog(snapshot)
+      ..holdNextAnchorRequest = true;
+    addTearDown(catalog.releaseHeldAnchorRequest);
+
+    final container = ProviderContainer(
+      overrides: [
+        initialLibraryStateProvider.overrideWithValue(initialState),
+        initialLibraryViewPreferencesProvider.overrideWithValue(
+          const LibraryViewPreferences(
+            layoutShape: GalleryLayoutShape.square,
+            thumbnailSize: GalleryThumbnailSize.medium,
+          ),
+        ),
+        libraryCatalogProvider.overrideWithValue(catalog),
+      ],
+    );
+    addTearDown(container.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(container: container, child: const AmeApp()),
+    );
+    await tester.pump();
+
+    final wall = find.byKey(const Key("library-photo-wall"));
+    final scrollPosition = _galleryScrollPosition(tester);
+    scrollPosition.jumpTo(scrollPosition.maxScrollExtent * 0.55);
+    await tester.pump();
+    await tester.pump();
+    final visibleBefore = <String, double>{};
+    final wallTop = tester.getTopLeft(wall).dy;
+    for (final asset in assets) {
+      final finder = find.byKey(ValueKey(asset.locationId));
+      if (finder.evaluate().length == 1) {
+        visibleBefore[asset.locationId] =
+            tester.getTopLeft(finder).dy - wallTop;
+      }
+    }
+
+    final fileNameItem = await _openSortMenu(tester, LibraryStrings.fileName);
+    await tester.tapAt(tester.getCenter(fileNameItem));
+    await tester.pump();
+    expect(catalog.requestedLocationIds, hasLength(1));
+    final frozenLocationId = catalog.requestedLocationIds.single;
+    final frozenFinder = find.byKey(ValueKey(frozenLocationId));
+    expect(visibleBefore, contains(frozenLocationId));
+
+    final captureDateItem = await _openSortMenu(
+      tester,
+      LibraryStrings.captureDate,
+    );
+    await tester.tapAt(tester.getCenter(captureDateItem));
+    await tester.pump();
+    expect(container.read(libraryControllerProvider).queryId, snapshot.queryId);
+    await tester.pump();
+
+    expect(frozenFinder, findsOneWidget);
+    final topAfterCancel =
+        tester.getTopLeft(frozenFinder).dy - tester.getTopLeft(wall).dy;
+    expect(topAfterCancel, closeTo(visibleBefore[frozenLocationId]!, 2));
+    expect(scrollPosition.pixels, greaterThan(0));
+    expect(scrollPosition.pixels, lessThan(scrollPosition.maxScrollExtent));
+    final pixelsAfterCancel = scrollPosition.pixels;
+
+    catalog.releaseHeldAnchorRequest();
+    await tester.pump();
+    await tester.pump();
+    expect(scrollPosition.pixels, closeTo(pixelsAfterCancel, 0.01));
+    expect(
+      tester.getTopLeft(frozenFinder).dy - tester.getTopLeft(wall).dy,
+      closeTo(topAfterCancel, 0.01),
+    );
+  });
+
+  testWidgets(
+    "freezes the native offset when layout controls change geometry",
+    (tester) async {
+      final previousHitTestWarningPolicy =
+          WidgetController.hitTestWarningShouldBeFatal;
+      WidgetController.hitTestWarningShouldBeFatal = true;
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(() {
+        WidgetController.hitTestWarningShouldBeFatal =
+            previousHitTestWarningPolicy;
+      });
+      final assets = [
+        for (var index = 0; index < 120; index++)
+          _galleryAsset(
+            id: "geometry-anchor-$index",
+            captureLocalTime: "2026-08-05T00:00:00.000000000",
+          ),
+      ];
+      final snapshot = LibrarySnapshot(
+        catalogPath: "C:\\AmeData\\ame.sqlite3",
+        revision: BigInt.one,
+        queryId: "geometry-anchor-initial",
+        roots: const [
+          LibraryRoot(
+            id: "root-1",
+            path: "C:\\Pictures",
+            displayPath: "C:\\Pictures",
+            createdUnixMs: 1,
+            assetCount: 120,
+            issueCount: 0,
+          ),
+        ],
+        assets: assets,
+      );
+      final initialState = LibraryState.fromSnapshot(snapshot).copyWith(
+        timeline: LibraryTimeline(
+          revision: BigInt.one,
+          queryId: snapshot.queryId,
+          totalItems: assets.length,
+          buckets: const [
+            LibraryTimeBucket(
+              monthKey: "2026-08",
+              itemCount: 120,
+              aspectRatioSum: 160,
+            ),
+          ],
+        ),
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            initialLibraryStateProvider.overrideWithValue(initialState),
+            initialLibraryViewPreferencesProvider.overrideWithValue(
+              const LibraryViewPreferences(
+                layoutShape: GalleryLayoutShape.equalHeight,
+                thumbnailSize: GalleryThumbnailSize.medium,
+              ),
+            ),
+          ],
+          child: const AmeApp(),
+        ),
+      );
+      await tester.pump();
+
+      final wall = find.byKey(const Key("library-photo-wall"));
+      final scrollPosition = _galleryScrollPosition(tester);
+      scrollPosition.jumpTo(scrollPosition.maxScrollExtent * 0.55);
+      final wallTop = tester.getTopLeft(wall).dy;
+
+      final squareItem = await _openLayoutMenu(tester, LibraryStrings.square);
+      final squareAnchor = _viewportCenterRowAnchor(tester, assets);
+      await tester.tapAt(tester.getCenter(squareItem));
+      await _pumpUntilGalleryGeometry(
+        tester,
+        previousShape: GalleryLayoutShape.equalHeight,
+        expectedShape: GalleryLayoutShape.square,
+        expectedSize: GalleryThumbnailSize.medium,
+      );
+      final squareFinder = find.byKey(ValueKey(squareAnchor.locationId));
+      expect(squareFinder, findsOneWidget);
+      final squareRect = tester.getRect(squareFinder);
+      final squareTop = tester.getTopLeft(squareFinder).dy - wallTop;
+      expect(
+        squareRect.top,
+        closeTo(
+          squareAnchor.viewportCenterY -
+              squareRect.height * squareAnchor.rowFraction,
+          2,
+        ),
+      );
+      final squarePixels = scrollPosition.pixels;
+      await tester.pump();
+      expect(scrollPosition.pixels, closeTo(squarePixels, 0.01));
+      expect(
+        tester.getTopLeft(squareFinder).dy - wallTop,
+        closeTo(squareTop, 0.01),
+      );
+
+      final largeItem = await _openLayoutMenu(tester, LibraryStrings.large);
+      final largeAnchor = _viewportCenterRowAnchor(tester, assets);
+      await tester.tapAt(tester.getCenter(largeItem));
+      await _pumpUntilGalleryGeometry(
+        tester,
+        previousShape: GalleryLayoutShape.square,
+        expectedShape: GalleryLayoutShape.square,
+        previousSize: GalleryThumbnailSize.medium,
+        expectedSize: GalleryThumbnailSize.large,
+      );
+      final largeFinder = find.byKey(ValueKey(largeAnchor.locationId));
+      expect(largeFinder, findsOneWidget);
+      final largeRect = tester.getRect(largeFinder);
+      final largeTop = tester.getTopLeft(largeFinder).dy - wallTop;
+      expect(
+        largeRect.top,
+        closeTo(
+          largeAnchor.viewportCenterY -
+              largeRect.height * largeAnchor.rowFraction,
+          2,
+        ),
+      );
+      final largePixels = scrollPosition.pixels;
+      await tester.pump();
+      expect(scrollPosition.pixels, closeTo(largePixels, 0.01));
+      expect(
+        tester.getTopLeft(largeFinder).dy - wallTop,
+        closeTo(largeTop, 0.01),
+      );
+    },
+  );
+
   testWidgets("restores and saves stable gallery display preferences", (
     tester,
   ) async {
@@ -727,11 +1185,24 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byType(AmeMenuItemContent), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey("folder-tile-root-1-Album/Sub")),
+          matching: find.byType(MenuAnchor),
+        ),
+        findsNothing,
+      );
       await tester.tap(find.text(LibraryStrings.openInExplorer).last);
       await tester.pumpAndSettle();
       expect(platformActions.openedLibraryFolders, [
         (rootPath: "C:\\Pictures", relativePath: "Album/Sub"),
       ]);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.contextMenu);
+      await tester.pumpAndSettle();
+      expect(find.text(LibraryStrings.openInExplorer), findsOneWidget);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
     },
   );
 
@@ -1668,6 +2139,143 @@ Finder _menuItem(String label) {
   );
 }
 
+Future<Finder> _openSortMenu(WidgetTester tester, String expectedItem) async {
+  await tester.pump(const Duration(milliseconds: 300));
+  var item = _activeMenuItemOrNull(tester, expectedItem);
+  if (item != null) {
+    return item;
+  }
+  final button = find.byKey(const Key("library-sort-menu"));
+  await tester.ensureVisible(button);
+  await tester.tap(button);
+  await tester.pump(const Duration(milliseconds: 300));
+  return _activeMenuItem(tester, expectedItem);
+}
+
+Future<Finder> _openLayoutMenu(WidgetTester tester, String expectedItem) async {
+  final button = find.byKey(const Key("library-layout-menu"));
+  await tester.ensureVisible(button);
+  await tester.tap(button);
+  await tester.pump();
+  return _activeMenuItem(tester, expectedItem);
+}
+
+({String locationId, double rowFraction, double viewportCenterY})
+_viewportCenterRowAnchor(WidgetTester tester, List<LibraryAsset> assets) {
+  final scrollable = find.descendant(
+    of: find.byKey(const Key("library-photo-wall")),
+    matching: find.byType(Scrollable),
+  );
+  final viewportRect = tester.getRect(scrollable);
+  final viewportCenterY = viewportRect.top + viewportRect.height * 0.5;
+  final candidates = <({String locationId, Rect rect})>[];
+  for (final asset in assets) {
+    final finder = find.byKey(ValueKey(asset.locationId));
+    if (finder.evaluate().length == 1) {
+      final rect = tester.getRect(finder);
+      if (rect.top <= viewportCenterY &&
+          viewportCenterY < rect.bottom + LibraryGalleryLayoutEntry.spacing) {
+        candidates.add((locationId: asset.locationId, rect: rect));
+      }
+    }
+  }
+  expect(candidates, isNotEmpty);
+  final rowTop = candidates
+      .map((candidate) => candidate.rect.top)
+      .reduce((first, second) => first > second ? first : second);
+  final row =
+      candidates
+          .where((candidate) => (candidate.rect.top - rowTop).abs() < 0.01)
+          .toList(growable: false)
+        ..sort((first, second) => first.rect.left.compareTo(second.rect.left));
+  final anchor = row.first;
+  return (
+    locationId: anchor.locationId,
+    rowFraction: ((viewportCenterY - anchor.rect.top) / anchor.rect.height)
+        .clamp(0.0, 1.0)
+        .toDouble(),
+    viewportCenterY: viewportCenterY,
+  );
+}
+
+Future<void> _pumpUntilGalleryGeometry(
+  WidgetTester tester, {
+  required GalleryLayoutShape previousShape,
+  required GalleryLayoutShape expectedShape,
+  GalleryThumbnailSize? previousSize,
+  required GalleryThumbnailSize expectedSize,
+}) async {
+  const maximumFrames = 3;
+  for (var frame = 0; frame < maximumFrames; frame += 1) {
+    await tester.pump();
+    final header = tester.widget<LibraryGalleryHeader>(
+      find.byType(LibraryGalleryHeader),
+    );
+    if (header.layoutShape == expectedShape &&
+        header.thumbnailSize == expectedSize) {
+      return;
+    }
+    expect(header.layoutShape, previousShape);
+    if (previousSize != null) {
+      expect(header.thumbnailSize, previousSize);
+    }
+  }
+  fail("Gallery geometry was not published within $maximumFrames frames");
+}
+
+Finder _activeMenuItem(WidgetTester tester, String label) {
+  final item = _activeMenuItemOrNull(tester, label);
+  expect(item, isNotNull);
+  return item!;
+}
+
+Finder? _activeMenuItemOrNull(WidgetTester tester, String label) {
+  final candidates = find.ancestor(
+    of: find.text(label),
+    matching: find.byType(MenuItemButton),
+  );
+  if (candidates.evaluate().length != 1) {
+    return null;
+  }
+  final offstageAncestors = find
+      .ancestor(of: candidates, matching: find.byType(Offstage))
+      .evaluate()
+      .map((element) => element.widget as Offstage);
+  expect(offstageAncestors.every((widget) => !widget.offstage), isTrue);
+  final ignoringAncestors = find
+      .ancestor(of: candidates, matching: find.byType(IgnorePointer))
+      .evaluate()
+      .map((element) => element.widget as IgnorePointer);
+  expect(ignoringAncestors.every((widget) => !widget.ignoring), isTrue);
+  final itemElement = candidates.evaluate().single;
+  final hitPath = tester.hitTestOnBinding(tester.getCenter(candidates)).path;
+  expect(
+    hitPath.any((entry) {
+      final target = entry.target;
+      if (target is! RenderObject) {
+        return false;
+      }
+      final creator = target.debugCreator;
+      if (creator is! DebugCreator) {
+        return false;
+      }
+      var belongsToItem = false;
+      void visit(Element element) {
+        if (identical(element, creator.element)) {
+          belongsToItem = true;
+          return;
+        }
+        element.visitChildElements(visit);
+      }
+
+      itemElement.visitChildElements(visit);
+      return belongsToItem || identical(creator.element, itemElement);
+    }),
+    isTrue,
+  );
+  return candidates;
+}
+
 LibraryState _populatedState({
   required int totalItems,
   int assetWidth = 4,
@@ -1900,6 +2508,112 @@ class _RecordingQueryCatalog implements LibraryCatalog {
 
   @override
   Future<bool> unregisterRoot(String rootId) async => true;
+}
+
+class _AnchorResolvingQueryCatalog
+    implements LibraryCatalog, LibraryQueryAnchorCatalog {
+  _AnchorResolvingQueryCatalog(this.initialSnapshot);
+
+  final LibrarySnapshot initialSnapshot;
+  final List<String> requestedLocationIds = [];
+  bool shouldResolveAnchor = true;
+  bool holdNextAnchorRequest = false;
+  Completer<void>? _heldAnchorRequest;
+  int _generation = 0;
+  LibrarySnapshot? lastSnapshot;
+
+  @override
+  Future<LibrarySnapshot> loadAroundLocation({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    required String anchorLocationId,
+  }) async {
+    requestedLocationIds.add(anchorLocationId);
+    if (holdNextAnchorRequest) {
+      holdNextAnchorRequest = false;
+      _heldAnchorRequest = Completer<void>();
+      await _heldAnchorRequest!.future;
+    }
+    final reordered = List<LibraryAsset>.of(initialSnapshot.assets.reversed);
+    final requestedIndex = reordered.indexWhere(
+      (asset) => asset.locationId == anchorLocationId,
+    );
+    if (requestedIndex >= 0) {
+      final targetOrdinal = (_generation.isEven ? 62 : 38).clamp(
+        0,
+        reordered.length - 1,
+      );
+      final requested = reordered.removeAt(requestedIndex);
+      reordered.insert(targetOrdinal, requested);
+    }
+    _generation += 1;
+    final queryId = "sort-anchor-result-$_generation";
+    final resolution = shouldResolveAnchor
+        ? LibraryQueryAnchorResolution(
+            requestedLocationId: anchorLocationId,
+            locationId: anchorLocationId,
+            ordinal: reordered.indexWhere(
+              (asset) => asset.locationId == anchorLocationId,
+            ),
+            windowStartItemOffset: 0,
+          )
+        : null;
+    return lastSnapshot = LibrarySnapshot(
+      catalogPath: initialSnapshot.catalogPath,
+      revision: initialSnapshot.revision,
+      queryId: queryId,
+      roots: initialSnapshot.roots,
+      assets: reordered,
+      queryAnchorResolution: resolution,
+    );
+  }
+
+  @override
+  Future<LibrarySnapshot> load({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    LibraryCatalogCursor? after,
+    LibraryCatalogCursor? before,
+  }) async {
+    return initialSnapshot;
+  }
+
+  @override
+  Future<LibrarySnapshot> loadAtTime({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    required LibraryTimeAnchor anchor,
+  }) async {
+    return initialSnapshot;
+  }
+
+  @override
+  Future<LibraryTimeline> loadTimeline(LibraryGalleryQuery query) async {
+    final snapshot = lastSnapshot ?? initialSnapshot;
+    return LibraryTimeline(
+      revision: snapshot.revision,
+      queryId: snapshot.queryId,
+      totalItems: snapshot.assets.length,
+      buckets: [
+        LibraryTimeBucket(
+          monthKey: "2026-08",
+          itemCount: snapshot.assets.length,
+          aspectRatioSum: snapshot.assets.length * 4 / 3,
+        ),
+      ],
+    );
+  }
+
+  @override
+  Future<bool> unregisterRoot(String rootId) async => true;
+
+  void releaseHeldAnchorRequest() {
+    final request = _heldAnchorRequest;
+    if (request != null && !request.isCompleted) {
+      request.complete();
+    }
+    _heldAnchorRequest = null;
+  }
 }
 
 class _NoopLibraryScanner implements LibraryScanner {

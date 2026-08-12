@@ -54,6 +54,16 @@ class LibraryGalleryLayoutEntry {
       groups.add(_LibraryGalleryDateGroup(activeDateKey, activeAssets));
     }
 
+    final calculatedSquareColumnCount =
+        ((availableWidth + spacing) / (thumbnailSize.targetExtent + spacing))
+            .floor();
+    final squareColumnCount = calculatedSquareColumnCount < 1
+        ? 1
+        : calculatedSquareColumnCount;
+    final squareTileSize =
+        (availableWidth - spacing * (squareColumnCount - 1)) /
+        squareColumnCount;
+
     final entries = <LibraryGalleryLayoutEntry>[];
     for (final group in groups) {
       final monthKey = group.dateKey?.substring(0, 7);
@@ -98,25 +108,21 @@ class LibraryGalleryLayoutEntry {
           );
         }
       } else {
-        final columnCount =
-            ((availableWidth + spacing) /
-                    (thumbnailSize.targetExtent + spacing))
-                .floor()
-                .clamp(1, group.assets.length)
-                .toInt();
-        final tileSize =
-            (availableWidth - spacing * (columnCount - 1)) / columnCount;
-        for (var start = 0; start < group.assets.length; start += columnCount) {
-          final end = (start + columnCount).clamp(0, group.assets.length);
+        for (
+          var start = 0;
+          start < group.assets.length;
+          start += squareColumnCount
+        ) {
+          final end = (start + squareColumnCount).clamp(0, group.assets.length);
           entries.add(
             LibraryGalleryLayoutEntry(
-              extent: tileSize + spacing,
+              extent: squareTileSize + spacing,
               monthKey: monthKey,
-              rowHeight: tileSize,
+              rowHeight: squareTileSize,
               firstLocationId: group.assets[start].locationId,
               cells: [
                 for (final asset in group.assets.sublist(start, end))
-                  LibraryGalleryLayoutCell(asset: asset, width: tileSize),
+                  LibraryGalleryLayoutCell(asset: asset, width: squareTileSize),
               ],
             ),
           );

@@ -763,6 +763,233 @@ void main() {
       expect(nextVisibleRange.end, greaterThanOrEqualTo(rowEnd));
     },
   );
+
+  testWidgets(
+    "preserves one logical anchor across shape and density transitions",
+    (tester) async {
+      const itemCount = 4000;
+      const wallSize = Size(900, 620);
+      final state = _state(itemCount);
+      final manifest = _manifest(itemCount);
+      final controller = _RecordingGalleryController();
+      final scrollController = ScrollController();
+      final configuration = ValueNotifier((
+        shape: GalleryLayoutShape.equalHeight,
+        size: GalleryThumbnailSize.medium,
+        transition: null as LibraryGalleryLayoutTransition?,
+      ));
+      LibraryGalleryVisiblePosition? visiblePosition;
+      addTearDown(() async {
+        scrollController.dispose();
+        configuration.dispose();
+        await tester.binding.setSurfaceSize(null);
+      });
+      await tester.binding.setSurfaceSize(const Size(1100, 760));
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: ValueListenableBuilder(
+              valueListenable: configuration,
+              builder: (context, current, child) => Align(
+                alignment: Alignment.topLeft,
+                child: SizedBox(
+                  width: wallSize.width,
+                  height: wallSize.height,
+                  child: LibraryGalleryWall(
+                    state: state,
+                    controller: controller,
+                    scrollController: scrollController,
+                    layoutShape: current.shape,
+                    thumbnailSize: current.size,
+                    selection: GallerySelection.empty(state.queryId),
+                    isSelecting: false,
+                    layoutManifest: manifest,
+                    layoutTransition: current.transition,
+                    onLayoutTransitionApplied: (generation) {
+                      if (configuration.value.transition?.generation ==
+                          generation) {
+                        configuration.value = (
+                          shape: configuration.value.shape,
+                          size: configuration.value.size,
+                          transition: null,
+                        );
+                      }
+                    },
+                    onOpen: (_) {},
+                    onToggleSelection: (_) {},
+                    onViewInformation: (_) {},
+                    onCopyPath: (_) {},
+                    onRevealFile: (_) {},
+                    onVisiblePositionChanged: (position) {
+                      if (configuration.value.transition == null) {
+                        visiblePosition = position;
+                      }
+                    },
+                    onLoadPrevious: controller.loadPreviousPage,
+                    onLayoutChanged: (_, _) {},
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final initialSnapshot = LibraryGalleryLayoutSnapshot.build(
+        manifest: manifest,
+        availableWidth: wallSize.width - 40,
+        thumbnailSize: GalleryThumbnailSize.medium,
+        sortKey: LibraryGallerySortKey.captureTime,
+      );
+      scrollController.jumpTo(
+        initialSnapshot.metrics.itemOffsets[3000] - wallSize.height * 0.5,
+      );
+      await tester.pump();
+      await tester.pump();
+
+      final initialAnchor = visiblePosition;
+      expect(initialAnchor, isNotNull);
+      final anchorFinder = find.byKey(ValueKey(initialAnchor!.locationId));
+      final wallFinder = find.byKey(const Key("library-photo-wall"));
+      final scrollableBefore = tester.element(find.byType(CustomScrollView));
+      final anchorTopBefore =
+          tester.getTopLeft(anchorFinder).dy - tester.getTopLeft(wallFinder).dy;
+
+      configuration.value = (
+        shape: GalleryLayoutShape.square,
+        size: GalleryThumbnailSize.medium,
+        transition: LibraryGalleryLayoutTransition(
+          generation: 1,
+          position: initialAnchor,
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(
+        identical(
+          tester.element(find.byType(CustomScrollView)),
+          scrollableBefore,
+        ),
+        isTrue,
+      );
+      expect(anchorFinder, findsOneWidget);
+      expect(
+        tester.getTopLeft(anchorFinder).dy - tester.getTopLeft(wallFinder).dy,
+        closeTo(anchorTopBefore, 2),
+      );
+      expect(scrollController.position.pixels, isNot(0));
+      expect(
+        scrollController.position.pixels,
+        isNot(scrollController.position.maxScrollExtent),
+      );
+
+      final squareAnchor = visiblePosition ?? initialAnchor;
+      configuration.value = (
+        shape: GalleryLayoutShape.square,
+        size: GalleryThumbnailSize.large,
+        transition: LibraryGalleryLayoutTransition(
+          generation: 2,
+          position: squareAnchor,
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+      expect(anchorFinder, findsOneWidget);
+      expect(
+        tester.getTopLeft(anchorFinder).dy - tester.getTopLeft(wallFinder).dy,
+        closeTo(anchorTopBefore, 2),
+      );
+
+      final largeSquareAnchor = visiblePosition ?? squareAnchor;
+      configuration.value = (
+        shape: GalleryLayoutShape.equalHeight,
+        size: GalleryThumbnailSize.large,
+        transition: LibraryGalleryLayoutTransition(
+          generation: 3,
+          position: largeSquareAnchor,
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+      expect(anchorFinder, findsOneWidget);
+      expect(
+        tester.getTopLeft(anchorFinder).dy - tester.getTopLeft(wallFinder).dy,
+        closeTo(anchorTopBefore, 2),
+      );
+    },
+  );
+
+  testWidgets("defers a transition until the scroll position is attached", (
+    tester,
+  ) async {
+    const itemCount = 4000;
+    const wallSize = Size(900, 620);
+    final state = _state(itemCount);
+    final controller = _RecordingGalleryController();
+    final scrollController = ScrollController();
+    final rebuild = ValueNotifier(0);
+    var applied = 0;
+    addTearDown(() async {
+      scrollController.dispose();
+      rebuild.dispose();
+      await tester.binding.setSurfaceSize(null);
+    });
+    await tester.binding.setSurfaceSize(const Size(1100, 760));
+    final transition = LibraryGalleryLayoutTransition(
+      generation: 41,
+      position: LibraryGalleryVisiblePosition(
+        queryId: state.queryId,
+        revision: state.catalogRevision!,
+        monthKey: "2026-08",
+        locationId: "location-3000",
+        globalItemIndex: 3000,
+        rowFraction: 0.3,
+        viewportFraction: 0.5,
+      ),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: ValueListenableBuilder<int>(
+            valueListenable: rebuild,
+            builder: (context, _, child) => SizedBox(
+              width: wallSize.width,
+              height: wallSize.height,
+              child: LibraryGalleryWall(
+                state: state,
+                controller: controller,
+                scrollController: scrollController,
+                layoutShape: GalleryLayoutShape.square,
+                thumbnailSize: GalleryThumbnailSize.medium,
+                selection: GallerySelection.empty(state.queryId),
+                isSelecting: false,
+                layoutTransition: transition,
+                onLayoutTransitionApplied: (_) => applied += 1,
+                onOpen: (_) {},
+                onToggleSelection: (_) {},
+                onViewInformation: (_) {},
+                onCopyPath: (_) {},
+                onRevealFile: (_) {},
+                onVisiblePositionChanged: (_) {},
+                onLoadPrevious: controller.loadPreviousPage,
+                onLayoutChanged: (_, _) {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(applied, 1);
+    expect(scrollController.position.pixels, greaterThan(0));
+    expect(scrollController.position.pixels, isNot(0));
+    expect(
+      scrollController.position.pixels,
+      isNot(scrollController.position.maxScrollExtent),
+    );
+  });
 }
 
 LibraryState _state(int itemCount) {

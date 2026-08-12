@@ -2260,6 +2260,226 @@ fn gallery_query_combines_source_folder_search_and_all_sort_modes() {
 }
 
 #[test]
+fn gallery_location_anchor_resolves_name_order_and_direction() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let mut catalog = SqliteCatalog::open(path).expect("catalog");
+    publish_gallery_query_fixture(
+        &mut catalog,
+        "anchor-scan",
+        "anchor-root",
+        "C:\\Pictures",
+        &[
+            ("img10", "img10.png", None, Some(10), 10),
+            ("img2", "img2.png", None, Some(20), 20),
+            ("img1", "img1.png", None, Some(30), 30),
+            ("img3", "img3.png", None, Some(40), 40),
+            ("img4", "img4.png", None, Some(50), 50),
+        ],
+    );
+    let ascending = GalleryQuery {
+        sort_key: GallerySortKey::FileName,
+        sort_direction: GallerySortDirection::Ascending,
+        ..GalleryQuery::default()
+    };
+    let page = catalog
+        .load_snapshot_around_location(3, &ascending, "name-ascending", "img3")
+        .expect("ascending location anchor");
+    let resolution = page.query_anchor_resolution.expect("resolution");
+    assert_eq!(resolution.location_id.as_deref(), Some("img3"));
+    assert_eq!(resolution.ordinal, Some(2));
+    assert_eq!(resolution.window_start_ordinal, 1);
+    assert_eq!(
+        page.assets
+            .iter()
+            .map(|asset| asset.location_id.as_str())
+            .collect::<Vec<_>>(),
+        ["img2", "img3", "img4"]
+    );
+
+    let descending = GalleryQuery {
+        sort_direction: GallerySortDirection::Descending,
+        ..ascending
+    };
+    let page = catalog
+        .load_snapshot_around_location(3, &descending, "name-descending", "img3")
+        .expect("descending location anchor");
+    let resolution = page.query_anchor_resolution.expect("resolution");
+    assert_eq!(resolution.ordinal, Some(2));
+    assert_eq!(resolution.window_start_ordinal, 1);
+    assert_eq!(
+        page.assets
+            .iter()
+            .map(|asset| asset.location_id.as_str())
+            .collect::<Vec<_>>(),
+        ["img4", "img3", "img2"]
+    );
+}
+
+#[test]
+fn gallery_location_anchor_falls_back_when_filtered_out() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let mut catalog = SqliteCatalog::open(path).expect("catalog");
+    publish_gallery_query_fixture(
+        &mut catalog,
+        "anchor-filter-scan",
+        "anchor-filter-root",
+        "C:\\Pictures",
+        &[
+            ("match", "Album/match.png", None, Some(10), 10),
+            ("excluded", "Other/excluded.png", None, Some(20), 20),
+        ],
+    );
+    let query = GalleryQuery {
+        root_id: Some("anchor-filter-root".to_owned()),
+        folder_relative_path: Some("Album".to_owned()),
+        sort_key: GallerySortKey::FileName,
+        sort_direction: GallerySortDirection::Ascending,
+        ..GalleryQuery::default()
+    };
+    let page = catalog
+        .load_snapshot_around_location(3, &query, "filtered", "excluded")
+        .expect("filtered location fallback");
+    let resolution = page.query_anchor_resolution.expect("resolution");
+    assert_eq!(resolution.requested_location_id, "excluded");
+    assert_eq!(resolution.location_id, None);
+    assert_eq!(resolution.ordinal, None);
+    assert_eq!(resolution.window_start_ordinal, 0);
+    assert_eq!(page.assets[0].location_id, "match");
+}
+
+#[test]
+fn gallery_location_anchor_covers_time_sort_boundaries_missing_values_and_ties() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let mut catalog = SqliteCatalog::open(path).expect("catalog");
+    publish_gallery_query_fixture(
+        &mut catalog,
+        "anchor-time-scan-a",
+        "anchor-time-root-a",
+        "C:\\TimeA",
+        &[
+            (
+                "low",
+                "same.png",
+                Some("2024-01-01T00:00:01.000000000"),
+                Some(1_000),
+                1_000,
+            ),
+            (
+                "tie-a",
+                "same.png",
+                Some("2024-01-01T00:00:02.000000000"),
+                Some(2_000),
+                2_000,
+            ),
+        ],
+    );
+    publish_gallery_query_fixture(
+        &mut catalog,
+        "anchor-time-scan-b",
+        "anchor-time-root-b",
+        "C:\\TimeB",
+        &[
+            (
+                "tie-b",
+                "same.png",
+                Some("2024-01-01T00:00:02.000000000"),
+                Some(2_000),
+                2_000,
+            ),
+            (
+                "high",
+                "same.png",
+                Some("2024-01-01T00:00:03.000000000"),
+                Some(3_000),
+                3_000,
+            ),
+            ("missing", "same.png", None, None, 4_000),
+        ],
+    );
+    catalog
+        .connection
+        .execute(
+            "UPDATE asset_locations SET file_local_time = NULL WHERE location_id = 'missing'",
+            [],
+        )
+        .expect("clear derived file time for missing-value fixture");
+
+    for (sort_key, ascending, descending) in [
+        (
+            GallerySortKey::CaptureTime,
+            ["low", "tie-a", "tie-b", "high", "missing"],
+            ["high", "tie-a", "tie-b", "low", "missing"],
+        ),
+        (
+            GallerySortKey::CreatedTime,
+            ["low", "tie-a", "tie-b", "high", "missing"],
+            ["high", "tie-a", "tie-b", "low", "missing"],
+        ),
+        (
+            GallerySortKey::ModifiedTime,
+            ["low", "tie-a", "tie-b", "high", "missing"],
+            ["missing", "high", "tie-a", "tie-b", "low"],
+        ),
+    ] {
+        for (direction, expected) in [
+            (GallerySortDirection::Ascending, ascending),
+            (GallerySortDirection::Descending, descending),
+        ] {
+            let query = GalleryQuery {
+                sort_key: sort_key.clone(),
+                sort_direction: direction.clone(),
+                ..GalleryQuery::default()
+            };
+            let query_id = format!("anchor-{sort_key:?}-{direction:?}");
+
+            let tied = catalog
+                .load_snapshot_around_location(3, &query, &query_id, "tie-b")
+                .expect("resolve tied time anchor");
+            let tied_resolution = tied.query_anchor_resolution.expect("tie resolution");
+            let tied_ordinal = expected
+                .iter()
+                .position(|location_id| *location_id == "tie-b")
+                .expect("tie fixture ordinal");
+            let tied_window_start = tied_ordinal.saturating_sub(1);
+            assert_eq!(tied_resolution.ordinal, Some(tied_ordinal as u64));
+            assert_eq!(
+                tied_resolution.window_start_ordinal,
+                tied_window_start as u64
+            );
+            assert_eq!(
+                tied.assets
+                    .iter()
+                    .map(|asset| asset.location_id.as_str())
+                    .collect::<Vec<_>>(),
+                expected[tied_window_start..tied_window_start + 3]
+            );
+
+            let first = catalog
+                .load_snapshot_around_location(3, &query, &query_id, expected[0])
+                .expect("resolve first time anchor");
+            let first_resolution = first.query_anchor_resolution.expect("first resolution");
+            assert_eq!(first_resolution.ordinal, Some(0));
+            assert_eq!(first_resolution.window_start_ordinal, 0);
+            assert_eq!(first.assets[0].location_id, expected[0]);
+
+            let last = catalog
+                .load_snapshot_around_location(3, &query, &query_id, expected[4])
+                .expect("resolve last time anchor");
+            let last_resolution = last.query_anchor_resolution.expect("last resolution");
+            assert_eq!(last_resolution.ordinal, Some(4));
+            assert_eq!(last_resolution.window_start_ordinal, 3);
+            assert_eq!(
+                last.assets.last().expect("last window item").location_id,
+                expected[4]
+            );
+        }
+    }
+}
+
+#[test]
 fn folder_pages_are_bounded_scoped_and_revision_safe() {
     let directory = tempdir().expect("temporary directory");
     let path = directory.path().join("catalog.sqlite3");
