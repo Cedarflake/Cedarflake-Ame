@@ -1730,9 +1730,10 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
 - R0 and R1 are accepted. The Rust-owned SQLite catalog, Flutter/Rust bridge, external preview
   storage, resumable multi-root scanning, atomic publication, per-file issue isolation, file
   identity, and revision-safe bounded queries are connected end to end.
-- The catalog schema is v15 and the storage-settings schema is v2. They add a transactional preview
-  artifact index and explicit pending or retired preview-root ownership without losing earlier root,
-  scan, asset, location, frontier, capture-evidence, identity, or query evidence.
+- The catalog schema is v16 and the storage-settings schema is v2. They add a transactional preview
+  artifact index, reconcile v15 ownership against ready previews in current active scans, and keep
+  explicit pending or retired preview-root ownership without losing earlier root, scan, asset,
+  location, frontier, capture-evidence, identity, or query evidence.
 - The authorized read-only target-library acceptance published 30,629 locations for
   `local-primary` and 48,384 for `cloud-primary`, for 79,013 active locations in one retained
   catalog. Sampled source bytes and source entries remained unchanged, and cloud-only placeholders
@@ -1778,8 +1779,10 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   reclamation, structured failure, bounded startup recovery, verified foreground cleanup, and
   restart-safe preview-root activation with explicit retired-root cleanup. Cache-hit validation
   failure cannot delete an existing artifact, and reclamation protects or resets every compatible
-  referencing location. These paths preserve durable geometry and exclude source media and
-  unrelated files.
+  referencing location. Root unregistration and successful replacement publication detach retired
+  location references and stale only zero-reference artifacts, while an abandoned staged scan
+  preserves the authoritative active reference. These paths preserve durable geometry and exclude
+  source media and unrelated files.
 - R2c remains next and currently has no production watcher, durable change queue, freshness state,
   delta publisher, or catch-up adapter. R3 and the later duplicate, review, classification,
   similarity, semantic, organization-plan, and operation-journal domains have not started.

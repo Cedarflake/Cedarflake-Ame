@@ -29,7 +29,7 @@ use gallery::{
 };
 use migrations::migrate_schema;
 
-const SCHEMA_VERSION: i64 = 15;
+const SCHEMA_VERSION: i64 = 16;
 const LOCATION_STAGE_BATCH: usize = 128;
 const MAX_LAYOUT_MANIFEST_CHUNK_ITEMS: u32 = 4_096;
 const MAX_CATALOG_PAGE_ITEMS: u32 = 4_096;
@@ -1300,17 +1300,7 @@ impl CatalogRepository for SqliteCatalog {
                 params![root_id, scan_id],
             )
             .map_err(database_error)?;
-        transaction
-            .execute(
-                "DELETE FROM preview_artifact_locations
-                 WHERE location_id IN (
-                   SELECT locations.location_id
-                   FROM asset_locations AS locations
-                   WHERE locations.root_id = ?1 AND locations.scan_id <> ?2
-                 )",
-                params![root_id, scan_id],
-            )
-            .map_err(database_error)?;
+        detach_preview_references_for_root_locations(&transaction, root_id, Some(scan_id))?;
         transaction
             .execute(
                 "INSERT OR IGNORE INTO preview_artifact_locations(artifact_key, location_id)
@@ -1323,6 +1313,7 @@ impl CatalogRepository for SqliteCatalog {
                 params![root_id, scan_id],
             )
             .map_err(database_error)?;
+        mark_unreferenced_preview_artifacts_stale(&transaction)?;
         if let Some(previous_active_scan) = previous_active_scan
             && previous_active_scan != scan_id
         {
@@ -1777,6 +1768,17 @@ impl CatalogRepository for SqliteCatalog {
     fn unregister_root(&mut self, root_id: &str) -> Result<bool, ScanError> {
         self.flush_pending_locations()?;
         let transaction = self.connection.transaction().map_err(database_error)?;
+        let root_exists = transaction
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM library_roots WHERE id = ?1)",
+                [root_id],
+                |row| row.get::<_, bool>(0),
+            )
+            .map_err(database_error)?;
+        if !root_exists {
+            transaction.commit().map_err(database_error)?;
+            return Ok(false);
+        }
         for table in [
             "scan_directory_frontier",
             "scan_directory_entries",
@@ -1794,6 +1796,8 @@ impl CatalogRepository for SqliteCatalog {
                 )
                 .map_err(database_error)?;
         }
+        detach_preview_references_for_root_locations(&transaction, root_id, None)?;
+        mark_unreferenced_preview_artifacts_stale(&transaction)?;
         transaction
             .execute("DELETE FROM asset_locations WHERE root_id = ?1", [root_id])
             .map_err(database_error)?;
@@ -1803,9 +1807,11 @@ impl CatalogRepository for SqliteCatalog {
         let removed = transaction
             .execute("DELETE FROM library_roots WHERE id = ?1", [root_id])
             .map_err(database_error)?;
-        if removed == 0 {
-            transaction.commit().map_err(database_error)?;
-            return Ok(false);
+        if removed != 1 {
+            return Err(ScanError::new(
+                "catalog_root_unregister_failed",
+                "The registered library root could not be removed",
+            ));
         }
         delete_orphan_assets(&transaction)?;
         let revision_updated = transaction
@@ -2273,6 +2279,44 @@ fn delete_orphan_assets(transaction: &Transaction<'_>) -> Result<(), ScanError> 
              WHERE NOT EXISTS (
                SELECT 1 FROM asset_locations WHERE asset_locations.asset_id = assets.id
              )",
+            [],
+        )
+        .map_err(database_error)?;
+    Ok(())
+}
+
+fn detach_preview_references_for_root_locations(
+    transaction: &Transaction<'_>,
+    root_id: &str,
+    retained_scan_id: Option<&str>,
+) -> Result<(), ScanError> {
+    transaction
+        .execute(
+            "DELETE FROM preview_artifact_locations
+             WHERE location_id IN (
+               SELECT locations.location_id
+               FROM asset_locations AS locations
+               WHERE locations.root_id = ?1
+                 AND (?2 IS NULL OR locations.scan_id <> ?2)
+             )",
+            params![root_id, retained_scan_id],
+        )
+        .map_err(database_error)?;
+    Ok(())
+}
+
+fn mark_unreferenced_preview_artifacts_stale(
+    transaction: &Transaction<'_>,
+) -> Result<(), ScanError> {
+    transaction
+        .execute(
+            "UPDATE preview_artifacts
+             SET lifecycle_state = 'stale'
+             WHERE lifecycle_state = 'ready'
+               AND NOT EXISTS (
+                 SELECT 1 FROM preview_artifact_locations AS owners
+                 WHERE owners.artifact_key = preview_artifacts.artifact_key
+               )",
             [],
         )
         .map_err(database_error)?;

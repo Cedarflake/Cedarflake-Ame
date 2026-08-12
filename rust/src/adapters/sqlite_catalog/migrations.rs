@@ -18,7 +18,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
 
     if !has_schema_info {
         let transaction = connection.transaction().map_err(database_error)?;
-        create_schema_v15(&transaction)?;
+        create_schema_v16(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -44,6 +44,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             12 => migrate_v12_to_v13(connection)?,
             13 => migrate_v13_to_v14(connection)?,
             14 => migrate_v14_to_v15(connection)?,
+            15 => migrate_v15_to_v16(connection)?,
             _ => {
                 return Err(ScanError::new(
                     "catalog_schema_unsupported",
@@ -54,13 +55,13 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
     }
 }
 
-fn create_schema_v15(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+fn create_schema_v16(transaction: &Transaction<'_>) -> Result<(), ScanError> {
     transaction
         .execute_batch(
             "CREATE TABLE schema_info (
                version INTEGER NOT NULL
              );
-             INSERT INTO schema_info(version) VALUES (15);
+             INSERT INTO schema_info(version) VALUES (16);
              CREATE TABLE catalog_state (
                revision INTEGER NOT NULL CHECK(revision >= 0)
              );
@@ -681,5 +682,75 @@ fn migrate_v14_to_v15(connection: &mut Connection) -> Result<(), ScanError> {
             )
             .map_err(database_error)?;
     }
+    transaction.commit().map_err(database_error)
+}
+
+fn migrate_v15_to_v16(connection: &mut Connection) -> Result<(), ScanError> {
+    let transaction = connection.transaction().map_err(database_error)?;
+    let has_library_roots: bool = transaction
+        .query_row(
+            "SELECT EXISTS(
+               SELECT 1 FROM sqlite_master
+               WHERE type = 'table' AND name = 'library_roots'
+             )",
+            [],
+            |row| row.get(0),
+        )
+        .map_err(database_error)?;
+    let location_columns = [
+        "scan_id",
+        "location_id",
+        "root_id",
+        "preview_path",
+        "preview_status",
+    ];
+    let can_reconcile_active_ownership = has_library_roots
+        && location_columns
+            .iter()
+            .try_fold(true, |all_present, column| {
+                transaction
+                    .query_row(
+                        "SELECT EXISTS(
+                       SELECT 1 FROM pragma_table_info('asset_locations')
+                       WHERE name = ?1
+                     )",
+                        [column],
+                        |row| row.get::<_, bool>(0),
+                    )
+                    .map(|present| all_present && present)
+                    .map_err(database_error)
+            })?;
+    if can_reconcile_active_ownership {
+        transaction
+            .execute(
+                "DELETE FROM preview_artifact_locations
+                 WHERE NOT EXISTS (
+                   SELECT 1
+                   FROM preview_artifacts AS artifacts
+                   JOIN asset_locations AS locations
+                     ON locations.location_id = preview_artifact_locations.location_id
+                    AND locations.preview_path = artifacts.artifact_path
+                    AND locations.preview_status = 'ready'
+                   JOIN library_roots AS roots
+                     ON roots.id = locations.root_id
+                    AND roots.active_scan_id = locations.scan_id
+                   WHERE artifacts.artifact_key = preview_artifact_locations.artifact_key
+                 )",
+                [],
+            )
+            .map_err(database_error)?;
+    }
+    transaction
+        .execute_batch(
+            "UPDATE preview_artifacts
+             SET lifecycle_state = 'stale'
+             WHERE lifecycle_state = 'ready'
+               AND NOT EXISTS (
+                 SELECT 1 FROM preview_artifact_locations AS owners
+                 WHERE owners.artifact_key = preview_artifacts.artifact_key
+               );
+             UPDATE schema_info SET version = 16;",
+        )
+        .map_err(database_error)?;
     transaction.commit().map_err(database_error)
 }

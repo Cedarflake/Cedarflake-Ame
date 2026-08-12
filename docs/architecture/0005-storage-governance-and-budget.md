@@ -101,7 +101,16 @@ may reference one rebuildable artifact. Reclamation excludes an artifact when an
 protected demand, and removal resets every active location that still names the artifact. Schema
 v15 migrates v14 rows by rebuilding those references from every catalog location that publishes
 the same artifact path; it does not infer ownership from the v14 row's last writer alone. Normal
-scan publication then keeps the reference set aligned with the active snapshot.
+scan publication then keeps the reference set aligned with the active snapshot. v16 transactionally
+removes historical references that cannot be proven by a ready preview in the current active scan,
+while preserving every valid shared reference and marking newly unreferenced artifacts stale.
+
+Root unregistration detaches every reference owned by the removed root before deleting its
+locations. Successful replacement-scan publication detaches locations that leave the active
+snapshot and then rebuilds references for retained ready previews. After either transition, a ready
+artifact with no remaining location references becomes stale for priority reclamation. Abandoning
+an unpublished scan does not detach by location identity because its staged row may share that
+identity with the still-authoritative active snapshot.
 
 A cache hit and a newly generated artifact have different publication lifecycles. A compatible
 cache hit remains installed when the current source revalidation fails. A new encoding stays in a
@@ -225,6 +234,10 @@ Current deterministic lifecycle evidence covers:
   pressure reclamation without deleting foreign files or eagerly discarding legacy reuse at startup;
 - proof that all compatible location references protect a shared artifact, reclamation resets every
   referencing location, and v14 last-writer ownership migrates without losing active references;
+- proof that root unregistration and successful replacement publication remove retired location
+  references, stale only zero-reference artifacts, and leave active references intact when a staged
+  scan is abandoned, including a v15-to-v16 fixture that reconciles historical ownership without
+  dropping valid shared references;
 - proof that new encodings remain staged until post-decode source revalidation, while failed
   revalidation never deletes a compatible cache hit;
 - measured bounded variant selection without per-pixel key growth;
