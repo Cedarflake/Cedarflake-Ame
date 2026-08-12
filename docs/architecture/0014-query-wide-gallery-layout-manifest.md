@@ -129,7 +129,10 @@ interactive. Ownership transfer from the temporary window layout to the query-wi
 migrate the loaded visible logical item into the new scroll position. If that item is no longer in
 the active window, the current window start is the fallback. The newly attached scroll position's
 default pixel zero is never accepted as navigation intent, so a completed first timeline seek
-cannot be pulled back to the top by late manifest publication.
+cannot be pulled back to the top by late manifest publication. The temporary wall and query-wide
+wall retain the same `CustomScrollView` element and `ScrollController`; the first query-wide sliver
+applies the anchor delta as a layout-time scroll-offset correction before painting. A post-frame
+`jumpTo` is not part of the transfer because it would expose an intermediate blank or wrong frame.
 
 ### One navigation coordinator
 

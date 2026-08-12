@@ -1,6 +1,3 @@
-import "dart:typed_data";
-import "dart:ui" as ui;
-
 import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/app/presentation/ame_overlay_semantics.dart";
 import "package:cedarflake_ame/app/presentation/ame_theme.dart";
@@ -13,15 +10,16 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_nav
 import "package:cedarflake_ame/features/library/presentation/widgets/library_photo_tile.dart";
 import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
-import "package:flutter/semantics.dart";
 import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
-void main() {
-  _ReachableSemanticsBinding();
+import "../../../support/semantics/retained_semantics_update_harness.dart";
 
-  setUp(_SemanticsReachabilityValidator.reset);
+void main() {
+  RetainedSemanticsUpdateBinding();
+
+  setUp(RetainedSemanticsUpdateValidator.instance.reset);
 
   testWidgets(
     "keeps sidebar overlay updates reachable through rebuilds and interactions",
@@ -86,7 +84,7 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text("在文件资源管理器中打开"), findsOneWidget);
 
-        _SemanticsReachabilityValidator.verifyLatestUpdate();
+        RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate();
         await mouse.removePointer();
       } finally {
         seedColor.dispose();
@@ -139,7 +137,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 25));
       await tester.pump(const Duration(milliseconds: 50));
-      _SemanticsReachabilityValidator.verifyLatestUpdate();
+      RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate();
       await mouse.removePointer();
     } finally {
       semanticsHandle.dispose();
@@ -181,7 +179,7 @@ void main() {
 
       final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
       await mouse.addPointer();
-      for (final key in const [
+      const hoverTrace = <Key>[
         Key("window-minimize"),
         Key("window-maximize"),
         Key("library-sort-menu"),
@@ -189,18 +187,34 @@ void main() {
         Key("library-more-menu"),
         Key("timeline-previous"),
         Key("timeline-next"),
-      ]) {
+      ];
+      for (final (step, key) in hoverTrace.indexed) {
         await mouse.moveTo(tester.getCenter(find.byKey(key)));
         await tester.pump(const Duration(milliseconds: 600));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 25));
         await tester.pump(const Duration(milliseconds: 50));
+        RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
+          trace: "application-overlay-trace hover[$step]=$key",
+        );
       }
 
-      await tester.tap(find.byKey(const Key("library-sort-menu")));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key("library-sort-menu")));
-      await tester.pumpAndSettle();
+      for (final key in const [
+        Key("library-sort-menu"),
+        Key("library-layout-menu"),
+        Key("library-more-menu"),
+      ]) {
+        await tester.tap(find.byKey(key));
+        await tester.pumpAndSettle();
+        RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
+          trace: "application-overlay-trace menu-open=$key",
+        );
+        await tester.tap(find.byKey(key));
+        await tester.pumpAndSettle();
+        RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
+          trace: "application-overlay-trace menu-close=$key",
+        );
+      }
 
       final slider = tester.widget<Slider>(
         find.byKey(const Key("timeline-slider")),
@@ -209,12 +223,19 @@ void main() {
       slider.onChanged?.call(0.5);
       slider.onChangeEnd?.call(0.5);
       await tester.pump();
+      RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
+        trace: "application-overlay-trace timeline-slider",
+      );
 
       final tile = find.byType(LibraryPhotoTile).hitTestable().first;
       final tileRect = tester.getRect(tile);
       await tester.tapAt(tileRect.topLeft + const Offset(16, 16));
       await tester.pump();
+      await tester.pump();
       expect(find.byKey(const Key("viewer-back-button")), findsOneWidget);
+      RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
+        trace: "application-overlay-trace viewer-open",
+      );
 
       final viewerSlider = tester.widget<Slider>(
         find.descendant(
@@ -226,7 +247,11 @@ void main() {
       viewerSlider.onChanged?.call(1.25);
       viewerSlider.onChangeEnd?.call(1.25);
       await tester.pump();
+      RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
+        trace: "application-overlay-trace viewer-slider",
+      );
 
+      var viewerHoverStep = 0;
       for (final finder in [
         find.byKey(const Key("viewer-back-button")),
         find.byKey(const Key("viewer-more-menu")),
@@ -236,19 +261,55 @@ void main() {
         await mouse.moveTo(tester.getCenter(finder));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 600));
+        RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
+          trace: "application-overlay-trace viewer-hover[$viewerHoverStep]",
+        );
+        viewerHoverStep += 1;
       }
 
       await tester.tap(find.byKey(const Key("viewer-more-menu")));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
+      RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
+        trace: "application-overlay-trace viewer-menu-open",
+      );
       await tester.tap(find.byKey(const Key("viewer-more-menu")));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
+      RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
+        trace: "application-overlay-trace viewer-menu-close",
+      );
       await tester.tap(find.byKey(const Key("viewer-back-button")));
+      await tester.pump();
       await tester.pump();
       expect(find.byKey(const ValueKey("location-1")), findsOneWidget);
 
-      _SemanticsReachabilityValidator.verifyLatestUpdate();
+      RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
+        trace: "application-overlay-trace viewer-close",
+      );
+
+      final reopenedTile = find.byType(LibraryPhotoTile).hitTestable().first;
+      final reopenedTileRect = tester.getRect(reopenedTile);
+      await tester.tapAt(reopenedTileRect.topLeft + const Offset(16, 16));
+      await tester.pump();
+      RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
+        trace: "application-overlay-trace viewer-reopen-frame-1",
+      );
+      await tester.pump();
+      expect(find.byKey(const Key("viewer-back-button")), findsOneWidget);
+      RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
+        trace: "application-overlay-trace viewer-reopen-frame-2",
+      );
+      await tester.tap(find.byKey(const Key("viewer-back-button")));
+      await tester.pump();
+      RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
+        trace: "application-overlay-trace viewer-reclose-frame-1",
+      );
+      await tester.pump();
+      expect(find.byKey(const ValueKey("location-1")), findsOneWidget);
+      RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
+        trace: "application-overlay-trace viewer-reclose-frame-2",
+      );
       await mouse.removePointer();
     } finally {
       semanticsHandle.dispose();
@@ -359,128 +420,3 @@ Widget _buildNavigation() {
 }
 
 void _noop() {}
-
-class _ReachableSemanticsBinding extends AutomatedTestWidgetsFlutterBinding {
-  @override
-  ui.SemanticsUpdateBuilder createSemanticsUpdateBuilder() {
-    return _ReachableSemanticsUpdateBuilder();
-  }
-}
-
-class _ReachableSemanticsUpdateBuilder extends Fake
-    implements ui.SemanticsUpdateBuilder {
-  final ui.SemanticsUpdateBuilder _delegate = ui.SemanticsUpdateBuilder();
-  final Map<int, List<int>> _updates = {};
-
-  @override
-  void updateNode({
-    required int id,
-    required SemanticsFlags flags,
-    required int actions,
-    required int maxValueLength,
-    required int currentValueLength,
-    required int textSelectionBase,
-    required int textSelectionExtent,
-    required int platformViewId,
-    required int scrollChildren,
-    required int scrollIndex,
-    required int? traversalParent,
-    required double scrollPosition,
-    required double scrollExtentMax,
-    required double scrollExtentMin,
-    required Rect rect,
-    required String identifier,
-    required String label,
-    List<StringAttribute>? labelAttributes,
-    required String value,
-    List<StringAttribute>? valueAttributes,
-    required String increasedValue,
-    List<StringAttribute>? increasedValueAttributes,
-    required String decreasedValue,
-    List<StringAttribute>? decreasedValueAttributes,
-    required String hint,
-    List<StringAttribute>? hintAttributes,
-    String? tooltip,
-    TextDirection? textDirection,
-    required Float64List transform,
-    required Float64List hitTestTransform,
-    required Int32List childrenInTraversalOrder,
-    required Int32List childrenInHitTestOrder,
-    required Int32List additionalActions,
-    int headingLevel = 0,
-    String? linkUrl,
-    SemanticsRole role = SemanticsRole.none,
-    required List<String>? controlsNodes,
-    SemanticsValidationResult validationResult = SemanticsValidationResult.none,
-    ui.SemanticsHitTestBehavior hitTestBehavior =
-        ui.SemanticsHitTestBehavior.defer,
-    required ui.SemanticsInputType inputType,
-    required ui.Locale? locale,
-    required String minValue,
-    required String maxValue,
-  }) {
-    _updates[id] = childrenInTraversalOrder.toList(growable: false);
-  }
-
-  @override
-  void updateCustomAction({
-    required int id,
-    String? label,
-    String? hint,
-    int overrideId = -1,
-  }) {
-    _delegate.updateCustomAction(
-      id: id,
-      label: label,
-      hint: hint,
-      overrideId: overrideId,
-    );
-  }
-
-  @override
-  ui.SemanticsUpdate build() {
-    _SemanticsReachabilityValidator.apply(_updates);
-    return _delegate.build();
-  }
-}
-
-abstract final class _SemanticsReachabilityValidator {
-  static final Map<int, List<int>> _nodes = {};
-  static String? _latestFailure;
-
-  static void reset() {
-    _nodes.clear();
-    _latestFailure = null;
-  }
-
-  static void apply(Map<int, List<int>> updates) {
-    _nodes.addAll(updates);
-    if (!_nodes.containsKey(0)) {
-      return;
-    }
-    final reachable = <int>{};
-    final pending = <int>[0];
-    while (pending.isNotEmpty) {
-      final id = pending.removeLast();
-      if (!reachable.add(id)) {
-        continue;
-      }
-      pending.addAll(_nodes[id] ?? const []);
-    }
-    final orphans = updates.keys.where((id) => !reachable.contains(id)).toList()
-      ..sort();
-    if (orphans.isNotEmpty) {
-      _latestFailure =
-          "Semantics update contains nodes unreachable from root 0: $orphans; "
-          "updates=$updates";
-      throw TestFailure(_latestFailure!);
-    }
-    _nodes.removeWhere((id, _) => !reachable.contains(id));
-  }
-
-  static void verifyLatestUpdate() {
-    if (_latestFailure case final failure?) {
-      throw TestFailure(failure);
-    }
-  }
-}

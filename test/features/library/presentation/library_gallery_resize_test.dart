@@ -123,7 +123,7 @@ void main() {
     expect(previewDemand.visible, contains(anchorBefore!.locationId));
     expect(previewDemand.nearDirection, isNotEmpty);
     expect(previewDemand.guard, isNotEmpty);
-    final anchorFinder = find.byKey(ValueKey(anchorBefore.locationId!));
+    final anchorFinder = find.byKey(ValueKey(anchorBefore.locationId));
     final initialRenderSliver = tester
         .renderObject<RenderLibraryExactExtentSliver>(
           find.byType(LibraryExactExtentSliver),
@@ -268,6 +268,173 @@ void main() {
     expect(controller.previousPageRequests, 0);
     expect(controller.timeSeekRequests, 0);
     expect(previousRequests, 0);
+  });
+
+  testWidgets(
+    "publishes the first query-wide manifest without a blank or second jump",
+    (tester) async {
+      const itemCount = 4000;
+      const wallSize = Size(900, 620);
+      final state = _state(itemCount);
+      final manifest = ValueNotifier<LibraryGalleryLayoutManifest?>(null);
+      final controller = _RecordingGalleryController();
+      final scrollController = ScrollController();
+      LibraryGalleryVisiblePosition? visiblePosition;
+      addTearDown(() async {
+        scrollController.dispose();
+        manifest.dispose();
+        await tester.binding.setSurfaceSize(null);
+      });
+      await tester.binding.setSurfaceSize(const Size(1100, 760));
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: ValueListenableBuilder(
+              valueListenable: manifest,
+              builder: (context, currentManifest, child) => Align(
+                alignment: Alignment.topLeft,
+                child: SizedBox(
+                  width: wallSize.width,
+                  height: wallSize.height,
+                  child: LibraryGalleryWall(
+                    state: state,
+                    controller: controller,
+                    scrollController: scrollController,
+                    layoutShape: GalleryLayoutShape.equalHeight,
+                    thumbnailSize: GalleryThumbnailSize.medium,
+                    selection: GallerySelection.empty(state.queryId),
+                    isSelecting: false,
+                    layoutManifest: currentManifest,
+                    initialQueryWidePosition: visiblePosition,
+                    onOpen: (_) {},
+                    onToggleSelection: (_) {},
+                    onViewInformation: (_) {},
+                    onCopyPath: (_) {},
+                    onRevealFile: (_) {},
+                    onVisiblePositionChanged: (position) {
+                      visiblePosition = position;
+                    },
+                    onLoadPrevious: controller.loadPreviousPage,
+                    onLayoutChanged: (_, _) {},
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      scrollController.jumpTo(1480);
+      await tester.pump();
+      await tester.pump();
+
+      final anchorBefore = visiblePosition;
+      expect(anchorBefore, isNotNull);
+      expect(
+        anchorBefore!.locationId,
+        "location-${anchorBefore.globalItemIndex}",
+      );
+      final scrollableElementBefore = tester.element(
+        find.byType(CustomScrollView),
+      );
+      final anchorFinder = find.byKey(ValueKey(anchorBefore.locationId));
+      final wallFinder = find.byKey(const Key("library-photo-wall"));
+      expect(anchorFinder, findsOneWidget);
+      final anchorTopBefore =
+          tester.getTopLeft(anchorFinder).dy - tester.getTopLeft(wallFinder).dy;
+
+      manifest.value = _manifest(itemCount);
+      await tester.pump();
+
+      expect(find.byType(LibraryPhotoTile), findsWidgets);
+      expect(
+        identical(
+          tester.element(find.byType(CustomScrollView)),
+          scrollableElementBefore,
+        ),
+        isTrue,
+      );
+      expect(anchorFinder, findsOneWidget);
+      final anchorTopAfterPublication =
+          tester.getTopLeft(anchorFinder).dy - tester.getTopLeft(wallFinder).dy;
+      expect(anchorTopAfterPublication, closeTo(anchorTopBefore, 2));
+      final pixelsAfterPublication = scrollController.position.pixels;
+
+      await tester.pump();
+
+      expect(find.byType(LibraryPhotoTile), findsWidgets);
+      expect(anchorFinder, findsOneWidget);
+      expect(
+        scrollController.position.pixels,
+        closeTo(pixelsAfterPublication, 0.01),
+      );
+      expect(
+        tester.getTopLeft(anchorFinder).dy - tester.getTopLeft(wallFinder).dy,
+        closeTo(anchorTopAfterPublication, 0.01),
+      );
+    },
+  );
+
+  testWidgets("a manifest available before scrolling keeps the native offset", (
+    tester,
+  ) async {
+    const itemCount = 4000;
+    final state = _state(itemCount);
+    final manifest = _manifest(itemCount);
+    final snapshot = LibraryGalleryLayoutSnapshot.build(
+      manifest: manifest,
+      availableWidth: 860,
+      thumbnailSize: GalleryThumbnailSize.medium,
+      sortKey: LibraryGallerySortKey.captureTime,
+    );
+    final controller = _RecordingGalleryController();
+    final scrollController = ScrollController();
+    addTearDown(() async {
+      scrollController.dispose();
+      await tester.binding.setSurfaceSize(null);
+    });
+    await tester.binding.setSurfaceSize(const Size(1000, 700));
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: 900,
+              height: 620,
+              child: LibraryGalleryWall(
+                state: state,
+                controller: controller,
+                scrollController: scrollController,
+                layoutShape: GalleryLayoutShape.equalHeight,
+                thumbnailSize: GalleryThumbnailSize.medium,
+                selection: GallerySelection.empty(state.queryId),
+                isSelecting: false,
+                layoutManifest: manifest,
+                onOpen: (_) {},
+                onToggleSelection: (_) {},
+                onViewInformation: (_) {},
+                onCopyPath: (_) {},
+                onRevealFile: (_) {},
+                onVisiblePositionChanged: (_) {},
+                onLoadPrevious: controller.loadPreviousPage,
+                onLayoutChanged: (_, _) {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    scrollController.jumpTo(snapshot.metrics.itemOffsets[3000]);
+    await tester.pump();
+    final pixelsAfterScroll = scrollController.position.pixels;
+    await tester.pump();
+
+    expect(scrollController.position.pixels, pixelsAfterScroll);
+    expect(find.byType(LibraryPhotoTile), findsWidgets);
   });
 
   testWidgets("keeps the viewed top item stable through width-only resize", (
@@ -434,7 +601,7 @@ void main() {
 
       final anchorBefore = visiblePosition;
       expect(anchorBefore, isNotNull);
-      final anchorFinder = find.byKey(ValueKey(anchorBefore!.locationId!));
+      final anchorFinder = find.byKey(ValueKey(anchorBefore!.locationId));
       expect(anchorFinder, findsOneWidget);
       final anchorTopBefore = tester.getTopLeft(anchorFinder).dy;
 

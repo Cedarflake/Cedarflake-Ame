@@ -226,14 +226,17 @@ verified to provide controlled `DropdownMenu` selection, selection callbacks, di
 select-only behavior. Preview loading speed therefore reuses the repository-owned `SettingsChoice`
 composition and adds no custom pointer, focus, keyboard, or semantics layer.
 
-Flutter 3.44.9 can serialize an unreachable Windows semantics node when sibling `OverlayPortal`
-anchors, including `Tooltip` and `MenuAnchor`, exchange traversal ownership during an overlay
-transition. Ame keeps the framework controls and isolates each overlay anchor with a dedicated
-`Semantics` container until the pinned Flutter SDK includes the upstream traversal-parent fixes.
-The workaround changes only semantics-tree grouping and is covered by an incremental update test
-that requires every serialized node to remain reachable from root node `0`. Flutter's separate
-pushed-route `Slider` defect is not treated as the same issue; Ame's `IndexedStack` viewer path is
-validated directly and must be re-evaluated if viewer navigation changes.
+Flutter 3.44.9 has two retained `OverlayPortal` semantics failure modes that Ame must contain until
+the pinned SDK includes the corresponding engine and framework fixes. Sibling `Tooltip` and
+`MenuAnchor` anchors can exchange traversal ownership during an overlay transition, so Ame keeps
+the framework controls and isolates each overlay anchor with a dedicated `Semantics` container.
+Material `Slider` also retains a value-indicator portal. When the gallery's timeline Slider becomes
+offstage inside the viewer `IndexedStack`, Flutter can prune that portal node and then serialize its
+old child identifier when the retained Slider returns. Ame therefore recreates only the timeline
+navigation subtree when the viewer closes; the gallery `Scrollable`, its `ScrollController`, and
+the logical viewport anchor remain intact. The regression harness forwards the real incremental
+semantics update while retaining prior nodes, then rejects missing children, multiple parents,
+cycles, and updated orphan nodes across tooltip, menu, Slider, and viewer transitions.
 
 Windows accent-color integration uses the operating system's documented
 `DwmGetColorizationColor` API and `WM_DWMCOLORIZATIONCOLORCHANGED` notification through an Ame-owned
@@ -264,6 +267,10 @@ theme type crossing into widgets or application contracts.
 - Widget tests cover desktop and constrained widths, selection replacement, source alignment,
   Windows hover behavior, bidirectional gallery and Slider synchronization, nonuniform time marks,
   duplicate filtering, settings, and temporary import progress.
+- Retained semantics tests exercise application-level tooltip, menu, timeline Slider, viewer
+  Slider, viewer menu, and viewer-return sequences against a retained Flutter semantics child-graph
+  model that verifies AXTree reachability preconditions. This does not replace a native Windows
+  `AccessibilityBridge` stderr canary for engine reparenting and update ordering.
 - Pure layout and widget tests confirm balanced justified rows fill one gallery width and sparse rows
   do not exceed their enlargement limit.
 - Flutter analysis, the full Flutter test suite, and a Windows Debug build passed for the accepted
