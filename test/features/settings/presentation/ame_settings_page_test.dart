@@ -1,5 +1,6 @@
 import "dart:async";
 
+import "package:cedarflake_ame/app/presentation/ame_theme.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
 import "package:cedarflake_ame/features/settings/presentation/ame_settings_page.dart";
 import "package:cedarflake_ame/features/storage/application/storage_settings.dart";
@@ -7,6 +8,7 @@ import "package:cedarflake_ame/features/storage/domain/storage_models.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
+import "package:material_symbols_icons/symbols.dart";
 
 void main() {
   testWidgets("renders settings in the main canvas with plain-language rows", (
@@ -18,8 +20,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [storageSettingsGatewayProvider.overrideWithValue(gateway)],
-        child: const MaterialApp(
-          home: Scaffold(body: AmeSettingsPage(hasLibraryRoots: true)),
+        child: MaterialApp(
+          theme: buildAmeTheme(),
+          home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: true)),
         ),
       ),
     );
@@ -41,6 +44,21 @@ void main() {
       findsOneWidget,
     );
     expect(find.textContaining(r"\\?\C:\AmeData"), findsNothing);
+    final menus = tester
+        .widgetList<DropdownMenu<dynamic>>(
+          find.byWidgetPredicate((widget) => widget is DropdownMenu),
+        )
+        .toList(growable: false);
+    expect(menus, hasLength(5));
+    for (final menu in menus) {
+      expect((menu.trailingIcon as Icon).icon, Symbols.arrow_drop_down_rounded);
+      expect(
+        (menu.selectedTrailingIcon as Icon).icon,
+        Symbols.arrow_drop_up_rounded,
+      );
+    }
+    expect(find.byIcon(Icons.arrow_drop_down), findsNothing);
+    expect(find.byIcon(Icons.arrow_drop_up), findsNothing);
   });
 
   testWidgets("changes the persisted preview loading speed", (tester) async {
@@ -54,8 +72,9 @@ void main() {
           amePreferenceStoreProvider.overrideWithValue(preferenceStore),
           storageSettingsGatewayProvider.overrideWithValue(gateway),
         ],
-        child: const MaterialApp(
-          home: Scaffold(body: AmeSettingsPage(hasLibraryRoots: true)),
+        child: MaterialApp(
+          theme: buildAmeTheme(),
+          home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: true)),
         ),
       ),
     );
@@ -67,9 +86,46 @@ void main() {
     );
     await tester.ensureVisible(speedMenu);
     await tester.pumpAndSettle();
-    await tester.tap(speedMenu.hitTestable());
+    final speedSetting = find.byKey(const Key("preview-loading-speed-setting"));
+    await tester.tap(
+      find
+          .descendant(
+            of: speedSetting,
+            matching: find.byIcon(Symbols.arrow_drop_down_rounded),
+          )
+          .hitTestable(),
+    );
     await tester.pumpAndSettle();
-    await tester.tap(find.text("大").hitTestable());
+    expect(
+      find.byIcon(Symbols.arrow_drop_up_rounded).hitTestable(),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find
+          .descendant(
+            of: speedSetting,
+            matching: find.byIcon(Symbols.arrow_drop_up_rounded),
+          )
+          .hitTestable(),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text("大").hitTestable(), findsNothing);
+
+    await tester.tap(
+      find
+          .descendant(
+            of: speedSetting,
+            matching: find.byIcon(Symbols.arrow_drop_down_rounded),
+          )
+          .hitTestable(),
+    );
+    await tester.pumpAndSettle();
+    final largeOption = find.text("大").hitTestable();
+    expect(
+      DefaultTextStyle.of(tester.element(largeOption)).style.fontWeight,
+      FontWeight.w400,
+    );
+    await tester.tap(largeOption);
     await tester.pumpAndSettle();
 
     expect(
@@ -87,8 +143,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [storageSettingsGatewayProvider.overrideWithValue(gateway)],
-        child: const MaterialApp(
-          home: Scaffold(body: AmeSettingsPage(hasLibraryRoots: false)),
+        child: MaterialApp(
+          theme: buildAmeTheme(),
+          home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: false)),
         ),
       ),
     );
@@ -100,7 +157,36 @@ void main() {
     );
     await tester.ensureVisible(budgetMenu);
     await tester.pumpAndSettle();
-    await tester.tap(budgetMenu.hitTestable());
+    final budgetSetting = find.byKey(const Key("preview-budget-setting"));
+    await tester.tap(
+      find
+          .descendant(
+            of: budgetSetting,
+            matching: find.byIcon(Symbols.arrow_drop_down_rounded),
+          )
+          .hitTestable(),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text("8 GB").hitTestable(), findsOneWidget);
+    await tester.tap(
+      find
+          .descendant(
+            of: budgetSetting,
+            matching: find.byIcon(Symbols.arrow_drop_up_rounded),
+          )
+          .hitTestable(),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text("8 GB").hitTestable(), findsNothing);
+
+    await tester.tap(
+      find
+          .descendant(
+            of: budgetSetting,
+            matching: find.byIcon(Symbols.arrow_drop_down_rounded),
+          )
+          .hitTestable(),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text("8 GB").hitTestable());
     await tester.pumpAndSettle();
@@ -123,8 +209,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [storageSettingsGatewayProvider.overrideWithValue(gateway)],
-        child: const MaterialApp(
-          home: Scaffold(body: AmeSettingsPage(hasLibraryRoots: true)),
+        child: MaterialApp(
+          theme: buildAmeTheme(),
+          home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: true)),
         ),
       ),
     );
@@ -217,8 +304,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [storageSettingsGatewayProvider.overrideWithValue(gateway)],
-        child: const MaterialApp(
-          home: Scaffold(body: AmeSettingsPage(hasLibraryRoots: true)),
+        child: MaterialApp(
+          theme: buildAmeTheme(),
+          home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: true)),
         ),
       ),
     );

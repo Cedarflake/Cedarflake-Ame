@@ -2,7 +2,6 @@ import "package:flutter/material.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_menu.dart";
-import "../../../../app/presentation/ame_popup_menu_position.dart";
 import "../../domain/library_models.dart";
 import "../gallery_view_options.dart";
 import "../library_strings.dart";
@@ -281,7 +280,7 @@ class _SortMenuState extends State<_SortMenu> {
       builder: (context, controller, child) => IconButton(
         key: const Key("library-sort-menu"),
         tooltip: LibraryStrings.sort,
-        onPressed: controller.open,
+        onPressed: () => toggleAmeMenu(controller),
         icon: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -355,7 +354,7 @@ class _LayoutMenuState extends State<_LayoutMenu> {
       builder: (context, controller, child) => IconButton(
         key: const Key("library-layout-menu"),
         tooltip: LibraryStrings.layout,
-        onPressed: controller.open,
+        onPressed: () => toggleAmeMenu(controller),
         icon: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -375,61 +374,65 @@ class _MoreMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Builder(
-      builder: (anchorContext) => IconButton(
+    final menuWidth = amePopupMenuContentWidth(
+      context: context,
+      labels: const [LibraryStrings.selectAll],
+      shortcuts: const ["Ctrl+A"],
+    );
+    return AmeMenuAnchor(
+      style: ameFixedWidthMenuStyle(menuWidth),
+      alignmentOffset: ameMenuBelowEndAlignment(
+        menuWidth: menuWidth,
+        endOffset: 8,
+      ),
+      menuChildren: [
+        ameFixedWidthMenuItem(
+          width: menuWidth,
+          child: MenuItemButton(
+            onPressed: onSelectAll,
+            child: const AmeMenuItemContent(
+              icon: Symbols.select_all_rounded,
+              label: LibraryStrings.selectAll,
+              shortcut: "Ctrl+A",
+            ),
+          ),
+        ),
+      ],
+      builder: (context, controller, child) => IconButton(
         key: const Key("library-more-menu"),
         tooltip: LibraryStrings.more,
-        onPressed: () => _showMenu(context, anchorContext),
+        onPressed: () => toggleAmeMenu(controller),
         icon: const Icon(Symbols.more_horiz_rounded),
       ),
     );
   }
-
-  Future<void> _showMenu(
-    BuildContext context,
-    BuildContext anchorContext,
-  ) async {
-    final position = amePopupMenuBelowAnchor(
-      context: context,
-      anchorContext: anchorContext,
-      viewportRightMargin: AmeMenuMetrics.viewportPadding,
-    );
-    if (position == null) {
-      return;
-    }
-    final shouldSelectAll = await showAmePopupMenu<bool>(
-      context: context,
-      position: position,
-      labels: const [LibraryStrings.selectAll],
-      shortcuts: const ["Ctrl+A"],
-      items: const [
-        PopupMenuItem(
-          value: true,
-          child: AmeMenuItemContent(
-            icon: Symbols.select_all_rounded,
-            label: LibraryStrings.selectAll,
-            shortcut: "Ctrl+A",
-          ),
-        ),
-      ],
-    );
-    if (shouldSelectAll == true && context.mounted) {
-      onSelectAll();
-    }
-  }
 }
 
-MenuItemButton _menuChoice({
+Widget _menuChoice({
   required String label,
   required IconData icon,
   required bool isSelected,
   required VoidCallback onPressed,
 }) {
-  return MenuItemButton(
-    onPressed: onPressed,
-    child: AmeMenuItemContent(
-      icon: isSelected ? Symbols.circle_rounded : icon,
-      label: label,
+  return Semantics(
+    key: ValueKey("menu-choice-$label"),
+    checked: isSelected,
+    inMutuallyExclusiveGroup: true,
+    child: MenuItemButton(
+      onPressed: onPressed,
+      leadingIcon: SizedBox(
+        width: AmeMenuMetrics.selectionIndicatorSlotWidth,
+        child: isSelected
+            ? const ExcludeSemantics(
+                child: Icon(
+                  Symbols.circle_rounded,
+                  size: AmeMenuMetrics.selectionIndicatorSize,
+                  fill: 1,
+                ),
+              )
+            : null,
+      ),
+      child: AmeMenuItemContent(icon: icon, label: label),
     ),
   );
 }

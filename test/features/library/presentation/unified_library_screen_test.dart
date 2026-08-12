@@ -1,5 +1,6 @@
 import "dart:async";
 import "dart:typed_data";
+import "dart:ui" show CheckedState;
 
 import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/app/presentation/ame_menu.dart";
@@ -544,6 +545,27 @@ void main() {
 
     await tester.tap(find.byKey(const Key("library-sort-menu")));
     await tester.pumpAndSettle();
+    _expectSelectedMenuChoice(
+      tester,
+      label: LibraryStrings.captureDate,
+      icon: Symbols.calendar_month_rounded,
+    );
+    _expectSelectedMenuChoice(
+      tester,
+      label: LibraryStrings.descending,
+      icon: Symbols.arrow_downward_rounded,
+    );
+    _expectUnselectedMenuChoice(
+      tester,
+      label: LibraryStrings.fileName,
+      icon: Symbols.text_fields_rounded,
+    );
+    await tester.tap(find.byKey(const Key("library-sort-menu")));
+    await tester.pumpAndSettle();
+    expect(find.text(LibraryStrings.createdDate), findsNothing);
+
+    await tester.tap(find.byKey(const Key("library-sort-menu")));
+    await tester.pumpAndSettle();
     await tester.tap(find.text(LibraryStrings.fileName).last);
     await tester.pumpAndSettle();
     expect(catalog.loadQueries.last.sortKey, LibraryGallerySortKey.fileName);
@@ -593,27 +615,22 @@ void main() {
     await tester.tap(find.byKey(const Key("library-layout-menu")));
     await tester.pumpAndSettle();
     expect(find.byType(AmeMenuItemContent), findsNWidgets(5));
-    expect(
-      find.descendant(
-        of: find.ancestor(
-          of: find.text(LibraryStrings.square),
-          matching: find.byType(MenuItemButton),
-        ),
-        matching: find.byIcon(Symbols.circle_rounded),
-      ),
-      findsOneWidget,
+    _expectSelectedMenuChoice(
+      tester,
+      label: LibraryStrings.square,
+      icon: Symbols.grid_view_rounded,
     );
-    expect(
-      find.descendant(
-        of: find.ancestor(
-          of: find.text(LibraryStrings.large),
-          matching: find.byType(MenuItemButton),
-        ),
-        matching: find.byIcon(Symbols.circle_rounded),
-      ),
-      findsOneWidget,
+    _expectSelectedMenuChoice(
+      tester,
+      label: LibraryStrings.large,
+      icon: Symbols.crop_square_rounded,
     );
+    await tester.tap(find.byKey(const Key("library-layout-menu")));
+    await tester.pumpAndSettle();
+    expect(find.text(LibraryStrings.equalHeight), findsNothing);
 
+    await tester.tap(find.byKey(const Key("library-layout-menu")));
+    await tester.pumpAndSettle();
     await tester.tap(find.text(LibraryStrings.equalHeight));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key("library-layout-menu")));
@@ -1134,12 +1151,15 @@ void main() {
     expect(find.byType(AmeMenuItemContent), findsNWidgets(3));
     final updateMenuItem = find.ancestor(
       of: find.text("更新图库"),
-      matching: find.byWidgetPredicate((widget) => widget is PopupMenuItem),
+      matching: find.byType(MenuItemButton),
     );
     expect(
       tester.getRect(updateMenuItem).right,
       closeTo(sourceMoreRect.right, 1),
     );
+    await tester.tapAt(sourceMoreRect.center);
+    await tester.pumpAndSettle();
+    expect(find.text("更新图库"), findsNothing);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
@@ -1173,12 +1193,29 @@ void main() {
     expect(find.text("不选择任何项目"), findsNothing);
     final selectAllMenuItem = find.ancestor(
       of: find.text("全选"),
-      matching: find.byWidgetPredicate((widget) => widget is PopupMenuItem),
+      matching: find.byType(MenuItemButton),
+    );
+    final shortcutFinder = find.text("Ctrl+A");
+    final shortcut = tester.widget<Text>(shortcutFinder);
+    expect(shortcut.softWrap, isFalse);
+    expect(shortcut.overflow, isNull);
+    expect(
+      tester.getRect(shortcutFinder).right,
+      lessThanOrEqualTo(tester.getRect(selectAllMenuItem).right),
     );
     expect(
       tester.view.physicalSize.width - tester.getRect(selectAllMenuItem).right,
       closeTo(AmeMenuMetrics.viewportPadding, 1),
     );
+    final moreButtonCenter = tester.getCenter(
+      find.byKey(const Key("library-more-menu")),
+    );
+    await tester.tapAt(moreButtonCenter);
+    await tester.pumpAndSettle();
+    expect(find.text("全选"), findsNothing);
+
+    await tester.tap(find.byKey(const Key("library-more-menu")));
+    await tester.pumpAndSettle();
     await tester.tap(find.text("全选"));
     await tester.pumpAndSettle();
 
@@ -1579,6 +1616,55 @@ LibraryAsset _galleryAsset({
       source: LibraryCaptureTimeSource.exifDateTimeOriginal,
       rawValue: captureLocalTime,
     ),
+  );
+}
+
+void _expectSelectedMenuChoice(
+  WidgetTester tester, {
+  required String label,
+  required IconData icon,
+}) {
+  final item = _menuItem(label);
+  expect(
+    find.descendant(of: item, matching: find.byIcon(icon)),
+    findsOneWidget,
+  );
+  expect(
+    find.descendant(of: item, matching: find.byIcon(Symbols.circle_rounded)),
+    findsOneWidget,
+  );
+  final semantics = tester.getSemantics(
+    find.byKey(ValueKey("menu-choice-$label")),
+  );
+  expect(semantics.flagsCollection.isChecked, CheckedState.isTrue);
+  expect(semantics.flagsCollection.isInMutuallyExclusiveGroup, isTrue);
+}
+
+void _expectUnselectedMenuChoice(
+  WidgetTester tester, {
+  required String label,
+  required IconData icon,
+}) {
+  final item = _menuItem(label);
+  expect(
+    find.descendant(of: item, matching: find.byIcon(icon)),
+    findsOneWidget,
+  );
+  expect(
+    find.descendant(of: item, matching: find.byIcon(Symbols.circle_rounded)),
+    findsNothing,
+  );
+  final semantics = tester.getSemantics(
+    find.byKey(ValueKey("menu-choice-$label")),
+  );
+  expect(semantics.flagsCollection.isChecked, CheckedState.isFalse);
+  expect(semantics.flagsCollection.isInMutuallyExclusiveGroup, isTrue);
+}
+
+Finder _menuItem(String label) {
+  return find.ancestor(
+    of: find.text(label).last,
+    matching: find.byType(MenuItemButton),
   );
 }
 

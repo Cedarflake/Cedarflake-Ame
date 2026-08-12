@@ -44,6 +44,7 @@ class LibrarySourceNavigationTile extends StatefulWidget {
 class _LibrarySourceNavigationTileState
     extends State<LibrarySourceNavigationTile> {
   final FocusNode _focusNode = FocusNode(debugLabel: "Library source");
+  final MenuController _buttonMenuController = MenuController();
 
   @override
   void dispose() {
@@ -53,6 +54,14 @@ class _LibrarySourceNavigationTileState
 
   @override
   Widget build(BuildContext context) {
+    final buttonMenuWidth = amePopupMenuContentWidth(
+      context: context,
+      labels: const [
+        LibraryStrings.updateLibrary,
+        LibraryStrings.openInExplorer,
+        LibraryStrings.removeFromAme,
+      ],
+    );
     final icon = switch (widget.root.availability) {
       LibraryRootAvailability.available ||
       LibraryRootAvailability.unknown => Symbols.folder_rounded,
@@ -97,13 +106,49 @@ class _LibrarySourceNavigationTileState
                           : Symbols.keyboard_arrow_down_rounded,
                     ),
                   ),
-                  Builder(
-                    builder: (buttonContext) => IconButton(
+                  AmeMenuAnchor(
+                    controller: _buttonMenuController,
+                    style: ameFixedWidthMenuStyle(buttonMenuWidth),
+                    alignmentOffset: ameMenuBelowEndAlignment(
+                      menuWidth: buttonMenuWidth,
+                    ),
+                    menuChildren: [
+                      ameFixedWidthMenuItem(
+                        width: buttonMenuWidth,
+                        child: MenuItemButton(
+                          onPressed: widget.isBusy ? null : widget.onUpdate,
+                          child: const AmeMenuItemContent(
+                            icon: Symbols.refresh_rounded,
+                            label: LibraryStrings.updateLibrary,
+                          ),
+                        ),
+                      ),
+                      ameFixedWidthMenuItem(
+                        width: buttonMenuWidth,
+                        child: MenuItemButton(
+                          onPressed: widget.onOpen,
+                          child: const AmeMenuItemContent(
+                            icon: Symbols.folder_open_rounded,
+                            label: LibraryStrings.openInExplorer,
+                          ),
+                        ),
+                      ),
+                      const Divider(height: AmeMenuMetrics.dividerHeight),
+                      ameFixedWidthMenuItem(
+                        width: buttonMenuWidth,
+                        child: MenuItemButton(
+                          onPressed: widget.isBusy ? null : widget.onRemove,
+                          child: const AmeMenuItemContent(
+                            icon: Symbols.remove_circle_rounded,
+                            label: LibraryStrings.removeFromAme,
+                          ),
+                        ),
+                      ),
+                    ],
+                    builder: (context, controller, child) => IconButton(
                       key: ValueKey("source-more-${widget.root.id}"),
                       tooltip: LibraryStrings.more,
-                      onPressed: () {
-                        unawaited(_showMenuBelow(buttonContext));
-                      },
+                      onPressed: () => toggleAmeMenu(controller),
                       icon: const Icon(Symbols.more_vert_rounded),
                     ),
                   ),
@@ -117,13 +162,13 @@ class _LibrarySourceNavigationTileState
         const SingleActivator(LogicalKeyboardKey.contextMenu): () {
           final anchorContext = _focusNode.context;
           if (anchorContext != null) {
-            unawaited(_showMenuBelow(anchorContext));
+            unawaited(_showMenuAtAnchor(anchorContext));
           }
         },
         const SingleActivator(LogicalKeyboardKey.f10, shift: true): () {
           final anchorContext = _focusNode.context;
           if (anchorContext != null) {
-            unawaited(_showMenuBelow(anchorContext));
+            unawaited(_showMenuAtAnchor(anchorContext));
           }
         },
       },
@@ -137,7 +182,7 @@ class _LibrarySourceNavigationTileState
     );
   }
 
-  Future<void> _showMenuBelow(BuildContext anchorContext) async {
+  Future<void> _showMenuAtAnchor(BuildContext anchorContext) async {
     final position = amePopupMenuBelowAnchor(
       context: context,
       anchorContext: anchorContext,

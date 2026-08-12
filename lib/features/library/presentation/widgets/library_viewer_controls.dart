@@ -1,10 +1,7 @@
-import "dart:async";
-
 import "package:flutter/material.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_menu.dart";
-import "../../../../app/presentation/ame_popup_menu_position.dart";
 import "../../../../app/window/ame_window_chrome.dart";
 import "../library_strings.dart";
 import "library_path_text.dart";
@@ -29,6 +26,10 @@ class LibraryViewerTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final moreMenuWidth = amePopupMenuContentWidth(
+      context: context,
+      labels: const [LibraryStrings.copyPath, LibraryStrings.openInExplorer],
+    );
     return Material(
       key: const Key("viewer-window-bar"),
       color: Theme.of(context).colorScheme.surfaceContainerLow,
@@ -79,13 +80,38 @@ class LibraryViewerTopBar extends StatelessWidget {
               onPressed: onInformation,
               icon: const Icon(Symbols.info_rounded),
             ),
-            Builder(
-              builder: (buttonContext) => IconButton(
+            AmeMenuAnchor(
+              style: ameFixedWidthMenuStyle(moreMenuWidth),
+              alignmentOffset: ameMenuBelowEndAlignment(
+                menuWidth: moreMenuWidth,
+              ),
+              reservedPadding: const EdgeInsets.fromLTRB(12, 12, 16, 12),
+              menuChildren: [
+                ameFixedWidthMenuItem(
+                  width: moreMenuWidth,
+                  child: MenuItemButton(
+                    onPressed: onCopyPath,
+                    child: const AmeMenuItemContent(
+                      icon: Symbols.content_copy_rounded,
+                      label: LibraryStrings.copyPath,
+                    ),
+                  ),
+                ),
+                ameFixedWidthMenuItem(
+                  width: moreMenuWidth,
+                  child: MenuItemButton(
+                    onPressed: onRevealFile,
+                    child: const AmeMenuItemContent(
+                      icon: Symbols.folder_open_rounded,
+                      label: LibraryStrings.openInExplorer,
+                    ),
+                  ),
+                ),
+              ],
+              builder: (context, controller, child) => IconButton(
                 key: const Key("viewer-more-menu"),
                 tooltip: LibraryStrings.more,
-                onPressed: () {
-                  unawaited(_showMoreMenu(buttonContext));
-                },
+                onPressed: () => toggleAmeMenu(controller),
                 icon: const Icon(Symbols.more_horiz_rounded),
               ),
             ),
@@ -95,50 +121,7 @@ class LibraryViewerTopBar extends StatelessWidget {
       ),
     );
   }
-
-  Future<void> _showMoreMenu(BuildContext anchorContext) async {
-    final position = amePopupMenuBelowAnchor(
-      context: anchorContext,
-      anchorContext: anchorContext,
-      viewportRightMargin: 16,
-    );
-    if (position == null) {
-      return;
-    }
-    const labels = [LibraryStrings.copyPath, LibraryStrings.openInExplorer];
-    final action = await showAmePopupMenu<_ViewerMenuAction>(
-      context: anchorContext,
-      position: position,
-      labels: labels,
-      items: const [
-        PopupMenuItem(
-          value: _ViewerMenuAction.copyPath,
-          child: AmeMenuItemContent(
-            icon: Symbols.content_copy_rounded,
-            label: LibraryStrings.copyPath,
-          ),
-        ),
-        PopupMenuItem(
-          value: _ViewerMenuAction.revealFile,
-          child: AmeMenuItemContent(
-            icon: Symbols.folder_open_rounded,
-            label: LibraryStrings.openInExplorer,
-          ),
-        ),
-      ],
-    );
-    switch (action) {
-      case _ViewerMenuAction.copyPath:
-        onCopyPath();
-      case _ViewerMenuAction.revealFile:
-        onRevealFile();
-      case null:
-        return;
-    }
-  }
 }
-
-enum _ViewerMenuAction { copyPath, revealFile }
 
 class LibraryViewerNavigationButton extends StatelessWidget {
   const LibraryViewerNavigationButton.previous({

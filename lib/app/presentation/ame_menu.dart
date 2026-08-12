@@ -6,6 +6,8 @@ abstract final class AmeMenuMetrics {
   static const double itemHeight = 48;
   static const double iconSize = 24;
   static const double iconLabelGap = 12;
+  static const double selectionIndicatorSlotWidth = 8;
+  static const double selectionIndicatorSize = 6;
   static const double shortcutGap = 24;
   static const double horizontalPadding = 12;
   static const double verticalPadding = 8;
@@ -78,6 +80,9 @@ class AmeMenuAnchor extends StatelessWidget {
     required this.menuChildren,
     this.controller,
     this.childFocusNode,
+    this.style,
+    this.alignmentOffset,
+    this.reservedPadding = const EdgeInsets.all(AmeMenuMetrics.viewportPadding),
     this.builder,
     this.child,
     super.key,
@@ -85,6 +90,9 @@ class AmeMenuAnchor extends StatelessWidget {
 
   final MenuController? controller;
   final FocusNode? childFocusNode;
+  final MenuStyle? style;
+  final Offset? alignmentOffset;
+  final EdgeInsetsGeometry reservedPadding;
   final List<Widget> menuChildren;
   final MenuAnchorChildBuilder? builder;
   final Widget? child;
@@ -94,11 +102,42 @@ class AmeMenuAnchor extends StatelessWidget {
     return MenuAnchor(
       controller: controller,
       childFocusNode: childFocusNode,
+      style: style,
+      alignmentOffset: alignmentOffset ?? Offset.zero,
+      reservedPadding: reservedPadding,
       animated: true,
       menuChildren: menuChildren,
       builder: builder,
       child: child,
     );
+  }
+}
+
+MenuStyle ameFixedWidthMenuStyle(double width) {
+  return MenuStyle(
+    minimumSize: WidgetStatePropertyAll(Size(width, 0)),
+    maximumSize: WidgetStatePropertyAll(Size(width, double.infinity)),
+  );
+}
+
+Offset ameMenuBelowEndAlignment({
+  required double menuWidth,
+  double anchorWidth = 48,
+  double endOffset = 0,
+  double verticalGap = 4,
+}) {
+  return Offset(anchorWidth - menuWidth + endOffset, verticalGap);
+}
+
+Widget ameFixedWidthMenuItem({required double width, required Widget child}) {
+  return SizedBox(width: width, child: child);
+}
+
+void toggleAmeMenu(MenuController controller) {
+  if (controller.isOpen) {
+    controller.close();
+  } else {
+    controller.open();
   }
 }
 
@@ -131,9 +170,7 @@ class AmeMenuItemContent extends StatelessWidget {
         ),
         if (shortcut case final shortcut?) ...[
           const SizedBox(width: AmeMenuMetrics.shortcutGap),
-          Flexible(
-            child: Text(shortcut, maxLines: 1, overflow: TextOverflow.ellipsis),
-          ),
+          Text(shortcut, maxLines: 1, softWrap: false),
         ],
       ],
     );

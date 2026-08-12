@@ -78,32 +78,62 @@ void main() {
     expect(labelRect.left - iconRect.right, AmeMenuMetrics.iconLabelGap);
   });
 
-  testWidgets("keeps shortcuts inside constrained menu rows", (tester) async {
+  testWidgets("keeps shortcuts fully visible at calculated menu width", (
+    tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         theme: buildAmeTheme(),
-        home: const Scaffold(
-          body: Center(
-            child: SizedBox(
-              key: Key("constrained-menu-row"),
-              width: 123,
-              child: AmeMenuItemContent(
-                icon: Symbols.select_all_rounded,
-                label: "全选",
-                shortcut: "Ctrl+A",
+        home: Builder(
+          builder: (context) {
+            final menuWidth = amePopupMenuContentWidth(
+              context: context,
+              labels: const ["全选"],
+              shortcuts: const ["Ctrl+A"],
+            );
+            return Scaffold(
+              body: Center(
+                child: SizedBox(
+                  key: const Key("calculated-menu-row"),
+                  width: menuWidth,
+                  child: MenuItemButton(
+                    onPressed: () {},
+                    child: const AmeMenuItemContent(
+                      icon: Symbols.select_all_rounded,
+                      label: "全选",
+                      shortcut: "Ctrl+A",
+                    ),
+                  ),
+                ),
               ),
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
 
     final rowRect = tester.getRect(
-      find.byKey(const Key("constrained-menu-row")),
+      find.byKey(const Key("calculated-menu-row")),
     );
-    final shortcutRect = tester.getRect(find.text("Ctrl+A"));
+    final shortcutFinder = find.text("Ctrl+A");
+    final shortcut = tester.widget<Text>(shortcutFinder);
+    final shortcutContext = tester.element(shortcutFinder);
+    final shortcutPainter = TextPainter(
+      text: TextSpan(
+        text: shortcut.data,
+        style: DefaultTextStyle.of(shortcutContext).style.merge(shortcut.style),
+      ),
+      textDirection: Directionality.of(shortcutContext),
+      textScaler: MediaQuery.textScalerOf(shortcutContext),
+      maxLines: 1,
+    )..layout();
+    final shortcutRect = tester.getRect(shortcutFinder);
+
+    expect(shortcut.softWrap, isFalse);
+    expect(shortcutRect.width, closeTo(shortcutPainter.width, 0.01));
     expect(shortcutRect.right, lessThanOrEqualTo(rowRect.right));
     expect(shortcutRect.left, greaterThan(rowRect.left));
+    shortcutPainter.dispose();
   });
 
   testWidgets("enables native animation for anchored menus", (tester) async {
@@ -120,6 +150,36 @@ void main() {
     );
 
     expect(tester.widget<MenuAnchor>(find.byType(MenuAnchor)).animated, isTrue);
+  });
+
+  testWidgets("toggles anchored menus from the same button", (tester) async {
+    final controller = MenuController();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildAmeTheme(),
+        home: Scaffold(
+          body: AmeMenuAnchor(
+            controller: controller,
+            menuChildren: const [
+              MenuItemButton(onPressed: null, child: Text("菜单项")),
+            ],
+            builder: (context, controller, child) => IconButton(
+              key: const Key("anchored-menu-button"),
+              onPressed: () => toggleAmeMenu(controller),
+              icon: const Icon(Symbols.more_horiz_rounded),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key("anchored-menu-button")));
+    await tester.pumpAndSettle();
+    expect(find.text("菜单项"), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key("anchored-menu-button")));
+    await tester.pumpAndSettle();
+    expect(find.text("菜单项"), findsNothing);
   });
 
   testWidgets("sizes popup menus from their longest label", (tester) async {

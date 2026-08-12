@@ -1,4 +1,5 @@
 import "package:flutter/material.dart";
+import "package:material_symbols_icons/symbols.dart";
 
 class SettingsSection extends StatelessWidget {
   const SettingsSection({
@@ -109,6 +110,8 @@ class SettingsChoice<T> extends StatelessWidget {
       enableSearch: false,
       requestFocusOnTap: false,
       selectOnly: true,
+      trailingIcon: const Icon(Symbols.arrow_drop_down_rounded),
+      selectedTrailingIcon: const Icon(Symbols.arrow_drop_up_rounded),
       onSelected: onSelected,
       dropdownMenuEntries: entries,
     );

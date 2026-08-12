@@ -12,7 +12,7 @@ ThemeData buildAmeTheme({Brightness brightness = Brightness.light}) {
     brightness: brightness,
     dynamicSchemeVariant: DynamicSchemeVariant.fidelity,
   );
-  return ThemeData(
+  final baseTheme = ThemeData(
     colorScheme: colorScheme,
     scaffoldBackgroundColor: colorScheme.surface,
     useMaterial3: true,
@@ -44,5 +44,30 @@ ThemeData buildAmeTheme({Brightness brightness = Brightness.light}) {
     tooltipTheme: const TooltipThemeData(
       waitDuration: Duration(milliseconds: 350),
     ),
+  );
+  return baseTheme.copyWith(
+    textTheme: _regularTextTheme(baseTheme.textTheme),
+    primaryTextTheme: _regularTextTheme(baseTheme.primaryTextTheme),
+  );
+}
+
+TextTheme _regularTextTheme(TextTheme textTheme) {
+  const fontWeight = FontWeight.w400;
+  return textTheme.copyWith(
+    displayLarge: textTheme.displayLarge?.copyWith(fontWeight: fontWeight),
+    displayMedium: textTheme.displayMedium?.copyWith(fontWeight: fontWeight),
+    displaySmall: textTheme.displaySmall?.copyWith(fontWeight: fontWeight),
+    headlineLarge: textTheme.headlineLarge?.copyWith(fontWeight: fontWeight),
+    headlineMedium: textTheme.headlineMedium?.copyWith(fontWeight: fontWeight),
+    headlineSmall: textTheme.headlineSmall?.copyWith(fontWeight: fontWeight),
+    titleLarge: textTheme.titleLarge?.copyWith(fontWeight: fontWeight),
+    titleMedium: textTheme.titleMedium?.copyWith(fontWeight: fontWeight),
+    titleSmall: textTheme.titleSmall?.copyWith(fontWeight: fontWeight),
+    bodyLarge: textTheme.bodyLarge?.copyWith(fontWeight: fontWeight),
+    bodyMedium: textTheme.bodyMedium?.copyWith(fontWeight: fontWeight),
+    bodySmall: textTheme.bodySmall?.copyWith(fontWeight: fontWeight),
+    labelLarge: textTheme.labelLarge?.copyWith(fontWeight: fontWeight),
+    labelMedium: textTheme.labelMedium?.copyWith(fontWeight: fontWeight),
+    labelSmall: textTheme.labelSmall?.copyWith(fontWeight: fontWeight),
   );
 }

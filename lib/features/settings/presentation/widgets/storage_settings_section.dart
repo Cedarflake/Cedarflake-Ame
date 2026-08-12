@@ -383,6 +383,8 @@ class _StorageSettingsSectionState
             enableSearch: false,
             requestFocusOnTap: false,
             selectOnly: true,
+            trailingIcon: const Icon(Symbols.arrow_drop_down_rounded),
+            selectedTrailingIcon: const Icon(Symbols.arrow_drop_up_rounded),
             onSelected: (value) {
               if (value != null && value != status.previewBudgetBytes) {
                 _update(previewBudgetBytes: value);
