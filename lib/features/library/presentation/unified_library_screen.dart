@@ -52,6 +52,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   late GalleryLayoutShape _layoutShape;
   late GalleryThumbnailSize _thumbnailSize;
   late double _sidebarWidth;
+  bool _isSidebarResizing = false;
   String? _viewerLocationId;
   bool _isSelecting = false;
   bool _isNavigatingViewer = false;
@@ -520,9 +521,11 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                 minimumWidth: ameMinimumSidebarWidth,
                 maximumWidth: ameMaximumSidebarWidth,
                 defaultWidth: ameDefaultSidebarWidth,
+                onWidthChangeStart: _beginSidebarResize,
                 onWidthChanged: _changeSidebarWidth,
                 onWidthChangeEnd: (width) =>
-                    unawaited(_persistSidebarWidth(amePreferences, width)),
+                    _endSidebarResize(amePreferences, width),
+                onWidthChangeCancel: _cancelSidebarResize,
               ),
             ),
           ],
@@ -559,6 +562,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
             thumbnailSize: _thumbnailSize,
             selection: _selection,
             isSelecting: _isSelecting,
+            isSidebarResizing: _isSidebarResizing,
             onOpen: _openAsset,
             onToggleSelection: _toggleSelection,
             onViewInformation: _showAssetInformation,
@@ -772,6 +776,28 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       return;
     }
     setState(() => _sidebarWidth = nextWidth);
+  }
+
+  void _beginSidebarResize() {
+    if (_isSidebarResizing) {
+      return;
+    }
+    setState(() => _isSidebarResizing = true);
+  }
+
+  void _endSidebarResize(AmePreferences preferences, double width) {
+    unawaited(_persistSidebarWidth(preferences, width));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _isSidebarResizing) {
+        setState(() => _isSidebarResizing = false);
+      }
+    });
+  }
+
+  void _cancelSidebarResize() {
+    if (_isSidebarResizing) {
+      setState(() => _isSidebarResizing = false);
+    }
   }
 
   Future<void> _persistSidebarWidth(

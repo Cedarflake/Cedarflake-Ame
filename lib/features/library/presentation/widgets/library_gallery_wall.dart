@@ -96,6 +96,7 @@ class LibraryGalleryWall extends StatelessWidget {
     required this.thumbnailSize,
     required this.selection,
     required this.isSelecting,
+    this.isSidebarResizing = false,
     required this.onOpen,
     required this.onToggleSelection,
     required this.onViewInformation,
@@ -116,6 +117,7 @@ class LibraryGalleryWall extends StatelessWidget {
   final GalleryThumbnailSize thumbnailSize;
   final GallerySelection selection;
   final bool isSelecting;
+  final bool isSidebarResizing;
   final ValueChanged<LibraryAsset> onOpen;
   final ValueChanged<LibraryAsset> onToggleSelection;
   final ValueChanged<LibraryAsset> onViewInformation;
@@ -164,6 +166,7 @@ class LibraryGalleryWall extends StatelessWidget {
         thumbnailSize: thumbnailSize,
         selection: selection,
         isSelecting: isSelecting,
+        isSidebarResizing: isSidebarResizing,
         manifest: manifest,
         onOpen: onOpen,
         onToggleSelection: onToggleSelection,
@@ -754,6 +757,7 @@ class _ManifestLibraryGalleryWall extends StatefulWidget {
     required this.thumbnailSize,
     required this.selection,
     required this.isSelecting,
+    required this.isSidebarResizing,
     required this.manifest,
     required this.onOpen,
     required this.onToggleSelection,
@@ -772,6 +776,7 @@ class _ManifestLibraryGalleryWall extends StatefulWidget {
   final GalleryThumbnailSize thumbnailSize;
   final GallerySelection selection;
   final bool isSelecting;
+  final bool isSidebarResizing;
   final LibraryGalleryLayoutManifest manifest;
   final ValueChanged<LibraryAsset> onOpen;
   final ValueChanged<LibraryAsset> onToggleSelection;
@@ -805,6 +810,19 @@ class _ManifestLibraryGalleryWallState
   double? _pendingViewportExtent;
   double? _publishedViewportExtent;
   _LibraryGalleryViewportAnchor? _pendingViewportAnchor;
+  _LibraryGalleryViewportAnchor? _sidebarResizeAnchor;
+
+  @override
+  void didUpdateWidget(covariant _ManifestLibraryGalleryWall oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!widget.isSidebarResizing ||
+        oldWidget.manifest.queryId != widget.manifest.queryId ||
+        oldWidget.manifest.revision != widget.manifest.revision ||
+        oldWidget.thumbnailSize != widget.thumbnailSize ||
+        oldWidget.state.query.sortKey != widget.state.query.sortKey) {
+      _sidebarResizeAnchor = null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1161,9 +1179,28 @@ class _ManifestLibraryGalleryWallState
     _pendingAvailableWidth = availableWidth;
     _pendingViewportExtent = viewportExtent;
     final current = _snapshot;
+    final publishedViewportExtent = _publishedViewportExtent;
+    final isWidthOnlyResize =
+        current != null &&
+        current.matchesInputs(
+          otherManifest: widget.manifest,
+          otherThumbnailSize: widget.thumbnailSize,
+          otherSortKey: widget.state.query.sortKey,
+        ) &&
+        (current.availableWidth - availableWidth).abs() >= 0.01 &&
+        publishedViewportExtent != null &&
+        (publishedViewportExtent - viewportExtent).abs() < 0.01;
+    if (current != null && isWidthOnlyResize && widget.isSidebarResizing) {
+      _sidebarResizeAnchor ??= _captureViewportAnchor(
+        current,
+        viewportFraction: 0.0,
+      );
+    }
     _pendingViewportAnchor ??= current == null
         ? null
-        : _captureViewportAnchor(current);
+        : isWidthOnlyResize && widget.isSidebarResizing
+        ? _sidebarResizeAnchor
+        : _captureViewportAnchor(current, viewportFraction: 0.5);
     if (_isResizeFrameScheduled) {
       return;
     }
@@ -1248,8 +1285,9 @@ class _ManifestLibraryGalleryWallState
   }
 
   _LibraryGalleryViewportAnchor? _captureViewportAnchor(
-    LibraryGalleryLayoutSnapshot snapshot,
-  ) {
+    LibraryGalleryLayoutSnapshot snapshot, {
+    required double viewportFraction,
+  }) {
     if (!widget.scrollController.hasClients || snapshot.entries.isEmpty) {
       return null;
     }
@@ -1257,7 +1295,6 @@ class _ManifestLibraryGalleryWallState
     if (!position.hasViewportDimension || position.viewportDimension <= 0) {
       return null;
     }
-    const viewportFraction = 0.5;
     final anchorOffset =
         position.pixels + position.viewportDimension * viewportFraction;
     final itemIndex = snapshot.metrics.itemIndexForScrollOffset(anchorOffset);

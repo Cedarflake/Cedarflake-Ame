@@ -270,6 +270,101 @@ void main() {
     expect(previousRequests, 0);
   });
 
+  testWidgets("keeps the viewed top item stable through width-only resize", (
+    tester,
+  ) async {
+    const itemCount = 4000;
+    const wallHeight = 640.0;
+    const initialSize = Size(1000, wallHeight);
+    const finalSize = Size(760, wallHeight);
+    final manifest = _manifest(itemCount);
+    final state = _state(itemCount);
+    final controller = _RecordingGalleryController();
+    final scrollController = ScrollController();
+    final wallSize = ValueNotifier(initialSize);
+    addTearDown(() async {
+      scrollController.dispose();
+      wallSize.dispose();
+      await tester.binding.setSurfaceSize(null);
+    });
+    await tester.binding.setSurfaceSize(const Size(1200, 800));
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: ValueListenableBuilder<Size>(
+            valueListenable: wallSize,
+            builder: (context, size, child) => Align(
+              alignment: Alignment.topLeft,
+              child: SizedBox(
+                width: size.width,
+                height: size.height,
+                child: LibraryGalleryWall(
+                  state: state,
+                  controller: controller,
+                  scrollController: scrollController,
+                  layoutShape: GalleryLayoutShape.equalHeight,
+                  thumbnailSize: GalleryThumbnailSize.medium,
+                  selection: GallerySelection.empty(state.queryId),
+                  isSelecting: false,
+                  isSidebarResizing: true,
+                  layoutManifest: manifest,
+                  onOpen: (_) {},
+                  onToggleSelection: (_) {},
+                  onViewInformation: (_) {},
+                  onCopyPath: (_) {},
+                  onRevealFile: (_) {},
+                  onVisiblePositionChanged: (_) {},
+                  onLoadPrevious: () async {},
+                  onLayoutChanged: (_, _) {},
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final initialSnapshot = LibraryGalleryLayoutSnapshot.build(
+      manifest: manifest,
+      availableWidth: initialSize.width - 40,
+      thumbnailSize: GalleryThumbnailSize.medium,
+      sortKey: LibraryGallerySortKey.captureTime,
+    );
+    scrollController.jumpTo(1621);
+    await tester.pump();
+    await tester.pump();
+
+    final topItemIndex = initialSnapshot.metrics.itemIndexForScrollOffset(
+      scrollController.position.pixels,
+    );
+    final topItemFinder = find.byKey(ValueKey("location-$topItemIndex"));
+    final wallFinder = find.byKey(const Key("library-photo-wall"));
+    expect(topItemFinder, findsOneWidget);
+    final topBefore =
+        tester.getTopLeft(topItemFinder).dy - tester.getTopLeft(wallFinder).dy;
+
+    for (final size in const [
+      Size(940, wallHeight),
+      Size(880, wallHeight),
+      Size(820, wallHeight),
+      finalSize,
+    ]) {
+      wallSize.value = size;
+      await tester.pump();
+      await tester.pump();
+    }
+
+    expect(topItemFinder, findsOneWidget);
+    expect(
+      tester.getTopLeft(topItemFinder).dy - tester.getTopLeft(wallFinder).dy,
+      closeTo(topBefore, 2),
+    );
+    expect(controller.nextPageRequests, 0);
+    expect(controller.previousPageRequests, 0);
+    expect(controller.timeSeekRequests, 0);
+  });
+
   testWidgets(
     "preserves the logical anchor when recovered dimensions replace geometry",
     (tester) async {
