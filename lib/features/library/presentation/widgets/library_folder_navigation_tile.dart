@@ -3,6 +3,7 @@ import "package:flutter/services.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_menu.dart";
+import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_typography.dart";
 import "../../domain/library_folder_models.dart";
 import "../../domain/library_models.dart";
@@ -115,16 +116,18 @@ class _LibraryFolderNavigationTileState
               width: 48,
               child: widget.onToggleExpansion == null
                   ? null
-                  : IconButton(
-                      key: ValueKey("folder-expand-$keySuffix"),
-                      tooltip: widget.isExpanded
+                  : AmeTooltip(
+                      message: widget.isExpanded
                           ? LibraryStrings.collapseFolder
                           : LibraryStrings.expandFolder,
-                      onPressed: widget.onToggleExpansion,
-                      icon: Icon(
-                        widget.isExpanded
-                            ? Symbols.keyboard_arrow_up_rounded
-                            : Symbols.keyboard_arrow_down_rounded,
+                      child: IconButton(
+                        key: ValueKey("folder-expand-$keySuffix"),
+                        onPressed: widget.onToggleExpansion,
+                        icon: Icon(
+                          widget.isExpanded
+                              ? Symbols.keyboard_arrow_up_rounded
+                              : Symbols.keyboard_arrow_down_rounded,
+                        ),
                       ),
                     ),
             ),

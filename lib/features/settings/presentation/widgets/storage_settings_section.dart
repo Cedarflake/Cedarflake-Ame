@@ -5,6 +5,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../storage/application/storage_settings.dart";
 import "../../../storage/domain/storage_models.dart";
 import "settings_section.dart";
@@ -375,25 +376,27 @@ class _StorageSettingsSectionState
               Text("当前占用 ${_formatBytes(status.previewUsedBytes)}"),
             ],
           ),
-          trailing: DropdownMenu<BigInt>(
-            key: ValueKey(status.previewBudgetBytes),
-            width: 144,
-            initialSelection: status.previewBudgetBytes,
-            enabled: !_isSaving,
-            enableSearch: false,
-            requestFocusOnTap: false,
-            selectOnly: true,
-            trailingIcon: const Icon(Symbols.arrow_drop_down_rounded),
-            selectedTrailingIcon: const Icon(Symbols.arrow_drop_up_rounded),
-            onSelected: (value) {
-              if (value != null && value != status.previewBudgetBytes) {
-                _update(previewBudgetBytes: value);
-              }
-            },
-            dropdownMenuEntries: [
-              for (final bytes in _budgetOptions)
-                DropdownMenuEntry(value: bytes, label: _formatBytes(bytes)),
-            ],
+          trailing: AmeOverlayTraversalBoundary(
+            child: DropdownMenu<BigInt>(
+              key: ValueKey(status.previewBudgetBytes),
+              width: 144,
+              initialSelection: status.previewBudgetBytes,
+              enabled: !_isSaving,
+              enableSearch: false,
+              requestFocusOnTap: false,
+              selectOnly: true,
+              trailingIcon: const Icon(Symbols.arrow_drop_down_rounded),
+              selectedTrailingIcon: const Icon(Symbols.arrow_drop_up_rounded),
+              onSelected: (value) {
+                if (value != null && value != status.previewBudgetBytes) {
+                  _update(previewBudgetBytes: value);
+                }
+              },
+              dropdownMenuEntries: [
+                for (final bytes in _budgetOptions)
+                  DropdownMenuEntry(value: bytes, label: _formatBytes(bytes)),
+              ],
+            ),
           ),
         ),
         SettingsRow(

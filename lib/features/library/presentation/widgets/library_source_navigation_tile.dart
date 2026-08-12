@@ -5,6 +5,7 @@ import "package:flutter/services.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_menu.dart";
+import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_popup_menu_position.dart";
 import "../../../../app/presentation/ame_typography.dart";
 import "../../domain/library_models.dart";
@@ -71,12 +72,14 @@ class _LibrarySourceNavigationTileState
       LibraryRootAvailability.offline => Symbols.cloud_off_rounded,
     };
     final tile = widget.isCompact
-        ? IconButton(
-            focusNode: _focusNode,
-            isSelected: widget.isSelected,
-            tooltip: widget.root.displayPath,
-            onPressed: widget.isBusy ? null : widget.onSelect,
-            icon: Icon(icon),
+        ? AmeTooltip(
+            message: widget.root.displayPath,
+            child: IconButton(
+              focusNode: _focusNode,
+              isSelected: widget.isSelected,
+              onPressed: widget.isBusy ? null : widget.onSelect,
+              icon: Icon(icon),
+            ),
           )
         : _ExpandedSourceTile(
             focusNode: _focusNode,
@@ -95,16 +98,18 @@ class _LibrarySourceNavigationTileState
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  IconButton(
-                    key: ValueKey("source-expand-${widget.root.id}"),
-                    tooltip: widget.isExpanded
+                  AmeTooltip(
+                    message: widget.isExpanded
                         ? LibraryStrings.collapseFolder
                         : LibraryStrings.expandFolder,
-                    onPressed: widget.onToggleExpansion,
-                    icon: Icon(
-                      widget.isExpanded
-                          ? Symbols.keyboard_arrow_up_rounded
-                          : Symbols.keyboard_arrow_down_rounded,
+                    child: IconButton(
+                      key: ValueKey("source-expand-${widget.root.id}"),
+                      onPressed: widget.onToggleExpansion,
+                      icon: Icon(
+                        widget.isExpanded
+                            ? Symbols.keyboard_arrow_up_rounded
+                            : Symbols.keyboard_arrow_down_rounded,
+                      ),
                     ),
                   ),
                   AmeMenuAnchor(
@@ -146,11 +151,13 @@ class _LibrarySourceNavigationTileState
                         ),
                       ),
                     ],
-                    builder: (context, controller, child) => IconButton(
-                      key: ValueKey("source-more-${widget.root.id}"),
-                      tooltip: LibraryStrings.more,
-                      onPressed: () => toggleAmeMenu(controller),
-                      icon: const Icon(Symbols.more_vert_rounded),
+                    builder: (context, controller, child) => AmeTooltip(
+                      message: LibraryStrings.more,
+                      child: IconButton(
+                        key: ValueKey("source-more-${widget.root.id}"),
+                        onPressed: () => toggleAmeMenu(controller),
+                        icon: const Icon(Symbols.more_vert_rounded),
+                      ),
                     ),
                   ),
                 ],
@@ -280,7 +287,7 @@ class PendingLibrarySourceTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isCompact) {
-      return Tooltip(
+      return AmeTooltip(
         message: path,
         child: const IconButton(
           onPressed: null,

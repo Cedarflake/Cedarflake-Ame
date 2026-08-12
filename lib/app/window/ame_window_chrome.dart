@@ -5,6 +5,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 import "package:window_manager/window_manager.dart";
 
+import "../presentation/ame_overlay_semantics.dart";
 import "ame_window_actions.dart";
 
 class AmeWindowDragRegion extends StatelessWidget {
@@ -29,36 +30,45 @@ class AmeWindowCaptionControls extends ConsumerWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        IconButton(
-          key: const Key("window-minimize"),
-          tooltip: "最小化",
-          onPressed: () => unawaited(actions.minimize()),
-          style: _captionButtonStyle(height),
-          icon: const _CaptionSymbol(Symbols.horizontal_rule_rounded, size: 22),
+        AmeTooltip(
+          message: "最小化",
+          child: IconButton(
+            key: const Key("window-minimize"),
+            onPressed: () => unawaited(actions.minimize()),
+            style: _captionButtonStyle(height),
+            icon: const _CaptionSymbol(
+              Symbols.horizontal_rule_rounded,
+              size: 22,
+            ),
+          ),
         ),
         ValueListenableBuilder<bool>(
           valueListenable: actions.isMaximized,
-          builder: (context, isMaximized, child) => IconButton(
-            key: const Key("window-maximize"),
-            tooltip: isMaximized ? "还原" : "最大化",
-            onPressed: () => unawaited(actions.toggleMaximize()),
-            style: _captionButtonStyle(height),
-            icon: _CaptionSymbol(
-              isMaximized
-                  ? Symbols.filter_none_rounded
-                  : Symbols.crop_square_rounded,
-              size: 18,
+          builder: (context, isMaximized, child) => AmeTooltip(
+            message: isMaximized ? "还原" : "最大化",
+            child: IconButton(
+              key: const Key("window-maximize"),
+              onPressed: () => unawaited(actions.toggleMaximize()),
+              style: _captionButtonStyle(height),
+              icon: _CaptionSymbol(
+                isMaximized
+                    ? Symbols.filter_none_rounded
+                    : Symbols.crop_square_rounded,
+                size: 18,
+              ),
             ),
           ),
         ),
         Padding(
           padding: const EdgeInsets.only(right: 8),
-          child: IconButton(
-            key: const Key("window-close"),
-            tooltip: "关闭",
-            onPressed: () => unawaited(actions.close()),
-            style: _captionButtonStyle(height),
-            icon: const _CaptionSymbol(Symbols.close_rounded, size: 24),
+          child: AmeTooltip(
+            message: "关闭",
+            child: IconButton(
+              key: const Key("window-close"),
+              onPressed: () => unawaited(actions.close()),
+              style: _captionButtonStyle(height),
+              icon: const _CaptionSymbol(Symbols.close_rounded, size: 24),
+            ),
           ),
         ),
       ],

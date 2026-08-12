@@ -1,6 +1,7 @@
 import "package:flutter/material.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_typography.dart";
 
 class SettingsSection extends StatelessWidget {
@@ -114,18 +115,20 @@ class SettingsChoice<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DropdownMenu<T>(
-      key: ValueKey(value),
-      width: 176,
-      initialSelection: value,
-      enabled: enabled,
-      enableSearch: false,
-      requestFocusOnTap: false,
-      selectOnly: true,
-      trailingIcon: const Icon(Symbols.arrow_drop_down_rounded),
-      selectedTrailingIcon: const Icon(Symbols.arrow_drop_up_rounded),
-      onSelected: onSelected,
-      dropdownMenuEntries: entries,
+    return AmeOverlayTraversalBoundary(
+      child: DropdownMenu<T>(
+        key: ValueKey(value),
+        width: 176,
+        initialSelection: value,
+        enabled: enabled,
+        enableSearch: false,
+        requestFocusOnTap: false,
+        selectOnly: true,
+        trailingIcon: const Icon(Symbols.arrow_drop_down_rounded),
+        selectedTrailingIcon: const Icon(Symbols.arrow_drop_up_rounded),
+        onSelected: onSelected,
+        dropdownMenuEntries: entries,
+      ),
     );
   }
 }

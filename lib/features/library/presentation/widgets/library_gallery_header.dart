@@ -2,6 +2,7 @@ import "package:flutter/material.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_menu.dart";
+import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../domain/library_models.dart";
 import "../gallery_view_options.dart";
 import "../library_strings.dart";
@@ -277,16 +278,18 @@ class _SortMenuState extends State<_SortMenu> {
               widget.onDirectionChanged(LibraryGallerySortDirection.descending),
         ),
       ],
-      builder: (context, controller, child) => IconButton(
-        key: const Key("library-sort-menu"),
-        tooltip: LibraryStrings.sort,
-        onPressed: () => toggleAmeMenu(controller),
-        icon: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Symbols.swap_vert_rounded),
-            Icon(Symbols.arrow_drop_down_rounded, size: 18),
-          ],
+      builder: (context, controller, child) => AmeTooltip(
+        message: LibraryStrings.sort,
+        child: IconButton(
+          key: const Key("library-sort-menu"),
+          onPressed: () => toggleAmeMenu(controller),
+          icon: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Symbols.swap_vert_rounded),
+              Icon(Symbols.arrow_drop_down_rounded, size: 18),
+            ],
+          ),
         ),
       ),
     );
@@ -351,16 +354,18 @@ class _LayoutMenuState extends State<_LayoutMenu> {
           onPressed: () => widget.onSizeChanged(GalleryThumbnailSize.large),
         ),
       ],
-      builder: (context, controller, child) => IconButton(
-        key: const Key("library-layout-menu"),
-        tooltip: LibraryStrings.layout,
-        onPressed: () => toggleAmeMenu(controller),
-        icon: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Symbols.grid_view_rounded),
-            Icon(Symbols.arrow_drop_down_rounded, size: 18),
-          ],
+      builder: (context, controller, child) => AmeTooltip(
+        message: LibraryStrings.layout,
+        child: IconButton(
+          key: const Key("library-layout-menu"),
+          onPressed: () => toggleAmeMenu(controller),
+          icon: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Symbols.grid_view_rounded),
+              Icon(Symbols.arrow_drop_down_rounded, size: 18),
+            ],
+          ),
         ),
       ),
     );
@@ -398,11 +403,13 @@ class _MoreMenu extends StatelessWidget {
           ),
         ),
       ],
-      builder: (context, controller, child) => IconButton(
-        key: const Key("library-more-menu"),
-        tooltip: LibraryStrings.more,
-        onPressed: () => toggleAmeMenu(controller),
-        icon: const Icon(Symbols.more_horiz_rounded),
+      builder: (context, controller, child) => AmeTooltip(
+        message: LibraryStrings.more,
+        child: IconButton(
+          key: const Key("library-more-menu"),
+          onPressed: () => toggleAmeMenu(controller),
+          icon: const Icon(Symbols.more_horiz_rounded),
+        ),
       ),
     );
   }

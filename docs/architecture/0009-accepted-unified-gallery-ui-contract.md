@@ -226,6 +226,15 @@ verified to provide controlled `DropdownMenu` selection, selection callbacks, di
 select-only behavior. Preview loading speed therefore reuses the repository-owned `SettingsChoice`
 composition and adds no custom pointer, focus, keyboard, or semantics layer.
 
+Flutter 3.44.9 can serialize an unreachable Windows semantics node when sibling `OverlayPortal`
+anchors, including `Tooltip` and `MenuAnchor`, exchange traversal ownership during an overlay
+transition. Ame keeps the framework controls and isolates each overlay anchor with a dedicated
+`Semantics` container until the pinned Flutter SDK includes the upstream traversal-parent fixes.
+The workaround changes only semantics-tree grouping and is covered by an incremental update test
+that requires every serialized node to remain reachable from root node `0`. Flutter's separate
+pushed-route `Slider` defect is not treated as the same issue; Ame's `IndexedStack` viewer path is
+validated directly and must be re-evaluated if viewer navigation changes.
+
 Windows accent-color integration uses the operating system's documented
 `DwmGetColorizationColor` API and `WM_DWMCOLORIZATIONCOLORCHANGED` notification through an Ame-owned
 Runner platform channel. `AmeSystemThemeBuilder` exposes only a Flutter `Color` to the presentation

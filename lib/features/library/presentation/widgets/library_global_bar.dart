@@ -3,6 +3,7 @@ import "dart:math" as math;
 import "package:flutter/material.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/window/ame_window_chrome.dart";
 import "../library_strings.dart";
 
@@ -79,13 +80,15 @@ class LibraryGlobalBar extends StatelessWidget {
                         leading: const Icon(Symbols.search_rounded),
                         trailing: [
                           if (searchController.text.isNotEmpty)
-                            IconButton(
-                              tooltip: LibraryStrings.clearSearch,
-                              onPressed: () {
-                                searchController.clear();
-                                onSearchChanged("");
-                              },
-                              icon: const Icon(Symbols.close_rounded),
+                            AmeTooltip(
+                              message: LibraryStrings.clearSearch,
+                              child: IconButton(
+                                onPressed: () {
+                                  searchController.clear();
+                                  onSearchChanged("");
+                                },
+                                icon: const Icon(Symbols.close_rounded),
+                              ),
                             ),
                         ],
                         onChanged: onSearchChanged,

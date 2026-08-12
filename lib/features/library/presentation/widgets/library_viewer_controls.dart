@@ -2,6 +2,7 @@ import "package:flutter/material.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_menu.dart";
+import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/window/ame_window_chrome.dart";
 import "../library_strings.dart";
 import "library_path_text.dart";
@@ -38,11 +39,13 @@ class LibraryViewerTopBar extends StatelessWidget {
         child: Row(
           children: [
             const SizedBox(width: 8),
-            IconButton(
-              key: const Key("viewer-back-button"),
-              tooltip: "${LibraryStrings.backToLibrary}（Esc）",
-              onPressed: onBack,
-              icon: const Icon(Symbols.arrow_back_rounded),
+            AmeTooltip(
+              message: "${LibraryStrings.backToLibrary}（Esc）",
+              child: IconButton(
+                key: const Key("viewer-back-button"),
+                onPressed: onBack,
+                icon: const Icon(Symbols.arrow_back_rounded),
+              ),
             ),
             const SizedBox(width: 8),
             Expanded(
@@ -75,10 +78,12 @@ class LibraryViewerTopBar extends StatelessWidget {
                 ),
               ),
             ),
-            IconButton(
-              tooltip: LibraryStrings.viewInformation,
-              onPressed: onInformation,
-              icon: const Icon(Symbols.info_rounded),
+            AmeTooltip(
+              message: LibraryStrings.viewInformation,
+              child: IconButton(
+                onPressed: onInformation,
+                icon: const Icon(Symbols.info_rounded),
+              ),
             ),
             AmeMenuAnchor(
               style: ameFixedWidthMenuStyle(moreMenuWidth),
@@ -108,11 +113,13 @@ class LibraryViewerTopBar extends StatelessWidget {
                   ),
                 ),
               ],
-              builder: (context, controller, child) => IconButton(
-                key: const Key("viewer-more-menu"),
-                tooltip: LibraryStrings.more,
-                onPressed: () => toggleAmeMenu(controller),
-                icon: const Icon(Symbols.more_horiz_rounded),
+              builder: (context, controller, child) => AmeTooltip(
+                message: LibraryStrings.more,
+                child: IconButton(
+                  key: const Key("viewer-more-menu"),
+                  onPressed: () => toggleAmeMenu(controller),
+                  icon: const Icon(Symbols.more_horiz_rounded),
+                ),
               ),
             ),
             const AmeWindowCaptionControls(height: 64),
@@ -138,14 +145,16 @@ class LibraryViewerNavigationButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final button = Center(
-      child: IconButton.filledTonal(
-        key: Key(isPrevious ? "viewer-previous" : "viewer-next"),
-        tooltip: isPrevious ? "上一张（←）" : "下一张（→）",
-        onPressed: onPressed,
-        icon: Icon(
-          isPrevious
-              ? Symbols.chevron_left_rounded
-              : Symbols.chevron_right_rounded,
+      child: AmeTooltip(
+        message: isPrevious ? "上一张（←）" : "下一张（→）",
+        child: IconButton.filledTonal(
+          key: Key(isPrevious ? "viewer-previous" : "viewer-next"),
+          onPressed: onPressed,
+          icon: Icon(
+            isPrevious
+                ? Symbols.chevron_left_rounded
+                : Symbols.chevron_right_rounded,
+          ),
         ),
       ),
     );
@@ -201,14 +210,16 @@ class LibraryViewerZoomControls extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Row(
             children: [
-              IconButton(
-                key: const Key("viewer-fit"),
-                tooltip: "适合窗口（0 / Ctrl+0）",
-                onPressed: onFitToWindow,
-                icon: const Icon(Symbols.fit_screen_rounded),
+              AmeTooltip(
+                message: "适合窗口（0 / Ctrl+0）",
+                child: IconButton(
+                  key: const Key("viewer-fit"),
+                  onPressed: onFitToWindow,
+                  icon: const Icon(Symbols.fit_screen_rounded),
+                ),
               ),
               const SizedBox(width: 4),
-              Tooltip(
+              AmeTooltip(
                 message: "实际大小（1 / Ctrl+1）",
                 child: TextButton(
                   key: const Key("viewer-actual-size"),
@@ -217,10 +228,12 @@ class LibraryViewerZoomControls extends StatelessWidget {
                 ),
               ),
               const Spacer(key: Key("viewer-control-group-space")),
-              IconButton(
-                tooltip: "缩小（- / Ctrl+-）",
-                onPressed: canZoomOut ? onZoomOut : null,
-                icon: const Icon(Symbols.remove_rounded),
+              AmeTooltip(
+                message: "缩小（- / Ctrl+-）",
+                child: IconButton(
+                  onPressed: canZoomOut ? onZoomOut : null,
+                  icon: const Icon(Symbols.remove_rounded),
+                ),
               ),
               SizedBox(
                 width: 164,
@@ -239,10 +252,12 @@ class LibraryViewerZoomControls extends StatelessWidget {
                   style: Theme.of(context).textTheme.labelLarge,
                 ),
               ),
-              IconButton(
-                tooltip: "放大（+ / Ctrl++）",
-                onPressed: canZoomIn ? onZoomIn : null,
-                icon: const Icon(Symbols.add_rounded),
+              AmeTooltip(
+                message: "放大（+ / Ctrl++）",
+                child: IconButton(
+                  onPressed: canZoomIn ? onZoomIn : null,
+                  icon: const Icon(Symbols.add_rounded),
+                ),
               ),
             ],
           ),
