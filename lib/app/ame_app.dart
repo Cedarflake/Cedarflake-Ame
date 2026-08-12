@@ -25,11 +25,7 @@ class AmeApp extends ConsumerWidget {
           brightness: Brightness.dark,
           seedColor: seedColor,
         ),
-        themeMode: switch (preferences.theme) {
-          AmeThemePreference.system => ThemeMode.system,
-          AmeThemePreference.light => ThemeMode.light,
-          AmeThemePreference.dark => ThemeMode.dark,
-        },
+        themeMode: ameThemeMode(preferences.theme),
         home: const UnifiedLibraryScreen(),
       ),
     );

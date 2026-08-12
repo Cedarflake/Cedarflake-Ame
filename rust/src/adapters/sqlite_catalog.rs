@@ -29,7 +29,7 @@ use gallery::{
 };
 use migrations::migrate_schema;
 
-const SCHEMA_VERSION: i64 = 14;
+const SCHEMA_VERSION: i64 = 15;
 const LOCATION_STAGE_BATCH: usize = 128;
 const MAX_LAYOUT_MANIFEST_CHUNK_ITEMS: u32 = 4_096;
 const MAX_CATALOG_PAGE_ITEMS: u32 = 4_096;
@@ -335,14 +335,15 @@ impl CatalogRepository for SqliteCatalog {
             let artifact_bytes = sqlite_integer(artifact.byte_size, "preview artifact size")?;
             transaction
                 .execute(
-                    "UPDATE preview_artifacts
-                     SET lifecycle_state = 'stale'
+                    "DELETE FROM preview_artifact_locations
                      WHERE location_id = ?1
-                       AND algorithm_id = ?2
-                       AND orientation_contract = ?3
-                       AND size_bucket = ?4
-                       AND artifact_key <> ?5
-                       AND lifecycle_state = 'ready'",
+                       AND artifact_key IN (
+                         SELECT artifact_key FROM preview_artifacts
+                         WHERE algorithm_id = ?2
+                           AND orientation_contract = ?3
+                           AND size_bucket = ?4
+                           AND artifact_key <> ?5
+                       )",
                     params![
                         location.location_id,
                         artifact.algorithm_id,
@@ -354,18 +355,38 @@ impl CatalogRepository for SqliteCatalog {
                 .map_err(database_error)?;
             transaction
                 .execute(
+                    "UPDATE preview_artifacts
+                     SET lifecycle_state = 'stale'
+                     WHERE algorithm_id = ?1
+                       AND orientation_contract = ?3
+                       AND size_bucket = ?2
+                       AND artifact_key <> ?4
+                       AND lifecycle_state = 'ready'
+                       AND NOT EXISTS (
+                         SELECT 1 FROM preview_artifact_locations AS owners
+                         WHERE owners.artifact_key = preview_artifacts.artifact_key
+                       )",
+                    params![
+                        artifact.algorithm_id,
+                        i64::from(artifact.size_bucket),
+                        artifact.orientation_contract,
+                        artifact.artifact_key,
+                    ],
+                )
+                .map_err(database_error)?;
+            transaction
+                .execute(
                     "INSERT INTO preview_artifacts(
-                       artifact_key, location_id, source_file_size, source_modified_unix_ms,
+                       artifact_key, source_file_size, source_modified_unix_ms,
                        source_identity_scheme, source_identity_value, algorithm_id,
                        algorithm_version, orientation_contract, size_bucket, encoded_width,
                        encoded_height, artifact_path, byte_size, lifecycle_state,
                        created_unix_ms, last_used_unix_ms
                      ) VALUES (
-                       ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14,
-                       'ready', ?15, ?15
+                       ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13,
+                       'ready', ?14, ?14
                      )
                      ON CONFLICT(artifact_key) DO UPDATE SET
-                       location_id = excluded.location_id,
                        source_file_size = excluded.source_file_size,
                        source_modified_unix_ms = excluded.source_modified_unix_ms,
                        source_identity_scheme = excluded.source_identity_scheme,
@@ -382,7 +403,6 @@ impl CatalogRepository for SqliteCatalog {
                        last_used_unix_ms = excluded.last_used_unix_ms",
                     params![
                         artifact.artifact_key,
-                        location.location_id,
                         file_size,
                         location.modified_unix_ms,
                         location
@@ -403,6 +423,33 @@ impl CatalogRepository for SqliteCatalog {
                         artifact_bytes,
                         unix_time_ms(),
                     ],
+                )
+                .map_err(database_error)?;
+            transaction
+                .execute(
+                    "INSERT OR IGNORE INTO preview_artifact_locations(
+                       artifact_key, location_id
+                     ) VALUES (?1, ?2)",
+                    params![artifact.artifact_key, location.location_id],
+                )
+                .map_err(database_error)?;
+        } else if !matches!(location.preview_status, PreviewStatus::Ready) {
+            transaction
+                .execute(
+                    "DELETE FROM preview_artifact_locations WHERE location_id = ?1",
+                    [&location.location_id],
+                )
+                .map_err(database_error)?;
+            transaction
+                .execute(
+                    "UPDATE preview_artifacts
+                     SET lifecycle_state = 'stale'
+                     WHERE lifecycle_state = 'ready'
+                       AND NOT EXISTS (
+                         SELECT 1 FROM preview_artifact_locations AS owners
+                         WHERE owners.artifact_key = preview_artifacts.artifact_key
+                       )",
+                    [],
                 )
                 .map_err(database_error)?;
         }
@@ -543,7 +590,7 @@ impl CatalogRepository for SqliteCatalog {
         let mut statement = self
             .connection
             .prepare(
-                "SELECT artifact_key, location_id, artifact_path
+                "SELECT artifact_key, artifact_path
                  FROM preview_artifacts
                  WHERE lower(substr(artifact_path, 1, length(?1))) = lower(?1)
                    AND (?2 IS NULL OR artifact_key > ?2)
@@ -557,8 +604,7 @@ impl CatalogRepository for SqliteCatalog {
                 |row| {
                     Ok(PreviewReclamationCandidate {
                         artifact_key: row.get(0)?,
-                        location_id: row.get(1)?,
-                        path: row.get(2)?,
+                        path: row.get(1)?,
                     })
                 },
             )
@@ -583,15 +629,10 @@ impl CatalogRepository for SqliteCatalog {
             .connection
             .execute(
                 "UPDATE preview_artifacts
-                 SET byte_size = ?4
-                 WHERE artifact_key = ?1 AND location_id = ?2 AND artifact_path = ?3
-                   AND byte_size <> ?4",
-                params![
-                    candidate.artifact_key,
-                    candidate.location_id,
-                    candidate.path,
-                    actual_bytes,
-                ],
+                 SET byte_size = ?3
+                 WHERE artifact_key = ?1 AND artifact_path = ?2
+                   AND byte_size <> ?3",
+                params![candidate.artifact_key, candidate.path, actual_bytes,],
             )
             .map_err(database_error)?;
         Ok(updated != 0)
@@ -617,8 +658,11 @@ impl CatalogRepository for SqliteCatalog {
             .prepare_cached(
                 "UPDATE preview_artifacts
                  SET last_used_unix_ms = ?3
-                 WHERE location_id = ?1 AND artifact_path = ?2
-                   AND last_used_unix_ms < ?4",
+                 WHERE artifact_key IN (
+                     SELECT artifact_key FROM preview_artifact_locations
+                     WHERE location_id = ?1
+                 )
+                   AND artifact_path = ?2 AND last_used_unix_ms < ?4",
             )
             .map_err(database_error)?;
         let mut updated = 0_usize;
@@ -675,12 +719,17 @@ impl CatalogRepository for SqliteCatalog {
                 })
                 .collect::<Vec<_>>()
                 .join(", ");
-            format!("AND location_id NOT IN ({placeholders})")
+            format!(
+                "AND artifact_key NOT IN (
+                   SELECT artifact_key FROM preview_artifact_locations
+                   WHERE location_id IN ({placeholders})
+                 )"
+            )
         };
         values.push(Value::Integer(i64::from(limit)));
         let limit_parameter = values.len();
         let query = format!(
-            "SELECT artifact_key, location_id, artifact_path
+            "SELECT artifact_key, artifact_path
              FROM preview_artifacts
              WHERE lower(substr(artifact_path, 1, length(?4))) = lower(?4)
              {protected_clause}
@@ -697,21 +746,13 @@ impl CatalogRepository for SqliteCatalog {
         let mut statement = self.connection.prepare(&query).map_err(database_error)?;
         let rows = statement
             .query_map(params_from_iter(values), |row| {
-                Ok((
-                    row.get::<_, String>(0)?,
-                    row.get::<_, String>(1)?,
-                    row.get::<_, String>(2)?,
-                ))
+                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
             })
             .map_err(database_error)?;
         let mut candidates = Vec::new();
         for row in rows {
-            let (artifact_key, location_id, path) = row.map_err(database_error)?;
-            candidates.push(PreviewReclamationCandidate {
-                artifact_key,
-                location_id,
-                path,
-            });
+            let (artifact_key, path) = row.map_err(database_error)?;
+            candidates.push(PreviewReclamationCandidate { artifact_key, path });
         }
         Ok(candidates)
     }
@@ -726,19 +767,19 @@ impl CatalogRepository for SqliteCatalog {
                 "UPDATE asset_locations
                  SET preview_path = '', preview_status = 'pending',
                      preview_issue_code = NULL, preview_issue_message = NULL
-                 WHERE location_id = ?1 AND preview_path = ?2",
-                params![candidate.location_id, candidate.path],
+                 WHERE preview_path = ?1
+                   AND location_id IN (
+                     SELECT location_id FROM preview_artifact_locations
+                     WHERE artifact_key = ?2
+                   )",
+                params![candidate.path, candidate.artifact_key],
             )
             .map_err(database_error)?;
         let deleted = transaction
             .execute(
                 "DELETE FROM preview_artifacts
-                 WHERE artifact_key = ?1 AND location_id = ?2 AND artifact_path = ?3",
-                params![
-                    candidate.artifact_key,
-                    candidate.location_id,
-                    candidate.path
-                ],
+                 WHERE artifact_key = ?1 AND artifact_path = ?2",
+                params![candidate.artifact_key, candidate.path],
             )
             .map_err(database_error)?;
         if deleted != 1 {
@@ -1256,6 +1297,29 @@ impl CatalogRepository for SqliteCatalog {
         transaction
             .execute(
                 "UPDATE library_roots SET active_scan_id = ?2 WHERE id = ?1",
+                params![root_id, scan_id],
+            )
+            .map_err(database_error)?;
+        transaction
+            .execute(
+                "DELETE FROM preview_artifact_locations
+                 WHERE location_id IN (
+                   SELECT locations.location_id
+                   FROM asset_locations AS locations
+                   WHERE locations.root_id = ?1 AND locations.scan_id <> ?2
+                 )",
+                params![root_id, scan_id],
+            )
+            .map_err(database_error)?;
+        transaction
+            .execute(
+                "INSERT OR IGNORE INTO preview_artifact_locations(artifact_key, location_id)
+                 SELECT artifacts.artifact_key, locations.location_id
+                 FROM asset_locations AS locations
+                 JOIN preview_artifacts AS artifacts
+                   ON artifacts.artifact_path = locations.preview_path
+                 WHERE locations.root_id = ?1 AND locations.scan_id = ?2
+                   AND locations.preview_status = 'ready'",
                 params![root_id, scan_id],
             )
             .map_err(database_error)?;

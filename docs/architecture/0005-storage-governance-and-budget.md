@@ -58,7 +58,7 @@ Ame owns a preview-artifact index separate from gallery layout and durable user 
 replaceable persistence representation records enough evidence to identify and account for an
 artifact:
 
-- stable location identity and compatible source state;
+- every compatible active location reference plus compatible source state;
 - preview algorithm and version;
 - orientation contract;
 - one bounded physical-pixel size bucket and actual encoded dimensions;
@@ -94,6 +94,20 @@ orientation, and size-bucket identity. Generation writes a temporary artifact ou
 revalidates ownership, and atomically installs the completed file and index evidence. Obsolete work
 cannot publish over a newer generation or restore a stale path. No preview operation recalls an
 offline placeholder.
+
+The artifact index keeps location ownership as a many-to-many reference instead of a single mutable
+owner column. Identity-proven hard links, renamed locations, and other compatible active locations
+may reference one rebuildable artifact. Reclamation excludes an artifact when any reference is in
+protected demand, and removal resets every active location that still names the artifact. Schema
+v15 migrates v14 rows by rebuilding those references from every catalog location that publishes
+the same artifact path; it does not infer ownership from the v14 row's last writer alone. Normal
+scan publication then keeps the reference set aligned with the active snapshot.
+
+A cache hit and a newly generated artifact have different publication lifecycles. A compatible
+cache hit remains installed when the current source revalidation fails. A new encoding stays in a
+managed temporary namespace, including its reserved budget bytes, until source revalidation
+succeeds; only then is it atomically renamed into the final namespace. Failed validation removes
+only the staged file and cannot delete an artifact already used by another location.
 
 When generation is also the first successful inspection of an item whose durable dimensions were
 unknown, its orientation-corrected width and height are persisted as geometry evidence. ADR 0014
@@ -209,6 +223,10 @@ The complete preview lifecycle additionally requires:
   and replaces layout geometry while preserving the logical viewport anchor;
 - proof that current and recognized legacy artifacts share usage accounting, manual cleanup, and
   pressure reclamation without deleting foreign files or eagerly discarding legacy reuse at startup;
+- proof that all compatible location references protect a shared artifact, reclamation resets every
+  referencing location, and v14 last-writer ownership migrates without losing active references;
+- proof that new encodings remain staged until post-decode source revalidation, while failed
+  revalidation never deletes a compatible cache hit;
 - measured bounded variant selection without per-pixel key growth;
 - high-to-low-watermark reclamation that preserves pinned demand and does not thrash;
 - stale-publication guards for query, revision, source state, algorithm, orientation, and bucket;

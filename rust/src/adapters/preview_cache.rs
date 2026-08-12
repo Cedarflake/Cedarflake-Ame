@@ -5,11 +5,19 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use blake3::Hasher;
 use image::{DynamicImage, ImageDecoder, ImageFormat, ImageReader, Limits};
 
-use crate::domain::{DiscoveredFile, ImageOrientation, PreviewArtifact, ScanIssue};
+use crate::domain::{
+    DiscoveredFile, ImageOrientation, PreviewArtifact, PreviewMaterialization, ScanIssue,
+};
 use crate::ports::PreviewStore;
 
 use super::image_orientation::{apply_image_orientation, from_image_orientation};
 use super::jpeg_preview::decode_scaled_jpeg;
+
+struct PreviewDimensions {
+    source_width: u32,
+    source_height: u32,
+    encoded: Option<(u32, u32)>,
+}
 
 pub(crate) const PREVIEW_CACHE_VERSION: &str = "ame-jpeg-thumbnail-v2-orientation";
 const PREVIEW_ALGORITHM: &str = PREVIEW_CACHE_VERSION;
@@ -87,26 +95,82 @@ impl LocalPreviewStore {
         Ok(cached_artifact_dimensions(artifact_path, edge))
     }
 
-    pub(crate) fn discard(&self, artifact: &PreviewArtifact) -> Result<(), ScanIssue> {
-        let path = Path::new(&artifact.path);
-        if path.parent() != Some(self.root.as_path())
-            || !is_current_preview_artifact(&path.to_string_lossy())
+    pub(crate) fn commit(
+        &self,
+        mut materialization: PreviewMaterialization,
+    ) -> Result<PreviewArtifact, ScanIssue> {
+        let Some(staged_path) = materialization.staged_path.take() else {
+            return Ok(materialization.artifact);
+        };
+        let staged_path = PathBuf::from(staged_path);
+        let artifact_path = PathBuf::from(&materialization.artifact.path);
+        if staged_path.parent() != Some(self.root.as_path())
+            || artifact_path.parent() != Some(self.root.as_path())
+            || !is_managed_preview_cleanup_entry(&staged_path)
+            || !is_current_preview_artifact(&artifact_path.to_string_lossy())
         {
             return Err(ScanIssue {
-                path: Some(artifact.path.clone()),
-                code: "preview_discard_path_invalid".to_owned(),
-                message: "The preview artifact is outside the active preview cache".to_owned(),
+                path: Some(staged_path.to_string_lossy().into_owned()),
+                code: "preview_publish_path_invalid".to_owned(),
+                message: "The staged preview is outside the active preview cache".to_owned(),
             });
         }
-        let byte_size = path
-            .metadata()
-            .map_or(artifact.byte_size, |metadata| metadata.len());
-        match fs::remove_file(path) {
-            Ok(()) => self.release(byte_size),
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+
+        if let Err(error) = fs::rename(&staged_path, &artifact_path) {
+            if let Some((encoded_width, encoded_height)) =
+                cached_artifact_dimensions(&artifact_path, materialization.artifact.size_bucket)
+            {
+                self.remove_staged_file(&staged_path, materialization.reserved_bytes)?;
+                materialization.artifact.byte_size = artifact_path
+                    .metadata()
+                    .map_err(|metadata_error| ScanIssue {
+                        path: Some(artifact_path.to_string_lossy().into_owned()),
+                        code: "preview_size_unavailable".to_owned(),
+                        message: metadata_error.to_string(),
+                    })?
+                    .len();
+                materialization.artifact.encoded_width = encoded_width;
+                materialization.artifact.encoded_height = encoded_height;
+            } else {
+                let _ = self.remove_staged_file(&staged_path, materialization.reserved_bytes);
+                return Err(ScanIssue {
+                    path: Some(artifact_path.to_string_lossy().into_owned()),
+                    code: "preview_publish_failed".to_owned(),
+                    message: error.to_string(),
+                });
+            }
+        }
+        Ok(materialization.artifact)
+    }
+
+    pub(crate) fn discard_staged(
+        &self,
+        materialization: &PreviewMaterialization,
+    ) -> Result<(), ScanIssue> {
+        let Some(staged_path) = materialization.staged_path.as_deref() else {
+            return Ok(());
+        };
+        self.remove_staged_file(Path::new(staged_path), materialization.reserved_bytes)
+    }
+
+    fn remove_staged_file(&self, staged_path: &Path, reserved_bytes: u64) -> Result<(), ScanIssue> {
+        if staged_path.parent() != Some(self.root.as_path())
+            || !is_managed_preview_cleanup_entry(staged_path)
+        {
+            return Err(ScanIssue {
+                path: Some(staged_path.to_string_lossy().into_owned()),
+                code: "preview_discard_path_invalid".to_owned(),
+                message: "The staged preview is outside the active preview cache".to_owned(),
+            });
+        }
+        match fs::remove_file(staged_path) {
+            Ok(()) => self.release(reserved_bytes),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                self.release(reserved_bytes);
+            }
             Err(error) => {
                 return Err(ScanIssue {
-                    path: Some(path.to_string_lossy().into_owned()),
+                    path: Some(staged_path.to_string_lossy().into_owned()),
                     code: "preview_discard_failed".to_owned(),
                     message: error.to_string(),
                 });
@@ -139,7 +203,7 @@ impl PreviewStore for LocalPreviewStore {
         preview_edge: u32,
         source_width: u32,
         source_height: u32,
-    ) -> Result<PreviewArtifact, ScanIssue> {
+    ) -> Result<PreviewMaterialization, ScanIssue> {
         let edge = preview_size_bucket(preview_edge);
         let source_path = Path::new(&file.absolute_path);
         let artifact_key = self.artifact_key(file, edge);
@@ -150,12 +214,16 @@ impl PreviewStore for LocalPreviewStore {
             return preview_artifact(
                 file,
                 artifact_key,
-                artifact_path,
+                artifact_path.clone(),
+                &artifact_path,
                 edge,
-                source_width,
-                source_height,
-                cached_dimensions,
-            );
+                PreviewDimensions {
+                    source_width,
+                    source_height,
+                    encoded: cached_dimensions,
+                },
+            )
+            .map(existing_materialization);
         }
         if artifact_path.exists() && cached_dimensions.is_none() {
             let invalid_size = artifact_path
@@ -175,12 +243,16 @@ impl PreviewStore for LocalPreviewStore {
             return preview_artifact(
                 file,
                 artifact_key,
-                artifact_path,
+                artifact_path.clone(),
+                &artifact_path,
                 edge,
-                source_width,
-                source_height,
-                Some(encoded_dimensions),
-            );
+                PreviewDimensions {
+                    source_width,
+                    source_height,
+                    encoded: Some(encoded_dimensions),
+                },
+            )
+            .map(existing_materialization);
         }
 
         let mut reader = ImageReader::open(source_path)
@@ -237,57 +309,83 @@ fn publish_preview(
     edge: u32,
     image: DynamicImage,
     source_dimensions: (u32, u32),
-) -> Result<PreviewArtifact, ScanIssue> {
-    if !artifact_path.exists() {
-        let thumbnail = image.thumbnail(edge, edge);
-        let temporary_path = artifact_path.with_extension(format!(
-            "{}-{}.tmp",
-            std::process::id(),
-            TEMPORARY_SEQUENCE.fetch_add(1, Ordering::Relaxed)
-        ));
-        if let Err(error) = thumbnail.save_with_format(&temporary_path, ImageFormat::Jpeg) {
-            let _ = fs::remove_file(&temporary_path);
-            return Err(preview_issue(file, "preview_write_failed", error));
-        }
-        let preview_size = match temporary_path.metadata() {
-            Ok(metadata) => metadata.len(),
-            Err(error) => {
-                let _ = fs::remove_file(&temporary_path);
-                return Err(preview_issue(file, "preview_size_unavailable", error));
-            }
-        };
-        if !store.reserve(preview_size) {
-            let _ = fs::remove_file(&temporary_path);
-            return Err(ScanIssue {
-                path: Some(file.absolute_path.clone()),
-                code: "preview_cache_budget_exceeded".to_owned(),
-                message: format!(
-                    "The preview cache budget of {} bytes is exhausted",
-                    store.budget_bytes
-                ),
-            });
-        }
-        if let Err(error) = fs::rename(&temporary_path, &artifact_path) {
-            store.release(preview_size);
-            if is_valid_cached_artifact(&artifact_path, edge) {
-                let _ = fs::remove_file(&temporary_path);
-            } else {
-                let _ = fs::remove_file(&temporary_path);
-                return Err(preview_issue(file, "preview_publish_failed", error));
-            }
-        }
+) -> Result<PreviewMaterialization, ScanIssue> {
+    if let Some(encoded_dimensions) = cached_artifact_dimensions(&artifact_path, edge) {
+        return preview_artifact(
+            file,
+            artifact_key,
+            artifact_path.clone(),
+            &artifact_path,
+            edge,
+            PreviewDimensions {
+                source_width: source_dimensions.0,
+                source_height: source_dimensions.1,
+                encoded: Some(encoded_dimensions),
+            },
+        )
+        .map(existing_materialization);
     }
 
-    let encoded_dimensions = cached_artifact_dimensions(&artifact_path, edge);
-    preview_artifact(
+    let thumbnail = image.thumbnail(edge, edge);
+    let temporary_path = artifact_path.with_extension(format!(
+        "{}-{}.tmp",
+        std::process::id(),
+        TEMPORARY_SEQUENCE.fetch_add(1, Ordering::Relaxed)
+    ));
+    if let Err(error) = thumbnail.save_with_format(&temporary_path, ImageFormat::Jpeg) {
+        let _ = fs::remove_file(&temporary_path);
+        return Err(preview_issue(file, "preview_write_failed", error));
+    }
+    let preview_size = match temporary_path.metadata() {
+        Ok(metadata) => metadata.len(),
+        Err(error) => {
+            let _ = fs::remove_file(&temporary_path);
+            return Err(preview_issue(file, "preview_size_unavailable", error));
+        }
+    };
+    if !store.reserve(preview_size) {
+        let _ = fs::remove_file(&temporary_path);
+        return Err(ScanIssue {
+            path: Some(file.absolute_path.clone()),
+            code: "preview_cache_budget_exceeded".to_owned(),
+            message: format!(
+                "The preview cache budget of {} bytes is exhausted",
+                store.budget_bytes
+            ),
+        });
+    }
+    let encoded_dimensions = cached_artifact_dimensions(&temporary_path, edge);
+    let artifact = match preview_artifact(
         file,
         artifact_key,
         artifact_path,
+        &temporary_path,
         edge,
-        source_dimensions.0,
-        source_dimensions.1,
-        encoded_dimensions,
-    )
+        PreviewDimensions {
+            source_width: source_dimensions.0,
+            source_height: source_dimensions.1,
+            encoded: encoded_dimensions,
+        },
+    ) {
+        Ok(artifact) => artifact,
+        Err(issue) => {
+            let _ = store.remove_staged_file(&temporary_path, preview_size);
+            return Err(issue);
+        }
+    };
+    Ok(PreviewMaterialization {
+        artifact,
+        staged_path: Some(temporary_path.to_string_lossy().into_owned()),
+        reserved_bytes: preview_size,
+    })
+}
+
+fn existing_materialization(artifact: PreviewArtifact) -> PreviewMaterialization {
+    PreviewMaterialization {
+        artifact,
+        staged_path: None,
+        reserved_bytes: 0,
+    }
 }
 
 fn preview_size_bucket(requested_edge: u32) -> u32 {
@@ -405,10 +503,6 @@ pub(crate) fn is_ame_preview_cache_entry(path: &Path) -> bool {
     is_managed_preview_cleanup_entry(path) || is_legacy_preview_artifact(path)
 }
 
-fn is_valid_cached_artifact(path: &Path, edge: u32) -> bool {
-    cached_artifact_dimensions(path, edge).is_some()
-}
-
 fn cached_artifact_dimensions(path: &Path, edge: u32) -> Option<(u32, u32)> {
     let Ok(mut reader) = ImageReader::open(path).and_then(|reader| reader.with_guessed_format())
     else {
@@ -452,17 +546,16 @@ fn preview_artifact(
     file: &DiscoveredFile,
     artifact_key: String,
     artifact_path: PathBuf,
+    artifact_file_path: &Path,
     size_bucket: u32,
-    width: u32,
-    height: u32,
-    encoded_dimensions: Option<(u32, u32)>,
+    dimensions: PreviewDimensions,
 ) -> Result<PreviewArtifact, ScanIssue> {
-    let (encoded_width, encoded_height) = encoded_dimensions.ok_or_else(|| ScanIssue {
-        path: Some(artifact_path.to_string_lossy().into_owned()),
+    let (encoded_width, encoded_height) = dimensions.encoded.ok_or_else(|| ScanIssue {
+        path: Some(artifact_file_path.to_string_lossy().into_owned()),
         code: "preview_cache_publish_invalid".to_owned(),
         message: "The published preview artifact could not be validated".to_owned(),
     })?;
-    let byte_size = artifact_path
+    let byte_size = artifact_file_path
         .metadata()
         .map_err(|error| preview_issue(file, "preview_size_unavailable", error))?
         .len();
@@ -476,8 +569,8 @@ fn preview_artifact(
         byte_size,
         encoded_width,
         encoded_height,
-        width,
-        height,
+        width: dimensions.source_width,
+        height: dimensions.source_height,
     })
 }
 
@@ -527,6 +620,19 @@ mod tests {
     use tempfile::tempdir;
 
     use super::*;
+
+    fn materialize_and_commit(
+        store: &LocalPreviewStore,
+        file: &DiscoveredFile,
+        preview_edge: u32,
+        source_width: u32,
+        source_height: u32,
+    ) -> PreviewArtifact {
+        let materialization = store
+            .materialize(file, preview_edge, source_width, source_height)
+            .expect("materialize preview");
+        store.commit(materialization).expect("commit preview")
+    }
 
     #[test]
     fn exhausted_budget_does_not_publish_or_modify_media() {
@@ -585,13 +691,62 @@ mod tests {
         drop(store);
         let store = LocalPreviewStore::new(preview_root, 1024).expect("reopen preview store");
 
-        let preview = store
-            .materialize(&file, 256, 4032, 3024)
-            .expect("reuse cached preview");
+        let preview = materialize_and_commit(&store, &file, 256, 4032, 3024);
 
         assert_eq!(PathBuf::from(preview.path), artifact_path);
         assert_eq!((preview.width, preview.height), (4032, 3024));
         assert_eq!(fs::read(source_path).expect("source after"), source_bytes);
+    }
+
+    #[test]
+    fn generated_preview_is_staged_until_revalidation_and_commit() {
+        let storage = tempdir().expect("storage");
+        let source_path = storage.path().join("source.png");
+        RgbImage::from_pixel(32, 24, Rgb([24, 96, 192]))
+            .save(&source_path)
+            .expect("source image");
+        let metadata = source_path.metadata().expect("source metadata");
+        let file = DiscoveredFile {
+            absolute_path: source_path.to_string_lossy().into_owned(),
+            relative_path: "source.png".to_owned(),
+            file_size: metadata.len(),
+            created_unix_ms: None,
+            modified_unix_ms: 8,
+            file_identity: None,
+            issues: Vec::new(),
+        };
+        let preview_root = storage.path().join("previews");
+        let store =
+            LocalPreviewStore::new(preview_root.clone(), 1024 * 1024).expect("preview store");
+        let artifact_path = store.artifact_path(&file, 256);
+
+        let staged = store
+            .materialize(&file, 256, 32, 24)
+            .expect("staged preview");
+        let staged_path = PathBuf::from(staged.staged_path.as_ref().expect("staged path"));
+
+        assert!(!artifact_path.exists());
+        assert!(staged_path.exists());
+        assert!(store.used_bytes() > 0);
+
+        store
+            .discard_staged(&staged)
+            .expect("discard staged preview");
+        assert!(!staged_path.exists());
+        assert!(!artifact_path.exists());
+        assert_eq!(store.used_bytes(), 0);
+
+        let staged = store
+            .materialize(&file, 256, 32, 24)
+            .expect("replacement staged preview");
+        let committed = store.commit(staged).expect("commit preview");
+        assert_eq!(PathBuf::from(&committed.path), artifact_path);
+        assert!(artifact_path.exists());
+
+        let existing = store
+            .materialize(&file, 256, 32, 24)
+            .expect("existing preview");
+        assert!(existing.staged_path.is_none());
     }
 
     #[test]
@@ -622,9 +777,7 @@ mod tests {
         let store = LocalPreviewStore::new(preview_root, 1024 * 1024).expect("preview store");
         let current_path = store.artifact_path(&file, 512);
 
-        let preview = store
-            .materialize(&file, 512, 640, 480)
-            .expect("promoted preview");
+        let preview = materialize_and_commit(&store, &file, 512, 640, 480);
 
         assert_eq!(PathBuf::from(preview.path), current_path);
         assert!(!legacy_path.exists());
@@ -663,9 +816,7 @@ mod tests {
         let legacy_before = fs::read(&legacy_path).expect("legacy bytes");
         let store = LocalPreviewStore::new(preview_root, 1024 * 1024).expect("preview store");
 
-        let preview = store
-            .materialize(&file, 512, 60, 80)
-            .expect("rebuilt preview");
+        let preview = materialize_and_commit(&store, &file, 512, 60, 80);
 
         assert!(is_current_preview_artifact(&preview.path));
         assert_eq!(fs::read(&legacy_path).expect("legacy after"), legacy_before);
@@ -703,9 +854,7 @@ mod tests {
         let legacy_before = fs::read(&legacy_path).expect("legacy bytes");
         let store = LocalPreviewStore::new(preview_root, 1).expect("preview store");
 
-        let preview = store
-            .materialize(&file, 512, 32, 24)
-            .expect("zero-growth legacy promotion");
+        let preview = materialize_and_commit(&store, &file, 512, 32, 24);
 
         assert!(!legacy_path.exists());
         assert_eq!(
@@ -744,12 +893,10 @@ mod tests {
         drop(store);
         let store = LocalPreviewStore::new(preview_root, 4096).expect("reopen preview store");
 
-        let preview = store
-            .materialize(&file, 256, 32, 24)
-            .expect("rebuild preview");
+        let preview = materialize_and_commit(&store, &file, 256, 32, 24);
 
         assert_eq!(PathBuf::from(preview.path), artifact_path);
-        assert!(is_valid_cached_artifact(&artifact_path, 256));
+        assert!(cached_artifact_dimensions(&artifact_path, 256).is_some());
         assert_eq!(fs::read(&source_path).expect("source after"), source_before);
     }
 
@@ -805,12 +952,8 @@ mod tests {
         let store =
             LocalPreviewStore::new(preview_root.clone(), 1024 * 1024).expect("preview store");
 
-        let first = store
-            .materialize(&file, 129, 640, 480)
-            .expect("first bucket request");
-        let second = store
-            .materialize(&file, 255, 640, 480)
-            .expect("second bucket request");
+        let first = materialize_and_commit(&store, &file, 129, 640, 480);
+        let second = materialize_and_commit(&store, &file, 255, 640, 480);
 
         assert_eq!(first.size_bucket, 256);
         assert_eq!(second.size_bucket, 256);
@@ -914,9 +1057,7 @@ mod tests {
             let store = LocalPreviewStore::new(preview_root, 1024 * 1024)
                 .expect("orientation preview store");
 
-            let preview = store
-                .materialize(&file, 256, 80, 60)
-                .expect("oriented preview");
+            let preview = materialize_and_commit(&store, &file, 256, 80, 60);
             let preview_path = PathBuf::from(&preview.path);
             let rendered = image::open(&preview_path).expect("decode oriented preview");
 
@@ -1017,6 +1158,6 @@ mod tests {
         image.save(path).expect("complete jpeg");
         let jpeg = fs::read(path).expect("jpeg bytes");
         fs::write(path, &jpeg[..jpeg.len() / 2]).expect("truncated jpeg");
-        assert!(!is_valid_cached_artifact(path, 256));
+        assert!(cached_artifact_dimensions(path, 256).is_none());
     }
 }

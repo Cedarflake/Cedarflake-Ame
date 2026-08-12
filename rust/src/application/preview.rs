@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex, OnceLock};
 
 use crate::adapters::{LocalPreviewStore, SqliteCatalog, revalidate_file_state};
 use crate::domain::{
-    AssetLocationView, DiscoveredFile, ExpectedFileState, PreviewArtifact, PreviewRequest,
+    AssetLocationView, DiscoveredFile, ExpectedFileState, PreviewMaterialization, PreviewRequest,
     PreviewStatus, ScanError, ScanIssue,
 };
 use crate::ports::{CatalogRepository, PreviewStore};
@@ -99,21 +99,23 @@ fn materialize_preview_attempt(
         location.width,
         location.height,
     ) {
-        Ok(preview) => match revalidate_materialized_preview(&expected, preview, preview_store) {
-            Ok(preview) => {
-                location.preview_path = preview.path.clone();
-                location.width = preview.width;
-                location.height = preview.height;
-                location.preview_status = PreviewStatus::Ready;
-                location.preview_issue_code = None;
-                location.preview_issue_message = None;
-                Some(preview)
+        Ok(materialization) => {
+            match revalidate_materialized_preview(&expected, materialization, preview_store) {
+                Ok(preview) => {
+                    location.preview_path = preview.path.clone();
+                    location.width = preview.width;
+                    location.height = preview.height;
+                    location.preview_status = PreviewStatus::Ready;
+                    location.preview_issue_code = None;
+                    location.preview_issue_message = None;
+                    Some(preview)
+                }
+                Err(issue) => {
+                    apply_failure(&mut location, &issue);
+                    None
+                }
             }
-            Err(issue) => {
-                apply_failure(&mut location, &issue);
-                None
-            }
-        },
+        }
         Err(issue) if issue.code == "preview_cache_budget_exceeded" && can_reclaim => {
             let required_bytes = preview_store.take_rejected_reservation_bytes();
             drop(catalog);
@@ -141,14 +143,14 @@ fn materialize_preview_attempt(
 
 fn revalidate_materialized_preview(
     expected: &ExpectedFileState,
-    preview: PreviewArtifact,
+    materialization: PreviewMaterialization,
     preview_store: &LocalPreviewStore,
-) -> Result<PreviewArtifact, ScanIssue> {
+) -> Result<crate::domain::PreviewArtifact, ScanIssue> {
     if let Err(issue) = revalidate_file_state(expected) {
-        let _ = preview_store.discard(&preview);
+        let _ = preview_store.discard_staged(&materialization);
         return Err(issue);
     }
-    Ok(preview)
+    preview_store.commit(materialization)
 }
 
 pub(crate) fn active_preview_store(
@@ -231,6 +233,7 @@ mod tests {
     use std::fs;
     use std::path::Path;
 
+    use image::{Rgb, RgbImage};
     use tempfile::tempdir;
 
     use super::*;
@@ -255,7 +258,7 @@ mod tests {
         ));
         fs::write(&preview_path, b"preview").expect("preview");
         fs::write(&source_path, b"new source bytes").expect("changed source");
-        let preview = PreviewArtifact {
+        let preview = crate::domain::PreviewArtifact {
             artifact_key: "a".repeat(64),
             path: preview_path.to_string_lossy().into_owned(),
             byte_size: 7,
@@ -269,11 +272,63 @@ mod tests {
             orientation_contract: crate::adapters::PREVIEW_ORIENTATION_CONTRACT.to_owned(),
         };
 
-        let issue = revalidate_materialized_preview(&expected, preview, &store)
+        let materialization = PreviewMaterialization {
+            artifact: preview,
+            staged_path: None,
+            reserved_bytes: 0,
+        };
+        let issue = revalidate_materialized_preview(&expected, materialization, &store)
             .expect_err("changed source must be rejected");
 
         assert_eq!(issue.code, "source_changed_during_scan");
-        assert!(!preview_path.exists());
+        assert!(preview_path.exists());
+    }
+
+    #[test]
+    fn changed_source_discards_only_the_staged_preview() {
+        let directory = tempdir().expect("temporary directory");
+        let source_path = directory.path().join("source.png");
+        RgbImage::from_pixel(32, 24, Rgb([24, 96, 192]))
+            .save(&source_path)
+            .expect("source image");
+        let metadata = source_path.metadata().expect("source metadata");
+        let expected = ExpectedFileState {
+            absolute_path: source_path.to_string_lossy().into_owned(),
+            file_size: metadata.len(),
+            modified_unix_ms: source_path_modified_unix_ms(&source_path),
+            file_identity: None,
+        };
+        let file = DiscoveredFile {
+            absolute_path: expected.absolute_path.clone(),
+            relative_path: "source.png".to_owned(),
+            file_size: expected.file_size,
+            created_unix_ms: None,
+            modified_unix_ms: expected.modified_unix_ms,
+            file_identity: None,
+            issues: Vec::new(),
+        };
+        let preview_root = directory.path().join("previews");
+        let store = LocalPreviewStore::new(preview_root, 1024 * 1024).expect("store");
+        let materialization = store
+            .materialize(&file, 256, 32, 24)
+            .expect("staged preview");
+        let final_path = Path::new(&materialization.artifact.path).to_path_buf();
+        let staged_path = Path::new(
+            materialization
+                .staged_path
+                .as_deref()
+                .expect("staged preview path"),
+        )
+        .to_path_buf();
+        fs::write(&source_path, b"new source bytes").expect("changed source");
+
+        let issue = revalidate_materialized_preview(&expected, materialization, &store)
+            .expect_err("changed source must be rejected");
+
+        assert_eq!(issue.code, "source_changed_during_scan");
+        assert!(!staged_path.exists());
+        assert!(!final_path.exists());
+        assert_eq!(store.used_bytes(), 0);
     }
 
     fn source_path_modified_unix_ms(path: &Path) -> i64 {

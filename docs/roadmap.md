@@ -1719,7 +1719,7 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
 - R0 and R1 are accepted. The Rust-owned SQLite catalog, Flutter/Rust bridge, external preview
   storage, resumable multi-root scanning, atomic publication, per-file issue isolation, file
   identity, and revision-safe bounded queries are connected end to end.
-- The catalog schema is v14 and the storage-settings schema is v2. They add a transactional preview
+- The catalog schema is v15 and the storage-settings schema is v2. They add a transactional preview
   artifact index and explicit pending or retired preview-root ownership without losing earlier root,
   scan, asset, location, frontier, capture-evidence, identity, or query evidence.
 - The authorized read-only target-library acceptance published 30,629 locations for
@@ -1760,12 +1760,15 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   target workload remains flat. The million-item path is selected as hierarchical in current code,
   but its complete build, layout, resize, cancellation, and interaction performance evidence remains
   conditional scale validation rather than an R2b target-workload blocker.
-- Preview storage has resolved-path ownership guards for import and cleanup, post-materialization
-  source-state revalidation, atomic admission reservation, display-driven 128/256/512 physical-pixel
-  buckets, on-demand legacy artifact adoption, protected high/low-watermark reclamation, structured
-  failure, bounded startup recovery, verified foreground cleanup, and restart-safe preview-root
-  activation with explicit retired-root cleanup. These paths preserve durable geometry and exclude
-  source media and unrelated files.
+- Preview storage has resolved-path ownership guards for import and cleanup, many-to-many active
+  location ownership for shared artifacts, staged generation before post-decode source-state
+  revalidation, atomic admission reservation and installation, display-driven 128/256/512
+  physical-pixel buckets, on-demand legacy artifact adoption, protected high/low-watermark
+  reclamation, structured failure, bounded startup recovery, verified foreground cleanup, and
+  restart-safe preview-root activation with explicit retired-root cleanup. Cache-hit validation
+  failure cannot delete an existing artifact, and reclamation protects or resets every compatible
+  referencing location. These paths preserve durable geometry and exclude source media and
+  unrelated files.
 - R2c begins without a production watcher, durable change queue, freshness state, delta publisher,
   or catch-up adapter. R3 and the later duplicate, review, classification, similarity, semantic,
   organization-plan, and operation-journal domains have not started.

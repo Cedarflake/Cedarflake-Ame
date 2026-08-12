@@ -487,10 +487,16 @@ pub struct PreviewArtifact {
     pub height: u32,
 }
 
+#[derive(Debug)]
+pub(crate) struct PreviewMaterialization {
+    pub artifact: PreviewArtifact,
+    pub staged_path: Option<String>,
+    pub reserved_bytes: u64,
+}
+
 #[derive(Clone, Debug)]
 pub struct PreviewReclamationCandidate {
     pub artifact_key: String,
-    pub location_id: String,
     pub path: String,
 }
 

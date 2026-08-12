@@ -4,8 +4,8 @@ use crate::domain::{
     AssetLocationView, CatalogCursor, CatalogSnapshot, DiscoveredFile, ExpectedFileState,
     FileIdentityEvidence, GalleryLayoutManifestChunk, GalleryLayoutManifestCursor, GalleryQuery,
     GalleryTimeAnchor, GalleryTimeline, LibraryFolderCursor, LibraryFolderPage, MediaInspection,
-    MetadataInspection, PreviewArtifact, PreviewReclamationCandidate, RecoverableScan,
-    ScanCheckpoint, ScanError, ScanIssue, ScanRequest, StorageConfiguration,
+    MetadataInspection, PreviewArtifact, PreviewMaterialization, PreviewReclamationCandidate,
+    RecoverableScan, ScanCheckpoint, ScanError, ScanIssue, ScanRequest, StorageConfiguration,
 };
 
 pub trait CatalogRepository {
@@ -189,7 +189,7 @@ pub trait PreviewStore {
         preview_edge: u32,
         source_width: u32,
         source_height: u32,
-    ) -> Result<PreviewArtifact, ScanIssue>;
+    ) -> Result<PreviewMaterialization, ScanIssue>;
 }
 
 pub(crate) trait MediaInspector {

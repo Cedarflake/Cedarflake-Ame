@@ -400,9 +400,9 @@ fn preview_reclamation_orders_stale_before_lru_and_preserves_protected_locations
     assert_eq!(
         candidates
             .iter()
-            .map(|candidate| candidate.location_id.as_str())
+            .map(|candidate| candidate.artifact_key.as_str())
             .collect::<Vec<_>>(),
-        ["reclaim-stale-location", "reclaim-lru-location"],
+        ["artifact-stale", "artifact-lru"],
     );
     assert!(
         catalog
@@ -416,6 +416,95 @@ fn preview_reclamation_orders_stale_before_lru_and_preserves_protected_locations
     assert!(matches!(reclaimed.preview_status, PreviewStatus::Pending));
     assert!(reclaimed.preview_path.is_empty());
     assert_eq!((reclaimed.width, reclaimed.height), (40, 50));
+}
+
+#[test]
+fn shared_preview_is_protected_and_reset_through_every_active_location() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let mut catalog = SqliteCatalog::open(path).expect("catalog");
+    let artifact = PreviewArtifact {
+        artifact_key: "shared-artifact".to_owned(),
+        algorithm_id: "ame-jpeg-thumbnail".to_owned(),
+        algorithm_version: 2,
+        orientation_contract: "exif-display-v1".to_owned(),
+        size_bucket: 256,
+        path: "C:\\AmeCache\\shared.jpg".to_owned(),
+        byte_size: 1_024,
+        encoded_width: 40,
+        encoded_height: 50,
+        width: 40,
+        height: 50,
+    };
+    for suffix in ["first", "second"] {
+        let scan_id = format!("shared-{suffix}-scan");
+        let root_id = format!("shared-{suffix}-root");
+        let location_id = format!("shared-{suffix}-location");
+        publish_fixture(
+            &mut catalog,
+            &scan_id,
+            &root_id,
+            &format!("C:\\SharedSource\\{suffix}"),
+            &location_id,
+        );
+        let mut location = catalog
+            .load_active_location(&location_id)
+            .expect("active location query")
+            .expect("active location");
+        location.preview_path = artifact.path.clone();
+        location.preview_status = PreviewStatus::Ready;
+        catalog
+            .update_active_preview(&location, Some(&artifact))
+            .expect("share preview artifact");
+    }
+    let reference_count: i64 = catalog
+        .connection
+        .query_row(
+            "SELECT COUNT(*) FROM preview_artifact_locations
+             WHERE artifact_key = ?1",
+            [&artifact.artifact_key],
+            |row| row.get(0),
+        )
+        .expect("shared references");
+    assert_eq!(reference_count, 2);
+
+    let protected = vec!["shared-first-location".to_owned()];
+    let protected_candidates = catalog
+        .load_preview_reclamation_candidates(
+            &protected,
+            "ame-jpeg-thumbnail",
+            2,
+            "exif-display-v1",
+            "c:\\amecache\\",
+            8,
+        )
+        .expect("protected candidates");
+    assert!(protected_candidates.is_empty());
+
+    let candidates = catalog
+        .load_preview_reclamation_candidates(
+            &[],
+            "ame-jpeg-thumbnail",
+            2,
+            "exif-display-v1",
+            "c:\\amecache\\",
+            8,
+        )
+        .expect("unprotected candidates");
+    assert_eq!(candidates.len(), 1);
+    assert!(
+        catalog
+            .remove_reclaimed_preview(&candidates[0])
+            .expect("remove shared preview")
+    );
+    for location_id in ["shared-first-location", "shared-second-location"] {
+        let location = catalog
+            .load_active_location(location_id)
+            .expect("reclaimed location query")
+            .expect("reclaimed location");
+        assert!(matches!(location.preview_status, PreviewStatus::Pending));
+        assert!(location.preview_path.is_empty());
+    }
 }
 
 #[test]
@@ -815,6 +904,9 @@ fn migrates_v6_previews_as_ready_without_losing_the_artifact_path() {
         .execute_batch(
             "CREATE TABLE schema_info (version INTEGER NOT NULL);
                  INSERT INTO schema_info(version) VALUES (6);
+                 CREATE TABLE library_roots (
+                   id TEXT PRIMARY KEY, active_scan_id TEXT
+                 );
                  CREATE TABLE asset_locations (
                    scan_id TEXT NOT NULL, asset_id TEXT NOT NULL,
                    location_id TEXT NOT NULL, root_id TEXT NOT NULL,
@@ -1136,7 +1228,15 @@ fn migrates_v13_with_an_empty_preview_artifact_index() {
     connection
         .execute_batch(
             "CREATE TABLE schema_info (version INTEGER NOT NULL);
-             INSERT INTO schema_info(version) VALUES (13);",
+             INSERT INTO schema_info(version) VALUES (13);
+             CREATE TABLE library_roots (
+               id TEXT PRIMARY KEY, active_scan_id TEXT
+             );
+             CREATE TABLE asset_locations (
+               scan_id TEXT NOT NULL, asset_id TEXT NOT NULL,
+               location_id TEXT NOT NULL, root_id TEXT NOT NULL,
+               preview_path TEXT NOT NULL
+             );",
         )
         .expect("v13 schema");
     drop(connection);
@@ -1164,7 +1264,98 @@ fn migrates_v13_with_an_empty_preview_artifact_index() {
 
     assert_eq!(version, SCHEMA_VERSION);
     assert_eq!(artifact_count, 0);
-    assert_eq!(index_count, 3);
+    let ownership_index_count: i64 = catalog
+        .connection
+        .query_row(
+            "SELECT COUNT(*) FROM sqlite_master
+             WHERE type = 'index' AND name = 'preview_artifact_locations_location'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("preview ownership index");
+
+    assert_eq!(index_count, 2);
+    assert_eq!(ownership_index_count, 1);
+}
+
+#[test]
+fn migrates_v14_preview_ownership_to_every_active_location() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let connection = Connection::open(&path).expect("v14 catalog");
+    connection
+        .execute_batch(
+            "CREATE TABLE schema_info (version INTEGER NOT NULL);
+             INSERT INTO schema_info(version) VALUES (14);
+             CREATE TABLE library_roots (
+               id TEXT PRIMARY KEY, active_scan_id TEXT
+             );
+             INSERT INTO library_roots VALUES
+               ('root-1', 'scan-1'), ('root-2', 'scan-2');
+             CREATE TABLE asset_locations (
+               scan_id TEXT NOT NULL, asset_id TEXT NOT NULL,
+               location_id TEXT NOT NULL, root_id TEXT NOT NULL,
+               preview_path TEXT NOT NULL
+             );
+             INSERT INTO asset_locations VALUES
+               ('scan-1', 'asset-1', 'location-1', 'root-1', 'C:\\Cache\\shared.jpg'),
+               ('scan-2', 'asset-2', 'location-2', 'root-2', 'C:\\Cache\\shared.jpg');
+             CREATE TABLE preview_artifacts (
+               artifact_key TEXT PRIMARY KEY,
+               location_id TEXT NOT NULL,
+               source_file_size INTEGER NOT NULL,
+               source_modified_unix_ms INTEGER NOT NULL,
+               source_identity_scheme TEXT,
+               source_identity_value TEXT,
+               algorithm_id TEXT NOT NULL,
+               algorithm_version INTEGER NOT NULL,
+               orientation_contract TEXT NOT NULL,
+               size_bucket INTEGER NOT NULL,
+               encoded_width INTEGER NOT NULL,
+               encoded_height INTEGER NOT NULL,
+               artifact_path TEXT NOT NULL UNIQUE,
+               byte_size INTEGER NOT NULL,
+               lifecycle_state TEXT NOT NULL,
+               created_unix_ms INTEGER NOT NULL,
+               last_used_unix_ms INTEGER NOT NULL
+             );
+             CREATE INDEX preview_artifacts_location
+               ON preview_artifacts(location_id, size_bucket, lifecycle_state);
+             CREATE INDEX preview_artifacts_reclamation
+               ON preview_artifacts(lifecycle_state, last_used_unix_ms, artifact_key);
+             CREATE INDEX preview_artifacts_compatibility
+               ON preview_artifacts(
+                 location_id, source_file_size, source_modified_unix_ms,
+                 algorithm_id, algorithm_version, orientation_contract, size_bucket
+               );
+             INSERT INTO preview_artifacts VALUES (
+               'shared-artifact', 'location-2', 20, 30, NULL, NULL,
+               'ame-jpeg-thumbnail', 2, 'exif-display-v1', 256, 40, 50,
+               'C:\\Cache\\shared.jpg', 1024, 'ready', 40, 50
+             );",
+        )
+        .expect("v14 schema");
+    drop(connection);
+
+    let catalog = SqliteCatalog::open(path).expect("migrated catalog");
+    let version: i64 = catalog
+        .connection
+        .query_row("SELECT version FROM schema_info", [], |row| row.get(0))
+        .expect("schema version");
+    let locations = catalog
+        .connection
+        .prepare(
+            "SELECT location_id FROM preview_artifact_locations
+             WHERE artifact_key = 'shared-artifact' ORDER BY location_id",
+        )
+        .expect("ownership query")
+        .query_map([], |row| row.get::<_, String>(0))
+        .expect("ownership rows")
+        .collect::<Result<Vec<_>, _>>()
+        .expect("ownership collection");
+
+    assert_eq!(version, SCHEMA_VERSION);
+    assert_eq!(locations, ["location-1", "location-2"]);
 }
 
 #[test]

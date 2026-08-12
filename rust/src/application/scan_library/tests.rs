@@ -268,9 +268,9 @@ fn completed_scan_publishes_metadata_then_materializes_an_external_preview() {
             |row| row.get(0),
         )
         .expect("active scan");
-    let artifact: (String, i64, i64, i64, String, i64, String) = connection
+    let artifact: (i64, i64, i64, String, i64, String) = connection
         .query_row(
-            "SELECT location_id, source_file_size, size_bucket, encoded_width,
+            "SELECT source_file_size, size_bucket, encoded_width,
                     lifecycle_state, byte_size, artifact_path
              FROM preview_artifacts",
             [],
@@ -282,23 +282,21 @@ fn completed_scan_publishes_metadata_then_materializes_an_external_preview() {
                     row.get(3)?,
                     row.get(4)?,
                     row.get(5)?,
-                    row.get(6)?,
                 ))
             },
         )
         .expect("preview artifact evidence");
     assert_eq!(status, "completed");
     assert_eq!(active_scan, "end-to-end-scan");
-    assert_eq!(artifact.0, repaired.location_id);
     assert_eq!(
-        artifact.1,
+        artifact.0,
         i64::try_from(original_bytes.len()).expect("source size")
     );
-    assert_eq!(artifact.2, 256);
-    assert!(artifact.3 > 0);
-    assert_eq!(artifact.4, "ready");
-    assert!(artifact.5 > 0);
-    assert_eq!(PathBuf::from(artifact.6), preview_path);
+    assert_eq!(artifact.1, 256);
+    assert!(artifact.2 > 0);
+    assert_eq!(artifact.3, "ready");
+    assert!(artifact.4 > 0);
+    assert_eq!(PathBuf::from(artifact.5), preview_path);
 }
 
 #[test]
