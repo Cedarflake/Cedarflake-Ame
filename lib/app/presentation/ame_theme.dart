@@ -1,14 +1,21 @@
 import "package:flutter/material.dart";
 
 import "ame_menu.dart";
+import "ame_system_theme.dart";
+import "ame_typography.dart";
+
+export "ame_typography.dart";
 
 const ameNotificationWidth = 680.0;
 const ameNotificationElevation = 3.0;
 const ameNotificationRadius = 16.0;
 
-ThemeData buildAmeTheme({Brightness brightness = Brightness.light}) {
+ThemeData buildAmeTheme({
+  Brightness brightness = Brightness.light,
+  Color seedColor = ameFallbackSeedColor,
+}) {
   final colorScheme = ColorScheme.fromSeed(
-    seedColor: const Color(0xFF0B57D0),
+    seedColor: seedColor,
     brightness: brightness,
     dynamicSchemeVariant: DynamicSchemeVariant.fidelity,
   );
@@ -17,6 +24,8 @@ ThemeData buildAmeTheme({Brightness brightness = Brightness.light}) {
     scaffoldBackgroundColor: colorScheme.surface,
     useMaterial3: true,
     visualDensity: VisualDensity.standard,
+    fontFamily: ameFontFamily,
+    fontFamilyFallback: ameFontFamilyFallback,
     menuTheme: buildAmeMenuTheme(colorScheme),
     menuButtonTheme: buildAmeMenuButtonTheme(),
     popupMenuTheme: buildAmePopupMenuTheme(colorScheme),
@@ -45,29 +54,55 @@ ThemeData buildAmeTheme({Brightness brightness = Brightness.light}) {
       waitDuration: Duration(milliseconds: 350),
     ),
   );
+  final textTheme = _hierarchicalTextTheme(baseTheme.textTheme);
+  final primaryTextTheme = _hierarchicalTextTheme(baseTheme.primaryTextTheme);
   return baseTheme.copyWith(
-    textTheme: _regularTextTheme(baseTheme.textTheme),
-    primaryTextTheme: _regularTextTheme(baseTheme.primaryTextTheme),
+    textTheme: textTheme,
+    primaryTextTheme: primaryTextTheme,
+    listTileTheme: baseTheme.listTileTheme.copyWith(
+      titleTextStyle: textTheme.bodyLarge?.copyWith(
+        fontWeight: ameFontWeightMedium,
+      ),
+    ),
   );
 }
 
-TextTheme _regularTextTheme(TextTheme textTheme) {
-  const fontWeight = FontWeight.w400;
+TextTheme _hierarchicalTextTheme(TextTheme textTheme) {
   return textTheme.copyWith(
-    displayLarge: textTheme.displayLarge?.copyWith(fontWeight: fontWeight),
-    displayMedium: textTheme.displayMedium?.copyWith(fontWeight: fontWeight),
-    displaySmall: textTheme.displaySmall?.copyWith(fontWeight: fontWeight),
-    headlineLarge: textTheme.headlineLarge?.copyWith(fontWeight: fontWeight),
-    headlineMedium: textTheme.headlineMedium?.copyWith(fontWeight: fontWeight),
-    headlineSmall: textTheme.headlineSmall?.copyWith(fontWeight: fontWeight),
-    titleLarge: textTheme.titleLarge?.copyWith(fontWeight: fontWeight),
-    titleMedium: textTheme.titleMedium?.copyWith(fontWeight: fontWeight),
-    titleSmall: textTheme.titleSmall?.copyWith(fontWeight: fontWeight),
-    bodyLarge: textTheme.bodyLarge?.copyWith(fontWeight: fontWeight),
-    bodyMedium: textTheme.bodyMedium?.copyWith(fontWeight: fontWeight),
-    bodySmall: textTheme.bodySmall?.copyWith(fontWeight: fontWeight),
-    labelLarge: textTheme.labelLarge?.copyWith(fontWeight: fontWeight),
-    labelMedium: textTheme.labelMedium?.copyWith(fontWeight: fontWeight),
-    labelSmall: textTheme.labelSmall?.copyWith(fontWeight: fontWeight),
+    displayLarge: textTheme.displayLarge?.copyWith(
+      fontWeight: ameFontWeightSemibold,
+    ),
+    displayMedium: textTheme.displayMedium?.copyWith(
+      fontWeight: ameFontWeightSemibold,
+    ),
+    displaySmall: textTheme.displaySmall?.copyWith(
+      fontWeight: ameFontWeightSemibold,
+    ),
+    headlineLarge: textTheme.headlineLarge?.copyWith(
+      fontWeight: ameFontWeightSemibold,
+    ),
+    headlineMedium: textTheme.headlineMedium?.copyWith(
+      fontWeight: ameFontWeightSemibold,
+    ),
+    headlineSmall: textTheme.headlineSmall?.copyWith(
+      fontWeight: ameFontWeightSemibold,
+    ),
+    titleLarge: textTheme.titleLarge?.copyWith(
+      fontWeight: ameFontWeightSemibold,
+    ),
+    titleMedium: textTheme.titleMedium?.copyWith(
+      fontWeight: ameFontWeightMedium,
+    ),
+    titleSmall: textTheme.titleSmall?.copyWith(fontWeight: ameFontWeightMedium),
+    bodyLarge: textTheme.bodyLarge?.copyWith(fontWeight: ameFontWeightRegular),
+    bodyMedium: textTheme.bodyMedium?.copyWith(
+      fontWeight: ameFontWeightRegular,
+    ),
+    bodySmall: textTheme.bodySmall?.copyWith(fontWeight: ameFontWeightRegular),
+    labelLarge: textTheme.labelLarge?.copyWith(fontWeight: ameFontWeightMedium),
+    labelMedium: textTheme.labelMedium?.copyWith(
+      fontWeight: ameFontWeightMedium,
+    ),
+    labelSmall: textTheme.labelSmall?.copyWith(fontWeight: ameFontWeightMedium),
   );
 }

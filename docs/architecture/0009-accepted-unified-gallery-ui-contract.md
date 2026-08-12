@@ -186,6 +186,14 @@ Use one unified gallery with these presentation rules.
   workflows exist end to end.
 - Simplified Chinese is the initial user-facing language. Paths and source metadata preserve their
   original text.
+- Simplified Chinese text resolves through Windows `Segoe UI`, `Microsoft YaHei UI`, and
+  `Microsoft YaHei` in that order. Body copy remains regular, controls and compact labels use
+  medium weight, and page or content headings use semibold so hierarchy is semantic rather than
+  assigned independently by each widget.
+- The theme preference controls brightness. `system` follows Windows brightness, while explicit
+  light and dark choices lock brightness. All three modes derive their Material color scheme from
+  the current Windows accent color and update when that accent changes; the accepted Ame blue is
+  the fallback when Windows cannot provide a palette.
 - Classification, perceptual or semantic similarity, people, editing, and source-file mutation
   controls remain absent until their separately accepted capabilities exist.
 
@@ -217,6 +225,15 @@ The official Material 3 menu catalog remains the basis of settings choices. Flut
 verified to provide controlled `DropdownMenu` selection, selection callbacks, disabled search, and
 select-only behavior. Preview loading speed therefore reuses the repository-owned `SettingsChoice`
 composition and adds no custom pointer, focus, keyboard, or semantics layer.
+
+Windows accent-color integration uses the operating system's documented
+`DwmGetColorizationColor` API and `WM_DWMCOLORIZATIONCOLORCHANGED` notification through an Ame-owned
+Runner platform channel. `AmeSystemThemeBuilder` exposes only a Flutter `Color` to the presentation
+theme, ignores stale startup reads after a newer change notification, and falls back to the accepted
+Ame blue when Windows does not provide a color. `system_theme` 3.3.0 was evaluated and rejected
+because its Windows listener had avoidable null-message and cancellation-lifetime hazards. Ame owns
+the narrow adapter, `ColorScheme.fromSeed`, brightness policy, and fallback, with no third-party
+theme type crossing into widgets or application contracts.
 
 ## Consequences
 

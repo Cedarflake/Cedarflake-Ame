@@ -3,6 +3,7 @@ import "dart:io";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/src/rust/frb_generated.dart";
+import "package:flutter/services.dart";
 import "package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:integration_test/integration_test.dart";
@@ -23,6 +24,17 @@ void main() {
       ),
     );
   });
+
+  testWidgets(
+    "reads the Windows system accent through the Ame runner channel",
+    (tester) async {
+      const channel = MethodChannel("cedarflake_ame/system_theme");
+      final color = await channel.invokeMethod<Object?>("getAccentColor");
+
+      expect(color, isA<int>());
+      expect(color as int, inInclusiveRange(0, 0xFFFFFFFF));
+    },
+  );
 
   testWidgets(
     "loads the configured catalog through the packaged release bridge",
