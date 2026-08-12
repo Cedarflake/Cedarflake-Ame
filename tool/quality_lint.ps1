@@ -22,6 +22,7 @@ try {
         Select-Object -ExpandProperty FullName
     Invoke-AmePowerShellSyntaxCheck $powerShellPaths
     & (Join-Path $PSScriptRoot "quality_test_naming_contract.ps1")
+    & (Join-Path $PSScriptRoot "integration_test_windows_accessibility_guardrails.ps1")
     & (Join-Path $PSScriptRoot "release_test_version_validation.ps1")
     & (Join-Path $PSScriptRoot "release_test_portable_archive.ps1")
     Invoke-AmeJsonSyntaxCheck @(

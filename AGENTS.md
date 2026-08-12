@@ -432,8 +432,11 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
 - `./tool/quality_test_flutter.ps1` expands the requested widget-test paths and runs each test file
   in its own `flutter test --concurrency=1` process while holding the repository tool lock.
 - `./tool/quality_verify_daily.ps1` is the daily gate. It runs the lint gate, Rust tests, Flutter tests, the
-  controlled Windows scan integration, generated bridge compatibility, and whitespace validation
-  for the complete tracked diff.
+  controlled Windows scan integration, the native Windows accessibility integration, generated
+  bridge compatibility, and whitespace validation for the complete tracked diff.
+- `./tool/integration_test_windows_accessibility.ps1` runs a semantics-enabled virtual-gallery
+  stress sequence in the native Windows runner and fails when engine stderr reports an invalid
+  `ui::AXTree` update.
 - `./tool/quality_verify_git_range.ps1` checks committed whitespace over an explicit Git revision
   range so a clean hosted checkout does not turn `git diff HEAD --check` into an empty gate.
 - `./tool/performance_benchmark_synthetic_library.ps1` is the explicit performance gate. It creates 10,000

@@ -1,15 +1,19 @@
 import "dart:async";
 import "dart:io";
 
+import "package:cedarflake_ame/app/presentation/ame_menu.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_previewer.dart";
 import "package:cedarflake_ame/features/library/application/library_scanner.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
+import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_photo_tile.dart";
+import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
@@ -21,6 +25,74 @@ void main() {
     expect(libraryPreviewDecodeWidth(181, 1), 256);
     expect(libraryPreviewDecodeWidth(129, 2), 512);
     expect(libraryPreviewDecodeWidth(600, 2), 512);
+  });
+
+  testWidgets("creates the photo context menu only on demand", (tester) async {
+    final asset = _pendingAsset();
+    final snapshot = LibrarySnapshot(
+      catalogPath: "C:\\AmeData\\ame.sqlite3",
+      revision: BigInt.one,
+      queryId: "query-1",
+      roots: const [],
+      assets: [asset],
+    );
+    LibraryAsset? copiedAsset;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(
+            LibraryState.fromSnapshot(snapshot),
+          ),
+          libraryCatalogProvider.overrideWithValue(_FakeCatalog(snapshot)),
+          libraryScannerProvider.overrideWithValue(const _FakeScanner()),
+          libraryPreviewerProvider.overrideWithValue(
+            _RecordingPreviewer(asset),
+          ),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: LibraryPhotoTile(
+              asset: asset,
+              width: 160,
+              height: 120,
+              isSelecting: false,
+              isSelected: false,
+              onOpen: (_) {},
+              onToggleSelection: (_) {},
+              onViewInformation: (_) {},
+              onCopyPath: (value) => copiedAsset = value,
+              onRevealFile: (_) {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byType(MenuAnchor), findsNothing);
+
+    await tester.tap(
+      find.byType(LibraryPhotoTile),
+      buttons: kSecondaryMouseButton,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AmeMenuItemContent), findsNWidgets(4));
+    expect(find.byType(MenuAnchor), findsNothing);
+
+    await tester.tap(find.text(LibraryStrings.copyPath));
+    await tester.pumpAndSettle();
+
+    expect(copiedAsset, same(asset));
+    expect(find.byType(AmeMenuItemContent), findsNothing);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.contextMenu);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AmeMenuItemContent), findsNWidgets(4));
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
   });
 
   testWidgets(
@@ -107,6 +179,23 @@ LibraryAsset _readyAsset(String previewPath) {
     width: 160,
     height: 120,
     previewStatus: LibraryPreviewStatus.ready,
+  );
+}
+
+LibraryAsset _pendingAsset() {
+  return LibraryAsset(
+    assetId: "asset-pending",
+    locationId: "location-pending",
+    rootId: "root-1",
+    sourcePath: "C:\\Pictures\\pending.jpg",
+    displayPath: "C:\\Pictures\\pending.jpg",
+    relativePath: "pending.jpg",
+    previewPath: "",
+    fileSize: BigInt.one,
+    modifiedUnixMs: 1,
+    width: 160,
+    height: 120,
+    previewStatus: LibraryPreviewStatus.pending,
   );
 }
 

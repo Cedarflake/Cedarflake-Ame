@@ -259,6 +259,7 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
       final isExpanded = _isExpanded(root.id, folder.relativePath);
       children.add(
         LibraryFolderNavigationTile(
+          key: ValueKey("folder-navigation-${root.id}-${folder.relativePath}"),
           root: root,
           folder: folder,
           depth: depth,

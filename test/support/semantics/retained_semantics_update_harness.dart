@@ -157,6 +157,17 @@ final class RetainedSemanticsNodeUpdate {
   final String identifier;
   final String label;
   final String tooltip;
+
+  RetainedSemanticsNodeUpdate withTraversalChildren(List<int> children) {
+    return RetainedSemanticsNodeUpdate(
+      traversalChildren: children,
+      hitTestChildren: hitTestChildren,
+      traversalParent: traversalParent,
+      identifier: identifier,
+      label: label,
+      tooltip: tooltip,
+    );
+  }
 }
 
 final class RetainedSemanticsUpdateValidator {
@@ -185,7 +196,9 @@ final class RetainedSemanticsUpdateValidator {
       return;
     }
     _updateSequence += 1;
-    _nodes.addAll(updates);
+    final previousParents = _traversalParentsFor(_nodes);
+    final candidateNodes = Map<int, RetainedSemanticsNodeUpdate>.of(_nodes)
+      ..addAll(updates);
     _lastSeenNodes.addAll(updates);
     for (final entry in updates.entries) {
       _recordNodeEvent(
@@ -193,14 +206,128 @@ final class RetainedSemanticsUpdateValidator {
         "$_updateSequence updated ${_describeNode(entry.value)}",
       );
     }
-    if (!_nodes.containsKey(0)) {
-      return;
-    }
     try {
-      _validateTraversalTree(updates);
+      if (_nodes.isEmpty && !updates.containsKey(0)) {
+        throw _failure(
+          "Initial Windows semantics update does not contain root 0",
+          updates,
+          updates.keys.isEmpty ? const [0] : [updates.keys.first],
+        );
+      }
+      _validateWindowsReparentPreconditions(updates, previousParents);
+      _applyEngineReparents(candidateNodes, updates, previousParents);
+      _validateCandidateCycles(candidateNodes, updates);
+      final reachable = _validateTraversalTree(candidateNodes, updates);
+      final detachedIds = candidateNodes.keys
+          .where((id) => !reachable.contains(id))
+          .toList(growable: false);
+      for (final id in detachedIds) {
+        _recordNodeEvent(
+          id,
+          "$_updateSequence pruned ${_describeNode(candidateNodes[id])}",
+        );
+        candidateNodes.remove(id);
+      }
+      _nodes
+        ..clear()
+        ..addAll(candidateNodes);
     } on TestFailure catch (failure) {
       _latestFailure = failure.message;
       rethrow;
+    }
+  }
+
+  void _applyEngineReparents(
+    Map<int, RetainedSemanticsNodeUpdate> candidateNodes,
+    Map<int, RetainedSemanticsNodeUpdate> updates,
+    Map<int, int> previousParents,
+  ) {
+    for (final parentEntry in updates.entries) {
+      for (final childId in parentEntry.value.traversalChildren) {
+        final previousParentId = previousParents[childId];
+        if (previousParentId == null || previousParentId == parentEntry.key) {
+          continue;
+        }
+        final previousParent = candidateNodes[previousParentId];
+        if (previousParent == null) {
+          continue;
+        }
+        candidateNodes[previousParentId] = previousParent.withTraversalChildren(
+          previousParent.traversalChildren
+              .where((candidateId) => candidateId != childId)
+              .toList(growable: false),
+        );
+      }
+    }
+  }
+
+  void _validateWindowsReparentPreconditions(
+    Map<int, RetainedSemanticsNodeUpdate> updates,
+    Map<int, int> previousParents,
+  ) {
+    for (final parentEntry in updates.entries) {
+      for (final childId in parentEntry.value.traversalChildren) {
+        final previousParent = previousParents[childId];
+        if (previousParent == null || previousParent == parentEntry.key) {
+          continue;
+        }
+        if (!updates.containsKey(childId)) {
+          throw _failure(
+            "Windows reparented child $childId from $previousParent to "
+            "${parentEntry.key} without a matching child update",
+            updates,
+            [previousParent, parentEntry.key, childId],
+          );
+        }
+      }
+    }
+  }
+
+  Map<int, int> _traversalParentsFor(
+    Map<int, RetainedSemanticsNodeUpdate> nodes,
+  ) {
+    final parents = <int, int>{};
+    for (final parentEntry in nodes.entries) {
+      for (final childId in parentEntry.value.traversalChildren) {
+        parents[childId] = parentEntry.key;
+      }
+    }
+    return parents;
+  }
+
+  void _validateCandidateCycles(
+    Map<int, RetainedSemanticsNodeUpdate> candidateNodes,
+    Map<int, RetainedSemanticsNodeUpdate> updates,
+  ) {
+    final active = <int>{};
+    final completed = <int>{};
+
+    void visit(int id, List<int> path) {
+      if (completed.contains(id)) {
+        return;
+      }
+      active.add(id);
+      final childIds = candidateNodes[id]!.traversalChildren;
+      for (final childId in childIds) {
+        if (!candidateNodes.containsKey(childId)) {
+          continue;
+        }
+        if (active.contains(childId)) {
+          throw _failure("Traversal cycle detected", updates, [
+            ...path,
+            id,
+            childId,
+          ]);
+        }
+        visit(childId, [...path, id]);
+      }
+      active.remove(id);
+      completed.add(id);
+    }
+
+    final candidateIds = candidateNodes.keys.toList(growable: false)..sort();
+    for (final id in candidateIds) {
+      visit(id, const []);
     }
   }
 
@@ -220,13 +347,16 @@ final class RetainedSemanticsUpdateValidator {
     }
   }
 
-  void _validateTraversalTree(Map<int, RetainedSemanticsNodeUpdate> updates) {
+  Set<int> _validateTraversalTree(
+    Map<int, RetainedSemanticsNodeUpdate> candidateNodes,
+    Map<int, RetainedSemanticsNodeUpdate> updates,
+  ) {
     final parents = <int, int>{};
     final reachable = <int>{};
     final active = <int>{};
 
     void visit(int id, List<int> path) {
-      final node = _nodes[id];
+      final node = candidateNodes[id];
       if (node == null) {
         throw _failure(
           "Traversal child $id is missing from the retained tree; "
@@ -284,18 +414,7 @@ final class RetainedSemanticsUpdateValidator {
         const [0],
       );
     }
-    final retainedOrphans =
-        _nodes.keys
-            .where((id) => !reachable.contains(id))
-            .toList(growable: false)
-          ..sort();
-    for (final id in retainedOrphans) {
-      _recordNodeEvent(
-        id,
-        "$_updateSequence pruned ${_describeNode(_nodes[id])}",
-      );
-      _nodes.remove(id);
-    }
+    return reachable;
   }
 
   TestFailure _failure(

@@ -1,9 +1,12 @@
+import "dart:async";
+
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_menu.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
+import "../../../../app/presentation/ame_popup_menu_position.dart";
 import "../../../../app/presentation/ame_typography.dart";
 import "../../domain/library_folder_models.dart";
 import "../../domain/library_models.dart";
@@ -41,8 +44,9 @@ class LibraryFolderNavigationTile extends StatefulWidget {
 
 class _LibraryFolderNavigationTileState
     extends State<LibraryFolderNavigationTile> {
-  final MenuController _menuController = MenuController();
   final FocusNode _focusNode = FocusNode(debugLabel: "Library folder");
+
+  String get _keySuffix => "${widget.root.id}-${widget.folder.relativePath}";
 
   @override
   void dispose() {
@@ -52,92 +56,125 @@ class _LibraryFolderNavigationTileState
 
   @override
   Widget build(BuildContext context) {
-    final keySuffix = "${widget.root.id}-${widget.folder.relativePath}";
-    return AmeMenuAnchor(
-      controller: _menuController,
-      childFocusNode: _focusNode,
-      menuChildren: [
-        MenuItemButton(
-          onPressed: widget.onOpen,
-          child: const AmeMenuItemContent(
+    final keySuffix = _keySuffix;
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.contextMenu):
+            _openKeyboardMenu,
+        const SingleActivator(LogicalKeyboardKey.f10, shift: true):
+            _openKeyboardMenu,
+      },
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onSecondaryTapDown: (details) {
+          _focusNode.requestFocus();
+          final position = amePopupMenuAtGlobalPosition(
+            context: context,
+            globalPosition: details.globalPosition,
+          );
+          if (position != null) {
+            unawaited(_showContextMenu(position));
+          }
+        },
+        child: ListTile(
+          key: ValueKey("folder-tile-$keySuffix"),
+          focusNode: _focusNode,
+          selected: widget.isSelected,
+          selectedTileColor: Theme.of(context).colorScheme.secondaryContainer,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          dense: true,
+          contentPadding: EdgeInsets.only(
+            left: 16 + (widget.depth * 28),
+            right: 4,
+          ),
+          minLeadingWidth: 24,
+          horizontalTitleGap: 12,
+          leading: const SizedBox(
+            width: 24,
+            child: Icon(Symbols.folder_rounded),
+          ),
+          title: DefaultTextStyle.merge(
+            style: TextStyle(
+              fontWeight: widget.isSelected
+                  ? ameFontWeightSemibold
+                  : ameFontWeightMedium,
+            ),
+            child: LibraryPathText(
+              text: widget.folder.name,
+              path: displayLibraryFolderPath(
+                widget.root.displayPath,
+                widget.folder.relativePath,
+              ),
+              textKey: ValueKey("folder-title-$keySuffix"),
+            ),
+          ),
+          trailing: SizedBox(
+            width: 48,
+            child: widget.onToggleExpansion == null
+                ? null
+                : AmeTooltip(
+                    message: widget.isExpanded
+                        ? LibraryStrings.collapseFolder
+                        : LibraryStrings.expandFolder,
+                    child: IconButton(
+                      key: ValueKey("folder-expand-$keySuffix"),
+                      onPressed: widget.onToggleExpansion,
+                      icon: Icon(
+                        widget.isExpanded
+                            ? Symbols.keyboard_arrow_up_rounded
+                            : Symbols.keyboard_arrow_down_rounded,
+                      ),
+                    ),
+                  ),
+          ),
+          onTap: widget.isBusy ? null : widget.onSelect,
+        ),
+      ),
+    );
+  }
+
+  void _openKeyboardMenu() {
+    final anchorContext = _focusNode.context;
+    if (anchorContext == null) {
+      return;
+    }
+    final position = amePopupMenuBelowAnchor(
+      context: context,
+      anchorContext: anchorContext,
+    );
+    if (position != null) {
+      unawaited(_showContextMenu(position));
+    }
+  }
+
+  Future<void> _showContextMenu(RelativeRect position) async {
+    final targetKey = _keySuffix;
+    final onOpen = widget.onOpen;
+    final action = await showAmePopupMenu<_LibraryFolderMenuAction>(
+      context: context,
+      position: position,
+      labels: const [LibraryStrings.openInExplorer],
+      items: const [
+        PopupMenuItem(
+          value: _LibraryFolderMenuAction.open,
+          child: AmeMenuItemContent(
             icon: Symbols.folder_open_rounded,
             label: LibraryStrings.openInExplorer,
           ),
         ),
       ],
-      child: CallbackShortcuts(
-        bindings: {
-          const SingleActivator(LogicalKeyboardKey.contextMenu):
-              _menuController.open,
-          const SingleActivator(LogicalKeyboardKey.f10, shift: true):
-              _menuController.open,
-        },
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onSecondaryTapDown: (details) {
-            _focusNode.requestFocus();
-            _menuController.open(position: details.localPosition);
-          },
-          child: ListTile(
-            key: ValueKey("folder-tile-$keySuffix"),
-            focusNode: _focusNode,
-            selected: widget.isSelected,
-            selectedTileColor: Theme.of(context).colorScheme.secondaryContainer,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            dense: true,
-            contentPadding: EdgeInsets.only(
-              left: 16 + (widget.depth * 28),
-              right: 4,
-            ),
-            minLeadingWidth: 24,
-            horizontalTitleGap: 12,
-            leading: const SizedBox(
-              width: 24,
-              child: Icon(Symbols.folder_rounded),
-            ),
-            title: DefaultTextStyle.merge(
-              style: TextStyle(
-                fontWeight: widget.isSelected
-                    ? ameFontWeightSemibold
-                    : ameFontWeightMedium,
-              ),
-              child: LibraryPathText(
-                text: widget.folder.name,
-                path: displayLibraryFolderPath(
-                  widget.root.displayPath,
-                  widget.folder.relativePath,
-                ),
-                textKey: ValueKey("folder-title-$keySuffix"),
-              ),
-            ),
-            trailing: SizedBox(
-              width: 48,
-              child: widget.onToggleExpansion == null
-                  ? null
-                  : AmeTooltip(
-                      message: widget.isExpanded
-                          ? LibraryStrings.collapseFolder
-                          : LibraryStrings.expandFolder,
-                      child: IconButton(
-                        key: ValueKey("folder-expand-$keySuffix"),
-                        onPressed: widget.onToggleExpansion,
-                        icon: Icon(
-                          widget.isExpanded
-                              ? Symbols.keyboard_arrow_up_rounded
-                              : Symbols.keyboard_arrow_down_rounded,
-                        ),
-                      ),
-                    ),
-            ),
-            onTap: widget.isBusy ? null : widget.onSelect,
-          ),
-        ),
-      ),
     );
+    if (mounted &&
+        _keySuffix == targetKey &&
+        action == _LibraryFolderMenuAction.open) {
+      onOpen();
+    }
   }
 }
+
+enum _LibraryFolderMenuAction { open }
 
 class LibraryFolderLoadingTile extends StatelessWidget {
   const LibraryFolderLoadingTile({required this.depth, super.key});

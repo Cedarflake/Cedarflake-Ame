@@ -7,6 +7,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_menu.dart";
+import "../../../../app/presentation/ame_popup_menu_position.dart";
 import "../../application/library_controller.dart";
 import "../../application/library_preview_store.dart";
 import "../../domain/library_models.dart";
@@ -57,7 +58,6 @@ class LibraryPhotoTile extends ConsumerStatefulWidget {
 }
 
 class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
-  final MenuController _menuController = MenuController();
   final FocusNode _focusNode = FocusNode(debugLabel: "Library photo tile");
   late final LibraryController _controller;
   late Stream<void> _previewChanges;
@@ -100,107 +100,76 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
     return SizedBox(
       width: widget.width,
       height: widget.height,
-      child: AmeMenuAnchor(
-        controller: _menuController,
-        childFocusNode: _focusNode,
-        menuChildren: [
-          MenuItemButton(
-            onPressed: () =>
-                widget.onOpen(_controller.resolvePreview(widget.asset)),
-            child: const AmeMenuItemContent(
-              icon: Symbols.open_in_full_rounded,
-              label: LibraryStrings.open,
-            ),
-          ),
-          MenuItemButton(
-            onPressed: () => widget.onViewInformation(widget.asset),
-            child: const AmeMenuItemContent(
-              icon: Symbols.info_rounded,
-              label: LibraryStrings.viewInformation,
-            ),
-          ),
-          const Divider(height: AmeMenuMetrics.dividerHeight),
-          MenuItemButton(
-            onPressed: () => widget.onCopyPath(widget.asset),
-            child: const AmeMenuItemContent(
-              icon: Symbols.content_copy_rounded,
-              label: LibraryStrings.copyPath,
-            ),
-          ),
-          MenuItemButton(
-            onPressed: () => widget.onRevealFile(widget.asset),
-            child: const AmeMenuItemContent(
-              icon: Symbols.folder_open_rounded,
-              label: LibraryStrings.openInExplorer,
-            ),
-          ),
-        ],
-        child: CallbackShortcuts(
-          bindings: {
-            const SingleActivator(LogicalKeyboardKey.contextMenu):
-                _openKeyboardMenu,
-            const SingleActivator(LogicalKeyboardKey.f10, shift: true):
-                _openKeyboardMenu,
-          },
-          child: Focus(
-            focusNode: _focusNode,
-            onFocusChange: (value) => setState(() => _isFocused = value),
-            child: MouseRegion(
-              onEnter: (_) => setState(() => _isHovered = true),
-              onExit: (_) => setState(() => _isHovered = false),
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onSecondaryTapDown: (details) {
-                  _focusNode.requestFocus();
-                  _menuController.open(position: details.localPosition);
-                },
-                child: Semantics(
-                  label: widget.asset.relativePath,
-                  selected: widget.isSelected,
-                  button: true,
-                  child: Material(
-                    color: colorScheme.surfaceContainerHighest,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      side: widget.isSelected
-                          ? BorderSide(color: colorScheme.primary, width: 3)
-                          : BorderSide.none,
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: InkWell(
-                      onTap: () => widget.onOpen(
-                        _controller.resolvePreview(widget.asset),
-                      ),
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          _buildPreview(context),
-                          if (isSelectionVisible)
-                            Positioned(
-                              right: 4,
-                              top: 4,
-                              child: Material(
-                                color: colorScheme.surface.withValues(
-                                  alpha: 0.92,
+      child: CallbackShortcuts(
+        bindings: {
+          const SingleActivator(LogicalKeyboardKey.contextMenu):
+              _openKeyboardMenu,
+          const SingleActivator(LogicalKeyboardKey.f10, shift: true):
+              _openKeyboardMenu,
+        },
+        child: Focus(
+          focusNode: _focusNode,
+          onFocusChange: (value) => setState(() => _isFocused = value),
+          child: MouseRegion(
+            onEnter: (_) => setState(() => _isHovered = true),
+            onExit: (_) => setState(() => _isHovered = false),
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onSecondaryTapDown: (details) {
+                _focusNode.requestFocus();
+                final position = amePopupMenuAtGlobalPosition(
+                  context: context,
+                  globalPosition: details.globalPosition,
+                );
+                if (position != null) {
+                  unawaited(_showContextMenu(position));
+                }
+              },
+              child: Semantics(
+                label: widget.asset.relativePath,
+                selected: widget.isSelected,
+                button: true,
+                child: Material(
+                  color: colorScheme.surfaceContainerHighest,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    side: widget.isSelected
+                        ? BorderSide(color: colorScheme.primary, width: 3)
+                        : BorderSide.none,
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    onTap: () =>
+                        widget.onOpen(_controller.resolvePreview(widget.asset)),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        _buildPreview(context),
+                        if (isSelectionVisible)
+                          Positioned(
+                            right: 4,
+                            top: 4,
+                            child: Material(
+                              color: colorScheme.surface.withValues(
+                                alpha: 0.92,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Checkbox(
+                                key: ValueKey(
+                                  "select-${widget.asset.locationId}",
                                 ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Checkbox(
-                                  key: ValueKey(
-                                    "select-${widget.asset.locationId}",
-                                  ),
-                                  value: widget.isSelected,
-                                  onChanged: (_) =>
-                                      widget.onToggleSelection(widget.asset),
-                                  materialTapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                  visualDensity: VisualDensity.compact,
-                                ),
+                                value: widget.isSelected,
+                                onChanged: (_) =>
+                                    widget.onToggleSelection(widget.asset),
+                                materialTapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
+                                visualDensity: VisualDensity.compact,
                               ),
                             ),
-                        ],
-                      ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
@@ -337,6 +306,76 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
   }
 
   void _openKeyboardMenu() {
-    _menuController.open();
+    final anchorContext = _focusNode.context;
+    if (anchorContext == null) {
+      return;
+    }
+    final position = amePopupMenuBelowAnchor(
+      context: context,
+      anchorContext: anchorContext,
+    );
+    if (position != null) {
+      unawaited(_showContextMenu(position));
+    }
+  }
+
+  Future<void> _showContextMenu(RelativeRect position) async {
+    final action = await showAmePopupMenu<_LibraryPhotoMenuAction>(
+      context: context,
+      position: position,
+      labels: const [
+        LibraryStrings.open,
+        LibraryStrings.viewInformation,
+        LibraryStrings.copyPath,
+        LibraryStrings.openInExplorer,
+      ],
+      items: const [
+        PopupMenuItem(
+          value: _LibraryPhotoMenuAction.open,
+          child: AmeMenuItemContent(
+            icon: Symbols.open_in_full_rounded,
+            label: LibraryStrings.open,
+          ),
+        ),
+        PopupMenuItem(
+          value: _LibraryPhotoMenuAction.information,
+          child: AmeMenuItemContent(
+            icon: Symbols.info_rounded,
+            label: LibraryStrings.viewInformation,
+          ),
+        ),
+        PopupMenuDivider(height: AmeMenuMetrics.dividerHeight),
+        PopupMenuItem(
+          value: _LibraryPhotoMenuAction.copyPath,
+          child: AmeMenuItemContent(
+            icon: Symbols.content_copy_rounded,
+            label: LibraryStrings.copyPath,
+          ),
+        ),
+        PopupMenuItem(
+          value: _LibraryPhotoMenuAction.reveal,
+          child: AmeMenuItemContent(
+            icon: Symbols.folder_open_rounded,
+            label: LibraryStrings.openInExplorer,
+          ),
+        ),
+      ],
+    );
+    if (!mounted || action == null) {
+      return;
+    }
+    final asset = widget.asset;
+    switch (action) {
+      case _LibraryPhotoMenuAction.open:
+        widget.onOpen(_controller.resolvePreview(asset));
+      case _LibraryPhotoMenuAction.information:
+        widget.onViewInformation(asset);
+      case _LibraryPhotoMenuAction.copyPath:
+        widget.onCopyPath(asset);
+      case _LibraryPhotoMenuAction.reveal:
+        widget.onRevealFile(asset);
+    }
   }
 }
+
+enum _LibraryPhotoMenuAction { open, information, copyPath, reveal }

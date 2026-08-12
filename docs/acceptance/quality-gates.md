@@ -8,7 +8,7 @@ acceptance work. A passing lower gate never claims that a higher gate ran.
 | Gate | Entry point | Included evidence | When to run |
 | --- | --- | --- | --- |
 | Hosted CI | `.github/workflows/quality_ci.yml` | Daily gate plus committed revision-range whitespace validation on a pinned Windows toolchain | Push to `main`, pull request, merge queue, or manual run |
-| Daily | `./tool/quality_verify_daily.ps1` | Format, lint, Rust and Flutter tests, controlled Windows scan integration, bridge hash, tracked diff whitespace | Every material change |
+| Daily | `./tool/quality_verify_daily.ps1` | Format, lint, Rust and Flutter tests, controlled Windows scan and native accessibility integrations, bridge hash, tracked diff whitespace | Every material change |
 | Performance | `./tool/performance_benchmark_synthetic_library.ps1` | 10,000 temporary images, cold and warm scans, pause and resume, bounded memory | Scan pipeline, persistence, concurrency, or performance changes |
 | Retained Profile | `./tool/performance_profile_retained_gallery.ps1` | Frozen-interaction Profile frame, memory, garbage-collection, query, publication, and retained-detail evidence; no source preview materialization | Guarded R2b gallery adaptations on the retained catalog |
 | Real library | `./tool/acceptance_run_read_only_library.ps1` and `./tool/acceptance_verify_read_only_catalog.ps1` | Explicitly authorized source scan, source integrity sampling, retained multi-root catalog validation | Only with current authorization and explicit paths |
@@ -83,9 +83,18 @@ integration gate holds the repository mutex, snapshots pre-existing runner proce
 cleanup to later processes from the exact Debug runner path. Other commands may stop only a process
 that their own process tree or an equivalently isolated identity proves they own.
 
-The Windows integration fixture contains only controlled temporary files under `build`. It opens the
-real directory picker through automation, exercises scanning and preview publication, verifies that
-source bytes remain unchanged, and removes its temporary storage.
+The Windows scan integration fixture contains only controlled temporary files under `build`. It
+opens the real directory picker through automation, exercises scanning and preview publication,
+verifies that source bytes remain unchanged, and removes its temporary storage.
+
+The Windows accessibility integration runs a synthetic 1,200-item virtual gallery and the populated
+application shell in the native Windows runner with semantics enabled. It performs distant gallery
+jumps, repeatedly opens and closes on-demand photo menus, operates stable toolbar and source menus,
+changes the timeline and viewer Sliders, and returns from the viewer twice. The script retains the
+complete engine output under `build`, rejects any `Failed to update ui::AXTree` record even when the
+Dart assertions pass, and therefore exercises the platform `AccessibilityBridge` behavior that
+widget-test semantics models cannot reproduce. Flutter 3.44.9 exposes Windows device integration
+tests through its supported Debug test path; this canary does not claim Profile-mode coverage.
 
 ## Performance gate
 

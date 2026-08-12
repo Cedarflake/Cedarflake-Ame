@@ -2,6 +2,7 @@ import "package:cedarflake_ame/app/presentation/ame_menu.dart";
 import "package:cedarflake_ame/app/presentation/ame_theme.dart";
 import "package:flutter/material.dart";
 import "package:flutter/semantics.dart";
+import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:material_symbols_icons/symbols.dart";
 
@@ -168,20 +169,122 @@ void main() {
     shortcutPainter.dispose();
   });
 
-  testWidgets("enables native animation for anchored menus", (tester) async {
+  testWidgets("keeps Flutter 3.44 anchored menus non-animated and clickable", (
+    tester,
+  ) async {
+    var activationCount = 0;
     await tester.pumpWidget(
       MaterialApp(
         theme: buildAmeTheme(),
-        home: const Scaffold(
+        home: Scaffold(
           body: AmeMenuAnchor(
-            menuChildren: [MenuItemButton(onPressed: null, child: Text("打开"))],
-            child: SizedBox(width: 48, height: 48),
+            menuChildren: [
+              MenuItemButton(
+                onPressed: () => activationCount += 1,
+                child: const Text("打开"),
+              ),
+            ],
+            builder: (context, controller, child) => IconButton(
+              key: const Key("non-animated-menu-button"),
+              onPressed: () => toggleAmeMenu(controller),
+              icon: const Icon(Symbols.more_horiz_rounded),
+            ),
           ),
         ),
       ),
     );
 
-    expect(tester.widget<MenuAnchor>(find.byType(MenuAnchor)).animated, isTrue);
+    expect(
+      tester.widget<MenuAnchor>(find.byType(MenuAnchor)).animated,
+      isFalse,
+    );
+
+    await tester.tap(find.byKey(const Key("non-animated-menu-button")));
+    await tester.pump();
+    final item = find.ancestor(
+      of: find.text("打开"),
+      matching: find.byType(MenuItemButton),
+    );
+    expect(item, findsOneWidget);
+    await tester.tapAt(tester.getCenter(item));
+    await tester.pump();
+    expect(activationCount, 1);
+  });
+
+  testWidgets("keeps non-animated anchored menus keyboard navigable", (
+    tester,
+  ) async {
+    final anchorFocusNode = FocusNode(debugLabel: "menu anchor");
+    final firstItemFocusNode = FocusNode(debugLabel: "first menu item");
+    final secondItemFocusNode = FocusNode(debugLabel: "second menu item");
+    addTearDown(anchorFocusNode.dispose);
+    addTearDown(firstItemFocusNode.dispose);
+    addTearDown(secondItemFocusNode.dispose);
+    var activationCount = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildAmeTheme(),
+        home: Scaffold(
+          body: AmeMenuAnchor(
+            childFocusNode: anchorFocusNode,
+            menuChildren: [
+              MenuItemButton(
+                focusNode: firstItemFocusNode,
+                onPressed: () {},
+                child: const Text("第一项"),
+              ),
+              MenuItemButton(
+                focusNode: secondItemFocusNode,
+                onPressed: () => activationCount += 1,
+                child: const Text("第二项"),
+              ),
+            ],
+            builder: (context, controller, child) => IconButton(
+              key: const Key("keyboard-menu-button"),
+              focusNode: anchorFocusNode,
+              onPressed: () => toggleAmeMenu(controller),
+              icon: const Icon(Symbols.more_horiz_rounded),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.pump();
+    expect(anchorFocusNode.hasFocus, isTrue);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+    expect(find.text("第一项"), findsOneWidget);
+    expect(find.text("第二项"), findsOneWidget);
+    expect(anchorFocusNode.hasFocus, isTrue);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pump();
+    expect(firstItemFocusNode.hasFocus, isTrue);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pump();
+    expect(secondItemFocusNode.hasFocus, isTrue);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+    expect(activationCount, 1);
+    expect(find.text("第一项"), findsNothing);
+    expect(anchorFocusNode.hasFocus, isTrue);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.space);
+    await tester.pump();
+    expect(find.text("第一项"), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pump();
+    expect(firstItemFocusNode.hasFocus, isTrue);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+    expect(find.text("第一项"), findsNothing);
+    expect(anchorFocusNode.hasFocus, isTrue);
   });
 
   testWidgets("isolates menu and tooltip overlay traversal semantics", (

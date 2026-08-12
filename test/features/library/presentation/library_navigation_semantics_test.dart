@@ -6,6 +6,8 @@ import "package:cedarflake_ame/features/library/application/library_controller.d
 import "package:cedarflake_ame/features/library/domain/library_folder_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
+import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_folder_navigation_tile.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_navigation.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_photo_tile.dart";
 import "package:flutter/gestures.dart";
@@ -78,6 +80,14 @@ void main() {
           ),
         );
         expect(folderTitle, findsOneWidget);
+        expect(
+          find.byKey(
+            const ValueKey(
+              "folder-navigation-root-1-Long album name that needs a path tooltip",
+            ),
+          ),
+          findsOneWidget,
+        );
         await mouse.moveTo(tester.getCenter(folderTitle));
         await tester.pump(const Duration(seconds: 1));
         await tester.tap(folderTitle, buttons: kSecondaryMouseButton);
@@ -92,6 +102,61 @@ void main() {
       }
     },
   );
+
+  testWidgets("keeps the folder menu bound to its opening target", (
+    tester,
+  ) async {
+    final callbackRevision = ValueNotifier(0);
+    final openedRevisions = <int>[];
+    addTearDown(callbackRevision.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ValueListenableBuilder<int>(
+            valueListenable: callbackRevision,
+            builder: (context, revision, child) => LibraryFolderNavigationTile(
+              key: const ValueKey("stable-folder-target"),
+              root: const LibraryRoot(
+                id: "root-1",
+                path: "C:\\Pictures",
+                displayPath: "C:\\Pictures",
+                createdUnixMs: 1,
+                assetCount: 1,
+                issueCount: 0,
+              ),
+              folder: const LibraryFolder(
+                rootId: "root-1",
+                relativePath: "Album",
+                name: "Album",
+                directAssetCount: 1,
+                descendantAssetCount: 1,
+              ),
+              depth: 0,
+              isSelected: false,
+              isExpanded: false,
+              isBusy: false,
+              onSelect: _noop,
+              onToggleExpansion: null,
+              onOpen: () => openedRevisions.add(revision),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey("folder-title-root-1-Album")),
+      buttons: kSecondaryMouseButton,
+    );
+    await tester.pumpAndSettle();
+    callbackRevision.value = 1;
+    await tester.pump();
+    await tester.tap(find.text(LibraryStrings.openInExplorer));
+    await tester.pumpAndSettle();
+
+    expect(openedRevisions, [0]);
+  });
 
   testWidgets("keeps adjacent list tooltips reachable", (tester) async {
     final semanticsHandle = tester.ensureSemantics();

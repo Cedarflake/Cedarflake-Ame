@@ -117,7 +117,6 @@ class AmeMenuAnchor extends StatelessWidget {
         style: style,
         alignmentOffset: alignmentOffset ?? Offset.zero,
         reservedPadding: reservedPadding,
-        animated: true,
         menuChildren: menuChildren,
         builder: isolatedBuilder,
         child: anchorChild == null

@@ -18,6 +18,7 @@ try {
     )
     & (Join-Path $PSScriptRoot "quality_test_flutter.ps1")
     & (Join-Path $PSScriptRoot "integration_test_windows.ps1")
+    & (Join-Path $PSScriptRoot "integration_test_windows_accessibility.ps1")
 
     $rustHashLine = Select-String -LiteralPath "rust\src\frb_generated.rs" -Pattern (
         "FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH"
