@@ -611,6 +611,16 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(controller?.isOpen, isTrue);
 
+    for (final label in const [
+      LibraryStrings.captureDate,
+      LibraryStrings.createdDate,
+      LibraryStrings.modifiedDate,
+      LibraryStrings.fileName,
+      LibraryStrings.ascending,
+      LibraryStrings.descending,
+    ]) {
+      _expectMenuLabelFullyVisible(tester, label);
+    }
     final item = _activeMenuItem(tester, LibraryStrings.fileName);
     final itemRect = tester.getRect(item);
     expect(itemRect.left, greaterThanOrEqualTo(AmeMenuMetrics.viewportPadding));
@@ -2274,6 +2284,27 @@ Finder? _activeMenuItemOrNull(WidgetTester tester, String label) {
     isTrue,
   );
   return candidates;
+}
+
+void _expectMenuLabelFullyVisible(WidgetTester tester, String label) {
+  final finder = find.text(label).last;
+  final text = tester.widget<Text>(finder);
+  final context = tester.element(finder);
+  final painter = TextPainter(
+    text: TextSpan(
+      text: text.data,
+      style: DefaultTextStyle.of(context).style.merge(text.style),
+    ),
+    textDirection: Directionality.of(context),
+    textScaler: MediaQuery.textScalerOf(context),
+    maxLines: 1,
+  )..layout();
+  expect(
+    tester.getSize(finder).width,
+    greaterThanOrEqualTo(painter.width),
+    reason: "$label should not be ellipsized in the sort menu",
+  );
+  painter.dispose();
 }
 
 LibraryState _populatedState({

@@ -240,6 +240,7 @@ class _SortMenuState extends State<_SortMenu> {
         LibraryStrings.ascending,
         LibraryStrings.descending,
       ],
+      leadingIconWidth: AmeMenuMetrics.selectionIndicatorSlotWidth,
     );
     Widget fixedWidthChoice(Widget choice) {
       return ameFixedWidthMenuItem(width: menuWidth, child: choice);

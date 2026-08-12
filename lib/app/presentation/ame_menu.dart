@@ -214,7 +214,8 @@ double amePopupMenuContentWidth({
   required BuildContext context,
   required Iterable<String> labels,
   Iterable<String> shortcuts = const [],
-  bool hasLeadingIcon = true,
+  bool hasContentIcon = true,
+  double leadingIconWidth = 0,
 }) {
   final popupMenuTheme = PopupMenuTheme.of(context);
   final textStyle =
@@ -245,11 +246,16 @@ double amePopupMenuContentWidth({
     }
   }
   textPainter.dispose();
-  final decorationWidth = hasLeadingIcon
-      ? (AmeMenuMetrics.horizontalPadding * 2) +
-            AmeMenuMetrics.iconSize +
-            AmeMenuMetrics.iconLabelGap
-      : AmeMenuMetrics.horizontalPadding * 2;
+  final contentIconWidth = hasContentIcon
+      ? AmeMenuMetrics.iconSize + AmeMenuMetrics.iconLabelGap
+      : 0;
+  final leadingDecorationWidth = leadingIconWidth > 0
+      ? leadingIconWidth + AmeMenuMetrics.iconLabelGap
+      : 0;
+  final decorationWidth =
+      (AmeMenuMetrics.horizontalPadding * 2) +
+      contentIconWidth +
+      leadingDecorationWidth;
   return (maximumContentWidth + decorationWidth)
       .clamp(AmeMenuMetrics.minimumWidth, AmeMenuMetrics.maximumWidth)
       .ceilToDouble();

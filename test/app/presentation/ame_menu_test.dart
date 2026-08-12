@@ -169,6 +169,55 @@ void main() {
     shortcutPainter.dispose();
   });
 
+  testWidgets("includes Material leading icon geometry in calculated width", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildAmeTheme(),
+        home: Builder(
+          builder: (context) {
+            return MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: const TextScaler.linear(1.5)),
+              child: Builder(
+                builder: (context) {
+                  final menuWidth = amePopupMenuContentWidth(
+                    context: context,
+                    labels: const ["拍摄日期"],
+                    leadingIconWidth:
+                        AmeMenuMetrics.selectionIndicatorSlotWidth,
+                  );
+                  return Scaffold(
+                    body: Center(
+                      child: SizedBox(
+                        key: const Key("leading-icon-menu-row"),
+                        width: menuWidth,
+                        child: MenuItemButton(
+                          onPressed: () {},
+                          leadingIcon: const SizedBox(
+                            width: AmeMenuMetrics.selectionIndicatorSlotWidth,
+                          ),
+                          child: const AmeMenuItemContent(
+                            icon: Symbols.calendar_month_rounded,
+                            label: "拍摄日期",
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+        ),
+      ),
+    );
+
+    _expectTextFits(tester, "拍摄日期");
+  });
+
   testWidgets("keeps Flutter 3.44 anchored menus non-animated and clickable", (
     tester,
   ) async {
@@ -425,4 +474,21 @@ int _countTraversalParents(SemanticsNode node) {
     return true;
   });
   return count;
+}
+
+void _expectTextFits(WidgetTester tester, String label) {
+  final finder = find.text(label);
+  final text = tester.widget<Text>(finder);
+  final context = tester.element(finder);
+  final painter = TextPainter(
+    text: TextSpan(
+      text: text.data,
+      style: DefaultTextStyle.of(context).style.merge(text.style),
+    ),
+    textDirection: Directionality.of(context),
+    textScaler: MediaQuery.textScalerOf(context),
+    maxLines: 1,
+  )..layout();
+  expect(tester.getSize(finder).width, greaterThanOrEqualTo(painter.width));
+  painter.dispose();
 }
