@@ -6,6 +6,7 @@ import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_menu.dart";
 import "../../../../app/presentation/ame_popup_menu_position.dart";
+import "../../../../app/presentation/ame_typography.dart";
 import "../../domain/library_models.dart";
 import "../library_strings.dart";
 import "library_path_text.dart";
@@ -374,7 +375,12 @@ class _ExpandedSourceTile extends StatelessWidget {
       minLeadingWidth: 24,
       horizontalTitleGap: 12,
       leading: SizedBox(key: iconKey, width: 24, child: Icon(icon)),
-      title: LibraryPathText(text: title, path: path, textKey: titleKey),
+      title: DefaultTextStyle.merge(
+        style: TextStyle(
+          fontWeight: isSelected ? ameFontWeightSemibold : ameFontWeightMedium,
+        ),
+        child: LibraryPathText(text: title, path: path, textKey: titleKey),
+      ),
       subtitle: subtitle == null
           ? null
           : Text(subtitle!, maxLines: 1, overflow: TextOverflow.ellipsis),

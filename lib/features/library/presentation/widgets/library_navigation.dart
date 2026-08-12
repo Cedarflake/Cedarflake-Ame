@@ -3,6 +3,7 @@ import "dart:async";
 import "package:flutter/material.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_typography.dart";
 import "../../application/library_folder_controller.dart";
 import "../../domain/library_folder_models.dart";
 import "../../domain/library_models.dart";
@@ -116,7 +117,14 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                         width: 24,
                         child: Icon(Symbols.photo_library_rounded),
                       ),
-                      title: const Text(LibraryStrings.library),
+                      title: Text(
+                        LibraryStrings.library,
+                        style: _navigationTitleStyle(
+                          context,
+                          !widget.isSettingsSelected &&
+                              widget.selectedRootId == null,
+                        ),
+                      ),
                       trailing: SizedBox(
                         width: 48,
                         child: IconButton(
@@ -196,7 +204,13 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                         width: 24,
                         child: Icon(Symbols.settings_rounded),
                       ),
-                      title: const Text(LibraryStrings.settings),
+                      title: Text(
+                        LibraryStrings.settings,
+                        style: _navigationTitleStyle(
+                          context,
+                          widget.isSettingsSelected,
+                        ),
+                      ),
                       onTap: widget.onOpenSettings,
                     ),
             ),
@@ -286,4 +300,10 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
     setState(() => _expandedBranches.add(key));
     unawaited(widget.onExpandFolder(rootId, parentRelativePath));
   }
+}
+
+TextStyle? _navigationTitleStyle(BuildContext context, bool isSelected) {
+  return Theme.of(context).textTheme.bodyLarge?.copyWith(
+    fontWeight: isSelected ? ameFontWeightSemibold : ameFontWeightMedium,
+  );
 }

@@ -432,7 +432,11 @@ Widget _menuChoice({
               )
             : null,
       ),
-      child: AmeMenuItemContent(icon: icon, label: label),
+      child: AmeMenuItemContent(
+        icon: icon,
+        label: label,
+        isSelected: isSelected,
+      ),
     ),
   );
 }

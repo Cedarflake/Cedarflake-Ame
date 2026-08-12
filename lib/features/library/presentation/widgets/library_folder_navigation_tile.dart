@@ -3,6 +3,7 @@ import "package:flutter/services.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_menu.dart";
+import "../../../../app/presentation/ame_typography.dart";
 import "../../domain/library_folder_models.dart";
 import "../../domain/library_models.dart";
 import "../library_strings.dart";
@@ -95,13 +96,20 @@ class _LibraryFolderNavigationTileState
               width: 24,
               child: Icon(Symbols.folder_rounded),
             ),
-            title: LibraryPathText(
-              text: widget.folder.name,
-              path: displayLibraryFolderPath(
-                widget.root.displayPath,
-                widget.folder.relativePath,
+            title: DefaultTextStyle.merge(
+              style: TextStyle(
+                fontWeight: widget.isSelected
+                    ? ameFontWeightSemibold
+                    : ameFontWeightMedium,
               ),
-              textKey: ValueKey("folder-title-$keySuffix"),
+              child: LibraryPathText(
+                text: widget.folder.name,
+                path: displayLibraryFolderPath(
+                  widget.root.displayPath,
+                  widget.folder.relativePath,
+                ),
+                textKey: ValueKey("folder-title-$keySuffix"),
+              ),
             ),
             trailing: SizedBox(
               width: 48,

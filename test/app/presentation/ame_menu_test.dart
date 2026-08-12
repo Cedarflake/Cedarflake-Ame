@@ -79,6 +79,37 @@ void main() {
     expect(labelRect.left - iconRect.right, AmeMenuMetrics.iconLabelGap);
   });
 
+  testWidgets("emphasizes selected menu choices without flattening labels", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildAmeTheme(),
+        home: const Scaffold(
+          body: Column(
+            children: [
+              AmeMenuItemContent(icon: Symbols.sort_rounded, label: "普通"),
+              AmeMenuItemContent(
+                icon: Symbols.check_rounded,
+                label: "已选择",
+                isSelected: true,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      tester.widget<Text>(find.text("普通")).style?.fontWeight,
+      ameFontWeightMedium,
+    );
+    expect(
+      tester.widget<Text>(find.text("已选择")).style?.fontWeight,
+      ameFontWeightSemibold,
+    );
+  });
+
   testWidgets("keeps shortcuts fully visible at calculated menu width", (
     tester,
   ) async {

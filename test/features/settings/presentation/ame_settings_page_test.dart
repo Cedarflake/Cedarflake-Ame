@@ -28,6 +28,25 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(
+      tester.widget<Text>(find.text("设置")).style?.fontWeight,
+      ameFontWeightSemibold,
+    );
+    expect(
+      tester.widget<Text>(find.text("个性化")).style?.fontWeight,
+      ameFontWeightSemibold,
+    );
+    expect(
+      tester.widget<Text>(find.text("应用主题")).style?.fontWeight,
+      ameFontWeightSemibold,
+    );
+    expect(
+      DefaultTextStyle.of(
+        tester.element(find.text("选择明暗外观，主题色跟随 Windows")),
+      ).style.fontWeight,
+      ameFontWeightRegular,
+    );
+
     expect(find.byKey(const Key("ame-settings-page")), findsOneWidget);
     expect(find.byType(AlertDialog), findsNothing);
     expect(find.text("个性化"), findsOneWidget);
@@ -123,7 +142,7 @@ void main() {
     final largeOption = find.text("大").hitTestable();
     expect(
       DefaultTextStyle.of(tester.element(largeOption)).style.fontWeight,
-      FontWeight.w400,
+      ameFontWeightMedium,
     );
     await tester.tap(largeOption);
     await tester.pumpAndSettle();

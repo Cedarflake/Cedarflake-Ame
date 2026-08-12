@@ -1,6 +1,8 @@
 import "package:flutter/material.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_typography.dart";
+
 class SettingsSection extends StatelessWidget {
   const SettingsSection({
     required this.title,
@@ -18,7 +20,12 @@ class SettingsSection extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 10),
-          child: Text(title, style: Theme.of(context).textTheme.titleMedium),
+          child: Text(
+            title,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: ameFontWeightSemibold,
+            ),
+          ),
         ),
         Card(
           margin: EdgeInsets.zero,
@@ -69,7 +76,12 @@ class SettingsRow extends StatelessWidget {
       minLeadingWidth: 24,
       horizontalTitleGap: 20,
       leading: Icon(icon),
-      title: Text(title),
+      title: Text(
+        title,
+        style: Theme.of(
+          context,
+        ).textTheme.bodyLarge?.copyWith(fontWeight: ameFontWeightSemibold),
+      ),
       subtitle: Padding(
         padding: const EdgeInsets.only(top: 4),
         child: DefaultTextStyle.merge(

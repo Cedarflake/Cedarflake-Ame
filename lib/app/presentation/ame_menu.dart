@@ -1,5 +1,7 @@
 import "package:flutter/material.dart";
 
+import "ame_typography.dart";
+
 abstract final class AmeMenuMetrics {
   static const double minimumWidth = 112;
   static const double maximumWidth = 280;
@@ -172,12 +174,14 @@ class AmeMenuItemContent extends StatelessWidget {
     required this.icon,
     required this.label,
     this.shortcut,
+    this.isSelected = false,
     super.key,
   });
 
   final IconData icon;
   final String label;
   final String? shortcut;
+  final bool isSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -191,12 +195,29 @@ class AmeMenuItemContent extends StatelessWidget {
             constraints: const BoxConstraints(
               maxWidth: AmeMenuMetrics.maximumLabelWidth,
             ),
-            child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                fontWeight: isSelected
+                    ? ameFontWeightSemibold
+                    : ameFontWeightMedium,
+              ),
+            ),
           ),
         ),
         if (shortcut case final shortcut?) ...[
           const SizedBox(width: AmeMenuMetrics.shortcutGap),
-          Text(shortcut, maxLines: 1, softWrap: false),
+          Text(
+            shortcut,
+            maxLines: 1,
+            softWrap: false,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontWeight: ameFontWeightRegular,
+            ),
+          ),
         ],
       ],
     );
@@ -211,9 +232,10 @@ double amePopupMenuContentWidth({
 }) {
   final popupMenuTheme = PopupMenuTheme.of(context);
   final textStyle =
-      popupMenuTheme.labelTextStyle?.resolve(const <WidgetState>{}) ??
-      Theme.of(context).textTheme.labelLarge ??
-      const TextStyle();
+      (popupMenuTheme.labelTextStyle?.resolve(const <WidgetState>{}) ??
+              Theme.of(context).textTheme.labelLarge ??
+              const TextStyle())
+          .copyWith(fontWeight: ameFontWeightSemibold);
   final textPainter = TextPainter(
     textDirection: Directionality.of(context),
     textScaler: MediaQuery.textScalerOf(context),
