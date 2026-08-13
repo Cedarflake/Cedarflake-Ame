@@ -1798,11 +1798,12 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
 - R2c-A is complete. Rust now exposes a selective platform-independent synchronization facade with
   normalized observations and intents, root-generation isolation, explicit watcher-health and
   catalog-freshness states, deterministic path/subtree/root coalescing, bounded evidence-gap
-  degradation, and ADR 0007-compatible final-state reconciliation outcomes. Twenty-two focused tests
-  cover create, modify, transient create/remove, paired and unpaired rename, directory and root
-  supersession, stale generations, offline roots, invalid/Chinese/long paths, event storms,
-  same-state replacement, authoritative removal, and failure preservation without a platform
-  watcher or Flutter policy.
+  degradation, and ADR 0007-compatible final-state reconciliation outcomes. Forty-two focused tests,
+  including 20 adversarial blue-team fixtures, cover create, modify, transient create/remove,
+  paired and incomplete rename, path and nested-subtree supersession, stale generations, offline
+  roots, malformed/Chinese/long paths, event storms, deterministic overflow, same-state replacement,
+  path-bound authoritative removal, and failure preservation without a platform watcher or Flutter
+  policy. The attack matrix is recorded in `docs/acceptance/r2c-a-blue-team.md`.
 - ADR 0017 accepts stable `notify` 8.2.0 for R2c-B validation behind an Ame-owned adapter. The
   dependency is not yet present in `Cargo.toml`; there is still no production watcher, durable
   change queue, atomic delta publisher, or catch-up adapter. R3 and the later duplicate, review,

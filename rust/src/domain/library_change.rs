@@ -26,7 +26,7 @@ impl LibraryRootGeneration {
     }
 }
 
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LibraryChangeOrigin {
     LiveNotification,
     StartupCatchUp,
@@ -34,14 +34,14 @@ pub enum LibraryChangeOrigin {
     ConsistencyAudit,
 }
 
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LibraryChangeScope {
     Path,
     Subtree,
     Root,
 }
 
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LibraryChangeObservationKind {
     Created,
     Modified,
@@ -129,16 +129,21 @@ pub struct LibraryChangePlanningLimits {
     pub max_intents: usize,
 }
 
+impl LibraryChangePlanningLimits {
+    pub const MAX_OBSERVATIONS: usize = 4096;
+    pub const MAX_INTENTS: usize = 1024;
+}
+
 impl Default for LibraryChangePlanningLimits {
     fn default() -> Self {
         Self {
-            max_observations: 4096,
-            max_intents: 1024,
+            max_observations: Self::MAX_OBSERVATIONS,
+            max_intents: Self::MAX_INTENTS,
         }
     }
 }
 
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LibraryChangePlanningIssue {
     InvalidRelativePath,
     ObservationLimitExceeded,
@@ -193,10 +198,19 @@ pub struct ReconciliationFileEvidence {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ReconciliationObservedState {
     Present(ReconciliationFileEvidence),
-    Missing { is_authoritative: bool },
-    RetryableFailure { code: String },
-    TerminalIssue { code: String },
-    Skipped { code: String },
+    Missing {
+        relative_path: String,
+        is_authoritative: bool,
+    },
+    RetryableFailure {
+        code: String,
+    },
+    TerminalIssue {
+        code: String,
+    },
+    Skipped {
+        code: String,
+    },
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]

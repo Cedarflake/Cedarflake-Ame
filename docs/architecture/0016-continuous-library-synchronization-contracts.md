@@ -60,9 +60,10 @@ Normalization applies these rules:
 2. coalesce create, modify, remove, duplicate, and reordered signals for one path into one final
    reconciliation intent;
 3. retain a reliably paired rename as one candidate, but degrade an unpaired rename into old- and
-   new-path reconciliation;
-4. promote directory signals to subtree scope and let a parent subtree supersede contained path
-   work; a root-directory signal supersedes all narrower work;
+   new-path reconciliation; when the old path is absent, treat the signal as an evidence gap;
+4. promote directory signals to subtree scope and let a parent subtree supersede contained path or
+   nested-subtree work while retaining their observation evidence; a root-directory signal
+   supersedes all narrower work;
 5. ignore observations from another root or generation;
 6. replace the batch with one root `FreshnessUnknown` intent when paths are invalid, event evidence
    has a known gap, source health is degraded, or configured capacity is exceeded.
@@ -102,6 +103,8 @@ fingerprint, similarity, or classification engines.
   filesystem adapter must inspect and revalidate the entry before publication.
 - A root-level fallback is more expensive than path reconciliation but is required when bounded
   evidence cannot prove completeness.
+- Caller-selected planning limits cannot exceed the contract ceilings of 4,096 observations and
+  1,024 intents. Parent coverage is resolved before the intent ceiling is applied.
 
 ## Validation evidence
 
@@ -111,10 +114,12 @@ fingerprint, similarity, or classification engines.
   edit and rename, same-state replacement, authoritative removal, and failure preservation.
 - The fixtures run without a platform watcher, database migration, Flutter policy, or source-media
   access.
-- Twenty-two focused synchronization tests pass, including the selective Rust facade contract.
+- Forty-two focused synchronization tests pass, including 20 adversarial blue-team fixtures and
+  the selective Rust facade contract. The attack matrix and residual boundaries are recorded in
+  `docs/acceptance/r2c-a-blue-team.md`.
 - The repository lint gate passes with 131 Dart files unchanged, Flutter analysis clean, and Rust
   Clippy clean for all targets and features with warnings denied.
-- The complete Daily gate passes: 153 Rust tests pass with five authorization- or
+- The complete Daily gate passes: 173 Rust tests pass with five authorization- or
   performance-bound tests intentionally ignored; all Flutter tests, controlled Windows scan
   integration, native Windows accessibility integration, generated bridge compatibility, and
   tracked-diff whitespace validation pass.

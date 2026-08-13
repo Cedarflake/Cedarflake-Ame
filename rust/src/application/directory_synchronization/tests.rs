@@ -471,6 +471,7 @@ fn removal_requires_authoritative_absence_and_failures_preserve_catalog() {
     let removed = reconcile_path_evidence(
         Some(&prior),
         ReconciliationObservedState::Missing {
+            relative_path: "photo.jpg".to_owned(),
             is_authoritative: true,
         },
     );
@@ -482,6 +483,7 @@ fn removal_requires_authoritative_absence_and_failures_preserve_catalog() {
 
     for observed in [
         ReconciliationObservedState::Missing {
+            relative_path: "photo.jpg".to_owned(),
             is_authoritative: false,
         },
         ReconciliationObservedState::RetryableFailure {
