@@ -11,6 +11,7 @@ acceptance work. A passing lower gate never claims that a higher gate ran.
 | Daily | `./tool/quality_verify_daily.ps1` | Format, lint, Rust and Flutter tests, controlled Windows scan and native accessibility integrations, bridge hash, tracked diff whitespace | Every material change |
 | Performance | `./tool/performance_benchmark_synthetic_library.ps1` | 10,000 temporary images, cold and warm scans, pause and resume, bounded memory | Scan pipeline, persistence, concurrency, or performance changes |
 | Retained Profile | `./tool/performance_profile_retained_gallery.ps1` | Frozen-interaction Profile frame, memory, garbage-collection, query, publication, and retained-detail evidence; no source preview materialization | Guarded R2b gallery adaptations on the retained catalog |
+| Preview performance acceptance | `./tool/acceptance_run_preview_performance.ps1` | Cold/warm bucket latency, cache growth, reuse, reclamation, regeneration, bounded memory, and sampled source integrity | Explicitly authorized R2b preview closeout only |
 | Real library | `./tool/acceptance_run_read_only_library.ps1` and `./tool/acceptance_verify_read_only_catalog.ps1` | Explicitly authorized source scan, source integrity sampling, retained multi-root catalog validation | Only with current authorization and explicit paths |
 | Release | `./tool/release_verify_candidate.ps1` | Daily gate, Windows Release and bridge smoke, synthetic performance gate, optional retained real-library validation | Before a release candidate |
 | Portable artifact | `./tool/release_package_portable_windows.ps1` | Versioned Windows x64 ZIP plus archive-structure verification | After a release build passes |
@@ -137,12 +138,25 @@ hydration, or a real-library acceptance run.
 
 The retained Profile is not a preview-throughput gate. It cannot measure source decode or preview
 materialization latency, bucket reuse, materialized cache growth, reclamation duration, or
-regeneration churn. When the roadmap requires those metrics, use a separate repository-owned
-entrypoint with explicit source-item authorization and item, time, memory, and cache limits. That
-run must read only locally available source media, keep derived storage outside every source tree,
-avoid root scanning and cloud-placeholder hydration, and verify sampled source bytes and entries
-unchanged. Until such an entrypoint has run, neither the retained Profile nor catalog parity may be
-reported as preview-performance acceptance evidence.
+regeneration churn. Run the dedicated gate only with current authorization for `local-primary`:
+
+```powershell
+./tool/acceptance_run_preview_performance.ps1 `
+  -RootPath "<authorized local-primary root>" `
+  -SourceCatalogPath "<current catalog path>" `
+  -StorageRoot "<new empty storage outside every source tree>" `
+  -AuthorizationToken "<current preview-performance authorization token>"
+```
+
+The entrypoint creates an online SQLite backup in isolated derived storage, resets previews only in
+that backup, and samples at most 512 catalogued, locally readable source items. It has explicit item,
+time, memory, source-file, and cache limits; rejects cloud roots and storage overlap; never performs
+a root scan; exercises 128/256/512 cold and compatible warm bucket requests; naturally fills the
+minimum 64 MiB cache toward its pressure boundary; then records reclamation duration, regeneration,
+immediate boundary churn, and source-state verification. Its guardrail contract is checked by
+`./tool/acceptance_test_preview_performance_guardrails.ps1` and the static quality gate. A passing
+tool implementation is not acceptance evidence until this authorization-bound workload itself has
+run successfully.
 
 ## Real-library gate
 

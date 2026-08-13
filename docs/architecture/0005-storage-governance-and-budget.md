@@ -257,6 +257,20 @@ materialization can validate frame time, memory, query publication, and retained
 but it cannot satisfy these preview metrics. Catalog-parity evidence that leaves all previews
 pending cannot satisfy them either.
 
+The authorized `local-primary` Release-mode workload on 2026-08-13 completed this evidence class
+without scanning a root or writing to the live catalog or preview cache. It created an online
+catalog backup in isolated derived storage, selected 512 of 30,629 active local locations, and
+completed 24 cold and compatible warm requests for each display bucket. Cold P95 latency was 193 ms
+at 128 px, 201 ms at 256 px, and 211 ms at 512 px; warm P95 latency was 14 ms, 16 ms, and 16 ms.
+All 72 compatible warm requests reused the same artifact without increasing cache bytes. Natural
+1024 px pressure reached 57,068,214 bytes from 447 locations under a 64 MiB budget. Reclamation
+removed 3,478,072 bytes in 234 ms and settled at 53,590,142 bytes, below the 80 percent low
+watermark. One evicted artifact regenerated in 19 ms, its warm reuse took 13 ms, and immediate
+boundary churn remained zero. Peak working set was 126,844,928 bytes, all 512 selected entries
+retained their expected file state, 16 byte samples remained identical, and no preview request
+failed. These measurements accept the current bucket and reclamation policy; they do not authorize
+a speculative codec, concurrency, cache, or gallery rewrite.
+
 The scaled-JPEG admission additionally requires the fixed large-image fixture, EXIF Orientation 1
 through 8, corrupt-input fallback, and an optimized-build comparison against the existing full
 decode. The initial 6000 by 4000 synthetic JPEG comparison on 2026-08-11 measured 90.286 ms for full
