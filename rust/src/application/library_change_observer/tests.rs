@@ -189,6 +189,81 @@ fn failed_callback_ingress_stops_the_source_and_schedules_bounded_backoff() {
 }
 
 #[test]
+fn delivered_degraded_gap_restarts_the_source_and_can_recover_health() {
+    let stops = Arc::new(Mutex::new(0));
+    let degraded_batch = LibraryChangeSourceBatch {
+        observations: vec![LibraryChangeObservation {
+            root_id: "root-a".to_owned(),
+            root_generation: LibraryRootGeneration::new(7).expect("generation"),
+            sequence: 1,
+            observed_unix_ms: 1_000,
+            kind: LibraryChangeObservationKind::EvidenceGap,
+            scope: LibraryChangeScope::Root,
+            relative_path: String::new(),
+            previous_relative_path: None,
+            origin: LibraryChangeOrigin::LiveNotification,
+        }],
+        health: LibraryChangeSourceHealth::Degraded,
+        dropped_observation_count: 1,
+        ignored_callback_count: 0,
+    };
+    let degraded_source = FakeSource {
+        health: LibraryChangeSourceHealth::Healthy,
+        batches: VecDeque::from([Ok(degraded_batch)]),
+        stops: Arc::clone(&stops),
+        stop_delay: Duration::ZERO,
+        should_fail_stop: false,
+    };
+    let recovered_source = source(LibraryChangeSourceHealth::Healthy, Arc::clone(&stops));
+    let factory = factory([Ok(degraded_source), Ok(recovered_source)]);
+    let state = Arc::clone(&factory.state);
+    let mut observer =
+        LibraryChangeObserver::start(factory, request(), limits(), restart_policy(), 0)
+            .expect("observer");
+
+    let degraded = observer.poll(1).expect("degraded poll");
+
+    assert_eq!(degraded.source_health, LibraryChangeSourceHealth::Degraded);
+    assert_eq!(degraded.dropped_observation_count, 1);
+    assert_eq!(
+        degraded.planning.freshness,
+        CatalogFreshnessState::NeedsReconciliation
+    );
+    assert!(
+        degraded
+            .planning
+            .issues
+            .contains(&crate::domain::LibraryChangePlanningIssue::ChangeEvidenceGap)
+    );
+    wait_for_stop(&stops);
+
+    let deadline = Instant::now() + Duration::from_secs(1);
+    let waiting = loop {
+        let poll = observer.poll(2).expect("advance degraded stop");
+        if poll.next_restart_unix_ms.is_some() {
+            break poll;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "timed out waiting for degraded source stop"
+        );
+        thread::yield_now();
+    };
+    assert_eq!(waiting.restart_attempt, 1);
+    assert_eq!(waiting.next_restart_unix_ms, Some(252));
+
+    let recovered = observer.poll(252).expect("recovered poll");
+
+    assert_eq!(recovered.source_health, LibraryChangeSourceHealth::Healthy);
+    assert_eq!(
+        recovered.planning.freshness,
+        CatalogFreshnessState::Synchronized
+    );
+    assert_eq!(recovered.restart_attempt, 0);
+    assert_eq!(state.lock().expect("factory state").starts, 2);
+}
+
+#[test]
 fn slow_runtime_stop_does_not_block_poll_and_window_close_remains_bounded() {
     let stops = Arc::new(Mutex::new(0));
     let source = FakeSource {

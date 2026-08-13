@@ -61,7 +61,7 @@ impl LibraryChangeSourceFactory for WindowsLibraryChangeSourceFactory {
     ) -> Result<Self::Source, LibraryChangeSourceError> {
         validate_request(request)?;
         let root_path = std::fs::canonicalize(&request.root_path).map_err(|_| {
-            LibraryChangeSourceError::new(
+            LibraryChangeSourceError::retryable(
                 "change_source_root_unavailable",
                 "The library root could not be resolved for observation.",
             )
@@ -230,6 +230,14 @@ impl CallbackProcessor {
             self.flush_incomplete_rename();
             self.state
                 .mark_evidence_gap(LibraryChangeSourceHealth::Degraded);
+            return;
+        }
+        if matches!(event.kind, EventKind::Remove(_))
+            && event.paths.iter().any(|path| path == &self.state.root_path)
+        {
+            self.flush_incomplete_rename();
+            self.state
+                .mark_evidence_gap(LibraryChangeSourceHealth::Failed);
             return;
         }
 
@@ -592,7 +600,7 @@ fn validate_request(request: &LibraryChangeSourceRequest) -> Result<(), LibraryC
         ));
     }
     if !request.root_path.is_absolute() || !request.root_path.is_dir() {
-        return Err(LibraryChangeSourceError::new(
+        return Err(LibraryChangeSourceError::retryable(
             "change_source_root_unavailable",
             "The library observer requires an available absolute directory root.",
         ));

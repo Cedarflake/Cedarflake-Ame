@@ -4,7 +4,7 @@ Status: active delivery plan
 
 Last confirmed with the user: 2026-08-13
 
-Last implementation-status synchronization: 2026-08-13
+Last implementation-status synchronization: 2026-08-14
 
 Repository: this repository root
 
@@ -1240,8 +1240,8 @@ R2c-A is complete only when the behavior can be tested without a platform watche
 asked to infer business rules.
 
 Status: **complete on 2026-08-13**. ADR 0016 owns the platform-independent contract and
-deterministic fixtures; ADR 0017 accepts stable `notify` 8.2.0 for R2c-B validation without adding
-an unused dependency in R2c-A.
+deterministic fixtures; ADR 0017 records the R2c-B watcher decision without adding an unused
+dependency in R2c-A.
 
 R2c-B - live Windows observation:
 
@@ -1253,7 +1253,7 @@ R2c-B - live Windows observation:
 R2c-B is complete only when controlled real filesystem changes produce Ame-owned intents without
 blocking UI, decoding media in the callback, or growing memory without limit.
 
-Status: **complete on 2026-08-13**. ADR 0017 owns the admitted Windows adapter and
+Status: **complete on 2026-08-13; audit-hardened on 2026-08-14**. ADR 0017 owns the admitted Windows adapter and
 `docs/acceptance/r2c-b-windows-observation.md` records focused, controlled-filesystem, Daily, and
 Windows Release evidence. No real-library root was accessed.
 
@@ -1809,15 +1809,18 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   identity-query degradation, path-bound authoritative removal, and failure preservation without a
   platform watcher or Flutter policy. The attack matrix is recorded in
   `docs/acceptance/r2c-a-blue-team.md`.
-- R2c-B is complete. ADR 0017 admits exact stable `notify` 8.2.0 as a Windows-targeted dependency
-  behind an Ame-owned adapter. One bounded recursive observer lifecycle per root converts controlled
+- R2c-B is complete and its 2026-08-14 audit hardening replaces the unpatched dependency with the
+  ADR 0017 pinned `notify` 8.2.0 source plus narrow upstream-derived Windows backports. One bounded
+  recursive observer lifecycle per root converts controlled
   create, modify, remove, paired rename, directory, rescan, callback-error, and overflow signals
-  into R2c-A observations and intents. Seven application lifecycle tests and thirteen adapter tests
+  into R2c-A observations and intents. Eight application lifecycle tests and fourteen adapter tests
   cover explicit-clock restart, generation isolation, stop-failure isolation, metadata races,
-  shutdown boundaries, Chinese and long paths, and a real temporary recursive root without touching
-  a real library. The 2026-08-13 Daily gate passed 195 Rust tests with five intentional ignores, all
-  Flutter tests, Windows scan and accessibility integrations, bridge compatibility, and whitespace;
-  the Windows Release gate built the packaged application and passed both bridge smoke tests. There
+  shutdown boundaries, native notification overflow, watched-root loss, degraded recovery, Chinese
+  and long paths, and a real temporary recursive root without touching
+  a real library. The 2026-08-14 Daily gate passed all 202 Rust tests with 197 passing and five
+  intentional ignores, all Flutter tests, Windows scan and accessibility integrations, bridge
+  compatibility, and whitespace; the Windows Release gate built the packaged application and passed
+  both bridge smoke tests. There
   is still no durable change queue, atomic delta publisher, production Flutter synchronization UI,
   catch-up adapter, or real-library event acceptance; those remain later R2c slices.
 - The current R2b closeout working tree passed the complete local Daily gate and Windows Release

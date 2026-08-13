@@ -1,13 +1,13 @@
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::Ordering;
-use std::sync::mpsc::{Receiver, sync_channel};
-use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::{Receiver, channel, sync_channel};
+use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
 use notify::event::{CreateKind, Flag, ModifyKind, RemoveKind, RenameMode};
-use notify::{Event, EventKind};
+use notify::{Event, EventKind, Watcher};
 use tempfile::TempDir;
 
 use crate::application::plan_library_changes;
@@ -118,6 +118,61 @@ fn incomplete_rename_rescan_and_callback_error_cannot_claim_healthy_evidence() {
     processor.handle(Err(notify::Error::generic("forced callback failure")));
     assert!(state.evidence_gap.load(Ordering::Acquire));
     assert_eq!(state.health(), LibraryChangeSourceHealth::Failed);
+}
+
+#[test]
+fn native_windows_buffer_overflow_emits_a_rescan_signal() {
+    let root = TempDir::new().expect("temporary root");
+    let callback_gate = Arc::new((Mutex::new((false, false)), Condvar::new()));
+    let callback_gate_state = Arc::clone(&callback_gate);
+    let should_block = Arc::new(AtomicBool::new(true));
+    let should_block_callback = Arc::clone(&should_block);
+    let (sender, receiver) = channel();
+    let mut watcher = notify::recommended_watcher(move |result| {
+        if should_block_callback.swap(false, Ordering::AcqRel) {
+            let (lock, condition) = &*callback_gate_state;
+            let mut state = lock.lock().expect("callback gate");
+            state.0 = true;
+            condition.notify_all();
+            while !state.1 {
+                state = condition.wait(state).expect("callback release");
+            }
+        }
+        let _ = sender.send(result);
+    })
+    .expect("create native watcher");
+    watcher
+        .watch(root.path(), notify::RecursiveMode::Recursive)
+        .expect("watch native overflow root");
+    fs::write(root.path().join("trigger.jpg"), b"trigger").expect("trigger callback");
+
+    let (lock, condition) = &*callback_gate;
+    let mut state = lock.lock().expect("main gate");
+    while !state.0 {
+        state = condition.wait(state).expect("callback start");
+    }
+    for index in 0..512 {
+        let name = format!("{index:04}-{}.jpg", "overflow-evidence-".repeat(10));
+        fs::write(root.path().join(name), b"").expect("create overflow entry");
+    }
+    state.1 = true;
+    condition.notify_all();
+    drop(state);
+
+    let deadline = Instant::now() + Duration::from_secs(5);
+    let mut saw_rescan = false;
+    while Instant::now() < deadline {
+        match receiver.recv_timeout(Duration::from_millis(100)) {
+            Ok(Ok(event)) if event.need_rescan() => {
+                saw_rescan = true;
+                break;
+            }
+            Ok(_) | Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
+            Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
+        }
+    }
+
+    assert!(saw_rescan, "native overflow must emit a rescan signal");
 }
 
 #[test]
@@ -340,6 +395,17 @@ fn configured_root_removal_and_window_close_stop_without_hanging() {
         .expect("start watcher");
 
     fs::remove_dir(&root_path).expect("remove configured root");
+    let observations = wait_for_observations(&mut source, |observations| {
+        observations
+            .iter()
+            .any(|observation| observation.kind == LibraryChangeObservationKind::EvidenceGap)
+    });
+
+    assert!(observations.iter().any(|observation| {
+        observation.kind == LibraryChangeObservationKind::EvidenceGap
+            && observation.scope == LibraryChangeScope::Root
+    }));
+    assert_eq!(source.health(), LibraryChangeSourceHealth::Failed);
     let started = Instant::now();
     let report = source.stop().expect("stop removed root watcher");
 
@@ -380,6 +446,7 @@ fn unavailable_or_unbounded_roots_are_rejected_before_watcher_creation() {
         Err(error) => error,
     };
     assert_eq!(error.code, "change_source_root_unavailable");
+    assert!(error.is_retryable);
 
     let root = TempDir::new().expect("temporary root");
     let unbounded = LibraryChangeSourceRequest {

@@ -95,7 +95,10 @@ where
                     observations = batch.observations;
                     dropped_observation_count = batch.dropped_observation_count;
                     ignored_callback_count = batch.ignored_callback_count;
-                    should_restart = batch.health == LibraryChangeSourceHealth::Failed;
+                    should_restart = matches!(
+                        batch.health,
+                        LibraryChangeSourceHealth::Degraded | LibraryChangeSourceHealth::Failed
+                    );
                 }
                 Err(error) => {
                     self.source_health = LibraryChangeSourceHealth::Failed;

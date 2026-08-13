@@ -7,3 +7,7 @@
 *.exe binary
 *.ico binary
 *.png binary
+
+# Keep the admitted third-party license and README byte-for-byte with the published crate.
+rust/vendor/notify/LICENSE-CC0 whitespace=-trailing-space
+rust/vendor/notify/README.md whitespace=-trailing-space

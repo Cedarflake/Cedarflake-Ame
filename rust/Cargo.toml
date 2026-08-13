@@ -27,6 +27,9 @@ todo = "deny"
 notify = { version = "=8.2.0", default-features = false }
 windows-sys = { version = "0.61.2", features = ["Win32_Storage_FileSystem"] }
 
+[patch.crates-io]
+notify = { path = "vendor/notify" }
+
 [dev-dependencies]
 rusqlite = { version = "0.40.1", features = ["backup", "bundled"] }
 tempfile = "3.27.0"
