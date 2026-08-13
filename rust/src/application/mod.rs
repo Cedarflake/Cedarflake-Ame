@@ -1,3 +1,4 @@
+mod directory_synchronization;
 mod load_catalog;
 mod preview;
 mod preview_cleanup;
@@ -8,6 +9,7 @@ mod preview_recovery;
 mod scan_library;
 mod storage;
 
+pub use directory_synchronization::{plan_library_changes, reconcile_path_evidence};
 pub use load_catalog::{
     load_catalog, load_catalog_around_location, load_catalog_at_time,
     load_gallery_layout_manifest_chunk, load_gallery_timeline, load_library_folders,
