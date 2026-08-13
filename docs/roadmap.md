@@ -1239,6 +1239,10 @@ R2c-A - contracts and deterministic fixtures:
 R2c-A is complete only when the behavior can be tested without a platform watcher and the UI is not
 asked to infer business rules.
 
+Status: **complete on 2026-08-13**. ADR 0016 owns the platform-independent contract and
+deterministic fixtures; ADR 0017 accepts stable `notify` 8.2.0 for R2c-B validation without adding
+an unused dependency in R2c-A.
+
 R2c-B - live Windows observation:
 
 - add the admitted recursive watcher adapter;
@@ -1678,6 +1682,9 @@ may serve as benchmarks or fallbacks but are not automatically preferred over ma
 
 Active stage: **R2c - continuous directory synchronization and incremental indexing**
 
+Active slice: **R2c-B - live Windows observation**. R2c-A contracts and deterministic fixtures
+were completed and verified on 2026-08-13.
+
 Planned next stage: **R3 - exact duplicate evidence**, still blocked behind R2c catalog-freshness
 acceptance.
 
@@ -1788,9 +1795,19 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   was 126,844,928 bytes, all 512 selected entries and 16 source-byte samples remained unchanged,
   and no preview request failed. The evidence accepts the current policy without triggering another
   optimization.
-- R2c is active and currently has no production watcher, durable change queue, freshness state,
-  delta publisher, or catch-up adapter. R3 and the later duplicate, review, classification,
-  similarity, semantic, organization-plan, and operation-journal domains have not started.
+- R2c-A is complete. Rust now exposes a selective platform-independent synchronization facade with
+  normalized observations and intents, root-generation isolation, explicit watcher-health and
+  catalog-freshness states, deterministic path/subtree/root coalescing, bounded evidence-gap
+  degradation, and ADR 0007-compatible final-state reconciliation outcomes. Twenty-two focused tests
+  cover create, modify, transient create/remove, paired and unpaired rename, directory and root
+  supersession, stale generations, offline roots, invalid/Chinese/long paths, event storms,
+  same-state replacement, authoritative removal, and failure preservation without a platform
+  watcher or Flutter policy.
+- ADR 0017 accepts stable `notify` 8.2.0 for R2c-B validation behind an Ame-owned adapter. The
+  dependency is not yet present in `Cargo.toml`; there is still no production watcher, durable
+  change queue, atomic delta publisher, or catch-up adapter. R3 and the later duplicate, review,
+  classification, similarity, semantic, organization-plan, and operation-journal domains have not
+  started.
 - The current R2b closeout working tree passed the complete local Daily gate and Windows Release
   gate on 2026-08-12, including packaged Rust-library loading and the release bridge smoke test.
   This is current-stage evidence, not a release candidate or completion of R10.

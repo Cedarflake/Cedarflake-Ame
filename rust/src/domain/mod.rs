@@ -1,5 +1,17 @@
 use std::fmt::{Display, Formatter};
 
+mod library_change;
+
+pub use library_change::{
+    CatalogFreshnessCause, CatalogFreshnessState, DerivedEvidenceDisposition,
+    IncrementalReconciliationDecision, IncrementalReconciliationOutcome, LibraryChangeIntent,
+    LibraryChangeIntentKind, LibraryChangeObservation, LibraryChangeObservationKind,
+    LibraryChangeOrigin, LibraryChangePlanningContext, LibraryChangePlanningError,
+    LibraryChangePlanningIssue, LibraryChangePlanningLimits, LibraryChangePlanningResult,
+    LibraryChangeScope, LibraryChangeSourceHealth, LibraryRootGeneration,
+    ReconciliationFileEvidence, ReconciliationObservedState,
+};
+
 #[derive(Clone, Debug)]
 pub struct ScanRequest {
     pub scan_id: String,
@@ -180,7 +192,7 @@ pub struct LibraryRootView {
     pub availability_message: Option<String>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LibraryRootAvailability {
     Unknown,
     Available,

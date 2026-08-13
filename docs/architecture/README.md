@@ -30,3 +30,5 @@ Recorded decisions:
 - [ADR 0013: Persist stable UI preferences outside the catalog](0013-persist-ui-preferences.md)
 - [ADR 0014: Query-wide gallery layout manifest and unified navigation](0014-query-wide-gallery-layout-manifest.md)
 - [ADR 0015: Versioned Windows x64 portable distribution](0015-windows-release-distribution.md)
+- [ADR 0016: Normalize continuous library changes before reconciliation](0016-continuous-library-synchronization-contracts.md)
+- [ADR 0017: Validate notify 8.2.0 behind the Windows change-source adapter](0017-notify-windows-change-source.md)
