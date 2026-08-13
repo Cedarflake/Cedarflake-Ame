@@ -13,19 +13,22 @@ class LibraryPreviewQueue {
     required int maxActive,
     required void Function(LibraryAsset asset) onResult,
   }) {
+    if (maxActive < 1) {
+      throw ArgumentError.value(maxActive, "maxActive", "must be positive");
+    }
     return LibraryPreviewQueue._(previewer, previewEdge, maxActive, onResult);
   }
 
   LibraryPreviewQueue._(
     this._previewer,
-    this._previewEdge,
+    this._defaultPreviewEdge,
     this._maxActive,
     this._onResult,
   );
 
   final LibraryPreviewer _previewer;
-  final int _previewEdge;
-  final int _maxActive;
+  final int _defaultPreviewEdge;
+  int _maxActive;
   final void Function(LibraryAsset asset) _onResult;
   final Map<String, _PreviewRequest> _pending = {};
   final Map<String, _PreviewRequest> _active = {};
@@ -39,8 +42,16 @@ class LibraryPreviewQueue {
     LibraryAsset asset, {
     bool retry = false,
     LibraryPreviewPriority priority = LibraryPreviewPriority.visible,
+    int? previewEdge,
+    bool ensureSize = false,
   }) {
-    _enqueue(asset, retry: retry, priority: priority);
+    _enqueue(
+      asset,
+      retry: retry,
+      priority: priority,
+      previewEdge: previewEdge,
+      ensureSize: ensureSize,
+    );
     _drain();
   }
 
@@ -64,13 +75,43 @@ class LibraryPreviewQueue {
     _drain();
   }
 
+  void replaceDemandAndRequestSizedAll(
+    Map<String, LibraryPreviewPriority> priorities,
+    Iterable<
+      ({
+        LibraryAsset asset,
+        LibraryPreviewPriority priority,
+        int previewEdge,
+        bool ensureSize,
+      })
+    >
+    requests,
+  ) {
+    _replacePendingDemand(priorities);
+    for (final request in requests) {
+      _enqueue(
+        request.asset,
+        retry: false,
+        priority: request.priority,
+        previewEdge: request.previewEdge,
+        ensureSize: request.ensureSize,
+      );
+    }
+    _drain();
+  }
+
   void _enqueue(
     LibraryAsset asset, {
     required bool retry,
     required LibraryPreviewPriority priority,
+    int? previewEdge,
+    bool ensureSize = false,
   }) {
+    final requestedEdge = previewEdge ?? _defaultPreviewEdge;
     if (_isDisposed ||
-        (asset.previewStatus == LibraryPreviewStatus.ready && !retry)) {
+        (asset.previewStatus == LibraryPreviewStatus.ready &&
+            !retry &&
+            !ensureSize)) {
       return;
     }
     if (asset.previewStatus == LibraryPreviewStatus.failed && !retry) {
@@ -79,7 +120,9 @@ class LibraryPreviewQueue {
 
     final source = LibraryPreviewSourceIdentity.fromAsset(asset);
     final pending = _pending[asset.locationId];
-    if (pending != null && pending.source == source) {
+    if (pending != null &&
+        pending.source == source &&
+        pending.previewEdge >= requestedEdge) {
       if (priority.index > pending.priority.index) {
         pending.priority = priority;
       }
@@ -89,7 +132,8 @@ class LibraryPreviewQueue {
     final active = _active[asset.locationId];
     if (active != null &&
         active.contextGeneration == _contextGeneration &&
-        active.source == source) {
+        active.source == source &&
+        active.previewEdge >= requestedEdge) {
       return;
     }
 
@@ -101,6 +145,7 @@ class LibraryPreviewQueue {
       generation: (_latestGeneration[asset.locationId] ?? 0) + 1,
       contextGeneration: _contextGeneration,
       retry: retry,
+      previewEdge: requestedEdge,
     );
     _latestGeneration[asset.locationId] = request.generation;
     _pending[asset.locationId] = request;
@@ -142,6 +187,17 @@ class LibraryPreviewQueue {
 
   void updatePendingDemand(Map<String, LibraryPreviewPriority> priorities) {
     _replacePendingDemand(priorities);
+    _drain();
+  }
+
+  void updateMaxActive(int maxActive) {
+    if (maxActive < 1) {
+      throw ArgumentError.value(maxActive, "maxActive", "must be positive");
+    }
+    if (_maxActive == maxActive) {
+      return;
+    }
+    _maxActive = maxActive;
     _drain();
   }
 
@@ -230,8 +286,9 @@ class LibraryPreviewQueue {
     try {
       final previewed = await _previewer.materialize(
         locationId: request.asset.locationId,
-        previewEdge: _previewEdge,
+        previewEdge: request.previewEdge,
         retry: request.retry,
+        protectedLocationIds: {..._demandPriorities.keys, ..._active.keys},
       );
       if (_canPublish(request, previewed)) {
         _onResult(previewed);
@@ -293,6 +350,7 @@ class _PreviewRequest {
     required this.generation,
     required this.contextGeneration,
     required this.retry,
+    required this.previewEdge,
   });
 
   final LibraryAsset asset;
@@ -302,5 +360,6 @@ class _PreviewRequest {
   final int generation;
   final int contextGeneration;
   final bool retry;
+  final int previewEdge;
   bool isDemandManaged = false;
 }

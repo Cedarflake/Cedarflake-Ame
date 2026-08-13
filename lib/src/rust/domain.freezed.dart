@@ -12,6 +12,651 @@ part of 'domain.dart';
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
+mixin _$PreviewCleanupEvent {
+
+ String get operationId;
+/// Create a copy of PreviewCleanupEvent
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$PreviewCleanupEventCopyWith<PreviewCleanupEvent> get copyWith => _$PreviewCleanupEventCopyWithImpl<PreviewCleanupEvent>(this as PreviewCleanupEvent, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PreviewCleanupEvent&&(identical(other.operationId, operationId) || other.operationId == operationId));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,operationId);
+
+@override
+String toString() {
+  return 'PreviewCleanupEvent(operationId: $operationId)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $PreviewCleanupEventCopyWith<$Res>  {
+  factory $PreviewCleanupEventCopyWith(PreviewCleanupEvent value, $Res Function(PreviewCleanupEvent) _then) = _$PreviewCleanupEventCopyWithImpl;
+@useResult
+$Res call({
+ String operationId
+});
+
+
+
+
+}
+/// @nodoc
+class _$PreviewCleanupEventCopyWithImpl<$Res>
+    implements $PreviewCleanupEventCopyWith<$Res> {
+  _$PreviewCleanupEventCopyWithImpl(this._self, this._then);
+
+  final PreviewCleanupEvent _self;
+  final $Res Function(PreviewCleanupEvent) _then;
+
+/// Create a copy of PreviewCleanupEvent
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? operationId = null,}) {
+  return _then(_self.copyWith(
+operationId: null == operationId ? _self.operationId : operationId // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [PreviewCleanupEvent].
+extension PreviewCleanupEventPatterns on PreviewCleanupEvent {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( PreviewCleanupEvent_Started value)?  started,TResult Function( PreviewCleanupEvent_Progress value)?  progress,TResult Function( PreviewCleanupEvent_Issue value)?  issue,TResult Function( PreviewCleanupEvent_Completed value)?  completed,TResult Function( PreviewCleanupEvent_Cancelled value)?  cancelled,TResult Function( PreviewCleanupEvent_Failed value)?  failed,required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case PreviewCleanupEvent_Started() when started != null:
+return started(_that);case PreviewCleanupEvent_Progress() when progress != null:
+return progress(_that);case PreviewCleanupEvent_Issue() when issue != null:
+return issue(_that);case PreviewCleanupEvent_Completed() when completed != null:
+return completed(_that);case PreviewCleanupEvent_Cancelled() when cancelled != null:
+return cancelled(_that);case PreviewCleanupEvent_Failed() when failed != null:
+return failed(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( PreviewCleanupEvent_Started value)  started,required TResult Function( PreviewCleanupEvent_Progress value)  progress,required TResult Function( PreviewCleanupEvent_Issue value)  issue,required TResult Function( PreviewCleanupEvent_Completed value)  completed,required TResult Function( PreviewCleanupEvent_Cancelled value)  cancelled,required TResult Function( PreviewCleanupEvent_Failed value)  failed,}){
+final _that = this;
+switch (_that) {
+case PreviewCleanupEvent_Started():
+return started(_that);case PreviewCleanupEvent_Progress():
+return progress(_that);case PreviewCleanupEvent_Issue():
+return issue(_that);case PreviewCleanupEvent_Completed():
+return completed(_that);case PreviewCleanupEvent_Cancelled():
+return cancelled(_that);case PreviewCleanupEvent_Failed():
+return failed(_that);}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( PreviewCleanupEvent_Started value)?  started,TResult? Function( PreviewCleanupEvent_Progress value)?  progress,TResult? Function( PreviewCleanupEvent_Issue value)?  issue,TResult? Function( PreviewCleanupEvent_Completed value)?  completed,TResult? Function( PreviewCleanupEvent_Cancelled value)?  cancelled,TResult? Function( PreviewCleanupEvent_Failed value)?  failed,}){
+final _that = this;
+switch (_that) {
+case PreviewCleanupEvent_Started() when started != null:
+return started(_that);case PreviewCleanupEvent_Progress() when progress != null:
+return progress(_that);case PreviewCleanupEvent_Issue() when issue != null:
+return issue(_that);case PreviewCleanupEvent_Completed() when completed != null:
+return completed(_that);case PreviewCleanupEvent_Cancelled() when cancelled != null:
+return cancelled(_that);case PreviewCleanupEvent_Failed() when failed != null:
+return failed(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String operationId,  BigInt totalFiles,  BigInt totalBytes)?  started,TResult Function( String operationId,  BigInt processedFiles,  BigInt removedFiles,  BigInt removedBytes,  BigInt issueCount,  BigInt totalFiles,  BigInt totalBytes)?  progress,TResult Function( String operationId,  ScanIssue issue)?  issue,TResult Function( String operationId,  BigInt removedFiles,  BigInt removedBytes,  BigInt issueCount)?  completed,TResult Function( String operationId,  BigInt removedFiles,  BigInt removedBytes,  BigInt issueCount)?  cancelled,TResult Function( String operationId,  String code,  String message)?  failed,required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case PreviewCleanupEvent_Started() when started != null:
+return started(_that.operationId,_that.totalFiles,_that.totalBytes);case PreviewCleanupEvent_Progress() when progress != null:
+return progress(_that.operationId,_that.processedFiles,_that.removedFiles,_that.removedBytes,_that.issueCount,_that.totalFiles,_that.totalBytes);case PreviewCleanupEvent_Issue() when issue != null:
+return issue(_that.operationId,_that.issue);case PreviewCleanupEvent_Completed() when completed != null:
+return completed(_that.operationId,_that.removedFiles,_that.removedBytes,_that.issueCount);case PreviewCleanupEvent_Cancelled() when cancelled != null:
+return cancelled(_that.operationId,_that.removedFiles,_that.removedBytes,_that.issueCount);case PreviewCleanupEvent_Failed() when failed != null:
+return failed(_that.operationId,_that.code,_that.message);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String operationId,  BigInt totalFiles,  BigInt totalBytes)  started,required TResult Function( String operationId,  BigInt processedFiles,  BigInt removedFiles,  BigInt removedBytes,  BigInt issueCount,  BigInt totalFiles,  BigInt totalBytes)  progress,required TResult Function( String operationId,  ScanIssue issue)  issue,required TResult Function( String operationId,  BigInt removedFiles,  BigInt removedBytes,  BigInt issueCount)  completed,required TResult Function( String operationId,  BigInt removedFiles,  BigInt removedBytes,  BigInt issueCount)  cancelled,required TResult Function( String operationId,  String code,  String message)  failed,}) {final _that = this;
+switch (_that) {
+case PreviewCleanupEvent_Started():
+return started(_that.operationId,_that.totalFiles,_that.totalBytes);case PreviewCleanupEvent_Progress():
+return progress(_that.operationId,_that.processedFiles,_that.removedFiles,_that.removedBytes,_that.issueCount,_that.totalFiles,_that.totalBytes);case PreviewCleanupEvent_Issue():
+return issue(_that.operationId,_that.issue);case PreviewCleanupEvent_Completed():
+return completed(_that.operationId,_that.removedFiles,_that.removedBytes,_that.issueCount);case PreviewCleanupEvent_Cancelled():
+return cancelled(_that.operationId,_that.removedFiles,_that.removedBytes,_that.issueCount);case PreviewCleanupEvent_Failed():
+return failed(_that.operationId,_that.code,_that.message);}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String operationId,  BigInt totalFiles,  BigInt totalBytes)?  started,TResult? Function( String operationId,  BigInt processedFiles,  BigInt removedFiles,  BigInt removedBytes,  BigInt issueCount,  BigInt totalFiles,  BigInt totalBytes)?  progress,TResult? Function( String operationId,  ScanIssue issue)?  issue,TResult? Function( String operationId,  BigInt removedFiles,  BigInt removedBytes,  BigInt issueCount)?  completed,TResult? Function( String operationId,  BigInt removedFiles,  BigInt removedBytes,  BigInt issueCount)?  cancelled,TResult? Function( String operationId,  String code,  String message)?  failed,}) {final _that = this;
+switch (_that) {
+case PreviewCleanupEvent_Started() when started != null:
+return started(_that.operationId,_that.totalFiles,_that.totalBytes);case PreviewCleanupEvent_Progress() when progress != null:
+return progress(_that.operationId,_that.processedFiles,_that.removedFiles,_that.removedBytes,_that.issueCount,_that.totalFiles,_that.totalBytes);case PreviewCleanupEvent_Issue() when issue != null:
+return issue(_that.operationId,_that.issue);case PreviewCleanupEvent_Completed() when completed != null:
+return completed(_that.operationId,_that.removedFiles,_that.removedBytes,_that.issueCount);case PreviewCleanupEvent_Cancelled() when cancelled != null:
+return cancelled(_that.operationId,_that.removedFiles,_that.removedBytes,_that.issueCount);case PreviewCleanupEvent_Failed() when failed != null:
+return failed(_that.operationId,_that.code,_that.message);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+
+class PreviewCleanupEvent_Started extends PreviewCleanupEvent {
+  const PreviewCleanupEvent_Started({required this.operationId, required this.totalFiles, required this.totalBytes}): super._();
+
+
+@override final  String operationId;
+ final  BigInt totalFiles;
+ final  BigInt totalBytes;
+
+/// Create a copy of PreviewCleanupEvent
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$PreviewCleanupEvent_StartedCopyWith<PreviewCleanupEvent_Started> get copyWith => _$PreviewCleanupEvent_StartedCopyWithImpl<PreviewCleanupEvent_Started>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PreviewCleanupEvent_Started&&(identical(other.operationId, operationId) || other.operationId == operationId)&&(identical(other.totalFiles, totalFiles) || other.totalFiles == totalFiles)&&(identical(other.totalBytes, totalBytes) || other.totalBytes == totalBytes));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,operationId,totalFiles,totalBytes);
+
+@override
+String toString() {
+  return 'PreviewCleanupEvent.started(operationId: $operationId, totalFiles: $totalFiles, totalBytes: $totalBytes)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $PreviewCleanupEvent_StartedCopyWith<$Res> implements $PreviewCleanupEventCopyWith<$Res> {
+  factory $PreviewCleanupEvent_StartedCopyWith(PreviewCleanupEvent_Started value, $Res Function(PreviewCleanupEvent_Started) _then) = _$PreviewCleanupEvent_StartedCopyWithImpl;
+@override @useResult
+$Res call({
+ String operationId, BigInt totalFiles, BigInt totalBytes
+});
+
+
+
+
+}
+/// @nodoc
+class _$PreviewCleanupEvent_StartedCopyWithImpl<$Res>
+    implements $PreviewCleanupEvent_StartedCopyWith<$Res> {
+  _$PreviewCleanupEvent_StartedCopyWithImpl(this._self, this._then);
+
+  final PreviewCleanupEvent_Started _self;
+  final $Res Function(PreviewCleanupEvent_Started) _then;
+
+/// Create a copy of PreviewCleanupEvent
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? operationId = null,Object? totalFiles = null,Object? totalBytes = null,}) {
+  return _then(PreviewCleanupEvent_Started(
+operationId: null == operationId ? _self.operationId : operationId // ignore: cast_nullable_to_non_nullable
+as String,totalFiles: null == totalFiles ? _self.totalFiles : totalFiles // ignore: cast_nullable_to_non_nullable
+as BigInt,totalBytes: null == totalBytes ? _self.totalBytes : totalBytes // ignore: cast_nullable_to_non_nullable
+as BigInt,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class PreviewCleanupEvent_Progress extends PreviewCleanupEvent {
+  const PreviewCleanupEvent_Progress({required this.operationId, required this.processedFiles, required this.removedFiles, required this.removedBytes, required this.issueCount, required this.totalFiles, required this.totalBytes}): super._();
+
+
+@override final  String operationId;
+ final  BigInt processedFiles;
+ final  BigInt removedFiles;
+ final  BigInt removedBytes;
+ final  BigInt issueCount;
+ final  BigInt totalFiles;
+ final  BigInt totalBytes;
+
+/// Create a copy of PreviewCleanupEvent
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$PreviewCleanupEvent_ProgressCopyWith<PreviewCleanupEvent_Progress> get copyWith => _$PreviewCleanupEvent_ProgressCopyWithImpl<PreviewCleanupEvent_Progress>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PreviewCleanupEvent_Progress&&(identical(other.operationId, operationId) || other.operationId == operationId)&&(identical(other.processedFiles, processedFiles) || other.processedFiles == processedFiles)&&(identical(other.removedFiles, removedFiles) || other.removedFiles == removedFiles)&&(identical(other.removedBytes, removedBytes) || other.removedBytes == removedBytes)&&(identical(other.issueCount, issueCount) || other.issueCount == issueCount)&&(identical(other.totalFiles, totalFiles) || other.totalFiles == totalFiles)&&(identical(other.totalBytes, totalBytes) || other.totalBytes == totalBytes));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,operationId,processedFiles,removedFiles,removedBytes,issueCount,totalFiles,totalBytes);
+
+@override
+String toString() {
+  return 'PreviewCleanupEvent.progress(operationId: $operationId, processedFiles: $processedFiles, removedFiles: $removedFiles, removedBytes: $removedBytes, issueCount: $issueCount, totalFiles: $totalFiles, totalBytes: $totalBytes)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $PreviewCleanupEvent_ProgressCopyWith<$Res> implements $PreviewCleanupEventCopyWith<$Res> {
+  factory $PreviewCleanupEvent_ProgressCopyWith(PreviewCleanupEvent_Progress value, $Res Function(PreviewCleanupEvent_Progress) _then) = _$PreviewCleanupEvent_ProgressCopyWithImpl;
+@override @useResult
+$Res call({
+ String operationId, BigInt processedFiles, BigInt removedFiles, BigInt removedBytes, BigInt issueCount, BigInt totalFiles, BigInt totalBytes
+});
+
+
+
+
+}
+/// @nodoc
+class _$PreviewCleanupEvent_ProgressCopyWithImpl<$Res>
+    implements $PreviewCleanupEvent_ProgressCopyWith<$Res> {
+  _$PreviewCleanupEvent_ProgressCopyWithImpl(this._self, this._then);
+
+  final PreviewCleanupEvent_Progress _self;
+  final $Res Function(PreviewCleanupEvent_Progress) _then;
+
+/// Create a copy of PreviewCleanupEvent
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? operationId = null,Object? processedFiles = null,Object? removedFiles = null,Object? removedBytes = null,Object? issueCount = null,Object? totalFiles = null,Object? totalBytes = null,}) {
+  return _then(PreviewCleanupEvent_Progress(
+operationId: null == operationId ? _self.operationId : operationId // ignore: cast_nullable_to_non_nullable
+as String,processedFiles: null == processedFiles ? _self.processedFiles : processedFiles // ignore: cast_nullable_to_non_nullable
+as BigInt,removedFiles: null == removedFiles ? _self.removedFiles : removedFiles // ignore: cast_nullable_to_non_nullable
+as BigInt,removedBytes: null == removedBytes ? _self.removedBytes : removedBytes // ignore: cast_nullable_to_non_nullable
+as BigInt,issueCount: null == issueCount ? _self.issueCount : issueCount // ignore: cast_nullable_to_non_nullable
+as BigInt,totalFiles: null == totalFiles ? _self.totalFiles : totalFiles // ignore: cast_nullable_to_non_nullable
+as BigInt,totalBytes: null == totalBytes ? _self.totalBytes : totalBytes // ignore: cast_nullable_to_non_nullable
+as BigInt,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class PreviewCleanupEvent_Issue extends PreviewCleanupEvent {
+  const PreviewCleanupEvent_Issue({required this.operationId, required this.issue}): super._();
+
+
+@override final  String operationId;
+ final  ScanIssue issue;
+
+/// Create a copy of PreviewCleanupEvent
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$PreviewCleanupEvent_IssueCopyWith<PreviewCleanupEvent_Issue> get copyWith => _$PreviewCleanupEvent_IssueCopyWithImpl<PreviewCleanupEvent_Issue>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PreviewCleanupEvent_Issue&&(identical(other.operationId, operationId) || other.operationId == operationId)&&(identical(other.issue, issue) || other.issue == issue));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,operationId,issue);
+
+@override
+String toString() {
+  return 'PreviewCleanupEvent.issue(operationId: $operationId, issue: $issue)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $PreviewCleanupEvent_IssueCopyWith<$Res> implements $PreviewCleanupEventCopyWith<$Res> {
+  factory $PreviewCleanupEvent_IssueCopyWith(PreviewCleanupEvent_Issue value, $Res Function(PreviewCleanupEvent_Issue) _then) = _$PreviewCleanupEvent_IssueCopyWithImpl;
+@override @useResult
+$Res call({
+ String operationId, ScanIssue issue
+});
+
+
+
+
+}
+/// @nodoc
+class _$PreviewCleanupEvent_IssueCopyWithImpl<$Res>
+    implements $PreviewCleanupEvent_IssueCopyWith<$Res> {
+  _$PreviewCleanupEvent_IssueCopyWithImpl(this._self, this._then);
+
+  final PreviewCleanupEvent_Issue _self;
+  final $Res Function(PreviewCleanupEvent_Issue) _then;
+
+/// Create a copy of PreviewCleanupEvent
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? operationId = null,Object? issue = null,}) {
+  return _then(PreviewCleanupEvent_Issue(
+operationId: null == operationId ? _self.operationId : operationId // ignore: cast_nullable_to_non_nullable
+as String,issue: null == issue ? _self.issue : issue // ignore: cast_nullable_to_non_nullable
+as ScanIssue,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class PreviewCleanupEvent_Completed extends PreviewCleanupEvent {
+  const PreviewCleanupEvent_Completed({required this.operationId, required this.removedFiles, required this.removedBytes, required this.issueCount}): super._();
+
+
+@override final  String operationId;
+ final  BigInt removedFiles;
+ final  BigInt removedBytes;
+ final  BigInt issueCount;
+
+/// Create a copy of PreviewCleanupEvent
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$PreviewCleanupEvent_CompletedCopyWith<PreviewCleanupEvent_Completed> get copyWith => _$PreviewCleanupEvent_CompletedCopyWithImpl<PreviewCleanupEvent_Completed>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PreviewCleanupEvent_Completed&&(identical(other.operationId, operationId) || other.operationId == operationId)&&(identical(other.removedFiles, removedFiles) || other.removedFiles == removedFiles)&&(identical(other.removedBytes, removedBytes) || other.removedBytes == removedBytes)&&(identical(other.issueCount, issueCount) || other.issueCount == issueCount));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,operationId,removedFiles,removedBytes,issueCount);
+
+@override
+String toString() {
+  return 'PreviewCleanupEvent.completed(operationId: $operationId, removedFiles: $removedFiles, removedBytes: $removedBytes, issueCount: $issueCount)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $PreviewCleanupEvent_CompletedCopyWith<$Res> implements $PreviewCleanupEventCopyWith<$Res> {
+  factory $PreviewCleanupEvent_CompletedCopyWith(PreviewCleanupEvent_Completed value, $Res Function(PreviewCleanupEvent_Completed) _then) = _$PreviewCleanupEvent_CompletedCopyWithImpl;
+@override @useResult
+$Res call({
+ String operationId, BigInt removedFiles, BigInt removedBytes, BigInt issueCount
+});
+
+
+
+
+}
+/// @nodoc
+class _$PreviewCleanupEvent_CompletedCopyWithImpl<$Res>
+    implements $PreviewCleanupEvent_CompletedCopyWith<$Res> {
+  _$PreviewCleanupEvent_CompletedCopyWithImpl(this._self, this._then);
+
+  final PreviewCleanupEvent_Completed _self;
+  final $Res Function(PreviewCleanupEvent_Completed) _then;
+
+/// Create a copy of PreviewCleanupEvent
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? operationId = null,Object? removedFiles = null,Object? removedBytes = null,Object? issueCount = null,}) {
+  return _then(PreviewCleanupEvent_Completed(
+operationId: null == operationId ? _self.operationId : operationId // ignore: cast_nullable_to_non_nullable
+as String,removedFiles: null == removedFiles ? _self.removedFiles : removedFiles // ignore: cast_nullable_to_non_nullable
+as BigInt,removedBytes: null == removedBytes ? _self.removedBytes : removedBytes // ignore: cast_nullable_to_non_nullable
+as BigInt,issueCount: null == issueCount ? _self.issueCount : issueCount // ignore: cast_nullable_to_non_nullable
+as BigInt,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class PreviewCleanupEvent_Cancelled extends PreviewCleanupEvent {
+  const PreviewCleanupEvent_Cancelled({required this.operationId, required this.removedFiles, required this.removedBytes, required this.issueCount}): super._();
+
+
+@override final  String operationId;
+ final  BigInt removedFiles;
+ final  BigInt removedBytes;
+ final  BigInt issueCount;
+
+/// Create a copy of PreviewCleanupEvent
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$PreviewCleanupEvent_CancelledCopyWith<PreviewCleanupEvent_Cancelled> get copyWith => _$PreviewCleanupEvent_CancelledCopyWithImpl<PreviewCleanupEvent_Cancelled>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PreviewCleanupEvent_Cancelled&&(identical(other.operationId, operationId) || other.operationId == operationId)&&(identical(other.removedFiles, removedFiles) || other.removedFiles == removedFiles)&&(identical(other.removedBytes, removedBytes) || other.removedBytes == removedBytes)&&(identical(other.issueCount, issueCount) || other.issueCount == issueCount));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,operationId,removedFiles,removedBytes,issueCount);
+
+@override
+String toString() {
+  return 'PreviewCleanupEvent.cancelled(operationId: $operationId, removedFiles: $removedFiles, removedBytes: $removedBytes, issueCount: $issueCount)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $PreviewCleanupEvent_CancelledCopyWith<$Res> implements $PreviewCleanupEventCopyWith<$Res> {
+  factory $PreviewCleanupEvent_CancelledCopyWith(PreviewCleanupEvent_Cancelled value, $Res Function(PreviewCleanupEvent_Cancelled) _then) = _$PreviewCleanupEvent_CancelledCopyWithImpl;
+@override @useResult
+$Res call({
+ String operationId, BigInt removedFiles, BigInt removedBytes, BigInt issueCount
+});
+
+
+
+
+}
+/// @nodoc
+class _$PreviewCleanupEvent_CancelledCopyWithImpl<$Res>
+    implements $PreviewCleanupEvent_CancelledCopyWith<$Res> {
+  _$PreviewCleanupEvent_CancelledCopyWithImpl(this._self, this._then);
+
+  final PreviewCleanupEvent_Cancelled _self;
+  final $Res Function(PreviewCleanupEvent_Cancelled) _then;
+
+/// Create a copy of PreviewCleanupEvent
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? operationId = null,Object? removedFiles = null,Object? removedBytes = null,Object? issueCount = null,}) {
+  return _then(PreviewCleanupEvent_Cancelled(
+operationId: null == operationId ? _self.operationId : operationId // ignore: cast_nullable_to_non_nullable
+as String,removedFiles: null == removedFiles ? _self.removedFiles : removedFiles // ignore: cast_nullable_to_non_nullable
+as BigInt,removedBytes: null == removedBytes ? _self.removedBytes : removedBytes // ignore: cast_nullable_to_non_nullable
+as BigInt,issueCount: null == issueCount ? _self.issueCount : issueCount // ignore: cast_nullable_to_non_nullable
+as BigInt,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class PreviewCleanupEvent_Failed extends PreviewCleanupEvent {
+  const PreviewCleanupEvent_Failed({required this.operationId, required this.code, required this.message}): super._();
+
+
+@override final  String operationId;
+ final  String code;
+ final  String message;
+
+/// Create a copy of PreviewCleanupEvent
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$PreviewCleanupEvent_FailedCopyWith<PreviewCleanupEvent_Failed> get copyWith => _$PreviewCleanupEvent_FailedCopyWithImpl<PreviewCleanupEvent_Failed>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PreviewCleanupEvent_Failed&&(identical(other.operationId, operationId) || other.operationId == operationId)&&(identical(other.code, code) || other.code == code)&&(identical(other.message, message) || other.message == message));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,operationId,code,message);
+
+@override
+String toString() {
+  return 'PreviewCleanupEvent.failed(operationId: $operationId, code: $code, message: $message)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $PreviewCleanupEvent_FailedCopyWith<$Res> implements $PreviewCleanupEventCopyWith<$Res> {
+  factory $PreviewCleanupEvent_FailedCopyWith(PreviewCleanupEvent_Failed value, $Res Function(PreviewCleanupEvent_Failed) _then) = _$PreviewCleanupEvent_FailedCopyWithImpl;
+@override @useResult
+$Res call({
+ String operationId, String code, String message
+});
+
+
+
+
+}
+/// @nodoc
+class _$PreviewCleanupEvent_FailedCopyWithImpl<$Res>
+    implements $PreviewCleanupEvent_FailedCopyWith<$Res> {
+  _$PreviewCleanupEvent_FailedCopyWithImpl(this._self, this._then);
+
+  final PreviewCleanupEvent_Failed _self;
+  final $Res Function(PreviewCleanupEvent_Failed) _then;
+
+/// Create a copy of PreviewCleanupEvent
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? operationId = null,Object? code = null,Object? message = null,}) {
+  return _then(PreviewCleanupEvent_Failed(
+operationId: null == operationId ? _self.operationId : operationId // ignore: cast_nullable_to_non_nullable
+as String,code: null == code ? _self.code : code // ignore: cast_nullable_to_non_nullable
+as String,message: null == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+
+}
+
+/// @nodoc
 mixin _$ScanEvent {
 
  String get scanId;

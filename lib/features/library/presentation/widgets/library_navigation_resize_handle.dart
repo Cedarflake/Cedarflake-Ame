@@ -8,8 +8,10 @@ class LibraryNavigationResizeHandle extends StatefulWidget {
     required this.minimumWidth,
     required this.maximumWidth,
     required this.defaultWidth,
+    required this.onWidthChangeStart,
     required this.onWidthChanged,
     required this.onWidthChangeEnd,
+    required this.onWidthChangeCancel,
     super.key,
   });
 
@@ -17,8 +19,10 @@ class LibraryNavigationResizeHandle extends StatefulWidget {
   final double minimumWidth;
   final double maximumWidth;
   final double defaultWidth;
+  final VoidCallback onWidthChangeStart;
   final ValueChanged<double> onWidthChanged;
   final ValueChanged<double> onWidthChangeEnd;
+  final VoidCallback onWidthChangeCancel;
 
   static const hitTargetWidth = 16.0;
 
@@ -65,6 +69,7 @@ class _LibraryNavigationResizeHandleState
             onTap: _focusNode.requestFocus,
             onHorizontalDragStart: (details) {
               _focusNode.requestFocus();
+              widget.onWidthChangeStart();
               _dragStartWidth = widget.width;
               _dragStartGlobalX = details.globalPosition.dx;
               _pendingWidth = widget.width;
@@ -83,7 +88,10 @@ class _LibraryNavigationResizeHandleState
               widget.onWidthChangeEnd(_pendingWidth ?? widget.width);
               _clearDragState();
             },
-            onHorizontalDragCancel: _clearDragState,
+            onHorizontalDragCancel: () {
+              widget.onWidthChangeCancel();
+              _clearDragState();
+            },
             onDoubleTap: () => _setAndCommit(widget.defaultWidth),
             child: const SizedBox(
               width: LibraryNavigationResizeHandle.hitTargetWidth,
@@ -111,6 +119,7 @@ class _LibraryNavigationResizeHandleState
 
   void _setAndCommit(double width) {
     final nextWidth = _bounded(width);
+    widget.onWidthChangeStart();
     widget.onWidthChanged(nextWidth);
     widget.onWidthChangeEnd(nextWidth);
   }

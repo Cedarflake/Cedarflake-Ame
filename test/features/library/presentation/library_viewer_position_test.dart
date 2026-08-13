@@ -87,7 +87,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byType(LibraryPhotoTile).hitTestable().first);
+    final openingTile = find.byType(LibraryPhotoTile).hitTestable().first;
+    final openingTileRect = tester.getRect(openingTile);
+    await tester.tapAt(openingTileRect.topLeft + const Offset(16, 16));
     await tester.pump();
     await _revealCurrentViewerFile(tester);
     expect(platformActions.revealedFiles, [r"\\?\G:\CloudLibrary\图片\0.jpg"]);

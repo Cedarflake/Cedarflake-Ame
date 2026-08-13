@@ -86,6 +86,11 @@ class SharedPreferencesAmeStore
         value["viewerOpenBehavior"],
         ImageViewerOpenBehavior.fitWindow,
       ),
+      previewLoadingSpeed: _enumByName(
+        PreviewLoadingSpeed.values,
+        value["previewLoadingSpeed"],
+        PreviewLoadingSpeed.medium,
+      ),
       sidebarWidth:
           (_readDouble(value["sidebarWidth"]) ?? ameDefaultSidebarWidth)
               .clamp(ameMinimumSidebarWidth, ameMaximumSidebarWidth)
@@ -149,6 +154,7 @@ class SharedPreferencesAmeStore
         "theme": preferences.theme.name,
         "viewerWheelBehavior": preferences.viewerWheelBehavior.name,
         "viewerOpenBehavior": preferences.viewerOpenBehavior.name,
+        "previewLoadingSpeed": preferences.previewLoadingSpeed.name,
         "sidebarWidth": preferences.sidebarWidth,
       }),
     );

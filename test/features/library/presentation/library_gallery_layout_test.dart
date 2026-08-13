@@ -85,6 +85,53 @@ void main() {
     );
   });
 
+  test("square layout keeps one tile size across sparse date groups", () {
+    final firstDate = DateTime(2026, 8, 5).millisecondsSinceEpoch;
+    final secondDate = DateTime(2026, 8, 4).millisecondsSinceEpoch;
+    final thirdDate = DateTime(2026, 8, 1).millisecondsSinceEpoch;
+    final entries = LibraryGalleryLayoutEntry.build(
+      assets: [
+        for (var index = 0; index < 9; index++)
+          _asset("first-$index", modifiedUnixMs: firstDate),
+        for (var index = 0; index < 3; index++)
+          _asset("second-$index", modifiedUnixMs: secondDate),
+        _asset("third", modifiedUnixMs: thirdDate),
+      ],
+      availableWidth: 1000,
+      layoutShape: GalleryLayoutShape.square,
+      thumbnailSize: GalleryThumbnailSize.medium,
+      sortKey: LibraryGallerySortKey.modifiedTime,
+    );
+
+    final photoRows = entries
+        .where((entry) => entry.cells.isNotEmpty)
+        .toList(growable: false);
+    final tileSize = photoRows.first.rowHeight;
+    expect(tileSize, closeTo(161.66666666666666, 0.0001));
+    expect(
+      photoRows.every(
+        (entry) =>
+            (entry.rowHeight - tileSize).abs() < 0.0001 &&
+            entry.cells.every((cell) => (cell.width - tileSize).abs() < 0.0001),
+      ),
+      isTrue,
+    );
+    expect(photoRows.where((entry) => entry.monthKey == "2026-08").length, 4);
+    final sparseRows = photoRows
+        .where((entry) => entry.cells.length < photoRows.first.cells.length)
+        .toList(growable: false);
+    expect(sparseRows.map((entry) => entry.cells.length), [3, 3, 1]);
+    expect(
+      sparseRows.every(
+        (entry) =>
+            entry.cells.length * tileSize +
+                (entry.cells.length - 1) * LibraryGalleryLayoutEntry.spacing <
+            1000,
+      ),
+      isTrue,
+    );
+  });
+
   test("resolves a global item to the first item in its rendered row", () {
     final metrics = LibraryGalleryLayoutMetrics(
       contentExtent: 400,

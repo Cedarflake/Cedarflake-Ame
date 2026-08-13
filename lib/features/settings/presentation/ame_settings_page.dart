@@ -2,6 +2,7 @@ import "dart:async";
 
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:material_symbols_icons/symbols.dart";
 
 import "../application/ame_preferences.dart";
 import "widgets/settings_section.dart";
@@ -31,7 +32,7 @@ class AmeSettingsPage extends ConsumerWidget {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.settings_outlined, size: 30),
+                          const Icon(Symbols.settings_rounded, size: 30),
                           const SizedBox(width: 12),
                           Text(
                             "设置",
@@ -44,9 +45,9 @@ class AmeSettingsPage extends ConsumerWidget {
                         title: "个性化",
                         children: [
                           SettingsRow(
-                            icon: Icons.palette_outlined,
+                            icon: Symbols.palette_rounded,
                             title: "应用主题",
-                            subtitle: const Text("选择 Ame 使用的明暗外观"),
+                            subtitle: const Text("选择明暗外观，主题色跟随 Windows"),
                             trailing: SettingsChoice<AmeThemePreference>(
                               value: preferences.theme,
                               entries: const [
@@ -83,7 +84,7 @@ class AmeSettingsPage extends ConsumerWidget {
                         title: "浏览",
                         children: [
                           SettingsRow(
-                            icon: Icons.mouse_outlined,
+                            icon: Symbols.mouse_rounded,
                             title: "鼠标滚轮",
                             subtitle: const Text("查看单张图片时滚动滚轮的行为"),
                             trailing: SettingsChoice<ImageViewerWheelBehavior>(
@@ -115,7 +116,7 @@ class AmeSettingsPage extends ConsumerWidget {
                             ),
                           ),
                           SettingsRow(
-                            icon: Icons.image_outlined,
+                            icon: Symbols.image_rounded,
                             title: "打开图片",
                             subtitle: const Text("选择图片首次打开时的显示大小"),
                             trailing: SettingsChoice<ImageViewerOpenBehavior>(
@@ -145,6 +146,42 @@ class AmeSettingsPage extends ConsumerWidget {
                               },
                             ),
                           ),
+                          SettingsRow(
+                            key: const Key("preview-loading-speed-setting"),
+                            icon: Symbols.speed_rounded,
+                            title: "缩略图加载速度",
+                            subtitle: const Text("档位越大，同时加载越多，占用资源也越高"),
+                            trailing: SettingsChoice<PreviewLoadingSpeed>(
+                              value: preferences.previewLoadingSpeed,
+                              entries: const [
+                                DropdownMenuEntry(
+                                  value: PreviewLoadingSpeed.small,
+                                  label: "小",
+                                ),
+                                DropdownMenuEntry(
+                                  value: PreviewLoadingSpeed.medium,
+                                  label: "中",
+                                ),
+                                DropdownMenuEntry(
+                                  value: PreviewLoadingSpeed.large,
+                                  label: "大",
+                                ),
+                              ],
+                              onSelected: (value) {
+                                if (value != null) {
+                                  unawaited(
+                                    _savePreferences(
+                                      context,
+                                      ref,
+                                      preferences.copyWith(
+                                        previewLoadingSpeed: value,
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 28),
@@ -154,16 +191,16 @@ class AmeSettingsPage extends ConsumerWidget {
                         title: "关于",
                         children: [
                           const SettingsRow(
-                            icon: Icons.info_outline,
+                            icon: Symbols.info_rounded,
                             title: "版本",
                             subtitle: Text("Cedarflake Ame 0.1.0"),
                           ),
                           SettingsRow(
                             key: const Key("open-source-notices-setting"),
-                            icon: Icons.code_outlined,
+                            icon: Symbols.code_rounded,
                             title: "开源软件声明",
                             subtitle: const Text("查看 Ame 使用的开源软件与许可"),
-                            trailing: const Icon(Icons.chevron_right),
+                            trailing: const Icon(Symbols.chevron_right_rounded),
                             onTap: () => showLicensePage(
                               context: context,
                               applicationName: "Cedarflake Ame",

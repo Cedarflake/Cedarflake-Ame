@@ -34,6 +34,31 @@ void main() {
     queue.dispose();
   });
 
+  test(
+    "validates a ready preview against the requested display bucket",
+    () async {
+      final previewer = _ControlledPreviewer();
+      final queue = LibraryPreviewQueue(
+        previewer: previewer,
+        previewEdge: 512,
+        maxActive: 1,
+        onResult: (_) {},
+      );
+      final ready = _readyAsset("ready");
+
+      queue.request(ready, previewEdge: 128);
+      expect(previewer.requests, isEmpty);
+
+      queue.request(ready, previewEdge: 128, ensureSize: true);
+
+      expect(previewer.requests, ["ready"]);
+      expect(previewer.previewEdges, [128]);
+      previewer.succeed("ready", ready);
+      await _flushAsyncWork();
+      queue.dispose();
+    },
+  );
+
   test("cancels pending work without cancelling an active decode", () async {
     final previewer = _ControlledPreviewer();
     final queue = LibraryPreviewQueue(
@@ -366,6 +391,7 @@ void main() {
     queue.request(_asset("viewer"), priority: LibraryPreviewPriority.viewer);
 
     expect(previewer.requests, ["guard", "viewer"]);
+    expect(previewer.protectedRequests["viewer"], {"guard", "viewer"});
     previewer.succeed("viewer", _readyAsset("viewer"));
     previewer.succeed("guard", _readyAsset("guard"));
     await _flushAsyncWork();
@@ -403,6 +429,8 @@ LibraryAsset _readyAsset(String id, {int modifiedUnixMs = 1}) {
 
 class _ControlledPreviewer implements LibraryPreviewer {
   final requests = <String>[];
+  final previewEdges = <int>[];
+  final protectedRequests = <String, Set<String>>{};
   final Map<String, Queue<Completer<LibraryAsset>>> _attempts = {};
 
   @override
@@ -410,8 +438,11 @@ class _ControlledPreviewer implements LibraryPreviewer {
     required String locationId,
     required int previewEdge,
     bool retry = false,
+    Iterable<String> protectedLocationIds = const [],
   }) {
     requests.add(locationId);
+    previewEdges.add(previewEdge);
+    protectedRequests[locationId] = protectedLocationIds.toSet();
     final completer = Completer<LibraryAsset>();
     (_attempts[locationId] ??= Queue()).addLast(completer);
     return completer.future;

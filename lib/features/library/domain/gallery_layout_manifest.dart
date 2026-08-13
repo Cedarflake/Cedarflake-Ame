@@ -96,15 +96,18 @@ class LibraryGalleryLayoutManifest {
     required this.revision,
     required this.queryId,
     required this._storage,
+    this._dimensionOverrides = const {},
   });
 
   final BigInt revision;
   final String queryId;
   final _LibraryGalleryLayoutManifestStorage _storage;
+  final Map<int, int> _dimensionOverrides;
 
   int get itemCount => _storage.itemCount;
 
-  int get primitiveByteLength => _storage.primitiveByteLength;
+  int get primitiveByteLength =>
+      _storage.primitiveByteLength + _dimensionOverrides.length * 8;
 
   LibraryGalleryLayoutManifestStorageKind get storageKind => _storage.kind;
 
@@ -115,7 +118,9 @@ class LibraryGalleryLayoutManifest {
 
   double aspectRatioAt(int index) {
     _checkIndex(index);
-    return _storage.aspectRatioAt(index);
+    return (_dimensionOverrides[index] ??
+            (_storage.aspectRatioAt(index) * 1000).round()) /
+        1000;
   }
 
   String? dateKeyAt(int index) {
@@ -125,7 +130,45 @@ class LibraryGalleryLayoutManifest {
 
   bool hasKnownDimensionsAt(int index) {
     _checkIndex(index);
-    return _storage.hasKnownDimensionsAt(index);
+    return _dimensionOverrides.containsKey(index) ||
+        _storage.hasKnownDimensionsAt(index);
+  }
+
+  LibraryGalleryLayoutManifest withDimensionUpdates(
+    Iterable<LibraryGalleryLayoutDimensionUpdate> updates,
+  ) {
+    Map<int, int>? nextOverrides;
+    for (final update in updates) {
+      if (update.revision != revision ||
+          update.queryId != queryId ||
+          update.globalItemIndex < 0 ||
+          update.globalItemIndex >= itemCount ||
+          update.width <= 0 ||
+          update.height <= 0 ||
+          locationIdAt(update.globalItemIndex) != update.locationId) {
+        continue;
+      }
+      final aspectRatioMilli = ((update.width * 1000) ~/ update.height).clamp(
+        200,
+        5000,
+      );
+      if (hasKnownDimensionsAt(update.globalItemIndex) &&
+          (aspectRatioAt(update.globalItemIndex) * 1000).round() ==
+              aspectRatioMilli) {
+        continue;
+      }
+      nextOverrides ??= Map<int, int>.of(_dimensionOverrides);
+      nextOverrides[update.globalItemIndex] = aspectRatioMilli;
+    }
+    if (nextOverrides == null) {
+      return this;
+    }
+    return LibraryGalleryLayoutManifest._(
+      revision: revision,
+      queryId: queryId,
+      storage: _storage,
+      dimensionOverrides: Map.unmodifiable(nextOverrides),
+    );
   }
 
   void _checkIndex(int index) {
@@ -133,6 +176,24 @@ class LibraryGalleryLayoutManifest {
       throw RangeError.index(index, this, "index", null, itemCount);
     }
   }
+}
+
+class LibraryGalleryLayoutDimensionUpdate {
+  const LibraryGalleryLayoutDimensionUpdate({
+    required this.revision,
+    required this.queryId,
+    required this.globalItemIndex,
+    required this.locationId,
+    required this.width,
+    required this.height,
+  });
+
+  final BigInt revision;
+  final String queryId;
+  final int globalItemIndex;
+  final String locationId;
+  final int width;
+  final int height;
 }
 
 abstract class LibraryGalleryLayoutManifestBuilder {

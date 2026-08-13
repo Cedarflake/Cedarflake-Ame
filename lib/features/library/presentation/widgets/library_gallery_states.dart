@@ -1,4 +1,5 @@
 import "package:flutter/material.dart";
+import "package:material_symbols_icons/symbols.dart";
 
 import "../../domain/library_models.dart";
 import "../../domain/library_state.dart";
@@ -39,7 +40,7 @@ class NoGalleryResults extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              isSearch ? Icons.image_search_outlined : Icons.photo_outlined,
+              isSearch ? Symbols.image_search_rounded : Symbols.photo_rounded,
               size: 48,
             ),
             const SizedBox(height: 16),
@@ -82,8 +83,8 @@ class EmptyLibrary extends StatelessWidget {
             children: [
               Icon(
                 state.isProcessing
-                    ? Icons.hourglass_top
-                    : Icons.add_photo_alternate_outlined,
+                    ? Symbols.hourglass_top_rounded
+                    : Symbols.add_photo_alternate_rounded,
                 size: 56,
                 color: Theme.of(context).colorScheme.primary,
               ),
@@ -101,7 +102,7 @@ class EmptyLibrary extends StatelessWidget {
               const SizedBox(height: 24),
               FilledButton.icon(
                 onPressed: state.isBusy ? null : onImport,
-                icon: const Icon(Icons.create_new_folder_outlined),
+                icon: const Icon(Symbols.create_new_folder_rounded),
                 label: const Text(LibraryStrings.import),
               ),
             ],

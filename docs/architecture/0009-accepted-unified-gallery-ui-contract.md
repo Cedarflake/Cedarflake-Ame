@@ -149,6 +149,12 @@ Use one unified gallery with these presentation rules.
   focus, and pointer targets remain fully visible; source media is never changed.
 - The `方形` layout is a uniform square grid. Small, medium, and large density choices remain
   independent from shape.
+- Layout shape, density, and query changes (including sort field, direction, filters, and search)
+  preserve one logical viewport anchor identified by stable location ID plus row and viewport
+  fractions. A new query obtains the anchor's new ordinal from the application layer; only a
+  confirmed absence falls back intentionally to the first result. The replacement sliver applies
+  the new geometry through its first layout correction, before painting, rather than painting one
+  position and jumping afterward.
 - Date headings use capture time, then file creation time, then file modification time as defined by
   ADR 0008. An unrepresentable date remains an explicit unknown section in the same continuous
   gallery.
@@ -179,11 +185,21 @@ Use one unified gallery with these presentation rules.
 - Flutter `Card` and `ListTile` own settings grouping and row semantics. `DropdownMenu`,
   `OutlinedButton`, and progress indicators own choices, actions, and storage feedback; custom code
   only supplies the responsive page composition and Ame-owned state connections.
-- Internal database versions, task queues, worker counts, hash engines, and analysis parameters are
-  not user settings. Account, cloud-service, media-editing, and cache-cleanup controls remain absent
-  until their workflows exist end to end.
+- Internal database versions, task queues, raw worker counts, hash engines, and analysis parameters
+  are not user settings. The preview loading preference is the narrow exception: it exposes only
+  `small`, `medium`, and `large` resource policies while ADR 0005 retains ownership of the internal
+  concurrency limits. Account, cloud-service, and media-editing controls remain absent until their
+  workflows exist end to end.
 - Simplified Chinese is the initial user-facing language. Paths and source metadata preserve their
   original text.
+- Simplified Chinese text resolves through Windows `Segoe UI`, `Microsoft YaHei UI`, and
+  `Microsoft YaHei` in that order. Body copy remains regular, controls and compact labels use
+  medium weight, and page or content headings use semibold so hierarchy is semantic rather than
+  assigned independently by each widget.
+- The theme preference controls brightness. `system` follows Windows brightness, while explicit
+  light and dark choices lock brightness. All three modes derive their Material color scheme from
+  the current Windows accent color and update when that accent changes; the accepted Ame blue is
+  the fallback when Windows cannot provide a palette.
 - Classification, perceptual or semantic similarity, people, editing, and source-file mutation
   controls remain absent until their separately accepted capabilities exist.
 
@@ -211,6 +227,48 @@ Flutter 3.44.9 was verified to provide `Slider`, `IconButton`, `TextButton`, `Ve
 `CircularProgressIndicator`; Ame adds only responsive square constraints and group spacing around
 those primitives.
 
+The official Material 3 menu catalog remains the basis of settings choices. Flutter 3.44.9 was
+verified to provide controlled `DropdownMenu` selection, selection callbacks, disabled search, and
+select-only behavior. Preview loading speed therefore reuses the repository-owned `SettingsChoice`
+composition and adds no custom pointer, focus, keyboard, or semantics layer.
+
+Flutter 3.44.9 can publish retained `OverlayPortal` semantics updates that violate Windows
+`AccessibilityBridge` transaction preconditions. Sibling `Tooltip` and stable `MenuAnchor`
+controls can exchange traversal ownership during an overlay transition, so Ame keeps the framework
+controls and isolates those bounded anchors with a dedicated `Semantics` container. The pinned SDK's
+animated `MenuAnchor` can also paint a follower menu at its final visual position while its pointer
+hit-test geometry still resolves to content behind that menu. `AmeMenuAnchor` therefore leaves
+`animated` disabled and verifies a real item activation through the painted menu. Animation may be
+restored only after a Flutter SDK upgrade revalidates visual placement, pointer hit testing,
+keyboard behavior, and the native accessibility canary. A virtualized photo tile is different:
+retaining one `MenuAnchor` portal per visible tile multiplies the number of subtrees detached and
+introduced during sliver recycling. Photo tiles therefore keep their Material focus, pointer, and
+keyboard entry points but create one root-navigator popup route only when a menu is requested; idle
+and open tiles do not retain per-tile `MenuAnchor` portals. Dynamically expanded folder rows use the
+same on-demand route ownership rule.
+
+Material `Slider` also retains a value-indicator portal. When the gallery's timeline Slider becomes
+offstage inside the viewer `IndexedStack`, Flutter can prune that portal node and then serialize its
+old child identifier when the retained Slider returns. Ame therefore recreates only the timeline
+navigation subtree when the viewer closes; the gallery `Scrollable`, its `ScrollController`, and
+the logical viewport anchor remain intact.
+
+The regression harness forwards real incremental Flutter semantics updates into a retained
+child-graph model. It commits a batch only after validating the initial root, child existence,
+single traversal ownership, cycle freedom, reachability, and the Windows requirement that a moved
+existing child receive an update in the same reparent transaction. This is an AXTree-precondition
+model rather than an implementation of Chromium AXTree ordering. The native Windows accessibility
+integration remains the authoritative canary for `AccessibilityBridge` stderr failures.
+
+Windows accent-color integration uses the operating system's documented
+`DwmGetColorizationColor` API and `WM_DWMCOLORIZATIONCOLORCHANGED` notification through an Ame-owned
+Runner platform channel. `AmeSystemThemeBuilder` exposes only a Flutter `Color` to the presentation
+theme, ignores stale startup reads after a newer change notification, and falls back to the accepted
+Ame blue when Windows does not provide a color. `system_theme` 3.3.0 was evaluated and rejected
+because its Windows listener had avoidable null-message and cancellation-lifetime hazards. Ame owns
+the narrow adapter, `ColorScheme.fromSeed`, brightness policy, and fallback, with no third-party
+theme type crossing into widgets or application contracts.
+
 ## Consequences
 
 - Production integration must adapt catalog state into this UI instead of restoring the legacy
@@ -231,6 +289,14 @@ those primitives.
 - Widget tests cover desktop and constrained widths, selection replacement, source alignment,
   Windows hover behavior, bidirectional gallery and Slider synchronization, nonuniform time marks,
   duplicate filtering, settings, and temporary import progress.
+- Retained semantics tests exercise application-level tooltip, stable menus, timeline Slider,
+  viewer Slider, viewer menu, viewer-return sequences, and deep virtual-gallery jumps with repeated
+  on-demand photo menus against the retained Flutter semantics child-graph model.
+- The native Windows accessibility integration runs both a virtual-gallery stress sequence and a
+  populated application sequence covering stable toolbar and source menus, deep scrolling,
+  on-demand photo menus, timeline and viewer Sliders, viewer menus, and repeated viewer return. It
+  rejects any `AccessibilityBridge` `ui::AXTree` error captured from the engine and complements
+  rather than weakens the model's deterministic invariant coverage.
 - Pure layout and widget tests confirm balanced justified rows fill one gallery width and sparse rows
   do not exceed their enlargement limit.
 - Flutter analysis, the full Flutter test suite, and a Windows Debug build passed for the accepted

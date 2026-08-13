@@ -18,7 +18,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
 
     if !has_schema_info {
         let transaction = connection.transaction().map_err(database_error)?;
-        create_schema_v13(&transaction)?;
+        create_schema_v16(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -42,6 +42,9 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             10 => migrate_v10_to_v11(connection)?,
             11 => migrate_v11_to_v12(connection)?,
             12 => migrate_v12_to_v13(connection)?,
+            13 => migrate_v13_to_v14(connection)?,
+            14 => migrate_v14_to_v15(connection)?,
+            15 => migrate_v15_to_v16(connection)?,
             _ => {
                 return Err(ScanError::new(
                     "catalog_schema_unsupported",
@@ -52,13 +55,13 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
     }
 }
 
-fn create_schema_v13(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+fn create_schema_v16(transaction: &Transaction<'_>) -> Result<(), ScanError> {
     transaction
         .execute_batch(
             "CREATE TABLE schema_info (
                version INTEGER NOT NULL
              );
-             INSERT INTO schema_info(version) VALUES (13);
+             INSERT INTO schema_info(version) VALUES (16);
              CREATE TABLE catalog_state (
                revision INTEGER NOT NULL CHECK(revision >= 0)
              );
@@ -193,6 +196,46 @@ fn create_schema_v13(transaction: &Transaction<'_>) -> Result<(), ScanError> {
                relative_path TEXT NOT NULL,
                PRIMARY KEY(scan_id, directory_relative_path, relative_path),
                FOREIGN KEY(scan_id) REFERENCES scan_runs(id)
+             );
+             CREATE TABLE preview_artifacts (
+               artifact_key TEXT PRIMARY KEY,
+               source_file_size INTEGER NOT NULL CHECK(source_file_size >= 0),
+               source_modified_unix_ms INTEGER NOT NULL,
+               source_identity_scheme TEXT,
+               source_identity_value TEXT,
+               algorithm_id TEXT NOT NULL,
+               algorithm_version INTEGER NOT NULL CHECK(algorithm_version >= 0),
+               orientation_contract TEXT NOT NULL,
+               size_bucket INTEGER NOT NULL CHECK(size_bucket > 0),
+               encoded_width INTEGER NOT NULL CHECK(encoded_width > 0),
+               encoded_height INTEGER NOT NULL CHECK(encoded_height > 0),
+               artifact_path TEXT NOT NULL UNIQUE,
+               byte_size INTEGER NOT NULL CHECK(byte_size >= 0),
+               lifecycle_state TEXT NOT NULL
+                 CHECK(lifecycle_state IN ('ready', 'stale', 'evictable')),
+               created_unix_ms INTEGER NOT NULL,
+               last_used_unix_ms INTEGER NOT NULL,
+               CHECK(
+                 (source_identity_scheme IS NULL AND source_identity_value IS NULL)
+                 OR
+                 (source_identity_scheme IS NOT NULL AND source_identity_value IS NOT NULL)
+               )
+             );
+             CREATE TABLE preview_artifact_locations (
+               artifact_key TEXT NOT NULL,
+               location_id TEXT NOT NULL,
+               PRIMARY KEY(artifact_key, location_id),
+               FOREIGN KEY(artifact_key) REFERENCES preview_artifacts(artifact_key)
+                 ON DELETE CASCADE
+             );
+             CREATE INDEX preview_artifact_locations_location
+               ON preview_artifact_locations(location_id, artifact_key);
+             CREATE INDEX preview_artifacts_reclamation
+               ON preview_artifacts(lifecycle_state, last_used_unix_ms, artifact_key);
+             CREATE INDEX preview_artifacts_compatibility
+               ON preview_artifacts(
+                 source_file_size, source_modified_unix_ms,
+                 algorithm_id, algorithm_version, orientation_contract, size_bucket
              );",
         )
         .map_err(database_error)
@@ -499,6 +542,214 @@ fn migrate_v12_to_v13(connection: &mut Connection) -> Result<(), ScanError> {
                  modified_unix_ms, root_id, location_id, scan_id
                );
              UPDATE schema_info SET version = 13;",
+        )
+        .map_err(database_error)?;
+    transaction.commit().map_err(database_error)
+}
+
+fn migrate_v13_to_v14(connection: &mut Connection) -> Result<(), ScanError> {
+    let transaction = connection.transaction().map_err(database_error)?;
+    transaction
+        .execute_batch(
+            "CREATE TABLE preview_artifacts (
+               artifact_key TEXT PRIMARY KEY,
+               location_id TEXT NOT NULL,
+               source_file_size INTEGER NOT NULL CHECK(source_file_size >= 0),
+               source_modified_unix_ms INTEGER NOT NULL,
+               source_identity_scheme TEXT,
+               source_identity_value TEXT,
+               algorithm_id TEXT NOT NULL,
+               algorithm_version INTEGER NOT NULL CHECK(algorithm_version >= 0),
+               orientation_contract TEXT NOT NULL,
+               size_bucket INTEGER NOT NULL CHECK(size_bucket > 0),
+               encoded_width INTEGER NOT NULL CHECK(encoded_width > 0),
+               encoded_height INTEGER NOT NULL CHECK(encoded_height > 0),
+               artifact_path TEXT NOT NULL UNIQUE,
+               byte_size INTEGER NOT NULL CHECK(byte_size >= 0),
+               lifecycle_state TEXT NOT NULL
+                 CHECK(lifecycle_state IN ('ready', 'stale', 'evictable')),
+               created_unix_ms INTEGER NOT NULL,
+               last_used_unix_ms INTEGER NOT NULL,
+               CHECK(
+                 (source_identity_scheme IS NULL AND source_identity_value IS NULL)
+                 OR
+                 (source_identity_scheme IS NOT NULL AND source_identity_value IS NOT NULL)
+               )
+             );
+             CREATE INDEX preview_artifacts_location
+               ON preview_artifacts(location_id, size_bucket, lifecycle_state);
+             CREATE INDEX preview_artifacts_reclamation
+               ON preview_artifacts(lifecycle_state, last_used_unix_ms, artifact_key);
+             CREATE INDEX preview_artifacts_compatibility
+               ON preview_artifacts(
+                 location_id, source_file_size, source_modified_unix_ms,
+                 algorithm_id, algorithm_version, orientation_contract, size_bucket
+               );
+             UPDATE schema_info SET version = 14;",
+        )
+        .map_err(database_error)?;
+    transaction.commit().map_err(database_error)
+}
+
+fn migrate_v14_to_v15(connection: &mut Connection) -> Result<(), ScanError> {
+    let transaction = connection.transaction().map_err(database_error)?;
+    let has_preview_path: bool = transaction
+        .query_row(
+            "SELECT EXISTS(
+               SELECT 1 FROM pragma_table_info('asset_locations')
+               WHERE name = 'preview_path'
+             )",
+            [],
+            |row| row.get(0),
+        )
+        .map_err(database_error)?;
+    transaction
+        .execute_batch(
+            "ALTER TABLE preview_artifacts RENAME TO preview_artifacts_v14;
+             DROP INDEX preview_artifacts_location;
+             DROP INDEX preview_artifacts_reclamation;
+             DROP INDEX preview_artifacts_compatibility;
+             CREATE TABLE preview_artifacts (
+               artifact_key TEXT PRIMARY KEY,
+               source_file_size INTEGER NOT NULL CHECK(source_file_size >= 0),
+               source_modified_unix_ms INTEGER NOT NULL,
+               source_identity_scheme TEXT,
+               source_identity_value TEXT,
+               algorithm_id TEXT NOT NULL,
+               algorithm_version INTEGER NOT NULL CHECK(algorithm_version >= 0),
+               orientation_contract TEXT NOT NULL,
+               size_bucket INTEGER NOT NULL CHECK(size_bucket > 0),
+               encoded_width INTEGER NOT NULL CHECK(encoded_width > 0),
+               encoded_height INTEGER NOT NULL CHECK(encoded_height > 0),
+               artifact_path TEXT NOT NULL UNIQUE,
+               byte_size INTEGER NOT NULL CHECK(byte_size >= 0),
+               lifecycle_state TEXT NOT NULL
+                 CHECK(lifecycle_state IN ('ready', 'stale', 'evictable')),
+               created_unix_ms INTEGER NOT NULL,
+               last_used_unix_ms INTEGER NOT NULL,
+               CHECK(
+                 (source_identity_scheme IS NULL AND source_identity_value IS NULL)
+                 OR
+                 (source_identity_scheme IS NOT NULL AND source_identity_value IS NOT NULL)
+               )
+             );
+             CREATE TABLE preview_artifact_locations (
+               artifact_key TEXT NOT NULL,
+               location_id TEXT NOT NULL,
+               PRIMARY KEY(artifact_key, location_id),
+               FOREIGN KEY(artifact_key) REFERENCES preview_artifacts(artifact_key)
+                 ON DELETE CASCADE
+             );
+             INSERT INTO preview_artifacts(
+               artifact_key, source_file_size, source_modified_unix_ms,
+               source_identity_scheme, source_identity_value, algorithm_id,
+               algorithm_version, orientation_contract, size_bucket, encoded_width,
+               encoded_height, artifact_path, byte_size, lifecycle_state,
+               created_unix_ms, last_used_unix_ms
+             )
+             SELECT artifacts.artifact_key, artifacts.source_file_size,
+                    artifacts.source_modified_unix_ms,
+                    artifacts.source_identity_scheme, artifacts.source_identity_value,
+                    artifacts.algorithm_id, artifacts.algorithm_version,
+                    artifacts.orientation_contract, artifacts.size_bucket,
+                    artifacts.encoded_width, artifacts.encoded_height,
+                    artifacts.artifact_path, artifacts.byte_size,
+                    artifacts.lifecycle_state, artifacts.created_unix_ms,
+                    artifacts.last_used_unix_ms
+             FROM preview_artifacts_v14 AS artifacts;
+             DROP TABLE preview_artifacts_v14;
+             CREATE INDEX preview_artifact_locations_location
+               ON preview_artifact_locations(location_id, artifact_key);
+             CREATE INDEX preview_artifacts_reclamation
+               ON preview_artifacts(lifecycle_state, last_used_unix_ms, artifact_key);
+             CREATE INDEX preview_artifacts_compatibility
+               ON preview_artifacts(
+                 source_file_size, source_modified_unix_ms,
+                 algorithm_id, algorithm_version, orientation_contract, size_bucket
+               );
+             UPDATE schema_info SET version = 15;",
+        )
+        .map_err(database_error)?;
+    if has_preview_path {
+        transaction
+            .execute(
+                "INSERT INTO preview_artifact_locations(artifact_key, location_id)
+                 SELECT DISTINCT artifacts.artifact_key, locations.location_id
+                 FROM preview_artifacts AS artifacts
+                 JOIN asset_locations AS locations
+                   ON locations.preview_path = artifacts.artifact_path",
+                [],
+            )
+            .map_err(database_error)?;
+    }
+    transaction.commit().map_err(database_error)
+}
+
+fn migrate_v15_to_v16(connection: &mut Connection) -> Result<(), ScanError> {
+    let transaction = connection.transaction().map_err(database_error)?;
+    let has_library_roots: bool = transaction
+        .query_row(
+            "SELECT EXISTS(
+               SELECT 1 FROM sqlite_master
+               WHERE type = 'table' AND name = 'library_roots'
+             )",
+            [],
+            |row| row.get(0),
+        )
+        .map_err(database_error)?;
+    let location_columns = [
+        "scan_id",
+        "location_id",
+        "root_id",
+        "preview_path",
+        "preview_status",
+    ];
+    let can_reconcile_active_ownership = has_library_roots
+        && location_columns
+            .iter()
+            .try_fold(true, |all_present, column| {
+                transaction
+                    .query_row(
+                        "SELECT EXISTS(
+                       SELECT 1 FROM pragma_table_info('asset_locations')
+                       WHERE name = ?1
+                     )",
+                        [column],
+                        |row| row.get::<_, bool>(0),
+                    )
+                    .map(|present| all_present && present)
+                    .map_err(database_error)
+            })?;
+    if can_reconcile_active_ownership {
+        transaction
+            .execute(
+                "DELETE FROM preview_artifact_locations
+                 WHERE NOT EXISTS (
+                   SELECT 1
+                   FROM preview_artifacts AS artifacts
+                   JOIN asset_locations AS locations
+                     ON locations.location_id = preview_artifact_locations.location_id
+                    AND locations.preview_path = artifacts.artifact_path
+                    AND locations.preview_status = 'ready'
+                   JOIN library_roots AS roots
+                     ON roots.id = locations.root_id
+                    AND roots.active_scan_id = locations.scan_id
+                   WHERE artifacts.artifact_key = preview_artifact_locations.artifact_key
+                 )",
+                [],
+            )
+            .map_err(database_error)?;
+    }
+    transaction
+        .execute_batch(
+            "UPDATE preview_artifacts
+             SET lifecycle_state = 'stale'
+             WHERE lifecycle_state = 'ready'
+               AND NOT EXISTS (
+                 SELECT 1 FROM preview_artifact_locations AS owners
+                 WHERE owners.artifact_key = preview_artifacts.artifact_key
+               );
+             UPDATE schema_info SET version = 16;",
         )
         .map_err(database_error)?;
     transaction.commit().map_err(database_error)

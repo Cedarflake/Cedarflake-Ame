@@ -1,8 +1,11 @@
+import "dart:async";
 import "dart:io";
 
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../storage/application/storage_settings.dart";
 import "../../../storage/domain/storage_models.dart";
 import "settings_section.dart";
@@ -20,13 +23,32 @@ class StorageSettingsSection extends ConsumerStatefulWidget {
 class _StorageSettingsSectionState
     extends ConsumerState<StorageSettingsSection> {
   StorageStatusModel? _status;
+  PreviewCleanupUpdate? _cleanupUpdate;
+  StreamSubscription<PreviewCleanupUpdate>? _cleanupSubscription;
+  String? _cleanupTargetPreviewRoot;
+  String? _cleanupTargetDisplayPath;
   String? _errorMessage;
   bool _isSaving = false;
+  bool _isCancellingCleanup = false;
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    final cleanup = _cleanupUpdate;
+    unawaited(_cleanupSubscription?.cancel());
+    if (cleanup != null && cleanup.isActive) {
+      unawaited(
+        ref
+            .read(storageSettingsGatewayProvider)
+            .cancelPreviewCleanup(operationId: cleanup.operationId),
+      );
+    }
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -108,6 +130,134 @@ class _StorageSettingsSectionState
     }
   }
 
+  Future<void> _confirmPreviewCleanup([
+    RetiredPreviewRootModel? retiredRoot,
+  ]) async {
+    final cleanup = _cleanupUpdate;
+    if (_isSaving || (cleanup != null && cleanup.isActive)) {
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(retiredRoot == null ? "清理缩略图？" : "清理旧缩略图目录？"),
+          content: Text(
+            retiredRoot == null
+                ? "这会删除可重新生成的缩略图缓存，不会删除或修改原图片。"
+                      "清理后，打开图库时可能需要一些时间重新生成缩略图。"
+                : "只会删除旧目录中由 Ame 管理的缩略图，不会删除原图片或目录中的其他文件。\n"
+                      "${retiredRoot.displayPath}",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text("取消"),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text("开始清理"),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true || !mounted) {
+      return;
+    }
+    _startPreviewCleanup(retiredRoot: retiredRoot);
+  }
+
+  void _startPreviewCleanup({RetiredPreviewRootModel? retiredRoot}) {
+    final operationId =
+        "preview-cleanup-${DateTime.now().microsecondsSinceEpoch}";
+    final initial = PreviewCleanupUpdate(
+      operationId: operationId,
+      phase: PreviewCleanupPhase.started,
+      processedFiles: BigInt.zero,
+      totalFiles: BigInt.zero,
+      removedFiles: BigInt.zero,
+      removedBytes: BigInt.zero,
+      issueCount: BigInt.zero,
+    );
+    setState(() {
+      _cleanupUpdate = initial;
+      _cleanupTargetPreviewRoot = retiredRoot?.previewRoot;
+      _cleanupTargetDisplayPath = retiredRoot?.displayPath;
+      _errorMessage = null;
+      _isCancellingCleanup = false;
+    });
+    final gateway = ref.read(storageSettingsGatewayProvider);
+    final stream = retiredRoot == null
+        ? gateway.clearPreviews(operationId: operationId)
+        : gateway.clearRetiredPreviews(
+            previewRoot: retiredRoot.previewRoot,
+            operationId: operationId,
+          );
+    _cleanupSubscription = stream.listen(
+      _handleCleanupUpdate,
+      onError: (Object error) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _cleanupUpdate = PreviewCleanupUpdate(
+            operationId: operationId,
+            phase: PreviewCleanupPhase.failed,
+            processedFiles: _cleanupUpdate?.processedFiles ?? BigInt.zero,
+            totalFiles: _cleanupUpdate?.totalFiles ?? BigInt.zero,
+            removedFiles: _cleanupUpdate?.removedFiles ?? BigInt.zero,
+            removedBytes: _cleanupUpdate?.removedBytes ?? BigInt.zero,
+            issueCount: _cleanupUpdate?.issueCount ?? BigInt.zero,
+            errorMessage: _errorText(error),
+          );
+          _isCancellingCleanup = false;
+        });
+      },
+    );
+  }
+
+  void _handleCleanupUpdate(PreviewCleanupUpdate update) {
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _cleanupUpdate = update;
+      if (update.isTerminal) {
+        _isCancellingCleanup = false;
+      }
+    });
+    if (update.isTerminal) {
+      unawaited(_load());
+    }
+  }
+
+  Future<void> _cancelPreviewCleanup() async {
+    final cleanup = _cleanupUpdate;
+    if (cleanup == null || !cleanup.isActive || _isCancellingCleanup) {
+      return;
+    }
+    setState(() => _isCancellingCleanup = true);
+    try {
+      final accepted = await ref
+          .read(storageSettingsGatewayProvider)
+          .cancelPreviewCleanup(operationId: cleanup.operationId);
+      if (mounted && !accepted) {
+        setState(() {
+          _isCancellingCleanup = false;
+          _errorMessage = "清理任务已经结束，无法再取消";
+        });
+      }
+    } on Object catch (error) {
+      if (mounted) {
+        setState(() {
+          _isCancellingCleanup = false;
+          _errorMessage = _errorText(error);
+        });
+      }
+    }
+  }
+
   String _errorText(Object error) {
     if (error case StorageSettingsFailure(:final message)) {
       return message;
@@ -125,7 +275,7 @@ class _StorageSettingsSectionState
           if (_errorMessage == null)
             const SettingsRow(
               key: Key("storage-settings-loading"),
-              icon: Icons.storage_outlined,
+              icon: Symbols.storage_rounded,
               title: "正在读取存储设置",
               subtitle: Text("正在检查图库数据与缩略图的保存位置"),
               trailing: SizedBox.square(
@@ -136,7 +286,7 @@ class _StorageSettingsSectionState
           else
             SettingsRow(
               key: const Key("storage-settings-load-error"),
-              icon: Icons.error_outline,
+              icon: Symbols.error_rounded,
               title: "无法读取存储设置",
               subtitle: Text(_errorMessage!),
               trailing: OutlinedButton(
@@ -154,13 +304,13 @@ class _StorageSettingsSectionState
         if (status.requiresRestart)
           const SettingsRow(
             key: Key("storage-settings-restart-notice"),
-            icon: Icons.restart_alt,
+            icon: Symbols.restart_alt_rounded,
             title: "重启 Ame 后应用新的存储设置",
             subtitle: Text("现有文件不会被移动或删除"),
           ),
         SettingsRow(
           key: const Key("catalog-location-setting"),
-          icon: Icons.storage_outlined,
+          icon: Symbols.storage_rounded,
           title: "图库数据位置",
           subtitle: Text(
             "保存图库索引和扫描结果\n"
@@ -176,7 +326,7 @@ class _StorageSettingsSectionState
         ),
         SettingsRow(
           key: const Key("preview-location-setting"),
-          icon: Icons.photo_library_outlined,
+          icon: Symbols.photo_library_rounded,
           title: "缩略图位置",
           subtitle: Text(
             "保存可随时重新生成的图片预览\n"
@@ -187,14 +337,34 @@ class _StorageSettingsSectionState
             child: const Text("更改"),
           ),
         ),
+        for (final retiredRoot in status.retiredPreviewRoots)
+          SettingsRow(
+            key: ValueKey("retired-preview-root-${retiredRoot.previewRoot}"),
+            icon: Symbols.folder_delete_rounded,
+            title: "旧缩略图目录",
+            subtitle: Text(
+              "新目录已启用；旧目录只会在确认后清理 Ame 管理的缩略图\n"
+              "${retiredRoot.displayPath}",
+            ),
+            trailing:
+                (_cleanupUpdate?.isActive ?? false) &&
+                    _cleanupTargetPreviewRoot == retiredRoot.previewRoot
+                ? const TextButton(onPressed: null, child: Text("正在清理"))
+                : OutlinedButton(
+                    onPressed: _isSaving || (_cleanupUpdate?.isActive ?? false)
+                        ? null
+                        : () => _confirmPreviewCleanup(retiredRoot),
+                    child: const Text("清理旧目录"),
+                  ),
+          ),
         SettingsRow(
           key: const Key("preview-budget-setting"),
-          icon: Icons.data_usage_outlined,
+          icon: Symbols.data_usage_rounded,
           title: "缩略图最大占用空间",
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("达到上限后停止生成新的缩略图，不会修改原图片"),
+              const Text("达到上限时自动回收当前不需要的缩略图，不会修改原图片"),
               const SizedBox(height: 8),
               LinearProgressIndicator(
                 value: _usageRatio(
@@ -206,29 +376,56 @@ class _StorageSettingsSectionState
               Text("当前占用 ${_formatBytes(status.previewUsedBytes)}"),
             ],
           ),
-          trailing: DropdownMenu<BigInt>(
-            key: ValueKey(status.previewBudgetBytes),
-            width: 144,
-            initialSelection: status.previewBudgetBytes,
-            enabled: !_isSaving,
-            enableSearch: false,
-            requestFocusOnTap: false,
-            selectOnly: true,
-            onSelected: (value) {
-              if (value != null && value != status.previewBudgetBytes) {
-                _update(previewBudgetBytes: value);
-              }
-            },
-            dropdownMenuEntries: [
-              for (final bytes in _budgetOptions)
-                DropdownMenuEntry(value: bytes, label: _formatBytes(bytes)),
-            ],
+          trailing: AmeOverlayTraversalBoundary(
+            child: DropdownMenu<BigInt>(
+              key: ValueKey(status.previewBudgetBytes),
+              width: 144,
+              initialSelection: status.previewBudgetBytes,
+              enabled: !_isSaving,
+              enableSearch: false,
+              requestFocusOnTap: false,
+              selectOnly: true,
+              trailingIcon: const Icon(Symbols.arrow_drop_down_rounded),
+              selectedTrailingIcon: const Icon(Symbols.arrow_drop_up_rounded),
+              onSelected: (value) {
+                if (value != null && value != status.previewBudgetBytes) {
+                  _update(previewBudgetBytes: value);
+                }
+              },
+              dropdownMenuEntries: [
+                for (final bytes in _budgetOptions)
+                  DropdownMenuEntry(value: bytes, label: _formatBytes(bytes)),
+              ],
+            ),
           ),
+        ),
+        SettingsRow(
+          key: const Key("preview-cleanup-setting"),
+          icon: Symbols.cleaning_services_rounded,
+          title: _cleanupTitle(
+            _cleanupUpdate,
+            isRetiredRoot: _cleanupTargetPreviewRoot != null,
+          ),
+          subtitle: _cleanupSubtitle(
+            _cleanupUpdate,
+            targetDisplayPath: _cleanupTargetDisplayPath,
+          ),
+          trailing: _cleanupUpdate?.isActive ?? false
+              ? OutlinedButton(
+                  onPressed: _isCancellingCleanup
+                      ? null
+                      : _cancelPreviewCleanup,
+                  child: Text(_isCancellingCleanup ? "正在取消" : "取消"),
+                )
+              : OutlinedButton(
+                  onPressed: _isSaving ? null : () => _confirmPreviewCleanup(),
+                  child: const Text("清理"),
+                ),
         ),
         if (_errorMessage != null)
           SettingsRow(
             key: const Key("storage-settings-error"),
-            icon: Icons.error_outline,
+            icon: Symbols.error_rounded,
             title: "未能保存存储设置",
             subtitle: Text(
               _errorMessage!,
@@ -238,7 +435,7 @@ class _StorageSettingsSectionState
         if (_isSaving)
           const SettingsRow(
             key: Key("storage-settings-saving"),
-            icon: Icons.sync,
+            icon: Symbols.sync_rounded,
             title: "正在保存",
             subtitle: Text("完成前不会改变当前正在使用的存储位置"),
             trailing: SizedBox.square(
@@ -249,6 +446,67 @@ class _StorageSettingsSectionState
       ],
     );
   }
+}
+
+String _cleanupTitle(
+  PreviewCleanupUpdate? update, {
+  required bool isRetiredRoot,
+}) {
+  final subject = isRetiredRoot ? "旧缩略图目录" : "缩略图";
+  return switch (update?.phase) {
+    PreviewCleanupPhase.started ||
+    PreviewCleanupPhase.running => "正在清理$subject",
+    PreviewCleanupPhase.completed => "$subject清理完成",
+    PreviewCleanupPhase.cancelled => "$subject清理已取消",
+    PreviewCleanupPhase.failed => "$subject清理失败",
+    null => "清理缩略图",
+  };
+}
+
+Widget _cleanupSubtitle(
+  PreviewCleanupUpdate? update, {
+  required String? targetDisplayPath,
+}) {
+  if (update == null) {
+    return const Text("缩略图会在需要时重新生成，不会删除原图片");
+  }
+  final progress = update.totalFiles == BigInt.zero
+      ? null
+      : (update.processedFiles.toDouble() / update.totalFiles.toDouble())
+            .clamp(0, 1)
+            .toDouble();
+  final status = switch (update.phase) {
+    PreviewCleanupPhase.started => "正在统计可清理的缩略图",
+    PreviewCleanupPhase.running =>
+      "已处理 ${update.processedFiles} / ${update.totalFiles} 个文件，"
+          "释放 ${_formatBytes(update.removedBytes)}",
+    PreviewCleanupPhase.completed =>
+      "已移除 ${update.removedFiles} 个文件，释放 ${_formatBytes(update.removedBytes)}",
+    PreviewCleanupPhase.cancelled => "停止前已移除 ${update.removedFiles} 个文件，已保留原图片",
+    PreviewCleanupPhase.failed => update.errorMessage ?? "未能完成缩略图清理",
+  };
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      if (targetDisplayPath != null) ...[
+        Text(targetDisplayPath),
+        const SizedBox(height: 4),
+      ],
+      Text(status),
+      if (update.isActive) ...[
+        const SizedBox(height: 8),
+        LinearProgressIndicator(value: progress),
+      ],
+      if (update.issueCount > BigInt.zero) ...[
+        const SizedBox(height: 6),
+        Text("${update.issueCount} 个文件未能清理"),
+      ],
+      if (update.issueMessage != null) ...[
+        const SizedBox(height: 4),
+        Text(update.issueMessage!),
+      ],
+    ],
+  );
 }
 
 final _budgetOptions = <BigInt>[

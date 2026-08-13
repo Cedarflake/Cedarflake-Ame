@@ -24,6 +24,11 @@ entry limit, so a complete run may take hours.
 - cancel and pause injection are not requested together;
 - the scan ID is a stable, explicit identifier suitable for recovery.
 
+The retained combined-catalog verifier independently requires two distinct available roots and
+rejects any overlap between its retained storage and either source root before opening the catalog.
+It reads bounded production catalog pages; it does not start another source scan or materialize
+previews.
+
 Cloud-only files remain rejected by the Windows filesystem adapter before content access. Acceptance
 storage is never cleaned automatically. An interrupted scan can therefore be resumed with the same
 scan ID, storage root, source root, and `-UseExistingStorage`.
@@ -150,3 +155,17 @@ The gate completed in this order:
 Completion authorizes roadmap progression to R2 under the existing project contract. It does not
 authorize file deletion, movement, renaming, copying, full-library preview generation, or cloud
 hydration.
+
+## R2b retained-catalog parity
+
+With renewed authorization on 2026-08-11, the current combined-catalog verifier reopened the same
+retained derived catalog through the production loading API. It reproduced the combined count and
+bounded traversal recorded above under the current schema. Both roots remained available, every
+location identity appeared once, all previews remained pending, and no source scan or media
+materialization started.
+
+The verifier checks page boundaries with the actual effective-gallery-date cursor from ADR 0008:
+capture time, then creation time, then modification time, followed by stable root and location
+identity. It does not treat missing capture metadata as a separate final section when trustworthy
+filesystem fallback exists. The retained catalog passed this current keyset contract and the R2b
+parity gate.

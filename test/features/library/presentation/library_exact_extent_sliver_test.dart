@@ -113,6 +113,7 @@ void main() {
     final geometry = _buildGeometry(500);
     final previewGeneration = ValueNotifier(0);
     final correction = ValueNotifier<LibraryExactExtentLayoutCorrection?>(null);
+    final appliedGenerations = <Object>[];
     final controller = ScrollController();
     addTearDown(() async {
       controller.dispose();
@@ -134,6 +135,7 @@ void main() {
                   itemStartOffsets: geometry.offsets,
                   contentExtent: geometry.contentExtent,
                   layoutCorrection: correction.value,
+                  onLayoutCorrectionApplied: appliedGenerations.add,
                   itemBuilder: (context, index) => SizedBox(
                     key: ValueKey("corrected-entry-$index"),
                     child: Text("$index-${previewGeneration.value}"),
@@ -163,6 +165,7 @@ void main() {
     final rectAfterCorrection = tester.getRect(visibleEntry);
     expect(pixelsAfterCorrection, closeTo(20250, tolerance));
     expect(renderSliver.appliedLayoutCorrectionCount, 1);
+    expect(appliedGenerations, [1]);
 
     previewGeneration.value = 1;
     await tester.pump();
@@ -180,7 +183,61 @@ void main() {
       rectAfterCorrection,
     );
     expect(renderSliver.appliedLayoutCorrectionCount, 1);
+    expect(appliedGenerations, [1]);
     expect(identical(renderSliver.itemStartOffsets, geometry.offsets), isTrue);
+  });
+
+  testWidgets("keeps transition and resize correction generations distinct", (
+    tester,
+  ) async {
+    final geometry = _buildGeometry(500);
+    final correction = ValueNotifier<LibraryExactExtentLayoutCorrection?>(null);
+    final controller = ScrollController();
+    addTearDown(() async {
+      controller.dispose();
+      correction.dispose();
+      await tester.binding.setSurfaceSize(null);
+    });
+    await tester.binding.setSurfaceSize(const Size(1000, 640));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ValueListenableBuilder(
+          valueListenable: correction,
+          builder: (context, value, child) => CustomScrollView(
+            controller: controller,
+            slivers: [
+              LibraryExactExtentSliver.builder(
+                itemStartOffsets: geometry.offsets,
+                contentExtent: geometry.contentExtent,
+                layoutCorrection: value,
+                itemBuilder: (context, index) =>
+                    SizedBox(key: ValueKey("scoped-entry-$index")),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    controller.jumpTo(20000);
+    await tester.pump();
+
+    correction.value = const LibraryExactExtentLayoutCorrection(
+      generation: 1,
+      delta: 100,
+    );
+    await tester.pump();
+    correction.value = const LibraryExactExtentLayoutCorrection(
+      generation: (scope: "gallery-transition", value: 1),
+      delta: 100,
+    );
+    await tester.pump();
+
+    final renderSliver = tester.renderObject<RenderLibraryExactExtentSliver>(
+      find.byType(LibraryExactExtentSliver),
+    );
+    expect(controller.position.pixels, closeTo(20200, tolerance));
+    expect(renderSliver.appliedLayoutCorrectionCount, 2);
   });
 }
 

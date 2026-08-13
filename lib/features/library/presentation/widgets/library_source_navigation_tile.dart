@@ -2,9 +2,12 @@ import "dart:async";
 
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
+import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_menu.dart";
+import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_popup_menu_position.dart";
+import "../../../../app/presentation/ame_typography.dart";
 import "../../domain/library_models.dart";
 import "../library_strings.dart";
 import "library_path_text.dart";
@@ -43,6 +46,7 @@ class LibrarySourceNavigationTile extends StatefulWidget {
 class _LibrarySourceNavigationTileState
     extends State<LibrarySourceNavigationTile> {
   final FocusNode _focusNode = FocusNode(debugLabel: "Library source");
+  final MenuController _buttonMenuController = MenuController();
 
   @override
   void dispose() {
@@ -52,20 +56,30 @@ class _LibrarySourceNavigationTileState
 
   @override
   Widget build(BuildContext context) {
+    final buttonMenuWidth = amePopupMenuContentWidth(
+      context: context,
+      labels: const [
+        LibraryStrings.updateLibrary,
+        LibraryStrings.openInExplorer,
+        LibraryStrings.removeFromAme,
+      ],
+    );
     final icon = switch (widget.root.availability) {
       LibraryRootAvailability.available ||
-      LibraryRootAvailability.unknown => Icons.folder_outlined,
-      LibraryRootAvailability.missing => Icons.folder_off_outlined,
-      LibraryRootAvailability.inaccessible => Icons.lock_outline,
-      LibraryRootAvailability.offline => Icons.cloud_off_outlined,
+      LibraryRootAvailability.unknown => Symbols.folder_rounded,
+      LibraryRootAvailability.missing => Symbols.folder_off_rounded,
+      LibraryRootAvailability.inaccessible => Symbols.lock_rounded,
+      LibraryRootAvailability.offline => Symbols.cloud_off_rounded,
     };
     final tile = widget.isCompact
-        ? IconButton(
-            focusNode: _focusNode,
-            isSelected: widget.isSelected,
-            tooltip: widget.root.displayPath,
-            onPressed: widget.isBusy ? null : widget.onSelect,
-            icon: Icon(icon),
+        ? AmeTooltip(
+            message: widget.root.displayPath,
+            child: IconButton(
+              focusNode: _focusNode,
+              isSelected: widget.isSelected,
+              onPressed: widget.isBusy ? null : widget.onSelect,
+              icon: Icon(icon),
+            ),
           )
         : _ExpandedSourceTile(
             focusNode: _focusNode,
@@ -84,26 +98,66 @@ class _LibrarySourceNavigationTileState
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  IconButton(
-                    key: ValueKey("source-expand-${widget.root.id}"),
-                    tooltip: widget.isExpanded
+                  AmeTooltip(
+                    message: widget.isExpanded
                         ? LibraryStrings.collapseFolder
                         : LibraryStrings.expandFolder,
-                    onPressed: widget.onToggleExpansion,
-                    icon: Icon(
-                      widget.isExpanded
-                          ? Icons.keyboard_arrow_up
-                          : Icons.keyboard_arrow_down,
+                    child: IconButton(
+                      key: ValueKey("source-expand-${widget.root.id}"),
+                      onPressed: widget.onToggleExpansion,
+                      icon: Icon(
+                        widget.isExpanded
+                            ? Symbols.keyboard_arrow_up_rounded
+                            : Symbols.keyboard_arrow_down_rounded,
+                      ),
                     ),
                   ),
-                  Builder(
-                    builder: (buttonContext) => IconButton(
-                      key: ValueKey("source-more-${widget.root.id}"),
-                      tooltip: LibraryStrings.more,
-                      onPressed: () {
-                        unawaited(_showMenuBelow(buttonContext));
-                      },
-                      icon: const Icon(Icons.more_vert),
+                  AmeMenuAnchor(
+                    controller: _buttonMenuController,
+                    style: ameFixedWidthMenuStyle(buttonMenuWidth),
+                    alignmentOffset: ameMenuBelowEndAlignment(
+                      menuWidth: buttonMenuWidth,
+                    ),
+                    menuChildren: [
+                      ameFixedWidthMenuItem(
+                        width: buttonMenuWidth,
+                        child: MenuItemButton(
+                          onPressed: widget.isBusy ? null : widget.onUpdate,
+                          child: const AmeMenuItemContent(
+                            icon: Symbols.refresh_rounded,
+                            label: LibraryStrings.updateLibrary,
+                          ),
+                        ),
+                      ),
+                      ameFixedWidthMenuItem(
+                        width: buttonMenuWidth,
+                        child: MenuItemButton(
+                          onPressed: widget.onOpen,
+                          child: const AmeMenuItemContent(
+                            icon: Symbols.folder_open_rounded,
+                            label: LibraryStrings.openInExplorer,
+                          ),
+                        ),
+                      ),
+                      const Divider(height: AmeMenuMetrics.dividerHeight),
+                      ameFixedWidthMenuItem(
+                        width: buttonMenuWidth,
+                        child: MenuItemButton(
+                          onPressed: widget.isBusy ? null : widget.onRemove,
+                          child: const AmeMenuItemContent(
+                            icon: Symbols.remove_circle_rounded,
+                            label: LibraryStrings.removeFromAme,
+                          ),
+                        ),
+                      ),
+                    ],
+                    builder: (context, controller, child) => AmeTooltip(
+                      message: LibraryStrings.more,
+                      child: IconButton(
+                        key: ValueKey("source-more-${widget.root.id}"),
+                        onPressed: () => toggleAmeMenu(controller),
+                        icon: const Icon(Symbols.more_vert_rounded),
+                      ),
                     ),
                   ),
                 ],
@@ -116,13 +170,13 @@ class _LibrarySourceNavigationTileState
         const SingleActivator(LogicalKeyboardKey.contextMenu): () {
           final anchorContext = _focusNode.context;
           if (anchorContext != null) {
-            unawaited(_showMenuBelow(anchorContext));
+            unawaited(_showMenuAtAnchor(anchorContext));
           }
         },
         const SingleActivator(LogicalKeyboardKey.f10, shift: true): () {
           final anchorContext = _focusNode.context;
           if (anchorContext != null) {
-            unawaited(_showMenuBelow(anchorContext));
+            unawaited(_showMenuAtAnchor(anchorContext));
           }
         },
       },
@@ -136,7 +190,7 @@ class _LibrarySourceNavigationTileState
     );
   }
 
-  Future<void> _showMenuBelow(BuildContext anchorContext) async {
+  Future<void> _showMenuAtAnchor(BuildContext anchorContext) async {
     final position = amePopupMenuBelowAnchor(
       context: context,
       anchorContext: anchorContext,
@@ -172,14 +226,14 @@ class _LibrarySourceNavigationTileState
           value: _LibrarySourceMenuAction.update,
           enabled: !widget.isBusy,
           child: const AmeMenuItemContent(
-            icon: Icons.refresh,
+            icon: Symbols.refresh_rounded,
             label: LibraryStrings.updateLibrary,
           ),
         ),
         const PopupMenuItem(
           value: _LibrarySourceMenuAction.open,
           child: AmeMenuItemContent(
-            icon: Icons.folder_open_outlined,
+            icon: Symbols.folder_open_rounded,
             label: LibraryStrings.openInExplorer,
           ),
         ),
@@ -188,7 +242,7 @@ class _LibrarySourceNavigationTileState
           value: _LibrarySourceMenuAction.remove,
           enabled: !widget.isBusy,
           child: const AmeMenuItemContent(
-            icon: Icons.remove_circle_outline,
+            icon: Symbols.remove_circle_rounded,
             label: LibraryStrings.removeFromAme,
           ),
         ),
@@ -233,14 +287,14 @@ class PendingLibrarySourceTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isCompact) {
-      return Tooltip(
+      return AmeTooltip(
         message: path,
         child: const IconButton(
           onPressed: null,
           icon: Stack(
             clipBehavior: Clip.none,
             children: [
-              Icon(Icons.folder_outlined),
+              Icon(Symbols.folder_rounded),
               Positioned(
                 right: -5,
                 bottom: -5,
@@ -256,7 +310,7 @@ class PendingLibrarySourceTile extends StatelessWidget {
     }
     return _ExpandedSourceTile(
       key: const Key("pending-source-tile"),
-      icon: Icons.folder_outlined,
+      icon: Symbols.folder_rounded,
       iconKey: const Key("pending-source-icon"),
       title: librarySourceName(path),
       path: path,
@@ -328,7 +382,12 @@ class _ExpandedSourceTile extends StatelessWidget {
       minLeadingWidth: 24,
       horizontalTitleGap: 12,
       leading: SizedBox(key: iconKey, width: 24, child: Icon(icon)),
-      title: LibraryPathText(text: title, path: path, textKey: titleKey),
+      title: DefaultTextStyle.merge(
+        style: TextStyle(
+          fontWeight: isSelected ? ameFontWeightSemibold : ameFontWeightMedium,
+        ),
+        child: LibraryPathText(text: title, path: path, textKey: titleKey),
+      ),
       subtitle: subtitle == null
           ? null
           : Text(subtitle!, maxLines: 1, overflow: TextOverflow.ellipsis),

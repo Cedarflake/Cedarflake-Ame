@@ -28,26 +28,112 @@ permissions:
   contents: read
 
 jobs:
-  quality_windows:
-    name: Windows Gate
+  daily_components:
+    name: Daily / ${{ matrix.label }}
+    if: inputs.gate_mode == 'daily'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - component: static
+            label: Static and Rust
+          - component: flutter
+            label: Flutter Tests
+          - component: windows_scan
+            label: Windows Scan
+          - component: windows_accessibility
+            label: Windows Accessibility
+    runs-on: windows-2025
+    timeout-minutes: 60
+    env:
+      CI: "true"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ inputs.checkout_ref || github.sha }}
+
+      - name: Install pinned actionlint
+        if: matrix.component == 'static'
+        id: actionlint
+        shell: pwsh
+        run: |
+          $version = "1.7.12"
+          $archiveName = "actionlint_${version}_windows_amd64.zip"
+          $archivePath = Join-Path $env:RUNNER_TEMP $archiveName
+          $installPath = Join-Path $env:RUNNER_TEMP "actionlint-$version"
+          $expectedHash = "6e7241b51e6817ea6a047693d8e6fed13b31819c9a0dd6c5a726e1592d22f6e9"
+          $downloadUri = (
+            "https://github.com/rhysd/actionlint/releases/download/" +
+            "v$version/$archiveName"
+          )
+          $ProgressPreference = "SilentlyContinue"
+          Invoke-WebRequest -Uri $downloadUri -OutFile $archivePath
+          $actualHash = (
+            Get-FileHash -LiteralPath $archivePath -Algorithm SHA256
+          ).Hash.ToLowerInvariant()
+          if ($actualHash -ne $expectedHash) {
+            throw "actionlint checksum mismatch: $actualHash"
+          }
+          Expand-Archive -LiteralPath $archivePath -DestinationPath $installPath
+          "path=$installPath\actionlint.exe" >> $env:GITHUB_OUTPUT
+
+      - name: Lint GitHub Actions workflows
+        if: matrix.component == 'static'
+        shell: pwsh
+        env:
+          AME_ACTIONLINT_PATH: ${{ steps.actionlint.outputs.path }}
+        run: ./tool/quality_lint_workflows.ps1 -ActionlintPath $env:AME_ACTIONLINT_PATH
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: 3.44.9
+          cache: true
+          pub-cache: true
+
+      - name: Report toolchain
+        shell: pwsh
+        run: |
+          flutter --version
+          dart --version
+          rustc --version
+          cargo --version
+
+      - name: Restore locked Dart dependencies
+        shell: pwsh
+        run: flutter pub get --enforce-lockfile
+
+      - name: Run daily component
+        shell: pwsh
+        env:
+          AME_DAILY_COMPONENT: ${{ matrix.component }}
+        run: ./tool/quality_verify_daily.ps1 -Component $env:AME_DAILY_COMPONENT
+
+      - name: Check committed whitespace
+        if: matrix.component == 'static'
+        shell: pwsh
+        env:
+          AME_BASE_REVISION: ${{ inputs.base_revision }}
+        run: ./tool/quality_verify_git_range.ps1 -BaseRevision $env:AME_BASE_REVISION
+
+  release_windows:
+    name: Release Candidate
+    if: inputs.gate_mode == 'release'
     runs-on: windows-2025
     timeout-minutes: 120
     env:
       CI: "true"
     steps:
-      - name: Validate gate request
+      - name: Validate release request
         shell: pwsh
         env:
-          AME_GATE_MODE: ${{ inputs.gate_mode }}
           AME_RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
-          if ($env:AME_GATE_MODE -notin @("daily", "release")) {
-            throw "Unsupported gate mode: $env:AME_GATE_MODE"
-          }
-          if (
-            $env:AME_GATE_MODE -eq "release" -and
-            [string]::IsNullOrWhiteSpace($env:AME_RELEASE_TAG)
-          ) {
+          if ([string]::IsNullOrWhiteSpace($env:AME_RELEASE_TAG)) {
             throw "Release gate requires a version tag"
           }
 
@@ -108,20 +194,13 @@ jobs:
         shell: pwsh
         run: flutter pub get --enforce-lockfile
 
-      - name: Run daily quality gate
-        if: inputs.gate_mode == 'daily'
-        shell: pwsh
-        run: ./tool/quality_verify_daily.ps1
-
       - name: Validate release version
-        if: inputs.gate_mode == 'release'
         shell: pwsh
         env:
           AME_RELEASE_TAG: ${{ inputs.release_tag }}
         run: ./tool/release_validate_version.ps1 -Tag $env:AME_RELEASE_TAG
 
       - name: Run release candidate gate
-        if: inputs.gate_mode == 'release'
         shell: pwsh
         run: ./tool/release_verify_candidate.ps1
 
@@ -130,3 +209,33 @@ jobs:
         env:
           AME_BASE_REVISION: ${{ inputs.base_revision }}
         run: ./tool/quality_verify_git_range.ps1 -BaseRevision $env:AME_BASE_REVISION
+
+  quality_windows:
+    name: Windows Gate
+    if: always()
+    needs:
+      - daily_components
+      - release_windows
+    runs-on: windows-2025
+    timeout-minutes: 5
+    env:
+      AME_DAILY_RESULT: ${{ needs.daily_components.result }}
+      AME_GATE_MODE: ${{ inputs.gate_mode }}
+      AME_RELEASE_RESULT: ${{ needs.release_windows.result }}
+    steps:
+      - name: Verify requested gate succeeded
+        shell: pwsh
+        run: |
+          if ($env:AME_GATE_MODE -eq "daily") {
+            if ($env:AME_DAILY_RESULT -ne "success") {
+              throw "One or more hosted daily components failed"
+            }
+            exit 0
+          }
+          if ($env:AME_GATE_MODE -eq "release") {
+            if ($env:AME_RELEASE_RESULT -ne "success") {
+              throw "The release candidate gate failed"
+            }
+            exit 0
+          }
+          throw "Unsupported gate mode: $env:AME_GATE_MODE"

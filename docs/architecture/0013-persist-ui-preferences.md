@@ -2,12 +2,14 @@
 
 - Status: Accepted for validation
 - Date: 2026-08-08
+- Last amended: 2026-08-12
 
 ## Context
 
 Ame needs to preserve desktop window geometry, theme, viewer behavior, expanded sidebar width,
-gallery sort, layout shape, and thumbnail size between launches. These values are user interface
-preferences, not catalog facts or source-media metadata. Persisting them in the Rust catalog would
+gallery sort, layout shape, thumbnail size, and the bounded preview loading speed policy between
+launches. These values are user interface preferences, not catalog facts or source-media metadata.
+Persisting them in the Rust catalog would
 give the catalog ownership of presentation policy, while ad hoc files would duplicate mature
 platform preference storage and lifecycle work.
 
@@ -47,8 +49,8 @@ not for catalogs, user decisions, or operation history.
 
 Admit `shared_preferences` 2.5.5 behind three Ame-owned typed contracts:
 
-- `AmePreferenceStore` owns theme, viewer mouse-wheel behavior, the initial viewer scale mode, and
-  expanded sidebar width;
+- `AmePreferenceStore` owns theme, viewer mouse-wheel behavior, the initial viewer scale mode,
+  preview loading speed policy, and expanded sidebar width;
 - `AmeWindowPreferenceStore` owns normal window bounds and maximized state;
 - `LibraryViewPreferenceStore` owns gallery sort key, sort direction, layout shape, and thumbnail
   size.
@@ -70,15 +72,15 @@ transient scroll position as part of this decision.
 
 ## Validation gates
 
-- adapter tests round-trip all three records and prove malformed data falls back safely;
+- adapter tests round-trip all three records and prove malformed or missing fields fall back safely;
 - pure geometry tests cover a valid secondary monitor, a removed monitor, oversized bounds, and
   invalid dimensions;
 - widget tests prove saved gallery presentation is applied and later toolbar changes are written;
 - Flutter formatting, analysis, focused tests, existing widget tests, and a Windows Release build
   pass;
-- runtime restart checks prove normal bounds, maximized state, theme, viewer choices, sidebar width,
-  sort, layout, and thumbnail size are restored, and removing or changing the saved display cannot
-  strand the window off-screen.
+- runtime restart checks prove normal bounds, maximized state, theme, viewer choices, preview loading
+  speed, sidebar width, sort, layout, and thumbnail size are restored, and removing or changing the
+  saved display cannot strand the window off-screen.
 
 The decision becomes Accepted after the runtime restart checks pass. Compilation alone is not
 sufficient.

@@ -2,10 +2,13 @@ import "dart:async";
 
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../settings/application/ame_preferences.dart";
 import "../adapters/directory_picker.dart";
+import "../domain/gallery_layout_manifest.dart";
 import "../domain/library_models.dart";
 import "../domain/library_state.dart";
 import "library_catalog.dart";
+import "library_preview_coordinator.dart";
 import "library_preview_queue.dart";
 import "library_preview_store.dart";
 import "library_previewer.dart";
@@ -13,9 +16,24 @@ import "library_scan_session.dart";
 import "library_scanner.dart";
 
 const _previewEdge = 512;
-const _maxActivePreviews = 2;
 const _timeNavigationRetryDelay = Duration(milliseconds: 120);
 const _maxVisibleRangePageLoads = 2;
+const _retainedDetailHighWatermark = 5000;
+const _retainedDetailLowWatermark = 3500;
+
+class _RetainedCatalogPage {
+  const _RetainedCatalogPage({
+    required this.assets,
+    required this.startItemOffset,
+    required this.previousCursor,
+    required this.nextCursor,
+  });
+
+  final List<LibraryAsset> assets;
+  final int startItemOffset;
+  final LibraryCatalogCursor? previousCursor;
+  final LibraryCatalogCursor? nextCursor;
+}
 
 class _PendingTimeNavigation {
   _PendingTimeNavigation({
@@ -51,8 +69,9 @@ class LibraryController extends Notifier<LibraryState> {
   Future<void> _scanStartQueue = Future<void>.value();
   int _scanSequence = 0;
   final LibraryScanSession _scanSession = LibraryScanSession();
-  final LibraryPreviewStore _previewStore = LibraryPreviewStore();
-  LibraryPreviewQueue? _previewQueue;
+  final StreamController<LibraryGalleryLayoutDimensionUpdate>
+  _layoutDimensionUpdates = StreamController.broadcast(sync: true);
+  LibraryPreviewCoordinator? _previewCoordinator;
   _PendingTimeNavigation? _pendingTimeNavigation;
   _PendingTimeNavigation? _activeTimeNavigation;
   Timer? _timeNavigationRetryTimer;
@@ -62,20 +81,31 @@ class LibraryController extends Notifier<LibraryState> {
   ({int start, int end})? _pendingVisibleRange;
   bool _isEnsuringVisibleRange = false;
   bool _isVisibleRangeDrainScheduled = false;
-  Map<String, ({LibraryAsset asset, LibraryPreviewPriority priority})>
-  _galleryPreviewDemand = const {};
-  LibraryAsset? _viewerPreviewDemand;
+  final List<_RetainedCatalogPage> _retainedCatalogPages = [];
+  LibraryState? _queryTransitionBaseState;
+  int? _queryTransitionRequestSequence;
   bool _isDisposed = false;
 
-  LibraryPreviewQueue get _previews => _previewQueue ??= LibraryPreviewQueue(
-    previewer: ref.read(libraryPreviewerProvider),
-    previewEdge: _previewEdge,
-    maxActive: _maxActivePreviews,
-    onResult: _publishPreview,
-  );
+  LibraryPreviewCoordinator get _previews =>
+      _previewCoordinator ??= LibraryPreviewCoordinator(
+        previewer: ref.read(libraryPreviewerProvider),
+        defaultPreviewEdge: _previewEdge,
+        maxActive: _maxActivePreviewsFor(
+          ref.read(amePreferencesControllerProvider).previewLoadingSpeed,
+        ),
+        canPublish: _canPublishPreview,
+        onPublished: _handlePreviewPublished,
+      );
 
   @override
   LibraryState build() {
+    ref.listen(
+      amePreferencesControllerProvider.select(
+        (preferences) => preferences.previewLoadingSpeed,
+      ),
+      (_, speed) =>
+          _previewCoordinator?.updateMaxActive(_maxActivePreviewsFor(speed)),
+    );
     final scanner = ref.read(libraryScannerProvider);
     ref.onDispose(() {
       _isDisposed = true;
@@ -88,8 +118,8 @@ class LibraryController extends Notifier<LibraryState> {
       if (scanId != null) {
         scanner.cancel(scanId);
       }
-      _previewQueue?.dispose();
-      _previewStore.dispose();
+      _previewCoordinator?.dispose();
+      unawaited(_layoutDimensionUpdates.close());
       _timeNavigationRetryTimer?.cancel();
       _pendingVisibleRange = null;
       final pendingTimeNavigation = _pendingTimeNavigation;
@@ -106,9 +136,16 @@ class LibraryController extends Notifier<LibraryState> {
       }
       unawaited(_subscription?.cancel());
     });
+    final initialState = ref.watch(initialLibraryStateProvider);
+    _resetRetainedCatalogPages(
+      assets: initialState.assets,
+      startItemOffset: initialState.windowStartItemOffset,
+      previousCursor: initialState.previousCursor,
+      nextCursor: initialState.nextCursor,
+    );
     Future<void>.microtask(_resumeInterruptedScanIfAvailable);
     Future<void>.microtask(_loadInitialTimeline);
-    return ref.watch(initialLibraryStateProvider);
+    return initialState;
   }
 
   Future<void> chooseDirectoryAndScan() async {
@@ -152,7 +189,7 @@ class LibraryController extends Notifier<LibraryState> {
     await _enqueueScanStart(
       allowedBusyStatus: LibraryStatus.choosingDirectory,
       start: () async {
-        _scanSequence += 1;
+        _advanceSequenceOutsideQueryTransition();
         final scanId =
             "ame-${DateTime.now().microsecondsSinceEpoch}-$_scanSequence";
         await _startScan(
@@ -355,14 +392,32 @@ class LibraryController extends Notifier<LibraryState> {
     }
   }
 
-  Future<bool> updateQuery(LibraryGalleryQuery query) async {
+  Future<bool> updateQuery(
+    LibraryGalleryQuery query, {
+    String? anchorLocationId,
+  }) async {
     final normalized = query.copyWith(
       folderRelativePath: query.folderRelativePath
           ?.replaceAll("\\", "/")
           .replaceAll(RegExp(r"^/+|/+$"), ""),
       searchText: query.searchText.trim(),
     );
-    if (normalized == state.query) {
+    final doesQueryTransitionOwnSequence =
+        _queryTransitionBaseState != null &&
+        _queryTransitionRequestSequence == _scanSequence;
+    if (_queryTransitionBaseState != null && !doesQueryTransitionOwnSequence) {
+      _queryTransitionBaseState = null;
+      _queryTransitionRequestSequence = null;
+    }
+    if (normalized == state.query && _queryTransitionBaseState == null) {
+      return true;
+    }
+    if (normalized == state.query && _queryTransitionBaseState != null) {
+      _scanSequence += 1;
+      final baseState = _queryTransitionBaseState!;
+      _queryTransitionBaseState = null;
+      _queryTransitionRequestSequence = null;
+      state = baseState;
       return true;
     }
     if (state.status == LibraryStatus.choosingDirectory ||
@@ -371,18 +426,17 @@ class LibraryController extends Notifier<LibraryState> {
         state.isLoadingTimeAnchor) {
       return false;
     }
+    final priorSequence = _scanSequence;
+    final isContinuingQueryTransition =
+        _queryTransitionBaseState != null &&
+        _queryTransitionRequestSequence == priorSequence;
     final requestSequence = ++_scanSequence;
-    _invalidatePreviewContext();
+    if (!isContinuingQueryTransition) {
+      _queryTransitionBaseState = state;
+    }
+    _queryTransitionRequestSequence = requestSequence;
     state = state.copyWith(
       status: LibraryStatus.refreshing,
-      query: normalized,
-      queryId: "",
-      windowStartItemOffset: 0,
-      assets: const [],
-      previousCursor: null,
-      nextCursor: null,
-      timeline: null,
-      activeTimeAnchor: null,
       isLoadingTimeline: true,
       pageErrorMessage: null,
       previousPageErrorMessage: null,
@@ -390,12 +444,86 @@ class LibraryController extends Notifier<LibraryState> {
       errorMessage: null,
     );
     try {
-      await _reloadFirstCatalogPage(requestSequence);
-      return !_isDisposed && requestSequence == _scanSequence;
+      final catalog = ref.read(libraryCatalogProvider);
+      final anchorCatalog = catalog is LibraryQueryAnchorCatalog
+          ? catalog as LibraryQueryAnchorCatalog
+          : null;
+      var snapshot = anchorLocationId == null || anchorCatalog == null
+          ? await catalog.load(
+              maxItems: libraryCatalogWindow,
+              query: normalized,
+            )
+          : await anchorCatalog.loadAroundLocation(
+              maxItems: libraryCatalogWindow,
+              query: normalized,
+              anchorLocationId: anchorLocationId,
+            );
+      final timeline = await catalog.loadTimeline(normalized);
+      if (snapshot.revision != timeline.revision ||
+          snapshot.queryId != timeline.queryId) {
+        snapshot = anchorLocationId == null || anchorCatalog == null
+            ? await catalog.load(
+                maxItems: libraryCatalogWindow,
+                query: normalized,
+              )
+            : await anchorCatalog.loadAroundLocation(
+                maxItems: libraryCatalogWindow,
+                query: normalized,
+                anchorLocationId: anchorLocationId,
+              );
+        if (snapshot.revision != timeline.revision ||
+            snapshot.queryId != timeline.queryId) {
+          throw const LibraryCatalogFailure(
+            code: "catalog_timeline_stale",
+            message: "The catalog changed while its timeline was loading",
+          );
+        }
+      }
+      if (_isDisposed || requestSequence != _scanSequence) {
+        return false;
+      }
+      final baseState = _queryTransitionBaseState ?? state;
+      final windowStart =
+          snapshot.queryAnchorResolution?.windowStartItemOffset ?? 0;
+      _invalidatePreviewContext();
+      _resetRetainedCatalogPages(
+        assets: snapshot.assets,
+        startItemOffset: windowStart,
+        previousCursor: snapshot.previousCursor,
+        nextCursor: snapshot.nextCursor,
+      );
+      state = LibraryState.fromSnapshot(snapshot, query: normalized).copyWith(
+        rootPath: baseState.rootPath,
+        displayRootPath: baseState.displayRootPath,
+        scanId: baseState.scanId,
+        visitedEntries: baseState.visitedEntries,
+        stagedAssetCount: baseState.stagedAssetCount,
+        scanPhase: baseState.scanPhase,
+        validatedAssetCount: baseState.validatedAssetCount,
+        validationAssetCount: baseState.validationAssetCount,
+        itemLimit: baseState.itemLimit,
+        entryLimit: baseState.entryLimit,
+        recentIssues: baseState.recentIssues,
+        isScanLimited: baseState.isScanLimited,
+        windowStartItemOffset: windowStart,
+        timeline: timeline,
+        activeTimeAnchor: null,
+        isLoadingTimeline: false,
+        isLoadingTimeAnchor: false,
+        pageErrorMessage: null,
+        previousPageErrorMessage: null,
+        timeNavigationErrorMessage: null,
+        errorMessage: null,
+      );
+      _queryTransitionBaseState = null;
+      _queryTransitionRequestSequence = null;
+      return true;
     } on Object catch (error) {
       if (!_isDisposed && requestSequence == _scanSequence) {
-        state = state.copyWith(
-          status: LibraryStatus.failed,
+        final baseState = _queryTransitionBaseState ?? state;
+        _queryTransitionBaseState = null;
+        _queryTransitionRequestSequence = null;
+        state = baseState.copyWith(
           isLoadingTimeline: false,
           errorMessage: error.toString(),
         );
@@ -433,18 +561,43 @@ class LibraryController extends Notifier<LibraryState> {
           message: "The gallery query changed while loading another window",
         );
       }
-      final assetsByLocation = {
-        for (final asset in state.assets) asset.locationId: asset,
-      };
-      for (final asset in snapshot.assets) {
-        assetsByLocation[asset.locationId] = asset;
+      _ensureRetainedCatalogPagesCurrent();
+      final existingIds = {for (final asset in state.assets) asset.locationId};
+      _mergeRetainedCatalogAssetUpdates(snapshot.assets);
+      final addedAssets = [
+        for (final asset in snapshot.assets)
+          if (!existingIds.contains(asset.locationId)) asset,
+      ];
+      if (addedAssets.isNotEmpty) {
+        _retainedCatalogPages.add(
+          _RetainedCatalogPage(
+            assets: List.unmodifiable(addedAssets),
+            startItemOffset: state.windowStartItemOffset + state.assets.length,
+            previousCursor: snapshot.previousCursor,
+            nextCursor: snapshot.nextCursor,
+          ),
+        );
+      } else if (_retainedCatalogPages.isNotEmpty) {
+        final lastIndex = _retainedCatalogPages.length - 1;
+        final lastPage = _retainedCatalogPages[lastIndex];
+        _retainedCatalogPages[lastIndex] = _RetainedCatalogPage(
+          assets: lastPage.assets,
+          startItemOffset: lastPage.startItemOffset,
+          previousCursor: lastPage.previousCursor,
+          nextCursor: snapshot.nextCursor,
+        );
       }
+      _trimRetainedCatalogPages(trimLeading: true);
+      final retainedAssets = _retainedCatalogAssets();
+      final firstPage = _retainedCatalogPages.first;
       state = state.copyWith(
         roots: snapshot.roots,
-        assets: List.unmodifiable(assetsByLocation.values),
+        assets: retainedAssets,
         catalogPath: snapshot.catalogPath,
         catalogRevision: snapshot.revision,
         queryId: snapshot.queryId,
+        windowStartItemOffset: firstPage.startItemOffset,
+        previousCursor: firstPage.previousCursor,
         nextCursor: snapshot.nextCursor,
         isLoadingPage: false,
       );
@@ -513,28 +666,48 @@ class LibraryController extends Notifier<LibraryState> {
           message: "The gallery changed while loading the previous window",
         );
       }
-      final precedingIds = {
-        for (final asset in snapshot.assets) asset.locationId,
-      };
+      _ensureRetainedCatalogPagesCurrent();
       final existingIds = {for (final asset in state.assets) asset.locationId};
-      final addedItemCount = snapshot.assets
-          .where((asset) => !existingIds.contains(asset.locationId))
-          .length;
-      final mergedAssets = [
-        ...snapshot.assets,
-        for (final asset in state.assets)
-          if (!precedingIds.contains(asset.locationId)) asset,
+      _mergeRetainedCatalogAssetUpdates(snapshot.assets);
+      final addedAssets = [
+        for (final asset in snapshot.assets)
+          if (!existingIds.contains(asset.locationId)) asset,
       ];
+      final addedItemCount = addedAssets.length;
+      if (addedAssets.isNotEmpty) {
+        _retainedCatalogPages.insert(
+          0,
+          _RetainedCatalogPage(
+            assets: List.unmodifiable(addedAssets),
+            startItemOffset: (state.windowStartItemOffset - addedItemCount)
+                .clamp(0, state.timeline?.totalItems ?? 0)
+                .toInt(),
+            previousCursor: snapshot.previousCursor,
+            nextCursor: snapshot.nextCursor,
+          ),
+        );
+      } else if (_retainedCatalogPages.isNotEmpty) {
+        final firstPage = _retainedCatalogPages.first;
+        _retainedCatalogPages[0] = _RetainedCatalogPage(
+          assets: firstPage.assets,
+          startItemOffset: firstPage.startItemOffset,
+          previousCursor: snapshot.previousCursor,
+          nextCursor: firstPage.nextCursor,
+        );
+      }
+      _trimRetainedCatalogPages(trimLeading: false);
+      final retainedAssets = _retainedCatalogAssets();
+      final firstPage = _retainedCatalogPages.first;
+      final lastPage = _retainedCatalogPages.last;
       state = state.copyWith(
         roots: snapshot.roots,
-        assets: List.unmodifiable(mergedAssets),
+        assets: retainedAssets,
         catalogPath: snapshot.catalogPath,
         catalogRevision: snapshot.revision,
         queryId: snapshot.queryId,
-        windowStartItemOffset: (state.windowStartItemOffset - addedItemCount)
-            .clamp(0, state.timeline?.totalItems ?? 0)
-            .toInt(),
-        previousCursor: snapshot.previousCursor,
+        windowStartItemOffset: firstPage.startItemOffset,
+        previousCursor: firstPage.previousCursor,
+        nextCursor: lastPage.nextCursor,
         isLoadingPreviousPage: false,
       );
       return snapshot.assets.isNotEmpty;
@@ -707,7 +880,7 @@ class LibraryController extends Notifier<LibraryState> {
   }
 
   Future<bool> _loadTimeNavigation(_PendingTimeNavigation request) async {
-    final requestSequence = ++_scanSequence;
+    final requestSequence = _advanceSequenceOutsideQueryTransition();
     _loadingTimeNavigationGeneration = request.generation;
     state = state.copyWith(
       isLoadingTimeAnchor: true,
@@ -731,8 +904,14 @@ class LibraryController extends Notifier<LibraryState> {
           message: "The catalog changed while navigating the timeline",
         );
       }
-      _previewQueue?.retainPending(
+      _previewCoordinator?.retainPending(
         snapshot.assets.map((asset) => asset.locationId),
+      );
+      _resetRetainedCatalogPages(
+        assets: snapshot.assets,
+        startItemOffset: request.globalItemOffset,
+        previousCursor: snapshot.previousCursor,
+        nextCursor: snapshot.nextCursor,
       );
       state = state.copyWith(
         roots: snapshot.roots,
@@ -807,7 +986,7 @@ class LibraryController extends Notifier<LibraryState> {
     if (state.isBusy) {
       return false;
     }
-    final requestSequence = ++_scanSequence;
+    final requestSequence = _advanceSequenceOutsideQueryTransition();
     state = state.copyWith(
       status: LibraryStatus.refreshing,
       errorMessage: null,
@@ -853,20 +1032,22 @@ class LibraryController extends Notifier<LibraryState> {
     LibraryAsset asset, {
     bool retry = false,
     LibraryPreviewPriority priority = LibraryPreviewPriority.visible,
+    int previewEdge = _previewEdge,
   }) {
-    final resolved = _previewStore.resolve(asset);
-    if (resolved.previewStatus == LibraryPreviewStatus.ready && !retry) {
-      return;
-    }
-    _previews.request(resolved, retry: retry, priority: priority);
+    _previews.request(
+      asset,
+      retry: retry,
+      priority: priority,
+      previewEdge: previewEdge,
+    );
   }
 
   LibraryAsset resolvePreview(LibraryAsset asset) {
-    return _previewStore.resolve(asset);
+    return _previews.resolve(asset);
   }
 
   Stream<void> watchPreview(String locationId) {
-    return _previewStore.changesFor(locationId);
+    return _previews.watch(locationId);
   }
 
   void updateGalleryPreviewDemand({
@@ -874,98 +1055,23 @@ class LibraryController extends Notifier<LibraryState> {
     Iterable<LibraryAsset> nearDirection = const <LibraryAsset>[],
     Iterable<LibraryAsset> guard = const <LibraryAsset>[],
     Iterable<LibraryAsset> idle = const <LibraryAsset>[],
+    Map<String, int> previewEdges = const <String, int>{},
   }) {
-    if (_isDisposed) {
-      return;
-    }
-    final requests =
-        <String, ({LibraryAsset asset, LibraryPreviewPriority priority})>{};
-
-    void addRequests(
-      Iterable<LibraryAsset> assets,
-      LibraryPreviewPriority priority,
-    ) {
-      for (final asset in assets) {
-        final current = requests[asset.locationId];
-        if (current == null || priority.index > current.priority.index) {
-          requests[asset.locationId] = (asset: asset, priority: priority);
-        }
-      }
-    }
-
-    addRequests(idle, LibraryPreviewPriority.idle);
-    addRequests(guard, LibraryPreviewPriority.guard);
-    addRequests(nearDirection, LibraryPreviewPriority.nearDirection);
-    addRequests(visible, LibraryPreviewPriority.visible);
-    if (_hasSameGalleryPreviewDemand(requests)) {
-      return;
-    }
-    _galleryPreviewDemand = requests;
-    _applyPreviewDemand();
-  }
-
-  bool _hasSameGalleryPreviewDemand(
-    Map<String, ({LibraryAsset asset, LibraryPreviewPriority priority})> next,
-  ) {
-    if (_galleryPreviewDemand.length != next.length) {
-      return false;
-    }
-    for (final entry in next.entries) {
-      final current = _galleryPreviewDemand[entry.key];
-      if (current == null ||
-          current.priority != entry.value.priority ||
-          !libraryPreviewSourcesAreCompatible(
-            current.asset,
-            entry.value.asset,
-          )) {
-        return false;
-      }
-    }
-    return true;
+    _previews.updateGalleryDemand(
+      visible: visible,
+      nearDirection: nearDirection,
+      guard: guard,
+      idle: idle,
+      previewEdges: previewEdges,
+    );
   }
 
   void updateViewerPreviewDemand(LibraryAsset? viewer) {
-    if (_isDisposed) {
-      return;
-    }
-    _viewerPreviewDemand = viewer;
-    _applyPreviewDemand();
-  }
-
-  void _applyPreviewDemand() {
-    final requests = {..._galleryPreviewDemand};
-    final viewer = _viewerPreviewDemand;
-    if (viewer != null) {
-      requests[viewer.locationId] = (
-        asset: viewer,
-        priority: LibraryPreviewPriority.viewer,
-      );
-    }
-    _previewStore.retain(requests.keys);
-    final priorities = {
-      for (final MapEntry(key: locationId, value: request) in requests.entries)
-        locationId: request.priority,
-    };
-    if (priorities.isEmpty) {
-      _previewQueue?.updatePendingDemand(priorities);
-      return;
-    }
-    _previews.replaceDemandAndRequestAll(priorities, [
-      for (final priority in LibraryPreviewPriority.values.reversed)
-        for (final request in requests.values)
-          if (request.priority == priority)
-            (
-              asset: _previewStore.resolve(request.asset),
-              priority: request.priority,
-            ),
-    ]);
+    _previews.updateViewerDemand(viewer);
   }
 
   void _invalidatePreviewContext() {
-    _previewQueue?.invalidateAll();
-    _previewStore.clear();
-    _galleryPreviewDemand = const {};
-    _viewerPreviewDemand = null;
+    _previewCoordinator?.invalidateAll();
   }
 
   void ensureVisibleRange({
@@ -1119,17 +1225,44 @@ class LibraryController extends Notifier<LibraryState> {
     );
   }
 
-  void _publishPreview(LibraryAsset replacement) {
+  bool _canPublishPreview(LibraryAsset replacement) {
     for (final asset in state.assets) {
+      if (asset.locationId == replacement.locationId) {
+        return libraryPreviewSourcesAreCompatible(asset, replacement);
+      }
+    }
+    return true;
+  }
+
+  void _handlePreviewPublished(LibraryAsset replacement) {
+    for (var index = 0; index < state.assets.length; index++) {
+      final asset = state.assets[index];
       if (asset.locationId != replacement.locationId) {
         continue;
       }
-      if (!libraryPreviewSourcesAreCompatible(asset, replacement)) {
-        return;
+      final revision = state.catalogRevision;
+      if ((asset.width <= 0 || asset.height <= 0) &&
+          replacement.width > 0 &&
+          replacement.height > 0 &&
+          revision != null &&
+          state.queryId.isNotEmpty) {
+        _layoutDimensionUpdates.add(
+          LibraryGalleryLayoutDimensionUpdate(
+            revision: revision,
+            queryId: state.queryId,
+            globalItemIndex: state.windowStartItemOffset + index,
+            locationId: replacement.locationId,
+            width: replacement.width,
+            height: replacement.height,
+          ),
+        );
       }
       break;
     }
-    _previewStore.publish(replacement);
+  }
+
+  Stream<LibraryGalleryLayoutDimensionUpdate> watchLayoutDimensionUpdates() {
+    return _layoutDimensionUpdates.stream;
   }
 
   void _handleUpdate(_ActiveScanRun run, LibraryScanUpdate update) {
@@ -1361,7 +1494,7 @@ class LibraryController extends Notifier<LibraryState> {
     return _enqueueScanStart(
       allowedBusyStatus: LibraryStatus.paused,
       start: () {
-        _scanSequence += 1;
+        _advanceSequenceOutsideQueryTransition();
         return _startScan(
           scanId: scan.scanId,
           rootPath: scan.rootPath,
@@ -1376,6 +1509,12 @@ class LibraryController extends Notifier<LibraryState> {
         );
       },
     );
+  }
+
+  int _advanceSequenceOutsideQueryTransition() {
+    _queryTransitionBaseState = null;
+    _queryTransitionRequestSequence = null;
+    return ++_scanSequence;
   }
 
   static int _globalItemOffsetForAnchor(
@@ -1394,6 +1533,99 @@ class LibraryController extends Notifier<LibraryState> {
       precedingItems += bucket.itemCount;
     }
     return 0;
+  }
+
+  void _resetRetainedCatalogPages({
+    required List<LibraryAsset> assets,
+    required int startItemOffset,
+    required LibraryCatalogCursor? previousCursor,
+    required LibraryCatalogCursor? nextCursor,
+  }) {
+    _retainedCatalogPages
+      ..clear()
+      ..addAll(
+        assets.isEmpty
+            ? const []
+            : [
+                _RetainedCatalogPage(
+                  assets: List.unmodifiable(assets),
+                  startItemOffset: startItemOffset,
+                  previousCursor: previousCursor,
+                  nextCursor: nextCursor,
+                ),
+              ],
+      );
+  }
+
+  void _ensureRetainedCatalogPagesCurrent() {
+    final retainedCount = _retainedCatalogPages.fold(
+      0,
+      (total, page) => total + page.assets.length,
+    );
+    if (_retainedCatalogPages.isNotEmpty &&
+        retainedCount == state.assets.length &&
+        _retainedCatalogPages.first.startItemOffset ==
+            state.windowStartItemOffset) {
+      return;
+    }
+    _resetRetainedCatalogPages(
+      assets: state.assets,
+      startItemOffset: state.windowStartItemOffset,
+      previousCursor: state.previousCursor,
+      nextCursor: state.nextCursor,
+    );
+  }
+
+  void _mergeRetainedCatalogAssetUpdates(List<LibraryAsset> updates) {
+    final replacements = {for (final asset in updates) asset.locationId: asset};
+    if (replacements.isEmpty) {
+      return;
+    }
+    for (var index = 0; index < _retainedCatalogPages.length; index++) {
+      final page = _retainedCatalogPages[index];
+      var didChange = false;
+      final assets = [
+        for (final asset in page.assets)
+          replacements[asset.locationId] ?? asset,
+      ];
+      for (var assetIndex = 0; assetIndex < page.assets.length; assetIndex++) {
+        if (!identical(page.assets[assetIndex], assets[assetIndex])) {
+          didChange = true;
+          break;
+        }
+      }
+      if (didChange) {
+        _retainedCatalogPages[index] = _RetainedCatalogPage(
+          assets: List.unmodifiable(assets),
+          startItemOffset: page.startItemOffset,
+          previousCursor: page.previousCursor,
+          nextCursor: page.nextCursor,
+        );
+      }
+    }
+  }
+
+  void _trimRetainedCatalogPages({required bool trimLeading}) {
+    var retainedCount = _retainedCatalogPages.fold(
+      0,
+      (total, page) => total + page.assets.length,
+    );
+    if (retainedCount <= _retainedDetailHighWatermark) {
+      return;
+    }
+    while (_retainedCatalogPages.length > 1 &&
+        retainedCount > _retainedDetailLowWatermark) {
+      final removed = trimLeading
+          ? _retainedCatalogPages.removeAt(0)
+          : _retainedCatalogPages.removeLast();
+      retainedCount -= removed.assets.length;
+    }
+  }
+
+  List<LibraryAsset> _retainedCatalogAssets() {
+    return List.unmodifiable([
+      for (final page in _retainedCatalogPages) ...page.assets,
+    ]);
   }
 
   Future<void> _reloadFirstCatalogPage(int scanSequence) async {
@@ -1437,6 +1669,12 @@ class LibraryController extends Notifier<LibraryState> {
         state.queryId != snapshot.queryId) {
       _invalidatePreviewContext();
     }
+    _resetRetainedCatalogPages(
+      assets: snapshot.assets,
+      startItemOffset: 0,
+      previousCursor: snapshot.previousCursor,
+      nextCursor: snapshot.nextCursor,
+    );
     state = LibraryState.fromSnapshot(snapshot, query: query).copyWith(
       rootPath: rootPath,
       displayRootPath: displayRootPath,
@@ -1489,6 +1727,14 @@ class LibraryController extends Notifier<LibraryState> {
       }
     }
   }
+}
+
+int _maxActivePreviewsFor(PreviewLoadingSpeed speed) {
+  return switch (speed) {
+    PreviewLoadingSpeed.small => 1,
+    PreviewLoadingSpeed.medium => 2,
+    PreviewLoadingSpeed.large => 4,
+  };
 }
 
 final initialLibraryStateProvider = Provider<LibraryState>((ref) {

@@ -1,11 +1,16 @@
 import "package:flutter/material.dart";
 
+import "ame_overlay_semantics.dart";
+import "ame_typography.dart";
+
 abstract final class AmeMenuMetrics {
   static const double minimumWidth = 112;
   static const double maximumWidth = 280;
   static const double itemHeight = 48;
   static const double iconSize = 24;
   static const double iconLabelGap = 12;
+  static const double selectionIndicatorSlotWidth = 8;
+  static const double selectionIndicatorSize = 6;
   static const double shortcutGap = 24;
   static const double horizontalPadding = 12;
   static const double verticalPadding = 8;
@@ -78,6 +83,9 @@ class AmeMenuAnchor extends StatelessWidget {
     required this.menuChildren,
     this.controller,
     this.childFocusNode,
+    this.style,
+    this.alignmentOffset,
+    this.reservedPadding = const EdgeInsets.all(AmeMenuMetrics.viewportPadding),
     this.builder,
     this.child,
     super.key,
@@ -85,20 +93,65 @@ class AmeMenuAnchor extends StatelessWidget {
 
   final MenuController? controller;
   final FocusNode? childFocusNode;
+  final MenuStyle? style;
+  final Offset? alignmentOffset;
+  final EdgeInsetsGeometry reservedPadding;
   final List<Widget> menuChildren;
   final MenuAnchorChildBuilder? builder;
   final Widget? child;
 
   @override
   Widget build(BuildContext context) {
-    return MenuAnchor(
-      controller: controller,
-      childFocusNode: childFocusNode,
-      animated: true,
-      menuChildren: menuChildren,
-      builder: builder,
-      child: child,
+    final anchorBuilder = builder;
+    final anchorChild = child;
+    final isolatedBuilder = anchorBuilder == null
+        ? null
+        : (BuildContext context, MenuController controller, Widget? child) =>
+              AmeOverlayTraversalBoundary(
+                child: anchorBuilder(context, controller, child),
+              );
+    return AmeOverlayTraversalBoundary(
+      child: MenuAnchor(
+        controller: controller,
+        childFocusNode: childFocusNode,
+        style: style,
+        alignmentOffset: alignmentOffset ?? Offset.zero,
+        reservedPadding: reservedPadding,
+        menuChildren: menuChildren,
+        builder: isolatedBuilder,
+        child: anchorChild == null
+            ? null
+            : AmeOverlayTraversalBoundary(child: anchorChild),
+      ),
     );
+  }
+}
+
+MenuStyle ameFixedWidthMenuStyle(double width) {
+  return MenuStyle(
+    minimumSize: WidgetStatePropertyAll(Size(width, 0)),
+    maximumSize: WidgetStatePropertyAll(Size(width, double.infinity)),
+  );
+}
+
+Offset ameMenuBelowEndAlignment({
+  required double menuWidth,
+  double anchorWidth = 48,
+  double endOffset = 0,
+  double verticalGap = 4,
+}) {
+  return Offset(anchorWidth - menuWidth + endOffset, verticalGap);
+}
+
+Widget ameFixedWidthMenuItem({required double width, required Widget child}) {
+  return SizedBox(width: width, child: child);
+}
+
+void toggleAmeMenu(MenuController controller) {
+  if (controller.isOpen) {
+    controller.close();
+  } else {
+    controller.open();
   }
 }
 
@@ -107,12 +160,14 @@ class AmeMenuItemContent extends StatelessWidget {
     required this.icon,
     required this.label,
     this.shortcut,
+    this.isSelected = false,
     super.key,
   });
 
   final IconData icon;
   final String label;
   final String? shortcut;
+  final bool isSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -126,13 +181,28 @@ class AmeMenuItemContent extends StatelessWidget {
             constraints: const BoxConstraints(
               maxWidth: AmeMenuMetrics.maximumLabelWidth,
             ),
-            child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                fontWeight: isSelected
+                    ? ameFontWeightSemibold
+                    : ameFontWeightMedium,
+              ),
+            ),
           ),
         ),
         if (shortcut case final shortcut?) ...[
           const SizedBox(width: AmeMenuMetrics.shortcutGap),
-          Flexible(
-            child: Text(shortcut, maxLines: 1, overflow: TextOverflow.ellipsis),
+          Text(
+            shortcut,
+            maxLines: 1,
+            softWrap: false,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontWeight: ameFontWeightRegular,
+            ),
           ),
         ],
       ],
@@ -144,13 +214,15 @@ double amePopupMenuContentWidth({
   required BuildContext context,
   required Iterable<String> labels,
   Iterable<String> shortcuts = const [],
-  bool hasLeadingIcon = true,
+  bool hasContentIcon = true,
+  double leadingIconWidth = 0,
 }) {
   final popupMenuTheme = PopupMenuTheme.of(context);
   final textStyle =
-      popupMenuTheme.labelTextStyle?.resolve(const <WidgetState>{}) ??
-      Theme.of(context).textTheme.labelLarge ??
-      const TextStyle();
+      (popupMenuTheme.labelTextStyle?.resolve(const <WidgetState>{}) ??
+              Theme.of(context).textTheme.labelLarge ??
+              const TextStyle())
+          .copyWith(fontWeight: ameFontWeightSemibold);
   final textPainter = TextPainter(
     textDirection: Directionality.of(context),
     textScaler: MediaQuery.textScalerOf(context),
@@ -174,11 +246,16 @@ double amePopupMenuContentWidth({
     }
   }
   textPainter.dispose();
-  final decorationWidth = hasLeadingIcon
-      ? (AmeMenuMetrics.horizontalPadding * 2) +
-            AmeMenuMetrics.iconSize +
-            AmeMenuMetrics.iconLabelGap
-      : AmeMenuMetrics.horizontalPadding * 2;
+  final contentIconWidth = hasContentIcon
+      ? AmeMenuMetrics.iconSize + AmeMenuMetrics.iconLabelGap
+      : 0;
+  final leadingDecorationWidth = leadingIconWidth > 0
+      ? leadingIconWidth + AmeMenuMetrics.iconLabelGap
+      : 0;
+  final decorationWidth =
+      (AmeMenuMetrics.horizontalPadding * 2) +
+      contentIconWidth +
+      leadingDecorationWidth;
   return (maximumContentWidth + decorationWidth)
       .clamp(AmeMenuMetrics.minimumWidth, AmeMenuMetrics.maximumWidth)
       .ceilToDouble();

@@ -1,7 +1,10 @@
 import "dart:async";
 
 import "package:flutter/material.dart";
+import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_overlay_semantics.dart";
+import "../../../../app/presentation/ame_typography.dart";
 import "../../application/library_folder_controller.dart";
 import "../../domain/library_folder_models.dart";
 import "../../domain/library_models.dart";
@@ -81,20 +84,26 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                 padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
                 children: [
                   if (widget.isCompact) ...[
-                    IconButton(
-                      key: const Key("library-sidebar-library"),
-                      isSelected:
-                          !widget.isSettingsSelected &&
-                          widget.selectedRootId == null,
-                      tooltip: LibraryStrings.library,
-                      onPressed: widget.isBusy ? null : widget.onSelectLibrary,
-                      icon: const Icon(Icons.photo_library_outlined),
+                    AmeTooltip(
+                      message: LibraryStrings.library,
+                      child: IconButton(
+                        key: const Key("library-sidebar-library"),
+                        isSelected:
+                            !widget.isSettingsSelected &&
+                            widget.selectedRootId == null,
+                        onPressed: widget.isBusy
+                            ? null
+                            : widget.onSelectLibrary,
+                        icon: const Icon(Symbols.photo_library_rounded),
+                      ),
                     ),
-                    IconButton(
-                      key: const Key("library-sidebar-import"),
-                      tooltip: LibraryStrings.addFolder,
-                      onPressed: widget.isBusy ? null : widget.onAddSource,
-                      icon: const Icon(Icons.create_new_folder_outlined),
+                    AmeTooltip(
+                      message: LibraryStrings.addFolder,
+                      child: IconButton(
+                        key: const Key("library-sidebar-import"),
+                        onPressed: widget.isBusy ? null : widget.onAddSource,
+                        icon: const Icon(Symbols.create_new_folder_rounded),
+                      ),
                     ),
                   ] else
                     ListTile(
@@ -113,16 +122,27 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                       horizontalTitleGap: 12,
                       leading: const SizedBox(
                         width: 24,
-                        child: Icon(Icons.photo_library_outlined),
+                        child: Icon(Symbols.photo_library_rounded),
                       ),
-                      title: const Text(LibraryStrings.library),
+                      title: Text(
+                        LibraryStrings.library,
+                        style: _navigationTitleStyle(
+                          context,
+                          !widget.isSettingsSelected &&
+                              widget.selectedRootId == null,
+                        ),
+                      ),
                       trailing: SizedBox(
                         width: 48,
-                        child: IconButton(
-                          key: const Key("library-sidebar-import"),
-                          tooltip: LibraryStrings.addFolder,
-                          onPressed: widget.isBusy ? null : widget.onAddSource,
-                          icon: const Icon(Icons.create_new_folder_outlined),
+                        child: AmeTooltip(
+                          message: LibraryStrings.addFolder,
+                          child: IconButton(
+                            key: const Key("library-sidebar-import"),
+                            onPressed: widget.isBusy
+                                ? null
+                                : widget.onAddSource,
+                            icon: const Icon(Symbols.create_new_folder_rounded),
+                          ),
                         ),
                       ),
                       onTap: widget.isBusy ? null : widget.onSelectLibrary,
@@ -130,14 +150,16 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                   const SizedBox(height: 12),
                   if (widget.roots.isEmpty && widget.transientRootPath == null)
                     if (widget.isCompact)
-                      const IconButton(
-                        tooltip: LibraryStrings.noFolder,
-                        onPressed: null,
-                        icon: Icon(Icons.folder_off_outlined),
+                      const AmeTooltip(
+                        message: LibraryStrings.noFolder,
+                        child: IconButton(
+                          onPressed: null,
+                          icon: Icon(Symbols.folder_off_rounded),
+                        ),
                       )
                     else
                       const ListTile(
-                        leading: Icon(Icons.folder_off_outlined),
+                        leading: Icon(Symbols.folder_off_rounded),
                         title: Text(LibraryStrings.noFolder),
                       ),
                   for (final root in widget.roots) ...[
@@ -170,12 +192,14 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
             Padding(
               padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
               child: widget.isCompact
-                  ? IconButton(
-                      key: const Key("library-sidebar-settings"),
-                      isSelected: widget.isSettingsSelected,
-                      tooltip: LibraryStrings.settings,
-                      onPressed: widget.onOpenSettings,
-                      icon: const Icon(Icons.settings_outlined),
+                  ? AmeTooltip(
+                      message: LibraryStrings.settings,
+                      child: IconButton(
+                        key: const Key("library-sidebar-settings"),
+                        isSelected: widget.isSettingsSelected,
+                        onPressed: widget.onOpenSettings,
+                        icon: const Icon(Symbols.settings_rounded),
+                      ),
                     )
                   : ListTile(
                       key: const Key("library-sidebar-settings"),
@@ -193,9 +217,15 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                       horizontalTitleGap: 12,
                       leading: const SizedBox(
                         width: 24,
-                        child: Icon(Icons.settings_outlined),
+                        child: Icon(Symbols.settings_rounded),
                       ),
-                      title: const Text(LibraryStrings.settings),
+                      title: Text(
+                        LibraryStrings.settings,
+                        style: _navigationTitleStyle(
+                          context,
+                          widget.isSettingsSelected,
+                        ),
+                      ),
                       onTap: widget.onOpenSettings,
                     ),
             ),
@@ -229,6 +259,7 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
       final isExpanded = _isExpanded(root.id, folder.relativePath);
       children.add(
         LibraryFolderNavigationTile(
+          key: ValueKey("folder-navigation-${root.id}-${folder.relativePath}"),
           root: root,
           folder: folder,
           depth: depth,
@@ -285,4 +316,10 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
     setState(() => _expandedBranches.add(key));
     unawaited(widget.onExpandFolder(rootId, parentRelativePath));
   }
+}
+
+TextStyle? _navigationTitleStyle(BuildContext context, bool isSelected) {
+  return Theme.of(context).textTheme.bodyLarge?.copyWith(
+    fontWeight: isSelected ? ameFontWeightSemibold : ameFontWeightMedium,
+  );
 }

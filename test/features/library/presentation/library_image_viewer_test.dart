@@ -129,15 +129,19 @@ void main() {
     await tester.pump(const Duration(milliseconds: 250));
     final copyPathItem = find.ancestor(
       of: find.text("复制路径"),
-      matching: find.byWidgetPredicate((widget) => widget is PopupMenuItem),
+      matching: find.byType(MenuItemButton),
     );
     final copyPathItemRect = tester.getRect(copyPathItem);
     expect(find.byType(AmeMenuItemContent), findsNWidgets(2));
     expect(copyPathItemRect.width, lessThan(280));
     expect(copyPathItemRect.right, lessThanOrEqualTo(984));
-    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    final moreButtonCenter = tester.getCenter(
+      find.byKey(const Key("viewer-more-menu")),
+    );
+    await tester.tapAt(moreButtonCenter);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 250));
+    expect(find.text("复制路径"), findsNothing);
 
     expect(find.text("100%"), findsNothing);
 

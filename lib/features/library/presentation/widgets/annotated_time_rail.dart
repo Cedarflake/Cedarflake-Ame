@@ -1,5 +1,7 @@
 import "package:flutter/material.dart";
+import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "timeline_annotation_visibility.dart";
 import "timeline_linear_projection.dart";
 import "timeline_rail_model.dart";
@@ -76,7 +78,7 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
             _buildStepButton(
               key: const Key("timeline-previous"),
               tooltip: "向较新的内容移动一行",
-              icon: Icons.arrow_drop_up,
+              icon: Symbols.arrow_drop_up_rounded,
               direction: -1,
             ),
             Expanded(
@@ -229,7 +231,7 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
             _buildStepButton(
               key: const Key("timeline-next"),
               tooltip: "向较早的内容移动一行",
-              icon: Icons.arrow_drop_down,
+              icon: Symbols.arrow_drop_down_rounded,
               direction: 1,
             ),
           ],
@@ -249,11 +251,13 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
       child: SizedBox(
         width: _controlWidth,
         height: kMinInteractiveDimension,
-        child: IconButton(
-          key: key,
-          tooltip: tooltip,
-          onPressed: () => _step(direction),
-          icon: Icon(icon),
+        child: AmeTooltip(
+          message: tooltip,
+          child: IconButton(
+            key: key,
+            onPressed: () => _step(direction),
+            icon: Icon(icon),
+          ),
         ),
       ),
     );
@@ -298,7 +302,7 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
         top: markerCenter - (_labelExtent / 2),
         width: 40,
         height: _labelExtent,
-        child: Tooltip(
+        child: AmeTooltip(
           message: anchor.bucket.label,
           child: Align(
             alignment: Alignment.centerRight,

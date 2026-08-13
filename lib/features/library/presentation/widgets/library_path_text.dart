@@ -1,5 +1,7 @@
 import "package:flutter/material.dart";
 
+import "../../../../app/presentation/ame_overlay_semantics.dart";
+
 class LibraryPathText extends StatelessWidget {
   const LibraryPathText({
     required this.text,
@@ -35,7 +37,7 @@ class LibraryPathText extends StatelessWidget {
         if (!alwaysShowPathTooltip && !painter.didExceedMaxLines) {
           content = label;
         } else {
-          content = Tooltip(message: path, child: label);
+          content = AmeTooltip(message: path, child: label);
         }
         return Align(alignment: Alignment.centerLeft, child: content);
       },

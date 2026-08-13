@@ -7,8 +7,28 @@ import '../domain.dart';
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
+// These functions are ignored because they are not marked as `pub`: `clear_preview_cache_with`, `clear_retired_preview_cache_with`
+
 StorageStatus loadStorageStatus() =>
     RustLib.instance.api.crateApiStorageLoadStorageStatus();
 
 StorageStatus updateStorageSettings({required StorageSettingsUpdate update}) =>
     RustLib.instance.api.crateApiStorageUpdateStorageSettings(update: update);
+
+Stream<PreviewCleanupEvent> clearPreviewCache({required String operationId}) =>
+    RustLib.instance.api.crateApiStorageClearPreviewCache(
+      operationId: operationId,
+    );
+
+Stream<PreviewCleanupEvent> clearRetiredPreviewCache({
+  required String previewRoot,
+  required String operationId,
+}) => RustLib.instance.api.crateApiStorageClearRetiredPreviewCache(
+  previewRoot: previewRoot,
+  operationId: operationId,
+);
+
+bool cancelPreviewCacheCleanup({required String operationId}) => RustLib
+    .instance
+    .api
+    .crateApiStorageCancelPreviewCacheCleanup(operationId: operationId);

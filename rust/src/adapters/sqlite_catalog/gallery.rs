@@ -2,8 +2,8 @@ use rusqlite::types::Value;
 use rusqlite::{OptionalExtension, Transaction, params, params_from_iter};
 
 use crate::domain::{
-    AssetLocationView, CatalogCursor, GalleryQuery, GallerySortDirection, GallerySortKey,
-    GalleryTimeAnchor, ScanError,
+    AssetLocationView, CatalogCursor, GalleryLocationAnchorResolution, GalleryQuery,
+    GallerySortDirection, GallerySortKey, GalleryTimeAnchor, ScanError,
 };
 
 use super::{
@@ -13,6 +13,149 @@ use super::{
 pub(super) struct BuiltGalleryQuery {
     pub(super) sql: String,
     pub(super) parameters: Vec<Value>,
+}
+
+pub(super) fn resolve_gallery_location_anchor(
+    transaction: &Transaction<'_>,
+    revision: u64,
+    query: &GalleryQuery,
+    query_id: &str,
+    requested_location_id: &str,
+    max_items: u32,
+) -> Result<(GalleryLocationAnchorResolution, Option<CatalogCursor>), ScanError> {
+    let order = gallery_order_expressions(&query.sort_key);
+    let mut anchor_clauses = Vec::new();
+    let mut anchor_parameters = Vec::new();
+    push_gallery_filters(query, &mut anchor_clauses, &mut anchor_parameters);
+    anchor_clauses.push("locations.location_id = ?".to_owned());
+    anchor_parameters.push(Value::Text(requested_location_id.to_owned()));
+    let anchor_sql = format!(
+        "SELECT locations.root_id, locations.location_id,
+                {missing}, {text}, {number}
+         FROM library_roots AS roots
+         JOIN asset_locations AS locations
+           ON locations.scan_id = roots.active_scan_id
+         WHERE {where_clause}
+         LIMIT 1",
+        missing = order.missing,
+        text = order.text,
+        number = order.number,
+        where_clause = anchor_clauses.join(" AND "),
+    );
+    let anchor = transaction
+        .query_row(
+            &anchor_sql,
+            params_from_iter(anchor_parameters.iter()),
+            |row| {
+                Ok(CatalogCursor {
+                    revision,
+                    query_id: query_id.to_owned(),
+                    root_id: row.get(0)?,
+                    location_id: row.get(1)?,
+                    primary_missing: row.get::<_, i64>(2)? != 0,
+                    primary_text: row.get(3)?,
+                    primary_number: row.get(4)?,
+                })
+            },
+        )
+        .optional()
+        .map_err(database_error)?;
+    let Some(anchor) = anchor else {
+        return Ok((
+            GalleryLocationAnchorResolution {
+                requested_location_id: requested_location_id.to_owned(),
+                location_id: None,
+                ordinal: None,
+                window_start_ordinal: 0,
+            },
+            None,
+        ));
+    };
+
+    let mut preceding_clauses = Vec::new();
+    let mut preceding_parameters = Vec::new();
+    push_gallery_filters(query, &mut preceding_clauses, &mut preceding_parameters);
+    push_cursor_filter(
+        &anchor,
+        &order,
+        &query.sort_direction,
+        true,
+        &mut preceding_clauses,
+        &mut preceding_parameters,
+    );
+    let preceding_where = preceding_clauses.join(" AND ");
+    let ordinal_i64: i64 = transaction
+        .query_row(
+            &format!(
+                "SELECT COUNT(*)
+                 FROM library_roots AS roots
+                 JOIN asset_locations AS locations
+                   ON locations.scan_id = roots.active_scan_id
+                 WHERE {preceding_where}"
+            ),
+            params_from_iter(preceding_parameters.iter()),
+            |row| row.get(0),
+        )
+        .map_err(database_error)?;
+    let ordinal = u64::try_from(ordinal_i64).map_err(|_| {
+        ScanError::new(
+            "catalog_location_anchor_invalid",
+            "The gallery location anchor ordinal is outside the supported range",
+        )
+    })?;
+    let window_start_ordinal = ordinal.saturating_sub(u64::from(max_items / 2));
+    let start_after = if window_start_ordinal == 0 {
+        None
+    } else {
+        let reverse_offset = ordinal.saturating_sub(window_start_ordinal);
+        let reverse_direction = gallery_window_direction_sql(&query.sort_direction, true);
+        let reverse_offset = sqlite_integer(reverse_offset, "gallery location anchor offset")?;
+        let predecessor_sql = format!(
+            "SELECT locations.root_id, locations.location_id,
+                    {missing}, {text}, {number}
+             FROM library_roots AS roots
+             JOIN asset_locations AS locations
+               ON locations.scan_id = roots.active_scan_id
+             WHERE {preceding_where}
+             ORDER BY {missing} DESC, {text} {reverse_direction},
+                      {number} {reverse_direction},
+                      locations.root_id DESC, locations.location_id DESC
+             LIMIT 1 OFFSET ?",
+            missing = order.missing,
+            text = order.text,
+            number = order.number,
+        );
+        let mut predecessor_parameters = preceding_parameters;
+        predecessor_parameters.push(Value::Integer(reverse_offset));
+        Some(
+            transaction
+                .query_row(
+                    &predecessor_sql,
+                    params_from_iter(predecessor_parameters.iter()),
+                    |row| {
+                        Ok(CatalogCursor {
+                            revision,
+                            query_id: query_id.to_owned(),
+                            root_id: row.get(0)?,
+                            location_id: row.get(1)?,
+                            primary_missing: row.get::<_, i64>(2)? != 0,
+                            primary_text: row.get(3)?,
+                            primary_number: row.get(4)?,
+                        })
+                    },
+                )
+                .map_err(database_error)?,
+        )
+    };
+    Ok((
+        GalleryLocationAnchorResolution {
+            requested_location_id: requested_location_id.to_owned(),
+            location_id: Some(anchor.location_id),
+            ordinal: Some(ordinal),
+            window_start_ordinal,
+        },
+        start_after,
+    ))
 }
 
 struct GalleryOrderExpressions {

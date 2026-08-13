@@ -11,6 +11,7 @@ blake3 = "1.8.6"
 directories = "6.0.0"
 flutter_rust_bridge = "=2.12.0"
 image = { version = "0.25", default-features = false, features = ["bmp", "gif", "ico", "jpeg", "png", "tiff", "webp"] }
+jpeg-decoder = { version = "=0.3.2", default-features = false }
 kamadak-exif = "=0.6.1"
 rusqlite = { version = "0.40.1", features = ["bundled"] }
 thiserror = "2.0.19"

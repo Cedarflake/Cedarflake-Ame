@@ -1,4 +1,8 @@
 import "package:flutter/material.dart";
+import "package:material_symbols_icons/symbols.dart";
+
+import "../../../../app/presentation/ame_overlay_semantics.dart";
+import "../../../../app/presentation/ame_typography.dart";
 
 class SettingsSection extends StatelessWidget {
   const SettingsSection({
@@ -17,7 +21,12 @@ class SettingsSection extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 10),
-          child: Text(title, style: Theme.of(context).textTheme.titleMedium),
+          child: Text(
+            title,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: ameFontWeightSemibold,
+            ),
+          ),
         ),
         Card(
           margin: EdgeInsets.zero,
@@ -68,7 +77,12 @@ class SettingsRow extends StatelessWidget {
       minLeadingWidth: 24,
       horizontalTitleGap: 20,
       leading: Icon(icon),
-      title: Text(title),
+      title: Text(
+        title,
+        style: Theme.of(
+          context,
+        ).textTheme.bodyLarge?.copyWith(fontWeight: ameFontWeightSemibold),
+      ),
       subtitle: Padding(
         padding: const EdgeInsets.only(top: 4),
         child: DefaultTextStyle.merge(
@@ -101,16 +115,20 @@ class SettingsChoice<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DropdownMenu<T>(
-      key: ValueKey(value),
-      width: 176,
-      initialSelection: value,
-      enabled: enabled,
-      enableSearch: false,
-      requestFocusOnTap: false,
-      selectOnly: true,
-      onSelected: onSelected,
-      dropdownMenuEntries: entries,
+    return AmeOverlayTraversalBoundary(
+      child: DropdownMenu<T>(
+        key: ValueKey(value),
+        width: 176,
+        initialSelection: value,
+        enabled: enabled,
+        enableSearch: false,
+        requestFocusOnTap: false,
+        selectOnly: true,
+        trailingIcon: const Icon(Symbols.arrow_drop_down_rounded),
+        selectedTrailingIcon: const Icon(Symbols.arrow_drop_up_rounded),
+        onSelected: onSelected,
+        dropdownMenuEntries: entries,
+      ),
     );
   }
 }

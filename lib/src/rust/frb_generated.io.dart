@@ -25,6 +25,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   AnyhowException dco_decode_AnyhowException(dynamic raw);
 
   @protected
+  RustStreamSink<PreviewCleanupEvent>
+  dco_decode_StreamSink_preview_cleanup_event_Sse(dynamic raw);
+
+  @protected
   RustStreamSink<ScanEvent> dco_decode_StreamSink_scan_event_Sse(dynamic raw);
 
   @protected
@@ -53,6 +57,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   GalleryLayoutManifestCursor
   dco_decode_box_autoadd_gallery_layout_manifest_cursor(dynamic raw);
+
+  @protected
+  GalleryLocationAnchorResolution
+  dco_decode_box_autoadd_gallery_location_anchor_resolution(dynamic raw);
 
   @protected
   GalleryQuery dco_decode_box_autoadd_gallery_query(dynamic raw);
@@ -90,6 +98,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int dco_decode_box_autoadd_u_32(dynamic raw);
 
   @protected
+  BigInt dco_decode_box_autoadd_u_64(dynamic raw);
+
+  @protected
   CaptureTimeEvidence dco_decode_capture_time_evidence(dynamic raw);
 
   @protected
@@ -114,6 +125,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   GalleryLayoutManifestCursor dco_decode_gallery_layout_manifest_cursor(
+    dynamic raw,
+  );
+
+  @protected
+  GalleryLocationAnchorResolution dco_decode_gallery_location_anchor_resolution(
     dynamic raw,
   );
 
@@ -186,6 +202,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
 
   @protected
+  List<RetiredPreviewRootView> dco_decode_list_retired_preview_root_view(
+    dynamic raw,
+  );
+
+  @protected
   String? dco_decode_opt_String(dynamic raw);
 
   @protected
@@ -206,6 +227,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_opt_box_autoadd_gallery_layout_manifest_cursor(dynamic raw);
 
   @protected
+  GalleryLocationAnchorResolution?
+  dco_decode_opt_box_autoadd_gallery_location_anchor_resolution(dynamic raw);
+
+  @protected
   int? dco_decode_opt_box_autoadd_i_16(dynamic raw);
 
   @protected
@@ -223,6 +248,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int? dco_decode_opt_box_autoadd_u_32(dynamic raw);
 
   @protected
+  BigInt? dco_decode_opt_box_autoadd_u_64(dynamic raw);
+
+  @protected
+  PreviewCleanupEvent dco_decode_preview_cleanup_event(dynamic raw);
+
+  @protected
   PreviewRequest dco_decode_preview_request(dynamic raw);
 
   @protected
@@ -230,6 +261,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   RecoverableScan dco_decode_recoverable_scan(dynamic raw);
+
+  @protected
+  RetiredPreviewRootView dco_decode_retired_preview_root_view(dynamic raw);
 
   @protected
   ScanError dco_decode_scan_error(dynamic raw);
@@ -266,6 +300,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer);
+
+  @protected
+  RustStreamSink<PreviewCleanupEvent>
+  sse_decode_StreamSink_preview_cleanup_event_Sse(SseDeserializer deserializer);
 
   @protected
   RustStreamSink<ScanEvent> sse_decode_StreamSink_scan_event_Sse(
@@ -306,6 +344,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   GalleryLayoutManifestCursor
   sse_decode_box_autoadd_gallery_layout_manifest_cursor(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  GalleryLocationAnchorResolution
+  sse_decode_box_autoadd_gallery_location_anchor_resolution(
     SseDeserializer deserializer,
   );
 
@@ -355,6 +399,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int sse_decode_box_autoadd_u_32(SseDeserializer deserializer);
 
   @protected
+  BigInt sse_decode_box_autoadd_u_64(SseDeserializer deserializer);
+
+  @protected
   CaptureTimeEvidence sse_decode_capture_time_evidence(
     SseDeserializer deserializer,
   );
@@ -387,6 +434,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   GalleryLayoutManifestCursor sse_decode_gallery_layout_manifest_cursor(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  GalleryLocationAnchorResolution sse_decode_gallery_location_anchor_resolution(
     SseDeserializer deserializer,
   );
 
@@ -481,6 +533,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
 
   @protected
+  List<RetiredPreviewRootView> sse_decode_list_retired_preview_root_view(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   String? sse_decode_opt_String(SseDeserializer deserializer);
 
   @protected
@@ -505,6 +562,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  GalleryLocationAnchorResolution?
+  sse_decode_opt_box_autoadd_gallery_location_anchor_resolution(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   int? sse_decode_opt_box_autoadd_i_16(SseDeserializer deserializer);
 
   @protected
@@ -524,6 +587,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int? sse_decode_opt_box_autoadd_u_32(SseDeserializer deserializer);
 
   @protected
+  BigInt? sse_decode_opt_box_autoadd_u_64(SseDeserializer deserializer);
+
+  @protected
+  PreviewCleanupEvent sse_decode_preview_cleanup_event(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   PreviewRequest sse_decode_preview_request(SseDeserializer deserializer);
 
   @protected
@@ -531,6 +602,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   RecoverableScan sse_decode_recoverable_scan(SseDeserializer deserializer);
+
+  @protected
+  RetiredPreviewRootView sse_decode_retired_preview_root_view(
+    SseDeserializer deserializer,
+  );
 
   @protected
   ScanError sse_decode_scan_error(SseDeserializer deserializer);
@@ -570,6 +646,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_AnyhowException(
     AnyhowException self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_StreamSink_preview_cleanup_event_Sse(
+    RustStreamSink<PreviewCleanupEvent> self,
     SseSerializer serializer,
   );
 
@@ -618,6 +700,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_gallery_layout_manifest_cursor(
     GalleryLayoutManifestCursor self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_gallery_location_anchor_resolution(
+    GalleryLocationAnchorResolution self,
     SseSerializer serializer,
   );
 
@@ -682,6 +770,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_box_autoadd_u_32(int self, SseSerializer serializer);
 
   @protected
+  void sse_encode_box_autoadd_u_64(BigInt self, SseSerializer serializer);
+
+  @protected
   void sse_encode_capture_time_evidence(
     CaptureTimeEvidence self,
     SseSerializer serializer,
@@ -723,6 +814,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_gallery_layout_manifest_cursor(
     GalleryLayoutManifestCursor self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_gallery_location_anchor_resolution(
+    GalleryLocationAnchorResolution self,
     SseSerializer serializer,
   );
 
@@ -844,6 +941,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_retired_preview_root_view(
+    List<RetiredPreviewRootView> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer);
 
   @protected
@@ -867,6 +970,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_gallery_layout_manifest_cursor(
     GalleryLayoutManifestCursor? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_gallery_location_anchor_resolution(
+    GalleryLocationAnchorResolution? self,
     SseSerializer serializer,
   );
 
@@ -895,6 +1004,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_opt_box_autoadd_u_32(int? self, SseSerializer serializer);
 
   @protected
+  void sse_encode_opt_box_autoadd_u_64(BigInt? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_preview_cleanup_event(
+    PreviewCleanupEvent self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_preview_request(
     PreviewRequest self,
     SseSerializer serializer,
@@ -906,6 +1024,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_recoverable_scan(
     RecoverableScan self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_retired_preview_root_view(
+    RetiredPreviewRootView self,
     SseSerializer serializer,
   );
 

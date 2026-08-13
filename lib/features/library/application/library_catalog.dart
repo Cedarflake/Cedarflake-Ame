@@ -28,6 +28,14 @@ abstract interface class LibraryCatalog {
   Future<bool> unregisterRoot(String rootId);
 }
 
+abstract interface class LibraryQueryAnchorCatalog {
+  Future<LibrarySnapshot> loadAroundLocation({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    required String anchorLocationId,
+  });
+}
+
 abstract interface class LibraryFolderCatalog {
   Future<LibraryFolderPage> loadFolderPage({
     required String rootId,
@@ -37,7 +45,8 @@ abstract interface class LibraryFolderCatalog {
   });
 }
 
-class RustLibraryCatalog implements LibraryCatalog, LibraryFolderCatalog {
+class RustLibraryCatalog
+    implements LibraryCatalog, LibraryFolderCatalog, LibraryQueryAnchorCatalog {
   const RustLibraryCatalog();
 
   @override
@@ -184,6 +193,24 @@ class RustLibraryCatalog implements LibraryCatalog, LibraryFolderCatalog {
   }
 
   @override
+  Future<LibrarySnapshot> loadAroundLocation({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    required String anchorLocationId,
+  }) async {
+    try {
+      final snapshot = await rust_api.loadLibraryCatalogAroundLocation(
+        maxItems: maxItems,
+        query: _mapQuery(query),
+        anchorLocationId: anchorLocationId,
+      );
+      return _mapSnapshot(snapshot);
+    } on Object catch (error) {
+      throw _mapFailure(error, "bridge_location_anchor_load_failed");
+    }
+  }
+
+  @override
   Future<bool> unregisterRoot(String rootId) async {
     try {
       return rust_api.removeLibraryRoot(rootId: rootId);
@@ -201,6 +228,18 @@ class RustLibraryCatalog implements LibraryCatalog, LibraryFolderCatalog {
       assets: List.unmodifiable(snapshot.assets.map(mapRustLibraryAsset)),
       previousCursor: _mapCursor(snapshot.previousCursor),
       nextCursor: _mapCursor(snapshot.nextCursor),
+      queryAnchorResolution: snapshot.queryAnchorResolution == null
+          ? null
+          : LibraryQueryAnchorResolution(
+              requestedLocationId:
+                  snapshot.queryAnchorResolution!.requestedLocationId,
+              locationId: snapshot.queryAnchorResolution!.locationId,
+              ordinal: snapshot.queryAnchorResolution!.ordinal?.toInt(),
+              windowStartItemOffset: snapshot
+                  .queryAnchorResolution!
+                  .windowStartOrdinal
+                  .toInt(),
+            ),
     );
   }
 

@@ -1,6 +1,7 @@
 import "dart:io";
 
 import "package:flutter/material.dart";
+import "package:material_symbols_icons/symbols.dart";
 
 import "../../domain/library_models.dart";
 import "library_loading_indicator.dart";
@@ -102,13 +103,13 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.broken_image_outlined, size: 64),
+          const Icon(Symbols.broken_image_rounded, size: 64),
           const SizedBox(height: 12),
           const Text("无法打开原图"),
           const SizedBox(height: 8),
           OutlinedButton.icon(
             onPressed: _retry,
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Symbols.refresh_rounded),
             label: const Text("重试"),
           ),
         ],

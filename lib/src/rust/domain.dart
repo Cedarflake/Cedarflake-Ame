@@ -183,6 +183,7 @@ class CatalogSnapshot {
   final List<AssetLocationView> assets;
   final CatalogCursor? previousCursor;
   final CatalogCursor? nextCursor;
+  final GalleryLocationAnchorResolution? queryAnchorResolution;
 
   const CatalogSnapshot({
     required this.catalogPath,
@@ -192,6 +193,7 @@ class CatalogSnapshot {
     required this.assets,
     this.previousCursor,
     this.nextCursor,
+    this.queryAnchorResolution,
   });
 
   @override
@@ -202,7 +204,8 @@ class CatalogSnapshot {
       roots.hashCode ^
       assets.hashCode ^
       previousCursor.hashCode ^
-      nextCursor.hashCode;
+      nextCursor.hashCode ^
+      queryAnchorResolution.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -215,7 +218,8 @@ class CatalogSnapshot {
           roots == other.roots &&
           assets == other.assets &&
           previousCursor == other.previousCursor &&
-          nextCursor == other.nextCursor;
+          nextCursor == other.nextCursor &&
+          queryAnchorResolution == other.queryAnchorResolution;
 }
 
 class FileIdentityEvidence {
@@ -340,6 +344,37 @@ class GalleryLayoutManifestCursor {
           totalItems == other.totalItems &&
           nextOrdinal == other.nextOrdinal &&
           after == other.after;
+}
+
+class GalleryLocationAnchorResolution {
+  final String requestedLocationId;
+  final String? locationId;
+  final BigInt? ordinal;
+  final BigInt windowStartOrdinal;
+
+  const GalleryLocationAnchorResolution({
+    required this.requestedLocationId,
+    this.locationId,
+    this.ordinal,
+    required this.windowStartOrdinal,
+  });
+
+  @override
+  int get hashCode =>
+      requestedLocationId.hashCode ^
+      locationId.hashCode ^
+      ordinal.hashCode ^
+      windowStartOrdinal.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is GalleryLocationAnchorResolution &&
+          runtimeType == other.runtimeType &&
+          requestedLocationId == other.requestedLocationId &&
+          locationId == other.locationId &&
+          ordinal == other.ordinal &&
+          windowStartOrdinal == other.windowStartOrdinal;
 }
 
 class GalleryQuery {
@@ -632,20 +667,66 @@ class LibraryRootView {
           availabilityMessage == other.availabilityMessage;
 }
 
+@freezed
+sealed class PreviewCleanupEvent with _$PreviewCleanupEvent {
+  const PreviewCleanupEvent._();
+
+  const factory PreviewCleanupEvent.started({
+    required String operationId,
+    required BigInt totalFiles,
+    required BigInt totalBytes,
+  }) = PreviewCleanupEvent_Started;
+  const factory PreviewCleanupEvent.progress({
+    required String operationId,
+    required BigInt processedFiles,
+    required BigInt removedFiles,
+    required BigInt removedBytes,
+    required BigInt issueCount,
+    required BigInt totalFiles,
+    required BigInt totalBytes,
+  }) = PreviewCleanupEvent_Progress;
+  const factory PreviewCleanupEvent.issue({
+    required String operationId,
+    required ScanIssue issue,
+  }) = PreviewCleanupEvent_Issue;
+  const factory PreviewCleanupEvent.completed({
+    required String operationId,
+    required BigInt removedFiles,
+    required BigInt removedBytes,
+    required BigInt issueCount,
+  }) = PreviewCleanupEvent_Completed;
+  const factory PreviewCleanupEvent.cancelled({
+    required String operationId,
+    required BigInt removedFiles,
+    required BigInt removedBytes,
+    required BigInt issueCount,
+  }) = PreviewCleanupEvent_Cancelled;
+  const factory PreviewCleanupEvent.failed({
+    required String operationId,
+    required String code,
+    required String message,
+  }) = PreviewCleanupEvent_Failed;
+}
+
 class PreviewRequest {
   final String locationId;
   final int previewEdge;
   final bool retryFailed;
+  final List<String> protectedLocationIds;
 
   const PreviewRequest({
     required this.locationId,
     required this.previewEdge,
     required this.retryFailed,
+    required this.protectedLocationIds,
   });
 
   @override
   int get hashCode =>
-      locationId.hashCode ^ previewEdge.hashCode ^ retryFailed.hashCode;
+      locationId.hashCode ^
+      previewEdge.hashCode ^
+      retryFailed.hashCode ^
+      protectedLocationIds.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -654,7 +735,8 @@ class PreviewRequest {
           runtimeType == other.runtimeType &&
           locationId == other.locationId &&
           previewEdge == other.previewEdge &&
-          retryFailed == other.retryFailed;
+          retryFailed == other.retryFailed &&
+          protectedLocationIds == other.protectedLocationIds;
 }
 
 enum PreviewStatus { pending, ready, failed }
@@ -708,6 +790,27 @@ class RecoverableScan {
           visitedEntries == other.visitedEntries &&
           acceptedItems == other.acceptedItems &&
           issueCount == other.issueCount;
+}
+
+class RetiredPreviewRootView {
+  final String previewRoot;
+  final String displayPath;
+
+  const RetiredPreviewRootView({
+    required this.previewRoot,
+    required this.displayPath,
+  });
+
+  @override
+  int get hashCode => previewRoot.hashCode ^ displayPath.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RetiredPreviewRootView &&
+          runtimeType == other.runtimeType &&
+          previewRoot == other.previewRoot &&
+          displayPath == other.displayPath;
 }
 
 class ScanError implements FrbException {
@@ -885,6 +988,7 @@ class StorageStatus {
   final BigInt previewUsedBytes;
   final BigInt catalogUsedBytes;
   final bool requiresRestart;
+  final List<RetiredPreviewRootView> retiredPreviewRoots;
 
   const StorageStatus({
     required this.settingsPath,
@@ -898,6 +1002,7 @@ class StorageStatus {
     required this.previewUsedBytes,
     required this.catalogUsedBytes,
     required this.requiresRestart,
+    required this.retiredPreviewRoots,
   });
 
   @override
@@ -912,7 +1017,8 @@ class StorageStatus {
       previewBudgetBytes.hashCode ^
       previewUsedBytes.hashCode ^
       catalogUsedBytes.hashCode ^
-      requiresRestart.hashCode;
+      requiresRestart.hashCode ^
+      retiredPreviewRoots.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -929,5 +1035,6 @@ class StorageStatus {
           previewBudgetBytes == other.previewBudgetBytes &&
           previewUsedBytes == other.previewUsedBytes &&
           catalogUsedBytes == other.catalogUsedBytes &&
-          requiresRestart == other.requiresRestart;
+          requiresRestart == other.requiresRestart &&
+          retiredPreviewRoots == other.retiredPreviewRoots;
 }
