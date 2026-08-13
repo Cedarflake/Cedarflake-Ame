@@ -40,26 +40,24 @@ struct ObservationRange {
     observation_count: u64,
 }
 
-pub fn plan_library_changes(
+pub fn plan_library_changes<Observations>(
     context: &LibraryChangePlanningContext,
-    observations: impl IntoIterator<Item = LibraryChangeObservation>,
+    observations: Observations,
     limits: LibraryChangePlanningLimits,
-) -> Result<LibraryChangePlanningResult, LibraryChangePlanningError> {
+) -> Result<LibraryChangePlanningResult, LibraryChangePlanningError>
+where
+    Observations: IntoIterator<Item = LibraryChangeObservation>,
+    Observations::IntoIter: ExactSizeIterator,
+{
     validate_planning_request(context, limits)?;
-    let mut received_observation_count = 0_u64;
-    let mut bounded_observations = Vec::new();
-    let mut exceeded_observation_limit = false;
-    for observation in observations {
-        received_observation_count = received_observation_count.saturating_add(1);
-        if bounded_observations.len() == limits.max_observations {
-            exceeded_observation_limit = true;
-            break;
-        }
-        bounded_observations.push(observation);
-    }
-    if exceeded_observation_limit {
-        bounded_observations.clear();
-    }
+    let observations = observations.into_iter();
+    let received_observation_count = u64::try_from(observations.len()).unwrap_or(u64::MAX);
+    let exceeded_observation_limit = observations.len() > limits.max_observations;
+    let mut bounded_observations = if exceeded_observation_limit {
+        Vec::new()
+    } else {
+        observations.collect()
+    };
     bounded_observations.sort_by(observation_sort_order);
 
     let mut issues = Vec::new();
@@ -783,6 +781,13 @@ fn reconcile_present_path(
         && current.file_identity.is_some()
         && prior.file_identity != current.file_identity;
     let is_same_path = prior_relative_path == current.relative_path;
+
+    if is_same_path && prior.file_identity.is_some() && current.file_identity.is_none() {
+        return preserved_decision(
+            IncrementalReconciliationOutcome::RetryableFailure,
+            "current_file_identity_unavailable".to_owned(),
+        );
+    }
 
     let (outcome, evidence_disposition) = if has_matching_identity && !is_same_path {
         (

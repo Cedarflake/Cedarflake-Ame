@@ -311,9 +311,9 @@ fn chinese_and_long_relative_paths_remain_lossless_and_normalized() {
 
 #[test]
 fn event_storm_is_bounded_and_escalates_without_silent_loss() {
-    let observations = (0..100).map(|index| {
+    let observations = (0_usize..100).map(|index| {
         observation(
-            index,
+            u64::try_from(index).expect("index"),
             LibraryChangeObservationKind::Modified,
             &format!("storm/{index}.jpg"),
         )
@@ -343,7 +343,8 @@ fn event_storm_is_bounded_and_escalates_without_silent_loss() {
             .issues
             .contains(&LibraryChangePlanningIssue::ObservationLimitExceeded)
     );
-    assert_eq!(result.received_observation_count, 11);
+    assert_eq!(result.received_observation_count, 100);
+    assert_eq!(result.intents[0].coalesced_observation_count, 100);
 }
 
 #[test]

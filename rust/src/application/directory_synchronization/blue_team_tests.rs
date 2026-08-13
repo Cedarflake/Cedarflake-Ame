@@ -610,6 +610,57 @@ fn root_fallback_origin_follows_the_latest_current_generation_signal() {
     );
 }
 
+#[test]
+fn known_prior_identity_cannot_degrade_to_weak_same_path_reuse() {
+    let prior = evidence("photo.jpg", Some(("windows-file-id-128-v1", "identity-a")));
+    let current = evidence("photo.jpg", None);
+
+    let decision =
+        reconcile_path_evidence(Some(&prior), ReconciliationObservedState::Present(current));
+
+    assert_eq!(
+        decision.outcome,
+        IncrementalReconciliationOutcome::RetryableFailure
+    );
+    assert_eq!(
+        decision.evidence_disposition,
+        DerivedEvidenceDisposition::PreserveLastTrustworthy
+    );
+    assert!(decision.current.is_none());
+    assert_eq!(
+        decision.issue_code.as_deref(),
+        Some("current_file_identity_unavailable")
+    );
+}
+
+#[test]
+fn overflow_reports_the_complete_finite_batch_count_without_retaining_it() {
+    let observations = (0_usize..100).map(|index| {
+        let sequence = u64::try_from(index).expect("index");
+        observation(
+            sequence,
+            1_000 + i64::try_from(index).expect("index"),
+            LibraryChangeObservationKind::Modified,
+            &format!("storm/{index}.jpg"),
+            LibraryChangeOrigin::LiveNotification,
+        )
+    });
+
+    let result = plan_library_changes(
+        &context(),
+        observations,
+        LibraryChangePlanningLimits {
+            max_observations: 10,
+            max_intents: 10,
+        },
+    )
+    .expect("overflow plan");
+
+    assert_eq!(result.received_observation_count, 100);
+    assert_eq!(result.intents.len(), 1);
+    assert_eq!(result.intents[0].coalesced_observation_count, 100);
+}
+
 fn permutations<T: Clone>(values: Vec<T>) -> Vec<Vec<T>> {
     fn collect<T: Clone>(values: &mut [T], index: usize, output: &mut Vec<Vec<T>>) {
         if index == values.len() {

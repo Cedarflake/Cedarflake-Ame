@@ -50,9 +50,10 @@ application functions. No third-party or Windows type crosses this boundary.
 
 Each observation carries a logical `root_id`, nonzero monotonic root configuration generation,
 application sequence, observation time, origin, scope, normalized relative path, and optional prior
-rename path. Generations prevent work for a removed or reconfigured root from entering the current
-plan. Sequence and time are evidence for deterministic merging; neither makes the event
-authoritative.
+rename path. The planner accepts only a finite exact-size batch so it can publish an accurate
+received count without retaining or traversing overflow payload. Generations prevent work for a
+removed or reconfigured root from entering the current plan. Sequence and time are evidence for
+deterministic merging; neither makes the event authoritative.
 
 Normalization applies these rules:
 
@@ -84,7 +85,9 @@ Reconciliation decisions consume inspected final state, not notification kind. T
 2. matching identity plus unchanged source state retains compatible derived evidence;
 3. matching identity plus changed state invalidates derived evidence;
 4. conflicting known identity at the same path is a replacement even when size and time match;
-5. absent identity permits only conservative same-path unchanged fallback;
+5. identity absent on both scans permits only conservative same-path unchanged fallback; a current
+   identity query that becomes unavailable after prior identity evidence preserves the last
+   trustworthy state and retries;
 6. removal requires authoritative absence;
 7. retryable, terminal, skipped, or non-authoritative absence preserves the last trustworthy
    catalog evidence.
@@ -114,12 +117,12 @@ fingerprint, similarity, or classification engines.
   edit and rename, same-state replacement, authoritative removal, and failure preservation.
 - The fixtures run without a platform watcher, database migration, Flutter policy, or source-media
   access.
-- Forty-two focused synchronization tests pass, including 20 adversarial blue-team fixtures and
+- Forty-four focused synchronization tests pass, including 22 adversarial blue-team fixtures and
   the selective Rust facade contract. The attack matrix and residual boundaries are recorded in
   `docs/acceptance/r2c-a-blue-team.md`.
 - The repository lint gate passes with 131 Dart files unchanged, Flutter analysis clean, and Rust
   Clippy clean for all targets and features with warnings denied.
-- The complete Daily gate passes: 173 Rust tests pass with five authorization- or
+- The complete Daily gate passes: 175 Rust tests pass with five authorization- or
   performance-bound tests intentionally ignored; all Flutter tests, controlled Windows scan
   integration, native Windows accessibility integration, generated bridge compatibility, and
   tracked-diff whitespace validation pass.
