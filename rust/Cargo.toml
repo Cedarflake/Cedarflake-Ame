@@ -27,4 +27,5 @@ todo = "deny"
 windows-sys = { version = "0.61.2", features = ["Win32_Storage_FileSystem"] }
 
 [dev-dependencies]
+rusqlite = { version = "0.40.1", features = ["backup", "bundled"] }
 tempfile = "3.27.0"

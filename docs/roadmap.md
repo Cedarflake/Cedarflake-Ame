@@ -1676,17 +1676,16 @@ may serve as benchmarks or fallbacks but are not automatically preferred over ma
 
 ## 10. Current active stage
 
-Active stage: **R2b - preview performance acceptance closeout**
+Active stage: **R2c - continuous directory synchronization and incremental indexing**
 
-Planned next stage: **R2c - continuous directory synchronization and incremental indexing**. R3
-remains blocked behind R2c catalog-freshness acceptance.
+Planned next stage: **R3 - exact duplicate evidence**, still blocked behind R2c catalog-freshness
+acceptance.
 
 R2b implementation, deterministic preview-lifecycle correctness, retained-catalog interaction
-Profile, real-library catalog parity, Daily, and Windows Release gates are complete. The milestone
-is not yet accepted because its bounded preview-performance evidence has not been produced: the
-retained-gallery Profile intentionally rejects source-media materialization, while the real-library
-parity run intentionally leaves every preview pending. Neither run can measure the source-readable
-preview metrics required by ADR 0005 and the R2b acceptance policy.
+Profile, real-library catalog parity, Daily, Windows Release, and bounded source-readable preview
+performance gates are complete. R2b was accepted on 2026-08-13. R2c may now begin, but the R2b
+interaction and source-safety contracts remain regression boundaries rather than migration work to
+repeat.
 
 The frozen R2b interaction comparison revision is
 `6d3f0686a91b85402251fe07fcc1690f268effd5`. It remains historical A/B evidence rather than a moving
@@ -1713,17 +1712,14 @@ evidence compares Profile with Profile; final hand-feel acceptance uses Windows 
 change is rolled back instead of being retained behind compensating debounce or synchronization.
 
 The visible Flutter shell is the production surface and must not be discarded or treated as a
-fixture-only prototype. The current priority is one narrow preview-performance acceptance run, not
-another gallery rewrite, classification work, or additional analysis engines. The run requires
-separate current authorization for explicit locally available source items, reads source media only,
-uses preview storage outside every source tree, has explicit item, time, memory, and cache limits,
-does not start a root scan or hydrate cloud placeholders, and proves sampled source bytes and entries
-unchanged. Its measurements authorize no implementation change by themselves; any follow-up
-optimization remains threshold-triggered and must preserve the frozen interaction baseline.
+fixture-only prototype. R2c is now limited to freshness state, durable incremental change capture,
+bounded catch-up, revision-safe delta publication, and explicit fallback reconciliation. It must not
+use synchronization work as a reason to rewrite the accepted gallery, preview cache, classification,
+or later analysis workflows.
 
 ### 10.1 Verified implementation snapshot
 
-This snapshot was synchronized on 2026-08-12 against the live working tree and fresh local gates.
+This snapshot was synchronized on 2026-08-13 against the live working tree and fresh local gates.
 The live working tree, current schema, accepted ADRs, and fresh verification remain authoritative;
 this roadmap does not preserve drifting commit hashes or duplicate complete test transcripts.
 
@@ -1783,7 +1779,16 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   location references and stale only zero-reference artifacts, while an abandoned staged scan
   preserves the authoritative active reference. These paths preserve durable geometry and exclude
   source media and unrelated files.
-- R2c remains next and currently has no production watcher, durable change queue, freshness state,
+- The authorized R2b preview-performance gate used an isolated online catalog backup and 512
+  bounded, locally readable `local-primary` locations. Across 24 cold and warm samples per display
+  bucket, cold P95 was 193/201/211 ms at 128/256/512 px and warm P95 was 14/16/16 ms; all 72 warm
+  requests reused their artifact. Natural pressure from 447 1024 px previews reached 57,068,214
+  bytes under a 64 MiB budget. Reclamation took 234 ms, settled below the 80 percent low watermark,
+  and an evicted preview regenerated in 19 ms with zero immediate boundary churn. Peak working set
+  was 126,844,928 bytes, all 512 selected entries and 16 source-byte samples remained unchanged,
+  and no preview request failed. The evidence accepts the current policy without triggering another
+  optimization.
+- R2c is active and currently has no production watcher, durable change queue, freshness state,
   delta publisher, or catch-up adapter. R3 and the later duplicate, review, classification,
   similarity, semantic, organization-plan, and operation-journal domains have not started.
 - The current R2b closeout working tree passed the complete local Daily gate and Windows Release
@@ -1830,7 +1835,7 @@ R2b completed foundation:
 - deterministic fixture coverage and a successful hosted Daily gate for the frozen comparison
   revision.
 
-R2b acceptance: **pending bounded preview-performance evidence**
+R2b acceptance: **accepted on 2026-08-13**
 
 1. **Complete** - frozen interaction Profile and long-session evidence on the retained catalog;
 2. **Complete** - ADR 0005 preview-lifecycle implementation and deterministic recovery, cleanup,
@@ -1838,8 +1843,9 @@ R2b acceptance: **pending bounded preview-performance evidence**
 3. **Complete** - current local Daily and Windows Release gates;
 4. **Complete** - currently authorized retained-catalog real-library parity without source mutation
    or cloud-placeholder hydration;
-5. **Pending** - the separately authorized, bounded, source-readable preview workload required by
-   ADR 0005 and acceptance-policy step 4, with source bytes and entries unchanged.
+5. **Complete** - the separately authorized, bounded, source-readable preview workload required by
+   ADR 0005 and acceptance-policy step 4, with cache pressure, reclamation, regeneration, memory,
+   source-entry, and source-byte evidence recorded above.
 
 R2b conditional-adaptation decisions:
 

@@ -1,6 +1,8 @@
 mod load_catalog;
 mod preview;
 mod preview_cleanup;
+#[cfg(test)]
+mod preview_performance_acceptance;
 mod preview_reclamation;
 mod preview_recovery;
 mod scan_library;

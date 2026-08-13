@@ -40,7 +40,7 @@ pub(crate) fn materialize_preview_with_storage(
 }
 
 #[cfg(test)]
-fn materialize_preview_with_store(
+pub(crate) fn materialize_preview_with_store(
     request: PreviewRequest,
     storage: StoragePaths,
     preview_store: &LocalPreviewStore,
