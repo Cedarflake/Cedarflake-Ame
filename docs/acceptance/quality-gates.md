@@ -7,7 +7,7 @@ acceptance work. A passing lower gate never claims that a higher gate ran.
 
 | Gate | Entry point | Included evidence | When to run |
 | --- | --- | --- | --- |
-| Hosted CI | `.github/workflows/quality_ci.yml` | Daily gate plus committed revision-range whitespace validation on a pinned Windows toolchain | Push to `main`, pull request, merge queue, or manual run |
+| Hosted CI | `.github/workflows/quality_ci.yml` | Parallel isolated Daily components plus committed revision-range whitespace validation on pinned Windows toolchains | Push to `main`, pull request, merge queue, or manual run |
 | Daily | `./tool/quality_verify_daily.ps1` | Format, lint, Rust and Flutter tests, controlled Windows scan and native accessibility integrations, bridge hash, tracked diff whitespace | Every material change |
 | Performance | `./tool/performance_benchmark_synthetic_library.ps1` | 10,000 temporary images, cold and warm scans, pause and resume, bounded memory | Scan pipeline, persistence, concurrency, or performance changes |
 | Retained Profile | `./tool/performance_profile_retained_gallery.ps1` | Frozen-interaction Profile frame, memory, garbage-collection, query, publication, and retained-detail evidence; no source preview materialization | Guarded R2b gallery adaptations on the retained catalog |
@@ -33,14 +33,24 @@ update. Merge queues receive their own `merge_group` check so the combined merge
 inherit a stale pull-request status.
 
 Every hosted workflow uses `windows-2025`, Flutter 3.44.9, and the repository Rust toolchain. Before
-restoring project dependencies, the shared gate downloads actionlint 1.7.12, verifies the official
-Windows x64 SHA-256, and validates every workflow through
+the static Daily component or serial Release gate restores project dependencies, it downloads
+actionlint 1.7.12, verifies the official Windows x64 SHA-256, and validates every workflow through
 `./tool/quality_lint_workflows.ps1`. External actions are pinned to complete commit SHAs, checkout
 credentials are not persisted, and ordinary workflow jobs have read-only repository contents
 permission. Only the portable-publication job receives `contents: write`, and it starts only after
 the read-only candidate gate succeeds. Pull-request jobs receive no release secrets or write
 permission. The workstation daily gate does not download actionlint implicitly; contributors may
 run the same script with an explicitly supplied executable.
+
+For hosted Daily runs, the shared gate fans out four isolated `windows-2025` jobs: static and Rust
+verification, Flutter widget tests, the controlled Windows scan integration, and the native Windows
+accessibility integration. A stable `Windows Gate` aggregation job succeeds only when every
+component succeeds, so branch protection keeps one durable required-check name. Matrix fail-fast
+is disabled so one failure does not hide results from the other components. Jobs do not exchange
+compiled artifacts or build directories; only dependency caches may be reused. This reduces
+wall-clock latency at the cost of additional hosted runner minutes. Release candidates remain
+serial because validation, release build, performance evidence, and packaging have an ordered
+dependency chain.
 
 Before the release-candidate workflow executes its gate,
 `./tool/release_validate_version.ps1` checks that the `v`-prefixed tag, `pubspec.yaml` application
@@ -63,6 +73,11 @@ library verification remains a separately authorized workstation action.
 ```powershell
 ./tool/quality_verify_daily.ps1
 ```
+
+The default command above remains the only workstation Daily invocation and runs every component
+serially under the repository mutex. The hosted reusable workflow may select one validated
+component with `-Component`; those partitions are intended for isolated GitHub-hosted runners, not
+parallel local shells.
 
 Repository quality, Flutter test, integration, bridge-generation, and Windows release commands
 share one named operating-system mutex. Nested repository gates may reuse it on the same PowerShell

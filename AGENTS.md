@@ -433,7 +433,10 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   in its own `flutter test --concurrency=1` process while holding the repository tool lock.
 - `./tool/quality_verify_daily.ps1` is the daily gate. It runs the lint gate, Rust tests, Flutter tests, the
   controlled Windows scan integration, the native Windows accessibility integration, generated
-  bridge compatibility, and whitespace validation for the complete tracked diff.
+  bridge compatibility, and whitespace validation for the complete tracked diff. With no arguments
+  it remains serial for workstation safety. The shared hosted workflow may invoke its validated
+  `-Component` partitions on isolated runners so the same evidence is collected in parallel without
+  sharing Flutter, Cargo, or build state.
 - `./tool/integration_test_windows_accessibility.ps1` runs a semantics-enabled virtual-gallery
   stress sequence in the native Windows runner and fails when engine stderr reports an invalid
   `ui::AXTree` update.
