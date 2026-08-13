@@ -6,10 +6,12 @@ pub use library_change::{
     CatalogFreshnessCause, CatalogFreshnessState, DerivedEvidenceDisposition,
     IncrementalReconciliationDecision, IncrementalReconciliationOutcome, LibraryChangeIntent,
     LibraryChangeIntentKind, LibraryChangeObservation, LibraryChangeObservationKind,
-    LibraryChangeOrigin, LibraryChangePlanningContext, LibraryChangePlanningError,
-    LibraryChangePlanningIssue, LibraryChangePlanningLimits, LibraryChangePlanningResult,
-    LibraryChangeScope, LibraryChangeSourceHealth, LibraryRootGeneration,
-    ReconciliationFileEvidence, ReconciliationObservedState,
+    LibraryChangeObserverPoll, LibraryChangeOrigin, LibraryChangePlanningContext,
+    LibraryChangePlanningError, LibraryChangePlanningIssue, LibraryChangePlanningLimits,
+    LibraryChangePlanningResult, LibraryChangeRestartPolicy, LibraryChangeScope,
+    LibraryChangeSourceBatch, LibraryChangeSourceError, LibraryChangeSourceHealth,
+    LibraryChangeSourceStopReport, LibraryRootGeneration, ReconciliationFileEvidence,
+    ReconciliationObservedState,
 };
 
 #[derive(Clone, Debug)]

@@ -1,5 +1,15 @@
 //! Platform-independent continuous-library synchronization contracts.
 
+#[cfg(windows)]
+use std::path::PathBuf;
+
+#[cfg(windows)]
+use crate::adapters::WindowsLibraryChangeSourceFactory;
+#[cfg(windows)]
+use crate::application::LibraryChangeObserver;
+#[cfg(windows)]
+use crate::ports::LibraryChangeSourceRequest;
+
 pub use crate::application::{plan_library_changes, reconcile_path_evidence};
 pub use crate::domain::{
     CatalogFreshnessCause, CatalogFreshnessState, DerivedEvidenceDisposition, FileIdentityEvidence,
@@ -10,6 +20,53 @@ pub use crate::domain::{
     LibraryChangeScope, LibraryChangeSourceHealth, LibraryRootAvailability, LibraryRootGeneration,
     ReconciliationFileEvidence, ReconciliationObservedState,
 };
+pub use crate::domain::{
+    LibraryChangeObserverPoll, LibraryChangeRestartPolicy, LibraryChangeSourceError,
+    LibraryChangeSourceStopReport,
+};
+
+#[cfg(windows)]
+pub struct WindowsLibraryChangeObserver {
+    inner: LibraryChangeObserver<WindowsLibraryChangeSourceFactory>,
+}
+
+#[cfg(windows)]
+impl WindowsLibraryChangeObserver {
+    pub fn start(
+        root_id: String,
+        root_generation: LibraryRootGeneration,
+        root_path: String,
+        ingress_capacity: usize,
+        planning_limits: LibraryChangePlanningLimits,
+        restart_policy: LibraryChangeRestartPolicy,
+        now_unix_ms: i64,
+    ) -> Result<Self, LibraryChangeSourceError> {
+        let inner = LibraryChangeObserver::start(
+            WindowsLibraryChangeSourceFactory,
+            LibraryChangeSourceRequest {
+                root_id,
+                root_generation,
+                root_path: PathBuf::from(root_path),
+                ingress_capacity,
+            },
+            planning_limits,
+            restart_policy,
+            now_unix_ms,
+        )?;
+        Ok(Self { inner })
+    }
+
+    pub fn poll(
+        &mut self,
+        now_unix_ms: i64,
+    ) -> Result<LibraryChangeObserverPoll, LibraryChangeSourceError> {
+        self.inner.poll(now_unix_ms)
+    }
+
+    pub fn stop(&mut self) -> Result<LibraryChangeSourceStopReport, LibraryChangeSourceError> {
+        self.inner.stop()
+    }
+}
 
 #[cfg(test)]
 mod tests {

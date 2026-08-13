@@ -6,6 +6,8 @@ mod media_inspector;
 mod preview_cache;
 mod sqlite_catalog;
 mod storage_settings;
+#[cfg(windows)]
+mod windows_library_change_source;
 
 pub(crate) use local_files::user_visible_path;
 pub use local_files::{
@@ -20,3 +22,5 @@ pub(crate) use preview_cache::{
 };
 pub use sqlite_catalog::SqliteCatalog;
 pub use storage_settings::SqliteStorageSettings;
+#[cfg(windows)]
+pub use windows_library_change_source::WindowsLibraryChangeSourceFactory;

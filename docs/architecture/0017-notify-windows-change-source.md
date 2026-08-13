@@ -1,11 +1,11 @@
-# ADR 0017: Validate notify 8.2.0 behind the Windows change-source adapter
+# ADR 0017: Use notify 8.2.0 behind the Windows change-source adapter
 
-- Status: Accepted for validation
+- Status: Accepted
 - Date: 2026-08-13
 
 ## Context
 
-R2c-B needs a maintained recursive Windows filesystem observation library. R2c-A records the
+R2c-B needed a maintained recursive Windows filesystem observation library. R2c-A recorded the
 dependency decision before admission, while deliberately avoiding an unused Cargo dependency or a
 premature platform implementation.
 
@@ -55,9 +55,10 @@ for consistency reconciliation.
 
 ## Decision
 
-R2c-B may admit exact stable `notify` version 8.2.0 behind a Windows
-`LibraryChangeSource` adapter after its focused gate is implemented. R2c-A does not add it to
-`Cargo.toml` because no production code uses it yet.
+R2c-B admits exact stable `notify` version 8.2.0 behind a Windows `LibraryChangeSource` adapter.
+The dependency is Windows-targeted, disables default features, and uses neither a debouncer nor a
+polling fallback. `notify` and all transitive event, error, path, thread, and watcher types remain
+inside the adapter.
 
 The adapter must:
 
@@ -72,6 +73,26 @@ The adapter must:
 - expose restartable structured health while leaving catch-up and consistency recovery to later
   application slices;
 - avoid polling unless a separately measured fallback policy accepts its idle cost.
+
+The application owns one `LibraryChangeObserver` lifecycle per configured available root. Its
+public Windows facade accepts only Ame values and a root path string. Polling that facade performs
+one non-blocking bounded drain and may make at most one restart attempt when the caller-provided
+clock reaches the current exponential-backoff deadline; it never sleeps on the UI call path.
+
+The adapter callback performs only lexical relative-path conversion, dependency-event mapping, an
+adjacent Windows rename-pair correlation, atomic health accounting, and `try_send` into a bounded
+standard channel. It does not read media bytes, enumerate a subtree, call SQLite, or invoke Flutter.
+The Windows backend emits rename `From` and `To` callbacks separately, so the adapter grants only a
+50 ms non-blocking correlation interval and rejects a `To` half that arrives after that deadline.
+A missing half, rescan flag, callback error, invalid path, or channel overflow produces one
+coalesced root evidence gap. A short delivery gate linearizes callback enqueue with stop while the
+bounded `try_send` remains non-blocking. Health severity is monotonic until the source restarts, so
+a later rescan cannot hide a prior callback failure.
+
+Directory create and modify hints use metadata only when the entry still exists. An ambiguous
+remove is conservatively promoted to subtree reconciliation because the deleted entry can no longer
+prove whether it was a file or directory. Root removal stops the watcher without interpreting the
+root contents as removed catalog state. Sequence numbers saturate instead of wrapping.
 
 Dependency default features must be reviewed when the Cargo entry is added. Windows packaging must
 not gain an external service or source-tree artifact.
@@ -90,6 +111,19 @@ not gain an external service or source-tree artifact.
 - focused adapter tests, repository Daily gate, Windows Release gate, and source immutability checks
   pass.
 
+Focused evidence includes seven deterministic application lifecycle tests and thirteen adapter
+tests.
+The real adapter test creates a temporary recursive root, performs directory creation plus file
+create, modify, rename, and removal, plans the resulting Ame observations through ADR 0016, verifies
+an untouched sentinel, and stops within the two-second bound. Other fixtures force rescan, callback
+error, incomplete rename, bounded-channel overflow, stale generation, root removal, Chinese and long
+paths, health monotonicity, metadata disappearance, stop-boundary callbacks, expired rename pairs,
+invalid planning bounds, failed-stop isolation, and restart backoff. The 2026-08-13 Daily gate
+passed 195 Rust tests with five authorization- or
+performance-bound tests ignored, all Flutter tests, the controlled Windows scan integration, native
+Windows accessibility integration, bridge compatibility, and whitespace validation. The Windows
+Release gate built the packaged application and passed both release-bridge smoke tests.
+
 ## Consequences and risks
 
 - Native notification buffers can overflow and large directories may miss events. The adapter
@@ -100,6 +134,9 @@ not gain an external service or source-tree artifact.
   version and reviews upgrades deliberately.
 - The base library does not provide Ame's durable debounce, queue, or recovery semantics; this is an
   intentional application responsibility.
+- R2c-B keeps observation in memory only. R2c-C must persist normalized work before any lifecycle
+  may claim crash recovery, and R2c-D must provide catalog delta publication before observations can
+  update the visible catalog.
 
 ## Replacement strategy
 
