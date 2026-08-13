@@ -12,6 +12,9 @@ use crate::ports::{LibraryChangeSource, LibraryChangeSourceFactory, LibraryChang
 use super::plan_library_changes;
 
 const STOP_TASK_TIMEOUT: Duration = Duration::from_secs(2);
+const HEALTHY_POLLS_BEFORE_RESTART_RESET: u32 = 2;
+
+type StartResult<Source> = Result<Source, LibraryChangeSourceError>;
 
 pub(crate) struct LibraryChangeObserver<Factory>
 where
@@ -22,12 +25,14 @@ where
     limits: LibraryChangePlanningLimits,
     restart_policy: LibraryChangeRestartPolicy,
     source: Option<Factory::Source>,
+    start_receiver: Option<Receiver<StartResult<Factory::Source>>>,
     stop_receiver:
         Option<Receiver<Result<LibraryChangeSourceStopReport, LibraryChangeSourceError>>>,
     source_health: LibraryChangeSourceHealth,
     restart_attempt: u32,
     next_restart_unix_ms: Option<i64>,
     last_source_error_code: Option<String>,
+    healthy_poll_streak: u32,
     is_stopped: bool,
 }
 
@@ -50,14 +55,16 @@ where
             limits,
             restart_policy,
             source: None,
+            start_receiver: None,
             stop_receiver: None,
             source_health: LibraryChangeSourceHealth::Starting,
             restart_attempt: 0,
             next_restart_unix_ms: None,
             last_source_error_code: None,
+            healthy_poll_streak: 0,
             is_stopped: false,
         };
-        observer.try_start(now_unix_ms)?;
+        observer.try_start_initial(now_unix_ms)?;
         Ok(observer)
     }
 
@@ -71,17 +78,24 @@ where
                 "The library observer has already stopped.",
             ));
         }
-        self.advance_stop(now_unix_ms);
+        self.advance_start(now_unix_ms);
+        self.advance_stop();
+        self.advance_start(now_unix_ms);
         if self.source.is_none()
+            && self.start_receiver.is_none()
             && self.stop_receiver.is_none()
             && self
                 .next_restart_unix_ms
                 .is_some_and(|deadline| now_unix_ms >= deadline)
-            && let Err(error) = self.try_start(now_unix_ms)
+            && let Err(error) = self.begin_start_source()
         {
             self.source_health = LibraryChangeSourceHealth::Failed;
             self.last_source_error_code = Some(error.code);
-            self.next_restart_unix_ms = None;
+            if error.is_retryable {
+                self.schedule_restart(now_unix_ms);
+            } else {
+                self.next_restart_unix_ms = None;
+            }
         }
 
         let mut observations = Vec::new();
@@ -91,16 +105,34 @@ where
         if let Some(source) = self.source.as_mut() {
             match source.drain(self.limits.max_observations) {
                 Ok(batch) => {
-                    self.source_health = batch.health;
-                    observations = batch.observations;
                     dropped_observation_count = batch.dropped_observation_count;
                     ignored_callback_count = batch.ignored_callback_count;
+                    self.source_health = batch.health;
+                    observations = batch.observations;
+                    if dropped_observation_count > 0
+                        && matches!(
+                            self.source_health,
+                            LibraryChangeSourceHealth::Healthy
+                                | LibraryChangeSourceHealth::Starting
+                        )
+                    {
+                        self.source_health = LibraryChangeSourceHealth::Degraded;
+                    }
                     should_restart = matches!(
-                        batch.health,
+                        self.source_health,
                         LibraryChangeSourceHealth::Degraded | LibraryChangeSourceHealth::Failed
                     );
+                    if matches!(self.source_health, LibraryChangeSourceHealth::Healthy) {
+                        self.healthy_poll_streak = self.healthy_poll_streak.saturating_add(1);
+                        if self.healthy_poll_streak >= HEALTHY_POLLS_BEFORE_RESTART_RESET {
+                            self.restart_attempt = 0;
+                        }
+                    } else {
+                        self.healthy_poll_streak = 0;
+                    }
                 }
                 Err(error) => {
+                    self.healthy_poll_streak = 0;
                     self.source_health = LibraryChangeSourceHealth::Failed;
                     self.last_source_error_code = Some(error.code);
                     should_restart = true;
@@ -108,6 +140,7 @@ where
             }
         }
         if should_restart {
+            self.schedule_restart(now_unix_ms);
             self.begin_stop_source()?;
         }
 
@@ -140,6 +173,17 @@ where
         self.is_stopped = true;
         self.next_restart_unix_ms = None;
         self.source_health = LibraryChangeSourceHealth::Stopped;
+        if let Some(receiver) = self.start_receiver.take() {
+            return match receiver.recv_timeout(STOP_TASK_TIMEOUT).map_err(|_| {
+                LibraryChangeSourceError::new(
+                    "change_observer_start_timeout",
+                    "The library observer start task did not finish within the bounded interval.",
+                )
+            })? {
+                Ok(mut source) => source.stop(),
+                Err(_) => Ok(LibraryChangeSourceStopReport::default()),
+            };
+        }
         if let Some(source) = self.source.as_mut() {
             let report = source.stop()?;
             self.source = None;
@@ -156,15 +200,15 @@ where
         Ok(LibraryChangeSourceStopReport::default())
     }
 
-    fn try_start(&mut self, now_unix_ms: i64) -> Result<(), LibraryChangeSourceError> {
+    fn try_start_initial(&mut self, now_unix_ms: i64) -> Result<(), LibraryChangeSourceError> {
         self.source_health = LibraryChangeSourceHealth::Starting;
         match self.factory.start(&self.request) {
             Ok(source) => {
                 self.source_health = source.health();
                 self.source = Some(source);
-                self.restart_attempt = 0;
                 self.next_restart_unix_ms = None;
                 self.last_source_error_code = None;
+                self.healthy_poll_streak = 0;
                 Ok(())
             }
             Err(error) => {
@@ -175,6 +219,64 @@ where
                     Ok(())
                 } else {
                     Err(error)
+                }
+            }
+        }
+    }
+
+    fn begin_start_source(&mut self) -> Result<(), LibraryChangeSourceError> {
+        let factory = self.factory.clone();
+        let request = self.request.clone();
+        let (sender, receiver) = sync_channel(1);
+        thread::Builder::new()
+            .name("ame-change-source-start".to_owned())
+            .spawn(move || {
+                let _ = sender.send(factory.start(&request));
+            })
+            .map_err(|_| {
+                LibraryChangeSourceError::retryable(
+                    "change_observer_start_thread_failed",
+                    "The library observer could not start its non-blocking restart task.",
+                )
+            })?;
+        self.source_health = LibraryChangeSourceHealth::Starting;
+        self.next_restart_unix_ms = None;
+        self.start_receiver = Some(receiver);
+        Ok(())
+    }
+
+    fn advance_start(&mut self, now_unix_ms: i64) {
+        let Some(receiver) = self.start_receiver.as_ref() else {
+            return;
+        };
+        let completion = match receiver.try_recv() {
+            Ok(result) => Some(result),
+            Err(TryRecvError::Empty) => None,
+            Err(TryRecvError::Disconnected) => Some(Err(LibraryChangeSourceError::retryable(
+                "change_observer_start_disconnected",
+                "The library observer start task disconnected unexpectedly.",
+            ))),
+        };
+        let Some(completion) = completion else {
+            return;
+        };
+        self.start_receiver = None;
+        match completion {
+            Ok(source) => {
+                self.source_health = source.health();
+                self.source = Some(source);
+                self.next_restart_unix_ms = None;
+                self.last_source_error_code = None;
+                self.healthy_poll_streak = 0;
+            }
+            Err(error) => {
+                self.source_health = LibraryChangeSourceHealth::Failed;
+                self.last_source_error_code = Some(error.code);
+                self.healthy_poll_streak = 0;
+                if error.is_retryable {
+                    self.schedule_restart(now_unix_ms);
+                } else {
+                    self.next_restart_unix_ms = None;
                 }
             }
         }
@@ -200,7 +302,7 @@ where
         Ok(())
     }
 
-    fn advance_stop(&mut self, now_unix_ms: i64) {
+    fn advance_stop(&mut self) {
         let Some(receiver) = self.stop_receiver.as_ref() else {
             return;
         };
@@ -219,10 +321,9 @@ where
         if let Err(error) = completion {
             self.last_source_error_code = Some(error.code);
             self.source_health = LibraryChangeSourceHealth::Failed;
+            self.restart_attempt = 0;
             self.next_restart_unix_ms = None;
-            return;
         }
-        self.schedule_restart(now_unix_ms);
     }
 
     fn schedule_restart(&mut self, now_unix_ms: i64) {

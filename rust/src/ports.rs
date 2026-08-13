@@ -27,7 +27,7 @@ pub trait LibraryChangeSource: Send + 'static {
     fn stop(&mut self) -> Result<LibraryChangeSourceStopReport, LibraryChangeSourceError>;
 }
 
-pub trait LibraryChangeSourceFactory {
+pub trait LibraryChangeSourceFactory: Clone + Send + 'static {
     type Source: LibraryChangeSource;
 
     fn start(

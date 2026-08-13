@@ -17,20 +17,22 @@ use std::os::windows::ffi::{OsStrExt, OsStringExt};
 use std::path::{Path, PathBuf};
 use std::ptr;
 use std::slice;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
+use std::thread::JoinHandle;
 use windows_sys::Win32::Foundation::{
     CloseHandle, ERROR_ACCESS_DENIED, ERROR_NOTIFY_ENUM_DIR, ERROR_OPERATION_ABORTED,
     ERROR_SUCCESS, HANDLE, INVALID_HANDLE_VALUE, WAIT_OBJECT_0,
 };
 use windows_sys::Win32::Storage::FileSystem::{
-    CreateFileW, ReadDirectoryChangesW, FILE_ACTION_ADDED, FILE_ACTION_MODIFIED,
-    FILE_ACTION_REMOVED, FILE_ACTION_RENAMED_NEW_NAME, FILE_ACTION_RENAMED_OLD_NAME,
-    FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_OVERLAPPED, FILE_LIST_DIRECTORY,
-    FILE_NOTIFY_CHANGE_ATTRIBUTES, FILE_NOTIFY_CHANGE_CREATION, FILE_NOTIFY_CHANGE_DIR_NAME,
-    FILE_NOTIFY_CHANGE_FILE_NAME, FILE_NOTIFY_CHANGE_LAST_WRITE, FILE_NOTIFY_CHANGE_SECURITY,
-    FILE_NOTIFY_CHANGE_SIZE, FILE_NOTIFY_INFORMATION, FILE_SHARE_DELETE, FILE_SHARE_READ,
-    FILE_SHARE_WRITE, OPEN_EXISTING,
+    CreateFileW, FileStandardInfo, GetFileInformationByHandleEx, ReadDirectoryChangesW,
+    FILE_ACTION_ADDED, FILE_ACTION_MODIFIED, FILE_ACTION_REMOVED, FILE_ACTION_RENAMED_NEW_NAME,
+    FILE_ACTION_RENAMED_OLD_NAME, FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_OVERLAPPED,
+    FILE_LIST_DIRECTORY, FILE_NOTIFY_CHANGE_ATTRIBUTES, FILE_NOTIFY_CHANGE_CREATION,
+    FILE_NOTIFY_CHANGE_DIR_NAME, FILE_NOTIFY_CHANGE_FILE_NAME, FILE_NOTIFY_CHANGE_LAST_WRITE,
+    FILE_NOTIFY_CHANGE_SECURITY, FILE_NOTIFY_CHANGE_SIZE, FILE_NOTIFY_INFORMATION,
+    FILE_SHARE_DELETE, FILE_SHARE_READ, FILE_SHARE_WRITE, FILE_STANDARD_INFO, OPEN_EXISTING,
 };
 use windows_sys::Win32::System::Threading::{
     CreateSemaphoreW, ReleaseSemaphore, WaitForSingleObjectEx, INFINITE,
@@ -45,6 +47,7 @@ struct ReadData {
     file: Option<PathBuf>, // if a file is being watched, this is its full path
     complete_sem: HANDLE,
     is_recursive: bool,
+    stopping: Arc<AtomicBool>,
 }
 
 struct ReadDirectoryRequest {
@@ -77,6 +80,7 @@ pub enum MetaEvent {
 struct WatchState {
     dir_handle: HANDLE,
     complete_sem: HANDLE,
+    stopping: Arc<AtomicBool>,
 }
 
 struct ReadDirectoryChangesServer {
@@ -95,11 +99,11 @@ impl ReadDirectoryChangesServer {
         meta_tx: Sender<MetaEvent>,
         cmd_tx: Sender<Result<PathBuf>>,
         wakeup_sem: HANDLE,
-    ) -> Sender<Action> {
+    ) -> Result<(Sender<Action>, JoinHandle<()>)> {
         let (action_tx, action_rx) = unbounded();
         // it is, in fact, ok to send the semaphore across threads
         let sem_temp = wakeup_sem as u64;
-        let _ = thread::Builder::new()
+        let server_thread = thread::Builder::new()
             .name("notify-rs windows loop".to_string())
             .spawn({
                 let tx = action_tx.clone();
@@ -116,8 +120,9 @@ impl ReadDirectoryChangesServer {
                     };
                     server.run();
                 }
-            });
-        action_tx
+            })
+            .map_err(|error| Error::io(error))?;
+        Ok((action_tx, server_thread))
     }
 
     fn run(mut self) {
@@ -158,10 +163,6 @@ impl ReadDirectoryChangesServer {
             }
         }
 
-        // we have to clean this up, since the watcher may be long gone
-        unsafe {
-            CloseHandle(self.wakeup_sem);
-        }
     }
 
     fn add_watch(&mut self, path: PathBuf, is_recursive: bool) -> Result<PathBuf> {
@@ -225,15 +226,18 @@ impl ReadDirectoryChangesServer {
             }
             return Err(Error::generic("Failed to create semaphore for watch.").add_path(path));
         }
+        let stopping = Arc::new(AtomicBool::new(false));
         let rd = ReadData {
             dir: dir_target,
             file: wf,
             complete_sem: semaphore,
             is_recursive,
+            stopping: Arc::clone(&stopping),
         };
         let ws = WatchState {
             dir_handle: handle,
             complete_sem: semaphore,
+            stopping,
         };
         self.watches.insert(path.clone(), ws);
         if let Err(error) = start_read(&rd, self.event_handler.clone(), handle, self.tx.clone()) {
@@ -260,6 +264,9 @@ impl ReadDirectoryChangesServer {
 }
 
 fn stop_watch(ws: &WatchState, meta_tx: &Sender<MetaEvent>) {
+    // A successful completion may already be queued when cancellation starts. Mark the watch
+    // first so that callback does not rearm ReadDirectoryChangesW with the handle closed below.
+    ws.stopping.store(true, Ordering::Release);
     unsafe {
         let cio = CancelIo(ws.dir_handle);
         let ch = CloseHandle(ws.dir_handle);
@@ -357,16 +364,32 @@ fn completion_disposition(
     error_code: u32,
     bytes_written: u32,
     root_exists: Option<bool>,
+    is_delete_pending: bool,
 ) -> CompletionDisposition {
     match error_code {
         ERROR_OPERATION_ABORTED => CompletionDisposition::Aborted,
-        ERROR_ACCESS_DENIED if root_exists == Some(false) => CompletionDisposition::RootRemoved,
+        ERROR_ACCESS_DENIED if root_exists == Some(false) || is_delete_pending => {
+            CompletionDisposition::RootRemoved
+        }
         ERROR_ACCESS_DENIED => CompletionDisposition::Error,
         ERROR_NOTIFY_ENUM_DIR => CompletionDisposition::Rescan,
         ERROR_SUCCESS if bytes_written == 0 => CompletionDisposition::Rescan,
         ERROR_SUCCESS => CompletionDisposition::Records,
         _ => CompletionDisposition::Error,
     }
+}
+
+fn is_delete_pending(handle: HANDLE) -> bool {
+    let mut info = FILE_STANDARD_INFO::default();
+    let success = unsafe {
+        GetFileInformationByHandleEx(
+            handle,
+            FileStandardInfo,
+            &mut info as *mut _ as *mut c_void,
+            std::mem::size_of_val(&info) as u32,
+        )
+    };
+    success != 0 && info.DeletePending
 }
 
 fn emit_event(event_handler: &Mutex<dyn EventHandler>, result: Result<Event>) {
@@ -384,10 +407,19 @@ unsafe extern "system" fn handle_event(
     let overlapped: Box<OVERLAPPED> = Box::from_raw(overlapped);
     let request: Box<ReadDirectoryRequest> = Box::from_raw(overlapped.hEvent as *mut _);
 
+    // CancelIo does not change a completion that was already queued successfully. Such a callback
+    // can run while stop_watch is waiting, after it has closed the directory handle.
+    if request.data.stopping.load(Ordering::Acquire) {
+        ReleaseSemaphore(request.data.complete_sem, 1, ptr::null_mut());
+        return;
+    }
+
     let root_exists = (error_code == ERROR_ACCESS_DENIED)
         .then(|| request.data.dir.try_exists().ok())
         .flatten();
-    let disposition = completion_disposition(error_code, bytes_written, root_exists);
+    let delete_pending = error_code == ERROR_ACCESS_DENIED && is_delete_pending(request.handle);
+    let disposition =
+        completion_disposition(error_code, bytes_written, root_exists, delete_pending);
     match disposition {
         CompletionDisposition::Aborted => {
             // received when dir is unwatched or watcher is shutdown; return and let overlapped/request get drop-cleaned
@@ -528,15 +560,27 @@ unsafe extern "system" fn handle_event(
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+    use std::ptr;
+    use std::sync::atomic::AtomicBool;
+    use std::sync::{Arc, Condvar, Mutex, mpsc};
+    use std::thread;
+    use std::time::Duration;
+
     use super::{
+        BUF_SIZE, ReadData, ReadDirectoryChangesWatcher, ReadDirectoryRequest,
         completion_disposition, CompletionDisposition, ERROR_ACCESS_DENIED, ERROR_NOTIFY_ENUM_DIR,
-        ERROR_SUCCESS,
+        ERROR_SUCCESS, handle_event,
     };
+    use crate::{RecursiveMode, Watcher};
+    use windows_sys::Win32::Foundation::{CloseHandle, INVALID_HANDLE_VALUE, WAIT_OBJECT_0};
+    use windows_sys::Win32::System::IO::OVERLAPPED;
+    use windows_sys::Win32::System::Threading::{CreateSemaphoreW, WaitForSingleObjectEx};
 
     #[test]
     fn access_denied_with_an_existing_root_is_an_error_not_records() {
         assert_eq!(
-            completion_disposition(ERROR_ACCESS_DENIED, 0, Some(true)),
+            completion_disposition(ERROR_ACCESS_DENIED, 0, Some(true), false),
             CompletionDisposition::Error
         );
     }
@@ -544,7 +588,7 @@ mod tests {
     #[test]
     fn access_denied_with_an_unknown_root_state_is_an_error_not_records() {
         assert_eq!(
-            completion_disposition(ERROR_ACCESS_DENIED, 0, None),
+            completion_disposition(ERROR_ACCESS_DENIED, 0, None, false),
             CompletionDisposition::Error
         );
     }
@@ -552,17 +596,117 @@ mod tests {
     #[test]
     fn only_nonempty_success_can_enter_the_record_parser() {
         assert_eq!(
-            completion_disposition(ERROR_SUCCESS, 1, None),
+            completion_disposition(ERROR_SUCCESS, 1, None, false),
             CompletionDisposition::Records
         );
         assert_eq!(
-            completion_disposition(ERROR_SUCCESS, 0, None),
+            completion_disposition(ERROR_SUCCESS, 0, None, false),
             CompletionDisposition::Rescan
         );
         assert_eq!(
-            completion_disposition(ERROR_NOTIFY_ENUM_DIR, 1, None),
+            completion_disposition(ERROR_NOTIFY_ENUM_DIR, 1, None, false),
             CompletionDisposition::Rescan
         );
+    }
+
+    #[test]
+    fn delete_pending_root_is_removed_even_while_its_path_remains_visible() {
+        assert_eq!(
+            completion_disposition(ERROR_ACCESS_DENIED, 0, Some(true), true),
+            CompletionDisposition::RootRemoved
+        );
+    }
+
+    #[test]
+    fn stopped_watch_does_not_rearm_queued_successful_completion() {
+        let complete_sem = unsafe { CreateSemaphoreW(ptr::null_mut(), 0, 1, ptr::null_mut()) };
+        assert!(!complete_sem.is_null());
+        assert_ne!(complete_sem, INVALID_HANDLE_VALUE);
+
+        let (event_tx, event_rx) = mpsc::channel();
+        let (action_tx, action_rx) = crate::unbounded();
+        let event_handler: Arc<Mutex<dyn crate::EventHandler>> = Arc::new(Mutex::new(event_tx));
+        let request = Box::new(ReadDirectoryRequest {
+            event_handler,
+            buffer: [0u8; BUF_SIZE as usize],
+            handle: INVALID_HANDLE_VALUE,
+            data: ReadData {
+                dir: PathBuf::from(r"C:\watched"),
+                file: None,
+                complete_sem,
+                is_recursive: false,
+                stopping: Arc::new(AtomicBool::new(true)),
+            },
+            action_tx,
+        });
+        let mut overlapped = Box::new(unsafe { std::mem::zeroed::<OVERLAPPED>() });
+        overlapped.hEvent = Box::into_raw(request) as _;
+
+        unsafe {
+            // CancelIo can leave an already-queued completion with ERROR_SUCCESS. The invalid
+            // handle makes any accidental attempt to rearm the request fail deterministically.
+            handle_event(ERROR_SUCCESS, 0, Box::into_raw(overlapped));
+            assert_eq!(
+                WaitForSingleObjectEx(complete_sem, 0, 0),
+                WAIT_OBJECT_0,
+                "completion callback did not release the watch semaphore"
+            );
+            CloseHandle(complete_sem);
+        }
+
+        assert!(event_rx.try_iter().next().is_none(), "unexpected event");
+        assert!(action_rx.try_iter().next().is_none(), "unexpected action");
+    }
+
+    #[test]
+    fn watcher_drop_waits_for_the_native_server_callback_to_finish() {
+        let root = tempfile::tempdir().expect("temporary watch root");
+        let callback_gate = Arc::new((Mutex::new((false, false)), Condvar::new()));
+        let callback_gate_state = Arc::clone(&callback_gate);
+        let mut watcher = ReadDirectoryChangesWatcher::new(
+            move |_| {
+                let (lock, condition) = &*callback_gate_state;
+                let mut state = lock.lock().expect("callback gate");
+                state.0 = true;
+                condition.notify_all();
+                while !state.1 {
+                    state = condition.wait(state).expect("callback release");
+                }
+            },
+            crate::Config::default(),
+        )
+        .expect("create watcher");
+        watcher
+            .watch(root.path(), RecursiveMode::Recursive)
+            .expect("watch temporary root");
+        std::fs::write(root.path().join("trigger.jpg"), b"trigger").expect("trigger callback");
+
+        let (lock, condition) = &*callback_gate;
+        let mut state = lock.lock().expect("main gate");
+        while !state.0 {
+            let (next_state, timeout) = condition
+                .wait_timeout(state, Duration::from_secs(2))
+                .expect("callback start");
+            assert!(!timeout.timed_out(), "native callback did not start");
+            state = next_state;
+        }
+
+        let (finished_tx, finished_rx) = mpsc::sync_channel(1);
+        thread::spawn(move || {
+            drop(watcher);
+            let _ = finished_tx.send(());
+        });
+        assert!(
+            finished_rx.recv_timeout(Duration::from_millis(100)).is_err(),
+            "watcher drop returned before its native callback completed"
+        );
+
+        state.1 = true;
+        condition.notify_all();
+        drop(state);
+        finished_rx
+            .recv_timeout(Duration::from_secs(2))
+            .expect("watcher server shutdown completion");
     }
 }
 
@@ -572,6 +716,7 @@ pub struct ReadDirectoryChangesWatcher {
     tx: Sender<Action>,
     cmd_rx: Receiver<Result<PathBuf>>,
     wakeup_sem: HANDLE,
+    server_thread: Option<JoinHandle<()>>,
 }
 
 impl ReadDirectoryChangesWatcher {
@@ -586,13 +731,22 @@ impl ReadDirectoryChangesWatcher {
             return Err(Error::generic("Failed to create wakeup semaphore."));
         }
 
-        let action_tx =
-            ReadDirectoryChangesServer::start(event_handler, meta_tx, cmd_tx, wakeup_sem);
+        let (action_tx, server_thread) =
+            match ReadDirectoryChangesServer::start(event_handler, meta_tx, cmd_tx, wakeup_sem) {
+                Ok(server) => server,
+                Err(error) => {
+                    unsafe {
+                        CloseHandle(wakeup_sem);
+                    }
+                    return Err(error);
+                }
+            };
 
         Ok(ReadDirectoryChangesWatcher {
             tx: action_tx,
             cmd_rx,
             wakeup_sem,
+            server_thread: Some(server_thread),
         })
     }
 
@@ -603,6 +757,31 @@ impl ReadDirectoryChangesWatcher {
         unsafe {
             ReleaseSemaphore(self.wakeup_sem, 1, ptr::null_mut());
         }
+    }
+
+    fn shutdown_inner(&mut self) -> Result<()> {
+        let Some(server_thread) = self.server_thread.take() else {
+            return Ok(());
+        };
+        let send_result = self
+            .tx
+            .send(Action::Stop)
+            .map_err(|_| Error::generic("Error stopping internal watcher thread"));
+        if send_result.is_ok() {
+            self.wakeup_server();
+        }
+        let join_result = server_thread
+            .join()
+            .map_err(|_| Error::generic("Internal watcher thread panicked during shutdown"));
+        unsafe {
+            CloseHandle(self.wakeup_sem);
+        }
+        send_result.and(join_result)
+    }
+
+    /// Stops the native server and waits until every watched handle has closed.
+    pub fn shutdown(&mut self) -> Result<()> {
+        self.shutdown_inner()
     }
 
     fn send_action_require_ack(&mut self, action: Action, pb: &PathBuf) -> Result<()> {
@@ -692,9 +871,7 @@ impl Watcher for ReadDirectoryChangesWatcher {
 
 impl Drop for ReadDirectoryChangesWatcher {
     fn drop(&mut self) {
-        let _ = self.tx.send(Action::Stop);
-        // better wake it up
-        self.wakeup_server();
+        let _ = self.shutdown_inner();
     }
 }
 

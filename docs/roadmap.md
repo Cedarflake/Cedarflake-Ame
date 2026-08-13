@@ -1813,11 +1813,12 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   ADR 0017 pinned `notify` 8.2.0 source plus narrow upstream-derived Windows backports. One bounded
   recursive observer lifecycle per root converts controlled
   create, modify, remove, paired rename, directory, rescan, callback-error, and overflow signals
-  into R2c-A observations and intents. Eight application lifecycle tests and fourteen adapter tests
-  cover explicit-clock restart, generation isolation, stop-failure isolation, metadata races,
-  shutdown boundaries, native notification overflow, watched-root loss, degraded recovery, Chinese
-  and long paths, and a real temporary recursive root without touching
-  a real library. The 2026-08-14 Daily gate passed all 202 Rust tests with 197 passing and five
+  into R2c-A observations and intents. Thirteen application lifecycle tests and fourteen adapter tests
+  cover non-blocking explicit-clock restart, crash-loop backoff, application-level dropped-evidence
+  degradation, generation isolation, stop-failure isolation, metadata races,
+  shutdown boundaries, queued native completions, server-exit acknowledgement, native notification
+  overflow, watched-root loss, degraded recovery, Chinese and long paths, and a real temporary recursive root without touching
+  a real library. The 2026-08-14 Daily gate passed all 207 Rust tests with 202 passing and five
   intentional ignores, all Flutter tests, Windows scan and accessibility integrations, bridge
   compatibility, and whitespace; the Windows Release gate built the packaged application and passed
   both bridge smoke tests. There

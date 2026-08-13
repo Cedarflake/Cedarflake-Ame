@@ -63,16 +63,21 @@ R2c-B admits the stable `notify` version 8.2.0 source behind a Windows `LibraryC
 adapter, with a repository-owned Cargo patch under `rust/vendor/notify`. The patch is based on the
 crates.io source with checksum
 `4d3d07927151ff8575b7087f245456e549fea62edf0ec4e565a5ee50c8402bc3` and backports upstream
-Windows fixes `75d72fd1`, `21abf764`, and `d01dc40d`. Its exact scope and replacement instructions
-are recorded in `rust/vendor/notify/AME-PATCHES.md`. The dependency remains Windows-targeted,
-disables default features, and uses neither a debouncer nor a polling fallback. `notify` and all
-transitive event, error, path, thread, and watcher types remain inside the adapter.
+Windows fixes `75d72fd1`, `21abf764`, `d01dc40d`, and `bc257049`. Its exact scope and replacement
+instructions are recorded in `rust/vendor/notify/AME-PATCHES.md`. The dependency remains
+Windows-targeted, disables default features, and uses neither a debouncer nor a polling fallback.
+`notify` and all transitive event, error, path, thread, and watcher types remain inside the adapter.
 
 The vendored Windows backend retains the dependency's existing `unsafe` Win32 boundary. The
 backport may only parse `FILE_NOTIFY_INFORMATION` after a nonzero successful completion, must rearm
 before delivering normal records, owns each overlapped request until its completion callback, and
 must release or close every handle on start, rearm, unwatch, and stop paths. Focused real-Windows
 overflow, root-removal, error, and bounded-stop tests are required whenever that file changes.
+Each watch is marked stopping before cancellation so an already-queued successful completion cannot
+rearm a closed handle. Watcher destruction joins the native server thread only after every watch has
+cancelled its outstanding request and closed its handles; the Ame adapter performs that destruction
+inside its existing bounded two-second stop task. A successful `LibraryChangeSource::stop` therefore
+proves the old native watcher has exited before the observer may schedule a replacement.
 The backport exists only because no stable upstream release contains these fixes; the 9.x release
 candidate remains rejected, and a future stable release is preferred over carrying this patch.
 
@@ -94,6 +99,13 @@ The application owns one `LibraryChangeObserver` lifecycle per configured availa
 public Windows facade accepts only Ame values and a root path string. Polling that facade performs
 one non-blocking bounded drain and may make at most one restart attempt when the caller-provided
 clock reaches the current exponential-backoff deadline; it never sleeps on the UI call path.
+Runtime restarts start on a bounded worker and publish completion through a non-blocking receiver;
+`poll` never performs path canonicalization, native watcher construction, or recursive watch setup.
+The restart failure streak survives a merely successful watcher construction and resets only after
+two consecutive healthy drains, so an immediate runtime crash loop advances through the bounded
+exponential backoff instead of repeating the first delay forever. Independently of adapter health,
+any nonzero dropped-observation count forces degraded source health and root reconciliation at the
+application boundary.
 
 The adapter callback performs only lexical relative-path conversion, dependency-event mapping, an
 adjacent Windows rename-pair correlation, atomic health accounting, and `try_send` into a bounded
@@ -131,15 +143,17 @@ not gain an external service or source-tree artifact.
 - focused adapter tests, repository Daily gate, Windows Release gate, and source immutability checks
   pass.
 
-Focused evidence includes three vendored completion-classification tests, eight deterministic
-application lifecycle tests, and fourteen adapter tests.
+Focused evidence includes six vendored completion, shutdown, and root-loss tests, thirteen
+deterministic application lifecycle tests, and fourteen adapter tests.
 The real adapter test creates a temporary recursive root, performs directory creation plus file
 create, modify, rename, and removal, plans the resulting Ame observations through ADR 0016, verifies
 an untouched sentinel, and stops within the two-second bound. Other fixtures force rescan, callback
 error, incomplete rename, bounded-channel overflow, native notification-buffer overflow, stale
 generation, root removal, Chinese and long paths, health monotonicity, metadata disappearance,
-stop-boundary callbacks, expired rename pairs, invalid planning bounds, failed-stop isolation, and
-restart backoff. The 2026-08-14 Daily gate passed all 202 Rust tests with 197 passing and five
+stop-boundary callbacks, queued-success shutdown, native-server completion, application-level
+dropped-evidence degradation, crash-loop backoff, non-blocking restart, expired rename pairs,
+invalid planning bounds, failed-stop isolation, and restart backoff. The 2026-08-14 Daily gate passed
+all 207 Rust tests with 202 passing and five
 authorization- or performance-bound tests ignored, all Flutter tests, the controlled Windows scan
 integration, native Windows accessibility integration, bridge compatibility, and whitespace
 validation. The Windows Release gate built the packaged application and passed both release-bridge

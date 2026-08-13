@@ -29,29 +29,35 @@ when an explicit clock reaches a bounded exponential-backoff deadline.
 | Native Windows notification overflow | `Flag::Rescan`, degraded health, and root evidence gap | Real blocked-callback 16 KiB overflow fixture |
 | Rescan or callback error | Degraded or failed health plus root evidence gap | Forced dependency event/error fixtures |
 | Event storm | `try_send` never blocks; overflow count and evidence gap are retained | Capacity-one ingress fixture |
+| Source reports dropped evidence while healthy | Application still marks degraded and requests root reconciliation | Healthy fake-source drop fixture |
 | Ambiguous directory removal | Subtree reconciliation rather than a single file-path claim | `RemoveKind::Any` fixture |
 | Root generation changes | Late observations cannot enter the current plan | Fake lifecycle generation fixture |
 | Start or runtime failure | Structured error and bounded explicit-clock restart backoff | Fake factory/source fixtures |
+| Repeated runtime crash | Backoff advances until consecutive healthy drains prove stability | Three-source crash-loop fixture |
+| Slow watcher restart | Poll returns `Starting` without waiting for native setup | Delayed factory-start fixture |
 | Root removal or window close | Failed health plus root gap, then stop within two seconds | Real removed-root runtime and stop fixtures |
 | Delivered degraded gap | Isolate the source and recover through bounded restart | Explicit-clock lifecycle fixture |
 | Stop failure | Do not start a replacement while the old watcher may still be live | Failed-stop lifecycle fixture |
+| Queued completion during stop | Do not rearm a closed native handle | Vendored queued-success fixture |
+| Successful stop | Native server exits and closes every watch before replacement is allowed | Blocked-callback server-join fixture |
 | Metadata disappears before callback handling | Preserve conservative work and mark an evidence gap | Vanished-entry fixture |
 | Chinese and long paths | Preserve relative UTF-8 path evidence | Real Chinese path and direct long-path fixtures |
 | Source safety | No media decoding or mutation | Callback implementation inspection and unchanged sentinel |
 
 ## Verification evidence
 
-- Three vendored backend tests prove that access-denied completions never enter the record parser
-  and that only a nonempty successful completion can contain normal records.
-- Eight application lifecycle tests cover initial failure, explicit-clock restart, runtime failure,
-  stale generation, idempotent stop, bounded slow stop, failed-stop isolation, and invalid planning
-  bounds.
+- Six vendored backend tests prove that access-denied completions never enter the record parser,
+  only a nonempty successful completion can contain normal records, delete-pending roots are
+  recognized, queued stop completions cannot rearm, and watcher drop waits for native server exit.
+- Thirteen application lifecycle tests cover initial failure, explicit-clock and non-blocking restart,
+  runtime crash-loop backoff, application-level dropped-evidence degradation, stale generation,
+  idempotent stop, bounded slow stop, failed-stop isolation, and invalid planning bounds.
 - Fourteen adapter tests cover event translation, real recursive Windows changes, evidence gaps,
   bounded ingress, directory ambiguity, health severity, root removal, shutdown-boundary callbacks,
   expired rename pairs, vanished metadata, Chinese paths, long paths, unavailable roots, and invalid
   capacities, native notification-buffer loss, and root-loss health projection.
 - Rust Clippy passes for all targets and features with warnings denied.
-- The complete 2026-08-14 Daily gate passes all 202 Rust tests: 197 pass and five authorization- or
+- The complete 2026-08-14 Daily gate passes all 207 Rust tests: 202 pass and five authorization- or
   performance-bound tests remain intentionally ignored; all Flutter tests, controlled Windows scan
   integration, native Windows accessibility integration, bridge compatibility, and whitespace
   validation pass.

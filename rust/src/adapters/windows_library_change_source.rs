@@ -177,15 +177,20 @@ impl LibraryChangeSource for WindowsLibraryChangeSource {
         self.callback_state.stop_accepting();
         self.callback_state
             .set_health(LibraryChangeSourceHealth::Stopped);
-        let Some(watcher) = self.watcher.take() else {
+        let Some(mut watcher) = self.watcher.take() else {
             return Ok(stop_report(started, &self.callback_state));
         };
         let (finished_sender, finished_receiver) = sync_channel(1);
         thread::Builder::new()
             .name("ame-notify-stop".to_owned())
             .spawn(move || {
-                drop(watcher);
-                let _ = finished_sender.send(());
+                let result = watcher.shutdown().map_err(|_| {
+                    LibraryChangeSourceError::new(
+                        "change_source_native_stop_failed",
+                        "The native Windows library observer did not shut down cleanly.",
+                    )
+                });
+                let _ = finished_sender.send(result);
             })
             .map_err(|_| {
                 LibraryChangeSourceError::new(
@@ -198,7 +203,7 @@ impl LibraryChangeSource for WindowsLibraryChangeSource {
                 "change_source_stop_timeout",
                 "The library observer did not stop within the bounded shutdown interval.",
             )
-        })?;
+        })??;
         Ok(stop_report(started, &self.callback_state))
     }
 }
