@@ -1,12 +1,40 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::domain::{
     AssetLocationView, CatalogCursor, CatalogSnapshot, DiscoveredFile, ExpectedFileState,
     FileIdentityEvidence, GalleryLayoutManifestChunk, GalleryLayoutManifestCursor, GalleryQuery,
-    GalleryTimeAnchor, GalleryTimeline, LibraryFolderCursor, LibraryFolderPage, MediaInspection,
-    MetadataInspection, PreviewArtifact, PreviewMaterialization, PreviewReclamationCandidate,
-    RecoverableScan, ScanCheckpoint, ScanError, ScanIssue, ScanRequest, StorageConfiguration,
+    GalleryTimeAnchor, GalleryTimeline, LibraryChangeSourceBatch, LibraryChangeSourceError,
+    LibraryChangeSourceHealth, LibraryChangeSourceStopReport, LibraryFolderCursor,
+    LibraryFolderPage, LibraryRootGeneration, MediaInspection, MetadataInspection, PreviewArtifact,
+    PreviewMaterialization, PreviewReclamationCandidate, RecoverableScan, ScanCheckpoint,
+    ScanError, ScanIssue, ScanRequest, StorageConfiguration,
 };
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LibraryChangeSourceRequest {
+    pub root_id: String,
+    pub root_generation: LibraryRootGeneration,
+    pub root_path: PathBuf,
+    pub ingress_capacity: usize,
+}
+
+pub trait LibraryChangeSource: Send + 'static {
+    fn health(&self) -> LibraryChangeSourceHealth;
+    fn drain(
+        &mut self,
+        max_observations: usize,
+    ) -> Result<LibraryChangeSourceBatch, LibraryChangeSourceError>;
+    fn stop(&mut self) -> Result<LibraryChangeSourceStopReport, LibraryChangeSourceError>;
+}
+
+pub trait LibraryChangeSourceFactory: Clone + Send + 'static {
+    type Source: LibraryChangeSource;
+
+    fn start(
+        &self,
+        request: &LibraryChangeSourceRequest,
+    ) -> Result<Self::Source, LibraryChangeSourceError>;
+}
 
 pub trait CatalogRepository {
     fn catalog_path(&self) -> &Path;

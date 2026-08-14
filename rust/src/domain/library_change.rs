@@ -188,6 +188,79 @@ impl Display for LibraryChangePlanningError {
 impl std::error::Error for LibraryChangePlanningError {}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LibraryChangeSourceBatch {
+    pub observations: Vec<LibraryChangeObservation>,
+    pub health: LibraryChangeSourceHealth,
+    pub dropped_observation_count: u64,
+    pub ignored_callback_count: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LibraryChangeSourceError {
+    pub code: String,
+    pub message: String,
+    pub is_retryable: bool,
+}
+
+impl LibraryChangeSourceError {
+    pub(crate) fn new(code: impl Into<String>, message: impl Into<String>) -> Self {
+        Self {
+            code: code.into(),
+            message: message.into(),
+            is_retryable: false,
+        }
+    }
+
+    pub(crate) fn retryable(code: impl Into<String>, message: impl Into<String>) -> Self {
+        Self {
+            code: code.into(),
+            message: message.into(),
+            is_retryable: true,
+        }
+    }
+}
+
+impl Display for LibraryChangeSourceError {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(formatter, "{}: {}", self.code, self.message)
+    }
+}
+
+impl std::error::Error for LibraryChangeSourceError {}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct LibraryChangeSourceStopReport {
+    pub elapsed_millis: u64,
+    pub ignored_callback_count: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LibraryChangeObserverPoll {
+    pub planning: LibraryChangePlanningResult,
+    pub source_health: LibraryChangeSourceHealth,
+    pub restart_attempt: u32,
+    pub next_restart_unix_ms: Option<i64>,
+    pub dropped_observation_count: u64,
+    pub ignored_callback_count: u64,
+    pub last_source_error_code: Option<String>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct LibraryChangeRestartPolicy {
+    pub initial_delay_millis: u64,
+    pub maximum_delay_millis: u64,
+}
+
+impl Default for LibraryChangeRestartPolicy {
+    fn default() -> Self {
+        Self {
+            initial_delay_millis: 250,
+            maximum_delay_millis: 30_000,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ReconciliationFileEvidence {
     pub relative_path: String,
     pub file_size: u64,

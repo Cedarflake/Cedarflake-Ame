@@ -4,7 +4,7 @@ Status: active delivery plan
 
 Last confirmed with the user: 2026-08-13
 
-Last implementation-status synchronization: 2026-08-13
+Last implementation-status synchronization: 2026-08-14
 
 Repository: this repository root
 
@@ -1240,8 +1240,8 @@ R2c-A is complete only when the behavior can be tested without a platform watche
 asked to infer business rules.
 
 Status: **complete on 2026-08-13**. ADR 0016 owns the platform-independent contract and
-deterministic fixtures; ADR 0017 accepts stable `notify` 8.2.0 for R2c-B validation without adding
-an unused dependency in R2c-A.
+deterministic fixtures; ADR 0017 records the R2c-B watcher decision without adding an unused
+dependency in R2c-A.
 
 R2c-B - live Windows observation:
 
@@ -1252,6 +1252,10 @@ R2c-B - live Windows observation:
 
 R2c-B is complete only when controlled real filesystem changes produce Ame-owned intents without
 blocking UI, decoding media in the callback, or growing memory without limit.
+
+Status: **complete on 2026-08-13; audit-hardened on 2026-08-14**. ADR 0017 owns the admitted Windows adapter and
+`docs/acceptance/r2c-b-windows-observation.md` records focused, controlled-filesystem, Daily, and
+Windows Release evidence. No real-library root was accessed.
 
 R2c-C - durable queue and coalescing:
 
@@ -1682,8 +1686,8 @@ may serve as benchmarks or fallbacks but are not automatically preferred over ma
 
 Active stage: **R2c - continuous directory synchronization and incremental indexing**
 
-Active slice: **R2c-B - live Windows observation**. R2c-A contracts and deterministic fixtures
-were completed and verified on 2026-08-13.
+Active slice: **R2c-C - durable queue and coalescing**. R2c-A contracts and R2c-B live Windows
+observation were completed and verified on 2026-08-13.
 
 Planned next stage: **R3 - exact duplicate evidence**, still blocked behind R2c catalog-freshness
 acceptance.
@@ -1805,11 +1809,21 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   identity-query degradation, path-bound authoritative removal, and failure preservation without a
   platform watcher or Flutter policy. The attack matrix is recorded in
   `docs/acceptance/r2c-a-blue-team.md`.
-- ADR 0017 accepts stable `notify` 8.2.0 for R2c-B validation behind an Ame-owned adapter. The
-  dependency is not yet present in `Cargo.toml`; there is still no production watcher, durable
-  change queue, atomic delta publisher, or catch-up adapter. R3 and the later duplicate, review,
-  classification, similarity, semantic, organization-plan, and operation-journal domains have not
-  started.
+- R2c-B is complete and its 2026-08-14 audit hardening replaces the unpatched dependency with the
+  ADR 0017 pinned `notify` 8.2.0 source plus narrow upstream-derived Windows backports. One bounded
+  recursive observer lifecycle per root converts controlled
+  create, modify, remove, paired rename, directory, rescan, callback-error, and overflow signals
+  into R2c-A observations and intents. Thirteen application lifecycle tests and fourteen adapter tests
+  cover non-blocking explicit-clock restart, crash-loop backoff, application-level dropped-evidence
+  degradation, generation isolation, stop-failure isolation, metadata races,
+  shutdown boundaries, queued native completions, server-exit acknowledgement, native notification
+  overflow, watched-root loss, degraded recovery, Chinese and long paths, and a real temporary recursive root without touching
+  a real library. The 2026-08-14 Daily gate passed all 207 Rust tests with 202 passing and five
+  intentional ignores, all Flutter tests, Windows scan and accessibility integrations, bridge
+  compatibility, and whitespace; the Windows Release gate built the packaged application and passed
+  both bridge smoke tests. There
+  is still no durable change queue, atomic delta publisher, production Flutter synchronization UI,
+  catch-up adapter, or real-library event acceptance; those remain later R2c slices.
 - The current R2b closeout working tree passed the complete local Daily gate and Windows Release
   gate on 2026-08-12, including packaged Rust-library loading and the release bridge smoke test.
   This is current-stage evidence, not a release candidate or completion of R10.
