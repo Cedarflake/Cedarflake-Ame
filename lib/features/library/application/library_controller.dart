@@ -74,6 +74,7 @@ class LibraryController extends Notifier<LibraryState> {
   LibraryPreviewCoordinator? _previewCoordinator;
   _PendingTimeNavigation? _pendingTimeNavigation;
   _PendingTimeNavigation? _activeTimeNavigation;
+  _PendingTimeNavigation? _timeNavigationOwner;
   Timer? _timeNavigationRetryTimer;
   bool _isRunningTimeNavigation = false;
   int _timeNavigationGeneration = 0;
@@ -130,6 +131,7 @@ class LibraryController extends Notifier<LibraryState> {
       }
       final activeTimeNavigation = _activeTimeNavigation;
       _activeTimeNavigation = null;
+      _timeNavigationOwner = null;
       if (activeTimeNavigation != null &&
           !activeTimeNavigation.completion.isCompleted) {
         activeTimeNavigation.completion.complete(false);
@@ -745,9 +747,32 @@ class LibraryController extends Notifier<LibraryState> {
   }
 
   Future<bool> jumpToTime(LibraryTimeBucket bucket, {int itemOffset = 0}) {
+    return _requestTimeNavigation(
+      bucket,
+      itemOffset: itemOffset,
+      ownsVisibleRange: true,
+    );
+  }
+
+  Future<bool> prefetchTime(LibraryTimeBucket bucket, {int itemOffset = 0}) {
+    return _requestTimeNavigation(
+      bucket,
+      itemOffset: itemOffset,
+      ownsVisibleRange: false,
+    );
+  }
+
+  Future<bool> _requestTimeNavigation(
+    LibraryTimeBucket bucket, {
+    required int itemOffset,
+    required bool ownsVisibleRange,
+  }) {
     final timeline = state.timeline;
     if (timeline == null) {
       return Future.value(false);
+    }
+    if (ownsVisibleRange) {
+      _pendingVisibleRange = null;
     }
     final anchor = LibraryTimeAnchor(
       revision: timeline.revision,
@@ -771,6 +796,9 @@ class LibraryController extends Notifier<LibraryState> {
           state.query,
           globalItemOffset,
         )) {
+      if (ownsVisibleRange) {
+        _timeNavigationOwner = pending;
+      }
       return pending.completion.future;
     }
     final active = _activeTimeNavigation;
@@ -782,6 +810,9 @@ class LibraryController extends Notifier<LibraryState> {
           state.query,
           globalItemOffset,
         )) {
+      if (ownsVisibleRange) {
+        _timeNavigationOwner = active;
+      }
       return active.completion.future;
     }
     final generation = ++_timeNavigationGeneration;
@@ -794,6 +825,9 @@ class LibraryController extends Notifier<LibraryState> {
     );
     final previousPending = _pendingTimeNavigation;
     _pendingTimeNavigation = request;
+    if (ownsVisibleRange) {
+      _timeNavigationOwner = request;
+    }
     if (previousPending != null && !previousPending.completion.isCompleted) {
       previousPending.completion.complete(false);
     }
@@ -832,6 +866,9 @@ class LibraryController extends Notifier<LibraryState> {
     }
     if (!_isCompatibleTimeNavigation(request)) {
       _pendingTimeNavigation = null;
+      if (identical(_timeNavigationOwner, request)) {
+        _timeNavigationOwner = null;
+      }
       if (!request.completion.isCompleted) {
         request.completion.complete(false);
       }
@@ -852,6 +889,9 @@ class LibraryController extends Notifier<LibraryState> {
     try {
       final didLoad = await _loadTimeNavigation(request);
       final isLatest = request.generation == _timeNavigationGeneration;
+      if (!didLoad && identical(_timeNavigationOwner, request)) {
+        _timeNavigationOwner = null;
+      }
       if (!request.completion.isCompleted) {
         request.completion.complete(didLoad && isLatest);
       }
@@ -1074,6 +1114,42 @@ class LibraryController extends Notifier<LibraryState> {
     _previewCoordinator?.invalidateAll();
   }
 
+  void cancelTimeNavigation() {
+    if (_isDisposed) {
+      return;
+    }
+    final pending = _pendingTimeNavigation;
+    final active = _activeTimeNavigation;
+    final owner = _timeNavigationOwner;
+    final hasPendingRequest =
+        pending != null && !pending.completion.isCompleted;
+    final hasActiveRequest = active != null && !active.completion.isCompleted;
+    if (!hasPendingRequest && !hasActiveRequest && owner == null) {
+      if (state.activeTimeAnchor != null) {
+        state = state.copyWith(activeTimeAnchor: null);
+      }
+      return;
+    }
+    _timeNavigationGeneration += 1;
+    _pendingTimeNavigation = null;
+    _timeNavigationOwner = null;
+    _timeNavigationRetryTimer?.cancel();
+    _timeNavigationRetryTimer = null;
+    if (pending != null && !pending.completion.isCompleted) {
+      pending.completion.complete(false);
+    }
+    if (active != null && !active.completion.isCompleted) {
+      active.completion.complete(false);
+    }
+    _loadingTimeNavigationGeneration = null;
+    if (state.isLoadingTimeAnchor || state.activeTimeAnchor != null) {
+      state = state.copyWith(
+        activeTimeAnchor: null,
+        isLoadingTimeAnchor: false,
+      );
+    }
+  }
+
   void ensureVisibleRange({
     required int startItemOffset,
     required int endItemOffsetExclusive,
@@ -1088,7 +1164,12 @@ class LibraryController extends Notifier<LibraryState> {
     final start = startItemOffset.clamp(0, totalItems - 1).toInt();
     final end = endItemOffsetExclusive.clamp(start + 1, totalItems).toInt();
     final range = (start: start, end: end);
-    _retainTimeNavigationForVisibleRange(range);
+    if (!_visibleRangeRetainsNavigationOwner(range)) {
+      return;
+    }
+    if (_timeNavigationOwner == null) {
+      _retainPassiveTimeNavigationForVisibleRange(range);
+    }
     final loadedStart = state.windowStartItemOffset;
     final loadedEnd = loadedStart + state.assets.length;
     if (range.start >= loadedStart && range.end <= loadedEnd) {
@@ -1102,7 +1183,22 @@ class LibraryController extends Notifier<LibraryState> {
     _scheduleVisibleRangeDrain();
   }
 
-  void _retainTimeNavigationForVisibleRange(({int start, int end}) range) {
+  bool _visibleRangeRetainsNavigationOwner(({int start, int end}) range) {
+    final owner = _timeNavigationOwner;
+    if (owner == null) {
+      return true;
+    }
+    if (!_isCompatibleTimeNavigation(owner)) {
+      _timeNavigationOwner = null;
+      return true;
+    }
+    return owner.globalItemOffset >= range.start &&
+        owner.globalItemOffset < range.end;
+  }
+
+  void _retainPassiveTimeNavigationForVisibleRange(
+    ({int start, int end}) range,
+  ) {
     bool contains(_PendingTimeNavigation request) {
       return request.globalItemOffset >= range.start &&
           request.globalItemOffset < range.end;
@@ -1171,7 +1267,9 @@ class LibraryController extends Notifier<LibraryState> {
 
   Future<void> _loadVisibleRange(({int start, int end}) range) async {
     for (var attempt = 0; attempt < _maxVisibleRangePageLoads; attempt++) {
-      if (_isDisposed || state.assets.isEmpty) {
+      if (_isDisposed ||
+          state.assets.isEmpty ||
+          !_visibleRangeRetainsNavigationOwner(range)) {
         return;
       }
       final loadedStart = state.windowStartItemOffset;
@@ -1213,15 +1311,20 @@ class LibraryController extends Notifier<LibraryState> {
     for (final bucket in timeline.buckets) {
       final bucketEnd = precedingItems + bucket.itemCount;
       if (target < bucketEnd) {
-        await jumpToTime(bucket, itemOffset: target - precedingItems);
+        await _requestTimeNavigation(
+          bucket,
+          itemOffset: target - precedingItems,
+          ownsVisibleRange: false,
+        );
         return;
       }
       precedingItems = bucketEnd;
     }
     final lastBucket = timeline.buckets.last;
-    await jumpToTime(
+    await _requestTimeNavigation(
       lastBucket,
       itemOffset: lastBucket.itemCount > 0 ? lastBucket.itemCount - 1 : 0,
+      ownsVisibleRange: false,
     );
   }
 

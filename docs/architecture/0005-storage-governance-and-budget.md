@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-07
-- Last updated: 2026-08-12
+- Last updated: 2026-08-16
 - Related: ADR 0006, ADR 0014
 
 ## Context
@@ -117,6 +117,12 @@ cache hit remains installed when the current source revalidation fails. A new en
 managed temporary namespace, including its reserved budget bytes, until source revalidation
 succeeds; only then is it atomically renamed into the final namespace. Failed validation removes
 only the staged file and cannot delete an artifact already used by another location.
+
+When a compatible current artifact already exists but the catalog has no durable dimensions, Ame
+reads bounded source header and orientation evidence to recover the display dimensions without
+decoding the full source raster or rewriting the artifact. This cache-hit inspection remains
+source-read-only, applies the same dimension and orientation limits as generation, and still enters
+ADR 0014's separate geometry-evidence epoch rather than making artifact readiness a layout event.
 
 When generation is also the first successful inspection of an item whose durable dimensions were
 unknown, its orientation-corrected width and height are persisted as geometry evidence. ADR 0014

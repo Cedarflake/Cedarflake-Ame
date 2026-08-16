@@ -221,6 +221,38 @@ void main() {
     queue.dispose();
   });
 
+  test("uses the latest center-out rank within one demand priority", () async {
+    final previewer = _ControlledPreviewer();
+    final queue = LibraryPreviewQueue(
+      previewer: previewer,
+      previewEdge: 512,
+      maxActive: 1,
+      onResult: (_) {},
+    );
+
+    queue.request(_asset("active"));
+    queue.request(_asset("upper"));
+    queue.request(_asset("center"));
+    queue.request(_asset("lower"));
+    queue.replaceDemandAndRequestAll(
+      {
+        "center": LibraryPreviewPriority.visible,
+        "upper": LibraryPreviewPriority.visible,
+        "lower": LibraryPreviewPriority.visible,
+      },
+      [
+        (asset: _asset("center"), priority: LibraryPreviewPriority.visible),
+        (asset: _asset("upper"), priority: LibraryPreviewPriority.visible),
+        (asset: _asset("lower"), priority: LibraryPreviewPriority.visible),
+      ],
+    );
+    previewer.succeed("active", _readyAsset("active"));
+    await _flushAsyncWork();
+
+    expect(previewer.requests, ["active", "center"]);
+    queue.dispose();
+  });
+
   test("upgrades a pending location without duplicating it", () async {
     final previewer = _ControlledPreviewer();
     final queue = LibraryPreviewQueue(

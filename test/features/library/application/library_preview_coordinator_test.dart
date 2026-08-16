@@ -90,6 +90,30 @@ void main() {
     coordinator.updateViewerDemand(ready);
     expect(previewer.previewEdges, [128, 512]);
   });
+
+  test("reorders pending work when the gallery center changes", () async {
+    final previewer = _ControlledPreviewer();
+    final coordinator = LibraryPreviewCoordinator(
+      previewer: previewer,
+      defaultPreviewEdge: 512,
+      maxActive: 1,
+      canPublish: (_) => true,
+      onPublished: (_) {},
+    );
+    addTearDown(coordinator.dispose);
+    final active = _asset("active", LibraryPreviewStatus.pending);
+    final upper = _asset("upper", LibraryPreviewStatus.pending);
+    final center = _asset("center", LibraryPreviewStatus.pending);
+    final lower = _asset("lower", LibraryPreviewStatus.pending);
+
+    coordinator.updateGalleryDemand(visible: [active]);
+    coordinator.updateGalleryDemand(visible: [active, upper, center, lower]);
+    coordinator.updateGalleryDemand(visible: [active, center, upper, lower]);
+    previewer.succeed(active.locationId, _readyAsset("active"));
+    await _flushAsyncWork();
+
+    expect(previewer.requests, [active.locationId, center.locationId]);
+  });
 }
 
 LibraryAsset _asset(String suffix, LibraryPreviewStatus previewStatus) {

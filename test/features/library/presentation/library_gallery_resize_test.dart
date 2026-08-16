@@ -7,6 +7,7 @@ import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/presentation/gallery_selection.dart";
 import "package:cedarflake_ame/features/library/presentation/gallery_view_options.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_exact_extent_sliver.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_layout.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_layout_snapshot.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_wall.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_photo_tile.dart";
@@ -35,6 +36,60 @@ void main() {
       ),
       isFalse,
     );
+  });
+
+  testWidgets("publishes the initial visible range before a manifest arrives", (
+    tester,
+  ) async {
+    final state = _boundaryState(
+      itemCount: 40,
+      windowStart: 0,
+      windowEnd: 40,
+      hasPrevious: false,
+      hasNext: false,
+    );
+    final controller = _RecordingGalleryController();
+    final scrollController = ScrollController();
+    LibraryGalleryVisibleRange? visibleRange;
+    addTearDown(scrollController.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: SizedBox(
+            width: 900,
+            height: 600,
+            child: LibraryGalleryWall(
+              state: state,
+              controller: controller,
+              scrollController: scrollController,
+              layoutShape: GalleryLayoutShape.equalHeight,
+              thumbnailSize: GalleryThumbnailSize.medium,
+              selection: GallerySelection.empty(state.queryId),
+              isSelecting: false,
+              onOpen: (_) {},
+              onToggleSelection: (_) {},
+              onViewInformation: (_) {},
+              onCopyPath: (_) {},
+              onRevealFile: (_) {},
+              onVisiblePositionChanged: (_) {},
+              onVisibleRangeChanged: (range) {
+                visibleRange = range;
+              },
+              onLoadPrevious: () async {},
+              onLayoutChanged: (_, _) {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(visibleRange, isNotNull);
+    expect(visibleRange!.queryId, state.queryId);
+    expect(visibleRange!.revision, state.catalogRevision);
+    expect(visibleRange!.containsGlobalItemIndex(0), isTrue);
+    expect(controller.previewDemandRequests, isNotEmpty);
   });
 
   testWidgets("preserves a deep logical anchor through a latest-only resize", (
@@ -121,6 +176,7 @@ void main() {
     expect(controller.previewDemandRequests, isNotEmpty);
     final previewDemand = controller.previewDemandRequests.last;
     expect(previewDemand.visible, contains(anchorBefore!.locationId));
+    expect(previewDemand.visible.first, anchorBefore.locationId);
     expect(previewDemand.nearDirection, isNotEmpty);
     expect(previewDemand.guard, isNotEmpty);
     final anchorFinder = find.byKey(ValueKey(anchorBefore.locationId));
@@ -437,7 +493,7 @@ void main() {
     expect(find.byType(LibraryPhotoTile), findsWidgets);
   });
 
-  testWidgets("keeps the viewed top item stable through width-only resize", (
+  testWidgets("keeps the top-center card stable through sidebar resize", (
     tester,
   ) async {
     const itemCount = 4000;
@@ -502,10 +558,29 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    final topItemIndex = initialSnapshot.metrics.itemIndexForScrollOffset(
+    final topRowStart = initialSnapshot.metrics.itemIndexForScrollOffset(
       scrollController.position.pixels,
     );
-    final topItemFinder = find.byKey(ValueKey("location-$topItemIndex"));
+    final topRowEntryIndex = initialSnapshot.entryIndexForScrollOffset(
+      initialSnapshot.metrics.itemOffsets[topRowStart] - 18,
+    );
+    final topRowEntry = initialSnapshot.entries[topRowEntryIndex];
+    final wallCenterX = initialSize.width * 0.5;
+    var cellLeading = 24.0;
+    var topCellIndex = 0;
+    var closestHorizontalDistance = double.infinity;
+    for (var index = 0; index < topRowEntry.cellWidths.length; index += 1) {
+      final center = cellLeading + topRowEntry.cellWidths[index] * 0.5;
+      final distance = (center - wallCenterX).abs();
+      if (distance < closestHorizontalDistance) {
+        closestHorizontalDistance = distance;
+        topCellIndex = index;
+      }
+      cellLeading +=
+          topRowEntry.cellWidths[index] + LibraryGalleryLayoutEntry.spacing;
+    }
+    final topAnchorIndex = topRowStart + topCellIndex;
+    final topItemFinder = find.byKey(ValueKey("location-$topAnchorIndex"));
     final wallFinder = find.byKey(const Key("library-photo-wall"));
     expect(topItemFinder, findsOneWidget);
     final topBefore =
@@ -533,7 +608,7 @@ void main() {
   });
 
   testWidgets(
-    "preserves the logical anchor when recovered dimensions replace geometry",
+    "preserves the viewport-center card when recovered dimensions reflow rows",
     (tester) async {
       const itemCount = 4000;
       const wallSize = Size(900, 620);
@@ -594,16 +669,40 @@ void main() {
         sortKey: LibraryGallerySortKey.captureTime,
       );
       scrollController.jumpTo(
-        initialSnapshot.metrics.itemOffsets[3000] - wallSize.height * 0.5,
+        initialSnapshot.metrics.itemOffsets[3000] +
+            initialSnapshot.metrics.photoRowHeight * 0.5 -
+            wallSize.height * 0.5,
       );
       await tester.pump();
       await tester.pump();
 
       final anchorBefore = visiblePosition;
       expect(anchorBefore, isNotNull);
-      final anchorFinder = find.byKey(ValueKey(anchorBefore!.locationId));
-      expect(anchorFinder, findsOneWidget);
-      final anchorTopBefore = tester.getTopLeft(anchorFinder).dy;
+      final wallRect = tester.getRect(
+        find.byKey(const Key("library-photo-wall")),
+      );
+      final viewportCenter = wallRect.center;
+      final centerCandidates = <({String locationId, Rect rect})>[];
+      for (var index = 2980; index < 3020; index += 1) {
+        final finder = find.byKey(ValueKey("location-$index"));
+        if (finder.evaluate().length != 1) {
+          continue;
+        }
+        final rect = tester.getRect(finder);
+        if (rect.top <= viewportCenter.dy && viewportCenter.dy < rect.bottom) {
+          centerCandidates.add((locationId: "location-$index", rect: rect));
+        }
+      }
+      expect(centerCandidates, isNotEmpty);
+      centerCandidates.sort(
+        (first, second) => (first.rect.center.dx - viewportCenter.dx)
+            .abs()
+            .compareTo((second.rect.center.dx - viewportCenter.dx).abs()),
+      );
+      final centerCard = centerCandidates.first;
+      expect(centerCard.locationId, anchorBefore!.locationId);
+      final centerFinder = find.byKey(ValueKey(centerCard.locationId));
+      final centerYBefore = centerCard.rect.center.dy;
 
       final recovered = initialManifest.withDimensionUpdates([
         for (var index = 0; index < itemCount; index++)
@@ -639,8 +738,8 @@ void main() {
         recoveredSliver.itemStartOffsets,
         recoveredSnapshot.entryStartOffsets,
       );
-      expect(anchorFinder, findsOneWidget);
-      expect(tester.getTopLeft(anchorFinder).dy, closeTo(anchorTopBefore, 2));
+      expect(centerFinder, findsOneWidget);
+      expect(tester.getRect(centerFinder).center.dy, closeTo(centerYBefore, 2));
       expect(
         scrollController.position.maxScrollExtent,
         closeTo(
@@ -773,6 +872,7 @@ void main() {
       final manifest = _manifest(itemCount);
       final controller = _RecordingGalleryController();
       final scrollController = ScrollController();
+      final positionResolver = LibraryGalleryPositionResolver();
       final configuration = ValueNotifier((
         shape: GalleryLayoutShape.equalHeight,
         size: GalleryThumbnailSize.medium,
@@ -806,6 +906,7 @@ void main() {
                     isSelecting: false,
                     layoutManifest: manifest,
                     layoutTransition: current.transition,
+                    positionResolver: positionResolver,
                     onLayoutTransitionApplied: (generation) {
                       if (configuration.value.transition?.generation ==
                           generation) {
@@ -853,8 +954,18 @@ void main() {
       final anchorFinder = find.byKey(ValueKey(initialAnchor!.locationId));
       final wallFinder = find.byKey(const Key("library-photo-wall"));
       final scrollableBefore = tester.element(find.byType(CustomScrollView));
-      final anchorTopBefore =
-          tester.getTopLeft(anchorFinder).dy - tester.getTopLeft(wallFinder).dy;
+
+      void expectAnchorPreserved(LibraryGalleryVisiblePosition position) {
+        final finder = find.byKey(ValueKey(position.locationId));
+        expect(finder, findsOneWidget);
+        final itemHeight = tester.getSize(finder).height;
+        final expectedTop =
+            wallSize.height * position.viewportFraction -
+            itemHeight * position.itemFraction;
+        final actualTop =
+            tester.getTopLeft(finder).dy - tester.getTopLeft(wallFinder).dy;
+        expect(actualTop, closeTo(expectedTop, 2));
+      }
 
       configuration.value = (
         shape: GalleryLayoutShape.square,
@@ -875,17 +986,22 @@ void main() {
         isTrue,
       );
       expect(anchorFinder, findsOneWidget);
-      expect(
-        tester.getTopLeft(anchorFinder).dy - tester.getTopLeft(wallFinder).dy,
-        closeTo(anchorTopBefore, 2),
-      );
+      expectAnchorPreserved(initialAnchor);
       expect(scrollController.position.pixels, isNot(0));
       expect(
         scrollController.position.pixels,
         isNot(scrollController.position.maxScrollExtent),
       );
 
-      final squareAnchor = visiblePosition ?? initialAnchor;
+      final squareAnchor =
+          positionResolver.resolve(
+            queryId: state.queryId,
+            revision: state.catalogRevision,
+            scrollOffset: scrollController.position.pixels,
+            viewportDimension: wallSize.height,
+          ) ??
+          visiblePosition ??
+          initialAnchor;
       configuration.value = (
         shape: GalleryLayoutShape.square,
         size: GalleryThumbnailSize.large,
@@ -896,13 +1012,17 @@ void main() {
       );
       await tester.pump();
       await tester.pump();
-      expect(anchorFinder, findsOneWidget);
-      expect(
-        tester.getTopLeft(anchorFinder).dy - tester.getTopLeft(wallFinder).dy,
-        closeTo(anchorTopBefore, 2),
-      );
+      expectAnchorPreserved(squareAnchor);
 
-      final largeSquareAnchor = visiblePosition ?? squareAnchor;
+      final largeSquareAnchor =
+          positionResolver.resolve(
+            queryId: state.queryId,
+            revision: state.catalogRevision,
+            scrollOffset: scrollController.position.pixels,
+            viewportDimension: wallSize.height,
+          ) ??
+          visiblePosition ??
+          squareAnchor;
       configuration.value = (
         shape: GalleryLayoutShape.equalHeight,
         size: GalleryThumbnailSize.large,
@@ -913,11 +1033,7 @@ void main() {
       );
       await tester.pump();
       await tester.pump();
-      expect(anchorFinder, findsOneWidget);
-      expect(
-        tester.getTopLeft(anchorFinder).dy - tester.getTopLeft(wallFinder).dy,
-        closeTo(anchorTopBefore, 2),
-      );
+      expectAnchorPreserved(largeSquareAnchor);
     },
   );
 
@@ -945,7 +1061,7 @@ void main() {
         monthKey: "2026-08",
         locationId: "location-3000",
         globalItemIndex: 3000,
-        rowFraction: 0.3,
+        itemFraction: 0.3,
         viewportFraction: 0.5,
       ),
     );

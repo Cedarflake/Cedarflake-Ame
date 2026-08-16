@@ -210,7 +210,13 @@ impl PreviewStore for LocalPreviewStore {
         let artifact_path = self.artifact_path(file, edge);
 
         let cached_dimensions = cached_artifact_dimensions(&artifact_path, edge);
-        if source_width > 0 && source_height > 0 && cached_dimensions.is_some() {
+        if let Some(encoded_dimensions) = cached_dimensions {
+            let (resolved_source_width, resolved_source_height) =
+                if source_width > 0 && source_height > 0 {
+                    (source_width, source_height)
+                } else {
+                    inspect_source_display_dimensions(file, source_path)?
+                };
             return preview_artifact(
                 file,
                 artifact_key,
@@ -218,9 +224,9 @@ impl PreviewStore for LocalPreviewStore {
                 &artifact_path,
                 edge,
                 PreviewDimensions {
-                    source_width,
-                    source_height,
-                    encoded: cached_dimensions,
+                    source_width: resolved_source_width,
+                    source_height: resolved_source_height,
+                    encoded: Some(encoded_dimensions),
                 },
             )
             .map(existing_materialization);
@@ -609,6 +615,38 @@ fn preview_issue(file: &DiscoveredFile, code: &str, error: impl std::fmt::Displa
     }
 }
 
+fn inspect_source_display_dimensions(
+    file: &DiscoveredFile,
+    source_path: &Path,
+) -> Result<(u32, u32), ScanIssue> {
+    let mut reader = ImageReader::open(source_path)
+        .and_then(|reader| reader.with_guessed_format())
+        .map_err(|error| preview_issue(file, "image_open_failed", error))?;
+    let mut limits = Limits::default();
+    limits.max_image_width = Some(MAX_SOURCE_DIMENSION);
+    limits.max_image_height = Some(MAX_SOURCE_DIMENSION);
+    limits.max_alloc = Some(MAX_DECODER_ALLOCATION);
+    reader.limits(limits);
+    let mut decoder = reader
+        .into_decoder()
+        .map_err(|error| preview_issue(file, "image_dimensions_failed", error))?;
+    let (pixel_width, pixel_height) = decoder.dimensions();
+    if pixel_width > MAX_SOURCE_DIMENSION || pixel_height > MAX_SOURCE_DIMENSION {
+        return Err(ScanIssue {
+            path: Some(file.absolute_path.clone()),
+            code: "image_dimensions_exceeded".to_owned(),
+            message: format!(
+                "Image dimensions {pixel_width}x{pixel_height} exceed the supported limit"
+            ),
+        });
+    }
+    let orientation = decoder
+        .orientation()
+        .map(from_image_orientation)
+        .unwrap_or_default();
+    Ok(orientation.display_dimensions(pixel_width, pixel_height))
+}
+
 #[cfg(test)]
 mod tests {
     use std::io::Cursor;
@@ -695,6 +733,42 @@ mod tests {
 
         assert_eq!(PathBuf::from(preview.path), artifact_path);
         assert_eq!((preview.width, preview.height), (4032, 3024));
+        assert_eq!(fs::read(source_path).expect("source after"), source_bytes);
+    }
+
+    #[test]
+    fn existing_artifact_recovers_oriented_source_dimensions_from_headers() {
+        let storage = tempdir().expect("storage");
+        let source_path = storage.path().join("oriented.jpg");
+        let source_bytes = orientation_jpeg(6);
+        fs::write(&source_path, &source_bytes).expect("write source");
+        let file = DiscoveredFile {
+            absolute_path: source_path.to_string_lossy().into_owned(),
+            relative_path: "oriented.jpg".to_owned(),
+            file_size: u64::try_from(source_bytes.len()).expect("source size"),
+            created_unix_ms: None,
+            modified_unix_ms: 8,
+            file_identity: None,
+            issues: Vec::new(),
+        };
+        let preview_root = storage.path().join("previews");
+        let store = LocalPreviewStore::new(preview_root.clone(), 1024).expect("preview store");
+        let artifact_path = store.artifact_path(&file, 256);
+        RgbImage::from_pixel(16, 16, Rgb([12, 34, 56]))
+            .save(&artifact_path)
+            .expect("write preview artifact");
+        let artifact_before = fs::read(&artifact_path).expect("artifact before");
+        drop(store);
+        let store = LocalPreviewStore::new(preview_root, 1024).expect("reopen preview store");
+
+        let preview = materialize_and_commit(&store, &file, 256, 0, 0);
+
+        assert_eq!(PathBuf::from(preview.path), artifact_path);
+        assert_eq!((preview.width, preview.height), (60, 80));
+        assert_eq!(
+            fs::read(&artifact_path).expect("artifact after"),
+            artifact_before
+        );
         assert_eq!(fs::read(source_path).expect("source after"), source_bytes);
     }
 
