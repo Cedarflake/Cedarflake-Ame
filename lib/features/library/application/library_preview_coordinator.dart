@@ -159,14 +159,17 @@ class LibraryPreviewCoordinator {
     if (_galleryDemand.length != next.length) {
       return false;
     }
-    for (final entry in next.entries) {
-      final current = _galleryDemand[entry.key];
-      if (current == null ||
-          current.priority != entry.value.priority ||
-          current.previewEdge != entry.value.previewEdge ||
+    final currentEntries = _galleryDemand.entries.iterator;
+    final nextEntries = next.entries.iterator;
+    while (currentEntries.moveNext() && nextEntries.moveNext()) {
+      final current = currentEntries.current;
+      final candidate = nextEntries.current;
+      if (current.key != candidate.key ||
+          current.value.priority != candidate.value.priority ||
+          current.value.previewEdge != candidate.value.previewEdge ||
           !libraryPreviewSourcesAreCompatible(
-            current.asset,
-            entry.value.asset,
+            current.value.asset,
+            candidate.value.asset,
           )) {
         return false;
       }

@@ -1097,7 +1097,7 @@ void main() {
     expect(state.assets.single.locationId, "location-visible-target");
   });
 
-  test("runs only the latest time target after an active request", () async {
+  test("stale visible ranges cannot replace the latest time target", () async {
     const bucket = LibraryTimeBucket(
       monthKey: "2024-05",
       itemCount: 100,
@@ -1133,6 +1133,10 @@ void main() {
     expect(catalog.anchors.map((anchor) => anchor.itemOffset), [10]);
 
     final latestJump = controller.jumpToTime(bucket, itemOffset: 80);
+    controller.ensureVisibleRange(
+      startItemOffset: 0,
+      endItemOffsetExclusive: 1,
+    );
     firstResponse.complete(_snapshot(assets: [_asset(suffix: "obsolete")]));
 
     expect(await firstJump, isFalse);
@@ -1155,7 +1159,87 @@ void main() {
     expect(state.activeTimeAnchor?.itemOffset, 80);
     expect(state.windowStartItemOffset, 80);
     expect(state.assets.single.locationId, "location-latest");
+
+    controller.ensureVisibleRange(
+      startItemOffset: 0,
+      endItemOffsetExclusive: 1,
+    );
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(catalog.anchors.map((anchor) => anchor.itemOffset), [10, 80]);
+    expect(container.read(libraryControllerProvider).windowStartItemOffset, 80);
+
+    controller.cancelTimeNavigation();
+    expect(container.read(libraryControllerProvider).activeTimeAnchor, isNull);
   });
+
+  test(
+    "an in-flight visible range cannot replace an explicit time target",
+    () async {
+      const bucket = LibraryTimeBucket(
+        monthKey: "2024-05",
+        itemCount: 100,
+        aspectRatioSum: 100,
+      );
+      final initialSnapshot = _snapshot(assets: [_asset(suffix: "initial")]);
+      final visibleResponse = Completer<LibrarySnapshot>();
+      final targetResponse = Completer<LibrarySnapshot>();
+      final catalog = _FakeLibraryCatalog.sequence([
+        visibleResponse.future,
+        targetResponse.future,
+      ], initialRevision: initialSnapshot.revision);
+      final container = ProviderContainer(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(
+            LibraryState.fromSnapshot(initialSnapshot).copyWith(
+              timeline: LibraryTimeline(
+                revision: initialSnapshot.revision,
+                queryId: initialSnapshot.queryId,
+                totalItems: 100,
+                buckets: const [bucket],
+              ),
+            ),
+          ),
+          libraryCatalogProvider.overrideWithValue(catalog),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final controller = container.read(libraryControllerProvider.notifier);
+      controller.ensureVisibleRange(
+        startItemOffset: 10,
+        endItemOffsetExclusive: 11,
+      );
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      expect(catalog.anchors.map((anchor) => anchor.itemOffset), [10]);
+
+      final latestJump = controller.jumpToTime(bucket, itemOffset: 80);
+      visibleResponse.complete(
+        _snapshot(assets: [_asset(suffix: "obsolete-visible")]),
+      );
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      final stateAfterVisibleResponse = container.read(
+        libraryControllerProvider,
+      );
+      expect(catalog.anchors.map((anchor) => anchor.itemOffset), [10, 80]);
+      expect(stateAfterVisibleResponse.windowStartItemOffset, 0);
+      expect(
+        stateAfterVisibleResponse.assets.single.locationId,
+        "location-initial",
+      );
+
+      targetResponse.complete(_snapshot(assets: [_asset(suffix: "latest")]));
+      expect(await latestJump, isTrue);
+      final state = container.read(libraryControllerProvider);
+      expect(state.activeTimeAnchor?.itemOffset, 80);
+      expect(state.windowStartItemOffset, 80);
+      expect(state.assets.single.locationId, "location-latest");
+    },
+  );
 
   test("shares an active time request for the same global target", () async {
     const bucket = LibraryTimeBucket(
@@ -1236,6 +1320,7 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       expect(catalog.anchors.map((anchor) => anchor.itemOffset), [70]);
 
+      controller.cancelTimeNavigation();
       controller.ensureVisibleRange(
         startItemOffset: 0,
         endItemOffsetExclusive: 1,

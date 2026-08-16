@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-07
+- Last amended: 2026-08-16
 - Supersedes: ADR 0003
 
 ## Context
@@ -150,11 +151,13 @@ Use one unified gallery with these presentation rules.
 - The `方形` layout is a uniform square grid. Small, medium, and large density choices remain
   independent from shape.
 - Layout shape, density, and query changes (including sort field, direction, filters, and search)
-  preserve one logical viewport anchor identified by stable location ID plus row and viewport
-  fractions. A new query obtains the anchor's new ordinal from the application layer; only a
-  confirmed absence falls back intentionally to the first result. The replacement sliver applies
-  the new geometry through its first layout correction, before painting, rather than painting one
-  position and jumping afterward.
+  preserve one logical viewport anchor identified by the actual card nearest the anchor point,
+  stable location ID, and card and viewport fractions. Unknown-dimension recovery uses the same
+  center-card contract, freezes the current logical range until later native movement, and expands
+  preview demand from the center toward both sides. A new query obtains the anchor's new ordinal
+  from the application layer; only a confirmed absence falls back intentionally to the first
+  result. The replacement sliver applies the new geometry through its first layout correction,
+  before painting, rather than painting one position and jumping afterward.
 - Date headings use capture time, then file creation time, then file modification time as defined by
   ADR 0008. An unrepresentable date remains an explicit unknown section in the same continuous
   gallery.
@@ -164,6 +167,14 @@ Use one unified gallery with these presentation rules.
   offset; it never owns an independent committed month or timeline position. Loading another page
   must not extend the rail. Exact day offsets are used where rows are materialized, while bounded
   off-window seeking uses the catalog time-anchor contract.
+- A newly selected time target owns navigation until it fails, is replaced by a newer time target,
+  or the user performs native gallery movement. Visible-range synchronization, initial scroll
+  metrics, preview publication, recovered dimensions, and late layout or manifest callbacks are
+  passive observations and cannot cancel or replace that target. Native movement cancels the
+  application request explicitly; cancellation is not inferred merely because an older visible
+  range does not yet contain the target. Beginning the explicit interaction also retires the prior
+  dimension-recovery range; the target's first usable viewport metrics establish its replacement,
+  without requiring a manual scroll.
 - Flutter's Material Slider owns pointer, keyboard, focus, and semantics for the rail through a thin
   rotation adapter. Its visual track and handle are hidden. Ame draws a passive current-position
   line, a hover preview line, exact-offset annotations, and the background needed to keep endpoint

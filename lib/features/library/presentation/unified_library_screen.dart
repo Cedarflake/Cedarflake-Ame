@@ -40,11 +40,11 @@ class UnifiedLibraryScreen extends ConsumerStatefulWidget {
 }
 
 class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
-  static const _layoutDimensionQuietDelay = Duration(milliseconds: 320);
-  static const _layoutDimensionMaximumDelay = Duration(milliseconds: 1600);
-  static const _layoutDimensionMinimumBatchSize = 4;
+  static const _layoutDimensionQuietDelay = Duration(milliseconds: 160);
+  static const _layoutDimensionMaximumDelay = Duration(milliseconds: 600);
 
-  final ScrollController _galleryScrollController = ScrollController();
+  late final ScrollController _galleryScrollController;
+  final Set<ScrollPosition> _galleryScrollPositions = {};
   late final LibraryController _libraryController;
   late final TextEditingController _searchController;
   late GallerySelection _selection;
@@ -83,12 +83,20 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   BigInt? _layoutDimensionRevision;
   String _layoutDimensionQueryId = "";
   LibraryGalleryVisibleRange? _visibleGalleryRange;
+  LibraryGalleryVisibleRange? _layoutDimensionRecoveryRange;
+  LibraryGalleryVisiblePosition? _layoutDimensionRecoveryAnchor;
+  bool _isGalleryUserScrolling = false;
+  bool _isDisposing = false;
   int _dimensionUpdateGeneration = 0;
   int _dimensionUpdatedManifestGeneration = -1;
 
   @override
   void initState() {
     super.initState();
+    _galleryScrollController = ScrollController(
+      onAttach: _handleGalleryScrollPositionAttached,
+      onDetach: _handleGalleryScrollPositionDetached,
+    );
     _libraryController = ref.read(libraryControllerProvider.notifier);
     final state = ref.read(libraryControllerProvider);
     final viewPreferences = ref.read(initialLibraryViewPreferencesProvider);
@@ -108,6 +116,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
 
   @override
   void dispose() {
+    _isDisposing = true;
     if (_viewerLocationId != null) {
       _libraryController.updateViewerPreviewDemand(null);
     }
@@ -115,6 +124,12 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     _layoutDimensionSettleTimer?.cancel();
     _layoutDimensionDeadlineTimer?.cancel();
     unawaited(_layoutDimensionSubscription?.cancel());
+    for (final position in _galleryScrollPositions) {
+      position.isScrollingNotifier.removeListener(
+        _synchronizeGalleryScrollActivity,
+      );
+    }
+    _galleryScrollPositions.clear();
     _galleryScrollController.dispose();
     _galleryLayoutSnapshot.dispose();
     _searchController.dispose();
@@ -288,7 +303,11 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       return;
     }
     _synchronizeLayoutDimensionContext(update.revision, update.queryId);
-    if (_visibleGalleryRange?.contains(
+    if (!_isGalleryUserScrolling) {
+      _ensureLayoutDimensionRecoveryEpoch(current);
+    }
+    final eligibleRange = _layoutDimensionRecoveryRange ?? _visibleGalleryRange;
+    if (eligibleRange?.contains(
           queryId: update.queryId,
           revision: update.revision,
           globalItemIndex: update.globalItemIndex,
@@ -312,25 +331,101 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       return;
     }
     _visibleGalleryRange = range;
+    if (_layoutDimensionRecoveryRange != null && !_isGalleryUserScrolling) {
+      return;
+    }
+    if (_isGalleryUserScrolling) {
+      _reclassifyLayoutDimensionUpdates(range);
+    } else {
+      _ensureLayoutDimensionRecoveryEpoch(ref.read(libraryControllerProvider));
+    }
+    _scheduleRecoveredDimensionPublication();
+  }
+
+  void _reclassifyLayoutDimensionUpdates(
+    LibraryGalleryVisibleRange eligibleRange,
+  ) {
     for (final entry in _pendingLayoutDimensionUpdates.entries.toList()) {
-      if (!range.containsGlobalItemIndex(entry.key)) {
+      if (!eligibleRange.containsGlobalItemIndex(entry.key)) {
         _pendingLayoutDimensionUpdates.remove(entry.key);
         _deferredLayoutDimensionUpdates[entry.key] = entry.value;
       }
     }
     for (final entry in _deferredLayoutDimensionUpdates.entries.toList()) {
-      if (range.containsGlobalItemIndex(entry.key)) {
+      if (eligibleRange.containsGlobalItemIndex(entry.key)) {
         _deferredLayoutDimensionUpdates.remove(entry.key);
         _pendingLayoutDimensionUpdates[entry.key] = entry.value;
       }
     }
+  }
+
+  void _ensureLayoutDimensionRecoveryEpoch(LibraryState state) {
+    if (_layoutDimensionRecoveryRange != null) {
+      return;
+    }
+    final visibleRange = _visibleGalleryRange;
+    if (visibleRange == null ||
+        visibleRange.queryId != state.queryId ||
+        visibleRange.revision != state.catalogRevision) {
+      return;
+    }
+    _layoutDimensionRecoveryRange = visibleRange;
+    _layoutDimensionRecoveryAnchor = _freezeCurrentGalleryPosition(state);
+    _reclassifyLayoutDimensionUpdates(visibleRange);
+  }
+
+  void _handleGalleryUserScrollActivityChanged(bool isScrolling) {
+    if (!mounted || _isDisposing || _isGalleryUserScrolling == isScrolling) {
+      return;
+    }
+    _isGalleryUserScrolling = isScrolling;
+    if (isScrolling) {
+      _layoutDimensionRecoveryRange = null;
+      _layoutDimensionRecoveryAnchor = null;
+      _layoutDimensionSettleTimer?.cancel();
+      _layoutDimensionSettleTimer = null;
+      _layoutDimensionDeadlineTimer?.cancel();
+      _layoutDimensionDeadlineTimer = null;
+      final visibleRange = _visibleGalleryRange;
+      if (visibleRange != null) {
+        _reclassifyLayoutDimensionUpdates(visibleRange);
+      }
+      return;
+    }
+    final current = ref.read(libraryControllerProvider);
+    _ensureLayoutDimensionRecoveryEpoch(current);
     _scheduleRecoveredDimensionPublication();
+  }
+
+  void _handleGalleryScrollPositionAttached(ScrollPosition position) {
+    _galleryScrollPositions.add(position);
+    position.isScrollingNotifier.addListener(_synchronizeGalleryScrollActivity);
+    _synchronizeGalleryScrollActivity();
+  }
+
+  void _handleGalleryScrollPositionDetached(ScrollPosition position) {
+    position.isScrollingNotifier.removeListener(
+      _synchronizeGalleryScrollActivity,
+    );
+    _galleryScrollPositions.remove(position);
+    _synchronizeGalleryScrollActivity();
+  }
+
+  void _synchronizeGalleryScrollActivity() {
+    _handleGalleryUserScrollActivityChanged(
+      _galleryScrollPositions.any(
+        (position) => position.isScrollingNotifier.value,
+      ),
+    );
   }
 
   void _scheduleRecoveredDimensionPublication() {
     _layoutDimensionSettleTimer?.cancel();
     _layoutDimensionSettleTimer = null;
-    if (_pendingLayoutDimensionUpdates.isEmpty) {
+    if (_pendingLayoutDimensionUpdates.isEmpty ||
+        _isGalleryUserScrolling ||
+        _galleryLayoutTransition != null ||
+        _pendingQueryPosition != null) {
       _layoutDimensionDeadlineTimer?.cancel();
       _layoutDimensionDeadlineTimer = null;
       return;
@@ -339,13 +434,10 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       _layoutDimensionMaximumDelay,
       _publishRecoveredDimensions,
     );
-    if (_pendingLayoutDimensionUpdates.length >=
-        _layoutDimensionMinimumBatchSize) {
-      _layoutDimensionSettleTimer = Timer(
-        _layoutDimensionQuietDelay,
-        _publishRecoveredDimensions,
-      );
-    }
+    _layoutDimensionSettleTimer = Timer(
+      _layoutDimensionQuietDelay,
+      _publishRecoveredDimensions,
+    );
   }
 
   void _publishRecoveredDimensions() {
@@ -353,10 +445,16 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     _layoutDimensionSettleTimer = null;
     _layoutDimensionDeadlineTimer?.cancel();
     _layoutDimensionDeadlineTimer = null;
-    if (!mounted || _pendingLayoutDimensionUpdates.isEmpty) {
+    if (!mounted ||
+        _pendingLayoutDimensionUpdates.isEmpty ||
+        _isGalleryUserScrolling ||
+        _galleryLayoutTransition != null ||
+        _pendingQueryPosition != null) {
       return;
     }
     final current = ref.read(libraryControllerProvider);
+    _ensureLayoutDimensionRecoveryEpoch(current);
+    final recoveryAnchor = _layoutDimensionRecoveryAnchor;
     final compatible = <int, LibraryGalleryLayoutDimensionUpdate>{};
     for (final entry in _pendingLayoutDimensionUpdates.entries) {
       final update = entry.value;
@@ -372,6 +470,14 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     setState(() {
       _publishedLayoutDimensionUpdates.addAll(compatible);
       _dimensionUpdateGeneration += 1;
+      if (_layoutShape == GalleryLayoutShape.equalHeight &&
+          recoveryAnchor != null) {
+        _galleryLayoutTransitionGeneration += 1;
+        _galleryLayoutTransition = LibraryGalleryLayoutTransition(
+          generation: _galleryLayoutTransitionGeneration,
+          position: recoveryAnchor,
+        );
+      }
     });
   }
 
@@ -406,6 +512,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     _dimensionUpdateBaseManifest = null;
     _dimensionUpdatedManifest = null;
     _visibleGalleryRange = null;
+    _layoutDimensionRecoveryRange = null;
+    _layoutDimensionRecoveryAnchor = null;
+    _isGalleryUserScrolling = false;
     _dimensionUpdateGeneration = 0;
     _dimensionUpdatedManifestGeneration = -1;
   }
@@ -609,6 +718,10 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
               loadedItemCount: state.assets.length,
               onSeek: (bucket, itemOffset) =>
                   _seekTimeline(controller, bucket, itemOffset),
+              onBeginNavigation: _beginTimelineNavigation,
+              onCancelSeek: controller.cancelTimeNavigation,
+              onPrefetch: (bucket, itemOffset) =>
+                  controller.prefetchTime(bucket, itemOffset: itemOffset),
             );
           },
         ),
@@ -743,6 +856,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     }
     if (!didUpdate) {
       _pendingQueryPosition = null;
+      _scheduleRecoveredDimensionPublication();
       return;
     }
     final state = ref.read(libraryControllerProvider);
@@ -774,7 +888,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
           monthKey: null,
           locationId: resolution.locationId!,
           globalItemIndex: resolution.ordinal!,
-          rowFraction: frozenPosition.rowFraction,
+          itemFraction: frozenPosition.itemFraction,
           viewportFraction: frozenPosition.viewportFraction,
         );
       } else {
@@ -784,7 +898,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
           monthKey: state.timeline?.buckets.firstOrNull?.monthKey,
           locationId: state.assets.first.locationId,
           globalItemIndex: state.windowStartItemOffset,
-          rowFraction: 0,
+          itemFraction: 0,
           viewportFraction: 0,
         );
       }
@@ -824,6 +938,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   void _beginGalleryLayoutTransition(VoidCallback applyGeometryChange) {
     final state = ref.read(libraryControllerProvider);
     final position = _freezeCurrentGalleryPosition(state);
+    _visibleGalleryRange = null;
+    _layoutDimensionRecoveryRange = null;
+    _layoutDimensionRecoveryAnchor = null;
     setState(() {
       if (position != null) {
         _galleryLayoutTransitionGeneration += 1;
@@ -887,6 +1004,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       _visibleGalleryPosition = transition?.position;
       _galleryLayoutTransition = null;
     });
+    _scheduleRecoveredDimensionPublication();
   }
 
   void _changeSortKey(LibraryState state, LibraryGallerySortKey value) {
@@ -1193,6 +1311,16 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     return didSeek;
   }
 
+  void _beginTimelineNavigation() {
+    _layoutDimensionSettleTimer?.cancel();
+    _layoutDimensionSettleTimer = null;
+    _layoutDimensionDeadlineTimer?.cancel();
+    _layoutDimensionDeadlineTimer = null;
+    _visibleGalleryRange = null;
+    _layoutDimensionRecoveryRange = null;
+    _layoutDimensionRecoveryAnchor = null;
+  }
+
   void _handleGalleryLayoutChanged(
     LibraryGalleryLayoutMetrics nextMetrics,
     LibraryVirtualGalleryGeometry nextVirtualGeometry,
@@ -1295,7 +1423,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       monthKey: state.timeline?.buckets.firstOrNull?.monthKey,
       locationId: state.assets.first.locationId,
       globalItemIndex: state.windowStartItemOffset,
-      rowFraction: 0,
+      itemFraction: 0,
       viewportFraction: 0,
     );
   }

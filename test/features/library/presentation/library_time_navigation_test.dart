@@ -21,6 +21,7 @@ void main() {
     final scrollController = ScrollController();
     addTearDown(scrollController.dispose);
     var scrollNotifications = 0;
+    var navigationStarts = 0;
     scrollController.addListener(() => scrollNotifications += 1);
     final metrics = LibraryGalleryLayoutMetrics(
       contentExtent: 1200,
@@ -83,6 +84,7 @@ void main() {
                 windowStartItemOffset: 0,
                 loadedItemCount: 100,
                 onSeek: (_, _) async => true,
+                onBeginNavigation: () => navigationStarts += 1,
               ),
             ],
           ),
@@ -95,7 +97,10 @@ void main() {
     final slider = tester.widget<Slider>(
       find.byKey(const Key("timeline-slider")),
     );
+    slider.onChangeStart?.call(0.74);
+    expect(navigationStarts, 0);
     slider.onChanged?.call(0.74);
+    expect(navigationStarts, 1);
     expect(scrollController.offset, 0);
     await tester.pump();
 
@@ -457,7 +462,7 @@ void main() {
     },
   );
 
-  testWidgets("waits for gallery scrolling to settle before seeking", (
+  testWidgets("uses passive prefetch after gallery scrolling settles", (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1000, 800);
@@ -467,7 +472,8 @@ void main() {
 
     final scrollController = ScrollController();
     addTearDown(scrollController.dispose);
-    final selectedOffsets = <int>[];
+    final navigationOffsets = <int>[];
+    final prefetchOffsets = <int>[];
     final metrics = LibraryGalleryLayoutMetrics(
       contentExtent: 1200,
       photoRowHeight: 100,
@@ -532,7 +538,11 @@ void main() {
                 windowStartItemOffset: 0,
                 loadedItemCount: 100,
                 onSeek: (_, itemOffset) {
-                  selectedOffsets.add(itemOffset);
+                  navigationOffsets.add(itemOffset);
+                  return Future.value(true);
+                },
+                onPrefetch: (_, itemOffset) {
+                  prefetchOffsets.add(itemOffset);
                   return Future.value(true);
                 },
               ),
@@ -547,10 +557,12 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     scrollController.jumpTo(5000);
     await tester.pump(const Duration(milliseconds: 179));
-    expect(selectedOffsets, isEmpty);
+    expect(navigationOffsets, isEmpty);
+    expect(prefetchOffsets, isEmpty);
 
     await tester.pump(const Duration(milliseconds: 1));
-    expect(selectedOffsets, hasLength(1));
+    expect(navigationOffsets, isEmpty);
+    expect(prefetchOffsets, hasLength(1));
   });
 
   testWidgets(
@@ -623,6 +635,7 @@ void main() {
 
       scrollController.jumpTo(3000);
       await tester.pump();
+      expect(requests.cancellations, 0);
       expect(
         tester.widget<Slider>(find.byKey(const Key("timeline-slider"))).value,
         closeTo(0.2, 0.001),
@@ -678,6 +691,7 @@ void main() {
     await tester.drag(find.byType(ListView), const Offset(0, 1000));
     await tester.pump();
 
+    expect(requests.cancellations, 1);
     expect(
       tester.widget<Slider>(find.byKey(const Key("timeline-slider"))).value,
       isNot(closeTo(0.2, 0.001)),
@@ -871,6 +885,7 @@ class _RowAlignedSeekHarnessState extends State<_RowAlignedSeekHarness> {
 class _ControlledSeekRequests {
   final List<int> offsets = [];
   final List<Completer<bool>> completers = [];
+  var cancellations = 0;
 }
 
 class _LatestSeekHarness extends StatefulWidget {
@@ -942,6 +957,7 @@ class _LatestSeekHarnessState extends State<_LatestSeekHarness> {
           layoutShape: GalleryLayoutShape.equalHeight,
           windowStartItemOffset: _windowStartItemOffset,
           loadedItemCount: 100,
+          onCancelSeek: () => widget.requests.cancellations += 1,
           onSeek: (_, itemOffset) async {
             final completion = Completer<bool>();
             setState(() {
