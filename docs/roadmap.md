@@ -2,9 +2,9 @@
 
 Status: active delivery plan
 
-Last confirmed with the user: 2026-08-13
+Last confirmed with the user: 2026-08-16
 
-Last implementation-status synchronization: 2026-08-13
+Last implementation-status synchronization: 2026-08-16
 
 Repository: this repository root
 
@@ -476,8 +476,10 @@ position when possible.
   offsets, date anchors, and total extent from that manifest. Placeholder, failed-preview, and
   decoded states use the same rectangle. Preview completion or eviction with already-known
   dimensions must never recompose rows. When compatible decoding first recovers previously unknown
-  dimensions, Ame coalesces that geometry evidence and atomically replaces the snapshot while
-  preserving the logical viewport anchor instead of reflowing once per thumbnail.
+  dimensions, Ame freezes the actual viewport-center card and current logical range, coalesces that
+  geometry evidence, and atomically replaces the snapshot with a pre-paint anchor correction.
+  Reflow cannot widen its own recovery range, and later evidence remains deferred until native
+  scrolling establishes a new idle range instead of chaining one relayout into another.
 - Full `LibraryAsset` details are queried in bounded revision-safe keyset pages. The current
   controller is known to merge those pages into a growing `state.assets` list; Profile evidence
   determines its target-library cost before a high/low-watermark cache replaces that retained-list
@@ -485,7 +487,9 @@ position when possible.
   model.
 - Preview readiness lives in an identity-keyed store outside layout state. Visible and near-
   viewport previews receive priority, obsolete generations cannot publish, and expensive decoding
-  may be deferred during high-velocity scrolling without deferring layout geometry.
+  may be deferred during high-velocity scrolling. Within each priority, stationary demand begins at
+  the actual center card and expands toward both sides; recovered geometry waits until native user
+  scrolling is idle.
 - A preview is a rebuildable, budgeted artifact whose identity includes stable location and source
   state, preview algorithm and version, orientation contract, and a bounded physical-pixel size
   bucket. Ame selects the smallest compatible bucket that satisfies the current display size and
@@ -1750,14 +1754,24 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   a completed timeline target with the new scroll position's default top offset.
 - When compatible preview work first recovers dimensions that were previously unknown, the
   controller publishes query-, revision-, ordinal-, and identity-bound geometry evidence. Flutter
-  coalesces visible-row evidence behind minimum-batch, quiet, and maximum-latency boundaries,
-  defers directional and guard-prefetch evidence until its rows become visible, overlays each
-  published batch on the compact manifest, and atomically replaces the layout while preserving the
-  logical viewport anchor. Existing dimensions and ordinary preview readiness still cannot trigger
-  geometry churn.
+  freezes the actual viewport-center card and current visible logical range after native scrolling
+  becomes idle, publishes sparse eligible evidence after a quiet boundary, bounds continuous
+  evidence with a maximum-latency deadline, and defers directional, guard, and reflow-exposed
+  evidence until a later user-scroll epoch. Each published batch overlays the compact manifest and
+  atomically replaces the layout with a pre-paint center-card correction. Existing dimensions and
+  ordinary preview readiness still cannot trigger geometry churn.
+- An explicit time-rail interaction closes the previous dimension-recovery epoch before moving the
+  viewport. The target's first usable metrics establish a new center-card epoch, so dimensions at a
+  newly selected time publish without requiring a follow-up wheel or drag.
+- Initial usable scroll metrics publish the first visible range and center-out preview demand, so
+  unknown dimensions begin recovering without requiring the user to move the gallery. A compatible
+  current preview with missing catalog dimensions uses bounded source header and orientation
+  inspection instead of decoding the full source raster again.
 - Native wheel, touchpad, keyboard, accessibility, and ballistic movement remain owned by Flutter's
   `Scrollable`. Programmatic navigation is generation-guarded and may be coordinated only where
-  measured traces show competing writes.
+  measured traces show competing writes. The newest explicit time target retains ownership across
+  loading and layout alignment; stale visible ranges and late geometry callbacks cannot replace it,
+  while real native movement cancels it explicitly.
 - Retained-catalog Profile evidence reproduced unbounded detail growth, so the controller now keeps
   one contiguous detail window behind soft 5,000-item and 3,500-item watermarks. A 240-iteration
   reversal run reached 5,000 retained details and settled at 4,000; P95 build and raster times were
@@ -1827,8 +1841,8 @@ R2b completed foundation:
 - complete-result timeline, keyset sort and search, stable selection, viewer, source actions, and
   scan feedback;
 - query-wide final geometry with unloaded, failed, and ready states sharing the same rectangles;
-- identity-keyed preview publication and bounded demand priority;
-- latest-wins time navigation, native relative scrolling, and logical-anchor resize preservation;
+- identity-keyed preview publication and bounded center-out demand priority;
+- latest-wins time navigation, native relative scrolling, and actual-card anchor preservation;
 - EXIF Orientation 1 through 8 reflected in durable dimensions and preview pixels;
 - scan finalization, failure publication, and Explorer reveal corrections present in current
   history;

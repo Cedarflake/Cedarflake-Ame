@@ -26,7 +26,7 @@ class LibraryGalleryVisiblePosition {
     required this.monthKey,
     required this.locationId,
     required this.globalItemIndex,
-    required this.rowFraction,
+    required this.itemFraction,
     required this.viewportFraction,
   });
 
@@ -35,7 +35,7 @@ class LibraryGalleryVisiblePosition {
   final String? monthKey;
   final String locationId;
   final int globalItemIndex;
-  final double rowFraction;
+  final double itemFraction;
   final double viewportFraction;
 }
 
@@ -127,7 +127,7 @@ class _LibraryGalleryViewportAnchor {
     required this.revision,
     required this.locationId,
     required this.globalItemIndex,
-    required this.rowFraction,
+    required this.itemFraction,
     required this.viewportFraction,
   });
 
@@ -135,7 +135,7 @@ class _LibraryGalleryViewportAnchor {
   final BigInt revision;
   final String locationId;
   final int globalItemIndex;
-  final double rowFraction;
+  final double itemFraction;
   final double viewportFraction;
 }
 
@@ -205,6 +205,8 @@ class LibraryGalleryWall extends StatelessWidget {
   static const double _maximumViewportExtent = 16384;
   static const double _directionalPreviewViewportCount = 1.5;
   static const double _guardPreviewViewportCount = 0.75;
+  static const double _leadingHorizontalPadding = 24;
+  static const double _trailingHorizontalPadding = 16;
 
   static bool _hasUsableViewport(BoxConstraints constraints) {
     return constraints.maxWidth.isFinite &&
@@ -257,8 +259,11 @@ class LibraryGalleryWall extends StatelessWidget {
         if (!_hasUsableViewport(constraints)) {
           return const SizedBox.shrink();
         }
-        const horizontalPadding = 24.0;
-        final availableWidth = constraints.maxWidth - horizontalPadding - 16;
+        const horizontalPadding = _leadingHorizontalPadding;
+        final availableWidth =
+            constraints.maxWidth -
+            _leadingHorizontalPadding -
+            _trailingHorizontalPadding;
         if (!_hasUsableAvailableWidth(availableWidth)) {
           return const SizedBox.shrink();
         }
@@ -333,24 +338,62 @@ class LibraryGalleryWall extends StatelessWidget {
             state.windowStartItemOffset,
             state.queryId,
             state.catalogRevision,
+            availableWidth,
           ),
         );
+        void synchronizeVisibleViewport(
+          ScrollMetrics metrics,
+          _LibraryPreviewMovementDirection direction,
+        ) {
+          final localScrollOffset =
+              metrics.pixels - virtualGeometry.leadingExtent;
+          final visiblePosition = _positionAtOffset(
+            entries,
+            entryStartOffsets,
+            layoutMetrics,
+            localScrollOffset,
+            metrics.viewportDimension,
+            state.windowStartItemOffset,
+            state.queryId,
+            state.catalogRevision,
+            availableWidth,
+          );
+          final visibleRange = _visibleRangeFor(
+            layoutMetrics: layoutMetrics,
+            scrollOffset: localScrollOffset,
+            viewportDimension: metrics.viewportDimension,
+            queryId: state.queryId,
+            revision: state.catalogRevision,
+          );
+          if (visibleRange != null) {
+            onVisibleRangeChanged?.call(visibleRange);
+          }
+          _updatePreviewDemand(
+            controller: controller,
+            state: state,
+            layoutMetrics: layoutMetrics,
+            scrollOffset: localScrollOffset,
+            viewportDimension: metrics.viewportDimension,
+            direction: direction,
+            anchorGlobalItemIndex:
+                visiblePosition?.globalItemIndex ?? state.windowStartItemOffset,
+            previewEdgeFor: (asset, _) =>
+                previewEdgesByLocation[asset.locationId] ?? 512,
+          );
+          if (visiblePosition != null) {
+            onVisiblePositionChanged(visiblePosition);
+          }
+        }
+
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!context.mounted) {
             return;
           }
           onLayoutChanged(layoutMetrics, virtualGeometry);
           if (scrollController.hasClients) {
-            final metrics = scrollController.position;
-            _updatePreviewDemand(
-              controller: controller,
-              state: state,
-              layoutMetrics: layoutMetrics,
-              scrollOffset: metrics.pixels - virtualGeometry.leadingExtent,
-              viewportDimension: metrics.viewportDimension,
-              direction: _LibraryPreviewMovementDirection.idle,
-              previewEdgeFor: (asset, _) =>
-                  previewEdgesByLocation[asset.locationId] ?? 512,
+            synchronizeVisibleViewport(
+              scrollController.position,
+              _LibraryPreviewMovementDirection.idle,
             );
           }
         });
@@ -386,205 +429,193 @@ class LibraryGalleryWall extends StatelessWidget {
                     _deferPageRequest(context, controller.loadNextPage);
                   }
                 },
-                child: NotificationListener<ScrollNotification>(
+                child: NotificationListener<ScrollMetricsNotification>(
                   onNotification: (notification) {
-                    final isPositionUpdate =
-                        notification is ScrollUpdateNotification ||
-                        notification is ScrollEndNotification;
-                    if (isPositionUpdate) {
-                      _updatePreviewDemand(
-                        controller: controller,
-                        state: state,
-                        layoutMetrics: layoutMetrics,
-                        scrollOffset:
-                            notification.metrics.pixels -
-                            virtualGeometry.leadingExtent,
-                        viewportDimension:
-                            notification.metrics.viewportDimension,
-                        direction: _previewDirectionFor(notification),
-                        previewEdgeFor: (asset, _) =>
-                            previewEdgesByLocation[asset.locationId] ?? 512,
-                      );
-                      final position = _positionAtOffset(
-                        entries,
-                        entryStartOffsets,
-                        layoutMetrics,
-                        notification.metrics.pixels -
-                            virtualGeometry.leadingExtent,
-                        notification.metrics.viewportDimension,
-                        state.windowStartItemOffset,
-                        state.queryId,
-                        state.catalogRevision,
-                      );
-                      if (position != null) {
-                        onVisiblePositionChanged(position);
-                      }
-                      final isDirectDragUpdate =
-                          notification is ScrollUpdateNotification &&
-                          notification.dragDetails != null;
-                      if (isDirectDragUpdate &&
-                          _isNearLoadedStart(
-                            notification.metrics,
-                            virtualGeometry,
-                          ) &&
-                          state.hasPreviousAssets &&
-                          !state.isLoadingPage &&
-                          !state.isLoadingPreviousPage &&
-                          state.previousPageErrorMessage == null) {
-                        _deferPageRequest(context, onLoadPrevious);
-                      }
-                      if (isDirectDragUpdate &&
-                          _isNearLoadedEnd(
-                            notification.metrics,
-                            virtualGeometry,
-                          ) &&
-                          state.hasMoreAssets &&
-                          !state.isLoadingPage &&
-                          !state.isLoadingPreviousPage &&
-                          state.pageErrorMessage == null) {
-                        _deferPageRequest(context, controller.loadNextPage);
-                      }
-                    }
+                    synchronizeVisibleViewport(
+                      notification.metrics,
+                      _LibraryPreviewMovementDirection.idle,
+                    );
                     return false;
                   },
-                  child: KeyedSubtree(
-                    key: const Key("library-photo-wall"),
-                    child: CustomScrollView(
-                      key: _LibraryGalleryScrollViewKey(scrollController),
-                      controller: scrollController,
-                      slivers: [
-                        if (virtualGeometry.leadingExtent > 0)
-                          SliverToBoxAdapter(
-                            child: LibraryVirtualGalleryPlaceholder(
-                              key: const Key("library-leading-placeholder"),
-                              extent: virtualGeometry.leadingExtent,
-                              horizontalPadding: horizontalPadding + 16,
-                              targetTileExtent: thumbnailSize.targetExtent,
+                  child: NotificationListener<ScrollNotification>(
+                    onNotification: (notification) {
+                      final isPositionUpdate =
+                          notification is ScrollUpdateNotification ||
+                          notification is ScrollEndNotification;
+                      if (isPositionUpdate) {
+                        synchronizeVisibleViewport(
+                          notification.metrics,
+                          _previewDirectionFor(notification),
+                        );
+                        final isDirectDragUpdate =
+                            notification is ScrollUpdateNotification &&
+                            notification.dragDetails != null;
+                        if (isDirectDragUpdate &&
+                            _isNearLoadedStart(
+                              notification.metrics,
+                              virtualGeometry,
+                            ) &&
+                            state.hasPreviousAssets &&
+                            !state.isLoadingPage &&
+                            !state.isLoadingPreviousPage &&
+                            state.previousPageErrorMessage == null) {
+                          _deferPageRequest(context, onLoadPrevious);
+                        }
+                        if (isDirectDragUpdate &&
+                            _isNearLoadedEnd(
+                              notification.metrics,
+                              virtualGeometry,
+                            ) &&
+                            state.hasMoreAssets &&
+                            !state.isLoadingPage &&
+                            !state.isLoadingPreviousPage &&
+                            state.pageErrorMessage == null) {
+                          _deferPageRequest(context, controller.loadNextPage);
+                        }
+                      }
+                      return false;
+                    },
+                    child: KeyedSubtree(
+                      key: const Key("library-photo-wall"),
+                      child: CustomScrollView(
+                        key: _LibraryGalleryScrollViewKey(scrollController),
+                        controller: scrollController,
+                        slivers: [
+                          if (virtualGeometry.leadingExtent > 0)
+                            SliverToBoxAdapter(
+                              child: LibraryVirtualGalleryPlaceholder(
+                                key: const Key("library-leading-placeholder"),
+                                extent: virtualGeometry.leadingExtent,
+                                horizontalPadding: horizontalPadding + 16,
+                                targetTileExtent: thumbnailSize.targetExtent,
+                              ),
                             ),
-                          ),
-                        SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(
-                            horizontalPadding,
-                            18,
-                            16,
-                            72,
-                          ),
-                          sliver: LibraryExactExtentSliver.builder(
-                            itemStartOffsets: entryStartOffsets,
-                            contentExtent: _entryContentExtent(
-                              entryStartOffsets,
-                              entries.isEmpty ? 0 : entries.last.extent,
+                          SliverPadding(
+                            padding: const EdgeInsets.fromLTRB(
+                              horizontalPadding,
+                              18,
+                              16,
+                              72,
                             ),
-                            layoutCorrection: layoutCorrection,
-                            onLayoutCorrectionApplied: (generation) {
-                              final transition = layoutTransition;
-                              if (transition != null &&
-                                  generation ==
-                                      (
-                                        scope: "gallery-transition",
-                                        value: transition.generation,
-                                      )) {
-                                onLayoutTransitionApplied?.call(
-                                  transition.generation,
-                                );
-                              }
-                            },
-                            addSemanticIndexes: false,
-                            itemBuilder: (context, index) {
-                              final entry = entries[index];
-                              if (entry.headerLabel case final label?) {
+                            sliver: LibraryExactExtentSliver.builder(
+                              itemStartOffsets: entryStartOffsets,
+                              contentExtent: _entryContentExtent(
+                                entryStartOffsets,
+                                entries.isEmpty ? 0 : entries.last.extent,
+                              ),
+                              layoutCorrection: layoutCorrection,
+                              onLayoutCorrectionApplied: (generation) {
+                                final transition = layoutTransition;
+                                if (transition != null &&
+                                    generation ==
+                                        (
+                                          scope: "gallery-transition",
+                                          value: transition.generation,
+                                        )) {
+                                  onLayoutTransitionApplied?.call(
+                                    transition.generation,
+                                  );
+                                }
+                              },
+                              addSemanticIndexes: false,
+                              itemBuilder: (context, index) {
+                                final entry = entries[index];
+                                if (entry.headerLabel case final label?) {
+                                  return SizedBox(
+                                    height: entry.extent,
+                                    child: Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Semantics(
+                                        header: true,
+                                        child: Text(
+                                          label,
+                                          key: ValueKey(
+                                            "gallery-date-${entry.dateKey ?? 'unknown'}",
+                                          ),
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.titleSmall,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }
+                                if (entry.cells.isEmpty) {
+                                  return SizedBox(height: entry.extent);
+                                }
                                 return SizedBox(
                                   height: entry.extent,
                                   child: Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: Semantics(
-                                      header: true,
-                                      child: Text(
-                                        label,
-                                        key: ValueKey(
-                                          "gallery-date-${entry.dateKey ?? 'unknown'}",
-                                        ),
-                                        style: Theme.of(
-                                          context,
-                                        ).textTheme.titleSmall,
+                                    alignment: Alignment.topLeft,
+                                    child: SizedBox(
+                                      height: entry.rowHeight,
+                                      child: Row(
+                                        children: [
+                                          for (
+                                            var cellIndex = 0;
+                                            cellIndex < entry.cells.length;
+                                            cellIndex++
+                                          ) ...[
+                                            if (cellIndex > 0)
+                                              const SizedBox(
+                                                width: LibraryGalleryLayoutEntry
+                                                    .spacing,
+                                              ),
+                                            LibraryPhotoTile(
+                                              key: ValueKey(
+                                                entry
+                                                    .cells[cellIndex]
+                                                    .asset
+                                                    .locationId,
+                                              ),
+                                              asset:
+                                                  entry.cells[cellIndex].asset,
+                                              width:
+                                                  entry.cells[cellIndex].width,
+                                              height: entry.rowHeight,
+                                              isSelecting: isSelecting,
+                                              isSelected: selection.contains(
+                                                entry
+                                                    .cells[cellIndex]
+                                                    .asset
+                                                    .locationId,
+                                              ),
+                                              onOpen: onOpen,
+                                              onToggleSelection:
+                                                  onToggleSelection,
+                                              onViewInformation:
+                                                  onViewInformation,
+                                              onCopyPath: onCopyPath,
+                                              onRevealFile: onRevealFile,
+                                            ),
+                                          ],
+                                        ],
                                       ),
                                     ),
                                   ),
                                 );
-                              }
-                              if (entry.cells.isEmpty) {
-                                return SizedBox(height: entry.extent);
-                              }
-                              return SizedBox(
-                                height: entry.extent,
-                                child: Align(
-                                  alignment: Alignment.topLeft,
-                                  child: SizedBox(
-                                    height: entry.rowHeight,
-                                    child: Row(
-                                      children: [
-                                        for (
-                                          var cellIndex = 0;
-                                          cellIndex < entry.cells.length;
-                                          cellIndex++
-                                        ) ...[
-                                          if (cellIndex > 0)
-                                            const SizedBox(
-                                              width: LibraryGalleryLayoutEntry
-                                                  .spacing,
-                                            ),
-                                          LibraryPhotoTile(
-                                            key: ValueKey(
-                                              entry
-                                                  .cells[cellIndex]
-                                                  .asset
-                                                  .locationId,
-                                            ),
-                                            asset: entry.cells[cellIndex].asset,
-                                            width: entry.cells[cellIndex].width,
-                                            height: entry.rowHeight,
-                                            isSelecting: isSelecting,
-                                            isSelected: selection.contains(
-                                              entry
-                                                  .cells[cellIndex]
-                                                  .asset
-                                                  .locationId,
-                                            ),
-                                            onOpen: onOpen,
-                                            onToggleSelection:
-                                                onToggleSelection,
-                                            onViewInformation:
-                                                onViewInformation,
-                                            onCopyPath: onCopyPath,
-                                            onRevealFile: onRevealFile,
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        if (virtualGeometry.trailingExtent > 0)
-                          SliverToBoxAdapter(
-                            child: LibraryVirtualGalleryPlaceholder(
-                              key: const Key("library-trailing-placeholder"),
-                              extent: virtualGeometry.trailingExtent,
-                              horizontalPadding: horizontalPadding + 16,
-                              targetTileExtent: thumbnailSize.targetExtent,
+                              },
                             ),
                           ),
-                        if (!virtualGeometry.isVirtualized &&
-                            state.pageErrorMessage != null)
-                          SliverToBoxAdapter(
-                            child: SizedBox(
-                              height: 72,
-                              child: _buildNextPageStatus(),
+                          if (virtualGeometry.trailingExtent > 0)
+                            SliverToBoxAdapter(
+                              child: LibraryVirtualGalleryPlaceholder(
+                                key: const Key("library-trailing-placeholder"),
+                                extent: virtualGeometry.trailingExtent,
+                                horizontalPadding: horizontalPadding + 16,
+                                targetTileExtent: thumbnailSize.targetExtent,
+                              ),
                             ),
-                          ),
-                      ],
+                          if (!virtualGeometry.isVirtualized &&
+                              state.pageErrorMessage != null)
+                            SliverToBoxAdapter(
+                              child: SizedBox(
+                                height: 72,
+                                child: _buildNextPageStatus(),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -684,6 +715,31 @@ class LibraryGalleryWall extends StatelessWidget {
     );
   }
 
+  static int _cellIndexNearestHorizontalCenter(
+    List<double> cellWidths,
+    double availableWidth,
+  ) {
+    if (cellWidths.isEmpty) {
+      return 0;
+    }
+    final target =
+        availableWidth * 0.5 +
+        (_trailingHorizontalPadding - _leadingHorizontalPadding) * 0.5;
+    var bestIndex = 0;
+    var bestDistance = double.infinity;
+    var leading = 0.0;
+    for (var index = 0; index < cellWidths.length; index += 1) {
+      final center = leading + cellWidths[index] * 0.5;
+      final distance = (center - target).abs();
+      if (distance < bestDistance) {
+        bestIndex = index;
+        bestDistance = distance;
+      }
+      leading += cellWidths[index] + LibraryGalleryLayoutEntry.spacing;
+    }
+    return bestIndex;
+  }
+
   static LibraryGalleryVisiblePosition? _positionAtOffset(
     List<LibraryGalleryLayoutEntry> entries,
     List<double> entryStartOffsets,
@@ -693,12 +749,46 @@ class LibraryGalleryWall extends StatelessWidget {
     int windowStartItemOffset,
     String queryId,
     BigInt? revision,
+    double availableWidth,
   ) {
     if (entries.isEmpty || revision == null) {
       return null;
     }
     final anchorOffset = scrollOffset + viewportDimension * 0.5;
     final target = anchorOffset - 18;
+    final activeIndex = _photoEntryIndexNearestOffset(
+      entries,
+      entryStartOffsets,
+      target,
+    );
+    if (activeIndex == null) {
+      return null;
+    }
+    final activeEntry = entries[activeIndex];
+    final rowOffset = entryStartOffsets[activeIndex] + 18;
+    final rowStartItemIndex = metrics.itemIndexForScrollOffset(rowOffset);
+    final centerCellIndex = _cellIndexNearestHorizontalCenter([
+      for (final cell in activeEntry.cells) cell.width,
+    ], availableWidth);
+    final itemIndex = rowStartItemIndex + centerCellIndex;
+    return LibraryGalleryVisiblePosition(
+      queryId: queryId,
+      revision: revision,
+      monthKey: activeEntry.monthKey,
+      locationId: activeEntry.cells[centerCellIndex].asset.locationId,
+      globalItemIndex: windowStartItemOffset + itemIndex,
+      itemFraction: ((anchorOffset - rowOffset) / activeEntry.rowHeight)
+          .clamp(0.0, 1.0)
+          .toDouble(),
+      viewportFraction: 0.5,
+    );
+  }
+
+  static int? _photoEntryIndexNearestOffset(
+    List<LibraryGalleryLayoutEntry> entries,
+    List<double> entryStartOffsets,
+    double target,
+  ) {
     var lower = 0;
     var upper = entryStartOffsets.length;
     while (lower < upper) {
@@ -709,29 +799,46 @@ class LibraryGalleryWall extends StatelessWidget {
         upper = middle;
       }
     }
-    final activeIndex = lower - 1;
-    if (activeIndex < 0 ||
-        target >=
-            entryStartOffsets[activeIndex] + entries[activeIndex].extent) {
+    final initialIndex = (lower - 1).clamp(0, entries.length - 1).toInt();
+    int? previousIndex;
+    for (var index = initialIndex; index >= 0; index -= 1) {
+      if (entries[index].cells.isNotEmpty && entries[index].rowHeight > 0) {
+        previousIndex = index;
+        break;
+      }
+    }
+    int? nextIndex;
+    for (var index = initialIndex; index < entries.length; index += 1) {
+      if (entries[index].cells.isNotEmpty && entries[index].rowHeight > 0) {
+        nextIndex = index;
+        break;
+      }
+    }
+    if (previousIndex == null && nextIndex == null) {
       return null;
     }
-    final activeEntry = entries[activeIndex];
-    if (activeEntry.cells.isEmpty || activeEntry.rowHeight <= 0) {
-      return null;
+
+    double distanceToEntry(int index) {
+      final top = entryStartOffsets[index];
+      final bottom = top + entries[index].rowHeight;
+      if (target < top) {
+        return top - target;
+      }
+      if (target > bottom) {
+        return target - bottom;
+      }
+      return 0;
     }
-    final rowStartItemIndex = metrics.itemIndexForScrollOffset(anchorOffset);
-    final rowOffset = metrics.offsetForItemIndex(rowStartItemIndex)!;
-    return LibraryGalleryVisiblePosition(
-      queryId: queryId,
-      revision: revision,
-      monthKey: activeEntry.monthKey,
-      locationId: activeEntry.cells.first.asset.locationId,
-      globalItemIndex: windowStartItemOffset + rowStartItemIndex,
-      rowFraction: ((anchorOffset - rowOffset) / activeEntry.rowHeight)
-          .clamp(0.0, 1.0)
-          .toDouble(),
-      viewportFraction: 0.5,
-    );
+
+    if (previousIndex == null) {
+      return nextIndex;
+    }
+    if (nextIndex == null) {
+      return previousIndex;
+    }
+    return distanceToEntry(previousIndex) <= distanceToEntry(nextIndex)
+        ? previousIndex
+        : nextIndex;
   }
 
   static LibraryExactExtentLayoutCorrection? _layoutCorrectionForTransition({
@@ -783,7 +890,7 @@ class LibraryGalleryWall extends StatelessWidget {
     final target =
         virtualGeometry.leadingExtent +
         rowOffset +
-        entries[entryIndex].rowHeight * transition.position.rowFraction -
+        entries[entryIndex].rowHeight * transition.position.itemFraction -
         viewportExtent * transition.position.viewportFraction;
     final maximum = (virtualGeometry.totalContentExtent - viewportExtent)
         .clamp(0, double.infinity)
@@ -842,6 +949,7 @@ class LibraryGalleryWall extends StatelessWidget {
     required double scrollOffset,
     required double viewportDimension,
     required _LibraryPreviewMovementDirection direction,
+    required int anchorGlobalItemIndex,
     required int Function(LibraryAsset asset, int globalItemIndex)
     previewEdgeFor,
   }) {
@@ -885,8 +993,24 @@ class LibraryGalleryWall extends StatelessWidget {
       if (boundedEnd <= boundedStart) {
         return const [];
       }
+      final itemIndices =
+          [
+            for (
+              var itemIndex = boundedStart;
+              itemIndex < boundedEnd;
+              itemIndex += 1
+            )
+              itemIndex,
+          ]..sort((first, second) {
+            final distanceComparison = (first - anchorGlobalItemIndex)
+                .abs()
+                .compareTo((second - anchorGlobalItemIndex).abs());
+            return distanceComparison != 0
+                ? distanceComparison
+                : first.compareTo(second);
+          });
       final assets = <LibraryAsset>[];
-      for (var itemIndex = boundedStart; itemIndex < boundedEnd; itemIndex++) {
+      for (final itemIndex in itemIndices) {
         final asset = state.assets[itemIndex - loadedStart];
         previewEdges[asset.locationId] = previewEdgeFor(asset, itemIndex);
         assets.add(asset);
@@ -938,6 +1062,46 @@ class LibraryGalleryWall extends StatelessWidget {
       nearDirection: nearDirection,
       guard: guard,
       previewEdges: previewEdges,
+    );
+  }
+
+  static LibraryGalleryVisibleRange? _visibleRangeFor({
+    required LibraryGalleryLayoutMetrics layoutMetrics,
+    required double scrollOffset,
+    required double viewportDimension,
+    required String queryId,
+    required BigInt? revision,
+  }) {
+    if (revision == null ||
+        queryId.isEmpty ||
+        !viewportDimension.isFinite ||
+        viewportDimension <= 0) {
+      return null;
+    }
+    final visibleStart = scrollOffset
+        .clamp(0.0, layoutMetrics.contentExtent)
+        .toDouble();
+    final visibleEnd = (scrollOffset + viewportDimension)
+        .clamp(visibleStart, layoutMetrics.contentExtent)
+        .toDouble();
+    final firstVisibleItem = layoutMetrics.itemIndexForScrollOffset(
+      visibleStart,
+    );
+    final lastVisibleItem = layoutMetrics.itemIndexForScrollOffset(visibleEnd);
+    final firstVisibleRowStart = layoutMetrics.rowStartGlobalItemIndex(
+      firstVisibleItem,
+    );
+    final lastVisibleRowEnd = layoutMetrics.rowEndGlobalItemIndexExclusive(
+      lastVisibleItem,
+    );
+    if (firstVisibleRowStart == null || lastVisibleRowEnd == null) {
+      return null;
+    }
+    return LibraryGalleryVisibleRange(
+      queryId: queryId,
+      revision: revision,
+      startGlobalItemIndex: firstVisibleRowStart,
+      endGlobalItemIndexExclusive: lastVisibleRowEnd,
     );
   }
 }
@@ -1048,8 +1212,11 @@ class _ManifestLibraryGalleryWallState
           _layoutCorrection = null;
           return const SizedBox.shrink();
         }
-        const horizontalPadding = 24.0;
-        final availableWidth = constraints.maxWidth - horizontalPadding - 16;
+        const horizontalPadding = LibraryGalleryWall._leadingHorizontalPadding;
+        final availableWidth =
+            constraints.maxWidth -
+            LibraryGalleryWall._leadingHorizontalPadding -
+            LibraryGalleryWall._trailingHorizontalPadding;
         if (!LibraryGalleryWall._hasUsableAvailableWidth(availableWidth)) {
           _pendingAvailableWidth = null;
           _pendingViewportExtent = null;
@@ -1138,12 +1305,9 @@ class _ManifestLibraryGalleryWallState
                     );
                   }
                 },
-                child: NotificationListener<ScrollNotification>(
+                child: NotificationListener<ScrollMetricsNotification>(
                   onNotification: (notification) {
-                    final isPositionUpdate =
-                        notification is ScrollUpdateNotification ||
-                        notification is ScrollEndNotification;
-                    if (isPositionUpdate) {
+                    if (isPublishedLayout) {
                       final position = _positionAtOffset(
                         snapshot,
                         notification.metrics.pixels,
@@ -1155,96 +1319,119 @@ class _ManifestLibraryGalleryWallState
                       _requestVisibleDetailRows(
                         snapshot,
                         scrollMetrics: notification.metrics,
-                        direction: LibraryGalleryWall._previewDirectionFor(
-                          notification,
-                        ),
+                        direction: _LibraryPreviewMovementDirection.idle,
                       );
-                      final isDirectDragUpdate =
-                          notification is ScrollUpdateNotification &&
-                          notification.dragDetails != null;
-                      if (isDirectDragUpdate &&
-                          LibraryGalleryWall._isNearLoadedStart(
-                            notification.metrics,
-                            virtualGeometry,
-                          ) &&
-                          widget.state.hasPreviousAssets &&
-                          !widget.state.isLoadingPage &&
-                          !widget.state.isLoadingPreviousPage &&
-                          widget.state.previousPageErrorMessage == null) {
-                        LibraryGalleryWall._deferPageRequest(
-                          context,
-                          widget.onLoadPrevious,
-                        );
-                      }
-                      if (isDirectDragUpdate &&
-                          LibraryGalleryWall._isNearLoadedEnd(
-                            notification.metrics,
-                            virtualGeometry,
-                          ) &&
-                          widget.state.hasMoreAssets &&
-                          !widget.state.isLoadingPage &&
-                          !widget.state.isLoadingPreviousPage &&
-                          widget.state.pageErrorMessage == null) {
-                        LibraryGalleryWall._deferPageRequest(
-                          context,
-                          widget.controller.loadNextPage,
-                        );
-                      }
                     }
                     return false;
                   },
-                  child: KeyedSubtree(
-                    key: const Key("library-photo-wall"),
-                    child: CustomScrollView(
-                      key: _LibraryGalleryScrollViewKey(
-                        widget.scrollController,
-                      ),
-                      controller: widget.scrollController,
-                      slivers: [
-                        SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(
-                            horizontalPadding,
-                            18,
-                            16,
-                            72,
+                  child: NotificationListener<ScrollNotification>(
+                    onNotification: (notification) {
+                      final isPositionUpdate =
+                          notification is ScrollUpdateNotification ||
+                          notification is ScrollEndNotification;
+                      if (isPositionUpdate) {
+                        final position = _positionAtOffset(
+                          snapshot,
+                          notification.metrics.pixels,
+                          notification.metrics.viewportDimension,
+                        );
+                        if (position != null) {
+                          widget.onVisiblePositionChanged(position);
+                        }
+                        _requestVisibleDetailRows(
+                          snapshot,
+                          scrollMetrics: notification.metrics,
+                          direction: LibraryGalleryWall._previewDirectionFor(
+                            notification,
                           ),
-                          sliver: LibraryExactExtentSliver.builder(
-                            itemStartOffsets: snapshot.entryStartOffsets,
-                            contentExtent:
-                                LibraryGalleryWall._entryContentExtent(
-                                  snapshot.entryStartOffsets,
-                                  snapshot.entries.isEmpty
-                                      ? 0
-                                      : snapshot.entries.last.extent,
-                                ),
-                            layoutCorrection: _layoutCorrection,
-                            onLayoutCorrectionApplied: (generation) {
-                              final transition = widget.layoutTransition;
-                              if (canCompleteLayoutTransition &&
-                                  transition != null &&
-                                  generation ==
-                                      (
-                                        scope: "gallery-transition",
-                                        value: transition.generation,
-                                      )) {
-                                widget.onLayoutTransitionApplied?.call(
-                                  transition.generation,
-                                );
-                              }
-                            },
-                            addSemanticIndexes: false,
-                            itemBuilder: (context, index) {
-                              return _buildEntry(
-                                context,
-                                snapshot,
-                                snapshot.entries[index],
-                                assetsByLocation,
-                                availableWidth,
-                              );
-                            },
-                          ),
+                        );
+                        final isDirectDragUpdate =
+                            notification is ScrollUpdateNotification &&
+                            notification.dragDetails != null;
+                        if (isDirectDragUpdate &&
+                            LibraryGalleryWall._isNearLoadedStart(
+                              notification.metrics,
+                              virtualGeometry,
+                            ) &&
+                            widget.state.hasPreviousAssets &&
+                            !widget.state.isLoadingPage &&
+                            !widget.state.isLoadingPreviousPage &&
+                            widget.state.previousPageErrorMessage == null) {
+                          LibraryGalleryWall._deferPageRequest(
+                            context,
+                            widget.onLoadPrevious,
+                          );
+                        }
+                        if (isDirectDragUpdate &&
+                            LibraryGalleryWall._isNearLoadedEnd(
+                              notification.metrics,
+                              virtualGeometry,
+                            ) &&
+                            widget.state.hasMoreAssets &&
+                            !widget.state.isLoadingPage &&
+                            !widget.state.isLoadingPreviousPage &&
+                            widget.state.pageErrorMessage == null) {
+                          LibraryGalleryWall._deferPageRequest(
+                            context,
+                            widget.controller.loadNextPage,
+                          );
+                        }
+                      }
+                      return false;
+                    },
+                    child: KeyedSubtree(
+                      key: const Key("library-photo-wall"),
+                      child: CustomScrollView(
+                        key: _LibraryGalleryScrollViewKey(
+                          widget.scrollController,
                         ),
-                      ],
+                        controller: widget.scrollController,
+                        slivers: [
+                          SliverPadding(
+                            padding: const EdgeInsets.fromLTRB(
+                              horizontalPadding,
+                              18,
+                              16,
+                              72,
+                            ),
+                            sliver: LibraryExactExtentSliver.builder(
+                              itemStartOffsets: snapshot.entryStartOffsets,
+                              contentExtent:
+                                  LibraryGalleryWall._entryContentExtent(
+                                    snapshot.entryStartOffsets,
+                                    snapshot.entries.isEmpty
+                                        ? 0
+                                        : snapshot.entries.last.extent,
+                                  ),
+                              layoutCorrection: _layoutCorrection,
+                              onLayoutCorrectionApplied: (generation) {
+                                final transition = widget.layoutTransition;
+                                if (canCompleteLayoutTransition &&
+                                    transition != null &&
+                                    generation ==
+                                        (
+                                          scope: "gallery-transition",
+                                          value: transition.generation,
+                                        )) {
+                                  widget.onLayoutTransitionApplied?.call(
+                                    transition.generation,
+                                  );
+                                }
+                              },
+                              addSemanticIndexes: false,
+                              itemBuilder: (context, index) {
+                                return _buildEntry(
+                                  context,
+                                  snapshot,
+                                  snapshot.entries[index],
+                                  assetsByLocation,
+                                  availableWidth,
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -1354,6 +1541,9 @@ class _ManifestLibraryGalleryWallState
       return widget.layoutTransition != null;
     }
     final transition = widget.layoutTransition;
+    if (transition != null && !identical(snapshot.manifest, widget.manifest)) {
+      return true;
+    }
     final position = transition?.position ?? widget.initialQueryWidePosition;
     if (position == null ||
         position.queryId != snapshot.manifest.queryId ||
@@ -1369,7 +1559,7 @@ class _ManifestLibraryGalleryWallState
         revision: position.revision,
         locationId: position.locationId,
         globalItemIndex: position.globalItemIndex,
-        rowFraction: position.rowFraction,
+        itemFraction: position.itemFraction,
         viewportFraction: position.viewportFraction,
       ),
       viewportExtent,
@@ -1451,6 +1641,11 @@ class _ManifestLibraryGalleryWallState
         endGlobalItemIndexExclusive: lastVisibleRowEnd,
       ),
     );
+    final centerPosition = _positionAtOffset(
+      snapshot,
+      metrics.pixels,
+      metrics.viewportDimension,
+    );
     LibraryGalleryWall._updatePreviewDemand(
       controller: widget.controller,
       state: widget.state,
@@ -1458,6 +1653,8 @@ class _ManifestLibraryGalleryWallState
       scrollOffset: metrics.pixels,
       viewportDimension: metrics.viewportDimension,
       direction: direction,
+      anchorGlobalItemIndex:
+          centerPosition?.globalItemIndex ?? firstVisibleRowStart,
       previewEdgeFor: (_, itemIndex) => libraryPreviewDecodeWidth(
         snapshot.displayExtentForItemIndex(itemIndex),
         MediaQuery.devicePixelRatioOf(context),
@@ -1498,11 +1695,24 @@ class _ManifestLibraryGalleryWallState
         viewportFraction: 0.0,
       );
     }
-    _pendingViewportAnchor ??= current == null
+    final transitionPosition = widget.layoutTransition?.position;
+    final transitionAnchor = transitionPosition == null
         ? null
-        : isWidthOnlyResize && widget.isSidebarResizing
-        ? _sidebarResizeAnchor
-        : _captureViewportAnchor(current, viewportFraction: 0.5);
+        : _LibraryGalleryViewportAnchor(
+            queryId: transitionPosition.queryId,
+            revision: transitionPosition.revision,
+            locationId: transitionPosition.locationId,
+            globalItemIndex: transitionPosition.globalItemIndex,
+            itemFraction: transitionPosition.itemFraction,
+            viewportFraction: transitionPosition.viewportFraction,
+          );
+    _pendingViewportAnchor ??=
+        transitionAnchor ??
+        (current == null
+            ? null
+            : isWidthOnlyResize && widget.isSidebarResizing
+            ? _sidebarResizeAnchor
+            : _captureViewportAnchor(current, viewportFraction: 0.5));
     if (_isResizeFrameScheduled) {
       return;
     }
@@ -1599,7 +1809,10 @@ class _ManifestLibraryGalleryWallState
     }
     final anchorOffset =
         position.pixels + position.viewportDimension * viewportFraction;
-    final itemIndex = snapshot.metrics.itemIndexForScrollOffset(anchorOffset);
+    final itemIndex = _itemIndexNearestViewportCenter(snapshot, anchorOffset);
+    if (itemIndex == null) {
+      return null;
+    }
     final rowOffset = snapshot.metrics.offsetForGlobalItemIndex(itemIndex);
     if (rowOffset == null) {
       return null;
@@ -1611,7 +1824,7 @@ class _ManifestLibraryGalleryWallState
       return null;
     }
     final entry = snapshot.entries[entryIndex];
-    final rowFraction = entry.rowHeight <= 0
+    final itemFraction = entry.rowHeight <= 0
         ? 0.0
         : ((anchorOffset - rowOffset) / entry.rowHeight)
               .clamp(0.0, 1.0)
@@ -1621,9 +1834,74 @@ class _ManifestLibraryGalleryWallState
       revision: snapshot.manifest.revision,
       locationId: snapshot.manifest.locationIdAt(itemIndex),
       globalItemIndex: itemIndex,
-      rowFraction: rowFraction,
+      itemFraction: itemFraction,
       viewportFraction: viewportFraction,
     );
+  }
+
+  int? _itemIndexNearestViewportCenter(
+    LibraryGalleryLayoutSnapshot snapshot,
+    double anchorOffset,
+  ) {
+    if (snapshot.entries.isEmpty) {
+      return null;
+    }
+    final initialIndex = snapshot.entryIndexForScrollOffset(
+      (anchorOffset - _topPadding).clamp(0, double.infinity).toDouble(),
+    );
+    if (initialIndex < 0) {
+      return null;
+    }
+
+    int? previousIndex;
+    for (var index = initialIndex; index >= 0; index -= 1) {
+      final entry = snapshot.entries[index];
+      if (entry.itemCount > 0 && entry.rowHeight > 0) {
+        previousIndex = index;
+        break;
+      }
+    }
+    int? nextIndex;
+    for (
+      var index = initialIndex;
+      index < snapshot.entries.length;
+      index += 1
+    ) {
+      final entry = snapshot.entries[index];
+      if (entry.itemCount > 0 && entry.rowHeight > 0) {
+        nextIndex = index;
+        break;
+      }
+    }
+    if (previousIndex == null && nextIndex == null) {
+      return null;
+    }
+
+    double distanceToEntry(int index) {
+      final top = _topPadding + snapshot.entryStartOffsets[index];
+      final bottom = top + snapshot.entries[index].rowHeight;
+      if (anchorOffset < top) {
+        return top - anchorOffset;
+      }
+      if (anchorOffset > bottom) {
+        return anchorOffset - bottom;
+      }
+      return 0;
+    }
+
+    final entryIndex = previousIndex == null
+        ? nextIndex!
+        : nextIndex == null
+        ? previousIndex
+        : distanceToEntry(previousIndex) <= distanceToEntry(nextIndex)
+        ? previousIndex
+        : nextIndex;
+    final entry = snapshot.entries[entryIndex];
+    final cellIndex = LibraryGalleryWall._cellIndexNearestHorizontalCenter(
+      entry.cellWidths,
+      snapshot.availableWidth,
+    );
+    return entry.startItemIndex + cellIndex;
   }
 
   double? _targetScrollOffsetForAnchor(
@@ -1659,7 +1937,7 @@ class _ManifestLibraryGalleryWallState
     final rowHeight = snapshot.entries[entryIndex].rowHeight;
     final target =
         rowOffset +
-        rowHeight * anchor.rowFraction -
+        rowHeight * anchor.itemFraction -
         viewportExtent * anchor.viewportFraction;
     final maximum = (snapshot.metrics.contentExtent - viewportExtent)
         .clamp(0, double.infinity)
@@ -1775,22 +2053,25 @@ class _ManifestLibraryGalleryWallState
     if (snapshot.entries.isEmpty) {
       return null;
     }
-    final target = scrollOffset + viewportDimension * 0.5 - 18;
-    final entryIndex = snapshot.entryIndexForScrollOffset(target);
-    if (entryIndex < 0) {
+    final anchorOffset = scrollOffset + viewportDimension * 0.5;
+    final itemIndex = _itemIndexNearestViewportCenter(snapshot, anchorOffset);
+    if (itemIndex == null) {
       return null;
     }
-    final entry = snapshot.entries[entryIndex];
-    final itemIndex = entry.startItemIndex;
+    final itemOffset = snapshot.metrics.itemOffsets[itemIndex];
+    final resolvedEntryIndex = snapshot.entryIndexForScrollOffset(
+      (itemOffset - _topPadding).clamp(0, double.infinity).toDouble(),
+    );
+    final entry = snapshot.entries[resolvedEntryIndex];
     return LibraryGalleryVisiblePosition(
       queryId: snapshot.manifest.queryId,
       revision: snapshot.manifest.revision,
       monthKey: entry.monthKey,
       locationId: snapshot.manifest.locationIdAt(itemIndex),
       globalItemIndex: itemIndex,
-      rowFraction: entry.rowHeight <= 0
+      itemFraction: entry.rowHeight <= 0
           ? 0.0
-          : ((target + 18 - snapshot.metrics.itemOffsets[itemIndex]) /
+          : ((anchorOffset - snapshot.metrics.itemOffsets[itemIndex]) /
                     entry.rowHeight)
                 .clamp(0.0, 1.0)
                 .toDouble(),

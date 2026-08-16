@@ -2,7 +2,7 @@
 
 - Status: Accepted for validation
 - Date: 2026-08-09
-- Last amended: 2026-08-12
+- Last amended: 2026-08-16
 - Amends: ADR 0010 and ADR 0011
 
 ## Context
@@ -88,11 +88,17 @@ anchors, and total extent in compact arrays.
   user's scroll position.
 - A preview decode that recovers valid dimensions for an item whose catalog dimensions were unknown
   may publish separate geometry evidence. Compatible updates are validated against revision, query,
-  global ordinal, and stable location identity. Evidence for visible rows is coalesced behind both a
-  minimum batch threshold and a bounded maximum delay before it creates one replacement layout
-  snapshot. Evidence recovered only by directional or guard prefetch remains deferred until its row
-  enters the visible range, so offscreen work cannot repeatedly repack the date group around the
-  current viewport. Updates never reflow one tile per completion.
+  global ordinal, and stable location identity. The first compatible update after native scrolling
+  becomes idle freezes one geometry-evidence epoch: the actual card nearest the viewport center and
+  the logical rows visible at that moment. Any evidence inside that frozen range arms a quiet
+  boundary, while a bounded maximum delay prevents a continuous stream from postponing publication
+  indefinitely. The coalesced evidence creates one replacement layout snapshot. Reflow from that
+  replacement cannot widen the same epoch or promote newly exposed rows. Evidence recovered only by
+  directional or guard prefetch remains deferred until native scrolling establishes a later visible
+  epoch. An explicit timeline interaction invalidates the previous visible epoch before moving the
+  viewport; the first usable metrics at the target establish a new center-card epoch, so target
+  dimensions do not wait for a synthetic or manual scroll. Updates never reflow one tile per
+  completion, and no geometry batch publishes while user scrolling is active.
 - Only a query, sort, filter, layout, density, catalog revision, compatible geometry-evidence epoch,
   or viewport-width change may create a new layout snapshot.
 
@@ -113,9 +119,10 @@ across a large scrolling wall.
 The stable navigation value is a `GalleryViewportAnchor`, not a raw pixel offset. It contains:
 
 - query identity and catalog revision;
-- stable location identity when still present;
+- stable location identity of the actual card nearest the anchor point when still present, never
+  merely the first item in its row;
 - global ordinal as a fallback;
-- fractional position inside the owning row;
+- fractional vertical position inside the target card;
 - fractional position inside the viewport.
 
 Pixels are derived from the current layout snapshot. A resize or compatible catalog refresh
@@ -155,11 +162,18 @@ controller, loaded-window scroll position, or second canonical offset. Rail labe
 line, visible date headings, page prefetch, and restored position all derive from the same logical
 anchor and layout snapshot.
 
+The newest explicit time target retains navigation ownership across its catalog load and layout
+alignment. Passive visible-range reports, including initial `ScrollMetricsNotification` delivery
+and callbacks from geometry that was current before the target loaded, may request compatible
+details but cannot invalidate or replace that owner. A newer explicit target replaces it. Native
+user movement sends one explicit cancellation to the application boundary; programmatic anchor
+correction, manifest takeover, resize, and dimension recovery do not impersonate that cancellation.
+
 ### Interaction contracts
 
 | Input | Position behavior | Detail loading | Preview behavior |
 | --- | --- | --- | --- |
-| Wheel, touchpad, keyboard | Native relative scrolling on the one `Scrollable`; the coordinator observes but does not enqueue deltas | Prefetch bounded pages before and after the viewport; never replace the complete visible model | Visible and near-viewport work has priority; expensive decode may be deferred at high velocity |
+| Wheel, touchpad, keyboard | Native relative scrolling on the one `Scrollable`; the coordinator observes but does not enqueue deltas | Prefetch bounded pages before and after the viewport; never replace the complete visible model | Visible work expands from the center card toward both sides; expensive decode and recovered geometry may wait for native scrolling to become idle |
 | Time-rail drag | Update the exact manifest-backed position at most once per frame | Latest-wins target page requests at a measured bounded cadence; release promotes the final target | Reuse cached previews; otherwise show final-geometry placeholders |
 | Time-rail click or other distant jump | Jump directly to the resolved anchor without animating through the library | Request the target page and guard pages with highest priority | Publish cached or newly decoded previews without changing geometry |
 | Window resize | Preserve the logical anchor while one latest layout snapshot replaces the previous snapshot atomically | Reuse already loaded details; discard obsolete width computations | Reuse decode-width buckets and request only missing sizes after layout stabilizes |
@@ -203,12 +217,20 @@ Preview pixel publication and geometry evidence remain distinct. When compatible
 also the first successful media inspection for a previously unknown dimension, the controller may
 emit a compact geometry update carrying query, catalog revision, global ordinal, stable location
 identity, and orientation-corrected width and height. Flutter coalesces these updates behind a
-quiet boundary, a minimum batch size, and a maximum latency boundary. Only evidence intersecting the
-current visible rows enters that active batch; other compatible evidence stays query-bounded until
-the user reaches its rows. Flutter overlays each published batch on the compact manifest without
-copying its base storage and publishes the replacement snapshot with the logical anchor correction
-above. A ready, failed, retried, evicted, or regenerated preview with already-known dimensions emits
-no geometry update.
+quiet boundary and a maximum latency boundary. Sparse visible evidence therefore publishes after the
+quiet boundary without waiting for an arbitrary minimum count; continuous evidence remains bounded
+by the maximum delay. Only evidence intersecting the frozen visible range of the current idle
+recovery epoch enters that active batch; geometry produced by the batch cannot expand its own
+eligibility range. Other compatible evidence stays query-bounded until subsequent native movement
+establishes a new epoch. Flutter overlays each published batch on the compact manifest without
+copying its base storage and publishes the replacement snapshot with the actual center-card anchor
+correction above. A ready, failed, retried, evicted, or regenerated preview with already-known
+dimensions emits no geometry update.
+
+The first usable viewport metrics publish visible range, center-out preview demand, and the logical
+center position without waiting for a wheel or drag event. Scroll notifications continue to update
+directional demand afterward; a missing initial scroll event is not used as a reason to leave the
+first viewport idle.
 
 ADR 0005 owns preview artifact identity, bounded physical-pixel variants, storage accounting,
 reclamation, cleanup, recovery, and preview-root transition. This ADR owns the separation between
@@ -221,6 +243,11 @@ The scheduler uses explicit priorities:
 3. near-viewport items in the current movement direction;
 4. retained guard pages;
 5. optional idle warming within the cache budget.
+
+Within one priority, the latest gallery demand order is significant. Stationary visible work starts
+at the actual center card and expands by ordinal distance toward both sides. Recomputing the same
+demand membership around a different center must reorder pending work; an older insertion sequence
+cannot keep control merely because the set of locations did not change.
 
 Queued work is cancellable. Active work carries a generation and its result is ignored when the
 query, revision, target width, or source state is no longer compatible. Concurrency is bounded and
@@ -266,15 +293,18 @@ This decision becomes **Accepted** only when all of the following pass:
 - A deterministic fixture proves preview pending, ready, failed, retry, and eviction transitions do
   not change any row or item rectangle.
 - A deterministic unknown-dimension fixture proves that several compatible recovered dimensions
-  coalesce into one replacement geometry, a partial batch waits for the bounded deadline, offscreen
-  guard evidence remains deferred, stale query or identity evidence is ignored, and the visible
-  logical anchor remains within two logical pixels.
+  coalesce into one replacement geometry, sparse evidence publishes after the quiet boundary,
+  continuous evidence cannot exceed the bounded deadline, offscreen guard evidence and rows exposed
+  only by that reflow remain deferred, stale query or identity evidence is ignored, no geometry
+  publishes during active native scrolling, and the actual viewport-center card remains within two
+  logical pixels.
 - Normal wheel scrolling through page boundaries does not replace the gallery with a square grid,
   blank canvas, or different row composition.
 - Native wheel, touchpad, keyboard, accessibility, and ballistic movement adds no asynchronous
   coordinator hop and does not regress the frozen interaction baseline.
 - Rapid drag, drag reversal, repeated distant clicks, and release publish only the latest compatible
-  target; stale requests cannot move the viewport.
+  target; stale requests, old visible-range reports, and late layout callbacks cannot move the
+  viewport back to an earlier target.
 - Time-rail input and its primary line update within one display frame while catalog and preview
   work remains bounded.
 - A distant cold-cache jump immediately shows final-geometry placeholders and remains interactive;

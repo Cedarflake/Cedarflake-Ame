@@ -26,6 +26,9 @@ class LibraryTimeNavigation extends StatefulWidget {
     required this.windowStartItemOffset,
     required this.loadedItemCount,
     required this.onSeek,
+    this.onBeginNavigation,
+    this.onCancelSeek,
+    this.onPrefetch,
     this.virtualGeometry,
     super.key,
   });
@@ -39,6 +42,9 @@ class LibraryTimeNavigation extends StatefulWidget {
   final int windowStartItemOffset;
   final int loadedItemCount;
   final LibraryTimelineSeekCallback onSeek;
+  final VoidCallback? onBeginNavigation;
+  final VoidCallback? onCancelSeek;
+  final LibraryTimelineSeekCallback? onPrefetch;
 
   @override
   State<LibraryTimeNavigation> createState() => _LibraryTimeNavigationState();
@@ -54,6 +60,7 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
   _LibraryTimelineSeekIntent? _pendingSeekIntent;
   bool _isPendingSeekFinal = false;
   bool _isDragging = false;
+  bool _didCancelForCurrentUserScroll = false;
   bool _isFrameScheduled = false;
   final Set<int> _activeSeekGenerations = <int>{};
   int _timelineGeneration = 0;
@@ -61,6 +68,7 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
   DateTime? _lastSeekStartedAt;
   Timer? _seekTimer;
   Timer? _galleryScrollSettleTimer;
+  Timer? _userScrollCancellationResetTimer;
   double? _pendingGalleryScrollValue;
   LibraryTimelineProjection? _cachedProjection;
   LibraryGalleryLayoutMetrics? _stableLayoutMetrics;
@@ -96,6 +104,7 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
       _seekIntentGeneration += 1;
       _seekTimer?.cancel();
       _galleryScrollSettleTimer?.cancel();
+      _userScrollCancellationResetTimer?.cancel();
       _interactiveValue = null;
       _pendingFrameValue = null;
       _pendingSeekValue = null;
@@ -103,6 +112,7 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
       _pendingGalleryScrollValue = null;
       _isPendingSeekFinal = false;
       _isDragging = false;
+      _didCancelForCurrentUserScroll = false;
       _isFrameScheduled = false;
       _activeSeekGenerations.clear();
       _lastSeekStartedAt = null;
@@ -121,6 +131,7 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
     _seekIntentGeneration += 1;
     _seekTimer?.cancel();
     _galleryScrollSettleTimer?.cancel();
+    _userScrollCancellationResetTimer?.cancel();
     _activeSeekGenerations.clear();
     widget.scrollController.removeListener(_handleGalleryScroll);
     super.dispose();
@@ -246,6 +257,7 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
     LibraryTimelineProjection globalProjection,
     double value,
   ) {
+    widget.onBeginNavigation?.call();
     _seekIntentGeneration += 1;
     _pendingFrameValue = value;
     _scheduleNavigationFrame(globalProjection);
@@ -374,7 +386,10 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
     _activeSeekGenerations.add(seekIntentGeneration);
     _lastSeekStartedAt = DateTime.now();
     final target = _detailLoadTarget(globalProjection, value);
-    final didSeek = await widget.onSeek(target.bucket, target.itemOffset);
+    final seek = intent == _LibraryTimelineSeekIntent.prefetch
+        ? widget.onPrefetch ?? widget.onSeek
+        : widget.onSeek;
+    final didSeek = await seek(target.bucket, target.itemOffset);
     _activeSeekGenerations.remove(seekIntentGeneration);
     if (!mounted || generation != _timelineGeneration) {
       return;
@@ -487,7 +502,19 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
       return;
     }
     if (_isUserControlledScroll(position)) {
-      _cancelTimelineIntentForUserScroll();
+      if (!_didCancelForCurrentUserScroll) {
+        _didCancelForCurrentUserScroll = true;
+        _cancelTimelineIntentForUserScroll();
+      }
+      _userScrollCancellationResetTimer?.cancel();
+      _userScrollCancellationResetTimer = Timer(_galleryScrollSettleDelay, () {
+        _userScrollCancellationResetTimer = null;
+        _didCancelForCurrentUserScroll = false;
+      });
+    } else {
+      _userScrollCancellationResetTimer?.cancel();
+      _userScrollCancellationResetTimer = null;
+      _didCancelForCurrentUserScroll = false;
     }
     if (projection == null || metrics == null) {
       return;
@@ -542,6 +569,7 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
   }
 
   void _cancelTimelineIntentForUserScroll() {
+    widget.onCancelSeek?.call();
     if (!_isSeeking &&
         _pendingSeekValue == null &&
         _seekTimer == null &&
@@ -654,6 +682,7 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
     if (!widget.scrollController.hasClients || metrics.photoRowHeight <= 0) {
       return;
     }
+    _didCancelForCurrentUserScroll = true;
     _cancelTimelineIntentForUserScroll();
     final position = widget.scrollController.position;
     if (!position.hasContentDimensions) {

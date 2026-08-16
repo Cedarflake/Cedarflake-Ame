@@ -20,6 +20,7 @@ import "package:cedarflake_ame/features/library/presentation/library_strings.dar
 import "package:cedarflake_ame/features/library/presentation/widgets/library_exact_extent_sliver.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_header.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_layout.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_layout_snapshot.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_main_surface.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_navigation_resize_handle.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
@@ -98,7 +99,7 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
       final assets = [
-        for (var index = 0; index < 8; index++)
+        for (var index = 0; index < 80; index++)
           LibraryAsset(
             assetId: "asset-$index",
             locationId: "location-$index",
@@ -125,7 +126,7 @@ void main() {
             displayPath: "C:\\Pictures",
             activeScanId: "scan-1",
             createdUnixMs: 1,
-            assetCount: 8,
+            assetCount: 80,
             issueCount: 0,
           ),
         ],
@@ -162,36 +163,250 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(previewer.requests, containsAll(["location-0", "location-1"]));
-      final firstTile = find.byKey(const ValueKey("location-0"));
-      final secondTile = find.byKey(const ValueKey("location-1"));
+      final galleryWall = find.byKey(const Key("library-photo-wall"));
+      final scrollPosition = _galleryScrollPosition(tester);
+      final initialLayoutSnapshot = LibraryGalleryLayoutSnapshot.build(
+        manifest: manifest,
+        availableWidth: tester.getSize(galleryWall).width - 40,
+        thumbnailSize: GalleryThumbnailSize.medium,
+        sortKey: LibraryGallerySortKey.captureTime,
+      );
+      final initialVisibleEnd = initialLayoutSnapshot.metrics
+          .rowEndGlobalItemIndexExclusive(
+            initialLayoutSnapshot.metrics.itemIndexForScrollOffset(
+              scrollPosition.pixels + scrollPosition.viewportDimension,
+            ),
+          )!;
+      expect(previewer.requests, hasLength(2));
+      final firstLocation = previewer.requests[0];
+      final secondLocation = previewer.requests[1];
+      final firstTile = find.byKey(ValueKey(firstLocation));
+      final secondTile = find.byKey(ValueKey(secondLocation));
       expect(firstTile, findsOneWidget);
       expect(secondTile, findsOneWidget);
       final firstWidthBefore = tester.getSize(firstTile).width;
       final secondWidthBefore = tester.getSize(secondTile).width;
 
-      previewer.succeed("location-0", width: 800, height: 400);
-      previewer.succeed("location-1", width: 200, height: 400);
+      previewer.succeed(firstLocation, width: 800, height: 400);
+      previewer.succeed(secondLocation, width: 200, height: 400);
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(milliseconds: 159));
       expect(tester.getSize(firstTile).width, firstWidthBefore);
       expect(tester.getSize(secondTile).width, secondWidthBefore);
 
-      expect(previewer.requests, containsAll(["location-2", "location-3"]));
-      previewer.succeed("location-2", width: 800, height: 400);
-      previewer.succeed("location-3", width: 200, height: 400);
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 319));
-      expect(tester.getSize(firstTile).width, firstWidthBefore);
-      expect(tester.getSize(secondTile).width, secondWidthBefore);
-
-      await tester.pump(const Duration(milliseconds: 2));
+      expect(previewer.requests, hasLength(4));
+      await tester.pump(const Duration(milliseconds: 1));
       await tester.pump();
       await tester.pump();
       await tester.pump();
-
       expect(tester.getSize(firstTile).width, greaterThan(firstWidthBefore));
       expect(tester.getSize(secondTile).width, lessThan(secondWidthBefore));
+
+      final gesture = await tester.startGesture(tester.getCenter(galleryWall));
+      await gesture.moveBy(const Offset(0, -24));
+      await tester.pump();
+      final thirdLocation = previewer.requests[2];
+      final fourthLocation = previewer.requests[3];
+      final thirdTile = find.byKey(ValueKey(thirdLocation));
+      final fourthTile = find.byKey(ValueKey(fourthLocation));
+      final thirdWidthBefore = tester.getSize(thirdTile).width;
+      final fourthWidthBefore = tester.getSize(fourthTile).width;
+      previewer.succeed(thirdLocation, width: 800, height: 400);
+      previewer.succeed(fourthLocation, width: 200, height: 400);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 1700));
+      expect(tester.getSize(thirdTile).width, thirdWidthBefore);
+      expect(tester.getSize(fourthTile).width, fourthWidthBefore);
+
+      await gesture.up();
+      await tester.pump();
+      expect(tester.getSize(thirdTile).width, thirdWidthBefore);
+      expect(tester.getSize(fourthTile).width, fourthWidthBefore);
+      for (
+        var attempt = 0;
+        attempt < 20 && scrollPosition.isScrollingNotifier.value;
+        attempt += 1
+      ) {
+        await tester.pump(const Duration(milliseconds: 50));
+        expect(tester.getSize(thirdTile).width, thirdWidthBefore);
+        expect(tester.getSize(fourthTile).width, fourthWidthBefore);
+      }
+      expect(scrollPosition.isScrollingNotifier.value, isFalse);
+      await tester.pump(const Duration(milliseconds: 159));
+      expect(tester.getSize(thirdTile).width, thirdWidthBefore);
+      expect(tester.getSize(fourthTile).width, fourthWidthBefore);
+
+      await tester.pump(const Duration(milliseconds: 1));
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+
+      expect(tester.getSize(thirdTile).width, greaterThan(thirdWidthBefore));
+      expect(tester.getSize(fourthTile).width, lessThan(fourthWidthBefore));
+
+      final extentAfterVisibleRecovery = scrollPosition.maxScrollExtent;
+      final completedLocations = {
+        firstLocation,
+        secondLocation,
+        thirdLocation,
+        fourthLocation,
+      };
+      String? deferredLocation;
+      var requestCursor = 4;
+      for (
+        var attempt = 0;
+        attempt < 80 && deferredLocation == null;
+        attempt++
+      ) {
+        while (requestCursor < previewer.requests.length &&
+            deferredLocation == null) {
+          final locationId = previewer.requests[requestCursor];
+          requestCursor += 1;
+          if (!completedLocations.add(locationId)) {
+            continue;
+          }
+          final itemIndex = int.parse(locationId.substring("location-".length));
+          if (itemIndex < initialVisibleEnd) {
+            previewer.succeed(locationId, width: 1000, height: 1000);
+          } else {
+            deferredLocation = locationId;
+            previewer.succeed(locationId, width: 5000, height: 1000);
+          }
+        }
+        await tester.pump();
+        await tester.pump();
+      }
+      expect(deferredLocation, isNotNull);
+
+      await tester.pump(const Duration(milliseconds: 1700));
+      await tester.pump();
+      await tester.pump();
+      expect(
+        scrollPosition.maxScrollExtent,
+        closeTo(extentAfterVisibleRecovery, 0.01),
+        reason:
+            "reflow-exposed rows must remain outside the frozen recovery epoch",
+      );
+    },
+  );
+
+  testWidgets(
+    "publishes recovered dimensions after a timeline jump without scrolling",
+    (tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final assets = [
+        for (var index = 0; index < 80; index++)
+          LibraryAsset(
+            assetId: "asset-$index",
+            locationId: "location-$index",
+            rootId: "root-1",
+            sourcePath: "C:\\Pictures\\$index.jpg",
+            displayPath: "C:\\Pictures\\$index.jpg",
+            relativePath: "$index.jpg",
+            previewPath: "",
+            fileSize: BigInt.one,
+            modifiedUnixMs: 1,
+            width: 0,
+            height: 0,
+            previewStatus: LibraryPreviewStatus.pending,
+          ),
+      ];
+      final snapshot = LibrarySnapshot(
+        catalogPath: "C:\\AmeData\\ame.sqlite3",
+        revision: BigInt.one,
+        queryId: "query-1",
+        roots: const [
+          LibraryRoot(
+            id: "root-1",
+            path: "C:\\Pictures",
+            displayPath: "C:\\Pictures",
+            activeScanId: "scan-1",
+            createdUnixMs: 1,
+            assetCount: 80,
+            issueCount: 0,
+          ),
+        ],
+        assets: assets,
+      );
+      final initialState = LibraryState.fromSnapshot(snapshot).copyWith(
+        timeline: LibraryTimeline(
+          revision: BigInt.one,
+          queryId: "query-1",
+          totalItems: assets.length,
+          buckets: [
+            LibraryTimeBucket(
+              itemCount: assets.length,
+              aspectRatioSum: assets.length.toDouble(),
+            ),
+          ],
+        ),
+      );
+      final previewer = _ControlledLibraryPreviewer(assets);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            initialLibraryStateProvider.overrideWithValue(initialState),
+            libraryPreviewerProvider.overrideWithValue(previewer),
+            libraryGalleryLayoutManifestLoaderProvider.overrideWithValue(
+              _FixedLayoutManifestLoader(_unknownDimensionManifest(assets)),
+            ),
+          ],
+          child: const AmeApp(),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+      expect(previewer.requests, hasLength(2));
+      final scrollPosition = _galleryScrollPosition(tester);
+      final initialPixels = scrollPosition.pixels;
+
+      final slider = tester.widget<Slider>(
+        find.byKey(const Key("timeline-slider")),
+      );
+      slider.onChangeStart?.call(0.8);
+      slider.onChanged?.call(0.8);
+      slider.onChangeEnd?.call(0.8);
+      for (var attempt = 0; attempt < 12; attempt += 1) {
+        await tester.pump(const Duration(milliseconds: 16));
+        if (scrollPosition.pixels > initialPixels + 100 &&
+            previewer.requests.length > 2) {
+          break;
+        }
+      }
+
+      expect(scrollPosition.pixels, greaterThan(initialPixels + 100));
+      expect(
+        previewer.requests.length,
+        greaterThan(2),
+        reason: "a timeline jump must replace the visible preview demand",
+      );
+
+      final targetLocation = previewer.requests.firstWhere(
+        (locationId) =>
+            int.parse(locationId.substring("location-".length)) >= 20,
+        orElse: () => throw StateError(
+          "Timeline jump did not request a deep preview: "
+          "${previewer.requests.join(', ')}",
+        ),
+      );
+      final targetTile = find.byKey(ValueKey(targetLocation));
+      expect(targetTile, findsOneWidget);
+      final widthBefore = tester.getSize(targetTile).width;
+
+      previewer.succeed(targetLocation, width: 800, height: 400);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 159));
+      expect(tester.getSize(targetTile).width, widthBefore);
+
+      await tester.pump(const Duration(milliseconds: 1));
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+      expect(tester.getSize(targetTile).width, greaterThan(widthBefore));
     },
   );
 
@@ -998,7 +1213,7 @@ void main() {
         squareRect.top,
         closeTo(
           squareAnchor.viewportCenterY -
-              squareRect.height * squareAnchor.rowFraction,
+              squareRect.height * squareAnchor.itemFraction,
           2,
         ),
       );
@@ -1028,7 +1243,7 @@ void main() {
         largeRect.top,
         closeTo(
           largeAnchor.viewportCenterY -
-              largeRect.height * largeAnchor.rowFraction,
+              largeRect.height * largeAnchor.itemFraction,
           2,
         ),
       );
@@ -2170,7 +2385,7 @@ Future<Finder> _openLayoutMenu(WidgetTester tester, String expectedItem) async {
   return _activeMenuItem(tester, expectedItem);
 }
 
-({String locationId, double rowFraction, double viewportCenterY})
+({String locationId, double itemFraction, double viewportCenterY})
 _viewportCenterRowAnchor(WidgetTester tester, List<LibraryAsset> assets) {
   final scrollable = find.descendant(
     of: find.byKey(const Key("library-photo-wall")),
@@ -2193,15 +2408,20 @@ _viewportCenterRowAnchor(WidgetTester tester, List<LibraryAsset> assets) {
   final rowTop = candidates
       .map((candidate) => candidate.rect.top)
       .reduce((first, second) => first > second ? first : second);
+  final viewportCenterX = viewportRect.left + viewportRect.width * 0.5;
   final row =
       candidates
           .where((candidate) => (candidate.rect.top - rowTop).abs() < 0.01)
           .toList(growable: false)
-        ..sort((first, second) => first.rect.left.compareTo(second.rect.left));
+        ..sort(
+          (first, second) => (first.rect.center.dx - viewportCenterX)
+              .abs()
+              .compareTo((second.rect.center.dx - viewportCenterX).abs()),
+        );
   final anchor = row.first;
   return (
     locationId: anchor.locationId,
-    rowFraction: ((viewportCenterY - anchor.rect.top) / anchor.rect.height)
+    itemFraction: ((viewportCenterY - anchor.rect.top) / anchor.rect.height)
         .clamp(0.0, 1.0)
         .toDouble(),
     viewportCenterY: viewportCenterY,

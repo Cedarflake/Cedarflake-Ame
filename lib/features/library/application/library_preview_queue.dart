@@ -34,6 +34,7 @@ class LibraryPreviewQueue {
   final Map<String, _PreviewRequest> _active = {};
   final Map<String, int> _latestGeneration = {};
   Map<String, LibraryPreviewPriority> _demandPriorities = const {};
+  Map<String, int> _demandRanks = const {};
   int _nextSequence = 0;
   int _contextGeneration = 0;
   bool _isDisposed = false;
@@ -167,6 +168,7 @@ class LibraryPreviewQueue {
   void invalidateAll() {
     _contextGeneration++;
     _demandPriorities = const {};
+    _demandRanks = const {};
     clearPending();
   }
 
@@ -203,6 +205,10 @@ class LibraryPreviewQueue {
 
   void _replacePendingDemand(Map<String, LibraryPreviewPriority> priorities) {
     _demandPriorities = Map.unmodifiable(priorities);
+    var rank = 0;
+    _demandRanks = Map.unmodifiable({
+      for (final locationId in priorities.keys) locationId: rank++,
+    });
     final removedIds = <String>[];
     _pending.removeWhere((locationId, request) {
       final shouldRemove = !priorities.containsKey(locationId);
@@ -223,6 +229,7 @@ class LibraryPreviewQueue {
     _isDisposed = true;
     _contextGeneration++;
     _demandPriorities = const {};
+    _demandRanks = const {};
     clearPending();
     _latestGeneration.clear();
   }
@@ -272,9 +279,17 @@ class LibraryPreviewQueue {
         continue;
       }
       final current = best;
+      final requestRank = _demandRanks[request.asset.locationId];
+      final currentRank = current == null
+          ? null
+          : _demandRanks[current.asset.locationId];
       if (current == null ||
           request.priority.index > current.priority.index ||
           (request.priority == current.priority &&
+              requestRank != null &&
+              (currentRank == null || requestRank < currentRank)) ||
+          (request.priority == current.priority &&
+              requestRank == currentRank &&
               request.sequence < current.sequence)) {
         best = request;
       }
