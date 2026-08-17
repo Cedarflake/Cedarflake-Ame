@@ -1271,6 +1271,11 @@ R2c-C - durable queue and coalescing:
 R2c-C is complete only when an application terminated after enqueue resumes the same work and a
 burst of repeated notifications produces the minimum necessary reconciliation.
 
+Status: **complete and audit-hardened on 2026-08-17**. ADR 0018 owns the schema v17 leased SQLite
+queue and `docs/acceptance/r2c-c-durable-change-queue.md` records migration, restart, coalescing,
+stale-lease, retry, metrics, bounded-retention, Clippy, and Daily evidence. No real-library root was
+accessed.
+
 R2c-D - incremental delta publication:
 
 - connect the existing file-identity and media-safety rules;
@@ -1690,8 +1695,8 @@ may serve as benchmarks or fallbacks but are not automatically preferred over ma
 
 Active stage: **R2c - continuous directory synchronization and incremental indexing**
 
-Active slice: **R2c-C - durable queue and coalescing**. R2c-A contracts and R2c-B live Windows
-observation were completed and verified on 2026-08-13.
+Active slice: **R2c-D - incremental delta publication**. R2c-A contracts, R2c-B live Windows
+observation, and R2c-C durable queue and coalescing are complete.
 
 Planned next stage: **R3 - exact duplicate evidence**, still blocked behind R2c catalog-freshness
 acceptance.
@@ -1734,17 +1739,18 @@ or later analysis workflows.
 
 ### 10.1 Verified implementation snapshot
 
-This snapshot was synchronized on 2026-08-13 against the live working tree and fresh local gates.
+This snapshot was synchronized on 2026-08-17 against the live working tree and fresh local gates.
 The live working tree, current schema, accepted ADRs, and fresh verification remain authoritative;
 this roadmap does not preserve drifting commit hashes or duplicate complete test transcripts.
 
 - R0 and R1 are accepted. The Rust-owned SQLite catalog, Flutter/Rust bridge, external preview
   storage, resumable multi-root scanning, atomic publication, per-file issue isolation, file
   identity, and revision-safe bounded queries are connected end to end.
-- The catalog schema is v16 and the storage-settings schema is v2. They add a transactional preview
-  artifact index, reconcile v15 ownership against ready previews in current active scans, and keep
-  explicit pending or retired preview-root ownership without losing earlier root, scan, asset,
-  location, frontier, capture-evidence, identity, or query evidence.
+- The catalog schema is v17 and the storage-settings schema is v2. Schema v17 adds the durable
+  normalized change queue, root-generation tombstones, lease/retry state, catalog-revision
+  evidence, bounded terminal-row retention, and permanent highest-generation authority without
+  losing the v16 preview ownership reconciliation or earlier root, scan, asset, location, frontier,
+  capture-evidence, identity, and query evidence.
 - The authorized read-only target-library acceptance published 30,629 locations for
   `local-primary` and 48,384 for `cloud-primary`, for 79,013 active locations in one retained
   catalog. Sampled source bytes and source entries remained unchanged, and cloud-only placeholders
@@ -1835,9 +1841,24 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   a real library. The 2026-08-14 Daily gate passed all 207 Rust tests with 202 passing and five
   intentional ignores, all Flutter tests, Windows scan and accessibility integrations, bridge
   compatibility, and whitespace; the Windows Release gate built the packaged application and passed
-  both bridge smoke tests. There
-  is still no durable change queue, atomic delta publisher, production Flutter synchronization UI,
-  catch-up adapter, or real-library event acceptance; those remain later R2c slices.
+  both bridge smoke tests.
+- R2c-C is complete and audit-hardened. The application persists R2c-B plans through an Ame-owned
+  queue port into schema v17. Stable change IDs, 500 ms configurable stabilization,
+  path/subtree/root supersession, paired rename paths, root generations, monotonic lease
+  generations, crash recovery, bounded retry and retention, enqueue/success revisions, optional
+  catch-up fields, structured health, and oldest-ready delay are durable. Source-local observation
+  sequence, origin, or future-skewed timestamp cannot outrank later durable ingress, and compact
+  highest-generation root tombstones survive terminal cleanup. Root registration seeds or advances
+  that authority before queue ingress, including lifecycles with no queued work. A prerelease v17
+  catalog without the complete-authority marker fails closed rather than guessing generation 1.
+  Thirty-six focused tests prove process and watcher restart recovery, including equal-time and
+  backward-clock source resets, minimum burst work, full old/new path and directory-subtree rename
+  overlap, normalized capacity after a policy decrease, removed-root rejection across cleanup and re-registration,
+  policy-adjusted retry exhaustion/reopening, migration, metrics, and cleanup. The 2026-08-17 Daily
+  passed 239 Rust tests with five existing intentional ignores, all Flutter tests,
+  both Windows integrations, bridge compatibility, formatting, and whitespace. There is still no
+  atomic delta publisher, production Flutter synchronization UI, catch-up adapter, or real-library
+  event acceptance; those remain later R2c slices.
 - The current R2b closeout working tree passed the complete local Daily gate and Windows Release
   gate on 2026-08-12, including packaged Rust-library loading and the release bridge smoke test.
   This is current-stage evidence, not a release candidate or completion of R10.

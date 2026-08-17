@@ -9,6 +9,11 @@ use crate::domain::{
     PreviewMaterialization, PreviewReclamationCandidate, RecoverableScan, ScanCheckpoint,
     ScanError, ScanIssue, ScanRequest, StorageConfiguration,
 };
+use crate::domain::{
+    LeasedLibraryChange, LibraryChangeEnqueueReport, LibraryChangeFailure, LibraryChangeId,
+    LibraryChangeIntent, LibraryChangeLeaseUpdateOutcome, LibraryChangeQueueMetrics,
+    LibraryChangeQueuePolicy,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LibraryChangeSourceRequest {
@@ -34,6 +39,47 @@ pub trait LibraryChangeSourceFactory: Clone + Send + 'static {
         &self,
         request: &LibraryChangeSourceRequest,
     ) -> Result<Self::Source, LibraryChangeSourceError>;
+}
+
+pub trait LibraryChangeQueue {
+    fn enqueue_library_change_intents(
+        &mut self,
+        intents: &[LibraryChangeIntent],
+        enqueued_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<LibraryChangeEnqueueReport, ScanError>;
+    fn lease_library_changes(
+        &mut self,
+        root_id: &str,
+        root_generation: LibraryRootGeneration,
+        now_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<Vec<LeasedLibraryChange>, ScanError>;
+    fn complete_library_change(
+        &mut self,
+        change_id: LibraryChangeId,
+        lease_generation: u64,
+        catalog_revision_at_success: u64,
+        completed_unix_ms: i64,
+    ) -> Result<LibraryChangeLeaseUpdateOutcome, ScanError>;
+    fn retry_library_change(
+        &mut self,
+        change_id: LibraryChangeId,
+        lease_generation: u64,
+        failure: &LibraryChangeFailure,
+        failed_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<LibraryChangeLeaseUpdateOutcome, ScanError>;
+    fn load_library_change_queue_metrics(
+        &self,
+        now_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<LibraryChangeQueueMetrics, ScanError>;
+    fn cleanup_terminal_library_changes(
+        &mut self,
+        terminal_before_unix_ms: i64,
+        limit: u32,
+    ) -> Result<u32, ScanError>;
 }
 
 pub trait CatalogRepository {

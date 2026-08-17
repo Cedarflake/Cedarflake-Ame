@@ -22,6 +22,7 @@ mod folders;
 mod gallery;
 mod migrations;
 
+use change_queue::{activate_root_change_queue, retire_root_change_queue};
 use gallery::{
     build_gallery_asset_query, build_gallery_count_query, build_gallery_layout_manifest_query,
     build_gallery_timeline_query, gallery_cursor_for_asset, resolve_gallery_anchor_cursor,
@@ -29,7 +30,8 @@ use gallery::{
 };
 use migrations::migrate_schema;
 
-const SCHEMA_VERSION: i64 = 16;
+mod change_queue;
+const SCHEMA_VERSION: i64 = 17;
 const LOCATION_STAGE_BATCH: usize = 128;
 const MAX_LAYOUT_MANIFEST_CHUNK_ITEMS: u32 = 4_096;
 const MAX_CATALOG_PAGE_ITEMS: u32 = 4_096;
@@ -130,6 +132,7 @@ impl CatalogRepository for SqliteCatalog {
                 params![root_id, root_path, now],
             )
             .map_err(database_error)?;
+        activate_root_change_queue(&transaction, root_id, now)?;
         let existing = transaction
             .query_row(
                 "SELECT root_id, status, max_items, max_entries, preview_edge,
@@ -1824,6 +1827,7 @@ impl CatalogRepository for SqliteCatalog {
             transaction.commit().map_err(database_error)?;
             return Ok(false);
         }
+        retire_root_change_queue(&transaction, root_id, unix_time_ms())?;
         for table in [
             "scan_directory_frontier",
             "scan_directory_entries",
