@@ -18,7 +18,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
 
     if !has_schema_info {
         let transaction = connection.transaction().map_err(database_error)?;
-        create_schema_v16(&transaction)?;
+        create_schema_v17(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -45,6 +45,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             13 => migrate_v13_to_v14(connection)?,
             14 => migrate_v14_to_v15(connection)?,
             15 => migrate_v15_to_v16(connection)?,
+            16 => migrate_v16_to_v17(connection)?,
             _ => {
                 return Err(ScanError::new(
                     "catalog_schema_unsupported",
@@ -55,13 +56,13 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
     }
 }
 
-fn create_schema_v16(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+fn create_schema_v17(transaction: &Transaction<'_>) -> Result<(), ScanError> {
     transaction
         .execute_batch(
             "CREATE TABLE schema_info (
                version INTEGER NOT NULL
              );
-             INSERT INTO schema_info(version) VALUES (16);
+             INSERT INTO schema_info(version) VALUES (17);
              CREATE TABLE catalog_state (
                revision INTEGER NOT NULL CHECK(revision >= 0)
              );
@@ -237,6 +238,92 @@ fn create_schema_v16(transaction: &Transaction<'_>) -> Result<(), ScanError> {
                  source_file_size, source_modified_unix_ms,
                  algorithm_id, algorithm_version, orientation_contract, size_bucket
              );",
+        )
+        .map_err(database_error)?;
+    create_library_change_queue_schema(transaction)
+}
+
+fn create_library_change_queue_schema(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+    transaction
+        .execute_batch(
+            "CREATE TABLE library_change_root_state (
+               root_id TEXT PRIMARY KEY,
+               generation INTEGER NOT NULL CHECK(generation > 0),
+               is_active INTEGER NOT NULL CHECK(is_active IN (0, 1)),
+               updated_unix_ms INTEGER NOT NULL
+             );
+             CREATE INDEX library_change_root_state_cleanup
+               ON library_change_root_state(is_active, updated_unix_ms, root_id);
+             CREATE TABLE library_change_queue (
+               id INTEGER PRIMARY KEY AUTOINCREMENT,
+               root_id TEXT NOT NULL,
+               root_generation INTEGER NOT NULL CHECK(root_generation > 0),
+               intent_kind TEXT NOT NULL CHECK(intent_kind IN (
+                 'reconcile', 'rename_candidate', 'freshness_unknown'
+               )),
+               scope TEXT NOT NULL CHECK(scope IN ('path', 'subtree', 'root')),
+               relative_path TEXT NOT NULL,
+               previous_relative_path TEXT,
+               origin TEXT NOT NULL CHECK(origin IN (
+                 'live_notification', 'startup_catch_up', 'user_refresh', 'consistency_audit'
+               )),
+               first_observed_unix_ms INTEGER NOT NULL,
+               most_recent_observed_unix_ms INTEGER NOT NULL,
+               first_sequence TEXT NOT NULL CHECK(length(first_sequence) > 0),
+               most_recent_sequence TEXT NOT NULL CHECK(length(most_recent_sequence) > 0),
+               coalesced_observation_count INTEGER NOT NULL
+                 CHECK(coalesced_observation_count > 0),
+               status TEXT NOT NULL CHECK(status IN (
+                 'pending', 'leased', 'retry_wait', 'completed', 'superseded'
+               )),
+               ready_unix_ms INTEGER NOT NULL,
+               attempt_count INTEGER NOT NULL DEFAULT 0 CHECK(attempt_count >= 0),
+               next_retry_unix_ms INTEGER,
+               lease_generation INTEGER NOT NULL DEFAULT 0 CHECK(lease_generation >= 0),
+               lease_expires_unix_ms INTEGER,
+               last_failure_code TEXT,
+               last_failure_message TEXT,
+               catalog_revision_at_enqueue INTEGER NOT NULL
+                 CHECK(catalog_revision_at_enqueue >= 0),
+               catalog_revision_at_success INTEGER
+                 CHECK(catalog_revision_at_success IS NULL OR catalog_revision_at_success >= 0),
+               catch_up_source TEXT,
+               catch_up_watermark TEXT,
+               superseded_by_change_id INTEGER,
+               created_unix_ms INTEGER NOT NULL,
+               updated_unix_ms INTEGER NOT NULL,
+               CHECK(first_observed_unix_ms <= most_recent_observed_unix_ms),
+               CHECK(
+                 (last_failure_code IS NULL AND last_failure_message IS NULL)
+                 OR
+                 (last_failure_code IS NOT NULL AND last_failure_message IS NOT NULL)
+               ),
+               CHECK(
+                 (status = 'leased' AND lease_expires_unix_ms IS NOT NULL)
+                 OR
+                 (status <> 'leased' AND lease_expires_unix_ms IS NULL)
+               ),
+               CHECK(status = 'retry_wait' OR next_retry_unix_ms IS NULL),
+               CHECK(
+                 (status = 'completed' AND catalog_revision_at_success IS NOT NULL)
+                 OR
+                 (status <> 'completed' AND catalog_revision_at_success IS NULL)
+               ),
+               FOREIGN KEY(superseded_by_change_id) REFERENCES library_change_queue(id)
+                 ON DELETE SET NULL
+             );
+             CREATE INDEX library_change_queue_eligible
+               ON library_change_queue(
+                 root_id, root_generation, status, ready_unix_ms, next_retry_unix_ms, id
+               );
+             CREATE INDEX library_change_queue_lease_expiry
+               ON library_change_queue(status, lease_expires_unix_ms, id);
+             CREATE INDEX library_change_queue_active_path
+               ON library_change_queue(
+                 root_id, root_generation, status, relative_path, scope, id
+               );
+             CREATE INDEX library_change_queue_cleanup
+               ON library_change_queue(status, updated_unix_ms, id);",
         )
         .map_err(database_error)
 }
@@ -751,6 +838,15 @@ fn migrate_v15_to_v16(connection: &mut Connection) -> Result<(), ScanError> {
                );
              UPDATE schema_info SET version = 16;",
         )
+        .map_err(database_error)?;
+    transaction.commit().map_err(database_error)
+}
+
+fn migrate_v16_to_v17(connection: &mut Connection) -> Result<(), ScanError> {
+    let transaction = connection.transaction().map_err(database_error)?;
+    create_library_change_queue_schema(&transaction)?;
+    transaction
+        .execute("UPDATE schema_info SET version = 17", [])
         .map_err(database_error)?;
     transaction.commit().map_err(database_error)
 }

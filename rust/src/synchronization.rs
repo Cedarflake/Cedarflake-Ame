@@ -10,7 +10,9 @@ use crate::application::LibraryChangeObserver;
 #[cfg(windows)]
 use crate::ports::LibraryChangeSourceRequest;
 
-pub use crate::application::{plan_library_changes, reconcile_path_evidence};
+pub use crate::application::{
+    enqueue_library_change_plan, plan_library_changes, reconcile_path_evidence,
+};
 pub use crate::domain::{
     CatalogFreshnessCause, CatalogFreshnessState, DerivedEvidenceDisposition, FileIdentityEvidence,
     IncrementalReconciliationDecision, IncrementalReconciliationOutcome, LibraryChangeIntent,
@@ -21,9 +23,13 @@ pub use crate::domain::{
     ReconciliationFileEvidence, ReconciliationObservedState,
 };
 pub use crate::domain::{
-    LibraryChangeObserverPoll, LibraryChangeRestartPolicy, LibraryChangeSourceError,
-    LibraryChangeSourceStopReport,
+    DurableLibraryChange, LeasedLibraryChange, LibraryChangeEnqueueReport, LibraryChangeFailure,
+    LibraryChangeId, LibraryChangeLeaseUpdateOutcome, LibraryChangeObserverPoll,
+    LibraryChangeQueueHealth, LibraryChangeQueueMetrics, LibraryChangeQueuePolicy,
+    LibraryChangeQueueStatus, LibraryChangeRestartPolicy, LibraryChangeSourceError,
+    LibraryChangeSourceStopReport, ScanError,
 };
+pub use crate::ports::LibraryChangeQueue;
 
 #[cfg(windows)]
 pub struct WindowsLibraryChangeObserver {

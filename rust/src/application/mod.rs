@@ -1,5 +1,6 @@
 mod directory_synchronization;
 mod library_change_observer;
+mod library_change_queue;
 mod load_catalog;
 mod preview;
 mod preview_cleanup;
@@ -12,6 +13,7 @@ mod storage;
 
 pub use directory_synchronization::{plan_library_changes, reconcile_path_evidence};
 pub(crate) use library_change_observer::LibraryChangeObserver;
+pub use library_change_queue::enqueue_library_change_plan;
 pub use load_catalog::{
     load_catalog, load_catalog_around_location, load_catalog_at_time,
     load_gallery_layout_manifest_chunk, load_gallery_timeline, load_library_folders,

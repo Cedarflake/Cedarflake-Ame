@@ -1,6 +1,7 @@
 use std::fmt::{Display, Formatter};
 
 mod library_change;
+mod library_change_queue;
 
 pub use library_change::{
     CatalogFreshnessCause, CatalogFreshnessState, DerivedEvidenceDisposition,
@@ -12,6 +13,11 @@ pub use library_change::{
     LibraryChangeSourceBatch, LibraryChangeSourceError, LibraryChangeSourceHealth,
     LibraryChangeSourceStopReport, LibraryRootGeneration, ReconciliationFileEvidence,
     ReconciliationObservedState,
+};
+pub use library_change_queue::{
+    DurableLibraryChange, LeasedLibraryChange, LibraryChangeEnqueueReport, LibraryChangeFailure,
+    LibraryChangeId, LibraryChangeLeaseUpdateOutcome, LibraryChangeQueueHealth,
+    LibraryChangeQueueMetrics, LibraryChangeQueuePolicy, LibraryChangeQueueStatus,
 };
 
 #[derive(Clone, Debug)]
