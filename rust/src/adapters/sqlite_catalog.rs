@@ -22,7 +22,7 @@ mod folders;
 mod gallery;
 mod migrations;
 
-use change_queue::retire_root_change_queue;
+use change_queue::{activate_root_change_queue, retire_root_change_queue};
 use gallery::{
     build_gallery_asset_query, build_gallery_count_query, build_gallery_layout_manifest_query,
     build_gallery_timeline_query, gallery_cursor_for_asset, resolve_gallery_anchor_cursor,
@@ -132,6 +132,7 @@ impl CatalogRepository for SqliteCatalog {
                 params![root_id, root_path, now],
             )
             .map_err(database_error)?;
+        activate_root_change_queue(&transaction, root_id, now)?;
         let existing = transaction
             .query_row(
                 "SELECT root_id, status, max_items, max_entries, preview_edge,

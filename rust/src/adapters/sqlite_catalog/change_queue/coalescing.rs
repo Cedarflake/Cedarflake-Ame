@@ -2,8 +2,7 @@ use rusqlite::Transaction;
 
 use crate::domain::{
     LibraryChangeEnqueueReport, LibraryChangeFailure, LibraryChangeIntent, LibraryChangeIntentKind,
-    LibraryChangeOrigin, LibraryChangeQueuePolicy, LibraryChangeQueueStatus, LibraryChangeScope,
-    ScanError,
+    LibraryChangeQueuePolicy, LibraryChangeQueueStatus, LibraryChangeScope, ScanError,
 };
 
 use super::persistence::{
@@ -37,20 +36,6 @@ pub(super) fn enqueue_one(
         incoming.root_generation,
         policy.max_unresolved_changes,
     )?;
-    if active.len() > usize::try_from(policy.max_unresolved_changes).unwrap_or(usize::MAX) {
-        return degrade_to_root(
-            transaction,
-            active,
-            incoming,
-            report,
-            DegradationContext {
-                enqueued_unix_ms,
-                catalog_revision,
-                policy,
-                capacity_degraded: true,
-            },
-        );
-    }
     if has_conflicting_rename(&active, incoming) {
         return degrade_to_root(
             transaction,
@@ -83,8 +68,8 @@ pub(super) fn enqueue_one(
         .iter()
         .position(|change| is_unleased(change.status) && intent_covers(&change.intent, incoming));
     if let Some(target_index) = covering {
-        let target = &active[target_index];
-        let mut merged = target.intent.clone();
+        let target_id = active[target_index].id;
+        let mut merged = active[target_index].intent.clone();
         merge_newer_evidence(&mut merged, incoming);
         if incoming.kind == LibraryChangeIntentKind::FreshnessUnknown {
             merged.kind = LibraryChangeIntentKind::FreshnessUnknown;
@@ -103,11 +88,27 @@ pub(super) fn enqueue_one(
         for change in &absorbed {
             merge_older_evidence(&mut merged, &change.intent);
         }
-        update_change(transaction, target.id, &merged, enqueued_unix_ms, policy)?;
+        let retained = active.len().saturating_sub(absorbed.len());
+        if retained > usize::try_from(policy.max_unresolved_changes).unwrap_or(usize::MAX) {
+            drop(absorbed);
+            return degrade_to_root(
+                transaction,
+                active,
+                incoming,
+                report,
+                DegradationContext {
+                    enqueued_unix_ms,
+                    catalog_revision,
+                    policy,
+                    capacity_degraded: true,
+                },
+            );
+        }
+        update_change(transaction, target_id, &merged, enqueued_unix_ms, policy)?;
         let superseded = mark_superseded(
             transaction,
             absorbed.iter().map(|change| change.id),
-            Some(target.id),
+            Some(target_id),
             enqueued_unix_ms,
         )?;
         report.coalesced_count = report.coalesced_count.saturating_add(1);
@@ -362,8 +363,10 @@ fn intent_covers(covering: &LibraryChangeIntent, candidate: &LibraryChangeIntent
         return true;
     }
     if covering.scope == LibraryChangeScope::Subtree {
-        return affected_paths(candidate)
-            .all(|path| is_within_subtree(path, &covering.relative_path));
+        return affected_paths(candidate).all(|candidate_path| {
+            affected_paths(covering)
+                .any(|subtree_path| is_within_subtree(candidate_path, subtree_path))
+        });
     }
     same_work_key(covering, candidate)
         || covering.kind == LibraryChangeIntentKind::RenameCandidate
@@ -421,9 +424,9 @@ fn affected_paths_overlap(left: &LibraryChangeIntent, right: &LibraryChangeInten
         affected_paths(right).any(|right_path| {
             left_path == right_path
                 || left.scope == LibraryChangeScope::Subtree
-                    && is_within_subtree(right_path, &left.relative_path)
+                    && is_within_subtree(right_path, left_path)
                 || right.scope == LibraryChangeScope::Subtree
-                    && is_within_subtree(left_path, &right.relative_path)
+                    && is_within_subtree(left_path, right_path)
         })
     })
 }
@@ -439,44 +442,22 @@ fn intent_strength(intent: &LibraryChangeIntent) -> u8 {
 }
 
 fn merge_newer_evidence(target: &mut LibraryChangeIntent, evidence: &LibraryChangeIntent) {
-    merge_evidence(target, evidence, true);
+    merge_evidence_range(target, evidence);
+    target.most_recent_observed_unix_ms = evidence.most_recent_observed_unix_ms;
+    target.most_recent_sequence = evidence.most_recent_sequence;
+    target.origin = evidence.origin;
 }
 
 fn merge_older_evidence(target: &mut LibraryChangeIntent, evidence: &LibraryChangeIntent) {
-    merge_evidence(target, evidence, false);
+    merge_evidence_range(target, evidence);
 }
 
-fn merge_evidence(
-    target: &mut LibraryChangeIntent,
-    evidence: &LibraryChangeIntent,
-    evidence_wins_exact_tie: bool,
-) {
-    let should_replace_latest = evidence.most_recent_observed_unix_ms
-        > target.most_recent_observed_unix_ms
-        || evidence.most_recent_observed_unix_ms == target.most_recent_observed_unix_ms
-            && (origin_rank(evidence.origin) > origin_rank(target.origin)
-                || evidence.origin == target.origin && evidence_wins_exact_tie);
+fn merge_evidence_range(target: &mut LibraryChangeIntent, evidence: &LibraryChangeIntent) {
     target.first_observed_unix_ms = target
         .first_observed_unix_ms
         .min(evidence.first_observed_unix_ms);
-    target.most_recent_observed_unix_ms = target
-        .most_recent_observed_unix_ms
-        .max(evidence.most_recent_observed_unix_ms);
     target.first_sequence = target.first_sequence.min(evidence.first_sequence);
-    if should_replace_latest {
-        target.most_recent_sequence = evidence.most_recent_sequence;
-        target.origin = evidence.origin;
-    }
     target.coalesced_observation_count = target
         .coalesced_observation_count
         .saturating_add(evidence.coalesced_observation_count);
-}
-
-fn origin_rank(origin: LibraryChangeOrigin) -> u8 {
-    match origin {
-        LibraryChangeOrigin::LiveNotification => 0,
-        LibraryChangeOrigin::StartupCatchUp => 1,
-        LibraryChangeOrigin::UserRefresh => 2,
-        LibraryChangeOrigin::ConsistencyAudit => 3,
-    }
 }

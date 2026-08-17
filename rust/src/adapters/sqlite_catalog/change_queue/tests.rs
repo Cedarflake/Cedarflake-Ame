@@ -8,7 +8,7 @@ use crate::domain::{
     LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeObservation,
     LibraryChangeObservationKind, LibraryChangeOrigin, LibraryChangePlanningContext,
     LibraryChangePlanningLimits, LibraryChangeQueueHealth, LibraryChangeScope,
-    LibraryChangeSourceHealth, LibraryRootAvailability,
+    LibraryChangeSourceHealth, LibraryRootAvailability, ScanRequest,
 };
 use crate::ports::CatalogRepository;
 
@@ -25,6 +25,14 @@ fn migrates_v16_without_losing_existing_catalog_rows() {
              INSERT INTO schema_info(version) VALUES (16);
              CREATE TABLE catalog_state(revision INTEGER NOT NULL);
              INSERT INTO catalog_state(revision) VALUES (7);
+             CREATE TABLE library_roots (
+               id TEXT PRIMARY KEY,
+               path TEXT NOT NULL UNIQUE,
+               active_scan_id TEXT,
+               created_unix_ms INTEGER NOT NULL
+             );
+             INSERT INTO library_roots(id, path, created_unix_ms)
+             VALUES ('root-a', 'C:\\Source', 123);
              CREATE TABLE preserved_fixture(value TEXT NOT NULL);
              INSERT INTO preserved_fixture(value) VALUES ('kept');",
         )
@@ -32,7 +40,14 @@ fn migrates_v16_without_losing_existing_catalog_rows() {
     drop(connection);
 
     let catalog = SqliteCatalog::open(path).expect("migrated catalog");
-    let (version, revision, preserved, queue_exists): (i64, i64, String, bool) = catalog
+    let (version, revision, preserved, queue_exists, generation, is_active): (
+        i64,
+        i64,
+        String,
+        bool,
+        i64,
+        bool,
+    ) = catalog
         .connection
         .query_row(
             "SELECT
@@ -40,9 +55,20 @@ fn migrates_v16_without_losing_existing_catalog_rows() {
                (SELECT revision FROM catalog_state),
                (SELECT value FROM preserved_fixture),
                EXISTS(SELECT 1 FROM sqlite_master
-                 WHERE type = 'table' AND name = 'library_change_queue')",
+                 WHERE type = 'table' AND name = 'library_change_queue'),
+               (SELECT generation FROM library_change_root_state WHERE root_id = 'root-a'),
+               (SELECT is_active FROM library_change_root_state WHERE root_id = 'root-a')",
             [],
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                    row.get(5)?,
+                ))
+            },
         )
         .expect("migrated evidence");
 
@@ -50,6 +76,8 @@ fn migrates_v16_without_losing_existing_catalog_rows() {
     assert_eq!(revision, 7);
     assert_eq!(preserved, "kept");
     assert!(queue_exists);
+    assert_eq!(generation, 1);
+    assert!(is_active);
 }
 
 #[test]
@@ -180,6 +208,149 @@ fn equal_timestamp_sequence_reset_prefers_later_durable_ingress() {
         leased.change.intent.origin,
         LibraryChangeOrigin::LiveNotification,
     );
+}
+
+#[test]
+fn wall_clock_rollback_cannot_preserve_an_older_source_tuple_or_deadline() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let generation = LibraryRootGeneration::initial();
+    let policy = immediate_policy();
+    let mut catalog = queue_catalog(path);
+    catalog
+        .enqueue_library_change_intents(
+            &[path_intent("root-a", generation, 800, 2_000, "photo.jpg")],
+            2_000,
+            policy,
+        )
+        .expect("enqueue evidence before clock rollback");
+    let mut restarted = path_intent("root-a", generation, 1, 1_000, "photo.jpg");
+    restarted.origin = LibraryChangeOrigin::UserRefresh;
+    catalog
+        .enqueue_library_change_intents(&[restarted], 1_000, policy)
+        .expect("enqueue later ingress after clock rollback");
+
+    let leased = catalog
+        .lease_library_changes("root-a", generation, 1_000, policy)
+        .expect("lease without the obsolete future deadline")
+        .pop()
+        .expect("coalesced work");
+
+    assert_eq!(leased.change.intent.first_observed_unix_ms, 1_000);
+    assert_eq!(leased.change.intent.most_recent_observed_unix_ms, 1_000);
+    assert_eq!(leased.change.intent.most_recent_sequence, 1);
+    assert_eq!(
+        leased.change.intent.origin,
+        LibraryChangeOrigin::UserRefresh
+    );
+}
+
+#[test]
+fn equal_timestamp_origin_change_uses_later_durable_ingress() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let generation = LibraryRootGeneration::initial();
+    let policy = immediate_policy();
+    let mut catalog = queue_catalog(path);
+    let mut older = path_intent("root-a", generation, 800, 1_000, "photo.jpg");
+    older.origin = LibraryChangeOrigin::ConsistencyAudit;
+    catalog
+        .enqueue_library_change_intents(&[older], 1_000, policy)
+        .expect("enqueue older origin");
+    catalog
+        .enqueue_library_change_intents(
+            &[path_intent("root-a", generation, 1, 1_000, "photo.jpg")],
+            1_001,
+            policy,
+        )
+        .expect("enqueue later live ingress");
+
+    let leased = catalog
+        .lease_library_changes("root-a", generation, 1_001, policy)
+        .expect("lease coalesced work")
+        .pop()
+        .expect("coalesced work");
+
+    assert_eq!(leased.change.intent.most_recent_sequence, 1);
+    assert_eq!(
+        leased.change.intent.origin,
+        LibraryChangeOrigin::LiveNotification,
+    );
+}
+
+#[test]
+fn absorption_and_degradation_keep_the_later_ingress_tuple() {
+    let directory = tempdir().expect("temporary directory");
+    let generation = LibraryRootGeneration::initial();
+    let mut absorbing_catalog = queue_catalog(directory.path().join("absorbing.sqlite3"));
+    absorbing_catalog
+        .enqueue_library_change_intents(
+            &[path_intent(
+                "root-a",
+                generation,
+                800,
+                2_000,
+                "album/photo.jpg",
+            )],
+            2_000,
+            immediate_policy(),
+        )
+        .expect("enqueue older child work");
+    absorbing_catalog
+        .enqueue_library_change_intents(
+            &[intent(
+                "root-a",
+                generation,
+                1,
+                1_000,
+                LibraryChangeIntentKind::Reconcile,
+                LibraryChangeScope::Subtree,
+                "album",
+            )],
+            1_000,
+            immediate_policy(),
+        )
+        .expect("absorb child after clock rollback");
+    let absorbed = absorbing_catalog
+        .lease_library_changes("root-a", generation, 1_000, immediate_policy())
+        .expect("lease absorbed work")
+        .pop()
+        .expect("absorbed work");
+
+    let capacity_policy = LibraryChangeQueuePolicy {
+        max_unresolved_changes: 1,
+        max_lease_batch: 1,
+        ..immediate_policy()
+    };
+    let mut degrading_catalog = queue_catalog(directory.path().join("degrading.sqlite3"));
+    degrading_catalog
+        .enqueue_library_change_intents(
+            &[path_intent("root-a", generation, 800, 2_000, "a.jpg")],
+            2_000,
+            capacity_policy,
+        )
+        .expect("enqueue older bounded work");
+    degrading_catalog
+        .enqueue_library_change_intents(
+            &[path_intent("root-a", generation, 1, 1_000, "b.jpg")],
+            1_000,
+            capacity_policy,
+        )
+        .expect("degrade after clock rollback");
+    let degraded = degrading_catalog
+        .lease_library_changes("root-a", generation, 1_000, capacity_policy)
+        .expect("lease degraded work")
+        .pop()
+        .expect("degraded work");
+
+    for change in [absorbed, degraded] {
+        assert_eq!(change.change.intent.most_recent_observed_unix_ms, 1_000);
+        assert_eq!(change.change.intent.most_recent_sequence, 1);
+        assert_eq!(
+            change.change.intent.origin,
+            LibraryChangeOrigin::LiveNotification,
+        );
+    }
 }
 
 #[test]
@@ -436,6 +607,102 @@ fn partial_subtree_overlap_invalidates_a_cross_subtree_rename_lease() {
 }
 
 #[test]
+fn old_subtree_descendant_invalidates_a_leased_directory_rename() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let generation = LibraryRootGeneration::initial();
+    let policy = immediate_policy();
+    let mut rename = rename_intent("root-a", generation, 1, 1_000, "old/album", "new/album");
+    rename.scope = LibraryChangeScope::Subtree;
+    let mut catalog = queue_catalog(path);
+    catalog
+        .enqueue_library_change_intents(&[rename], 1_000, policy)
+        .expect("enqueue directory rename");
+    let rename_lease = catalog
+        .lease_library_changes("root-a", generation, 1_000, policy)
+        .expect("lease directory rename")
+        .pop()
+        .expect("leased directory rename");
+
+    catalog
+        .enqueue_library_change_intents(
+            &[path_intent(
+                "root-a",
+                generation,
+                2,
+                1_001,
+                "old/album/new.jpg",
+            )],
+            1_001,
+            policy,
+        )
+        .expect("enqueue old subtree descendant");
+    let stale_outcome = catalog
+        .complete_library_change(
+            rename_lease.change.id,
+            rename_lease.lease_generation,
+            0,
+            1_002,
+        )
+        .expect("reject stale directory rename completion");
+    let replacement = catalog
+        .lease_library_changes("root-a", generation, 1_001, policy)
+        .expect("lease descendant reconciliation")
+        .pop()
+        .expect("descendant reconciliation");
+
+    assert_eq!(stale_outcome, LibraryChangeLeaseUpdateOutcome::Superseded);
+    assert_eq!(
+        replacement.change.intent.kind,
+        LibraryChangeIntentKind::RenameCandidate,
+    );
+    assert_eq!(replacement.change.intent.scope, LibraryChangeScope::Subtree);
+    assert_eq!(replacement.change.intent.relative_path, "new/album");
+    assert_eq!(
+        replacement.change.intent.previous_relative_path.as_deref(),
+        Some("old/album"),
+    );
+}
+
+#[test]
+fn divergent_nested_directory_renames_degrade_to_a_root_gap() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let generation = LibraryRootGeneration::initial();
+    let policy = immediate_policy();
+    let mut first = rename_intent("root-a", generation, 1, 1_000, "old/album", "new/album");
+    first.scope = LibraryChangeScope::Subtree;
+    let mut second = rename_intent(
+        "root-a",
+        generation,
+        2,
+        1_001,
+        "old/album/nested",
+        "elsewhere/nested",
+    );
+    second.scope = LibraryChangeScope::Subtree;
+    let mut catalog = queue_catalog(path);
+    catalog
+        .enqueue_library_change_intents(&[first], 1_000, policy)
+        .expect("enqueue first directory rename");
+    let report = catalog
+        .enqueue_library_change_intents(&[second], 1_001, policy)
+        .expect("degrade conflicting nested rename");
+    let root = catalog
+        .lease_library_changes("root-a", generation, 1_001, policy)
+        .expect("lease root gap")
+        .pop()
+        .expect("root gap");
+
+    assert!(report.freshness_unknown_enqueued);
+    assert_eq!(root.change.intent.scope, LibraryChangeScope::Root);
+    assert_eq!(
+        root.change.intent.kind,
+        LibraryChangeIntentKind::FreshnessUnknown,
+    );
+}
+
+#[test]
 fn parent_subtree_supersedes_unleased_child_work() {
     let directory = tempdir().expect("temporary directory");
     let path = directory.path().join("catalog.sqlite3");
@@ -647,7 +914,7 @@ fn unregistering_a_root_retires_its_generation_and_unresolved_work() {
 }
 
 #[test]
-fn removed_root_without_queue_state_rejects_a_later_generation() {
+fn registered_root_without_queue_work_rejects_events_after_retirement() {
     let directory = tempdir().expect("temporary directory");
     let path = directory.path().join("catalog.sqlite3");
     let mut catalog = queue_catalog(path);
@@ -664,6 +931,129 @@ fn removed_root_without_queue_state_rejects_a_later_generation() {
 
     assert_eq!(report.stale_generation_count, 1);
     assert_eq!(report.inserted_count, 0);
+}
+
+#[test]
+fn missing_generation_authority_fails_closed_instead_of_trusting_an_event() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let generation = LibraryRootGeneration::new(7).expect("event generation");
+    let mut catalog = queue_catalog(path);
+    catalog
+        .connection
+        .execute(
+            "DELETE FROM library_change_root_state WHERE root_id = 'root-a'",
+            [],
+        )
+        .expect("remove authority fixture");
+
+    let error = catalog
+        .enqueue_library_change_intents(
+            &[path_intent("root-a", generation, 1, 1_000, "late.jpg")],
+            1_000,
+            immediate_policy(),
+        )
+        .expect_err("missing authority must fail closed");
+
+    assert_eq!(error.code, "change_queue_generation_missing");
+}
+
+#[test]
+fn repeated_zero_work_reregistration_advances_before_accepting_events() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let mut catalog = queue_catalog(path);
+    let mut generation = LibraryRootGeneration::initial();
+    for cycle in 2_i64..=7 {
+        assert!(catalog.unregister_root("root-a").expect("unregister root"));
+        generation = register_root(&mut catalog, cycle);
+        assert_eq!(generation.value(), u64::try_from(cycle).expect("cycle"));
+    }
+    assert_eq!(generation.value(), 7);
+    assert!(
+        catalog
+            .unregister_root("root-a")
+            .expect("retire generation 7")
+    );
+    let current_generation = register_root(&mut catalog, 8);
+
+    let stale = catalog
+        .enqueue_library_change_intents(
+            &[path_intent("root-a", generation, 1, 1_000, "stale.jpg")],
+            1_000,
+            immediate_policy(),
+        )
+        .expect("reject retired generation");
+    let current = catalog
+        .enqueue_library_change_intents(
+            &[path_intent(
+                "root-a",
+                current_generation,
+                2,
+                1_001,
+                "current.jpg",
+            )],
+            1_001,
+            immediate_policy(),
+        )
+        .expect("accept lifecycle generation");
+
+    assert_eq!(current_generation.value(), 8);
+    assert_eq!(stale.stale_generation_count, 1);
+    assert_eq!(stale.inserted_count, 0);
+    assert_eq!(current.inserted_count, 1);
+}
+
+#[test]
+fn scan_registration_advances_a_retired_root_before_queue_ingress() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let mut catalog = SqliteCatalog::open(path).expect("catalog");
+    let first_request = scan_request("scan-1");
+    catalog
+        .begin_scan(&first_request, "root-a", &first_request.root_path)
+        .expect("register first root lifecycle");
+    assert!(
+        catalog
+            .unregister_root("root-a")
+            .expect("retire first root")
+    );
+    let second_request = scan_request("scan-2");
+    catalog
+        .begin_scan(&second_request, "root-a", &second_request.root_path)
+        .expect("re-register root lifecycle");
+
+    let first_generation = LibraryRootGeneration::initial();
+    let second_generation = first_generation.next().expect("second generation");
+    let stale = catalog
+        .enqueue_library_change_intents(
+            &[path_intent(
+                "root-a",
+                first_generation,
+                1,
+                1_000,
+                "stale.jpg",
+            )],
+            1_000,
+            immediate_policy(),
+        )
+        .expect("reject retired generation");
+    let current = catalog
+        .enqueue_library_change_intents(
+            &[path_intent(
+                "root-a",
+                second_generation,
+                2,
+                1_001,
+                "current.jpg",
+            )],
+            1_001,
+            immediate_policy(),
+        )
+        .expect("accept registered generation");
+
+    assert_eq!(stale.stale_generation_count, 1);
+    assert_eq!(current.inserted_count, 1);
 }
 
 #[test]
@@ -687,14 +1077,7 @@ fn retention_cleanup_cannot_reactivate_a_removed_root() {
             .expect("clean terminal row"),
         1,
     );
-    catalog
-        .connection
-        .execute(
-            "INSERT INTO library_roots(id, path, created_unix_ms)
-             VALUES ('root-a', 'C:\\Source', 2)",
-            [],
-        )
-        .expect("re-register root fixture");
+    let reactivated_generation = register_root(&mut catalog, 2);
 
     let stale = catalog
         .enqueue_library_change_intents(
@@ -730,6 +1113,7 @@ fn retention_cleanup_cannot_reactivate_a_removed_root() {
     assert_eq!(stale.stale_generation_count, 1);
     assert_eq!(stale.inserted_count, 0);
     assert_eq!(current.inserted_count, 1);
+    assert_eq!(reactivated_generation, next_generation);
     assert_eq!(stored_generation, 8);
     assert!(is_active);
 }
@@ -988,6 +1372,115 @@ fn normalized_capacity_overflow_degrades_to_one_root_gap() {
 }
 
 #[test]
+fn lowered_capacity_accepts_a_parent_subtree_that_absorbs_existing_work() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let generation = LibraryRootGeneration::initial();
+    let initial_policy = LibraryChangeQueuePolicy {
+        max_unresolved_changes: 2,
+        max_lease_batch: 2,
+        ..immediate_policy()
+    };
+    let lowered_policy = LibraryChangeQueuePolicy {
+        max_unresolved_changes: 1,
+        max_lease_batch: 1,
+        ..immediate_policy()
+    };
+    let mut catalog = queue_catalog(path);
+    catalog
+        .enqueue_library_change_intents(
+            &[
+                path_intent("root-a", generation, 1, 1_000, "album/a.jpg"),
+                path_intent("root-a", generation, 2, 1_000, "album/b.jpg"),
+            ],
+            1_000,
+            initial_policy,
+        )
+        .expect("enqueue two child paths");
+    let report = catalog
+        .enqueue_library_change_intents(
+            &[intent(
+                "root-a",
+                generation,
+                3,
+                1_001,
+                LibraryChangeIntentKind::Reconcile,
+                LibraryChangeScope::Subtree,
+                "album",
+            )],
+            1_001,
+            lowered_policy,
+        )
+        .expect("normalize under lowered capacity");
+    let retained = catalog
+        .lease_library_changes("root-a", generation, 1_001, lowered_policy)
+        .expect("lease retained subtree");
+
+    assert!(!report.capacity_degraded);
+    assert!(!report.freshness_unknown_enqueued);
+    assert_eq!(report.superseded_count, 2);
+    assert_eq!(retained.len(), 1);
+    assert_eq!(retained[0].change.intent.scope, LibraryChangeScope::Subtree);
+    assert_eq!(retained[0].change.intent.relative_path, "album");
+}
+
+#[test]
+fn lowered_capacity_accepts_root_reconciliation_that_absorbs_existing_work() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let generation = LibraryRootGeneration::initial();
+    let initial_policy = LibraryChangeQueuePolicy {
+        max_unresolved_changes: 2,
+        max_lease_batch: 2,
+        ..immediate_policy()
+    };
+    let lowered_policy = LibraryChangeQueuePolicy {
+        max_unresolved_changes: 1,
+        max_lease_batch: 1,
+        ..immediate_policy()
+    };
+    let mut catalog = queue_catalog(path);
+    catalog
+        .enqueue_library_change_intents(
+            &[
+                path_intent("root-a", generation, 1, 1_000, "a.jpg"),
+                path_intent("root-a", generation, 2, 1_000, "b.jpg"),
+            ],
+            1_000,
+            initial_policy,
+        )
+        .expect("enqueue two paths");
+    let report = catalog
+        .enqueue_library_change_intents(
+            &[intent(
+                "root-a",
+                generation,
+                3,
+                1_001,
+                LibraryChangeIntentKind::Reconcile,
+                LibraryChangeScope::Root,
+                "",
+            )],
+            1_001,
+            lowered_policy,
+        )
+        .expect("normalize root work under lowered capacity");
+    let retained = catalog
+        .lease_library_changes("root-a", generation, 1_001, lowered_policy)
+        .expect("lease retained root work");
+
+    assert!(!report.capacity_degraded);
+    assert!(!report.freshness_unknown_enqueued);
+    assert_eq!(report.superseded_count, 2);
+    assert_eq!(retained.len(), 1);
+    assert_eq!(retained[0].change.intent.scope, LibraryChangeScope::Root);
+    assert_eq!(
+        retained[0].change.intent.kind,
+        LibraryChangeIntentKind::Reconcile,
+    );
+}
+
+#[test]
 fn metrics_and_cleanup_are_structured_and_bounded() {
     let directory = tempdir().expect("temporary directory");
     let path = directory.path().join("catalog.sqlite3");
@@ -1100,16 +1593,25 @@ fn queue_metrics_report_ready_delay_without_mutating_work() {
 }
 
 fn queue_catalog(path: PathBuf) -> SqliteCatalog {
-    let catalog = SqliteCatalog::open(path).expect("catalog");
+    let mut catalog = SqliteCatalog::open(path).expect("catalog");
+    let generation = register_root(&mut catalog, 1);
+    assert_eq!(generation, LibraryRootGeneration::initial());
     catalog
-        .connection
+}
+
+fn register_root(catalog: &mut SqliteCatalog, now_unix_ms: i64) -> LibraryRootGeneration {
+    let transaction = catalog.connection.transaction().expect("root transaction");
+    transaction
         .execute(
             "INSERT INTO library_roots(id, path, created_unix_ms)
              VALUES (?1, ?2, 1)",
             ["root-a", "C:\\Source"],
         )
         .expect("registered root fixture");
-    catalog
+    let generation = activate_root_change_queue(&transaction, "root-a", now_unix_ms)
+        .expect("root generation authority");
+    transaction.commit().expect("registered root transaction");
+    generation
 }
 
 fn planning_context(
@@ -1121,6 +1623,16 @@ fn planning_context(
         root_generation: generation,
         availability: LibraryRootAvailability::Available,
         source_health: LibraryChangeSourceHealth::Healthy,
+    }
+}
+
+fn scan_request(scan_id: &str) -> ScanRequest {
+    ScanRequest {
+        scan_id: scan_id.to_owned(),
+        root_path: "C:\\Source".to_owned(),
+        max_items: None,
+        max_entries: None,
+        preview_edge: 256,
     }
 }
 

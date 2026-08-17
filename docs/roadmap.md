@@ -1847,12 +1847,14 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   path/subtree/root supersession, paired rename paths, root generations, monotonic lease
   generations, crash recovery, bounded retry and retention, enqueue/success revisions, optional
   catch-up fields, structured health, and oldest-ready delay are durable. Source-local observation
-  sequence cannot outrank a later cross-restart timestamp, and compact highest-generation root
-  tombstones survive terminal cleanup. Twenty-five focused tests prove process and watcher restart
-  recovery, including equal-time source sequence resets, minimum burst work, full old/new rename
-  overlap, removed-root rejection across cleanup and re-registration,
+  sequence, origin, or future-skewed timestamp cannot outrank later durable ingress, and compact
+  highest-generation root tombstones survive terminal cleanup. Root registration seeds or advances
+  that authority before queue ingress, including lifecycles with no queued work. Thirty-five focused
+  tests prove process and watcher restart recovery, including equal-time and backward-clock source
+  resets, minimum burst work, full old/new path and directory-subtree rename overlap, normalized
+  capacity after a policy decrease, removed-root rejection across cleanup and re-registration,
   policy-adjusted retry exhaustion/reopening, migration, metrics, and cleanup. The 2026-08-17 Daily
-  passed 228 Rust tests with five existing intentional ignores, all Flutter tests,
+  passed 238 Rust tests with five existing intentional ignores, all Flutter tests,
   both Windows integrations, bridge compatibility, formatting, and whitespace. There is still no
   atomic delta publisher, production Flutter synchronization UI, catch-up adapter, or real-library
   event acceptance; those remain later R2c slices.

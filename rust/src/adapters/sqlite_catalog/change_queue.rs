@@ -15,12 +15,12 @@ mod persistence;
 use coalescing::{
     enqueue_one, validate_failure, validate_intent_batch, validate_policy, validate_root_id,
 };
-pub(super) use persistence::retire_root_change_queue;
 use persistence::{
     GenerationDisposition, classify_lease_update, cleanup_terminal_records,
     enforce_retry_attempt_limit, establish_root_generation, load_change, load_metrics,
     next_retry_deadline, recover_expired_leases, root_generation_is_current,
 };
+pub(super) use persistence::{activate_root_change_queue, retire_root_change_queue};
 
 impl LibraryChangeQueue for SqliteCatalog {
     fn enqueue_library_change_intents(

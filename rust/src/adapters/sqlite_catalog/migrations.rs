@@ -323,7 +323,29 @@ fn create_library_change_queue_schema(transaction: &Transaction<'_>) -> Result<(
              CREATE INDEX library_change_queue_cleanup
                ON library_change_queue(status, updated_unix_ms, id);",
         )
-        .map_err(database_error)
+        .map_err(database_error)?;
+    let has_library_roots = transaction
+        .query_row(
+            "SELECT EXISTS(
+               SELECT 1 FROM sqlite_master
+               WHERE type = 'table' AND name = 'library_roots'
+             )",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    if has_library_roots {
+        transaction
+            .execute(
+                "INSERT INTO library_change_root_state(
+                   root_id, generation, is_active, updated_unix_ms
+                 )
+                 SELECT id, 1, 1, 0 FROM library_roots",
+                [],
+            )
+            .map_err(database_error)?;
+    }
+    Ok(())
 }
 
 fn migrate_v1_to_v2(connection: &mut Connection) -> Result<(), ScanError> {

@@ -22,6 +22,70 @@ pub(super) enum GenerationDisposition {
     Current { superseded_count: u32 },
     Stale,
 }
+
+pub(in crate::adapters::sqlite_catalog) fn activate_root_change_queue(
+    transaction: &Transaction<'_>,
+    root_id: &str,
+    now_unix_ms: i64,
+) -> Result<LibraryRootGeneration, ScanError> {
+    let stored = transaction
+        .query_row(
+            "SELECT generation, is_active
+             FROM library_change_root_state WHERE root_id = ?1",
+            [root_id],
+            |row| Ok((row.get::<_, i64>(0)?, row.get::<_, bool>(1)?)),
+        )
+        .optional()
+        .map_err(database_error)?;
+    let Some((stored_generation, is_active)) = stored else {
+        let generation = LibraryRootGeneration::initial();
+        transaction
+            .execute(
+                "INSERT INTO library_change_root_state(
+                   root_id, generation, is_active, updated_unix_ms
+                 ) VALUES (?1, ?2, 1, ?3)",
+                params![
+                    root_id,
+                    sqlite_integer(generation.value(), "root generation")?,
+                    now_unix_ms,
+                ],
+            )
+            .map_err(database_error)?;
+        return Ok(generation);
+    };
+    let generation =
+        LibraryRootGeneration::new(sqlite_unsigned(stored_generation, "root generation")?)
+            .ok_or_else(|| {
+                ScanError::new(
+                    "change_queue_generation_invalid",
+                    "The stored root generation must be nonzero",
+                )
+            })?;
+    if is_active {
+        return Ok(generation);
+    }
+    let next_generation = generation.next().ok_or_else(|| {
+        ScanError::new(
+            "change_queue_generation_overflow",
+            "The root generation cannot advance beyond its supported range",
+        )
+    })?;
+    transaction
+        .execute(
+            "UPDATE library_change_root_state
+             SET generation = ?1, is_active = 1, updated_unix_ms = ?2
+             WHERE root_id = ?3 AND generation = ?4 AND is_active = 0",
+            params![
+                sqlite_integer(next_generation.value(), "root generation")?,
+                now_unix_ms,
+                root_id,
+                stored_generation,
+            ],
+        )
+        .map_err(database_error)?;
+    Ok(next_generation)
+}
+
 pub(super) fn establish_root_generation(
     transaction: &Transaction<'_>,
     root_id: &str,
@@ -47,21 +111,14 @@ pub(super) fn establish_root_generation(
         )
         .optional()
         .map_err(database_error)?;
-    let generation_value = sqlite_integer(generation.value(), "root generation")?;
     let Some((stored_generation, is_active)) = stored else {
-        transaction
-            .execute(
-                "INSERT INTO library_change_root_state(
-                   root_id, generation, is_active, updated_unix_ms
-                 ) VALUES (?1, ?2, 1, ?3)",
-                params![root_id, generation_value, now_unix_ms],
-            )
-            .map_err(database_error)?;
-        return Ok(GenerationDisposition::Current {
-            superseded_count: 0,
-        });
+        return Err(ScanError::new(
+            "change_queue_generation_missing",
+            "The registered root has no durable generation authority",
+        ));
     };
-    if generation_value < stored_generation || generation_value == stored_generation && !is_active {
+    let generation_value = sqlite_integer(generation.value(), "root generation")?;
+    if !is_active || generation_value < stored_generation {
         return Ok(GenerationDisposition::Stale);
     }
     if generation_value == stored_generation {
@@ -858,14 +915,10 @@ pub(in crate::adapters::sqlite_catalog) fn retire_root_change_queue(
             ));
         }
     } else {
-        transaction
-            .execute(
-                "INSERT INTO library_change_root_state(
-                   root_id, generation, is_active, updated_unix_ms
-                 ) VALUES (?1, 1, 0, ?2)",
-                params![root_id, now_unix_ms],
-            )
-            .map_err(database_error)?;
+        return Err(ScanError::new(
+            "change_queue_generation_missing",
+            "The registered root has no durable generation authority to retire",
+        ));
     }
     transaction
         .execute(

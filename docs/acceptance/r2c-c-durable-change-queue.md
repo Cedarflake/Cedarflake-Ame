@@ -15,18 +15,18 @@ The controlled queue fixtures prove:
 
 | Boundary | Required result |
 | --- | --- |
-| v16 migration | Existing catalog revision and unrelated rows remain intact; queue tables are added |
+| v16 migration | Existing rows remain intact; queue tables and initial root-generation authority are added |
 | Historical migrations | Every committed schema fixture reaches schema v17 |
 | Repeated notification burst | Four observations across two plans become one path reconciliation |
 | Create then remove | One final-state reconciliation remains; the pair is not discarded |
 | Process exit after enqueue | Reopening the same catalog leases the same stable work after debounce |
-| Source restart | Later durable evidence keeps its reset sequence and origin, including equal timestamps |
+| Source restart | Later ingress keeps its tuple through sequence reset, equal timestamps, origin change, and clock rollback |
 | Paired rename | Old and new relative paths survive restart in one atomic intent |
-| Conflicting rename | Shared old/new paths and in-flight old-path evidence degrade to one root gap |
+| Conflicting rename | Shared old/new paths, directory descendants, and nested old subtrees invalidate or degrade safely |
 | Subtree supersession | One parent subtree replaces an unleased child path and retains both evidence counts |
-| Capacity overflow | Distinct excess work becomes one root `FreshnessUnknown` intent |
+| Capacity overflow | Distinct excess work degrades; an absorbing subtree/root fits a lowered normalized bound |
 | Later same-path evidence | The earlier lease is superseded and cannot acknowledge completion |
-| Root lifecycle | A permanent highest-generation tombstone rejects stale work after cleanup and re-registration |
+| Root lifecycle | Registration advances durable authority before ingress, including zero-work roots; missing authority fails closed |
 | Crash during lease | Expiry produces structured retry-wait state and bounded backoff after reopen |
 | Retry exhaustion | Work remains degraded under a lowered policy; new evidence reopens a bounded budget |
 | Metrics | State counts, freshness gaps, ready count, expiry/exhaustion, and oldest delay are non-mutating |
@@ -42,14 +42,14 @@ Focused queue tests:
 
 ```text
 cargo test --manifest-path rust/Cargo.toml change_queue
-25 passed; 0 failed
+35 passed; 0 failed
 ```
 
 Complete Rust suite after schema v17:
 
 ```text
 cargo test --manifest-path rust/Cargo.toml --all-features
-233 tests; 228 passed; 0 failed; 5 ignored
+243 tests; 238 passed; 0 failed; 5 ignored
 ```
 
 The five ignored tests remain the existing explicit real-library or manual-performance gates. No
@@ -66,7 +66,7 @@ Complete lock-aware repository Daily:
 
 ```text
 ./tool/quality_verify_daily.ps1
-Rust: 233 total; 228 passed; 0 failed; 5 existing explicit ignores
+Rust: 243 total; 238 passed; 0 failed; 5 existing explicit ignores
 Flutter: all test files passed
 Windows controlled scan integration: 2 passed
 Windows native accessibility integration: 2 passed
