@@ -1174,6 +1174,49 @@ void main() {
     expect(container.read(libraryControllerProvider).activeTimeAnchor, isNull);
   });
 
+  test("passive prefetch cannot replace an explicit time target", () async {
+    const bucket = LibraryTimeBucket(
+      monthKey: "2024-05",
+      itemCount: 100,
+      aspectRatioSum: 100,
+    );
+    final initialSnapshot = _snapshot(assets: [_asset(suffix: "initial")]);
+    final targetSnapshot = _snapshot(assets: [_asset(suffix: "target")]);
+    final passiveSnapshot = _snapshot(assets: [_asset(suffix: "passive")]);
+    final catalog = _FakeLibraryCatalog.sequence([
+      targetSnapshot,
+      passiveSnapshot,
+    ], initialRevision: initialSnapshot.revision);
+    final container = ProviderContainer(
+      overrides: [
+        initialLibraryStateProvider.overrideWithValue(
+          LibraryState.fromSnapshot(initialSnapshot).copyWith(
+            timeline: LibraryTimeline(
+              revision: initialSnapshot.revision,
+              queryId: initialSnapshot.queryId,
+              totalItems: 100,
+              buckets: const [bucket],
+            ),
+          ),
+        ),
+        libraryCatalogProvider.overrideWithValue(catalog),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final controller = container.read(libraryControllerProvider.notifier);
+    expect(await controller.jumpToTime(bucket, itemOffset: 80), isTrue);
+
+    final passiveResult = await controller.prefetchTime(bucket, itemOffset: 10);
+    final state = container.read(libraryControllerProvider);
+
+    expect(passiveResult, isFalse);
+    expect(catalog.anchors.map((anchor) => anchor.itemOffset), [80]);
+    expect(state.activeTimeAnchor?.itemOffset, 80);
+    expect(state.windowStartItemOffset, 80);
+    expect(state.assets.single.locationId, "location-target");
+  });
+
   test(
     "an in-flight visible range cannot replace an explicit time target",
     () async {
