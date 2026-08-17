@@ -1,4 +1,5 @@
 mod directory_synchronization;
+mod incremental_library_changes;
 mod library_change_observer;
 mod library_change_queue;
 mod load_catalog;
@@ -12,6 +13,7 @@ mod scan_library;
 mod storage;
 
 pub use directory_synchronization::{plan_library_changes, reconcile_path_evidence};
+pub use incremental_library_changes::process_ready_library_changes;
 pub(crate) use library_change_observer::LibraryChangeObserver;
 pub use library_change_queue::enqueue_library_change_plan;
 pub use load_catalog::{

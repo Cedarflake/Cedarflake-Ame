@@ -1,9 +1,10 @@
 use std::path::{Path, PathBuf};
 
 use crate::domain::{
-    AssetLocationView, CatalogCursor, CatalogSnapshot, DiscoveredFile, ExpectedFileState,
-    FileIdentityEvidence, GalleryLayoutManifestChunk, GalleryLayoutManifestCursor, GalleryQuery,
-    GalleryTimeAnchor, GalleryTimeline, LibraryChangeSourceBatch, LibraryChangeSourceError,
+    AssetLocationView, CatalogCursor, CatalogDeltaBatch, CatalogDeltaPublication, CatalogSnapshot,
+    DiscoveredFile, ExpectedFileState, FileIdentityEvidence, GalleryLayoutManifestChunk,
+    GalleryLayoutManifestCursor, GalleryQuery, GalleryTimeAnchor, GalleryTimeline,
+    IncrementalCatalogRoot, LibraryChangeSourceBatch, LibraryChangeSourceError,
     LibraryChangeSourceHealth, LibraryChangeSourceStopReport, LibraryFolderCursor,
     LibraryFolderPage, LibraryRootGeneration, MediaInspection, MetadataInspection, PreviewArtifact,
     PreviewMaterialization, PreviewReclamationCandidate, RecoverableScan, ScanCheckpoint,
@@ -80,6 +81,27 @@ pub trait LibraryChangeQueue {
         terminal_before_unix_ms: i64,
         limit: u32,
     ) -> Result<u32, ScanError>;
+}
+
+pub trait IncrementalCatalogRepository {
+    fn load_incremental_catalog_root(
+        &self,
+        root_id: &str,
+    ) -> Result<Option<IncrementalCatalogRoot>, ScanError>;
+    fn load_incremental_location_by_relative_path(
+        &self,
+        root_id: &str,
+        relative_path: &str,
+    ) -> Result<Option<AssetLocationView>, ScanError>;
+    fn load_incremental_location_by_file_identity(
+        &self,
+        identity: &FileIdentityEvidence,
+    ) -> Result<Option<AssetLocationView>, ScanError>;
+    fn publish_catalog_delta(
+        &mut self,
+        batch: &CatalogDeltaBatch,
+        completed_unix_ms: i64,
+    ) -> Result<CatalogDeltaPublication, ScanError>;
 }
 
 pub trait CatalogRepository {

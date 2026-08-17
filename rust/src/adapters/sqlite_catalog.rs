@@ -30,6 +30,7 @@ use gallery::{
 };
 use migrations::migrate_schema;
 
+mod catalog_delta;
 mod change_queue;
 const SCHEMA_VERSION: i64 = 17;
 const LOCATION_STAGE_BATCH: usize = 128;

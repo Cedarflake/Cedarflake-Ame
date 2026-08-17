@@ -171,11 +171,16 @@ impl FileDiscovery {
         let metadata = match path.symlink_metadata() {
             Ok(metadata) => metadata,
             Err(error) => {
+                let code = match error.kind() {
+                    std::io::ErrorKind::NotFound => "file_missing",
+                    std::io::ErrorKind::PermissionDenied => "file_inaccessible",
+                    _ => "file_metadata_unreadable",
+                };
                 return FileVisit {
                     relative_path,
                     outcome: FileVisitOutcome::Issue(ScanIssue {
                         path: Some(path_text(&path)),
-                        code: "file_metadata_unreadable".to_owned(),
+                        code: code.to_owned(),
                         message: error.to_string(),
                     }),
                 };
