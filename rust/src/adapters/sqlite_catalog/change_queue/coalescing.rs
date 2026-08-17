@@ -65,6 +65,20 @@ pub(super) fn enqueue_one(
             },
         );
     }
+    if has_ambiguous_leased_overlap(&active, incoming) {
+        return degrade_to_root(
+            transaction,
+            active,
+            incoming,
+            report,
+            DegradationContext {
+                enqueued_unix_ms,
+                catalog_revision,
+                policy,
+                capacity_degraded: false,
+            },
+        );
+    }
     let covering = active
         .iter()
         .position(|change| is_unleased(change.status) && intent_covers(&change.intent, incoming));
@@ -361,7 +375,7 @@ fn intent_covers(covering: &LibraryChangeIntent, candidate: &LibraryChangeIntent
 fn stale_overlap(leased: &LibraryChangeIntent, incoming: &LibraryChangeIntent) -> bool {
     intent_covers(leased, incoming)
         || intent_covers(incoming, leased)
-        || leased.relative_path == incoming.relative_path
+        || affected_paths_overlap(leased, incoming)
 }
 
 fn same_work_key(left: &LibraryChangeIntent, right: &LibraryChangeIntent) -> bool {
@@ -388,8 +402,29 @@ fn has_conflicting_rename(active: &[ActiveChange], incoming: &LibraryChangeInten
     }
     active.iter().any(|change| {
         change.intent.kind == LibraryChangeIntentKind::RenameCandidate
-            && change.intent.relative_path == incoming.relative_path
-            && change.intent.previous_relative_path != incoming.previous_relative_path
+            && !same_work_key(&change.intent, incoming)
+            && affected_paths_overlap(&change.intent, incoming)
+    })
+}
+
+fn has_ambiguous_leased_overlap(active: &[ActiveChange], incoming: &LibraryChangeIntent) -> bool {
+    active.iter().any(|change| {
+        change.status == LibraryChangeQueueStatus::Leased
+            && affected_paths_overlap(&change.intent, incoming)
+            && !intent_covers(&change.intent, incoming)
+            && !intent_covers(incoming, &change.intent)
+    })
+}
+
+fn affected_paths_overlap(left: &LibraryChangeIntent, right: &LibraryChangeIntent) -> bool {
+    affected_paths(left).any(|left_path| {
+        affected_paths(right).any(|right_path| {
+            left_path == right_path
+                || left.scope == LibraryChangeScope::Subtree
+                    && is_within_subtree(right_path, &left.relative_path)
+                || right.scope == LibraryChangeScope::Subtree
+                    && is_within_subtree(left_path, &right.relative_path)
+        })
     })
 }
 

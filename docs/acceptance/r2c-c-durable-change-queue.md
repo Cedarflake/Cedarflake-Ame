@@ -21,12 +21,13 @@ The controlled queue fixtures prove:
 | Create then remove | One final-state reconciliation remains; the pair is not discarded |
 | Process exit after enqueue | Reopening the same catalog leases the same stable work after debounce |
 | Paired rename | Old and new relative paths survive restart in one atomic intent |
+| Conflicting rename | Shared old/new paths and in-flight old-path evidence degrade to one root gap |
 | Subtree supersession | One parent subtree replaces an unleased child path and retains both evidence counts |
 | Capacity overflow | Distinct excess work becomes one root `FreshnessUnknown` intent |
 | Later same-path evidence | The earlier lease is superseded and cannot acknowledge completion |
-| Root lifecycle | A newer generation supersedes old work; unregister retires the current generation |
+| Root lifecycle | Removed roots reject every late generation before and after tombstone cleanup |
 | Crash during lease | Expiry produces structured retry-wait state and bounded backoff after reopen |
-| Retry exhaustion | Work remains durable and health becomes degraded; new evidence reopens a bounded budget |
+| Retry exhaustion | Work remains degraded under a lowered policy; new evidence reopens a bounded budget |
 | Metrics | State counts, freshness gaps, ready count, expiry/exhaustion, and oldest delay are non-mutating |
 | Retention | Non-empty enqueue performs one bounded aged-record pass; explicit cleanup honors its bound |
 
@@ -40,14 +41,14 @@ Focused queue tests:
 
 ```text
 cargo test --manifest-path rust/Cargo.toml change_queue
-17 passed; 0 failed
+23 passed; 0 failed
 ```
 
 Complete Rust suite after schema v17:
 
 ```text
 cargo test --manifest-path rust/Cargo.toml --all-features
-225 tests; 220 passed; 0 failed; 5 ignored
+231 tests; 226 passed; 0 failed; 5 ignored
 ```
 
 The five ignored tests remain the existing explicit real-library or manual-performance gates. No
@@ -64,7 +65,7 @@ Complete lock-aware repository Daily:
 
 ```text
 ./tool/quality_verify_daily.ps1
-Rust: 225 total; 220 passed; 0 failed; 5 existing explicit ignores
+Rust: 231 total; 226 passed; 0 failed; 5 existing explicit ignores
 Flutter: all test files passed
 Windows controlled scan integration: 2 passed
 Windows native accessibility integration: 2 passed

@@ -28,6 +28,16 @@ pub(super) fn establish_root_generation(
     generation: LibraryRootGeneration,
     now_unix_ms: i64,
 ) -> Result<GenerationDisposition, ScanError> {
+    let root_is_registered = transaction
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM library_roots WHERE id = ?1)",
+            [root_id],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    if !root_is_registered {
+        return Ok(GenerationDisposition::Stale);
+    }
     let stored = transaction
         .query_row(
             "SELECT generation, is_active
@@ -155,6 +165,31 @@ pub(super) fn recover_expired_leases(
             )
             .map_err(database_error)?;
     }
+    Ok(())
+}
+
+pub(super) fn enforce_retry_attempt_limit(
+    transaction: &Transaction<'_>,
+    root_id: &str,
+    root_generation: LibraryRootGeneration,
+    now_unix_ms: i64,
+    policy: LibraryChangeQueuePolicy,
+) -> Result<(), ScanError> {
+    transaction
+        .execute(
+            "UPDATE library_change_queue
+             SET next_retry_unix_ms = NULL, updated_unix_ms = ?1
+             WHERE root_id = ?2 AND root_generation = ?3
+               AND status = 'retry_wait' AND attempt_count >= ?4
+               AND next_retry_unix_ms IS NOT NULL",
+            params![
+                now_unix_ms,
+                root_id,
+                sqlite_integer(root_generation.value(), "root generation")?,
+                i64::from(policy.max_attempts),
+            ],
+        )
+        .map_err(database_error)?;
     Ok(())
 }
 
@@ -603,13 +638,15 @@ pub(super) fn load_metrics(
                  THEN 1 ELSE 0 END), 0),
                COALESCE(SUM(CASE WHEN status = 'leased' AND lease_expires_unix_ms <= ?1
                  THEN 1 ELSE 0 END), 0),
-               COALESCE(SUM(CASE WHEN status = 'retry_wait' AND next_retry_unix_ms IS NULL
-                 AND attempt_count >= ?2 THEN 1 ELSE 0 END), 0),
+               COALESCE(SUM(CASE WHEN status = 'retry_wait' AND attempt_count >= ?2
+                 THEN 1 ELSE 0 END), 0),
                COALESCE(SUM(CASE WHEN intent_kind = 'freshness_unknown'
                  AND status IN ('pending', 'leased', 'retry_wait') THEN 1 ELSE 0 END), 0),
                MIN(CASE
-                 WHEN status = 'pending' AND ready_unix_ms <= ?1 THEN ready_unix_ms
+                 WHEN status = 'pending' AND ready_unix_ms <= ?1 AND attempt_count < ?2
+                   THEN ready_unix_ms
                  WHEN status = 'retry_wait' AND next_retry_unix_ms <= ?1
+                   AND attempt_count < ?2
                    THEN next_retry_unix_ms
                  WHEN status = 'leased' AND lease_expires_unix_ms <= ?1
                    THEN lease_expires_unix_ms

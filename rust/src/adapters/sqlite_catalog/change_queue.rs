@@ -18,8 +18,8 @@ use coalescing::{
 pub(super) use persistence::retire_root_change_queue;
 use persistence::{
     GenerationDisposition, classify_lease_update, cleanup_terminal_records,
-    establish_root_generation, load_change, load_metrics, next_retry_deadline,
-    recover_expired_leases, root_generation_is_current,
+    enforce_retry_attempt_limit, establish_root_generation, load_change, load_metrics,
+    next_retry_deadline, recover_expired_leases, root_generation_is_current,
 };
 
 impl LibraryChangeQueue for SqliteCatalog {
@@ -87,6 +87,7 @@ impl LibraryChangeQueue for SqliteCatalog {
             return Ok(Vec::new());
         }
         recover_expired_leases(&transaction, root_id, root_generation, now_unix_ms, policy)?;
+        enforce_retry_attempt_limit(&transaction, root_id, root_generation, now_unix_ms, policy)?;
         let limit = i64::from(policy.max_lease_batch);
         let change_ids = {
             let mut statement = transaction

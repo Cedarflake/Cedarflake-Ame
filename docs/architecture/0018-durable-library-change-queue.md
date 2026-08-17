@@ -56,8 +56,10 @@ ordering assumptions.
 The root-state table records the highest accepted generation plus an active or retired tombstone.
 A newer generation atomically supersedes unresolved older work. An older generation, or the same
 generation after root unregister, cannot enqueue or lease work. Re-registering a root must advance
-the generation. Retired tombstones are eligible for bounded retention cleanup only after their
-queue rows are gone and the caller-provided retention cutoff has elapsed.
+the generation. Enqueue also requires the root to remain present in the authoritative
+`library_roots` table, so a higher late generation or retention cleanup cannot reactivate a removed
+root. Retired tombstones are eligible for bounded retention cleanup only after their queue rows are
+gone and the caller-provided retention cutoff has elapsed.
 
 Queue states are `pending`, `leased`, `retry_wait`, `completed`, and `superseded`. Leasing is
 transactional, increments both attempt count and `lease_generation`, and has an explicit expiry.
@@ -67,6 +69,9 @@ instead of acknowledging stale output. An expired lease becomes retry-wait with 
 evidence and bounded exponential backoff. The default policy allows eight attempts, begins at one
 second, and caps at five minutes; absolute policy bounds reject more than 32 attempts or a one-hour
 delay. New source evidence reopens an exhausted row with a fresh bounded attempt budget.
+If a valid runtime policy lowers the attempt limit, existing retry-wait work at the new limit is
+reported as exhausted immediately and its obsolete retry deadline is cleared on the next lease
+pass.
 
 The initial configurable stabilization default is 500 ms. Controlled fixtures place repeated
 create, modify, and remove evidence 50-100 ms apart and prove that it becomes one final-state
@@ -84,8 +89,10 @@ Coalescing applies before retained-work capacity:
 - a paired rename remains one row with both paths;
 - create followed by remove remains a reconciliation of final filesystem state rather than being
   discarded;
-- conflicting rename evidence and capacity overflow degrade to one root `FreshnessUnknown` row;
-- leased overlapping work is superseded when newer evidence could make its result stale.
+- conflicting rename evidence sharing either old or new paths and capacity overflow degrade to one
+  root `FreshnessUnknown` row;
+- leased overlapping work compares every affected old and new path, and ambiguous overlap degrades
+  to the same root gap instead of discarding half of a rename.
 
 The default and absolute unresolved-work bound is 4096 rows per root generation. Lease batches are
 64 by default and at most 128. Stabilization, retry, and lease durations have absolute bounds.
@@ -105,20 +112,22 @@ unresolved freshness gaps, health, and oldest ready delay without mutating work.
   deadline;
 - paired rename paths, subtree supersession, root capacity degradation, and root generations remain
   deterministic across restart;
-- a later same-path event prevents the earlier lease from completing;
+- a later event on either affected rename path prevents the earlier lease from completing;
 - lease expiry, structured retry, retry exhaustion, and new-evidence reopening are bounded;
 - queue metrics and retention cleanup are structured, non-mutating, and bounded;
 - repository Daily passes without accessing a real library or modifying source media.
 
 ## Validation evidence
 
-Seventeen focused queue tests cover the v16 migration, repeated plans, restart recovery, paired
-rename persistence, create/remove final-state work, subtree and capacity supersession, stale lease
-rejection, generation replacement and unregister, lease-expiry recovery, explicit retry exhaustion,
-new-evidence reopening, delay metrics, explicit bounded cleanup, and automatic retention. The full Rust suite reached schema
-v17 through every historical migration fixture with 220 passing tests and five existing explicit
-authorization- or performance-bound ignores. Clippy passed for all targets and features with
-warnings denied.
+Twenty-three focused queue tests cover the v16 migration, repeated plans, restart recovery, paired
+rename persistence, divergent, in-flight old-path, and partial-subtree rename evidence,
+create/remove final-state work, subtree and capacity supersession, generation replacement and
+removed-root rejection after
+retention cleanup, lease-expiry recovery, explicit and policy-adjusted retry exhaustion,
+new-evidence reopening, delay metrics, explicit bounded cleanup, and automatic retention. The full
+Rust suite reached schema v17 through every historical migration fixture with 226 passing tests and
+five existing explicit authorization- or performance-bound ignores. Clippy passed for all targets
+and features with warnings denied.
 
 The 2026-08-17 lock-aware Daily gate passed formatting, Rust, Dart analysis, every Flutter test,
 the controlled Windows picker-and-scan integration, both native accessibility scenarios, generated

@@ -1844,9 +1844,10 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   schema v17. Stable change IDs, 500 ms configurable stabilization, path/subtree/root supersession,
   paired rename paths, root generations, monotonic lease generations, crash recovery, bounded
   retry and retention, enqueue/success revisions, optional catch-up fields, structured health, and
-  oldest-ready delay are durable. Seventeen focused tests prove restart recovery, minimum burst work,
-  stale-result rejection, retry exhaustion/reopening, migration, metrics, and cleanup. The
-  2026-08-17 Daily passed 220 Rust tests with five existing intentional ignores, all Flutter tests,
+  oldest-ready delay are durable. Twenty-three focused tests prove restart recovery, minimum burst
+  work, full old/new rename overlap, removed-root rejection across retention, policy-adjusted retry
+  exhaustion/reopening, migration, metrics, and cleanup. The 2026-08-17 Daily passed 226 Rust tests
+  with five existing intentional ignores, all Flutter tests,
   both Windows integrations, bridge compatibility, formatting, and whitespace. There is still no
   atomic delta publisher, production Flutter synchronization UI, catch-up adapter, or real-library
   event acceptance; those remain later R2c slices.
