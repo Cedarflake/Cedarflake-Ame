@@ -109,6 +109,80 @@ fn repeated_plans_survive_restart_as_one_minimum_reconciliation() {
 }
 
 #[test]
+fn source_restart_sequence_reset_preserves_the_newer_evidence_tuple() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let generation = LibraryRootGeneration::initial();
+    let policy = immediate_policy();
+    let mut catalog = queue_catalog(path);
+    catalog
+        .enqueue_library_change_intents(
+            &[path_intent("root-a", generation, 800, 1_000, "photo.jpg")],
+            1_000,
+            policy,
+        )
+        .expect("enqueue evidence from the first source instance");
+    let mut restarted = path_intent("root-a", generation, 1, 2_000, "photo.jpg");
+    restarted.origin = LibraryChangeOrigin::ConsistencyAudit;
+
+    let report = catalog
+        .enqueue_library_change_intents(&[restarted], 2_000, policy)
+        .expect("enqueue evidence after source restart");
+    let leased = catalog
+        .lease_library_changes("root-a", generation, 2_000, policy)
+        .expect("lease coalesced work")
+        .pop()
+        .expect("coalesced work");
+
+    assert_eq!(report.coalesced_count, 1);
+    assert_eq!(leased.change.intent.first_sequence, 1);
+    assert_eq!(leased.change.intent.most_recent_sequence, 1);
+    assert_eq!(leased.change.intent.first_observed_unix_ms, 1_000);
+    assert_eq!(leased.change.intent.most_recent_observed_unix_ms, 2_000);
+    assert_eq!(
+        leased.change.intent.origin,
+        LibraryChangeOrigin::ConsistencyAudit,
+    );
+}
+
+#[test]
+fn equal_timestamp_sequence_reset_prefers_later_durable_ingress() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let generation = LibraryRootGeneration::initial();
+    let policy = immediate_policy();
+    let mut catalog = queue_catalog(path);
+    catalog
+        .enqueue_library_change_intents(
+            &[path_intent("root-a", generation, 800, 1_000, "photo.jpg")],
+            1_000,
+            policy,
+        )
+        .expect("enqueue evidence from the first source instance");
+    catalog
+        .enqueue_library_change_intents(
+            &[path_intent("root-a", generation, 1, 1_000, "photo.jpg")],
+            1_001,
+            policy,
+        )
+        .expect("enqueue equal-time evidence after source restart");
+
+    let leased = catalog
+        .lease_library_changes("root-a", generation, 1_001, policy)
+        .expect("lease coalesced work")
+        .pop()
+        .expect("coalesced work");
+
+    assert_eq!(leased.change.intent.first_sequence, 1);
+    assert_eq!(leased.change.intent.most_recent_sequence, 1);
+    assert_eq!(leased.change.intent.most_recent_observed_unix_ms, 1_000);
+    assert_eq!(
+        leased.change.intent.origin,
+        LibraryChangeOrigin::LiveNotification,
+    );
+}
+
+#[test]
 fn create_then_remove_remains_one_final_state_reconciliation() {
     let directory = tempdir().expect("temporary directory");
     let path = directory.path().join("catalog.sqlite3");
@@ -610,29 +684,54 @@ fn retention_cleanup_cannot_reactivate_a_removed_root() {
     assert_eq!(
         catalog
             .cleanup_terminal_library_changes(i64::MAX, 2)
-            .expect("clean terminal row and retired root state"),
-        2,
+            .expect("clean terminal row"),
+        1,
     );
+    catalog
+        .connection
+        .execute(
+            "INSERT INTO library_roots(id, path, created_unix_ms)
+             VALUES ('root-a', 'C:\\Source', 2)",
+            [],
+        )
+        .expect("re-register root fixture");
 
-    let report = catalog
+    let stale = catalog
         .enqueue_library_change_intents(
             &[path_intent("root-a", generation, 2, 2_000, "late.jpg")],
             2_000,
             policy,
         )
-        .expect("reject stale work after cleanup");
-    let root_state_count: i64 = catalog
+        .expect("reject stale work after re-registration");
+    let next_generation = generation.next().expect("next generation");
+    let current = catalog
+        .enqueue_library_change_intents(
+            &[path_intent(
+                "root-a",
+                next_generation,
+                3,
+                2_001,
+                "current.jpg",
+            )],
+            2_001,
+            policy,
+        )
+        .expect("accept advanced generation");
+    let (stored_generation, is_active): (i64, bool) = catalog
         .connection
         .query_row(
-            "SELECT COUNT(*) FROM library_change_root_state WHERE root_id = 'root-a'",
+            "SELECT generation, is_active
+             FROM library_change_root_state WHERE root_id = 'root-a'",
             [],
-            |row| row.get(0),
+            |row| Ok((row.get(0)?, row.get(1)?)),
         )
-        .expect("retired state stays absent");
+        .expect("permanent root generation authority");
 
-    assert_eq!(report.stale_generation_count, 1);
-    assert_eq!(report.inserted_count, 0);
-    assert_eq!(root_state_count, 0);
+    assert_eq!(stale.stale_generation_count, 1);
+    assert_eq!(stale.inserted_count, 0);
+    assert_eq!(current.inserted_count, 1);
+    assert_eq!(stored_generation, 8);
+    assert!(is_active);
 }
 
 #[test]

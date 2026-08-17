@@ -85,7 +85,7 @@ pub(super) fn enqueue_one(
     if let Some(target_index) = covering {
         let target = &active[target_index];
         let mut merged = target.intent.clone();
-        merge_evidence(&mut merged, incoming);
+        merge_newer_evidence(&mut merged, incoming);
         if incoming.kind == LibraryChangeIntentKind::FreshnessUnknown {
             merged.kind = LibraryChangeIntentKind::FreshnessUnknown;
         }
@@ -101,7 +101,7 @@ pub(super) fn enqueue_one(
             .map(|(_, change)| change)
             .collect::<Vec<_>>();
         for change in &absorbed {
-            merge_evidence(&mut merged, &change.intent);
+            merge_older_evidence(&mut merged, &change.intent);
         }
         update_change(transaction, target.id, &merged, enqueued_unix_ms, policy)?;
         let superseded = mark_superseded(
@@ -149,13 +149,13 @@ pub(super) fn enqueue_one(
     let mut merged = incoming.clone();
     if let Some(stronger) = stronger {
         merged = stronger.intent.clone();
-        merge_evidence(&mut merged, incoming);
+        merge_newer_evidence(&mut merged, incoming);
     }
     for change in &absorbed {
         if stronger.is_some_and(|stronger| stronger.id == change.id) {
             continue;
         }
-        merge_evidence(&mut merged, &change.intent);
+        merge_older_evidence(&mut merged, &change.intent);
     }
     let change_id = insert_change(
         transaction,
@@ -189,7 +189,7 @@ fn degrade_to_root(
     root.relative_path.clear();
     root.previous_relative_path = None;
     for change in &active {
-        merge_evidence(&mut root, &change.intent);
+        merge_older_evidence(&mut root, &change.intent);
     }
     let existing_root = active.iter().find(|change| {
         is_unleased(change.status)
@@ -438,9 +438,24 @@ fn intent_strength(intent: &LibraryChangeIntent) -> u8 {
     }
 }
 
-fn merge_evidence(target: &mut LibraryChangeIntent, evidence: &LibraryChangeIntent) {
-    let target_recency = evidence_recency(target);
-    let incoming_recency = evidence_recency(evidence);
+fn merge_newer_evidence(target: &mut LibraryChangeIntent, evidence: &LibraryChangeIntent) {
+    merge_evidence(target, evidence, true);
+}
+
+fn merge_older_evidence(target: &mut LibraryChangeIntent, evidence: &LibraryChangeIntent) {
+    merge_evidence(target, evidence, false);
+}
+
+fn merge_evidence(
+    target: &mut LibraryChangeIntent,
+    evidence: &LibraryChangeIntent,
+    evidence_wins_exact_tie: bool,
+) {
+    let should_replace_latest = evidence.most_recent_observed_unix_ms
+        > target.most_recent_observed_unix_ms
+        || evidence.most_recent_observed_unix_ms == target.most_recent_observed_unix_ms
+            && (origin_rank(evidence.origin) > origin_rank(target.origin)
+                || evidence.origin == target.origin && evidence_wins_exact_tie);
     target.first_observed_unix_ms = target
         .first_observed_unix_ms
         .min(evidence.first_observed_unix_ms);
@@ -448,25 +463,13 @@ fn merge_evidence(target: &mut LibraryChangeIntent, evidence: &LibraryChangeInte
         .most_recent_observed_unix_ms
         .max(evidence.most_recent_observed_unix_ms);
     target.first_sequence = target.first_sequence.min(evidence.first_sequence);
-    if incoming_recency > target_recency {
+    if should_replace_latest {
         target.most_recent_sequence = evidence.most_recent_sequence;
         target.origin = evidence.origin;
-    } else {
-        target.most_recent_sequence = target
-            .most_recent_sequence
-            .max(evidence.most_recent_sequence);
     }
     target.coalesced_observation_count = target
         .coalesced_observation_count
         .saturating_add(evidence.coalesced_observation_count);
-}
-
-fn evidence_recency(intent: &LibraryChangeIntent) -> (u64, i64, u8) {
-    (
-        intent.most_recent_sequence,
-        intent.most_recent_observed_unix_ms,
-        origin_rank(intent.origin),
-    )
 }
 
 fn origin_rank(origin: LibraryChangeOrigin) -> u8 {

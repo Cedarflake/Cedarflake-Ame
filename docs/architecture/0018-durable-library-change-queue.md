@@ -51,15 +51,20 @@ first/recent observation times and sequences, coalesced count, state, stabilizat
 attempt and retry state, monotonic lease generation, structured last failure, enqueue and success
 catalog revisions, optional catch-up source and watermark, and supersession link. Observation
 sequences are stored as decimal text so the full Ame `u64` range round-trips without signed SQLite
-ordering assumptions.
+ordering assumptions. A sequence is monotonic only within one change-source instance. Planning may
+use it inside that bounded source batch, but durable merging across enqueue and restart boundaries
+orders the most-recent evidence tuple by observation time, then origin, and finally durable ingress
+precedence for an exact tie. It never compares raw sequence values across durable merges. A high
+sequence from an older source instance therefore cannot replace later evidence after the watcher
+restarts, even when both callbacks share one millisecond timestamp.
 
 The root-state table records the highest accepted generation plus an active or retired tombstone.
 A newer generation atomically supersedes unresolved older work. An older generation, or the same
 generation after root unregister, cannot enqueue or lease work. Re-registering a root must advance
 the generation. Enqueue also requires the root to remain present in the authoritative
-`library_roots` table, so a higher late generation or retention cleanup cannot reactivate a removed
-root. Retired tombstones are eligible for bounded retention cleanup only after their queue rows are
-gone and the caller-provided retention cutoff has elapsed.
+`library_roots` table. Retired tombstones permanently retain the highest accepted generation, so
+terminal-row cleanup and later re-registration cannot erase the ordering authority or admit the
+retired generation again.
 
 Queue states are `pending`, `leased`, `retry_wait`, `completed`, and `superseded`. Leasing is
 transactional, increments both attempt count and `lease_generation`, and has an explicit expiry.
@@ -96,10 +101,10 @@ Coalescing applies before retained-work capacity:
 
 The default and absolute unresolved-work bound is 4096 rows per root generation. Lease batches are
 64 by default and at most 128. Stabilization, retry, and lease durations have absolute bounds.
-Cleanup removes only completed or superseded rows and eligible retired root tombstones. The default
-terminal retention is seven days, and every non-empty enqueue transaction first removes at most 128
-eligible records; callers may also request an explicit cleanup of at most 1024 total records.
-Pending, leased, retry-wait, and unresolved freshness-gap work is never removed by cleanup.
+Cleanup removes only completed or superseded queue rows. The default terminal retention is seven
+days, and every non-empty enqueue transaction first removes at most 128 eligible rows; callers may
+also request an explicit cleanup of at most 1024 rows. Pending, leased, retry-wait, unresolved
+freshness-gap work, and root-generation tombstones are never removed by cleanup.
 Structured metrics expose every state count, ready work, expired leases, exhausted retries,
 unresolved freshness gaps, health, and oldest ready delay without mutating work.
 
@@ -110,8 +115,11 @@ unresolved freshness gaps, health, and oldest ready delay without mutating work.
 - multiple R2c-B plans for one path become one durable row with complete observation evidence;
 - dropping and reopening the catalog after enqueue leases the same work after the stabilization
   deadline;
+- a watcher sequence reset cannot make older source-instance evidence become the durable latest
+  tuple;
 - paired rename paths, subtree supersession, root capacity degradation, and root generations remain
   deterministic across restart;
+- root removal, terminal cleanup, and re-registration still require a strictly newer generation;
 - a later event on either affected rename path prevents the earlier lease from completing;
 - lease expiry, structured retry, retry exhaustion, and new-evidence reopening are bounded;
 - queue metrics and retention cleanup are structured, non-mutating, and bounded;
@@ -119,15 +127,14 @@ unresolved freshness gaps, health, and oldest ready delay without mutating work.
 
 ## Validation evidence
 
-Twenty-three focused queue tests cover the v16 migration, repeated plans, restart recovery, paired
-rename persistence, divergent, in-flight old-path, and partial-subtree rename evidence,
-create/remove final-state work, subtree and capacity supersession, generation replacement and
-removed-root rejection after
-retention cleanup, lease-expiry recovery, explicit and policy-adjusted retry exhaustion,
-new-evidence reopening, delay metrics, explicit bounded cleanup, and automatic retention. The full
-Rust suite reached schema v17 through every historical migration fixture with 226 passing tests and
-five existing explicit authorization- or performance-bound ignores. Clippy passed for all targets
-and features with warnings denied.
+Twenty-five focused queue tests cover the v16 migration, repeated plans, process and watcher restart
+recovery, paired rename persistence, divergent, in-flight old-path, and partial-subtree rename
+evidence, create/remove final-state work, subtree and capacity supersession, generation replacement
+and permanent removed-root rejection after cleanup and re-registration, lease-expiry recovery,
+explicit and policy-adjusted retry exhaustion, new-evidence reopening, delay metrics, explicit
+bounded cleanup, and automatic retention. The full Rust suite reached schema v17 through every
+historical migration fixture with 228 passing tests and five existing explicit authorization- or
+performance-bound ignores. Clippy passed for all targets and features with warnings denied.
 
 The 2026-08-17 lock-aware Daily gate passed formatting, Rust, Dart analysis, every Flutter test,
 the controlled Windows picker-and-scan integration, both native accessibility scenarios, generated
@@ -143,10 +150,12 @@ R2c-C fixtures.
   catalog remains unchanged until R2c-D adds identity-aware reconciliation and atomic publication.
 - Coalescing is intentionally conservative. Ambiguous rename evidence spends a root audit instead
   of risking a lost old path.
+- Durable recency uses observation time, origin, and exact-tie ingress precedence across source
+  instances; source-local sequence is retained as evidence, not used as a cross-restart clock.
 - SQLite writer contention can delay enqueue or leasing and returns existing structured busy or
   locked errors; it never silently drops an intent while claiming synchronization.
-- Per-root unresolved work is bounded. The number of active root states follows user-configured
-  roots, while retired states require explicit bounded retention cleanup.
+- Per-root unresolved work is bounded. Root state grows only with distinct historical root IDs;
+  those compact tombstones are deliberately permanent generation authority.
 
 ## Replacement strategy
 

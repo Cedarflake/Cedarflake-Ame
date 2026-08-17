@@ -252,8 +252,6 @@ fn create_library_change_queue_schema(transaction: &Transaction<'_>) -> Result<(
                is_active INTEGER NOT NULL CHECK(is_active IN (0, 1)),
                updated_unix_ms INTEGER NOT NULL
              );
-             CREATE INDEX library_change_root_state_cleanup
-               ON library_change_root_state(is_active, updated_unix_ms, root_id);
              CREATE TABLE library_change_queue (
                id INTEGER PRIMARY KEY AUTOINCREMENT,
                root_id TEXT NOT NULL,

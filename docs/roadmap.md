@@ -1271,9 +1271,10 @@ R2c-C - durable queue and coalescing:
 R2c-C is complete only when an application terminated after enqueue resumes the same work and a
 burst of repeated notifications produces the minimum necessary reconciliation.
 
-Status: **complete on 2026-08-17**. ADR 0018 owns the schema v17 leased SQLite queue and
-`docs/acceptance/r2c-c-durable-change-queue.md` records migration, restart, coalescing, stale-lease,
-retry, metrics, bounded-retention, Clippy, and Daily evidence. No real-library root was accessed.
+Status: **complete and audit-hardened on 2026-08-17**. ADR 0018 owns the schema v17 leased SQLite
+queue and `docs/acceptance/r2c-c-durable-change-queue.md` records migration, restart, coalescing,
+stale-lease, retry, metrics, bounded-retention, Clippy, and Daily evidence. No real-library root was
+accessed.
 
 R2c-D - incremental delta publication:
 
@@ -1747,8 +1748,9 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   identity, and revision-safe bounded queries are connected end to end.
 - The catalog schema is v17 and the storage-settings schema is v2. Schema v17 adds the durable
   normalized change queue, root-generation tombstones, lease/retry state, catalog-revision
-  evidence, and bounded terminal retention without losing the v16 preview ownership reconciliation
-  or earlier root, scan, asset, location, frontier, capture-evidence, identity, and query evidence.
+  evidence, bounded terminal-row retention, and permanent highest-generation authority without
+  losing the v16 preview ownership reconciliation or earlier root, scan, asset, location, frontier,
+  capture-evidence, identity, and query evidence.
 - The authorized read-only target-library acceptance published 30,629 locations for
   `local-primary` and 48,384 for `cloud-primary`, for 79,013 active locations in one retained
   catalog. Sampled source bytes and source entries remained unchanged, and cloud-only placeholders
@@ -1840,14 +1842,17 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   intentional ignores, all Flutter tests, Windows scan and accessibility integrations, bridge
   compatibility, and whitespace; the Windows Release gate built the packaged application and passed
   both bridge smoke tests.
-- R2c-C is complete. The application persists R2c-B plans through an Ame-owned queue port into
-  schema v17. Stable change IDs, 500 ms configurable stabilization, path/subtree/root supersession,
-  paired rename paths, root generations, monotonic lease generations, crash recovery, bounded
-  retry and retention, enqueue/success revisions, optional catch-up fields, structured health, and
-  oldest-ready delay are durable. Twenty-three focused tests prove restart recovery, minimum burst
-  work, full old/new rename overlap, removed-root rejection across retention, policy-adjusted retry
-  exhaustion/reopening, migration, metrics, and cleanup. The 2026-08-17 Daily passed 226 Rust tests
-  with five existing intentional ignores, all Flutter tests,
+- R2c-C is complete and audit-hardened. The application persists R2c-B plans through an Ame-owned
+  queue port into schema v17. Stable change IDs, 500 ms configurable stabilization,
+  path/subtree/root supersession, paired rename paths, root generations, monotonic lease
+  generations, crash recovery, bounded retry and retention, enqueue/success revisions, optional
+  catch-up fields, structured health, and oldest-ready delay are durable. Source-local observation
+  sequence cannot outrank a later cross-restart timestamp, and compact highest-generation root
+  tombstones survive terminal cleanup. Twenty-five focused tests prove process and watcher restart
+  recovery, including equal-time source sequence resets, minimum burst work, full old/new rename
+  overlap, removed-root rejection across cleanup and re-registration,
+  policy-adjusted retry exhaustion/reopening, migration, metrics, and cleanup. The 2026-08-17 Daily
+  passed 228 Rust tests with five existing intentional ignores, all Flutter tests,
   both Windows integrations, bridge compatibility, formatting, and whitespace. There is still no
   atomic delta publisher, production Flutter synchronization UI, catch-up adapter, or real-library
   event acceptance; those remain later R2c slices.

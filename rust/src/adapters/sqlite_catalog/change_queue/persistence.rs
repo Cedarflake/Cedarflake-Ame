@@ -827,34 +827,7 @@ pub(super) fn cleanup_terminal_records(
             "The terminal change cleanup count exceeds its supported range",
         )
     })?;
-    let remaining = limit.saturating_sub(deleted_changes);
-    let deleted_root_states = if remaining == 0 {
-        0
-    } else {
-        connection
-            .execute(
-                "DELETE FROM library_change_root_state
-                 WHERE root_id IN (
-                   SELECT states.root_id FROM library_change_root_state AS states
-                   WHERE states.is_active = 0 AND states.updated_unix_ms <= ?1
-                     AND NOT EXISTS (
-                       SELECT 1 FROM library_change_queue AS changes
-                       WHERE changes.root_id = states.root_id
-                     )
-                   ORDER BY states.updated_unix_ms, states.root_id
-                   LIMIT ?2
-                 )",
-                params![terminal_before_unix_ms, i64::from(remaining)],
-            )
-            .map_err(database_error)?
-    };
-    let deleted_root_states = u32::try_from(deleted_root_states).map_err(|_| {
-        ScanError::new(
-            "change_queue_cleanup_count_invalid",
-            "The retired root-state cleanup count exceeds its supported range",
-        )
-    })?;
-    Ok(deleted_changes.saturating_add(deleted_root_states))
+    Ok(deleted_changes)
 }
 
 pub(in crate::adapters::sqlite_catalog) fn retire_root_change_queue(
