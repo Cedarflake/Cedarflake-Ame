@@ -771,6 +771,9 @@ class LibraryController extends Notifier<LibraryState> {
     if (timeline == null) {
       return Future.value(false);
     }
+    if (!ownsVisibleRange && _hasCompatibleTimeNavigationOwner()) {
+      return Future.value(false);
+    }
     if (ownsVisibleRange) {
       _pendingVisibleRange = null;
     }
@@ -1194,6 +1197,18 @@ class LibraryController extends Notifier<LibraryState> {
     }
     return owner.globalItemOffset >= range.start &&
         owner.globalItemOffset < range.end;
+  }
+
+  bool _hasCompatibleTimeNavigationOwner() {
+    final owner = _timeNavigationOwner;
+    if (owner == null) {
+      return false;
+    }
+    if (_isCompatibleTimeNavigation(owner)) {
+      return true;
+    }
+    _timeNavigationOwner = null;
+    return false;
   }
 
   void _retainPassiveTimeNavigationForVisibleRange(
