@@ -70,6 +70,9 @@ work. Enqueue also requires the root to remain present in the authoritative `lib
 it fails closed when authority is missing and cannot reactivate an inactive tombstone. Retired
 tombstones permanently retain the highest accepted generation, so terminal-row cleanup and later
 re-registration cannot erase the ordering authority or admit the retired generation again.
+Schema v17 records a singleton contract marker only after this authority is complete. A prerelease
+v17 database without that marker fails closed on open because a previously deleted high-generation
+tombstone cannot be reconstructed safely as generation 1.
 
 Queue states are `pending`, `leased`, `retry_wait`, `completed`, and `superseded`. Leasing is
 transactional, increments both attempt count and `lease_generation`, and has an explicit expiry.
@@ -132,6 +135,7 @@ unresolved freshness gaps, health, and oldest ready delay without mutating work.
   deterministic across restart;
 - root removal, terminal cleanup, zero-work lifecycles, and re-registration still require a
   strictly newer generation before queue ingress;
+- a prerelease v17 catalog without complete root-generation authority fails closed on reopen;
 - a later event on either affected rename path or directory-rename subtree prevents the earlier
   lease from completing;
 - lowering capacity before a parent subtree or root event measures the normalized retained result;
@@ -141,7 +145,8 @@ unresolved freshness gaps, health, and oldest ready delay without mutating work.
 
 ## Validation evidence
 
-Thirty-five focused queue tests cover the v16 migration and root-state seeding, repeated plans,
+Thirty-six focused queue tests cover the v16 migration, root-state seeding, prerelease v17
+authority-marker rejection, repeated plans,
 process and watcher restart recovery, equal-time origin changes, wall-clock rollback, paired and
 directory rename persistence and overlap, divergent nested rename evidence, create/remove
 final-state work, subtree and normalized capacity supersession under a lowered policy, lifecycle
@@ -149,7 +154,7 @@ generation activation including roots with no queue work, permanent removed-root
 cleanup and re-registration, missing-authority failure, lease-expiry recovery, explicit and
 policy-adjusted retry exhaustion, new-evidence reopening, delay metrics, explicit bounded cleanup,
 and automatic retention. The full Rust suite reached schema v17 through every historical migration
-fixture with 238 passing tests and five existing explicit authorization- or performance-bound
+fixture with 239 passing tests and five existing explicit authorization- or performance-bound
 ignores. Clippy passed for all targets and features with warnings denied.
 
 The 2026-08-17 lock-aware Daily gate passed formatting, Rust, Dart analysis, every Flutter test,

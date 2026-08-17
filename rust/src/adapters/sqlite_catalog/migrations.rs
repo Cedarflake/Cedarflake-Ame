@@ -1,4 +1,4 @@
-use rusqlite::{Connection, Transaction, params};
+use rusqlite::{Connection, OptionalExtension, Transaction, params};
 
 use crate::domain::ScanError;
 
@@ -29,7 +29,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             })
             .map_err(database_error)?;
         match version {
-            SCHEMA_VERSION => return Ok(()),
+            SCHEMA_VERSION => return validate_current_schema_contract(connection),
             1 => migrate_v1_to_v2(connection)?,
             2 => migrate_v2_to_v3(connection)?,
             3 => migrate_v3_to_v4(connection)?,
@@ -246,7 +246,14 @@ fn create_schema_v17(transaction: &Transaction<'_>) -> Result<(), ScanError> {
 fn create_library_change_queue_schema(transaction: &Transaction<'_>) -> Result<(), ScanError> {
     transaction
         .execute_batch(
-            "CREATE TABLE library_change_root_state (
+            "CREATE TABLE library_change_queue_contract (
+               singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+               root_authority_complete INTEGER NOT NULL
+                 CHECK(root_authority_complete = 1)
+             );
+             INSERT INTO library_change_queue_contract(singleton, root_authority_complete)
+             VALUES (1, 1);
+             CREATE TABLE library_change_root_state (
                root_id TEXT PRIMARY KEY,
                generation INTEGER NOT NULL CHECK(generation > 0),
                is_active INTEGER NOT NULL CHECK(is_active IN (0, 1)),
@@ -346,6 +353,43 @@ fn create_library_change_queue_schema(transaction: &Transaction<'_>) -> Result<(
             .map_err(database_error)?;
     }
     Ok(())
+}
+
+fn validate_current_schema_contract(connection: &Connection) -> Result<(), ScanError> {
+    let has_contract = connection
+        .query_row(
+            "SELECT EXISTS(
+               SELECT 1 FROM sqlite_master
+               WHERE type = 'table' AND name = 'library_change_queue_contract'
+             )",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    if !has_contract {
+        return Err(unverifiable_change_queue_authority());
+    }
+    let authority_complete = connection
+        .query_row(
+            "SELECT root_authority_complete = 1
+             FROM library_change_queue_contract WHERE singleton = 1",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .optional()
+        .map_err(database_error)?
+        .unwrap_or(false);
+    if !authority_complete {
+        return Err(unverifiable_change_queue_authority());
+    }
+    Ok(())
+}
+
+fn unverifiable_change_queue_authority() -> ScanError {
+    ScanError::new(
+        "catalog_change_queue_authority_unverifiable",
+        "This prerelease schema 17 catalog cannot prove its highest root generations and must not be opened",
+    )
 }
 
 fn migrate_v1_to_v2(connection: &mut Connection) -> Result<(), ScanError> {

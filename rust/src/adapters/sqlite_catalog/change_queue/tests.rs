@@ -40,10 +40,11 @@ fn migrates_v16_without_losing_existing_catalog_rows() {
     drop(connection);
 
     let catalog = SqliteCatalog::open(path).expect("migrated catalog");
-    let (version, revision, preserved, queue_exists, generation, is_active): (
+    let (version, revision, preserved, queue_exists, contract_valid, generation, is_active): (
         i64,
         i64,
         String,
+        bool,
         bool,
         i64,
         bool,
@@ -56,6 +57,8 @@ fn migrates_v16_without_losing_existing_catalog_rows() {
                (SELECT value FROM preserved_fixture),
                EXISTS(SELECT 1 FROM sqlite_master
                  WHERE type = 'table' AND name = 'library_change_queue'),
+               (SELECT root_authority_complete = 1
+                FROM library_change_queue_contract WHERE singleton = 1),
                (SELECT generation FROM library_change_root_state WHERE root_id = 'root-a'),
                (SELECT is_active FROM library_change_root_state WHERE root_id = 'root-a')",
             [],
@@ -67,6 +70,7 @@ fn migrates_v16_without_losing_existing_catalog_rows() {
                     row.get(3)?,
                     row.get(4)?,
                     row.get(5)?,
+                    row.get(6)?,
                 ))
             },
         )
@@ -76,8 +80,44 @@ fn migrates_v16_without_losing_existing_catalog_rows() {
     assert_eq!(revision, 7);
     assert_eq!(preserved, "kept");
     assert!(queue_exists);
+    assert!(contract_valid);
     assert_eq!(generation, 1);
     assert!(is_active);
+}
+
+#[test]
+fn prerelease_v17_without_root_authority_marker_fails_closed_on_open() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let connection = Connection::open(&path).expect("prerelease v17 catalog");
+    connection
+        .execute_batch(
+            "CREATE TABLE schema_info(version INTEGER NOT NULL);
+             INSERT INTO schema_info(version) VALUES (17);
+             CREATE TABLE catalog_state(revision INTEGER NOT NULL);
+             INSERT INTO catalog_state(revision) VALUES (7);
+             CREATE TABLE library_roots (
+               id TEXT PRIMARY KEY,
+               path TEXT NOT NULL UNIQUE,
+               active_scan_id TEXT,
+               created_unix_ms INTEGER NOT NULL
+             );
+             CREATE TABLE library_change_root_state (
+               root_id TEXT PRIMARY KEY,
+               generation INTEGER NOT NULL CHECK(generation > 0),
+               is_active INTEGER NOT NULL CHECK(is_active IN (0, 1)),
+               updated_unix_ms INTEGER NOT NULL
+             );",
+        )
+        .expect("pre-fix schema fixture with a lost tombstone");
+    drop(connection);
+
+    let error = match SqliteCatalog::open(path) {
+        Ok(_) => panic!("unverifiable v17 must fail closed"),
+        Err(error) => error,
+    };
+
+    assert_eq!(error.code, "catalog_change_queue_authority_unverifiable");
 }
 
 #[test]

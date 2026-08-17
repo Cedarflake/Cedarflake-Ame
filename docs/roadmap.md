@@ -1849,12 +1849,13 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   catch-up fields, structured health, and oldest-ready delay are durable. Source-local observation
   sequence, origin, or future-skewed timestamp cannot outrank later durable ingress, and compact
   highest-generation root tombstones survive terminal cleanup. Root registration seeds or advances
-  that authority before queue ingress, including lifecycles with no queued work. Thirty-five focused
-  tests prove process and watcher restart recovery, including equal-time and backward-clock source
-  resets, minimum burst work, full old/new path and directory-subtree rename overlap, normalized
-  capacity after a policy decrease, removed-root rejection across cleanup and re-registration,
+  that authority before queue ingress, including lifecycles with no queued work. A prerelease v17
+  catalog without the complete-authority marker fails closed rather than guessing generation 1.
+  Thirty-six focused tests prove process and watcher restart recovery, including equal-time and
+  backward-clock source resets, minimum burst work, full old/new path and directory-subtree rename
+  overlap, normalized capacity after a policy decrease, removed-root rejection across cleanup and re-registration,
   policy-adjusted retry exhaustion/reopening, migration, metrics, and cleanup. The 2026-08-17 Daily
-  passed 238 Rust tests with five existing intentional ignores, all Flutter tests,
+  passed 239 Rust tests with five existing intentional ignores, all Flutter tests,
   both Windows integrations, bridge compatibility, formatting, and whitespace. There is still no
   atomic delta publisher, production Flutter synchronization UI, catch-up adapter, or real-library
   event acceptance; those remain later R2c slices.

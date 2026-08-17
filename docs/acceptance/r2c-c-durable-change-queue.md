@@ -16,6 +16,7 @@ The controlled queue fixtures prove:
 | Boundary | Required result |
 | --- | --- |
 | v16 migration | Existing rows remain intact; queue tables and initial root-generation authority are added |
+| Prerelease v17 | A catalog without the complete-authority marker fails closed instead of resetting generation |
 | Historical migrations | Every committed schema fixture reaches schema v17 |
 | Repeated notification burst | Four observations across two plans become one path reconciliation |
 | Create then remove | One final-state reconciliation remains; the pair is not discarded |
@@ -42,14 +43,14 @@ Focused queue tests:
 
 ```text
 cargo test --manifest-path rust/Cargo.toml change_queue
-35 passed; 0 failed
+36 passed; 0 failed
 ```
 
 Complete Rust suite after schema v17:
 
 ```text
 cargo test --manifest-path rust/Cargo.toml --all-features
-243 tests; 238 passed; 0 failed; 5 ignored
+244 tests; 239 passed; 0 failed; 5 ignored
 ```
 
 The five ignored tests remain the existing explicit real-library or manual-performance gates. No
@@ -66,7 +67,7 @@ Complete lock-aware repository Daily:
 
 ```text
 ./tool/quality_verify_daily.ps1
-Rust: 243 total; 238 passed; 0 failed; 5 existing explicit ignores
+Rust: 244 total; 239 passed; 0 failed; 5 existing explicit ignores
 Flutter: all test files passed
 Windows controlled scan integration: 2 passed
 Windows native accessibility integration: 2 passed
