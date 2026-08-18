@@ -306,6 +306,19 @@ fn completed_scan_publishes_metadata_then_materializes_an_external_preview() {
 
 #[test]
 fn bidirectional_full_scan_catch_up_preserves_cross_root_assets_and_previews() {
+    assert_bidirectional_full_scan_catch_up("full-handoff", false, false);
+}
+
+#[test]
+fn full_scan_handoff_deduplicates_hard_links_and_survives_preview_cleanup() {
+    assert_bidirectional_full_scan_catch_up("full-handoff-cleanup", true, true);
+}
+
+fn assert_bidirectional_full_scan_catch_up(
+    scenario: &str,
+    inject_hard_link_location: bool,
+    cleanup_before_destination: bool,
+) {
     let source = tempdir().expect("source directory");
     let destination = tempdir().expect("destination directory");
     let storage = tempdir().expect("storage directory");
@@ -313,6 +326,10 @@ fn bidirectional_full_scan_catch_up_preserves_cross_root_assets_and_previews() {
     let destination_path = destination.path().join("destination.png");
     let moved_to_destination_path = destination.path().join("source.png");
     let moved_to_source_path = source.path().join("destination.png");
+    let source_initial_scan_id = format!("{scenario}-source-initial");
+    let destination_initial_scan_id = format!("{scenario}-destination-initial");
+    let source_recovery_scan_id = format!("{scenario}-source-recovery");
+    let destination_recovery_scan_id = format!("{scenario}-destination-recovery");
     RgbaImage::from_pixel(8, 6, Rgba([70, 100, 130, 255]))
         .save(&source_path)
         .expect("source fixture image");
@@ -329,7 +346,7 @@ fn bidirectional_full_scan_catch_up_preserves_cross_root_assets_and_previews() {
     let destination_root_path = destination.path().to_string_lossy().into_owned();
     run_scan_with_storage(
         ScanRequest {
-            scan_id: "full-handoff-source-initial".to_owned(),
+            scan_id: source_initial_scan_id.clone(),
             root_path: source_root_path.clone(),
             max_items: None,
             max_entries: None,
@@ -341,7 +358,7 @@ fn bidirectional_full_scan_catch_up_preserves_cross_root_assets_and_previews() {
     .expect("initial source scan");
     run_scan_with_storage(
         ScanRequest {
-            scan_id: "full-handoff-destination-initial".to_owned(),
+            scan_id: destination_initial_scan_id,
             root_path: destination_root_path.clone(),
             max_items: None,
             max_entries: None,
@@ -394,6 +411,66 @@ fn bidirectional_full_scan_catch_up_preserves_cross_root_assets_and_previews() {
         destination_preview.preview_status,
         PreviewStatus::Ready
     ));
+    if inject_hard_link_location {
+        let hard_link_location_id = "000-full-handoff-source-hard-link";
+        let hard_link_absolute_path = source
+            .path()
+            .join("source-hard-link.png")
+            .to_string_lossy()
+            .into_owned();
+        let connection = Connection::open(&storage_paths.catalog_path).expect("hard-link catalog");
+        connection
+            .execute(
+                "INSERT INTO asset_locations(
+                   scan_id, asset_id, location_id, root_id, absolute_path, relative_path,
+                   preview_path, file_size, created_unix_ms, modified_unix_ms,
+                   file_local_time, parent_relative_path, natural_name_key, width, height,
+                   preview_status, preview_issue_code, preview_issue_message,
+                   metadata_engine_id, metadata_engine_version, capture_local_time,
+                   capture_offset_minutes, capture_time_source, capture_raw_value,
+                   file_identity_scheme, file_identity_value
+                 )
+                 SELECT scan_id, asset_id, ?1, root_id, ?2, 'source-hard-link.png',
+                        preview_path, file_size, created_unix_ms, modified_unix_ms,
+                        file_local_time, '', 'source-hard-link.png', width, height,
+                        preview_status, preview_issue_code, preview_issue_message,
+                        metadata_engine_id, metadata_engine_version, capture_local_time,
+                        capture_offset_minutes, capture_time_source, capture_raw_value,
+                        file_identity_scheme, file_identity_value
+                 FROM asset_locations
+                 WHERE scan_id = ?4 AND location_id = ?3",
+                rusqlite::params![
+                    hard_link_location_id,
+                    hard_link_absolute_path,
+                    source_location_id,
+                    source_initial_scan_id,
+                ],
+            )
+            .expect("duplicate hard-link identity location");
+        connection
+            .execute(
+                "INSERT OR IGNORE INTO preview_artifact_locations(artifact_key, location_id)
+                 SELECT artifact_key, ?1 FROM preview_artifact_locations WHERE location_id = ?2",
+                rusqlite::params![hard_link_location_id, source_location_id],
+            )
+            .expect("duplicate hard-link preview owner");
+        let duplicate_identity_count = connection
+            .query_row(
+                "SELECT COUNT(*)
+                 FROM asset_locations AS candidate
+                 WHERE candidate.scan_id = ?2
+                   AND (candidate.file_identity_scheme, candidate.file_identity_value) = (
+                     SELECT original.file_identity_scheme, original.file_identity_value
+                     FROM asset_locations AS original
+                     WHERE original.scan_id = ?2
+                       AND original.location_id = ?1
+                   )",
+                rusqlite::params![source_location_id, source_initial_scan_id],
+                |row| row.get::<_, i64>(0),
+            )
+            .expect("duplicate hard-link identity count");
+        assert_eq!(duplicate_identity_count, 2);
+    }
 
     fs::rename(&source_path, &moved_to_destination_path).expect("source-first move");
     fs::rename(&destination_path, &moved_to_source_path).expect("destination-first move");
@@ -454,7 +531,7 @@ fn bidirectional_full_scan_catch_up_preserves_cross_root_assets_and_previews() {
 
     run_scan_with_storage_owned(
         ScanRequest {
-            scan_id: "full-handoff-source-recovery".to_owned(),
+            scan_id: source_recovery_scan_id,
             root_path: source_root_path,
             max_items: None,
             max_entries: None,
@@ -490,9 +567,16 @@ fn bidirectional_full_scan_catch_up_preserves_cross_root_assets_and_previews() {
         )
         .expect("source publication evidence");
     assert_eq!(source_publication, (0, 1, 1, 64, 1, 0));
+    if cleanup_before_destination {
+        let mut cleanup_catalog = SqliteCatalog::open(storage_paths.catalog_path.clone())
+            .expect("preview cleanup catalog");
+        cleanup_catalog
+            .reset_all_previews_for_cleanup()
+            .expect("reset previews before full-scan handoff adoption");
+    }
     run_scan_with_storage_owned(
         ScanRequest {
-            scan_id: "full-handoff-destination-recovery".to_owned(),
+            scan_id: destination_recovery_scan_id,
             root_path: destination_root_path,
             max_items: None,
             max_entries: None,
@@ -518,18 +602,25 @@ fn bidirectional_full_scan_catch_up_preserves_cross_root_assets_and_previews() {
     assert_eq!(final_snapshot.assets.len(), 2);
     assert_eq!(moved_source.asset_id, source_asset_id);
     assert_ne!(moved_source.location_id, source_location_id);
-    assert_eq!(moved_source.preview_path, source_preview.preview_path);
-    assert!(matches!(moved_source.preview_status, PreviewStatus::Ready));
     assert_eq!(moved_destination.asset_id, destination_asset_id);
     assert_ne!(moved_destination.location_id, destination_location_id);
-    assert_eq!(
-        moved_destination.preview_path,
-        destination_preview.preview_path
-    );
-    assert!(matches!(
-        moved_destination.preview_status,
-        PreviewStatus::Ready
-    ));
+    if cleanup_before_destination {
+        for moved in [moved_source, moved_destination] {
+            assert!(moved.preview_path.is_empty());
+            assert!(matches!(moved.preview_status, PreviewStatus::Pending));
+        }
+    } else {
+        assert_eq!(moved_source.preview_path, source_preview.preview_path);
+        assert!(matches!(moved_source.preview_status, PreviewStatus::Ready));
+        assert_eq!(
+            moved_destination.preview_path,
+            destination_preview.preview_path
+        );
+        assert!(matches!(
+            moved_destination.preview_status,
+            PreviewStatus::Ready
+        ));
+    }
     let connection = Connection::open(storage_paths.catalog_path).expect("final catalog");
     let terminal_evidence: (i64, i64, i64, i64, i64, i64) = connection
         .query_row(

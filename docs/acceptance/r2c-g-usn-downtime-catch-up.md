@@ -35,12 +35,12 @@ The controlled fixtures prove:
 | Queue evidence | Preserve a bounded lineage of unconsumed catch-up watermarks through coalescing and supersession |
 | Explicit fallback | Enqueue `FreshnessUnknown` for every affected root on uncertain evidence |
 | Standard token | Fall back on `usn_volume_open_failed` without requesting elevation |
-| Schema v19 | Migrate v18 atomically, validate exact lineage and normalized handoff relations, reject orphan or unverifiable authority, and repair only provable marker-complete state |
+| Schema v19 | Migrate v18 atomically, validate exact checkpoint, legacy and normalized handoff, and lineage relations, reject orphan or unverifiable authority, and repair only provable marker-complete state |
 | Query bound | Use an exact root-and-relative-path index during authoritative reconciliation |
 | Root isolation | Allow a ready root to recover while another root still lacks healthy continuity evidence |
 | Checkpoint retention | Delete at most 128 obsolete checkpoints after seven days and never while a freshness gap is unresolved |
 | Exact subtree scope | Keep `Album` and `album` sibling locations outside each other's authoritative capacity window |
-| Durable handoff | Store full-scan snapshots as `N` identity items plus `L` lineage owners, retain them across later watermarks, then atomically clean after the last owner is terminal |
+| Durable handoff | Store full-scan snapshots as `N` deduplicated identity items plus `L` lineage owners, retain them across later watermarks, protect ready preview artifacts until explicit cleanup downgrades their expectations, then atomically clean after the last owner is terminal |
 | Shutdown | Cancel and retain catch-up worker ownership until its thread is joined |
 | Source safety | Perform no source-media mutation or cloud-placeholder hydration |
 
@@ -54,10 +54,10 @@ cargo test adapters::windows_usn_catch_up::tests --all-features -- --nocapture
 19 passed; 0 failed
 
 cargo test adapters::sqlite_catalog::migrations::tests --all-features -- --nocapture
-20 passed; 0 failed
+22 passed; 0 failed
 
 cargo test application::incremental_library_changes::tests --all-features -- --nocapture
-23 passed; 0 failed
+24 passed; 0 failed
 
 cargo test adapters::sqlite_catalog::change_queue::tests --all-features -- --nocapture
 47 passed; 0 failed
@@ -72,7 +72,7 @@ cargo test adapters::sqlite_catalog::catalog_delta::tests --all-features -- --no
 13 passed; 0 failed
 
 cargo test application::scan_library::tests --all-features -- --nocapture
-27 passed; 0 failed; 2 existing explicit ignores
+28 passed; 0 failed; 2 existing explicit ignores
 
 cargo test active_relative_path_lookup_uses_its_complete_lookup_index --all-features -- --nocapture
 1 passed; 0 failed
@@ -85,11 +85,14 @@ orders, bidirectional authoritative moves, compatible preview transfer, exact-ca
 capacity, cross-watermark handoff, and unrelated-removal progress. Queue and migration fixtures
 cover all-root transactional rollback, single-call root enrollment, bounded 64-watermark queue
 lineage, bounded 4,096-watermark scan lineage, lineage transfer, multi-watermark asset and preview
-ownership, exact foreign keys, owner and reverse-provenance validation, bounded atomic terminal
-cleanup, orphan rejection, and fail-closed prerelease repair. Full-scan fixtures move assets in both
-directions between two roots, retain one identity item with 64 lineage owners rather than 64 copied
-items, and prove stable asset and compatible preview continuity through source-first and
-destination-first publication.
+ownership, exact checkpoint and handoff table shapes, exact foreign keys, owner and
+reverse-provenance validation, bounded atomic terminal cleanup, orphan rejection, and fail-closed
+prerelease repair. Full-scan fixtures move assets in both directions between two roots, retain one
+identity item for two hard-link locations with 64 lineage owners rather than duplicate identity or
+watermark copies, and prove stable asset and compatible preview continuity through source-first and
+destination-first publication. Bounded and full-scan fixtures also clear ready preview expectations
+before adoption when explicit preview cleanup removes the artifact; reclamation fixtures prove that
+normal budget pressure cannot select or delete an artifact while either handoff form owns it.
 The controlled real Win32 temporary-root test was executed with both the normal sandboxed token and
 the same standard token outside the workspace sandbox.
 Both reached the documented `usn_volume_open_failed` permission fallback. Ame did not elevate or
@@ -103,7 +106,7 @@ the production adapter path is covered by deterministic backend and parser fixtu
 140 files checked; 0 changed
 
 ./tool/quality_verify_daily.ps1
-Rust: 381 total; 376 passed; 0 failed; 5 existing explicit ignores
+Rust: 386 total; 381 passed; 0 failed; 5 existing explicit ignores
 Flutter: all test files passed
 Windows controlled picker and scan integration: 2 passed
 Windows native accessibility integration: 2 passed
@@ -115,14 +118,14 @@ release bridge and system accent smoke integration: 2 passed
 
 ./tool/performance_benchmark_synthetic_library.ps1
 files=10000
-fixture_ms=12439
-cold_ms=39075
-warm_ms=33311
-pause_ms=35
-resume_ms=31641
-cancel_ms=161
-catalog_bytes=52502528
-peak_working_set_bytes=17833984
+fixture_ms=12402
+cold_ms=39135
+warm_ms=33813
+pause_ms=27
+resume_ms=31783
+cancel_ms=168
+catalog_bytes=52465664
+peak_working_set_bytes=17793024
 result: passed
 
 git diff --check
@@ -170,8 +173,14 @@ full-scan publication still materialized the Cartesian product of identities and
 terminal queue retention could detach handoff evidence from its authority. The current work stores
 one normalized batch with `N` identity items and `L` lineage edges, preserves terminal provenance
 while an active scan owns it, releases the final owner atomically, and validates every forward and
-reverse ownership relation on open. Final independent re-audit remains pending; R2c-G is not marked
-complete until that committed head has no remaining Critical, High, Medium, or Low findings.
+reverse ownership relation on open. The sixth audit of `9e85877` then found that hard-link locations
+could collide in the identity-keyed batch, checkpoint and legacy handoff tables were not validated
+to exact shape, and preview cleanup or reclamation could invalidate a handoff-owned ready artifact.
+The current work selects one deterministic representative per physical identity, validates the
+checkpoint and legacy handoff table shapes, treats ready handoffs as reclamation owners, and
+atomically downgrades their preview expectations during explicit cleanup. Final independent
+re-audit remains pending; R2c-G is not marked complete until that committed head has no remaining
+Critical, High, Medium, or Low findings.
 
 ## Remaining boundary
 

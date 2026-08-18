@@ -1071,12 +1071,20 @@ pub(super) fn retain_scan_handoff_snapshots(
                )
                AND locations.file_identity_scheme IS NOT NULL
                AND locations.file_identity_value IS NOT NULL
-               AND NOT EXISTS (
-                 SELECT 1 FROM asset_locations AS replacement
-                 WHERE replacement.scan_id = ?1
-                   AND replacement.file_identity_scheme = locations.file_identity_scheme
-                   AND replacement.file_identity_value = locations.file_identity_value
-               )",
+                AND NOT EXISTS (
+                  SELECT 1 FROM asset_locations AS replacement
+                  WHERE replacement.scan_id = ?1
+                    AND replacement.file_identity_scheme = locations.file_identity_scheme
+                    AND replacement.file_identity_value = locations.file_identity_value
+                )
+                AND locations.location_id = (
+                  SELECT MIN(representative.location_id)
+                  FROM asset_locations AS representative
+                  WHERE representative.scan_id = locations.scan_id
+                    AND representative.root_id = locations.root_id
+                    AND representative.file_identity_scheme = locations.file_identity_scheme
+                    AND representative.file_identity_value = locations.file_identity_value
+                )",
             params![scan_id, previous_scan_id, root_id],
         )
         .map_err(database_error)?;

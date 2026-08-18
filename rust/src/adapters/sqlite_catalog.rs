@@ -547,27 +547,7 @@ impl CatalogRepository for SqliteCatalog {
                     ],
                 )
                 .map_err(database_error)?;
-            transaction
-                .execute(
-                    "UPDATE preview_artifacts
-                     SET lifecycle_state = 'stale'
-                     WHERE algorithm_id = ?1
-                       AND orientation_contract = ?3
-                       AND size_bucket = ?2
-                       AND artifact_key <> ?4
-                       AND lifecycle_state = 'ready'
-                       AND NOT EXISTS (
-                         SELECT 1 FROM preview_artifact_locations AS owners
-                         WHERE owners.artifact_key = preview_artifacts.artifact_key
-                       )",
-                    params![
-                        artifact.algorithm_id,
-                        i64::from(artifact.size_bucket),
-                        artifact.orientation_contract,
-                        artifact.artifact_key,
-                    ],
-                )
-                .map_err(database_error)?;
+            mark_unreferenced_preview_artifacts_stale(&transaction)?;
             transaction
                 .execute(
                     "INSERT INTO preview_artifacts(
@@ -634,18 +614,7 @@ impl CatalogRepository for SqliteCatalog {
                     [&location.location_id],
                 )
                 .map_err(database_error)?;
-            transaction
-                .execute(
-                    "UPDATE preview_artifacts
-                     SET lifecycle_state = 'stale'
-                     WHERE lifecycle_state = 'ready'
-                       AND NOT EXISTS (
-                         SELECT 1 FROM preview_artifact_locations AS owners
-                         WHERE owners.artifact_key = preview_artifacts.artifact_key
-                       )",
-                    [],
-                )
-                .map_err(database_error)?;
+            mark_unreferenced_preview_artifacts_stale(&transaction)?;
         }
         let updated = transaction
             .execute(
@@ -705,6 +674,26 @@ impl CatalogRepository for SqliteCatalog {
             )
             .map_err(database_error)?;
         transaction
+            .execute(
+                "UPDATE library_change_catch_up_handoffs
+                 SET preview_path = '', preview_status = 'pending',
+                     preview_issue_code = NULL, preview_issue_message = NULL
+                 WHERE preview_path <> '' OR preview_status <> 'pending'
+                   OR preview_issue_code IS NOT NULL OR preview_issue_message IS NOT NULL",
+                [],
+            )
+            .map_err(database_error)?;
+        transaction
+            .execute(
+                "UPDATE library_change_scan_handoff_items
+                 SET preview_path = '', preview_status = 'pending',
+                     preview_issue_code = NULL, preview_issue_message = NULL
+                 WHERE preview_path <> '' OR preview_status <> 'pending'
+                   OR preview_issue_code IS NOT NULL OR preview_issue_message IS NOT NULL",
+                [],
+            )
+            .map_err(database_error)?;
+        transaction
             .execute("DELETE FROM preview_artifacts", [])
             .map_err(database_error)?;
         transaction.commit().map_err(database_error)?;
@@ -728,6 +717,26 @@ impl CatalogRepository for SqliteCatalog {
         let updated = transaction
             .execute(
                 "UPDATE asset_locations
+                 SET preview_path = '', preview_status = 'pending',
+                     preview_issue_code = NULL, preview_issue_message = NULL
+                 WHERE preview_path <> ''
+                   AND lower(substr(preview_path, 1, length(?1))) <> lower(?1)",
+                [preview_root_prefix],
+            )
+            .map_err(database_error)?;
+        transaction
+            .execute(
+                "UPDATE library_change_catch_up_handoffs
+                 SET preview_path = '', preview_status = 'pending',
+                     preview_issue_code = NULL, preview_issue_message = NULL
+                 WHERE preview_path <> ''
+                   AND lower(substr(preview_path, 1, length(?1))) <> lower(?1)",
+                [preview_root_prefix],
+            )
+            .map_err(database_error)?;
+        transaction
+            .execute(
+                "UPDATE library_change_scan_handoff_items
                  SET preview_path = '', preview_status = 'pending',
                      preview_issue_code = NULL, preview_issue_message = NULL
                  WHERE preview_path <> ''
@@ -926,6 +935,16 @@ impl CatalogRepository for SqliteCatalog {
             "SELECT artifact_key, artifact_path
              FROM preview_artifacts
              WHERE lower(substr(artifact_path, 1, length(?4))) = lower(?4)
+               AND NOT EXISTS (
+                 SELECT 1 FROM library_change_catch_up_handoffs AS handoffs
+                 WHERE handoffs.preview_status = 'ready'
+                   AND handoffs.preview_path = preview_artifacts.artifact_path
+               )
+               AND NOT EXISTS (
+                 SELECT 1 FROM library_change_scan_handoff_items AS handoffs
+                 WHERE handoffs.preview_status = 'ready'
+                   AND handoffs.preview_path = preview_artifacts.artifact_path
+               )
              {protected_clause}
              ORDER BY
                CASE
@@ -972,7 +991,17 @@ impl CatalogRepository for SqliteCatalog {
         let deleted = transaction
             .execute(
                 "DELETE FROM preview_artifacts
-                 WHERE artifact_key = ?1 AND artifact_path = ?2",
+                 WHERE artifact_key = ?1 AND artifact_path = ?2
+                   AND NOT EXISTS (
+                     SELECT 1 FROM library_change_catch_up_handoffs AS handoffs
+                     WHERE handoffs.preview_status = 'ready'
+                       AND handoffs.preview_path = preview_artifacts.artifact_path
+                   )
+                   AND NOT EXISTS (
+                     SELECT 1 FROM library_change_scan_handoff_items AS handoffs
+                     WHERE handoffs.preview_status = 'ready'
+                       AND handoffs.preview_path = preview_artifacts.artifact_path
+                   )",
                 params![candidate.artifact_key, candidate.path],
             )
             .map_err(database_error)?;

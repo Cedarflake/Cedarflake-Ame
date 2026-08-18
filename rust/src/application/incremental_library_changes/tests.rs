@@ -13,7 +13,7 @@ use crate::domain::{
     AssetLocationView, DerivedEvidenceDisposition, LibraryChangeCatchUpEvidence,
     LibraryChangeCatchUpQueueBatch, LibraryChangeIntent, LibraryChangeIntentKind,
     LibraryChangeOrigin, LibraryChangeQueuePolicy, LibraryChangeScope, LibraryRootGeneration,
-    PreviewStatus, ScanRequest,
+    PreviewArtifact, PreviewStatus, ScanRequest,
 };
 use crate::ports::{
     CatalogRepository, IncrementalCatalogRepository, LibraryChangeQueue, MediaInspector,
@@ -582,19 +582,25 @@ fn compatible_rename_preserves_failed_preview_evidence() {
 #[cfg(windows)]
 #[test]
 fn source_first_cross_root_move_preserves_asset_and_preview_continuity() {
-    assert_cross_root_move_preserves_continuity("a-source", "z-destination", true, false);
+    assert_cross_root_move_preserves_continuity("a-source", "z-destination", true, false, false);
 }
 
 #[cfg(windows)]
 #[test]
 fn destination_first_cross_root_move_preserves_asset_and_preview_continuity() {
-    assert_cross_root_move_preserves_continuity("z-source", "a-destination", false, false);
+    assert_cross_root_move_preserves_continuity("z-source", "a-destination", false, false, false);
 }
 
 #[cfg(windows)]
 #[test]
 fn newer_watermark_keeps_an_older_cross_root_handoff_visible() {
-    assert_cross_root_move_preserves_continuity("a-source", "z-destination", true, true);
+    assert_cross_root_move_preserves_continuity("a-source", "z-destination", true, true, false);
+}
+
+#[cfg(windows)]
+#[test]
+fn preview_cleanup_downgrades_a_bounded_handoff_before_destination_adoption() {
+    assert_cross_root_move_preserves_continuity("a-source", "z-destination", true, false, true);
 }
 
 #[cfg(windows)]
@@ -757,6 +763,7 @@ fn assert_cross_root_move_preserves_continuity(
     destination_root_id: &str,
     source_first: bool,
     supersede_destination_watermark: bool,
+    cleanup_after_source: bool,
 ) {
     let storage = tempdir().expect("cross-root storage");
     let source_path = storage.path().join("source");
@@ -784,12 +791,37 @@ fn assert_cross_root_move_preserves_continuity(
         .load_incremental_location_by_relative_path(source_root_id, "old.png")
         .expect("load source location")
         .expect("source location");
-    original.preview_status = PreviewStatus::Failed;
-    original.preview_issue_code = Some("preview_decode_failed".to_owned());
-    original.preview_issue_message = Some("retained cross-root evidence".to_owned());
-    catalog
-        .update_active_preview(&original, None)
-        .expect("record retained preview evidence");
+    if cleanup_after_source {
+        original.preview_path = storage
+            .path()
+            .join("preview-before-cleanup.jpg")
+            .to_string_lossy()
+            .into_owned();
+        original.preview_status = PreviewStatus::Ready;
+        let artifact = PreviewArtifact {
+            artifact_key: "cross-root-preview-before-cleanup".to_owned(),
+            algorithm_id: "preview".to_owned(),
+            algorithm_version: 1,
+            orientation_contract: "orientation".to_owned(),
+            size_bucket: 256,
+            path: original.preview_path.clone(),
+            byte_size: 128,
+            encoded_width: original.width,
+            encoded_height: original.height,
+            width: original.width,
+            height: original.height,
+        };
+        catalog
+            .update_active_preview(&original, Some(&artifact))
+            .expect("record ready preview before cleanup");
+    } else {
+        original.preview_status = PreviewStatus::Failed;
+        original.preview_issue_code = Some("preview_decode_failed".to_owned());
+        original.preview_issue_message = Some("retained cross-root evidence".to_owned());
+        catalog
+            .update_active_preview(&original, None)
+            .expect("record retained preview evidence");
+    }
     fs::rename(
         source_path.join("old.png"),
         destination_path.join("new.png"),
@@ -832,6 +864,11 @@ fn assert_cross_root_move_preserves_continuity(
                 .expect("load snapshotted source")
                 .is_none()
         );
+        if cleanup_after_source {
+            catalog
+                .reset_all_previews_for_cleanup()
+                .expect("reset handoff preview before destination adoption");
+        }
     }
 
     if supersede_destination_watermark {
@@ -864,11 +901,18 @@ fn assert_cross_root_move_preserves_continuity(
         .expect("destination location");
     assert_eq!(moved.asset_id, original.asset_id);
     assert_eq!(moved.file_identity, original.file_identity);
-    assert!(matches!(moved.preview_status, PreviewStatus::Failed));
-    assert_eq!(
-        moved.preview_issue_code.as_deref(),
-        Some("preview_decode_failed")
-    );
+    if cleanup_after_source {
+        assert!(matches!(moved.preview_status, PreviewStatus::Pending));
+        assert!(moved.preview_path.is_empty());
+        assert!(moved.preview_issue_code.is_none());
+        assert!(moved.preview_issue_message.is_none());
+    } else {
+        assert!(matches!(moved.preview_status, PreviewStatus::Failed));
+        assert_eq!(
+            moved.preview_issue_code.as_deref(),
+            Some("preview_decode_failed")
+        );
+    }
 
     if !source_first {
         let source = process_ready_library_changes(

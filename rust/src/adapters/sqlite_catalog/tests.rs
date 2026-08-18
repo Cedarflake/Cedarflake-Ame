@@ -419,6 +419,166 @@ fn preview_reclamation_orders_stale_before_lru_and_preserves_protected_locations
 }
 
 #[test]
+fn handoff_preview_owners_survive_staling_and_reclamation_until_explicit_cleanup() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let mut catalog = SqliteCatalog::open(path).expect("catalog");
+    publish_fixture(
+        &mut catalog,
+        "handoff-owner-scan",
+        "handoff-owner-root",
+        "C:\\HandoffOwnerSource",
+        "handoff-owner-location",
+    );
+    let mut location = catalog
+        .load_active_location("handoff-owner-location")
+        .expect("active location query")
+        .expect("active location");
+    location.preview_path = "C:\\AmeCache\\handoff-owner.jpg".to_owned();
+    location.preview_status = PreviewStatus::Ready;
+    let artifact = PreviewArtifact {
+        artifact_key: "handoff-owner-artifact".to_owned(),
+        algorithm_id: "ame-jpeg-thumbnail".to_owned(),
+        algorithm_version: 2,
+        orientation_contract: "exif-display-v1".to_owned(),
+        size_bucket: 256,
+        path: location.preview_path.clone(),
+        byte_size: 1_024,
+        encoded_width: 40,
+        encoded_height: 50,
+        width: location.width,
+        height: location.height,
+    };
+    catalog
+        .update_active_preview(&location, Some(&artifact))
+        .expect("publish handoff-owned preview");
+    let identity = FileIdentityEvidence {
+        scheme: "windows-file-id-128-v1".to_owned(),
+        value: "handoff-owner-volume:file".to_owned(),
+    };
+    catalog
+        .connection
+        .execute(
+            "UPDATE asset_locations
+             SET file_identity_scheme = ?2, file_identity_value = ?3
+             WHERE location_id = ?1",
+            params![location.location_id, identity.scheme, identity.value],
+        )
+        .expect("assign handoff identity");
+    location.file_identity = Some(identity);
+    catalog
+        .connection
+        .execute_batch(
+            "INSERT INTO library_change_catch_up_handoffs(
+               catch_up_source, catch_up_watermark,
+               file_identity_scheme, file_identity_value,
+               asset_id, source_location_id, root_id, absolute_path, relative_path,
+               preview_path, file_size, created_unix_ms, modified_unix_ms,
+               width, height, preview_status, preview_issue_code, preview_issue_message,
+               metadata_engine_id, metadata_engine_version, capture_local_time,
+               capture_offset_minutes, capture_time_source, capture_raw_value,
+               updated_unix_ms
+             )
+             SELECT 'windows_usn_v1', 'legacy-owner',
+                    file_identity_scheme, file_identity_value,
+                    asset_id, location_id, root_id, absolute_path, relative_path,
+                    preview_path, file_size, created_unix_ms, modified_unix_ms,
+                    width, height, preview_status, preview_issue_code, preview_issue_message,
+                    metadata_engine_id, metadata_engine_version, capture_local_time,
+                    capture_offset_minutes, capture_time_source, capture_raw_value, 1
+             FROM asset_locations
+             WHERE scan_id = 'handoff-owner-scan' AND location_id = 'handoff-owner-location';
+             INSERT INTO library_change_scan_handoff_batches(id, source_root_id, updated_unix_ms)
+             VALUES ('handoff-owner-batch', 'handoff-owner-root', 1);
+             INSERT INTO library_change_scan_handoff_items(
+               batch_id, file_identity_scheme, file_identity_value,
+               asset_id, source_location_id, root_id, absolute_path, relative_path,
+               preview_path, file_size, created_unix_ms, modified_unix_ms,
+               width, height, preview_status, preview_issue_code, preview_issue_message,
+               metadata_engine_id, metadata_engine_version, capture_local_time,
+               capture_offset_minutes, capture_time_source, capture_raw_value
+             )
+             SELECT 'handoff-owner-batch', file_identity_scheme, file_identity_value,
+                    asset_id, location_id, root_id, absolute_path, relative_path,
+                    preview_path, file_size, created_unix_ms, modified_unix_ms,
+                    width, height, preview_status, preview_issue_code, preview_issue_message,
+                    metadata_engine_id, metadata_engine_version, capture_local_time,
+                    capture_offset_minutes, capture_time_source, capture_raw_value
+             FROM asset_locations
+             WHERE scan_id = 'handoff-owner-scan' AND location_id = 'handoff-owner-location';",
+        )
+        .expect("handoff preview owners");
+
+    location.preview_path.clear();
+    location.preview_status = PreviewStatus::Pending;
+    catalog
+        .update_active_preview(&location, None)
+        .expect("detach active preview owner");
+    assert_eq!(
+        preview_lifecycle_state(&catalog, &artifact.artifact_key),
+        "ready"
+    );
+    let candidates = catalog
+        .load_preview_reclamation_candidates(
+            &[],
+            "ame-jpeg-thumbnail",
+            2,
+            "exif-display-v1",
+            "c:\\amecache\\",
+            8,
+        )
+        .expect("handoff-protected reclamation candidates");
+    assert!(candidates.is_empty());
+    assert!(
+        !catalog
+            .remove_reclaimed_preview(&PreviewReclamationCandidate {
+                artifact_key: artifact.artifact_key.clone(),
+                path: artifact.path.clone(),
+            })
+            .expect("defensive handoff reclamation guard")
+    );
+
+    catalog
+        .reset_all_previews_for_cleanup()
+        .expect("explicit handoff preview cleanup");
+    let state: (i64, String, String, String, String) = catalog
+        .connection
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM preview_artifacts WHERE artifact_key = ?1),
+               (SELECT preview_status FROM library_change_catch_up_handoffs
+                WHERE catch_up_watermark = 'legacy-owner'),
+               (SELECT preview_path FROM library_change_catch_up_handoffs
+                WHERE catch_up_watermark = 'legacy-owner'),
+               (SELECT preview_status FROM library_change_scan_handoff_items
+                WHERE batch_id = 'handoff-owner-batch'),
+               (SELECT preview_path FROM library_change_scan_handoff_items
+                WHERE batch_id = 'handoff-owner-batch')",
+            [&artifact.artifact_key],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                ))
+            },
+        )
+        .expect("cleaned handoff preview state");
+    assert_eq!(
+        state,
+        (
+            0,
+            "pending".to_owned(),
+            String::new(),
+            "pending".to_owned(),
+            String::new()
+        )
+    );
+}
+
+#[test]
 fn shared_preview_is_protected_and_reset_through_every_active_location() {
     let directory = tempdir().expect("temporary directory");
     let path = directory.path().join("catalog.sqlite3");

@@ -430,6 +430,49 @@ fn validate_current_schema_contract(connection: &Connection) -> Result<(), ScanE
 }
 
 fn validate_change_catch_up_contract(connection: &Connection) -> Result<(), ScanError> {
+    let state_columns_match = table_columns_match(
+        connection,
+        "library_change_catch_up_state",
+        &[
+            ("volume_id", "TEXT", false, 1),
+            ("journal_id", "TEXT", true, 0),
+            ("next_usn", "TEXT", true, 0),
+            ("root_set_fingerprint", "TEXT", true, 0),
+            ("catalog_revision", "INTEGER", true, 0),
+            ("updated_unix_ms", "INTEGER", true, 0),
+        ],
+    )?;
+    let handoff_columns_match = table_columns_match(
+        connection,
+        "library_change_catch_up_handoffs",
+        &[
+            ("catch_up_source", "TEXT", true, 1),
+            ("catch_up_watermark", "TEXT", true, 2),
+            ("file_identity_scheme", "TEXT", true, 3),
+            ("file_identity_value", "TEXT", true, 4),
+            ("asset_id", "TEXT", true, 0),
+            ("source_location_id", "TEXT", true, 0),
+            ("root_id", "TEXT", true, 0),
+            ("absolute_path", "TEXT", true, 0),
+            ("relative_path", "TEXT", true, 0),
+            ("preview_path", "TEXT", true, 0),
+            ("file_size", "INTEGER", true, 0),
+            ("created_unix_ms", "INTEGER", false, 0),
+            ("modified_unix_ms", "INTEGER", true, 0),
+            ("width", "INTEGER", true, 0),
+            ("height", "INTEGER", true, 0),
+            ("preview_status", "TEXT", true, 0),
+            ("preview_issue_code", "TEXT", false, 0),
+            ("preview_issue_message", "TEXT", false, 0),
+            ("metadata_engine_id", "TEXT", true, 0),
+            ("metadata_engine_version", "TEXT", true, 0),
+            ("capture_local_time", "TEXT", false, 0),
+            ("capture_offset_minutes", "INTEGER", false, 0),
+            ("capture_time_source", "TEXT", false, 0),
+            ("capture_raw_value", "TEXT", false, 0),
+            ("updated_unix_ms", "INTEGER", true, 0),
+        ],
+    )?;
     let (
         has_table,
         has_marker,
@@ -594,7 +637,9 @@ fn validate_change_catch_up_contract(connection: &Connection) -> Result<(), Scan
             },
         )
         .map_err(database_error)?;
-    if !has_table
+    if !state_columns_match
+        || !handoff_columns_match
+        || !has_table
         || !has_marker
         || !has_path_index
         || !has_handoff_table
@@ -2765,6 +2810,40 @@ mod tests {
             .expect("extra-column lineage fixture");
 
         let error = migrate_schema(&mut connection).expect_err("extra required lineage column");
+
+        assert_eq!(error.code, "catalog_change_catch_up_contract_unverifiable");
+    }
+
+    #[test]
+    fn current_v19_checkpoint_with_incomplete_shape_fails_closed() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh v19 catalog");
+        connection
+            .execute_batch(
+                "DROP TABLE library_change_catch_up_state;
+                 CREATE TABLE library_change_catch_up_state(
+                   volume_id TEXT PRIMARY KEY
+                 );",
+            )
+            .expect("incomplete checkpoint fixture");
+
+        let error = migrate_schema(&mut connection).expect_err("incomplete checkpoint contract");
+
+        assert_eq!(error.code, "catalog_change_catch_up_contract_unverifiable");
+    }
+
+    #[test]
+    fn current_v19_legacy_handoff_with_extra_required_column_fails_closed() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh v19 catalog");
+        connection
+            .execute_batch(
+                "ALTER TABLE library_change_catch_up_handoffs
+                   ADD COLUMN unexpected_owner TEXT NOT NULL DEFAULT 'unknown';",
+            )
+            .expect("extra legacy handoff column fixture");
+
+        let error = migrate_schema(&mut connection).expect_err("extra legacy handoff column");
 
         assert_eq!(error.code, "catalog_change_catch_up_contract_unverifiable");
     }
