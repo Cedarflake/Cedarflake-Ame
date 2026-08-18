@@ -2309,3 +2309,116 @@ fn corrupt_rescan_preserves_the_last_trustworthy_published_location() {
         corrupt_bytes
     );
 }
+
+#[cfg(windows)]
+#[test]
+fn migrated_v17_placeholder_preserves_the_normalized_legacy_location() {
+    let source = tempdir().expect("source directory");
+    let storage = tempdir().expect("storage directory");
+    let album = source.path().join("album");
+    fs::create_dir(&album).expect("album directory");
+    let source_path = album.join("retained.png");
+    RgbaImage::from_pixel(8, 6, Rgba([20, 40, 60, 255]))
+        .save(&source_path)
+        .expect("fixture image");
+    let storage_paths = StoragePaths {
+        catalog_path: storage.path().join("catalog.sqlite3"),
+        preview_root: storage.path().join("previews"),
+        preview_budget_bytes: 64 * 1024 * 1024,
+        settings_path: storage.path().join("settings.sqlite3"),
+    };
+    run_scan_with_storage(
+        ScanRequest {
+            scan_id: "v17-normalization-initial".to_owned(),
+            root_path: source.path().to_string_lossy().into_owned(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+        |_| true,
+        storage_paths.clone(),
+    )
+    .expect("initial scan");
+    let before = load_test_snapshot(&storage_paths);
+    let before_asset = before.assets.first().expect("published asset");
+    let old_location_id = before_asset.location_id.clone();
+    let old_asset_id = before_asset.asset_id.clone();
+    let connection = Connection::open(&storage_paths.catalog_path).expect("catalog database");
+    connection
+        .execute_batch(
+            "PRAGMA foreign_keys = OFF;
+             DROP INDEX scan_runs_one_active_root;
+             ALTER TABLE library_change_queue DROP COLUMN authoritative_scan_id;
+             ALTER TABLE library_change_root_state DROP COLUMN last_consistency_audit_unix_ms;
+             ALTER TABLE scan_runs DROP COLUMN requires_previous_snapshot;
+             ALTER TABLE scan_runs DROP COLUMN root_generation_at_start;
+             ALTER TABLE scan_runs DROP COLUMN change_queue_high_watermark;
+             ALTER TABLE library_change_queue_contract
+               DROP COLUMN authoritative_recovery_complete;",
+        )
+        .expect("restore v17 table shape");
+    connection
+        .execute(
+            "UPDATE preview_artifact_locations
+             SET location_id = 'legacy-v17-location'
+             WHERE location_id = ?1",
+            [&old_location_id],
+        )
+        .expect("restore legacy preview owner");
+    connection
+        .execute(
+            "UPDATE asset_locations
+             SET relative_path = 'album\\retained.png',
+                 location_id = 'legacy-v17-location'
+             WHERE location_id = ?1",
+            [&old_location_id],
+        )
+        .expect("restore legacy location identity");
+    connection
+        .execute("UPDATE schema_info SET version = 17", [])
+        .expect("restore v17 version");
+    drop(connection);
+    set_scan_fixture_offline_attribute(&source_path, true);
+    let mut events = Vec::new();
+
+    run_scan_with_storage(
+        ScanRequest {
+            scan_id: "v17-normalization-placeholder-rescan".to_owned(),
+            root_path: source.path().to_string_lossy().into_owned(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+        |event| {
+            events.push(event);
+            true
+        },
+        storage_paths.clone(),
+    )
+    .expect("migrated placeholder rescan remains recoverable");
+    set_scan_fixture_offline_attribute(&source_path, false);
+
+    let after = load_test_snapshot(&storage_paths);
+    let retained = after.assets.first().expect("retained legacy location");
+    let version: i64 = Connection::open(&storage_paths.catalog_path)
+        .expect("migrated catalog")
+        .query_row("SELECT version FROM schema_info", [], |row| row.get(0))
+        .expect("schema version");
+    assert!(matches!(events.last(), Some(ScanEvent::Stale { .. })));
+    assert_eq!(version, 18);
+    assert_eq!(after.revision, before.revision);
+    assert_eq!(after.assets.len(), 1);
+    assert_eq!(retained.location_id, "legacy-v17-location");
+    assert_eq!(retained.relative_path, "album/retained.png");
+    assert_eq!(retained.asset_id, old_asset_id);
+}
+
+#[cfg(windows)]
+fn set_scan_fixture_offline_attribute(path: &std::path::Path, is_offline: bool) {
+    let status = std::process::Command::new("attrib.exe")
+        .arg(if is_offline { "+O" } else { "-O" })
+        .arg(path)
+        .status()
+        .expect("attrib executable");
+    assert!(status.success());
+}

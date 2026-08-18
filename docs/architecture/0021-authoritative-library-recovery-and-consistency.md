@@ -47,18 +47,23 @@ enumerated source set or the active catalog set exceeds the accepted bounds.
 
 ## Decision
 
-The application owns an authoritative recovery worker separate from the path worker. It leases one
+The application owns an authoritative recovery worker separate from the path worker. Production
+runs this worker on a cancellable background thread outside the desktop polling mutex and leases one
 subtree, root, or freshness-gap intent only when the root generation is current, a trustworthy
-catalog is published, and no full scan is active. It enumerates through the filesystem adapter with
-an absolute ceiling of 4,096 directory entries and 128 affected paths. The default audit interval is
-seven days. Policies cannot raise these ceilings or disable the interval bound.
+catalog is published, no full scan is active, and a healthy observer has established the current
+live-notification boundary. A failed or restarting observer therefore leaves its continuity gap
+durable until the restarted source is healthy. The worker enumerates through the filesystem adapter
+with an absolute ceiling of 4,096 directory entries and 128 affected paths. The default audit
+interval is seven days. Policies cannot raise these ceilings or disable the interval bound.
 
 The worker combines the final filesystem paths with every currently published location in the
 affected subtree. It prepares additions, modifications, identity-preserving moves, replacements,
 and authoritative absences through the same ADR 0007 reconciliation path as R2c-D, revalidates the
 complete set, and publishes all mutations plus queue completion in one catalog-delta transaction.
 Unreadable entries, containment failures, placeholders, database failures, or source races retry
-the durable intent without publishing a partial removal set.
+the durable intent without publishing a partial removal set. A cloud placeholder is unresolved
+whether or not a prior catalog location exists; recovery neither opens it nor records a successful
+audit for that scope.
 
 When the bounded set is exceeded, the worker restores the lease to pending and records one full-scan
 request. Production runs at most one recovery scan at a time on a background thread. Failures use a
@@ -66,7 +71,8 @@ per-root exponential retry from one second to five minutes; another root is not 
 state. Shutdown requests cancellation and keeps the desktop close path bounded.
 
 A full scan captures the current root generation and the highest unresolved queue ID in the same
-transaction that creates its scan run. Pending and retry rows through that watermark are frozen for
+transaction that creates its scan run. A transactional guard plus a unique partial index allow only
+one running or paused scan for a root. Pending and retry rows through that watermark are frozen for
 that scan without consuming their retry attempts. Publication requires the same active generation,
 publishes the catalog snapshot, and completes only queue work through the captured watermark in one
 transaction. Evidence arriving later remains unresolved. Abandonment releases only rows frozen by
@@ -74,9 +80,13 @@ that scan, leaving independent worker leases unchanged.
 
 Schema v18 adds the scan generation, queue watermark, previous-snapshot requirement, scan ownership
 of frozen queue rows, and last successful consistency-audit time. It also gives v18 an explicit
-contract marker so a prerelease database missing these guarantees fails closed. Migration from v17
+contract marker and validates the single-scan ownership index. An early prerelease v18 database
+with no conflicting active scans receives that index atomically; ambiguous overlapping ownership
+fails closed. Migration from v17
 normalizes catalog and scan relative paths to slash-separated form and invalidates pre-v18 running
-or paused scans whose queue authority cannot be reconstructed.
+or paused scans whose queue authority cannot be reconstructed. Because a v17 location identifier
+was derived from its historical path spelling, previous-snapshot preservation resolves the active
+location by root plus normalized relative path rather than recomputing a new identifier.
 
 The full-scan pipeline preserves the active catalog whenever an unreadable or uninspectable item
 requires prior evidence. This condition is persisted in the scan checkpoint and defensively blocks
@@ -97,10 +107,11 @@ actually publishes.
   selective release after scan abandonment;
 - scan fixtures prove corrupt rescans and limited replacement scans preserve the last trustworthy
   catalog, including restart-safe checkpoint rejection;
-- migration fixtures prove v17 to v18 path normalization, invalidation of unverifiable running
-  scans, and fail-closed handling of a prerelease v18 database;
-- runtime fixtures prove cold-start recovery, evidence-gap recovery, delayed audit completion, and
-  bounded per-root retry;
+- migration fixtures prove v17 to v18 path normalization, preservation of a legacy-identifier
+  placeholder, invalidation of unverifiable running scans, and fail-closed handling of a prerelease
+  v18 database;
+- runtime fixtures prove cold-start recovery, degraded-source restart continuity, background-only
+  authoritative work, cancellation, delayed audit completion, and bounded per-root retry;
 - complete format, Clippy, Rust, Flutter, Windows integration, bridge, Daily, and Windows release
   gates pass before the slice is merged;
 - no real-library root is accessed by this implementation validation.

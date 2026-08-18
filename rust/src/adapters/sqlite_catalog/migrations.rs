@@ -1,4 +1,4 @@
-use rusqlite::{Connection, OptionalExtension, Transaction, params};
+use rusqlite::{Connection, OptionalExtension, Transaction, TransactionBehavior, params};
 
 use crate::domain::ScanError;
 
@@ -29,7 +29,10 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             })
             .map_err(database_error)?;
         match version {
-            SCHEMA_VERSION => return validate_current_schema_contract(connection),
+            SCHEMA_VERSION => {
+                repair_prerelease_v18_scan_owner_index(connection)?;
+                return validate_current_schema_contract(connection);
+            }
             1 => migrate_v1_to_v2(connection)?,
             2 => migrate_v2_to_v3(connection)?,
             3 => migrate_v3_to_v4(connection)?,
@@ -102,6 +105,8 @@ fn create_schema_v18(transaction: &Transaction<'_>) -> Result<(), ScanError> {
                  CHECK(change_queue_high_watermark IS NULL OR change_queue_high_watermark > 0),
                FOREIGN KEY(root_id) REFERENCES library_roots(id)
              );
+             CREATE UNIQUE INDEX scan_runs_one_active_root
+               ON scan_runs(root_id) WHERE status IN ('running', 'paused');
              CREATE TABLE assets (
                id TEXT PRIMARY KEY,
                created_unix_ms INTEGER NOT NULL
@@ -383,6 +388,26 @@ fn create_library_change_queue_schema(transaction: &Transaction<'_>) -> Result<(
 
 fn validate_current_schema_contract(connection: &Connection) -> Result<(), ScanError> {
     validate_change_queue_authority(connection)?;
+    validate_authoritative_recovery_marker(connection)?;
+    let (has_scan_runs, has_single_scan_owner_index) = connection
+        .query_row(
+            "SELECT
+               EXISTS(SELECT 1 FROM sqlite_master
+                 WHERE type = 'table' AND name = 'scan_runs'),
+               EXISTS(SELECT 1 FROM pragma_index_list('scan_runs')
+                 WHERE name = 'scan_runs_one_active_root'
+                   AND \"unique\" = 1 AND partial = 1)",
+            [],
+            |row| Ok((row.get::<_, bool>(0)?, row.get::<_, bool>(1)?)),
+        )
+        .map_err(database_error)?;
+    if has_scan_runs && !has_single_scan_owner_index {
+        return Err(unverifiable_authoritative_recovery_contract());
+    }
+    Ok(())
+}
+
+fn validate_authoritative_recovery_marker(connection: &Connection) -> Result<(), ScanError> {
     let has_recovery_contract = connection
         .query_row(
             "SELECT EXISTS(
@@ -410,6 +435,63 @@ fn validate_current_schema_contract(connection: &Connection) -> Result<(), ScanE
         return Err(unverifiable_authoritative_recovery_contract());
     }
     Ok(())
+}
+
+fn repair_prerelease_v18_scan_owner_index(connection: &mut Connection) -> Result<(), ScanError> {
+    validate_change_queue_authority(connection)?;
+    validate_authoritative_recovery_marker(connection)?;
+    let (has_scan_runs, has_single_scan_owner_index) = connection
+        .query_row(
+            "SELECT
+               EXISTS(SELECT 1 FROM sqlite_master
+                 WHERE type = 'table' AND name = 'scan_runs'),
+               EXISTS(SELECT 1 FROM pragma_index_list('scan_runs')
+                 WHERE name = 'scan_runs_one_active_root'
+                   AND \"unique\" = 1 AND partial = 1)",
+            [],
+            |row| Ok((row.get::<_, bool>(0)?, row.get::<_, bool>(1)?)),
+        )
+        .map_err(database_error)?;
+    if !has_scan_runs || has_single_scan_owner_index {
+        return Ok(());
+    }
+    let transaction = connection
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .map_err(database_error)?;
+    let has_single_scan_owner_index = transaction
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM pragma_index_list('scan_runs')
+               WHERE name = 'scan_runs_one_active_root'
+                 AND \"unique\" = 1 AND partial = 1)",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    if has_single_scan_owner_index {
+        return transaction.commit().map_err(database_error);
+    }
+    let has_conflicting_scan = transaction
+        .query_row(
+            "SELECT EXISTS(
+               SELECT 1 FROM scan_runs
+               WHERE status IN ('running', 'paused')
+               GROUP BY root_id HAVING COUNT(*) > 1
+             )",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    if has_conflicting_scan {
+        return Err(unverifiable_authoritative_recovery_contract());
+    }
+    transaction
+        .execute(
+            "CREATE UNIQUE INDEX scan_runs_one_active_root
+             ON scan_runs(root_id) WHERE status IN ('running', 'paused')",
+            [],
+        )
+        .map_err(database_error)?;
+    transaction.commit().map_err(database_error)
 }
 
 fn validate_change_queue_authority(connection: &Connection) -> Result<(), ScanError> {
@@ -1021,7 +1103,9 @@ fn migrate_v17_to_v18(connection: &mut Connection) -> Result<(), ScanError> {
                      current_directory_relative_path = NULL,
                      current_directory_enumerated = 0,
                      last_visited_relative_path = NULL
-                 WHERE status IN ('running', 'paused');",
+                 WHERE status IN ('running', 'paused');
+                 CREATE UNIQUE INDEX scan_runs_one_active_root
+                   ON scan_runs(root_id) WHERE status IN ('running', 'paused');",
             )
             .map_err(database_error)?;
     }
@@ -1088,7 +1172,7 @@ mod tests {
     use super::{migrate_schema, migrate_v16_to_v17, migrate_v17_to_v18};
 
     #[test]
-    fn prerelease_v18_without_recovery_contract_marker_fails_closed() {
+    fn prerelease_v18_without_recovery_marker_fails_closed() {
         let mut connection = Connection::open_in_memory().expect("catalog");
         connection
             .execute_batch(
@@ -1100,9 +1184,77 @@ mod tests {
                  );
                  INSERT INTO library_change_queue_contract VALUES (1, 1);",
             )
-            .expect("prerelease v18 fixture");
+            .expect("prerelease v18 fixture without recovery marker");
 
         let error = migrate_schema(&mut connection).expect_err("missing recovery contract");
+
+        assert_eq!(
+            error.code,
+            "catalog_authoritative_recovery_contract_unverifiable"
+        );
+    }
+
+    #[test]
+    fn prerelease_v18_repairs_missing_single_scan_owner_index() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        connection
+            .execute_batch(
+                "CREATE TABLE schema_info(version INTEGER NOT NULL);
+                 INSERT INTO schema_info(version) VALUES (18);
+                 CREATE TABLE library_change_queue_contract(
+                   singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+                   root_authority_complete INTEGER NOT NULL CHECK(root_authority_complete = 1),
+                   authoritative_recovery_complete INTEGER NOT NULL
+                     CHECK(authoritative_recovery_complete = 1)
+                 );
+                 INSERT INTO library_change_queue_contract VALUES (1, 1, 1);
+                 CREATE TABLE scan_runs(
+                   id TEXT PRIMARY KEY,
+                   root_id TEXT NOT NULL,
+                   status TEXT NOT NULL
+                 );",
+            )
+            .expect("repairable prerelease v18 fixture");
+
+        migrate_schema(&mut connection).expect("repair scan ownership index");
+        let has_index = connection
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM pragma_index_list('scan_runs')
+                   WHERE name = 'scan_runs_one_active_root'
+                     AND \"unique\" = 1 AND partial = 1)",
+                [],
+                |row| row.get::<_, bool>(0),
+            )
+            .expect("scan index evidence");
+
+        assert!(has_index);
+    }
+
+    #[test]
+    fn prerelease_v18_with_overlapping_scans_fails_closed() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        connection
+            .execute_batch(
+                "CREATE TABLE schema_info(version INTEGER NOT NULL);
+                 INSERT INTO schema_info(version) VALUES (18);
+                 CREATE TABLE library_change_queue_contract(
+                   singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+                   root_authority_complete INTEGER NOT NULL CHECK(root_authority_complete = 1),
+                   authoritative_recovery_complete INTEGER NOT NULL
+                     CHECK(authoritative_recovery_complete = 1)
+                 );
+                 INSERT INTO library_change_queue_contract VALUES (1, 1, 1);
+                 CREATE TABLE scan_runs(
+                   id TEXT PRIMARY KEY,
+                   root_id TEXT NOT NULL,
+                   status TEXT NOT NULL
+                 );
+                 INSERT INTO scan_runs VALUES ('scan-a', 'root-a', 'running');
+                 INSERT INTO scan_runs VALUES ('scan-b', 'root-a', 'paused');",
+            )
+            .expect("conflicting prerelease v18 fixture");
+
+        let error = migrate_schema(&mut connection).expect_err("ambiguous scan ownership");
 
         assert_eq!(
             error.code,
@@ -1121,6 +1273,7 @@ mod tests {
                  INSERT INTO library_roots(id) VALUES ('root-a');
                  CREATE TABLE scan_runs(
                    id TEXT PRIMARY KEY,
+                   root_id TEXT NOT NULL,
                    status TEXT NOT NULL,
                    started_unix_ms INTEGER NOT NULL,
                    completed_unix_ms INTEGER,
@@ -1129,7 +1282,7 @@ mod tests {
                    last_visited_relative_path TEXT
                  );
                  INSERT INTO scan_runs VALUES (
-                   'scan-a', 'running', 1, NULL, 'album\\nested', 1,
+                   'scan-a', 'root-a', 'running', 1, NULL, 'album\\nested', 1,
                    'album\\nested\\photo.png'
                  );
                  CREATE TABLE asset_locations(relative_path TEXT NOT NULL);

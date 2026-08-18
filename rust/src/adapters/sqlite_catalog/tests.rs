@@ -3339,3 +3339,28 @@ fn fixture_request(scan_id: &str, root_path: &str) -> ScanRequest {
         preview_edge: 512,
     }
 }
+
+#[test]
+fn one_root_cannot_have_overlapping_authoritative_scans() {
+    let directory = tempdir().expect("catalog directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let mut first = SqliteCatalog::open(path.clone()).expect("first catalog");
+    let first_request = fixture_request("root-scan-a", "C:\\Pictures");
+    first
+        .begin_scan(&first_request, "root-a", &first_request.root_path)
+        .expect("begin first scan");
+    let mut second = SqliteCatalog::open(path).expect("second catalog");
+    let second_request = fixture_request("root-scan-b", "C:\\Pictures");
+
+    let error = second
+        .begin_scan(&second_request, "root-a", &second_request.root_path)
+        .expect_err("overlapping root scan must fail");
+
+    assert_eq!(error.code, "catalog_root_scan_in_progress");
+    first
+        .abandon_scan(&first_request.scan_id, "cancelled", 0)
+        .expect("release first scan");
+    second
+        .begin_scan(&second_request, "root-a", &second_request.root_path)
+        .expect("begin second scan after release");
+}

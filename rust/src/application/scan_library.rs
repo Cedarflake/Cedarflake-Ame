@@ -241,22 +241,24 @@ pub(super) fn run_scan_with_storage(
                     FileVisitOutcome::Issue(issue) => {
                         issue_count += 1;
                         catalog.record_issue(&request.scan_id, &issue)?;
-                        if had_published_root {
-                            let location_id = stable_location_id(&root_id, &visit.relative_path);
-                            if let Some(prior) = catalog.load_active_location(&location_id)? {
-                                catalog.stage_location(&request.scan_id, &root_id, &prior)?;
-                                accepted_items =
-                                    accepted_items.checked_add(1).ok_or_else(|| {
-                                        ScanError::new(
-                                            "accepted_item_count_overflow",
-                                            "The accepted item count exceeded the supported range",
-                                        )
-                                    })?;
-                                checkpoint.accepted_items = accepted_items;
-                                checkpoint.issue_count = issue_count;
-                                checkpoint.requires_previous_snapshot = true;
-                                catalog.checkpoint_scan(&request.scan_id, &checkpoint)?;
-                            }
+                        if had_published_root
+                            && let Some(prior) = catalog
+                                .load_incremental_location_by_relative_path(
+                                    &root_id,
+                                    &visit.relative_path,
+                                )?
+                        {
+                            catalog.stage_location(&request.scan_id, &root_id, &prior)?;
+                            accepted_items = accepted_items.checked_add(1).ok_or_else(|| {
+                                ScanError::new(
+                                    "accepted_item_count_overflow",
+                                    "The accepted item count exceeded the supported range",
+                                )
+                            })?;
+                            checkpoint.accepted_items = accepted_items;
+                            checkpoint.issue_count = issue_count;
+                            checkpoint.requires_previous_snapshot = true;
+                            catalog.checkpoint_scan(&request.scan_id, &checkpoint)?;
                         }
                         discovered_event = Some(ScanEvent::Issue {
                             scan_id: request.scan_id.clone(),

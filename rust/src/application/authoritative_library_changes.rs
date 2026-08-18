@@ -1,4 +1,5 @@
 use std::collections::{BTreeSet, VecDeque};
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::adapters::{FileDiscovery, FileVisitOutcome};
 use crate::domain::{
@@ -69,7 +70,34 @@ pub(crate) fn process_ready_authoritative_library_change<Repository>(
 where
     Repository: IncrementalCatalogRepository + LibraryChangeQueue,
 {
+    let cancellation = AtomicBool::new(false);
+    process_ready_authoritative_library_change_cancellable(
+        repository,
+        root_id,
+        root_generation,
+        now_unix_ms,
+        queue_policy,
+        recovery_policy,
+        &cancellation,
+    )
+}
+
+pub(crate) fn process_ready_authoritative_library_change_cancellable<Repository>(
+    repository: &mut Repository,
+    root_id: &str,
+    root_generation: LibraryRootGeneration,
+    now_unix_ms: i64,
+    queue_policy: LibraryChangeQueuePolicy,
+    recovery_policy: AuthoritativeRecoveryPolicy,
+    cancellation: &AtomicBool,
+) -> Result<AuthoritativeLibraryChangeReport, ScanError>
+where
+    Repository: IncrementalCatalogRepository + LibraryChangeQueue,
+{
     validate_policy(recovery_policy)?;
+    if cancellation.load(Ordering::Relaxed) {
+        return Ok(AuthoritativeLibraryChangeReport::default());
+    }
     let Some(root) = repository.load_incremental_catalog_root(root_id)? else {
         return Ok(AuthoritativeLibraryChangeReport::default());
     };
@@ -111,7 +139,8 @@ where
         }
     };
     let scopes = recovery_scopes(&leased)?;
-    let observed_paths = match enumerate_scopes(&discovery, &scopes, recovery_policy) {
+    let observed_paths = match enumerate_scopes(&discovery, &scopes, recovery_policy, cancellation)
+    {
         Ok(paths) => paths,
         Err(EnumerationFailure::Capacity) => {
             return escalate_to_full_scan(
@@ -132,9 +161,25 @@ where
                 queue_policy,
             );
         }
+        Err(EnumerationFailure::Cancelled) => {
+            return defer_authoritative_change(
+                repository,
+                &leased,
+                root.catalog_revision,
+                now_unix_ms,
+            );
+        }
     };
     let mut paths = observed_paths;
     for scope in &scopes {
+        if cancellation.load(Ordering::Relaxed) {
+            return defer_authoritative_change(
+                repository,
+                &leased,
+                root.catalog_revision,
+                now_unix_ms,
+            );
+        }
         let locations = repository.load_incremental_locations_in_subtree(
             root_id,
             scope,
@@ -173,6 +218,7 @@ where
             relative_paths: &relative_paths,
             now_unix_ms,
             queue_policy,
+            cancellation,
         },
     )?;
     Ok(AuthoritativeLibraryChangeReport {
@@ -211,12 +257,16 @@ fn enumerate_scopes(
     discovery: &FileDiscovery,
     scopes: &[String],
     policy: AuthoritativeRecoveryPolicy,
+    cancellation: &AtomicBool,
 ) -> Result<BTreeSet<String>, EnumerationFailure> {
     let mut paths = BTreeSet::new();
     let mut directories = VecDeque::new();
     let mut scheduled_directories = BTreeSet::new();
     let mut visited_entries = 0_u32;
     for scope in scopes {
+        if cancellation.load(Ordering::Relaxed) {
+            return Err(EnumerationFailure::Cancelled);
+        }
         if scope.is_empty() {
             schedule_directory(&mut directories, &mut scheduled_directories, String::new());
             continue;
@@ -230,17 +280,22 @@ fn enumerate_scopes(
             }
             FileVisitOutcome::Ignored => {}
             FileVisitOutcome::Issue(issue) if issue.code == "file_missing" => {}
-            FileVisitOutcome::Issue(issue) if issue.code == "cloud_placeholder_skipped" => {}
             FileVisitOutcome::Issue(issue) => {
                 return Err(EnumerationFailure::Issue(scan_issue_failure(issue)));
             }
         }
     }
     while let Some(directory) = directories.pop_front() {
+        if cancellation.load(Ordering::Relaxed) {
+            return Err(EnumerationFailure::Cancelled);
+        }
         let entries = discovery
             .checked_entry_paths_in_directory(&directory)
             .map_err(|issue| EnumerationFailure::Issue(scan_issue_failure(issue)))?;
         for relative_path in entries {
+            if cancellation.load(Ordering::Relaxed) {
+                return Err(EnumerationFailure::Cancelled);
+            }
             let relative_path = relative_path
                 .map_err(|issue| EnumerationFailure::Issue(scan_issue_failure(issue)))?;
             visited_entries = visited_entries
@@ -261,7 +316,6 @@ fn enumerate_scopes(
                 }
                 FileVisitOutcome::Ignored => {}
                 FileVisitOutcome::Issue(issue) if issue.code == "file_missing" => {}
-                FileVisitOutcome::Issue(issue) if issue.code == "cloud_placeholder_skipped" => {}
                 FileVisitOutcome::Issue(issue) => {
                     return Err(EnumerationFailure::Issue(scan_issue_failure(issue)));
                 }
@@ -310,6 +364,32 @@ where
             root_generation: leased.change.intent.root_generation,
             queue_high_watermark: leased.change.id,
         }),
+    })
+}
+
+fn defer_authoritative_change<Repository>(
+    repository: &mut Repository,
+    leased: &LeasedLibraryChange,
+    catalog_revision: u64,
+    now_unix_ms: i64,
+) -> Result<AuthoritativeLibraryChangeReport, ScanError>
+where
+    Repository: LibraryChangeQueue,
+{
+    let mut incremental = IncrementalLibraryChangeReport {
+        leased_count: 1,
+        catalog_revision,
+        ..IncrementalLibraryChangeReport::default()
+    };
+    match repository.defer_library_change(leased.change.id, leased.lease_generation, now_unix_ms)? {
+        LibraryChangeLeaseUpdateOutcome::Applied => incremental.deferred_count = 1,
+        LibraryChangeLeaseUpdateOutcome::Superseded
+        | LibraryChangeLeaseUpdateOutcome::LeaseMismatch
+        | LibraryChangeLeaseUpdateOutcome::Missing => incremental.superseded_count = 1,
+    }
+    Ok(AuthoritativeLibraryChangeReport {
+        incremental,
+        full_scan: None,
     })
 }
 
@@ -367,6 +447,7 @@ fn scan_issue_failure(issue: ScanIssue) -> LibraryChangeFailure {
 enum EnumerationFailure {
     Capacity,
     Issue(LibraryChangeFailure),
+    Cancelled,
 }
 
 #[cfg(test)]

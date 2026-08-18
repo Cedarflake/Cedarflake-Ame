@@ -1,3 +1,5 @@
+use std::sync::atomic::{AtomicBool, Ordering};
+
 use crate::adapters::{FileDiscovery, FileVisitOutcome, LocalMediaInspector, user_visible_path};
 use crate::domain::{
     AssetLocationView, CatalogDeltaBatch, CatalogDeltaMutation, CatalogDeltaPublicationStatus,
@@ -167,6 +169,7 @@ pub(super) struct AuthoritativePathSetRequest<'a> {
     pub relative_paths: &'a [String],
     pub now_unix_ms: i64,
     pub queue_policy: LibraryChangeQueuePolicy,
+    pub cancellation: &'a AtomicBool,
 }
 
 pub(super) fn process_authoritative_path_set<Repository>(
@@ -177,6 +180,9 @@ where
     Repository: IncrementalCatalogRepository + LibraryChangeQueue,
 {
     validate_request(request.root_id, request.queue_policy)?;
+    if request.cancellation.load(Ordering::Relaxed) {
+        return defer_authoritative_path_set(repository, &request);
+    }
     let discovery = match repository.load_incremental_catalog_root(request.root_id)? {
         Some(root)
             if root.root_generation == request.root_generation
@@ -206,6 +212,9 @@ where
         revalidation: Vec::new(),
     };
     for relative_path in request.relative_paths {
+        if request.cancellation.load(Ordering::Relaxed) {
+            return defer_authoritative_path_set(repository, &request);
+        }
         let prepared = match prepare_path_change(
             repository,
             &discovery,
@@ -248,6 +257,10 @@ where
         catalog_revision: request.expected_catalog_revision,
         ..IncrementalLibraryChangeReport::default()
     };
+    if request.cancellation.load(Ordering::Relaxed) {
+        defer_leased_change(repository, request.leased, request.now_unix_ms, &mut report)?;
+        return Ok(report);
+    }
     if let Err(issue) = revalidate_change(&discovery, &combined) {
         retry_changes(
             repository,
@@ -257,6 +270,10 @@ where
             request.queue_policy,
             &mut report,
         )?;
+        return Ok(report);
+    }
+    if request.cancellation.load(Ordering::Relaxed) {
+        defer_leased_change(repository, request.leased, request.now_unix_ms, &mut report)?;
         return Ok(report);
     }
     let batch = CatalogDeltaBatch {
@@ -288,6 +305,22 @@ where
             )?;
         }
     }
+    Ok(report)
+}
+
+fn defer_authoritative_path_set<Repository>(
+    repository: &mut Repository,
+    request: &AuthoritativePathSetRequest<'_>,
+) -> Result<IncrementalLibraryChangeReport, ScanError>
+where
+    Repository: LibraryChangeQueue,
+{
+    let mut report = IncrementalLibraryChangeReport {
+        leased_count: 1,
+        catalog_revision: request.expected_catalog_revision,
+        ..IncrementalLibraryChangeReport::default()
+    };
+    defer_leased_change(repository, request.leased, request.now_unix_ms, &mut report)?;
     Ok(report)
 }
 

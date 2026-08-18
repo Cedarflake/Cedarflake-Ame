@@ -165,27 +165,45 @@ fn authoritative_scan_publication_preserves_evidence_arriving_after_its_watermar
 }
 
 #[test]
-fn abandoning_authoritative_scan_immediately_releases_only_its_frozen_work() {
+fn abandoning_authoritative_scan_releases_only_its_frozen_work() {
     let directory = tempdir().expect("temporary directory");
     let path = directory.path().join("catalog.sqlite3");
     let generation = LibraryRootGeneration::initial();
-    let policy = immediate_policy();
+    let policy = LibraryChangeQueuePolicy {
+        max_lease_batch: 1,
+        ..immediate_policy()
+    };
     let mut catalog = queue_catalog(path);
     catalog
         .enqueue_library_change_intents(
-            &[intent(
+            &[path_intent(
                 "root-a",
                 generation,
                 1,
                 1_000,
-                LibraryChangeIntentKind::FreshnessUnknown,
-                LibraryChangeScope::Root,
-                "",
+                "worker-owned.jpg",
             )],
             1_000,
             policy,
         )
-        .expect("enqueue recovery gap");
+        .expect("enqueue worker-owned path");
+    let worker_lease = catalog
+        .lease_path_library_changes("root-a", generation, 1_000, policy)
+        .expect("lease worker path");
+    assert_eq!(worker_lease.len(), 1);
+    catalog
+        .enqueue_library_change_intents(
+            &[path_intent(
+                "root-a",
+                generation,
+                2,
+                1_001,
+                "scan-owned.jpg",
+            )],
+            1_001,
+            policy,
+        )
+        .expect("enqueue scan-owned path");
     let request = scan_request("abandoned-authoritative-scan");
     catalog
         .begin_scan(&request, "root-a", &request.root_path)
@@ -194,33 +212,45 @@ fn abandoning_authoritative_scan_immediately_releases_only_its_frozen_work() {
         .abandon_scan("abandoned-authoritative-scan", "stale", 1)
         .expect("abandon authoritative scan");
 
-    let (status, ready_unix_ms, lease_expires, scan_owner): (
-        String,
-        i64,
-        Option<i64>,
-        Option<String>,
-    ) = catalog
+    let rows = catalog
         .connection
-        .query_row(
-            "SELECT status, ready_unix_ms, lease_expires_unix_ms, authoritative_scan_id
-             FROM library_change_queue",
-            [],
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        .prepare(
+            "SELECT id, status, ready_unix_ms, lease_expires_unix_ms, authoritative_scan_id
+             FROM library_change_queue ORDER BY id",
         )
-        .expect("released queue row");
-    let leased = catalog
-        .lease_authoritative_library_change("root-a", generation, ready_unix_ms, policy)
-        .expect("lease released recovery work")
-        .expect("released work is ready");
+        .expect("queue query")
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, i64>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, i64>(2)?,
+                row.get::<_, Option<i64>>(3)?,
+                row.get::<_, Option<String>>(4)?,
+            ))
+        })
+        .expect("queue rows")
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .expect("queue evidence");
 
-    assert_eq!(status, "pending");
-    assert_eq!(lease_expires, None);
-    assert_eq!(scan_owner, None);
+    assert_eq!(rows.len(), 2);
     assert_eq!(
-        leased.change.intent.kind,
-        LibraryChangeIntentKind::FreshnessUnknown
+        u64::try_from(rows[0].0).expect("worker queue id"),
+        worker_lease[0].change.id.value()
     );
-    assert_eq!(leased.change.attempt_count, 1);
+    assert_eq!(rows[0].1, "leased");
+    assert!(rows[0].3.is_some());
+    assert_eq!(rows[0].4, None);
+    assert_eq!(rows[1].1, "pending");
+    assert_eq!(rows[1].3, None);
+    assert_eq!(rows[1].4, None);
+    let released = catalog
+        .lease_path_library_changes("root-a", generation, rows[1].2, policy)
+        .expect("lease released scan work");
+    assert_eq!(released.len(), 1);
+    assert_eq!(
+        released[0].change.id.value(),
+        u64::try_from(rows[1].0).expect("released queue id")
+    );
 }
 
 #[test]

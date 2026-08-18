@@ -559,7 +559,10 @@ fn root_freshness_intent(
     range: Option<ObservationRange>,
     overflow_observation_count: Option<u64>,
 ) -> LibraryChangeIntent {
-    let range = range.unwrap_or_default();
+    let range = range.unwrap_or(ObservationRange {
+        observation_count: 1,
+        ..ObservationRange::default()
+    });
     LibraryChangeIntent {
         root_id: context.root_id.clone(),
         root_generation: context.root_generation,

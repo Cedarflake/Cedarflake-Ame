@@ -244,6 +244,7 @@ fn evidence_gap_and_unhealthy_source_require_authoritative_root_reconciliation()
             LibraryChangeIntentKind::FreshnessUnknown
         );
         assert_eq!(result.intents[0].scope, LibraryChangeScope::Root);
+        assert_eq!(result.intents[0].coalesced_observation_count, 1);
     }
 }
 

@@ -16,8 +16,8 @@ mod scan_library;
 mod storage;
 
 pub(crate) use authoritative_library_changes::{
-    AuthoritativeRecoveryPolicy, FullScanRecoveryRequest,
-    process_ready_authoritative_library_change,
+    AuthoritativeLibraryChangeReport, AuthoritativeRecoveryPolicy, FullScanRecoveryRequest,
+    process_ready_authoritative_library_change_cancellable,
 };
 pub use directory_synchronization::{plan_library_changes, reconcile_path_evidence};
 pub use incremental_library_changes::process_ready_library_changes;

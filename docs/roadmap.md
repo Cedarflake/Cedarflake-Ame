@@ -1766,11 +1766,13 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
 - R0 and R1 are accepted. The Rust-owned SQLite catalog, Flutter/Rust bridge, external preview
   storage, resumable multi-root scanning, atomic publication, per-file issue isolation, file
   identity, and revision-safe bounded queries are connected end to end.
-- The catalog schema is v17 and the storage-settings schema is v2. Schema v17 adds the durable
-  normalized change queue, root-generation tombstones, lease/retry state, catalog-revision
-  evidence, bounded terminal-row retention, and permanent highest-generation authority without
-  losing the v16 preview ownership reconciliation or earlier root, scan, asset, location, frontier,
-  capture-evidence, identity, and query evidence.
+- The catalog schema is v18 and the storage-settings schema is v2. Schema v17 introduced the
+  durable normalized change queue, root-generation tombstones, lease/retry state, catalog-revision
+  evidence, bounded terminal-row retention, and permanent highest-generation authority. Schema v18
+  adds authoritative scan ownership, generation and queue-watermark capture, previous-snapshot
+  preservation, consistency-audit evidence, normalized historical relative paths, and single-scan
+  root ownership without losing the v16 preview ownership reconciliation or earlier root, scan,
+  asset, location, frontier, capture-evidence, identity, and query evidence.
 - The authorized read-only target-library acceptance published 30,629 locations for
   `local-primary` and 48,384 for `cloud-primary`, for 79,013 active locations in one retained
   catalog. Sampled source bytes and source entries remained unchanged, and cloud-only placeholders
@@ -1917,10 +1919,13 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   work for that scan without consuming retry attempts, preserves later evidence, and releases only
   its own rows on abandonment. It normalizes historical relative paths, persists a fail-closed
   previous-snapshot requirement for unreadable rescans, and records authoritative audit completion.
-  Production recovery runs one background scan with bounded per-root retry, while the seven-day
-  consistency audit cannot project freshness before publication. Controlled fixtures do not access
-  a real library; complete Daily, Windows Release, and independent-audit evidence remains required
-  before this bullet is promoted to complete.
+  Production runs both bounded reconciliation and full-scan escalation outside the polling mutex,
+  only after a healthy observer establishes continuity, with cancellable shutdown and bounded
+  per-root retry. Placeholders remain unresolved without hydration or false audit success, v17 path
+  normalization preserves legacy location identity, and one root cannot own overlapping active
+  scans. The seven-day consistency audit cannot project freshness before publication. Controlled
+  fixtures do not access a real library; complete Daily, Windows Release, and independent-audit
+  evidence remains required before this bullet is promoted to complete.
 - The current R2b closeout working tree passed the complete local Daily gate and Windows Release
   gate on 2026-08-12, including packaged Rust-library loading and the release bridge smoke test.
   This is current-stage evidence, not a release candidate or completion of R10.

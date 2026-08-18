@@ -136,6 +136,22 @@ impl CatalogRepository for SqliteCatalog {
             )
             .map_err(database_error)?;
         activate_root_change_queue(&transaction, root_id, now)?;
+        let has_conflicting_scan = transaction
+            .query_row(
+                "SELECT EXISTS(
+                   SELECT 1 FROM scan_runs
+                   WHERE root_id = ?1 AND status IN ('running', 'paused') AND id <> ?2
+                 )",
+                params![root_id, request.scan_id],
+                |row| row.get::<_, bool>(0),
+            )
+            .map_err(database_error)?;
+        if has_conflicting_scan {
+            return Err(ScanError::new(
+                "catalog_root_scan_in_progress",
+                "Another authoritative scan already owns this library root",
+            ));
+        }
         let (root_generation_at_start, change_queue_high_watermark) = transaction
             .query_row(
                 "SELECT state.generation,

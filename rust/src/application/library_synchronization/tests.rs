@@ -1,6 +1,8 @@
 use std::collections::VecDeque;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::Duration;
 
 use image::{Rgb, RgbImage};
 use tempfile::tempdir;
@@ -251,6 +253,128 @@ fn evidence_gap_runs_bounded_authoritative_reconciliation_before_clearing() {
     );
     assert_eq!(snapshot.roots[0].freshness_unknown_count, 0);
     assert_eq!(snapshot.applied_mutation_count, 0);
+}
+
+#[test]
+fn degraded_source_keeps_the_gap_until_the_restarted_observer_is_healthy() {
+    let fixture = RuntimeFixture::new();
+    let factory = FakeFactory::default();
+    let mut runtime = runtime(factory.clone());
+    let mut catalog = fixture.catalog;
+    runtime
+        .poll(&mut catalog, 900, |_| LibraryRootAvailability::Available)
+        .expect("complete startup recovery");
+    factory
+        .state
+        .lock()
+        .expect("fake state")
+        .batches
+        .push_back(LibraryChangeSourceBatch {
+            observations: vec![LibraryChangeObservation {
+                root_id: fixture.root_id.clone(),
+                root_generation: LibraryRootGeneration::initial(),
+                sequence: 1,
+                observed_unix_ms: 1_000,
+                kind: LibraryChangeObservationKind::EvidenceGap,
+                scope: LibraryChangeScope::Root,
+                relative_path: String::new(),
+                previous_relative_path: None,
+                origin: LibraryChangeOrigin::LiveNotification,
+            }],
+            health: LibraryChangeSourceHealth::Degraded,
+            dropped_observation_count: 1,
+            ignored_callback_count: 0,
+        });
+
+    let degraded = runtime
+        .poll(&mut catalog, 1_000, |_| LibraryRootAvailability::Available)
+        .expect("retain degraded evidence gap");
+    assert_eq!(
+        degraded.roots[0].freshness,
+        CatalogFreshnessState::NeedsReconciliation
+    );
+    assert_eq!(
+        degraded.roots[0].source_health,
+        LibraryChangeSourceHealth::Degraded
+    );
+    write_png(
+        &fixture.source_root.join("during-restart.png"),
+        7,
+        5,
+        [20, 30, 40],
+    );
+    assert!(
+        catalog
+            .load_incremental_location_by_relative_path(&fixture.root_id, "during-restart.png",)
+            .expect("load absent location")
+            .is_none()
+    );
+
+    let mut recovered = None;
+    for _ in 0..100 {
+        let snapshot = runtime
+            .poll(&mut catalog, 1_250, |_| LibraryRootAvailability::Available)
+            .expect("advance observer restart");
+        if snapshot.roots[0].freshness == CatalogFreshnessState::Synchronized {
+            recovered = Some(snapshot);
+            break;
+        }
+        thread::sleep(Duration::from_millis(5));
+    }
+    let recovered = recovered.expect("restarted observer eventually reconciles the retained gap");
+
+    assert_eq!(
+        recovered.roots[0].source_health,
+        LibraryChangeSourceHealth::Healthy
+    );
+    assert_eq!(factory.state.lock().expect("fake state").start_count, 2);
+    assert!(
+        catalog
+            .load_incremental_location_by_relative_path(&fixture.root_id, "during-restart.png",)
+            .expect("load recovered location")
+            .is_some()
+    );
+}
+
+#[test]
+fn production_poll_mode_leaves_authoritative_work_for_the_background_worker() {
+    let fixture = RuntimeFixture::new();
+    let factory = FakeFactory::default();
+    let mut runtime = runtime(factory);
+    let mut catalog = fixture.catalog;
+    write_png(
+        &fixture.source_root.join("background.png"),
+        7,
+        5,
+        [20, 30, 40],
+    );
+
+    let pending = runtime
+        .poll_without_authoritative_recovery(&mut catalog, 1_000, |_| {
+            LibraryRootAvailability::Available
+        })
+        .expect("production-mode poll");
+
+    assert_eq!(pending.applied_mutation_count, 0);
+    assert_eq!(
+        pending.roots[0].freshness,
+        CatalogFreshnessState::NeedsReconciliation
+    );
+    assert!(
+        catalog
+            .load_incremental_location_by_relative_path(&fixture.root_id, "background.png")
+            .expect("load pending location")
+            .is_none()
+    );
+
+    let completed = runtime
+        .poll(&mut catalog, 1_100, |_| LibraryRootAvailability::Available)
+        .expect("test-only inline recovery");
+    assert_eq!(completed.applied_mutation_count, 1);
+    assert_eq!(
+        completed.roots[0].freshness,
+        CatalogFreshnessState::Synchronized
+    );
 }
 
 #[test]

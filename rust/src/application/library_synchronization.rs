@@ -15,10 +15,11 @@ use crate::ports::{
 #[cfg(test)]
 use crate::ports::{LibraryChangeSourceFactory, erase_library_change_source_factory};
 
+use super::authoritative_library_changes::process_ready_authoritative_library_change;
 use super::library_change_observer::LibraryChangeObserver;
 use super::{
     AuthoritativeRecoveryPolicy, FullScanRecoveryRequest, enqueue_library_change_plan,
-    process_ready_authoritative_library_change, process_ready_library_changes,
+    process_ready_library_changes,
 };
 
 mod production;
@@ -90,11 +91,37 @@ impl LibrarySynchronizationRuntime {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn poll<Repository>(
         &mut self,
         repository: &mut Repository,
         now_unix_ms: i64,
+        inspect_availability: impl FnMut(&str) -> LibraryRootAvailability,
+    ) -> Result<LibrarySynchronizationSnapshot, ScanError>
+    where
+        Repository: IncrementalCatalogRepository + LibraryChangeQueue,
+    {
+        self.poll_internal(repository, now_unix_ms, inspect_availability, true)
+    }
+
+    pub(crate) fn poll_without_authoritative_recovery<Repository>(
+        &mut self,
+        repository: &mut Repository,
+        now_unix_ms: i64,
+        inspect_availability: impl FnMut(&str) -> LibraryRootAvailability,
+    ) -> Result<LibrarySynchronizationSnapshot, ScanError>
+    where
+        Repository: IncrementalCatalogRepository + LibraryChangeQueue,
+    {
+        self.poll_internal(repository, now_unix_ms, inspect_availability, false)
+    }
+
+    fn poll_internal<Repository>(
+        &mut self,
+        repository: &mut Repository,
+        now_unix_ms: i64,
         mut inspect_availability: impl FnMut(&str) -> LibraryRootAvailability,
+        process_authoritative_recovery: bool,
     ) -> Result<LibrarySynchronizationSnapshot, ScanError>
     where
         Repository: IncrementalCatalogRepository + LibraryChangeQueue,
@@ -179,7 +206,10 @@ impl LibrarySynchronizationRuntime {
                 }
             }
 
-            if availability == LibraryRootAvailability::Available {
+            if process_authoritative_recovery
+                && availability == LibraryRootAvailability::Available
+                && runtime.source_health == LibraryChangeSourceHealth::Healthy
+            {
                 let recovery = process_ready_authoritative_library_change(
                     repository,
                     &root.root_id,
@@ -200,6 +230,8 @@ impl LibrarySynchronizationRuntime {
                 if recovery.full_scan.is_some() {
                     runtime.pending_full_scan = recovery.full_scan;
                 }
+            }
+            if availability == LibraryRootAvailability::Available {
                 let report = process_ready_library_changes(
                     repository,
                     &root.root_id,
@@ -323,6 +355,23 @@ impl LibrarySynchronizationRuntime {
             .values()
             .filter_map(|runtime| runtime.pending_full_scan.clone())
             .collect()
+    }
+
+    pub(crate) const fn queue_policy(&self) -> LibraryChangeQueuePolicy {
+        self.queue_policy
+    }
+
+    pub(crate) const fn recovery_policy(&self) -> AuthoritativeRecoveryPolicy {
+        self.recovery_policy
+    }
+
+    pub(crate) fn record_full_scan_request(&mut self, request: FullScanRecoveryRequest) {
+        let Some(runtime) = self.roots.get_mut(&request.root_id) else {
+            return;
+        };
+        if runtime.root.root_generation == request.root_generation {
+            runtime.pending_full_scan = Some(request);
+        }
     }
 
     pub(crate) fn acknowledge_full_scan_started(

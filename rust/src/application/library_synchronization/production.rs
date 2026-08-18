@@ -23,7 +23,10 @@ use crate::domain::{RecoverableScan, ScanEvent, ScanRequest};
 #[cfg(windows)]
 use super::LibrarySynchronizationRuntime;
 #[cfg(windows)]
-use crate::application::{cancel_scan, run_scan, storage_paths};
+use crate::application::{
+    AuthoritativeLibraryChangeReport, cancel_scan,
+    process_ready_authoritative_library_change_cancellable, run_scan, storage_paths,
+};
 #[cfg(windows)]
 use crate::ports::CatalogRepository;
 
@@ -46,10 +49,22 @@ struct ProductionSynchronization {
 #[cfg(windows)]
 struct RecoveryTask {
     root_id: String,
-    scan_id: String,
+    kind: RecoveryTaskKind,
     cancelled: Arc<AtomicBool>,
-    receiver: Receiver<Result<(), ScanError>>,
+    receiver: Receiver<Result<RecoveryTaskOutcome, ScanError>>,
     worker: Option<JoinHandle<()>>,
+}
+
+#[cfg(windows)]
+enum RecoveryTaskKind {
+    Authoritative,
+    FullScan { scan_id: String },
+}
+
+#[cfg(windows)]
+enum RecoveryTaskOutcome {
+    Authoritative(AuthoritativeLibraryChangeReport),
+    FullScan,
 }
 
 #[cfg(windows)]
@@ -124,7 +139,7 @@ fn poll_runtime(
     let storage = storage_paths()?;
     let now_unix_ms = now_unix_ms()?;
     let mut catalog = SqliteCatalog::open(storage.catalog_path)?;
-    runtime.poll_recovery(now_unix_ms)?;
+    let recovered_mutation_count = runtime.poll_recovery(now_unix_ms)?;
     if !runtime.checked_recoverable_scan && runtime.recovery.is_none() {
         if let Some(recoverable) = catalog.load_recoverable_scan()? {
             let root_id = recovery_root_id(&recoverable);
@@ -136,37 +151,65 @@ fn poll_runtime(
             runtime.checked_recoverable_scan = true;
         }
     }
-    let snapshot = runtime
-        .runtime
-        .poll(&mut catalog, now_unix_ms, |root_path| {
-            inspect_root_availability(root_path).availability
+    let mut snapshot = runtime.runtime.poll_without_authoritative_recovery(
+        &mut catalog,
+        now_unix_ms,
+        |root_path| inspect_root_availability(root_path).availability,
+    )?;
+    snapshot.applied_mutation_count = snapshot
+        .applied_mutation_count
+        .checked_add(recovered_mutation_count)
+        .ok_or_else(|| {
+            ScanError::new(
+                "library_synchronization_count_overflow",
+                "The synchronization mutation count exceeded the supported range",
+            )
         })?;
-    if runtime.recovery.is_none()
-        && let Some(request) = runtime
+    if runtime.recovery.is_none() {
+        if let Some(request) = runtime
             .runtime
             .pending_full_scan_requests()
             .into_iter()
             .find(|request| runtime.recovery_is_due(&request.root_id, now_unix_ms))
-    {
-        let scan_id = format!(
-            "sync-recovery-{}-{}-{}",
-            request.root_generation.value(),
-            request.queue_high_watermark.value(),
-            now_unix_ms,
-        );
-        runtime.start_recovery_scan(
-            request.root_id.clone(),
-            ScanRequest {
-                scan_id,
-                root_path: request.root_path,
-                max_items: None,
-                max_entries: None,
-                preview_edge: 512,
-            },
-        )?;
-        runtime
-            .runtime
-            .acknowledge_full_scan_started(&request.root_id, request.queue_high_watermark);
+        {
+            let scan_id = format!(
+                "sync-recovery-{}-{}-{}",
+                request.root_generation.value(),
+                request.queue_high_watermark.value(),
+                now_unix_ms,
+            );
+            runtime.start_recovery_scan(
+                request.root_id.clone(),
+                ScanRequest {
+                    scan_id,
+                    root_path: request.root_path,
+                    max_items: None,
+                    max_entries: None,
+                    preview_edge: 512,
+                },
+            )?;
+            runtime
+                .runtime
+                .acknowledge_full_scan_started(&request.root_id, request.queue_high_watermark);
+        } else if let Some(root) = snapshot.roots.iter().find(|root| {
+            root.availability == crate::domain::LibraryRootAvailability::Available
+                && root.source_health == crate::domain::LibraryChangeSourceHealth::Healthy
+                && (root.pending_change_count > 0 || root.retry_wait_count > 0)
+                && runtime.recovery_is_due(&root.root_id, now_unix_ms)
+        }) {
+            let root_generation = crate::domain::LibraryRootGeneration::new(root.root_generation)
+                .ok_or_else(|| {
+                ScanError::new(
+                    "library_root_generation_invalid",
+                    "The synchronization root generation is invalid",
+                )
+            })?;
+            runtime.start_authoritative_recovery(
+                root.root_id.clone(),
+                root_generation,
+                now_unix_ms,
+            )?;
+        }
     }
     Ok(snapshot)
 }
@@ -186,9 +229,9 @@ fn lock_runtime() -> Result<MutexGuard<'static, Option<ProductionSynchronization
 
 #[cfg(windows)]
 impl ProductionSynchronization {
-    fn poll_recovery(&mut self, now_unix_ms: i64) -> Result<(), ScanError> {
+    fn poll_recovery(&mut self, now_unix_ms: i64) -> Result<u32, ScanError> {
         let Some(task) = self.recovery.as_mut() else {
-            return Ok(());
+            return Ok(0);
         };
         let result = match task.receiver.try_recv() {
             Ok(result) => Some(result),
@@ -199,24 +242,35 @@ impl ProductionSynchronization {
             ))),
         };
         let Some(result) = result else {
-            return Ok(());
+            return Ok(0);
         };
         let root_id = task.root_id.clone();
+        let was_full_scan = matches!(&task.kind, RecoveryTaskKind::FullScan { .. });
         if let Some(worker) = task.worker.take() {
             let _ = worker.join();
         }
         self.recovery = None;
         match result {
-            Ok(()) => {
+            Ok(RecoveryTaskOutcome::Authoritative(report)) => {
                 self.recovery_retries.remove(&root_id);
+                if let Some(request) = report.full_scan {
+                    self.runtime.record_full_scan_request(request);
+                }
+                Ok(report.incremental.applied_mutation_count)
+            }
+            Ok(RecoveryTaskOutcome::FullScan) => {
+                self.recovery_retries.remove(&root_id);
+                Ok(0)
             }
             Err(error) => {
                 self.record_recovery_failure(&root_id, now_unix_ms);
-                self.checked_recoverable_scan = false;
+                if was_full_scan {
+                    self.checked_recoverable_scan = false;
+                }
                 self.runtime.record_full_scan_failure(&root_id, error.code);
+                Ok(0)
             }
         }
-        Ok(())
     }
 
     fn start_recoverable_scan(&mut self, recoverable: RecoverableScan) -> Result<(), ScanError> {
@@ -231,6 +285,55 @@ impl ProductionSynchronization {
                 preview_edge: recoverable.preview_edge,
             },
         )
+    }
+
+    fn start_authoritative_recovery(
+        &mut self,
+        root_id: String,
+        root_generation: crate::domain::LibraryRootGeneration,
+        now_unix_ms: i64,
+    ) -> Result<(), ScanError> {
+        if self.recovery.is_some() {
+            return Ok(());
+        }
+        let catalog_path = storage_paths()?.catalog_path;
+        let queue_policy = self.runtime.queue_policy();
+        let recovery_policy = self.runtime.recovery_policy();
+        let cancelled = Arc::new(AtomicBool::new(false));
+        let worker_cancelled = Arc::clone(&cancelled);
+        let worker_root_id = root_id.clone();
+        let (sender, receiver) = mpsc::sync_channel(1);
+        let worker = thread::Builder::new()
+            .name("ame-bounded-authoritative-recovery".to_owned())
+            .spawn(move || {
+                let result = SqliteCatalog::open(catalog_path).and_then(|mut catalog| {
+                    process_ready_authoritative_library_change_cancellable(
+                        &mut catalog,
+                        &worker_root_id,
+                        root_generation,
+                        now_unix_ms,
+                        queue_policy,
+                        recovery_policy,
+                        &worker_cancelled,
+                    )
+                    .map(RecoveryTaskOutcome::Authoritative)
+                });
+                let _ = sender.send(result);
+            })
+            .map_err(|error| {
+                ScanError::new(
+                    "authoritative_recovery_worker_start_failed",
+                    format!("Could not start bounded authoritative recovery: {error}"),
+                )
+            })?;
+        self.recovery = Some(RecoveryTask {
+            root_id,
+            kind: RecoveryTaskKind::Authoritative,
+            cancelled,
+            receiver,
+            worker: Some(worker),
+        });
+        Ok(())
     }
 
     fn start_recovery_scan(
@@ -248,7 +351,8 @@ impl ProductionSynchronization {
         let worker = thread::Builder::new()
             .name("ame-authoritative-recovery".to_owned())
             .spawn(move || {
-                let result = run_recovery_scan(request, &worker_cancelled);
+                let result = run_recovery_scan(request, &worker_cancelled)
+                    .map(|()| RecoveryTaskOutcome::FullScan);
                 let _ = sender.send(result);
             })
             .map_err(|error| {
@@ -259,7 +363,7 @@ impl ProductionSynchronization {
             })?;
         self.recovery = Some(RecoveryTask {
             root_id,
-            scan_id,
+            kind: RecoveryTaskKind::FullScan { scan_id },
             cancelled,
             receiver,
             worker: Some(worker),
@@ -278,7 +382,9 @@ impl ProductionSynchronization {
             return Ok(());
         };
         task.cancelled.store(true, Ordering::Release);
-        let _ = cancel_scan(&task.scan_id);
+        if let RecoveryTaskKind::FullScan { scan_id } = &task.kind {
+            let _ = cancel_scan(scan_id);
+        }
         match task.receiver.recv_timeout(Duration::from_secs(2)) {
             Ok(_) => {
                 if let Some(worker) = task.worker.take() {
@@ -426,5 +532,39 @@ mod tests {
             retry.next_attempt_unix_ms,
             2_000 + RECOVERY_RETRY_MAXIMUM_MILLIS
         );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn stopping_bounded_recovery_signals_and_joins_the_background_worker() {
+        let factory = crate::adapters::production_library_change_source_factory();
+        let cancelled = Arc::new(AtomicBool::new(false));
+        let worker_cancelled = Arc::clone(&cancelled);
+        let (sender, receiver) = mpsc::sync_channel(1);
+        let worker = thread::spawn(move || {
+            while !worker_cancelled.load(Ordering::Acquire) {
+                thread::yield_now();
+            }
+            let _ = sender.send(Ok(RecoveryTaskOutcome::Authoritative(
+                AuthoritativeLibraryChangeReport::default(),
+            )));
+        });
+        let mut production = ProductionSynchronization {
+            runtime: LibrarySynchronizationRuntime::new_erased(factory),
+            recovery: Some(RecoveryTask {
+                root_id: "root-a".to_owned(),
+                kind: RecoveryTaskKind::Authoritative,
+                cancelled: Arc::clone(&cancelled),
+                receiver,
+                worker: Some(worker),
+            }),
+            checked_recoverable_scan: true,
+            recovery_retries: BTreeMap::new(),
+        };
+
+        production.stop_recovery().expect("stop bounded recovery");
+
+        assert!(cancelled.load(Ordering::Acquire));
+        assert!(production.recovery.is_none());
     }
 }
