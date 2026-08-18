@@ -1,9 +1,14 @@
+import "dart:async";
+
 import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/features/library/adapters/windows_library_platform_actions.dart";
+import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_platform_actions.dart";
+import "package:cedarflake_ame/features/library/application/library_synchronization.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
+import "package:cedarflake_ame/features/library/domain/library_synchronization_models.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_photo_tile.dart";
 import "package:flutter/material.dart";
@@ -102,6 +107,102 @@ void main() {
       r"\\?\G:\CloudLibrary\图片\1.jpg",
     ]);
   });
+
+  testWidgets(
+    "synchronization keeps a renamed viewer asset and closes an authoritative removal",
+    (tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final initialState = _libraryState(assetCount: 1);
+      final initialAsset = initialState.assets.single;
+      final initialSnapshot = LibrarySnapshot(
+        catalogPath: initialState.catalogPath ?? "",
+        revision: initialState.catalogRevision ?? BigInt.one,
+        queryId: initialState.queryId,
+        roots: initialState.roots,
+        assets: initialState.assets,
+      );
+      final catalog = _SynchronizationViewerCatalog(initialSnapshot);
+      final synchronization = _TestLibrarySynchronization(
+        _synchronizationSnapshot(BigInt.one),
+      );
+      addTearDown(synchronization.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            initialLibraryStateProvider.overrideWithValue(initialState),
+            libraryCatalogProvider.overrideWithValue(catalog),
+            librarySynchronizationProvider.overrideWithValue(synchronization),
+          ],
+          child: const AmeApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final openingTile = find.byType(LibraryPhotoTile).hitTestable().first;
+      final openingTileRect = tester.getRect(openingTile);
+      await tester.tapAt(openingTileRect.topLeft + const Offset(16, 16));
+      await tester.pump();
+      expect(find.byKey(const Key("viewer-back-button")), findsOneWidget);
+      expect(find.text("0.jpg"), findsOneWidget);
+
+      final renamedAsset = _assetAtPath(
+        initialAsset,
+        locationId: "location-renamed",
+        relativePath: "renamed.jpg",
+      );
+      catalog.snapshot = LibrarySnapshot(
+        catalogPath: initialSnapshot.catalogPath,
+        revision: BigInt.two,
+        queryId: initialSnapshot.queryId,
+        roots: initialSnapshot.roots,
+        assets: [renamedAsset],
+        queryAnchorResolution: const LibraryQueryAnchorResolution(
+          requestedLocationId: "location-0",
+          locationId: "location-renamed",
+          ordinal: 0,
+          windowStartItemOffset: 0,
+        ),
+      );
+      synchronization.publish(_synchronizationSnapshot(BigInt.two));
+      await _pumpSynchronizationRefresh(tester);
+
+      expect(find.byKey(const Key("viewer-back-button")), findsOneWidget);
+      expect(find.text("renamed.jpg"), findsOneWidget);
+      expect(catalog.requestedLocationIds, ["location-0"]);
+      expect(catalog.preferredLocationIds, ["location-0"]);
+
+      final fallbackAsset = _assetAtPath(
+        initialAsset,
+        assetId: "asset-fallback",
+        locationId: "location-fallback",
+        relativePath: "fallback.jpg",
+      );
+      catalog.snapshot = LibrarySnapshot(
+        catalogPath: initialSnapshot.catalogPath,
+        revision: BigInt.from(3),
+        queryId: initialSnapshot.queryId,
+        roots: initialSnapshot.roots,
+        assets: [fallbackAsset],
+        queryAnchorResolution: const LibraryQueryAnchorResolution(
+          requestedLocationId: "location-renamed",
+          locationId: "location-fallback",
+          ordinal: 0,
+          windowStartItemOffset: 0,
+        ),
+      );
+      synchronization.publish(_synchronizationSnapshot(BigInt.from(3)));
+      await _pumpSynchronizationRefresh(tester);
+
+      expect(find.byKey(const Key("viewer-back-button")), findsNothing);
+      expect(find.byKey(const Key("library-photo-wall")), findsOneWidget);
+      expect(catalog.requestedLocationIds, ["location-0", "location-renamed"]);
+      expect(catalog.preferredLocationIds, ["location-0", "location-renamed"]);
+    },
+  );
 }
 
 Future<void> _revealCurrentViewerFile(WidgetTester tester) async {
@@ -111,6 +212,12 @@ Future<void> _revealCurrentViewerFile(WidgetTester tester) async {
   await tester.tap(find.text(LibraryStrings.openInExplorer));
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 500));
+}
+
+Future<void> _pumpSynchronizationRefresh(WidgetTester tester) async {
+  for (var index = 0; index < 8; index++) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
 }
 
 LibraryState _libraryState({
@@ -154,6 +261,142 @@ LibraryState _libraryState({
       assets: assets,
     ),
   );
+}
+
+LibraryAsset _assetAtPath(
+  LibraryAsset source, {
+  String? assetId,
+  required String locationId,
+  required String relativePath,
+}) {
+  return LibraryAsset(
+    assetId: assetId ?? source.assetId,
+    locationId: locationId,
+    rootId: source.rootId,
+    sourcePath: "C:\\Pictures\\$relativePath",
+    displayPath: "C:\\Pictures\\$relativePath",
+    relativePath: relativePath,
+    previewPath: source.previewPath,
+    fileSize: source.fileSize,
+    createdUnixMs: source.createdUnixMs,
+    modifiedUnixMs: source.modifiedUnixMs,
+    width: source.width,
+    height: source.height,
+    previewStatus: source.previewStatus,
+    previewIssueCode: source.previewIssueCode,
+    previewIssueMessage: source.previewIssueMessage,
+    metadataEngineId: source.metadataEngineId,
+    metadataEngineVersion: source.metadataEngineVersion,
+    captureTime: source.captureTime,
+    fileIdentity: source.fileIdentity,
+  );
+}
+
+LibrarySynchronizationSnapshot _synchronizationSnapshot(BigInt revision) {
+  return LibrarySynchronizationSnapshot(
+    isRunning: true,
+    catalogRevision: revision,
+    appliedMutationCount: 1,
+    roots: const {},
+  );
+}
+
+class _TestLibrarySynchronization implements LibrarySynchronization {
+  _TestLibrarySynchronization(this._current);
+
+  final StreamController<LibrarySynchronizationSnapshot> _updates =
+      StreamController.broadcast(sync: true);
+  LibrarySynchronizationSnapshot _current;
+
+  @override
+  LibrarySynchronizationSnapshot get current => _current;
+
+  @override
+  Future<void> start() async {}
+
+  @override
+  Future<void> stop() async {}
+
+  @override
+  Stream<LibrarySynchronizationSnapshot> watch() => _updates.stream;
+
+  void publish(LibrarySynchronizationSnapshot snapshot) {
+    _current = snapshot;
+    _updates.add(snapshot);
+  }
+
+  Future<void> dispose() => _updates.close();
+}
+
+class _SynchronizationViewerCatalog
+    implements
+        LibraryCatalog,
+        LibraryStableQueryAnchorCatalog,
+        LibraryStableAssetCatalog {
+  _SynchronizationViewerCatalog(this.snapshot);
+
+  LibrarySnapshot snapshot;
+  final List<String> requestedLocationIds = [];
+  final List<String?> preferredLocationIds = [];
+
+  @override
+  Future<LibrarySnapshot> loadAroundAsset({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    required String requestedLocationId,
+    required String anchorAssetId,
+    required int fallbackGlobalItemIndex,
+  }) async {
+    requestedLocationIds.add(requestedLocationId);
+    return snapshot;
+  }
+
+  @override
+  Future<LibraryAsset?> loadAssetById({
+    required String assetId,
+    String? preferredLocationId,
+  }) async {
+    preferredLocationIds.add(preferredLocationId);
+    for (final asset in snapshot.assets) {
+      if (asset.assetId == assetId) {
+        return asset;
+      }
+    }
+    return null;
+  }
+
+  @override
+  Future<LibrarySnapshot> load({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    LibraryCatalogCursor? after,
+    LibraryCatalogCursor? before,
+  }) async => snapshot;
+
+  @override
+  Future<LibrarySnapshot> loadAtTime({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    required LibraryTimeAnchor anchor,
+  }) async => snapshot;
+
+  @override
+  Future<LibraryTimeline> loadTimeline(LibraryGalleryQuery query) async {
+    return LibraryTimeline(
+      revision: snapshot.revision,
+      queryId: snapshot.queryId,
+      totalItems: snapshot.assets.length,
+      buckets: [
+        LibraryTimeBucket(
+          itemCount: snapshot.assets.length,
+          aspectRatioSum: snapshot.assets.length * 4 / 3,
+        ),
+      ],
+    );
+  }
+
+  @override
+  Future<bool> unregisterRoot(String rootId) async => true;
 }
 
 class _RecordingPlatformActions implements LibraryPlatformActions {

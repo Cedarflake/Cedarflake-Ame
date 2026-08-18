@@ -211,6 +211,24 @@ void main() {
     }
   });
 
+  testWidgets("shows reconciliation when startup fails before root status", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: _buildNavigation(
+            hasSynchronizationFailure: true,
+            includeRootStatus: false,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text(LibraryStrings.needsReconciliation), findsOneWidget);
+    expect(find.text(LibraryStrings.synchronizing), findsNothing);
+  });
+
   testWidgets("keeps the populated application semantics reachable", (
     tester,
   ) async {
@@ -427,7 +445,10 @@ LibraryState _populatedLibraryState() {
   );
 }
 
-Widget _buildNavigation() {
+Widget _buildNavigation({
+  bool hasSynchronizationFailure = false,
+  bool includeRootStatus = true,
+}) {
   const folderPath = "Long album name that needs a path tooltip";
   return Align(
     alignment: Alignment.topLeft,
@@ -447,19 +468,22 @@ Widget _buildNavigation() {
           availability: LibraryRootAvailability.available,
         ),
       ],
-      rootSynchronizationStatuses: {
-        "root-1": LibraryRootSynchronizationStatus(
-          rootId: "root-1",
-          rootGeneration: BigInt.one,
-          availability: LibraryRootAvailability.available,
-          freshness: LibraryCatalogFreshness.synchronized,
-          freshnessCause: LibraryCatalogFreshnessCause.noPendingChanges,
-          sourceStatus: LibraryChangeSourceStatus.healthy,
-          pendingChangeCount: BigInt.zero,
-          retryWaitCount: BigInt.zero,
-          freshnessUnknownCount: BigInt.zero,
-        ),
-      },
+      rootSynchronizationStatuses: includeRootStatus
+          ? {
+              "root-1": LibraryRootSynchronizationStatus(
+                rootId: "root-1",
+                rootGeneration: BigInt.one,
+                availability: LibraryRootAvailability.available,
+                freshness: LibraryCatalogFreshness.synchronized,
+                freshnessCause: LibraryCatalogFreshnessCause.noPendingChanges,
+                sourceStatus: LibraryChangeSourceStatus.healthy,
+                pendingChangeCount: BigInt.zero,
+                retryWaitCount: BigInt.zero,
+                freshnessUnknownCount: BigInt.zero,
+              ),
+            }
+          : const {},
+      hasSynchronizationFailure: hasSynchronizationFailure,
       selectedRootId: "root-1",
       selectedFolderRelativePath: null,
       transientRootPath: null,

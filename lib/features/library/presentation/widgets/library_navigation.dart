@@ -22,6 +22,7 @@ class LibraryNavigation extends StatefulWidget {
     required this.isSettingsSelected,
     required this.roots,
     this.rootSynchronizationStatuses = const {},
+    this.hasSynchronizationFailure = false,
     required this.selectedRootId,
     required this.selectedFolderRelativePath,
     required this.transientRootPath,
@@ -47,6 +48,7 @@ class LibraryNavigation extends StatefulWidget {
   final List<LibraryRoot> roots;
   final Map<String, LibraryRootSynchronizationStatus>
   rootSynchronizationStatuses;
+  final bool hasSynchronizationFailure;
   final String? selectedRootId;
   final String? selectedFolderRelativePath;
   final String? transientRootPath;
@@ -171,6 +173,8 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                       root: root,
                       synchronizationStatus:
                           widget.rootSynchronizationStatuses[root.id],
+                      hasSynchronizationFailure:
+                          widget.hasSynchronizationFailure,
                       isCompact: widget.isCompact,
                       isSelected:
                           !widget.isSettingsSelected &&

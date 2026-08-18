@@ -15,11 +15,17 @@ class WindowManagerActions with WindowListener implements AmeWindowActions {
   WindowManagerActions(
     this._preferenceStore, {
     required this._shutdownCoordinator,
+    Duration maximumShutdownDuration = const Duration(seconds: 6),
+    Future<void> Function()? destroyWindow,
     AmeWindowPlacement? initialNormalPlacement,
-  }) : _normalPlacement = initialNormalPlacement?.copyWith(isMaximized: false);
+  }) : _shutdownTimeout = maximumShutdownDuration,
+       _destroyWindow = destroyWindow ?? windowManager.destroy,
+       _normalPlacement = initialNormalPlacement?.copyWith(isMaximized: false);
 
   final AmeWindowPreferenceStore _preferenceStore;
   final AmeShutdownCoordinator _shutdownCoordinator;
+  final Duration _shutdownTimeout;
+  final Future<void> Function() _destroyWindow;
   final ValueNotifier<bool> _isMaximized = ValueNotifier(false);
   AmeWindowPlacement? _normalPlacement;
   Timer? _placementSaveDebounce;
@@ -151,11 +157,11 @@ class WindowManagerActions with WindowListener implements AmeWindowActions {
   Future<void> _closeAfterShutdown() async {
     _beginClosing();
     try {
-      await _shutdownCoordinator.shutdown().timeout(const Duration(seconds: 6));
+      await _shutdownCoordinator.shutdown().timeout(_shutdownTimeout);
     } on Object {
       // A bounded shutdown must not leave the desktop window trapped open.
     }
-    await windowManager.destroy();
+    await _destroyWindow();
   }
 
   void _runBackground(Future<void> operation) {

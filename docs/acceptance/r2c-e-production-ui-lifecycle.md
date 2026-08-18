@@ -17,18 +17,20 @@ The controlled fixtures prove:
 | Boundary | Required result |
 | --- | --- |
 | Desktop start | Start one synchronization runtime after Rust and the initial catalog are ready |
+| Continuity authority | Persist a root freshness gap on cold start and after an unavailable interval |
 | Registered roots | Start one observer for each available root and stop removed or reconfigured roots |
+| Queue handoff | Retain a drained observer plan across SQLite enqueue failure and retry it first |
 | Path publication | Drain live path evidence through the durable queue and advance the catalog revision |
 | Unsupported scope | Retain subtree, root, and freshness-gap work for R2c-F without consuming retries |
 | Unavailable root | Preserve cached catalog state, avoid observer startup, and show `目录不可用` |
 | Degraded source | Preserve the last trustworthy revision and show `需要核对` |
 | Root metrics | Report bounded queue counts for only the requested root generation |
-| Stable anchor | Resolve a logical asset to its current location after an identity-preserving rename |
+| Stable anchor | Prefer the requested active location, follow a rename, and fall back near the prior ordinal after removal |
 | Background refresh | Keep old assets visible until the newer revision and timeline publish together |
 | Selection | Preserve explicit asset selection across a revision and clear complete-query select-all |
-| Viewer | Follow the same logical asset across a rename and close when that asset is removed |
+| Viewer | Remain independent from the bounded detail window, follow a preferred location across rename, and close only after authoritative removal |
 | Navigation state | Preserve source, filters, layout, preview demand, and logical scroll position |
-| Product status | Render `已同步`, `正在更新图库`, `需要核对`, or `目录不可用` on source rows |
+| Product status | Render `已同步`, `正在更新图库`, `需要核对`, or `目录不可用`, including start failure before root metrics exist |
 | Manual refresh | Route `更新图库` through the application scan use case |
 | Polling | Prevent overlapping polls and coalesce newer catalog revisions |
 | Stop | Wait for an active poll and invoke Rust stop only once |
@@ -40,12 +42,15 @@ The controlled fixtures prove:
 
 ```text
 cargo test --manifest-path rust/Cargo.toml library_synchronization::tests -- --nocapture
-6 passed; 0 failed
+8 passed; 0 failed
 
 cargo test --manifest-path rust/Cargo.toml root_metrics_are_isolated_from_other_roots -- --nocapture
 1 passed; 0 failed
 
-cargo test --manifest-path rust/Cargo.toml gallery_asset_anchor_follows_a_renamed_location -- --nocapture
+cargo test --manifest-path rust/Cargo.toml gallery_asset_anchor -- --nocapture
+2 passed; 0 failed
+
+cargo test --manifest-path rust/Cargo.toml missing_asset_anchor_falls_back_to_the_nearest_surviving_ordinal -- --nocapture
 1 passed; 0 failed
 
 ./tool/quality_test_flutter.ps1 -TestPath test/features/library/application/library_synchronization_test.dart
@@ -58,8 +63,10 @@ The complete Flutter run additionally proved:
 ame_shutdown_coordinator_test.dart: 2 passed
 library_controller_test.dart: 40 passed
 gallery_selection_test.dart: 4 passed
-library_navigation_semantics_test.dart: 4 passed
+library_navigation_semantics_test.dart: 5 passed
 unified_library_screen_test.dart: 31 passed
+library_viewer_position_test.dart: 3 passed
+window_manager_actions_test.dart: 2 passed
 ```
 
 ## Complete repository evidence
@@ -72,7 +79,7 @@ typed bridge generation and release Rust compilation: passed
 format, release guardrails, Clippy with warnings denied, and Dart analysis: passed
 
 ./tool/quality_verify_daily.ps1
-Rust: 284 total; 279 passed; 0 failed; 5 existing explicit ignores
+Rust: 288 total; 283 passed; 0 failed; 5 existing explicit ignores
 Flutter: all test files passed
 Windows controlled picker and scan integration: 2 passed
 Windows native accessibility integration: 2 passed
@@ -88,6 +95,11 @@ a Dart or `flutter_tester` child. It was stopped, and the identical repository c
 scoped sandbox approval required by `AGENTS.md`; no SDK lock was deleted and no unrelated process was
 terminated. The complete Daily and Windows release gates were then run directly with that same scoped
 approval.
+
+The audit-hardening run additionally exercised a real screen subscription across an
+identity-preserving rename and an authoritative removal, a SQLite-triggered queue enqueue failure,
+preferred-location selection for a multi-location asset, removal fallback at the prior ordinal, a
+bridge failure before the first root status, and destruction after the configured shutdown timeout.
 
 ## Remaining boundary
 

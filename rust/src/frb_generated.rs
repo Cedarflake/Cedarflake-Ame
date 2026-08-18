@@ -38,7 +38,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1376785178;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 527042355;
 
 // Section: executor
 
@@ -223,6 +223,43 @@ fn wire__crate__api__initialization__init_app_impl(
         },
     )
 }
+fn wire__crate__api__catalog__load_library_asset_by_id_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "load_library_asset_by_id",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_asset_id = <String>::sse_decode(&mut deserializer);
+            let api_preferred_location_id = <Option<String>>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let output_ok = crate::api::catalog::load_library_asset_by_id(
+                        api_asset_id,
+                        api_preferred_location_id,
+                    )?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
 fn wire__crate__api__catalog__load_library_catalog_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -290,6 +327,7 @@ fn wire__crate__api__catalog__load_library_catalog_around_asset_impl(
             let api_query = <crate::domain::GalleryQuery>::sse_decode(&mut deserializer);
             let api_requested_location_id = <String>::sse_decode(&mut deserializer);
             let api_anchor_asset_id = <String>::sse_decode(&mut deserializer);
+            let api_fallback_ordinal = <u64>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, crate::domain::ScanError>((move || {
@@ -298,6 +336,7 @@ fn wire__crate__api__catalog__load_library_catalog_around_asset_impl(
                         api_query,
                         api_requested_location_id,
                         api_anchor_asset_id,
+                        api_fallback_ordinal,
                     )?;
                     Ok(output_ok)
                 })())
@@ -1559,6 +1598,17 @@ impl SseDecode for Option<String> {
     }
 }
 
+impl SseDecode for Option<crate::domain::AssetLocationView> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<crate::domain::AssetLocationView>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
+    }
+}
+
 impl SseDecode for Option<crate::domain::CaptureTimeEvidence> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -2107,53 +2157,59 @@ fn pde_ffi_dispatcher_primary_impl(
             data_len,
         ),
         5 => wire__crate__api__initialization__init_app_impl(port, ptr, rust_vec_len, data_len),
-        6 => {
+        6 => wire__crate__api__catalog__load_library_asset_by_id_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        7 => {
             wire__crate__api__catalog__load_library_catalog_impl(port, ptr, rust_vec_len, data_len)
         }
-        7 => wire__crate__api__catalog__load_library_catalog_around_asset_impl(
+        8 => wire__crate__api__catalog__load_library_catalog_around_asset_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        8 => wire__crate__api__catalog__load_library_catalog_around_location_impl(
+        9 => wire__crate__api__catalog__load_library_catalog_around_location_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        9 => wire__crate__api__catalog__load_library_catalog_at_time_impl(
+        10 => wire__crate__api__catalog__load_library_catalog_at_time_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        11 => wire__crate__api__catalog__load_library_gallery_layout_manifest_chunk_impl(
+        12 => wire__crate__api__catalog__load_library_gallery_layout_manifest_chunk_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        16 => wire__crate__api__preview__materialize_library_preview_impl(
+        17 => wire__crate__api__preview__materialize_library_preview_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        18 => wire__crate__api__synchronization__poll_library_synchronization_impl(
+        19 => wire__crate__api__synchronization__poll_library_synchronization_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        20 => wire__crate__api__catalog__scan_library_impl(port, ptr, rust_vec_len, data_len),
-        21 => wire__crate__api__synchronization__start_library_synchronization_impl(
+        21 => wire__crate__api__catalog__scan_library_impl(port, ptr, rust_vec_len, data_len),
+        22 => wire__crate__api__synchronization__start_library_synchronization_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        22 => wire__crate__api__synchronization__stop_library_synchronization_impl(
+        23 => wire__crate__api__synchronization__stop_library_synchronization_impl(
             port,
             ptr,
             rust_vec_len,
@@ -2177,22 +2233,22 @@ fn pde_ffi_dispatcher_sync_impl(
             rust_vec_len,
             data_len,
         ),
-        10 => wire__crate__api__catalog__load_library_folder_page_impl(ptr, rust_vec_len, data_len),
-        12 => wire__crate__api__catalog__load_library_gallery_timeline_impl(
+        11 => wire__crate__api__catalog__load_library_folder_page_impl(ptr, rust_vec_len, data_len),
+        13 => wire__crate__api__catalog__load_library_gallery_timeline_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        13 => wire__crate__api__catalog__load_paused_library_scan_impl(ptr, rust_vec_len, data_len),
-        14 => wire__crate__api__catalog__load_recoverable_library_scan_impl(
+        14 => wire__crate__api__catalog__load_paused_library_scan_impl(ptr, rust_vec_len, data_len),
+        15 => wire__crate__api__catalog__load_recoverable_library_scan_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        15 => wire__crate__api__storage__load_storage_status_impl(ptr, rust_vec_len, data_len),
-        17 => wire__crate__api__catalog__pause_library_scan_impl(ptr, rust_vec_len, data_len),
-        19 => wire__crate__api__catalog__remove_library_root_impl(ptr, rust_vec_len, data_len),
-        23 => wire__crate__api__storage__update_storage_settings_impl(ptr, rust_vec_len, data_len),
+        16 => wire__crate__api__storage__load_storage_status_impl(ptr, rust_vec_len, data_len),
+        18 => wire__crate__api__catalog__pause_library_scan_impl(ptr, rust_vec_len, data_len),
+        20 => wire__crate__api__catalog__remove_library_root_impl(ptr, rust_vec_len, data_len),
+        24 => wire__crate__api__storage__update_storage_settings_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -3860,6 +3916,16 @@ impl SseEncode for Option<String> {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
             <String>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<crate::domain::AssetLocationView> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::domain::AssetLocationView>::sse_encode(value, serializer);
         }
     }
 }

@@ -1887,9 +1887,20 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   compatibility, and controlled source-byte preservation. The 2026-08-18 Daily passed 270 Rust
   tests with five
   existing intentional ignores, all Flutter tests, both Windows integrations, bridge
-  compatibility, formatting, and whitespace. Production Flutter synchronization lifecycle,
-  authoritative subtree/root recovery, catch-up, and real-library event acceptance remain later
-  R2c slices.
+  compatibility, formatting, and whitespace. Authoritative subtree/root recovery, catch-up, and
+  real-library event acceptance remain later R2c slices.
+- R2c-E is complete and audit-hardened. The production desktop lifecycle starts and stops one Rust
+  synchronization runtime, retains drained observer evidence until durable enqueue succeeds, and
+  marks cold-start or recovered roots as needing authoritative reconciliation before claiming
+  freshness. Flutter projects bounded Chinese root states, refreshes only published revisions, and
+  preserves source scope, filters, selection, preview demand, stable asset identity, preferred
+  location, viewer continuity, and the nearest surviving ordinal. A bridge failure before root
+  metrics shows `需要核对`, and desktop destruction remains bounded after coordinated shutdown.
+  Eight runtime tests, preferred-location and ordinal SQLite fixtures, and production screen tests
+  cover enqueue rollback, continuity gaps, rename, removal, and timeout behavior. The 2026-08-18
+  Daily passed 283 Rust tests with five existing intentional ignores, all Flutter tests, both
+  Windows integrations, bridge compatibility, formatting, and whitespace; the Windows Release gate
+  passed both packaged bridge smoke tests. Authoritative recovery remains R2c-F.
 - The current R2b closeout working tree passed the complete local Daily gate and Windows Release
   gate on 2026-08-12, including packaged Rust-library loading and the release bridge smoke test.
   This is current-stage evidence, not a release candidate or completion of R10.

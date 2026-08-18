@@ -1,11 +1,12 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::domain::{
-    CatalogFreshnessCause, CatalogFreshnessState, IncrementalCatalogRoot,
-    LibraryChangePlanningLimits, LibraryChangeQueueHealth, LibraryChangeQueueMetrics,
-    LibraryChangeQueuePolicy, LibraryChangeRestartPolicy, LibraryChangeSourceHealth,
-    LibraryRootAvailability, LibraryRootSynchronizationStatus, LibrarySynchronizationSnapshot,
-    ScanError,
+    CatalogFreshnessCause, CatalogFreshnessState, IncrementalCatalogRoot, LibraryChangeIntent,
+    LibraryChangeIntentKind, LibraryChangeOrigin, LibraryChangePlanningIssue,
+    LibraryChangePlanningLimits, LibraryChangePlanningResult, LibraryChangeQueueHealth,
+    LibraryChangeQueueMetrics, LibraryChangeQueuePolicy, LibraryChangeRestartPolicy,
+    LibraryChangeScope, LibraryChangeSourceHealth, LibraryRootAvailability,
+    LibraryRootSynchronizationStatus, LibrarySynchronizationSnapshot, ScanError,
 };
 use crate::ports::{
     IncrementalCatalogRepository, LibraryChangeQueue, LibraryChangeSourceRequest,
@@ -32,6 +33,8 @@ struct RootRuntime {
     availability: LibraryRootAvailability,
     source_health: LibraryChangeSourceHealth,
     last_issue_code: Option<String>,
+    pending_plan: Option<LibraryChangePlanningResult>,
+    needs_continuity_gap: bool,
 }
 
 pub(crate) struct LibrarySynchronizationRuntime {
@@ -109,30 +112,39 @@ impl LibrarySynchronizationRuntime {
                 .get_mut(&root.root_id)
                 .expect("catalog roots are reconciled before processing");
             runtime.root = root.clone();
+            persist_pending_plan(runtime, repository, now_unix_ms, self.queue_policy)?;
             runtime.availability = availability;
             if availability != LibraryRootAvailability::Available {
+                runtime.needs_continuity_gap = true;
                 if let Some(mut observer) = runtime.observer.take()
                     && let Err(error) = observer.stop()
                 {
                     runtime.last_issue_code = Some(error.code);
                 }
                 runtime.source_health = LibraryChangeSourceHealth::Stopped;
-            } else if runtime.observer.is_none() {
-                match LibraryChangeObserver::start_erased(
-                    self.start_source.clone(),
-                    source_request(&root, self.ingress_capacity),
-                    self.planning_limits,
-                    self.restart_policy,
-                    now_unix_ms,
-                ) {
-                    Ok(observer) => {
-                        runtime.observer = Some(observer);
-                        runtime.source_health = LibraryChangeSourceHealth::Starting;
-                        runtime.last_issue_code = None;
-                    }
-                    Err(error) => {
-                        runtime.source_health = LibraryChangeSourceHealth::Failed;
-                        runtime.last_issue_code = Some(error.code);
+            } else {
+                if runtime.needs_continuity_gap {
+                    runtime.pending_plan = Some(continuity_gap_plan(&root, now_unix_ms));
+                    runtime.needs_continuity_gap = false;
+                    persist_pending_plan(runtime, repository, now_unix_ms, self.queue_policy)?;
+                }
+                if runtime.observer.is_none() {
+                    match LibraryChangeObserver::start_erased(
+                        self.start_source.clone(),
+                        source_request(&root, self.ingress_capacity),
+                        self.planning_limits,
+                        self.restart_policy,
+                        now_unix_ms,
+                    ) {
+                        Ok(observer) => {
+                            runtime.observer = Some(observer);
+                            runtime.source_health = LibraryChangeSourceHealth::Starting;
+                            runtime.last_issue_code = None;
+                        }
+                        Err(error) => {
+                            runtime.source_health = LibraryChangeSourceHealth::Failed;
+                            runtime.last_issue_code = Some(error.code);
+                        }
                     }
                 }
             }
@@ -143,9 +155,10 @@ impl LibrarySynchronizationRuntime {
                         runtime.source_health = poll.source_health;
                         runtime.last_issue_code = poll.last_source_error_code.clone();
                         if !poll.planning.intents.is_empty() {
-                            enqueue_library_change_plan(
+                            runtime.pending_plan = Some(poll.planning);
+                            persist_pending_plan(
+                                runtime,
                                 repository,
-                                &poll.planning,
                                 now_unix_ms,
                                 self.queue_policy,
                             )?;
@@ -247,8 +260,61 @@ impl LibrarySynchronizationRuntime {
                     availability: LibraryRootAvailability::Unknown,
                     source_health: LibraryChangeSourceHealth::Starting,
                     last_issue_code: None,
+                    pending_plan: None,
+                    needs_continuity_gap: true,
                 });
         }
+    }
+}
+
+fn persist_pending_plan<Repository>(
+    runtime: &mut RootRuntime,
+    repository: &mut Repository,
+    now_unix_ms: i64,
+    queue_policy: LibraryChangeQueuePolicy,
+) -> Result<(), ScanError>
+where
+    Repository: LibraryChangeQueue,
+{
+    let Some(plan) = runtime.pending_plan.take() else {
+        return Ok(());
+    };
+    match enqueue_library_change_plan(repository, &plan, now_unix_ms, queue_policy) {
+        Ok(_) => Ok(()),
+        Err(error) => {
+            runtime.last_issue_code = Some(error.code.clone());
+            runtime.pending_plan = Some(plan);
+            Err(error)
+        }
+    }
+}
+
+fn continuity_gap_plan(
+    root: &IncrementalCatalogRoot,
+    observed_unix_ms: i64,
+) -> LibraryChangePlanningResult {
+    LibraryChangePlanningResult {
+        root_id: root.root_id.clone(),
+        root_generation: root.root_generation,
+        freshness: CatalogFreshnessState::NeedsReconciliation,
+        freshness_cause: CatalogFreshnessCause::EvidenceGap,
+        intents: vec![LibraryChangeIntent {
+            root_id: root.root_id.clone(),
+            root_generation: root.root_generation,
+            kind: LibraryChangeIntentKind::FreshnessUnknown,
+            scope: LibraryChangeScope::Root,
+            relative_path: String::new(),
+            previous_relative_path: None,
+            origin: LibraryChangeOrigin::StartupCatchUp,
+            first_observed_unix_ms: observed_unix_ms,
+            most_recent_observed_unix_ms: observed_unix_ms,
+            first_sequence: 1,
+            most_recent_sequence: 1,
+            coalesced_observation_count: 1,
+        }],
+        issues: vec![LibraryChangePlanningIssue::ChangeEvidenceGap],
+        received_observation_count: 1,
+        superseded_observation_count: 0,
     }
 }
 

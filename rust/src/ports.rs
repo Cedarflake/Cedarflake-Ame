@@ -167,6 +167,11 @@ pub trait CatalogRepository {
         &self,
         location_id: &str,
     ) -> Result<Option<AssetLocationView>, ScanError>;
+    fn load_active_location_by_asset_id(
+        &self,
+        asset_id: &str,
+        preferred_location_id: Option<&str>,
+    ) -> Result<Option<AssetLocationView>, ScanError>;
     fn stage_location(
         &mut self,
         scan_id: &str,
@@ -299,6 +304,7 @@ pub trait CatalogRepository {
         query_id: &str,
         requested_location_id: &str,
         anchor_asset_id: &str,
+        fallback_ordinal: u64,
     ) -> Result<CatalogSnapshot, ScanError>;
     fn load_gallery_timeline(
         &mut self,

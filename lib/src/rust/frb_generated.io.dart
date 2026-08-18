@@ -48,6 +48,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   AssetLocationView dco_decode_box_asset_location_view(dynamic raw);
 
   @protected
+  AssetLocationView dco_decode_box_autoadd_asset_location_view(dynamic raw);
+
+  @protected
   CaptureTimeEvidence dco_decode_box_autoadd_capture_time_evidence(dynamic raw);
 
   @protected
@@ -241,6 +244,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   String? dco_decode_opt_String(dynamic raw);
 
   @protected
+  AssetLocationView? dco_decode_opt_box_autoadd_asset_location_view(
+    dynamic raw,
+  );
+
+  @protected
   CaptureTimeEvidence? dco_decode_opt_box_autoadd_capture_time_evidence(
     dynamic raw,
   );
@@ -354,6 +362,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   AssetLocationView sse_decode_box_asset_location_view(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  AssetLocationView sse_decode_box_autoadd_asset_location_view(
     SseDeserializer deserializer,
   );
 
@@ -607,6 +620,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   String? sse_decode_opt_String(SseDeserializer deserializer);
 
   @protected
+  AssetLocationView? sse_decode_opt_box_autoadd_asset_location_view(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   CaptureTimeEvidence? sse_decode_opt_box_autoadd_capture_time_evidence(
     SseDeserializer deserializer,
   );
@@ -741,6 +759,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_box_asset_location_view(
+    AssetLocationView self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_asset_location_view(
     AssetLocationView self,
     SseSerializer serializer,
   );
@@ -1056,6 +1080,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_box_autoadd_asset_location_view(
+    AssetLocationView? self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_opt_box_autoadd_capture_time_evidence(

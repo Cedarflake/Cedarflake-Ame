@@ -13,7 +13,7 @@ use crate::domain::{
     LibraryChangeSourceStopReport, LibraryRootAvailability, LibraryRootGeneration, ScanRequest,
 };
 use crate::ports::{
-    CatalogRepository, IncrementalCatalogRepository, LibraryChangeSource,
+    CatalogRepository, IncrementalCatalogRepository, LibraryChangeQueue, LibraryChangeSource,
     LibraryChangeSourceFactory, LibraryChangeSourceRequest,
 };
 
@@ -74,7 +74,7 @@ impl LibraryChangeSource for FakeSource {
 }
 
 #[test]
-fn starts_configured_roots_and_reports_synchronized_after_an_idle_poll() {
+fn cold_start_records_a_gap_before_claiming_synchronized_freshness() {
     let fixture = RuntimeFixture::new();
     let factory = FakeFactory::default();
     let mut runtime = runtime(factory.clone());
@@ -87,8 +87,9 @@ fn starts_configured_roots_and_reports_synchronized_after_an_idle_poll() {
     assert_eq!(snapshot.roots.len(), 1);
     assert_eq!(
         snapshot.roots[0].freshness,
-        CatalogFreshnessState::Synchronized
+        CatalogFreshnessState::NeedsReconciliation
     );
+    assert_eq!(snapshot.roots[0].freshness_unknown_count, 1);
     assert_eq!(factory.state.lock().expect("fake state").start_count, 1);
 }
 
@@ -97,6 +98,12 @@ fn live_observation_publishes_a_delta_and_advances_the_shared_revision() {
     let fixture = RuntimeFixture::new();
     write_png(&fixture.source_root.join("new.png"), 7, 5, [20, 30, 40]);
     let factory = FakeFactory::default();
+    let mut runtime = runtime(factory.clone());
+    let mut catalog = fixture.catalog;
+    runtime
+        .poll(&mut catalog, 900, |_| LibraryRootAvailability::Available)
+        .expect("record startup gap");
+    complete_authoritative_work(&mut catalog, &fixture.root_id, 900);
     factory
         .state
         .lock()
@@ -118,9 +125,6 @@ fn live_observation_publishes_a_delta_and_advances_the_shared_revision() {
             dropped_observation_count: 0,
             ignored_callback_count: 0,
         });
-    let mut runtime = runtime(factory);
-    let mut catalog = fixture.catalog;
-
     let snapshot = runtime
         .poll(&mut catalog, 1_000, |_| LibraryRootAvailability::Available)
         .expect("publish live change");
@@ -135,6 +139,77 @@ fn live_observation_publishes_a_delta_and_advances_the_shared_revision() {
         catalog
             .load_incremental_location_by_relative_path(&fixture.root_id, "new.png")
             .expect("load new location")
+            .is_some()
+    );
+}
+
+#[test]
+fn enqueue_failure_retains_the_drained_plan_until_persistence_recovers() {
+    let fixture = RuntimeFixture::new();
+    write_png(&fixture.source_root.join("new.png"), 7, 5, [20, 30, 40]);
+    let factory = FakeFactory::default();
+    let mut runtime = runtime(factory.clone());
+    let mut catalog = fixture.catalog;
+    runtime
+        .poll(&mut catalog, 900, |_| LibraryRootAvailability::Available)
+        .expect("record startup gap");
+    complete_authoritative_work(&mut catalog, &fixture.root_id, 900);
+    factory
+        .state
+        .lock()
+        .expect("fake state")
+        .batches
+        .push_back(LibraryChangeSourceBatch {
+            observations: vec![LibraryChangeObservation {
+                root_id: fixture.root_id.clone(),
+                root_generation: LibraryRootGeneration::initial(),
+                sequence: 1,
+                observed_unix_ms: 1_000,
+                kind: LibraryChangeObservationKind::Created,
+                scope: LibraryChangeScope::Path,
+                relative_path: "new.png".to_owned(),
+                previous_relative_path: None,
+                origin: LibraryChangeOrigin::LiveNotification,
+            }],
+            health: LibraryChangeSourceHealth::Healthy,
+            dropped_observation_count: 0,
+            ignored_callback_count: 0,
+        });
+    let injector = rusqlite::Connection::open(catalog.catalog_path()).expect("injector connection");
+    injector
+        .execute_batch(
+            "CREATE TRIGGER fail_runtime_enqueue
+             BEFORE INSERT ON library_change_queue
+             BEGIN
+               SELECT RAISE(ABORT, 'injected runtime enqueue failure');
+             END;",
+        )
+        .expect("install enqueue failure");
+
+    let error = runtime
+        .poll(&mut catalog, 1_000, |_| LibraryRootAvailability::Available)
+        .expect_err("enqueue must fail");
+    assert_eq!(error.code, "catalog_database_error");
+    assert!(
+        catalog
+            .load_incremental_location_by_relative_path(&fixture.root_id, "new.png")
+            .expect("load absent location")
+            .is_none()
+    );
+    injector
+        .execute_batch("DROP TRIGGER fail_runtime_enqueue;")
+        .expect("remove enqueue failure");
+
+    let snapshot = runtime
+        .poll(&mut catalog, 1_100, |_| LibraryRootAvailability::Available)
+        .expect("retry retained plan");
+
+    assert_eq!(snapshot.applied_mutation_count, 1);
+    assert_eq!(snapshot.catalog_revision, 2);
+    assert!(
+        catalog
+            .load_incremental_location_by_relative_path(&fixture.root_id, "new.png")
+            .expect("load recovered location")
             .is_some()
     );
 }
@@ -201,6 +276,28 @@ fn unavailable_root_retains_catalog_state_without_starting_an_observer() {
             .expect("load retained root")
             .is_some()
     );
+}
+
+#[test]
+fn returning_available_root_records_a_continuity_gap() {
+    let fixture = RuntimeFixture::new();
+    let factory = FakeFactory::default();
+    let mut runtime = runtime(factory.clone());
+    let mut catalog = fixture.catalog;
+    runtime
+        .poll(&mut catalog, 1_000, |_| LibraryRootAvailability::Offline)
+        .expect("poll unavailable root");
+
+    let snapshot = runtime
+        .poll(&mut catalog, 1_100, |_| LibraryRootAvailability::Available)
+        .expect("poll recovered root");
+
+    assert_eq!(
+        snapshot.roots[0].freshness,
+        CatalogFreshnessState::NeedsReconciliation
+    );
+    assert_eq!(snapshot.roots[0].freshness_unknown_count, 1);
+    assert_eq!(factory.state.lock().expect("fake state").start_count, 1);
 }
 
 #[test]
@@ -303,6 +400,30 @@ fn empty_batch() -> LibraryChangeSourceBatch {
         dropped_observation_count: 0,
         ignored_callback_count: 0,
     }
+}
+
+fn complete_authoritative_work(catalog: &mut SqliteCatalog, root_id: &str, now_unix_ms: i64) {
+    let policy = LibraryChangeQueuePolicy {
+        debounce_millis: 0,
+        ..LibraryChangeQueuePolicy::default()
+    };
+    let leased = catalog
+        .lease_library_changes(
+            root_id,
+            LibraryRootGeneration::initial(),
+            now_unix_ms,
+            policy,
+        )
+        .expect("lease authoritative work");
+    assert_eq!(leased.len(), 1);
+    catalog
+        .complete_library_change(
+            leased[0].change.id,
+            leased[0].lease_generation,
+            1,
+            now_unix_ms,
+        )
+        .expect("complete authoritative work");
 }
 
 fn write_png(path: &Path, width: u32, height: u32, color: [u8; 3]) {

@@ -2354,6 +2354,7 @@ fn gallery_asset_anchor_follows_a_renamed_location() {
             "stable-asset-anchor",
             "before",
             "asset-asset-anchor-scan-before",
+            0,
         )
         .expect("stable asset anchor");
     let resolution = page.query_anchor_resolution.expect("resolution");
@@ -2362,6 +2363,101 @@ fn gallery_asset_anchor_follows_a_renamed_location() {
     assert_eq!(resolution.ordinal, Some(0));
     assert_eq!(page.assets[0].asset_id, "asset-asset-anchor-scan-before");
     assert_eq!(page.assets[0].location_id, "after");
+}
+
+#[test]
+fn gallery_asset_anchor_prefers_the_requested_active_location() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let mut catalog = SqliteCatalog::open(path).expect("catalog");
+    publish_gallery_query_fixture(
+        &mut catalog,
+        "multi-location-scan",
+        "multi-location-root",
+        "C:\\Pictures",
+        &[
+            ("first", "Album/first.png", None, Some(10), 10),
+            ("second", "Album/second.png", None, Some(20), 20),
+        ],
+    );
+    catalog
+        .connection
+        .execute(
+            "UPDATE asset_locations
+             SET asset_id = 'asset-multi-location-scan-first'
+             WHERE location_id = 'second'",
+            [],
+        )
+        .expect("attach second location to the same asset");
+    let query = GalleryQuery {
+        sort_key: GallerySortKey::FileName,
+        sort_direction: GallerySortDirection::Ascending,
+        ..GalleryQuery::default()
+    };
+
+    let page = catalog
+        .load_snapshot_around_asset(
+            3,
+            &query,
+            "multi-location-anchor",
+            "second",
+            "asset-multi-location-scan-first",
+            1,
+        )
+        .expect("preferred stable asset anchor");
+    let resolution = page.query_anchor_resolution.expect("resolution");
+    assert_eq!(resolution.location_id.as_deref(), Some("second"));
+    assert_eq!(resolution.ordinal, Some(1));
+    let preferred = catalog
+        .load_active_location_by_asset_id("asset-multi-location-scan-first", Some("second"))
+        .expect("load preferred location")
+        .expect("preferred asset location");
+    assert_eq!(preferred.location_id, "second");
+}
+
+#[test]
+fn missing_asset_anchor_falls_back_to_the_nearest_surviving_ordinal() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let mut catalog = SqliteCatalog::open(path).expect("catalog");
+    publish_gallery_query_fixture(
+        &mut catalog,
+        "missing-anchor-scan",
+        "missing-anchor-root",
+        "C:\\Pictures",
+        &[
+            ("first", "Album/first.png", None, Some(10), 10),
+            ("middle", "Album/middle.png", None, Some(20), 20),
+            ("third", "Album/third.png", None, Some(30), 30),
+        ],
+    );
+    catalog
+        .connection
+        .execute(
+            "DELETE FROM asset_locations WHERE location_id = 'middle'",
+            [],
+        )
+        .expect("remove anchor location");
+    let query = GalleryQuery {
+        sort_key: GallerySortKey::FileName,
+        sort_direction: GallerySortDirection::Ascending,
+        ..GalleryQuery::default()
+    };
+
+    let page = catalog
+        .load_snapshot_around_asset(
+            3,
+            &query,
+            "missing-asset-anchor",
+            "middle",
+            "asset-missing-anchor-scan-middle",
+            1,
+        )
+        .expect("fallback stable asset anchor");
+    let resolution = page.query_anchor_resolution.expect("resolution");
+    assert_eq!(resolution.location_id.as_deref(), Some("third"));
+    assert_eq!(resolution.ordinal, Some(1));
+    assert_eq!(resolution.window_start_ordinal, 0);
 }
 
 #[test]

@@ -17,6 +17,7 @@ class LibrarySourceNavigationTile extends StatefulWidget {
   const LibrarySourceNavigationTile({
     required this.root,
     this.synchronizationStatus,
+    this.hasSynchronizationFailure = false,
     required this.isCompact,
     required this.isSelected,
     required this.isExpanded,
@@ -31,6 +32,7 @@ class LibrarySourceNavigationTile extends StatefulWidget {
 
   final LibraryRoot root;
   final LibraryRootSynchronizationStatus? synchronizationStatus;
+  final bool hasSynchronizationFailure;
   final bool isCompact;
   final bool isSelected;
   final bool isExpanded;
@@ -74,7 +76,11 @@ class _LibrarySourceNavigationTileState
       LibraryRootAvailability.inaccessible => Symbols.lock_rounded,
       LibraryRootAvailability.offline => Symbols.cloud_off_rounded,
     };
-    final statusLabel = _statusLabel(widget.root, widget.synchronizationStatus);
+    final statusLabel = _statusLabel(
+      widget.root,
+      widget.synchronizationStatus,
+      widget.hasSynchronizationFailure,
+    );
     final tile = widget.isCompact
         ? AmeTooltip(
             message: "${widget.root.displayPath}\n$statusLabel",
@@ -265,6 +271,7 @@ class _LibrarySourceNavigationTileState
   static String _statusLabel(
     LibraryRoot root,
     LibraryRootSynchronizationStatus? synchronizationStatus,
+    bool hasSynchronizationFailure,
   ) {
     if (root.availability != LibraryRootAvailability.available) {
       return switch (root.availability) {
@@ -282,7 +289,10 @@ class _LibrarySourceNavigationTileState
       LibraryCatalogFreshness.needsReconciliation =>
         LibraryStrings.needsReconciliation,
       LibraryCatalogFreshness.unavailable => LibraryStrings.sourceUnavailable,
-      null => LibraryStrings.synchronizing,
+      null =>
+        hasSynchronizationFailure
+            ? LibraryStrings.needsReconciliation
+            : LibraryStrings.synchronizing,
     };
   }
 }

@@ -50,6 +50,13 @@ Windows observer for every currently available registered root, stops observers 
 retired, unavailable, or reconfigured, drains normalized observations into the durable queue, and runs
 only the R2c-D path worker. Subtree, root, and freshness-gap rows remain unleased for R2c-F.
 
+Draining observer memory and committing the durable queue form an explicit handoff. The runtime retains
+one drained plan in memory until enqueue succeeds and retries that plan before polling the observer
+again. A database failure therefore degrades the visible source state without losing the only copy of
+the observations. A cold start and every unavailable-to-available transition enqueue a root
+`FreshnessUnknown` intent before the runtime can report synchronized freshness. R2c-F must complete the
+authoritative recovery work before that state can clear.
+
 The runtime publishes a bounded `LibrarySynchronizationSnapshot` containing the running flag, catalog
 revision, applied-mutation count, and one status per configured root. Each root status contains the
 durable root generation, availability, freshness and cause, observer health, bounded queue counts, and
@@ -68,16 +75,22 @@ Existing assets remain visible while the new bounded window and timeline load.
 
 Refresh continuity uses stable identity:
 
-- the visible anchor prefers `asset_id`; the catalog resolves the current location for that asset;
+- the visible anchor carries `asset_id`, the preferred current `location_id`, and its original global
+  ordinal; the catalog preserves that physical location when it is still active, follows another
+  location for the same asset after a rename, and falls back near the original ordinal only when the
+  asset no longer exists;
 - explicit selection stores asset IDs and rebinds to the new query revision;
 - complete-query select-all is cleared when the result-set revision changes;
-- an open viewer follows the same asset across a rename and closes if that asset no longer exists;
+- an open viewer remains independent from the bounded detail window, resolves its asset directly,
+  follows the preferred location across a rename, and closes only after an authoritative lookup proves
+  that the asset no longer exists;
 - the active source, filters, layout preferences, preview state, and logical scroll anchor remain owned
   by their existing accepted UI contracts.
 
 Source rows render the four Chinese product states `已同步`, `正在更新图库`, `需要核对`, and
-`目录不可用`. The existing `更新图库` action invokes the application scan use case; it does not
-enumerate or mutate files in Flutter.
+`目录不可用`. A bridge failure before the first per-root snapshot projects configured available roots
+as `需要核对` rather than leaving them indefinitely in `正在更新图库`. The existing `更新图库` action
+invokes the application scan use case; it does not enumerate or mutate files in Flutter.
 
 Window management enables close prevention only so shutdown can be coordinated. Close requests share
 one memoized operation, run registered shutdown actions in reverse order, wait no longer than six
@@ -86,14 +99,17 @@ media is never modified by this lifecycle.
 
 ## Validation gates
 
-- Rust fixtures prove observer start, path-event publication, unavailable and removed-root handling,
-  idempotent stop, retained evidence gaps, and deterministic time;
-- SQLite fixtures prove root metrics isolation and stable asset-anchor resolution after a rename;
+- Rust fixtures prove observer start, path-event publication, enqueue-failure retention, cold-start and
+  availability-transition continuity gaps, unavailable and removed-root handling, idempotent stop,
+  retained evidence gaps, and deterministic time;
+- SQLite fixtures prove root metrics isolation, preferred-location asset anchors, rename resolution,
+  direct stable-asset lookup, and nearest-ordinal fallback after removal;
 - Flutter service fixtures prove DTO mapping, non-overlapping polling, failure degradation, and one
   Rust stop call across repeated shutdown requests;
-- gallery controller, selection, navigation, viewer, layout, and screen fixtures prove background
-  revision refresh without blanking and stable-identity continuity;
-- window fixtures prove reverse-order, idempotent coordinated shutdown;
+- gallery controller, selection, navigation, viewer, layout, and production-screen fixtures prove
+  background revision refresh without blanking, rename continuity, and authoritative-removal closure;
+- window fixtures prove reverse-order, idempotent coordinated shutdown and destruction after the
+  configured timeout;
 - bridge generation, format, Clippy with warnings denied, Dart analysis, complete Rust and Flutter
   tests, Windows controlled integration, and repository Daily pass;
 - the Windows release gate proves generated bridge and packaged desktop startup compatibility.

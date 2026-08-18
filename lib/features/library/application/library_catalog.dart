@@ -42,6 +42,14 @@ abstract interface class LibraryStableQueryAnchorCatalog {
     required LibraryGalleryQuery query,
     required String requestedLocationId,
     required String anchorAssetId,
+    required int fallbackGlobalItemIndex,
+  });
+}
+
+abstract interface class LibraryStableAssetCatalog {
+  Future<LibraryAsset?> loadAssetById({
+    required String assetId,
+    String? preferredLocationId,
   });
 }
 
@@ -59,7 +67,8 @@ class RustLibraryCatalog
         LibraryCatalog,
         LibraryFolderCatalog,
         LibraryQueryAnchorCatalog,
-        LibraryStableQueryAnchorCatalog {
+        LibraryStableQueryAnchorCatalog,
+        LibraryStableAssetCatalog {
   const RustLibraryCatalog();
 
   @override
@@ -229,6 +238,7 @@ class RustLibraryCatalog
     required LibraryGalleryQuery query,
     required String requestedLocationId,
     required String anchorAssetId,
+    required int fallbackGlobalItemIndex,
   }) async {
     try {
       final snapshot = await rust_api.loadLibraryCatalogAroundAsset(
@@ -236,10 +246,27 @@ class RustLibraryCatalog
         query: _mapQuery(query),
         requestedLocationId: requestedLocationId,
         anchorAssetId: anchorAssetId,
+        fallbackOrdinal: BigInt.from(fallbackGlobalItemIndex),
       );
       return _mapSnapshot(snapshot);
     } on Object catch (error) {
       throw _mapFailure(error, "bridge_asset_anchor_load_failed");
+    }
+  }
+
+  @override
+  Future<LibraryAsset?> loadAssetById({
+    required String assetId,
+    String? preferredLocationId,
+  }) async {
+    try {
+      final asset = await rust_api.loadLibraryAssetById(
+        assetId: assetId,
+        preferredLocationId: preferredLocationId,
+      );
+      return asset == null ? null : mapRustLibraryAsset(asset);
+    } on Object catch (error) {
+      throw _mapFailure(error, "bridge_asset_identity_load_failed");
     }
   }
 

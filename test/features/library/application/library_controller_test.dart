@@ -37,6 +37,7 @@ void main() {
         catalogRevision: BigInt.two,
         anchorLocationId: "location-before",
         anchorAssetId: "asset-before",
+        fallbackGlobalItemIndex: 79,
       );
       await Future<void>.delayed(Duration.zero);
       var state = container.read(libraryControllerProvider);
@@ -63,6 +64,7 @@ void main() {
       expect(state.assets.single.locationId, "location-after");
       expect(catalog.requestedLocationId, "location-before");
       expect(catalog.anchorAssetId, "asset-before");
+      expect(catalog.fallbackGlobalItemIndex, 79);
     },
   );
 
@@ -2325,6 +2327,7 @@ class _StableAnchorLibraryCatalog
   final BigInt revision;
   String? requestedLocationId;
   String? anchorAssetId;
+  int? fallbackGlobalItemIndex;
 
   @override
   Future<LibrarySnapshot> loadAroundAsset({
@@ -2332,9 +2335,11 @@ class _StableAnchorLibraryCatalog
     required LibraryGalleryQuery query,
     required String requestedLocationId,
     required String anchorAssetId,
+    required int fallbackGlobalItemIndex,
   }) {
     this.requestedLocationId = requestedLocationId;
     this.anchorAssetId = anchorAssetId;
+    this.fallbackGlobalItemIndex = fallbackGlobalItemIndex;
     return response;
   }
 

@@ -398,6 +398,7 @@ class LibraryController extends Notifier<LibraryState> {
     LibraryGalleryQuery query, {
     String? anchorLocationId,
     String? anchorAssetId,
+    int? fallbackGlobalItemIndex,
     bool forceRefresh = false,
     BigInt? minimumCatalogRevision,
     bool showRefreshingStatus = true,
@@ -470,6 +471,7 @@ class LibraryController extends Notifier<LibraryState> {
             query: normalized,
             requestedLocationId: anchorLocationId,
             anchorAssetId: anchorAssetId,
+            fallbackGlobalItemIndex: fallbackGlobalItemIndex ?? 0,
           );
         }
         if (anchorLocationId != null && anchorCatalog != null) {
@@ -565,11 +567,13 @@ class LibraryController extends Notifier<LibraryState> {
     required BigInt catalogRevision,
     String? anchorLocationId,
     String? anchorAssetId,
+    int? fallbackGlobalItemIndex,
   }) {
     return updateQuery(
       state.query,
       anchorLocationId: anchorLocationId,
       anchorAssetId: anchorAssetId,
+      fallbackGlobalItemIndex: fallbackGlobalItemIndex,
       forceRefresh: true,
       minimumCatalogRevision: catalogRevision,
       showRefreshingStatus: false,

@@ -2,9 +2,10 @@ use std::path::Path;
 
 use crate::adapters::{SqliteCatalog, inspect_root_availability, is_current_preview_artifact};
 use crate::domain::{
-    CatalogCursor, CatalogSnapshot, GalleryLayoutManifestChunk, GalleryLayoutManifestCursor,
-    GalleryQuery, GallerySortDirection, GallerySortKey, GalleryTimeAnchor, GalleryTimeline,
-    LibraryFolderCursor, LibraryFolderPage, PreviewStatus, ScanError,
+    AssetLocationView, CatalogCursor, CatalogSnapshot, GalleryLayoutManifestChunk,
+    GalleryLayoutManifestCursor, GalleryQuery, GallerySortDirection, GallerySortKey,
+    GalleryTimeAnchor, GalleryTimeline, LibraryFolderCursor, LibraryFolderPage, PreviewStatus,
+    ScanError,
 };
 use crate::ports::CatalogRepository;
 
@@ -177,6 +178,7 @@ pub fn load_catalog_around_asset(
     query: GalleryQuery,
     requested_location_id: String,
     anchor_asset_id: String,
+    fallback_ordinal: u64,
 ) -> Result<CatalogSnapshot, ScanError> {
     if requested_location_id.trim().is_empty() || anchor_asset_id.trim().is_empty() {
         return Err(ScanError::new(
@@ -194,9 +196,29 @@ pub fn load_catalog_around_asset(
         &query_id,
         &requested_location_id,
         &anchor_asset_id,
+        fallback_ordinal,
     )?;
     finish_loaded_snapshot(&storage, catalog, &mut snapshot)?;
     Ok(snapshot)
+}
+
+pub fn load_catalog_asset_by_id(
+    asset_id: String,
+    preferred_location_id: Option<String>,
+) -> Result<Option<AssetLocationView>, ScanError> {
+    if asset_id.trim().is_empty()
+        || preferred_location_id
+            .as_deref()
+            .is_some_and(|location_id| location_id.trim().is_empty())
+    {
+        return Err(ScanError::new(
+            "catalog_asset_identity_invalid",
+            "A stable asset lookup requires a non-empty asset and optional location identifier",
+        ));
+    }
+    let storage = storage_paths()?;
+    let catalog = SqliteCatalog::open(storage.catalog_path)?;
+    catalog.load_active_location_by_asset_id(&asset_id, preferred_location_id.as_deref())
 }
 
 fn normalize_gallery_query(mut query: GalleryQuery) -> GalleryQuery {
