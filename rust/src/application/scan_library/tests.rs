@@ -579,6 +579,9 @@ fn assert_bidirectional_full_scan_catch_up(
                 .expect("restore prerelease missing handoff preview"),
             1
         );
+        connection
+            .execute_batch("DROP TABLE library_change_preview_repair_contract")
+            .expect("restore prerelease preview repair marker");
         drop(connection);
         SqliteCatalog::open(storage_paths.catalog_path.clone())
             .expect("repair prerelease missing handoff preview");
@@ -2800,6 +2803,7 @@ fn migrated_v17_placeholder_preserves_the_normalized_legacy_location() {
               DROP TABLE library_change_scan_handoff_lineage;
               DROP TABLE library_change_scan_handoff_batches;
               DROP TABLE library_change_queue_catch_up_lineage;
+             DROP TABLE library_change_preview_repair_contract;
              DROP TABLE scan_run_catch_up_lineage;
              DROP TABLE library_change_catch_up_handoffs;
              DROP INDEX scan_runs_one_active_root;
@@ -2922,6 +2926,7 @@ fn migrated_v17_healthy_file_preserves_legacy_location_without_identity_evidence
               DROP TABLE library_change_scan_handoff_lineage;
               DROP TABLE library_change_scan_handoff_batches;
               DROP TABLE library_change_queue_catch_up_lineage;
+             DROP TABLE library_change_preview_repair_contract;
              DROP TABLE scan_run_catch_up_lineage;
              DROP TABLE library_change_catch_up_handoffs;
              DROP INDEX scan_runs_one_active_root;

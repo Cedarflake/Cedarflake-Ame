@@ -35,7 +35,7 @@ The controlled fixtures prove:
 | Queue evidence | Preserve a bounded lineage of unconsumed catch-up watermarks through coalescing and supersession |
 | Explicit fallback | Enqueue `FreshnessUnknown` for every affected root on uncertain evidence |
 | Standard token | Fall back on `usn_volume_open_failed` without requesting elevation |
-| Schema v19 | Migrate v18 atomically, validate exact checkpoint, legacy and normalized handoff, and lineage relations, reject orphan or unverifiable authority, and repair only provable marker-complete state |
+| Schema v19 | Migrate v18 atomically, validate exact checkpoint, legacy and normalized handoff, lineage, and preview-repair markers, reject orphan or unverifiable authority, and repair only provable marker-complete state |
 | Query bound | Use an exact root-and-relative-path index during authoritative reconciliation |
 | Root isolation | Allow a ready root to recover while another root still lacks healthy continuity evidence |
 | Checkpoint retention | Delete at most 128 obsolete checkpoints after seven days and never while a freshness gap is unresolved |
@@ -54,7 +54,7 @@ cargo test adapters::windows_usn_catch_up::tests --all-features -- --nocapture
 19 passed; 0 failed
 
 cargo test adapters::sqlite_catalog::migrations::tests --all-features -- --nocapture
-22 passed; 0 failed
+23 passed; 0 failed
 
 cargo test application::incremental_library_changes::tests --all-features -- --nocapture
 25 passed; 0 failed
@@ -94,8 +94,10 @@ destination-first publication. Bounded and full-scan fixtures also clear ready p
 before adoption when explicit preview cleanup or startup recovery removes a missing artifact;
 reclamation fixtures prove that normal budget pressure cannot select or delete an artifact while
 either handoff form owns it. Reopen fixtures restore prerelease v19 states with a stale legacy
-artifact row or a missing normalized full-scan artifact row and prove both are downgraded before
-bounded or full-scan destination adoption.
+artifact row, a missing normalized full-scan artifact row, or an invalid ready expectation already
+published into the active snapshot after terminal handoff cleanup. They prove all three forms are
+downgraded before bounded adoption, full-scan adoption, or later preview reuse, and that a stale
+active owner is removed atomically.
 The controlled real Win32 temporary-root test was executed with both the normal sandboxed token and
 the same standard token outside the workspace sandbox.
 Both reached the documented `usn_volume_open_failed` permission fallback. Ame did not elevate or
@@ -109,7 +111,7 @@ the production adapter path is covered by deterministic backend and parser fixtu
 140 files checked; 0 changed
 
 ./tool/quality_verify_daily.ps1
-Rust: 387 total; 382 passed; 0 failed; 5 existing explicit ignores
+Rust: 390 total; 385 passed; 0 failed; 5 existing explicit ignores
 Flutter: all test files passed
 Windows controlled picker and scan integration: 2 passed
 Windows native accessibility integration: 2 passed
@@ -121,14 +123,14 @@ release bridge and system accent smoke integration: 2 passed
 
 ./tool/performance_benchmark_synthetic_library.ps1
 files=10000
-fixture_ms=7510
-cold_ms=20699
-warm_ms=17949
-pause_ms=24
-resume_ms=16252
-cancel_ms=159
-catalog_bytes=52424704
-peak_working_set_bytes=17575936
+fixture_ms=12163
+cold_ms=39412
+warm_ms=33973
+pause_ms=25
+resume_ms=31805
+cancel_ms=161
+catalog_bytes=52371456
+peak_working_set_bytes=17764352
 result: passed
 
 git diff --check
@@ -188,10 +190,15 @@ separates physical recovery invalidation from budget reclamation, atomically dow
 handoff forms before deleting a missing artifact, and restores algorithm/orientation/size-bounded
 stale selection with handoff exclusions. The eighth audit of `d52c6aa` found that prerelease v19
 could already contain a ready handoff whose artifact row was stale or absent, outside the startup
-recovery enumeration. The current work performs an index-backed preflight on catalog open and
-atomically downgrades only those legacy or normalized handoff expectations before adoption. Final
-independent re-audit remains pending; R2c-G is not marked complete until that committed head has no
-remaining Critical, High, Medium, or Low findings.
+recovery enumeration. Head `ed03bfe` added an artifact-path-indexed preflight on catalog open and
+atomically downgraded affected legacy or normalized handoff expectations before adoption. The ninth
+audit of `ed03bfe` found that an older prerelease could already have published the invalid ready
+expectation into the active snapshot and removed its terminal handoff. The current work extends the
+same transaction to current active-scan locations and removes any stale owner, with missing-row and
+stale-row reopen regressions. A separate exact-shape repair marker makes that full scan one-time for
+prerelease v19 catalogs; fresh and v18-migrated catalogs start complete, later opens skip the scan,
+and malformed markers fail closed. Final independent re-audit remains pending; R2c-G is not marked
+complete until that committed head has no remaining Critical, High, Medium, or Low findings.
 
 ## Remaining boundary
 

@@ -638,7 +638,7 @@ fn catalog_size(path: &Path) -> Result<u64, ScanError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::{AssetLocationView, PreviewStatus, ScanRequest};
+    use crate::domain::{AssetLocationView, PreviewArtifact, PreviewStatus, ScanRequest};
     use crate::ports::StorageSettingsRepository;
     use tempfile::tempdir;
 
@@ -1130,6 +1130,8 @@ mod tests {
     fn publish_storage_fixture(catalog_path: &Path, source_root: &Path, preview_root: &Path) {
         fs::create_dir_all(source_root).expect("source root");
         fs::create_dir_all(preview_root).expect("preview root");
+        let preview_path = preview_root.join("preview.jpg");
+        fs::write(&preview_path, b"preview").expect("preview artifact");
         let mut catalog = SqliteCatalog::open(catalog_path.to_path_buf()).expect("catalog");
         let request = ScanRequest {
             scan_id: "storage-scan".to_owned(),
@@ -1152,10 +1154,7 @@ mod tests {
                     absolute_path: source_root.join("one.png").to_string_lossy().into_owned(),
                     display_path: "source\\one.png".to_owned(),
                     relative_path: "one.png".to_owned(),
-                    preview_path: preview_root
-                        .join("preview.jpg")
-                        .to_string_lossy()
-                        .into_owned(),
+                    preview_path: preview_path.to_string_lossy().into_owned(),
                     file_size: 20,
                     created_unix_ms: Some(25),
                     modified_unix_ms: 30,
@@ -1174,5 +1173,25 @@ mod tests {
         catalog
             .publish_scan(&request.scan_id, "storage-root", 1, 0)
             .expect("publish storage scan");
+        let location = catalog
+            .load_active_location("storage-location")
+            .expect("active storage location query")
+            .expect("active storage location");
+        let artifact = PreviewArtifact {
+            artifact_key: "storage-preview-artifact".to_owned(),
+            algorithm_id: "ame-jpeg-thumbnail".to_owned(),
+            algorithm_version: 2,
+            orientation_contract: "exif-display-v1".to_owned(),
+            size_bucket: 512,
+            path: preview_path.to_string_lossy().into_owned(),
+            byte_size: fs::metadata(&preview_path).expect("preview metadata").len(),
+            encoded_width: 40,
+            encoded_height: 50,
+            width: location.width,
+            height: location.height,
+        };
+        catalog
+            .update_active_preview(&location, Some(&artifact))
+            .expect("publish storage preview artifact");
     }
 }

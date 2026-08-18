@@ -37,7 +37,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
                 repair_prerelease_v19_scan_lineage(connection)?;
                 repair_prerelease_v19_scan_handoff_batches(connection)?;
                 validate_current_schema_contract(connection)?;
-                repair_v19_handoff_preview_expectations(connection)?;
+                repair_v19_preview_expectations(connection)?;
                 return Ok(());
             }
             1 => migrate_v1_to_v2(connection)?,
@@ -285,6 +285,7 @@ fn create_schema_v19(transaction: &Transaction<'_>) -> Result<(), ScanError> {
         .map_err(database_error)?;
     add_authoritative_recovery_contract_marker(transaction)?;
     add_change_catch_up_contract(transaction)?;
+    add_preview_expectation_repair_marker(transaction)?;
     Ok(())
 }
 
@@ -431,31 +432,42 @@ fn validate_current_schema_contract(connection: &Connection) -> Result<(), ScanE
     Ok(())
 }
 
-fn repair_v19_handoff_preview_expectations(connection: &mut Connection) -> Result<(), ScanError> {
-    let needs_repair = connection
+fn repair_v19_preview_expectations(connection: &mut Connection) -> Result<(), ScanError> {
+    let marker_type = connection
         .query_row(
-            "SELECT EXISTS(
-               SELECT 1 FROM library_change_catch_up_handoffs AS handoffs
-               WHERE handoffs.preview_status = 'ready'
-                 AND NOT EXISTS (
-                   SELECT 1 FROM preview_artifacts AS artifacts
-                   WHERE artifacts.lifecycle_state = 'ready'
-                     AND artifacts.artifact_path = handoffs.preview_path
-                 )
-             ) OR EXISTS(
-               SELECT 1 FROM library_change_scan_handoff_items AS handoffs
-               WHERE handoffs.preview_status = 'ready'
-                 AND NOT EXISTS (
-                   SELECT 1 FROM preview_artifacts AS artifacts
-                   WHERE artifacts.lifecycle_state = 'ready'
-                     AND artifacts.artifact_path = handoffs.preview_path
-                 )
-             )",
+            "SELECT type FROM sqlite_master
+             WHERE name = 'library_change_preview_repair_contract'",
             [],
-            |row| row.get::<_, bool>(0),
+            |row| row.get::<_, String>(0),
         )
+        .optional()
         .map_err(database_error)?;
-    if !needs_repair {
+    if let Some(marker_type) = marker_type {
+        let marker_valid = marker_type == "table"
+            && table_columns_match(
+                connection,
+                "library_change_preview_repair_contract",
+                &[
+                    ("singleton", "INTEGER", false, 1),
+                    ("complete", "INTEGER", true, 0),
+                ],
+            )?
+            && connection
+                .query_row(
+                    "SELECT singleton = 1 AND complete = 1
+                     FROM library_change_preview_repair_contract",
+                    [],
+                    |row| row.get::<_, bool>(0),
+                )
+                .optional()
+                .map_err(database_error)?
+                .unwrap_or(false);
+        if !marker_valid {
+            return Err(ScanError::new(
+                "catalog_change_catch_up_contract_unverifiable",
+                "The catalog preview repair marker is malformed",
+            ));
+        }
         return Ok(());
     }
     let transaction = connection
@@ -482,10 +494,57 @@ fn repair_v19_handoff_preview_expectations(connection: &mut Connection) -> Resul
                  WHERE artifacts.lifecycle_state = 'ready'
                    AND artifacts.artifact_path =
                      library_change_scan_handoff_items.preview_path
-               );",
+               );
+             DELETE FROM preview_artifact_locations
+             WHERE location_id IN (
+               SELECT locations.location_id
+               FROM library_roots AS roots
+               JOIN asset_locations AS locations
+                 ON locations.root_id = roots.id
+                AND locations.scan_id = roots.active_scan_id
+               WHERE locations.preview_status = 'ready'
+                 AND NOT EXISTS (
+                   SELECT 1 FROM preview_artifacts AS artifacts
+                   WHERE artifacts.lifecycle_state = 'ready'
+                     AND artifacts.artifact_path = locations.preview_path
+                 )
+             );
+             UPDATE asset_locations
+             SET preview_path = '', preview_status = 'pending',
+                 preview_issue_code = NULL, preview_issue_message = NULL
+             WHERE preview_status = 'ready'
+               AND scan_id = (
+                 SELECT roots.active_scan_id
+                 FROM library_roots AS roots
+                 WHERE roots.id = asset_locations.root_id
+               )
+               AND NOT EXISTS (
+                 SELECT 1 FROM preview_artifacts AS artifacts
+                 WHERE artifacts.lifecycle_state = 'ready'
+                   AND artifacts.artifact_path = asset_locations.preview_path
+               );
+             CREATE TABLE library_change_preview_repair_contract (
+               singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+               complete INTEGER NOT NULL CHECK(complete = 1)
+             );
+             INSERT INTO library_change_preview_repair_contract(singleton, complete)
+             VALUES (1, 1);",
         )
         .map_err(database_error)?;
     transaction.commit().map_err(database_error)
+}
+
+fn add_preview_expectation_repair_marker(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+    transaction
+        .execute_batch(
+            "CREATE TABLE library_change_preview_repair_contract (
+               singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+               complete INTEGER NOT NULL CHECK(complete = 1)
+             );
+             INSERT INTO library_change_preview_repair_contract(singleton, complete)
+             VALUES (1, 1);",
+        )
+        .map_err(database_error)
 }
 
 fn validate_change_catch_up_contract(connection: &Connection) -> Result<(), ScanError> {
@@ -2326,6 +2385,7 @@ fn migrate_v17_to_v18(connection: &mut Connection) -> Result<(), ScanError> {
 fn migrate_v18_to_v19(connection: &mut Connection) -> Result<(), ScanError> {
     let transaction = connection.transaction().map_err(database_error)?;
     add_change_catch_up_contract(&transaction)?;
+    add_preview_expectation_repair_marker(&transaction)?;
     transaction
         .execute("UPDATE schema_info SET version = 19", [])
         .map_err(database_error)?;
@@ -3089,6 +3149,25 @@ mod tests {
     }
 
     #[test]
+    fn current_v19_malformed_preview_repair_marker_fails_closed() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh v19 catalog");
+        connection
+            .execute_batch(
+                "DROP TABLE library_change_preview_repair_contract;
+                 CREATE TABLE library_change_preview_repair_contract(
+                   singleton INTEGER PRIMARY KEY
+                 );
+                 INSERT INTO library_change_preview_repair_contract(singleton) VALUES (1);",
+            )
+            .expect("malformed preview repair marker fixture");
+
+        let error = migrate_schema(&mut connection).expect_err("malformed preview repair marker");
+
+        assert_eq!(error.code, "catalog_change_catch_up_contract_unverifiable");
+    }
+
+    #[test]
     fn prerelease_v18_without_recovery_marker_fails_closed() {
         let mut connection = Connection::open_in_memory().expect("catalog");
         connection
@@ -3125,6 +3204,10 @@ mod tests {
                      CHECK(authoritative_recovery_complete = 1)
                  );
                  INSERT INTO library_change_queue_contract VALUES (1, 1, 1);
+                 CREATE TABLE library_roots(
+                   id TEXT PRIMARY KEY,
+                   active_scan_id TEXT
+                 );
                  CREATE TABLE scan_runs(
                    id TEXT PRIMARY KEY,
                    root_id TEXT NOT NULL,
@@ -3136,7 +3219,9 @@ mod tests {
                     root_id TEXT NOT NULL,
                     relative_path TEXT NOT NULL,
                     scan_id TEXT NOT NULL,
-                    location_id TEXT NOT NULL
+                    location_id TEXT NOT NULL,
+                    preview_path TEXT NOT NULL DEFAULT '',
+                    preview_status TEXT NOT NULL DEFAULT 'pending'
                   );
                   CREATE TABLE preview_artifacts(
                     artifact_path TEXT NOT NULL,
@@ -3199,6 +3284,10 @@ mod tests {
                      CHECK(authoritative_recovery_complete = 1)
                  );
                  INSERT INTO library_change_queue_contract VALUES (1, 1, 1);
+                 CREATE TABLE library_roots(
+                   id TEXT PRIMARY KEY,
+                   active_scan_id TEXT
+                 );
                  CREATE TABLE scan_runs(
                    id TEXT PRIMARY KEY,
                    root_id TEXT NOT NULL,
@@ -3210,7 +3299,9 @@ mod tests {
                     root_id TEXT NOT NULL,
                     relative_path TEXT NOT NULL,
                     scan_id TEXT NOT NULL,
-                    location_id TEXT NOT NULL
+                    location_id TEXT NOT NULL,
+                    preview_path TEXT NOT NULL DEFAULT '',
+                    preview_status TEXT NOT NULL DEFAULT 'pending'
                   );
                   CREATE TABLE preview_artifacts(
                     artifact_path TEXT NOT NULL,

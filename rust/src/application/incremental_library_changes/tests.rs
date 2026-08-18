@@ -924,6 +924,9 @@ fn assert_cross_root_move_preserves_continuity(
                     .expect("restore prerelease stale handoff preview"),
                 1
             );
+            connection
+                .execute_batch("DROP TABLE library_change_preview_repair_contract")
+                .expect("restore prerelease preview repair marker");
             drop(connection);
             catalog = SqliteCatalog::open(catalog_path.clone())
                 .expect("repair prerelease stale handoff preview");

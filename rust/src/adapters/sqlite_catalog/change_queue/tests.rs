@@ -48,7 +48,9 @@ fn migrates_v16_without_losing_existing_catalog_rows() {
                root_id TEXT NOT NULL,
                relative_path TEXT NOT NULL,
                scan_id TEXT NOT NULL,
-               location_id TEXT NOT NULL
+               location_id TEXT NOT NULL,
+               preview_path TEXT NOT NULL DEFAULT '',
+               preview_status TEXT NOT NULL DEFAULT 'pending'
              );
              CREATE TABLE preview_artifacts (
                artifact_path TEXT NOT NULL,

@@ -146,10 +146,15 @@ though ordinary budget reclamation must preserve those owners. Preview publicati
 artifact discovery to the replaced algorithm, orientation, and size bucket instead of scanning the
 whole artifact catalog for every generated preview. A later destination can therefore adopt
 identity retained by an older range after the source location was removed without inheriting a
-missing ready preview. Opening a marker-complete v19 catalog also downgrades any legacy or
-normalized handoff whose ready expectation lacks a matching ready artifact. This bounded,
-index-backed repair covers prerelease catalogs that already deleted the final artifact row or left
-it stale; ordinary healthy opens remain read-only after the absence check. Once no active row or
+missing ready preview. Opening a marker-complete v19 catalog also downgrades any legacy handoff,
+normalized handoff, or current active-scan location whose ready expectation lacks a matching ready
+artifact, and removes any invalid active owner in the same transaction. This bounded repair uses
+the unique artifact-path lookup and covers prerelease catalogs that deleted the final artifact row,
+left it stale, or already published the invalid expectation and cleaned its handoff; ordinary
+healthy fresh catalogs and v18 migrations record the exact repair marker immediately. A prerelease
+v19 catalog without that marker performs the repair and creates the marker in the same transaction;
+later opens validate the marker and skip the catalog scan. A malformed same-name marker fails
+closed. Once no active row or
 frozen scan owns a lineage edge, the
 same transaction removes that edge; deleting the final edge cascades the batch and its items, then
 reclaims only artifacts or assets that have neither an active location nor another handoff owner.
