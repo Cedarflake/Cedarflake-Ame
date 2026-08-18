@@ -547,7 +547,37 @@ impl CatalogRepository for SqliteCatalog {
                     ],
                 )
                 .map_err(database_error)?;
-            mark_unreferenced_preview_artifacts_stale(&transaction)?;
+            transaction
+                .execute(
+                    "UPDATE preview_artifacts
+                     SET lifecycle_state = 'stale'
+                     WHERE lifecycle_state = 'ready'
+                       AND algorithm_id = ?1
+                       AND orientation_contract = ?2
+                       AND size_bucket = ?3
+                       AND artifact_key <> ?4
+                       AND NOT EXISTS (
+                         SELECT 1 FROM preview_artifact_locations AS owners
+                         WHERE owners.artifact_key = preview_artifacts.artifact_key
+                       )
+                       AND NOT EXISTS (
+                         SELECT 1 FROM library_change_catch_up_handoffs AS handoffs
+                         WHERE handoffs.preview_status = 'ready'
+                           AND handoffs.preview_path = preview_artifacts.artifact_path
+                       )
+                       AND NOT EXISTS (
+                         SELECT 1 FROM library_change_scan_handoff_items AS handoffs
+                         WHERE handoffs.preview_status = 'ready'
+                           AND handoffs.preview_path = preview_artifacts.artifact_path
+                       )",
+                    params![
+                        artifact.algorithm_id,
+                        artifact.orientation_contract,
+                        i64::from(artifact.size_bucket),
+                        artifact.artifact_key,
+                    ],
+                )
+                .map_err(database_error)?;
             transaction
                 .execute(
                     "INSERT INTO preview_artifacts(
@@ -839,6 +869,56 @@ impl CatalogRepository for SqliteCatalog {
             )
             .map_err(database_error)?;
         Ok(updated != 0)
+    }
+
+    fn invalidate_preview_recovery_artifact(
+        &mut self,
+        candidate: &PreviewReclamationCandidate,
+    ) -> Result<bool, ScanError> {
+        let transaction = self.connection.transaction().map_err(database_error)?;
+        transaction
+            .execute(
+                "UPDATE asset_locations
+                 SET preview_path = '', preview_status = 'pending',
+                     preview_issue_code = NULL, preview_issue_message = NULL
+                 WHERE preview_path = ?1
+                   AND location_id IN (
+                     SELECT location_id FROM preview_artifact_locations
+                     WHERE artifact_key = ?2
+                   )",
+                params![candidate.path, candidate.artifact_key],
+            )
+            .map_err(database_error)?;
+        transaction
+            .execute(
+                "UPDATE library_change_catch_up_handoffs
+                 SET preview_path = '', preview_status = 'pending',
+                     preview_issue_code = NULL, preview_issue_message = NULL
+                 WHERE preview_status = 'ready' AND preview_path = ?1",
+                [&candidate.path],
+            )
+            .map_err(database_error)?;
+        transaction
+            .execute(
+                "UPDATE library_change_scan_handoff_items
+                 SET preview_path = '', preview_status = 'pending',
+                     preview_issue_code = NULL, preview_issue_message = NULL
+                 WHERE preview_status = 'ready' AND preview_path = ?1",
+                [&candidate.path],
+            )
+            .map_err(database_error)?;
+        let deleted = transaction
+            .execute(
+                "DELETE FROM preview_artifacts
+                 WHERE artifact_key = ?1 AND artifact_path = ?2",
+                params![candidate.artifact_key, candidate.path],
+            )
+            .map_err(database_error)?;
+        if deleted != 1 {
+            return Ok(false);
+        }
+        transaction.commit().map_err(database_error)?;
+        Ok(true)
     }
 
     fn touch_preview_artifacts(

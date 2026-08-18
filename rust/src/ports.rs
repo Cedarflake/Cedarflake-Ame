@@ -265,6 +265,10 @@ pub trait CatalogRepository {
         candidate: &PreviewReclamationCandidate,
         actual_bytes: u64,
     ) -> Result<bool, ScanError>;
+    fn invalidate_preview_recovery_artifact(
+        &mut self,
+        candidate: &PreviewReclamationCandidate,
+    ) -> Result<bool, ScanError>;
     fn touch_preview_artifacts(&mut self, artifacts: &[(String, String)])
     -> Result<u64, ScanError>;
     fn load_preview_reclamation_candidates(

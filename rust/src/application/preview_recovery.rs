@@ -177,7 +177,8 @@ fn reconcile_index(storage: &StoragePaths, catalog: &mut SqliteCatalog) -> Resul
             if path.parent() != Some(storage.preview_root.as_path())
                 || !is_managed_preview_cleanup_entry(path)
             {
-                if catalog.remove_reclaimed_preview(&candidate)? {
+                if catalog.invalidate_preview_recovery_artifact(&candidate)? {
+                    removed_in_batch = true;
                     update_snapshot(|snapshot| {
                         snapshot.missing_artifacts = snapshot.missing_artifacts.saturating_add(1);
                     });
@@ -193,7 +194,7 @@ fn reconcile_index(storage: &StoragePaths, catalog: &mut SqliteCatalog) -> Resul
                     }
                 }
                 Err(error) if error.kind() == ErrorKind::NotFound => {
-                    if catalog.remove_reclaimed_preview(&candidate)? {
+                    if catalog.invalidate_preview_recovery_artifact(&candidate)? {
                         removed_in_batch = true;
                         update_snapshot(|snapshot| {
                             snapshot.missing_artifacts =

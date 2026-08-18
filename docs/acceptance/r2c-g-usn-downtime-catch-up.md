@@ -40,7 +40,7 @@ The controlled fixtures prove:
 | Root isolation | Allow a ready root to recover while another root still lacks healthy continuity evidence |
 | Checkpoint retention | Delete at most 128 obsolete checkpoints after seven days and never while a freshness gap is unresolved |
 | Exact subtree scope | Keep `Album` and `album` sibling locations outside each other's authoritative capacity window |
-| Durable handoff | Store full-scan snapshots as `N` deduplicated identity items plus `L` lineage owners, retain them across later watermarks, protect ready preview artifacts until explicit cleanup downgrades their expectations, then atomically clean after the last owner is terminal |
+| Durable handoff | Store full-scan snapshots as `N` deduplicated identity items plus `L` lineage owners, retain them across later watermarks, protect ready preview artifacts from budget reclamation, atomically downgrade missing or explicitly cleaned preview expectations, then clean after the last owner is terminal |
 | Shutdown | Cancel and retain catch-up worker ownership until its thread is joined |
 | Source safety | Perform no source-media mutation or cloud-placeholder hydration |
 
@@ -57,7 +57,7 @@ cargo test adapters::sqlite_catalog::migrations::tests --all-features -- --nocap
 22 passed; 0 failed
 
 cargo test application::incremental_library_changes::tests --all-features -- --nocapture
-24 passed; 0 failed
+25 passed; 0 failed
 
 cargo test adapters::sqlite_catalog::change_queue::tests --all-features -- --nocapture
 47 passed; 0 failed
@@ -91,8 +91,9 @@ prerelease repair. Full-scan fixtures move assets in both directions between two
 identity item for two hard-link locations with 64 lineage owners rather than duplicate identity or
 watermark copies, and prove stable asset and compatible preview continuity through source-first and
 destination-first publication. Bounded and full-scan fixtures also clear ready preview expectations
-before adoption when explicit preview cleanup removes the artifact; reclamation fixtures prove that
-normal budget pressure cannot select or delete an artifact while either handoff form owns it.
+before adoption when explicit preview cleanup or startup recovery removes a missing artifact;
+reclamation fixtures prove that normal budget pressure cannot select or delete an artifact while
+either handoff form owns it.
 The controlled real Win32 temporary-root test was executed with both the normal sandboxed token and
 the same standard token outside the workspace sandbox.
 Both reached the documented `usn_volume_open_failed` permission fallback. Ame did not elevate or
@@ -106,7 +107,7 @@ the production adapter path is covered by deterministic backend and parser fixtu
 140 files checked; 0 changed
 
 ./tool/quality_verify_daily.ps1
-Rust: 386 total; 381 passed; 0 failed; 5 existing explicit ignores
+Rust: 387 total; 382 passed; 0 failed; 5 existing explicit ignores
 Flutter: all test files passed
 Windows controlled picker and scan integration: 2 passed
 Windows native accessibility integration: 2 passed
@@ -118,14 +119,14 @@ release bridge and system accent smoke integration: 2 passed
 
 ./tool/performance_benchmark_synthetic_library.ps1
 files=10000
-fixture_ms=12402
-cold_ms=39135
-warm_ms=33813
-pause_ms=27
-resume_ms=31783
-cancel_ms=168
-catalog_bytes=52465664
-peak_working_set_bytes=17793024
+fixture_ms=7528
+cold_ms=20735
+warm_ms=18101
+pause_ms=23
+resume_ms=16381
+cancel_ms=167
+catalog_bytes=52359168
+peak_working_set_bytes=17801216
 result: passed
 
 git diff --check
@@ -178,9 +179,13 @@ could collide in the identity-keyed batch, checkpoint and legacy handoff tables 
 to exact shape, and preview cleanup or reclamation could invalidate a handoff-owned ready artifact.
 The current work selects one deterministic representative per physical identity, validates the
 checkpoint and legacy handoff table shapes, treats ready handoffs as reclamation owners, and
-atomically downgrades their preview expectations during explicit cleanup. Final independent
-re-audit remains pending; R2c-G is not marked complete until that committed head has no remaining
-Critical, High, Medium, or Low findings.
+atomically downgrades their preview expectations during explicit cleanup. The seventh audit of
+`f79f198` found that missing-artifact recovery incorrectly reused the owner-protected budget-delete
+path, while successful preview publication scanned every unreferenced artifact. The current work
+separates physical recovery invalidation from budget reclamation, atomically downgrades both
+handoff forms before deleting a missing artifact, and restores algorithm/orientation/size-bounded
+stale selection with handoff exclusions. Final independent re-audit remains pending; R2c-G is not
+marked complete until that committed head has no remaining Critical, High, Medium, or Low findings.
 
 ## Remaining boundary
 

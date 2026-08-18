@@ -13,7 +13,7 @@ use crate::domain::{
     AssetLocationView, DerivedEvidenceDisposition, LibraryChangeCatchUpEvidence,
     LibraryChangeCatchUpQueueBatch, LibraryChangeIntent, LibraryChangeIntentKind,
     LibraryChangeOrigin, LibraryChangeQueuePolicy, LibraryChangeScope, LibraryRootGeneration,
-    PreviewArtifact, PreviewStatus, ScanRequest,
+    PreviewArtifact, PreviewReclamationCandidate, PreviewStatus, ScanRequest,
 };
 use crate::ports::{
     CatalogRepository, IncrementalCatalogRepository, LibraryChangeQueue, MediaInspector,
@@ -582,25 +582,66 @@ fn compatible_rename_preserves_failed_preview_evidence() {
 #[cfg(windows)]
 #[test]
 fn source_first_cross_root_move_preserves_asset_and_preview_continuity() {
-    assert_cross_root_move_preserves_continuity("a-source", "z-destination", true, false, false);
+    assert_cross_root_move_preserves_continuity(
+        "a-source",
+        "z-destination",
+        true,
+        false,
+        false,
+        false,
+    );
 }
 
 #[cfg(windows)]
 #[test]
 fn destination_first_cross_root_move_preserves_asset_and_preview_continuity() {
-    assert_cross_root_move_preserves_continuity("z-source", "a-destination", false, false, false);
+    assert_cross_root_move_preserves_continuity(
+        "z-source",
+        "a-destination",
+        false,
+        false,
+        false,
+        false,
+    );
 }
 
 #[cfg(windows)]
 #[test]
 fn newer_watermark_keeps_an_older_cross_root_handoff_visible() {
-    assert_cross_root_move_preserves_continuity("a-source", "z-destination", true, true, false);
+    assert_cross_root_move_preserves_continuity(
+        "a-source",
+        "z-destination",
+        true,
+        true,
+        false,
+        false,
+    );
 }
 
 #[cfg(windows)]
 #[test]
 fn preview_cleanup_downgrades_a_bounded_handoff_before_destination_adoption() {
-    assert_cross_root_move_preserves_continuity("a-source", "z-destination", true, false, true);
+    assert_cross_root_move_preserves_continuity(
+        "a-source",
+        "z-destination",
+        true,
+        false,
+        true,
+        false,
+    );
+}
+
+#[cfg(windows)]
+#[test]
+fn preview_recovery_invalidates_a_missing_bounded_handoff_before_destination_adoption() {
+    assert_cross_root_move_preserves_continuity(
+        "a-source",
+        "z-destination",
+        true,
+        false,
+        false,
+        true,
+    );
 }
 
 #[cfg(windows)]
@@ -764,6 +805,7 @@ fn assert_cross_root_move_preserves_continuity(
     source_first: bool,
     supersede_destination_watermark: bool,
     cleanup_after_source: bool,
+    invalidate_missing_preview: bool,
 ) {
     let storage = tempdir().expect("cross-root storage");
     let source_path = storage.path().join("source");
@@ -791,7 +833,7 @@ fn assert_cross_root_move_preserves_continuity(
         .load_incremental_location_by_relative_path(source_root_id, "old.png")
         .expect("load source location")
         .expect("source location");
-    if cleanup_after_source {
+    if cleanup_after_source || invalidate_missing_preview {
         original.preview_path = storage
             .path()
             .join("preview-before-cleanup.jpg")
@@ -868,6 +910,16 @@ fn assert_cross_root_move_preserves_continuity(
             catalog
                 .reset_all_previews_for_cleanup()
                 .expect("reset handoff preview before destination adoption");
+        } else if invalidate_missing_preview {
+            let candidate = PreviewReclamationCandidate {
+                artifact_key: "cross-root-preview-before-cleanup".to_owned(),
+                path: original.preview_path.clone(),
+            };
+            assert!(
+                catalog
+                    .invalidate_preview_recovery_artifact(&candidate)
+                    .expect("invalidate missing handoff preview before destination adoption")
+            );
         }
     }
 
@@ -901,7 +953,7 @@ fn assert_cross_root_move_preserves_continuity(
         .expect("destination location");
     assert_eq!(moved.asset_id, original.asset_id);
     assert_eq!(moved.file_identity, original.file_identity);
-    if cleanup_after_source {
+    if cleanup_after_source || invalidate_missing_preview {
         assert!(matches!(moved.preview_status, PreviewStatus::Pending));
         assert!(moved.preview_path.is_empty());
         assert!(moved.preview_issue_code.is_none());
