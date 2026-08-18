@@ -24,8 +24,8 @@ pub use library_change::{
 };
 pub use library_change_catch_up::{
     LibraryChangeCatchUpBatch, LibraryChangeCatchUpCheckpoint, LibraryChangeCatchUpCompletedRoot,
-    LibraryChangeCatchUpEvidence, LibraryChangeCatchUpLimits, LibraryChangeCatchUpReport,
-    LibraryChangeCatchUpRootResult,
+    LibraryChangeCatchUpEvidence, LibraryChangeCatchUpLimits, LibraryChangeCatchUpQueueBatch,
+    LibraryChangeCatchUpReport, LibraryChangeCatchUpRootResult,
 };
 pub use library_change_queue::{
     DurableLibraryChange, LeasedLibraryChange, LibraryChangeEnqueueReport, LibraryChangeFailure,

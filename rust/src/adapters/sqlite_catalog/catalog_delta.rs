@@ -5,8 +5,8 @@ use rusqlite::{OptionalExtension, TransactionBehavior, params};
 use crate::domain::{
     AssetLocationView, CatalogDeltaBatch, CatalogDeltaPublication, CatalogDeltaPublicationStatus,
     DerivedEvidenceDisposition, FileIdentityEvidence, IncrementalCatalogRoot,
-    IncrementalReconciliationOutcome, LibraryChangeCatchUpEvidence, LibraryRootGeneration,
-    PreviewStatus, RetainedPreviewExpectation, ScanError,
+    IncrementalReconciliationOutcome, LibraryChangeCatchUpEvidence, LibraryChangeId,
+    LibraryRootGeneration, PreviewStatus, RetainedPreviewExpectation, ScanError,
 };
 use crate::ports::IncrementalCatalogRepository;
 
@@ -18,6 +18,7 @@ use super::{
 const MAX_DELTA_MUTATIONS: usize = 256;
 const MAX_REMOVALS_PER_MUTATION: usize = 4;
 const MAX_DELTA_COMPLETIONS: usize = 128;
+const MAX_CATCH_UP_LINEAGE_PER_CHANGE: usize = 64;
 
 impl IncrementalCatalogRepository for SqliteCatalog {
     fn load_incremental_catalog_roots(&self) -> Result<Vec<IncrementalCatalogRoot>, ScanError> {
@@ -169,7 +170,7 @@ impl IncrementalCatalogRepository for SqliteCatalog {
     fn load_incremental_location_by_file_identity(
         &self,
         identity: &FileIdentityEvidence,
-        catch_up_evidence: Option<&LibraryChangeCatchUpEvidence>,
+        catch_up_lineage: &[LibraryChangeCatchUpEvidence],
     ) -> Result<Option<AssetLocationView>, ScanError> {
         if identity.scheme.is_empty()
             || identity.value.is_empty()
@@ -189,10 +190,12 @@ impl IncrementalCatalogRepository for SqliteCatalog {
         if active.is_some() {
             return Ok(active);
         }
-        let Some(evidence) = catch_up_evidence else {
-            return Ok(None);
-        };
-        load_catch_up_handoff_location(self, identity, evidence)
+        for evidence in catch_up_lineage {
+            if let Some(location) = load_catch_up_handoff_location(self, identity, evidence)? {
+                return Ok(Some(location));
+            }
+        }
+        Ok(None)
     }
 
     fn load_incremental_locations_in_subtree(
@@ -383,7 +386,7 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                 ));
             }
             completed_root_authority |= scope == "root";
-            let evidence = match (catch_up_source, catch_up_watermark) {
+            let primary_evidence = match (catch_up_source, catch_up_watermark) {
                 (Some(source), Some(watermark)) => {
                     Some(LibraryChangeCatchUpEvidence { source, watermark })
                 }
@@ -395,7 +398,12 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                     ));
                 }
             };
-            catch_up_evidence_by_change.insert(completion.change_id, evidence);
+            let lineage = load_change_catch_up_lineage(
+                &transaction,
+                completion.change_id,
+                primary_evidence.as_ref(),
+            )?;
+            catch_up_evidence_by_change.insert(completion.change_id, lineage);
         }
 
         for mutation in &batch.mutations {
@@ -439,15 +447,17 @@ impl IncrementalCatalogRepository for SqliteCatalog {
         }
 
         for mutation in &batch.mutations {
-            if let Some(Some(evidence)) = catch_up_evidence_by_change.get(&mutation.change_id) {
-                retain_catch_up_handoff_snapshots(
-                    &transaction,
-                    &active_scan_id,
-                    &batch.root_id,
-                    &mutation.remove_location_ids,
-                    evidence,
-                    completed_unix_ms,
-                )?;
+            if let Some(lineage) = catch_up_evidence_by_change.get(&mutation.change_id) {
+                for evidence in lineage {
+                    retain_catch_up_handoff_snapshots(
+                        &transaction,
+                        &active_scan_id,
+                        &batch.root_id,
+                        &mutation.remove_location_ids,
+                        evidence,
+                        completed_unix_ms,
+                    )?;
+                }
             }
             let mut removals = mutation
                 .remove_location_ids
@@ -695,6 +705,50 @@ fn load_catch_up_handoff_location(
         .transpose()
 }
 
+fn load_change_catch_up_lineage(
+    transaction: &rusqlite::Transaction<'_>,
+    change_id: LibraryChangeId,
+    primary_evidence: Option<&LibraryChangeCatchUpEvidence>,
+) -> Result<Vec<LibraryChangeCatchUpEvidence>, ScanError> {
+    let mut statement = transaction
+        .prepare_cached(
+            "SELECT catch_up_source, catch_up_watermark
+             FROM library_change_queue_catch_up_lineage
+             WHERE change_id = ?1
+             ORDER BY enrolled_unix_ms DESC, catch_up_source, catch_up_watermark
+             LIMIT ?2",
+        )
+        .map_err(database_error)?;
+    let rows = statement
+        .query_map(
+            params![
+                sqlite_integer(change_id.value(), "change ID")?,
+                i64::try_from(MAX_CATCH_UP_LINEAGE_PER_CHANGE + 1).unwrap_or(i64::MAX),
+            ],
+            |row| {
+                Ok(LibraryChangeCatchUpEvidence {
+                    source: row.get(0)?,
+                    watermark: row.get(1)?,
+                })
+            },
+        )
+        .map_err(database_error)?;
+    let mut lineage = Vec::new();
+    for row in rows {
+        lineage.push(row.map_err(database_error)?);
+    }
+    if lineage.len() > MAX_CATCH_UP_LINEAGE_PER_CHANGE
+        || primary_evidence.is_some_and(|evidence| !lineage.contains(evidence))
+        || (primary_evidence.is_none() && !lineage.is_empty())
+    {
+        return Err(ScanError::new(
+            "catalog_delta_catch_up_lineage_invalid",
+            "A catalog delta lease has invalid or unbounded catch-up watermark lineage",
+        ));
+    }
+    Ok(lineage)
+}
+
 fn retained_preview_matches(
     transaction: &rusqlite::Transaction<'_>,
     expectation: &RetainedPreviewExpectation,
@@ -792,9 +846,11 @@ pub(super) fn cleanup_terminal_catch_up_handoffs(
     let has_active_work = transaction
         .query_row(
             "SELECT EXISTS(
-               SELECT 1 FROM library_change_queue
-               WHERE catch_up_source = ?1 AND catch_up_watermark = ?2
-                 AND status IN ('pending', 'leased', 'retry_wait')
+               SELECT 1
+               FROM library_change_queue_catch_up_lineage AS lineage
+               JOIN library_change_queue AS changes ON changes.id = lineage.change_id
+               WHERE lineage.catch_up_source = ?1 AND lineage.catch_up_watermark = ?2
+                 AND changes.status IN ('pending', 'leased', 'retry_wait')
              )",
             params![source, watermark],
             |row| row.get::<_, bool>(0),
@@ -816,6 +872,15 @@ pub(super) fn cleanup_terminal_catch_up_handoffs(
                AND NOT EXISTS (
                  SELECT 1 FROM preview_artifact_locations AS owners
                  WHERE owners.artifact_key = preview_artifacts.artifact_key
+               )
+               AND NOT EXISTS (
+                 SELECT 1 FROM library_change_catch_up_handoffs AS retained
+                 WHERE retained.preview_path = preview_artifacts.artifact_path
+                   AND retained.preview_status = 'ready'
+                   AND (
+                     retained.catch_up_source <> ?1
+                     OR retained.catch_up_watermark <> ?2
+                   )
                )",
             params![source, watermark],
         )
@@ -829,6 +894,14 @@ pub(super) fn cleanup_terminal_catch_up_handoffs(
              )
                AND NOT EXISTS (
                  SELECT 1 FROM asset_locations WHERE asset_locations.asset_id = assets.id
+               )
+               AND NOT EXISTS (
+                 SELECT 1 FROM library_change_catch_up_handoffs AS retained
+                 WHERE retained.asset_id = assets.id
+                   AND (
+                     retained.catch_up_source <> ?1
+                     OR retained.catch_up_watermark <> ?2
+                   )
                )",
             params![source, watermark],
         )

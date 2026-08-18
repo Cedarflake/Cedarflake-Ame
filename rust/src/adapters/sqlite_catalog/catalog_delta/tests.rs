@@ -754,6 +754,108 @@ fn delta_maintenance_does_not_scan_or_rewrite_unaffected_global_state() {
     assert_eq!(asset_count, 1);
 }
 
+#[test]
+fn terminal_lineage_cleanup_preserves_other_watermark_owners() {
+    let directory = tempdir().expect("temporary directory");
+    let mut catalog =
+        SqliteCatalog::open(directory.path().join("catalog.sqlite3")).expect("open catalog");
+    catalog
+        .connection
+        .execute_batch(
+            "INSERT INTO assets(id, created_unix_ms) VALUES ('asset-a', 1);
+             INSERT INTO preview_artifacts(
+               artifact_key, source_file_size, source_modified_unix_ms,
+               source_identity_scheme, source_identity_value,
+               algorithm_id, algorithm_version, orientation_contract, size_bucket,
+               encoded_width, encoded_height, artifact_path, byte_size,
+               lifecycle_state, created_unix_ms, last_used_unix_ms
+             ) VALUES (
+               'artifact-a', 1, 1, 'windows-file-id-128-v1', 'volume:file',
+               'preview', 1, 'orientation', 256, 1, 1,
+               'C:/preview/photo.jpg', 1, 'ready', 1, 1
+             );
+             INSERT INTO library_change_catch_up_handoffs(
+               catch_up_source, catch_up_watermark,
+               file_identity_scheme, file_identity_value,
+               asset_id, source_location_id, root_id, absolute_path, relative_path,
+               preview_path, file_size, created_unix_ms, modified_unix_ms,
+               width, height, preview_status, preview_issue_code, preview_issue_message,
+               metadata_engine_id, metadata_engine_version, capture_local_time,
+               capture_offset_minutes, capture_time_source, capture_raw_value,
+               updated_unix_ms
+             ) VALUES
+             (
+               'windows_usn_v1', 'watermark-1', 'windows-file-id-128-v1', 'volume:file',
+               'asset-a', 'location-a', 'root-a', 'C:/source/photo.jpg', 'photo.jpg',
+               'C:/preview/photo.jpg', 1, NULL, 1, 1, 1, 'ready', NULL, NULL,
+               'metadata', '1', NULL, NULL, NULL, NULL, 1
+             ),
+             (
+               'windows_usn_v1', 'watermark-2', 'windows-file-id-128-v1', 'volume:file',
+               'asset-a', 'location-a', 'root-a', 'C:/source/photo.jpg', 'photo.jpg',
+               'C:/preview/photo.jpg', 1, NULL, 1, 1, 1, 'ready', NULL, NULL,
+               'metadata', '1', NULL, NULL, NULL, NULL, 2
+             );",
+        )
+        .expect("seed handoff owners");
+
+    let transaction = catalog
+        .connection
+        .transaction()
+        .expect("cleanup transaction");
+    super::cleanup_terminal_catch_up_handoffs(&transaction, "windows_usn_v1", "watermark-1")
+        .expect("cleanup first watermark");
+    transaction.commit().expect("commit first cleanup");
+
+    let (asset_count, lifecycle, handoff_count) = catalog
+        .connection
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM assets WHERE id = 'asset-a'),
+               (SELECT lifecycle_state FROM preview_artifacts WHERE artifact_key = 'artifact-a'),
+               (SELECT COUNT(*) FROM library_change_catch_up_handoffs)",
+            [],
+            |row| {
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, i64>(2)?,
+                ))
+            },
+        )
+        .expect("retained owner state");
+    assert_eq!(
+        (asset_count, lifecycle.as_str(), handoff_count),
+        (1, "ready", 1)
+    );
+
+    let transaction = catalog.connection.transaction().expect("final transaction");
+    super::cleanup_terminal_catch_up_handoffs(&transaction, "windows_usn_v1", "watermark-2")
+        .expect("cleanup final watermark");
+    transaction.commit().expect("commit final cleanup");
+    let (asset_count, lifecycle, handoff_count) = catalog
+        .connection
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM assets WHERE id = 'asset-a'),
+               (SELECT lifecycle_state FROM preview_artifacts WHERE artifact_key = 'artifact-a'),
+               (SELECT COUNT(*) FROM library_change_catch_up_handoffs)",
+            [],
+            |row| {
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, i64>(2)?,
+                ))
+            },
+        )
+        .expect("released owner state");
+    assert_eq!(
+        (asset_count, lifecycle.as_str(), handoff_count),
+        (0, "stale", 0)
+    );
+}
+
 fn seed_catalog(
     catalog: &mut SqliteCatalog,
     root_id: &str,

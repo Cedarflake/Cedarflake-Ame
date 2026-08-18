@@ -11,8 +11,9 @@ use crate::application::{
 };
 use crate::domain::{
     AssetLocationView, DerivedEvidenceDisposition, LibraryChangeCatchUpEvidence,
-    LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeOrigin, LibraryChangeQueuePolicy,
-    LibraryChangeScope, LibraryRootGeneration, PreviewStatus, ScanRequest,
+    LibraryChangeCatchUpQueueBatch, LibraryChangeIntent, LibraryChangeIntentKind,
+    LibraryChangeOrigin, LibraryChangeQueuePolicy, LibraryChangeScope, LibraryRootGeneration,
+    PreviewStatus, ScanRequest,
 };
 use crate::ports::{
     CatalogRepository, IncrementalCatalogRepository, LibraryChangeQueue, MediaInspector,
@@ -581,13 +582,19 @@ fn compatible_rename_preserves_failed_preview_evidence() {
 #[cfg(windows)]
 #[test]
 fn source_first_cross_root_move_preserves_asset_and_preview_continuity() {
-    assert_cross_root_move_preserves_continuity("a-source", "z-destination", true);
+    assert_cross_root_move_preserves_continuity("a-source", "z-destination", true, false);
 }
 
 #[cfg(windows)]
 #[test]
 fn destination_first_cross_root_move_preserves_asset_and_preview_continuity() {
-    assert_cross_root_move_preserves_continuity("z-source", "a-destination", false);
+    assert_cross_root_move_preserves_continuity("z-source", "a-destination", false, false);
+}
+
+#[cfg(windows)]
+#[test]
+fn newer_watermark_keeps_an_older_cross_root_handoff_visible() {
+    assert_cross_root_move_preserves_continuity("a-source", "z-destination", true, true);
 }
 
 #[cfg(windows)]
@@ -749,6 +756,7 @@ fn assert_cross_root_move_preserves_continuity(
     source_root_id: &str,
     destination_root_id: &str,
     source_first: bool,
+    supersede_destination_watermark: bool,
 ) {
     let storage = tempdir().expect("cross-root storage");
     let source_path = storage.path().join("source");
@@ -792,21 +800,21 @@ fn assert_cross_root_move_preserves_continuity(
         watermark: "volume:journal:900".to_owned(),
     };
     catalog
-        .enqueue_library_change_intents_with_catch_up(
-            &[catch_up_intent(source_root_id, "old.png", 1)],
-            &evidence,
+        .enqueue_library_change_catch_up_batches(
+            &[
+                LibraryChangeCatchUpQueueBatch {
+                    intents: vec![catch_up_intent(source_root_id, "old.png", 1)],
+                    evidence: Some(evidence.clone()),
+                },
+                LibraryChangeCatchUpQueueBatch {
+                    intents: vec![catch_up_intent(destination_root_id, "new.png", 2)],
+                    evidence: Some(evidence),
+                },
+            ],
             1_000,
             policy(),
         )
-        .expect("enqueue source removal");
-    catalog
-        .enqueue_library_change_intents_with_catch_up(
-            &[catch_up_intent(destination_root_id, "new.png", 2)],
-            &evidence,
-            1_000,
-            policy(),
-        )
-        .expect("enqueue destination discovery");
+        .expect("atomically enqueue both cross-root plans");
 
     if source_first {
         let source = process_ready_library_changes(
@@ -824,6 +832,21 @@ fn assert_cross_root_move_preserves_continuity(
                 .expect("load snapshotted source")
                 .is_none()
         );
+    }
+
+    if supersede_destination_watermark {
+        let newer_evidence = LibraryChangeCatchUpEvidence {
+            source: "windows_usn_v1".to_owned(),
+            watermark: "volume:journal:1200".to_owned(),
+        };
+        catalog
+            .enqueue_library_change_intents_with_catch_up(
+                &[catch_up_intent(destination_root_id, "new.png", 3)],
+                &newer_evidence,
+                2_050,
+                policy(),
+            )
+            .expect("coalesce newer destination watermark");
     }
 
     let destination = process_ready_library_changes(

@@ -3,10 +3,10 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::domain::{
     IncrementalCatalogRoot, LibraryChangeCatchUpBatch, LibraryChangeCatchUpCheckpoint,
-    LibraryChangeCatchUpEvidence, LibraryChangeCatchUpLimits, LibraryChangeCatchUpRootResult,
-    LibraryChangeEnqueueReport, LibraryChangeIntent, LibraryChangeObservation,
-    LibraryChangeObservationKind, LibraryChangeOrigin, LibraryChangeQueuePolicy,
-    LibraryChangeScope, LibraryRootGeneration, ScanError,
+    LibraryChangeCatchUpEvidence, LibraryChangeCatchUpLimits, LibraryChangeCatchUpQueueBatch,
+    LibraryChangeCatchUpRootResult, LibraryChangeEnqueueReport, LibraryChangeIntent,
+    LibraryChangeObservation, LibraryChangeObservationKind, LibraryChangeOrigin,
+    LibraryChangeQueuePolicy, LibraryChangeScope, LibraryRootGeneration, ScanError,
 };
 use crate::ports::{
     LibraryChangeCatchUpRepository, LibraryChangeCatchUpSource, LibraryChangeQueue,
@@ -39,6 +39,7 @@ struct RecordingRepository {
         Option<LibraryChangeCatchUpEvidence>,
     )>,
     checkpoints: Vec<LibraryChangeCatchUpCheckpoint>,
+    batch_enqueue_count: u32,
     fail_enqueue: bool,
     cancel_after_enqueue: Option<Arc<AtomicBool>>,
 }
@@ -95,6 +96,27 @@ impl LibraryChangeQueue for RecordingRepository {
             cancelled.store(true, Ordering::Release);
         }
         Ok(LibraryChangeEnqueueReport::default())
+    }
+
+    fn enqueue_library_change_catch_up_batches(
+        &mut self,
+        batches: &[LibraryChangeCatchUpQueueBatch],
+        _enqueued_unix_ms: i64,
+        _policy: LibraryChangeQueuePolicy,
+    ) -> Result<Vec<LibraryChangeEnqueueReport>, ScanError> {
+        if self.fail_enqueue {
+            return Err(ScanError::new("database_busy", "busy"));
+        }
+        self.batch_enqueue_count = self.batch_enqueue_count.saturating_add(1);
+        self.enqueued.extend(
+            batches
+                .iter()
+                .map(|batch| (batch.intents.clone(), batch.evidence.clone())),
+        );
+        if let Some(cancelled) = &self.cancel_after_enqueue {
+            cancelled.store(true, Ordering::Release);
+        }
+        Ok(vec![LibraryChangeEnqueueReport::default(); batches.len()])
     }
 
     fn lease_library_changes(
@@ -182,6 +204,48 @@ impl LibraryChangeQueue for RecordingRepository {
     ) -> Result<u32, ScanError> {
         unreachable!()
     }
+}
+
+#[test]
+fn every_root_is_enrolled_by_one_atomic_queue_call() {
+    let root_a = root("root-a");
+    let root_b = root("root-b");
+    let checkpoint = checkpoint();
+    let source = FixedSource {
+        batch: LibraryChangeCatchUpBatch {
+            roots: vec![
+                LibraryChangeCatchUpRootResult {
+                    root_id: root_a.root_id.clone(),
+                    root_generation: root_a.root_generation,
+                    observations: vec![observation(&root_a, "old.jpg")],
+                    fallback_code: None,
+                    evidence: Some(evidence()),
+                },
+                LibraryChangeCatchUpRootResult {
+                    root_id: root_b.root_id.clone(),
+                    root_generation: root_b.root_generation,
+                    observations: vec![observation(&root_b, "new.jpg")],
+                    fallback_code: None,
+                    evidence: Some(evidence()),
+                },
+            ],
+            checkpoints: vec![checkpoint.clone()],
+        },
+    };
+    let mut repository = RecordingRepository::default();
+
+    process_library_change_catch_up(
+        &source,
+        &mut repository,
+        &[root_a, root_b],
+        LibraryChangeCatchUpExecution::at(50, Default::default()),
+        &AtomicBool::new(false),
+    )
+    .expect("catch up");
+
+    assert_eq!(repository.batch_enqueue_count, 1);
+    assert_eq!(repository.enqueued.len(), 2);
+    assert_eq!(repository.checkpoints, vec![checkpoint]);
 }
 
 #[test]

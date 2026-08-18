@@ -10,6 +10,8 @@ use crate::domain::{
 
 use super::super::{database_error, sqlite_integer, sqlite_u32, sqlite_unsigned};
 
+const MAX_CATCH_UP_LINEAGE_PER_CHANGE: usize = 64;
+
 #[derive(Clone, Debug)]
 pub(super) struct ActiveChange {
     pub(super) id: LibraryChangeId,
@@ -484,7 +486,11 @@ pub(super) fn insert_change(
             ],
         )
         .map_err(database_error)?;
-    change_id_from_sqlite(transaction.last_insert_rowid())
+    let change_id = change_id_from_sqlite(transaction.last_insert_rowid())?;
+    if let Some(evidence) = evidence {
+        attach_catch_up_lineage(transaction, change_id, evidence, enqueued_unix_ms)?;
+    }
+    Ok(change_id)
 }
 
 pub(super) fn update_change(
@@ -528,7 +534,79 @@ pub(super) fn update_change(
             ],
         )
         .map_err(database_error)?;
+    if let Some(evidence) = evidence {
+        attach_catch_up_lineage(transaction, change_id, evidence, enqueued_unix_ms)?;
+    }
     Ok(())
+}
+
+pub(super) fn transfer_catch_up_lineage(
+    transaction: &Transaction<'_>,
+    source_ids: impl IntoIterator<Item = LibraryChangeId>,
+    target_id: LibraryChangeId,
+) -> Result<(), ScanError> {
+    for source_id in source_ids {
+        if source_id == target_id {
+            continue;
+        }
+        transaction
+            .execute(
+                "INSERT OR IGNORE INTO library_change_queue_catch_up_lineage(
+                   change_id, catch_up_source, catch_up_watermark, enrolled_unix_ms
+                 )
+                 SELECT ?1, catch_up_source, catch_up_watermark, enrolled_unix_ms
+                 FROM library_change_queue_catch_up_lineage WHERE change_id = ?2",
+                params![
+                    sqlite_integer(target_id.value(), "target change ID")?,
+                    sqlite_integer(source_id.value(), "source change ID")?,
+                ],
+            )
+            .map_err(database_error)?;
+    }
+    validate_catch_up_lineage_bound(transaction, target_id)
+}
+
+fn attach_catch_up_lineage(
+    transaction: &Transaction<'_>,
+    change_id: LibraryChangeId,
+    evidence: &LibraryChangeCatchUpEvidence,
+    enrolled_unix_ms: i64,
+) -> Result<(), ScanError> {
+    transaction
+        .execute(
+            "INSERT OR IGNORE INTO library_change_queue_catch_up_lineage(
+               change_id, catch_up_source, catch_up_watermark, enrolled_unix_ms
+             ) VALUES (?1, ?2, ?3, ?4)",
+            params![
+                sqlite_integer(change_id.value(), "change ID")?,
+                evidence.source,
+                evidence.watermark,
+                enrolled_unix_ms,
+            ],
+        )
+        .map_err(database_error)?;
+    validate_catch_up_lineage_bound(transaction, change_id)
+}
+
+fn validate_catch_up_lineage_bound(
+    transaction: &Transaction<'_>,
+    change_id: LibraryChangeId,
+) -> Result<(), ScanError> {
+    let count = transaction
+        .query_row(
+            "SELECT COUNT(*) FROM library_change_queue_catch_up_lineage WHERE change_id = ?1",
+            [sqlite_integer(change_id.value(), "change ID")?],
+            |row| row.get::<_, i64>(0),
+        )
+        .map_err(database_error)?;
+    if usize::try_from(count).unwrap_or(usize::MAX) > MAX_CATCH_UP_LINEAGE_PER_CHANGE {
+        Err(ScanError::new(
+            "change_queue_catch_up_lineage_limit_exceeded",
+            "One durable change accumulated too many unresolved catch-up watermarks",
+        ))
+    } else {
+        Ok(())
+    }
 }
 
 pub(super) fn mark_superseded(
@@ -609,7 +687,48 @@ pub(super) fn load_change(
             read_durable_change_row,
         )
         .map_err(database_error)?;
-    durable_change_from_raw(raw)
+    let catch_up_lineage = load_catch_up_lineage(transaction, change_id)?;
+    durable_change_from_raw(raw, catch_up_lineage)
+}
+
+fn load_catch_up_lineage(
+    transaction: &Transaction<'_>,
+    change_id: i64,
+) -> Result<Vec<LibraryChangeCatchUpEvidence>, ScanError> {
+    let mut statement = transaction
+        .prepare_cached(
+            "SELECT catch_up_source, catch_up_watermark
+             FROM library_change_queue_catch_up_lineage
+             WHERE change_id = ?1
+             ORDER BY enrolled_unix_ms DESC, catch_up_source, catch_up_watermark
+             LIMIT ?2",
+        )
+        .map_err(database_error)?;
+    let rows = statement
+        .query_map(
+            params![
+                change_id,
+                i64::try_from(MAX_CATCH_UP_LINEAGE_PER_CHANGE + 1).unwrap_or(i64::MAX),
+            ],
+            |row| {
+                Ok(LibraryChangeCatchUpEvidence {
+                    source: row.get(0)?,
+                    watermark: row.get(1)?,
+                })
+            },
+        )
+        .map_err(database_error)?;
+    let mut lineage = Vec::new();
+    for row in rows {
+        lineage.push(row.map_err(database_error)?);
+    }
+    if lineage.len() > MAX_CATCH_UP_LINEAGE_PER_CHANGE {
+        return Err(ScanError::new(
+            "change_queue_catch_up_lineage_limit_exceeded",
+            "One durable change exceeds the bounded catch-up watermark lineage",
+        ));
+    }
+    Ok(lineage)
 }
 
 fn read_durable_change_row(row: &Row<'_>) -> rusqlite::Result<RawDurableChange> {
@@ -647,7 +766,10 @@ fn read_durable_change_row(row: &Row<'_>) -> rusqlite::Result<RawDurableChange> 
     })
 }
 
-fn durable_change_from_raw(raw: RawDurableChange) -> Result<DurableLibraryChange, ScanError> {
+fn durable_change_from_raw(
+    raw: RawDurableChange,
+    catch_up_lineage: Vec<LibraryChangeCatchUpEvidence>,
+) -> Result<DurableLibraryChange, ScanError> {
     let root_generation =
         LibraryRootGeneration::new(sqlite_unsigned(raw.root_generation, "root generation")?)
             .ok_or_else(|| {
@@ -667,6 +789,29 @@ fn durable_change_from_raw(raw: RawDurableChange) -> Result<DurableLibraryChange
             ));
         }
     };
+    let primary_evidence = match (&raw.catch_up_source, &raw.catch_up_watermark) {
+        (Some(source), Some(watermark)) => Some(LibraryChangeCatchUpEvidence {
+            source: source.clone(),
+            watermark: watermark.clone(),
+        }),
+        (None, None) => None,
+        _ => {
+            return Err(ScanError::new(
+                "change_queue_catch_up_evidence_invalid",
+                "The stored catch-up evidence is incomplete",
+            ));
+        }
+    };
+    if primary_evidence
+        .as_ref()
+        .is_some_and(|evidence| !catch_up_lineage.contains(evidence))
+        || (primary_evidence.is_none() && !catch_up_lineage.is_empty())
+    {
+        return Err(ScanError::new(
+            "change_queue_catch_up_lineage_invalid",
+            "The durable catch-up watermark lineage does not include its primary evidence",
+        ));
+    }
     Ok(DurableLibraryChange {
         id: active.id,
         intent: active.intent,
@@ -684,6 +829,7 @@ fn durable_change_from_raw(raw: RawDurableChange) -> Result<DurableLibraryChange
             .transpose()?,
         catch_up_source: raw.catch_up_source,
         catch_up_watermark: raw.catch_up_watermark,
+        catch_up_lineage,
         superseded_by_change_id: raw
             .superseded_by_change_id
             .map(change_id_from_sqlite)

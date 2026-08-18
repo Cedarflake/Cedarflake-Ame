@@ -1,7 +1,7 @@
 use crate::domain::{
-    LibraryChangeCatchUpEvidence, LibraryChangeEnqueueReport, LibraryChangeIntent,
-    LibraryChangeIntentKind, LibraryChangePlanningResult, LibraryChangeQueuePolicy,
-    LibraryChangeScope, ScanError,
+    LibraryChangeCatchUpEvidence, LibraryChangeCatchUpQueueBatch, LibraryChangeEnqueueReport,
+    LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangePlanningResult,
+    LibraryChangeQueuePolicy, LibraryChangeScope, ScanError,
 };
 use crate::ports::LibraryChangeQueue;
 
@@ -26,17 +26,13 @@ where
     queue.enqueue_library_change_intents(&plan.intents, enqueued_unix_ms, policy)
 }
 
-pub(crate) fn enqueue_library_change_catch_up_plan<Queue>(
-    queue: &mut Queue,
+pub(crate) fn prepare_library_change_catch_up_plan(
     plan: &LibraryChangePlanningResult,
-    evidence: &LibraryChangeCatchUpEvidence,
-    enqueued_unix_ms: i64,
-    policy: LibraryChangeQueuePolicy,
-) -> Result<LibraryChangeEnqueueReport, ScanError>
-where
-    Queue: LibraryChangeQueue,
-{
-    if evidence.source.trim().is_empty() || evidence.watermark.trim().is_empty() {
+    evidence: Option<&LibraryChangeCatchUpEvidence>,
+) -> Result<LibraryChangeCatchUpQueueBatch, ScanError> {
+    if let Some(evidence) = evidence
+        && (evidence.source.trim().is_empty() || evidence.watermark.trim().is_empty())
+    {
         return Err(ScanError::new(
             "library_change_catch_up_evidence_invalid",
             "Journal-derived work requires a non-empty source and watermark",
@@ -45,12 +41,10 @@ where
     for intent in &plan.intents {
         validate_intent(plan, intent)?;
     }
-    queue.enqueue_library_change_intents_with_catch_up(
-        &plan.intents,
-        evidence,
-        enqueued_unix_ms,
-        policy,
-    )
+    Ok(LibraryChangeCatchUpQueueBatch {
+        intents: plan.intents.clone(),
+        evidence: evidence.cloned(),
+    })
 }
 
 fn validate_intent(

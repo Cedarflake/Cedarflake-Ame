@@ -1,9 +1,10 @@
-use rusqlite::params;
+use rusqlite::{Transaction, TransactionBehavior, params};
 
 use crate::domain::{
-    LeasedLibraryChange, LibraryChangeCatchUpEvidence, LibraryChangeEnqueueReport,
-    LibraryChangeFailure, LibraryChangeId, LibraryChangeIntent, LibraryChangeLeaseUpdateOutcome,
-    LibraryChangeQueueMetrics, LibraryChangeQueuePolicy, LibraryRootGeneration, ScanError,
+    LeasedLibraryChange, LibraryChangeCatchUpEvidence, LibraryChangeCatchUpQueueBatch,
+    LibraryChangeEnqueueReport, LibraryChangeFailure, LibraryChangeId, LibraryChangeIntent,
+    LibraryChangeLeaseUpdateOutcome, LibraryChangeQueueMetrics, LibraryChangeQueuePolicy,
+    LibraryRootGeneration, ScanError,
 };
 use crate::ports::LibraryChangeQueue;
 
@@ -39,17 +40,43 @@ impl LibraryChangeQueue for SqliteCatalog {
         enqueued_unix_ms: i64,
         policy: LibraryChangeQueuePolicy,
     ) -> Result<LibraryChangeEnqueueReport, ScanError> {
-        if evidence.source.trim().is_empty()
-            || evidence.source.len() > 128
-            || evidence.watermark.trim().is_empty()
-            || evidence.watermark.len() > 1_024
-        {
-            return Err(ScanError::new(
-                "library_change_catch_up_evidence_invalid",
-                "Catch-up queue evidence exceeds its bounded storage contract",
-            ));
-        }
+        validate_catch_up_evidence(evidence)?;
         enqueue_intents(self, intents, Some(evidence), enqueued_unix_ms, policy)
+    }
+
+    fn enqueue_library_change_catch_up_batches(
+        &mut self,
+        batches: &[LibraryChangeCatchUpQueueBatch],
+        enqueued_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<Vec<LibraryChangeEnqueueReport>, ScanError> {
+        validate_policy(policy)?;
+        for batch in batches {
+            if let Some(evidence) = &batch.evidence {
+                validate_catch_up_evidence(evidence)?;
+            }
+            validate_enqueue_batch(&batch.intents)?;
+        }
+        if batches.is_empty() {
+            return Ok(Vec::new());
+        }
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(database_error)?;
+        cleanup_for_enqueue(&transaction, enqueued_unix_ms, policy)?;
+        let mut reports = Vec::with_capacity(batches.len());
+        for batch in batches {
+            reports.push(enqueue_intents_in_transaction(
+                &transaction,
+                &batch.intents,
+                batch.evidence.as_ref(),
+                enqueued_unix_ms,
+                policy,
+            )?);
+        }
+        transaction.commit().map_err(database_error)?;
+        Ok(reports)
     }
 
     fn lease_library_changes(
@@ -256,20 +283,55 @@ fn enqueue_intents(
     policy: LibraryChangeQueuePolicy,
 ) -> Result<LibraryChangeEnqueueReport, ScanError> {
     validate_policy(policy)?;
-    let Some(first) = intents.first() else {
+    validate_enqueue_batch(intents)?;
+    if intents.is_empty() {
         return Ok(LibraryChangeEnqueueReport::default());
-    };
-    validate_intent_batch(intents, first)?;
+    }
     let transaction = catalog.connection.transaction().map_err(database_error)?;
+    cleanup_for_enqueue(&transaction, enqueued_unix_ms, policy)?;
+    let report =
+        enqueue_intents_in_transaction(&transaction, intents, evidence, enqueued_unix_ms, policy)?;
+    transaction.commit().map_err(database_error)?;
+    Ok(report)
+}
+
+fn validate_enqueue_batch(intents: &[LibraryChangeIntent]) -> Result<(), ScanError> {
+    let Some(first) = intents.first() else {
+        return Ok(());
+    };
+    validate_intent_batch(intents, first)
+}
+
+fn cleanup_for_enqueue(
+    transaction: &Transaction<'_>,
+    enqueued_unix_ms: i64,
+    policy: LibraryChangeQueuePolicy,
+) -> Result<(), ScanError> {
     let retention_millis = i64::try_from(policy.terminal_retention_millis).unwrap_or(i64::MAX);
     cleanup_terminal_records(
-        &transaction,
+        transaction,
         enqueued_unix_ms.saturating_sub(retention_millis),
         policy.cleanup_batch,
     )?;
+    Ok(())
+}
+
+fn enqueue_intents_in_transaction(
+    transaction: &Transaction<'_>,
+    intents: &[LibraryChangeIntent],
+    evidence: Option<&LibraryChangeCatchUpEvidence>,
+    enqueued_unix_ms: i64,
+    policy: LibraryChangeQueuePolicy,
+) -> Result<LibraryChangeEnqueueReport, ScanError> {
+    let first = intents.first().ok_or_else(|| {
+        ScanError::new(
+            "change_queue_batch_empty",
+            "A transactional change queue batch must contain at least one intent",
+        )
+    })?;
     let mut report = LibraryChangeEnqueueReport::default();
     match establish_root_generation(
-        &transaction,
+        transaction,
         &first.root_id,
         first.root_generation,
         enqueued_unix_ms,
@@ -279,14 +341,13 @@ fn enqueue_intents(
         }
         GenerationDisposition::Stale => {
             report.stale_generation_count = u32::try_from(intents.len()).unwrap_or(u32::MAX);
-            transaction.commit().map_err(database_error)?;
             return Ok(report);
         }
     }
-    let catalog_revision = load_catalog_revision(&transaction)?;
+    let catalog_revision = load_catalog_revision(transaction)?;
     for intent in intents {
         enqueue_one(
-            &transaction,
+            transaction,
             intent,
             enqueued_unix_ms,
             catalog_revision,
@@ -295,8 +356,22 @@ fn enqueue_intents(
             &mut report,
         )?;
     }
-    transaction.commit().map_err(database_error)?;
     Ok(report)
+}
+
+fn validate_catch_up_evidence(evidence: &LibraryChangeCatchUpEvidence) -> Result<(), ScanError> {
+    if evidence.source.trim().is_empty()
+        || evidence.source.len() > 128
+        || evidence.watermark.trim().is_empty()
+        || evidence.watermark.len() > 1_024
+    {
+        Err(ScanError::new(
+            "library_change_catch_up_evidence_invalid",
+            "Catch-up queue evidence exceeds its bounded storage contract",
+        ))
+    } else {
+        Ok(())
+    }
 }
 
 impl SqliteCatalog {

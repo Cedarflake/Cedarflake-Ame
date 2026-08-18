@@ -1,4 +1,4 @@
-use super::{LibraryChangeObservation, LibraryRootGeneration};
+use super::{LibraryChangeIntent, LibraryChangeObservation, LibraryRootGeneration};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LibraryChangeCatchUpCheckpoint {
@@ -14,6 +14,12 @@ pub struct LibraryChangeCatchUpCheckpoint {
 pub struct LibraryChangeCatchUpEvidence {
     pub source: String,
     pub watermark: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LibraryChangeCatchUpQueueBatch {
+    pub intents: Vec<LibraryChangeIntent>,
+    pub evidence: Option<LibraryChangeCatchUpEvidence>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

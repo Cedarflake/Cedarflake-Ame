@@ -7,7 +7,8 @@ use crate::domain::{
 };
 
 use super::persistence::{
-    ActiveChange, insert_change, load_active_changes, mark_superseded, update_change,
+    ActiveChange, insert_change, load_active_changes, mark_superseded, transfer_catch_up_lineage,
+    update_change,
 };
 
 const MAX_FAILURE_CODE_BYTES: usize = 128;
@@ -124,6 +125,11 @@ pub(super) fn enqueue_one(
             enqueued_unix_ms,
             policy,
         )?;
+        transfer_catch_up_lineage(
+            transaction,
+            absorbed.iter().map(|change| change.id),
+            target_id,
+        )?;
         let superseded = mark_superseded(
             transaction,
             absorbed.iter().map(|change| change.id),
@@ -192,6 +198,11 @@ pub(super) fn enqueue_one(
         retained_evidence,
         policy,
     )?;
+    transfer_catch_up_lineage(
+        transaction,
+        absorbed.iter().map(|change| change.id),
+        change_id,
+    )?;
     let superseded = mark_superseded(
         transaction,
         absorbed.iter().map(|change| change.id),
@@ -253,6 +264,11 @@ fn degrade_to_root(
         report.inserted_count = report.inserted_count.saturating_add(1);
         id
     };
+    transfer_catch_up_lineage(
+        transaction,
+        active.iter().map(|change| change.id),
+        target_id,
+    )?;
     let superseded = mark_superseded(
         transaction,
         active

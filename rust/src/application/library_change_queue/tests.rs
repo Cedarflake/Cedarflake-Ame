@@ -29,6 +29,15 @@ impl LibraryChangeQueue for RejectingQueue {
         panic!("an invalid catch-up plan must be rejected before reaching the queue adapter")
     }
 
+    fn enqueue_library_change_catch_up_batches(
+        &mut self,
+        _batches: &[crate::domain::LibraryChangeCatchUpQueueBatch],
+        _enqueued_unix_ms: i64,
+        _policy: LibraryChangeQueuePolicy,
+    ) -> Result<Vec<crate::domain::LibraryChangeEnqueueReport>, crate::domain::ScanError> {
+        panic!("an invalid catch-up batch must be rejected before reaching the queue adapter")
+    }
+
     fn lease_library_changes(
         &mut self,
         _root_id: &str,

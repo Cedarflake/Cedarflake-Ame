@@ -160,9 +160,12 @@ impl LibraryChangeCatchUpRepository for SqliteCatalog {
                      FROM library_change_catch_up_handoffs AS handoffs
                      WHERE handoffs.updated_unix_ms < ?1
                        AND NOT EXISTS (
-                         SELECT 1 FROM library_change_queue AS changes
-                         WHERE changes.catch_up_source = handoffs.catch_up_source
-                           AND changes.catch_up_watermark = handoffs.catch_up_watermark
+                         SELECT 1
+                         FROM library_change_queue_catch_up_lineage AS lineage
+                         JOIN library_change_queue AS changes
+                           ON changes.id = lineage.change_id
+                         WHERE lineage.catch_up_source = handoffs.catch_up_source
+                           AND lineage.catch_up_watermark = handoffs.catch_up_watermark
                            AND changes.status IN ('pending', 'leased', 'retry_wait')
                        )
                      GROUP BY catch_up_source, catch_up_watermark

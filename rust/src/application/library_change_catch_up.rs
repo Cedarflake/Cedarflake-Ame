@@ -3,16 +3,17 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::domain::{
     IncrementalCatalogRoot, LibraryChangeCatchUpCompletedRoot, LibraryChangeCatchUpEvidence,
-    LibraryChangeCatchUpLimits, LibraryChangeCatchUpReport, LibraryChangeObservation,
-    LibraryChangeObservationKind, LibraryChangeOrigin, LibraryChangePlanningContext,
-    LibraryChangePlanningLimits, LibraryChangePlanningResult, LibraryChangeQueuePolicy,
-    LibraryChangeScope, LibraryChangeSourceHealth, LibraryRootAvailability, ScanError,
+    LibraryChangeCatchUpLimits, LibraryChangeCatchUpQueueBatch, LibraryChangeCatchUpReport,
+    LibraryChangeObservation, LibraryChangeObservationKind, LibraryChangeOrigin,
+    LibraryChangePlanningContext, LibraryChangePlanningLimits, LibraryChangePlanningResult,
+    LibraryChangeQueuePolicy, LibraryChangeScope, LibraryChangeSourceHealth,
+    LibraryRootAvailability, ScanError,
 };
 use crate::ports::{
     LibraryChangeCatchUpRepository, LibraryChangeCatchUpSource, LibraryChangeQueue,
 };
 
-use super::{enqueue_library_change_catch_up_plan, plan_library_changes};
+use super::{plan_library_changes, prepare_library_change_catch_up_plan};
 
 const CHECKPOINT_RETENTION_MILLIS: i64 = 7 * 24 * 60 * 60 * 1_000;
 const CHECKPOINT_CLEANUP_LIMIT: u32 = 128;
@@ -67,6 +68,7 @@ where
     validate_batch(roots, &batch.roots, execution.catch_up_limits)?;
 
     let mut report = LibraryChangeCatchUpReport::default();
+    let mut queue_batches = Vec::new();
     for root in batch.roots {
         if cancelled.load(Ordering::Acquire) {
             return Err(catch_up_cancelled());
@@ -90,13 +92,9 @@ where
         };
         let plan = plan_library_changes(&context, observations, execution.planning_limits)
             .map_err(|error| ScanError::new(error.code, error.message))?;
-        enqueue_catch_up_plan(
-            repository,
-            &plan,
-            root.evidence.as_ref(),
-            execution.now_unix_ms,
-            execution.queue_policy,
-        )?;
+        if let Some(queue_batch) = prepare_catch_up_queue_batch(&plan, root.evidence.as_ref())? {
+            queue_batches.push(queue_batch);
+        }
         report.observation_count = report
             .observation_count
             .checked_add(observation_count)
@@ -118,6 +116,14 @@ where
             });
     }
 
+    if cancelled.load(Ordering::Acquire) {
+        return Err(catch_up_cancelled());
+    }
+    repository.enqueue_library_change_catch_up_batches(
+        &queue_batches,
+        execution.now_unix_ms,
+        execution.queue_policy,
+    )?;
     if cancelled.load(Ordering::Acquire) {
         return Err(catch_up_cancelled());
     }
@@ -144,39 +150,26 @@ where
     Ok(report)
 }
 
-fn enqueue_catch_up_plan<Repository>(
-    repository: &mut Repository,
+fn prepare_catch_up_queue_batch(
     plan: &LibraryChangePlanningResult,
     evidence: Option<&LibraryChangeCatchUpEvidence>,
-    now_unix_ms: i64,
-    queue_policy: LibraryChangeQueuePolicy,
-) -> Result<(), ScanError>
-where
-    Repository: LibraryChangeQueue,
-{
+) -> Result<Option<LibraryChangeCatchUpQueueBatch>, ScanError> {
     if plan.intents.is_empty() {
-        return Ok(());
+        return Ok(None);
     }
     if let Some(evidence) = evidence {
-        enqueue_library_change_catch_up_plan(
-            repository,
-            plan,
-            evidence,
-            now_unix_ms,
-            queue_policy,
-        )?;
+        prepare_library_change_catch_up_plan(plan, Some(evidence)).map(Some)
     } else if plan.intents.iter().all(|intent| {
         intent.kind == crate::domain::LibraryChangeIntentKind::FreshnessUnknown
             && intent.scope == LibraryChangeScope::Root
     }) {
-        super::enqueue_library_change_plan(repository, plan, now_unix_ms, queue_policy)?;
+        prepare_library_change_catch_up_plan(plan, None).map(Some)
     } else {
-        return Err(ScanError::new(
+        Err(ScanError::new(
             "library_change_catch_up_evidence_missing",
             "Journal-derived path work must retain its source and exclusive watermark",
-        ));
+        ))
     }
-    Ok(())
 }
 
 fn validate_batch(

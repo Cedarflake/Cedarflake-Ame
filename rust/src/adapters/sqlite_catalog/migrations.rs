@@ -431,6 +431,9 @@ fn validate_change_catch_up_contract(connection: &Connection) -> Result<(), Scan
         has_handoff_table,
         has_asset_index,
         has_preview_index,
+        has_lineage_table,
+        has_lineage_index,
+        has_lineage_foreign_key,
     ) = connection
         .query_row(
             "SELECT
@@ -475,7 +478,31 @@ fn validate_change_catch_up_contract(connection: &Connection) -> Result<(), Scan
                AND (SELECT group_concat(name, ',') FROM (
                  SELECT name FROM pragma_index_info('library_change_catch_up_handoffs_preview')
                  ORDER BY seqno
-               )) = 'preview_path,preview_status,catch_up_source,catch_up_watermark'",
+               )) = 'preview_path,preview_status,catch_up_source,catch_up_watermark',
+               EXISTS(SELECT 1 FROM sqlite_master
+                 WHERE type = 'table' AND name = 'library_change_queue_catch_up_lineage')
+               AND (SELECT COUNT(*) FROM pragma_table_info(
+                 'library_change_queue_catch_up_lineage'
+               ) WHERE name IN (
+                 'change_id', 'catch_up_source', 'catch_up_watermark', 'enrolled_unix_ms'
+               )) = 4
+               AND (SELECT group_concat(name, ',') FROM (
+                 SELECT name FROM pragma_table_info('library_change_queue_catch_up_lineage')
+                 WHERE pk > 0 ORDER BY pk
+               )) = 'change_id,catch_up_source,catch_up_watermark',
+               EXISTS(SELECT 1 FROM pragma_index_list(
+                 'library_change_queue_catch_up_lineage'
+               ) WHERE name = 'library_change_queue_catch_up_lineage_evidence'
+                   AND \"unique\" = 0 AND partial = 0)
+               AND (SELECT group_concat(name, ',') FROM (
+                 SELECT name FROM pragma_index_info(
+                   'library_change_queue_catch_up_lineage_evidence'
+                 ) ORDER BY seqno
+               )) = 'catch_up_source,catch_up_watermark,change_id',
+               EXISTS(SELECT 1 FROM pragma_foreign_key_list(
+                 'library_change_queue_catch_up_lineage'
+               ) WHERE \"table\" = 'library_change_queue' AND \"from\" = 'change_id'
+                   AND on_delete = 'CASCADE')",
             [],
             |row| {
                 Ok((
@@ -485,6 +512,9 @@ fn validate_change_catch_up_contract(connection: &Connection) -> Result<(), Scan
                     row.get::<_, bool>(3)?,
                     row.get::<_, bool>(4)?,
                     row.get::<_, bool>(5)?,
+                    row.get::<_, bool>(6)?,
+                    row.get::<_, bool>(7)?,
+                    row.get::<_, bool>(8)?,
                 ))
             },
         )
@@ -495,6 +525,9 @@ fn validate_change_catch_up_contract(connection: &Connection) -> Result<(), Scan
         || !has_handoff_table
         || !has_asset_index
         || !has_preview_index
+        || !has_lineage_table
+        || !has_lineage_index
+        || !has_lineage_foreign_key
     {
         return Err(ScanError::new(
             "catalog_change_catch_up_contract_unverifiable",
@@ -517,6 +550,41 @@ fn validate_change_catch_up_contract(connection: &Connection) -> Result<(), Scan
             "The catalog cannot prove its downtime catch-up checkpoint authority",
         ));
     }
+    let invalid_lineage = connection
+        .query_row(
+            "SELECT EXISTS(
+               SELECT 1 FROM library_change_queue AS changes
+               WHERE (
+                 (changes.catch_up_source IS NULL) <> (changes.catch_up_watermark IS NULL)
+               ) OR (
+                 changes.catch_up_source IS NOT NULL
+                 AND NOT EXISTS (
+                   SELECT 1 FROM library_change_queue_catch_up_lineage AS lineage
+                   WHERE lineage.change_id = changes.id
+                     AND lineage.catch_up_source = changes.catch_up_source
+                     AND lineage.catch_up_watermark = changes.catch_up_watermark
+                 )
+               ) OR (
+                 changes.catch_up_source IS NULL
+                 AND EXISTS (
+                   SELECT 1 FROM library_change_queue_catch_up_lineage AS lineage
+                   WHERE lineage.change_id = changes.id
+                 )
+               ) OR (
+                 SELECT COUNT(*) FROM library_change_queue_catch_up_lineage AS lineage
+                 WHERE lineage.change_id = changes.id
+               ) > 64
+             )",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    if invalid_lineage {
+        return Err(ScanError::new(
+            "catalog_change_catch_up_contract_unverifiable",
+            "The catalog cannot prove its bounded queue-to-watermark lineage",
+        ));
+    }
     Ok(())
 }
 
@@ -530,6 +598,10 @@ fn repair_prerelease_v19_derived_indexes(connection: &mut Connection) -> Result<
         has_handoff_columns,
         has_named_asset_index,
         has_named_preview_index,
+        has_lineage_table,
+        has_lineage_columns,
+        has_named_lineage_index,
+        has_obsolete_peer_index,
     ) = connection
         .query_row(
             "SELECT
@@ -559,7 +631,21 @@ fn repair_prerelease_v19_derived_indexes(connection: &mut Connection) -> Result<
                     AND name = 'library_change_catch_up_handoffs_asset'),
                 EXISTS(SELECT 1 FROM sqlite_master
                   WHERE type = 'index'
-                    AND name = 'library_change_catch_up_handoffs_preview')",
+                    AND name = 'library_change_catch_up_handoffs_preview'),
+                EXISTS(SELECT 1 FROM sqlite_master
+                  WHERE type = 'table'
+                    AND name = 'library_change_queue_catch_up_lineage'),
+                (SELECT COUNT(*) FROM pragma_table_info(
+                  'library_change_queue_catch_up_lineage'
+                ) WHERE name IN (
+                  'change_id', 'catch_up_source', 'catch_up_watermark', 'enrolled_unix_ms'
+                )) = 4,
+                EXISTS(SELECT 1 FROM sqlite_master
+                  WHERE type = 'index'
+                    AND name = 'library_change_queue_catch_up_lineage_evidence'),
+                EXISTS(SELECT 1 FROM sqlite_master
+                  WHERE type = 'index'
+                    AND name = 'library_change_queue_catch_up_peer')",
             [],
             |row| {
                 Ok((
@@ -571,6 +657,10 @@ fn repair_prerelease_v19_derived_indexes(connection: &mut Connection) -> Result<
                     row.get::<_, bool>(5)?,
                     row.get::<_, bool>(6)?,
                     row.get::<_, bool>(7)?,
+                    row.get::<_, bool>(8)?,
+                    row.get::<_, bool>(9)?,
+                    row.get::<_, bool>(10)?,
+                    row.get::<_, bool>(11)?,
                 ))
             },
         )
@@ -589,6 +679,58 @@ fn repair_prerelease_v19_derived_indexes(connection: &mut Connection) -> Result<
         .map_err(database_error)?
         .unwrap_or(false);
     if !marker_complete {
+        return Ok(());
+    }
+    if (has_handoff_table && !has_handoff_columns) || (has_lineage_table && !has_lineage_columns) {
+        return Ok(());
+    }
+    let has_unseeded_lineage = if has_lineage_table {
+        connection
+            .query_row(
+                "SELECT EXISTS(
+                   SELECT 1 FROM library_change_queue AS changes
+                   WHERE changes.catch_up_source IS NOT NULL
+                     AND changes.catch_up_watermark IS NOT NULL
+                     AND NOT EXISTS (
+                       SELECT 1 FROM library_change_queue_catch_up_lineage AS lineage
+                       WHERE lineage.change_id = changes.id
+                         AND lineage.catch_up_source = changes.catch_up_source
+                         AND lineage.catch_up_watermark = changes.catch_up_watermark
+                     )
+                 )",
+                [],
+                |row| row.get::<_, bool>(0),
+            )
+            .map_err(database_error)?
+    } else {
+        false
+    };
+    let has_handoff_rows = if has_handoff_table {
+        connection
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM library_change_catch_up_handoffs)",
+                [],
+                |row| row.get::<_, bool>(0),
+            )
+            .map_err(database_error)?
+    } else {
+        false
+    };
+    if has_handoff_rows && (!has_lineage_table || has_unseeded_lineage) {
+        return Err(ScanError::new(
+            "catalog_change_catch_up_contract_unverifiable",
+            "The catalog cannot prove the watermark lineage of its retained handoff evidence",
+        ));
+    }
+    if has_named_path_index
+        && has_handoff_table
+        && has_named_asset_index
+        && has_named_preview_index
+        && has_lineage_table
+        && has_named_lineage_index
+        && !has_obsolete_peer_index
+        && !has_unseeded_lineage
+    {
         return Ok(());
     }
 
@@ -627,6 +769,22 @@ fn repair_prerelease_v19_derived_indexes(connection: &mut Connection) -> Result<
                 )
                 .map_err(database_error)?;
         }
+    }
+    if !has_lineage_table {
+        create_change_catch_up_lineage_contract(&transaction)?;
+    } else if has_lineage_columns && !has_named_lineage_index {
+        transaction
+            .execute(
+                "CREATE INDEX library_change_queue_catch_up_lineage_evidence
+                 ON library_change_queue_catch_up_lineage(
+                   catch_up_source, catch_up_watermark, change_id
+                 )",
+                [],
+            )
+            .map_err(database_error)?;
+    }
+    if !has_lineage_table || has_lineage_columns {
+        seed_change_catch_up_lineage(&transaction)?;
     }
     transaction
         .execute(
@@ -1455,7 +1613,9 @@ fn add_change_catch_up_contract(transaction: &Transaction<'_>) -> Result<(), Sca
                CHECK(change_catch_up_complete = 1);",
         )
         .map_err(database_error)?;
-    create_change_catch_up_handoff_contract(transaction)
+    create_change_catch_up_handoff_contract(transaction)?;
+    create_change_catch_up_lineage_contract(transaction)?;
+    seed_change_catch_up_lineage(transaction)
 }
 
 fn create_change_catch_up_handoff_contract(transaction: &Transaction<'_>) -> Result<(), ScanError> {
@@ -1514,6 +1674,41 @@ fn create_change_catch_up_handoff_contract(transaction: &Transaction<'_>) -> Res
                );",
         )
         .map_err(database_error)
+}
+
+fn create_change_catch_up_lineage_contract(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+    transaction
+        .execute_batch(
+            "CREATE TABLE library_change_queue_catch_up_lineage (
+               change_id INTEGER NOT NULL,
+               catch_up_source TEXT NOT NULL CHECK(length(catch_up_source) BETWEEN 1 AND 128),
+               catch_up_watermark TEXT NOT NULL
+                 CHECK(length(catch_up_watermark) BETWEEN 1 AND 1024),
+               enrolled_unix_ms INTEGER NOT NULL,
+               PRIMARY KEY(change_id, catch_up_source, catch_up_watermark),
+               FOREIGN KEY(change_id) REFERENCES library_change_queue(id) ON DELETE CASCADE
+             );
+             CREATE INDEX library_change_queue_catch_up_lineage_evidence
+               ON library_change_queue_catch_up_lineage(
+                 catch_up_source, catch_up_watermark, change_id
+               );",
+        )
+        .map_err(database_error)
+}
+
+fn seed_change_catch_up_lineage(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+    transaction
+        .execute(
+            "INSERT OR IGNORE INTO library_change_queue_catch_up_lineage(
+               change_id, catch_up_source, catch_up_watermark, enrolled_unix_ms
+             )
+             SELECT id, catch_up_source, catch_up_watermark, 0
+             FROM library_change_queue
+             WHERE catch_up_source IS NOT NULL AND catch_up_watermark IS NOT NULL",
+            [],
+        )
+        .map_err(database_error)?;
+    Ok(())
 }
 
 fn add_authoritative_recovery_contract_marker(
@@ -1630,7 +1825,20 @@ mod tests {
         migrate_schema(&mut connection).expect("fresh v19 catalog");
         connection
             .execute_batch(
-                "DROP TABLE library_change_catch_up_handoffs;
+                "INSERT INTO library_change_queue(
+                   root_id, root_generation, intent_kind, scope, relative_path,
+                   previous_relative_path, origin, first_observed_unix_ms,
+                   most_recent_observed_unix_ms, first_sequence, most_recent_sequence,
+                   coalesced_observation_count, status, ready_unix_ms,
+                   catalog_revision_at_enqueue, catch_up_source, catch_up_watermark,
+                   created_unix_ms, updated_unix_ms
+                 ) VALUES (
+                   'root-a', 1, 'reconcile', 'path', 'photo.jpg', NULL,
+                   'startup_catch_up', 1, 1, '1', '1', 1, 'pending', 1, 0,
+                   'windows_usn_v1', 'volume|12|40', 1, 1
+                 );
+                 DROP TABLE library_change_queue_catch_up_lineage;
+                 DROP TABLE library_change_catch_up_handoffs;
                  CREATE INDEX library_change_queue_catch_up_peer
                    ON library_change_queue(
                      catch_up_source, catch_up_watermark, status, root_id, id
@@ -1654,6 +1862,16 @@ mod tests {
             index_columns,
             ["asset_id", "catch_up_source", "catch_up_watermark"]
         );
+        let seeded_lineage = connection
+            .query_row(
+                "SELECT COUNT(*) FROM library_change_queue_catch_up_lineage
+                 WHERE catch_up_source = 'windows_usn_v1'
+                   AND catch_up_watermark = 'volume|12|40'",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .expect("seeded lineage count");
+        assert_eq!(seeded_lineage, 1);
         let obsolete_index = connection
             .query_row(
                 "SELECT EXISTS(SELECT 1 FROM sqlite_master
@@ -1663,6 +1881,36 @@ mod tests {
             )
             .expect("obsolete peer index query");
         assert!(!obsolete_index);
+    }
+
+    #[test]
+    fn prerelease_v19_with_unprovable_handoff_lineage_fails_closed() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh v19 catalog");
+        connection
+            .execute_batch(
+                "INSERT INTO library_change_catch_up_handoffs(
+                   catch_up_source, catch_up_watermark,
+                   file_identity_scheme, file_identity_value,
+                   asset_id, source_location_id, root_id, absolute_path, relative_path,
+                   preview_path, file_size, created_unix_ms, modified_unix_ms,
+                   width, height, preview_status, preview_issue_code, preview_issue_message,
+                   metadata_engine_id, metadata_engine_version, capture_local_time,
+                   capture_offset_minutes, capture_time_source, capture_raw_value,
+                   updated_unix_ms
+                 ) VALUES (
+                   'windows_usn_v1', 'watermark-1', 'windows-file-id-128-v1', 'volume:file',
+                   'asset-a', 'location-a', 'root-a', 'C:/source/photo.jpg', 'photo.jpg',
+                   '', 1, NULL, 1, 1, 1, 'pending', NULL, NULL,
+                   'metadata', '1', NULL, NULL, NULL, NULL, 1
+                 );
+                 DROP TABLE library_change_queue_catch_up_lineage;",
+            )
+            .expect("unprovable prerelease lineage");
+
+        let error = migrate_schema(&mut connection).expect_err("unprovable handoff lineage");
+
+        assert_eq!(error.code, "catalog_change_catch_up_contract_unverifiable");
     }
 
     #[test]
@@ -1951,40 +2199,50 @@ mod tests {
             marker,
             checkpoint_count,
             handoff_count,
+            lineage_count,
             has_path_index,
             has_handoff_index,
-        ): (i64, bool, i64, i64, bool, bool) = connection
-                .query_row(
-                    "SELECT
+            has_lineage_index,
+        ): (i64, bool, i64, i64, i64, bool, bool, bool) = connection
+            .query_row(
+                "SELECT
                    (SELECT version FROM schema_info),
                    (SELECT change_catch_up_complete = 1
                     FROM library_change_queue_contract WHERE singleton = 1),
                    (SELECT COUNT(*) FROM library_change_catch_up_state),
                    (SELECT COUNT(*) FROM library_change_catch_up_handoffs),
+                   (SELECT COUNT(*) FROM library_change_queue_catch_up_lineage),
                    EXISTS(SELECT 1 FROM sqlite_master
                      WHERE type = 'index' AND name = 'asset_locations_root_relative'),
                    EXISTS(SELECT 1 FROM sqlite_master
                      WHERE type = 'index'
-                       AND name = 'library_change_catch_up_handoffs_asset')",
-                    [],
-                    |row| {
-                        Ok((
-                            row.get(0)?,
-                            row.get(1)?,
-                            row.get(2)?,
-                            row.get(3)?,
-                            row.get(4)?,
-                            row.get(5)?,
-                        ))
-                    },
-                )
-                .expect("v19 evidence");
+                       AND name = 'library_change_catch_up_handoffs_asset'),
+                   EXISTS(SELECT 1 FROM sqlite_master
+                     WHERE type = 'index'
+                       AND name = 'library_change_queue_catch_up_lineage_evidence')",
+                [],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                        row.get(5)?,
+                        row.get(6)?,
+                        row.get(7)?,
+                    ))
+                },
+            )
+            .expect("v19 evidence");
 
         assert_eq!(version, 19);
         assert!(marker);
         assert_eq!(checkpoint_count, 0);
         assert_eq!(handoff_count, 0);
+        assert_eq!(lineage_count, 0);
         assert!(has_path_index);
         assert!(has_handoff_index);
+        assert!(has_lineage_index);
     }
 }

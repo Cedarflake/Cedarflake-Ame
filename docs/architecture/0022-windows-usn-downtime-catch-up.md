@@ -109,24 +109,29 @@ case-sensitive names. When child delete records precede their deleted or renamed
 bounded history may use only a later parent `FILE_DELETE` or `RENAME_OLD_NAME` record; a later new
 name or unrelated reused file reference is never accepted as the child's historical parent path.
 
-Checkpoint publication follows durable enqueue. The application first enqueues every resulting
-plan and records `catch_up_source = windows_usn_v1` plus the exclusive volume watermark on the
-retained queue work. Only after all affected roots commit does it advance the per-volume
-checkpoint. A crash between those steps replays an idempotent range; it cannot skip evidence.
-Queue coalescing retains the newest compatible watermark without using it as asset identity.
+Checkpoint publication follows durable enqueue. The application prepares every root plan before
+opening one SQLite `IMMEDIATE` transaction that enrolls all nonempty root batches together. A
+failure at any root rolls back the complete enrollment, and a concurrent poll cannot lease a
+partially registered watermark. Each retained row records `catch_up_source = windows_usn_v1`, its
+newest exclusive volume watermark, and a durable lineage of at most 64 still-unconsumed
+watermarks. Coalescing transfers the complete lineage to the retained or superseding row instead of
+overwriting older handoff authority. Only after the all-root transaction commits does the
+application advance the per-volume checkpoint. A crash before enrollment exposes no partial
+batch; a crash after enrollment replays an idempotent range and cannot skip evidence.
 
 One journal range may describe moves in either or both directions between configured roots on the
 same volume. A dependency graph cannot safely order that work because two authoritative roots may
 both contain removals and destinations. Before any catch-up delta removes or replaces a location,
 the publication transaction copies its file identity, asset identity, compatible metadata, and
-preview expectation into a durable handoff snapshot keyed by catch-up source and watermark. Asset
-and preview cleanup treat that snapshot as a temporary owner. A later destination first checks the
-active catalog and then the matching handoff snapshot, so it can adopt the original asset and
-preview identity even after the source location was removed. Once every queue row for the watermark
-is terminal, the same publication transaction removes the snapshots and reclaims only artifacts or
-assets that still have no active owner. This protocol has no cross-root wait edge and therefore
-supports source-first, destination-first, and bidirectional authoritative moves without starvation
-or a dependency cycle.
+preview expectation into a durable handoff snapshot under every watermark in that row's lineage.
+Asset and preview cleanup treat snapshots in any unresolved lineage as temporary owners. A later
+destination first checks the active catalog and then each of its bounded handoff watermarks, so a
+newer coalesced range can still adopt identity retained by an older range after the source location
+was removed. Once no active row references a watermark, the same publication transaction removes
+its snapshots and reclaims only artifacts or assets that have neither an active location nor
+another watermark owner. This protocol has no cross-root wait edge and therefore supports
+source-first, destination-first, cross-watermark, and bidirectional authoritative moves without
+starvation or a dependency cycle.
 
 When no trustworthy checkpoint exists, or any continuity, permission, support, parsing, capacity,
 containment, or reconstruction check fails, Ame enqueues the existing root-level
@@ -149,9 +154,11 @@ saving the current checkpoints, Ame deletes at most 128 checkpoints older than s
 excluding every volume returned by the current catch-up. Cleanup is disabled while any durable
 `FreshnessUnknown` row remains pending, leased, or waiting to retry, so retention cannot erase the
 watermark context of an unresolved gap. The same bounded cleanup removes terminal handoff snapshots
-that were stranded by retirement or interruption. Schema v19 owns the handoff table and its asset
-and preview lookup indexes; a marker-complete prerelease v19 database may add that empty contract or
-repair a missing derived index atomically, while a malformed named object still fails closed.
+that were stranded by retirement or interruption. Schema v19 owns the handoff table, the durable
+queue-to-watermark lineage table, and their bounded lookup indexes. A marker-complete prerelease v19
+database may add an empty contract, seed lineage when no handoff evidence exists, or repair a
+missing derived index atomically. Existing handoff evidence without provable lineage and malformed
+named objects fail closed.
 
 ### Unsafe boundary and invariants
 

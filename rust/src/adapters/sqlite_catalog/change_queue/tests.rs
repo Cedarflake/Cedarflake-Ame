@@ -5,10 +5,11 @@ use tempfile::tempdir;
 
 use crate::application::{enqueue_library_change_plan, plan_library_changes};
 use crate::domain::{
-    LibraryChangeCatchUpEvidence, LibraryChangeIntent, LibraryChangeIntentKind,
-    LibraryChangeObservation, LibraryChangeObservationKind, LibraryChangeOrigin,
-    LibraryChangePlanningContext, LibraryChangePlanningLimits, LibraryChangeQueueHealth,
-    LibraryChangeScope, LibraryChangeSourceHealth, LibraryRootAvailability, ScanRequest,
+    LibraryChangeCatchUpEvidence, LibraryChangeCatchUpQueueBatch, LibraryChangeIntent,
+    LibraryChangeIntentKind, LibraryChangeObservation, LibraryChangeObservationKind,
+    LibraryChangeOrigin, LibraryChangePlanningContext, LibraryChangePlanningLimits,
+    LibraryChangeQueueHealth, LibraryChangeScope, LibraryChangeSourceHealth,
+    LibraryRootAvailability, ScanRequest,
 };
 use crate::ports::CatalogRepository;
 
@@ -2066,6 +2067,160 @@ fn replayed_catch_up_range_coalesces_without_duplicate_work() {
     assert_eq!(
         leased[0].change.catch_up_watermark.as_deref(),
         Some("volume|12|40")
+    );
+}
+
+#[test]
+fn catch_up_root_batches_roll_back_together_when_one_root_cannot_enqueue() {
+    let directory = tempdir().expect("temporary directory");
+    let mut catalog =
+        SqliteCatalog::open(directory.path().join("catalog.sqlite3")).expect("catalog");
+    let transaction = catalog.connection.transaction().expect("root transaction");
+    for (root_id, path) in [("root-a", "C:\\SourceA"), ("root-b", "C:\\SourceB")] {
+        transaction
+            .execute(
+                "INSERT INTO library_roots(id, path, created_unix_ms) VALUES (?1, ?2, 1)",
+                [root_id, path],
+            )
+            .expect("registered root fixture");
+        activate_root_change_queue(&transaction, root_id, 1).expect("root generation");
+    }
+    transaction.commit().expect("registered roots");
+    catalog
+        .connection
+        .execute_batch(
+            "CREATE TRIGGER reject_second_catch_up_root
+             BEFORE INSERT ON library_change_queue
+             WHEN NEW.root_id = 'root-b'
+             BEGIN SELECT RAISE(ABORT, 'fixture rejection'); END;",
+        )
+        .expect("rejection trigger");
+    let evidence = LibraryChangeCatchUpEvidence {
+        source: "windows_usn_v1".to_owned(),
+        watermark: "volume|12|40".to_owned(),
+    };
+    let batches = [
+        LibraryChangeCatchUpQueueBatch {
+            intents: vec![path_intent(
+                "root-a",
+                LibraryRootGeneration::initial(),
+                1,
+                10,
+                "old.jpg",
+            )],
+            evidence: Some(evidence.clone()),
+        },
+        LibraryChangeCatchUpQueueBatch {
+            intents: vec![path_intent(
+                "root-b",
+                LibraryRootGeneration::initial(),
+                2,
+                10,
+                "new.jpg",
+            )],
+            evidence: Some(evidence),
+        },
+    ];
+
+    catalog
+        .enqueue_library_change_catch_up_batches(&batches, 10, immediate_policy())
+        .expect_err("second root rejection");
+
+    let queued = catalog
+        .connection
+        .query_row("SELECT COUNT(*) FROM library_change_queue", [], |row| {
+            row.get::<_, i64>(0)
+        })
+        .expect("queue count");
+    assert_eq!(queued, 0);
+}
+
+#[test]
+fn newer_catch_up_coalescing_retains_every_unconsumed_watermark() {
+    let directory = tempdir().expect("temporary directory");
+    let generation = LibraryRootGeneration::initial();
+    let policy = immediate_policy();
+    let mut catalog = queue_catalog(directory.path().join("catalog.sqlite3"));
+    let intent = path_intent("root-a", generation, 1, 1_000, "photo.jpg");
+    let first = LibraryChangeCatchUpEvidence {
+        source: "windows_usn_v1".to_owned(),
+        watermark: "volume|12|40".to_owned(),
+    };
+    let second = LibraryChangeCatchUpEvidence {
+        source: "windows_usn_v1".to_owned(),
+        watermark: "volume|12|80".to_owned(),
+    };
+
+    catalog
+        .enqueue_library_change_intents_with_catch_up(
+            std::slice::from_ref(&intent),
+            &first,
+            1_000,
+            policy,
+        )
+        .expect("first watermark");
+    catalog
+        .enqueue_library_change_intents_with_catch_up(&[intent], &second, 1_001, policy)
+        .expect("second watermark");
+    let leased = catalog
+        .lease_path_library_changes("root-a", generation, 1_001, policy)
+        .expect("lease")
+        .pop()
+        .expect("change");
+
+    assert_eq!(
+        leased.change.catch_up_watermark.as_deref(),
+        Some("volume|12|80")
+    );
+    assert_eq!(leased.change.catch_up_lineage, vec![second, first]);
+}
+
+#[test]
+fn unresolved_catch_up_watermark_lineage_is_bounded() {
+    let directory = tempdir().expect("temporary directory");
+    let generation = LibraryRootGeneration::initial();
+    let policy = immediate_policy();
+    let mut catalog = queue_catalog(directory.path().join("catalog.sqlite3"));
+    let intent = path_intent("root-a", generation, 1, 1_000, "photo.jpg");
+    for watermark in 0..64 {
+        catalog
+            .enqueue_library_change_intents_with_catch_up(
+                std::slice::from_ref(&intent),
+                &LibraryChangeCatchUpEvidence {
+                    source: "windows_usn_v1".to_owned(),
+                    watermark: format!("volume|12|{watermark}"),
+                },
+                1_000 + watermark,
+                policy,
+            )
+            .expect("bounded watermark lineage");
+    }
+
+    let error = catalog
+        .enqueue_library_change_intents_with_catch_up(
+            &[intent],
+            &LibraryChangeCatchUpEvidence {
+                source: "windows_usn_v1".to_owned(),
+                watermark: "volume|12|overflow".to_owned(),
+            },
+            2_000,
+            policy,
+        )
+        .expect_err("lineage overflow");
+    assert_eq!(error.code, "change_queue_catch_up_lineage_limit_exceeded");
+
+    let leased = catalog
+        .lease_path_library_changes("root-a", generation, 2_000, policy)
+        .expect("lease retained lineage")
+        .pop()
+        .expect("change");
+    assert_eq!(leased.change.catch_up_lineage.len(), 64);
+    assert!(
+        leased
+            .change
+            .catch_up_lineage
+            .iter()
+            .all(|evidence| evidence.watermark != "volume|12|overflow")
     );
 }
 

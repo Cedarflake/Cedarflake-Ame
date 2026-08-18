@@ -7,11 +7,12 @@ use crate::domain::{
     DiscoveredFile, ExpectedFileState, FileIdentityEvidence, GalleryLayoutManifestChunk,
     GalleryLayoutManifestCursor, GalleryQuery, GalleryTimeAnchor, GalleryTimeline,
     IncrementalCatalogRoot, LibraryChangeCatchUpBatch, LibraryChangeCatchUpCheckpoint,
-    LibraryChangeCatchUpEvidence, LibraryChangeCatchUpLimits, LibraryChangeSourceBatch,
-    LibraryChangeSourceError, LibraryChangeSourceHealth, LibraryChangeSourceStopReport,
-    LibraryFolderCursor, LibraryFolderPage, LibraryRootGeneration, MediaInspection,
-    MetadataInspection, PreviewArtifact, PreviewMaterialization, PreviewReclamationCandidate,
-    RecoverableScan, ScanCheckpoint, ScanError, ScanIssue, ScanRequest, StorageConfiguration,
+    LibraryChangeCatchUpEvidence, LibraryChangeCatchUpLimits, LibraryChangeCatchUpQueueBatch,
+    LibraryChangeSourceBatch, LibraryChangeSourceError, LibraryChangeSourceHealth,
+    LibraryChangeSourceStopReport, LibraryFolderCursor, LibraryFolderPage, LibraryRootGeneration,
+    MediaInspection, MetadataInspection, PreviewArtifact, PreviewMaterialization,
+    PreviewReclamationCandidate, RecoverableScan, ScanCheckpoint, ScanError, ScanIssue,
+    ScanRequest, StorageConfiguration,
 };
 use crate::domain::{
     LeasedLibraryChange, LibraryChangeEnqueueReport, LibraryChangeFailure, LibraryChangeId,
@@ -83,6 +84,12 @@ pub trait LibraryChangeQueue {
         enqueued_unix_ms: i64,
         policy: LibraryChangeQueuePolicy,
     ) -> Result<LibraryChangeEnqueueReport, ScanError>;
+    fn enqueue_library_change_catch_up_batches(
+        &mut self,
+        batches: &[LibraryChangeCatchUpQueueBatch],
+        enqueued_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<Vec<LibraryChangeEnqueueReport>, ScanError>;
     fn lease_library_changes(
         &mut self,
         root_id: &str,
@@ -185,7 +192,7 @@ pub trait IncrementalCatalogRepository {
     fn load_incremental_location_by_file_identity(
         &self,
         identity: &FileIdentityEvidence,
-        catch_up_evidence: Option<&LibraryChangeCatchUpEvidence>,
+        catch_up_lineage: &[LibraryChangeCatchUpEvidence],
     ) -> Result<Option<AssetLocationView>, ScanError>;
     fn load_incremental_locations_in_subtree(
         &self,
