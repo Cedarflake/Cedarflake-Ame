@@ -87,6 +87,12 @@ pub struct DirectoryEntryPaths {
     index: u64,
 }
 
+pub struct CheckedDirectoryEntryPaths {
+    root: PathBuf,
+    directory_path: PathBuf,
+    entries: ReadDir,
+}
+
 impl Iterator for DirectoryEntryPaths {
     type Item = String;
 
@@ -96,7 +102,7 @@ impl Iterator for DirectoryEntryPaths {
             Ok(entry) => entry
                 .path()
                 .strip_prefix(&self.root)
-                .map(path_text)
+                .map(relative_path_text)
                 .unwrap_or_else(|_| path_text(entry.path())),
             Err(_) => {
                 let unresolved = self
@@ -104,12 +110,31 @@ impl Iterator for DirectoryEntryPaths {
                     .join(format!("<unresolved-entry-{}>", self.index));
                 unresolved
                     .strip_prefix(&self.root)
-                    .map(path_text)
+                    .map(relative_path_text)
                     .unwrap_or_else(|_| path_text(unresolved))
             }
         };
         self.index = self.index.saturating_add(1);
         Some(relative_path)
+    }
+}
+
+impl Iterator for CheckedDirectoryEntryPaths {
+    type Item = Result<String, ScanIssue>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.entries.next().map(|entry| {
+            let entry = entry.map_err(|error| ScanIssue {
+                path: Some(path_text(&self.directory_path)),
+                code: "directory_entry_unreadable".to_owned(),
+                message: error.to_string(),
+            })?;
+            entry
+                .path()
+                .strip_prefix(&self.root)
+                .map(relative_path_text)
+                .map_err(|_| path_containment_issue(&entry.path()))
+        })
     }
 }
 
@@ -168,6 +193,27 @@ impl FileDiscovery {
         })
     }
 
+    pub fn checked_entry_paths_in_directory(
+        &self,
+        relative_directory: &str,
+    ) -> Result<CheckedDirectoryEntryPaths, ScanIssue> {
+        let relative_directory_path = validated_relative_path(relative_directory)?;
+        let (directory_path, metadata) = self.checked_existing_path(relative_directory_path)?;
+        if !relative_directory_path.as_os_str().is_empty() && is_link_or_reparse_point(&metadata) {
+            return Err(path_containment_issue(&directory_path));
+        }
+        let entries = fs::read_dir(&directory_path).map_err(|error| ScanIssue {
+            path: Some(path_text(&directory_path)),
+            code: "directory_unreadable".to_owned(),
+            message: error.to_string(),
+        })?;
+        Ok(CheckedDirectoryEntryPaths {
+            root: self.root.clone(),
+            directory_path,
+            entries,
+        })
+    }
+
     pub fn visit_relative_path(&self, relative_path: &str) -> FileVisit {
         let relative_path = match validated_relative_path(relative_path) {
             Ok(path) => path.to_path_buf(),
@@ -182,12 +228,12 @@ impl FileDiscovery {
             Ok(resolved) => resolved,
             Err(issue) => {
                 return FileVisit {
-                    relative_path: path_text(relative_path),
+                    relative_path: relative_path_text(relative_path),
                     outcome: FileVisitOutcome::Issue(issue),
                 };
             }
         };
-        let relative_path = path_text(relative_path);
+        let relative_path = relative_path_text(relative_path);
         let file_type = metadata.file_type();
         if file_type.is_symlink() {
             return FileVisit {
@@ -465,6 +511,10 @@ fn path_text(path: impl AsRef<Path>) -> String {
     path.as_ref().to_string_lossy().into_owned()
 }
 
+fn relative_path_text(path: impl AsRef<Path>) -> String {
+    path_text(path).replace('\\', "/")
+}
+
 pub(crate) fn user_visible_path(path: &str) -> String {
     const DEVICE_PREFIX: &str = "\\\\?\\";
     const UNC_DEVICE_PREFIX: &str = "\\\\?\\UNC\\";
@@ -560,6 +610,24 @@ mod tests {
             user_visible_path(r"C:\Pictures\sample.png"),
             r"C:\Pictures\sample.png"
         );
+    }
+
+    #[test]
+    fn discovery_emits_platform_independent_relative_paths() {
+        let root = tempdir().expect("source root");
+        let nested = root.path().join("album");
+        fs::create_dir(&nested).expect("nested directory");
+        fs::write(nested.join("photo.png"), b"\x89PNG\r\n\x1a\nfixture").expect("fixture image");
+        let discovery = FileDiscovery::new(&root.path().to_string_lossy()).expect("discovery");
+        let relative_path = discovery
+            .entry_paths_in_directory("album")
+            .expect("directory entries")
+            .next()
+            .expect("nested image");
+        let visit = discovery.visit_relative_path(&relative_path);
+
+        assert_eq!(relative_path, "album/photo.png");
+        assert_eq!(visit.relative_path, "album/photo.png");
     }
 
     #[cfg(windows)]

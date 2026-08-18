@@ -11,6 +11,7 @@ pub struct IncrementalCatalogRoot {
     pub active_scan_id: Option<String>,
     pub has_running_scan: bool,
     pub catalog_revision: u64,
+    pub last_consistency_audit_unix_ms: Option<i64>,
 }
 
 #[derive(Clone, Debug)]

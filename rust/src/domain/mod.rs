@@ -58,6 +58,7 @@ pub struct ScanCheckpoint {
     pub visited_entries: u64,
     pub accepted_items: u64,
     pub issue_count: u64,
+    pub requires_previous_snapshot: bool,
 }
 
 #[derive(Clone, Debug)]

@@ -39,6 +39,16 @@ impl LibraryChangeQueue for RejectingQueue {
         panic!("path lease is not used by this test")
     }
 
+    fn lease_authoritative_library_change(
+        &mut self,
+        _root_id: &str,
+        _root_generation: LibraryRootGeneration,
+        _now_unix_ms: i64,
+        _policy: LibraryChangeQueuePolicy,
+    ) -> Result<Option<crate::domain::LeasedLibraryChange>, crate::domain::ScanError> {
+        panic!("authoritative lease is not used by this test")
+    }
+
     fn complete_library_change(
         &mut self,
         _change_id: crate::domain::LibraryChangeId,

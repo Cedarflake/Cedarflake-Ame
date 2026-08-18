@@ -88,6 +88,13 @@ pub trait LibraryChangeQueue {
         now_unix_ms: i64,
         policy: LibraryChangeQueuePolicy,
     ) -> Result<Vec<LeasedLibraryChange>, ScanError>;
+    fn lease_authoritative_library_change(
+        &mut self,
+        root_id: &str,
+        root_generation: LibraryRootGeneration,
+        now_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<Option<LeasedLibraryChange>, ScanError>;
     fn complete_library_change(
         &mut self,
         change_id: LibraryChangeId,
@@ -143,6 +150,12 @@ pub trait IncrementalCatalogRepository {
         &self,
         identity: &FileIdentityEvidence,
     ) -> Result<Option<AssetLocationView>, ScanError>;
+    fn load_incremental_locations_in_subtree(
+        &self,
+        root_id: &str,
+        relative_subtree: &str,
+        limit: u32,
+    ) -> Result<Vec<AssetLocationView>, ScanError>;
     fn publish_catalog_delta(
         &mut self,
         batch: &CatalogDeltaBatch,
@@ -153,6 +166,12 @@ pub trait IncrementalCatalogRepository {
 pub trait CatalogRepository {
     fn catalog_path(&self) -> &Path;
     fn begin_scan(
+        &mut self,
+        request: &ScanRequest,
+        root_id: &str,
+        root_path: &str,
+    ) -> Result<ScanCheckpoint, ScanError>;
+    fn begin_authoritative_scan(
         &mut self,
         request: &ScanRequest,
         root_id: &str,
@@ -224,6 +243,10 @@ pub trait CatalogRepository {
     ) -> Result<(), ScanError>;
     fn load_recoverable_scan(&self) -> Result<Option<RecoverableScan>, ScanError>;
     fn load_paused_scan(&self) -> Result<Option<RecoverableScan>, ScanError>;
+    fn load_authoritative_recoverable_scan_after(
+        &self,
+        after_scan_id: Option<&str>,
+    ) -> Result<Option<RecoverableScan>, ScanError>;
     fn claim_next_directory(&mut self, scan_id: &str) -> Result<Option<String>, ScanError>;
     fn is_current_directory_enumerated(
         &self,

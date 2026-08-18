@@ -1823,10 +1823,11 @@ fn persists_and_validates_a_recoverable_scan_checkpoint() {
         .expect("begin scan");
     assert_eq!(initial.visited_entries, 0);
     let checkpoint = ScanCheckpoint {
-        last_visited_relative_path: Some("nested\\last.png".to_owned()),
+        last_visited_relative_path: Some("nested/last.png".to_owned()),
         visited_entries: 128,
         accepted_items: 40,
         issue_count: 3,
+        requires_previous_snapshot: true,
     };
     catalog
         .checkpoint_scan("scan-resume", &checkpoint)
@@ -1850,6 +1851,14 @@ fn persists_and_validates_a_recoverable_scan_checkpoint() {
     assert_eq!(
         resumed.last_visited_relative_path,
         checkpoint.last_visited_relative_path
+    );
+    assert!(resumed.requires_previous_snapshot);
+    let publish_error = restored
+        .publish_scan("scan-resume", "root-resume", 40, 3)
+        .expect_err("an unresolved prior issue cannot publish");
+    assert_eq!(
+        publish_error.code,
+        "catalog_scan_requires_previous_snapshot"
     );
 
     let mut changed_request = request.clone();
@@ -3329,4 +3338,85 @@ fn fixture_request(scan_id: &str, root_path: &str) -> ScanRequest {
         max_entries: Some(2_000),
         preview_edge: 512,
     }
+}
+
+#[test]
+fn one_root_cannot_have_overlapping_authoritative_scans() {
+    let directory = tempdir().expect("catalog directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let mut first = SqliteCatalog::open(path.clone()).expect("first catalog");
+    let first_request = fixture_request("root-scan-a", "C:\\Pictures");
+    first
+        .begin_scan(&first_request, "root-a", &first_request.root_path)
+        .expect("begin first scan");
+    let mut second = SqliteCatalog::open(path).expect("second catalog");
+    let second_request = fixture_request("root-scan-b", "C:\\Pictures");
+
+    let error = second
+        .begin_scan(&second_request, "root-a", &second_request.root_path)
+        .expect_err("overlapping root scan must fail");
+
+    assert_eq!(error.code, "catalog_root_scan_in_progress");
+    first
+        .abandon_scan(&first_request.scan_id, "cancelled", 0)
+        .expect("release first scan");
+    second
+        .begin_scan(&second_request, "root-a", &second_request.root_path)
+        .expect("begin second scan after release");
+}
+
+#[test]
+fn recoverable_scan_queries_keep_foreground_and_authoritative_owners_separate() {
+    let directory = tempdir().expect("catalog directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let mut catalog = SqliteCatalog::open(path).expect("catalog");
+    let first_authoritative = fixture_request("sync-recovery-a", "C:\\RecoveryA");
+    let second_authoritative = fixture_request("sync-recovery-b", "C:\\RecoveryB");
+    let foreground = fixture_request("foreground-c", "C:\\ForegroundC");
+    catalog
+        .begin_authoritative_scan(
+            &first_authoritative,
+            "root-recovery-a",
+            &first_authoritative.root_path,
+        )
+        .expect("first authoritative scan");
+    catalog
+        .begin_authoritative_scan(
+            &second_authoritative,
+            "root-recovery-b",
+            &second_authoritative.root_path,
+        )
+        .expect("second authoritative scan");
+    catalog
+        .begin_scan(&foreground, "root-foreground-c", &foreground.root_path)
+        .expect("foreground scan");
+
+    let foreground_recovery = catalog
+        .load_recoverable_scan()
+        .expect("foreground recovery")
+        .expect("foreground scan is recoverable");
+    let first_recovery = catalog
+        .load_authoritative_recoverable_scan_after(None)
+        .expect("first authoritative recovery")
+        .expect("first authoritative scan");
+    let second_recovery = catalog
+        .load_authoritative_recoverable_scan_after(Some(&first_recovery.scan_id))
+        .expect("second authoritative recovery")
+        .expect("second authoritative scan");
+    let end_of_page = catalog
+        .load_authoritative_recoverable_scan_after(Some(&second_recovery.scan_id))
+        .expect("authoritative recovery end");
+    let ownership_error = catalog
+        .begin_scan(
+            &first_authoritative,
+            "root-recovery-a",
+            &first_authoritative.root_path,
+        )
+        .expect_err("foreground lifecycle cannot claim authoritative scan");
+
+    assert_eq!(foreground_recovery.scan_id, foreground.scan_id);
+    assert_eq!(first_recovery.scan_id, first_authoritative.scan_id);
+    assert_eq!(second_recovery.scan_id, second_authoritative.scan_id);
+    assert!(end_of_page.is_none());
+    assert_eq!(ownership_error.code, "catalog_scan_resume_mismatch");
 }

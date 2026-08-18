@@ -15,8 +15,12 @@ use crate::ports::{
 #[cfg(test)]
 use crate::ports::{LibraryChangeSourceFactory, erase_library_change_source_factory};
 
+use super::authoritative_library_changes::process_ready_authoritative_library_change;
 use super::library_change_observer::LibraryChangeObserver;
-use super::{enqueue_library_change_plan, process_ready_library_changes};
+use super::{
+    AuthoritativeRecoveryPolicy, FullScanRecoveryRequest, enqueue_library_change_plan,
+    process_ready_library_changes,
+};
 
 mod production;
 
@@ -35,6 +39,7 @@ struct RootRuntime {
     last_issue_code: Option<String>,
     pending_plan: Option<LibraryChangePlanningResult>,
     needs_continuity_gap: bool,
+    pending_full_scan: Option<FullScanRecoveryRequest>,
 }
 
 pub(crate) struct LibrarySynchronizationRuntime {
@@ -43,6 +48,7 @@ pub(crate) struct LibrarySynchronizationRuntime {
     planning_limits: LibraryChangePlanningLimits,
     restart_policy: LibraryChangeRestartPolicy,
     queue_policy: LibraryChangeQueuePolicy,
+    recovery_policy: AuthoritativeRecoveryPolicy,
     ingress_capacity: usize,
     is_running: bool,
 }
@@ -55,6 +61,7 @@ impl LibrarySynchronizationRuntime {
             planning_limits: LibraryChangePlanningLimits::default(),
             restart_policy: LibraryChangeRestartPolicy::default(),
             queue_policy: LibraryChangeQueuePolicy::default(),
+            recovery_policy: AuthoritativeRecoveryPolicy::default(),
             ingress_capacity: DEFAULT_INGRESS_CAPACITY,
             is_running: true,
         }
@@ -66,6 +73,7 @@ impl LibrarySynchronizationRuntime {
         planning_limits: LibraryChangePlanningLimits,
         restart_policy: LibraryChangeRestartPolicy,
         queue_policy: LibraryChangeQueuePolicy,
+        recovery_policy: AuthoritativeRecoveryPolicy,
         ingress_capacity: usize,
     ) -> Self
     where
@@ -77,16 +85,43 @@ impl LibrarySynchronizationRuntime {
             planning_limits,
             restart_policy,
             queue_policy,
+            recovery_policy,
             ingress_capacity,
             is_running: true,
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn poll<Repository>(
         &mut self,
         repository: &mut Repository,
         now_unix_ms: i64,
+        inspect_availability: impl FnMut(&str) -> LibraryRootAvailability,
+    ) -> Result<LibrarySynchronizationSnapshot, ScanError>
+    where
+        Repository: IncrementalCatalogRepository + LibraryChangeQueue,
+    {
+        self.poll_internal(repository, now_unix_ms, inspect_availability, true)
+    }
+
+    pub(crate) fn poll_without_authoritative_recovery<Repository>(
+        &mut self,
+        repository: &mut Repository,
+        now_unix_ms: i64,
+        inspect_availability: impl FnMut(&str) -> LibraryRootAvailability,
+    ) -> Result<LibrarySynchronizationSnapshot, ScanError>
+    where
+        Repository: IncrementalCatalogRepository + LibraryChangeQueue,
+    {
+        self.poll_internal(repository, now_unix_ms, inspect_availability, false)
+    }
+
+    fn poll_internal<Repository>(
+        &mut self,
+        repository: &mut Repository,
+        now_unix_ms: i64,
         mut inspect_availability: impl FnMut(&str) -> LibraryRootAvailability,
+        process_authoritative_recovery: bool,
     ) -> Result<LibrarySynchronizationSnapshot, ScanError>
     where
         Repository: IncrementalCatalogRepository + LibraryChangeQueue,
@@ -171,6 +206,31 @@ impl LibrarySynchronizationRuntime {
                 }
             }
 
+            if process_authoritative_recovery
+                && availability == LibraryRootAvailability::Available
+                && runtime.source_health == LibraryChangeSourceHealth::Healthy
+            {
+                let recovery = process_ready_authoritative_library_change(
+                    repository,
+                    &root.root_id,
+                    root.root_generation,
+                    now_unix_ms,
+                    self.queue_policy,
+                    self.recovery_policy,
+                )?;
+                catalog_revision = catalog_revision.max(recovery.incremental.catalog_revision);
+                applied_mutation_count = applied_mutation_count
+                    .checked_add(recovery.incremental.applied_mutation_count)
+                    .ok_or_else(|| {
+                        ScanError::new(
+                            "library_synchronization_count_overflow",
+                            "The synchronization mutation count exceeded the supported range",
+                        )
+                    })?;
+                if recovery.full_scan.is_some() {
+                    runtime.pending_full_scan = recovery.full_scan;
+                }
+            }
             if availability == LibraryRootAvailability::Available {
                 let report = process_ready_library_changes(
                     repository,
@@ -189,12 +249,35 @@ impl LibrarySynchronizationRuntime {
                         )
                     })?;
             }
-            let metrics = repository.load_library_change_root_queue_metrics(
+            let mut metrics = repository.load_library_change_root_queue_metrics(
                 &root.root_id,
                 root.root_generation,
                 now_unix_ms,
                 self.queue_policy,
             )?;
+            if availability == LibraryRootAvailability::Available
+                && runtime.source_health == LibraryChangeSourceHealth::Healthy
+                && metrics.pending_count == 0
+                && metrics.leased_count == 0
+                && metrics.retry_wait_count == 0
+                && runtime.pending_full_scan.is_none()
+                && let Some(refreshed_root) =
+                    repository.load_incremental_catalog_root(&root.root_id)?
+                && consistency_audit_is_due(
+                    &refreshed_root,
+                    now_unix_ms,
+                    self.recovery_policy.audit_interval_millis,
+                )
+            {
+                runtime.pending_plan = Some(consistency_audit_plan(&refreshed_root, now_unix_ms));
+                persist_pending_plan(runtime, repository, now_unix_ms, self.queue_policy)?;
+                metrics = repository.load_library_change_root_queue_metrics(
+                    &root.root_id,
+                    root.root_generation,
+                    now_unix_ms,
+                    self.queue_policy,
+                )?;
+            }
             statuses.push(project_root_status(runtime, &metrics));
         }
 
@@ -262,7 +345,55 @@ impl LibrarySynchronizationRuntime {
                     last_issue_code: None,
                     pending_plan: None,
                     needs_continuity_gap: true,
+                    pending_full_scan: None,
                 });
+        }
+    }
+
+    pub(crate) fn pending_full_scan_requests(&self) -> Vec<FullScanRecoveryRequest> {
+        self.roots
+            .values()
+            .filter_map(|runtime| runtime.pending_full_scan.clone())
+            .collect()
+    }
+
+    pub(crate) const fn queue_policy(&self) -> LibraryChangeQueuePolicy {
+        self.queue_policy
+    }
+
+    pub(crate) const fn recovery_policy(&self) -> AuthoritativeRecoveryPolicy {
+        self.recovery_policy
+    }
+
+    pub(crate) fn record_full_scan_request(&mut self, request: FullScanRecoveryRequest) {
+        let Some(runtime) = self.roots.get_mut(&request.root_id) else {
+            return;
+        };
+        if runtime.root.root_generation == request.root_generation {
+            runtime.pending_full_scan = Some(request);
+        }
+    }
+
+    pub(crate) fn acknowledge_full_scan_started(
+        &mut self,
+        root_id: &str,
+        queue_high_watermark: crate::domain::LibraryChangeId,
+    ) {
+        let Some(runtime) = self.roots.get_mut(root_id) else {
+            return;
+        };
+        if runtime
+            .pending_full_scan
+            .as_ref()
+            .is_some_and(|request| request.queue_high_watermark == queue_high_watermark)
+        {
+            runtime.pending_full_scan = None;
+        }
+    }
+
+    pub(crate) fn record_full_scan_failure(&mut self, root_id: &str, code: String) {
+        if let Some(runtime) = self.roots.get_mut(root_id) {
+            runtime.last_issue_code = Some(code);
         }
     }
 }
@@ -316,6 +447,48 @@ fn continuity_gap_plan(
         received_observation_count: 1,
         superseded_observation_count: 0,
     }
+}
+
+fn consistency_audit_plan(
+    root: &IncrementalCatalogRoot,
+    observed_unix_ms: i64,
+) -> LibraryChangePlanningResult {
+    LibraryChangePlanningResult {
+        root_id: root.root_id.clone(),
+        root_generation: root.root_generation,
+        freshness: CatalogFreshnessState::Updating,
+        freshness_cause: CatalogFreshnessCause::PendingChanges,
+        intents: vec![LibraryChangeIntent {
+            root_id: root.root_id.clone(),
+            root_generation: root.root_generation,
+            kind: LibraryChangeIntentKind::Reconcile,
+            scope: LibraryChangeScope::Root,
+            relative_path: String::new(),
+            previous_relative_path: None,
+            origin: LibraryChangeOrigin::ConsistencyAudit,
+            first_observed_unix_ms: observed_unix_ms,
+            most_recent_observed_unix_ms: observed_unix_ms,
+            first_sequence: 1,
+            most_recent_sequence: 1,
+            coalesced_observation_count: 1,
+        }],
+        issues: Vec::new(),
+        received_observation_count: 1,
+        superseded_observation_count: 0,
+    }
+}
+
+fn consistency_audit_is_due(
+    root: &IncrementalCatalogRoot,
+    now_unix_ms: i64,
+    interval_millis: u64,
+) -> bool {
+    if root.has_running_scan || root.active_scan_id.is_none() {
+        return false;
+    }
+    let interval = i64::try_from(interval_millis).unwrap_or(i64::MAX);
+    root.last_consistency_audit_unix_ms
+        .is_none_or(|last| now_unix_ms.saturating_sub(last) >= interval)
 }
 
 impl Drop for LibrarySynchronizationRuntime {

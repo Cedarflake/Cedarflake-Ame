@@ -1315,6 +1315,13 @@ R2c-F - recovery and consistency:
 - implement the escalation ladder and low-frequency audit;
 - prove that recovery does not publish mass false removals or claim health early.
 
+Status: **complete and audit-hardened on 2026-08-18**. ADR 0021 owns the bounded authoritative
+subtree/root worker, schema v18 full-scan generation and queue-watermark coordination,
+previous-snapshot preservation, background escalation, bounded retry, and low-frequency consistency
+audit. `docs/acceptance/r2c-f-recovery-consistency.md` records controlled fixtures, 318 Rust tests
+with five existing explicit ignores, all Flutter tests, both Windows integration suites, the Windows
+Release gate, and final independent approval with no remaining findings.
+
 R2c-G - USN downtime catch-up:
 
 - accept a focused ADR;
@@ -1709,7 +1716,8 @@ Active stage: **R2c - continuous directory synchronization and incremental index
 
 Active slice: **R2c-F - recovery and consistency**. R2c-A contracts, R2c-B live Windows
 observation, R2c-C durable queue and coalescing, R2c-D incremental delta publication, and R2c-E
-production UI and lifecycle are complete.
+production UI and lifecycle are complete. R2c-F implementation is under final repository validation
+and independent audit; its completion status is not claimed until those gates pass.
 
 Planned next stage: **R3 - exact duplicate evidence**, still blocked behind R2c catalog-freshness
 acceptance.
@@ -1759,11 +1767,13 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
 - R0 and R1 are accepted. The Rust-owned SQLite catalog, Flutter/Rust bridge, external preview
   storage, resumable multi-root scanning, atomic publication, per-file issue isolation, file
   identity, and revision-safe bounded queries are connected end to end.
-- The catalog schema is v17 and the storage-settings schema is v2. Schema v17 adds the durable
-  normalized change queue, root-generation tombstones, lease/retry state, catalog-revision
-  evidence, bounded terminal-row retention, and permanent highest-generation authority without
-  losing the v16 preview ownership reconciliation or earlier root, scan, asset, location, frontier,
-  capture-evidence, identity, and query evidence.
+- The catalog schema is v18 and the storage-settings schema is v2. Schema v17 introduced the
+  durable normalized change queue, root-generation tombstones, lease/retry state, catalog-revision
+  evidence, bounded terminal-row retention, and permanent highest-generation authority. Schema v18
+  adds authoritative scan ownership, generation and queue-watermark capture, previous-snapshot
+  preservation, consistency-audit evidence, normalized historical relative paths, and single-scan
+  root ownership without losing the v16 preview ownership reconciliation or earlier root, scan,
+  asset, location, frontier, capture-evidence, identity, and query evidence.
 - The authorized read-only target-library acceptance published 30,629 locations for
   `local-primary` and 48,384 for `cloud-primary`, for 79,013 active locations in one retained
   catalog. Sampled source bytes and source entries remained unchanged, and cloud-only placeholders
@@ -1902,6 +1912,26 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   Daily passed 283 Rust tests with five existing intentional ignores, all Flutter tests, both
   Windows integrations, bridge compatibility, formatting, and whitespace; the Windows Release gate
   passed both packaged bridge smoke tests. Authoritative recovery remains R2c-F.
+- R2c-F is complete and audit-hardened. The application leases one bounded authoritative
+  subtree, root, or freshness-gap row, enumerates no more than 4,096 entries and 128 affected paths,
+  and publishes the complete retain/add/change/move/remove set at one catalog revision. Oversized
+  work remains durable and escalates to the existing resumable full scanner. Schema v18 captures the
+  root generation and unresolved queue high watermark when a scan begins, freezes only pre-watermark
+  work for that scan without consuming retry attempts, preserves later evidence, and releases only
+  its own rows on abandonment. It normalizes historical relative paths, persists a fail-closed
+  previous-snapshot requirement for unreadable rescans, and records authoritative audit completion.
+  Production runs both bounded reconciliation and full-scan escalation outside the polling mutex,
+  only after a healthy observer establishes continuity, with cancellable shutdown and bounded
+  per-root retry whose failure history survives bounded re-escalation. Placeholders and other
+  uninspectable entries remain unresolved through full-scan escalation without hydration or false
+  audit success, and v17 path normalization preserves legacy location identity for both healthy and
+  unavailable files. Durable lifecycle ownership separates foreground scans from bounded multi-root
+  production recovery; timed-out workers block restart, future or exhausted retry rows do not create
+  empty workers, and one root cannot own overlapping active scans. The seven-day consistency audit
+  cannot project freshness before publication.
+  Controlled fixtures did not access a real library. The complete Daily and Windows Release gates
+  passed on 2026-08-18, and final independent audit returned no Critical, High, Medium, or Low
+  findings.
 - The current R2b closeout working tree passed the complete local Daily gate and Windows Release
   gate on 2026-08-12, including packaged Rust-library loading and the release bridge smoke test.
   This is current-stage evidence, not a release candidate or completion of R10.

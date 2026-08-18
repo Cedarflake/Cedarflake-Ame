@@ -13,7 +13,7 @@ use crate::domain::{
     AssetLocationView, DiscoveredFile, PreviewStatus, RecoverableScan, ScanError, ScanEvent,
     ScanIssue, ScanRequest,
 };
-use crate::ports::{CatalogRepository, MediaInspector};
+use crate::ports::{CatalogRepository, IncrementalCatalogRepository, MediaInspector};
 
 use super::storage::validate_source_root_storage_paths;
 use super::{StoragePaths, storage_paths};
@@ -35,6 +35,14 @@ pub fn run_scan(
     run_scan_with_storage(request, publish, storage)
 }
 
+pub(crate) fn run_authoritative_scan(
+    request: ScanRequest,
+    publish: impl FnMut(ScanEvent) -> bool,
+) -> Result<(), ScanError> {
+    let storage = storage_paths()?;
+    run_scan_with_storage_owned(request, publish, storage, true)
+}
+
 pub fn load_recoverable_scan() -> Result<Option<RecoverableScan>, ScanError> {
     let storage = storage_paths()?;
     SqliteCatalog::open(storage.catalog_path)?.load_recoverable_scan()
@@ -45,10 +53,19 @@ pub fn load_paused_scan() -> Result<Option<RecoverableScan>, ScanError> {
     SqliteCatalog::open(storage.catalog_path)?.load_paused_scan()
 }
 
-fn run_scan_with_storage(
+pub(super) fn run_scan_with_storage(
+    request: ScanRequest,
+    publish: impl FnMut(ScanEvent) -> bool,
+    storage: StoragePaths,
+) -> Result<(), ScanError> {
+    run_scan_with_storage_owned(request, publish, storage, false)
+}
+
+fn run_scan_with_storage_owned(
     request: ScanRequest,
     mut publish: impl FnMut(ScanEvent) -> bool,
     storage: StoragePaths,
+    is_authoritative_recovery: bool,
 ) -> Result<(), ScanError> {
     validate_request(&request)?;
     let media_inspector = LocalMediaInspector::new();
@@ -58,7 +75,14 @@ fn run_scan_with_storage(
     let root_path = canonical_root.to_string_lossy().into_owned();
     let root_id = stable_id("library-root-v1", &root_path);
     let mut catalog = SqliteCatalog::open(storage.catalog_path)?;
-    let mut checkpoint = catalog.begin_scan(&request, &root_id, &root_path)?;
+    let had_published_root = catalog
+        .load_incremental_catalog_root(&root_id)?
+        .is_some_and(|root| root.active_scan_id.is_some());
+    let mut checkpoint = if is_authoritative_recovery {
+        catalog.begin_authoritative_scan(&request, &root_id, &root_path)?
+    } else {
+        catalog.begin_scan(&request, &root_id, &root_path)?
+    };
     let has_active_locations = catalog.has_active_locations()?;
     let control = register_scan(&request.scan_id)?;
     let _registration = ScanRegistration {
@@ -117,6 +141,15 @@ fn run_scan_with_storage(
                         issue: user_visible_issue(issue),
                     }) {
                         catalog.abandon_scan(&request.scan_id, "detached", issue_count)?;
+                        return Ok(());
+                    }
+                    if had_published_root {
+                        catalog.abandon_scan(&request.scan_id, "stale", issue_count)?;
+                        publish(ScanEvent::Stale {
+                            scan_id: request.scan_id,
+                            accepted_items,
+                            issue_count,
+                        });
                         return Ok(());
                     }
                     catalog.complete_directory(&request.scan_id, &checkpoint)?;
@@ -229,6 +262,27 @@ fn run_scan_with_storage(
                     FileVisitOutcome::Issue(issue) => {
                         issue_count += 1;
                         catalog.record_issue(&request.scan_id, &issue)?;
+                        if had_published_root {
+                            if let Some(prior) = catalog
+                                .load_incremental_location_by_relative_path(
+                                    &root_id,
+                                    &visit.relative_path,
+                                )?
+                            {
+                                catalog.stage_location(&request.scan_id, &root_id, &prior)?;
+                                accepted_items =
+                                    accepted_items.checked_add(1).ok_or_else(|| {
+                                        ScanError::new(
+                                            "accepted_item_count_overflow",
+                                            "The accepted item count exceeded the supported range",
+                                        )
+                                    })?;
+                            }
+                            checkpoint.accepted_items = accepted_items;
+                            checkpoint.issue_count = issue_count;
+                            checkpoint.requires_previous_snapshot = true;
+                            catalog.checkpoint_scan(&request.scan_id, &checkpoint)?;
+                        }
                         discovered_event = Some(ScanEvent::Issue {
                             scan_id: request.scan_id.clone(),
                             issue: user_visible_issue(issue),
@@ -246,7 +300,19 @@ fn run_scan_with_storage(
                                 return Ok(());
                             }
                         }
-                        let location_id = stable_location_id(&root_id, &file.relative_path);
+                        let path_prior = has_active_locations
+                            .then(|| {
+                                catalog.load_incremental_location_by_relative_path(
+                                    &root_id,
+                                    &file.relative_path,
+                                )
+                            })
+                            .transpose()?
+                            .flatten();
+                        let location_id = path_prior.as_ref().map_or_else(
+                            || stable_location_id(&root_id, &file.relative_path),
+                            |prior| prior.location_id.clone(),
+                        );
                         let candidate_asset_id = file.file_identity.as_ref().map_or_else(
                             || {
                                 stable_id(
@@ -264,10 +330,6 @@ fn run_scan_with_storage(
                                 )
                             },
                         );
-                        let path_prior = has_active_locations
-                            .then(|| catalog.load_active_location(&location_id))
-                            .transpose()?
-                            .flatten();
                         let identity_prior =
                             if file.file_identity.as_ref().is_some_and(|identity| {
                                 path_prior
@@ -304,6 +366,8 @@ fn run_scan_with_storage(
                                     .flatten()
                             })
                             .unwrap_or(candidate_asset_id);
+                        let preservation_prior =
+                            identity_prior.clone().or_else(|| path_prior.clone());
                         let prior = identity_prior
                             .filter(|prior| same_file_state(prior, &file))
                             .or_else(|| path_is_unchanged.then_some(path_prior).flatten());
@@ -385,6 +449,27 @@ fn run_scan_with_storage(
                             Err(issue) => {
                                 issue_count += 1;
                                 catalog.record_issue(&request.scan_id, &issue)?;
+                                if had_published_root {
+                                    if let Some(prior) = preservation_prior.as_ref() {
+                                        catalog.stage_location(
+                                            &request.scan_id,
+                                            &root_id,
+                                            prior,
+                                        )?;
+                                        accepted_items = accepted_items.checked_add(1).ok_or_else(
+                                            || {
+                                            ScanError::new(
+                                                "accepted_item_count_overflow",
+                                                "The accepted item count exceeded the supported range",
+                                            )
+                                            },
+                                        )?;
+                                    }
+                                    checkpoint.accepted_items = accepted_items;
+                                    checkpoint.issue_count = issue_count;
+                                    checkpoint.requires_previous_snapshot = true;
+                                    catalog.checkpoint_scan(&request.scan_id, &checkpoint)?;
+                                }
                                 discovered_event = Some(ScanEvent::Issue {
                                     scan_id: request.scan_id.clone(),
                                     issue: user_visible_issue(issue),
@@ -437,6 +522,26 @@ fn run_scan_with_storage(
     }
 
     catalog.checkpoint_scan(&request.scan_id, &checkpoint)?;
+
+    if checkpoint.requires_previous_snapshot {
+        catalog.abandon_scan(&request.scan_id, "stale", issue_count)?;
+        publish(ScanEvent::Stale {
+            scan_id: request.scan_id,
+            accepted_items,
+            issue_count,
+        });
+        return Ok(());
+    }
+
+    if was_limited && had_published_root {
+        catalog.abandon_scan(&request.scan_id, "stale", issue_count)?;
+        publish(ScanEvent::Stale {
+            scan_id: request.scan_id,
+            accepted_items,
+            issue_count,
+        });
+        return Ok(());
+    }
 
     if finish_if_controlled(
         control.load(Ordering::Relaxed),

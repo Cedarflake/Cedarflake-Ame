@@ -79,7 +79,13 @@ impl LibraryChangeQueue for SqliteCatalog {
         now_unix_ms: i64,
         policy: LibraryChangeQueuePolicy,
     ) -> Result<Vec<LeasedLibraryChange>, ScanError> {
-        self.lease_library_changes_matching(root_id, root_generation, now_unix_ms, policy, false)
+        self.lease_library_changes_matching(
+            root_id,
+            root_generation,
+            now_unix_ms,
+            policy,
+            LeaseSelection::All,
+        )
     }
 
     fn lease_path_library_changes(
@@ -89,7 +95,30 @@ impl LibraryChangeQueue for SqliteCatalog {
         now_unix_ms: i64,
         policy: LibraryChangeQueuePolicy,
     ) -> Result<Vec<LeasedLibraryChange>, ScanError> {
-        self.lease_library_changes_matching(root_id, root_generation, now_unix_ms, policy, true)
+        self.lease_library_changes_matching(
+            root_id,
+            root_generation,
+            now_unix_ms,
+            policy,
+            LeaseSelection::Path,
+        )
+    }
+
+    fn lease_authoritative_library_change(
+        &mut self,
+        root_id: &str,
+        root_generation: LibraryRootGeneration,
+        now_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<Option<LeasedLibraryChange>, ScanError> {
+        let mut leased = self.lease_library_changes_matching(
+            root_id,
+            root_generation,
+            now_unix_ms,
+            policy,
+            LeaseSelection::Authoritative,
+        )?;
+        Ok(leased.pop())
     }
 
     fn complete_library_change(
@@ -240,13 +269,48 @@ impl LibraryChangeQueue for SqliteCatalog {
 }
 
 impl SqliteCatalog {
+    pub(crate) fn has_ready_authoritative_library_change(
+        &self,
+        root_id: &str,
+        root_generation: LibraryRootGeneration,
+        now_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<bool, ScanError> {
+        validate_policy(policy)?;
+        validate_root_id(root_id)?;
+        self.connection
+            .query_row(
+                "SELECT EXISTS(
+                   SELECT 1 FROM library_change_queue
+                   WHERE root_id = ?1 AND root_generation = ?2
+                     AND attempt_count < ?3
+                     AND (scope <> 'path' OR intent_kind = 'freshness_unknown')
+                     AND (
+                       (status = 'pending' AND ready_unix_ms <= ?4)
+                       OR (status = 'retry_wait' AND next_retry_unix_ms IS NOT NULL
+                         AND next_retry_unix_ms <= ?4)
+                       OR (status = 'leased' AND lease_expires_unix_ms IS NOT NULL
+                         AND lease_expires_unix_ms <= ?4)
+                     )
+                 )",
+                params![
+                    root_id,
+                    sqlite_integer(root_generation.value(), "root generation")?,
+                    i64::from(policy.max_attempts),
+                    now_unix_ms,
+                ],
+                |row| row.get::<_, bool>(0),
+            )
+            .map_err(database_error)
+    }
+
     fn lease_library_changes_matching(
         &mut self,
         root_id: &str,
         root_generation: LibraryRootGeneration,
         now_unix_ms: i64,
         policy: LibraryChangeQueuePolicy,
-        path_only: bool,
+        selection: LeaseSelection,
     ) -> Result<Vec<LeasedLibraryChange>, ScanError> {
         validate_policy(policy)?;
         validate_root_id(root_id)?;
@@ -257,7 +321,10 @@ impl SqliteCatalog {
         }
         recover_expired_leases(&transaction, root_id, root_generation, now_unix_ms, policy)?;
         enforce_retry_attempt_limit(&transaction, root_id, root_generation, now_unix_ms, policy)?;
-        let limit = i64::from(policy.max_lease_batch);
+        let limit = match selection {
+            LeaseSelection::Authoritative => 1,
+            LeaseSelection::All | LeaseSelection::Path => i64::from(policy.max_lease_batch),
+        };
         let change_ids = {
             let mut statement = transaction
                 .prepare(
@@ -265,9 +332,11 @@ impl SqliteCatalog {
                  FROM library_change_queue
                  WHERE root_id = ?1 AND root_generation = ?2
                    AND attempt_count < ?3
-                   AND (?6 = 0 OR (
-                     scope = 'path' AND intent_kind <> 'freshness_unknown'
-                   ))
+                   AND (
+                     ?6 = 0
+                     OR (?6 = 1 AND scope = 'path' AND intent_kind <> 'freshness_unknown')
+                     OR (?6 = 2 AND (scope <> 'path' OR intent_kind = 'freshness_unknown'))
+                   )
                    AND (
                      (status = 'pending' AND ready_unix_ms <= ?4)
                      OR
@@ -289,7 +358,7 @@ impl SqliteCatalog {
                         i64::from(policy.max_attempts),
                         now_unix_ms,
                         limit,
-                        path_only,
+                        selection.sql_value(),
                     ],
                     |row| row.get::<_, i64>(0),
                 )
@@ -327,6 +396,23 @@ impl SqliteCatalog {
         }
         transaction.commit().map_err(database_error)?;
         Ok(leased)
+    }
+}
+
+#[derive(Clone, Copy)]
+enum LeaseSelection {
+    All,
+    Path,
+    Authoritative,
+}
+
+impl LeaseSelection {
+    const fn sql_value(self) -> i64 {
+        match self {
+            Self::All => 0,
+            Self::Path => 1,
+            Self::Authoritative => 2,
+        }
     }
 }
 

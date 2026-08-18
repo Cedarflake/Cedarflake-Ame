@@ -298,7 +298,7 @@ fn one_unreadable_image_retries_without_blocking_a_valid_sibling() {
 }
 
 #[test]
-fn pending_work_waits_for_a_running_full_scan_without_consuming_a_lease() {
+fn pending_work_is_claimed_by_a_running_full_scan_without_entering_the_path_worker() {
     let source = tempdir().expect("source directory");
     let mut fixture = seed_catalog(source, &[]);
     write_png(
@@ -330,8 +330,8 @@ fn pending_work_waits_for_a_running_full_scan_without_consuming_a_lease() {
         .catalog
         .load_library_change_queue_metrics(2_000, policy())
         .expect("queue metrics");
-    assert_eq!(metrics.pending_count, 1);
-    assert_eq!(metrics.leased_count, 0);
+    assert_eq!(metrics.pending_count, 0);
+    assert_eq!(metrics.leased_count, 1);
     assert_eq!(metrics.retry_wait_count, 0);
 }
 

@@ -33,7 +33,8 @@ use migrations::migrate_schema;
 
 mod catalog_delta;
 mod change_queue;
-const SCHEMA_VERSION: i64 = 17;
+const SCHEMA_VERSION: i64 = 18;
+const SCAN_QUEUE_LEASE_MILLIS: i64 = 15 * 60 * 1_000;
 const LOCATION_STAGE_BATCH: usize = 128;
 const MAX_LAYOUT_MANIFEST_CHUNK_ITEMS: u32 = 4_096;
 const MAX_CATALOG_PAGE_ITEMS: u32 = 4_096;
@@ -113,16 +114,28 @@ impl SqliteCatalog {
     }
 }
 
-impl CatalogRepository for SqliteCatalog {
-    fn catalog_path(&self) -> &Path {
-        &self.path
-    }
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ScanOwner {
+    Foreground,
+    AuthoritativeRecovery,
+}
 
-    fn begin_scan(
+impl ScanOwner {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::Foreground => "foreground",
+            Self::AuthoritativeRecovery => "authoritative_recovery",
+        }
+    }
+}
+
+impl SqliteCatalog {
+    fn begin_scan_owned(
         &mut self,
         request: &ScanRequest,
         root_id: &str,
         root_path: &str,
+        owner: ScanOwner,
     ) -> Result<ScanCheckpoint, ScanError> {
         let now = unix_time_ms();
         let transaction = self.connection.transaction().map_err(database_error)?;
@@ -135,10 +148,43 @@ impl CatalogRepository for SqliteCatalog {
             )
             .map_err(database_error)?;
         activate_root_change_queue(&transaction, root_id, now)?;
+        let has_conflicting_scan = transaction
+            .query_row(
+                "SELECT EXISTS(
+                   SELECT 1 FROM scan_runs
+                   WHERE root_id = ?1 AND status IN ('running', 'paused') AND id <> ?2
+                 )",
+                params![root_id, request.scan_id],
+                |row| row.get::<_, bool>(0),
+            )
+            .map_err(database_error)?;
+        if has_conflicting_scan {
+            return Err(ScanError::new(
+                "catalog_root_scan_in_progress",
+                "Another authoritative scan already owns this library root",
+            ));
+        }
+        let (root_generation_at_start, change_queue_high_watermark) = transaction
+            .query_row(
+                "SELECT state.generation,
+                        MAX(CASE WHEN queue.status IN ('pending', 'leased', 'retry_wait')
+                          THEN queue.id END)
+                 FROM library_change_root_state AS state
+                 LEFT JOIN library_change_queue AS queue
+                   ON queue.root_id = state.root_id
+                  AND queue.root_generation = state.generation
+                 WHERE state.root_id = ?1 AND state.is_active = 1
+                 GROUP BY state.generation",
+                [root_id],
+                |row| Ok((row.get::<_, i64>(0)?, row.get::<_, Option<i64>>(1)?)),
+            )
+            .map_err(database_error)?;
         let existing = transaction
             .query_row(
                 "SELECT root_id, status, max_items, max_entries, preview_edge,
-                        last_visited_relative_path, visited_entries, accepted_items, issue_count
+                        last_visited_relative_path, visited_entries, accepted_items, issue_count,
+                        root_generation_at_start, change_queue_high_watermark,
+                        requires_previous_snapshot, scan_owner
                  FROM scan_runs WHERE id = ?1",
                 [&request.scan_id],
                 |row| {
@@ -152,6 +198,10 @@ impl CatalogRepository for SqliteCatalog {
                         row.get::<_, i64>(6)?,
                         row.get::<_, i64>(7)?,
                         row.get::<_, i64>(8)?,
+                        row.get::<_, Option<i64>>(9)?,
+                        row.get::<_, Option<i64>>(10)?,
+                        row.get::<_, bool>(11)?,
+                        row.get::<_, String>(12)?,
                     ))
                 },
             )
@@ -167,6 +217,10 @@ impl CatalogRepository for SqliteCatalog {
             visited_entries,
             accepted_items,
             issue_count,
+            stored_root_generation,
+            _stored_high_watermark,
+            requires_previous_snapshot,
+            stored_owner,
         )) = existing
         {
             let stored_max_items = optional_sqlite_u32(max_items, "item limit")?;
@@ -178,10 +232,12 @@ impl CatalogRepository for SqliteCatalog {
                 || stored_max_items != request.max_items
                 || stored_max_entries != request.max_entries
                 || stored_preview_edge != request.preview_edge
+                || stored_root_generation != Some(root_generation_at_start)
+                || stored_owner != owner.as_str()
             {
                 return Err(ScanError::new(
                     "catalog_scan_resume_mismatch",
-                    "The stored scan cannot be resumed with different identity or parameters",
+                    "The stored scan cannot be resumed with different identity, ownership, or parameters",
                 ));
             }
             if is_paused {
@@ -197,13 +253,15 @@ impl CatalogRepository for SqliteCatalog {
                 visited_entries: sqlite_unsigned(visited_entries, "visited entry count")?,
                 accepted_items: sqlite_unsigned(accepted_items, "accepted item count")?,
                 issue_count: sqlite_unsigned(issue_count, "issue count")?,
+                requires_previous_snapshot,
             }
         } else {
             transaction
                 .execute(
                     "INSERT INTO scan_runs(
-                       id, root_id, status, started_unix_ms, max_items, max_entries, preview_edge
-                     ) VALUES (?1, ?2, 'running', ?3, ?4, ?5, ?6)",
+                       id, root_id, status, started_unix_ms, max_items, max_entries, preview_edge,
+                       root_generation_at_start, change_queue_high_watermark, scan_owner
+                     ) VALUES (?1, ?2, 'running', ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
                     params![
                         request.scan_id,
                         root_id,
@@ -211,9 +269,33 @@ impl CatalogRepository for SqliteCatalog {
                         request.max_items.map(i64::from),
                         request.max_entries.map(i64::from),
                         i64::from(request.preview_edge),
+                        root_generation_at_start,
+                        change_queue_high_watermark,
+                        owner.as_str(),
                     ],
                 )
                 .map_err(database_error)?;
+            if let Some(high_watermark) = change_queue_high_watermark {
+                transaction
+                    .execute(
+                        "UPDATE library_change_queue
+                         SET status = 'leased', next_retry_unix_ms = NULL,
+                             lease_generation = lease_generation + 1,
+                             lease_expires_unix_ms = ?1, updated_unix_ms = ?2,
+                             authoritative_scan_id = ?3
+                         WHERE root_id = ?4 AND root_generation = ?5 AND id <= ?6
+                           AND status IN ('pending', 'retry_wait')",
+                        params![
+                            now.saturating_add(SCAN_QUEUE_LEASE_MILLIS),
+                            now,
+                            request.scan_id,
+                            root_id,
+                            root_generation_at_start,
+                            high_watermark,
+                        ],
+                    )
+                    .map_err(database_error)?;
+            }
             transaction
                 .execute(
                     "INSERT INTO scan_directory_frontier(scan_id, relative_path) VALUES (?1, '')",
@@ -224,6 +306,48 @@ impl CatalogRepository for SqliteCatalog {
         };
         transaction.commit().map_err(database_error)?;
         Ok(checkpoint)
+    }
+
+    pub(crate) fn has_active_scan_for_root(&self, root_id: &str) -> Result<bool, ScanError> {
+        self.connection
+            .query_row(
+                "SELECT EXISTS(
+                   SELECT 1 FROM scan_runs
+                   WHERE root_id = ?1 AND status IN ('running', 'paused')
+                 )",
+                [root_id],
+                |row| row.get::<_, bool>(0),
+            )
+            .map_err(database_error)
+    }
+}
+
+impl CatalogRepository for SqliteCatalog {
+    fn catalog_path(&self) -> &Path {
+        &self.path
+    }
+
+    fn begin_scan(
+        &mut self,
+        request: &ScanRequest,
+        root_id: &str,
+        root_path: &str,
+    ) -> Result<ScanCheckpoint, ScanError> {
+        self.begin_scan_owned(request, root_id, root_path, ScanOwner::Foreground)
+    }
+
+    fn begin_authoritative_scan(
+        &mut self,
+        request: &ScanRequest,
+        root_id: &str,
+        root_path: &str,
+    ) -> Result<ScanCheckpoint, ScanError> {
+        self.begin_scan_owned(
+            request,
+            root_id,
+            root_path,
+            ScanOwner::AuthoritativeRecovery,
+        )
     }
 
     fn has_active_locations(&self) -> Result<bool, ScanError> {
@@ -853,7 +977,8 @@ impl CatalogRepository for SqliteCatalog {
             .execute(
                 "UPDATE scan_runs
                  SET last_visited_relative_path = ?2, visited_entries = ?3,
-                     accepted_items = ?4, issue_count = ?5
+                     accepted_items = ?4, issue_count = ?5,
+                     requires_previous_snapshot = ?6
                  WHERE id = ?1 AND status = 'running'",
                 params![
                     scan_id,
@@ -861,6 +986,7 @@ impl CatalogRepository for SqliteCatalog {
                     visited_entries,
                     accepted_items,
                     issue_count,
+                    checkpoint.requires_previous_snapshot,
                 ],
             )
             .map_err(database_error)?;
@@ -874,11 +1000,25 @@ impl CatalogRepository for SqliteCatalog {
     }
 
     fn load_recoverable_scan(&self) -> Result<Option<RecoverableScan>, ScanError> {
-        load_scan_with_status(&self.connection, "running")
+        load_scan_with_status(&self.connection, "running", ScanOwner::Foreground)
     }
 
     fn load_paused_scan(&self) -> Result<Option<RecoverableScan>, ScanError> {
-        load_scan_with_status(&self.connection, "paused")
+        load_scan_with_status(&self.connection, "paused", ScanOwner::Foreground)
+    }
+
+    fn load_authoritative_recoverable_scan_after(
+        &self,
+        after_scan_id: Option<&str>,
+    ) -> Result<Option<RecoverableScan>, ScanError> {
+        load_scans_with_status(
+            &self.connection,
+            "running",
+            ScanOwner::AuthoritativeRecovery,
+            after_scan_id,
+            1,
+        )
+        .map(|mut scans| scans.pop())
     }
 
     fn claim_next_directory(&mut self, scan_id: &str) -> Result<Option<String>, ScanError> {
@@ -1168,9 +1308,16 @@ impl CatalogRepository for SqliteCatalog {
                  SET current_directory_relative_path = NULL,
                      current_directory_enumerated = 0,
                      last_visited_relative_path = NULL,
-                     visited_entries = ?2, accepted_items = ?3, issue_count = ?4
+                     visited_entries = ?2, accepted_items = ?3, issue_count = ?4,
+                     requires_previous_snapshot = ?5
                  WHERE id = ?1 AND status = 'running'",
-                params![scan_id, visited_entries, accepted_items, issue_count],
+                params![
+                    scan_id,
+                    visited_entries,
+                    accepted_items,
+                    issue_count,
+                    checkpoint.requires_previous_snapshot,
+                ],
             )
             .map_err(database_error)?;
         if updated != 1 {
@@ -1192,7 +1339,8 @@ impl CatalogRepository for SqliteCatalog {
             .execute(
                 "UPDATE scan_runs
                  SET status = 'paused', last_visited_relative_path = ?2,
-                     visited_entries = ?3, accepted_items = ?4, issue_count = ?5
+                     visited_entries = ?3, accepted_items = ?4, issue_count = ?5,
+                     requires_previous_snapshot = ?6
                  WHERE id = ?1 AND status = 'running'",
                 params![
                     scan_id,
@@ -1200,6 +1348,7 @@ impl CatalogRepository for SqliteCatalog {
                     visited_entries,
                     accepted_items,
                     issue_count,
+                    checkpoint.requires_previous_snapshot,
                 ],
             )
             .map_err(database_error)?;
@@ -1296,13 +1445,58 @@ impl CatalogRepository for SqliteCatalog {
         let asset_count = sqlite_integer(asset_count, "asset count")?;
         let issue_count = sqlite_integer(issue_count, "issue count")?;
         let transaction = self.connection.transaction().map_err(database_error)?;
-        let previous_active_scan = transaction
+        let (
+            previous_active_scan,
+            root_generation_at_start,
+            change_queue_high_watermark,
+            requires_previous_snapshot,
+        ) = transaction
             .query_row(
-                "SELECT active_scan_id FROM library_roots WHERE id = ?1",
-                [root_id],
-                |row| row.get::<_, Option<String>>(0),
+                "SELECT roots.active_scan_id, scans.root_generation_at_start,
+                        scans.change_queue_high_watermark,
+                        scans.requires_previous_snapshot
+                 FROM library_roots AS roots
+                 JOIN scan_runs AS scans ON scans.id = ?1 AND scans.root_id = roots.id
+                 WHERE roots.id = ?2",
+                params![scan_id, root_id],
+                |row| {
+                    Ok((
+                        row.get::<_, Option<String>>(0)?,
+                        row.get::<_, Option<i64>>(1)?,
+                        row.get::<_, Option<i64>>(2)?,
+                        row.get::<_, bool>(3)?,
+                    ))
+                },
             )
             .map_err(database_error)?;
+        if requires_previous_snapshot {
+            return Err(ScanError::new(
+                "catalog_scan_requires_previous_snapshot",
+                "The scan encountered evidence that requires retaining the previous catalog snapshot",
+            ));
+        }
+        let root_generation_at_start = root_generation_at_start.ok_or_else(|| {
+            ScanError::new(
+                "catalog_scan_generation_unverifiable",
+                "The scan cannot prove the root generation captured at start",
+            )
+        })?;
+        let root_generation_is_current = transaction
+            .query_row(
+                "SELECT generation = ?2 AND is_active = 1
+                 FROM library_change_root_state WHERE root_id = ?1",
+                params![root_id, root_generation_at_start],
+                |row| row.get::<_, bool>(0),
+            )
+            .optional()
+            .map_err(database_error)?
+            .unwrap_or(false);
+        if !root_generation_is_current {
+            return Err(ScanError::new(
+                "catalog_scan_root_generation_changed",
+                "The library root changed while the authoritative scan was running",
+            ));
+        }
         let updated = transaction
             .execute(
                 "UPDATE scan_runs
@@ -1373,6 +1567,44 @@ impl CatalogRepository for SqliteCatalog {
                 "The catalog revision state is missing or invalid",
             ));
         }
+        let published_revision = load_catalog_revision(&transaction)?;
+        let completed_unix_ms = unix_time_ms();
+        if let Some(high_watermark) = change_queue_high_watermark {
+            transaction
+                .execute(
+                    "UPDATE library_change_queue
+                     SET status = 'completed', next_retry_unix_ms = NULL,
+                         lease_expires_unix_ms = NULL,
+                         catalog_revision_at_success = ?1, updated_unix_ms = ?2,
+                         authoritative_scan_id = NULL
+                     WHERE root_id = ?3 AND root_generation = ?4 AND id <= ?5
+                       AND status IN ('pending', 'leased', 'retry_wait')",
+                    params![
+                        sqlite_integer(published_revision, "catalog revision")?,
+                        completed_unix_ms,
+                        root_id,
+                        root_generation_at_start,
+                        high_watermark,
+                    ],
+                )
+                .map_err(database_error)?;
+            transaction
+                .execute(
+                    "UPDATE library_change_queue
+                     SET authoritative_scan_id = NULL
+                     WHERE authoritative_scan_id = ?1",
+                    [scan_id],
+                )
+                .map_err(database_error)?;
+        }
+        transaction
+            .execute(
+                "UPDATE library_change_root_state
+                 SET last_consistency_audit_unix_ms = ?2, updated_unix_ms = ?2
+                 WHERE root_id = ?1 AND generation = ?3 AND is_active = 1",
+                params![root_id, completed_unix_ms, root_generation_at_start],
+            )
+            .map_err(database_error)?;
         transaction.commit().map_err(database_error)
     }
 
@@ -1385,8 +1617,9 @@ impl CatalogRepository for SqliteCatalog {
         self.pending_locations
             .retain(|pending| pending.scan_id != scan_id);
         let issue_count = sqlite_integer(issue_count, "issue count")?;
+        let now = unix_time_ms();
         let transaction = self.connection.transaction().map_err(database_error)?;
-        transaction
+        let abandoned = transaction
             .execute(
                 "UPDATE scan_runs
                  SET status = ?2, completed_unix_ms = ?3, issue_count = ?4,
@@ -1394,9 +1627,29 @@ impl CatalogRepository for SqliteCatalog {
                      current_directory_enumerated = 0,
                      last_visited_relative_path = NULL
                  WHERE id = ?1 AND status = 'running'",
-                params![scan_id, status, unix_time_ms(), issue_count],
+                params![scan_id, status, now, issue_count],
             )
             .map_err(database_error)?;
+        if abandoned == 1 {
+            transaction
+                .execute(
+                    "UPDATE library_change_queue
+                     SET status = 'pending', ready_unix_ms = ?2,
+                         next_retry_unix_ms = NULL, lease_expires_unix_ms = NULL,
+                         authoritative_scan_id = NULL, updated_unix_ms = ?2
+                     WHERE authoritative_scan_id = ?1 AND status = 'leased'",
+                    params![scan_id, now],
+                )
+                .map_err(database_error)?;
+            transaction
+                .execute(
+                    "UPDATE library_change_queue
+                     SET authoritative_scan_id = NULL
+                     WHERE authoritative_scan_id = ?1",
+                    [scan_id],
+                )
+                .map_err(database_error)?;
+        }
         transaction
             .execute(
                 "DELETE FROM scan_directory_frontier WHERE scan_id = ?1",
@@ -2331,6 +2584,7 @@ fn parse_capture_time_source(value: &str) -> Result<CaptureTimeSource, ScanError
 fn load_scan_with_status(
     connection: &Connection,
     status: &str,
+    owner: ScanOwner,
 ) -> Result<Option<RecoverableScan>, ScanError> {
     let stored = connection
         .query_row(
@@ -2339,10 +2593,10 @@ fn load_scan_with_status(
                     scans.issue_count
              FROM scan_runs AS scans
              JOIN library_roots AS roots ON roots.id = scans.root_id
-             WHERE scans.status = ?1
+             WHERE scans.status = ?1 AND scans.scan_owner = ?2
              ORDER BY scans.started_unix_ms DESC, scans.id DESC
              LIMIT 1",
-            [status],
+            params![status, owner.as_str()],
             |row| {
                 Ok((
                     row.get::<_, String>(0)?,
@@ -2384,6 +2638,76 @@ fn load_scan_with_status(
             },
         )
         .transpose()
+}
+
+fn load_scans_with_status(
+    connection: &Connection,
+    status: &str,
+    owner: ScanOwner,
+    after_scan_id: Option<&str>,
+    limit: u32,
+) -> Result<Vec<RecoverableScan>, ScanError> {
+    if !(1..=64).contains(&limit) {
+        return Err(ScanError::new(
+            "catalog_recoverable_scan_limit_invalid",
+            "Recoverable scan queries require a limit between 1 and 64",
+        ));
+    }
+    let mut statement = connection
+        .prepare(
+            "SELECT scans.id, roots.path, scans.max_items, scans.max_entries,
+                    scans.preview_edge, scans.visited_entries, scans.accepted_items,
+                    scans.issue_count
+             FROM scan_runs AS scans
+             JOIN library_roots AS roots ON roots.id = scans.root_id
+             WHERE scans.status = ?1 AND scans.scan_owner = ?2
+               AND (?3 IS NULL OR scans.id > ?3)
+             ORDER BY scans.id
+             LIMIT ?4",
+        )
+        .map_err(database_error)?;
+    let rows = statement
+        .query_map(
+            params![status, owner.as_str(), after_scan_id, i64::from(limit)],
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, Option<i64>>(2)?,
+                    row.get::<_, Option<i64>>(3)?,
+                    row.get::<_, i64>(4)?,
+                    row.get::<_, i64>(5)?,
+                    row.get::<_, i64>(6)?,
+                    row.get::<_, i64>(7)?,
+                ))
+            },
+        )
+        .map_err(database_error)?;
+    let mut recoverable = Vec::new();
+    for row in rows {
+        let (
+            scan_id,
+            root_path,
+            max_items,
+            max_entries,
+            preview_edge,
+            visited_entries,
+            accepted_items,
+            issue_count,
+        ) = row.map_err(database_error)?;
+        recoverable.push(RecoverableScan {
+            scan_id,
+            display_root_path: user_visible_path(&root_path),
+            root_path,
+            max_items: optional_sqlite_u32(max_items, "item limit")?,
+            max_entries: optional_sqlite_u32(max_entries, "entry limit")?,
+            preview_edge: sqlite_u32(preview_edge, "preview edge")?,
+            visited_entries: sqlite_unsigned(visited_entries, "visited entry count")?,
+            accepted_items: sqlite_unsigned(accepted_items, "accepted item count")?,
+            issue_count: sqlite_unsigned(issue_count, "issue count")?,
+        });
+    }
+    Ok(recoverable)
 }
 
 fn database_error(error: rusqlite::Error) -> ScanError {
