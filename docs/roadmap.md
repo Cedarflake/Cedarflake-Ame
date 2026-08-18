@@ -4,7 +4,7 @@ Status: active delivery plan
 
 Last confirmed with the user: 2026-08-16
 
-Last implementation-status synchronization: 2026-08-17
+Last implementation-status synchronization: 2026-08-18
 
 Repository: this repository root
 
@@ -1286,6 +1286,15 @@ R2c-D - incremental delta publication:
 R2c-D is complete only when every fundamental change is reflected without a normal root-wide scan,
 failed transactions leave the old catalog unchanged, and source media remains untouched.
 
+Status: **complete on 2026-08-18**. ADR 0019 owns identity-aware path reconciliation and the
+generation-, revision-, lease-, and full-scan-guarded SQLite delta transaction.
+`docs/acceptance/r2c-d-incremental-delta-publication.md` records unchanged, add, edit, paired
+rename, recreated-old-path and case-only rename, identity backfill, rename-followed-by-removal,
+same-path replacement, authoritative removal, preview ownership and cleanup races, filesystem-link
+containment, bounded maintenance, failure isolation, rollback, source-byte, Clippy, and Daily
+evidence. Subtree, root, and freshness-gap work remains durable and unleased by R2c-D for R2c-F
+authoritative reconciliation rather than publishing a partial removal claim.
+
 R2c-E - production UI and lifecycle:
 
 - start and stop synchronization with the desktop application;
@@ -1695,8 +1704,9 @@ may serve as benchmarks or fallbacks but are not automatically preferred over ma
 
 Active stage: **R2c - continuous directory synchronization and incremental indexing**
 
-Active slice: **R2c-D - incremental delta publication**. R2c-A contracts, R2c-B live Windows
-observation, and R2c-C durable queue and coalescing are complete.
+Active slice: **R2c-E - production UI and lifecycle**. R2c-A contracts, R2c-B live Windows
+observation, R2c-C durable queue and coalescing, and R2c-D incremental delta publication are
+complete.
 
 Planned next stage: **R3 - exact duplicate evidence**, still blocked behind R2c catalog-freshness
 acceptance.
@@ -1739,7 +1749,7 @@ or later analysis workflows.
 
 ### 10.1 Verified implementation snapshot
 
-This snapshot was synchronized on 2026-08-17 against the live working tree and fresh local gates.
+This snapshot was synchronized on 2026-08-18 against the live working tree and fresh local gates.
 The live working tree, current schema, accepted ADRs, and fresh verification remain authoritative;
 this roadmap does not preserve drifting commit hashes or duplicate complete test transcripts.
 
@@ -1856,9 +1866,27 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   overlap, normalized capacity after a policy decrease, removed-root rejection across cleanup and re-registration,
   policy-adjusted retry exhaustion/reopening, migration, metrics, and cleanup. The 2026-08-17 Daily
   passed 239 Rust tests with five existing intentional ignores, all Flutter tests,
-  both Windows integrations, bridge compatibility, formatting, and whitespace. There is still no
-  atomic delta publisher, production Flutter synchronization UI, catch-up adapter, or real-library
-  event acceptance; those remain later R2c slices.
+  both Windows integrations, bridge compatibility, formatting, and whitespace.
+- R2c-D is complete. The application now leases path work only after a trustworthy published root
+  is available and no full scan owns the publication boundary, checks final filesystem and media
+  state through the existing adapters, applies ADR 0007 identity rules, and revalidates each
+  present or absent path immediately before publication. Outcome and derived-evidence disposition
+  travel together through an Ame-owned delta contract. SQLite rechecks root generation, catalog
+  revision, active completed scan, and every lease generation under an immediate writer
+  transaction, then atomically updates only affected locations, compatible preview ownership,
+  orphan assets, active count, one catalog revision, and queue completion. Retained preview state
+  is compare-and-swapped against cleanup/reclamation, filesystem access rejects intermediate
+  links, paired rename reconciles both final paths, identity evidence is backfilled, and normal
+  full-scan coordination restores rather than consumes retry attempts. Thirty-six focused tests
+  prove these boundaries together with unchanged, add, edit, same-path replacement, authoritative
+  removal, related-batch revision atomicity, malformed-file isolation, stale
+  lease/revision/generation rejection, evidence validation, injected rollback, metadata-engine
+  compatibility, and controlled source-byte preservation. The 2026-08-18 Daily passed 270 Rust
+  tests with five
+  existing intentional ignores, all Flutter tests, both Windows integrations, bridge
+  compatibility, formatting, and whitespace. Production Flutter synchronization lifecycle,
+  authoritative subtree/root recovery, catch-up, and real-library event acceptance remain later
+  R2c slices.
 - The current R2b closeout working tree passed the complete local Daily gate and Windows Release
   gate on 2026-08-12, including packaged Rust-library loading and the release bridge smoke test.
   This is current-stage evidence, not a release candidate or completion of R10.

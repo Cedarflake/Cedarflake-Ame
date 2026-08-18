@@ -1206,6 +1206,42 @@ fn expired_lease_recovers_after_restart_with_bounded_backoff() {
 }
 
 #[test]
+fn deferred_lease_restores_the_attempt_budget_for_normal_coordination() {
+    let directory = tempdir().expect("temporary directory");
+    let generation = LibraryRootGeneration::initial();
+    let policy = LibraryChangeQueuePolicy {
+        max_attempts: 1,
+        ..immediate_policy()
+    };
+    let mut catalog = queue_catalog(directory.path().join("catalog.sqlite3"));
+    catalog
+        .enqueue_library_change_intents(
+            &[path_intent("root-a", generation, 1, 1_000, "photo.jpg")],
+            1_000,
+            policy,
+        )
+        .expect("enqueue");
+    let leased = catalog
+        .lease_path_library_changes("root-a", generation, 1_000, policy)
+        .expect("lease path work")
+        .pop()
+        .expect("leased change");
+
+    let outcome = catalog
+        .defer_library_change(leased.change.id, leased.lease_generation, 1_001)
+        .expect("defer lease");
+    let released = catalog
+        .lease_path_library_changes("root-a", generation, 1_001, policy)
+        .expect("lease deferred work")
+        .pop()
+        .expect("deferred work remains leasable");
+
+    assert_eq!(outcome, LibraryChangeLeaseUpdateOutcome::Applied);
+    assert_eq!(released.change.attempt_count, 1);
+    assert_eq!(released.lease_generation, leased.lease_generation + 1);
+}
+
+#[test]
 fn exhausted_retry_remains_durable_and_degrades_queue_health() {
     let directory = tempdir().expect("temporary directory");
     let path = directory.path().join("catalog.sqlite3");

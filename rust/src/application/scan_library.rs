@@ -246,10 +246,7 @@ fn run_scan_with_storage(
                                 return Ok(());
                             }
                         }
-                        let location_id = stable_id(
-                            "asset-location-v1",
-                            &format!("{root_id}\0{}", file.relative_path),
-                        );
+                        let location_id = stable_location_id(&root_id, &file.relative_path);
                         let candidate_asset_id = file.file_identity.as_ref().map_or_else(
                             || {
                                 stable_id(
@@ -672,12 +669,16 @@ impl Drop for ScanRegistration {
     }
 }
 
-fn stable_id(namespace: &str, value: &str) -> String {
+pub(super) fn stable_id(namespace: &str, value: &str) -> String {
     let mut hasher = Hasher::new();
     hasher.update(namespace.as_bytes());
     hasher.update(&[0]);
     hasher.update(value.as_bytes());
     hasher.finalize().to_hex().to_string()
+}
+
+pub(super) fn stable_location_id(root_id: &str, relative_path: &str) -> String {
+    stable_id("asset-location-v1", &format!("{root_id}\0{relative_path}"))
 }
 
 fn same_file_state(prior: &AssetLocationView, file: &DiscoveredFile) -> bool {

@@ -79,81 +79,17 @@ impl LibraryChangeQueue for SqliteCatalog {
         now_unix_ms: i64,
         policy: LibraryChangeQueuePolicy,
     ) -> Result<Vec<LeasedLibraryChange>, ScanError> {
-        validate_policy(policy)?;
-        validate_root_id(root_id)?;
-        let transaction = self.connection.transaction().map_err(database_error)?;
-        if !root_generation_is_current(&transaction, root_id, root_generation)? {
-            transaction.commit().map_err(database_error)?;
-            return Ok(Vec::new());
-        }
-        recover_expired_leases(&transaction, root_id, root_generation, now_unix_ms, policy)?;
-        enforce_retry_attempt_limit(&transaction, root_id, root_generation, now_unix_ms, policy)?;
-        let limit = i64::from(policy.max_lease_batch);
-        let change_ids = {
-            let mut statement = transaction
-                .prepare(
-                    "SELECT id
-                     FROM library_change_queue
-                     WHERE root_id = ?1 AND root_generation = ?2
-                       AND attempt_count < ?3
-                       AND (
-                         (status = 'pending' AND ready_unix_ms <= ?4)
-                         OR
-                         (status = 'retry_wait' AND next_retry_unix_ms IS NOT NULL
-                           AND next_retry_unix_ms <= ?4)
-                       )
-                     ORDER BY
-                       CASE status WHEN 'retry_wait' THEN next_retry_unix_ms
-                         ELSE ready_unix_ms END,
-                       first_observed_unix_ms, id
-                     LIMIT ?5",
-                )
-                .map_err(database_error)?;
-            let rows = statement
-                .query_map(
-                    params![
-                        root_id,
-                        sqlite_integer(root_generation.value(), "root generation")?,
-                        i64::from(policy.max_attempts),
-                        now_unix_ms,
-                        limit,
-                    ],
-                    |row| row.get::<_, i64>(0),
-                )
-                .map_err(database_error)?;
-            let mut ids = Vec::new();
-            for row in rows {
-                ids.push(row.map_err(database_error)?);
-            }
-            ids
-        };
-        let lease_expires_unix_ms = now_unix_ms
-            .saturating_add(i64::try_from(policy.lease_duration_millis).unwrap_or(i64::MAX));
-        let mut leased = Vec::with_capacity(change_ids.len());
-        for change_id in change_ids {
-            let updated = transaction
-                .execute(
-                    "UPDATE library_change_queue
-                     SET status = 'leased', attempt_count = attempt_count + 1,
-                         next_retry_unix_ms = NULL,
-                         lease_generation = lease_generation + 1,
-                         lease_expires_unix_ms = ?1, updated_unix_ms = ?2
-                     WHERE id = ?3 AND status IN ('pending', 'retry_wait')",
-                    params![lease_expires_unix_ms, now_unix_ms, change_id],
-                )
-                .map_err(database_error)?;
-            if updated == 0 {
-                continue;
-            }
-            let change = load_change(&transaction, change_id)?;
-            leased.push(LeasedLibraryChange {
-                lease_generation: change.lease_generation,
-                lease_expires_unix_ms,
-                change,
-            });
-        }
-        transaction.commit().map_err(database_error)?;
-        Ok(leased)
+        self.lease_library_changes_matching(root_id, root_generation, now_unix_ms, policy, false)
+    }
+
+    fn lease_path_library_changes(
+        &mut self,
+        root_id: &str,
+        root_generation: LibraryRootGeneration,
+        now_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<Vec<LeasedLibraryChange>, ScanError> {
+        self.lease_library_changes_matching(root_id, root_generation, now_unix_ms, policy, true)
     }
 
     fn complete_library_change(
@@ -237,6 +173,36 @@ impl LibraryChangeQueue for SqliteCatalog {
         Ok(outcome)
     }
 
+    fn defer_library_change(
+        &mut self,
+        change_id: LibraryChangeId,
+        lease_generation: u64,
+        deferred_unix_ms: i64,
+    ) -> Result<LibraryChangeLeaseUpdateOutcome, ScanError> {
+        let transaction = self.connection.transaction().map_err(database_error)?;
+        let outcome = classify_lease_update(&transaction, change_id, lease_generation, None)?;
+        if outcome == LibraryChangeLeaseUpdateOutcome::Applied {
+            transaction
+                .execute(
+                    "UPDATE library_change_queue
+                     SET status = 'pending', ready_unix_ms = ?1,
+                         attempt_count = CASE
+                           WHEN attempt_count > 0 THEN attempt_count - 1 ELSE 0 END,
+                         next_retry_unix_ms = NULL, lease_expires_unix_ms = NULL,
+                         updated_unix_ms = ?1
+                     WHERE id = ?2 AND status = 'leased' AND lease_generation = ?3",
+                    params![
+                        deferred_unix_ms,
+                        sqlite_integer(change_id.value(), "change ID")?,
+                        sqlite_integer(lease_generation, "lease generation")?,
+                    ],
+                )
+                .map_err(database_error)?;
+        }
+        transaction.commit().map_err(database_error)?;
+        Ok(outcome)
+    }
+
     fn load_library_change_queue_metrics(
         &self,
         now_unix_ms: i64,
@@ -252,6 +218,97 @@ impl LibraryChangeQueue for SqliteCatalog {
         limit: u32,
     ) -> Result<u32, ScanError> {
         cleanup_terminal_records(&self.connection, terminal_before_unix_ms, limit)
+    }
+}
+
+impl SqliteCatalog {
+    fn lease_library_changes_matching(
+        &mut self,
+        root_id: &str,
+        root_generation: LibraryRootGeneration,
+        now_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+        path_only: bool,
+    ) -> Result<Vec<LeasedLibraryChange>, ScanError> {
+        validate_policy(policy)?;
+        validate_root_id(root_id)?;
+        let transaction = self.connection.transaction().map_err(database_error)?;
+        if !root_generation_is_current(&transaction, root_id, root_generation)? {
+            transaction.commit().map_err(database_error)?;
+            return Ok(Vec::new());
+        }
+        recover_expired_leases(&transaction, root_id, root_generation, now_unix_ms, policy)?;
+        enforce_retry_attempt_limit(&transaction, root_id, root_generation, now_unix_ms, policy)?;
+        let limit = i64::from(policy.max_lease_batch);
+        let change_ids = {
+            let mut statement = transaction
+                .prepare(
+                    "SELECT id
+                 FROM library_change_queue
+                 WHERE root_id = ?1 AND root_generation = ?2
+                   AND attempt_count < ?3
+                   AND (?6 = 0 OR (
+                     scope = 'path' AND intent_kind <> 'freshness_unknown'
+                   ))
+                   AND (
+                     (status = 'pending' AND ready_unix_ms <= ?4)
+                     OR
+                     (status = 'retry_wait' AND next_retry_unix_ms IS NOT NULL
+                       AND next_retry_unix_ms <= ?4)
+                   )
+                 ORDER BY
+                   CASE status WHEN 'retry_wait' THEN next_retry_unix_ms
+                     ELSE ready_unix_ms END,
+                   first_observed_unix_ms, id
+                 LIMIT ?5",
+                )
+                .map_err(database_error)?;
+            let rows = statement
+                .query_map(
+                    params![
+                        root_id,
+                        sqlite_integer(root_generation.value(), "root generation")?,
+                        i64::from(policy.max_attempts),
+                        now_unix_ms,
+                        limit,
+                        path_only,
+                    ],
+                    |row| row.get::<_, i64>(0),
+                )
+                .map_err(database_error)?;
+            let mut ids = Vec::new();
+            for row in rows {
+                ids.push(row.map_err(database_error)?);
+            }
+            ids
+        };
+        let lease_expires_unix_ms = now_unix_ms
+            .saturating_add(i64::try_from(policy.lease_duration_millis).unwrap_or(i64::MAX));
+        let mut leased = Vec::with_capacity(change_ids.len());
+        for change_id in change_ids {
+            let updated = transaction
+                .execute(
+                    "UPDATE library_change_queue
+                     SET status = 'leased', attempt_count = attempt_count + 1,
+                         next_retry_unix_ms = NULL,
+                         lease_generation = lease_generation + 1,
+                         lease_expires_unix_ms = ?1, updated_unix_ms = ?2
+                     WHERE id = ?3 AND status IN ('pending', 'retry_wait')",
+                    params![lease_expires_unix_ms, now_unix_ms, change_id],
+                )
+                .map_err(database_error)?;
+            if updated == 0 {
+                continue;
+            }
+            let change = load_change(&transaction, change_id)?;
+            leased.push(LeasedLibraryChange {
+                lease_generation: change.lease_generation,
+                lease_expires_unix_ms,
+                change,
+            });
+        }
+        transaction.commit().map_err(database_error)?;
+        Ok(leased)
     }
 }
 

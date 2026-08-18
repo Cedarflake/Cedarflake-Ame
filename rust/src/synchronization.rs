@@ -11,11 +11,15 @@ use crate::application::LibraryChangeObserver;
 use crate::ports::LibraryChangeSourceRequest;
 
 pub use crate::application::{
-    enqueue_library_change_plan, plan_library_changes, reconcile_path_evidence,
+    enqueue_library_change_plan, plan_library_changes, process_ready_library_changes,
+    reconcile_path_evidence,
 };
 pub use crate::domain::{
-    CatalogFreshnessCause, CatalogFreshnessState, DerivedEvidenceDisposition, FileIdentityEvidence,
-    IncrementalReconciliationDecision, IncrementalReconciliationOutcome, LibraryChangeIntent,
+    CatalogDeltaBatch, CatalogDeltaMutation, CatalogDeltaPublication,
+    CatalogDeltaPublicationStatus, CatalogFreshnessCause, CatalogFreshnessState,
+    DerivedEvidenceDisposition, FileIdentityEvidence, IncrementalCatalogRoot,
+    IncrementalLibraryChangeReport, IncrementalReconciliationDecision,
+    IncrementalReconciliationOutcome, LibraryChangeCompletion, LibraryChangeIntent,
     LibraryChangeIntentKind, LibraryChangeObservation, LibraryChangeObservationKind,
     LibraryChangeOrigin, LibraryChangePlanningContext, LibraryChangePlanningError,
     LibraryChangePlanningIssue, LibraryChangePlanningLimits, LibraryChangePlanningResult,
@@ -29,7 +33,7 @@ pub use crate::domain::{
     LibraryChangeQueueStatus, LibraryChangeRestartPolicy, LibraryChangeSourceError,
     LibraryChangeSourceStopReport, ScanError,
 };
-pub use crate::ports::LibraryChangeQueue;
+pub use crate::ports::{IncrementalCatalogRepository, LibraryChangeQueue};
 
 #[cfg(windows)]
 pub struct WindowsLibraryChangeObserver {

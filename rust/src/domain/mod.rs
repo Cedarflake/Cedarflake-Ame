@@ -1,8 +1,14 @@
 use std::fmt::{Display, Formatter};
 
+mod library_catalog_delta;
 mod library_change;
 mod library_change_queue;
 
+pub use library_catalog_delta::{
+    CatalogDeltaBatch, CatalogDeltaMutation, CatalogDeltaPublication,
+    CatalogDeltaPublicationStatus, IncrementalCatalogRoot, IncrementalLibraryChangeReport,
+    LibraryChangeCompletion, RetainedPreviewExpectation,
+};
 pub use library_change::{
     CatalogFreshnessCause, CatalogFreshnessState, DerivedEvidenceDisposition,
     IncrementalReconciliationDecision, IncrementalReconciliationOutcome, LibraryChangeIntent,
