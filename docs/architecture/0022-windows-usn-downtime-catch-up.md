@@ -115,15 +115,18 @@ retained queue work. Only after all affected roots commit does it advance the pe
 checkpoint. A crash between those steps replays an idempotent range; it cannot skip evidence.
 Queue coalescing retains the newest compatible watermark without using it as asset identity.
 
-One journal range may describe a move between configured roots on the same volume as a source
-removal plus a destination creation. Before a destructive source delta publishes, the application
-checks bounded active peer work from the same source and watermark outside the SQLite transaction.
-An exact file-identity match at another root becomes a durable queue dependency; an authoritative
-peer or an unreadable possible target also blocks the source conservatively. Publication follows
-that dependency through bounded supersession links and defers the source lease without consuming a
-retry attempt until the destination work completes. Unrelated missing paths do not depend on each
-other. Compatible preview evidence is compare-and-swapped against any active root location, so the
-destination can adopt the asset and preview identity before the source owner is removed.
+One journal range may describe moves in either or both directions between configured roots on the
+same volume. A dependency graph cannot safely order that work because two authoritative roots may
+both contain removals and destinations. Before any catch-up delta removes or replaces a location,
+the publication transaction copies its file identity, asset identity, compatible metadata, and
+preview expectation into a durable handoff snapshot keyed by catch-up source and watermark. Asset
+and preview cleanup treat that snapshot as a temporary owner. A later destination first checks the
+active catalog and then the matching handoff snapshot, so it can adopt the original asset and
+preview identity even after the source location was removed. Once every queue row for the watermark
+is terminal, the same publication transaction removes the snapshots and reclaims only artifacts or
+assets that still have no active owner. This protocol has no cross-root wait edge and therefore
+supports source-first, destination-first, and bidirectional authoritative moves without starvation
+or a dependency cycle.
 
 When no trustworthy checkpoint exists, or any continuity, permission, support, parsing, capacity,
 containment, or reconstruction check fails, Ame enqueues the existing root-level
@@ -137,14 +140,18 @@ One background catch-up operation and the existing authoritative recovery worker
 exclusive. Shutdown requests cancellation and retains the worker handle in the same explicit
 stopping lifecycle used by ADR 0021; restart is rejected until the previous worker is joined.
 Catch-up readiness is evaluated per root: one unavailable or unhealthy root cannot block a healthy
-root whose catch-up evidence is already durable from running its authoritative recovery.
+root whose catch-up evidence is already durable from running its authoritative recovery. Subtree
+catalog containment and ordering use the same exact-case semantics as USN candidate distribution,
+so a case-sensitive `Album` scope cannot consume or remove an `album` sibling.
 
 Per-volume checkpoints are derived coordination evidence. After successfully enqueuing all work and
 saving the current checkpoints, Ame deletes at most 128 checkpoints older than seven days per run,
 excluding every volume returned by the current catch-up. Cleanup is disabled while any durable
 `FreshnessUnknown` row remains pending, leased, or waiting to retry, so retention cannot erase the
-watermark context of an unresolved gap. The catch-up peer lookup has a schema-owned composite index
-and a marker-complete prerelease v19 database may repair only that missing derived index atomically.
+watermark context of an unresolved gap. The same bounded cleanup removes terminal handoff snapshots
+that were stranded by retirement or interruption. Schema v19 owns the handoff table and its asset
+and preview lookup indexes; a marker-complete prerelease v19 database may add that empty contract or
+repair a missing derived index atomically, while a malformed named object still fails closed.
 
 ### Unsafe boundary and invariants
 
@@ -177,9 +184,11 @@ boundary. The following invariants are binding:
 - adapter fixtures cover journal recreation, trimmed USNs, unsupported filesystems, permission
   errors, unavailable volumes, child-before-parent deletion and rename reconstruction,
   case-sensitive root filtering, and multiple roots on one volume with one journal read;
-- migration fixtures cover fresh v19, v18 to v19 preservation, and fail-closed prerelease v19;
+- migration fixtures cover fresh v19, v18 to v19 preservation, prerelease handoff-contract repair,
+  and fail-closed malformed v19;
 - application fixtures prove enqueue-before-checkpoint, replay after interruption, root-set and
-  catalog-revision mismatch fallback, retained catch-up queue metadata, both cross-root move orders,
+  catalog-revision mismatch fallback, retained catch-up queue metadata, both path move orders,
+  bidirectional authoritative handoff without wait cycles, exact-case subtree capacity,
   unrelated-removal progress, and bounded checkpoint retention that stops on unresolved gaps;
 - runtime fixtures prove watcher-first ordering, no authoritative work before catch-up completion,
   fallback recovery, cancellation, bounded stop, and restart ownership;

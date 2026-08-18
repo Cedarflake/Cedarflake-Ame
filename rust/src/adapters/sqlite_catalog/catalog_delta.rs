@@ -1,12 +1,12 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use rusqlite::{OptionalExtension, TransactionBehavior, params};
 
 use crate::domain::{
     AssetLocationView, CatalogDeltaBatch, CatalogDeltaPublication, CatalogDeltaPublicationStatus,
     DerivedEvidenceDisposition, FileIdentityEvidence, IncrementalCatalogRoot,
-    IncrementalReconciliationOutcome, LibraryChangeCatchUpPeer, LibraryChangeId,
-    LibraryRootGeneration, PreviewStatus, RetainedPreviewExpectation, ScanError,
+    IncrementalReconciliationOutcome, LibraryChangeCatchUpEvidence, LibraryRootGeneration,
+    PreviewStatus, RetainedPreviewExpectation, ScanError,
 };
 use crate::ports::IncrementalCatalogRepository;
 
@@ -18,7 +18,6 @@ use super::{
 const MAX_DELTA_MUTATIONS: usize = 256;
 const MAX_REMOVALS_PER_MUTATION: usize = 4;
 const MAX_DELTA_COMPLETIONS: usize = 128;
-const MAX_CATCH_UP_HANDOFF_PEERS: usize = 4_096;
 
 impl IncrementalCatalogRepository for SqliteCatalog {
     fn load_incremental_catalog_roots(&self) -> Result<Vec<IncrementalCatalogRoot>, ScanError> {
@@ -170,6 +169,7 @@ impl IncrementalCatalogRepository for SqliteCatalog {
     fn load_incremental_location_by_file_identity(
         &self,
         identity: &FileIdentityEvidence,
+        catch_up_evidence: Option<&LibraryChangeCatchUpEvidence>,
     ) -> Result<Option<AssetLocationView>, ScanError> {
         if identity.scheme.is_empty()
             || identity.value.is_empty()
@@ -181,11 +181,18 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                 "Incremental file identity evidence must be non-empty and contain no NUL bytes",
             ));
         }
-        load_incremental_location(
+        let active = load_incremental_location(
             self,
             "locations.file_identity_scheme = ?1 AND locations.file_identity_value = ?2",
             params![identity.scheme, identity.value],
-        )
+        )?;
+        if active.is_some() {
+            return Ok(active);
+        }
+        let Some(evidence) = catch_up_evidence else {
+            return Ok(None);
+        };
+        load_catch_up_handoff_location(self, identity, evidence)
     }
 
     fn load_incremental_locations_in_subtree(
@@ -220,11 +227,11 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                  WHERE locations.root_id = ?1
                    AND (
                      ?2 = ''
-                     OR locations.relative_path = ?2 COLLATE NOCASE
+                     OR locations.relative_path = ?2
                      OR substr(locations.relative_path, 1, length(?2) + 1)
-                          = (?2 || '/') COLLATE NOCASE
+                          = (?2 || '/')
                    )
-                 ORDER BY locations.relative_path COLLATE NOCASE, locations.location_id
+                 ORDER BY locations.relative_path, locations.location_id
                  LIMIT ?3",
             )
             .map_err(database_error)?;
@@ -239,86 +246,6 @@ impl IncrementalCatalogRepository for SqliteCatalog {
             locations.push(stored_asset_view(row.map_err(database_error)?)?);
         }
         Ok(locations)
-    }
-
-    fn load_related_library_change_catch_up_peers(
-        &self,
-        change_id: LibraryChangeId,
-    ) -> Result<Vec<LibraryChangeCatchUpPeer>, ScanError> {
-        let mut statement = self
-            .connection
-            .prepare(
-                "SELECT peers.id, peers.root_id, peers.root_generation,
-                        peers.relative_path, peers.scope <> 'path'
-                 FROM library_change_queue AS peers
-                 JOIN library_change_queue AS source ON source.id = ?1
-                 WHERE peers.id <> source.id
-                   AND peers.root_id <> source.root_id
-                   AND peers.status IN ('pending', 'leased', 'retry_wait')
-                   AND source.catch_up_source IS NOT NULL
-                   AND source.catch_up_watermark IS NOT NULL
-                   AND peers.catch_up_source = source.catch_up_source
-                   AND peers.catch_up_watermark = source.catch_up_watermark
-                 ORDER BY peers.id
-                 LIMIT ?2",
-            )
-            .map_err(database_error)?;
-        let rows = statement
-            .query_map(
-                params![
-                    sqlite_integer(change_id.value(), "change ID")?,
-                    i64::try_from(MAX_CATCH_UP_HANDOFF_PEERS + 1).map_err(|_| {
-                        ScanError::new(
-                            "catalog_catch_up_peer_limit_invalid",
-                            "The catch-up peer query bound exceeded SQLite's integer range",
-                        )
-                    })?,
-                ],
-                |row| {
-                    Ok((
-                        row.get::<_, i64>(0)?,
-                        row.get::<_, String>(1)?,
-                        row.get::<_, i64>(2)?,
-                        row.get::<_, String>(3)?,
-                        row.get::<_, bool>(4)?,
-                    ))
-                },
-            )
-            .map_err(database_error)?;
-        let mut peers = Vec::new();
-        for row in rows {
-            let (change_id, root_id, root_generation, relative_path, authoritative) =
-                row.map_err(database_error)?;
-            peers.push(LibraryChangeCatchUpPeer {
-                change_id: LibraryChangeId::new(sqlite_unsigned(change_id, "change ID")?)
-                    .ok_or_else(|| {
-                        ScanError::new(
-                            "catalog_catch_up_peer_invalid",
-                            "A related catch-up change ID must be nonzero",
-                        )
-                    })?,
-                root_id,
-                root_generation: LibraryRootGeneration::new(sqlite_unsigned(
-                    root_generation,
-                    "root generation",
-                )?)
-                .ok_or_else(|| {
-                    ScanError::new(
-                        "catalog_catch_up_peer_invalid",
-                        "A related catch-up root generation must be nonzero",
-                    )
-                })?,
-                relative_path,
-                requires_authoritative_reconciliation: authoritative,
-            });
-        }
-        if peers.len() > MAX_CATCH_UP_HANDOFF_PEERS {
-            return Err(ScanError::new(
-                "catalog_catch_up_peer_limit_exceeded",
-                "Related catch-up work exceeded the bounded handoff peer window",
-            ));
-        }
-        Ok(peers)
     }
 
     fn publish_catalog_delta(
@@ -406,10 +333,12 @@ impl IncrementalCatalogRepository for SqliteCatalog {
             ));
         }
         let mut completed_root_authority = false;
+        let mut catch_up_evidence_by_change = HashMap::new();
         for completion in &batch.completions {
             let leased = transaction
                 .query_row(
-                    "SELECT status, lease_generation, root_id, root_generation, scope
+                    "SELECT status, lease_generation, root_id, root_generation, scope,
+                            catch_up_source, catch_up_watermark
                      FROM library_change_queue WHERE id = ?1",
                     [sqlite_integer(completion.change_id.value(), "change ID")?],
                     |row| {
@@ -419,12 +348,23 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                             row.get::<_, String>(2)?,
                             row.get::<_, i64>(3)?,
                             row.get::<_, String>(4)?,
+                            row.get::<_, Option<String>>(5)?,
+                            row.get::<_, Option<String>>(6)?,
                         ))
                     },
                 )
                 .optional()
                 .map_err(database_error)?;
-            let Some((status, lease_generation, root_id, root_generation, scope)) = leased else {
+            let Some((
+                status,
+                lease_generation,
+                root_id,
+                root_generation,
+                scope,
+                catch_up_source,
+                catch_up_watermark,
+            )) = leased
+            else {
                 return Ok(publication(
                     CatalogDeltaPublicationStatus::StaleLease,
                     current_revision,
@@ -443,15 +383,19 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                 ));
             }
             completed_root_authority |= scope == "root";
-        }
-
-        for dependency in &batch.catch_up_handoff_dependencies {
-            if handoff_dependency_is_active(&transaction, *dependency)? {
-                return Ok(publication(
-                    CatalogDeltaPublicationStatus::CatchUpHandoffPending,
-                    current_revision,
-                ));
-            }
+            let evidence = match (catch_up_source, catch_up_watermark) {
+                (Some(source), Some(watermark)) => {
+                    Some(LibraryChangeCatchUpEvidence { source, watermark })
+                }
+                (None, None) => None,
+                _ => {
+                    return Err(ScanError::new(
+                        "catalog_delta_catch_up_evidence_invalid",
+                        "A leased catalog delta contains incomplete catch-up evidence",
+                    ));
+                }
+            };
+            catch_up_evidence_by_change.insert(completion.change_id, evidence);
         }
 
         for mutation in &batch.mutations {
@@ -495,6 +439,16 @@ impl IncrementalCatalogRepository for SqliteCatalog {
         }
 
         for mutation in &batch.mutations {
+            if let Some(Some(evidence)) = catch_up_evidence_by_change.get(&mutation.change_id) {
+                retain_catch_up_handoff_snapshots(
+                    &transaction,
+                    &active_scan_id,
+                    &batch.root_id,
+                    &mutation.remove_location_ids,
+                    evidence,
+                    completed_unix_ms,
+                )?;
+            }
             let mut removals = mutation
                 .remove_location_ids
                 .iter()
@@ -633,6 +587,14 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                 ));
             }
         }
+        let completed_evidence = catch_up_evidence_by_change
+            .into_values()
+            .flatten()
+            .map(|evidence| (evidence.source, evidence.watermark))
+            .collect::<HashSet<_>>();
+        for (source, watermark) in completed_evidence {
+            cleanup_terminal_catch_up_handoffs(&transaction, &source, &watermark)?;
+        }
         if completed_root_authority {
             transaction
                 .execute(
@@ -702,81 +664,183 @@ where
         .transpose()
 }
 
+fn load_catch_up_handoff_location(
+    catalog: &SqliteCatalog,
+    identity: &FileIdentityEvidence,
+    evidence: &LibraryChangeCatchUpEvidence,
+) -> Result<Option<AssetLocationView>, ScanError> {
+    catalog
+        .connection
+        .query_row(
+            "SELECT asset_id, source_location_id, root_id, absolute_path, relative_path,
+                    preview_path, file_size, created_unix_ms, modified_unix_ms,
+                    width, height, preview_status, preview_issue_code,
+                    preview_issue_message, metadata_engine_id, metadata_engine_version,
+                    capture_local_time, capture_offset_minutes, capture_time_source,
+                    capture_raw_value, file_identity_scheme, file_identity_value
+             FROM library_change_catch_up_handoffs
+             WHERE catch_up_source = ?1 AND catch_up_watermark = ?2
+               AND file_identity_scheme = ?3 AND file_identity_value = ?4",
+            params![
+                evidence.source,
+                evidence.watermark,
+                identity.scheme,
+                identity.value,
+            ],
+            read_stored_asset,
+        )
+        .optional()
+        .map_err(database_error)?
+        .map(stored_asset_view)
+        .transpose()
+}
+
 fn retained_preview_matches(
     transaction: &rusqlite::Transaction<'_>,
     expectation: &RetainedPreviewExpectation,
 ) -> Result<bool, ScanError> {
-    let stored = transaction
+    transaction
         .query_row(
-            "SELECT locations.preview_path, locations.preview_status,
-                    locations.preview_issue_code, locations.preview_issue_message
-             FROM asset_locations AS locations
-             JOIN library_roots AS roots ON roots.active_scan_id = locations.scan_id
-             WHERE locations.location_id = ?1",
-            [&expectation.location_id],
-            |row| {
-                Ok((
-                    row.get::<_, String>(0)?,
-                    row.get::<_, String>(1)?,
-                    row.get::<_, Option<String>>(2)?,
-                    row.get::<_, Option<String>>(3)?,
-                ))
-            },
+            "SELECT EXISTS(
+               SELECT 1
+               FROM asset_locations AS locations
+               JOIN library_roots AS roots ON roots.active_scan_id = locations.scan_id
+               WHERE locations.location_id = ?1
+                 AND locations.preview_path = ?2
+                 AND locations.preview_status = ?3
+                 AND locations.preview_issue_code IS ?4
+                 AND locations.preview_issue_message IS ?5
+               UNION ALL
+               SELECT 1 FROM library_change_catch_up_handoffs AS handoffs
+               WHERE handoffs.source_location_id = ?1
+                 AND handoffs.preview_path = ?2
+                 AND handoffs.preview_status = ?3
+                 AND handoffs.preview_issue_code IS ?4
+                 AND handoffs.preview_issue_message IS ?5
+             )",
+            params![
+                expectation.location_id,
+                expectation.preview_path,
+                preview_status_text(&expectation.preview_status),
+                expectation.preview_issue_code,
+                expectation.preview_issue_message,
+            ],
+            |row| row.get::<_, bool>(0),
         )
-        .optional()
-        .map_err(database_error)?;
-    Ok(
-        stored.is_some_and(|(path, status, issue_code, issue_message)| {
-            path == expectation.preview_path
-                && status == preview_status_text(&expectation.preview_status)
-                && issue_code == expectation.preview_issue_code
-                && issue_message == expectation.preview_issue_message
-        }),
-    )
+        .map_err(database_error)
 }
 
-fn handoff_dependency_is_active(
+fn retain_catch_up_handoff_snapshots(
     transaction: &rusqlite::Transaction<'_>,
-    dependency: LibraryChangeId,
-) -> Result<bool, ScanError> {
-    let mut current = Some(dependency);
-    for _ in 0..256 {
-        let Some(change_id) = current else {
-            return Ok(false);
-        };
-        let stored = transaction
-            .query_row(
-                "SELECT status, superseded_by_change_id
-                 FROM library_change_queue WHERE id = ?1",
-                [sqlite_integer(change_id.value(), "change ID")?],
-                |row| Ok((row.get::<_, String>(0)?, row.get::<_, Option<i64>>(1)?)),
+    scan_id: &str,
+    root_id: &str,
+    location_ids: &[String],
+    evidence: &LibraryChangeCatchUpEvidence,
+    updated_unix_ms: i64,
+) -> Result<(), ScanError> {
+    for location_id in location_ids {
+        transaction
+            .execute(
+                "INSERT INTO library_change_catch_up_handoffs(
+                   catch_up_source, catch_up_watermark,
+                   file_identity_scheme, file_identity_value,
+                   asset_id, source_location_id, root_id, absolute_path, relative_path,
+                   preview_path, file_size, created_unix_ms, modified_unix_ms,
+                   width, height, preview_status, preview_issue_code, preview_issue_message,
+                   metadata_engine_id, metadata_engine_version, capture_local_time,
+                   capture_offset_minutes, capture_time_source, capture_raw_value,
+                   updated_unix_ms
+                 )
+                 SELECT ?1, ?2, locations.file_identity_scheme, locations.file_identity_value,
+                        locations.asset_id, locations.location_id, locations.root_id,
+                        locations.absolute_path, locations.relative_path,
+                        locations.preview_path, locations.file_size, locations.created_unix_ms,
+                        locations.modified_unix_ms, locations.width, locations.height,
+                        locations.preview_status, locations.preview_issue_code,
+                        locations.preview_issue_message, locations.metadata_engine_id,
+                        locations.metadata_engine_version, locations.capture_local_time,
+                        locations.capture_offset_minutes, locations.capture_time_source,
+                        locations.capture_raw_value, ?6
+                 FROM asset_locations AS locations
+                 WHERE locations.scan_id = ?3 AND locations.root_id = ?4
+                   AND locations.location_id = ?5
+                   AND locations.file_identity_scheme IS NOT NULL
+                   AND locations.file_identity_value IS NOT NULL
+                 ON CONFLICT(
+                   catch_up_source, catch_up_watermark,
+                   file_identity_scheme, file_identity_value
+                 ) DO NOTHING",
+                params![
+                    evidence.source,
+                    evidence.watermark,
+                    scan_id,
+                    root_id,
+                    location_id,
+                    updated_unix_ms,
+                ],
             )
-            .optional()
             .map_err(database_error)?;
-        let Some((status, superseded_by)) = stored else {
-            return Ok(false);
-        };
-        match status.as_str() {
-            "pending" | "leased" | "retry_wait" => return Ok(true),
-            "completed" => return Ok(false),
-            "superseded" => {
-                current = superseded_by
-                    .map(|value| sqlite_unsigned(value, "superseding change ID"))
-                    .transpose()?
-                    .and_then(LibraryChangeId::new);
-            }
-            _ => {
-                return Err(ScanError::new(
-                    "catalog_catch_up_handoff_status_invalid",
-                    "A catch-up handoff dependency has an unsupported durable status",
-                ));
-            }
-        }
     }
-    Err(ScanError::new(
-        "catalog_catch_up_handoff_chain_exceeded",
-        "A catch-up handoff supersession chain exceeded its bounded depth",
-    ))
+    Ok(())
+}
+
+pub(super) fn cleanup_terminal_catch_up_handoffs(
+    transaction: &rusqlite::Transaction<'_>,
+    source: &str,
+    watermark: &str,
+) -> Result<(), ScanError> {
+    let has_active_work = transaction
+        .query_row(
+            "SELECT EXISTS(
+               SELECT 1 FROM library_change_queue
+               WHERE catch_up_source = ?1 AND catch_up_watermark = ?2
+                 AND status IN ('pending', 'leased', 'retry_wait')
+             )",
+            params![source, watermark],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    if has_active_work {
+        return Ok(());
+    }
+    transaction
+        .execute(
+            "UPDATE preview_artifacts
+             SET lifecycle_state = 'stale'
+             WHERE lifecycle_state = 'ready'
+               AND artifact_path IN (
+                 SELECT preview_path FROM library_change_catch_up_handoffs
+                 WHERE catch_up_source = ?1 AND catch_up_watermark = ?2
+                   AND preview_status = 'ready' AND preview_path <> ''
+               )
+               AND NOT EXISTS (
+                 SELECT 1 FROM preview_artifact_locations AS owners
+                 WHERE owners.artifact_key = preview_artifacts.artifact_key
+               )",
+            params![source, watermark],
+        )
+        .map_err(database_error)?;
+    transaction
+        .execute(
+            "DELETE FROM assets
+             WHERE id IN (
+               SELECT asset_id FROM library_change_catch_up_handoffs
+               WHERE catch_up_source = ?1 AND catch_up_watermark = ?2
+             )
+               AND NOT EXISTS (
+                 SELECT 1 FROM asset_locations WHERE asset_locations.asset_id = assets.id
+               )",
+            params![source, watermark],
+        )
+        .map_err(database_error)?;
+    transaction
+        .execute(
+            "DELETE FROM library_change_catch_up_handoffs
+             WHERE catch_up_source = ?1 AND catch_up_watermark = ?2",
+            params![source, watermark],
+        )
+        .map_err(database_error)?;
+    Ok(())
 }
 
 fn load_affected_state(
@@ -872,6 +936,11 @@ fn mark_affected_preview_artifacts_stale(
                    AND NOT EXISTS (
                      SELECT 1 FROM preview_artifact_locations AS owners
                      WHERE owners.artifact_key = preview_artifacts.artifact_key
+                   )
+                   AND NOT EXISTS (
+                     SELECT 1 FROM library_change_catch_up_handoffs AS handoffs
+                     WHERE handoffs.preview_status = 'ready'
+                       AND handoffs.preview_path = preview_artifacts.artifact_path
                    )",
                 [artifact_key],
             )
@@ -890,6 +959,9 @@ fn delete_affected_orphan_assets(
                 "DELETE FROM assets
                  WHERE id = ?1 AND NOT EXISTS (
                    SELECT 1 FROM asset_locations WHERE asset_locations.asset_id = assets.id
+                 ) AND NOT EXISTS (
+                   SELECT 1 FROM library_change_catch_up_handoffs AS handoffs
+                   WHERE handoffs.asset_id = assets.id
                  )",
                 [asset_id],
             )
@@ -930,19 +1002,6 @@ fn validate_delta_batch(batch: &CatalogDeltaBatch) -> Result<(), ScanError> {
             "A catalog delta exceeded the bounded mutation count",
         ));
     }
-    let handoff_dependencies = batch
-        .catch_up_handoff_dependencies
-        .iter()
-        .copied()
-        .collect::<HashSet<_>>();
-    if batch.catch_up_handoff_dependencies.len() > MAX_CATCH_UP_HANDOFF_PEERS
-        || handoff_dependencies.len() != batch.catch_up_handoff_dependencies.len()
-    {
-        return Err(ScanError::new(
-            "catalog_delta_handoff_dependencies_invalid",
-            "Catch-up handoff dependencies must be unique and bounded",
-        ));
-    }
     let mut change_ids = HashSet::new();
     for completion in &batch.completions {
         if completion.lease_generation == 0 || !change_ids.insert(completion.change_id) {
@@ -964,6 +1023,12 @@ fn validate_delta_batch(batch: &CatalogDeltaBatch) -> Result<(), ScanError> {
         }
     }
     for mutation in &batch.mutations {
+        if !change_ids.contains(&mutation.change_id) {
+            return Err(ScanError::new(
+                "catalog_delta_mutation_change_invalid",
+                "Every catalog mutation must belong to a completed lease in the same batch",
+            ));
+        }
         let valid_evidence_contract = match mutation.outcome {
             IncrementalReconciliationOutcome::Added
             | IncrementalReconciliationOutcome::Replaced => {

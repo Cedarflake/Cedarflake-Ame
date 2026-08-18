@@ -1,10 +1,14 @@
 use std::fs;
 use std::path::Path;
+use std::sync::atomic::AtomicBool;
 
 use image::{Rgb, RgbImage};
 use tempfile::{TempDir, tempdir};
 
 use crate::adapters::{FileDiscovery, FileVisitOutcome, LocalMediaInspector, SqliteCatalog};
+use crate::application::{
+    AuthoritativeRecoveryPolicy, process_ready_authoritative_library_change_cancellable,
+};
 use crate::domain::{
     AssetLocationView, DerivedEvidenceDisposition, LibraryChangeCatchUpEvidence,
     LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeOrigin, LibraryChangeQueuePolicy,
@@ -647,6 +651,100 @@ fn unrelated_cross_root_removals_do_not_block_each_other() {
 }
 
 #[cfg(windows)]
+#[test]
+fn bidirectional_authoritative_moves_preserve_both_assets_without_a_dependency_cycle() {
+    let storage = tempdir().expect("authoritative handoff storage");
+    let first_path = storage.path().join("first");
+    let second_path = storage.path().join("second");
+    fs::create_dir_all(&first_path).expect("first root");
+    fs::create_dir_all(&second_path).expect("second root");
+    write_png(&first_path.join("first.png"), 2, 2, [91, 92, 93]);
+    write_png(&second_path.join("second.png"), 2, 2, [94, 95, 96]);
+    let mut catalog =
+        SqliteCatalog::open(storage.path().join("catalog.sqlite3")).expect("handoff catalog");
+    seed_root(
+        &mut catalog,
+        "first-root",
+        "first-authoritative-scan",
+        &first_path,
+        &["first.png"],
+    );
+    seed_root(
+        &mut catalog,
+        "second-root",
+        "second-authoritative-scan",
+        &second_path,
+        &["second.png"],
+    );
+    let mut first = catalog
+        .load_incremental_location_by_relative_path("first-root", "first.png")
+        .expect("load first prior")
+        .expect("first prior");
+    let mut second = catalog
+        .load_incremental_location_by_relative_path("second-root", "second.png")
+        .expect("load second prior")
+        .expect("second prior");
+    for location in [&mut first, &mut second] {
+        location.preview_status = PreviewStatus::Failed;
+        location.preview_issue_code = Some("preview_decode_failed".to_owned());
+        location.preview_issue_message = Some("retained authoritative evidence".to_owned());
+        catalog
+            .update_active_preview(location, None)
+            .expect("record authoritative preview evidence");
+    }
+    let first_temporary = storage.path().join("first-moving.png");
+    fs::rename(first_path.join("first.png"), &first_temporary).expect("stage first move");
+    fs::rename(
+        second_path.join("second.png"),
+        first_path.join("from-second.png"),
+    )
+    .expect("move second into first root");
+    fs::rename(&first_temporary, second_path.join("from-first.png"))
+        .expect("move first into second root");
+    let evidence = LibraryChangeCatchUpEvidence {
+        source: "windows_usn_v1".to_owned(),
+        watermark: "volume:journal:902".to_owned(),
+    };
+    for (root_id, sequence) in [("first-root", 1), ("second-root", 2)] {
+        catalog
+            .enqueue_library_change_intents_with_catch_up(
+                &[catch_up_root_intent(root_id, sequence)],
+                &evidence,
+                1_000,
+                policy(),
+            )
+            .expect("enqueue authoritative handoff");
+    }
+    let cancelled = AtomicBool::new(false);
+    for (root_id, now_unix_ms) in [("first-root", 2_000), ("second-root", 2_100)] {
+        let report = process_ready_authoritative_library_change_cancellable(
+            &mut catalog,
+            root_id,
+            LibraryRootGeneration::initial(),
+            now_unix_ms,
+            policy(),
+            AuthoritativeRecoveryPolicy::default(),
+            &cancelled,
+        )
+        .expect("publish authoritative handoff");
+        assert_eq!(report.incremental.completed_count, 1);
+        assert!(report.full_scan.is_none());
+    }
+    let moved_second = catalog
+        .load_incremental_location_by_relative_path("first-root", "from-second.png")
+        .expect("load moved second")
+        .expect("moved second");
+    let moved_first = catalog
+        .load_incremental_location_by_relative_path("second-root", "from-first.png")
+        .expect("load moved first")
+        .expect("moved first");
+    assert_eq!(moved_second.asset_id, second.asset_id);
+    assert_eq!(moved_first.asset_id, first.asset_id);
+    assert!(matches!(moved_second.preview_status, PreviewStatus::Failed));
+    assert!(matches!(moved_first.preview_status, PreviewStatus::Failed));
+}
+
+#[cfg(windows)]
 fn assert_cross_root_move_preserves_continuity(
     source_root_id: &str,
     destination_root_id: &str,
@@ -711,20 +809,20 @@ fn assert_cross_root_move_preserves_continuity(
         .expect("enqueue destination discovery");
 
     if source_first {
-        let deferred = process_ready_library_changes(
+        let source = process_ready_library_changes(
             &mut catalog,
             source_root_id,
             LibraryRootGeneration::initial(),
             2_000,
             policy(),
         )
-        .expect("defer source removal until destination handoff");
-        assert_eq!(deferred.deferred_count, 1);
+        .expect("publish source snapshot before destination handoff");
+        assert_eq!(source.completed_count, 1);
         assert!(
             catalog
                 .load_incremental_location_by_relative_path(source_root_id, "old.png")
-                .expect("load deferred source")
-                .is_some()
+                .expect("load snapshotted source")
+                .is_none()
         );
     }
 
@@ -749,15 +847,17 @@ fn assert_cross_root_move_preserves_continuity(
         Some("preview_decode_failed")
     );
 
-    let source = process_ready_library_changes(
-        &mut catalog,
-        source_root_id,
-        LibraryRootGeneration::initial(),
-        2_200,
-        policy(),
-    )
-    .expect("complete source removal after handoff");
-    assert_eq!(source.completed_count, 1);
+    if !source_first {
+        let source = process_ready_library_changes(
+            &mut catalog,
+            source_root_id,
+            LibraryRootGeneration::initial(),
+            2_200,
+            policy(),
+        )
+        .expect("complete source removal after destination handoff");
+        assert_eq!(source.completed_count, 1);
+    }
     assert!(
         catalog
             .load_incremental_location_by_relative_path(source_root_id, "old.png")
@@ -1026,6 +1126,16 @@ fn catch_up_intent(root_id: &str, relative_path: &str, sequence: u64) -> Library
     LibraryChangeIntent {
         origin: LibraryChangeOrigin::StartupCatchUp,
         ..intent(root_id, relative_path, None, sequence)
+    }
+}
+
+fn catch_up_root_intent(root_id: &str, sequence: u64) -> LibraryChangeIntent {
+    LibraryChangeIntent {
+        kind: LibraryChangeIntentKind::FreshnessUnknown,
+        scope: LibraryChangeScope::Root,
+        relative_path: String::new(),
+        origin: LibraryChangeOrigin::StartupCatchUp,
+        ..intent(root_id, "root-gap", None, sequence)
     }
 }
 

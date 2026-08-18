@@ -153,6 +153,41 @@ impl LibraryChangeCatchUpRepository for SqliteCatalog {
                 .map_err(database_error)?;
             deleted = deleted.saturating_add(u32::try_from(changed).unwrap_or(u32::MAX));
         }
+        let terminal_handoffs = {
+            let mut statement = transaction
+                .prepare(
+                    "SELECT catch_up_source, catch_up_watermark
+                     FROM library_change_catch_up_handoffs AS handoffs
+                     WHERE handoffs.updated_unix_ms < ?1
+                       AND NOT EXISTS (
+                         SELECT 1 FROM library_change_queue AS changes
+                         WHERE changes.catch_up_source = handoffs.catch_up_source
+                           AND changes.catch_up_watermark = handoffs.catch_up_watermark
+                           AND changes.status IN ('pending', 'leased', 'retry_wait')
+                       )
+                     GROUP BY catch_up_source, catch_up_watermark
+                     ORDER BY MIN(updated_unix_ms), catch_up_source, catch_up_watermark
+                     LIMIT ?2",
+                )
+                .map_err(database_error)?;
+            let rows = statement
+                .query_map(params![updated_before_unix_ms, i64::from(limit)], |row| {
+                    Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+                })
+                .map_err(database_error)?;
+            let mut evidence = Vec::new();
+            for row in rows {
+                evidence.push(row.map_err(database_error)?);
+            }
+            evidence
+        };
+        for (source, watermark) in terminal_handoffs {
+            super::catalog_delta::cleanup_terminal_catch_up_handoffs(
+                &transaction,
+                &source,
+                &watermark,
+            )?;
+        }
         transaction.commit().map_err(database_error)?;
         Ok(deleted)
     }
@@ -338,6 +373,49 @@ mod tests {
                 .expect("load preserved checkpoint"),
             vec![checkpoint]
         );
+    }
+
+    #[test]
+    fn obsolete_terminal_handoff_snapshot_is_cleaned_with_checkpoint_retention() {
+        let temporary = tempdir().expect("temporary directory");
+        let mut catalog =
+            SqliteCatalog::open(temporary.path().join("catalog.sqlite3")).expect("catalog");
+        catalog
+            .connection
+            .execute(
+                "INSERT INTO library_change_catch_up_handoffs(
+                   catch_up_source, catch_up_watermark,
+                   file_identity_scheme, file_identity_value,
+                   asset_id, source_location_id, root_id, absolute_path, relative_path,
+                   preview_path, file_size, created_unix_ms, modified_unix_ms,
+                   width, height, preview_status, preview_issue_code, preview_issue_message,
+                   metadata_engine_id, metadata_engine_version, capture_local_time,
+                   capture_offset_minutes, capture_time_source, capture_raw_value,
+                   updated_unix_ms
+                 ) VALUES (
+                   'windows_usn_v1', 'obsolete-watermark', 'windows_file_id', '42',
+                   'obsolete-asset', 'obsolete-location', 'obsolete-root',
+                   'C:/obsolete/photo.jpg', 'photo.jpg', '', 10, NULL, 10,
+                   1, 1, 'pending', NULL, NULL, 'metadata', '1',
+                   NULL, NULL, NULL, NULL, 10
+                 )",
+                [],
+            )
+            .expect("insert obsolete handoff snapshot");
+
+        catalog
+            .cleanup_obsolete_library_change_catch_up_checkpoints(&[], 50, 1)
+            .expect("clean obsolete handoff snapshot");
+
+        let remaining = catalog
+            .connection
+            .query_row(
+                "SELECT COUNT(*) FROM library_change_catch_up_handoffs",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .expect("count handoff snapshots");
+        assert_eq!(remaining, 0);
     }
 
     fn fixture_checkpoint(

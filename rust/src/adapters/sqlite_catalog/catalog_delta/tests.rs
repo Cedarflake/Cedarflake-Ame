@@ -12,6 +12,29 @@ use crate::ports::{CatalogRepository, IncrementalCatalogRepository, LibraryChang
 use super::super::SqliteCatalog;
 
 #[test]
+fn authoritative_subtree_window_keeps_case_distinct_siblings_outside_its_capacity() {
+    let directory = tempdir().expect("temporary directory");
+    let mut catalog =
+        SqliteCatalog::open(directory.path().join("catalog.sqlite3")).expect("open catalog");
+    seed_catalog(
+        &mut catalog,
+        "root-a",
+        "C:/source",
+        &[
+            location("asset-upper", "location-upper", "root-a", "Album/upper.jpg"),
+            location("asset-lower", "location-lower", "root-a", "album/lower.jpg"),
+        ],
+    );
+
+    let locations = catalog
+        .load_incremental_locations_in_subtree("root-a", "Album", 1)
+        .expect("load exact-case authoritative subtree");
+
+    assert_eq!(locations.len(), 1);
+    assert_eq!(locations[0].relative_path, "Album/upper.jpg");
+}
+
+#[test]
 fn publishes_a_location_and_completes_its_lease_at_one_revision() {
     let directory = tempdir().expect("temporary directory");
     let mut catalog =
@@ -32,6 +55,7 @@ fn publishes_a_location_and_completes_its_lease_at_one_revision() {
                 root_generation: LibraryRootGeneration::initial(),
                 expected_catalog_revision: root.catalog_revision,
                 mutations: vec![CatalogDeltaMutation {
+                    change_id: leased.change.id,
                     outcome: IncrementalReconciliationOutcome::Added,
                     evidence_disposition: DerivedEvidenceDisposition::NoReusableEvidence,
                     remove_location_ids: Vec::new(),
@@ -44,7 +68,6 @@ fn publishes_a_location_and_completes_its_lease_at_one_revision() {
                     retained_preview_expectation: None,
                 }],
                 completions: vec![completion(&leased)],
-                catch_up_handoff_dependencies: Vec::new(),
             },
             2_000,
         )
@@ -89,6 +112,7 @@ fn rejects_a_delta_with_inconsistent_reconciliation_evidence() {
                 root_generation: LibraryRootGeneration::initial(),
                 expected_catalog_revision: revision,
                 mutations: vec![CatalogDeltaMutation {
+                    change_id: leased.change.id,
                     outcome: IncrementalReconciliationOutcome::Modified,
                     evidence_disposition: DerivedEvidenceDisposition::NoReusableEvidence,
                     remove_location_ids: Vec::new(),
@@ -101,7 +125,6 @@ fn rejects_a_delta_with_inconsistent_reconciliation_evidence() {
                     retained_preview_expectation: None,
                 }],
                 completions: vec![completion(&leased)],
-                catch_up_handoff_dependencies: Vec::new(),
             },
             2_000,
         )
@@ -153,6 +176,7 @@ fn a_superseded_lease_cannot_publish_catalog_state() {
                 root_generation: LibraryRootGeneration::initial(),
                 expected_catalog_revision: root.catalog_revision,
                 mutations: vec![CatalogDeltaMutation {
+                    change_id: leased.change.id,
                     outcome: IncrementalReconciliationOutcome::Added,
                     evidence_disposition: DerivedEvidenceDisposition::NoReusableEvidence,
                     remove_location_ids: Vec::new(),
@@ -165,7 +189,6 @@ fn a_superseded_lease_cannot_publish_catalog_state() {
                     retained_preview_expectation: None,
                 }],
                 completions: vec![completion(&leased)],
-                catch_up_handoff_dependencies: Vec::new(),
             },
             2_000,
         )
@@ -208,6 +231,7 @@ fn a_changed_catalog_revision_rejects_the_complete_delta_batch() {
                 root_generation: LibraryRootGeneration::initial(),
                 expected_catalog_revision: stale_revision,
                 mutations: vec![CatalogDeltaMutation {
+                    change_id: leased.change.id,
                     outcome: IncrementalReconciliationOutcome::Added,
                     evidence_disposition: DerivedEvidenceDisposition::NoReusableEvidence,
                     remove_location_ids: Vec::new(),
@@ -220,7 +244,6 @@ fn a_changed_catalog_revision_rejects_the_complete_delta_batch() {
                     retained_preview_expectation: None,
                 }],
                 completions: vec![completion(&leased)],
-                catch_up_handoff_dependencies: Vec::new(),
             },
             2_000,
         )
@@ -276,6 +299,7 @@ fn a_running_full_scan_blocks_incremental_publication() {
                 root_generation: LibraryRootGeneration::initial(),
                 expected_catalog_revision: revision,
                 mutations: vec![CatalogDeltaMutation {
+                    change_id: leased.change.id,
                     outcome: IncrementalReconciliationOutcome::Added,
                     evidence_disposition: DerivedEvidenceDisposition::NoReusableEvidence,
                     remove_location_ids: Vec::new(),
@@ -288,7 +312,6 @@ fn a_running_full_scan_blocks_incremental_publication() {
                     retained_preview_expectation: None,
                 }],
                 completions: vec![completion(&leased)],
-                catch_up_handoff_dependencies: Vec::new(),
             },
             2_000,
         )
@@ -335,6 +358,7 @@ fn a_retired_root_generation_cannot_publish_a_leased_delta() {
                 root_generation: LibraryRootGeneration::initial(),
                 expected_catalog_revision: revision,
                 mutations: vec![CatalogDeltaMutation {
+                    change_id: leased.change.id,
                     outcome: IncrementalReconciliationOutcome::Added,
                     evidence_disposition: DerivedEvidenceDisposition::NoReusableEvidence,
                     remove_location_ids: Vec::new(),
@@ -347,7 +371,6 @@ fn a_retired_root_generation_cannot_publish_a_leased_delta() {
                     retained_preview_expectation: None,
                 }],
                 completions: vec![completion(&leased)],
-                catch_up_handoff_dependencies: Vec::new(),
             },
             2_000,
         )
@@ -395,6 +418,7 @@ fn queue_completion_failure_rolls_back_the_catalog_delta_and_revision() {
                 root_generation: LibraryRootGeneration::initial(),
                 expected_catalog_revision: revision,
                 mutations: vec![CatalogDeltaMutation {
+                    change_id: leased.change.id,
                     outcome: IncrementalReconciliationOutcome::Added,
                     evidence_disposition: DerivedEvidenceDisposition::NoReusableEvidence,
                     remove_location_ids: Vec::new(),
@@ -407,7 +431,6 @@ fn queue_completion_failure_rolls_back_the_catalog_delta_and_revision() {
                     retained_preview_expectation: None,
                 }],
                 completions: vec![completion(&leased)],
-                catch_up_handoff_dependencies: Vec::new(),
             },
             2_000,
         )
@@ -493,6 +516,7 @@ fn identity_preserving_rename_moves_preview_ownership_atomically() {
                 root_generation: LibraryRootGeneration::initial(),
                 expected_catalog_revision: root.catalog_revision,
                 mutations: vec![CatalogDeltaMutation {
+                    change_id: leased.change.id,
                     outcome: IncrementalReconciliationOutcome::RenamedOrMoved,
                     evidence_disposition: DerivedEvidenceDisposition::RetainCompatible,
                     remove_location_ids: vec![old_location.location_id.clone()],
@@ -506,7 +530,6 @@ fn identity_preserving_rename_moves_preview_ownership_atomically() {
                     }),
                 }],
                 completions: vec![completion(&leased)],
-                catch_up_handoff_dependencies: Vec::new(),
             },
             2_000,
         )
@@ -599,6 +622,7 @@ fn preview_cleanup_invalidates_a_prepared_retained_preview_delta() {
                 root_generation: LibraryRootGeneration::initial(),
                 expected_catalog_revision: root.catalog_revision,
                 mutations: vec![CatalogDeltaMutation {
+                    change_id: leased.change.id,
                     outcome: IncrementalReconciliationOutcome::RenamedOrMoved,
                     evidence_disposition: DerivedEvidenceDisposition::RetainCompatible,
                     remove_location_ids: vec![old_location.location_id.clone()],
@@ -612,7 +636,6 @@ fn preview_cleanup_invalidates_a_prepared_retained_preview_delta() {
                     }),
                 }],
                 completions: vec![completion(&leased)],
-                catch_up_handoff_dependencies: Vec::new(),
             },
             2_000,
         )
@@ -682,6 +705,7 @@ fn delta_maintenance_does_not_scan_or_rewrite_unaffected_global_state() {
                 root_generation: LibraryRootGeneration::initial(),
                 expected_catalog_revision: root.catalog_revision,
                 mutations: vec![CatalogDeltaMutation {
+                    change_id: leased.change.id,
                     outcome: IncrementalReconciliationOutcome::Added,
                     evidence_disposition: DerivedEvidenceDisposition::NoReusableEvidence,
                     remove_location_ids: Vec::new(),
@@ -694,7 +718,6 @@ fn delta_maintenance_does_not_scan_or_rewrite_unaffected_global_state() {
                     retained_preview_expectation: None,
                 }],
                 completions: vec![completion(&leased)],
-                catch_up_handoff_dependencies: Vec::new(),
             },
             2_000,
         )

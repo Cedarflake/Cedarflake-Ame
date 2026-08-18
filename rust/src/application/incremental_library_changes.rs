@@ -5,10 +5,10 @@ use crate::domain::{
     AssetLocationView, CatalogDeltaBatch, CatalogDeltaMutation, CatalogDeltaPublicationStatus,
     DerivedEvidenceDisposition, DiscoveredFile, ExpectedFileState, IncrementalLibraryChangeReport,
     IncrementalReconciliationDecision, IncrementalReconciliationOutcome, LeasedLibraryChange,
-    LibraryChangeCompletion, LibraryChangeFailure, LibraryChangeIntentKind,
-    LibraryChangeLeaseUpdateOutcome, LibraryChangeQueuePolicy, LibraryChangeScope,
-    LibraryRootGeneration, PreviewStatus, ReconciliationFileEvidence, ReconciliationObservedState,
-    RetainedPreviewExpectation, ScanError, ScanIssue,
+    LibraryChangeCatchUpEvidence, LibraryChangeCompletion, LibraryChangeFailure,
+    LibraryChangeIntentKind, LibraryChangeLeaseUpdateOutcome, LibraryChangeQueuePolicy,
+    LibraryChangeScope, LibraryRootGeneration, PreviewStatus, ReconciliationFileEvidence,
+    ReconciliationObservedState, RetainedPreviewExpectation, ScanError, ScanIssue,
 };
 use crate::ports::{IncrementalCatalogRepository, LibraryChangeQueue, MediaInspector};
 
@@ -19,7 +19,6 @@ struct PreparedChange {
     completion: LibraryChangeCompletion,
     mutations: Vec<CatalogDeltaMutation>,
     revalidation: Vec<RevalidationTarget>,
-    catch_up_handoff_dependencies: Vec<crate::domain::LibraryChangeId>,
 }
 
 struct PathChangeContext<'a> {
@@ -106,12 +105,6 @@ where
     }
 
     if !ready.is_empty() {
-        let mut catch_up_handoff_dependencies = ready
-            .iter()
-            .flat_map(|change| change.catch_up_handoff_dependencies.iter().copied())
-            .collect::<Vec<_>>();
-        catch_up_handoff_dependencies.sort_unstable();
-        catch_up_handoff_dependencies.dedup();
         let batch = CatalogDeltaBatch {
             root_id: root_id.to_owned(),
             root_generation,
@@ -124,7 +117,6 @@ where
                 .iter()
                 .map(|change| change.completion.clone())
                 .collect(),
-            catch_up_handoff_dependencies,
         };
         let publication = repository.publish_catalog_delta(&batch, now_unix_ms)?;
         report.catalog_revision = publication.catalog_revision;
@@ -139,8 +131,7 @@ where
                     .checked_add(publication.applied_mutation_count)
                     .ok_or_else(|| count_overflow("applied mutation count"))?;
             }
-            CatalogDeltaPublicationStatus::CatchUpHandoffPending
-            | CatalogDeltaPublicationStatus::RootScanInProgress
+            CatalogDeltaPublicationStatus::RootScanInProgress
             | CatalogDeltaPublicationStatus::NoPublishedCatalog => {
                 defer_changes(repository, &ready, now_unix_ms, &mut report)?;
             }
@@ -219,7 +210,6 @@ where
         },
         mutations: Vec::new(),
         revalidation: Vec::new(),
-        catch_up_handoff_dependencies: Vec::new(),
     };
     for relative_path in request.relative_paths {
         if request.cancellation.load(Ordering::Relaxed) {
@@ -261,9 +251,6 @@ where
         }
         combined.mutations.extend(prepared.mutations);
         combined.revalidation.extend(prepared.revalidation);
-        for dependency in prepared.catch_up_handoff_dependencies {
-            push_unique_change(&mut combined.catch_up_handoff_dependencies, dependency);
-        }
     }
     let mut report = IncrementalLibraryChangeReport {
         leased_count: 1,
@@ -295,7 +282,6 @@ where
         expected_catalog_revision: request.expected_catalog_revision,
         mutations: combined.mutations.clone(),
         completions: vec![combined.completion.clone()],
-        catch_up_handoff_dependencies: combined.catch_up_handoff_dependencies.clone(),
     };
     let publication = repository.publish_catalog_delta(&batch, request.now_unix_ms)?;
     report.catalog_revision = publication.catalog_revision;
@@ -304,8 +290,7 @@ where
             report.completed_count = publication.completed_change_count;
             report.applied_mutation_count = publication.applied_mutation_count;
         }
-        CatalogDeltaPublicationStatus::CatchUpHandoffPending
-        | CatalogDeltaPublicationStatus::RootScanInProgress
+        CatalogDeltaPublicationStatus::RootScanInProgress
         | CatalogDeltaPublicationStatus::NoPublishedCatalog => {
             defer_changes(repository, &[combined], request.now_unix_ms, &mut report)?;
         }
@@ -468,9 +453,6 @@ where
             }
             previous.mutations.append(&mut current.mutations);
             previous.revalidation.append(&mut current.revalidation);
-            previous
-                .catch_up_handoff_dependencies
-                .append(&mut current.catch_up_handoff_dependencies);
             if previous.completion.issue.is_none() {
                 previous.completion.issue = current.completion.issue;
             }
@@ -498,6 +480,7 @@ where
         mut removals,
     } = context;
     let intent = &leased.change.intent;
+    let catch_up_evidence = leased_catch_up_evidence(leased)?;
     let path_prior = repository
         .load_incremental_location_by_relative_path(&intent.root_id, relative_path)
         .map_err(scan_failure)?;
@@ -509,7 +492,12 @@ where
             let identity_prior = file
                 .file_identity
                 .as_ref()
-                .map(|identity| repository.load_incremental_location_by_file_identity(identity))
+                .map(|identity| {
+                    repository.load_incremental_location_by_file_identity(
+                        identity,
+                        catch_up_evidence.as_ref(),
+                    )
+                })
                 .transpose()
                 .map_err(scan_failure)?
                 .flatten();
@@ -624,6 +612,7 @@ where
                     expected: expected_state(file),
                 });
                 Some(CatalogDeltaMutation {
+                    change_id: leased.change.id,
                     outcome: decision.outcome,
                     evidence_disposition: decision.evidence_disposition,
                     remove_location_ids: removals,
@@ -634,6 +623,7 @@ where
                 })
             } else {
                 (!removals.is_empty()).then_some(CatalogDeltaMutation {
+                    change_id: leased.change.id,
                     outcome: IncrementalReconciliationOutcome::Removed,
                     evidence_disposition: DerivedEvidenceDisposition::RemoveFromCurrentProjection,
                     remove_location_ids: removals,
@@ -650,6 +640,7 @@ where
                 push_unique(&mut removals, prior.location_id.clone());
             }
             Some(CatalogDeltaMutation {
+                change_id: leased.change.id,
                 outcome: decision.outcome,
                 evidence_disposition: decision.evidence_disposition,
                 remove_location_ids: removals,
@@ -683,6 +674,7 @@ where
                 expected: expected_state(file),
             });
             Some(CatalogDeltaMutation {
+                change_id: leased.change.id,
                 outcome: decision.outcome,
                 evidence_disposition: decision.evidence_disposition,
                 remove_location_ids: removals,
@@ -694,17 +686,6 @@ where
             })
         }
     };
-    let catch_up_handoff_dependencies = if mutation.as_ref().is_some_and(|mutation| {
-        mutation.upsert_location.is_none() && !mutation.remove_location_ids.is_empty()
-    }) {
-        catch_up_handoff_dependencies(
-            repository,
-            leased,
-            selected_prior.as_ref().or(path_prior.as_ref()),
-        )?
-    } else {
-        Vec::new()
-    };
     Ok(PreparedChange {
         completion: LibraryChangeCompletion {
             change_id: leased.change.id,
@@ -713,63 +694,7 @@ where
         },
         mutations: mutation.into_iter().collect(),
         revalidation,
-        catch_up_handoff_dependencies,
     })
-}
-
-fn catch_up_handoff_dependencies<Repository>(
-    repository: &Repository,
-    leased: &LeasedLibraryChange,
-    prior: Option<&AssetLocationView>,
-) -> Result<Vec<crate::domain::LibraryChangeId>, LibraryChangeFailure>
-where
-    Repository: IncrementalCatalogRepository,
-{
-    let Some(prior_identity) = prior.and_then(|prior| prior.file_identity.as_ref()) else {
-        return Ok(Vec::new());
-    };
-    let peers = repository
-        .load_related_library_change_catch_up_peers(leased.change.id)
-        .map_err(scan_failure)?;
-    let mut dependencies = Vec::new();
-    for peer in peers {
-        if peer.requires_authoritative_reconciliation {
-            push_unique_change(&mut dependencies, peer.change_id);
-            continue;
-        }
-        let root = repository
-            .load_incremental_catalog_root(&peer.root_id)
-            .map_err(scan_failure)?;
-        let Some(root) = root else {
-            push_unique_change(&mut dependencies, peer.change_id);
-            continue;
-        };
-        if root.root_generation != peer.root_generation {
-            continue;
-        }
-        let Ok(discovery) = FileDiscovery::new(&root.root_path) else {
-            push_unique_change(&mut dependencies, peer.change_id);
-            continue;
-        };
-        match discovery.visit_relative_path(&peer.relative_path).outcome {
-            FileVisitOutcome::File(file)
-                if file
-                    .file_identity
-                    .as_ref()
-                    .is_none_or(|identity| identity == prior_identity) =>
-            {
-                push_unique_change(&mut dependencies, peer.change_id);
-            }
-            FileVisitOutcome::Issue(issue) if issue.code != "file_missing" => {
-                push_unique_change(&mut dependencies, peer.change_id);
-            }
-            FileVisitOutcome::File(_)
-            | FileVisitOutcome::Issue(_)
-            | FileVisitOutcome::Directory
-            | FileVisitOutcome::Ignored => {}
-        }
-    }
-    Ok(dependencies)
 }
 
 struct BuiltLocation {
@@ -1032,10 +957,6 @@ fn validate_request(root_id: &str, policy: LibraryChangeQueuePolicy) -> Result<(
 
 fn publication_failure(status: CatalogDeltaPublicationStatus) -> LibraryChangeFailure {
     match status {
-        CatalogDeltaPublicationStatus::CatchUpHandoffPending => failure(
-            "incremental_catch_up_handoff_pending",
-            "Destructive catch-up work waits for related roots to preserve asset continuity",
-        ),
         CatalogDeltaPublicationStatus::StaleLease => failure(
             "incremental_lease_superseded",
             "Newer library change evidence superseded the prepared catalog delta",
@@ -1154,12 +1075,22 @@ fn push_unique(values: &mut Vec<String>, value: String) {
     }
 }
 
-fn push_unique_change(
-    values: &mut Vec<crate::domain::LibraryChangeId>,
-    value: crate::domain::LibraryChangeId,
-) {
-    if !values.contains(&value) {
-        values.push(value);
+fn leased_catch_up_evidence(
+    leased: &LeasedLibraryChange,
+) -> Result<Option<LibraryChangeCatchUpEvidence>, LibraryChangeFailure> {
+    match (
+        leased.change.catch_up_source.as_ref(),
+        leased.change.catch_up_watermark.as_ref(),
+    ) {
+        (Some(source), Some(watermark)) => Ok(Some(LibraryChangeCatchUpEvidence {
+            source: source.clone(),
+            watermark: watermark.clone(),
+        })),
+        (None, None) => Ok(None),
+        _ => Err(failure(
+            "incremental_catch_up_evidence_incomplete",
+            "A leased change contains incomplete catch-up handoff evidence",
+        )),
     }
 }
 

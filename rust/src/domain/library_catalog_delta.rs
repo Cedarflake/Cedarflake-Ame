@@ -16,6 +16,7 @@ pub struct IncrementalCatalogRoot {
 
 #[derive(Clone, Debug)]
 pub struct CatalogDeltaMutation {
+    pub change_id: LibraryChangeId,
     pub outcome: IncrementalReconciliationOutcome,
     pub evidence_disposition: DerivedEvidenceDisposition,
     pub remove_location_ids: Vec<String>,
@@ -46,22 +47,11 @@ pub struct CatalogDeltaBatch {
     pub expected_catalog_revision: u64,
     pub mutations: Vec<CatalogDeltaMutation>,
     pub completions: Vec<LibraryChangeCompletion>,
-    pub catch_up_handoff_dependencies: Vec<LibraryChangeId>,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct LibraryChangeCatchUpPeer {
-    pub change_id: LibraryChangeId,
-    pub root_id: String,
-    pub root_generation: LibraryRootGeneration,
-    pub relative_path: String,
-    pub requires_authoritative_reconciliation: bool,
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub enum CatalogDeltaPublicationStatus {
     Applied,
-    CatchUpHandoffPending,
     StaleLease,
     StaleCatalogRevision,
     StalePreviewState,

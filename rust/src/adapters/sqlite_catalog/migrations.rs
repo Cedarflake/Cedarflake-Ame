@@ -424,7 +424,14 @@ fn validate_current_schema_contract(connection: &Connection) -> Result<(), ScanE
 }
 
 fn validate_change_catch_up_contract(connection: &Connection) -> Result<(), ScanError> {
-    let (has_table, has_marker, has_path_index, has_peer_index) = connection
+    let (
+        has_table,
+        has_marker,
+        has_path_index,
+        has_handoff_table,
+        has_asset_index,
+        has_preview_index,
+    ) = connection
         .query_row(
             "SELECT
                EXISTS(SELECT 1 FROM sqlite_master
@@ -438,13 +445,37 @@ fn validate_change_catch_up_contract(connection: &Connection) -> Result<(), Scan
                  SELECT name FROM pragma_index_info('asset_locations_root_relative')
                  ORDER BY seqno
                 )) = 'root_id,relative_path,scan_id,location_id',
-               EXISTS(SELECT 1 FROM pragma_index_list('library_change_queue')
-                 WHERE name = 'library_change_queue_catch_up_peer'
+               EXISTS(SELECT 1 FROM sqlite_master
+                 WHERE type = 'table' AND name = 'library_change_catch_up_handoffs')
+               AND (SELECT COUNT(*) FROM pragma_table_info('library_change_catch_up_handoffs')
+                 WHERE name IN (
+                   'catch_up_source', 'catch_up_watermark', 'file_identity_scheme',
+                   'file_identity_value', 'asset_id', 'source_location_id', 'root_id',
+                   'absolute_path', 'relative_path', 'preview_path', 'file_size',
+                   'created_unix_ms', 'modified_unix_ms', 'width', 'height',
+                   'preview_status', 'preview_issue_code', 'preview_issue_message',
+                   'metadata_engine_id', 'metadata_engine_version', 'capture_local_time',
+                   'capture_offset_minutes', 'capture_time_source', 'capture_raw_value',
+                   'updated_unix_ms'
+                 )) = 25
+               AND (SELECT group_concat(name, ',') FROM (
+                 SELECT name FROM pragma_table_info('library_change_catch_up_handoffs')
+                 WHERE pk > 0 ORDER BY pk
+               )) = 'catch_up_source,catch_up_watermark,file_identity_scheme,file_identity_value',
+               EXISTS(SELECT 1 FROM pragma_index_list('library_change_catch_up_handoffs')
+                 WHERE name = 'library_change_catch_up_handoffs_asset'
                    AND \"unique\" = 0 AND partial = 0)
                AND (SELECT group_concat(name, ',') FROM (
-                 SELECT name FROM pragma_index_info('library_change_queue_catch_up_peer')
+                 SELECT name FROM pragma_index_info('library_change_catch_up_handoffs_asset')
                  ORDER BY seqno
-               )) = 'catch_up_source,catch_up_watermark,status,root_id,id'",
+               )) = 'asset_id,catch_up_source,catch_up_watermark',
+               EXISTS(SELECT 1 FROM pragma_index_list('library_change_catch_up_handoffs')
+                 WHERE name = 'library_change_catch_up_handoffs_preview'
+                   AND \"unique\" = 0 AND partial = 0)
+               AND (SELECT group_concat(name, ',') FROM (
+                 SELECT name FROM pragma_index_info('library_change_catch_up_handoffs_preview')
+                 ORDER BY seqno
+               )) = 'preview_path,preview_status,catch_up_source,catch_up_watermark'",
             [],
             |row| {
                 Ok((
@@ -452,11 +483,19 @@ fn validate_change_catch_up_contract(connection: &Connection) -> Result<(), Scan
                     row.get::<_, bool>(1)?,
                     row.get::<_, bool>(2)?,
                     row.get::<_, bool>(3)?,
+                    row.get::<_, bool>(4)?,
+                    row.get::<_, bool>(5)?,
                 ))
             },
         )
         .map_err(database_error)?;
-    if !has_table || !has_marker || !has_path_index || !has_peer_index {
+    if !has_table
+        || !has_marker
+        || !has_path_index
+        || !has_handoff_table
+        || !has_asset_index
+        || !has_preview_index
+    {
         return Err(ScanError::new(
             "catalog_change_catch_up_contract_unverifiable",
             "The catalog cannot prove its downtime catch-up checkpoint authority",
@@ -487,8 +526,10 @@ fn repair_prerelease_v19_derived_indexes(connection: &mut Connection) -> Result<
         has_marker,
         has_named_path_index,
         has_path_columns,
-        has_named_peer_index,
-        has_peer_columns,
+        has_handoff_table,
+        has_handoff_columns,
+        has_named_asset_index,
+        has_named_preview_index,
     ) = connection
         .query_row(
             "SELECT
@@ -501,11 +542,24 @@ fn repair_prerelease_v19_derived_indexes(connection: &mut Connection) -> Result<
                 (SELECT COUNT(*) FROM pragma_table_info('asset_locations')
                   WHERE name IN ('root_id', 'relative_path', 'scan_id', 'location_id')) = 4,
                 EXISTS(SELECT 1 FROM sqlite_master
-                  WHERE type = 'index' AND name = 'library_change_queue_catch_up_peer'),
-                (SELECT COUNT(*) FROM pragma_table_info('library_change_queue')
+                  WHERE type = 'table' AND name = 'library_change_catch_up_handoffs'),
+                (SELECT COUNT(*) FROM pragma_table_info('library_change_catch_up_handoffs')
                   WHERE name IN (
-                    'catch_up_source', 'catch_up_watermark', 'status', 'root_id', 'id'
-                  )) = 5",
+                    'catch_up_source', 'catch_up_watermark', 'file_identity_scheme',
+                    'file_identity_value', 'asset_id', 'source_location_id', 'root_id',
+                    'absolute_path', 'relative_path', 'preview_path', 'file_size',
+                    'created_unix_ms', 'modified_unix_ms', 'width', 'height',
+                    'preview_status', 'preview_issue_code', 'preview_issue_message',
+                    'metadata_engine_id', 'metadata_engine_version', 'capture_local_time',
+                    'capture_offset_minutes', 'capture_time_source', 'capture_raw_value',
+                    'updated_unix_ms'
+                  )) = 25,
+                EXISTS(SELECT 1 FROM sqlite_master
+                  WHERE type = 'index'
+                    AND name = 'library_change_catch_up_handoffs_asset'),
+                EXISTS(SELECT 1 FROM sqlite_master
+                  WHERE type = 'index'
+                    AND name = 'library_change_catch_up_handoffs_preview')",
             [],
             |row| {
                 Ok((
@@ -515,11 +569,13 @@ fn repair_prerelease_v19_derived_indexes(connection: &mut Connection) -> Result<
                     row.get::<_, bool>(3)?,
                     row.get::<_, bool>(4)?,
                     row.get::<_, bool>(5)?,
+                    row.get::<_, bool>(6)?,
+                    row.get::<_, bool>(7)?,
                 ))
             },
         )
         .map_err(database_error)?;
-    if !has_table || !has_marker || !has_path_columns || !has_peer_columns {
+    if !has_table || !has_marker || !has_path_columns {
         return Ok(());
     }
     let marker_complete = connection
@@ -546,17 +602,38 @@ fn repair_prerelease_v19_derived_indexes(connection: &mut Connection) -> Result<
             )
             .map_err(database_error)?;
     }
-    if !has_named_peer_index {
-        transaction
-            .execute(
-                "CREATE INDEX library_change_queue_catch_up_peer
-                 ON library_change_queue(
-                   catch_up_source, catch_up_watermark, status, root_id, id
-                 )",
-                [],
-            )
-            .map_err(database_error)?;
+    if !has_handoff_table {
+        create_change_catch_up_handoff_contract(&transaction)?;
+    } else if has_handoff_columns {
+        if !has_named_asset_index {
+            transaction
+                .execute(
+                    "CREATE INDEX library_change_catch_up_handoffs_asset
+                     ON library_change_catch_up_handoffs(
+                       asset_id, catch_up_source, catch_up_watermark
+                     )",
+                    [],
+                )
+                .map_err(database_error)?;
+        }
+        if !has_named_preview_index {
+            transaction
+                .execute(
+                    "CREATE INDEX library_change_catch_up_handoffs_preview
+                     ON library_change_catch_up_handoffs(
+                       preview_path, preview_status, catch_up_source, catch_up_watermark
+                     )",
+                    [],
+                )
+                .map_err(database_error)?;
+        }
     }
+    transaction
+        .execute(
+            "DROP INDEX IF EXISTS library_change_queue_catch_up_peer",
+            [],
+        )
+        .map_err(database_error)?;
     transaction.commit().map_err(database_error)
 }
 
@@ -1373,13 +1450,68 @@ fn add_change_catch_up_contract(transaction: &Transaction<'_>) -> Result<(), Sca
              );
              CREATE INDEX asset_locations_root_relative
                ON asset_locations(root_id, relative_path, scan_id, location_id);
-             CREATE INDEX library_change_queue_catch_up_peer
-               ON library_change_queue(
-                 catch_up_source, catch_up_watermark, status, root_id, id
-               );
              ALTER TABLE library_change_queue_contract
                ADD COLUMN change_catch_up_complete INTEGER NOT NULL DEFAULT 1
                CHECK(change_catch_up_complete = 1);",
+        )
+        .map_err(database_error)?;
+    create_change_catch_up_handoff_contract(transaction)
+}
+
+fn create_change_catch_up_handoff_contract(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+    transaction
+        .execute_batch(
+            "CREATE TABLE library_change_catch_up_handoffs (
+               catch_up_source TEXT NOT NULL CHECK(length(catch_up_source) BETWEEN 1 AND 128),
+               catch_up_watermark TEXT NOT NULL
+                 CHECK(length(catch_up_watermark) BETWEEN 1 AND 1024),
+               file_identity_scheme TEXT NOT NULL,
+               file_identity_value TEXT NOT NULL,
+               asset_id TEXT NOT NULL,
+               source_location_id TEXT NOT NULL,
+               root_id TEXT NOT NULL,
+               absolute_path TEXT NOT NULL,
+               relative_path TEXT NOT NULL,
+               preview_path TEXT NOT NULL,
+               file_size INTEGER NOT NULL CHECK(file_size >= 0),
+               created_unix_ms INTEGER,
+               modified_unix_ms INTEGER NOT NULL,
+               width INTEGER NOT NULL CHECK(width >= 0),
+               height INTEGER NOT NULL CHECK(height >= 0),
+               preview_status TEXT NOT NULL
+                 CHECK(preview_status IN ('pending', 'ready', 'failed')),
+               preview_issue_code TEXT,
+               preview_issue_message TEXT,
+               metadata_engine_id TEXT NOT NULL,
+               metadata_engine_version TEXT NOT NULL,
+               capture_local_time TEXT,
+               capture_offset_minutes INTEGER,
+               capture_time_source TEXT
+                 CHECK(capture_time_source IS NULL OR capture_time_source IN (
+                   'exif_original', 'exif_digitized', 'exif_datetime'
+                 )),
+               capture_raw_value TEXT,
+               updated_unix_ms INTEGER NOT NULL CHECK(updated_unix_ms >= 0),
+               CHECK(
+                 (capture_local_time IS NULL AND capture_time_source IS NULL
+                   AND capture_raw_value IS NULL)
+                 OR
+                 (capture_local_time IS NOT NULL AND capture_time_source IS NOT NULL
+                   AND capture_raw_value IS NOT NULL)
+               ),
+               PRIMARY KEY(
+                 catch_up_source, catch_up_watermark,
+                 file_identity_scheme, file_identity_value
+               )
+             );
+             CREATE INDEX library_change_catch_up_handoffs_asset
+               ON library_change_catch_up_handoffs(
+                 asset_id, catch_up_source, catch_up_watermark
+               );
+             CREATE INDEX library_change_catch_up_handoffs_preview
+               ON library_change_catch_up_handoffs(
+                 preview_path, preview_status, catch_up_source, catch_up_watermark
+               );",
         )
         .map_err(database_error)
 }
@@ -1493,35 +1625,44 @@ mod tests {
     }
 
     #[test]
-    fn prerelease_v19_with_complete_marker_repairs_missing_catch_up_peer_index() {
+    fn prerelease_v19_with_complete_marker_adds_durable_handoff_contract() {
         let mut connection = Connection::open_in_memory().expect("catalog");
         migrate_schema(&mut connection).expect("fresh v19 catalog");
         connection
-            .execute("DROP INDEX library_change_queue_catch_up_peer", [])
-            .expect("restore prerelease v19 peer index state");
+            .execute_batch(
+                "DROP TABLE library_change_catch_up_handoffs;
+                 CREATE INDEX library_change_queue_catch_up_peer
+                   ON library_change_queue(
+                     catch_up_source, catch_up_watermark, status, root_id, id
+                   );",
+            )
+            .expect("restore prerelease v19 handoff state");
 
-        migrate_schema(&mut connection).expect("repair catch-up peer index");
+        migrate_schema(&mut connection).expect("add durable catch-up handoff contract");
 
         let index_columns = connection
             .prepare(
-                "SELECT name FROM pragma_index_info('library_change_queue_catch_up_peer')
+                "SELECT name FROM pragma_index_info('library_change_catch_up_handoffs_asset')
                  ORDER BY seqno",
             )
-            .expect("peer index query")
+            .expect("handoff index query")
             .query_map([], |row| row.get::<_, String>(0))
-            .expect("peer index rows")
+            .expect("handoff index rows")
             .collect::<Result<Vec<_>, _>>()
-            .expect("peer index columns");
+            .expect("handoff index columns");
         assert_eq!(
             index_columns,
-            [
-                "catch_up_source",
-                "catch_up_watermark",
-                "status",
-                "root_id",
-                "id",
-            ]
+            ["asset_id", "catch_up_source", "catch_up_watermark"]
         );
+        let obsolete_index = connection
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM sqlite_master
+                 WHERE type = 'index' AND name = 'library_change_queue_catch_up_peer')",
+                [],
+                |row| row.get::<_, bool>(0),
+            )
+            .expect("obsolete peer index query");
+        assert!(!obsolete_index);
     }
 
     #[test]
@@ -1805,24 +1946,45 @@ mod tests {
         migrate_v17_to_v18(&mut connection).expect("v18 migration");
         migrate_v18_to_v19(&mut connection).expect("v19 migration");
 
-        let (version, marker, checkpoint_count, has_path_index): (i64, bool, i64, bool) =
-            connection
+        let (
+            version,
+            marker,
+            checkpoint_count,
+            handoff_count,
+            has_path_index,
+            has_handoff_index,
+        ): (i64, bool, i64, i64, bool, bool) = connection
                 .query_row(
                     "SELECT
                    (SELECT version FROM schema_info),
                    (SELECT change_catch_up_complete = 1
                     FROM library_change_queue_contract WHERE singleton = 1),
                    (SELECT COUNT(*) FROM library_change_catch_up_state),
+                   (SELECT COUNT(*) FROM library_change_catch_up_handoffs),
                    EXISTS(SELECT 1 FROM sqlite_master
-                     WHERE type = 'index' AND name = 'asset_locations_root_relative')",
+                     WHERE type = 'index' AND name = 'asset_locations_root_relative'),
+                   EXISTS(SELECT 1 FROM sqlite_master
+                     WHERE type = 'index'
+                       AND name = 'library_change_catch_up_handoffs_asset')",
                     [],
-                    |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+                    |row| {
+                        Ok((
+                            row.get(0)?,
+                            row.get(1)?,
+                            row.get(2)?,
+                            row.get(3)?,
+                            row.get(4)?,
+                            row.get(5)?,
+                        ))
+                    },
                 )
                 .expect("v19 evidence");
 
         assert_eq!(version, 19);
         assert!(marker);
         assert_eq!(checkpoint_count, 0);
+        assert_eq!(handoff_count, 0);
         assert!(has_path_index);
+        assert!(has_handoff_index);
     }
 }

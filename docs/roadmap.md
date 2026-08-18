@@ -1714,10 +1714,10 @@ may serve as benchmarks or fallbacks but are not automatically preferred over ma
 
 Active stage: **R2c - continuous directory synchronization and incremental indexing**
 
-Active slice: **R2c-F - recovery and consistency**. R2c-A contracts, R2c-B live Windows
-observation, R2c-C durable queue and coalescing, R2c-D incremental delta publication, and R2c-E
-production UI and lifecycle are complete. R2c-F implementation is under final repository validation
-and independent audit; its completion status is not claimed until those gates pass.
+Active slice: **R2c-G - downtime catch-up**. R2c-A contracts, R2c-B live Windows observation,
+R2c-C durable queue and coalescing, R2c-D incremental delta publication, R2c-E production UI and
+lifecycle, and R2c-F recovery and consistency are complete. R2c-G is under PR validation and
+independent audit; its completion status is not claimed until those gates pass.
 
 Planned next stage: **R3 - exact duplicate evidence**, still blocked behind R2c catalog-freshness
 acceptance.
