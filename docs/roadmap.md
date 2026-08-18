@@ -1892,7 +1892,8 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
 - R2c-E is complete and audit-hardened. The production desktop lifecycle starts and stops one Rust
   synchronization runtime, retains drained observer evidence until durable enqueue succeeds, and
   marks cold-start or recovered roots as needing authoritative reconciliation before claiming
-  freshness. Flutter projects bounded Chinese root states, refreshes only published revisions, and
+  freshness. Flutter consumes a revision already published before screen construction, projects
+  bounded Chinese root states, refreshes only published revisions, and
   preserves source scope, filters, selection, preview demand, stable asset identity, preferred
   location, viewer continuity, and the nearest surviving ordinal. A bridge failure before root
   metrics shows `需要核对`, and desktop destruction remains bounded after coordinated shutdown.

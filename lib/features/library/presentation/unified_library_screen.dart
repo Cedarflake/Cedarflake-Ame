@@ -126,10 +126,11 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
         .watchLayoutDimensionUpdates()
         .listen(_handleLayoutDimensionUpdate);
     final synchronization = ref.read(librarySynchronizationProvider);
-    _synchronizationSnapshot = synchronization.current;
     _synchronizationSubscription = synchronization.watch().listen(
       _handleSynchronizationSnapshot,
     );
+    _synchronizationSnapshot = synchronization.current;
+    _queueSynchronizationRevision(_synchronizationSnapshot);
   }
 
   @override
@@ -161,6 +162,10 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       return;
     }
     setState(() => _synchronizationSnapshot = snapshot);
+    _queueSynchronizationRevision(snapshot);
+  }
+
+  void _queueSynchronizationRevision(LibrarySynchronizationSnapshot snapshot) {
     final currentRevision = ref.read(libraryControllerProvider).catalogRevision;
     if (snapshot.catalogRevision <= (currentRevision ?? BigInt.zero)) {
       return;
@@ -862,14 +867,19 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
 
   Future<void> _openAdjacentAsset(int direction) async {
     final currentAssetId = _viewerAssetId;
-    if (currentAssetId == null || _isNavigatingViewer) {
+    final currentLocationId = _viewerLocationId;
+    if (currentAssetId == null ||
+        currentLocationId == null ||
+        _isNavigatingViewer) {
       return;
     }
     setState(() => _isNavigatingViewer = true);
     try {
       var state = ref.read(libraryControllerProvider);
       var currentIndex = state.assets.indexWhere(
-        (asset) => asset.assetId == currentAssetId,
+        (asset) =>
+            asset.assetId == currentAssetId &&
+            asset.locationId == currentLocationId,
       );
       var targetIndex = currentIndex + direction;
       if (targetIndex < 0 && state.hasPreviousAssets) {
@@ -879,12 +889,16 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       } else if (targetIndex >= state.assets.length && state.hasMoreAssets) {
         await ref.read(libraryControllerProvider.notifier).loadNextPage();
       }
-      if (!mounted || _viewerAssetId != currentAssetId) {
+      if (!mounted ||
+          _viewerAssetId != currentAssetId ||
+          _viewerLocationId != currentLocationId) {
         return;
       }
       state = ref.read(libraryControllerProvider);
       currentIndex = state.assets.indexWhere(
-        (asset) => asset.assetId == currentAssetId,
+        (asset) =>
+            asset.assetId == currentAssetId &&
+            asset.locationId == currentLocationId,
       );
       targetIndex = currentIndex + direction;
       if (currentIndex < 0 ||
@@ -1729,16 +1743,15 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     String assetId,
     String? preferredLocationId,
   ) {
-    LibraryAsset? fallback;
     for (final asset in assets) {
       if (asset.assetId == assetId) {
-        if (asset.locationId == preferredLocationId) {
+        if (preferredLocationId == null ||
+            asset.locationId == preferredLocationId) {
           return asset;
         }
-        fallback ??= asset;
       }
     }
-    return fallback;
+    return null;
   }
 
   static String? _transientRootPath(LibraryState state) {

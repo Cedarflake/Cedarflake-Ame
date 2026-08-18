@@ -17,6 +17,7 @@ The controlled fixtures prove:
 | Boundary | Required result |
 | --- | --- |
 | Desktop start | Start one synchronization runtime after Rust and the initial catalog are ready |
+| Startup publication | Refresh a current synchronization revision even when it was published before screen subscription |
 | Continuity authority | Persist a root freshness gap on cold start and after an unavailable interval |
 | Registered roots | Start one observer for each available root and stop removed or reconfigured roots |
 | Queue handoff | Retain a drained observer plan across SQLite enqueue failure and retry it first |
@@ -65,7 +66,7 @@ library_controller_test.dart: 40 passed
 gallery_selection_test.dart: 4 passed
 library_navigation_semantics_test.dart: 5 passed
 unified_library_screen_test.dart: 31 passed
-library_viewer_position_test.dart: 3 passed
+library_viewer_position_test.dart: 5 passed
 window_manager_actions_test.dart: 2 passed
 ```
 
@@ -96,9 +97,10 @@ scoped sandbox approval required by `AGENTS.md`; no SDK lock was deleted and no 
 terminated. The complete Daily and Windows release gates were then run directly with that same scoped
 approval.
 
-The audit-hardening run additionally exercised a real screen subscription across an
-identity-preserving rename and an authoritative removal, a SQLite-triggered queue enqueue failure,
-preferred-location selection for a multi-location asset, removal fallback at the prior ordinal, a
+The audit-hardening run additionally exercised a revision already published before screen
+subscription, a real screen subscription across an identity-preserving rename and an authoritative
+removal, a SQLite-triggered queue enqueue failure, preferred-location selection for a multi-location
+asset even when another location is the only loaded detail, removal fallback at the prior ordinal, a
 bridge failure before the first root status, and destruction after the configured shutdown timeout.
 
 ## Remaining boundary

@@ -109,6 +109,134 @@ void main() {
   });
 
   testWidgets(
+    "refreshes a catalog revision already published before screen subscription",
+    (tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final initialState = _libraryState(assetCount: 1);
+      final initialAsset = initialState.assets.single;
+      final renamedAsset = _assetAtPath(
+        initialAsset,
+        locationId: "location-renamed-before-subscription",
+        relativePath: "renamed-before-subscription.jpg",
+      );
+      final catalog = _SynchronizationViewerCatalog(
+        LibrarySnapshot(
+          catalogPath: initialState.catalogPath ?? "",
+          revision: BigInt.two,
+          queryId: initialState.queryId,
+          roots: initialState.roots,
+          assets: [renamedAsset],
+        ),
+      );
+      final synchronization = _TestLibrarySynchronization(
+        _synchronizationSnapshot(BigInt.two),
+      );
+      addTearDown(synchronization.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            initialLibraryStateProvider.overrideWithValue(initialState),
+            libraryCatalogProvider.overrideWithValue(catalog),
+            librarySynchronizationProvider.overrideWithValue(synchronization),
+          ],
+          child: const AmeApp(),
+        ),
+      );
+      await _pumpSynchronizationRefresh(tester);
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(AmeApp)),
+      );
+      final refreshedState = container.read(libraryControllerProvider);
+      expect(refreshedState.catalogRevision, BigInt.two);
+      expect(
+        refreshedState.assets.single.locationId,
+        "location-renamed-before-subscription",
+      );
+    },
+  );
+
+  testWidgets(
+    "keeps the preferred viewer location until authoritative lookup resolves it",
+    (tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final baseState = _libraryState(assetCount: 1);
+      final firstLocation = baseState.assets.single;
+      final preferredLocation = _assetAtPath(
+        firstLocation,
+        locationId: "location-preferred",
+        relativePath: "preferred.jpg",
+      );
+      final initialState = _stateWithAssets(baseState, [
+        firstLocation,
+        preferredLocation,
+      ]);
+      final initialSnapshot = LibrarySnapshot(
+        catalogPath: initialState.catalogPath ?? "",
+        revision: BigInt.one,
+        queryId: initialState.queryId,
+        roots: initialState.roots,
+        assets: initialState.assets,
+      );
+      final catalog = _SynchronizationViewerCatalog(initialSnapshot);
+      final synchronization = _TestLibrarySynchronization(
+        _synchronizationSnapshot(BigInt.one),
+      );
+      addTearDown(synchronization.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            initialLibraryStateProvider.overrideWithValue(initialState),
+            libraryCatalogProvider.overrideWithValue(catalog),
+            librarySynchronizationProvider.overrideWithValue(synchronization),
+          ],
+          child: const AmeApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final preferredTile = find.byWidgetPredicate(
+        (widget) =>
+            widget is LibraryPhotoTile &&
+            widget.asset.locationId == preferredLocation.locationId,
+      );
+      final preferredTileRect = tester.getRect(preferredTile);
+      await tester.tapAt(preferredTileRect.topLeft + const Offset(16, 16));
+      await tester.pump();
+      expect(find.text("preferred.jpg"), findsOneWidget);
+
+      catalog.snapshot = LibrarySnapshot(
+        catalogPath: initialSnapshot.catalogPath,
+        revision: BigInt.two,
+        queryId: initialSnapshot.queryId,
+        roots: initialSnapshot.roots,
+        assets: [firstLocation],
+        queryAnchorResolution: const LibraryQueryAnchorResolution(
+          requestedLocationId: "location-preferred",
+          locationId: "location-0",
+          ordinal: 0,
+          windowStartItemOffset: 0,
+        ),
+      );
+      synchronization.publish(_synchronizationSnapshot(BigInt.two));
+      await _pumpSynchronizationRefresh(tester);
+
+      expect(catalog.requestedLocationIds, ["location-preferred"]);
+      expect(catalog.preferredLocationIds, ["location-preferred"]);
+      expect(find.byKey(const Key("viewer-back-button")), findsOneWidget);
+      expect(find.text("0.jpg"), findsOneWidget);
+    },
+  );
+
+  testWidgets(
     "synchronization keeps a renamed viewer asset and closes an authoritative removal",
     (tester) async {
       tester.view.physicalSize = const Size(1280, 800);
@@ -258,6 +386,18 @@ LibraryState _libraryState({
           issueCount: 0,
         ),
       ],
+      assets: assets,
+    ),
+  );
+}
+
+LibraryState _stateWithAssets(LibraryState source, List<LibraryAsset> assets) {
+  return LibraryState.fromSnapshot(
+    LibrarySnapshot(
+      catalogPath: source.catalogPath ?? "",
+      revision: source.catalogRevision ?? BigInt.one,
+      queryId: source.queryId,
+      roots: source.roots,
       assets: assets,
     ),
   );

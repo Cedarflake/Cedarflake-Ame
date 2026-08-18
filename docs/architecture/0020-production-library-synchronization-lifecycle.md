@@ -71,7 +71,9 @@ idempotent and waits for an active poll before calling the Rust stop use case.
 The unified gallery subscribes to synchronization snapshots. It schedules at most one refresh at a
 time, coalesces newer revisions, and retries briefly when another query transition owns the controller.
 It requests a background refresh only after the published revision exceeds the visible revision.
-Existing assets remain visible while the new bounded window and timeline load.
+The screen subscribes before sampling the service's current snapshot and queues that current revision,
+so a delta published during application startup cannot be lost merely because it preceded widget
+construction. Existing assets remain visible while the new bounded window and timeline load.
 
 Refresh continuity uses stable identity:
 
