@@ -310,14 +310,14 @@ fn bidirectional_full_scan_catch_up_preserves_cross_root_assets_and_previews() {
 }
 
 #[test]
-fn full_scan_handoff_deduplicates_hard_links_and_survives_missing_preview_recovery() {
+fn full_scan_handoff_deduplicates_hard_links_and_repairs_missing_preview() {
     assert_bidirectional_full_scan_catch_up("full-handoff-recovery", true, true);
 }
 
 fn assert_bidirectional_full_scan_catch_up(
     scenario: &str,
     inject_hard_link_location: bool,
-    invalidate_missing_previews: bool,
+    repair_missing_handoff_preview: bool,
 ) {
     let source = tempdir().expect("source directory");
     let destination = tempdir().expect("destination directory");
@@ -567,21 +567,21 @@ fn assert_bidirectional_full_scan_catch_up(
         )
         .expect("source publication evidence");
     assert_eq!(source_publication, (0, 1, 1, 64, 1, 0));
-    if invalidate_missing_previews {
-        let mut recovery_catalog = SqliteCatalog::open(storage_paths.catalog_path.clone())
-            .expect("preview recovery catalog");
-        let candidates = recovery_catalog
-            .load_preview_recovery_artifacts(&storage_paths.preview_root.to_string_lossy(), None, 8)
-            .expect("load preview recovery candidates");
-        assert_eq!(candidates.len(), 2);
-        for candidate in candidates {
-            fs::remove_file(&candidate.path).expect("remove preview before recovery");
-            assert!(
-                recovery_catalog
-                    .invalidate_preview_recovery_artifact(&candidate)
-                    .expect("invalidate missing preview before full-scan handoff adoption")
-            );
-        }
+    if repair_missing_handoff_preview {
+        let connection =
+            Connection::open(&storage_paths.catalog_path).expect("prerelease preview catalog");
+        assert_eq!(
+            connection
+                .execute(
+                    "DELETE FROM preview_artifacts WHERE artifact_path = ?1",
+                    [&source_preview.preview_path],
+                )
+                .expect("restore prerelease missing handoff preview"),
+            1
+        );
+        drop(connection);
+        SqliteCatalog::open(storage_paths.catalog_path.clone())
+            .expect("repair prerelease missing handoff preview");
     }
     run_scan_with_storage_owned(
         ScanRequest {
@@ -613,11 +613,20 @@ fn assert_bidirectional_full_scan_catch_up(
     assert_ne!(moved_source.location_id, source_location_id);
     assert_eq!(moved_destination.asset_id, destination_asset_id);
     assert_ne!(moved_destination.location_id, destination_location_id);
-    if invalidate_missing_previews {
-        for moved in [moved_source, moved_destination] {
-            assert!(moved.preview_path.is_empty());
-            assert!(matches!(moved.preview_status, PreviewStatus::Pending));
-        }
+    if repair_missing_handoff_preview {
+        assert!(moved_source.preview_path.is_empty());
+        assert!(matches!(
+            moved_source.preview_status,
+            PreviewStatus::Pending
+        ));
+        assert_eq!(
+            moved_destination.preview_path,
+            destination_preview.preview_path
+        );
+        assert!(matches!(
+            moved_destination.preview_status,
+            PreviewStatus::Ready
+        ));
     } else {
         assert_eq!(moved_source.preview_path, source_preview.preview_path);
         assert!(matches!(moved_source.preview_status, PreviewStatus::Ready));

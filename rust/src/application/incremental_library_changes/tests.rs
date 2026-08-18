@@ -3,6 +3,7 @@ use std::path::Path;
 use std::sync::atomic::AtomicBool;
 
 use image::{Rgb, RgbImage};
+use rusqlite::Connection;
 use tempfile::{TempDir, tempdir};
 
 use crate::adapters::{FileDiscovery, FileVisitOutcome, LocalMediaInspector, SqliteCatalog};
@@ -13,7 +14,7 @@ use crate::domain::{
     AssetLocationView, DerivedEvidenceDisposition, LibraryChangeCatchUpEvidence,
     LibraryChangeCatchUpQueueBatch, LibraryChangeIntent, LibraryChangeIntentKind,
     LibraryChangeOrigin, LibraryChangeQueuePolicy, LibraryChangeScope, LibraryRootGeneration,
-    PreviewArtifact, PreviewReclamationCandidate, PreviewStatus, ScanRequest,
+    PreviewArtifact, PreviewStatus, ScanRequest,
 };
 use crate::ports::{
     CatalogRepository, IncrementalCatalogRepository, LibraryChangeQueue, MediaInspector,
@@ -633,7 +634,7 @@ fn preview_cleanup_downgrades_a_bounded_handoff_before_destination_adoption() {
 
 #[cfg(windows)]
 #[test]
-fn preview_recovery_invalidates_a_missing_bounded_handoff_before_destination_adoption() {
+fn prerelease_stale_preview_is_downgraded_before_bounded_handoff_adoption() {
     assert_cross_root_move_preserves_continuity(
         "a-source",
         "z-destination",
@@ -805,7 +806,7 @@ fn assert_cross_root_move_preserves_continuity(
     source_first: bool,
     supersede_destination_watermark: bool,
     cleanup_after_source: bool,
-    invalidate_missing_preview: bool,
+    repair_stale_handoff_preview: bool,
 ) {
     let storage = tempdir().expect("cross-root storage");
     let source_path = storage.path().join("source");
@@ -813,8 +814,8 @@ fn assert_cross_root_move_preserves_continuity(
     fs::create_dir_all(&source_path).expect("source root");
     fs::create_dir_all(&destination_path).expect("destination root");
     write_png(&source_path.join("old.png"), 3, 2, [71, 72, 73]);
-    let mut catalog =
-        SqliteCatalog::open(storage.path().join("catalog.sqlite3")).expect("cross-root catalog");
+    let catalog_path = storage.path().join("catalog.sqlite3");
+    let mut catalog = SqliteCatalog::open(catalog_path.clone()).expect("cross-root catalog");
     seed_root(
         &mut catalog,
         source_root_id,
@@ -833,7 +834,7 @@ fn assert_cross_root_move_preserves_continuity(
         .load_incremental_location_by_relative_path(source_root_id, "old.png")
         .expect("load source location")
         .expect("source location");
-    if cleanup_after_source || invalidate_missing_preview {
+    if cleanup_after_source || repair_stale_handoff_preview {
         original.preview_path = storage
             .path()
             .join("preview-before-cleanup.jpg")
@@ -910,16 +911,22 @@ fn assert_cross_root_move_preserves_continuity(
             catalog
                 .reset_all_previews_for_cleanup()
                 .expect("reset handoff preview before destination adoption");
-        } else if invalidate_missing_preview {
-            let candidate = PreviewReclamationCandidate {
-                artifact_key: "cross-root-preview-before-cleanup".to_owned(),
-                path: original.preview_path.clone(),
-            };
-            assert!(
-                catalog
-                    .invalidate_preview_recovery_artifact(&candidate)
-                    .expect("invalidate missing handoff preview before destination adoption")
+        } else if repair_stale_handoff_preview {
+            drop(catalog);
+            let connection = Connection::open(&catalog_path).expect("prerelease preview catalog");
+            assert_eq!(
+                connection
+                    .execute(
+                        "UPDATE preview_artifacts SET lifecycle_state = 'stale'
+                         WHERE artifact_key = 'cross-root-preview-before-cleanup'",
+                        [],
+                    )
+                    .expect("restore prerelease stale handoff preview"),
+                1
             );
+            drop(connection);
+            catalog = SqliteCatalog::open(catalog_path.clone())
+                .expect("repair prerelease stale handoff preview");
         }
     }
 
@@ -953,7 +960,7 @@ fn assert_cross_root_move_preserves_continuity(
         .expect("destination location");
     assert_eq!(moved.asset_id, original.asset_id);
     assert_eq!(moved.file_identity, original.file_identity);
-    if cleanup_after_source || invalidate_missing_preview {
+    if cleanup_after_source || repair_stale_handoff_preview {
         assert!(matches!(moved.preview_status, PreviewStatus::Pending));
         assert!(moved.preview_path.is_empty());
         assert!(moved.preview_issue_code.is_none());

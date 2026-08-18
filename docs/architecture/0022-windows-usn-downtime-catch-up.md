@@ -146,7 +146,11 @@ though ordinary budget reclamation must preserve those owners. Preview publicati
 artifact discovery to the replaced algorithm, orientation, and size bucket instead of scanning the
 whole artifact catalog for every generated preview. A later destination can therefore adopt
 identity retained by an older range after the source location was removed without inheriting a
-missing ready preview. Once no active row or frozen scan owns a lineage edge, the
+missing ready preview. Opening a marker-complete v19 catalog also downgrades any legacy or
+normalized handoff whose ready expectation lacks a matching ready artifact. This bounded,
+index-backed repair covers prerelease catalogs that already deleted the final artifact row or left
+it stale; ordinary healthy opens remain read-only after the absence check. Once no active row or
+frozen scan owns a lineage edge, the
 same transaction removes that edge; deleting the final edge cascades the batch and its items, then
 reclaims only artifacts or assets that have neither an active location nor another handoff owner.
 This protocol has no cross-root wait edge and therefore supports
@@ -225,9 +229,10 @@ boundary. The following invariants are binding:
 - application fixtures prove enqueue-before-checkpoint, replay after interruption, root-set and
   catalog-revision mismatch fallback, retained catch-up queue metadata, both path move orders,
   bidirectional bounded and full-scan handoff without wait cycles, `N + L` full-scan cardinality,
-  hard-link identity deduplication, explicit preview cleanup and missing-artifact recovery before
-  path and full-scan adoption, atomic last-owner retention cleanup, exact-case subtree capacity,
-  unrelated-removal progress, and bounded checkpoint retention that stops on unresolved gaps;
+  hard-link identity deduplication, explicit preview cleanup, missing-artifact recovery, and
+  prerelease stale-or-missing handoff repair before path and full-scan adoption, atomic last-owner
+  retention cleanup, exact-case subtree capacity, unrelated-removal progress, and bounded
+  checkpoint retention that stops on unresolved gaps;
 - runtime fixtures prove watcher-first ordering, no authoritative work before catch-up completion,
   fallback recovery, cancellation, bounded stop, and restart ownership;
 - deterministic adapter fixtures prove create, modify, rename, and remove candidate coverage; a

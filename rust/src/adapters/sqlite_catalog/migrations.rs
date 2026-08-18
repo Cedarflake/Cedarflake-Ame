@@ -36,7 +36,9 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
                 repair_prerelease_v19_derived_indexes(connection)?;
                 repair_prerelease_v19_scan_lineage(connection)?;
                 repair_prerelease_v19_scan_handoff_batches(connection)?;
-                return validate_current_schema_contract(connection);
+                validate_current_schema_contract(connection)?;
+                repair_v19_handoff_preview_expectations(connection)?;
+                return Ok(());
             }
             1 => migrate_v1_to_v2(connection)?,
             2 => migrate_v2_to_v3(connection)?,
@@ -427,6 +429,63 @@ fn validate_current_schema_contract(connection: &Connection) -> Result<(), ScanE
         return Err(unverifiable_authoritative_recovery_contract());
     }
     Ok(())
+}
+
+fn repair_v19_handoff_preview_expectations(connection: &mut Connection) -> Result<(), ScanError> {
+    let needs_repair = connection
+        .query_row(
+            "SELECT EXISTS(
+               SELECT 1 FROM library_change_catch_up_handoffs AS handoffs
+               WHERE handoffs.preview_status = 'ready'
+                 AND NOT EXISTS (
+                   SELECT 1 FROM preview_artifacts AS artifacts
+                   WHERE artifacts.lifecycle_state = 'ready'
+                     AND artifacts.artifact_path = handoffs.preview_path
+                 )
+             ) OR EXISTS(
+               SELECT 1 FROM library_change_scan_handoff_items AS handoffs
+               WHERE handoffs.preview_status = 'ready'
+                 AND NOT EXISTS (
+                   SELECT 1 FROM preview_artifacts AS artifacts
+                   WHERE artifacts.lifecycle_state = 'ready'
+                     AND artifacts.artifact_path = handoffs.preview_path
+                 )
+             )",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    if !needs_repair {
+        return Ok(());
+    }
+    let transaction = connection
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .map_err(database_error)?;
+    transaction
+        .execute_batch(
+            "UPDATE library_change_catch_up_handoffs
+             SET preview_path = '', preview_status = 'pending',
+                 preview_issue_code = NULL, preview_issue_message = NULL
+             WHERE preview_status = 'ready'
+               AND NOT EXISTS (
+                 SELECT 1 FROM preview_artifacts AS artifacts
+                 WHERE artifacts.lifecycle_state = 'ready'
+                   AND artifacts.artifact_path =
+                     library_change_catch_up_handoffs.preview_path
+               );
+             UPDATE library_change_scan_handoff_items
+             SET preview_path = '', preview_status = 'pending',
+                 preview_issue_code = NULL, preview_issue_message = NULL
+             WHERE preview_status = 'ready'
+               AND NOT EXISTS (
+                 SELECT 1 FROM preview_artifacts AS artifacts
+                 WHERE artifacts.lifecycle_state = 'ready'
+                   AND artifacts.artifact_path =
+                     library_change_scan_handoff_items.preview_path
+               );",
+        )
+        .map_err(database_error)?;
+    transaction.commit().map_err(database_error)
 }
 
 fn validate_change_catch_up_contract(connection: &Connection) -> Result<(), ScanError> {
@@ -3079,6 +3138,10 @@ mod tests {
                     scan_id TEXT NOT NULL,
                     location_id TEXT NOT NULL
                   );
+                  CREATE TABLE preview_artifacts(
+                    artifact_path TEXT NOT NULL,
+                    lifecycle_state TEXT NOT NULL
+                  );
                   CREATE TABLE library_change_queue(
                     id INTEGER PRIMARY KEY,
                     root_id TEXT NOT NULL,
@@ -3148,6 +3211,10 @@ mod tests {
                     relative_path TEXT NOT NULL,
                     scan_id TEXT NOT NULL,
                     location_id TEXT NOT NULL
+                  );
+                  CREATE TABLE preview_artifacts(
+                    artifact_path TEXT NOT NULL,
+                    lifecycle_state TEXT NOT NULL
                   );
                   CREATE TABLE library_change_queue(
                     id INTEGER PRIMARY KEY,

@@ -50,6 +50,10 @@ fn migrates_v16_without_losing_existing_catalog_rows() {
                scan_id TEXT NOT NULL,
                location_id TEXT NOT NULL
              );
+             CREATE TABLE preview_artifacts (
+               artifact_path TEXT NOT NULL,
+               lifecycle_state TEXT NOT NULL
+             );
              CREATE TABLE preserved_fixture(value TEXT NOT NULL);
              INSERT INTO preserved_fixture(value) VALUES ('kept');",
         )

@@ -93,7 +93,9 @@ watermark copies, and prove stable asset and compatible preview continuity throu
 destination-first publication. Bounded and full-scan fixtures also clear ready preview expectations
 before adoption when explicit preview cleanup or startup recovery removes a missing artifact;
 reclamation fixtures prove that normal budget pressure cannot select or delete an artifact while
-either handoff form owns it.
+either handoff form owns it. Reopen fixtures restore prerelease v19 states with a stale legacy
+artifact row or a missing normalized full-scan artifact row and prove both are downgraded before
+bounded or full-scan destination adoption.
 The controlled real Win32 temporary-root test was executed with both the normal sandboxed token and
 the same standard token outside the workspace sandbox.
 Both reached the documented `usn_volume_open_failed` permission fallback. Ame did not elevate or
@@ -119,14 +121,14 @@ release bridge and system accent smoke integration: 2 passed
 
 ./tool/performance_benchmark_synthetic_library.ps1
 files=10000
-fixture_ms=7528
-cold_ms=20735
-warm_ms=18101
-pause_ms=23
-resume_ms=16381
-cancel_ms=167
-catalog_bytes=52359168
-peak_working_set_bytes=17801216
+fixture_ms=7510
+cold_ms=20699
+warm_ms=17949
+pause_ms=24
+resume_ms=16252
+cancel_ms=159
+catalog_bytes=52424704
+peak_working_set_bytes=17575936
 result: passed
 
 git diff --check
@@ -184,8 +186,12 @@ atomically downgrades their preview expectations during explicit cleanup. The se
 path, while successful preview publication scanned every unreferenced artifact. The current work
 separates physical recovery invalidation from budget reclamation, atomically downgrades both
 handoff forms before deleting a missing artifact, and restores algorithm/orientation/size-bounded
-stale selection with handoff exclusions. Final independent re-audit remains pending; R2c-G is not
-marked complete until that committed head has no remaining Critical, High, Medium, or Low findings.
+stale selection with handoff exclusions. The eighth audit of `d52c6aa` found that prerelease v19
+could already contain a ready handoff whose artifact row was stale or absent, outside the startup
+recovery enumeration. The current work performs an index-backed preflight on catalog open and
+atomically downgrades only those legacy or normalized handoff expectations before adoption. Final
+independent re-audit remains pending; R2c-G is not marked complete until that committed head has no
+remaining Critical, High, Medium, or Low findings.
 
 ## Remaining boundary
 
