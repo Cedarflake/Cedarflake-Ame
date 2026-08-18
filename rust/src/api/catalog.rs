@@ -1,7 +1,8 @@
 use crate::application::{
-    cancel_scan, load_catalog, load_catalog_around_location, load_catalog_at_time,
-    load_gallery_layout_manifest_chunk, load_gallery_timeline, load_library_folders,
-    load_paused_scan, load_recoverable_scan, pause_scan, run_scan, unregister_library_root,
+    cancel_scan, load_catalog, load_catalog_around_asset, load_catalog_around_location,
+    load_catalog_asset_by_id, load_catalog_at_time, load_gallery_layout_manifest_chunk,
+    load_gallery_timeline, load_library_folders, load_paused_scan, load_recoverable_scan,
+    pause_scan, run_scan, unregister_library_root,
 };
 use crate::domain::{
     CatalogCursor, CatalogSnapshot, GalleryLayoutManifestChunk, GalleryLayoutManifestCursor,
@@ -89,6 +90,29 @@ pub fn load_library_catalog_around_location(
     anchor_location_id: String,
 ) -> Result<CatalogSnapshot, ScanError> {
     load_catalog_around_location(max_items, query, anchor_location_id)
+}
+
+pub fn load_library_catalog_around_asset(
+    max_items: u32,
+    query: GalleryQuery,
+    requested_location_id: String,
+    anchor_asset_id: String,
+    fallback_ordinal: u64,
+) -> Result<CatalogSnapshot, ScanError> {
+    load_catalog_around_asset(
+        max_items,
+        query,
+        requested_location_id,
+        anchor_asset_id,
+        fallback_ordinal,
+    )
+}
+
+pub fn load_library_asset_by_id(
+    asset_id: String,
+    preferred_location_id: Option<String>,
+) -> Result<Option<crate::domain::AssetLocationView>, ScanError> {
+    load_catalog_asset_by_id(asset_id, preferred_location_id)
 }
 
 #[flutter_rust_bridge::frb(sync)]

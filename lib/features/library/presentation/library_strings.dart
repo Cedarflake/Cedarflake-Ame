@@ -1,5 +1,15 @@
 abstract final class LibraryStrings {
   static const appName = "Ame";
+  static const synchronized = "已同步";
+  static const synchronizing = "正在更新图库";
+  static const needsReconciliation = "需要核对";
+  static const sourceUnavailable = "目录不可用";
+  static const sourceAvailable = "可用";
+  static const sourceMissing = "文件夹不存在";
+  static const sourceInaccessible = "无法访问";
+  static const sourceOffline = "当前离线";
+  static const sourceUnknown = "状态未知";
+  static const addingSource = "正在添加";
   static const library = "图库";
   static const import = "导入";
   static const searchHint = "在图库中搜索";

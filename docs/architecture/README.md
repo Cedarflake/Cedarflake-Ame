@@ -34,3 +34,4 @@ Recorded decisions:
 - [ADR 0017: Validate notify 8.2.0 behind the Windows change-source adapter](0017-notify-windows-change-source.md)
 - [ADR 0018: Persist normalized library changes in a leased SQLite queue](0018-durable-library-change-queue.md)
 - [ADR 0019: Publish incremental catalog deltas atomically](0019-atomic-incremental-catalog-deltas.md)
+- [ADR 0020: Run continuous library synchronization with the desktop lifecycle](0020-production-library-synchronization-lifecycle.md)

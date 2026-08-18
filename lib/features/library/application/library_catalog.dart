@@ -36,6 +36,23 @@ abstract interface class LibraryQueryAnchorCatalog {
   });
 }
 
+abstract interface class LibraryStableQueryAnchorCatalog {
+  Future<LibrarySnapshot> loadAroundAsset({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    required String requestedLocationId,
+    required String anchorAssetId,
+    required int fallbackGlobalItemIndex,
+  });
+}
+
+abstract interface class LibraryStableAssetCatalog {
+  Future<LibraryAsset?> loadAssetById({
+    required String assetId,
+    String? preferredLocationId,
+  });
+}
+
 abstract interface class LibraryFolderCatalog {
   Future<LibraryFolderPage> loadFolderPage({
     required String rootId,
@@ -46,7 +63,12 @@ abstract interface class LibraryFolderCatalog {
 }
 
 class RustLibraryCatalog
-    implements LibraryCatalog, LibraryFolderCatalog, LibraryQueryAnchorCatalog {
+    implements
+        LibraryCatalog,
+        LibraryFolderCatalog,
+        LibraryQueryAnchorCatalog,
+        LibraryStableQueryAnchorCatalog,
+        LibraryStableAssetCatalog {
   const RustLibraryCatalog();
 
   @override
@@ -207,6 +229,44 @@ class RustLibraryCatalog
       return _mapSnapshot(snapshot);
     } on Object catch (error) {
       throw _mapFailure(error, "bridge_location_anchor_load_failed");
+    }
+  }
+
+  @override
+  Future<LibrarySnapshot> loadAroundAsset({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    required String requestedLocationId,
+    required String anchorAssetId,
+    required int fallbackGlobalItemIndex,
+  }) async {
+    try {
+      final snapshot = await rust_api.loadLibraryCatalogAroundAsset(
+        maxItems: maxItems,
+        query: _mapQuery(query),
+        requestedLocationId: requestedLocationId,
+        anchorAssetId: anchorAssetId,
+        fallbackOrdinal: BigInt.from(fallbackGlobalItemIndex),
+      );
+      return _mapSnapshot(snapshot);
+    } on Object catch (error) {
+      throw _mapFailure(error, "bridge_asset_anchor_load_failed");
+    }
+  }
+
+  @override
+  Future<LibraryAsset?> loadAssetById({
+    required String assetId,
+    String? preferredLocationId,
+  }) async {
+    try {
+      final asset = await rust_api.loadLibraryAssetById(
+        assetId: assetId,
+        preferredLocationId: preferredLocationId,
+      );
+      return asset == null ? null : mapRustLibraryAsset(asset);
+    } on Object catch (error) {
+      throw _mapFailure(error, "bridge_asset_identity_load_failed");
     }
   }
 

@@ -20,6 +20,58 @@ const MAX_REMOVALS_PER_MUTATION: usize = 4;
 const MAX_DELTA_COMPLETIONS: usize = 128;
 
 impl IncrementalCatalogRepository for SqliteCatalog {
+    fn load_incremental_catalog_roots(&self) -> Result<Vec<IncrementalCatalogRoot>, ScanError> {
+        let mut statement = self
+            .connection
+            .prepare(
+                "SELECT roots.id, roots.path, roots.active_scan_id, state.generation,
+                        EXISTS(
+                          SELECT 1 FROM scan_runs AS running
+                          WHERE running.root_id = roots.id
+                            AND running.status IN ('running', 'paused')
+                        ), catalog.revision
+                 FROM library_roots AS roots
+                 JOIN library_change_root_state AS state ON state.root_id = roots.id
+                 CROSS JOIN catalog_state AS catalog
+                 WHERE state.is_active = 1
+                 ORDER BY roots.id",
+            )
+            .map_err(database_error)?;
+        let rows = statement
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, Option<String>>(2)?,
+                    row.get::<_, i64>(3)?,
+                    row.get::<_, bool>(4)?,
+                    row.get::<_, i64>(5)?,
+                ))
+            })
+            .map_err(database_error)?;
+        let mut roots = Vec::new();
+        for row in rows {
+            let (root_id, root_path, active_scan_id, generation, has_running_scan, revision) =
+                row.map_err(database_error)?;
+            let generation = sqlite_unsigned(generation, "root generation")?;
+            let root_generation = LibraryRootGeneration::new(generation).ok_or_else(|| {
+                ScanError::new(
+                    "catalog_root_generation_invalid",
+                    "The incremental catalog root has an invalid generation",
+                )
+            })?;
+            roots.push(IncrementalCatalogRoot {
+                root_id,
+                root_path,
+                root_generation,
+                active_scan_id,
+                has_running_scan,
+                catalog_revision: sqlite_unsigned(revision, "catalog revision")?,
+            });
+        }
+        Ok(roots)
+    }
+
     fn load_incremental_catalog_root(
         &self,
         root_id: &str,

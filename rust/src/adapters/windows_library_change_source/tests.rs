@@ -16,11 +16,11 @@ use crate::domain::{
     LibraryChangeOrigin, LibraryChangePlanningContext, LibraryChangePlanningLimits,
     LibraryChangeScope, LibraryChangeSourceHealth, LibraryRootAvailability, LibraryRootGeneration,
 };
-use crate::ports::{LibraryChangeSource, LibraryChangeSourceFactory, LibraryChangeSourceRequest};
+use crate::ports::{LibraryChangeSource, LibraryChangeSourceRequest};
 
 use super::{
-    CallbackProcessor, CallbackState, RENAME_PAIR_GRACE, WindowsLibraryChangeSourceFactory,
-    health_code,
+    CallbackProcessor, CallbackState, RENAME_PAIR_GRACE, health_code,
+    start_windows_library_change_source,
 };
 
 #[test]
@@ -302,9 +302,7 @@ fn controlled_windows_changes_produce_ame_intents_and_bounded_shutdown() {
         root_path: root.path().to_path_buf(),
         ingress_capacity: 64,
     };
-    let mut source = WindowsLibraryChangeSourceFactory
-        .start(&request)
-        .expect("start watcher");
+    let mut source = start_windows_library_change_source(&request).expect("start watcher");
     let album = root.path().join("中文相册");
     fs::create_dir(&album).expect("create album");
     let old_path = album.join("旧照片.jpg");
@@ -390,9 +388,7 @@ fn configured_root_removal_and_window_close_stop_without_hanging() {
         root_path: root_path.clone(),
         ingress_capacity: 16,
     };
-    let mut source = WindowsLibraryChangeSourceFactory
-        .start(&request)
-        .expect("start watcher");
+    let mut source = start_windows_library_change_source(&request).expect("start watcher");
 
     fs::remove_dir(&root_path).expect("remove configured root");
     let observations = wait_for_observations(&mut source, |observations| {
@@ -441,7 +437,7 @@ fn unavailable_or_unbounded_roots_are_rejected_before_watcher_creation() {
         root_path: missing,
         ingress_capacity: 16,
     };
-    let error = match WindowsLibraryChangeSourceFactory.start(&request) {
+    let error = match start_windows_library_change_source(&request) {
         Ok(_) => panic!("missing root must be rejected"),
         Err(error) => error,
     };
@@ -454,7 +450,7 @@ fn unavailable_or_unbounded_roots_are_rejected_before_watcher_creation() {
         ingress_capacity: 4097,
         ..request
     };
-    let error = match WindowsLibraryChangeSourceFactory.start(&unbounded) {
+    let error = match start_windows_library_change_source(&unbounded) {
         Ok(_) => panic!("unbounded ingress must be rejected"),
         Err(error) => error,
     };

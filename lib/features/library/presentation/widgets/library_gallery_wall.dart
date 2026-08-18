@@ -25,6 +25,7 @@ class LibraryGalleryVisiblePosition {
     required this.revision,
     required this.monthKey,
     required this.locationId,
+    this.assetId,
     required this.globalItemIndex,
     required this.itemFraction,
     required this.viewportFraction,
@@ -34,6 +35,7 @@ class LibraryGalleryVisiblePosition {
   final BigInt revision;
   final String? monthKey;
   final String locationId;
+  final String? assetId;
   final int globalItemIndex;
   final double itemFraction;
   final double viewportFraction;
@@ -578,7 +580,7 @@ class LibraryGalleryWall extends StatelessWidget {
                                                 entry
                                                     .cells[cellIndex]
                                                     .asset
-                                                    .locationId,
+                                                    .assetId,
                                               ),
                                               onOpen: onOpen,
                                               onToggleSelection:
@@ -776,6 +778,7 @@ class LibraryGalleryWall extends StatelessWidget {
       revision: revision,
       monthKey: activeEntry.monthKey,
       locationId: activeEntry.cells[centerCellIndex].asset.locationId,
+      assetId: activeEntry.cells[centerCellIndex].asset.assetId,
       globalItemIndex: windowStartItemOffset + itemIndex,
       itemFraction: ((anchorOffset - rowOffset) / activeEntry.rowHeight)
           .clamp(0.0, 1.0)
@@ -2036,7 +2039,7 @@ class _ManifestLibraryGalleryWallState
       width: width,
       height: height,
       isSelecting: widget.isSelecting,
-      isSelected: widget.selection.contains(locationId),
+      isSelected: widget.selection.contains(asset.assetId),
       onOpen: widget.onOpen,
       onToggleSelection: widget.onToggleSelection,
       onViewInformation: widget.onViewInformation,

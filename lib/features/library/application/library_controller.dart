@@ -397,6 +397,11 @@ class LibraryController extends Notifier<LibraryState> {
   Future<bool> updateQuery(
     LibraryGalleryQuery query, {
     String? anchorLocationId,
+    String? anchorAssetId,
+    int? fallbackGlobalItemIndex,
+    bool forceRefresh = false,
+    BigInt? minimumCatalogRevision,
+    bool showRefreshingStatus = true,
   }) async {
     final normalized = query.copyWith(
       folderRelativePath: query.folderRelativePath
@@ -411,10 +416,14 @@ class LibraryController extends Notifier<LibraryState> {
       _queryTransitionBaseState = null;
       _queryTransitionRequestSequence = null;
     }
-    if (normalized == state.query && _queryTransitionBaseState == null) {
+    if (!forceRefresh &&
+        normalized == state.query &&
+        _queryTransitionBaseState == null) {
       return true;
     }
-    if (normalized == state.query && _queryTransitionBaseState != null) {
+    if (!forceRefresh &&
+        normalized == state.query &&
+        _queryTransitionBaseState != null) {
       _scanSequence += 1;
       final baseState = _queryTransitionBaseState!;
       _queryTransitionBaseState = null;
@@ -438,7 +447,7 @@ class LibraryController extends Notifier<LibraryState> {
     }
     _queryTransitionRequestSequence = requestSequence;
     state = state.copyWith(
-      status: LibraryStatus.refreshing,
+      status: showRefreshingStatus ? LibraryStatus.refreshing : state.status,
       isLoadingTimeline: true,
       pageErrorMessage: null,
       previousPageErrorMessage: null,
@@ -447,32 +456,43 @@ class LibraryController extends Notifier<LibraryState> {
     );
     try {
       final catalog = ref.read(libraryCatalogProvider);
+      final stableAnchorCatalog = catalog is LibraryStableQueryAnchorCatalog
+          ? catalog as LibraryStableQueryAnchorCatalog
+          : null;
       final anchorCatalog = catalog is LibraryQueryAnchorCatalog
           ? catalog as LibraryQueryAnchorCatalog
           : null;
-      var snapshot = anchorLocationId == null || anchorCatalog == null
-          ? await catalog.load(
-              maxItems: libraryCatalogWindow,
-              query: normalized,
-            )
-          : await anchorCatalog.loadAroundLocation(
-              maxItems: libraryCatalogWindow,
-              query: normalized,
-              anchorLocationId: anchorLocationId,
-            );
+      Future<LibrarySnapshot> loadSnapshot() {
+        if (anchorLocationId != null &&
+            anchorAssetId != null &&
+            stableAnchorCatalog != null) {
+          return stableAnchorCatalog.loadAroundAsset(
+            maxItems: libraryCatalogWindow,
+            query: normalized,
+            requestedLocationId: anchorLocationId,
+            anchorAssetId: anchorAssetId,
+            fallbackGlobalItemIndex: fallbackGlobalItemIndex ?? 0,
+          );
+        }
+        if (anchorLocationId != null && anchorCatalog != null) {
+          return anchorCatalog.loadAroundLocation(
+            maxItems: libraryCatalogWindow,
+            query: normalized,
+            anchorLocationId: anchorLocationId,
+          );
+        }
+        return catalog.load(maxItems: libraryCatalogWindow, query: normalized);
+      }
+
+      var snapshot = await loadSnapshot();
       final timeline = await catalog.loadTimeline(normalized);
+      if (minimumCatalogRevision != null &&
+          snapshot.revision < minimumCatalogRevision) {
+        snapshot = await loadSnapshot();
+      }
       if (snapshot.revision != timeline.revision ||
           snapshot.queryId != timeline.queryId) {
-        snapshot = anchorLocationId == null || anchorCatalog == null
-            ? await catalog.load(
-                maxItems: libraryCatalogWindow,
-                query: normalized,
-              )
-            : await anchorCatalog.loadAroundLocation(
-                maxItems: libraryCatalogWindow,
-                query: normalized,
-                anchorLocationId: anchorLocationId,
-              );
+        snapshot = await loadSnapshot();
         if (snapshot.revision != timeline.revision ||
             snapshot.queryId != timeline.queryId) {
           throw const LibraryCatalogFailure(
@@ -480,6 +500,13 @@ class LibraryController extends Notifier<LibraryState> {
             message: "The catalog changed while its timeline was loading",
           );
         }
+      }
+      if (minimumCatalogRevision != null &&
+          snapshot.revision < minimumCatalogRevision) {
+        throw const LibraryCatalogFailure(
+          code: "catalog_revision_stale",
+          message: "The catalog revision has not reached the requested refresh",
+        );
       }
       if (_isDisposed || requestSequence != _scanSequence) {
         return false;
@@ -527,11 +554,30 @@ class LibraryController extends Notifier<LibraryState> {
         _queryTransitionRequestSequence = null;
         state = baseState.copyWith(
           isLoadingTimeline: false,
-          errorMessage: error.toString(),
+          errorMessage: showRefreshingStatus
+              ? error.toString()
+              : baseState.errorMessage,
         );
       }
       return false;
     }
+  }
+
+  Future<bool> refreshFromSynchronization({
+    required BigInt catalogRevision,
+    String? anchorLocationId,
+    String? anchorAssetId,
+    int? fallbackGlobalItemIndex,
+  }) {
+    return updateQuery(
+      state.query,
+      anchorLocationId: anchorLocationId,
+      anchorAssetId: anchorAssetId,
+      fallbackGlobalItemIndex: fallbackGlobalItemIndex,
+      forceRefresh: true,
+      minimumCatalogRevision: catalogRevision,
+      showRefreshingStatus: false,
+    );
   }
 
   Future<void> loadNextPage() async {

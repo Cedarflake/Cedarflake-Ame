@@ -24,9 +24,10 @@ mod migrations;
 
 use change_queue::{activate_root_change_queue, retire_root_change_queue};
 use gallery::{
-    build_gallery_asset_query, build_gallery_count_query, build_gallery_layout_manifest_query,
-    build_gallery_timeline_query, gallery_cursor_for_asset, resolve_gallery_anchor_cursor,
-    resolve_gallery_location_anchor, validate_gallery_query,
+    GalleryAssetAnchor, build_gallery_asset_query, build_gallery_count_query,
+    build_gallery_layout_manifest_query, build_gallery_timeline_query, gallery_cursor_for_asset,
+    resolve_gallery_anchor_cursor, resolve_gallery_asset_anchor, resolve_gallery_location_anchor,
+    validate_gallery_query,
 };
 use migrations::migrate_schema;
 
@@ -297,6 +298,40 @@ impl CatalogRepository for SqliteCatalog {
                  WHERE locations.location_id = ?1
                  LIMIT 1",
                 [location_id],
+                read_stored_asset,
+            )
+            .optional()
+            .map_err(database_error)?
+            .map(stored_asset_view)
+            .transpose()
+    }
+
+    fn load_active_location_by_asset_id(
+        &self,
+        asset_id: &str,
+        preferred_location_id: Option<&str>,
+    ) -> Result<Option<AssetLocationView>, ScanError> {
+        self.connection
+            .query_row(
+                "SELECT locations.asset_id, locations.location_id, locations.root_id,
+                        locations.absolute_path, locations.relative_path,
+                        locations.preview_path, locations.file_size,
+                        locations.created_unix_ms, locations.modified_unix_ms,
+                        locations.width, locations.height,
+                        locations.preview_status, locations.preview_issue_code,
+                        locations.preview_issue_message, locations.metadata_engine_id,
+                        locations.metadata_engine_version, locations.capture_local_time,
+                        locations.capture_offset_minutes, locations.capture_time_source,
+                        locations.capture_raw_value, locations.file_identity_scheme,
+                        locations.file_identity_value
+                 FROM library_roots AS roots
+                 JOIN asset_locations AS locations
+                   ON locations.scan_id = roots.active_scan_id
+                 WHERE locations.asset_id = ?1
+                 ORDER BY CASE WHEN locations.location_id = ?2 THEN 0 ELSE 1 END,
+                          locations.root_id, locations.location_id
+                 LIMIT 1",
+                params![asset_id, preferred_location_id.unwrap_or_default()],
                 read_stored_asset,
             )
             .optional()
@@ -1563,6 +1598,56 @@ impl CatalogRepository for SqliteCatalog {
         Err(ScanError::new(
             "catalog_cursor_stale",
             "The catalog kept changing while the gallery location anchor was resolved",
+        ))
+    }
+
+    fn load_snapshot_around_asset(
+        &mut self,
+        max_items: u32,
+        query: &GalleryQuery,
+        query_id: &str,
+        requested_location_id: &str,
+        anchor_asset_id: &str,
+        fallback_ordinal: u64,
+    ) -> Result<CatalogSnapshot, ScanError> {
+        if max_items == 0 || max_items > MAX_CATALOG_PAGE_ITEMS {
+            return Err(ScanError::new(
+                "catalog_page_limit_invalid",
+                format!(
+                    "The catalog page limit must be between 1 and {MAX_CATALOG_PAGE_ITEMS} items"
+                ),
+            ));
+        }
+        validate_gallery_query(query)?;
+        for _ in 0..3 {
+            let transaction = self.connection.transaction().map_err(database_error)?;
+            let revision = load_catalog_revision(&transaction)?;
+            let (resolution, predecessor) = resolve_gallery_asset_anchor(
+                &transaction,
+                revision,
+                query,
+                query_id,
+                max_items,
+                GalleryAssetAnchor {
+                    requested_location_id,
+                    asset_id: anchor_asset_id,
+                    fallback_ordinal,
+                },
+            )?;
+            transaction.commit().map_err(database_error)?;
+            match self.load_snapshot(max_items, query, query_id, predecessor.as_ref(), None, None) {
+                Ok(mut snapshot) if snapshot.revision == revision => {
+                    snapshot.query_anchor_resolution = Some(resolution);
+                    return Ok(snapshot);
+                }
+                Ok(_) => continue,
+                Err(error) if error.code == "catalog_cursor_stale" => continue,
+                Err(error) => return Err(error),
+            }
+        }
+        Err(ScanError::new(
+            "catalog_cursor_stale",
+            "The catalog kept changing while the gallery asset anchor was resolved",
         ))
     }
 

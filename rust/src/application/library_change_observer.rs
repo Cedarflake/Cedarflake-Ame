@@ -7,25 +7,26 @@ use crate::domain::{
     LibraryChangeRestartPolicy, LibraryChangeSourceError, LibraryChangeSourceHealth,
     LibraryChangeSourceStopReport, LibraryRootAvailability,
 };
-use crate::ports::{LibraryChangeSource, LibraryChangeSourceFactory, LibraryChangeSourceRequest};
+use crate::ports::{
+    BoxedLibraryChangeSource, LibraryChangeSourceRequest, LibraryChangeSourceStarter,
+};
+#[cfg(test)]
+use crate::ports::{LibraryChangeSourceFactory, erase_library_change_source_factory};
 
 use super::plan_library_changes;
 
 const STOP_TASK_TIMEOUT: Duration = Duration::from_secs(2);
 const HEALTHY_POLLS_BEFORE_RESTART_RESET: u32 = 2;
 
-type StartResult<Source> = Result<Source, LibraryChangeSourceError>;
+type StartResult = Result<BoxedLibraryChangeSource, LibraryChangeSourceError>;
 
-pub(crate) struct LibraryChangeObserver<Factory>
-where
-    Factory: LibraryChangeSourceFactory,
-{
-    factory: Factory,
+pub(crate) struct LibraryChangeObserver {
+    start_source: LibraryChangeSourceStarter,
     request: LibraryChangeSourceRequest,
     limits: LibraryChangePlanningLimits,
     restart_policy: LibraryChangeRestartPolicy,
-    source: Option<Factory::Source>,
-    start_receiver: Option<Receiver<StartResult<Factory::Source>>>,
+    source: Option<BoxedLibraryChangeSource>,
+    start_receiver: Option<Receiver<StartResult>>,
     stop_receiver:
         Option<Receiver<Result<LibraryChangeSourceStopReport, LibraryChangeSourceError>>>,
     source_health: LibraryChangeSourceHealth,
@@ -36,12 +37,29 @@ where
     is_stopped: bool,
 }
 
-impl<Factory> LibraryChangeObserver<Factory>
-where
-    Factory: LibraryChangeSourceFactory,
-{
-    pub(crate) fn start(
+impl LibraryChangeObserver {
+    #[cfg(test)]
+    pub(crate) fn start<Factory>(
         factory: Factory,
+        request: LibraryChangeSourceRequest,
+        limits: LibraryChangePlanningLimits,
+        restart_policy: LibraryChangeRestartPolicy,
+        now_unix_ms: i64,
+    ) -> Result<Self, LibraryChangeSourceError>
+    where
+        Factory: LibraryChangeSourceFactory,
+    {
+        Self::start_erased(
+            erase_library_change_source_factory(factory),
+            request,
+            limits,
+            restart_policy,
+            now_unix_ms,
+        )
+    }
+
+    pub(crate) fn start_erased(
+        start_source: LibraryChangeSourceStarter,
         request: LibraryChangeSourceRequest,
         limits: LibraryChangePlanningLimits,
         restart_policy: LibraryChangeRestartPolicy,
@@ -50,7 +68,7 @@ where
         validate_restart_policy(restart_policy)?;
         validate_planning_limits(limits)?;
         let mut observer = Self {
-            factory,
+            start_source,
             request,
             limits,
             restart_policy,
@@ -202,7 +220,7 @@ where
 
     fn try_start_initial(&mut self, now_unix_ms: i64) -> Result<(), LibraryChangeSourceError> {
         self.source_health = LibraryChangeSourceHealth::Starting;
-        match self.factory.start(&self.request) {
+        match (self.start_source)(&self.request) {
             Ok(source) => {
                 self.source_health = source.health();
                 self.source = Some(source);
@@ -225,13 +243,13 @@ where
     }
 
     fn begin_start_source(&mut self) -> Result<(), LibraryChangeSourceError> {
-        let factory = self.factory.clone();
+        let start_source = self.start_source.clone();
         let request = self.request.clone();
         let (sender, receiver) = sync_channel(1);
         thread::Builder::new()
             .name("ame-change-source-start".to_owned())
             .spawn(move || {
-                let _ = sender.send(factory.start(&request));
+                let _ = sender.send(start_source(&request));
             })
             .map_err(|_| {
                 LibraryChangeSourceError::retryable(

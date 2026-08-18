@@ -77,6 +77,16 @@ impl LibraryChangeQueue for RejectingQueue {
         panic!("metrics are not used by this test")
     }
 
+    fn load_library_change_root_queue_metrics(
+        &self,
+        _root_id: &str,
+        _root_generation: LibraryRootGeneration,
+        _now_unix_ms: i64,
+        _policy: LibraryChangeQueuePolicy,
+    ) -> Result<crate::domain::LibraryChangeQueueMetrics, crate::domain::ScanError> {
+        panic!("root metrics are not used by this test")
+    }
+
     fn cleanup_terminal_library_changes(
         &mut self,
         _terminal_before_unix_ms: i64,

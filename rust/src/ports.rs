@@ -1,4 +1,5 @@
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use crate::domain::{
     AssetLocationView, CatalogCursor, CatalogDeltaBatch, CatalogDeltaPublication, CatalogSnapshot,
@@ -33,13 +34,37 @@ pub trait LibraryChangeSource: Send + 'static {
     fn stop(&mut self) -> Result<LibraryChangeSourceStopReport, LibraryChangeSourceError>;
 }
 
-pub trait LibraryChangeSourceFactory: Clone + Send + 'static {
+#[cfg(test)]
+pub trait LibraryChangeSourceFactory: Clone + Send + Sync + 'static {
     type Source: LibraryChangeSource;
 
     fn start(
         &self,
         request: &LibraryChangeSourceRequest,
     ) -> Result<Self::Source, LibraryChangeSourceError>;
+}
+
+pub(crate) type BoxedLibraryChangeSource = Box<dyn LibraryChangeSource>;
+pub(crate) type LibraryChangeSourceStarter = Arc<
+    dyn Fn(
+            &LibraryChangeSourceRequest,
+        ) -> Result<BoxedLibraryChangeSource, LibraryChangeSourceError>
+        + Send
+        + Sync,
+>;
+
+#[cfg(test)]
+pub(crate) fn erase_library_change_source_factory<Factory>(
+    factory: Factory,
+) -> LibraryChangeSourceStarter
+where
+    Factory: LibraryChangeSourceFactory,
+{
+    Arc::new(move |request| {
+        factory
+            .start(request)
+            .map(|source| Box::new(source) as BoxedLibraryChangeSource)
+    })
 }
 
 pub trait LibraryChangeQueue {
@@ -89,6 +114,13 @@ pub trait LibraryChangeQueue {
         now_unix_ms: i64,
         policy: LibraryChangeQueuePolicy,
     ) -> Result<LibraryChangeQueueMetrics, ScanError>;
+    fn load_library_change_root_queue_metrics(
+        &self,
+        root_id: &str,
+        root_generation: LibraryRootGeneration,
+        now_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<LibraryChangeQueueMetrics, ScanError>;
     fn cleanup_terminal_library_changes(
         &mut self,
         terminal_before_unix_ms: i64,
@@ -97,6 +129,7 @@ pub trait LibraryChangeQueue {
 }
 
 pub trait IncrementalCatalogRepository {
+    fn load_incremental_catalog_roots(&self) -> Result<Vec<IncrementalCatalogRoot>, ScanError>;
     fn load_incremental_catalog_root(
         &self,
         root_id: &str,
@@ -133,6 +166,11 @@ pub trait CatalogRepository {
     fn load_active_location(
         &self,
         location_id: &str,
+    ) -> Result<Option<AssetLocationView>, ScanError>;
+    fn load_active_location_by_asset_id(
+        &self,
+        asset_id: &str,
+        preferred_location_id: Option<&str>,
     ) -> Result<Option<AssetLocationView>, ScanError>;
     fn stage_location(
         &mut self,
@@ -258,6 +296,15 @@ pub trait CatalogRepository {
         query: &GalleryQuery,
         query_id: &str,
         anchor_location_id: &str,
+    ) -> Result<CatalogSnapshot, ScanError>;
+    fn load_snapshot_around_asset(
+        &mut self,
+        max_items: u32,
+        query: &GalleryQuery,
+        query_id: &str,
+        requested_location_id: &str,
+        anchor_asset_id: &str,
+        fallback_ordinal: u64,
     ) -> Result<CatalogSnapshot, ScanError>;
     fn load_gallery_timeline(
         &mut self,

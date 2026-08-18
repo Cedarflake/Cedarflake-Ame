@@ -1303,8 +1303,11 @@ R2c-E - production UI and lifecycle:
 - preserve active source, filters, selection, preview, and gallery scroll anchor through a bounded
   refresh.
 
-R2c-E is complete only after the real user path works end to end without a permanent task entry or
-manual re-import.
+R2c-E is complete. `docs/acceptance/r2c-e-production-ui-lifecycle.md` records production observer
+start and stop, bounded root freshness snapshots, live path publication, stable-asset gallery refresh,
+selection and viewer continuity, Chinese source status, idempotent bounded shutdown, bridge generation,
+complete Daily, and Windows release evidence. The real user path no longer requires a permanent task
+entry or manual re-import for ordinary supported path changes.
 
 R2c-F - recovery and consistency:
 
@@ -1704,9 +1707,9 @@ may serve as benchmarks or fallbacks but are not automatically preferred over ma
 
 Active stage: **R2c - continuous directory synchronization and incremental indexing**
 
-Active slice: **R2c-E - production UI and lifecycle**. R2c-A contracts, R2c-B live Windows
-observation, R2c-C durable queue and coalescing, and R2c-D incremental delta publication are
-complete.
+Active slice: **R2c-F - recovery and consistency**. R2c-A contracts, R2c-B live Windows
+observation, R2c-C durable queue and coalescing, R2c-D incremental delta publication, and R2c-E
+production UI and lifecycle are complete.
 
 Planned next stage: **R3 - exact duplicate evidence**, still blocked behind R2c catalog-freshness
 acceptance.
@@ -1884,9 +1887,21 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   compatibility, and controlled source-byte preservation. The 2026-08-18 Daily passed 270 Rust
   tests with five
   existing intentional ignores, all Flutter tests, both Windows integrations, bridge
-  compatibility, formatting, and whitespace. Production Flutter synchronization lifecycle,
-  authoritative subtree/root recovery, catch-up, and real-library event acceptance remain later
-  R2c slices.
+  compatibility, formatting, and whitespace. Authoritative subtree/root recovery, catch-up, and
+  real-library event acceptance remain later R2c slices.
+- R2c-E is complete and audit-hardened. The production desktop lifecycle starts and stops one Rust
+  synchronization runtime, retains drained observer evidence until durable enqueue succeeds, and
+  marks cold-start or recovered roots as needing authoritative reconciliation before claiming
+  freshness. Flutter consumes a revision already published before screen construction, projects
+  bounded Chinese root states, refreshes only published revisions, and
+  preserves source scope, filters, selection, preview demand, stable asset identity, preferred
+  location, await-safe viewer continuity, and the nearest surviving ordinal. A bridge failure before root
+  metrics shows `需要核对`, and desktop destruction remains bounded after coordinated shutdown.
+  Eight runtime tests, preferred-location and ordinal SQLite fixtures, and production screen tests
+  cover enqueue rollback, continuity gaps, rename, removal, and timeout behavior. The 2026-08-18
+  Daily passed 283 Rust tests with five existing intentional ignores, all Flutter tests, both
+  Windows integrations, bridge compatibility, formatting, and whitespace; the Windows Release gate
+  passed both packaged bridge smoke tests. Authoritative recovery remains R2c-F.
 - The current R2b closeout working tree passed the complete local Daily gate and Windows Release
   gate on 2026-08-12, including packaged Rust-library loading and the release bridge smoke test.
   This is current-stage evidence, not a release candidate or completion of R10.

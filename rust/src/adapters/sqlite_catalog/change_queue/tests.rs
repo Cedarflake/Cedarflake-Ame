@@ -797,6 +797,57 @@ fn parent_subtree_supersedes_unleased_child_work() {
 }
 
 #[test]
+fn root_metrics_are_isolated_from_other_roots() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let generation = LibraryRootGeneration::initial();
+    let policy = immediate_policy();
+    let mut catalog = queue_catalog(path);
+    let transaction = catalog.connection.transaction().expect("root transaction");
+    transaction
+        .execute(
+            "INSERT INTO library_roots(id, path, created_unix_ms)
+             VALUES ('root-b', 'C:\\Other', 1)",
+            [],
+        )
+        .expect("register root-b");
+    let other_generation =
+        activate_root_change_queue(&transaction, "root-b", 1).expect("root-b generation authority");
+    transaction.commit().expect("commit root-b registration");
+    assert_eq!(other_generation, generation);
+    catalog
+        .enqueue_library_change_intents(
+            &[path_intent("root-a", generation, 1, 1_000, "a.jpg")],
+            1_000,
+            policy,
+        )
+        .expect("enqueue root-a change");
+    let second_report = catalog
+        .enqueue_library_change_intents(
+            &[path_intent("root-b", generation, 1, 1_000, "b.jpg")],
+            1_000,
+            policy,
+        )
+        .expect("enqueue root-b change");
+    assert_eq!(second_report.inserted_count, 1);
+    assert_eq!(second_report.stale_generation_count, 0);
+
+    let root_metrics = catalog
+        .load_library_change_root_queue_metrics("root-a", generation, 1_000, policy)
+        .expect("root metrics");
+    let other_root_metrics = catalog
+        .load_library_change_root_queue_metrics("root-b", generation, 1_000, policy)
+        .expect("other root metrics");
+    let global_metrics = catalog
+        .load_library_change_queue_metrics(1_000, policy)
+        .expect("global metrics");
+
+    assert_eq!(root_metrics.pending_count, 1);
+    assert_eq!(other_root_metrics.pending_count, 1);
+    assert_eq!(global_metrics.pending_count, 2);
+}
+
+#[test]
 fn adapter_rejects_non_normalized_intents_before_persistence() {
     let directory = tempdir().expect("temporary directory");
     let path = directory.path().join("catalog.sqlite3");

@@ -4,7 +4,7 @@
 use std::path::PathBuf;
 
 #[cfg(windows)]
-use crate::adapters::WindowsLibraryChangeSourceFactory;
+use crate::adapters::production_library_change_source_factory;
 #[cfg(windows)]
 use crate::application::LibraryChangeObserver;
 #[cfg(windows)]
@@ -37,7 +37,7 @@ pub use crate::ports::{IncrementalCatalogRepository, LibraryChangeQueue};
 
 #[cfg(windows)]
 pub struct WindowsLibraryChangeObserver {
-    inner: LibraryChangeObserver<WindowsLibraryChangeSourceFactory>,
+    inner: LibraryChangeObserver,
 }
 
 #[cfg(windows)]
@@ -51,8 +51,8 @@ impl WindowsLibraryChangeObserver {
         restart_policy: LibraryChangeRestartPolicy,
         now_unix_ms: i64,
     ) -> Result<Self, LibraryChangeSourceError> {
-        let inner = LibraryChangeObserver::start(
-            WindowsLibraryChangeSourceFactory,
+        let inner = LibraryChangeObserver::start_erased(
+            production_library_change_source_factory(),
             LibraryChangeSourceRequest {
                 root_id,
                 root_generation,
