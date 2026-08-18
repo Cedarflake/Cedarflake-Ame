@@ -69,7 +69,8 @@ When the bounded set is exceeded, the worker restores the lease to pending and r
 request. Production starts bounded work only for an authoritative queue row that is currently due;
 future and exhausted retry rows remain projected without creating an empty worker every poll.
 Production runs at most one recovery scan at a time on a background thread. Failures use a per-root
-exponential retry from one second to five minutes; another root is not delayed by that state.
+exponential retry from one second to five minutes; a bounded re-escalation preserves that failure
+history until recovery succeeds, and another root is not delayed by that state.
 Shutdown requests cancellation and keeps the desktop close path bounded. If that bound expires,
 the runtime retains the worker handle in an explicit stopping state and rejects restart until a
 later join proves the old worker ended.

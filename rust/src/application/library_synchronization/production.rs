@@ -308,9 +308,10 @@ impl ProductionSynchronization {
         self.recovery = None;
         match result {
             Ok(RecoveryTaskOutcome::Authoritative(report)) => {
-                self.recovery_retries.remove(&root_id);
                 if let Some(request) = report.full_scan {
                     self.runtime.record_full_scan_request(request);
+                } else {
+                    self.recovery_retries.remove(&root_id);
                 }
                 Ok(report.incremental.applied_mutation_count)
             }
@@ -608,6 +609,105 @@ mod tests {
             retry.next_attempt_unix_ms,
             2_000 + RECOVERY_RETRY_MAXIMUM_MILLIS
         );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn full_scan_reescalation_preserves_retry_history_by_root() {
+        let factory = crate::adapters::production_library_change_source_factory();
+        let mut production = ProductionSynchronization {
+            runtime: LibrarySynchronizationRuntime::new_erased(factory),
+            recovery: None,
+            recovery_retries: BTreeMap::new(),
+            recoverable_scan_cursor: None,
+            is_stopping: false,
+        };
+        production.record_recovery_failure("root-b", 5_000);
+        let root_b_retry = production.recovery_retries["root-b"];
+
+        let (sender, receiver) = mpsc::sync_channel(1);
+        sender
+            .send(Err(ScanError::new(
+                "authoritative_recovery_stale",
+                "The first full scan could not publish",
+            )))
+            .expect("first full scan failure result");
+        production.recovery = Some(RecoveryTask {
+            root_id: "root-a".to_owned(),
+            kind: RecoveryTaskKind::FullScan {
+                scan_id: "sync-recovery-a-1".to_owned(),
+            },
+            cancelled: Arc::new(AtomicBool::new(false)),
+            receiver,
+            worker: None,
+        });
+        production
+            .poll_recovery(1_000)
+            .expect("first failed full scan is recorded");
+        assert_eq!(
+            production.recovery_retries["root-a"],
+            RecoveryRetryState {
+                failure_count: 1,
+                next_attempt_unix_ms: 2_000,
+            }
+        );
+
+        let (sender, receiver) = mpsc::sync_channel(1);
+        sender
+            .send(Ok(RecoveryTaskOutcome::Authoritative(
+                AuthoritativeLibraryChangeReport {
+                    full_scan: Some(crate::application::FullScanRecoveryRequest {
+                        root_id: "root-a".to_owned(),
+                        root_path: "C:\\RecoveryA".to_owned(),
+                        root_generation: crate::domain::LibraryRootGeneration::initial(),
+                        queue_high_watermark: crate::domain::LibraryChangeId::new(1)
+                            .expect("queue high watermark"),
+                    }),
+                    ..AuthoritativeLibraryChangeReport::default()
+                },
+            )))
+            .expect("bounded escalation result");
+        production.recovery = Some(RecoveryTask {
+            root_id: "root-a".to_owned(),
+            kind: RecoveryTaskKind::Authoritative,
+            cancelled: Arc::new(AtomicBool::new(false)),
+            receiver,
+            worker: None,
+        });
+
+        production
+            .poll_recovery(2_000)
+            .expect("bounded recovery escalation");
+        assert_eq!(production.recovery_retries["root-a"].failure_count, 1);
+
+        let (sender, receiver) = mpsc::sync_channel(1);
+        sender
+            .send(Err(ScanError::new(
+                "authoritative_recovery_stale",
+                "The full scan could not publish",
+            )))
+            .expect("full scan failure result");
+        production.recovery = Some(RecoveryTask {
+            root_id: "root-a".to_owned(),
+            kind: RecoveryTaskKind::FullScan {
+                scan_id: "sync-recovery-a-2".to_owned(),
+            },
+            cancelled: Arc::new(AtomicBool::new(false)),
+            receiver,
+            worker: None,
+        });
+
+        production
+            .poll_recovery(2_000)
+            .expect("failed full scan is recorded");
+        assert_eq!(
+            production.recovery_retries["root-a"],
+            RecoveryRetryState {
+                failure_count: 2,
+                next_attempt_unix_ms: 4_000,
+            }
+        );
+        assert_eq!(production.recovery_retries["root-b"], root_b_retry);
     }
 
     #[cfg(windows)]

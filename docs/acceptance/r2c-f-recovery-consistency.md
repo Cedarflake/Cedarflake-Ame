@@ -35,7 +35,7 @@ The controlled fixtures prove:
 | Scan lifecycle owner | Prevent production and Flutter from concurrently resuming one scan ID |
 | Multi-root recovery | Rotate a bounded cursor across every authoritative recoverable scan |
 | Schema v18 | Migrate v17 atomically, repair unambiguous draft ownership, and fail closed on conflicts |
-| Recovery retry | Apply bounded exponential retry per root without blocking another root |
+| Recovery retry | Preserve bounded exponential retry across re-escalation without blocking another root |
 | Retry scheduling | Start workers only for currently due authoritative work |
 | Consistency audit | Persist completion time and never project synchronized before publication |
 | Watcher restart | Keep the continuity gap unresolved until a restarted observer is healthy |
@@ -68,10 +68,10 @@ cargo test authoritative_full_scan_with_new_placeholder_remains_stale_without_ad
 1 passed; 0 failed
 
 cargo test application::library_synchronization::production::tests --all-features -- --nocapture
-5 passed; 0 failed
+6 passed; 0 failed
 
 cargo test --all-targets --all-features
-317 total; 312 passed; 0 failed; 5 explicit ignores
+318 total; 313 passed; 0 failed; 5 explicit ignores
 ```
 
 No authorization-bound source root is required or accessed by these fixtures.
@@ -86,7 +86,7 @@ No authorization-bound source root is required or accessed by these fixtures.
 release guardrails, format, Clippy with warnings denied, and Dart analysis: passed
 
 ./tool/quality_verify_daily.ps1
-Rust: 317 total; 312 passed; 0 failed; 5 existing explicit ignores
+Rust: 318 total; 313 passed; 0 failed; 5 existing explicit ignores
 Flutter: all test files passed
 Windows controlled picker and scan integration: 2 passed
 Windows native accessibility integration: 2 passed
@@ -112,11 +112,11 @@ process was terminated.
 
 The first dedicated PR audit returned `REQUEST CHANGES` with four High, one Medium, and one Low
 finding. Its first re-audit confirmed those paths closed, then returned two High, three Medium, and
-one Low follow-up finding. The current working tree additionally keeps new full-scan issues stale,
-preserves healthy legacy location identity, separates foreground and authoritative recoverable
-scans, rotates across multiple recovery roots, retains timed-out worker ownership, and schedules
-only due authoritative work. Final independent re-audit of the committed head remains required
-before merge.
+one Low follow-up finding. The next re-audit confirmed those paths closed and found one Medium retry
+state issue. The current working tree also preserves per-root full-scan failure history across
+bounded re-escalation, so repeated failures continue toward the five-minute ceiling while another
+root remains independent. Final independent re-audit of the committed head remains required before
+merge.
 
 ## Remaining boundary
 
