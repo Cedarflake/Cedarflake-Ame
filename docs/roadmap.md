@@ -1315,6 +1315,12 @@ R2c-F - recovery and consistency:
 - implement the escalation ladder and low-frequency audit;
 - prove that recovery does not publish mass false removals or claim health early.
 
+Status: **implementation complete and under final validation on 2026-08-18**. ADR 0021 owns the
+bounded authoritative subtree/root worker, schema v18 full-scan generation and queue-watermark
+coordination, previous-snapshot preservation, background escalation, bounded retry, and
+low-frequency consistency audit. `docs/acceptance/r2c-f-recovery-consistency.md` records controlled
+fixtures and will record the complete gates and independent PR audit before this slice is merged.
+
 R2c-G - USN downtime catch-up:
 
 - accept a focused ADR;
@@ -1709,7 +1715,8 @@ Active stage: **R2c - continuous directory synchronization and incremental index
 
 Active slice: **R2c-F - recovery and consistency**. R2c-A contracts, R2c-B live Windows
 observation, R2c-C durable queue and coalescing, R2c-D incremental delta publication, and R2c-E
-production UI and lifecycle are complete.
+production UI and lifecycle are complete. R2c-F implementation is under final repository validation
+and independent audit; its completion status is not claimed until those gates pass.
 
 Planned next stage: **R3 - exact duplicate evidence**, still blocked behind R2c catalog-freshness
 acceptance.
@@ -1902,6 +1909,18 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   Daily passed 283 Rust tests with five existing intentional ignores, all Flutter tests, both
   Windows integrations, bridge compatibility, formatting, and whitespace; the Windows Release gate
   passed both packaged bridge smoke tests. Authoritative recovery remains R2c-F.
+- R2c-F implementation is under final validation. The application leases one bounded authoritative
+  subtree, root, or freshness-gap row, enumerates no more than 4,096 entries and 128 affected paths,
+  and publishes the complete retain/add/change/move/remove set at one catalog revision. Oversized
+  work remains durable and escalates to the existing resumable full scanner. Schema v18 captures the
+  root generation and unresolved queue high watermark when a scan begins, freezes only pre-watermark
+  work for that scan without consuming retry attempts, preserves later evidence, and releases only
+  its own rows on abandonment. It normalizes historical relative paths, persists a fail-closed
+  previous-snapshot requirement for unreadable rescans, and records authoritative audit completion.
+  Production recovery runs one background scan with bounded per-root retry, while the seven-day
+  consistency audit cannot project freshness before publication. Controlled fixtures do not access
+  a real library; complete Daily, Windows Release, and independent-audit evidence remains required
+  before this bullet is promoted to complete.
 - The current R2b closeout working tree passed the complete local Daily gate and Windows Release
   gate on 2026-08-12, including packaged Rust-library loading and the release bridge smoke test.
   This is current-stage evidence, not a release candidate or completion of R10.

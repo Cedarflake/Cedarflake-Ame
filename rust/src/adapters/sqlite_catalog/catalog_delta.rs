@@ -29,7 +29,7 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                           SELECT 1 FROM scan_runs AS running
                           WHERE running.root_id = roots.id
                             AND running.status IN ('running', 'paused')
-                        ), catalog.revision
+                        ), catalog.revision, state.last_consistency_audit_unix_ms
                  FROM library_roots AS roots
                  JOIN library_change_root_state AS state ON state.root_id = roots.id
                  CROSS JOIN catalog_state AS catalog
@@ -46,13 +46,21 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                     row.get::<_, i64>(3)?,
                     row.get::<_, bool>(4)?,
                     row.get::<_, i64>(5)?,
+                    row.get::<_, Option<i64>>(6)?,
                 ))
             })
             .map_err(database_error)?;
         let mut roots = Vec::new();
         for row in rows {
-            let (root_id, root_path, active_scan_id, generation, has_running_scan, revision) =
-                row.map_err(database_error)?;
+            let (
+                root_id,
+                root_path,
+                active_scan_id,
+                generation,
+                has_running_scan,
+                revision,
+                last_consistency_audit_unix_ms,
+            ) = row.map_err(database_error)?;
             let generation = sqlite_unsigned(generation, "root generation")?;
             let root_generation = LibraryRootGeneration::new(generation).ok_or_else(|| {
                 ScanError::new(
@@ -67,6 +75,7 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                 active_scan_id,
                 has_running_scan,
                 catalog_revision: sqlite_unsigned(revision, "catalog revision")?,
+                last_consistency_audit_unix_ms,
             });
         }
         Ok(roots)
@@ -85,7 +94,7 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                           SELECT 1 FROM scan_runs AS running
                           WHERE running.root_id = roots.id
                             AND running.status IN ('running', 'paused')
-                        ), catalog.revision
+                        ), catalog.revision, state.last_consistency_audit_unix_ms
                  FROM library_roots AS roots
                  JOIN library_change_root_state AS state ON state.root_id = roots.id
                  CROSS JOIN catalog_state AS catalog
@@ -99,13 +108,21 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                         row.get::<_, bool>(3)?,
                         row.get::<_, bool>(4)?,
                         row.get::<_, i64>(5)?,
+                        row.get::<_, Option<i64>>(6)?,
                     ))
                 },
             )
             .optional()
             .map_err(database_error)?;
-        let Some((root_path, active_scan_id, generation, is_active, has_running_scan, revision)) =
-            stored
+        let Some((
+            root_path,
+            active_scan_id,
+            generation,
+            is_active,
+            has_running_scan,
+            revision,
+            last_consistency_audit_unix_ms,
+        )) = stored
         else {
             return Ok(None);
         };
@@ -126,6 +143,7 @@ impl IncrementalCatalogRepository for SqliteCatalog {
             active_scan_id,
             has_running_scan,
             catalog_revision: sqlite_unsigned(revision, "catalog revision")?,
+            last_consistency_audit_unix_ms,
         }))
     }
 
@@ -167,6 +185,59 @@ impl IncrementalCatalogRepository for SqliteCatalog {
             "locations.file_identity_scheme = ?1 AND locations.file_identity_value = ?2",
             params![identity.scheme, identity.value],
         )
+    }
+
+    fn load_incremental_locations_in_subtree(
+        &self,
+        root_id: &str,
+        relative_subtree: &str,
+        limit: u32,
+    ) -> Result<Vec<AssetLocationView>, ScanError> {
+        validate_root_id(root_id)?;
+        if relative_subtree.contains('\0') || limit == 0 || limit > 257 {
+            return Err(ScanError::new(
+                "catalog_subtree_window_invalid",
+                "An authoritative catalog subtree window must be non-empty and bounded",
+            ));
+        }
+        let mut statement = self
+            .connection
+            .prepare(
+                "SELECT locations.asset_id, locations.location_id, locations.root_id,
+                        locations.absolute_path, locations.relative_path,
+                        locations.preview_path, locations.file_size,
+                        locations.created_unix_ms, locations.modified_unix_ms,
+                        locations.width, locations.height,
+                        locations.preview_status, locations.preview_issue_code,
+                        locations.preview_issue_message, locations.metadata_engine_id,
+                        locations.metadata_engine_version, locations.capture_local_time,
+                        locations.capture_offset_minutes, locations.capture_time_source,
+                        locations.capture_raw_value, locations.file_identity_scheme,
+                        locations.file_identity_value
+                 FROM library_roots AS roots
+                 JOIN asset_locations AS locations ON locations.scan_id = roots.active_scan_id
+                 WHERE locations.root_id = ?1
+                   AND (
+                     ?2 = ''
+                     OR locations.relative_path = ?2 COLLATE NOCASE
+                     OR substr(locations.relative_path, 1, length(?2) + 1)
+                          = (?2 || '/') COLLATE NOCASE
+                   )
+                 ORDER BY locations.relative_path COLLATE NOCASE, locations.location_id
+                 LIMIT ?3",
+            )
+            .map_err(database_error)?;
+        let rows = statement
+            .query_map(
+                params![root_id, relative_subtree, i64::from(limit)],
+                read_stored_asset,
+            )
+            .map_err(database_error)?;
+        let mut locations = Vec::new();
+        for row in rows {
+            locations.push(stored_asset_view(row.map_err(database_error)?)?);
+        }
+        Ok(locations)
     }
 
     fn publish_catalog_delta(
@@ -253,10 +324,11 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                 current_revision,
             ));
         }
+        let mut completed_root_authority = false;
         for completion in &batch.completions {
             let leased = transaction
                 .query_row(
-                    "SELECT status, lease_generation, root_id, root_generation
+                    "SELECT status, lease_generation, root_id, root_generation, scope
                      FROM library_change_queue WHERE id = ?1",
                     [sqlite_integer(completion.change_id.value(), "change ID")?],
                     |row| {
@@ -265,12 +337,13 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                             row.get::<_, i64>(1)?,
                             row.get::<_, String>(2)?,
                             row.get::<_, i64>(3)?,
+                            row.get::<_, String>(4)?,
                         ))
                     },
                 )
                 .optional()
                 .map_err(database_error)?;
-            let Some((status, lease_generation, root_id, root_generation)) = leased else {
+            let Some((status, lease_generation, root_id, root_generation, scope)) = leased else {
                 return Ok(publication(
                     CatalogDeltaPublicationStatus::StaleLease,
                     current_revision,
@@ -288,6 +361,7 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                     current_revision,
                 ));
             }
+            completed_root_authority |= scope == "root";
         }
 
         for mutation in &batch.mutations {
@@ -473,6 +547,20 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                     "A library change lease changed while its catalog delta was publishing",
                 ));
             }
+        }
+        if completed_root_authority {
+            transaction
+                .execute(
+                    "UPDATE library_change_root_state
+                     SET last_consistency_audit_unix_ms = ?2, updated_unix_ms = ?2
+                     WHERE root_id = ?1 AND generation = ?3 AND is_active = 1",
+                    params![
+                        batch.root_id,
+                        completed_unix_ms,
+                        sqlite_integer(batch.root_generation.value(), "root generation")?,
+                    ],
+                )
+                .map_err(database_error)?;
         }
         transaction.commit().map_err(database_error)?;
         Ok(CatalogDeltaPublication {

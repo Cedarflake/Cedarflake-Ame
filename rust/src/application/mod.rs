@@ -1,3 +1,4 @@
+mod authoritative_library_changes;
 mod directory_synchronization;
 mod incremental_library_changes;
 mod library_change_observer;
@@ -14,6 +15,10 @@ mod preview_recovery;
 mod scan_library;
 mod storage;
 
+pub(crate) use authoritative_library_changes::{
+    AuthoritativeRecoveryPolicy, FullScanRecoveryRequest,
+    process_ready_authoritative_library_change,
+};
 pub use directory_synchronization::{plan_library_changes, reconcile_path_evidence};
 pub use incremental_library_changes::process_ready_library_changes;
 pub(crate) use library_change_observer::LibraryChangeObserver;

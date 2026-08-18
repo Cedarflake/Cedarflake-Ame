@@ -1823,10 +1823,11 @@ fn persists_and_validates_a_recoverable_scan_checkpoint() {
         .expect("begin scan");
     assert_eq!(initial.visited_entries, 0);
     let checkpoint = ScanCheckpoint {
-        last_visited_relative_path: Some("nested\\last.png".to_owned()),
+        last_visited_relative_path: Some("nested/last.png".to_owned()),
         visited_entries: 128,
         accepted_items: 40,
         issue_count: 3,
+        requires_previous_snapshot: true,
     };
     catalog
         .checkpoint_scan("scan-resume", &checkpoint)
@@ -1850,6 +1851,14 @@ fn persists_and_validates_a_recoverable_scan_checkpoint() {
     assert_eq!(
         resumed.last_visited_relative_path,
         checkpoint.last_visited_relative_path
+    );
+    assert!(resumed.requires_previous_snapshot);
+    let publish_error = restored
+        .publish_scan("scan-resume", "root-resume", 40, 3)
+        .expect_err("an unresolved prior issue cannot publish");
+    assert_eq!(
+        publish_error.code,
+        "catalog_scan_requires_previous_snapshot"
     );
 
     let mut changed_request = request.clone();

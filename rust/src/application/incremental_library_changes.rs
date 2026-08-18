@@ -159,6 +159,156 @@ where
     Ok(report)
 }
 
+pub(super) struct AuthoritativePathSetRequest<'a> {
+    pub root_id: &'a str,
+    pub root_generation: LibraryRootGeneration,
+    pub expected_catalog_revision: u64,
+    pub leased: &'a LeasedLibraryChange,
+    pub relative_paths: &'a [String],
+    pub now_unix_ms: i64,
+    pub queue_policy: LibraryChangeQueuePolicy,
+}
+
+pub(super) fn process_authoritative_path_set<Repository>(
+    repository: &mut Repository,
+    request: AuthoritativePathSetRequest<'_>,
+) -> Result<IncrementalLibraryChangeReport, ScanError>
+where
+    Repository: IncrementalCatalogRepository + LibraryChangeQueue,
+{
+    validate_request(request.root_id, request.queue_policy)?;
+    let discovery = match repository.load_incremental_catalog_root(request.root_id)? {
+        Some(root)
+            if root.root_generation == request.root_generation
+                && root.active_scan_id.is_some()
+                && !root.has_running_scan =>
+        {
+            FileDiscovery::new(&root.root_path)?
+        }
+        _ => {
+            let mut report = IncrementalLibraryChangeReport {
+                leased_count: 1,
+                catalog_revision: request.expected_catalog_revision,
+                ..IncrementalLibraryChangeReport::default()
+            };
+            defer_leased_change(repository, request.leased, request.now_unix_ms, &mut report)?;
+            return Ok(report);
+        }
+    };
+    let inspector = LocalMediaInspector::new();
+    let mut combined = PreparedChange {
+        completion: LibraryChangeCompletion {
+            change_id: request.leased.change.id,
+            lease_generation: request.leased.lease_generation,
+            issue: None,
+        },
+        mutations: Vec::new(),
+        revalidation: Vec::new(),
+    };
+    for relative_path in request.relative_paths {
+        let prepared = match prepare_path_change(
+            repository,
+            &discovery,
+            &inspector,
+            request.leased,
+            PathChangeContext {
+                relative_path,
+                observed: None,
+                candidate_prior: None,
+                may_remove_candidate_prior: false,
+                removals: Vec::new(),
+            },
+        ) {
+            Ok(prepared) => prepared,
+            Err(issue) => {
+                let mut report = IncrementalLibraryChangeReport {
+                    leased_count: 1,
+                    catalog_revision: request.expected_catalog_revision,
+                    ..IncrementalLibraryChangeReport::default()
+                };
+                retry_changes(
+                    repository,
+                    std::slice::from_ref(request.leased),
+                    &issue,
+                    request.now_unix_ms,
+                    request.queue_policy,
+                    &mut report,
+                )?;
+                return Ok(report);
+            }
+        };
+        if combined.completion.issue.is_none() {
+            combined.completion.issue = prepared.completion.issue;
+        }
+        combined.mutations.extend(prepared.mutations);
+        combined.revalidation.extend(prepared.revalidation);
+    }
+    let mut report = IncrementalLibraryChangeReport {
+        leased_count: 1,
+        catalog_revision: request.expected_catalog_revision,
+        ..IncrementalLibraryChangeReport::default()
+    };
+    if let Err(issue) = revalidate_change(&discovery, &combined) {
+        retry_changes(
+            repository,
+            std::slice::from_ref(request.leased),
+            &issue,
+            request.now_unix_ms,
+            request.queue_policy,
+            &mut report,
+        )?;
+        return Ok(report);
+    }
+    let batch = CatalogDeltaBatch {
+        root_id: request.root_id.to_owned(),
+        root_generation: request.root_generation,
+        expected_catalog_revision: request.expected_catalog_revision,
+        mutations: combined.mutations.clone(),
+        completions: vec![combined.completion.clone()],
+    };
+    let publication = repository.publish_catalog_delta(&batch, request.now_unix_ms)?;
+    report.catalog_revision = publication.catalog_revision;
+    match publication.status {
+        CatalogDeltaPublicationStatus::Applied => {
+            report.completed_count = publication.completed_change_count;
+            report.applied_mutation_count = publication.applied_mutation_count;
+        }
+        CatalogDeltaPublicationStatus::RootScanInProgress
+        | CatalogDeltaPublicationStatus::NoPublishedCatalog => {
+            defer_changes(repository, &[combined], request.now_unix_ms, &mut report)?;
+        }
+        status => {
+            retry_changes(
+                repository,
+                std::slice::from_ref(request.leased),
+                &publication_failure(status),
+                request.now_unix_ms,
+                request.queue_policy,
+                &mut report,
+            )?;
+        }
+    }
+    Ok(report)
+}
+
+fn defer_leased_change<Repository>(
+    repository: &mut Repository,
+    leased: &LeasedLibraryChange,
+    now_unix_ms: i64,
+    report: &mut IncrementalLibraryChangeReport,
+) -> Result<(), ScanError>
+where
+    Repository: LibraryChangeQueue,
+{
+    match repository.defer_library_change(leased.change.id, leased.lease_generation, now_unix_ms)? {
+        LibraryChangeLeaseUpdateOutcome::Applied => report.deferred_count = 1,
+        LibraryChangeLeaseUpdateOutcome::Superseded
+        | LibraryChangeLeaseUpdateOutcome::LeaseMismatch
+        | LibraryChangeLeaseUpdateOutcome::Missing => report.superseded_count = 1,
+    }
+    Ok(())
+}
+
 fn prepare_change<Repository>(
     repository: &Repository,
     discovery: &FileDiscovery,

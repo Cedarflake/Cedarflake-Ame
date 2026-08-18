@@ -2088,6 +2088,7 @@ fn missing_checkpoint_position_marks_recovery_stale() {
                 visited_entries: 2,
                 accepted_items: 1,
                 issue_count: 0,
+                requires_previous_snapshot: false,
             },
         )
         .expect("checkpoint");
@@ -2245,4 +2246,66 @@ fn missing_source_marks_scan_stale_instead_of_publishing() {
         )
         .expect("active scan state");
     assert_eq!(active_scan, None);
+}
+
+#[test]
+fn corrupt_rescan_preserves_the_last_trustworthy_published_location() {
+    let source = tempdir().expect("source directory");
+    let storage = tempdir().expect("storage directory");
+    let source_path = source.path().join("retained.png");
+    RgbaImage::from_pixel(8, 6, Rgba([20, 40, 60, 255]))
+        .save(&source_path)
+        .expect("fixture image");
+    let storage_paths = StoragePaths {
+        catalog_path: storage.path().join("catalog.sqlite3"),
+        preview_root: storage.path().join("previews"),
+        preview_budget_bytes: 64 * 1024 * 1024,
+        settings_path: storage.path().join("settings.sqlite3"),
+    };
+    run_scan_with_storage(
+        ScanRequest {
+            scan_id: "trustworthy-initial-scan".to_owned(),
+            root_path: source.path().to_string_lossy().into_owned(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+        |_| true,
+        storage_paths.clone(),
+    )
+    .expect("initial scan");
+    let before = load_test_snapshot(&storage_paths);
+    let before_asset = before.assets.first().expect("published asset").clone();
+    let corrupt_bytes = b"not a decodable image";
+    fs::write(&source_path, corrupt_bytes).expect("controlled corruption");
+    let mut events = Vec::new();
+
+    run_scan_with_storage(
+        ScanRequest {
+            scan_id: "trustworthy-corrupt-rescan".to_owned(),
+            root_path: source.path().to_string_lossy().into_owned(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+        |event| {
+            events.push(event);
+            true
+        },
+        storage_paths.clone(),
+    )
+    .expect("corrupt rescan remains recoverable");
+
+    let after = load_test_snapshot(&storage_paths);
+    let after_asset = after.assets.first().expect("retained asset");
+    assert!(matches!(events.last(), Some(ScanEvent::Stale { .. })));
+    assert_eq!(after.revision, before.revision);
+    assert_eq!(after.assets.len(), 1);
+    assert_eq!(after_asset.asset_id, before_asset.asset_id);
+    assert_eq!(after_asset.width, before_asset.width);
+    assert_eq!(after_asset.height, before_asset.height);
+    assert_eq!(
+        fs::read(&source_path).expect("corrupt source bytes"),
+        corrupt_bytes
+    );
 }

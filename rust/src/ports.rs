@@ -88,6 +88,13 @@ pub trait LibraryChangeQueue {
         now_unix_ms: i64,
         policy: LibraryChangeQueuePolicy,
     ) -> Result<Vec<LeasedLibraryChange>, ScanError>;
+    fn lease_authoritative_library_change(
+        &mut self,
+        root_id: &str,
+        root_generation: LibraryRootGeneration,
+        now_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<Option<LeasedLibraryChange>, ScanError>;
     fn complete_library_change(
         &mut self,
         change_id: LibraryChangeId,
@@ -143,6 +150,12 @@ pub trait IncrementalCatalogRepository {
         &self,
         identity: &FileIdentityEvidence,
     ) -> Result<Option<AssetLocationView>, ScanError>;
+    fn load_incremental_locations_in_subtree(
+        &self,
+        root_id: &str,
+        relative_subtree: &str,
+        limit: u32,
+    ) -> Result<Vec<AssetLocationView>, ScanError>;
     fn publish_catalog_delta(
         &mut self,
         batch: &CatalogDeltaBatch,

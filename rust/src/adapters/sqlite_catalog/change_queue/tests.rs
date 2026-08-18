@@ -40,15 +40,16 @@ fn migrates_v16_without_losing_existing_catalog_rows() {
     drop(connection);
 
     let catalog = SqliteCatalog::open(path).expect("migrated catalog");
-    let (version, revision, preserved, queue_exists, contract_valid, generation, is_active): (
-        i64,
-        i64,
-        String,
-        bool,
-        bool,
-        i64,
-        bool,
-    ) = catalog
+    let (
+        version,
+        revision,
+        preserved,
+        queue_exists,
+        scan_owner_exists,
+        contract_valid,
+        generation,
+        is_active,
+    ): (i64, i64, String, bool, bool, bool, i64, bool) = catalog
         .connection
         .query_row(
             "SELECT
@@ -57,6 +58,8 @@ fn migrates_v16_without_losing_existing_catalog_rows() {
                (SELECT value FROM preserved_fixture),
                EXISTS(SELECT 1 FROM sqlite_master
                  WHERE type = 'table' AND name = 'library_change_queue'),
+               EXISTS(SELECT 1 FROM pragma_table_info('library_change_queue')
+                 WHERE name = 'authoritative_scan_id'),
                (SELECT root_authority_complete = 1
                 FROM library_change_queue_contract WHERE singleton = 1),
                (SELECT generation FROM library_change_root_state WHERE root_id = 'root-a'),
@@ -71,18 +74,153 @@ fn migrates_v16_without_losing_existing_catalog_rows() {
                     row.get(4)?,
                     row.get(5)?,
                     row.get(6)?,
+                    row.get(7)?,
                 ))
             },
         )
         .expect("migrated evidence");
 
-    assert_eq!(version, 17);
+    assert_eq!(version, 18);
     assert_eq!(revision, 7);
     assert_eq!(preserved, "kept");
     assert!(queue_exists);
+    assert!(scan_owner_exists);
     assert!(contract_valid);
     assert_eq!(generation, 1);
     assert!(is_active);
+}
+
+#[test]
+fn authoritative_scan_publication_preserves_evidence_arriving_after_its_watermark() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let generation = LibraryRootGeneration::initial();
+    let policy = immediate_policy();
+    let mut catalog = queue_catalog(path);
+    catalog
+        .enqueue_library_change_intents(
+            &[intent(
+                "root-a",
+                generation,
+                1,
+                1_000,
+                LibraryChangeIntentKind::FreshnessUnknown,
+                LibraryChangeScope::Root,
+                "",
+            )],
+            1_000,
+            policy,
+        )
+        .expect("enqueue recovery gap");
+    let request = scan_request("authoritative-scan");
+    catalog
+        .begin_scan(&request, "root-a", &request.root_path)
+        .expect("begin authoritative scan");
+
+    let report = catalog
+        .enqueue_library_change_intents(
+            &[path_intent(
+                "root-a",
+                generation,
+                2,
+                1_001,
+                "arrived-during-scan.jpg",
+            )],
+            1_001,
+            policy,
+        )
+        .expect("enqueue evidence during scan");
+    catalog
+        .publish_scan("authoritative-scan", "root-a", 0, 0)
+        .expect("publish authoritative scan");
+
+    let rows = catalog
+        .connection
+        .prepare(
+            "SELECT id, status, authoritative_scan_id
+             FROM library_change_queue ORDER BY id",
+        )
+        .expect("queue query")
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, i64>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, Option<String>>(2)?,
+            ))
+        })
+        .expect("queue rows")
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .expect("queue evidence");
+    let metrics = catalog
+        .load_library_change_queue_metrics(1_001, policy)
+        .expect("queue metrics");
+
+    assert!(report.freshness_unknown_enqueued);
+    assert_eq!(rows.len(), 2);
+    assert_eq!(rows[0].1, "superseded");
+    assert_eq!(rows[1].1, "pending");
+    assert!(rows.iter().all(|row| row.2.is_none()));
+    assert_eq!(metrics.pending_count, 1);
+    assert_eq!(metrics.completed_count, 0);
+}
+
+#[test]
+fn abandoning_authoritative_scan_immediately_releases_only_its_frozen_work() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let generation = LibraryRootGeneration::initial();
+    let policy = immediate_policy();
+    let mut catalog = queue_catalog(path);
+    catalog
+        .enqueue_library_change_intents(
+            &[intent(
+                "root-a",
+                generation,
+                1,
+                1_000,
+                LibraryChangeIntentKind::FreshnessUnknown,
+                LibraryChangeScope::Root,
+                "",
+            )],
+            1_000,
+            policy,
+        )
+        .expect("enqueue recovery gap");
+    let request = scan_request("abandoned-authoritative-scan");
+    catalog
+        .begin_scan(&request, "root-a", &request.root_path)
+        .expect("begin authoritative scan");
+    catalog
+        .abandon_scan("abandoned-authoritative-scan", "stale", 1)
+        .expect("abandon authoritative scan");
+
+    let (status, ready_unix_ms, lease_expires, scan_owner): (
+        String,
+        i64,
+        Option<i64>,
+        Option<String>,
+    ) = catalog
+        .connection
+        .query_row(
+            "SELECT status, ready_unix_ms, lease_expires_unix_ms, authoritative_scan_id
+             FROM library_change_queue",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        )
+        .expect("released queue row");
+    let leased = catalog
+        .lease_authoritative_library_change("root-a", generation, ready_unix_ms, policy)
+        .expect("lease released recovery work")
+        .expect("released work is ready");
+
+    assert_eq!(status, "pending");
+    assert_eq!(lease_expires, None);
+    assert_eq!(scan_owner, None);
+    assert_eq!(
+        leased.change.intent.kind,
+        LibraryChangeIntentKind::FreshnessUnknown
+    );
+    assert_eq!(leased.change.attempt_count, 1);
 }
 
 #[test]

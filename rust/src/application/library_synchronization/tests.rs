@@ -6,6 +6,7 @@ use image::{Rgb, RgbImage};
 use tempfile::tempdir;
 
 use crate::adapters::SqliteCatalog;
+use crate::application::AuthoritativeRecoveryPolicy;
 use crate::domain::{
     CatalogFreshnessState, LibraryChangeObservation, LibraryChangeObservationKind,
     LibraryChangeOrigin, LibraryChangePlanningLimits, LibraryChangeQueuePolicy, LibraryChangeScope,
@@ -13,7 +14,7 @@ use crate::domain::{
     LibraryChangeSourceStopReport, LibraryRootAvailability, LibraryRootGeneration, ScanRequest,
 };
 use crate::ports::{
-    CatalogRepository, IncrementalCatalogRepository, LibraryChangeQueue, LibraryChangeSource,
+    CatalogRepository, IncrementalCatalogRepository, LibraryChangeSource,
     LibraryChangeSourceFactory, LibraryChangeSourceRequest,
 };
 
@@ -74,7 +75,7 @@ impl LibraryChangeSource for FakeSource {
 }
 
 #[test]
-fn cold_start_records_a_gap_before_claiming_synchronized_freshness() {
+fn cold_start_completes_a_bounded_authoritative_reconciliation_before_claiming_freshness() {
     let fixture = RuntimeFixture::new();
     let factory = FakeFactory::default();
     let mut runtime = runtime(factory.clone());
@@ -87,23 +88,22 @@ fn cold_start_records_a_gap_before_claiming_synchronized_freshness() {
     assert_eq!(snapshot.roots.len(), 1);
     assert_eq!(
         snapshot.roots[0].freshness,
-        CatalogFreshnessState::NeedsReconciliation
+        CatalogFreshnessState::Synchronized
     );
-    assert_eq!(snapshot.roots[0].freshness_unknown_count, 1);
+    assert_eq!(snapshot.roots[0].freshness_unknown_count, 0);
     assert_eq!(factory.state.lock().expect("fake state").start_count, 1);
 }
 
 #[test]
 fn live_observation_publishes_a_delta_and_advances_the_shared_revision() {
     let fixture = RuntimeFixture::new();
-    write_png(&fixture.source_root.join("new.png"), 7, 5, [20, 30, 40]);
     let factory = FakeFactory::default();
     let mut runtime = runtime(factory.clone());
     let mut catalog = fixture.catalog;
     runtime
         .poll(&mut catalog, 900, |_| LibraryRootAvailability::Available)
-        .expect("record startup gap");
-    complete_authoritative_work(&mut catalog, &fixture.root_id, 900);
+        .expect("complete startup recovery");
+    write_png(&fixture.source_root.join("new.png"), 7, 5, [20, 30, 40]);
     factory
         .state
         .lock()
@@ -146,14 +146,13 @@ fn live_observation_publishes_a_delta_and_advances_the_shared_revision() {
 #[test]
 fn enqueue_failure_retains_the_drained_plan_until_persistence_recovers() {
     let fixture = RuntimeFixture::new();
-    write_png(&fixture.source_root.join("new.png"), 7, 5, [20, 30, 40]);
     let factory = FakeFactory::default();
     let mut runtime = runtime(factory.clone());
     let mut catalog = fixture.catalog;
     runtime
         .poll(&mut catalog, 900, |_| LibraryRootAvailability::Available)
-        .expect("record startup gap");
-    complete_authoritative_work(&mut catalog, &fixture.root_id, 900);
+        .expect("complete startup recovery");
+    write_png(&fixture.source_root.join("new.png"), 7, 5, [20, 30, 40]);
     factory
         .state
         .lock()
@@ -215,7 +214,7 @@ fn enqueue_failure_retains_the_drained_plan_until_persistence_recovers() {
 }
 
 #[test]
-fn evidence_gap_is_retained_for_authoritative_reconciliation() {
+fn evidence_gap_runs_bounded_authoritative_reconciliation_before_clearing() {
     let fixture = RuntimeFixture::new();
     let factory = FakeFactory::default();
     factory
@@ -248,9 +247,9 @@ fn evidence_gap_is_retained_for_authoritative_reconciliation() {
 
     assert_eq!(
         snapshot.roots[0].freshness,
-        CatalogFreshnessState::NeedsReconciliation
+        CatalogFreshnessState::Synchronized
     );
-    assert_eq!(snapshot.roots[0].freshness_unknown_count, 1);
+    assert_eq!(snapshot.roots[0].freshness_unknown_count, 0);
     assert_eq!(snapshot.applied_mutation_count, 0);
 }
 
@@ -279,7 +278,7 @@ fn unavailable_root_retains_catalog_state_without_starting_an_observer() {
 }
 
 #[test]
-fn returning_available_root_records_a_continuity_gap() {
+fn returning_available_root_reconciles_the_continuity_gap() {
     let fixture = RuntimeFixture::new();
     let factory = FakeFactory::default();
     let mut runtime = runtime(factory.clone());
@@ -294,9 +293,9 @@ fn returning_available_root_records_a_continuity_gap() {
 
     assert_eq!(
         snapshot.roots[0].freshness,
-        CatalogFreshnessState::NeedsReconciliation
+        CatalogFreshnessState::Synchronized
     );
-    assert_eq!(snapshot.roots[0].freshness_unknown_count, 1);
+    assert_eq!(snapshot.roots[0].freshness_unknown_count, 0);
     assert_eq!(factory.state.lock().expect("fake state").start_count, 1);
 }
 
@@ -337,6 +336,52 @@ fn shutdown_is_idempotent_and_stops_each_observer_once() {
     runtime.stop().expect("second stop");
 
     assert_eq!(factory.state.lock().expect("fake state").stop_count, 1);
+}
+
+#[test]
+fn low_frequency_audit_is_persisted_and_does_not_claim_freshness_before_completion() {
+    let fixture = RuntimeFixture::new();
+    let factory = FakeFactory::default();
+    let mut runtime = runtime_with_recovery_policy(
+        factory,
+        AuthoritativeRecoveryPolicy {
+            max_scope_entries: 64,
+            max_scope_paths: 32,
+            audit_interval_millis: 100,
+        },
+    );
+    let mut catalog = fixture.catalog;
+    runtime
+        .poll(&mut catalog, 1_000, |_| LibraryRootAvailability::Available)
+        .expect("complete startup recovery");
+
+    let scheduled = runtime
+        .poll(&mut catalog, 1_100, |_| LibraryRootAvailability::Available)
+        .expect("schedule consistency audit");
+    assert_ne!(
+        scheduled.roots[0].freshness,
+        CatalogFreshnessState::Synchronized
+    );
+    let completed = runtime
+        .poll(&mut catalog, 1_100, |_| LibraryRootAvailability::Available)
+        .expect("complete consistency audit");
+    let root = catalog
+        .load_incremental_catalog_root(&fixture.root_id)
+        .expect("load audited root")
+        .expect("audited root");
+
+    assert_eq!(
+        completed.roots[0].freshness,
+        CatalogFreshnessState::Synchronized
+    );
+    assert_eq!(root.last_consistency_audit_unix_ms, Some(1_100));
+    let not_due = runtime
+        .poll(&mut catalog, 1_150, |_| LibraryRootAvailability::Available)
+        .expect("poll before next audit");
+    assert_eq!(
+        not_due.roots[0].freshness,
+        CatalogFreshnessState::Synchronized
+    );
 }
 
 struct RuntimeFixture {
@@ -381,6 +426,13 @@ impl RuntimeFixture {
 }
 
 fn runtime(factory: FakeFactory) -> LibrarySynchronizationRuntime {
+    runtime_with_recovery_policy(factory, AuthoritativeRecoveryPolicy::default())
+}
+
+fn runtime_with_recovery_policy(
+    factory: FakeFactory,
+    recovery_policy: AuthoritativeRecoveryPolicy,
+) -> LibrarySynchronizationRuntime {
     LibrarySynchronizationRuntime::with_policy(
         factory,
         LibraryChangePlanningLimits::default(),
@@ -389,6 +441,7 @@ fn runtime(factory: FakeFactory) -> LibrarySynchronizationRuntime {
             debounce_millis: 0,
             ..LibraryChangeQueuePolicy::default()
         },
+        recovery_policy,
         64,
     )
 }
@@ -400,30 +453,6 @@ fn empty_batch() -> LibraryChangeSourceBatch {
         dropped_observation_count: 0,
         ignored_callback_count: 0,
     }
-}
-
-fn complete_authoritative_work(catalog: &mut SqliteCatalog, root_id: &str, now_unix_ms: i64) {
-    let policy = LibraryChangeQueuePolicy {
-        debounce_millis: 0,
-        ..LibraryChangeQueuePolicy::default()
-    };
-    let leased = catalog
-        .lease_library_changes(
-            root_id,
-            LibraryRootGeneration::initial(),
-            now_unix_ms,
-            policy,
-        )
-        .expect("lease authoritative work");
-    assert_eq!(leased.len(), 1);
-    catalog
-        .complete_library_change(
-            leased[0].change.id,
-            leased[0].lease_generation,
-            1,
-            now_unix_ms,
-        )
-        .expect("complete authoritative work");
 }
 
 fn write_png(path: &Path, width: u32, height: u32, color: [u8; 3]) {

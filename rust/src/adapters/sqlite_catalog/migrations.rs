@@ -18,7 +18,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
 
     if !has_schema_info {
         let transaction = connection.transaction().map_err(database_error)?;
-        create_schema_v17(&transaction)?;
+        create_schema_v18(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -46,6 +46,10 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             14 => migrate_v14_to_v15(connection)?,
             15 => migrate_v15_to_v16(connection)?,
             16 => migrate_v16_to_v17(connection)?,
+            17 => {
+                validate_change_queue_authority(connection)?;
+                migrate_v17_to_v18(connection)?;
+            }
             _ => {
                 return Err(ScanError::new(
                     "catalog_schema_unsupported",
@@ -56,13 +60,13 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
     }
 }
 
-fn create_schema_v17(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+fn create_schema_v18(transaction: &Transaction<'_>) -> Result<(), ScanError> {
     transaction
         .execute_batch(
             "CREATE TABLE schema_info (
                version INTEGER NOT NULL
              );
-             INSERT INTO schema_info(version) VALUES (17);
+             INSERT INTO schema_info(version) VALUES (18);
              CREATE TABLE catalog_state (
                revision INTEGER NOT NULL CHECK(revision >= 0)
              );
@@ -90,6 +94,12 @@ fn create_schema_v17(transaction: &Transaction<'_>) -> Result<(), ScanError> {
                last_visited_relative_path TEXT,
                visited_entries INTEGER NOT NULL DEFAULT 0,
                accepted_items INTEGER NOT NULL DEFAULT 0,
+               requires_previous_snapshot INTEGER NOT NULL DEFAULT 0
+                 CHECK(requires_previous_snapshot IN (0, 1)),
+               root_generation_at_start INTEGER
+                 CHECK(root_generation_at_start IS NULL OR root_generation_at_start > 0),
+               change_queue_high_watermark INTEGER
+                 CHECK(change_queue_high_watermark IS NULL OR change_queue_high_watermark > 0),
                FOREIGN KEY(root_id) REFERENCES library_roots(id)
              );
              CREATE TABLE assets (
@@ -240,7 +250,23 @@ fn create_schema_v17(transaction: &Transaction<'_>) -> Result<(), ScanError> {
              );",
         )
         .map_err(database_error)?;
-    create_library_change_queue_schema(transaction)
+    create_library_change_queue_schema(transaction)?;
+    transaction
+        .execute(
+            "ALTER TABLE library_change_queue
+             ADD COLUMN authoritative_scan_id TEXT",
+            [],
+        )
+        .map_err(database_error)?;
+    transaction
+        .execute(
+            "ALTER TABLE library_change_root_state
+             ADD COLUMN last_consistency_audit_unix_ms INTEGER",
+            [],
+        )
+        .map_err(database_error)?;
+    add_authoritative_recovery_contract_marker(transaction)?;
+    Ok(())
 }
 
 fn create_library_change_queue_schema(transaction: &Transaction<'_>) -> Result<(), ScanError> {
@@ -356,6 +382,37 @@ fn create_library_change_queue_schema(transaction: &Transaction<'_>) -> Result<(
 }
 
 fn validate_current_schema_contract(connection: &Connection) -> Result<(), ScanError> {
+    validate_change_queue_authority(connection)?;
+    let has_recovery_contract = connection
+        .query_row(
+            "SELECT EXISTS(
+               SELECT 1 FROM pragma_table_info('library_change_queue_contract')
+               WHERE name = 'authoritative_recovery_complete'
+             )",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    if !has_recovery_contract {
+        return Err(unverifiable_authoritative_recovery_contract());
+    }
+    let recovery_complete = connection
+        .query_row(
+            "SELECT authoritative_recovery_complete = 1
+             FROM library_change_queue_contract WHERE singleton = 1",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .optional()
+        .map_err(database_error)?
+        .unwrap_or(false);
+    if !recovery_complete {
+        return Err(unverifiable_authoritative_recovery_contract());
+    }
+    Ok(())
+}
+
+fn validate_change_queue_authority(connection: &Connection) -> Result<(), ScanError> {
     let has_contract = connection
         .query_row(
             "SELECT EXISTS(
@@ -389,6 +446,13 @@ fn unverifiable_change_queue_authority() -> ScanError {
     ScanError::new(
         "catalog_change_queue_authority_unverifiable",
         "This prerelease schema 17 catalog cannot prove its highest root generations and must not be opened",
+    )
+}
+
+fn unverifiable_authoritative_recovery_contract() -> ScanError {
+    ScanError::new(
+        "catalog_authoritative_recovery_contract_unverifiable",
+        "This prerelease schema 18 catalog cannot prove its authoritative recovery contract",
     )
 }
 
@@ -913,4 +977,203 @@ fn migrate_v16_to_v17(connection: &mut Connection) -> Result<(), ScanError> {
         .execute("UPDATE schema_info SET version = 17", [])
         .map_err(database_error)?;
     transaction.commit().map_err(database_error)
+}
+
+fn migrate_v17_to_v18(connection: &mut Connection) -> Result<(), ScanError> {
+    let transaction = connection.transaction().map_err(database_error)?;
+    let has_scan_runs = transaction
+        .query_row(
+            "SELECT EXISTS(
+               SELECT 1 FROM sqlite_master
+               WHERE type = 'table' AND name = 'scan_runs'
+             )",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    transaction
+        .execute(
+            "ALTER TABLE library_change_queue
+             ADD COLUMN authoritative_scan_id TEXT",
+            [],
+        )
+        .map_err(database_error)?;
+    transaction
+        .execute(
+            "ALTER TABLE library_change_root_state
+             ADD COLUMN last_consistency_audit_unix_ms INTEGER",
+            [],
+        )
+        .map_err(database_error)?;
+    add_authoritative_recovery_contract_marker(&transaction)?;
+    if has_scan_runs {
+        transaction
+            .execute_batch(
+                "ALTER TABLE scan_runs ADD COLUMN root_generation_at_start INTEGER
+                   CHECK(root_generation_at_start IS NULL OR root_generation_at_start > 0);
+                 ALTER TABLE scan_runs ADD COLUMN change_queue_high_watermark INTEGER
+                   CHECK(change_queue_high_watermark IS NULL OR change_queue_high_watermark > 0);
+                 ALTER TABLE scan_runs ADD COLUMN requires_previous_snapshot INTEGER NOT NULL
+                   DEFAULT 0 CHECK(requires_previous_snapshot IN (0, 1));
+                 UPDATE scan_runs
+                 SET status = 'interrupted_unrecoverable',
+                     completed_unix_ms = COALESCE(completed_unix_ms, started_unix_ms),
+                     current_directory_relative_path = NULL,
+                     current_directory_enumerated = 0,
+                     last_visited_relative_path = NULL
+                 WHERE status IN ('running', 'paused');",
+            )
+            .map_err(database_error)?;
+    }
+    normalize_relative_paths_for_continuous_synchronization(&transaction)?;
+    transaction
+        .execute("UPDATE schema_info SET version = 18", [])
+        .map_err(database_error)?;
+    transaction.commit().map_err(database_error)
+}
+
+fn add_authoritative_recovery_contract_marker(
+    transaction: &Transaction<'_>,
+) -> Result<(), ScanError> {
+    transaction
+        .execute_batch(
+            "ALTER TABLE library_change_queue_contract
+               ADD COLUMN authoritative_recovery_complete INTEGER NOT NULL DEFAULT 1
+               CHECK(authoritative_recovery_complete = 1);",
+        )
+        .map_err(database_error)
+}
+
+fn normalize_relative_paths_for_continuous_synchronization(
+    transaction: &Transaction<'_>,
+) -> Result<(), ScanError> {
+    for (table, column) in [
+        ("asset_locations", "relative_path"),
+        ("scan_directory_frontier", "relative_path"),
+        ("scan_directory_entries", "relative_path"),
+        ("scan_runs", "current_directory_relative_path"),
+        ("scan_runs", "last_visited_relative_path"),
+    ] {
+        let exists = transaction
+            .query_row(
+                "SELECT EXISTS(
+                   SELECT 1 FROM sqlite_master
+                   WHERE type = 'table' AND name = ?1
+                 ) AND EXISTS(
+                   SELECT 1 FROM pragma_table_info(?1) WHERE name = ?2
+                 )",
+                [table, column],
+                |row| row.get::<_, bool>(0),
+            )
+            .map_err(database_error)?;
+        if exists {
+            transaction
+                .execute(
+                    &format!(
+                        "UPDATE {table} SET {column} = replace({column}, char(92), '/')
+                         WHERE instr({column}, char(92)) > 0"
+                    ),
+                    [],
+                )
+                .map_err(database_error)?;
+        }
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use rusqlite::Connection;
+
+    use super::{migrate_schema, migrate_v16_to_v17, migrate_v17_to_v18};
+
+    #[test]
+    fn prerelease_v18_without_recovery_contract_marker_fails_closed() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        connection
+            .execute_batch(
+                "CREATE TABLE schema_info(version INTEGER NOT NULL);
+                 INSERT INTO schema_info(version) VALUES (18);
+                 CREATE TABLE library_change_queue_contract(
+                   singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+                   root_authority_complete INTEGER NOT NULL CHECK(root_authority_complete = 1)
+                 );
+                 INSERT INTO library_change_queue_contract VALUES (1, 1);",
+            )
+            .expect("prerelease v18 fixture");
+
+        let error = migrate_schema(&mut connection).expect_err("missing recovery contract");
+
+        assert_eq!(
+            error.code,
+            "catalog_authoritative_recovery_contract_unverifiable"
+        );
+    }
+
+    #[test]
+    fn v18_migration_normalizes_existing_relative_paths_and_invalidates_old_running_scans() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        connection
+            .execute_batch(
+                "CREATE TABLE schema_info(version INTEGER NOT NULL);
+                 INSERT INTO schema_info(version) VALUES (16);
+                 CREATE TABLE library_roots(id TEXT PRIMARY KEY);
+                 INSERT INTO library_roots(id) VALUES ('root-a');
+                 CREATE TABLE scan_runs(
+                   id TEXT PRIMARY KEY,
+                   status TEXT NOT NULL,
+                   started_unix_ms INTEGER NOT NULL,
+                   completed_unix_ms INTEGER,
+                   current_directory_relative_path TEXT,
+                   current_directory_enumerated INTEGER NOT NULL,
+                   last_visited_relative_path TEXT
+                 );
+                 INSERT INTO scan_runs VALUES (
+                   'scan-a', 'running', 1, NULL, 'album\\nested', 1,
+                   'album\\nested\\photo.png'
+                 );
+                 CREATE TABLE asset_locations(relative_path TEXT NOT NULL);
+                 INSERT INTO asset_locations VALUES ('album\\nested\\photo.png');
+                 CREATE TABLE scan_directory_frontier(relative_path TEXT NOT NULL);
+                 INSERT INTO scan_directory_frontier VALUES ('album\\nested');
+                 CREATE TABLE scan_directory_entries(relative_path TEXT NOT NULL);
+                 INSERT INTO scan_directory_entries VALUES ('album\\nested\\photo.png');",
+            )
+            .expect("v16 fixture");
+        migrate_v16_to_v17(&mut connection).expect("v17 migration");
+        migrate_v17_to_v18(&mut connection).expect("v18 migration");
+
+        let (version, scan_status, location_path, frontier_path, entry_path): (
+            i64,
+            String,
+            String,
+            String,
+            String,
+        ) = connection
+            .query_row(
+                "SELECT
+                   (SELECT version FROM schema_info),
+                   (SELECT status FROM scan_runs WHERE id = 'scan-a'),
+                   (SELECT relative_path FROM asset_locations),
+                   (SELECT relative_path FROM scan_directory_frontier),
+                   (SELECT relative_path FROM scan_directory_entries)",
+                [],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                    ))
+                },
+            )
+            .expect("migrated state");
+
+        assert_eq!(version, 18);
+        assert_eq!(scan_status, "interrupted_unrecoverable");
+        assert_eq!(location_path, "album/nested/photo.png");
+        assert_eq!(frontier_path, "album/nested");
+        assert_eq!(entry_path, "album/nested/photo.png");
+    }
 }
