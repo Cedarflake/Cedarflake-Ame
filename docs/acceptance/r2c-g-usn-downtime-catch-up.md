@@ -25,7 +25,10 @@ The controlled fixtures prove:
 | Bounded evidence memory | Retain at most 64 MiB of parsed records and reconstructed paths for one volume |
 | Bounded candidates | Retain at most 4,096 normalized observations for one root |
 | Root filtering | Convert only contained paths to root-relative path or subtree reconciliation |
+| Case-sensitive paths | Keep case-distinct NTFS roots and sibling paths as separate candidates |
+| Deleted parent chains | Reconstruct child-first delete and rename-old histories without accepting a later new name |
 | Rename continuity | Pair bounded same-file-reference old/new names before durable planning |
+| Cross-root moves | Preserve asset and compatible preview identity in either root-processing order without blocking unrelated removals |
 | Candidate authority | Recheck every candidate through the existing final-state reconciler |
 | Enqueue ordering | Commit all root plans before advancing the exclusive volume watermark |
 | Crash replay | Re-read and idempotently coalesce an uncheckpointed journal range |
@@ -34,6 +37,8 @@ The controlled fixtures prove:
 | Standard token | Fall back on `usn_volume_open_failed` without requesting elevation |
 | Schema v19 | Migrate v18 atomically, reject an unverifiable marker, and repair only a marker-complete missing derived index |
 | Query bound | Use an exact root-and-relative-path index during authoritative reconciliation |
+| Root isolation | Allow a ready root to recover while another root still lacks healthy continuity evidence |
+| Checkpoint retention | Delete at most 128 obsolete checkpoints after seven days and never while a freshness gap is unresolved |
 | Shutdown | Cancel and retain catch-up worker ownership until its thread is joined |
 | Source safety | Perform no source-media mutation or cloud-placeholder hydration |
 
@@ -44,18 +49,29 @@ cargo test application::library_change_catch_up::tests --all-features -- --nocap
 4 passed; 0 failed
 
 cargo test adapters::windows_usn_catch_up::tests --all-features -- --nocapture
-14 passed; 0 failed
+19 passed; 0 failed
 
 cargo test adapters::sqlite_catalog::migrations::tests --all-features -- --nocapture
-9 passed; 0 failed
+10 passed; 0 failed
+
+cargo test application::incremental_library_changes::tests --all-features -- --nocapture
+21 passed; 0 failed
+
+cargo test application::library_synchronization::tests --all-features -- --nocapture
+13 passed; 0 failed
+
+cargo test adapters::sqlite_catalog::catch_up::tests --all-features -- --nocapture
+4 passed; 0 failed
 
 cargo test active_relative_path_lookup_uses_its_complete_lookup_index --all-features -- --nocapture
 1 passed; 0 failed
 ```
 
 The deterministic adapter covers create, modify, rename, remove, invalid continuity, corrupt
-records, candidate and record overflow, deleted-parent reconstruction, root filtering, and one
-journal read shared by multiple roots. The controlled real Win32 temporary-root test was executed
+records, candidate and record overflow, child-before-parent reconstruction, case-sensitive root
+filtering, and one journal read shared by multiple roots. Incremental fixtures cover both
+cross-root move orders, compatible preview transfer, and unrelated-removal progress. The
+controlled real Win32 temporary-root test was executed
 with both the normal sandboxed token and the same standard token outside the workspace sandbox.
 Both reached the documented `usn_volume_open_failed` permission fallback. Ame did not elevate or
 self-elevate. Direct Win32 journal candidates therefore remain unverified on this workstation;
@@ -68,7 +84,7 @@ the production adapter path is covered by deterministic backend and parser fixtu
 140 files checked; 0 changed
 
 ./tool/quality_verify_daily.ps1
-Rust: 346 total; 341 passed; 0 failed; 5 existing explicit ignores
+Rust: 358 total; 353 passed; 0 failed; 5 existing explicit ignores
 Flutter: all test files passed
 Windows controlled picker and scan integration: 2 passed
 Windows native accessibility integration: 2 passed
@@ -80,14 +96,14 @@ release bridge and system accent smoke integration: 2 passed
 
 ./tool/performance_benchmark_synthetic_library.ps1
 files=10000
-fixture_ms=7577
-cold_ms=16920
-warm_ms=18199
-pause_ms=27
-resume_ms=16692
-cancel_ms=170
-catalog_bytes=52346880
-peak_working_set_bytes=17125376
+fixture_ms=12570
+cold_ms=35075
+warm_ms=33899
+pause_ms=26
+resume_ms=31895
+cancel_ms=175
+catalog_bytes=52219904
+peak_working_set_bytes=17379328
 result: passed
 
 git diff --check

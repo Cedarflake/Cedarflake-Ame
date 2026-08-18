@@ -6,9 +6,9 @@ use tempfile::{TempDir, tempdir};
 
 use crate::adapters::{FileDiscovery, FileVisitOutcome, LocalMediaInspector, SqliteCatalog};
 use crate::domain::{
-    AssetLocationView, DerivedEvidenceDisposition, LibraryChangeIntent, LibraryChangeIntentKind,
-    LibraryChangeOrigin, LibraryChangeQueuePolicy, LibraryChangeScope, LibraryRootGeneration,
-    PreviewStatus, ScanRequest,
+    AssetLocationView, DerivedEvidenceDisposition, LibraryChangeCatchUpEvidence,
+    LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeOrigin, LibraryChangeQueuePolicy,
+    LibraryChangeScope, LibraryRootGeneration, PreviewStatus, ScanRequest,
 };
 use crate::ports::{
     CatalogRepository, IncrementalCatalogRepository, LibraryChangeQueue, MediaInspector,
@@ -574,6 +574,206 @@ fn compatible_rename_preserves_failed_preview_evidence() {
     );
 }
 
+#[cfg(windows)]
+#[test]
+fn source_first_cross_root_move_preserves_asset_and_preview_continuity() {
+    assert_cross_root_move_preserves_continuity("a-source", "z-destination", true);
+}
+
+#[cfg(windows)]
+#[test]
+fn destination_first_cross_root_move_preserves_asset_and_preview_continuity() {
+    assert_cross_root_move_preserves_continuity("z-source", "a-destination", false);
+}
+
+#[cfg(windows)]
+#[test]
+fn unrelated_cross_root_removals_do_not_block_each_other() {
+    let storage = tempdir().expect("cross-root removal storage");
+    let first_path = storage.path().join("first");
+    let second_path = storage.path().join("second");
+    fs::create_dir_all(&first_path).expect("first root");
+    fs::create_dir_all(&second_path).expect("second root");
+    write_png(&first_path.join("first.png"), 2, 2, [81, 82, 83]);
+    write_png(&second_path.join("second.png"), 2, 2, [84, 85, 86]);
+    let mut catalog =
+        SqliteCatalog::open(storage.path().join("catalog.sqlite3")).expect("removal catalog");
+    seed_root(
+        &mut catalog,
+        "first-root",
+        "first-scan",
+        &first_path,
+        &["first.png"],
+    );
+    seed_root(
+        &mut catalog,
+        "second-root",
+        "second-scan",
+        &second_path,
+        &["second.png"],
+    );
+    fs::remove_file(first_path.join("first.png")).expect("remove first fixture");
+    fs::remove_file(second_path.join("second.png")).expect("remove second fixture");
+    let evidence = LibraryChangeCatchUpEvidence {
+        source: "windows_usn_v1".to_owned(),
+        watermark: "volume:journal:901".to_owned(),
+    };
+    for (root_id, relative_path, sequence) in [
+        ("first-root", "first.png", 1),
+        ("second-root", "second.png", 2),
+    ] {
+        catalog
+            .enqueue_library_change_intents_with_catch_up(
+                &[catch_up_intent(root_id, relative_path, sequence)],
+                &evidence,
+                1_000,
+                policy(),
+            )
+            .expect("enqueue unrelated removal");
+    }
+
+    for root_id in ["first-root", "second-root"] {
+        let report = process_ready_library_changes(
+            &mut catalog,
+            root_id,
+            LibraryRootGeneration::initial(),
+            2_000,
+            policy(),
+        )
+        .expect("publish unrelated removal");
+        assert_eq!(report.completed_count, 1);
+        assert_eq!(report.deferred_count, 0);
+    }
+}
+
+#[cfg(windows)]
+fn assert_cross_root_move_preserves_continuity(
+    source_root_id: &str,
+    destination_root_id: &str,
+    source_first: bool,
+) {
+    let storage = tempdir().expect("cross-root storage");
+    let source_path = storage.path().join("source");
+    let destination_path = storage.path().join("destination");
+    fs::create_dir_all(&source_path).expect("source root");
+    fs::create_dir_all(&destination_path).expect("destination root");
+    write_png(&source_path.join("old.png"), 3, 2, [71, 72, 73]);
+    let mut catalog =
+        SqliteCatalog::open(storage.path().join("catalog.sqlite3")).expect("cross-root catalog");
+    seed_root(
+        &mut catalog,
+        source_root_id,
+        "cross-root-source-scan",
+        &source_path,
+        &["old.png"],
+    );
+    seed_root(
+        &mut catalog,
+        destination_root_id,
+        "cross-root-destination-scan",
+        &destination_path,
+        &[],
+    );
+    let mut original = catalog
+        .load_incremental_location_by_relative_path(source_root_id, "old.png")
+        .expect("load source location")
+        .expect("source location");
+    original.preview_status = PreviewStatus::Failed;
+    original.preview_issue_code = Some("preview_decode_failed".to_owned());
+    original.preview_issue_message = Some("retained cross-root evidence".to_owned());
+    catalog
+        .update_active_preview(&original, None)
+        .expect("record retained preview evidence");
+    fs::rename(
+        source_path.join("old.png"),
+        destination_path.join("new.png"),
+    )
+    .expect("move fixture across roots");
+    let evidence = LibraryChangeCatchUpEvidence {
+        source: "windows_usn_v1".to_owned(),
+        watermark: "volume:journal:900".to_owned(),
+    };
+    catalog
+        .enqueue_library_change_intents_with_catch_up(
+            &[catch_up_intent(source_root_id, "old.png", 1)],
+            &evidence,
+            1_000,
+            policy(),
+        )
+        .expect("enqueue source removal");
+    catalog
+        .enqueue_library_change_intents_with_catch_up(
+            &[catch_up_intent(destination_root_id, "new.png", 2)],
+            &evidence,
+            1_000,
+            policy(),
+        )
+        .expect("enqueue destination discovery");
+
+    if source_first {
+        let deferred = process_ready_library_changes(
+            &mut catalog,
+            source_root_id,
+            LibraryRootGeneration::initial(),
+            2_000,
+            policy(),
+        )
+        .expect("defer source removal until destination handoff");
+        assert_eq!(deferred.deferred_count, 1);
+        assert!(
+            catalog
+                .load_incremental_location_by_relative_path(source_root_id, "old.png")
+                .expect("load deferred source")
+                .is_some()
+        );
+    }
+
+    let destination = process_ready_library_changes(
+        &mut catalog,
+        destination_root_id,
+        LibraryRootGeneration::initial(),
+        2_100,
+        policy(),
+    )
+    .expect("publish destination handoff");
+    assert_eq!(destination.completed_count, 1);
+    let moved = catalog
+        .load_incremental_location_by_relative_path(destination_root_id, "new.png")
+        .expect("load destination location")
+        .expect("destination location");
+    assert_eq!(moved.asset_id, original.asset_id);
+    assert_eq!(moved.file_identity, original.file_identity);
+    assert!(matches!(moved.preview_status, PreviewStatus::Failed));
+    assert_eq!(
+        moved.preview_issue_code.as_deref(),
+        Some("preview_decode_failed")
+    );
+
+    let source = process_ready_library_changes(
+        &mut catalog,
+        source_root_id,
+        LibraryRootGeneration::initial(),
+        2_200,
+        policy(),
+    )
+    .expect("complete source removal after handoff");
+    assert_eq!(source.completed_count, 1);
+    assert!(
+        catalog
+            .load_incremental_location_by_relative_path(source_root_id, "old.png")
+            .expect("load removed source")
+            .is_none()
+    );
+    assert_eq!(
+        catalog
+            .load_incremental_location_by_relative_path(destination_root_id, "new.png")
+            .expect("load retained destination")
+            .expect("retained destination")
+            .asset_id,
+        original.asset_id
+    );
+}
+
 struct CatalogFixture {
     source: TempDir,
     _storage: TempDir,
@@ -628,6 +828,72 @@ impl CatalogFixture {
             _ => panic!("expected discovered file"),
         }
     }
+}
+
+fn seed_root(
+    catalog: &mut SqliteCatalog,
+    root_id: &str,
+    scan_id: &str,
+    root_path: &Path,
+    relative_paths: &[&str],
+) {
+    let root_input = root_path.to_string_lossy().into_owned();
+    let discovery = FileDiscovery::new(&root_input).expect("root discovery");
+    let canonical_root = discovery
+        .canonical_root()
+        .expect("canonical root")
+        .to_string_lossy()
+        .into_owned();
+    let request = ScanRequest {
+        scan_id: scan_id.to_owned(),
+        root_path: canonical_root.clone(),
+        max_items: None,
+        max_entries: None,
+        preview_edge: 256,
+    };
+    catalog
+        .begin_scan(&request, root_id, &canonical_root)
+        .expect("begin root scan");
+    let inspector = LocalMediaInspector::new();
+    for relative_path in relative_paths {
+        let file = match discovery.visit_relative_path(relative_path).outcome {
+            FileVisitOutcome::File(file) => file,
+            _ => panic!("expected root fixture file"),
+        };
+        let inspection = inspector.inspect(&file).expect("inspect root fixture");
+        let location = AssetLocationView {
+            asset_id: stable_id("test-asset-v1", relative_path),
+            location_id: stable_location_id(root_id, relative_path),
+            root_id: root_id.to_owned(),
+            absolute_path: file.absolute_path.clone(),
+            display_path: user_visible_path(&file.absolute_path),
+            relative_path: file.relative_path,
+            preview_path: String::new(),
+            file_size: file.file_size,
+            created_unix_ms: file.created_unix_ms,
+            modified_unix_ms: file.modified_unix_ms,
+            file_identity: file.file_identity,
+            width: inspection.width,
+            height: inspection.height,
+            preview_status: PreviewStatus::Pending,
+            preview_issue_code: None,
+            preview_issue_message: None,
+            metadata_engine_id: inspection.metadata.engine_id,
+            metadata_engine_version: inspection.metadata.engine_version,
+            capture_time: inspection.metadata.capture_time,
+        };
+        catalog
+            .stage_location(scan_id, root_id, &location)
+            .expect("stage root fixture");
+    }
+    catalog
+        .publish_scan(
+            scan_id,
+            root_id,
+            u64::try_from(relative_paths.len()).expect("root fixture count"),
+            0,
+        )
+        .expect("publish root scan");
 }
 
 fn seed_catalog(source: TempDir, relative_paths: &[&str]) -> CatalogFixture {
@@ -753,6 +1019,13 @@ fn intent(
         first_sequence: sequence,
         most_recent_sequence: sequence,
         coalesced_observation_count: 1,
+    }
+}
+
+fn catch_up_intent(root_id: &str, relative_path: &str, sequence: u64) -> LibraryChangeIntent {
+    LibraryChangeIntent {
+        origin: LibraryChangeOrigin::StartupCatchUp,
+        ..intent(root_id, relative_path, None, sequence)
     }
 }
 

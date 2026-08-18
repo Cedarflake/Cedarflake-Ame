@@ -57,6 +57,15 @@ impl LibraryChangeCatchUpRepository for RecordingRepository {
         self.checkpoints.push(checkpoint.clone());
         Ok(())
     }
+
+    fn cleanup_obsolete_library_change_catch_up_checkpoints(
+        &mut self,
+        _retained_volume_ids: &[String],
+        _updated_before_unix_ms: i64,
+        _limit: u32,
+    ) -> Result<u32, ScanError> {
+        Ok(0)
+    }
 }
 
 impl LibraryChangeQueue for RecordingRepository {

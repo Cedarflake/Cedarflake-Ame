@@ -14,6 +14,9 @@ use crate::ports::{
 
 use super::{enqueue_library_change_catch_up_plan, plan_library_changes};
 
+const CHECKPOINT_RETENTION_MILLIS: i64 = 7 * 24 * 60 * 60 * 1_000;
+const CHECKPOINT_CLEANUP_LIMIT: u32 = 128;
+
 #[derive(Clone, Copy)]
 pub(crate) struct LibraryChangeCatchUpExecution {
     pub(crate) now_unix_ms: i64,
@@ -122,6 +125,22 @@ where
         repository.save_library_change_catch_up_checkpoint(checkpoint)?;
         report.checkpoint_count = report.checkpoint_count.saturating_add(1);
     }
+    let retained_volume_ids = batch
+        .checkpoints
+        .iter()
+        .map(|checkpoint| checkpoint.volume_id.clone())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+    let updated_before_unix_ms = execution
+        .now_unix_ms
+        .saturating_sub(CHECKPOINT_RETENTION_MILLIS);
+    report.checkpoint_cleanup_count = repository
+        .cleanup_obsolete_library_change_catch_up_checkpoints(
+            &retained_volume_ids,
+            updated_before_unix_ms,
+            CHECKPOINT_CLEANUP_LIMIT,
+        )?;
     Ok(report)
 }
 

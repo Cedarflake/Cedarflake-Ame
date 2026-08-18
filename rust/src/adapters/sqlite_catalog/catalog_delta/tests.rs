@@ -44,6 +44,7 @@ fn publishes_a_location_and_completes_its_lease_at_one_revision() {
                     retained_preview_expectation: None,
                 }],
                 completions: vec![completion(&leased)],
+                catch_up_handoff_dependencies: Vec::new(),
             },
             2_000,
         )
@@ -100,6 +101,7 @@ fn rejects_a_delta_with_inconsistent_reconciliation_evidence() {
                     retained_preview_expectation: None,
                 }],
                 completions: vec![completion(&leased)],
+                catch_up_handoff_dependencies: Vec::new(),
             },
             2_000,
         )
@@ -163,6 +165,7 @@ fn a_superseded_lease_cannot_publish_catalog_state() {
                     retained_preview_expectation: None,
                 }],
                 completions: vec![completion(&leased)],
+                catch_up_handoff_dependencies: Vec::new(),
             },
             2_000,
         )
@@ -217,6 +220,7 @@ fn a_changed_catalog_revision_rejects_the_complete_delta_batch() {
                     retained_preview_expectation: None,
                 }],
                 completions: vec![completion(&leased)],
+                catch_up_handoff_dependencies: Vec::new(),
             },
             2_000,
         )
@@ -284,6 +288,7 @@ fn a_running_full_scan_blocks_incremental_publication() {
                     retained_preview_expectation: None,
                 }],
                 completions: vec![completion(&leased)],
+                catch_up_handoff_dependencies: Vec::new(),
             },
             2_000,
         )
@@ -342,6 +347,7 @@ fn a_retired_root_generation_cannot_publish_a_leased_delta() {
                     retained_preview_expectation: None,
                 }],
                 completions: vec![completion(&leased)],
+                catch_up_handoff_dependencies: Vec::new(),
             },
             2_000,
         )
@@ -401,6 +407,7 @@ fn queue_completion_failure_rolls_back_the_catalog_delta_and_revision() {
                     retained_preview_expectation: None,
                 }],
                 completions: vec![completion(&leased)],
+                catch_up_handoff_dependencies: Vec::new(),
             },
             2_000,
         )
@@ -499,6 +506,7 @@ fn identity_preserving_rename_moves_preview_ownership_atomically() {
                     }),
                 }],
                 completions: vec![completion(&leased)],
+                catch_up_handoff_dependencies: Vec::new(),
             },
             2_000,
         )
@@ -604,6 +612,7 @@ fn preview_cleanup_invalidates_a_prepared_retained_preview_delta() {
                     }),
                 }],
                 completions: vec![completion(&leased)],
+                catch_up_handoff_dependencies: Vec::new(),
             },
             2_000,
         )
@@ -685,6 +694,7 @@ fn delta_maintenance_does_not_scan_or_rewrite_unaffected_global_state() {
                     retained_preview_expectation: None,
                 }],
                 completions: vec![completion(&leased)],
+                catch_up_handoff_dependencies: Vec::new(),
             },
             2_000,
         )

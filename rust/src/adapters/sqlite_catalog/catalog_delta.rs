@@ -5,8 +5,8 @@ use rusqlite::{OptionalExtension, TransactionBehavior, params};
 use crate::domain::{
     AssetLocationView, CatalogDeltaBatch, CatalogDeltaPublication, CatalogDeltaPublicationStatus,
     DerivedEvidenceDisposition, FileIdentityEvidence, IncrementalCatalogRoot,
-    IncrementalReconciliationOutcome, LibraryRootGeneration, PreviewStatus,
-    RetainedPreviewExpectation, ScanError,
+    IncrementalReconciliationOutcome, LibraryChangeCatchUpPeer, LibraryChangeId,
+    LibraryRootGeneration, PreviewStatus, RetainedPreviewExpectation, ScanError,
 };
 use crate::ports::IncrementalCatalogRepository;
 
@@ -18,6 +18,7 @@ use super::{
 const MAX_DELTA_MUTATIONS: usize = 256;
 const MAX_REMOVALS_PER_MUTATION: usize = 4;
 const MAX_DELTA_COMPLETIONS: usize = 128;
+const MAX_CATCH_UP_HANDOFF_PEERS: usize = 4_096;
 
 impl IncrementalCatalogRepository for SqliteCatalog {
     fn load_incremental_catalog_roots(&self) -> Result<Vec<IncrementalCatalogRoot>, ScanError> {
@@ -240,6 +241,86 @@ impl IncrementalCatalogRepository for SqliteCatalog {
         Ok(locations)
     }
 
+    fn load_related_library_change_catch_up_peers(
+        &self,
+        change_id: LibraryChangeId,
+    ) -> Result<Vec<LibraryChangeCatchUpPeer>, ScanError> {
+        let mut statement = self
+            .connection
+            .prepare(
+                "SELECT peers.id, peers.root_id, peers.root_generation,
+                        peers.relative_path, peers.scope <> 'path'
+                 FROM library_change_queue AS peers
+                 JOIN library_change_queue AS source ON source.id = ?1
+                 WHERE peers.id <> source.id
+                   AND peers.root_id <> source.root_id
+                   AND peers.status IN ('pending', 'leased', 'retry_wait')
+                   AND source.catch_up_source IS NOT NULL
+                   AND source.catch_up_watermark IS NOT NULL
+                   AND peers.catch_up_source = source.catch_up_source
+                   AND peers.catch_up_watermark = source.catch_up_watermark
+                 ORDER BY peers.id
+                 LIMIT ?2",
+            )
+            .map_err(database_error)?;
+        let rows = statement
+            .query_map(
+                params![
+                    sqlite_integer(change_id.value(), "change ID")?,
+                    i64::try_from(MAX_CATCH_UP_HANDOFF_PEERS + 1).map_err(|_| {
+                        ScanError::new(
+                            "catalog_catch_up_peer_limit_invalid",
+                            "The catch-up peer query bound exceeded SQLite's integer range",
+                        )
+                    })?,
+                ],
+                |row| {
+                    Ok((
+                        row.get::<_, i64>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, i64>(2)?,
+                        row.get::<_, String>(3)?,
+                        row.get::<_, bool>(4)?,
+                    ))
+                },
+            )
+            .map_err(database_error)?;
+        let mut peers = Vec::new();
+        for row in rows {
+            let (change_id, root_id, root_generation, relative_path, authoritative) =
+                row.map_err(database_error)?;
+            peers.push(LibraryChangeCatchUpPeer {
+                change_id: LibraryChangeId::new(sqlite_unsigned(change_id, "change ID")?)
+                    .ok_or_else(|| {
+                        ScanError::new(
+                            "catalog_catch_up_peer_invalid",
+                            "A related catch-up change ID must be nonzero",
+                        )
+                    })?,
+                root_id,
+                root_generation: LibraryRootGeneration::new(sqlite_unsigned(
+                    root_generation,
+                    "root generation",
+                )?)
+                .ok_or_else(|| {
+                    ScanError::new(
+                        "catalog_catch_up_peer_invalid",
+                        "A related catch-up root generation must be nonzero",
+                    )
+                })?,
+                relative_path,
+                requires_authoritative_reconciliation: authoritative,
+            });
+        }
+        if peers.len() > MAX_CATCH_UP_HANDOFF_PEERS {
+            return Err(ScanError::new(
+                "catalog_catch_up_peer_limit_exceeded",
+                "Related catch-up work exceeded the bounded handoff peer window",
+            ));
+        }
+        Ok(peers)
+    }
+
     fn publish_catalog_delta(
         &mut self,
         batch: &CatalogDeltaBatch,
@@ -364,14 +445,18 @@ impl IncrementalCatalogRepository for SqliteCatalog {
             completed_root_authority |= scope == "root";
         }
 
+        for dependency in &batch.catch_up_handoff_dependencies {
+            if handoff_dependency_is_active(&transaction, *dependency)? {
+                return Ok(publication(
+                    CatalogDeltaPublicationStatus::CatchUpHandoffPending,
+                    current_revision,
+                ));
+            }
+        }
+
         for mutation in &batch.mutations {
             if let Some(expectation) = &mutation.retained_preview_expectation
-                && !retained_preview_matches(
-                    &transaction,
-                    &active_scan_id,
-                    &batch.root_id,
-                    expectation,
-                )?
+                && !retained_preview_matches(&transaction, expectation)?
             {
                 return Ok(publication(
                     CatalogDeltaPublicationStatus::StalePreviewState,
@@ -619,16 +704,16 @@ where
 
 fn retained_preview_matches(
     transaction: &rusqlite::Transaction<'_>,
-    scan_id: &str,
-    root_id: &str,
     expectation: &RetainedPreviewExpectation,
 ) -> Result<bool, ScanError> {
     let stored = transaction
         .query_row(
-            "SELECT preview_path, preview_status, preview_issue_code, preview_issue_message
-             FROM asset_locations
-             WHERE scan_id = ?1 AND root_id = ?2 AND location_id = ?3",
-            params![scan_id, root_id, expectation.location_id],
+            "SELECT locations.preview_path, locations.preview_status,
+                    locations.preview_issue_code, locations.preview_issue_message
+             FROM asset_locations AS locations
+             JOIN library_roots AS roots ON roots.active_scan_id = locations.scan_id
+             WHERE locations.location_id = ?1",
+            [&expectation.location_id],
             |row| {
                 Ok((
                     row.get::<_, String>(0)?,
@@ -648,6 +733,50 @@ fn retained_preview_matches(
                 && issue_message == expectation.preview_issue_message
         }),
     )
+}
+
+fn handoff_dependency_is_active(
+    transaction: &rusqlite::Transaction<'_>,
+    dependency: LibraryChangeId,
+) -> Result<bool, ScanError> {
+    let mut current = Some(dependency);
+    for _ in 0..256 {
+        let Some(change_id) = current else {
+            return Ok(false);
+        };
+        let stored = transaction
+            .query_row(
+                "SELECT status, superseded_by_change_id
+                 FROM library_change_queue WHERE id = ?1",
+                [sqlite_integer(change_id.value(), "change ID")?],
+                |row| Ok((row.get::<_, String>(0)?, row.get::<_, Option<i64>>(1)?)),
+            )
+            .optional()
+            .map_err(database_error)?;
+        let Some((status, superseded_by)) = stored else {
+            return Ok(false);
+        };
+        match status.as_str() {
+            "pending" | "leased" | "retry_wait" => return Ok(true),
+            "completed" => return Ok(false),
+            "superseded" => {
+                current = superseded_by
+                    .map(|value| sqlite_unsigned(value, "superseding change ID"))
+                    .transpose()?
+                    .and_then(LibraryChangeId::new);
+            }
+            _ => {
+                return Err(ScanError::new(
+                    "catalog_catch_up_handoff_status_invalid",
+                    "A catch-up handoff dependency has an unsupported durable status",
+                ));
+            }
+        }
+    }
+    Err(ScanError::new(
+        "catalog_catch_up_handoff_chain_exceeded",
+        "A catch-up handoff supersession chain exceeded its bounded depth",
+    ))
 }
 
 fn load_affected_state(
@@ -799,6 +928,19 @@ fn validate_delta_batch(batch: &CatalogDeltaBatch) -> Result<(), ScanError> {
         return Err(ScanError::new(
             "catalog_delta_mutation_count_invalid",
             "A catalog delta exceeded the bounded mutation count",
+        ));
+    }
+    let handoff_dependencies = batch
+        .catch_up_handoff_dependencies
+        .iter()
+        .copied()
+        .collect::<HashSet<_>>();
+    if batch.catch_up_handoff_dependencies.len() > MAX_CATCH_UP_HANDOFF_PEERS
+        || handoff_dependencies.len() != batch.catch_up_handoff_dependencies.len()
+    {
+        return Err(ScanError::new(
+            "catalog_delta_handoff_dependencies_invalid",
+            "Catch-up handoff dependencies must be unique and bounded",
         ));
     }
     let mut change_ids = HashSet::new();

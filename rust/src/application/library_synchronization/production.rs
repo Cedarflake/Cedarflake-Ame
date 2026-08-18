@@ -190,13 +190,13 @@ fn poll_runtime(
             }
             return Ok(snapshot);
         }
-        if runtime.runtime.has_unready_catch_up_roots() {
-            return Ok(snapshot);
-        }
     }
     if runtime.recovery.is_none() {
         let recoverable_scan = runtime.next_authoritative_recoverable_scan(&catalog)?;
         if let Some(recoverable) = recoverable_scan
+            && runtime
+                .runtime
+                .root_is_ready_for_authoritative_recovery(&recovery_root_id(&recoverable))
             && runtime.recovery_is_due(&recovery_root_id(&recoverable), now_unix_ms)
         {
             runtime.start_recoverable_scan(recoverable)?;
@@ -204,7 +204,10 @@ fn poll_runtime(
         }
         let mut pending_full_scan = None;
         for request in runtime.runtime.pending_full_scan_requests() {
-            if runtime.recovery_is_due(&request.root_id, now_unix_ms)
+            if runtime
+                .runtime
+                .root_is_ready_for_authoritative_recovery(&request.root_id)
+                && runtime.recovery_is_due(&request.root_id, now_unix_ms)
                 && !catalog.has_active_scan_for_root(&request.root_id)?
             {
                 pending_full_scan = Some(request);

@@ -7,11 +7,12 @@ use crate::domain::{
     DiscoveredFile, ExpectedFileState, FileIdentityEvidence, GalleryLayoutManifestChunk,
     GalleryLayoutManifestCursor, GalleryQuery, GalleryTimeAnchor, GalleryTimeline,
     IncrementalCatalogRoot, LibraryChangeCatchUpBatch, LibraryChangeCatchUpCheckpoint,
-    LibraryChangeCatchUpEvidence, LibraryChangeCatchUpLimits, LibraryChangeSourceBatch,
-    LibraryChangeSourceError, LibraryChangeSourceHealth, LibraryChangeSourceStopReport,
-    LibraryFolderCursor, LibraryFolderPage, LibraryRootGeneration, MediaInspection,
-    MetadataInspection, PreviewArtifact, PreviewMaterialization, PreviewReclamationCandidate,
-    RecoverableScan, ScanCheckpoint, ScanError, ScanIssue, ScanRequest, StorageConfiguration,
+    LibraryChangeCatchUpEvidence, LibraryChangeCatchUpLimits, LibraryChangeCatchUpPeer,
+    LibraryChangeSourceBatch, LibraryChangeSourceError, LibraryChangeSourceHealth,
+    LibraryChangeSourceStopReport, LibraryFolderCursor, LibraryFolderPage, LibraryRootGeneration,
+    MediaInspection, MetadataInspection, PreviewArtifact, PreviewMaterialization,
+    PreviewReclamationCandidate, RecoverableScan, ScanCheckpoint, ScanError, ScanIssue,
+    ScanRequest, StorageConfiguration,
 };
 use crate::domain::{
     LeasedLibraryChange, LibraryChangeEnqueueReport, LibraryChangeFailure, LibraryChangeId,
@@ -152,6 +153,12 @@ pub trait LibraryChangeCatchUpRepository {
         &mut self,
         checkpoint: &LibraryChangeCatchUpCheckpoint,
     ) -> Result<(), ScanError>;
+    fn cleanup_obsolete_library_change_catch_up_checkpoints(
+        &mut self,
+        retained_volume_ids: &[String],
+        updated_before_unix_ms: i64,
+        limit: u32,
+    ) -> Result<u32, ScanError>;
 }
 
 pub trait LibraryChangeCatchUpSource: Send + Sync + 'static {
@@ -186,6 +193,10 @@ pub trait IncrementalCatalogRepository {
         relative_subtree: &str,
         limit: u32,
     ) -> Result<Vec<AssetLocationView>, ScanError>;
+    fn load_related_library_change_catch_up_peers(
+        &self,
+        change_id: LibraryChangeId,
+    ) -> Result<Vec<LibraryChangeCatchUpPeer>, ScanError>;
     fn publish_catalog_delta(
         &mut self,
         batch: &CatalogDeltaBatch,

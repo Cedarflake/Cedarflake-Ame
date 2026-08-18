@@ -406,11 +406,7 @@ fn root_set_fingerprint(roots: &[ResolvedRoot]) -> String {
         hasher.update(&[0]);
         hasher.update(root.root.root_generation.value().to_string().as_bytes());
         hasher.update(&[0]);
-        hasher.update(
-            normalize_path(&root.root_guid_path)
-                .to_ascii_lowercase()
-                .as_bytes(),
-        );
+        hasher.update(normalize_path(&root.root_guid_path).as_bytes());
         hasher.update(&[0]);
     }
     hasher.finalize().to_hex().to_string()
@@ -522,7 +518,7 @@ fn distribute_changes(
             } else {
                 LibraryChangeScope::Path
             };
-            let key = (scope, relative_path.to_ascii_lowercase());
+            let key = (scope, relative_path.clone());
             let observation = LibraryChangeObservation {
                 root_id: root.root.root_id.clone(),
                 root_generation: root.root.root_generation,
@@ -614,15 +610,11 @@ fn merge_observation(
 fn relative_to_root(full_path: &str, root_path: &str) -> Option<String> {
     let full = normalize_path(full_path);
     let root = normalize_path(root_path);
-    if full.eq_ignore_ascii_case(&root) {
+    if full == root {
         return Some(String::new());
     }
     let prefix = format!("{root}/");
-    if full.len() <= prefix.len()
-        || !full
-            .get(..prefix.len())
-            .is_some_and(|candidate| candidate.eq_ignore_ascii_case(&prefix))
-    {
+    if full.len() <= prefix.len() || !full.starts_with(&prefix) {
         return None;
     }
     full.get(prefix.len()..).map(str::to_owned)
@@ -895,27 +887,44 @@ fn resolve_reference_path(
     histories: &BTreeMap<FileReference, Vec<usize>>,
     visiting: &mut BTreeSet<FileReference>,
 ) -> Result<String, ScanError> {
+    resolve_reference_path_with(
+        reference,
+        before_usn,
+        records,
+        histories,
+        visiting,
+        &|reference| open_file_reference_path(volume_handle, reference),
+    )
+}
+
+fn resolve_reference_path_with<OpenReference>(
+    reference: FileReference,
+    before_usn: i64,
+    records: &[ParsedUsnRecord],
+    histories: &BTreeMap<FileReference, Vec<usize>>,
+    visiting: &mut BTreeSet<FileReference>,
+    open_reference: &OpenReference,
+) -> Result<String, ScanError>
+where
+    OpenReference: Fn(FileReference) -> Result<String, ScanError>,
+{
     if !visiting.insert(reference) || visiting.len() > 256 {
         return Err(ScanError::new(
             "usn_path_reconstruction_cycle",
             "The journal parent chain could not be reconstructed safely",
         ));
     }
-    let historical = histories.get(&reference).and_then(|indices| {
-        indices
-            .iter()
-            .rev()
-            .filter_map(|index| records.get(*index))
-            .find(|record| record.usn < before_usn)
-    });
+    let historical = histories
+        .get(&reference)
+        .and_then(|indices| historical_parent_record(indices, records, before_usn));
     let result = if let Some(parent_record) = historical {
-        let parent = resolve_reference_path(
-            volume_handle,
+        let parent = resolve_reference_path_with(
             parent_record.parent_reference,
             parent_record.usn,
             records,
             histories,
             visiting,
+            open_reference,
         )?;
         Ok(format!(
             "{}/{}",
@@ -923,10 +932,32 @@ fn resolve_reference_path(
             parent_record.name
         ))
     } else {
-        open_file_reference_path(volume_handle, reference)
+        open_reference(reference)
     };
     visiting.remove(&reference);
     result
+}
+
+fn historical_parent_record<'a>(
+    indices: &[usize],
+    records: &'a [ParsedUsnRecord],
+    before_usn: i64,
+) -> Option<&'a ParsedUsnRecord> {
+    indices
+        .iter()
+        .rev()
+        .filter_map(|index| records.get(*index))
+        .find(|record| record.usn < before_usn)
+        .or_else(|| {
+            indices
+                .iter()
+                .filter_map(|index| records.get(*index))
+                .find(|record| {
+                    record.usn >= before_usn
+                        && record.reason & (USN_REASON_FILE_DELETE | USN_REASON_RENAME_OLD_NAME)
+                            != 0
+                })
+        })
 }
 
 fn open_file_reference_path(
@@ -1401,6 +1432,120 @@ mod tests {
     }
 
     #[test]
+    fn later_parent_delete_reconstructs_an_earlier_child_delete() {
+        let parent_reference = FileReference::V2(2_u64.to_le_bytes());
+        let root_reference = FileReference::V2(1_u64.to_le_bytes());
+        let records = vec![parsed_record(
+            parent_reference,
+            root_reference,
+            31,
+            "album",
+            USN_REASON_FILE_DELETE,
+            true,
+        )];
+        let histories = record_histories(&records);
+
+        let path = resolve_reference_path_with(
+            parent_reference,
+            30,
+            &records,
+            &histories,
+            &mut BTreeSet::new(),
+            &|reference| {
+                (reference == root_reference)
+                    .then(|| "//?/Volume{fixture}/library".to_owned())
+                    .ok_or_else(invalid_record)
+            },
+        )
+        .expect("deleted parent path");
+
+        assert_eq!(path, "//?/Volume{fixture}/library/album");
+    }
+
+    #[test]
+    fn nested_later_directory_deletes_reconstruct_the_complete_parent_chain() {
+        let inner_reference = FileReference::V2(3_u64.to_le_bytes());
+        let outer_reference = FileReference::V2(2_u64.to_le_bytes());
+        let root_reference = FileReference::V2(1_u64.to_le_bytes());
+        let records = vec![
+            parsed_record(
+                inner_reference,
+                outer_reference,
+                31,
+                "inner",
+                USN_REASON_FILE_DELETE,
+                true,
+            ),
+            parsed_record(
+                outer_reference,
+                root_reference,
+                32,
+                "outer",
+                USN_REASON_FILE_DELETE,
+                true,
+            ),
+        ];
+        let histories = record_histories(&records);
+
+        let path = resolve_reference_path_with(
+            inner_reference,
+            30,
+            &records,
+            &histories,
+            &mut BTreeSet::new(),
+            &|reference| {
+                (reference == root_reference)
+                    .then(|| "//?/Volume{fixture}/library".to_owned())
+                    .ok_or_else(invalid_record)
+            },
+        )
+        .expect("nested deleted parent path");
+
+        assert_eq!(path, "//?/Volume{fixture}/library/outer/inner");
+    }
+
+    #[test]
+    fn later_parent_rename_uses_the_old_name_for_an_earlier_child() {
+        let parent_reference = FileReference::V2(2_u64.to_le_bytes());
+        let root_reference = FileReference::V2(1_u64.to_le_bytes());
+        let records = vec![
+            parsed_record(
+                parent_reference,
+                root_reference,
+                31,
+                "old-album",
+                USN_REASON_RENAME_OLD_NAME,
+                true,
+            ),
+            parsed_record(
+                parent_reference,
+                root_reference,
+                32,
+                "new-album",
+                USN_REASON_RENAME_NEW_NAME,
+                true,
+            ),
+        ];
+        let histories = record_histories(&records);
+
+        let path = resolve_reference_path_with(
+            parent_reference,
+            30,
+            &records,
+            &histories,
+            &mut BTreeSet::new(),
+            &|reference| {
+                (reference == root_reference)
+                    .then(|| "//?/Volume{fixture}/library".to_owned())
+                    .ok_or_else(invalid_record)
+            },
+        )
+        .expect("renamed parent old path");
+
+        assert_eq!(path, "//?/Volume{fixture}/library/old-album");
+    }
+
+    #[test]
     fn one_volume_read_is_shared_by_multiple_roots() {
         let backend = FakeBackend::new();
         let source = WindowsUsnCatchUpSource {
@@ -1437,6 +1582,89 @@ mod tests {
         assert_eq!(batch.roots.len(), 2);
         assert!(batch.roots.iter().all(|root| root.fallback_code.is_none()));
         assert!(batch.roots.iter().all(|root| root.observations.len() == 1));
+    }
+
+    #[test]
+    fn case_sensitive_sibling_paths_remain_distinct_candidates() {
+        let roots = vec![ResolvedRoot {
+            root: root("root-a", "C:/library-a"),
+            volume: VolumeDescriptor {
+                volume_id: "//?/volume{fixture}".to_owned(),
+                open_path: "\\\\?\\Volume{fixture}".to_owned(),
+            },
+            filesystem: "NTFS".to_owned(),
+            root_guid_path: "//?/Volume{fixture}/library-a".to_owned(),
+        }];
+        let results = distribute_changes(
+            &roots,
+            vec![
+                journal_change("//?/Volume{fixture}/library-a/A.jpg", 30),
+                journal_change("//?/Volume{fixture}/library-a/a.jpg", 31),
+            ],
+            8,
+            &LibraryChangeCatchUpEvidence {
+                source: CATCH_UP_SOURCE.to_owned(),
+                watermark: "volume|12|40".to_owned(),
+            },
+        )
+        .expect("case-sensitive candidates");
+
+        assert_eq!(results[0].observations.len(), 2);
+        assert!(
+            results[0]
+                .observations
+                .iter()
+                .any(|observation| observation.relative_path == "A.jpg")
+        );
+        assert!(
+            results[0]
+                .observations
+                .iter()
+                .any(|observation| observation.relative_path == "a.jpg")
+        );
+    }
+
+    #[test]
+    fn case_sensitive_sibling_roots_do_not_share_candidates() {
+        let descriptor = VolumeDescriptor {
+            volume_id: "//?/volume{fixture}".to_owned(),
+            open_path: "\\\\?\\Volume{fixture}".to_owned(),
+        };
+        let roots = vec![
+            ResolvedRoot {
+                root: root("root-upper", "C:/Roots/A"),
+                volume: descriptor.clone(),
+                filesystem: "NTFS".to_owned(),
+                root_guid_path: "//?/Volume{fixture}/Roots/A".to_owned(),
+            },
+            ResolvedRoot {
+                root: root("root-lower", "C:/Roots/a"),
+                volume: descriptor,
+                filesystem: "NTFS".to_owned(),
+                root_guid_path: "//?/Volume{fixture}/Roots/a".to_owned(),
+            },
+        ];
+        let results = distribute_changes(
+            &roots,
+            vec![journal_change("//?/Volume{fixture}/Roots/A/photo.jpg", 30)],
+            8,
+            &LibraryChangeCatchUpEvidence {
+                source: CATCH_UP_SOURCE.to_owned(),
+                watermark: "volume|12|40".to_owned(),
+            },
+        )
+        .expect("case-sensitive root containment");
+
+        let upper = results
+            .iter()
+            .find(|result| result.root_id == "root-upper")
+            .expect("upper root");
+        let lower = results
+            .iter()
+            .find(|result| result.root_id == "root-lower")
+            .expect("lower root");
+        assert_eq!(upper.observations.len(), 1);
+        assert!(lower.observations.is_empty());
     }
 
     #[test]
@@ -1850,6 +2078,40 @@ mod tests {
 
     fn journal_change(full_path: &str, usn: i64) -> ResolvedJournalChange {
         journal_change_with_kind(full_path, usn, LibraryChangeObservationKind::Modified)
+    }
+
+    fn parsed_record(
+        file_reference: FileReference,
+        parent_reference: FileReference,
+        usn: i64,
+        name: &str,
+        reason: u32,
+        is_directory: bool,
+    ) -> ParsedUsnRecord {
+        ParsedUsnRecord {
+            file_reference,
+            parent_reference,
+            usn,
+            observed_unix_ms: 20,
+            reason,
+            file_attributes: if is_directory {
+                FILE_ATTRIBUTE_DIRECTORY
+            } else {
+                0
+            },
+            name: name.to_owned(),
+        }
+    }
+
+    fn record_histories(records: &[ParsedUsnRecord]) -> BTreeMap<FileReference, Vec<usize>> {
+        let mut histories = BTreeMap::new();
+        for (index, record) in records.iter().enumerate() {
+            histories
+                .entry(record.file_reference)
+                .or_insert_with(Vec::new)
+                .push(index);
+        }
+        histories
     }
 
     fn journal_change_with_kind(

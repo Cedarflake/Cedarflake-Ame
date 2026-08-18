@@ -30,7 +30,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             .map_err(database_error)?;
         match version {
             SCHEMA_VERSION => {
-                repair_prerelease_v19_path_index(connection)?;
+                repair_prerelease_v19_derived_indexes(connection)?;
                 return validate_current_schema_contract(connection);
             }
             1 => migrate_v1_to_v2(connection)?,
@@ -424,7 +424,7 @@ fn validate_current_schema_contract(connection: &Connection) -> Result<(), ScanE
 }
 
 fn validate_change_catch_up_contract(connection: &Connection) -> Result<(), ScanError> {
-    let (has_table, has_marker, has_path_index) = connection
+    let (has_table, has_marker, has_path_index, has_peer_index) = connection
         .query_row(
             "SELECT
                EXISTS(SELECT 1 FROM sqlite_master
@@ -437,18 +437,26 @@ fn validate_change_catch_up_contract(connection: &Connection) -> Result<(), Scan
                AND (SELECT group_concat(name, ',') FROM (
                  SELECT name FROM pragma_index_info('asset_locations_root_relative')
                  ORDER BY seqno
-               )) = 'root_id,relative_path,scan_id,location_id'",
+                )) = 'root_id,relative_path,scan_id,location_id',
+               EXISTS(SELECT 1 FROM pragma_index_list('library_change_queue')
+                 WHERE name = 'library_change_queue_catch_up_peer'
+                   AND \"unique\" = 0 AND partial = 0)
+               AND (SELECT group_concat(name, ',') FROM (
+                 SELECT name FROM pragma_index_info('library_change_queue_catch_up_peer')
+                 ORDER BY seqno
+               )) = 'catch_up_source,catch_up_watermark,status,root_id,id'",
             [],
             |row| {
                 Ok((
                     row.get::<_, bool>(0)?,
                     row.get::<_, bool>(1)?,
                     row.get::<_, bool>(2)?,
+                    row.get::<_, bool>(3)?,
                 ))
             },
         )
         .map_err(database_error)?;
-    if !has_table || !has_marker || !has_path_index {
+    if !has_table || !has_marker || !has_path_index || !has_peer_index {
         return Err(ScanError::new(
             "catalog_change_catch_up_contract_unverifiable",
             "The catalog cannot prove its downtime catch-up checkpoint authority",
@@ -473,8 +481,15 @@ fn validate_change_catch_up_contract(connection: &Connection) -> Result<(), Scan
     Ok(())
 }
 
-fn repair_prerelease_v19_path_index(connection: &mut Connection) -> Result<(), ScanError> {
-    let (has_table, has_marker, has_named_index, has_columns) = connection
+fn repair_prerelease_v19_derived_indexes(connection: &mut Connection) -> Result<(), ScanError> {
+    let (
+        has_table,
+        has_marker,
+        has_named_path_index,
+        has_path_columns,
+        has_named_peer_index,
+        has_peer_columns,
+    ) = connection
         .query_row(
             "SELECT
                EXISTS(SELECT 1 FROM sqlite_master
@@ -483,8 +498,14 @@ fn repair_prerelease_v19_path_index(connection: &mut Connection) -> Result<(), S
                  WHERE name = 'change_catch_up_complete'),
                EXISTS(SELECT 1 FROM sqlite_master
                  WHERE type = 'index' AND name = 'asset_locations_root_relative'),
-               (SELECT COUNT(*) FROM pragma_table_info('asset_locations')
-                 WHERE name IN ('root_id', 'relative_path', 'scan_id', 'location_id')) = 4",
+                (SELECT COUNT(*) FROM pragma_table_info('asset_locations')
+                  WHERE name IN ('root_id', 'relative_path', 'scan_id', 'location_id')) = 4,
+                EXISTS(SELECT 1 FROM sqlite_master
+                  WHERE type = 'index' AND name = 'library_change_queue_catch_up_peer'),
+                (SELECT COUNT(*) FROM pragma_table_info('library_change_queue')
+                  WHERE name IN (
+                    'catch_up_source', 'catch_up_watermark', 'status', 'root_id', 'id'
+                  )) = 5",
             [],
             |row| {
                 Ok((
@@ -492,11 +513,13 @@ fn repair_prerelease_v19_path_index(connection: &mut Connection) -> Result<(), S
                     row.get::<_, bool>(1)?,
                     row.get::<_, bool>(2)?,
                     row.get::<_, bool>(3)?,
+                    row.get::<_, bool>(4)?,
+                    row.get::<_, bool>(5)?,
                 ))
             },
         )
         .map_err(database_error)?;
-    if has_named_index || !has_table || !has_marker || !has_columns {
+    if !has_table || !has_marker || !has_path_columns || !has_peer_columns {
         return Ok(());
     }
     let marker_complete = connection
@@ -514,13 +537,26 @@ fn repair_prerelease_v19_path_index(connection: &mut Connection) -> Result<(), S
     }
 
     let transaction = connection.transaction().map_err(database_error)?;
-    transaction
-        .execute(
-            "CREATE INDEX asset_locations_root_relative
-             ON asset_locations(root_id, relative_path, scan_id, location_id)",
-            [],
-        )
-        .map_err(database_error)?;
+    if !has_named_path_index {
+        transaction
+            .execute(
+                "CREATE INDEX asset_locations_root_relative
+                 ON asset_locations(root_id, relative_path, scan_id, location_id)",
+                [],
+            )
+            .map_err(database_error)?;
+    }
+    if !has_named_peer_index {
+        transaction
+            .execute(
+                "CREATE INDEX library_change_queue_catch_up_peer
+                 ON library_change_queue(
+                   catch_up_source, catch_up_watermark, status, root_id, id
+                 )",
+                [],
+            )
+            .map_err(database_error)?;
+    }
     transaction.commit().map_err(database_error)
 }
 
@@ -1337,6 +1373,10 @@ fn add_change_catch_up_contract(transaction: &Transaction<'_>) -> Result<(), Sca
              );
              CREATE INDEX asset_locations_root_relative
                ON asset_locations(root_id, relative_path, scan_id, location_id);
+             CREATE INDEX library_change_queue_catch_up_peer
+               ON library_change_queue(
+                 catch_up_source, catch_up_watermark, status, root_id, id
+               );
              ALTER TABLE library_change_queue_contract
                ADD COLUMN change_catch_up_complete INTEGER NOT NULL DEFAULT 1
                CHECK(change_catch_up_complete = 1);",
@@ -1453,6 +1493,38 @@ mod tests {
     }
 
     #[test]
+    fn prerelease_v19_with_complete_marker_repairs_missing_catch_up_peer_index() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh v19 catalog");
+        connection
+            .execute("DROP INDEX library_change_queue_catch_up_peer", [])
+            .expect("restore prerelease v19 peer index state");
+
+        migrate_schema(&mut connection).expect("repair catch-up peer index");
+
+        let index_columns = connection
+            .prepare(
+                "SELECT name FROM pragma_index_info('library_change_queue_catch_up_peer')
+                 ORDER BY seqno",
+            )
+            .expect("peer index query")
+            .query_map([], |row| row.get::<_, String>(0))
+            .expect("peer index rows")
+            .collect::<Result<Vec<_>, _>>()
+            .expect("peer index columns");
+        assert_eq!(
+            index_columns,
+            [
+                "catch_up_source",
+                "catch_up_watermark",
+                "status",
+                "root_id",
+                "id",
+            ]
+        );
+    }
+
+    #[test]
     fn prerelease_v19_with_malformed_path_index_fails_closed() {
         let mut connection = Connection::open_in_memory().expect("catalog");
         migrate_schema(&mut connection).expect("fresh v19 catalog");
@@ -1511,13 +1583,20 @@ mod tests {
                    root_id TEXT NOT NULL,
                    status TEXT NOT NULL
                  );
-                 CREATE TABLE asset_locations(
-                   root_id TEXT NOT NULL,
-                   relative_path TEXT NOT NULL,
-                   scan_id TEXT NOT NULL,
-                   location_id TEXT NOT NULL
-                 );
-                 INSERT INTO scan_runs VALUES ('foreground-a', 'root-a', 'running');
+                  CREATE TABLE asset_locations(
+                    root_id TEXT NOT NULL,
+                    relative_path TEXT NOT NULL,
+                    scan_id TEXT NOT NULL,
+                    location_id TEXT NOT NULL
+                  );
+                  CREATE TABLE library_change_queue(
+                    id INTEGER PRIMARY KEY,
+                    root_id TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    catch_up_source TEXT,
+                    catch_up_watermark TEXT
+                  );
+                  INSERT INTO scan_runs VALUES ('foreground-a', 'root-a', 'running');
                  INSERT INTO scan_runs VALUES (
                    'sync-recovery-1-2-3', 'root-b', 'running'
                  );",
@@ -1570,13 +1649,20 @@ mod tests {
                    root_id TEXT NOT NULL,
                    status TEXT NOT NULL
                  );
-                 CREATE TABLE asset_locations(
-                   root_id TEXT NOT NULL,
-                   relative_path TEXT NOT NULL,
-                   scan_id TEXT NOT NULL,
-                   location_id TEXT NOT NULL
-                 );
-                 CREATE UNIQUE INDEX scan_runs_one_active_root
+                  CREATE TABLE asset_locations(
+                    root_id TEXT NOT NULL,
+                    relative_path TEXT NOT NULL,
+                    scan_id TEXT NOT NULL,
+                    location_id TEXT NOT NULL
+                  );
+                  CREATE TABLE library_change_queue(
+                    id INTEGER PRIMARY KEY,
+                    root_id TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    catch_up_source TEXT,
+                    catch_up_watermark TEXT
+                  );
+                  CREATE UNIQUE INDEX scan_runs_one_active_root
                    ON scan_runs(root_id) WHERE status IN ('running', 'paused');
                  INSERT INTO scan_runs VALUES (
                    'sync-recovery-7-8-9', 'root-a', 'running'

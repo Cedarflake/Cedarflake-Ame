@@ -386,11 +386,11 @@ impl LibrarySynchronizationRuntime {
             .collect()
     }
 
-    pub(crate) fn has_unready_catch_up_roots(&self) -> bool {
-        self.roots.values().any(|runtime| {
-            runtime.needs_continuity_gap
+    pub(crate) fn root_is_ready_for_authoritative_recovery(&self, root_id: &str) -> bool {
+        self.roots.get(root_id).is_some_and(|runtime| {
+            !runtime.needs_continuity_gap
                 && runtime.availability == LibraryRootAvailability::Available
-                && runtime.source_health != LibraryChangeSourceHealth::Healthy
+                && runtime.source_health == LibraryChangeSourceHealth::Healthy
         })
     }
 

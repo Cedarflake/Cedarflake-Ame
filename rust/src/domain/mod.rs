@@ -9,7 +9,7 @@ pub(crate) mod library_synchronization;
 pub use library_catalog_delta::{
     CatalogDeltaBatch, CatalogDeltaMutation, CatalogDeltaPublication,
     CatalogDeltaPublicationStatus, IncrementalCatalogRoot, IncrementalLibraryChangeReport,
-    LibraryChangeCompletion, RetainedPreviewExpectation,
+    LibraryChangeCatchUpPeer, LibraryChangeCompletion, RetainedPreviewExpectation,
 };
 pub use library_change::{
     CatalogFreshnessCause, CatalogFreshnessState, DerivedEvidenceDisposition,

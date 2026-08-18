@@ -76,4 +76,5 @@ pub struct LibraryChangeCatchUpReport {
     pub observation_count: u64,
     pub fallback_count: u32,
     pub checkpoint_count: u32,
+    pub checkpoint_cleanup_count: u32,
 }

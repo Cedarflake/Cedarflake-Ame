@@ -2429,6 +2429,7 @@ fn migrated_v17_placeholder_preserves_the_normalized_legacy_location() {
         .execute_batch(
             "PRAGMA foreign_keys = OFF;
              DROP INDEX asset_locations_root_relative;
+             DROP INDEX library_change_queue_catch_up_peer;
              DROP INDEX scan_runs_one_active_root;
              ALTER TABLE library_change_queue DROP COLUMN authoritative_scan_id;
              ALTER TABLE library_change_root_state DROP COLUMN last_consistency_audit_unix_ms;
@@ -2541,6 +2542,7 @@ fn migrated_v17_healthy_file_preserves_legacy_location_without_identity_evidence
         .execute_batch(
             "PRAGMA foreign_keys = OFF;
              DROP INDEX asset_locations_root_relative;
+             DROP INDEX library_change_queue_catch_up_peer;
              DROP INDEX scan_runs_one_active_root;
              ALTER TABLE library_change_queue DROP COLUMN authoritative_scan_id;
              ALTER TABLE library_change_root_state DROP COLUMN last_consistency_audit_unix_ms;

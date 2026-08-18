@@ -103,13 +103,27 @@ The adapter snapshots the queried `NextUsn` as the exclusive end boundary. It re
 USN to that boundary, builds a bounded file-reference map for deleted or renamed parent chains,
 opens still-live parents by file ID when necessary, converts the resulting path to a stable volume
 GUID path, and then filters by normalized root containment. An unclassifiable record that may
-intersect a configured root is an evidence gap, not an ignored event.
+intersect a configured root is an evidence gap, not an ignored event. Root containment and candidate
+coalescing preserve exact normalized path spelling because NTFS directories may opt into
+case-sensitive names. When child delete records precede their deleted or renamed parent record, the
+bounded history may use only a later parent `FILE_DELETE` or `RENAME_OLD_NAME` record; a later new
+name or unrelated reused file reference is never accepted as the child's historical parent path.
 
 Checkpoint publication follows durable enqueue. The application first enqueues every resulting
 plan and records `catch_up_source = windows_usn_v1` plus the exclusive volume watermark on the
 retained queue work. Only after all affected roots commit does it advance the per-volume
 checkpoint. A crash between those steps replays an idempotent range; it cannot skip evidence.
 Queue coalescing retains the newest compatible watermark without using it as asset identity.
+
+One journal range may describe a move between configured roots on the same volume as a source
+removal plus a destination creation. Before a destructive source delta publishes, the application
+checks bounded active peer work from the same source and watermark outside the SQLite transaction.
+An exact file-identity match at another root becomes a durable queue dependency; an authoritative
+peer or an unreadable possible target also blocks the source conservatively. Publication follows
+that dependency through bounded supersession links and defers the source lease without consuming a
+retry attempt until the destination work completes. Unrelated missing paths do not depend on each
+other. Compatible preview evidence is compare-and-swapped against any active root location, so the
+destination can adopt the asset and preview identity before the source owner is removed.
 
 When no trustworthy checkpoint exists, or any continuity, permission, support, parsing, capacity,
 containment, or reconstruction check fails, Ame enqueues the existing root-level
@@ -122,6 +136,15 @@ claim journal coverage.
 One background catch-up operation and the existing authoritative recovery worker are mutually
 exclusive. Shutdown requests cancellation and retains the worker handle in the same explicit
 stopping lifecycle used by ADR 0021; restart is rejected until the previous worker is joined.
+Catch-up readiness is evaluated per root: one unavailable or unhealthy root cannot block a healthy
+root whose catch-up evidence is already durable from running its authoritative recovery.
+
+Per-volume checkpoints are derived coordination evidence. After successfully enqueuing all work and
+saving the current checkpoints, Ame deletes at most 128 checkpoints older than seven days per run,
+excluding every volume returned by the current catch-up. Cleanup is disabled while any durable
+`FreshnessUnknown` row remains pending, leased, or waiting to retry, so retention cannot erase the
+watermark context of an unresolved gap. The catch-up peer lookup has a schema-owned composite index
+and a marker-complete prerelease v19 database may repair only that missing derived index atomically.
 
 ### Unsafe boundary and invariants
 
@@ -152,11 +175,12 @@ boundary. The following invariants are binding:
 - pure parser fixtures cover valid V2/V3 records, mixed versions, malformed lengths and offsets,
   invalid UTF-16, unknown versions, record, retained-byte, and candidate ceilings, and cancellation;
 - adapter fixtures cover journal recreation, trimmed USNs, unsupported filesystems, permission
-  errors, unavailable volumes, deleted-parent reconstruction, root filtering, and multiple roots on
-  one volume with one journal read;
+  errors, unavailable volumes, child-before-parent deletion and rename reconstruction,
+  case-sensitive root filtering, and multiple roots on one volume with one journal read;
 - migration fixtures cover fresh v19, v18 to v19 preservation, and fail-closed prerelease v19;
 - application fixtures prove enqueue-before-checkpoint, replay after interruption, root-set and
-  catalog-revision mismatch fallback, and retained catch-up queue metadata;
+  catalog-revision mismatch fallback, retained catch-up queue metadata, both cross-root move orders,
+  unrelated-removal progress, and bounded checkpoint retention that stops on unresolved gaps;
 - runtime fixtures prove watcher-first ordering, no authoritative work before catch-up completion,
   fallback recovery, cancellation, bounded stop, and restart ownership;
 - deterministic adapter fixtures prove create, modify, rename, and remove candidate coverage; a
