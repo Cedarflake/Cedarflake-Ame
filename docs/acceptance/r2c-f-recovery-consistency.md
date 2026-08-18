@@ -113,10 +113,10 @@ process was terminated.
 The first dedicated PR audit returned `REQUEST CHANGES` with four High, one Medium, and one Low
 finding. Its first re-audit confirmed those paths closed, then returned two High, three Medium, and
 one Low follow-up finding. The next re-audit confirmed those paths closed and found one Medium retry
-state issue. The current working tree also preserves per-root full-scan failure history across
-bounded re-escalation, so repeated failures continue toward the five-minute ceiling while another
-root remains independent. Final independent re-audit of the committed head remains required before
-merge.
+state issue. The final independent re-audit of committed head `91c1933` returned `APPROVE` with zero
+Critical, High, Medium, or Low findings. It confirmed that per-root full-scan failure history survives
+bounded re-escalation, repeated failures continue toward the five-minute ceiling, another root
+remains independent, and successful bounded or full-scan recovery clears the retry state.
 
 ## Remaining boundary
 
