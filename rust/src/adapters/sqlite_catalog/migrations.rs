@@ -35,6 +35,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             SCHEMA_VERSION => {
                 repair_prerelease_v19_derived_indexes(connection)?;
                 repair_prerelease_v19_scan_lineage(connection)?;
+                repair_prerelease_v19_scan_handoff_batches(connection)?;
                 return validate_current_schema_contract(connection);
             }
             1 => migrate_v1_to_v2(connection)?,
@@ -401,6 +402,7 @@ fn validate_current_schema_contract(connection: &Connection) -> Result<(), ScanE
     validate_change_queue_authority(connection)?;
     validate_authoritative_recovery_marker(connection)?;
     validate_change_catch_up_contract(connection)?;
+    validate_scan_handoff_batch_contract(connection)?;
     let (has_scan_runs, has_single_scan_owner_index, has_scan_owner) = connection
         .query_row(
             "SELECT
@@ -611,10 +613,25 @@ fn validate_change_catch_up_contract(connection: &Connection) -> Result<(), Scan
             "The catalog cannot prove its downtime catch-up checkpoint authority",
         ));
     }
+    let has_scan_handoff_marker = connection
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM pragma_table_info('library_change_queue_contract')
+             WHERE name = 'scan_handoff_batch_complete')",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    if !has_scan_handoff_marker {
+        return Err(ScanError::new(
+            "catalog_change_catch_up_contract_unverifiable",
+            "The catalog cannot prove its normalized scan handoff contract",
+        ));
+    }
     let marker_complete = connection
         .query_row(
             "SELECT change_catch_up_complete = 1
                     AND scan_catch_up_lineage_complete = 1
+                    AND scan_handoff_batch_complete = 1
              FROM library_change_queue_contract WHERE singleton = 1",
             [],
             |row| row.get::<_, bool>(0),
@@ -704,6 +721,273 @@ fn validate_change_catch_up_contract(connection: &Connection) -> Result<(), Scan
         ));
     }
     Ok(())
+}
+
+fn validate_scan_handoff_batch_contract(connection: &Connection) -> Result<(), ScanError> {
+    let marker_complete = connection
+        .query_row(
+            "SELECT scan_handoff_batch_complete = 1
+             FROM library_change_queue_contract WHERE singleton = 1",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .optional()
+        .map_err(database_error)?
+        .unwrap_or(false);
+    let structure_matches = marker_complete
+        && table_columns_match(
+            connection,
+            "library_change_scan_handoff_batches",
+            &[
+                ("id", "TEXT", true, 1),
+                ("source_root_id", "TEXT", true, 0),
+                ("updated_unix_ms", "INTEGER", true, 0),
+            ],
+        )?
+        && table_columns_match(
+            connection,
+            "library_change_scan_handoff_lineage",
+            &[
+                ("batch_id", "TEXT", true, 1),
+                ("catch_up_source", "TEXT", true, 2),
+                ("catch_up_watermark", "TEXT", true, 3),
+                ("enrolled_unix_ms", "INTEGER", true, 0),
+            ],
+        )?
+        && table_columns_match(
+            connection,
+            "library_change_scan_handoff_items",
+            &[
+                ("batch_id", "TEXT", true, 1),
+                ("file_identity_scheme", "TEXT", true, 2),
+                ("file_identity_value", "TEXT", true, 3),
+                ("asset_id", "TEXT", true, 0),
+                ("source_location_id", "TEXT", true, 0),
+                ("root_id", "TEXT", true, 0),
+                ("absolute_path", "TEXT", true, 0),
+                ("relative_path", "TEXT", true, 0),
+                ("preview_path", "TEXT", true, 0),
+                ("file_size", "INTEGER", true, 0),
+                ("created_unix_ms", "INTEGER", false, 0),
+                ("modified_unix_ms", "INTEGER", true, 0),
+                ("width", "INTEGER", true, 0),
+                ("height", "INTEGER", true, 0),
+                ("preview_status", "TEXT", true, 0),
+                ("preview_issue_code", "TEXT", false, 0),
+                ("preview_issue_message", "TEXT", false, 0),
+                ("metadata_engine_id", "TEXT", true, 0),
+                ("metadata_engine_version", "TEXT", true, 0),
+                ("capture_local_time", "TEXT", false, 0),
+                ("capture_offset_minutes", "INTEGER", false, 0),
+                ("capture_time_source", "TEXT", false, 0),
+                ("capture_raw_value", "TEXT", false, 0),
+            ],
+        )?
+        && named_index_matches(
+            connection,
+            "library_change_scan_handoff_lineage",
+            "library_change_scan_handoff_lineage_evidence",
+            &["catch_up_source", "catch_up_watermark", "batch_id"],
+        )?
+        && named_index_matches(
+            connection,
+            "library_change_scan_handoff_items",
+            "library_change_scan_handoff_items_identity",
+            &["file_identity_scheme", "file_identity_value", "batch_id"],
+        )?
+        && named_index_matches(
+            connection,
+            "library_change_scan_handoff_items",
+            "library_change_scan_handoff_items_asset",
+            &["asset_id", "batch_id"],
+        )?
+        && named_index_matches(
+            connection,
+            "library_change_scan_handoff_items",
+            "library_change_scan_handoff_items_preview",
+            &["preview_path", "preview_status", "batch_id"],
+        )?
+        && cascade_foreign_key_matches(
+            connection,
+            "library_change_scan_handoff_lineage",
+            "batch_id",
+            "library_change_scan_handoff_batches",
+            "id",
+        )?
+        && cascade_foreign_key_matches(
+            connection,
+            "library_change_scan_handoff_items",
+            "batch_id",
+            "library_change_scan_handoff_batches",
+            "id",
+        )?;
+    if !structure_matches {
+        return Err(ScanError::new(
+            "catalog_change_catch_up_contract_unverifiable",
+            "The catalog cannot prove its normalized scan handoff contract",
+        ));
+    }
+
+    let invalid_relations = connection
+        .query_row(
+            "SELECT EXISTS(
+               SELECT 1 FROM library_change_catch_up_handoffs AS handoffs
+               WHERE NOT EXISTS (
+                 SELECT 1
+                 FROM library_change_queue_catch_up_lineage AS lineage
+                 JOIN library_change_queue AS changes ON changes.id = lineage.change_id
+                 WHERE lineage.catch_up_source = handoffs.catch_up_source
+                   AND lineage.catch_up_watermark = handoffs.catch_up_watermark
+                   AND changes.status IN ('pending', 'leased', 'retry_wait')
+               ) AND NOT EXISTS (
+                 SELECT 1
+                 FROM scan_run_catch_up_lineage AS lineage
+                 JOIN scan_runs AS scans ON scans.id = lineage.scan_id
+                 WHERE lineage.catch_up_source = handoffs.catch_up_source
+                   AND lineage.catch_up_watermark = handoffs.catch_up_watermark
+                   AND scans.status IN ('running', 'paused')
+               )
+             ) OR EXISTS(
+               SELECT 1 FROM library_change_scan_handoff_lineage AS handoffs
+               WHERE NOT EXISTS (
+                 SELECT 1
+                 FROM library_change_queue_catch_up_lineage AS lineage
+                 JOIN library_change_queue AS changes ON changes.id = lineage.change_id
+                 WHERE lineage.catch_up_source = handoffs.catch_up_source
+                   AND lineage.catch_up_watermark = handoffs.catch_up_watermark
+                   AND changes.status IN ('pending', 'leased', 'retry_wait')
+               ) AND NOT EXISTS (
+                 SELECT 1
+                 FROM scan_run_catch_up_lineage AS lineage
+                 JOIN scan_runs AS scans ON scans.id = lineage.scan_id
+                 WHERE lineage.catch_up_source = handoffs.catch_up_source
+                   AND lineage.catch_up_watermark = handoffs.catch_up_watermark
+                   AND scans.status IN ('running', 'paused')
+               )
+             ) OR EXISTS(
+               SELECT 1 FROM library_change_scan_handoff_batches AS batches
+               WHERE NOT EXISTS (
+                 SELECT 1 FROM library_change_scan_handoff_lineage AS lineage
+                 WHERE lineage.batch_id = batches.id
+               ) OR NOT EXISTS (
+                 SELECT 1 FROM library_change_scan_handoff_items AS items
+                 WHERE items.batch_id = batches.id
+               )
+             ) OR EXISTS(
+               SELECT 1
+               FROM scan_run_catch_up_lineage AS frozen
+               JOIN scan_runs AS scans ON scans.id = frozen.scan_id
+               WHERE scans.status IN ('running', 'paused')
+                 AND NOT EXISTS (
+                   SELECT 1
+                   FROM library_change_queue AS changes
+                   JOIN library_change_queue_catch_up_lineage AS lineage
+                     ON lineage.change_id = changes.id
+                   WHERE changes.root_id = scans.root_id
+                     AND changes.root_generation = scans.root_generation_at_start
+                     AND changes.id <= scans.change_queue_high_watermark
+                    AND lineage.catch_up_source = frozen.catch_up_source
+                     AND lineage.catch_up_watermark = frozen.catch_up_watermark
+                 )
+             ) OR EXISTS(SELECT 1 FROM pragma_foreign_key_check(
+               'library_change_scan_handoff_lineage'
+             )) OR EXISTS(SELECT 1 FROM pragma_foreign_key_check(
+               'library_change_scan_handoff_items'
+             ))",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    if invalid_relations {
+        return Err(ScanError::new(
+            "catalog_change_catch_up_contract_unverifiable",
+            "The catalog cannot prove the ownership of its retained handoff evidence",
+        ));
+    }
+    Ok(())
+}
+
+fn table_columns_match(
+    connection: &Connection,
+    table: &str,
+    expected: &[(&str, &str, bool, i64)],
+) -> Result<bool, ScanError> {
+    let mut statement = connection
+        .prepare(&format!("PRAGMA table_info('{table}')"))
+        .map_err(database_error)?;
+    let rows = statement
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, bool>(3)?,
+                row.get::<_, i64>(5)?,
+            ))
+        })
+        .map_err(database_error)?;
+    let actual = rows
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(database_error)?;
+    Ok(actual.len() == expected.len()
+        && actual.iter().zip(expected).all(|(actual, expected)| {
+            actual.0 == expected.0
+                && actual.1.eq_ignore_ascii_case(expected.1)
+                && actual.2 == expected.2
+                && actual.3 == expected.3
+        }))
+}
+
+fn named_index_matches(
+    connection: &Connection,
+    table: &str,
+    index: &str,
+    expected_columns: &[&str],
+) -> Result<bool, ScanError> {
+    let index_is_plain = connection
+        .query_row(
+            &format!(
+                "SELECT EXISTS(SELECT 1 FROM pragma_index_list('{table}')
+                 WHERE name = ?1 AND \"unique\" = 0 AND partial = 0)"
+            ),
+            [index],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    if !index_is_plain {
+        return Ok(false);
+    }
+    let mut statement = connection
+        .prepare(&format!("PRAGMA index_info('{index}')"))
+        .map_err(database_error)?;
+    let columns = statement
+        .query_map([], |row| row.get::<_, String>(2))
+        .map_err(database_error)?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(database_error)?;
+    Ok(columns == expected_columns)
+}
+
+fn cascade_foreign_key_matches(
+    connection: &Connection,
+    table: &str,
+    from: &str,
+    target_table: &str,
+    target_column: &str,
+) -> Result<bool, ScanError> {
+    connection
+        .query_row(
+            &format!(
+                "SELECT COUNT(*) = 1 AND EXISTS(
+                   SELECT 1 FROM pragma_foreign_key_list('{table}')
+                   WHERE \"table\" = ?1 AND \"from\" = ?2 AND \"to\" = ?3
+                     AND on_update = 'NO ACTION' AND on_delete = 'CASCADE'
+                     AND \"match\" = 'NONE'
+                 ) FROM pragma_foreign_key_list('{table}')"
+            ),
+            params![target_table, from, target_column],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)
 }
 
 fn repair_prerelease_v19_derived_indexes(connection: &mut Connection) -> Result<(), ScanError> {
@@ -1022,6 +1306,123 @@ fn repair_prerelease_v19_scan_lineage(connection: &mut Connection) -> Result<(),
             "ALTER TABLE library_change_queue_contract
              ADD COLUMN scan_catch_up_lineage_complete INTEGER NOT NULL DEFAULT 1
              CHECK(scan_catch_up_lineage_complete = 1)",
+            [],
+        )
+        .map_err(database_error)?;
+    transaction.commit().map_err(database_error)
+}
+
+fn repair_prerelease_v19_scan_handoff_batches(
+    connection: &mut Connection,
+) -> Result<(), ScanError> {
+    let (
+        has_change_marker,
+        has_scan_lineage_marker,
+        has_scan_handoff_marker,
+        has_batches,
+        has_batch_lineage,
+        has_batch_items,
+    ) = connection
+        .query_row(
+            "SELECT
+               EXISTS(SELECT 1 FROM pragma_table_info('library_change_queue_contract')
+                 WHERE name = 'change_catch_up_complete'),
+               EXISTS(SELECT 1 FROM pragma_table_info('library_change_queue_contract')
+                 WHERE name = 'scan_catch_up_lineage_complete'),
+               EXISTS(SELECT 1 FROM pragma_table_info('library_change_queue_contract')
+                 WHERE name = 'scan_handoff_batch_complete'),
+               EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'table'
+                 AND name = 'library_change_scan_handoff_batches'),
+               EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'table'
+                 AND name = 'library_change_scan_handoff_lineage'),
+               EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'table'
+                 AND name = 'library_change_scan_handoff_items')",
+            [],
+            |row| {
+                Ok((
+                    row.get::<_, bool>(0)?,
+                    row.get::<_, bool>(1)?,
+                    row.get::<_, bool>(2)?,
+                    row.get::<_, bool>(3)?,
+                    row.get::<_, bool>(4)?,
+                    row.get::<_, bool>(5)?,
+                ))
+            },
+        )
+        .map_err(database_error)?;
+    if !has_change_marker || !has_scan_lineage_marker || has_scan_handoff_marker {
+        return Ok(());
+    }
+    if has_batches || has_batch_lineage || has_batch_items {
+        return Ok(());
+    }
+    let prerequisite_complete = connection
+        .query_row(
+            "SELECT change_catch_up_complete = 1 AND scan_catch_up_lineage_complete = 1
+             FROM library_change_queue_contract WHERE singleton = 1",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .optional()
+        .map_err(database_error)?
+        .unwrap_or(false);
+    if !prerequisite_complete {
+        return Ok(());
+    }
+    let authority_is_unprovable = connection
+        .query_row(
+            "SELECT EXISTS(
+               SELECT 1 FROM library_change_catch_up_handoffs AS handoffs
+               WHERE NOT EXISTS (
+                 SELECT 1
+                 FROM library_change_queue_catch_up_lineage AS lineage
+                 JOIN library_change_queue AS changes ON changes.id = lineage.change_id
+                 WHERE lineage.catch_up_source = handoffs.catch_up_source
+                   AND lineage.catch_up_watermark = handoffs.catch_up_watermark
+                   AND changes.status IN ('pending', 'leased', 'retry_wait')
+               ) AND NOT EXISTS (
+                 SELECT 1
+                 FROM scan_run_catch_up_lineage AS lineage
+                 JOIN scan_runs AS scans ON scans.id = lineage.scan_id
+                 WHERE lineage.catch_up_source = handoffs.catch_up_source
+                   AND lineage.catch_up_watermark = handoffs.catch_up_watermark
+                   AND scans.status IN ('running', 'paused')
+               )
+             ) OR EXISTS(
+               SELECT 1
+               FROM scan_run_catch_up_lineage AS frozen
+               JOIN scan_runs AS scans ON scans.id = frozen.scan_id
+               WHERE scans.status IN ('running', 'paused')
+                 AND NOT EXISTS (
+                   SELECT 1
+                   FROM library_change_queue AS changes
+                   JOIN library_change_queue_catch_up_lineage AS lineage
+                     ON lineage.change_id = changes.id
+                   WHERE changes.root_id = scans.root_id
+                     AND changes.root_generation = scans.root_generation_at_start
+                     AND changes.id <= scans.change_queue_high_watermark
+                     AND lineage.catch_up_source = frozen.catch_up_source
+                     AND lineage.catch_up_watermark = frozen.catch_up_watermark
+                 )
+             )",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    if authority_is_unprovable {
+        return Err(ScanError::new(
+            "catalog_change_catch_up_contract_unverifiable",
+            "The catalog cannot prove the ownership of its prerelease handoff evidence",
+        ));
+    }
+
+    let transaction = connection.transaction().map_err(database_error)?;
+    create_scan_handoff_batch_contract(&transaction)?;
+    transaction
+        .execute(
+            "ALTER TABLE library_change_queue_contract
+             ADD COLUMN scan_handoff_batch_complete INTEGER NOT NULL DEFAULT 1
+             CHECK(scan_handoff_batch_complete = 1)",
             [],
         )
         .map_err(database_error)?;
@@ -1846,12 +2247,16 @@ fn add_change_catch_up_contract(transaction: &Transaction<'_>) -> Result<(), Sca
                CHECK(change_catch_up_complete = 1);
              ALTER TABLE library_change_queue_contract
                ADD COLUMN scan_catch_up_lineage_complete INTEGER NOT NULL DEFAULT 1
-               CHECK(scan_catch_up_lineage_complete = 1);",
+               CHECK(scan_catch_up_lineage_complete = 1);
+             ALTER TABLE library_change_queue_contract
+               ADD COLUMN scan_handoff_batch_complete INTEGER NOT NULL DEFAULT 1
+               CHECK(scan_handoff_batch_complete = 1);",
         )
         .map_err(database_error)?;
     create_change_catch_up_handoff_contract(transaction)?;
     create_change_catch_up_lineage_contract(transaction)?;
     create_scan_run_catch_up_lineage_contract(transaction)?;
+    create_scan_handoff_batch_contract(transaction)?;
     seed_change_catch_up_lineage(transaction)
 }
 
@@ -1955,6 +2360,81 @@ fn create_scan_run_catch_up_lineage_contract(
         .map_err(database_error)
 }
 
+fn create_scan_handoff_batch_contract(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+    transaction
+        .execute_batch(
+            "CREATE TABLE library_change_scan_handoff_batches (
+               id TEXT NOT NULL PRIMARY KEY CHECK(length(id) BETWEEN 1 AND 1024),
+               source_root_id TEXT NOT NULL CHECK(length(source_root_id) BETWEEN 1 AND 4096),
+               updated_unix_ms INTEGER NOT NULL CHECK(updated_unix_ms >= 0)
+             );
+             CREATE TABLE library_change_scan_handoff_lineage (
+               batch_id TEXT NOT NULL,
+               catch_up_source TEXT NOT NULL CHECK(length(catch_up_source) BETWEEN 1 AND 128),
+               catch_up_watermark TEXT NOT NULL
+                 CHECK(length(catch_up_watermark) BETWEEN 1 AND 1024),
+               enrolled_unix_ms INTEGER NOT NULL,
+               PRIMARY KEY(batch_id, catch_up_source, catch_up_watermark),
+               FOREIGN KEY(batch_id) REFERENCES library_change_scan_handoff_batches(id)
+                 ON DELETE CASCADE
+             );
+             CREATE INDEX library_change_scan_handoff_lineage_evidence
+               ON library_change_scan_handoff_lineage(
+                 catch_up_source, catch_up_watermark, batch_id
+               );
+             CREATE TABLE library_change_scan_handoff_items (
+               batch_id TEXT NOT NULL,
+               file_identity_scheme TEXT NOT NULL,
+               file_identity_value TEXT NOT NULL,
+               asset_id TEXT NOT NULL,
+               source_location_id TEXT NOT NULL,
+               root_id TEXT NOT NULL,
+               absolute_path TEXT NOT NULL,
+               relative_path TEXT NOT NULL,
+               preview_path TEXT NOT NULL,
+               file_size INTEGER NOT NULL CHECK(file_size >= 0),
+               created_unix_ms INTEGER,
+               modified_unix_ms INTEGER NOT NULL,
+               width INTEGER NOT NULL CHECK(width >= 0),
+               height INTEGER NOT NULL CHECK(height >= 0),
+               preview_status TEXT NOT NULL
+                 CHECK(preview_status IN ('pending', 'ready', 'failed')),
+               preview_issue_code TEXT,
+               preview_issue_message TEXT,
+               metadata_engine_id TEXT NOT NULL,
+               metadata_engine_version TEXT NOT NULL,
+               capture_local_time TEXT,
+               capture_offset_minutes INTEGER,
+               capture_time_source TEXT
+                 CHECK(capture_time_source IS NULL OR capture_time_source IN (
+                   'exif_original', 'exif_digitized', 'exif_datetime'
+                 )),
+               capture_raw_value TEXT,
+               CHECK(
+                 (capture_local_time IS NULL AND capture_time_source IS NULL
+                   AND capture_raw_value IS NULL)
+                 OR
+                 (capture_local_time IS NOT NULL AND capture_time_source IS NOT NULL
+                   AND capture_raw_value IS NOT NULL)
+               ),
+               PRIMARY KEY(batch_id, file_identity_scheme, file_identity_value),
+               FOREIGN KEY(batch_id) REFERENCES library_change_scan_handoff_batches(id)
+                 ON DELETE CASCADE
+             );
+             CREATE INDEX library_change_scan_handoff_items_identity
+               ON library_change_scan_handoff_items(
+                 file_identity_scheme, file_identity_value, batch_id
+               );
+             CREATE INDEX library_change_scan_handoff_items_asset
+               ON library_change_scan_handoff_items(asset_id, batch_id);
+             CREATE INDEX library_change_scan_handoff_items_preview
+               ON library_change_scan_handoff_items(
+                 preview_path, preview_status, batch_id
+               );",
+        )
+        .map_err(database_error)
+}
+
 fn seed_change_catch_up_lineage(transaction: &Transaction<'_>) -> Result<(), ScanError> {
     transaction
         .execute(
@@ -2028,6 +2508,23 @@ mod tests {
 
     use super::{migrate_schema, migrate_v16_to_v17, migrate_v17_to_v18, migrate_v18_to_v19};
 
+    type CatchUpAuthorityMigrationState = (
+        i64,
+        bool,
+        i64,
+        i64,
+        i64,
+        i64,
+        i64,
+        i64,
+        i64,
+        bool,
+        bool,
+        bool,
+        bool,
+        bool,
+    );
+
     #[test]
     fn prerelease_v19_without_catch_up_marker_fails_closed() {
         let mut connection = Connection::open_in_memory().expect("catalog");
@@ -2096,11 +2593,16 @@ mod tests {
                    'startup_catch_up', 1, 1, '1', '1', 1, 'pending', 1, 0,
                    'windows_usn_v1', 'volume|12|40', 1, 1
                  );
+                 DROP TABLE library_change_scan_handoff_items;
+                 DROP TABLE library_change_scan_handoff_lineage;
+                 DROP TABLE library_change_scan_handoff_batches;
                  DROP TABLE library_change_queue_catch_up_lineage;
                  DROP TABLE scan_run_catch_up_lineage;
                  DROP TABLE library_change_catch_up_handoffs;
                  ALTER TABLE library_change_queue_contract
                    DROP COLUMN scan_catch_up_lineage_complete;
+                 ALTER TABLE library_change_queue_contract
+                   DROP COLUMN scan_handoff_batch_complete;
                  CREATE INDEX library_change_queue_catch_up_peer
                    ON library_change_queue(
                      catch_up_source, catch_up_watermark, status, root_id, id
@@ -2138,6 +2640,7 @@ mod tests {
             .query_row(
                 "SELECT
                    (SELECT scan_catch_up_lineage_complete = 1
+                           AND scan_handoff_batch_complete = 1
                     FROM library_change_queue_contract WHERE singleton = 1)
                    AND EXISTS(SELECT 1 FROM sqlite_master
                      WHERE type = 'table' AND name = 'scan_run_catch_up_lineage')
@@ -2180,7 +2683,11 @@ mod tests {
                    '', 1, NULL, 1, 1, 1, 'pending', NULL, NULL,
                    'metadata', '1', NULL, NULL, NULL, NULL, 1
                  );
-                 DROP TABLE library_change_queue_catch_up_lineage;",
+                 DROP TABLE library_change_scan_handoff_items;
+                 DROP TABLE library_change_scan_handoff_lineage;
+                 DROP TABLE library_change_scan_handoff_batches;
+                 ALTER TABLE library_change_queue_contract
+                   DROP COLUMN scan_handoff_batch_complete;",
             )
             .expect("unprovable prerelease lineage");
 
@@ -2323,6 +2830,122 @@ mod tests {
             .expect("orphan scan lineage fixture");
 
         let error = migrate_schema(&mut connection).expect_err("orphan scan lineage");
+
+        assert_eq!(error.code, "catalog_change_catch_up_contract_unverifiable");
+    }
+
+    #[test]
+    fn current_v19_orphan_handoff_fails_closed() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh v19 catalog");
+        connection
+            .execute_batch(
+                "INSERT INTO library_change_catch_up_handoffs(
+                   catch_up_source, catch_up_watermark,
+                   file_identity_scheme, file_identity_value,
+                   asset_id, source_location_id, root_id, absolute_path, relative_path,
+                   preview_path, file_size, created_unix_ms, modified_unix_ms,
+                   width, height, preview_status, preview_issue_code, preview_issue_message,
+                   metadata_engine_id, metadata_engine_version, capture_local_time,
+                   capture_offset_minutes, capture_time_source, capture_raw_value,
+                   updated_unix_ms
+                 ) VALUES (
+                   'windows_usn_v1', 'orphan-watermark', 'windows-file-id-128-v1', 'volume:file',
+                   'asset-a', 'location-a', 'root-a', 'C:/source/photo.jpg', 'photo.jpg',
+                   '', 1, NULL, 1, 1, 1, 'pending', NULL, NULL,
+                   'metadata', '1', NULL, NULL, NULL, NULL, 1
+                 );",
+            )
+            .expect("orphan handoff fixture");
+
+        let error = migrate_schema(&mut connection).expect_err("orphan handoff");
+
+        assert_eq!(error.code, "catalog_change_catch_up_contract_unverifiable");
+    }
+
+    #[test]
+    fn current_v19_orphan_scan_handoff_batch_fails_closed() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh v19 catalog");
+        connection
+            .execute_batch(
+                "INSERT INTO library_change_scan_handoff_batches(
+                   id, source_root_id, updated_unix_ms
+                 ) VALUES ('batch-a', 'root-a', 1);
+                 INSERT INTO library_change_scan_handoff_lineage(
+                   batch_id, catch_up_source, catch_up_watermark, enrolled_unix_ms
+                 ) VALUES ('batch-a', 'windows_usn_v1', 'orphan-watermark', 1);
+                 INSERT INTO library_change_scan_handoff_items(
+                   batch_id, file_identity_scheme, file_identity_value,
+                   asset_id, source_location_id, root_id, absolute_path, relative_path,
+                   preview_path, file_size, created_unix_ms, modified_unix_ms,
+                   width, height, preview_status, preview_issue_code, preview_issue_message,
+                   metadata_engine_id, metadata_engine_version, capture_local_time,
+                   capture_offset_minutes, capture_time_source, capture_raw_value
+                 ) VALUES (
+                   'batch-a', 'windows-file-id-128-v1', 'volume:file',
+                   'asset-a', 'location-a', 'root-a', 'C:/source/photo.jpg', 'photo.jpg',
+                   '', 1, NULL, 1, 1, 1, 'pending', NULL, NULL,
+                   'metadata', '1', NULL, NULL, NULL, NULL
+                 );",
+            )
+            .expect("orphan scan handoff fixture");
+
+        let error = migrate_schema(&mut connection).expect_err("orphan scan handoff batch");
+
+        assert_eq!(error.code, "catalog_change_catch_up_contract_unverifiable");
+    }
+
+    #[test]
+    fn current_v19_scan_handoff_lineage_with_wrong_foreign_key_fails_closed() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh v19 catalog");
+        connection
+            .execute_batch(
+                "DROP TABLE library_change_scan_handoff_lineage;
+                 CREATE TABLE library_change_scan_handoff_lineage (
+                   batch_id TEXT NOT NULL,
+                   catch_up_source TEXT NOT NULL,
+                   catch_up_watermark TEXT NOT NULL,
+                   enrolled_unix_ms INTEGER NOT NULL,
+                   PRIMARY KEY(batch_id, catch_up_source, catch_up_watermark),
+                   FOREIGN KEY(batch_id)
+                     REFERENCES library_change_scan_handoff_batches(source_root_id)
+                     ON DELETE CASCADE
+                 );
+                 CREATE INDEX library_change_scan_handoff_lineage_evidence
+                   ON library_change_scan_handoff_lineage(
+                     catch_up_source, catch_up_watermark, batch_id
+                   );",
+            )
+            .expect("wrong-target scan handoff lineage fixture");
+
+        let error = migrate_schema(&mut connection).expect_err("wrong-target scan handoff key");
+
+        assert_eq!(error.code, "catalog_change_catch_up_contract_unverifiable");
+    }
+
+    #[test]
+    fn current_v19_unbacked_active_scan_lineage_fails_closed() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh v19 catalog");
+        connection
+            .execute_batch(
+                "INSERT INTO library_roots(id, path, created_unix_ms)
+                 VALUES ('root-a', 'C:/source', 1);
+                 INSERT INTO scan_runs(
+                   id, root_id, status, scan_owner, started_unix_ms, preview_edge,
+                   root_generation_at_start, change_queue_high_watermark
+                 ) VALUES (
+                   'scan-a', 'root-a', 'running', 'authoritative_recovery', 1, 128, 1, 1
+                 );
+                 INSERT INTO scan_run_catch_up_lineage(
+                   scan_id, catch_up_source, catch_up_watermark, enrolled_unix_ms
+                 ) VALUES ('scan-a', 'windows_usn_v1', 'unbacked-watermark', 1);",
+            )
+            .expect("unbacked active scan lineage fixture");
+
+        let error = migrate_schema(&mut connection).expect_err("unbacked active scan lineage");
 
         assert_eq!(error.code, "catalog_change_catch_up_contract_unverifiable");
     }
@@ -2605,21 +3228,29 @@ mod tests {
             handoff_count,
             lineage_count,
             scan_lineage_count,
+            scan_handoff_batch_count,
+            scan_handoff_lineage_count,
+            scan_handoff_item_count,
             has_path_index,
             has_handoff_index,
             has_lineage_index,
             has_scan_lineage_index,
-        ): (i64, bool, i64, i64, i64, i64, bool, bool, bool, bool) = connection
+            has_scan_handoff_index,
+        ): CatchUpAuthorityMigrationState = connection
             .query_row(
                 "SELECT
                    (SELECT version FROM schema_info),
                    (SELECT change_catch_up_complete = 1
                            AND scan_catch_up_lineage_complete = 1
+                           AND scan_handoff_batch_complete = 1
                     FROM library_change_queue_contract WHERE singleton = 1),
                    (SELECT COUNT(*) FROM library_change_catch_up_state),
                    (SELECT COUNT(*) FROM library_change_catch_up_handoffs),
                    (SELECT COUNT(*) FROM library_change_queue_catch_up_lineage),
                    (SELECT COUNT(*) FROM scan_run_catch_up_lineage),
+                   (SELECT COUNT(*) FROM library_change_scan_handoff_batches),
+                   (SELECT COUNT(*) FROM library_change_scan_handoff_lineage),
+                   (SELECT COUNT(*) FROM library_change_scan_handoff_items),
                    EXISTS(SELECT 1 FROM sqlite_master
                      WHERE type = 'index' AND name = 'asset_locations_root_relative'),
                    EXISTS(SELECT 1 FROM sqlite_master
@@ -2630,7 +3261,10 @@ mod tests {
                        AND name = 'library_change_queue_catch_up_lineage_evidence'),
                    EXISTS(SELECT 1 FROM sqlite_master
                      WHERE type = 'index'
-                       AND name = 'scan_run_catch_up_lineage_evidence')",
+                       AND name = 'scan_run_catch_up_lineage_evidence'),
+                   EXISTS(SELECT 1 FROM sqlite_master
+                     WHERE type = 'index'
+                       AND name = 'library_change_scan_handoff_items_identity')",
                 [],
                 |row| {
                     Ok((
@@ -2644,6 +3278,10 @@ mod tests {
                         row.get(7)?,
                         row.get(8)?,
                         row.get(9)?,
+                        row.get(10)?,
+                        row.get(11)?,
+                        row.get(12)?,
+                        row.get(13)?,
                     ))
                 },
             )
@@ -2655,9 +3293,13 @@ mod tests {
         assert_eq!(handoff_count, 0);
         assert_eq!(lineage_count, 0);
         assert_eq!(scan_lineage_count, 0);
+        assert_eq!(scan_handoff_batch_count, 0);
+        assert_eq!(scan_handoff_lineage_count, 0);
+        assert_eq!(scan_handoff_item_count, 0);
         assert!(has_path_index);
         assert!(has_handoff_index);
         assert!(has_lineage_index);
         assert!(has_scan_lineage_index);
+        assert!(has_scan_handoff_index);
     }
 }

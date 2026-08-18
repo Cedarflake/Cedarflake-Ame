@@ -2798,6 +2798,9 @@ fn delete_orphan_assets(transaction: &Transaction<'_>) -> Result<(), ScanError> 
              ) AND NOT EXISTS (
                SELECT 1 FROM library_change_catch_up_handoffs AS handoffs
                WHERE handoffs.asset_id = assets.id
+             ) AND NOT EXISTS (
+               SELECT 1 FROM library_change_scan_handoff_items AS handoffs
+               WHERE handoffs.asset_id = assets.id
              )",
             [],
         )
@@ -2839,6 +2842,11 @@ fn mark_unreferenced_preview_artifacts_stale(
                )
                AND NOT EXISTS (
                  SELECT 1 FROM library_change_catch_up_handoffs AS handoffs
+                 WHERE handoffs.preview_status = 'ready'
+                   AND handoffs.preview_path = preview_artifacts.artifact_path
+               )
+               AND NOT EXISTS (
+                 SELECT 1 FROM library_change_scan_handoff_items AS handoffs
                  WHERE handoffs.preview_status = 'ready'
                    AND handoffs.preview_path = preview_artifacts.artifact_path
                )",

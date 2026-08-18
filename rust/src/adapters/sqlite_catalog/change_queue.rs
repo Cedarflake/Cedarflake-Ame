@@ -271,7 +271,10 @@ impl LibraryChangeQueue for SqliteCatalog {
         terminal_before_unix_ms: i64,
         limit: u32,
     ) -> Result<u32, ScanError> {
-        cleanup_terminal_records(&self.connection, terminal_before_unix_ms, limit)
+        let transaction = self.connection.transaction().map_err(database_error)?;
+        let deleted = cleanup_terminal_records(&transaction, terminal_before_unix_ms, limit)?;
+        transaction.commit().map_err(database_error)?;
+        Ok(deleted)
     }
 }
 

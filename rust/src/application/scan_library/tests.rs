@@ -411,10 +411,6 @@ fn bidirectional_full_scan_catch_up_preserves_cross_root_assets_and_previews() {
         .into_owned();
     let source_root_id = stable_id("library-root-v1", &source_canonical);
     let destination_root_id = stable_id("library-root-v1", &destination_canonical);
-    let evidence = LibraryChangeCatchUpEvidence {
-        source: "windows_usn_v1".to_owned(),
-        watermark: "volume|44|52".to_owned(),
-    };
     let generation = LibraryRootGeneration::initial();
     let intent = |root_id: String| LibraryChangeIntent {
         root_id,
@@ -430,23 +426,31 @@ fn bidirectional_full_scan_catch_up_preserves_cross_root_assets_and_previews() {
         most_recent_sequence: 1,
         coalesced_observation_count: 1,
     };
-    SqliteCatalog::open(storage_paths.catalog_path.clone())
-        .expect("catch-up catalog")
-        .enqueue_library_change_catch_up_batches(
-            &[
-                LibraryChangeCatchUpQueueBatch {
-                    intents: vec![intent(source_root_id)],
-                    evidence: Some(evidence.clone()),
-                },
-                LibraryChangeCatchUpQueueBatch {
-                    intents: vec![intent(destination_root_id.clone())],
-                    evidence: Some(evidence),
-                },
-            ],
-            1_000,
-            LibraryChangeQueuePolicy::default(),
-        )
-        .expect("atomic cross-root catch-up enqueue");
+    let mut catch_up_catalog =
+        SqliteCatalog::open(storage_paths.catalog_path.clone()).expect("catch-up catalog");
+    for watermark in 0..64 {
+        let evidence = LibraryChangeCatchUpEvidence {
+            source: "windows_usn_v1".to_owned(),
+            watermark: format!("volume|44|{watermark}"),
+        };
+        catch_up_catalog
+            .enqueue_library_change_catch_up_batches(
+                &[
+                    LibraryChangeCatchUpQueueBatch {
+                        intents: vec![intent(source_root_id.clone())],
+                        evidence: Some(evidence.clone()),
+                    },
+                    LibraryChangeCatchUpQueueBatch {
+                        intents: vec![intent(destination_root_id.clone())],
+                        evidence: Some(evidence),
+                    },
+                ],
+                1_000 + watermark,
+                LibraryChangeQueuePolicy::default(),
+            )
+            .expect("atomic cross-root catch-up enqueue");
+    }
+    drop(catch_up_catalog);
 
     run_scan_with_storage_owned(
         ScanRequest {
@@ -466,8 +470,11 @@ fn bidirectional_full_scan_catch_up_preserves_cross_root_assets_and_previews() {
         .query_row(
             "SELECT
                (SELECT COUNT(*) FROM library_change_catch_up_handoffs),
+               (SELECT COUNT(*) FROM library_change_scan_handoff_batches),
+               (SELECT COUNT(*) FROM library_change_scan_handoff_items),
+               (SELECT COUNT(*) FROM library_change_scan_handoff_lineage),
                (SELECT COUNT(*) FROM library_change_queue
-                WHERE root_id = ?1 AND status IN ('pending', 'leased', 'retry_wait')),
+                 WHERE root_id = ?1 AND status IN ('pending', 'leased', 'retry_wait')),
                (SELECT COUNT(*) FROM scan_run_catch_up_lineage)",
             [&destination_root_id],
             |row| {
@@ -475,11 +482,14 @@ fn bidirectional_full_scan_catch_up_preserves_cross_root_assets_and_previews() {
                     row.get::<_, i64>(0)?,
                     row.get::<_, i64>(1)?,
                     row.get::<_, i64>(2)?,
+                    row.get::<_, i64>(3)?,
+                    row.get::<_, i64>(4)?,
+                    row.get::<_, i64>(5)?,
                 ))
             },
         )
         .expect("source publication evidence");
-    assert_eq!(source_publication, (1, 1, 0));
+    assert_eq!(source_publication, (0, 1, 1, 64, 1, 0));
     run_scan_with_storage_owned(
         ScanRequest {
             scan_id: "full-handoff-destination-recovery".to_owned(),
@@ -521,18 +531,30 @@ fn bidirectional_full_scan_catch_up_preserves_cross_root_assets_and_previews() {
         PreviewStatus::Ready
     ));
     let connection = Connection::open(storage_paths.catalog_path).expect("final catalog");
-    let (handoffs, scan_lineage, active_work): (i64, i64, i64) = connection
+    let terminal_evidence: (i64, i64, i64, i64, i64, i64) = connection
         .query_row(
             "SELECT
                (SELECT COUNT(*) FROM library_change_catch_up_handoffs),
+               (SELECT COUNT(*) FROM library_change_scan_handoff_batches),
+               (SELECT COUNT(*) FROM library_change_scan_handoff_items),
+               (SELECT COUNT(*) FROM library_change_scan_handoff_lineage),
                (SELECT COUNT(*) FROM scan_run_catch_up_lineage),
                (SELECT COUNT(*) FROM library_change_queue
-                WHERE status IN ('pending', 'leased', 'retry_wait'))",
+                 WHERE status IN ('pending', 'leased', 'retry_wait'))",
             [],
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                    row.get(5)?,
+                ))
+            },
         )
         .expect("terminal handoff evidence");
-    assert_eq!((handoffs, scan_lineage, active_work), (0, 0, 0));
+    assert_eq!(terminal_evidence, (0, 0, 0, 0, 0, 0));
 }
 
 #[test]
@@ -2664,8 +2686,11 @@ fn migrated_v17_placeholder_preserves_the_normalized_legacy_location() {
     connection
         .execute_batch(
             "PRAGMA foreign_keys = OFF;
-             DROP INDEX asset_locations_root_relative;
-             DROP TABLE library_change_queue_catch_up_lineage;
+              DROP INDEX asset_locations_root_relative;
+              DROP TABLE library_change_scan_handoff_items;
+              DROP TABLE library_change_scan_handoff_lineage;
+              DROP TABLE library_change_scan_handoff_batches;
+              DROP TABLE library_change_queue_catch_up_lineage;
              DROP TABLE scan_run_catch_up_lineage;
              DROP TABLE library_change_catch_up_handoffs;
              DROP INDEX scan_runs_one_active_root;
@@ -2701,6 +2726,8 @@ fn migrated_v17_placeholder_preserves_the_normalized_legacy_location() {
     connection
         .execute_batch(
             "ALTER TABLE library_change_queue_contract
+               DROP COLUMN scan_handoff_batch_complete;
+              ALTER TABLE library_change_queue_contract
                DROP COLUMN scan_catch_up_lineage_complete;
              ALTER TABLE library_change_queue_contract
                DROP COLUMN change_catch_up_complete;
@@ -2781,8 +2808,11 @@ fn migrated_v17_healthy_file_preserves_legacy_location_without_identity_evidence
     connection
         .execute_batch(
             "PRAGMA foreign_keys = OFF;
-             DROP INDEX asset_locations_root_relative;
-             DROP TABLE library_change_queue_catch_up_lineage;
+              DROP INDEX asset_locations_root_relative;
+              DROP TABLE library_change_scan_handoff_items;
+              DROP TABLE library_change_scan_handoff_lineage;
+              DROP TABLE library_change_scan_handoff_batches;
+              DROP TABLE library_change_queue_catch_up_lineage;
              DROP TABLE scan_run_catch_up_lineage;
              DROP TABLE library_change_catch_up_handoffs;
              DROP INDEX scan_runs_one_active_root;
@@ -2820,6 +2850,8 @@ fn migrated_v17_healthy_file_preserves_legacy_location_without_identity_evidence
     connection
         .execute_batch(
             "ALTER TABLE library_change_queue_contract
+               DROP COLUMN scan_handoff_batch_complete;
+              ALTER TABLE library_change_queue_contract
                DROP COLUMN scan_catch_up_lineage_complete;
              ALTER TABLE library_change_queue_contract
                DROP COLUMN change_catch_up_complete;

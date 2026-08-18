@@ -35,12 +35,12 @@ The controlled fixtures prove:
 | Queue evidence | Preserve a bounded lineage of unconsumed catch-up watermarks through coalescing and supersession |
 | Explicit fallback | Enqueue `FreshnessUnknown` for every affected root on uncertain evidence |
 | Standard token | Fall back on `usn_volume_open_failed` without requesting elevation |
-| Schema v19 | Migrate v18 atomically, validate exact lineage relations, reject orphan or unverifiable authority, and repair only provable marker-complete state |
+| Schema v19 | Migrate v18 atomically, validate exact lineage and normalized handoff relations, reject orphan or unverifiable authority, and repair only provable marker-complete state |
 | Query bound | Use an exact root-and-relative-path index during authoritative reconciliation |
 | Root isolation | Allow a ready root to recover while another root still lacks healthy continuity evidence |
 | Checkpoint retention | Delete at most 128 obsolete checkpoints after seven days and never while a freshness gap is unresolved |
 | Exact subtree scope | Keep `Album` and `album` sibling locations outside each other's authoritative capacity window |
-| Durable handoff | Snapshot identity and compatible evidence before destructive publication, retain it across later watermarks, then clean only after every owner is terminal |
+| Durable handoff | Store full-scan snapshots as `N` identity items plus `L` lineage owners, retain them across later watermarks, then atomically clean after the last owner is terminal |
 | Shutdown | Cancel and retain catch-up worker ownership until its thread is joined |
 | Source safety | Perform no source-media mutation or cloud-placeholder hydration |
 
@@ -54,13 +54,13 @@ cargo test adapters::windows_usn_catch_up::tests --all-features -- --nocapture
 19 passed; 0 failed
 
 cargo test adapters::sqlite_catalog::migrations::tests --all-features -- --nocapture
-16 passed; 0 failed
+20 passed; 0 failed
 
 cargo test application::incremental_library_changes::tests --all-features -- --nocapture
 23 passed; 0 failed
 
 cargo test adapters::sqlite_catalog::change_queue::tests --all-features -- --nocapture
-45 passed; 0 failed
+47 passed; 0 failed
 
 cargo test application::library_synchronization::tests --all-features -- --nocapture
 13 passed; 0 failed
@@ -69,7 +69,7 @@ cargo test adapters::sqlite_catalog::catch_up::tests --all-features -- --nocaptu
 5 passed; 0 failed
 
 cargo test adapters::sqlite_catalog::catalog_delta::tests --all-features -- --nocapture
-12 passed; 0 failed
+13 passed; 0 failed
 
 cargo test application::scan_library::tests --all-features -- --nocapture
 27 passed; 0 failed; 2 existing explicit ignores
@@ -85,9 +85,11 @@ orders, bidirectional authoritative moves, compatible preview transfer, exact-ca
 capacity, cross-watermark handoff, and unrelated-removal progress. Queue and migration fixtures
 cover all-root transactional rollback, single-call root enrollment, bounded 64-watermark queue
 lineage, bounded 4,096-watermark scan lineage, lineage transfer, multi-watermark asset and preview
-ownership, exact foreign keys, orphan rejection, and fail-closed prerelease repair. Full-scan
-fixtures move assets in both directions between two roots and prove stable asset and compatible
-preview continuity through source-first and destination-first publication.
+ownership, exact foreign keys, owner and reverse-provenance validation, bounded atomic terminal
+cleanup, orphan rejection, and fail-closed prerelease repair. Full-scan fixtures move assets in both
+directions between two roots, retain one identity item with 64 lineage owners rather than 64 copied
+items, and prove stable asset and compatible preview continuity through source-first and
+destination-first publication.
 The controlled real Win32 temporary-root test was executed with both the normal sandboxed token and
 the same standard token outside the workspace sandbox.
 Both reached the documented `usn_volume_open_failed` permission fallback. Ame did not elevate or
@@ -101,7 +103,7 @@ the production adapter path is covered by deterministic backend and parser fixtu
 140 files checked; 0 changed
 
 ./tool/quality_verify_daily.ps1
-Rust: 374 total; 369 passed; 0 failed; 5 existing explicit ignores
+Rust: 381 total; 376 passed; 0 failed; 5 existing explicit ignores
 Flutter: all test files passed
 Windows controlled picker and scan integration: 2 passed
 Windows native accessibility integration: 2 passed
@@ -113,14 +115,14 @@ release bridge and system accent smoke integration: 2 passed
 
 ./tool/performance_benchmark_synthetic_library.ps1
 files=10000
-fixture_ms=12468
-cold_ms=37790
-warm_ms=33542
-pause_ms=25
-resume_ms=31612
-cancel_ms=164
-catalog_bytes=52355072
-peak_working_set_bytes=17354752
+fixture_ms=12439
+cold_ms=39075
+warm_ms=33311
+pause_ms=35
+resume_ms=31641
+cancel_ms=161
+catalog_bytes=52502528
+peak_working_set_bytes=17833984
 result: passed
 
 git diff --check
@@ -162,9 +164,13 @@ watermark lineage entries per unresolved row, transfers lineage through coalesci
 and keeps asset and preview ownership until every lineage owner is terminal. The fourth audit of
 `6fae32b` returned Critical 0 / High 1 / Medium 1 / Low 0 because full-scan escalation bypassed
 handoff lineage and current-v19 validation accepted wrong-target foreign keys or orphan lineage.
-The current work freezes bounded scan lineage, applies the handoff protocol before full-scan
-replacement, resolves scan identity through active and handoff evidence, and validates exact
-lineage structure and ownership. Final independent re-audit remains pending; R2c-G is not marked
+Head `79f8418` froze bounded scan lineage, applied handoff before full-scan replacement, and fixed
+the exact lineage foreign keys. The fifth audit returned Critical 0 / High 1 / Medium 1 / Low 0:
+full-scan publication still materialized the Cartesian product of identities and watermarks, while
+terminal queue retention could detach handoff evidence from its authority. The current work stores
+one normalized batch with `N` identity items and `L` lineage edges, preserves terminal provenance
+while an active scan owns it, releases the final owner atomically, and validates every forward and
+reverse ownership relation on open. Final independent re-audit remains pending; R2c-G is not marked
 complete until that committed head has no remaining Critical, High, Medium, or Low findings.
 
 ## Remaining boundary

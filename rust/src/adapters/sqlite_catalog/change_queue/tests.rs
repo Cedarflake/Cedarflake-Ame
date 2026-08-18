@@ -1942,6 +1942,179 @@ fn metrics_and_cleanup_are_structured_and_bounded() {
 }
 
 #[test]
+fn terminal_retention_atomically_releases_all_handoff_owners() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let generation = LibraryRootGeneration::initial();
+    let policy = immediate_policy();
+    let mut catalog = queue_catalog(path);
+    let evidence = LibraryChangeCatchUpEvidence {
+        source: "windows_usn_v1".to_owned(),
+        watermark: "volume|12|40".to_owned(),
+    };
+    catalog
+        .enqueue_library_change_intents_with_catch_up(
+            &[path_intent("root-a", generation, 1, 1_000, "a.jpg")],
+            &evidence,
+            1_000,
+            policy,
+        )
+        .expect("enqueue catch-up work");
+    let lease = catalog
+        .lease_library_changes("root-a", generation, 1_000, policy)
+        .expect("lease catch-up work")
+        .pop()
+        .expect("catch-up lease");
+    catalog
+        .connection
+        .execute_batch(
+            "INSERT INTO assets(id, created_unix_ms) VALUES ('asset-a', 1);
+             INSERT INTO preview_artifacts(
+               artifact_key, source_file_size, source_modified_unix_ms,
+               source_identity_scheme, source_identity_value, algorithm_id,
+               algorithm_version, orientation_contract, size_bucket,
+               encoded_width, encoded_height, artifact_path, byte_size,
+               lifecycle_state, created_unix_ms, last_used_unix_ms
+             ) VALUES (
+               'preview-a', 1, 1, 'windows-file-id-128-v1', 'volume:file',
+               'preview', 1, 'orientation-v1', 128, 8, 8, 'cache/a.jpg', 1,
+               'ready', 1, 1
+             );
+             INSERT INTO library_change_catch_up_handoffs(
+               catch_up_source, catch_up_watermark,
+               file_identity_scheme, file_identity_value,
+               asset_id, source_location_id, root_id, absolute_path, relative_path,
+               preview_path, file_size, created_unix_ms, modified_unix_ms,
+               width, height, preview_status, preview_issue_code, preview_issue_message,
+               metadata_engine_id, metadata_engine_version, capture_local_time,
+               capture_offset_minutes, capture_time_source, capture_raw_value,
+               updated_unix_ms
+             ) VALUES (
+               'windows_usn_v1', 'volume|12|40', 'windows-file-id-128-v1', 'volume:file',
+               'asset-a', 'location-a', 'root-a', 'C:/source/a.jpg', 'a.jpg',
+               'cache/a.jpg', 1, NULL, 1, 8, 8, 'ready', NULL, NULL,
+               'metadata', '1', NULL, NULL, NULL, NULL, 1
+             );
+             INSERT INTO library_change_scan_handoff_batches(
+               id, source_root_id, updated_unix_ms
+             ) VALUES ('batch-a', 'root-a', 1);
+             INSERT INTO library_change_scan_handoff_lineage(
+               batch_id, catch_up_source, catch_up_watermark, enrolled_unix_ms
+             ) VALUES ('batch-a', 'windows_usn_v1', 'volume|12|40', 1);
+             INSERT INTO library_change_scan_handoff_items(
+               batch_id, file_identity_scheme, file_identity_value,
+               asset_id, source_location_id, root_id, absolute_path, relative_path,
+               preview_path, file_size, created_unix_ms, modified_unix_ms,
+               width, height, preview_status, preview_issue_code, preview_issue_message,
+               metadata_engine_id, metadata_engine_version, capture_local_time,
+               capture_offset_minutes, capture_time_source, capture_raw_value
+             ) VALUES (
+               'batch-a', 'windows-file-id-128-v1', 'volume:file',
+               'asset-a', 'location-a', 'root-a', 'C:/source/a.jpg', 'a.jpg',
+               'cache/a.jpg', 1, NULL, 1, 8, 8, 'ready', NULL, NULL,
+               'metadata', '1', NULL, NULL, NULL, NULL
+             );",
+        )
+        .expect("handoff fixtures");
+    catalog
+        .complete_library_change(lease.change.id, lease.lease_generation, 0, 1_010)
+        .expect("complete catch-up work");
+
+    assert_eq!(
+        catalog
+            .cleanup_terminal_library_changes(1_010, 1)
+            .expect("atomic terminal cleanup"),
+        1,
+    );
+    let retained: (i64, i64, i64, i64, i64, i64, String) = catalog
+        .connection
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM library_change_queue),
+               (SELECT COUNT(*) FROM library_change_catch_up_handoffs),
+               (SELECT COUNT(*) FROM library_change_scan_handoff_batches),
+               (SELECT COUNT(*) FROM library_change_scan_handoff_lineage),
+               (SELECT COUNT(*) FROM library_change_scan_handoff_items),
+               (SELECT COUNT(*) FROM assets WHERE id = 'asset-a'),
+               (SELECT lifecycle_state FROM preview_artifacts WHERE artifact_key = 'preview-a')",
+            [],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                    row.get(5)?,
+                    row.get(6)?,
+                ))
+            },
+        )
+        .expect("retention result");
+    assert_eq!(retained, (0, 0, 0, 0, 0, 0, "stale".to_owned()));
+}
+
+#[test]
+fn terminal_retention_preserves_lineage_provenance_for_an_active_scan() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let generation = LibraryRootGeneration::initial();
+    let policy = immediate_policy();
+    let mut catalog = queue_catalog(path.clone());
+    let evidence = LibraryChangeCatchUpEvidence {
+        source: "windows_usn_v1".to_owned(),
+        watermark: "volume|12|41".to_owned(),
+    };
+    catalog
+        .enqueue_library_change_intents_with_catch_up(
+            &[intent(
+                "root-a",
+                generation,
+                1,
+                1_000,
+                LibraryChangeIntentKind::FreshnessUnknown,
+                LibraryChangeScope::Root,
+                "",
+            )],
+            &evidence,
+            1_000,
+            policy,
+        )
+        .expect("enqueue catch-up gap");
+    let request = scan_request("retention-owned-scan");
+    catalog
+        .begin_scan(&request, "root-a", &request.root_path)
+        .expect("begin authoritative scan");
+    catalog
+        .connection
+        .execute(
+            "UPDATE library_change_queue
+             SET status = 'superseded', lease_expires_unix_ms = NULL,
+                 updated_unix_ms = 1_010",
+            [],
+        )
+        .expect("make frozen queue provenance terminal");
+
+    assert_eq!(
+        catalog
+            .cleanup_terminal_library_changes(1_010, 1)
+            .expect("retain active scan provenance"),
+        0,
+    );
+    drop(catalog);
+    let mut catalog = SqliteCatalog::open(path).expect("reopen with provable frozen lineage");
+    catalog
+        .abandon_scan("retention-owned-scan", "cancelled", 0)
+        .expect("release frozen lineage");
+    assert_eq!(
+        catalog
+            .cleanup_terminal_library_changes(i64::MAX, 1)
+            .expect("clean released queue provenance"),
+        1,
+    );
+}
+
+#[test]
 fn enqueue_runs_bounded_terminal_retention_cleanup() {
     let directory = tempdir().expect("temporary directory");
     let path = directory.path().join("catalog.sqlite3");

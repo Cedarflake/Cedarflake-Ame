@@ -2,10 +2,10 @@ use tempfile::tempdir;
 
 use crate::domain::{
     AssetLocationView, CatalogDeltaBatch, CatalogDeltaMutation, CatalogDeltaPublicationStatus,
-    DerivedEvidenceDisposition, IncrementalReconciliationOutcome, LibraryChangeCompletion,
-    LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeOrigin, LibraryChangeQueuePolicy,
-    LibraryChangeScope, LibraryRootGeneration, PreviewArtifact, PreviewStatus,
-    RetainedPreviewExpectation, ScanRequest,
+    DerivedEvidenceDisposition, FileIdentityEvidence, IncrementalReconciliationOutcome,
+    LibraryChangeCatchUpEvidence, LibraryChangeCompletion, LibraryChangeIntent,
+    LibraryChangeIntentKind, LibraryChangeOrigin, LibraryChangeQueuePolicy, LibraryChangeScope,
+    LibraryRootGeneration, PreviewArtifact, PreviewStatus, RetainedPreviewExpectation, ScanRequest,
 };
 use crate::ports::{CatalogRepository, IncrementalCatalogRepository, LibraryChangeQueue};
 
@@ -854,6 +854,58 @@ fn terminal_lineage_cleanup_preserves_other_watermark_owners() {
         (asset_count, lifecycle.as_str(), handoff_count),
         (0, "stale", 0)
     );
+}
+
+#[test]
+fn incremental_identity_lookup_reads_a_normalized_scan_handoff_batch() {
+    let directory = tempdir().expect("temporary directory");
+    let catalog =
+        SqliteCatalog::open(directory.path().join("catalog.sqlite3")).expect("open catalog");
+    catalog
+        .connection
+        .execute_batch(
+            "INSERT INTO library_change_scan_handoff_batches(
+               id, source_root_id, updated_unix_ms
+             ) VALUES ('scan-source', 'root-source', 10);
+             INSERT INTO library_change_scan_handoff_lineage(
+               batch_id, catch_up_source, catch_up_watermark, enrolled_unix_ms
+             ) VALUES ('scan-source', 'windows_usn_v1', 'volume|12|40', 10);
+             INSERT INTO library_change_scan_handoff_items(
+               batch_id, file_identity_scheme, file_identity_value,
+               asset_id, source_location_id, root_id, absolute_path, relative_path,
+               preview_path, file_size, created_unix_ms, modified_unix_ms,
+               width, height, preview_status, preview_issue_code, preview_issue_message,
+               metadata_engine_id, metadata_engine_version, capture_local_time,
+               capture_offset_minutes, capture_time_source, capture_raw_value
+             ) VALUES (
+               'scan-source', 'windows-file-id-128-v1', 'volume:file',
+               'asset-a', 'location-source', 'root-source',
+               'C:/source/photo.jpg', 'photo.jpg', 'C:/preview/photo.jpg',
+               10, 1, 2, 8, 6, 'ready', NULL, NULL,
+               'metadata', '1', NULL, NULL, NULL, NULL
+             );",
+        )
+        .expect("normalized scan handoff fixture");
+
+    let location = catalog
+        .load_incremental_location_by_file_identity(
+            &FileIdentityEvidence {
+                scheme: "windows-file-id-128-v1".to_owned(),
+                value: "volume:file".to_owned(),
+            },
+            &[LibraryChangeCatchUpEvidence {
+                source: "windows_usn_v1".to_owned(),
+                watermark: "volume|12|40".to_owned(),
+            }],
+        )
+        .expect("load normalized handoff")
+        .expect("retained location");
+
+    assert_eq!(location.asset_id, "asset-a");
+    assert_eq!(location.location_id, "location-source");
+    assert_eq!(location.relative_path, "photo.jpg");
+    assert_eq!(location.preview_path, "C:/preview/photo.jpg");
+    assert!(matches!(location.preview_status, PreviewStatus::Ready));
 }
 
 fn seed_catalog(

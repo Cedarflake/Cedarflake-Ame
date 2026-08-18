@@ -153,44 +153,11 @@ impl LibraryChangeCatchUpRepository for SqliteCatalog {
                 .map_err(database_error)?;
             deleted = deleted.saturating_add(u32::try_from(changed).unwrap_or(u32::MAX));
         }
-        let terminal_handoffs = {
-            let mut statement = transaction
-                .prepare(
-                    "SELECT catch_up_source, catch_up_watermark
-                     FROM library_change_catch_up_handoffs AS handoffs
-                     WHERE handoffs.updated_unix_ms < ?1
-                       AND NOT EXISTS (
-                         SELECT 1
-                         FROM library_change_queue_catch_up_lineage AS lineage
-                         JOIN library_change_queue AS changes
-                           ON changes.id = lineage.change_id
-                         WHERE lineage.catch_up_source = handoffs.catch_up_source
-                           AND lineage.catch_up_watermark = handoffs.catch_up_watermark
-                           AND changes.status IN ('pending', 'leased', 'retry_wait')
-                       )
-                     GROUP BY catch_up_source, catch_up_watermark
-                     ORDER BY MIN(updated_unix_ms), catch_up_source, catch_up_watermark
-                     LIMIT ?2",
-                )
-                .map_err(database_error)?;
-            let rows = statement
-                .query_map(params![updated_before_unix_ms, i64::from(limit)], |row| {
-                    Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-                })
-                .map_err(database_error)?;
-            let mut evidence = Vec::new();
-            for row in rows {
-                evidence.push(row.map_err(database_error)?);
-            }
-            evidence
-        };
-        for (source, watermark) in terminal_handoffs {
-            super::catalog_delta::cleanup_terminal_catch_up_handoffs(
-                &transaction,
-                &source,
-                &watermark,
-            )?;
-        }
+        super::catalog_delta::cleanup_obsolete_catch_up_handoffs(
+            &transaction,
+            updated_before_unix_ms,
+            limit,
+        )?;
         transaction.commit().map_err(database_error)?;
         Ok(deleted)
     }

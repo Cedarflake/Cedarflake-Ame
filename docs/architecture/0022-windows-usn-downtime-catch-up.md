@@ -124,19 +124,21 @@ One journal range may describe moves in either or both directions between config
 same volume. A dependency graph cannot safely order that work because two authoritative roots may
 both contain removals and destinations. Before any catch-up delta removes or replaces a location,
 the publication transaction copies its file identity, asset identity, compatible metadata, and
-preview expectation into a durable handoff snapshot under every watermark in that row's lineage.
+preview expectation into a durable handoff snapshot owned by that row's bounded lineage.
 When queue work escalates to a resumable full scan, scan start freezes every active catch-up
 watermark at or below its queue high watermark in a separate bounded scan lineage. Full-scan
-publication creates the same handoff snapshots before replacing the previous active snapshot, and
-full-scan discovery resolves file identity through the active catalog and then those frozen
-watermarks. Abandonment releases the frozen lineage with the scan's queue ownership, while
-successful publication completes its queue rows and cleans the lineage in the same transaction.
-Asset and preview cleanup treat snapshots in any unresolved lineage as temporary owners. A later
-destination first checks the active catalog and then each of its bounded handoff watermarks, so a
-newer coalesced range can still adopt identity retained by an older range after the source location
-was removed. Once no active row references a watermark, the same publication transaction removes
-its snapshots and reclaims only artifacts or assets that have neither an active location nor
-another watermark owner. This protocol has no cross-root wait edge and therefore supports
+publication creates one normalized batch before replacing the previous active snapshot: each
+removed identity is stored once, and each frozen watermark contributes one lineage edge. The
+durable cardinality is therefore `N + L` for `N` removed identities and `L` lineage owners, never
+`N * L`. Full-scan and bounded discovery resolve file identity through the active catalog and then
+join their own catch-up lineage to those normalized batches. Abandonment releases the frozen
+lineage with the scan's queue ownership, while successful publication completes its queue rows and
+cleans the lineage in the same transaction. Asset and preview cleanup treat snapshots in any
+unresolved lineage as temporary owners. A later destination can therefore adopt identity retained
+by an older range after the source location was removed. Once no active row or frozen scan owns a
+lineage edge, the same transaction removes that edge; deleting the final edge cascades the batch and
+its items, then reclaims only artifacts or assets that have neither an active location nor another
+handoff owner. This protocol has no cross-root wait edge and therefore supports
 source-first, destination-first, cross-watermark, and bidirectional authoritative moves without
 starvation or a dependency cycle.
 
@@ -160,14 +162,19 @@ Per-volume checkpoints are derived coordination evidence. After successfully enq
 saving the current checkpoints, Ame deletes at most 128 checkpoints older than seven days per run,
 excluding every volume returned by the current catch-up. Cleanup is disabled while any durable
 `FreshnessUnknown` row remains pending, leased, or waiting to retry, so retention cannot erase the
-watermark context of an unresolved gap. The same bounded cleanup removes terminal handoff snapshots
-that were stranded by retirement or interruption. Schema v19 owns the handoff table, the durable
-queue-to-watermark lineage table, the at-most-4,096-entry scan lineage table, and their bounded
-lookup indexes. A marker-complete prerelease v19 database may add the scan contract only when every
-active scan lineage can be reconstructed from retained active queue rows, seed queue lineage when
-no handoff evidence exists, or repair a missing derived index atomically. Exact foreign-key shape,
-relational integrity, active ownership, and lineage bounds are validated on open. Existing handoff
-evidence without provable lineage and malformed named objects fail closed.
+watermark context of an unresolved gap. Terminal queue evidence referenced by an active frozen scan
+is retained until that scan publishes or is abandoned. Queue retention removes a terminal row and
+releases any now-ownerless handoff evidence in the same transaction; the final owner release also
+reclaims eligible assets and preview artifacts atomically. Retention visits only the evidence owned
+by its bounded queue batch, while checkpoint maintenance selects at most its configured 128 oldest
+ownerless evidence keys per run. Schema v19 owns the bounded path-level
+handoff table, queue-to-watermark lineage, at-most-4,096-entry scan lineage, normalized full-scan
+handoff batches, batch lineage, batch items, and their bounded lookup indexes. A marker-complete
+prerelease v19 database may add an empty normalized batch contract only when every legacy handoff
+and active scan lineage has provable retained queue or scan authority, or repair a missing derived
+index atomically. Exact columns, indexes, cascading foreign-key targets, relational ownership,
+reverse scan provenance, and lineage bounds are validated on open. Existing evidence without a
+provable owner and malformed named objects fail closed.
 
 ### Unsafe boundary and invariants
 
@@ -201,11 +208,13 @@ boundary. The following invariants are binding:
   errors, unavailable volumes, child-before-parent deletion and rename reconstruction,
   case-sensitive root filtering, and multiple roots on one volume with one journal read;
 - migration fixtures cover fresh v19, v18 to v19 preservation, prerelease handoff and scan-lineage
-  repair, exact foreign-key shape, orphan rejection, and fail-closed malformed v19;
+  repair, exact normalized foreign-key shape, owner and reverse-provenance validation, orphan
+  rejection, and fail-closed malformed v19;
 - application fixtures prove enqueue-before-checkpoint, replay after interruption, root-set and
   catalog-revision mismatch fallback, retained catch-up queue metadata, both path move orders,
-  bidirectional bounded and full-scan handoff without wait cycles, exact-case subtree capacity,
-  unrelated-removal progress, and bounded checkpoint retention that stops on unresolved gaps;
+  bidirectional bounded and full-scan handoff without wait cycles, `N + L` full-scan cardinality,
+  atomic last-owner retention cleanup, exact-case subtree capacity, unrelated-removal progress, and
+  bounded checkpoint retention that stops on unresolved gaps;
 - runtime fixtures prove watcher-first ordering, no authoritative work before catch-up completion,
   fallback recovery, cancellation, bounded stop, and restart ownership;
 - deterministic adapter fixtures prove create, modify, rename, and remove candidate coverage; a
