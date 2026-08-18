@@ -4,7 +4,8 @@ use crate::domain::{
     AssetLocationView, CatalogDeltaBatch, CatalogDeltaMutation, CatalogDeltaPublicationStatus,
     DerivedEvidenceDisposition, IncrementalReconciliationOutcome, LibraryChangeCompletion,
     LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeOrigin, LibraryChangeQueuePolicy,
-    LibraryChangeScope, LibraryRootGeneration, PreviewArtifact, PreviewStatus, ScanRequest,
+    LibraryChangeScope, LibraryRootGeneration, PreviewArtifact, PreviewStatus,
+    RetainedPreviewExpectation, ScanRequest,
 };
 use crate::ports::{CatalogRepository, IncrementalCatalogRepository, LibraryChangeQueue};
 
@@ -40,6 +41,7 @@ fn publishes_a_location_and_completes_its_lease_at_one_revision() {
                         "root-a",
                         "new.jpg",
                     )),
+                    retained_preview_expectation: None,
                 }],
                 completions: vec![completion(&leased)],
             },
@@ -95,6 +97,7 @@ fn rejects_a_delta_with_inconsistent_reconciliation_evidence() {
                         "root-a",
                         "new.jpg",
                     )),
+                    retained_preview_expectation: None,
                 }],
                 completions: vec![completion(&leased)],
             },
@@ -157,6 +160,7 @@ fn a_superseded_lease_cannot_publish_catalog_state() {
                         "root-a",
                         "same.jpg",
                     )),
+                    retained_preview_expectation: None,
                 }],
                 completions: vec![completion(&leased)],
             },
@@ -210,6 +214,7 @@ fn a_changed_catalog_revision_rejects_the_complete_delta_batch() {
                         "root-a",
                         "new.jpg",
                     )),
+                    retained_preview_expectation: None,
                 }],
                 completions: vec![completion(&leased)],
             },
@@ -276,6 +281,7 @@ fn a_running_full_scan_blocks_incremental_publication() {
                         "root-a",
                         "new.jpg",
                     )),
+                    retained_preview_expectation: None,
                 }],
                 completions: vec![completion(&leased)],
             },
@@ -333,6 +339,7 @@ fn a_retired_root_generation_cannot_publish_a_leased_delta() {
                         "root-a",
                         "new.jpg",
                     )),
+                    retained_preview_expectation: None,
                 }],
                 completions: vec![completion(&leased)],
             },
@@ -391,6 +398,7 @@ fn queue_completion_failure_rolls_back_the_catalog_delta_and_revision() {
                         "root-a",
                         "new.jpg",
                     )),
+                    retained_preview_expectation: None,
                 }],
                 completions: vec![completion(&leased)],
             },
@@ -480,8 +488,15 @@ fn identity_preserving_rename_moves_preview_ownership_atomically() {
                 mutations: vec![CatalogDeltaMutation {
                     outcome: IncrementalReconciliationOutcome::RenamedOrMoved,
                     evidence_disposition: DerivedEvidenceDisposition::RetainCompatible,
-                    remove_location_ids: vec![old_location.location_id],
+                    remove_location_ids: vec![old_location.location_id.clone()],
                     upsert_location: Some(new_location.clone()),
+                    retained_preview_expectation: Some(RetainedPreviewExpectation {
+                        location_id: old_location.location_id.clone(),
+                        preview_path: old_location.preview_path.clone(),
+                        preview_status: old_location.preview_status.clone(),
+                        preview_issue_code: old_location.preview_issue_code.clone(),
+                        preview_issue_message: old_location.preview_issue_message.clone(),
+                    }),
                 }],
                 completions: vec![completion(&leased)],
             },
@@ -512,6 +527,198 @@ fn identity_preserving_rename_moves_preview_ownership_atomically() {
         )
         .expect("preview owners");
     assert_eq!(owners, 1);
+}
+
+#[test]
+fn preview_cleanup_invalidates_a_prepared_retained_preview_delta() {
+    let directory = tempdir().expect("temporary directory");
+    let mut catalog =
+        SqliteCatalog::open(directory.path().join("catalog.sqlite3")).expect("open catalog");
+    let mut old_location = location("asset-a", "location-old", "root-a", "old.jpg");
+    seed_catalog(&mut catalog, "root-a", "C:/source", &[old_location.clone()]);
+    let artifact = PreviewArtifact {
+        artifact_key: "artifact-a".to_owned(),
+        algorithm_id: "preview".to_owned(),
+        algorithm_version: 1,
+        orientation_contract: "orientation".to_owned(),
+        size_bucket: 256,
+        path: "C:/preview/artifact-a.jpg".to_owned(),
+        byte_size: 128,
+        encoded_width: 64,
+        encoded_height: 64,
+        width: 64,
+        height: 64,
+    };
+    old_location.preview_path = artifact.path.clone();
+    old_location.preview_status = PreviewStatus::Ready;
+    catalog
+        .update_active_preview(&old_location, Some(&artifact))
+        .expect("publish preview");
+    old_location = catalog
+        .load_incremental_location_by_relative_path("root-a", "old.jpg")
+        .expect("load old location")
+        .expect("old location");
+    let leased = lease_change(
+        &mut catalog,
+        LibraryChangeIntent {
+            kind: LibraryChangeIntentKind::RenameCandidate,
+            previous_relative_path: Some("old.jpg".to_owned()),
+            relative_path: "new.jpg".to_owned(),
+            ..intent(
+                "root-a",
+                LibraryChangeIntentKind::RenameCandidate,
+                "new.jpg",
+            )
+        },
+    );
+    let root = catalog
+        .load_incremental_catalog_root("root-a")
+        .expect("load root")
+        .expect("root");
+    let mut new_location = old_location.clone();
+    new_location.location_id = "location-new".to_owned();
+    new_location.relative_path = "new.jpg".to_owned();
+    new_location.absolute_path = "C:/source/new.jpg".to_owned();
+    new_location.display_path = new_location.absolute_path.clone();
+    catalog
+        .reset_all_previews_for_cleanup()
+        .expect("reset previews");
+
+    let publication = catalog
+        .publish_catalog_delta(
+            &CatalogDeltaBatch {
+                root_id: "root-a".to_owned(),
+                root_generation: LibraryRootGeneration::initial(),
+                expected_catalog_revision: root.catalog_revision,
+                mutations: vec![CatalogDeltaMutation {
+                    outcome: IncrementalReconciliationOutcome::RenamedOrMoved,
+                    evidence_disposition: DerivedEvidenceDisposition::RetainCompatible,
+                    remove_location_ids: vec![old_location.location_id.clone()],
+                    upsert_location: Some(new_location),
+                    retained_preview_expectation: Some(RetainedPreviewExpectation {
+                        location_id: old_location.location_id.clone(),
+                        preview_path: old_location.preview_path.clone(),
+                        preview_status: old_location.preview_status.clone(),
+                        preview_issue_code: old_location.preview_issue_code.clone(),
+                        preview_issue_message: old_location.preview_issue_message.clone(),
+                    }),
+                }],
+                completions: vec![completion(&leased)],
+            },
+            2_000,
+        )
+        .expect("reject stale preview delta");
+
+    assert_eq!(
+        publication.status,
+        CatalogDeltaPublicationStatus::StalePreviewState
+    );
+    let stored = catalog
+        .load_incremental_location_by_relative_path("root-a", "old.jpg")
+        .expect("load old path")
+        .expect("old path remains");
+    assert!(matches!(stored.preview_status, PreviewStatus::Pending));
+    assert!(stored.preview_path.is_empty());
+    assert!(
+        catalog
+            .load_incremental_location_by_relative_path("root-a", "new.jpg")
+            .expect("load new path")
+            .is_none()
+    );
+}
+
+#[test]
+fn delta_maintenance_does_not_scan_or_rewrite_unaffected_global_state() {
+    let directory = tempdir().expect("temporary directory");
+    let mut catalog =
+        SqliteCatalog::open(directory.path().join("catalog.sqlite3")).expect("open catalog");
+    seed_catalog(&mut catalog, "root-a", "C:/source", &[]);
+    catalog
+        .connection
+        .execute(
+            "INSERT INTO assets(id, created_unix_ms) VALUES ('unrelated-orphan', 1)",
+            [],
+        )
+        .expect("insert unrelated orphan");
+    catalog
+        .connection
+        .execute(
+            "INSERT INTO preview_artifacts(
+               artifact_key, source_file_size, source_modified_unix_ms,
+               source_identity_scheme, source_identity_value,
+               algorithm_id, algorithm_version, orientation_contract, size_bucket,
+               encoded_width, encoded_height, artifact_path, byte_size,
+               lifecycle_state, created_unix_ms, last_used_unix_ms
+             ) VALUES (
+               'unrelated-artifact', 1, 1, NULL, NULL,
+               'preview', 1, 'orientation', 256, 1, 1,
+               'C:/preview/unrelated.jpg', 1, 'ready', 1, 1
+             )",
+            [],
+        )
+        .expect("insert unrelated artifact");
+    let leased = lease_change(
+        &mut catalog,
+        intent("root-a", LibraryChangeIntentKind::Reconcile, "new.jpg"),
+    );
+    let root = catalog
+        .load_incremental_catalog_root("root-a")
+        .expect("load root")
+        .expect("root");
+
+    let publication = catalog
+        .publish_catalog_delta(
+            &CatalogDeltaBatch {
+                root_id: "root-a".to_owned(),
+                root_generation: LibraryRootGeneration::initial(),
+                expected_catalog_revision: root.catalog_revision,
+                mutations: vec![CatalogDeltaMutation {
+                    outcome: IncrementalReconciliationOutcome::Added,
+                    evidence_disposition: DerivedEvidenceDisposition::NoReusableEvidence,
+                    remove_location_ids: Vec::new(),
+                    upsert_location: Some(location(
+                        "asset-new",
+                        "location-new",
+                        "root-a",
+                        "new.jpg",
+                    )),
+                    retained_preview_expectation: None,
+                }],
+                completions: vec![completion(&leased)],
+            },
+            2_000,
+        )
+        .expect("publish bounded delta");
+
+    assert_eq!(publication.status, CatalogDeltaPublicationStatus::Applied);
+    let orphan_exists = catalog
+        .connection
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM assets WHERE id = 'unrelated-orphan')",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .expect("load unrelated orphan");
+    assert!(orphan_exists);
+    let lifecycle = catalog
+        .connection
+        .query_row(
+            "SELECT lifecycle_state FROM preview_artifacts
+             WHERE artifact_key = 'unrelated-artifact'",
+            [],
+            |row| row.get::<_, String>(0),
+        )
+        .expect("load unrelated artifact");
+    assert_eq!(lifecycle, "ready");
+    let asset_count = catalog
+        .connection
+        .query_row(
+            "SELECT asset_count FROM scan_runs WHERE id = 'scan-root-a'",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .expect("load asset count");
+    assert_eq!(asset_count, 1);
 }
 
 fn seed_catalog(

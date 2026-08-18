@@ -20,7 +20,10 @@ The controlled fixtures prove:
 | In-place edit | Preserve the asset, replace dimensions and metadata atomically, invalidate preview state |
 | Metadata-engine change | Reinspect unchanged source, preserve the asset, and invalidate incompatible derived state |
 | Paired rename | Remove the old location and publish the new location with the same asset and compatible preview |
+| Recreated old rename path | Publish the replacement at the old path and the original asset at the new path atomically |
+| Case-only rename | Remove the obsolete Windows spelling without duplicating one physical location |
 | Rename then removal | Remove the obsolete old location even when the destination is also gone before processing |
+| Identity backfill | Persist newly available identity and retain asset continuity through a later rename |
 | Same-path replacement | Create a new asset and inherit no prior derived evidence |
 | Authoritative absence | Remove the active location and make its orphaned evidence reclaimable |
 | Related valid paths | Publish every mutation at one shared catalog revision |
@@ -28,7 +31,14 @@ The controlled fixtures prove:
 | Stale lease | Publish no catalog row or revision after newer overlapping evidence supersedes the lease |
 | Revision race | Reject the complete batch after another catalog publication changes the revision |
 | Full scan | Leave pending work unleased and reject a transaction that races a running scan |
+| Unsupported scope | Leave subtree, root, and freshness-gap work eligible for the authoritative worker |
+| Normal deferral | Restore the attempt budget when a full-scan boundary races prepared path work |
+| Root unavailable | Leave path work unleased instead of consuming retry attempts while offline |
 | Root lifecycle | Reject publication after the leased root generation is retired |
+| Preview lifecycle race | Reject prepared retain-compatible state after cleanup without relying on catalog revision |
+| Failed preview | Preserve status, issue code, and issue message across a compatible rename |
+| Root containment | Reject an intermediate symlink or junction before reading outside the configured root |
+| Bounded maintenance | Do not scan, stale, or delete unrelated global preview and asset state |
 | Database failure | Roll back location changes, revision, preview state, and queue completion together |
 | Evidence contract | Reject inconsistent outcome and retain-or-invalidate combinations |
 | Source safety | Preserve every controlled fixture byte during incremental processing |
@@ -37,10 +47,16 @@ The controlled fixtures prove:
 
 ```text
 cargo test --manifest-path rust/Cargo.toml catalog_delta -- --nocapture
-8 passed; 0 failed
+10 passed; 0 failed
 
 cargo test --manifest-path rust/Cargo.toml incremental_library_changes -- --nocapture
-11 passed; 0 failed
+18 passed; 0 failed
+
+cargo test --manifest-path rust/Cargo.toml local_files::tests -- --nocapture
+7 passed; 0 failed
+
+cargo test --manifest-path rust/Cargo.toml deferred_lease_restores_the_attempt_budget_for_normal_coordination -- --nocapture
+1 passed; 0 failed
 
 cargo clippy --manifest-path rust/Cargo.toml --all-targets --all-features -- -D warnings
 passed
@@ -50,10 +66,10 @@ passed
 
 ```text
 cargo test --manifest-path rust/Cargo.toml --all-features
-263 tests; 258 passed; 0 failed; 5 existing explicit ignores
+275 tests; 270 passed; 0 failed; 5 existing explicit ignores
 
 ./tool/quality_verify_daily.ps1
-Rust: 263 total; 258 passed; 0 failed; 5 existing explicit ignores
+Rust: 275 total; 270 passed; 0 failed; 5 existing explicit ignores
 Flutter: all test files passed
 Windows controlled scan integration: 2 passed
 Windows native accessibility integration: 2 passed

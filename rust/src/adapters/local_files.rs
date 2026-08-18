@@ -8,13 +8,16 @@ use std::fs::OpenOptions;
 #[cfg(windows)]
 use std::mem::size_of;
 #[cfg(windows)]
+use std::os::windows::fs::MetadataExt;
+#[cfg(windows)]
 use std::os::windows::fs::OpenOptionsExt;
 #[cfg(windows)]
 use std::os::windows::io::AsRawHandle;
 
 #[cfg(windows)]
 use windows_sys::Win32::Storage::FileSystem::{
-    FILE_FLAG_BACKUP_SEMANTICS, FILE_ID_INFO, FileIdInfo, GetFileInformationByHandleEx,
+    FILE_ATTRIBUTE_REPARSE_POINT, FILE_FLAG_BACKUP_SEMANTICS, FILE_ID_INFO, FileIdInfo,
+    GetFileInformationByHandleEx,
 };
 
 use crate::domain::{
@@ -40,6 +43,7 @@ pub struct FileVisit {
 
 pub struct FileDiscovery {
     root: PathBuf,
+    canonical_root: PathBuf,
 }
 
 pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
@@ -125,16 +129,21 @@ impl FileDiscovery {
             ));
         }
 
-        Ok(Self { root })
-    }
-
-    pub fn canonical_root(&self) -> Result<PathBuf, ScanError> {
-        self.root.canonicalize().map_err(|error| {
+        let canonical_root = root.canonicalize().map_err(|error| {
             ScanError::new(
                 "root_canonicalization_failed",
                 format!("Could not resolve the selected directory: {error}"),
             )
+        })?;
+
+        Ok(Self {
+            root,
+            canonical_root,
         })
+    }
+
+    pub fn canonical_root(&self) -> Result<PathBuf, ScanError> {
+        Ok(self.canonical_root.clone())
     }
 
     pub fn entry_paths_in_directory(
@@ -142,7 +151,10 @@ impl FileDiscovery {
         relative_directory: &str,
     ) -> Result<DirectoryEntryPaths, ScanIssue> {
         let relative_directory_path = validated_relative_path(relative_directory)?;
-        let directory_path = self.root.join(relative_directory_path);
+        let (directory_path, metadata) = self.checked_existing_path(relative_directory_path)?;
+        if !relative_directory_path.as_os_str().is_empty() && is_link_or_reparse_point(&metadata) {
+            return Err(path_containment_issue(&directory_path));
+        }
         let entries = fs::read_dir(&directory_path).map_err(|error| ScanIssue {
             path: Some(path_text(&directory_path)),
             code: "directory_unreadable".to_owned(),
@@ -166,26 +178,16 @@ impl FileDiscovery {
                 };
             }
         };
-        let path = self.root.join(&relative_path);
-        let relative_path = path_text(relative_path);
-        let metadata = match path.symlink_metadata() {
-            Ok(metadata) => metadata,
-            Err(error) => {
-                let code = match error.kind() {
-                    std::io::ErrorKind::NotFound => "file_missing",
-                    std::io::ErrorKind::PermissionDenied => "file_inaccessible",
-                    _ => "file_metadata_unreadable",
-                };
+        let (path, metadata) = match self.checked_existing_path(&relative_path) {
+            Ok(resolved) => resolved,
+            Err(issue) => {
                 return FileVisit {
-                    relative_path,
-                    outcome: FileVisitOutcome::Issue(ScanIssue {
-                        path: Some(path_text(&path)),
-                        code: code.to_owned(),
-                        message: error.to_string(),
-                    }),
+                    relative_path: path_text(relative_path),
+                    outcome: FileVisitOutcome::Issue(issue),
                 };
             }
         };
+        let relative_path = path_text(relative_path);
         let file_type = metadata.file_type();
         if file_type.is_symlink() {
             return FileVisit {
@@ -251,6 +253,93 @@ impl FileDiscovery {
             }),
         }
     }
+
+    pub fn revalidate_relative_file_state(
+        &self,
+        relative_path: &str,
+        expected: &ExpectedFileState,
+    ) -> Result<(), ScanIssue> {
+        let relative_path = validated_relative_path(relative_path)?;
+        let (path, metadata) = self.checked_existing_path(relative_path)?;
+        if metadata.file_type().is_symlink() || !metadata.is_file() {
+            return Err(path_containment_issue(&path));
+        }
+        revalidate_file_state_with_metadata(expected, &path, &metadata)
+    }
+
+    fn checked_existing_path(
+        &self,
+        relative_path: &Path,
+    ) -> Result<(PathBuf, Metadata), ScanIssue> {
+        let mut current = self.root.clone();
+        let mut components = relative_path.components().peekable();
+        while let Some(component) = components.next() {
+            current.push(component.as_os_str());
+            if components.peek().is_none() {
+                break;
+            }
+            match current.symlink_metadata() {
+                Ok(metadata) if is_link_or_reparse_point(&metadata) => {
+                    return Err(path_containment_issue(&current));
+                }
+                Ok(_) => {}
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => break,
+                Err(error) => return Err(path_metadata_issue(&current, error)),
+            }
+        }
+        let metadata = current
+            .symlink_metadata()
+            .map_err(|error| path_metadata_issue(&current, error))?;
+        if !is_link_or_reparse_point(&metadata) {
+            let canonical = current
+                .canonicalize()
+                .map_err(|error| path_metadata_issue(&current, error))?;
+            if !canonical.starts_with(&self.canonical_root) {
+                return Err(path_containment_issue(&current));
+            }
+        }
+        Ok((current, metadata))
+    }
+}
+
+fn path_metadata_issue(path: &Path, error: std::io::Error) -> ScanIssue {
+    let code = match error.kind() {
+        std::io::ErrorKind::NotFound => "file_missing",
+        std::io::ErrorKind::PermissionDenied => "file_inaccessible",
+        _ => "file_metadata_unreadable",
+    };
+    ScanIssue {
+        path: Some(path_text(path)),
+        code: code.to_owned(),
+        message: error.to_string(),
+    }
+}
+
+fn path_containment_issue(path: &Path) -> ScanIssue {
+    ScanIssue {
+        path: Some(path_text(path)),
+        code: "source_path_outside_root".to_owned(),
+        message: "The source path crossed a filesystem link outside the selected root".to_owned(),
+    }
+}
+
+fn is_link_or_reparse_point(metadata: &Metadata) -> bool {
+    if metadata.file_type().is_symlink() {
+        return true;
+    }
+    #[cfg(windows)]
+    {
+        has_reparse_point_attribute(metadata.file_attributes())
+    }
+    #[cfg(not(windows))]
+    {
+        false
+    }
+}
+
+#[cfg(windows)]
+fn has_reparse_point_attribute(attributes: u32) -> bool {
+    attributes & FILE_ATTRIBUTE_REPARSE_POINT != 0
 }
 
 fn validated_relative_path(value: &str) -> Result<&Path, ScanIssue> {
@@ -274,12 +363,23 @@ fn validated_relative_path(value: &str) -> Result<&Path, ScanIssue> {
 
 pub fn revalidate_file_state(expected: &ExpectedFileState) -> Result<(), ScanIssue> {
     let path = Path::new(&expected.absolute_path);
-    let metadata = path.metadata().map_err(|error| ScanIssue {
+    let metadata = path.symlink_metadata().map_err(|error| ScanIssue {
         path: Some(expected.absolute_path.clone()),
         code: "source_revalidation_failed".to_owned(),
         message: error.to_string(),
     })?;
-    if is_cloud_placeholder(&metadata) {
+    if metadata.file_type().is_symlink() || !metadata.is_file() {
+        return Err(path_containment_issue(path));
+    }
+    revalidate_file_state_with_metadata(expected, path, &metadata)
+}
+
+fn revalidate_file_state_with_metadata(
+    expected: &ExpectedFileState,
+    path: &Path,
+    metadata: &Metadata,
+) -> Result<(), ScanIssue> {
+    if is_cloud_placeholder(metadata) {
         return Err(ScanIssue {
             path: Some(expected.absolute_path.clone()),
             code: "source_became_unavailable".to_owned(),
@@ -287,7 +387,7 @@ pub fn revalidate_file_state(expected: &ExpectedFileState) -> Result<(), ScanIss
         });
     }
     if metadata.len() != expected.file_size
-        || modified_unix_ms(&metadata) != expected.modified_unix_ms
+        || modified_unix_ms(metadata) != expected.modified_unix_ms
     {
         return Err(ScanIssue {
             path: Some(expected.absolute_path.clone()),
@@ -478,6 +578,48 @@ mod tests {
             FILE_ATTRIBUTE_RECALL_ON_OPEN,
         ));
         assert!(!has_cloud_placeholder_attribute(0));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn recognizes_windows_reparse_points() {
+        assert!(has_reparse_point_attribute(FILE_ATTRIBUTE_REPARSE_POINT));
+        assert!(!has_reparse_point_attribute(0));
+    }
+
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn intermediate_filesystem_link_cannot_escape_the_discovery_root() {
+        let root = tempdir().expect("source root");
+        let outside = tempdir().expect("outside directory");
+        fs::write(outside.path().join("outside.png"), b"outside bytes").expect("outside fixture");
+        let link = root.path().join("linked");
+        #[cfg(windows)]
+        if let Err(error) = std::os::windows::fs::symlink_dir(outside.path(), &link) {
+            if error.kind() == std::io::ErrorKind::PermissionDenied {
+                return;
+            }
+            panic!("create directory link: {error}");
+        }
+        #[cfg(unix)]
+        std::os::unix::fs::symlink(outside.path(), &link).expect("create directory link");
+        let discovery = FileDiscovery::new(&root.path().to_string_lossy()).expect("file discovery");
+
+        let visit = discovery.visit_relative_path("linked/outside.png");
+
+        let FileVisitOutcome::Issue(issue) = visit.outcome else {
+            panic!("an intermediate link must be rejected");
+        };
+        assert_eq!(issue.code, "source_path_outside_root");
+
+        let explicitly_selected =
+            FileDiscovery::new(&link.to_string_lossy()).expect("explicit linked root");
+        assert!(matches!(
+            explicitly_selected
+                .visit_relative_path("outside.png")
+                .outcome,
+            FileVisitOutcome::File(_)
+        ));
     }
 
     #[cfg(windows)]

@@ -29,6 +29,16 @@ impl LibraryChangeQueue for RejectingQueue {
         panic!("lease is not used by this test")
     }
 
+    fn lease_path_library_changes(
+        &mut self,
+        _root_id: &str,
+        _root_generation: LibraryRootGeneration,
+        _now_unix_ms: i64,
+        _policy: LibraryChangeQueuePolicy,
+    ) -> Result<Vec<crate::domain::LeasedLibraryChange>, crate::domain::ScanError> {
+        panic!("path lease is not used by this test")
+    }
+
     fn complete_library_change(
         &mut self,
         _change_id: crate::domain::LibraryChangeId,
@@ -48,6 +58,15 @@ impl LibraryChangeQueue for RejectingQueue {
         _policy: LibraryChangeQueuePolicy,
     ) -> Result<crate::domain::LibraryChangeLeaseUpdateOutcome, crate::domain::ScanError> {
         panic!("retry is not used by this test")
+    }
+
+    fn defer_library_change(
+        &mut self,
+        _change_id: crate::domain::LibraryChangeId,
+        _lease_generation: u64,
+        _deferred_unix_ms: i64,
+    ) -> Result<crate::domain::LibraryChangeLeaseUpdateOutcome, crate::domain::ScanError> {
+        panic!("deferral is not used by this test")
     }
 
     fn load_library_change_queue_metrics(

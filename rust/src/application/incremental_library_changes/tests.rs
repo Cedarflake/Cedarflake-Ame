@@ -6,15 +6,17 @@ use tempfile::{TempDir, tempdir};
 
 use crate::adapters::{FileDiscovery, FileVisitOutcome, LocalMediaInspector, SqliteCatalog};
 use crate::domain::{
-    AssetLocationView, LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeOrigin,
-    LibraryChangeQueuePolicy, LibraryChangeScope, LibraryRootGeneration, PreviewStatus,
-    ScanRequest,
+    AssetLocationView, DerivedEvidenceDisposition, LibraryChangeIntent, LibraryChangeIntentKind,
+    LibraryChangeOrigin, LibraryChangeQueuePolicy, LibraryChangeScope, LibraryRootGeneration,
+    PreviewStatus, ScanRequest,
 };
 use crate::ports::{
     CatalogRepository, IncrementalCatalogRepository, LibraryChangeQueue, MediaInspector,
 };
 
-use super::{process_ready_library_changes, stable_id, stable_location_id, user_visible_path};
+use super::{
+    prepare_change, process_ready_library_changes, stable_id, stable_location_id, user_visible_path,
+};
 
 #[test]
 fn unchanged_path_completes_without_incrementing_the_catalog_revision() {
@@ -333,6 +335,245 @@ fn pending_work_waits_for_a_running_full_scan_without_consuming_a_lease() {
     assert_eq!(metrics.retry_wait_count, 0);
 }
 
+#[test]
+fn authoritative_work_remains_pending_without_consuming_the_incremental_retry_budget() {
+    let source = tempdir().expect("source directory");
+    let mut fixture = seed_catalog(source, &[]);
+    let strict_policy = LibraryChangeQueuePolicy {
+        debounce_millis: 0,
+        max_attempts: 1,
+        ..LibraryChangeQueuePolicy::default()
+    };
+    fixture
+        .catalog
+        .enqueue_library_change_intents(
+            &[LibraryChangeIntent {
+                kind: LibraryChangeIntentKind::FreshnessUnknown,
+                scope: LibraryChangeScope::Root,
+                relative_path: String::new(),
+                ..intent(&fixture.root_id, "placeholder.png", None, 1)
+            }],
+            1_000,
+            strict_policy,
+        )
+        .expect("enqueue authoritative work");
+
+    let report = fixture.process_with_policy(strict_policy);
+
+    assert_eq!(report.leased_count, 0);
+    assert_eq!(report.retried_count, 0);
+    let leased = fixture
+        .catalog
+        .lease_library_changes(
+            &fixture.root_id,
+            LibraryRootGeneration::initial(),
+            2_000,
+            strict_policy,
+        )
+        .expect("authoritative worker can lease pending work");
+    assert_eq!(leased.len(), 1);
+    assert_eq!(leased[0].change.attempt_count, 1);
+}
+
+#[test]
+fn unavailable_root_does_not_consume_a_path_retry_attempt() {
+    let source = tempdir().expect("source directory");
+    let mut fixture = seed_catalog(source, &[]);
+    let strict_policy = LibraryChangeQueuePolicy {
+        debounce_millis: 0,
+        max_attempts: 1,
+        ..LibraryChangeQueuePolicy::default()
+    };
+    fixture
+        .catalog
+        .enqueue_library_change_intents(
+            &[intent(&fixture.root_id, "waiting.png", None, 1)],
+            1_000,
+            strict_policy,
+        )
+        .expect("enqueue path work");
+    fs::remove_dir_all(fixture.source.path()).expect("make root unavailable");
+
+    let report = fixture.process_with_policy(strict_policy);
+
+    assert_eq!(report.leased_count, 0);
+    assert_eq!(report.retried_count, 0);
+    let leased = fixture
+        .catalog
+        .lease_library_changes(
+            &fixture.root_id,
+            LibraryRootGeneration::initial(),
+            2_000,
+            strict_policy,
+        )
+        .expect("path work remains leasable");
+    assert_eq!(leased.len(), 1);
+    assert_eq!(leased[0].change.attempt_count, 1);
+}
+
+#[cfg(windows)]
+#[test]
+fn identity_backfill_preserves_asset_continuity_for_a_later_rename() {
+    let source = tempdir().expect("source directory");
+    write_png(&source.path().join("legacy.png"), 3, 3, [11, 12, 13]);
+    let mut fixture = seed_catalog_without_identity(source, &["legacy.png"]);
+    let original = fixture.location("legacy.png").expect("legacy location");
+    assert!(original.file_identity.is_none());
+    fixture.enqueue(&[intent(&fixture.root_id, "legacy.png", None, 1)]);
+
+    let backfill = fixture.process();
+
+    assert_eq!(backfill.applied_mutation_count, 1);
+    let identified = fixture.location("legacy.png").expect("identified location");
+    assert_eq!(identified.asset_id, original.asset_id);
+    assert!(identified.file_identity.is_some());
+    fs::rename(
+        fixture.source.path().join("legacy.png"),
+        fixture.source.path().join("moved.png"),
+    )
+    .expect("rename identified file");
+    fixture.enqueue(&[intent(&fixture.root_id, "moved.png", Some("legacy.png"), 2)]);
+
+    fixture.process();
+
+    let moved = fixture.location("moved.png").expect("moved location");
+    assert_eq!(moved.asset_id, original.asset_id);
+    assert_eq!(moved.file_identity, identified.file_identity);
+}
+
+#[cfg(windows)]
+#[test]
+fn paired_rename_reconciles_a_replacement_at_the_previous_path() {
+    let source = tempdir().expect("source directory");
+    write_png(&source.path().join("old.png"), 3, 3, [21, 22, 23]);
+    let mut fixture = seed_catalog(source, &["old.png"]);
+    let original = fixture.location("old.png").expect("original location");
+    fs::rename(
+        fixture.source.path().join("old.png"),
+        fixture.source.path().join("new.png"),
+    )
+    .expect("rename original");
+    write_png(&fixture.source.path().join("old.png"), 5, 2, [31, 32, 33]);
+    fixture.enqueue(&[intent(&fixture.root_id, "new.png", Some("old.png"), 1)]);
+
+    let report = fixture.process();
+
+    assert_eq!(report.completed_count, 1);
+    assert_eq!(report.applied_mutation_count, 2);
+    let replacement = fixture.location("old.png").expect("replacement location");
+    let moved = fixture.location("new.png").expect("moved location");
+    assert_ne!(replacement.asset_id, original.asset_id);
+    assert_eq!(moved.asset_id, original.asset_id);
+    assert_ne!(replacement.file_identity, moved.file_identity);
+}
+
+#[cfg(windows)]
+#[test]
+fn case_only_rename_removes_the_obsolete_catalog_spelling() {
+    let source = tempdir().expect("source directory");
+    write_png(&source.path().join("Photo.png"), 3, 3, [34, 35, 36]);
+    let mut fixture = seed_catalog(source, &["Photo.png"]);
+    let original = fixture.location("Photo.png").expect("original location");
+    fs::rename(
+        fixture.source.path().join("Photo.png"),
+        fixture.source.path().join("rename-intermediate.png"),
+    )
+    .expect("rename through intermediate");
+    fs::rename(
+        fixture.source.path().join("rename-intermediate.png"),
+        fixture.source.path().join("photo.png"),
+    )
+    .expect("apply case-only spelling");
+    fixture.enqueue(&[intent(&fixture.root_id, "photo.png", Some("Photo.png"), 1)]);
+
+    let report = fixture.process();
+
+    assert_eq!(report.applied_mutation_count, 1);
+    assert!(fixture.location("Photo.png").is_none());
+    let renamed = fixture.location("photo.png").expect("renamed location");
+    assert_eq!(renamed.asset_id, original.asset_id);
+    assert_eq!(renamed.file_identity, original.file_identity);
+}
+
+#[cfg(windows)]
+#[test]
+fn metadata_engine_mismatch_invalidates_a_rename_mutation_contract() {
+    let source = tempdir().expect("source directory");
+    write_png(&source.path().join("old.png"), 3, 2, [41, 42, 43]);
+    let mut fixture =
+        seed_catalog_with_metadata(source, &["old.png"], Some(("legacy-metadata", "0")));
+    fs::rename(
+        fixture.source.path().join("old.png"),
+        fixture.source.path().join("new.png"),
+    )
+    .expect("rename source");
+    fixture.enqueue(&[intent(&fixture.root_id, "new.png", Some("old.png"), 1)]);
+    let leased = fixture
+        .catalog
+        .lease_path_library_changes(
+            &fixture.root_id,
+            LibraryRootGeneration::initial(),
+            2_000,
+            policy(),
+        )
+        .expect("lease rename")
+        .pop()
+        .expect("rename lease");
+    let discovery = FileDiscovery::new(&fixture.root_path).expect("file discovery");
+    let inspector = LocalMediaInspector::new();
+
+    let prepared =
+        prepare_change(&fixture.catalog, &discovery, &inspector, &leased).expect("prepare rename");
+    let rename = prepared
+        .mutations
+        .iter()
+        .find(|mutation| mutation.upsert_location.is_some())
+        .expect("rename mutation");
+
+    assert_eq!(
+        rename.evidence_disposition,
+        DerivedEvidenceDisposition::InvalidateDerived
+    );
+    let location = rename.upsert_location.as_ref().expect("renamed location");
+    assert!(matches!(location.preview_status, PreviewStatus::Pending));
+    assert_ne!(location.metadata_engine_id, "legacy-metadata");
+}
+
+#[cfg(windows)]
+#[test]
+fn compatible_rename_preserves_failed_preview_evidence() {
+    let source = tempdir().expect("source directory");
+    write_png(&source.path().join("old.png"), 2, 3, [51, 52, 53]);
+    let mut fixture = seed_catalog(source, &["old.png"]);
+    let mut failed = fixture.location("old.png").expect("original location");
+    failed.preview_status = PreviewStatus::Failed;
+    failed.preview_issue_code = Some("preview_decode_failed".to_owned());
+    failed.preview_issue_message = Some("fixture failure".to_owned());
+    fixture
+        .catalog
+        .update_active_preview(&failed, None)
+        .expect("record failed preview");
+    fs::rename(
+        fixture.source.path().join("old.png"),
+        fixture.source.path().join("new.png"),
+    )
+    .expect("rename source");
+    fixture.enqueue(&[intent(&fixture.root_id, "new.png", Some("old.png"), 1)]);
+
+    fixture.process();
+
+    let renamed = fixture.location("new.png").expect("renamed location");
+    assert!(matches!(renamed.preview_status, PreviewStatus::Failed));
+    assert_eq!(
+        renamed.preview_issue_code.as_deref(),
+        Some("preview_decode_failed")
+    );
+    assert_eq!(
+        renamed.preview_issue_message.as_deref(),
+        Some("fixture failure")
+    );
+}
+
 struct CatalogFixture {
     source: TempDir,
     _storage: TempDir,
@@ -349,12 +590,19 @@ impl CatalogFixture {
     }
 
     fn process(&mut self) -> crate::domain::IncrementalLibraryChangeReport {
+        self.process_with_policy(policy())
+    }
+
+    fn process_with_policy(
+        &mut self,
+        policy: LibraryChangeQueuePolicy,
+    ) -> crate::domain::IncrementalLibraryChangeReport {
         process_ready_library_changes(
             &mut self.catalog,
             &self.root_id,
             LibraryRootGeneration::initial(),
             2_000,
-            policy(),
+            policy,
         )
         .expect("process changes")
     }
@@ -383,13 +631,26 @@ impl CatalogFixture {
 }
 
 fn seed_catalog(source: TempDir, relative_paths: &[&str]) -> CatalogFixture {
-    seed_catalog_with_metadata(source, relative_paths, None)
+    seed_catalog_with_options(source, relative_paths, None, false)
 }
 
 fn seed_catalog_with_metadata(
     source: TempDir,
     relative_paths: &[&str],
     metadata_override: Option<(&str, &str)>,
+) -> CatalogFixture {
+    seed_catalog_with_options(source, relative_paths, metadata_override, false)
+}
+
+fn seed_catalog_without_identity(source: TempDir, relative_paths: &[&str]) -> CatalogFixture {
+    seed_catalog_with_options(source, relative_paths, None, true)
+}
+
+fn seed_catalog_with_options(
+    source: TempDir,
+    relative_paths: &[&str],
+    metadata_override: Option<(&str, &str)>,
+    clear_file_identity: bool,
 ) -> CatalogFixture {
     let root_input = source.path().to_string_lossy().into_owned();
     let discovery = FileDiscovery::new(&root_input).expect("file discovery");
@@ -436,7 +697,9 @@ fn seed_catalog_with_metadata(
             file_size: file.file_size,
             created_unix_ms: file.created_unix_ms,
             modified_unix_ms: file.modified_unix_ms,
-            file_identity: file.file_identity,
+            file_identity: (!clear_file_identity)
+                .then_some(file.file_identity)
+                .flatten(),
             width: inspection.width,
             height: inspection.height,
             preview_status: PreviewStatus::Pending,

@@ -4,7 +4,7 @@ Status: active delivery plan
 
 Last confirmed with the user: 2026-08-16
 
-Last implementation-status synchronization: 2026-08-17
+Last implementation-status synchronization: 2026-08-18
 
 Repository: this repository root
 
@@ -1289,10 +1289,11 @@ failed transactions leave the old catalog unchanged, and source media remains un
 Status: **complete on 2026-08-18**. ADR 0019 owns identity-aware path reconciliation and the
 generation-, revision-, lease-, and full-scan-guarded SQLite delta transaction.
 `docs/acceptance/r2c-d-incremental-delta-publication.md` records unchanged, add, edit, paired
-rename, rename-followed-by-removal, same-path replacement, authoritative removal, preview
-ownership, failure isolation, rollback, source-byte, Clippy, and Daily evidence. Subtree, root, and
-freshness-gap work remains durable for R2c-F authoritative reconciliation rather than publishing a
-partial removal claim.
+rename, recreated-old-path and case-only rename, identity backfill, rename-followed-by-removal,
+same-path replacement, authoritative removal, preview ownership and cleanup races, filesystem-link
+containment, bounded maintenance, failure isolation, rollback, source-byte, Clippy, and Daily
+evidence. Subtree, root, and freshness-gap work remains durable and unleased by R2c-D for R2c-F
+authoritative reconciliation rather than publishing a partial removal claim.
 
 R2c-E - production UI and lifecycle:
 
@@ -1872,13 +1873,16 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   present or absent path immediately before publication. Outcome and derived-evidence disposition
   travel together through an Ame-owned delta contract. SQLite rechecks root generation, catalog
   revision, active completed scan, and every lease generation under an immediate writer
-  transaction, then atomically updates locations, compatible preview ownership, orphan assets,
-  active count, one catalog revision, and queue completion. Nineteen focused tests prove unchanged,
-  add, edit, paired rename, rename-followed-by-removal, same-path replacement, authoritative
-  removal, related-batch revision atomicity, malformed-file isolation, full-scan waiting, stale
-  lease/revision/generation rejection, evidence validation, preview transfer, injected rollback,
-  metadata-engine compatibility, and controlled source-byte preservation. The 2026-08-18 Daily
-  passed 258 Rust tests with five
+  transaction, then atomically updates only affected locations, compatible preview ownership,
+  orphan assets, active count, one catalog revision, and queue completion. Retained preview state
+  is compare-and-swapped against cleanup/reclamation, filesystem access rejects intermediate
+  links, paired rename reconciles both final paths, identity evidence is backfilled, and normal
+  full-scan coordination restores rather than consumes retry attempts. Thirty-six focused tests
+  prove these boundaries together with unchanged, add, edit, same-path replacement, authoritative
+  removal, related-batch revision atomicity, malformed-file isolation, stale
+  lease/revision/generation rejection, evidence validation, injected rollback, metadata-engine
+  compatibility, and controlled source-byte preservation. The 2026-08-18 Daily passed 270 Rust
+  tests with five
   existing intentional ignores, all Flutter tests, both Windows integrations, bridge
   compatibility, formatting, and whitespace. Production Flutter synchronization lifecycle,
   authoritative subtree/root recovery, catch-up, and real-library event acceptance remain later

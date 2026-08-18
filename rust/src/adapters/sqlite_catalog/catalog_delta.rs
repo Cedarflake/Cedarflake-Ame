@@ -5,14 +5,14 @@ use rusqlite::{OptionalExtension, TransactionBehavior, params};
 use crate::domain::{
     AssetLocationView, CatalogDeltaBatch, CatalogDeltaPublication, CatalogDeltaPublicationStatus,
     DerivedEvidenceDisposition, FileIdentityEvidence, IncrementalCatalogRoot,
-    IncrementalReconciliationOutcome, LibraryRootGeneration, PreviewStatus, ScanError,
+    IncrementalReconciliationOutcome, LibraryRootGeneration, PreviewStatus,
+    RetainedPreviewExpectation, ScanError,
 };
 use crate::ports::IncrementalCatalogRepository;
 
 use super::{
-    SqliteCatalog, database_error, delete_orphan_assets, load_catalog_revision,
-    mark_unreferenced_preview_artifacts_stale, persist_location, read_stored_asset, sqlite_integer,
-    sqlite_unsigned, stored_asset_view,
+    SqliteCatalog, database_error, load_catalog_revision, persist_location, read_stored_asset,
+    sqlite_integer, sqlite_unsigned, stored_asset_view,
 };
 
 const MAX_DELTA_MUTATIONS: usize = 256;
@@ -239,6 +239,51 @@ impl IncrementalCatalogRepository for SqliteCatalog {
         }
 
         for mutation in &batch.mutations {
+            if let Some(expectation) = &mutation.retained_preview_expectation
+                && !retained_preview_matches(
+                    &transaction,
+                    &active_scan_id,
+                    &batch.root_id,
+                    expectation,
+                )?
+            {
+                return Ok(publication(
+                    CatalogDeltaPublicationStatus::StalePreviewState,
+                    current_revision,
+                ));
+            }
+        }
+
+        let affected_location_ids = batch
+            .mutations
+            .iter()
+            .flat_map(|mutation| {
+                mutation.remove_location_ids.iter().chain(
+                    mutation
+                        .upsert_location
+                        .iter()
+                        .map(|location| &location.location_id),
+                )
+            })
+            .cloned()
+            .collect::<HashSet<_>>();
+        let mut affected_asset_ids = HashSet::new();
+        let mut affected_artifact_keys = HashSet::new();
+        let locations_before = load_affected_state(
+            &transaction,
+            &active_scan_id,
+            &batch.root_id,
+            &affected_location_ids,
+            &mut affected_asset_ids,
+            &mut affected_artifact_keys,
+        )?;
+        for mutation in &batch.mutations {
+            if let Some(location) = &mutation.upsert_location {
+                affected_asset_ids.insert(location.asset_id.clone());
+            }
+        }
+
+        for mutation in &batch.mutations {
             let mut removals = mutation
                 .remove_location_ids
                 .iter()
@@ -283,22 +328,54 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                             params![location.location_id, location.preview_path],
                         )
                         .map_err(database_error)?;
+                    let owner = transaction
+                        .query_row(
+                            "SELECT EXISTS(
+                               SELECT 1
+                               FROM preview_artifact_locations AS owners
+                               JOIN preview_artifacts AS artifacts
+                                 ON artifacts.artifact_key = owners.artifact_key
+                               WHERE owners.location_id = ?1
+                                 AND artifacts.artifact_path = ?2
+                                 AND artifacts.lifecycle_state = 'ready'
+                             )",
+                            params![location.location_id, location.preview_path],
+                            |row| row.get::<_, bool>(0),
+                        )
+                        .map_err(database_error)?;
+                    if !owner {
+                        return Err(ScanError::new(
+                            "catalog_delta_preview_owner_missing",
+                            "A retained ready preview no longer has a compatible artifact owner",
+                        ));
+                    }
                 }
             }
         }
-        mark_unreferenced_preview_artifacts_stale(&transaction)?;
-        delete_orphan_assets(&transaction)?;
-        transaction
+        mark_affected_preview_artifacts_stale(&transaction, &affected_artifact_keys)?;
+        delete_affected_orphan_assets(&transaction, &affected_asset_ids)?;
+        let locations_after = count_affected_locations(
+            &transaction,
+            &active_scan_id,
+            &batch.root_id,
+            &affected_location_ids,
+        )?;
+        let location_delta = locations_after - locations_before;
+        let updated_scan = transaction
             .execute(
                 "UPDATE scan_runs
-                 SET asset_count = (
-                   SELECT COUNT(*) FROM asset_locations
-                   WHERE scan_id = ?1 AND root_id = ?2
-                 )
-                 WHERE id = ?1 AND root_id = ?2 AND status = 'completed'",
-                params![active_scan_id, batch.root_id],
+                 SET asset_count = asset_count + ?3
+                 WHERE id = ?1 AND root_id = ?2 AND status = 'completed'
+                   AND asset_count + ?3 >= 0",
+                params![active_scan_id, batch.root_id, location_delta],
             )
             .map_err(database_error)?;
+        if updated_scan != 1 {
+            return Err(ScanError::new(
+                "catalog_delta_asset_count_invalid",
+                "The published scan asset count could not accept the bounded delta",
+            ));
+        }
 
         let published_revision = if batch.mutations.is_empty() {
             current_revision
@@ -400,6 +477,166 @@ where
         .transpose()
 }
 
+fn retained_preview_matches(
+    transaction: &rusqlite::Transaction<'_>,
+    scan_id: &str,
+    root_id: &str,
+    expectation: &RetainedPreviewExpectation,
+) -> Result<bool, ScanError> {
+    let stored = transaction
+        .query_row(
+            "SELECT preview_path, preview_status, preview_issue_code, preview_issue_message
+             FROM asset_locations
+             WHERE scan_id = ?1 AND root_id = ?2 AND location_id = ?3",
+            params![scan_id, root_id, expectation.location_id],
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, Option<String>>(2)?,
+                    row.get::<_, Option<String>>(3)?,
+                ))
+            },
+        )
+        .optional()
+        .map_err(database_error)?;
+    Ok(
+        stored.is_some_and(|(path, status, issue_code, issue_message)| {
+            path == expectation.preview_path
+                && status == preview_status_text(&expectation.preview_status)
+                && issue_code == expectation.preview_issue_code
+                && issue_message == expectation.preview_issue_message
+        }),
+    )
+}
+
+fn load_affected_state(
+    transaction: &rusqlite::Transaction<'_>,
+    scan_id: &str,
+    root_id: &str,
+    location_ids: &HashSet<String>,
+    asset_ids: &mut HashSet<String>,
+    artifact_keys: &mut HashSet<String>,
+) -> Result<i64, ScanError> {
+    let mut count = 0_i64;
+    for location_id in location_ids {
+        let asset_id = transaction
+            .query_row(
+                "SELECT asset_id FROM asset_locations
+                 WHERE scan_id = ?1 AND root_id = ?2 AND location_id = ?3",
+                params![scan_id, root_id, location_id],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()
+            .map_err(database_error)?;
+        if let Some(asset_id) = asset_id {
+            count = count.checked_add(1).ok_or_else(|| {
+                ScanError::new(
+                    "catalog_delta_location_count_overflow",
+                    "The affected location count exceeded the supported range",
+                )
+            })?;
+            asset_ids.insert(asset_id);
+        }
+        let mut statement = transaction
+            .prepare_cached(
+                "SELECT owners.artifact_key
+                 FROM preview_artifact_locations AS owners
+                 JOIN asset_locations AS locations
+                   ON locations.location_id = owners.location_id
+                 WHERE locations.scan_id = ?1 AND locations.root_id = ?2
+                   AND locations.location_id = ?3",
+            )
+            .map_err(database_error)?;
+        let rows = statement
+            .query_map(params![scan_id, root_id, location_id], |row| {
+                row.get::<_, String>(0)
+            })
+            .map_err(database_error)?;
+        for row in rows {
+            artifact_keys.insert(row.map_err(database_error)?);
+        }
+    }
+    Ok(count)
+}
+
+fn count_affected_locations(
+    transaction: &rusqlite::Transaction<'_>,
+    scan_id: &str,
+    root_id: &str,
+    location_ids: &HashSet<String>,
+) -> Result<i64, ScanError> {
+    let mut count = 0_i64;
+    for location_id in location_ids {
+        let exists = transaction
+            .query_row(
+                "SELECT EXISTS(
+                   SELECT 1 FROM asset_locations
+                   WHERE scan_id = ?1 AND root_id = ?2 AND location_id = ?3
+                 )",
+                params![scan_id, root_id, location_id],
+                |row| row.get::<_, bool>(0),
+            )
+            .map_err(database_error)?;
+        if exists {
+            count = count.checked_add(1).ok_or_else(|| {
+                ScanError::new(
+                    "catalog_delta_location_count_overflow",
+                    "The affected location count exceeded the supported range",
+                )
+            })?;
+        }
+    }
+    Ok(count)
+}
+
+fn mark_affected_preview_artifacts_stale(
+    transaction: &rusqlite::Transaction<'_>,
+    artifact_keys: &HashSet<String>,
+) -> Result<(), ScanError> {
+    for artifact_key in artifact_keys {
+        transaction
+            .execute(
+                "UPDATE preview_artifacts
+                 SET lifecycle_state = 'stale'
+                 WHERE artifact_key = ?1 AND lifecycle_state = 'ready'
+                   AND NOT EXISTS (
+                     SELECT 1 FROM preview_artifact_locations AS owners
+                     WHERE owners.artifact_key = preview_artifacts.artifact_key
+                   )",
+                [artifact_key],
+            )
+            .map_err(database_error)?;
+    }
+    Ok(())
+}
+
+fn delete_affected_orphan_assets(
+    transaction: &rusqlite::Transaction<'_>,
+    asset_ids: &HashSet<String>,
+) -> Result<(), ScanError> {
+    for asset_id in asset_ids {
+        transaction
+            .execute(
+                "DELETE FROM assets
+                 WHERE id = ?1 AND NOT EXISTS (
+                   SELECT 1 FROM asset_locations WHERE asset_locations.asset_id = assets.id
+                 )",
+                [asset_id],
+            )
+            .map_err(database_error)?;
+    }
+    Ok(())
+}
+
+fn preview_status_text(status: &PreviewStatus) -> &'static str {
+    match status {
+        PreviewStatus::Pending => "pending",
+        PreviewStatus::Ready => "ready",
+        PreviewStatus::Failed => "failed",
+    }
+}
+
 fn validate_root_id(root_id: &str) -> Result<(), ScanError> {
     if root_id.trim().is_empty() || root_id.contains('\0') {
         return Err(ScanError::new(
@@ -462,14 +699,17 @@ fn validate_delta_batch(batch: &CatalogDeltaBatch) -> Result<(), ScanError> {
                         | DerivedEvidenceDisposition::InvalidateDerived
                 ) && mutation.upsert_location.is_some()
             }
+            IncrementalReconciliationOutcome::Unchanged => {
+                mutation.evidence_disposition == DerivedEvidenceDisposition::RetainCompatible
+                    && mutation.upsert_location.is_some()
+            }
             IncrementalReconciliationOutcome::Removed => {
                 mutation.evidence_disposition
                     == DerivedEvidenceDisposition::RemoveFromCurrentProjection
                     && mutation.upsert_location.is_none()
                     && !mutation.remove_location_ids.is_empty()
             }
-            IncrementalReconciliationOutcome::Unchanged
-            | IncrementalReconciliationOutcome::Skipped
+            IncrementalReconciliationOutcome::Skipped
             | IncrementalReconciliationOutcome::RetryableFailure
             | IncrementalReconciliationOutcome::TerminalIssue => false,
         };
@@ -477,6 +717,19 @@ fn validate_delta_batch(batch: &CatalogDeltaBatch) -> Result<(), ScanError> {
             return Err(ScanError::new(
                 "catalog_delta_evidence_contract_invalid",
                 "A catalog delta mutation has inconsistent reconciliation evidence",
+            ));
+        }
+        let retains_preview =
+            mutation.evidence_disposition == DerivedEvidenceDisposition::RetainCompatible;
+        if retains_preview != mutation.retained_preview_expectation.is_some()
+            || mutation
+                .retained_preview_expectation
+                .as_ref()
+                .is_some_and(|expectation| expectation.location_id.trim().is_empty())
+        {
+            return Err(ScanError::new(
+                "catalog_delta_preview_expectation_invalid",
+                "Retained preview evidence requires one non-empty prior-state expectation",
             ));
         }
         if mutation.remove_location_ids.len() > MAX_REMOVALS_PER_MUTATION

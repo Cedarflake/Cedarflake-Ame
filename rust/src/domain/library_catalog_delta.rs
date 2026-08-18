@@ -19,6 +19,16 @@ pub struct CatalogDeltaMutation {
     pub evidence_disposition: DerivedEvidenceDisposition,
     pub remove_location_ids: Vec<String>,
     pub upsert_location: Option<AssetLocationView>,
+    pub retained_preview_expectation: Option<RetainedPreviewExpectation>,
+}
+
+#[derive(Clone, Debug)]
+pub struct RetainedPreviewExpectation {
+    pub location_id: String,
+    pub preview_path: String,
+    pub preview_status: super::PreviewStatus,
+    pub preview_issue_code: Option<String>,
+    pub preview_issue_message: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -42,6 +52,7 @@ pub enum CatalogDeltaPublicationStatus {
     Applied,
     StaleLease,
     StaleCatalogRevision,
+    StalePreviewState,
     RootGenerationChanged,
     RootScanInProgress,
     NoPublishedCatalog,
@@ -60,6 +71,7 @@ pub struct IncrementalLibraryChangeReport {
     pub leased_count: u32,
     pub completed_count: u32,
     pub retried_count: u32,
+    pub deferred_count: u32,
     pub superseded_count: u32,
     pub applied_mutation_count: u32,
     pub catalog_revision: u64,

@@ -22,6 +22,8 @@ stale, partial, or superseded attempt must leave the last trustworthy catalog vi
 - make queue completion and catalog mutation one crash-safe transaction;
 - reject stale lease, root generation, full-scan, and catalog-revision boundaries;
 - retain compatible previews across a rename and invalidate them after content change;
+- prevent concurrent preview cleanup or reclamation from being overwritten by prepared work;
+- keep transaction work proportional to the bounded affected location set;
 - keep all source access read-only and bounded outside the SQLite transaction.
 
 ## Considered options
@@ -54,18 +56,29 @@ adapter rejects inconsistent combinations before opening the publication transac
 - add and replacement require `NoReusableEvidence` plus a new location;
 - modify requires `InvalidateDerived` plus a replacement location record;
 - rename or move requires `RetainCompatible` or `InvalidateDerived` plus a new location record;
+- unchanged identity backfill requires `RetainCompatible` plus an updated location record;
 - removal requires `RemoveFromCurrentProjection` and one or more old location IDs.
 
 The application processes path-scoped work as follows:
 
 1. load the registered root, durable generation, active published scan, and catalog revision;
-2. wait without leasing while a first or replacement full scan owns the publication boundary;
-3. inspect path metadata, placeholder state, optional Windows file identity, and media dimensions;
-4. apply ADR 0007 and ADR 0016 to decide unchanged, add, modify, rename, replacement, or removal;
-5. retain compatible metadata, dimensions, and preview identity only for unchanged source state;
-6. revalidate present files and authoritative absence immediately before publication;
-7. publish ready independent work together while returning unreadable files to bounded retry;
-8. leave subtree, root, and freshness-gap work durable for R2c-F authoritative reconciliation.
+2. verify root availability and wait without leasing while a first or replacement full scan owns
+   the publication boundary;
+3. lease only path work, leaving subtree, root, and freshness-gap rows untouched for R2c-F;
+4. reject intermediate symlink or Windows reparse traversal before reading a relative path;
+5. inspect path metadata, placeholder state, optional Windows file identity, and media dimensions;
+6. apply ADR 0007 and ADR 0016 to decide unchanged, add, modify, rename, replacement, or removal;
+7. reconcile both affected paths of a paired rename, including a replacement recreated at the old
+   path and Windows case-only spelling changes;
+8. persist newly available identity on an otherwise unchanged location, and preserve complete
+   compatible preview state including structured failure evidence;
+9. revalidate present files, filesystem containment, and authoritative absence immediately before
+   publication;
+10. publish ready independent work together while returning unreadable files to bounded retry.
+
+A full scan that starts after leasing is a coordination deferral, not a processing failure. The
+queue returns the lease to ready state and restores its attempt budget. The same rule applies if
+the active published catalog boundary disappears during preparation.
 
 The publisher uses `BEGIN IMMEDIATE` and, before changing catalog state, rechecks:
 
@@ -74,12 +87,16 @@ The publisher uses `BEGIN IMMEDIATE` and, before changing catalog state, recheck
 - the referenced active scan remains a completed published snapshot;
 - the global catalog revision still equals the prepared revision;
 - every queue row is still leased by the exact lease generation in the batch.
+- every `RetainCompatible` mutation still sees the preview path, lifecycle status, and structured
+  issue evidence from which it was prepared.
 
 Only after those guards pass does the transaction detach obsolete preview ownership, remove old
-locations, upsert new locations, transfer compatible ready-preview ownership, stale unreferenced
-preview artifacts, delete orphan assets, refresh the active scan count, increment the catalog
-revision once when at least one mutation exists, and complete every included queue lease at that
-same revision. An unchanged batch completes its leases without creating a meaningless revision.
+locations, upsert new locations, transfer compatible ready-preview ownership, stale affected
+unreferenced preview artifacts, delete affected orphan assets, apply the bounded active-location
+count delta, increment the catalog revision once when at least one mutation exists, and complete
+every included queue lease at that same revision. A `Ready` preview cannot be committed without a
+live ready artifact owner. An unchanged batch completes its leases without creating a meaningless
+revision.
 
 The batch is bounded to 128 completions, 256 mutations, and four explicit removals per mutation.
 All filesystem and image work happens before the transaction; the transaction performs no source
@@ -88,10 +105,18 @@ access. R2c-D introduces no schema migration and continues using schema v17.
 ## Validation gates
 
 - controlled valid images prove unchanged, add, edit, metadata-engine reinspection, paired rename,
-  same-path replacement, authoritative removal, and rename-followed-by-removal outcomes;
+  same-path replacement, authoritative removal, rename-followed-by-removal, identity backfill,
+  old-path replacement, and Windows case-only rename outcomes;
 - related valid files publish at one revision and one malformed image cannot block an independent
   valid sibling;
-- identity-preserving rename transfers compatible preview ownership atomically;
+- identity-preserving rename transfers compatible preview ownership atomically and preserves
+  structured failed-preview evidence;
+- preview cleanup invalidates an already prepared retain-compatible delta without changing the
+  catalog revision;
+- path-only leasing and normal coordination deferral do not consume authoritative or retry work;
+- intermediate filesystem links cannot escape the selected root, while an explicitly selected
+  linked root remains valid;
+- unrelated orphan assets and preview artifacts are not visited or rewritten by one delta;
 - stale lease, changed revision, retired generation, and running full scan publish no delta;
 - an injected queue-completion database failure rolls back locations, revision, and completion;
 - inconsistent outcome and evidence-disposition combinations fail closed;
@@ -112,7 +137,8 @@ isolated catalogs. No real-library root or cloud placeholder was accessed.
 - A filesystem change after final revalidation is still possible. A newer overlapping durable
   event supersedes the lease; the transaction rejects the stale worker before publication.
 - Independent good work may publish while a malformed sibling retries. A reliably paired rename
-  remains one lease and therefore cannot publish only half of the move.
+  remains one lease; both old and new final states publish atomically, so a recreated old path
+  cannot retain stale catalog evidence.
 - Subtree enumeration, root freshness recovery, cancellation escalation, and low-frequency audit
   remain R2c-F responsibilities rather than being approximated by unsafe partial removal.
 - R2c-E must connect the returned bounded counts and catalog revision to the existing Flutter

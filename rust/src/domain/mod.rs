@@ -7,7 +7,7 @@ mod library_change_queue;
 pub use library_catalog_delta::{
     CatalogDeltaBatch, CatalogDeltaMutation, CatalogDeltaPublication,
     CatalogDeltaPublicationStatus, IncrementalCatalogRoot, IncrementalLibraryChangeReport,
-    LibraryChangeCompletion,
+    LibraryChangeCompletion, RetainedPreviewExpectation,
 };
 pub use library_change::{
     CatalogFreshnessCause, CatalogFreshnessState, DerivedEvidenceDisposition,

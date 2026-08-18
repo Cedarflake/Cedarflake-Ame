@@ -56,6 +56,13 @@ pub trait LibraryChangeQueue {
         now_unix_ms: i64,
         policy: LibraryChangeQueuePolicy,
     ) -> Result<Vec<LeasedLibraryChange>, ScanError>;
+    fn lease_path_library_changes(
+        &mut self,
+        root_id: &str,
+        root_generation: LibraryRootGeneration,
+        now_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<Vec<LeasedLibraryChange>, ScanError>;
     fn complete_library_change(
         &mut self,
         change_id: LibraryChangeId,
@@ -70,6 +77,12 @@ pub trait LibraryChangeQueue {
         failure: &LibraryChangeFailure,
         failed_unix_ms: i64,
         policy: LibraryChangeQueuePolicy,
+    ) -> Result<LibraryChangeLeaseUpdateOutcome, ScanError>;
+    fn defer_library_change(
+        &mut self,
+        change_id: LibraryChangeId,
+        lease_generation: u64,
+        deferred_unix_ms: i64,
     ) -> Result<LibraryChangeLeaseUpdateOutcome, ScanError>;
     fn load_library_change_queue_metrics(
         &self,
