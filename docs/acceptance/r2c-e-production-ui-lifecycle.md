@@ -66,7 +66,7 @@ library_controller_test.dart: 40 passed
 gallery_selection_test.dart: 4 passed
 library_navigation_semantics_test.dart: 5 passed
 unified_library_screen_test.dart: 31 passed
-library_viewer_position_test.dart: 5 passed
+library_viewer_position_test.dart: 6 passed
 window_manager_actions_test.dart: 2 passed
 ```
 
@@ -101,7 +101,8 @@ The audit-hardening run additionally exercised a revision already published befo
 subscription, a real screen subscription across an identity-preserving rename and an authoritative
 removal, a SQLite-triggered queue enqueue failure, preferred-location selection for a multi-location
 asset even when another location is the only loaded detail, removal fallback at the prior ordinal, a
-bridge failure before the first root status, and destruction after the configured shutdown timeout.
+delayed asset lookup racing same-asset navigation, a bridge failure before the first root status, and
+destruction after the configured shutdown timeout.
 
 ## Remaining boundary
 

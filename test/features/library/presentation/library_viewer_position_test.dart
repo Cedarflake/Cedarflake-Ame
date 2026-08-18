@@ -237,6 +237,90 @@ void main() {
   );
 
   testWidgets(
+    "stale asset lookup cannot replace newer same-asset viewer navigation",
+    (tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final baseState = _libraryState(assetCount: 1);
+      final firstLocation = baseState.assets.single;
+      final secondLocation = _assetAtPath(
+        firstLocation,
+        locationId: "location-second",
+        relativePath: "second.jpg",
+      );
+      final initialState = _stateWithAssets(baseState, [
+        firstLocation,
+        secondLocation,
+      ]);
+      final initialSnapshot = LibrarySnapshot(
+        catalogPath: initialState.catalogPath ?? "",
+        revision: BigInt.one,
+        queryId: initialState.queryId,
+        roots: initialState.roots,
+        assets: initialState.assets,
+      );
+      final catalog = _SynchronizationViewerCatalog(initialSnapshot);
+      final synchronization = _TestLibrarySynchronization(
+        _synchronizationSnapshot(BigInt.one),
+      );
+      addTearDown(synchronization.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            initialLibraryStateProvider.overrideWithValue(initialState),
+            libraryCatalogProvider.overrideWithValue(catalog),
+            librarySynchronizationProvider.overrideWithValue(synchronization),
+          ],
+          child: const AmeApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final firstTile = find.byWidgetPredicate(
+        (widget) =>
+            widget is LibraryPhotoTile &&
+            widget.asset.locationId == firstLocation.locationId,
+      );
+      final firstTileRect = tester.getRect(firstTile);
+      await tester.tapAt(firstTileRect.topLeft + const Offset(16, 16));
+      await tester.pump();
+      expect(find.text("0.jpg"), findsOneWidget);
+
+      catalog.snapshot = LibrarySnapshot(
+        catalogPath: initialSnapshot.catalogPath,
+        revision: BigInt.two,
+        queryId: initialSnapshot.queryId,
+        roots: initialSnapshot.roots,
+        assets: [firstLocation, secondLocation],
+        queryAnchorResolution: const LibraryQueryAnchorResolution(
+          requestedLocationId: "location-0",
+          locationId: "location-0",
+          ordinal: 0,
+          windowStartItemOffset: 0,
+        ),
+      );
+      catalog.holdNextAssetLookup();
+      synchronization.publish(_synchronizationSnapshot(BigInt.two));
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(catalog.preferredLocationIds, ["location-0"]);
+
+      await tester.tap(find.byKey(const Key("viewer-next")));
+      await tester.pump();
+      expect(find.text("second.jpg"), findsOneWidget);
+
+      catalog.completeHeldAssetLookup(firstLocation);
+      await _pumpSynchronizationRefresh(tester);
+
+      expect(find.byKey(const Key("viewer-back-button")), findsOneWidget);
+      expect(find.text("second.jpg"), findsOneWidget);
+      expect(find.text("0.jpg"), findsNothing);
+    },
+  );
+
+  testWidgets(
     "synchronization keeps a renamed viewer asset and closes an authoritative removal",
     (tester) async {
       tester.view.physicalSize = const Size(1280, 800);
@@ -478,6 +562,7 @@ class _SynchronizationViewerCatalog
   LibrarySnapshot snapshot;
   final List<String> requestedLocationIds = [];
   final List<String?> preferredLocationIds = [];
+  Completer<LibraryAsset?>? _heldAssetLookup;
 
   @override
   Future<LibrarySnapshot> loadAroundAsset({
@@ -497,6 +582,10 @@ class _SynchronizationViewerCatalog
     String? preferredLocationId,
   }) async {
     preferredLocationIds.add(preferredLocationId);
+    final heldAssetLookup = _heldAssetLookup;
+    if (heldAssetLookup != null) {
+      return heldAssetLookup.future;
+    }
     for (final asset in snapshot.assets) {
       if (asset.assetId == assetId) {
         return asset;
@@ -537,6 +626,16 @@ class _SynchronizationViewerCatalog
 
   @override
   Future<bool> unregisterRoot(String rootId) async => true;
+
+  void holdNextAssetLookup() {
+    _heldAssetLookup = Completer<LibraryAsset?>();
+  }
+
+  void completeHeldAssetLookup(LibraryAsset? asset) {
+    final heldAssetLookup = _heldAssetLookup;
+    _heldAssetLookup = null;
+    heldAssetLookup?.complete(asset);
+  }
 }
 
 class _RecordingPlatformActions implements LibraryPlatformActions {

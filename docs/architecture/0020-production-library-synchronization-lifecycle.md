@@ -85,7 +85,8 @@ Refresh continuity uses stable identity:
 - complete-query select-all is cleared when the result-set revision changes;
 - an open viewer remains independent from the bounded detail window, resolves its asset directly,
   follows the preferred location across a rename, and closes only after an authoritative lookup proves
-  that the asset no longer exists;
+  that the asset no longer exists; a delayed lookup is guarded by both the requested asset and location
+  so it cannot overwrite newer same-asset navigation;
 - the active source, filters, layout preferences, preview state, and logical scroll anchor remain owned
   by their existing accepted UI contracts.
 

@@ -1109,7 +1109,8 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
 
   Future<void> _reconcileViewerAfterSynchronization() async {
     final assetId = _viewerAssetId;
-    if (assetId == null) {
+    final preferredLocationId = _viewerLocationId;
+    if (assetId == null || preferredLocationId == null) {
       return;
     }
     final catalog = ref.read(libraryCatalogProvider);
@@ -1123,12 +1124,14 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     try {
       asset = await stableAssetCatalog.loadAssetById(
         assetId: assetId,
-        preferredLocationId: _viewerLocationId,
+        preferredLocationId: preferredLocationId,
       );
     } on Object {
       return;
     }
-    if (!mounted || _viewerAssetId != assetId) {
+    if (!mounted ||
+        _viewerAssetId != assetId ||
+        _viewerLocationId != preferredLocationId) {
       return;
     }
     if (asset == null) {

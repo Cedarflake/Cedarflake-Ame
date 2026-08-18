@@ -1895,7 +1895,7 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   freshness. Flutter consumes a revision already published before screen construction, projects
   bounded Chinese root states, refreshes only published revisions, and
   preserves source scope, filters, selection, preview demand, stable asset identity, preferred
-  location, viewer continuity, and the nearest surviving ordinal. A bridge failure before root
+  location, await-safe viewer continuity, and the nearest surviving ordinal. A bridge failure before root
   metrics shows `需要核对`, and desktop destruction remains bounded after coordinated shutdown.
   Eight runtime tests, preferred-location and ordinal SQLite fixtures, and production screen tests
   cover enqueue rollback, continuity gaps, rename, removal, and timeout behavior. The 2026-08-18
