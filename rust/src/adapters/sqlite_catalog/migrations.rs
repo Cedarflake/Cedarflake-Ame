@@ -2,7 +2,10 @@ use rusqlite::{Connection, OptionalExtension, Transaction, TransactionBehavior, 
 
 use crate::domain::ScanError;
 
-use super::{SCHEMA_VERSION, database_error, natural_name_key, parent_relative_path};
+use super::{
+    MAX_SCAN_CATCH_UP_LINEAGE, SCHEMA_VERSION, database_error, natural_name_key,
+    parent_relative_path,
+};
 
 pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanError> {
     let has_schema_info: bool = connection
@@ -31,6 +34,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
         match version {
             SCHEMA_VERSION => {
                 repair_prerelease_v19_derived_indexes(connection)?;
+                repair_prerelease_v19_scan_lineage(connection)?;
                 return validate_current_schema_contract(connection);
             }
             1 => migrate_v1_to_v2(connection)?,
@@ -434,6 +438,10 @@ fn validate_change_catch_up_contract(connection: &Connection) -> Result<(), Scan
         has_lineage_table,
         has_lineage_index,
         has_lineage_foreign_key,
+        has_scan_lineage_marker,
+        has_scan_lineage_table,
+        has_scan_lineage_index,
+        has_scan_lineage_foreign_key,
     ) = connection
         .query_row(
             "SELECT
@@ -483,9 +491,28 @@ fn validate_change_catch_up_contract(connection: &Connection) -> Result<(), Scan
                  WHERE type = 'table' AND name = 'library_change_queue_catch_up_lineage')
                AND (SELECT COUNT(*) FROM pragma_table_info(
                  'library_change_queue_catch_up_lineage'
+               )) = 4
+               AND (SELECT COUNT(*) FROM pragma_table_info(
+                 'library_change_queue_catch_up_lineage'
                ) WHERE name IN (
                  'change_id', 'catch_up_source', 'catch_up_watermark', 'enrolled_unix_ms'
                )) = 4
+               AND EXISTS(SELECT 1 FROM pragma_table_info(
+                 'library_change_queue_catch_up_lineage'
+               ) WHERE name = 'change_id' AND upper(type) = 'INTEGER'
+                   AND \"notnull\" = 1 AND dflt_value IS NULL AND pk = 1)
+               AND EXISTS(SELECT 1 FROM pragma_table_info(
+                 'library_change_queue_catch_up_lineage'
+               ) WHERE name = 'catch_up_source' AND upper(type) = 'TEXT'
+                   AND \"notnull\" = 1 AND dflt_value IS NULL AND pk = 2)
+               AND EXISTS(SELECT 1 FROM pragma_table_info(
+                 'library_change_queue_catch_up_lineage'
+               ) WHERE name = 'catch_up_watermark' AND upper(type) = 'TEXT'
+                   AND \"notnull\" = 1 AND dflt_value IS NULL AND pk = 3)
+               AND EXISTS(SELECT 1 FROM pragma_table_info(
+                 'library_change_queue_catch_up_lineage'
+               ) WHERE name = 'enrolled_unix_ms' AND upper(type) = 'INTEGER'
+                   AND \"notnull\" = 1 AND dflt_value IS NULL AND pk = 0)
                AND (SELECT group_concat(name, ',') FROM (
                  SELECT name FROM pragma_table_info('library_change_queue_catch_up_lineage')
                  WHERE pk > 0 ORDER BY pk
@@ -499,10 +526,52 @@ fn validate_change_catch_up_contract(connection: &Connection) -> Result<(), Scan
                    'library_change_queue_catch_up_lineage_evidence'
                  ) ORDER BY seqno
                )) = 'catch_up_source,catch_up_watermark,change_id',
-               EXISTS(SELECT 1 FROM pragma_foreign_key_list(
+               (SELECT COUNT(*) FROM pragma_foreign_key_list(
+                 'library_change_queue_catch_up_lineage'
+               )) = 1
+               AND EXISTS(SELECT 1 FROM pragma_foreign_key_list(
                  'library_change_queue_catch_up_lineage'
                ) WHERE \"table\" = 'library_change_queue' AND \"from\" = 'change_id'
-                   AND on_delete = 'CASCADE')",
+                   AND \"to\" = 'id' AND on_update = 'NO ACTION'
+                   AND on_delete = 'CASCADE' AND \"match\" = 'NONE'),
+               EXISTS(SELECT 1 FROM pragma_table_info('library_change_queue_contract')
+                 WHERE name = 'scan_catch_up_lineage_complete'),
+               EXISTS(SELECT 1 FROM sqlite_master
+                 WHERE type = 'table' AND name = 'scan_run_catch_up_lineage')
+               AND (SELECT COUNT(*) FROM pragma_table_info('scan_run_catch_up_lineage')) = 4
+               AND (SELECT COUNT(*) FROM pragma_table_info('scan_run_catch_up_lineage')
+                 WHERE name IN (
+                   'scan_id', 'catch_up_source', 'catch_up_watermark', 'enrolled_unix_ms'
+                 )) = 4
+               AND EXISTS(SELECT 1 FROM pragma_table_info('scan_run_catch_up_lineage')
+                 WHERE name = 'scan_id' AND upper(type) = 'TEXT'
+                   AND \"notnull\" = 1 AND dflt_value IS NULL AND pk = 1)
+               AND EXISTS(SELECT 1 FROM pragma_table_info('scan_run_catch_up_lineage')
+                 WHERE name = 'catch_up_source' AND upper(type) = 'TEXT'
+                   AND \"notnull\" = 1 AND dflt_value IS NULL AND pk = 2)
+               AND EXISTS(SELECT 1 FROM pragma_table_info('scan_run_catch_up_lineage')
+                 WHERE name = 'catch_up_watermark' AND upper(type) = 'TEXT'
+                   AND \"notnull\" = 1 AND dflt_value IS NULL AND pk = 3)
+               AND EXISTS(SELECT 1 FROM pragma_table_info('scan_run_catch_up_lineage')
+                 WHERE name = 'enrolled_unix_ms' AND upper(type) = 'INTEGER'
+                   AND \"notnull\" = 1 AND dflt_value IS NULL AND pk = 0)
+               AND (SELECT group_concat(name, ',') FROM (
+                 SELECT name FROM pragma_table_info('scan_run_catch_up_lineage')
+                 WHERE pk > 0 ORDER BY pk
+               )) = 'scan_id,catch_up_source,catch_up_watermark',
+               EXISTS(SELECT 1 FROM pragma_index_list('scan_run_catch_up_lineage')
+                 WHERE name = 'scan_run_catch_up_lineage_evidence'
+                   AND \"unique\" = 0 AND partial = 0)
+               AND (SELECT group_concat(name, ',') FROM (
+                 SELECT name FROM pragma_index_info('scan_run_catch_up_lineage_evidence')
+                 ORDER BY seqno
+               )) = 'catch_up_source,catch_up_watermark,scan_id',
+               (SELECT COUNT(*) FROM pragma_foreign_key_list('scan_run_catch_up_lineage')) = 1
+               AND EXISTS(SELECT 1 FROM pragma_foreign_key_list(
+                 'scan_run_catch_up_lineage'
+               ) WHERE \"table\" = 'scan_runs' AND \"from\" = 'scan_id'
+                   AND \"to\" = 'id' AND on_update = 'NO ACTION'
+                   AND on_delete = 'CASCADE' AND \"match\" = 'NONE')",
             [],
             |row| {
                 Ok((
@@ -515,6 +584,10 @@ fn validate_change_catch_up_contract(connection: &Connection) -> Result<(), Scan
                     row.get::<_, bool>(6)?,
                     row.get::<_, bool>(7)?,
                     row.get::<_, bool>(8)?,
+                    row.get::<_, bool>(9)?,
+                    row.get::<_, bool>(10)?,
+                    row.get::<_, bool>(11)?,
+                    row.get::<_, bool>(12)?,
                 ))
             },
         )
@@ -528,6 +601,10 @@ fn validate_change_catch_up_contract(connection: &Connection) -> Result<(), Scan
         || !has_lineage_table
         || !has_lineage_index
         || !has_lineage_foreign_key
+        || !has_scan_lineage_marker
+        || !has_scan_lineage_table
+        || !has_scan_lineage_index
+        || !has_scan_lineage_foreign_key
     {
         return Err(ScanError::new(
             "catalog_change_catch_up_contract_unverifiable",
@@ -537,6 +614,7 @@ fn validate_change_catch_up_contract(connection: &Connection) -> Result<(), Scan
     let marker_complete = connection
         .query_row(
             "SELECT change_catch_up_complete = 1
+                    AND scan_catch_up_lineage_complete = 1
              FROM library_change_queue_contract WHERE singleton = 1",
             [],
             |row| row.get::<_, bool>(0),
@@ -552,30 +630,70 @@ fn validate_change_catch_up_contract(connection: &Connection) -> Result<(), Scan
     }
     let invalid_lineage = connection
         .query_row(
-            "SELECT EXISTS(
-               SELECT 1 FROM library_change_queue AS changes
-               WHERE (
-                 (changes.catch_up_source IS NULL) <> (changes.catch_up_watermark IS NULL)
-               ) OR (
-                 changes.catch_up_source IS NOT NULL
-                 AND NOT EXISTS (
-                   SELECT 1 FROM library_change_queue_catch_up_lineage AS lineage
+            "SELECT
+               EXISTS(
+                 SELECT 1 FROM library_change_queue_catch_up_lineage AS lineage
+                 LEFT JOIN library_change_queue AS changes ON changes.id = lineage.change_id
+                 WHERE changes.id IS NULL
+               )
+               OR EXISTS(
+                 SELECT 1 FROM library_change_queue AS changes
+                 WHERE (
+                   (changes.catch_up_source IS NULL) <> (changes.catch_up_watermark IS NULL)
+                 ) OR (
+                   changes.catch_up_source IS NOT NULL
+                   AND NOT EXISTS (
+                     SELECT 1 FROM library_change_queue_catch_up_lineage AS lineage
+                     WHERE lineage.change_id = changes.id
+                       AND lineage.catch_up_source = changes.catch_up_source
+                       AND lineage.catch_up_watermark = changes.catch_up_watermark
+                   )
+                 ) OR (
+                   changes.catch_up_source IS NULL
+                   AND EXISTS (
+                     SELECT 1 FROM library_change_queue_catch_up_lineage AS lineage
+                     WHERE lineage.change_id = changes.id
+                   )
+                 ) OR (
+                   SELECT COUNT(*) FROM library_change_queue_catch_up_lineage AS lineage
                    WHERE lineage.change_id = changes.id
-                     AND lineage.catch_up_source = changes.catch_up_source
-                     AND lineage.catch_up_watermark = changes.catch_up_watermark
-                 )
-               ) OR (
-                 changes.catch_up_source IS NULL
-                 AND EXISTS (
-                   SELECT 1 FROM library_change_queue_catch_up_lineage AS lineage
-                   WHERE lineage.change_id = changes.id
-                 )
-               ) OR (
-                 SELECT COUNT(*) FROM library_change_queue_catch_up_lineage AS lineage
-                 WHERE lineage.change_id = changes.id
-               ) > 64
-             )",
-            [],
+                 ) > 64
+               )
+               OR EXISTS(
+                 SELECT 1 FROM scan_run_catch_up_lineage AS lineage
+                 LEFT JOIN scan_runs AS scans ON scans.id = lineage.scan_id
+                 WHERE scans.id IS NULL
+                    OR scans.status NOT IN ('running', 'paused')
+               )
+               OR EXISTS(
+                 SELECT 1 FROM scan_run_catch_up_lineage
+                 GROUP BY scan_id HAVING COUNT(*) > ?1
+               )
+               OR EXISTS(
+                 SELECT 1
+                 FROM scan_runs AS scans
+                 JOIN library_change_queue AS changes
+                   ON changes.root_id = scans.root_id
+                  AND changes.root_generation = scans.root_generation_at_start
+                  AND changes.id <= scans.change_queue_high_watermark
+                 JOIN library_change_queue_catch_up_lineage AS lineage
+                   ON lineage.change_id = changes.id
+                 WHERE scans.status IN ('running', 'paused')
+                   AND changes.status IN ('pending', 'leased', 'retry_wait')
+                   AND NOT EXISTS (
+                     SELECT 1 FROM scan_run_catch_up_lineage AS frozen
+                     WHERE frozen.scan_id = scans.id
+                       AND frozen.catch_up_source = lineage.catch_up_source
+                       AND frozen.catch_up_watermark = lineage.catch_up_watermark
+                   )
+               )
+               OR EXISTS(SELECT 1 FROM pragma_foreign_key_check(
+                 'library_change_queue_catch_up_lineage'
+               ))
+               OR EXISTS(SELECT 1 FROM pragma_foreign_key_check(
+                 'scan_run_catch_up_lineage'
+               ))",
+            [MAX_SCAN_CATCH_UP_LINEAGE],
             |row| row.get::<_, bool>(0),
         )
         .map_err(database_error)?;
@@ -789,6 +907,121 @@ fn repair_prerelease_v19_derived_indexes(connection: &mut Connection) -> Result<
     transaction
         .execute(
             "DROP INDEX IF EXISTS library_change_queue_catch_up_peer",
+            [],
+        )
+        .map_err(database_error)?;
+    transaction.commit().map_err(database_error)
+}
+
+fn repair_prerelease_v19_scan_lineage(connection: &mut Connection) -> Result<(), ScanError> {
+    let (has_state_table, has_change_marker, has_scan_marker, has_scan_lineage_table) = connection
+        .query_row(
+            "SELECT
+               EXISTS(SELECT 1 FROM sqlite_master
+                 WHERE type = 'table' AND name = 'library_change_catch_up_state'),
+               EXISTS(SELECT 1 FROM pragma_table_info('library_change_queue_contract')
+                 WHERE name = 'change_catch_up_complete'),
+               EXISTS(SELECT 1 FROM pragma_table_info('library_change_queue_contract')
+                 WHERE name = 'scan_catch_up_lineage_complete'),
+               EXISTS(SELECT 1 FROM sqlite_master
+                 WHERE type = 'table' AND name = 'scan_run_catch_up_lineage')",
+            [],
+            |row| {
+                Ok((
+                    row.get::<_, bool>(0)?,
+                    row.get::<_, bool>(1)?,
+                    row.get::<_, bool>(2)?,
+                    row.get::<_, bool>(3)?,
+                ))
+            },
+        )
+        .map_err(database_error)?;
+    if !has_state_table || !has_change_marker || has_scan_marker {
+        return Ok(());
+    }
+    let change_marker_complete = connection
+        .query_row(
+            "SELECT change_catch_up_complete = 1
+             FROM library_change_queue_contract WHERE singleton = 1",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .optional()
+        .map_err(database_error)?
+        .unwrap_or(false);
+    if !change_marker_complete {
+        return Ok(());
+    }
+    if has_scan_lineage_table {
+        return Ok(());
+    }
+    let has_unprovable_active_scan = connection
+        .query_row(
+            "SELECT EXISTS(
+               SELECT 1 FROM scan_runs AS scans
+               WHERE scans.status IN ('running', 'paused')
+                 AND scans.change_queue_high_watermark IS NOT NULL
+                 AND NOT EXISTS (
+                   SELECT 1 FROM library_change_queue AS changes
+                   WHERE changes.root_id = scans.root_id
+                     AND changes.root_generation = scans.root_generation_at_start
+                     AND changes.id <= scans.change_queue_high_watermark
+                     AND changes.status IN ('pending', 'leased', 'retry_wait')
+                 )
+             )",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    if has_unprovable_active_scan {
+        return Err(ScanError::new(
+            "catalog_change_catch_up_contract_unverifiable",
+            "The catalog cannot reconstruct the frozen lineage of an active scan",
+        ));
+    }
+    let transaction = connection.transaction().map_err(database_error)?;
+    create_scan_run_catch_up_lineage_contract(&transaction)?;
+    transaction
+        .execute(
+            "INSERT INTO scan_run_catch_up_lineage(
+               scan_id, catch_up_source, catch_up_watermark, enrolled_unix_ms
+             )
+             SELECT scans.id, lineage.catch_up_source, lineage.catch_up_watermark,
+                    MAX(lineage.enrolled_unix_ms)
+             FROM scan_runs AS scans
+             JOIN library_change_queue AS changes
+               ON changes.root_id = scans.root_id
+              AND changes.root_generation = scans.root_generation_at_start
+              AND changes.id <= scans.change_queue_high_watermark
+             JOIN library_change_queue_catch_up_lineage AS lineage
+               ON lineage.change_id = changes.id
+             WHERE scans.status IN ('running', 'paused')
+               AND changes.status IN ('pending', 'leased', 'retry_wait')
+             GROUP BY scans.id, lineage.catch_up_source, lineage.catch_up_watermark",
+            [],
+        )
+        .map_err(database_error)?;
+    let oversized_scan = transaction
+        .query_row(
+            "SELECT EXISTS(
+               SELECT 1 FROM scan_run_catch_up_lineage
+               GROUP BY scan_id HAVING COUNT(*) > ?1
+             )",
+            [MAX_SCAN_CATCH_UP_LINEAGE],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    if oversized_scan {
+        return Err(ScanError::new(
+            "catalog_change_catch_up_contract_unverifiable",
+            "The catalog cannot reconstruct a bounded scan lineage",
+        ));
+    }
+    transaction
+        .execute(
+            "ALTER TABLE library_change_queue_contract
+             ADD COLUMN scan_catch_up_lineage_complete INTEGER NOT NULL DEFAULT 1
+             CHECK(scan_catch_up_lineage_complete = 1)",
             [],
         )
         .map_err(database_error)?;
@@ -1610,11 +1843,15 @@ fn add_change_catch_up_contract(transaction: &Transaction<'_>) -> Result<(), Sca
                ON asset_locations(root_id, relative_path, scan_id, location_id);
              ALTER TABLE library_change_queue_contract
                ADD COLUMN change_catch_up_complete INTEGER NOT NULL DEFAULT 1
-               CHECK(change_catch_up_complete = 1);",
+               CHECK(change_catch_up_complete = 1);
+             ALTER TABLE library_change_queue_contract
+               ADD COLUMN scan_catch_up_lineage_complete INTEGER NOT NULL DEFAULT 1
+               CHECK(scan_catch_up_lineage_complete = 1);",
         )
         .map_err(database_error)?;
     create_change_catch_up_handoff_contract(transaction)?;
     create_change_catch_up_lineage_contract(transaction)?;
+    create_scan_run_catch_up_lineage_contract(transaction)?;
     seed_change_catch_up_lineage(transaction)
 }
 
@@ -1691,6 +1928,28 @@ fn create_change_catch_up_lineage_contract(transaction: &Transaction<'_>) -> Res
              CREATE INDEX library_change_queue_catch_up_lineage_evidence
                ON library_change_queue_catch_up_lineage(
                  catch_up_source, catch_up_watermark, change_id
+               );",
+        )
+        .map_err(database_error)
+}
+
+fn create_scan_run_catch_up_lineage_contract(
+    transaction: &Transaction<'_>,
+) -> Result<(), ScanError> {
+    transaction
+        .execute_batch(
+            "CREATE TABLE scan_run_catch_up_lineage (
+               scan_id TEXT NOT NULL,
+               catch_up_source TEXT NOT NULL CHECK(length(catch_up_source) BETWEEN 1 AND 128),
+               catch_up_watermark TEXT NOT NULL
+                 CHECK(length(catch_up_watermark) BETWEEN 1 AND 1024),
+               enrolled_unix_ms INTEGER NOT NULL,
+               PRIMARY KEY(scan_id, catch_up_source, catch_up_watermark),
+               FOREIGN KEY(scan_id) REFERENCES scan_runs(id) ON DELETE CASCADE
+             );
+             CREATE INDEX scan_run_catch_up_lineage_evidence
+               ON scan_run_catch_up_lineage(
+                 catch_up_source, catch_up_watermark, scan_id
                );",
         )
         .map_err(database_error)
@@ -1838,7 +2097,10 @@ mod tests {
                    'windows_usn_v1', 'volume|12|40', 1, 1
                  );
                  DROP TABLE library_change_queue_catch_up_lineage;
+                 DROP TABLE scan_run_catch_up_lineage;
                  DROP TABLE library_change_catch_up_handoffs;
+                 ALTER TABLE library_change_queue_contract
+                   DROP COLUMN scan_catch_up_lineage_complete;
                  CREATE INDEX library_change_queue_catch_up_peer
                    ON library_change_queue(
                      catch_up_source, catch_up_watermark, status, root_id, id
@@ -1872,6 +2134,20 @@ mod tests {
             )
             .expect("seeded lineage count");
         assert_eq!(seeded_lineage, 1);
+        let scan_lineage_contract = connection
+            .query_row(
+                "SELECT
+                   (SELECT scan_catch_up_lineage_complete = 1
+                    FROM library_change_queue_contract WHERE singleton = 1)
+                   AND EXISTS(SELECT 1 FROM sqlite_master
+                     WHERE type = 'table' AND name = 'scan_run_catch_up_lineage')
+                   AND EXISTS(SELECT 1 FROM sqlite_master
+                     WHERE type = 'index' AND name = 'scan_run_catch_up_lineage_evidence')",
+                [],
+                |row| row.get::<_, bool>(0),
+            )
+            .expect("scan lineage contract");
+        assert!(scan_lineage_contract);
         let obsolete_index = connection
             .query_row(
                 "SELECT EXISTS(SELECT 1 FROM sqlite_master
@@ -1931,6 +2207,127 @@ mod tests {
     }
 
     #[test]
+    fn current_v19_lineage_with_wrong_foreign_key_target_fails_closed() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh v19 catalog");
+        connection
+            .execute_batch(
+                "DROP TABLE library_change_queue_catch_up_lineage;
+                 CREATE TABLE library_change_queue_catch_up_lineage (
+                   change_id INTEGER NOT NULL,
+                   catch_up_source TEXT NOT NULL,
+                   catch_up_watermark TEXT NOT NULL,
+                   enrolled_unix_ms INTEGER NOT NULL,
+                   PRIMARY KEY(change_id, catch_up_source, catch_up_watermark),
+                   FOREIGN KEY(change_id) REFERENCES library_change_queue(root_id)
+                     ON DELETE CASCADE
+                 );
+                 CREATE INDEX library_change_queue_catch_up_lineage_evidence
+                   ON library_change_queue_catch_up_lineage(
+                     catch_up_source, catch_up_watermark, change_id
+                   );",
+            )
+            .expect("wrong-target lineage fixture");
+
+        let error = migrate_schema(&mut connection).expect_err("wrong-target lineage foreign key");
+
+        assert_eq!(error.code, "catalog_change_catch_up_contract_unverifiable");
+    }
+
+    #[test]
+    fn current_v19_lineage_with_extra_required_column_fails_closed() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh v19 catalog");
+        connection
+            .execute_batch(
+                "DROP TABLE library_change_queue_catch_up_lineage;
+                 CREATE TABLE library_change_queue_catch_up_lineage (
+                   change_id INTEGER NOT NULL,
+                   catch_up_source TEXT NOT NULL,
+                   catch_up_watermark TEXT NOT NULL,
+                   enrolled_unix_ms INTEGER NOT NULL,
+                   unexpected_authority TEXT NOT NULL,
+                   PRIMARY KEY(change_id, catch_up_source, catch_up_watermark),
+                   FOREIGN KEY(change_id) REFERENCES library_change_queue(id) ON DELETE CASCADE
+                 );
+                 CREATE INDEX library_change_queue_catch_up_lineage_evidence
+                   ON library_change_queue_catch_up_lineage(
+                     catch_up_source, catch_up_watermark, change_id
+                   );",
+            )
+            .expect("extra-column lineage fixture");
+
+        let error = migrate_schema(&mut connection).expect_err("extra required lineage column");
+
+        assert_eq!(error.code, "catalog_change_catch_up_contract_unverifiable");
+    }
+
+    #[test]
+    fn current_v19_orphan_lineage_fails_closed() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh v19 catalog");
+        connection
+            .execute_batch(
+                "PRAGMA foreign_keys = OFF;
+                 INSERT INTO library_change_queue_catch_up_lineage(
+                   change_id, catch_up_source, catch_up_watermark, enrolled_unix_ms
+                 ) VALUES (999, 'windows_usn_v1', 'orphan-watermark', 1);
+                 PRAGMA foreign_keys = ON;",
+            )
+            .expect("orphan lineage fixture");
+
+        let error = migrate_schema(&mut connection).expect_err("orphan lineage");
+
+        assert_eq!(error.code, "catalog_change_catch_up_contract_unverifiable");
+    }
+
+    #[test]
+    fn current_v19_scan_lineage_with_wrong_foreign_key_target_fails_closed() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh v19 catalog");
+        connection
+            .execute_batch(
+                "DROP TABLE scan_run_catch_up_lineage;
+                 CREATE TABLE scan_run_catch_up_lineage (
+                   scan_id TEXT NOT NULL,
+                   catch_up_source TEXT NOT NULL,
+                   catch_up_watermark TEXT NOT NULL,
+                   enrolled_unix_ms INTEGER NOT NULL,
+                   PRIMARY KEY(scan_id, catch_up_source, catch_up_watermark),
+                   FOREIGN KEY(scan_id) REFERENCES scan_runs(root_id) ON DELETE CASCADE
+                 );
+                 CREATE INDEX scan_run_catch_up_lineage_evidence
+                   ON scan_run_catch_up_lineage(
+                     catch_up_source, catch_up_watermark, scan_id
+                   );",
+            )
+            .expect("wrong-target scan lineage fixture");
+
+        let error = migrate_schema(&mut connection).expect_err("wrong-target scan lineage key");
+
+        assert_eq!(error.code, "catalog_change_catch_up_contract_unverifiable");
+    }
+
+    #[test]
+    fn current_v19_orphan_scan_lineage_fails_closed() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh v19 catalog");
+        connection
+            .execute_batch(
+                "PRAGMA foreign_keys = OFF;
+                 INSERT INTO scan_run_catch_up_lineage(
+                   scan_id, catch_up_source, catch_up_watermark, enrolled_unix_ms
+                 ) VALUES ('missing-scan', 'windows_usn_v1', 'orphan-watermark', 1);
+                 PRAGMA foreign_keys = ON;",
+            )
+            .expect("orphan scan lineage fixture");
+
+        let error = migrate_schema(&mut connection).expect_err("orphan scan lineage");
+
+        assert_eq!(error.code, "catalog_change_catch_up_contract_unverifiable");
+    }
+
+    #[test]
     fn prerelease_v18_without_recovery_marker_fails_closed() {
         let mut connection = Connection::open_in_memory().expect("catalog");
         connection
@@ -1970,7 +2367,9 @@ mod tests {
                  CREATE TABLE scan_runs(
                    id TEXT PRIMARY KEY,
                    root_id TEXT NOT NULL,
-                   status TEXT NOT NULL
+                   status TEXT NOT NULL,
+                   root_generation_at_start INTEGER,
+                   change_queue_high_watermark INTEGER
                  );
                   CREATE TABLE asset_locations(
                     root_id TEXT NOT NULL,
@@ -1981,12 +2380,14 @@ mod tests {
                   CREATE TABLE library_change_queue(
                     id INTEGER PRIMARY KEY,
                     root_id TEXT NOT NULL,
+                    root_generation INTEGER NOT NULL DEFAULT 1,
                     status TEXT NOT NULL,
                     catch_up_source TEXT,
                     catch_up_watermark TEXT
                   );
-                  INSERT INTO scan_runs VALUES ('foreground-a', 'root-a', 'running');
-                 INSERT INTO scan_runs VALUES (
+                  INSERT INTO scan_runs(id, root_id, status)
+                  VALUES ('foreground-a', 'root-a', 'running');
+                 INSERT INTO scan_runs(id, root_id, status) VALUES (
                    'sync-recovery-1-2-3', 'root-b', 'running'
                  );",
             )
@@ -2036,7 +2437,9 @@ mod tests {
                  CREATE TABLE scan_runs(
                    id TEXT PRIMARY KEY,
                    root_id TEXT NOT NULL,
-                   status TEXT NOT NULL
+                   status TEXT NOT NULL,
+                   root_generation_at_start INTEGER,
+                   change_queue_high_watermark INTEGER
                  );
                   CREATE TABLE asset_locations(
                     root_id TEXT NOT NULL,
@@ -2047,13 +2450,14 @@ mod tests {
                   CREATE TABLE library_change_queue(
                     id INTEGER PRIMARY KEY,
                     root_id TEXT NOT NULL,
+                    root_generation INTEGER NOT NULL DEFAULT 1,
                     status TEXT NOT NULL,
                     catch_up_source TEXT,
                     catch_up_watermark TEXT
                   );
                   CREATE UNIQUE INDEX scan_runs_one_active_root
                    ON scan_runs(root_id) WHERE status IN ('running', 'paused');
-                 INSERT INTO scan_runs VALUES (
+                 INSERT INTO scan_runs(id, root_id, status) VALUES (
                    'sync-recovery-7-8-9', 'root-a', 'running'
                  );",
             )
@@ -2200,18 +2604,22 @@ mod tests {
             checkpoint_count,
             handoff_count,
             lineage_count,
+            scan_lineage_count,
             has_path_index,
             has_handoff_index,
             has_lineage_index,
-        ): (i64, bool, i64, i64, i64, bool, bool, bool) = connection
+            has_scan_lineage_index,
+        ): (i64, bool, i64, i64, i64, i64, bool, bool, bool, bool) = connection
             .query_row(
                 "SELECT
                    (SELECT version FROM schema_info),
                    (SELECT change_catch_up_complete = 1
+                           AND scan_catch_up_lineage_complete = 1
                     FROM library_change_queue_contract WHERE singleton = 1),
                    (SELECT COUNT(*) FROM library_change_catch_up_state),
                    (SELECT COUNT(*) FROM library_change_catch_up_handoffs),
                    (SELECT COUNT(*) FROM library_change_queue_catch_up_lineage),
+                   (SELECT COUNT(*) FROM scan_run_catch_up_lineage),
                    EXISTS(SELECT 1 FROM sqlite_master
                      WHERE type = 'index' AND name = 'asset_locations_root_relative'),
                    EXISTS(SELECT 1 FROM sqlite_master
@@ -2219,7 +2627,10 @@ mod tests {
                        AND name = 'library_change_catch_up_handoffs_asset'),
                    EXISTS(SELECT 1 FROM sqlite_master
                      WHERE type = 'index'
-                       AND name = 'library_change_queue_catch_up_lineage_evidence')",
+                       AND name = 'library_change_queue_catch_up_lineage_evidence'),
+                   EXISTS(SELECT 1 FROM sqlite_master
+                     WHERE type = 'index'
+                       AND name = 'scan_run_catch_up_lineage_evidence')",
                 [],
                 |row| {
                     Ok((
@@ -2231,6 +2642,8 @@ mod tests {
                         row.get(5)?,
                         row.get(6)?,
                         row.get(7)?,
+                        row.get(8)?,
+                        row.get(9)?,
                     ))
                 },
             )
@@ -2241,8 +2654,10 @@ mod tests {
         assert_eq!(checkpoint_count, 0);
         assert_eq!(handoff_count, 0);
         assert_eq!(lineage_count, 0);
+        assert_eq!(scan_lineage_count, 0);
         assert!(has_path_index);
         assert!(has_handoff_index);
         assert!(has_lineage_index);
+        assert!(has_scan_lineage_index);
     }
 }

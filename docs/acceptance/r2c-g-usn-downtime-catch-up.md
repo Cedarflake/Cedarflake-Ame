@@ -28,14 +28,14 @@ The controlled fixtures prove:
 | Case-sensitive paths | Keep case-distinct NTFS roots and sibling paths as separate candidates |
 | Deleted parent chains | Reconstruct child-first delete and rename-old histories without accepting a later new name |
 | Rename continuity | Pair bounded same-file-reference old/new names before durable planning |
-| Cross-root moves | Preserve asset and compatible preview identity for path and bidirectional authoritative moves without dependency cycles |
+| Cross-root moves | Preserve asset and compatible preview identity for path, bounded authoritative, and full-scan moves without dependency cycles |
 | Candidate authority | Recheck every candidate through the existing final-state reconciler |
 | Enqueue ordering | Commit every root plan in one all-or-nothing transaction before advancing the exclusive volume watermark |
 | Crash replay | Expose either no root enrollment or the complete batch, then idempotently replay an uncheckpointed range |
 | Queue evidence | Preserve a bounded lineage of unconsumed catch-up watermarks through coalescing and supersession |
 | Explicit fallback | Enqueue `FreshnessUnknown` for every affected root on uncertain evidence |
 | Standard token | Fall back on `usn_volume_open_failed` without requesting elevation |
-| Schema v19 | Migrate v18 atomically, reject unverifiable handoff lineage, and repair only marker-complete empty authority or derived indexes |
+| Schema v19 | Migrate v18 atomically, validate exact lineage relations, reject orphan or unverifiable authority, and repair only provable marker-complete state |
 | Query bound | Use an exact root-and-relative-path index during authoritative reconciliation |
 | Root isolation | Allow a ready root to recover while another root still lacks healthy continuity evidence |
 | Checkpoint retention | Delete at most 128 obsolete checkpoints after seven days and never while a freshness gap is unresolved |
@@ -54,13 +54,13 @@ cargo test adapters::windows_usn_catch_up::tests --all-features -- --nocapture
 19 passed; 0 failed
 
 cargo test adapters::sqlite_catalog::migrations::tests --all-features -- --nocapture
-11 passed; 0 failed
+16 passed; 0 failed
 
 cargo test application::incremental_library_changes::tests --all-features -- --nocapture
 23 passed; 0 failed
 
 cargo test adapters::sqlite_catalog::change_queue::tests --all-features -- --nocapture
-46 passed; 0 failed
+45 passed; 0 failed
 
 cargo test application::library_synchronization::tests --all-features -- --nocapture
 13 passed; 0 failed
@@ -71,6 +71,9 @@ cargo test adapters::sqlite_catalog::catch_up::tests --all-features -- --nocaptu
 cargo test adapters::sqlite_catalog::catalog_delta::tests --all-features -- --nocapture
 12 passed; 0 failed
 
+cargo test application::scan_library::tests --all-features -- --nocapture
+27 passed; 0 failed; 2 existing explicit ignores
+
 cargo test active_relative_path_lookup_uses_its_complete_lookup_index --all-features -- --nocapture
 1 passed; 0 failed
 ```
@@ -80,8 +83,11 @@ records, candidate and record overflow, child-before-parent reconstruction, case
 filtering, and one journal read shared by multiple roots. Incremental fixtures cover both path move
 orders, bidirectional authoritative moves, compatible preview transfer, exact-case subtree
 capacity, cross-watermark handoff, and unrelated-removal progress. Queue and migration fixtures
-cover all-root transactional rollback, single-call root enrollment, bounded 64-watermark lineage,
-lineage transfer, multi-watermark asset and preview ownership, and fail-closed prerelease repair.
+cover all-root transactional rollback, single-call root enrollment, bounded 64-watermark queue
+lineage, bounded 4,096-watermark scan lineage, lineage transfer, multi-watermark asset and preview
+ownership, exact foreign keys, orphan rejection, and fail-closed prerelease repair. Full-scan
+fixtures move assets in both directions between two roots and prove stable asset and compatible
+preview continuity through source-first and destination-first publication.
 The controlled real Win32 temporary-root test was executed with both the normal sandboxed token and
 the same standard token outside the workspace sandbox.
 Both reached the documented `usn_volume_open_failed` permission fallback. Ame did not elevate or
@@ -95,7 +101,7 @@ the production adapter path is covered by deterministic backend and parser fixtu
 140 files checked; 0 changed
 
 ./tool/quality_verify_daily.ps1
-Rust: 368 total; 363 passed; 0 failed; 5 existing explicit ignores
+Rust: 374 total; 369 passed; 0 failed; 5 existing explicit ignores
 Flutter: all test files passed
 Windows controlled picker and scan integration: 2 passed
 Windows native accessibility integration: 2 passed
@@ -107,14 +113,14 @@ release bridge and system accent smoke integration: 2 passed
 
 ./tool/performance_benchmark_synthetic_library.ps1
 files=10000
-fixture_ms=7926
-cold_ms=17013
-warm_ms=18141
-pause_ms=27
-resume_ms=16534
-cancel_ms=163
-catalog_bytes=52375552
-peak_working_set_bytes=17379328
+fixture_ms=12468
+cold_ms=37790
+warm_ms=33542
+pause_ms=25
+resume_ms=31612
+cancel_ms=164
+catalog_bytes=52355072
+peak_working_set_bytes=17354752
 result: passed
 
 git diff --check
@@ -132,10 +138,13 @@ The first post-index Daily run exposed seven intentionally minimal historical mi
 that did not reproduce their version's path columns or removed the new index incompletely; the
 fixtures were corrected without weakening production validation. The first post-index Windows
 Release run then opened a marker-complete prerelease v19 catalog created earlier in this slice. The
-final migration may add the empty durable handoff and watermark-lineage contracts, seed primary
-lineage only when no retained handoff exists, or repair a missing derived index atomically. It
-removes the obsolete prerelease peer index, rejects malformed same-name objects or handoff evidence
-whose lineage cannot be proved, and continues to reject any v19 catalog without the catch-up marker.
+final migration may add the empty durable handoff and queue-lineage contracts, reconstruct a
+bounded scan lineage from retained active queue rows, seed primary lineage only when no retained
+handoff exists, or repair a missing derived index atomically. It removes the obsolete prerelease
+peer index, validates exact lineage foreign keys and relational ownership, rejects malformed
+same-name objects, orphan rows, active scans whose lineage cannot be proved, or handoff evidence
+whose lineage cannot be proved, and continues to reject any v19 catalog without the catch-up
+marker.
 The final Daily and Windows Release runs above include those regressions and passed.
 
 ## Independent audit
@@ -150,9 +159,13 @@ and updated the roadmap. The third audit of `a4aad5f` returned Critical 0 / High
 because root enrollment was still split across transactions and a later watermark could overwrite
 the only snapshot lookup key. The current work atomically enrolls all roots, retains at most 64
 watermark lineage entries per unresolved row, transfers lineage through coalescing and supersession,
-and keeps asset and preview ownership until every lineage owner is terminal. Final independent
-re-audit remains pending; R2c-G is not marked complete until that committed head has no remaining
-Critical, High, Medium, or Low findings.
+and keeps asset and preview ownership until every lineage owner is terminal. The fourth audit of
+`6fae32b` returned Critical 0 / High 1 / Medium 1 / Low 0 because full-scan escalation bypassed
+handoff lineage and current-v19 validation accepted wrong-target foreign keys or orphan lineage.
+The current work freezes bounded scan lineage, applies the handoff protocol before full-scan
+replacement, resolves scan identity through active and handoff evidence, and validates exact
+lineage structure and ownership. Final independent re-audit remains pending; R2c-G is not marked
+complete until that committed head has no remaining Critical, High, Medium, or Low findings.
 
 ## Remaining boundary
 

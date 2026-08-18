@@ -1073,6 +1073,7 @@ fn migrates_v6_previews_as_ready_without_losing_the_artifact_path() {
                  );",
         )
         .expect("v6 schema");
+    ensure_legacy_scan_runs_contract(&connection);
     drop(connection);
 
     let catalog = SqliteCatalog::open(path).expect("migrated catalog");
@@ -1121,6 +1122,7 @@ fn migrates_v7_locations_as_unanalyzed_metadata() {
                  );",
         )
         .expect("v7 schema");
+    ensure_legacy_scan_runs_contract(&connection);
     drop(connection);
 
     let catalog = SqliteCatalog::open(path).expect("migrated catalog");
@@ -1174,6 +1176,7 @@ fn migrates_v8_locations_with_unknown_file_identity() {
                  );",
         )
         .expect("v8 schema");
+    ensure_legacy_scan_runs_contract(&connection);
     drop(connection);
 
     let catalog = SqliteCatalog::open(path).expect("migrated catalog");
@@ -1222,6 +1225,7 @@ fn migrates_v9_with_bounded_reconciliation_indexes() {
                  );",
         )
         .expect("v9 schema");
+    ensure_legacy_scan_runs_contract(&connection);
     drop(connection);
 
     let catalog = SqliteCatalog::open(path).expect("migrated catalog");
@@ -1287,6 +1291,7 @@ fn migrates_v10_by_adding_the_gallery_time_index_without_rewriting_rows() {
                  );",
         )
         .expect("v10 schema");
+    ensure_legacy_scan_runs_contract(&connection);
     drop(connection);
 
     let catalog = SqliteCatalog::open(path).expect("migrated catalog");
@@ -1353,6 +1358,7 @@ fn migrates_v12_by_materializing_the_file_time_fallback_key() {
                );",
         )
         .expect("v12 schema");
+    ensure_legacy_scan_runs_contract(&connection);
     drop(connection);
 
     let catalog = SqliteCatalog::open(path).expect("migrated catalog");
@@ -1392,6 +1398,7 @@ fn migrates_v13_with_an_empty_preview_artifact_index() {
              );",
         )
         .expect("v13 schema");
+    ensure_legacy_scan_runs_contract(&connection);
     drop(connection);
 
     let catalog = SqliteCatalog::open(path).expect("migrated catalog");
@@ -1491,6 +1498,7 @@ fn migrates_v14_preview_ownership_to_every_active_location() {
              );",
         )
         .expect("v14 schema");
+    ensure_legacy_scan_runs_contract(&connection);
     drop(connection);
 
     let catalog = SqliteCatalog::open(path).expect("migrated catalog");
@@ -1589,6 +1597,7 @@ fn migrates_v15_by_reconciling_preview_ownership_with_active_locations() {
                ('wrong-path-artifact', 'location-1');",
         )
         .expect("v15 schema");
+    ensure_legacy_scan_runs_contract(&connection);
     drop(connection);
 
     let catalog = SqliteCatalog::open(path).expect("migrated catalog");
@@ -3217,6 +3226,30 @@ fn publish_empty_replacement_scan(
     catalog
         .publish_scan(scan_id, root_id, 0, 0)
         .expect("publish empty replacement scan");
+}
+
+fn ensure_legacy_scan_runs_contract(connection: &Connection) {
+    connection
+        .execute_batch(
+            "CREATE TABLE IF NOT EXISTS scan_runs (
+               id TEXT PRIMARY KEY,
+               root_id TEXT NOT NULL,
+               status TEXT NOT NULL,
+               started_unix_ms INTEGER NOT NULL,
+               completed_unix_ms INTEGER,
+               asset_count INTEGER NOT NULL DEFAULT 0,
+               issue_count INTEGER NOT NULL DEFAULT 0,
+               max_items INTEGER,
+               max_entries INTEGER,
+               preview_edge INTEGER NOT NULL,
+               current_directory_relative_path TEXT,
+               current_directory_enumerated INTEGER NOT NULL DEFAULT 0,
+               last_visited_relative_path TEXT,
+               visited_entries INTEGER NOT NULL DEFAULT 0,
+               accepted_items INTEGER NOT NULL DEFAULT 0
+             );",
+        )
+        .expect("legacy scan run contract");
 }
 
 fn preview_reference_count(catalog: &SqliteCatalog, artifact_key: &str) -> i64 {

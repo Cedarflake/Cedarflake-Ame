@@ -674,6 +674,51 @@ where
         .transpose()
 }
 
+pub(super) fn load_scan_location_by_file_identity(
+    catalog: &SqliteCatalog,
+    scan_id: &str,
+    identity: &FileIdentityEvidence,
+) -> Result<Option<AssetLocationView>, ScanError> {
+    let active = load_incremental_location(
+        catalog,
+        "locations.file_identity_scheme = ?1 AND locations.file_identity_value = ?2",
+        params![identity.scheme, identity.value],
+    )?;
+    if active.is_some() {
+        return Ok(active);
+    }
+    catalog
+        .connection
+        .query_row(
+            "SELECT handoffs.asset_id, handoffs.source_location_id, handoffs.root_id,
+                    handoffs.absolute_path, handoffs.relative_path, handoffs.preview_path,
+                    handoffs.file_size, handoffs.created_unix_ms,
+                    handoffs.modified_unix_ms, handoffs.width, handoffs.height,
+                    handoffs.preview_status, handoffs.preview_issue_code,
+                    handoffs.preview_issue_message, handoffs.metadata_engine_id,
+                    handoffs.metadata_engine_version, handoffs.capture_local_time,
+                    handoffs.capture_offset_minutes, handoffs.capture_time_source,
+                    handoffs.capture_raw_value, handoffs.file_identity_scheme,
+                    handoffs.file_identity_value
+             FROM scan_run_catch_up_lineage AS lineage
+             JOIN library_change_catch_up_handoffs AS handoffs
+               ON handoffs.catch_up_source = lineage.catch_up_source
+              AND handoffs.catch_up_watermark = lineage.catch_up_watermark
+             WHERE lineage.scan_id = ?1
+               AND handoffs.file_identity_scheme = ?2
+               AND handoffs.file_identity_value = ?3
+             ORDER BY lineage.enrolled_unix_ms DESC, handoffs.updated_unix_ms DESC,
+                      lineage.catch_up_source, lineage.catch_up_watermark
+             LIMIT 1",
+            params![scan_id, identity.scheme, identity.value],
+            read_stored_asset,
+        )
+        .optional()
+        .map_err(database_error)?
+        .map(stored_asset_view)
+        .transpose()
+}
+
 fn load_catch_up_handoff_location(
     catalog: &SqliteCatalog,
     identity: &FileIdentityEvidence,
@@ -838,6 +883,79 @@ fn retain_catch_up_handoff_snapshots(
     Ok(())
 }
 
+pub(super) fn retain_scan_handoff_snapshots(
+    transaction: &rusqlite::Transaction<'_>,
+    scan_id: &str,
+    previous_scan_id: &str,
+    root_id: &str,
+    updated_unix_ms: i64,
+) -> Result<(), ScanError> {
+    transaction
+        .execute(
+            "INSERT INTO library_change_catch_up_handoffs(
+               catch_up_source, catch_up_watermark,
+               file_identity_scheme, file_identity_value,
+               asset_id, source_location_id, root_id, absolute_path, relative_path,
+               preview_path, file_size, created_unix_ms, modified_unix_ms,
+               width, height, preview_status, preview_issue_code, preview_issue_message,
+               metadata_engine_id, metadata_engine_version, capture_local_time,
+               capture_offset_minutes, capture_time_source, capture_raw_value,
+               updated_unix_ms
+             )
+             SELECT lineage.catch_up_source, lineage.catch_up_watermark,
+                    locations.file_identity_scheme, locations.file_identity_value,
+                    locations.asset_id, locations.location_id, locations.root_id,
+                    locations.absolute_path, locations.relative_path,
+                    locations.preview_path, locations.file_size, locations.created_unix_ms,
+                    locations.modified_unix_ms, locations.width, locations.height,
+                    locations.preview_status, locations.preview_issue_code,
+                    locations.preview_issue_message, locations.metadata_engine_id,
+                    locations.metadata_engine_version, locations.capture_local_time,
+                    locations.capture_offset_minutes, locations.capture_time_source,
+                    locations.capture_raw_value, ?4
+             FROM scan_run_catch_up_lineage AS lineage
+             JOIN asset_locations AS locations
+               ON locations.scan_id = ?2 AND locations.root_id = ?3
+             WHERE lineage.scan_id = ?1
+               AND locations.file_identity_scheme IS NOT NULL
+               AND locations.file_identity_value IS NOT NULL
+               AND NOT EXISTS (
+                 SELECT 1 FROM asset_locations AS replacement
+                 WHERE replacement.scan_id = ?1
+                   AND replacement.file_identity_scheme = locations.file_identity_scheme
+                   AND replacement.file_identity_value = locations.file_identity_value
+               )
+               AND (
+                 EXISTS (
+                   SELECT 1
+                   FROM library_change_queue_catch_up_lineage AS peer_lineage
+                   JOIN library_change_queue AS peer
+                     ON peer.id = peer_lineage.change_id
+                   WHERE peer_lineage.catch_up_source = lineage.catch_up_source
+                     AND peer_lineage.catch_up_watermark = lineage.catch_up_watermark
+                     AND peer.root_id <> ?3
+                     AND peer.status IN ('pending', 'leased', 'retry_wait')
+                 )
+                 OR EXISTS (
+                   SELECT 1
+                   FROM scan_run_catch_up_lineage AS peer_lineage
+                   JOIN scan_runs AS peer_scan ON peer_scan.id = peer_lineage.scan_id
+                   WHERE peer_lineage.catch_up_source = lineage.catch_up_source
+                     AND peer_lineage.catch_up_watermark = lineage.catch_up_watermark
+                     AND peer_scan.root_id <> ?3
+                     AND peer_scan.status IN ('running', 'paused')
+                 )
+               )
+             ON CONFLICT(
+               catch_up_source, catch_up_watermark,
+               file_identity_scheme, file_identity_value
+             ) DO NOTHING",
+            params![scan_id, previous_scan_id, root_id, updated_unix_ms],
+        )
+        .map_err(database_error)?;
+    Ok(())
+}
+
 pub(super) fn cleanup_terminal_catch_up_handoffs(
     transaction: &rusqlite::Transaction<'_>,
     source: &str,
@@ -851,6 +969,12 @@ pub(super) fn cleanup_terminal_catch_up_handoffs(
                JOIN library_change_queue AS changes ON changes.id = lineage.change_id
                WHERE lineage.catch_up_source = ?1 AND lineage.catch_up_watermark = ?2
                  AND changes.status IN ('pending', 'leased', 'retry_wait')
+               UNION ALL
+               SELECT 1
+               FROM scan_run_catch_up_lineage AS lineage
+               JOIN scan_runs AS scans ON scans.id = lineage.scan_id
+               WHERE lineage.catch_up_source = ?1 AND lineage.catch_up_watermark = ?2
+                 AND scans.status IN ('running', 'paused')
              )",
             params![source, watermark],
             |row| row.get::<_, bool>(0),

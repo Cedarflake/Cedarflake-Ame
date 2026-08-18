@@ -222,8 +222,9 @@ pub trait CatalogRepository {
         root_path: &str,
     ) -> Result<ScanCheckpoint, ScanError>;
     fn has_active_locations(&self) -> Result<bool, ScanError>;
-    fn load_active_location_by_file_identity(
+    fn load_scan_location_by_file_identity(
         &self,
+        scan_id: &str,
         identity: &FileIdentityEvidence,
     ) -> Result<Option<AssetLocationView>, ScanError>;
     fn load_active_location(

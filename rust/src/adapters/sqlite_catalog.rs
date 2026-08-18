@@ -36,6 +36,7 @@ mod catch_up;
 mod change_queue;
 const SCHEMA_VERSION: i64 = 19;
 const SCAN_QUEUE_LEASE_MILLIS: i64 = 15 * 60 * 1_000;
+const MAX_SCAN_CATCH_UP_LINEAGE: i64 = 4_096;
 const LOCATION_STAGE_BATCH: usize = 128;
 const MAX_LAYOUT_MANIFEST_CHUNK_ITEMS: u32 = 4_096;
 const MAX_CATALOG_PAGE_ITEMS: u32 = 4_096;
@@ -296,6 +297,44 @@ impl SqliteCatalog {
                         ],
                     )
                     .map_err(database_error)?;
+                transaction
+                    .execute(
+                        "INSERT INTO scan_run_catch_up_lineage(
+                               scan_id, catch_up_source, catch_up_watermark, enrolled_unix_ms
+                             )
+                             SELECT ?1, lineage.catch_up_source,
+                                    lineage.catch_up_watermark,
+                                    MAX(lineage.enrolled_unix_ms)
+                             FROM library_change_queue AS changes
+                             JOIN library_change_queue_catch_up_lineage AS lineage
+                               ON lineage.change_id = changes.id
+                             WHERE changes.root_id = ?2
+                               AND changes.root_generation = ?3
+                               AND changes.id <= ?4
+                               AND changes.status IN ('pending', 'leased', 'retry_wait')
+                             GROUP BY lineage.catch_up_source, lineage.catch_up_watermark",
+                        params![
+                            request.scan_id,
+                            root_id,
+                            root_generation_at_start,
+                            high_watermark,
+                        ],
+                    )
+                    .map_err(database_error)?;
+                let lineage_count = transaction
+                    .query_row(
+                        "SELECT COUNT(*) FROM scan_run_catch_up_lineage
+                             WHERE scan_id = ?1",
+                        [&request.scan_id],
+                        |row| row.get::<_, i64>(0),
+                    )
+                    .map_err(database_error)?;
+                if lineage_count > MAX_SCAN_CATCH_UP_LINEAGE {
+                    return Err(ScanError::new(
+                        "catalog_scan_catch_up_lineage_limit_exceeded",
+                        "The scan captured too many catch-up watermarks",
+                    ));
+                }
             }
             transaction
                 .execute(
@@ -367,37 +406,28 @@ impl CatalogRepository for SqliteCatalog {
             .map_err(database_error)
     }
 
-    fn load_active_location_by_file_identity(
+    fn load_scan_location_by_file_identity(
         &self,
+        scan_id: &str,
         identity: &FileIdentityEvidence,
     ) -> Result<Option<AssetLocationView>, ScanError> {
-        self.connection
-            .query_row(
-                "SELECT locations.asset_id, locations.location_id, locations.root_id,
-                        locations.absolute_path, locations.relative_path,
-                        locations.preview_path, locations.file_size,
-                        locations.created_unix_ms, locations.modified_unix_ms,
-                        locations.width, locations.height,
-                        locations.preview_status, locations.preview_issue_code,
-                        locations.preview_issue_message, locations.metadata_engine_id,
-                        locations.metadata_engine_version, locations.capture_local_time,
-                        locations.capture_offset_minutes, locations.capture_time_source,
-                        locations.capture_raw_value, locations.file_identity_scheme,
-                        locations.file_identity_value
-                 FROM library_roots AS roots
-                 JOIN asset_locations AS locations
-                   ON locations.scan_id = roots.active_scan_id
-                 WHERE locations.file_identity_scheme = ?1
-                   AND locations.file_identity_value = ?2
-                 ORDER BY locations.location_id
-                 LIMIT 1",
-                params![identity.scheme, identity.value],
-                read_stored_asset,
-            )
-            .optional()
-            .map_err(database_error)?
-            .map(stored_asset_view)
-            .transpose()
+        if scan_id.is_empty() || scan_id.contains('\0') {
+            return Err(ScanError::new(
+                "catalog_scan_id_invalid",
+                "An authoritative scan identity must be non-empty and contain no NUL bytes",
+            ));
+        }
+        if identity.scheme.is_empty()
+            || identity.value.is_empty()
+            || identity.scheme.contains('\0')
+            || identity.value.contains('\0')
+        {
+            return Err(ScanError::new(
+                "catalog_file_identity_invalid",
+                "Authoritative file identity evidence must be non-empty and contain no NUL bytes",
+            ));
+        }
+        catalog_delta::load_scan_location_by_file_identity(self, scan_id, identity)
     }
 
     fn load_active_location(
@@ -1498,6 +1528,19 @@ impl CatalogRepository for SqliteCatalog {
                 "The library root changed while the authoritative scan was running",
             ));
         }
+        let completed_unix_ms = unix_time_ms();
+        let catch_up_lineage = load_scan_catch_up_lineage(&transaction, scan_id)?;
+        if let Some(previous_active_scan) = previous_active_scan.as_deref()
+            && previous_active_scan != scan_id
+        {
+            catalog_delta::retain_scan_handoff_snapshots(
+                &transaction,
+                scan_id,
+                previous_active_scan,
+                root_id,
+                completed_unix_ms,
+            )?;
+        }
         let updated = transaction
             .execute(
                 "UPDATE scan_runs
@@ -1507,7 +1550,7 @@ impl CatalogRepository for SqliteCatalog {
                      current_directory_enumerated = 0,
                      last_visited_relative_path = NULL
                  WHERE id = ?1 AND status = 'running'",
-                params![scan_id, unix_time_ms(), asset_count, issue_count],
+                params![scan_id, completed_unix_ms, asset_count, issue_count],
             )
             .map_err(database_error)?;
         if updated != 1 {
@@ -1569,7 +1612,6 @@ impl CatalogRepository for SqliteCatalog {
             ));
         }
         let published_revision = load_catalog_revision(&transaction)?;
-        let completed_unix_ms = unix_time_ms();
         if let Some(high_watermark) = change_queue_high_watermark {
             transaction
                 .execute(
@@ -1598,6 +1640,15 @@ impl CatalogRepository for SqliteCatalog {
                 )
                 .map_err(database_error)?;
         }
+        for (source, watermark) in &catch_up_lineage {
+            catalog_delta::cleanup_terminal_catch_up_handoffs(&transaction, source, watermark)?;
+        }
+        transaction
+            .execute(
+                "DELETE FROM scan_run_catch_up_lineage WHERE scan_id = ?1",
+                [scan_id],
+            )
+            .map_err(database_error)?;
         transaction
             .execute(
                 "UPDATE library_change_root_state
@@ -1651,6 +1702,12 @@ impl CatalogRepository for SqliteCatalog {
                 )
                 .map_err(database_error)?;
         }
+        transaction
+            .execute(
+                "DELETE FROM scan_run_catch_up_lineage WHERE scan_id = ?1",
+                [scan_id],
+            )
+            .map_err(database_error)?;
         transaction
             .execute(
                 "DELETE FROM scan_directory_frontier WHERE scan_id = ?1",
@@ -2738,6 +2795,9 @@ fn delete_orphan_assets(transaction: &Transaction<'_>) -> Result<(), ScanError> 
             "DELETE FROM assets
              WHERE NOT EXISTS (
                SELECT 1 FROM asset_locations WHERE asset_locations.asset_id = assets.id
+             ) AND NOT EXISTS (
+               SELECT 1 FROM library_change_catch_up_handoffs AS handoffs
+               WHERE handoffs.asset_id = assets.id
              )",
             [],
         )
@@ -2776,11 +2836,47 @@ fn mark_unreferenced_preview_artifacts_stale(
                AND NOT EXISTS (
                  SELECT 1 FROM preview_artifact_locations AS owners
                  WHERE owners.artifact_key = preview_artifacts.artifact_key
+               )
+               AND NOT EXISTS (
+                 SELECT 1 FROM library_change_catch_up_handoffs AS handoffs
+                 WHERE handoffs.preview_status = 'ready'
+                   AND handoffs.preview_path = preview_artifacts.artifact_path
                )",
             [],
         )
         .map_err(database_error)?;
     Ok(())
+}
+
+fn load_scan_catch_up_lineage(
+    transaction: &Transaction<'_>,
+    scan_id: &str,
+) -> Result<Vec<(String, String)>, ScanError> {
+    let mut statement = transaction
+        .prepare_cached(
+            "SELECT catch_up_source, catch_up_watermark
+             FROM scan_run_catch_up_lineage
+             WHERE scan_id = ?1
+             ORDER BY enrolled_unix_ms DESC, catch_up_source, catch_up_watermark
+             LIMIT ?2",
+        )
+        .map_err(database_error)?;
+    let rows = statement
+        .query_map(params![scan_id, MAX_SCAN_CATCH_UP_LINEAGE + 1], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })
+        .map_err(database_error)?;
+    let mut lineage = Vec::new();
+    for row in rows {
+        lineage.push(row.map_err(database_error)?);
+    }
+    if i64::try_from(lineage.len()).unwrap_or(i64::MAX) > MAX_SCAN_CATCH_UP_LINEAGE {
+        return Err(ScanError::new(
+            "catalog_scan_catch_up_lineage_limit_exceeded",
+            "The authoritative scan contains too many catch-up watermarks",
+        ));
+    }
+    Ok(lineage)
 }
 
 fn sqlite_integer(value: u64, field: &str) -> Result<i64, ScanError> {

@@ -71,10 +71,11 @@ identifier, next USN, a deterministic fingerprint of the exact root IDs, generat
 normalized volume-relative root paths that consumed the range, the associated catalog revision,
 and update time. Unsigned journal identifiers and signed USNs are stored as canonical decimal text
 so SQLite integer representation cannot truncate their Win32 range. Schema v19 adds this state and
-an explicit catch-up contract marker. A prerelease v19 database without the marker fails closed. A
-marker-complete prerelease v19 database created before the derived root-relative lookup index was
-added repairs only that exact index atomically; an absent marker or malformed index still fails
-closed.
+an explicit catch-up contract marker. A prerelease v19 database without the marker fails closed.
+Marker-complete prerelease v19 repair is limited to derived indexes and authority that can be
+reconstructed transactionally from retained queue rows; an absent marker, malformed named object,
+foreign-key mismatch, orphan lineage, or active scan whose frozen lineage cannot be proved still
+fails closed.
 
 Continuity is valid only when all of these are true:
 
@@ -124,6 +125,12 @@ same volume. A dependency graph cannot safely order that work because two author
 both contain removals and destinations. Before any catch-up delta removes or replaces a location,
 the publication transaction copies its file identity, asset identity, compatible metadata, and
 preview expectation into a durable handoff snapshot under every watermark in that row's lineage.
+When queue work escalates to a resumable full scan, scan start freezes every active catch-up
+watermark at or below its queue high watermark in a separate bounded scan lineage. Full-scan
+publication creates the same handoff snapshots before replacing the previous active snapshot, and
+full-scan discovery resolves file identity through the active catalog and then those frozen
+watermarks. Abandonment releases the frozen lineage with the scan's queue ownership, while
+successful publication completes its queue rows and cleans the lineage in the same transaction.
 Asset and preview cleanup treat snapshots in any unresolved lineage as temporary owners. A later
 destination first checks the active catalog and then each of its bounded handoff watermarks, so a
 newer coalesced range can still adopt identity retained by an older range after the source location
@@ -155,10 +162,12 @@ excluding every volume returned by the current catch-up. Cleanup is disabled whi
 `FreshnessUnknown` row remains pending, leased, or waiting to retry, so retention cannot erase the
 watermark context of an unresolved gap. The same bounded cleanup removes terminal handoff snapshots
 that were stranded by retirement or interruption. Schema v19 owns the handoff table, the durable
-queue-to-watermark lineage table, and their bounded lookup indexes. A marker-complete prerelease v19
-database may add an empty contract, seed lineage when no handoff evidence exists, or repair a
-missing derived index atomically. Existing handoff evidence without provable lineage and malformed
-named objects fail closed.
+queue-to-watermark lineage table, the at-most-4,096-entry scan lineage table, and their bounded
+lookup indexes. A marker-complete prerelease v19 database may add the scan contract only when every
+active scan lineage can be reconstructed from retained active queue rows, seed queue lineage when
+no handoff evidence exists, or repair a missing derived index atomically. Exact foreign-key shape,
+relational integrity, active ownership, and lineage bounds are validated on open. Existing handoff
+evidence without provable lineage and malformed named objects fail closed.
 
 ### Unsafe boundary and invariants
 
@@ -191,11 +200,11 @@ boundary. The following invariants are binding:
 - adapter fixtures cover journal recreation, trimmed USNs, unsupported filesystems, permission
   errors, unavailable volumes, child-before-parent deletion and rename reconstruction,
   case-sensitive root filtering, and multiple roots on one volume with one journal read;
-- migration fixtures cover fresh v19, v18 to v19 preservation, prerelease handoff-contract repair,
-  and fail-closed malformed v19;
+- migration fixtures cover fresh v19, v18 to v19 preservation, prerelease handoff and scan-lineage
+  repair, exact foreign-key shape, orphan rejection, and fail-closed malformed v19;
 - application fixtures prove enqueue-before-checkpoint, replay after interruption, root-set and
   catalog-revision mismatch fallback, retained catch-up queue metadata, both path move orders,
-  bidirectional authoritative handoff without wait cycles, exact-case subtree capacity,
+  bidirectional bounded and full-scan handoff without wait cycles, exact-case subtree capacity,
   unrelated-removal progress, and bounded checkpoint retention that stops on unresolved gaps;
 - runtime fixtures prove watcher-first ordering, no authoritative work before catch-up completion,
   fallback recovery, cancellation, bounded stop, and restart ownership;

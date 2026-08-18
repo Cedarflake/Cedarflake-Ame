@@ -338,16 +338,17 @@ fn run_scan_with_storage_owned(
                                     == Some(identity)
                             }) {
                                 path_prior.clone()
-                            } else if has_active_locations {
+                            } else {
                                 file.file_identity
                                     .as_ref()
                                     .map(|identity| {
-                                        catalog.load_active_location_by_file_identity(identity)
+                                        catalog.load_scan_location_by_file_identity(
+                                            &request.scan_id,
+                                            identity,
+                                        )
                                     })
                                     .transpose()?
                                     .flatten()
-                            } else {
-                                None
                             };
                         let path_is_unchanged = path_prior.as_ref().is_some_and(|prior| {
                             same_file_state(prior, &file)

@@ -34,6 +34,16 @@ fn migrates_v16_without_losing_existing_catalog_rows() {
              );
              INSERT INTO library_roots(id, path, created_unix_ms)
              VALUES ('root-a', 'C:\\Source', 123);
+             CREATE TABLE scan_runs (
+               id TEXT PRIMARY KEY,
+               root_id TEXT NOT NULL,
+               status TEXT NOT NULL,
+               started_unix_ms INTEGER NOT NULL,
+               completed_unix_ms INTEGER,
+               current_directory_relative_path TEXT,
+               current_directory_enumerated INTEGER NOT NULL DEFAULT 0,
+               last_visited_relative_path TEXT
+             );
              CREATE TABLE asset_locations (
                root_id TEXT NOT NULL,
                relative_path TEXT NOT NULL,
