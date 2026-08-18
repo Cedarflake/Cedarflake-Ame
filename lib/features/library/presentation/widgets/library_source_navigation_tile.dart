@@ -9,12 +9,14 @@ import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_popup_menu_position.dart";
 import "../../../../app/presentation/ame_typography.dart";
 import "../../domain/library_models.dart";
+import "../../domain/library_synchronization_models.dart";
 import "../library_strings.dart";
 import "library_path_text.dart";
 
 class LibrarySourceNavigationTile extends StatefulWidget {
   const LibrarySourceNavigationTile({
     required this.root,
+    this.synchronizationStatus,
     required this.isCompact,
     required this.isSelected,
     required this.isExpanded,
@@ -28,6 +30,7 @@ class LibrarySourceNavigationTile extends StatefulWidget {
   });
 
   final LibraryRoot root;
+  final LibraryRootSynchronizationStatus? synchronizationStatus;
   final bool isCompact;
   final bool isSelected;
   final bool isExpanded;
@@ -71,9 +74,10 @@ class _LibrarySourceNavigationTileState
       LibraryRootAvailability.inaccessible => Symbols.lock_rounded,
       LibraryRootAvailability.offline => Symbols.cloud_off_rounded,
     };
+    final statusLabel = _statusLabel(widget.root, widget.synchronizationStatus);
     final tile = widget.isCompact
         ? AmeTooltip(
-            message: widget.root.displayPath,
+            message: "${widget.root.displayPath}\n$statusLabel",
             child: IconButton(
               focusNode: _focusNode,
               isSelected: widget.isSelected,
@@ -88,10 +92,7 @@ class _LibrarySourceNavigationTileState
             title: librarySourceName(widget.root.displayPath),
             path: widget.root.displayPath,
             titleKey: ValueKey("source-title-${widget.root.id}"),
-            subtitle:
-                widget.root.availability == LibraryRootAvailability.available
-                ? null
-                : _availabilityLabel(widget.root.availability),
+            subtitle: statusLabel,
             isSelected: widget.isSelected,
             trailing: SizedBox(
               width: 96,
@@ -261,13 +262,27 @@ class _LibrarySourceNavigationTileState
     }
   }
 
-  static String _availabilityLabel(LibraryRootAvailability availability) {
-    return switch (availability) {
-      LibraryRootAvailability.available => "可用",
-      LibraryRootAvailability.missing => "文件夹不存在",
-      LibraryRootAvailability.inaccessible => "无法访问",
-      LibraryRootAvailability.offline => "当前离线",
-      LibraryRootAvailability.unknown => "状态未知",
+  static String _statusLabel(
+    LibraryRoot root,
+    LibraryRootSynchronizationStatus? synchronizationStatus,
+  ) {
+    if (root.availability != LibraryRootAvailability.available) {
+      return switch (root.availability) {
+        LibraryRootAvailability.available => LibraryStrings.sourceAvailable,
+        LibraryRootAvailability.missing => LibraryStrings.sourceMissing,
+        LibraryRootAvailability.inaccessible =>
+          LibraryStrings.sourceInaccessible,
+        LibraryRootAvailability.offline => LibraryStrings.sourceOffline,
+        LibraryRootAvailability.unknown => LibraryStrings.sourceUnknown,
+      };
+    }
+    return switch (synchronizationStatus?.freshness) {
+      LibraryCatalogFreshness.synchronized => LibraryStrings.synchronized,
+      LibraryCatalogFreshness.updating => LibraryStrings.synchronizing,
+      LibraryCatalogFreshness.needsReconciliation =>
+        LibraryStrings.needsReconciliation,
+      LibraryCatalogFreshness.unavailable => LibraryStrings.sourceUnavailable,
+      null => LibraryStrings.synchronizing,
     };
   }
 }
@@ -315,7 +330,7 @@ class PendingLibrarySourceTile extends StatelessWidget {
       title: librarySourceName(path),
       path: path,
       titleKey: const Key("pending-source-title"),
-      subtitle: "正在添加",
+      subtitle: LibraryStrings.addingSource,
       trailing: const SizedBox(
         width: 96,
         child: Align(

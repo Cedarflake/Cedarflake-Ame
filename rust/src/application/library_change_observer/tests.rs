@@ -687,7 +687,7 @@ fn wait_for_stop_count(stops: &Arc<Mutex<u32>>, expected: u32) {
 }
 
 fn wait_for_source_state(
-    observer: &mut LibraryChangeObserver<FakeFactory>,
+    observer: &mut LibraryChangeObserver,
     now_unix_ms: i64,
     predicate: impl Fn(&crate::domain::LibraryChangeObserverPoll) -> bool,
 ) -> crate::domain::LibraryChangeObserverPoll {

@@ -1303,8 +1303,11 @@ R2c-E - production UI and lifecycle:
 - preserve active source, filters, selection, preview, and gallery scroll anchor through a bounded
   refresh.
 
-R2c-E is complete only after the real user path works end to end without a permanent task entry or
-manual re-import.
+R2c-E is complete. `docs/acceptance/r2c-e-production-ui-lifecycle.md` records production observer
+start and stop, bounded root freshness snapshots, live path publication, stable-asset gallery refresh,
+selection and viewer continuity, Chinese source status, idempotent bounded shutdown, bridge generation,
+complete Daily, and Windows release evidence. The real user path no longer requires a permanent task
+entry or manual re-import for ordinary supported path changes.
 
 R2c-F - recovery and consistency:
 
@@ -1704,9 +1707,9 @@ may serve as benchmarks or fallbacks but are not automatically preferred over ma
 
 Active stage: **R2c - continuous directory synchronization and incremental indexing**
 
-Active slice: **R2c-E - production UI and lifecycle**. R2c-A contracts, R2c-B live Windows
-observation, R2c-C durable queue and coalescing, and R2c-D incremental delta publication are
-complete.
+Active slice: **R2c-F - recovery and consistency**. R2c-A contracts, R2c-B live Windows
+observation, R2c-C durable queue and coalescing, R2c-D incremental delta publication, and R2c-E
+production UI and lifecycle are complete.
 
 Planned next stage: **R3 - exact duplicate evidence**, still blocked behind R2c catalog-freshness
 acceptance.

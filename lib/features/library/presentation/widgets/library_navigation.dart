@@ -8,6 +8,7 @@ import "../../../../app/presentation/ame_typography.dart";
 import "../../application/library_folder_controller.dart";
 import "../../domain/library_folder_models.dart";
 import "../../domain/library_models.dart";
+import "../../domain/library_synchronization_models.dart";
 import "../library_strings.dart";
 import "library_folder_navigation_tile.dart";
 import "library_source_navigation_tile.dart";
@@ -20,6 +21,7 @@ class LibraryNavigation extends StatefulWidget {
     required this.width,
     required this.isSettingsSelected,
     required this.roots,
+    this.rootSynchronizationStatuses = const {},
     required this.selectedRootId,
     required this.selectedFolderRelativePath,
     required this.transientRootPath,
@@ -43,6 +45,8 @@ class LibraryNavigation extends StatefulWidget {
   final double width;
   final bool isSettingsSelected;
   final List<LibraryRoot> roots;
+  final Map<String, LibraryRootSynchronizationStatus>
+  rootSynchronizationStatuses;
   final String? selectedRootId;
   final String? selectedFolderRelativePath;
   final String? transientRootPath;
@@ -165,6 +169,8 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                   for (final root in widget.roots) ...[
                     LibrarySourceNavigationTile(
                       root: root,
+                      synchronizationStatus:
+                          widget.rootSynchronizationStatuses[root.id],
                       isCompact: widget.isCompact,
                       isSelected:
                           !widget.isSettingsSelected &&

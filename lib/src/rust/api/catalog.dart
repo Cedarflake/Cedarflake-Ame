@@ -71,6 +71,18 @@ Future<CatalogSnapshot> loadLibraryCatalogAroundLocation({
   anchorLocationId: anchorLocationId,
 );
 
+Future<CatalogSnapshot> loadLibraryCatalogAroundAsset({
+  required int maxItems,
+  required GalleryQuery query,
+  required String requestedLocationId,
+  required String anchorAssetId,
+}) => RustLib.instance.api.crateApiCatalogLoadLibraryCatalogAroundAsset(
+  maxItems: maxItems,
+  query: query,
+  requestedLocationId: requestedLocationId,
+  anchorAssetId: anchorAssetId,
+);
+
 bool removeLibraryRoot({required String rootId}) =>
     RustLib.instance.api.crateApiCatalogRemoveLibraryRoot(rootId: rootId);
 

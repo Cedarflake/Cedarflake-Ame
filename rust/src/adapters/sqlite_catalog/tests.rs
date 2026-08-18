@@ -2317,6 +2317,54 @@ fn gallery_location_anchor_resolves_name_order_and_direction() {
 }
 
 #[test]
+fn gallery_asset_anchor_follows_a_renamed_location() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let mut catalog = SqliteCatalog::open(path).expect("catalog");
+    publish_gallery_query_fixture(
+        &mut catalog,
+        "asset-anchor-scan",
+        "asset-anchor-root",
+        "C:\\Pictures",
+        &[
+            ("before", "Album/before.png", None, Some(10), 10),
+            ("neighbor", "Album/neighbor.png", None, Some(20), 20),
+        ],
+    );
+    catalog
+        .connection
+        .execute(
+            "UPDATE asset_locations
+             SET location_id = 'after', relative_path = 'Album/after.png',
+                 absolute_path = 'C:\\Pictures\\Album\\after.png'
+             WHERE location_id = 'before'",
+            [],
+        )
+        .expect("rename active location while retaining its asset identity");
+
+    let query = GalleryQuery {
+        sort_key: GallerySortKey::FileName,
+        sort_direction: GallerySortDirection::Ascending,
+        ..GalleryQuery::default()
+    };
+    let page = catalog
+        .load_snapshot_around_asset(
+            3,
+            &query,
+            "stable-asset-anchor",
+            "before",
+            "asset-asset-anchor-scan-before",
+        )
+        .expect("stable asset anchor");
+    let resolution = page.query_anchor_resolution.expect("resolution");
+    assert_eq!(resolution.requested_location_id, "before");
+    assert_eq!(resolution.location_id.as_deref(), Some("after"));
+    assert_eq!(resolution.ordinal, Some(0));
+    assert_eq!(page.assets[0].asset_id, "asset-asset-anchor-scan-before");
+    assert_eq!(page.assets[0].location_id, "after");
+}
+
+#[test]
 fn gallery_location_anchor_falls_back_when_filtered_out() {
     let directory = tempdir().expect("temporary directory");
     let path = directory.path().join("catalog.sqlite3");

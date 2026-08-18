@@ -18,7 +18,7 @@ use coalescing::{
 use persistence::{
     GenerationDisposition, classify_lease_update, cleanup_terminal_records,
     enforce_retry_attempt_limit, establish_root_generation, load_change, load_metrics,
-    next_retry_deadline, recover_expired_leases, root_generation_is_current,
+    load_root_metrics, next_retry_deadline, recover_expired_leases, root_generation_is_current,
 };
 pub(super) use persistence::{activate_root_change_queue, retire_root_change_queue};
 
@@ -210,6 +210,24 @@ impl LibraryChangeQueue for SqliteCatalog {
     ) -> Result<LibraryChangeQueueMetrics, ScanError> {
         validate_policy(policy)?;
         load_metrics(&self.connection, now_unix_ms, policy)
+    }
+
+    fn load_library_change_root_queue_metrics(
+        &self,
+        root_id: &str,
+        root_generation: LibraryRootGeneration,
+        now_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<LibraryChangeQueueMetrics, ScanError> {
+        validate_policy(policy)?;
+        validate_root_id(root_id)?;
+        load_root_metrics(
+            &self.connection,
+            root_id,
+            root_generation,
+            now_unix_ms,
+            policy,
+        )
     }
 
     fn cleanup_terminal_library_changes(

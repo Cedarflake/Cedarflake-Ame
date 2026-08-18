@@ -668,6 +668,32 @@ pub(super) fn load_metrics(
     now_unix_ms: i64,
     policy: LibraryChangeQueuePolicy,
 ) -> Result<LibraryChangeQueueMetrics, ScanError> {
+    load_filtered_metrics(connection, None, None, now_unix_ms, policy)
+}
+
+pub(super) fn load_root_metrics(
+    connection: &Connection,
+    root_id: &str,
+    root_generation: LibraryRootGeneration,
+    now_unix_ms: i64,
+    policy: LibraryChangeQueuePolicy,
+) -> Result<LibraryChangeQueueMetrics, ScanError> {
+    load_filtered_metrics(
+        connection,
+        Some(root_id),
+        Some(root_generation),
+        now_unix_ms,
+        policy,
+    )
+}
+
+fn load_filtered_metrics(
+    connection: &Connection,
+    root_id: Option<&str>,
+    root_generation: Option<LibraryRootGeneration>,
+    now_unix_ms: i64,
+    policy: LibraryChangeQueuePolicy,
+) -> Result<LibraryChangeQueueMetrics, ScanError> {
     let (
         pending,
         leased,
@@ -708,8 +734,16 @@ pub(super) fn load_metrics(
                  WHEN status = 'leased' AND lease_expires_unix_ms <= ?1
                    THEN lease_expires_unix_ms
                  ELSE NULL END)
-             FROM library_change_queue",
-            params![now_unix_ms, i64::from(policy.max_attempts)],
+             FROM library_change_queue
+             WHERE (?3 IS NULL OR (root_id = ?3 AND root_generation = ?4))",
+            params![
+                now_unix_ms,
+                i64::from(policy.max_attempts),
+                root_id,
+                root_generation
+                    .map(|generation| sqlite_integer(generation.value(), "root generation"))
+                    .transpose()?,
+            ],
             |row| {
                 Ok((
                     row.get::<_, i64>(0)?,

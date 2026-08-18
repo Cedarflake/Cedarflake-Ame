@@ -1,7 +1,8 @@
 use crate::application::{
-    cancel_scan, load_catalog, load_catalog_around_location, load_catalog_at_time,
-    load_gallery_layout_manifest_chunk, load_gallery_timeline, load_library_folders,
-    load_paused_scan, load_recoverable_scan, pause_scan, run_scan, unregister_library_root,
+    cancel_scan, load_catalog, load_catalog_around_asset, load_catalog_around_location,
+    load_catalog_at_time, load_gallery_layout_manifest_chunk, load_gallery_timeline,
+    load_library_folders, load_paused_scan, load_recoverable_scan, pause_scan, run_scan,
+    unregister_library_root,
 };
 use crate::domain::{
     CatalogCursor, CatalogSnapshot, GalleryLayoutManifestChunk, GalleryLayoutManifestCursor,
@@ -89,6 +90,15 @@ pub fn load_library_catalog_around_location(
     anchor_location_id: String,
 ) -> Result<CatalogSnapshot, ScanError> {
     load_catalog_around_location(max_items, query, anchor_location_id)
+}
+
+pub fn load_library_catalog_around_asset(
+    max_items: u32,
+    query: GalleryQuery,
+    requested_location_id: String,
+    anchor_asset_id: String,
+) -> Result<CatalogSnapshot, ScanError> {
+    load_catalog_around_asset(max_items, query, requested_location_id, anchor_asset_id)
 }
 
 #[flutter_rust_bridge::frb(sync)]

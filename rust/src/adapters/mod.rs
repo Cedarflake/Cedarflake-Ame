@@ -22,5 +22,21 @@ pub(crate) use preview_cache::{
 };
 pub use sqlite_catalog::SqliteCatalog;
 pub use storage_settings::SqliteStorageSettings;
-#[cfg(windows)]
-pub use windows_library_change_source::WindowsLibraryChangeSourceFactory;
+pub(crate) fn production_library_change_source_factory() -> crate::ports::LibraryChangeSourceStarter
+{
+    std::sync::Arc::new(|request| {
+        #[cfg(windows)]
+        {
+            windows_library_change_source::start_windows_library_change_source(request)
+                .map(|source| Box::new(source) as crate::ports::BoxedLibraryChangeSource)
+        }
+        #[cfg(not(windows))]
+        {
+            let _ = request;
+            Err(crate::domain::LibraryChangeSourceError::new(
+                "library_change_source_unsupported",
+                "Continuous library synchronization is currently supported only on Windows",
+            ))
+        }
+    })
+}

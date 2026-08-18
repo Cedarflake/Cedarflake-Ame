@@ -1,8 +1,9 @@
 use std::fmt::{Display, Formatter};
 
 mod library_catalog_delta;
-mod library_change;
-mod library_change_queue;
+pub(crate) mod library_change;
+pub(crate) mod library_change_queue;
+pub(crate) mod library_synchronization;
 
 pub use library_catalog_delta::{
     CatalogDeltaBatch, CatalogDeltaMutation, CatalogDeltaPublication,
@@ -24,6 +25,9 @@ pub use library_change_queue::{
     DurableLibraryChange, LeasedLibraryChange, LibraryChangeEnqueueReport, LibraryChangeFailure,
     LibraryChangeId, LibraryChangeLeaseUpdateOutcome, LibraryChangeQueueHealth,
     LibraryChangeQueueMetrics, LibraryChangeQueuePolicy, LibraryChangeQueueStatus,
+};
+pub use library_synchronization::{
+    LibraryRootSynchronizationStatus, LibrarySynchronizationSnapshot,
 };
 
 #[derive(Clone, Debug)]

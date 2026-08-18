@@ -44,7 +44,16 @@ fn load_catalog_window(
             anchor.as_ref(),
         )?,
     };
-    reconcile_snapshot_previews(&mut catalog, &storage.preview_root, &mut snapshot)?;
+    finish_loaded_snapshot(&storage, catalog, &mut snapshot)?;
+    Ok(snapshot)
+}
+
+fn finish_loaded_snapshot(
+    storage: &super::StoragePaths,
+    mut catalog: SqliteCatalog,
+    snapshot: &mut CatalogSnapshot,
+) -> Result<(), ScanError> {
+    reconcile_snapshot_previews(&mut catalog, &storage.preview_root, snapshot)?;
     let visible_preview_artifacts = snapshot
         .assets
         .iter()
@@ -61,7 +70,7 @@ fn load_catalog_window(
         root.availability = evidence.availability;
         root.availability_message = evidence.message;
     }
-    Ok(snapshot)
+    Ok(())
 }
 
 fn reconcile_snapshot_previews(
@@ -161,6 +170,33 @@ pub fn load_catalog_around_location(
         ));
     }
     load_catalog_window(max_items, query, None, None, None, Some(anchor_location_id))
+}
+
+pub fn load_catalog_around_asset(
+    max_items: u32,
+    query: GalleryQuery,
+    requested_location_id: String,
+    anchor_asset_id: String,
+) -> Result<CatalogSnapshot, ScanError> {
+    if requested_location_id.trim().is_empty() || anchor_asset_id.trim().is_empty() {
+        return Err(ScanError::new(
+            "catalog_asset_anchor_invalid",
+            "A gallery asset anchor requires stable location and asset identifiers",
+        ));
+    }
+    let query = normalize_gallery_query(query);
+    let query_id = gallery_query_identity(&query);
+    let storage = storage_paths()?;
+    let mut catalog = SqliteCatalog::open(storage.catalog_path.clone())?;
+    let mut snapshot = catalog.load_snapshot_around_asset(
+        max_items,
+        &query,
+        &query_id,
+        &requested_location_id,
+        &anchor_asset_id,
+    )?;
+    finish_loaded_snapshot(&storage, catalog, &mut snapshot)?;
+    Ok(snapshot)
 }
 
 fn normalize_gallery_query(mut query: GalleryQuery) -> GalleryQuery {

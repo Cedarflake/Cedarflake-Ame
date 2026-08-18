@@ -13,14 +13,11 @@ use crate::domain::{
     LibraryChangeScope, LibraryChangeSourceBatch, LibraryChangeSourceError,
     LibraryChangeSourceHealth, LibraryChangeSourceStopReport, LibraryRootGeneration,
 };
-use crate::ports::{LibraryChangeSource, LibraryChangeSourceFactory, LibraryChangeSourceRequest};
+use crate::ports::{LibraryChangeSource, LibraryChangeSourceRequest};
 
 const MAX_INGRESS_CAPACITY: usize = 4096;
 const RENAME_PAIR_GRACE: Duration = Duration::from_millis(50);
 const STOP_TIMEOUT: Duration = Duration::from_secs(2);
-
-#[derive(Clone, Copy, Debug, Default)]
-pub struct WindowsLibraryChangeSourceFactory;
 
 pub struct WindowsLibraryChangeSource {
     watcher: Option<RecommendedWatcher>,
@@ -52,68 +49,63 @@ struct CallbackProcessor {
     state: Arc<CallbackState>,
 }
 
-impl LibraryChangeSourceFactory for WindowsLibraryChangeSourceFactory {
-    type Source = WindowsLibraryChangeSource;
-
-    fn start(
-        &self,
-        request: &LibraryChangeSourceRequest,
-    ) -> Result<Self::Source, LibraryChangeSourceError> {
-        validate_request(request)?;
-        let root_path = std::fs::canonicalize(&request.root_path).map_err(|_| {
+pub(super) fn start_windows_library_change_source(
+    request: &LibraryChangeSourceRequest,
+) -> Result<WindowsLibraryChangeSource, LibraryChangeSourceError> {
+    validate_request(request)?;
+    let root_path = std::fs::canonicalize(&request.root_path).map_err(|_| {
+        LibraryChangeSourceError::retryable(
+            "change_source_root_unavailable",
+            "The library root could not be resolved for observation.",
+        )
+    })?;
+    let (sender, receiver) = sync_channel(request.ingress_capacity);
+    let callback_state = Arc::new(CallbackState {
+        root_id: request.root_id.clone(),
+        root_generation: request.root_generation,
+        root_path: root_path.clone(),
+        sender,
+        delivery_gate: Mutex::new(()),
+        accepting: AtomicBool::new(true),
+        health: AtomicU8::new(health_code(LibraryChangeSourceHealth::Starting)),
+        evidence_gap: AtomicBool::new(false),
+        dropped_observation_count: AtomicU64::new(0),
+        ignored_callback_count: AtomicU64::new(0),
+        next_sequence: AtomicU64::new(1),
+        pending_rename_from: Mutex::new(None),
+    });
+    let processor_state = Arc::clone(&callback_state);
+    let mut processor = CallbackProcessor {
+        state: processor_state,
+    };
+    let mut watcher =
+        notify::recommended_watcher(move |result| processor.handle(result)).map_err(|_| {
+            callback_state.set_health(LibraryChangeSourceHealth::Failed);
             LibraryChangeSourceError::retryable(
-                "change_source_root_unavailable",
-                "The library root could not be resolved for observation.",
+                "change_source_start_failed",
+                "The Windows library observer could not be created.",
             )
         })?;
-        let (sender, receiver) = sync_channel(request.ingress_capacity);
-        let callback_state = Arc::new(CallbackState {
-            root_id: request.root_id.clone(),
-            root_generation: request.root_generation,
-            root_path: root_path.clone(),
-            sender,
-            delivery_gate: Mutex::new(()),
-            accepting: AtomicBool::new(true),
-            health: AtomicU8::new(health_code(LibraryChangeSourceHealth::Starting)),
-            evidence_gap: AtomicBool::new(false),
-            dropped_observation_count: AtomicU64::new(0),
-            ignored_callback_count: AtomicU64::new(0),
-            next_sequence: AtomicU64::new(1),
-            pending_rename_from: Mutex::new(None),
-        });
-        let processor_state = Arc::clone(&callback_state);
-        let mut processor = CallbackProcessor {
-            state: processor_state,
-        };
-        let mut watcher = notify::recommended_watcher(move |result| processor.handle(result))
-            .map_err(|_| {
-                callback_state.set_health(LibraryChangeSourceHealth::Failed);
-                LibraryChangeSourceError::retryable(
-                    "change_source_start_failed",
-                    "The Windows library observer could not be created.",
-                )
-            })?;
-        watcher
-            .watch(&root_path, RecursiveMode::Recursive)
-            .map_err(|_| {
-                callback_state.accepting.store(false, Ordering::Release);
-                callback_state.set_health(LibraryChangeSourceHealth::Failed);
-                LibraryChangeSourceError::retryable(
-                    "change_source_watch_failed",
-                    "The library root could not be observed recursively.",
-                )
-            })?;
-        callback_state.compare_health(
-            LibraryChangeSourceHealth::Starting,
-            LibraryChangeSourceHealth::Healthy,
-        );
+    watcher
+        .watch(&root_path, RecursiveMode::Recursive)
+        .map_err(|_| {
+            callback_state.accepting.store(false, Ordering::Release);
+            callback_state.set_health(LibraryChangeSourceHealth::Failed);
+            LibraryChangeSourceError::retryable(
+                "change_source_watch_failed",
+                "The library root could not be observed recursively.",
+            )
+        })?;
+    callback_state.compare_health(
+        LibraryChangeSourceHealth::Starting,
+        LibraryChangeSourceHealth::Healthy,
+    );
 
-        Ok(WindowsLibraryChangeSource {
-            watcher: Some(watcher),
-            receiver,
-            callback_state,
-        })
-    }
+    Ok(WindowsLibraryChangeSource {
+        watcher: Some(watcher),
+        receiver,
+        callback_state,
+    })
 }
 
 impl LibraryChangeSource for WindowsLibraryChangeSource {

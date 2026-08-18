@@ -6,6 +6,7 @@ import "package:cedarflake_ame/features/library/application/library_controller.d
 import "package:cedarflake_ame/features/library/domain/library_folder_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
+import "package:cedarflake_ame/features/library/domain/library_synchronization_models.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_folder_navigation_tile.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_navigation.dart";
@@ -42,6 +43,7 @@ void main() {
             ),
           ),
         );
+        expect(find.text(LibraryStrings.synchronized), findsOneWidget);
 
         seedColor.value = const Color(0xFF8E4D92);
         await tester.pumpAndSettle();
@@ -445,6 +447,19 @@ Widget _buildNavigation() {
           availability: LibraryRootAvailability.available,
         ),
       ],
+      rootSynchronizationStatuses: {
+        "root-1": LibraryRootSynchronizationStatus(
+          rootId: "root-1",
+          rootGeneration: BigInt.one,
+          availability: LibraryRootAvailability.available,
+          freshness: LibraryCatalogFreshness.synchronized,
+          freshnessCause: LibraryCatalogFreshnessCause.noPendingChanges,
+          sourceStatus: LibraryChangeSourceStatus.healthy,
+          pendingChangeCount: BigInt.zero,
+          retryWaitCount: BigInt.zero,
+          freshnessUnknownCount: BigInt.zero,
+        ),
+      },
       selectedRootId: "root-1",
       selectedFolderRelativePath: null,
       transientRootPath: null,

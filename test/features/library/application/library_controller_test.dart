@@ -14,6 +14,59 @@ import "package:flutter_test/flutter_test.dart";
 
 void main() {
   test(
+    "synchronization refresh uses the stable asset anchor without blanking",
+    () async {
+      final pending = Completer<LibrarySnapshot>();
+      final initial = _snapshot(assets: [_asset(suffix: "before")]);
+      final catalog = _StableAnchorLibraryCatalog(
+        response: pending.future,
+        revision: BigInt.two,
+      );
+      final container = ProviderContainer(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(
+            LibraryState.fromSnapshot(initial),
+          ),
+          libraryCatalogProvider.overrideWithValue(catalog),
+        ],
+      );
+      addTearDown(container.dispose);
+      final controller = container.read(libraryControllerProvider.notifier);
+
+      final refresh = controller.refreshFromSynchronization(
+        catalogRevision: BigInt.two,
+        anchorLocationId: "location-before",
+        anchorAssetId: "asset-before",
+      );
+      await Future<void>.delayed(Duration.zero);
+      var state = container.read(libraryControllerProvider);
+      expect(state.assets.single.locationId, "location-before");
+      expect(state.status, isNot(LibraryStatus.refreshing));
+
+      pending.complete(
+        _snapshot(
+          revision: BigInt.two,
+          assets: [_renamedAsset()],
+          queryAnchorResolution: const LibraryQueryAnchorResolution(
+            requestedLocationId: "location-before",
+            locationId: "location-after",
+            ordinal: 0,
+            windowStartItemOffset: 0,
+          ),
+        ),
+      );
+
+      expect(await refresh, isTrue);
+      state = container.read(libraryControllerProvider);
+      expect(state.catalogRevision, BigInt.two);
+      expect(state.assets.single.assetId, "asset-before");
+      expect(state.assets.single.locationId, "location-after");
+      expect(catalog.requestedLocationId, "location-before");
+      expect(catalog.anchorAssetId, "asset-before");
+    },
+  );
+
+  test(
     "keeps the old query visible until an anchored query publishes",
     () async {
       final pending = Completer<LibrarySnapshot>();
@@ -2022,6 +2075,22 @@ LibraryAsset _asset({String suffix = "1", String? previewPath}) {
   );
 }
 
+LibraryAsset _renamedAsset() {
+  return LibraryAsset(
+    assetId: "asset-before",
+    locationId: "location-after",
+    rootId: "root-1",
+    sourcePath: "C:\\Pictures\\after.png",
+    displayPath: "C:\\Pictures\\after.png",
+    relativePath: "after.png",
+    previewPath: "C:\\AmeCache\\before.jpg",
+    fileSize: BigInt.from(128),
+    modifiedUnixMs: 42,
+    width: 320,
+    height: 240,
+  );
+}
+
 LibraryAsset _pendingAsset(String suffix) {
   return LibraryAsset(
     assetId: "asset-$suffix",
@@ -2243,6 +2312,56 @@ class _QueryAnchorLibraryCatalog
   @override
   Future<LibraryTimeline> loadTimeline(LibraryGalleryQuery query) async =>
       timeline;
+
+  @override
+  Future<bool> unregisterRoot(String rootId) async => false;
+}
+
+class _StableAnchorLibraryCatalog
+    implements LibraryCatalog, LibraryStableQueryAnchorCatalog {
+  _StableAnchorLibraryCatalog({required this.response, required this.revision});
+
+  final Future<LibrarySnapshot> response;
+  final BigInt revision;
+  String? requestedLocationId;
+  String? anchorAssetId;
+
+  @override
+  Future<LibrarySnapshot> loadAroundAsset({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    required String requestedLocationId,
+    required String anchorAssetId,
+  }) {
+    this.requestedLocationId = requestedLocationId;
+    this.anchorAssetId = anchorAssetId;
+    return response;
+  }
+
+  @override
+  Future<LibrarySnapshot> load({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    LibraryCatalogCursor? after,
+    LibraryCatalogCursor? before,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<LibrarySnapshot> loadAtTime({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    required LibraryTimeAnchor anchor,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<LibraryTimeline> loadTimeline(LibraryGalleryQuery query) async {
+    return LibraryTimeline(
+      revision: revision,
+      queryId: "query-1",
+      totalItems: 1,
+      buckets: const [],
+    );
+  }
 
   @override
   Future<bool> unregisterRoot(String rootId) async => false;

@@ -15,6 +15,13 @@ pub(super) struct BuiltGalleryQuery {
     pub(super) parameters: Vec<Value>,
 }
 
+struct GalleryAnchorRequest<'a> {
+    requested_location_id: &'a str,
+    anchor_column: &'static str,
+    anchor_value: &'a str,
+    max_items: u32,
+}
+
 pub(super) fn resolve_gallery_location_anchor(
     transaction: &Transaction<'_>,
     revision: u64,
@@ -23,12 +30,56 @@ pub(super) fn resolve_gallery_location_anchor(
     requested_location_id: &str,
     max_items: u32,
 ) -> Result<(GalleryLocationAnchorResolution, Option<CatalogCursor>), ScanError> {
+    resolve_gallery_anchor(
+        transaction,
+        revision,
+        query,
+        query_id,
+        GalleryAnchorRequest {
+            requested_location_id,
+            anchor_column: "locations.location_id",
+            anchor_value: requested_location_id,
+            max_items,
+        },
+    )
+}
+
+pub(super) fn resolve_gallery_asset_anchor(
+    transaction: &Transaction<'_>,
+    revision: u64,
+    query: &GalleryQuery,
+    query_id: &str,
+    requested_location_id: &str,
+    asset_id: &str,
+    max_items: u32,
+) -> Result<(GalleryLocationAnchorResolution, Option<CatalogCursor>), ScanError> {
+    resolve_gallery_anchor(
+        transaction,
+        revision,
+        query,
+        query_id,
+        GalleryAnchorRequest {
+            requested_location_id,
+            anchor_column: "locations.asset_id",
+            anchor_value: asset_id,
+            max_items,
+        },
+    )
+}
+
+fn resolve_gallery_anchor(
+    transaction: &Transaction<'_>,
+    revision: u64,
+    query: &GalleryQuery,
+    query_id: &str,
+    request: GalleryAnchorRequest<'_>,
+) -> Result<(GalleryLocationAnchorResolution, Option<CatalogCursor>), ScanError> {
     let order = gallery_order_expressions(&query.sort_key);
     let mut anchor_clauses = Vec::new();
     let mut anchor_parameters = Vec::new();
     push_gallery_filters(query, &mut anchor_clauses, &mut anchor_parameters);
-    anchor_clauses.push("locations.location_id = ?".to_owned());
-    anchor_parameters.push(Value::Text(requested_location_id.to_owned()));
+    anchor_clauses.push(format!("{} = ?", request.anchor_column));
+    anchor_parameters.push(Value::Text(request.anchor_value.to_owned()));
     let anchor_sql = format!(
         "SELECT locations.root_id, locations.location_id,
                 {missing}, {text}, {number}
@@ -63,7 +114,7 @@ pub(super) fn resolve_gallery_location_anchor(
     let Some(anchor) = anchor else {
         return Ok((
             GalleryLocationAnchorResolution {
-                requested_location_id: requested_location_id.to_owned(),
+                requested_location_id: request.requested_location_id.to_owned(),
                 location_id: None,
                 ordinal: None,
                 window_start_ordinal: 0,
@@ -103,7 +154,7 @@ pub(super) fn resolve_gallery_location_anchor(
             "The gallery location anchor ordinal is outside the supported range",
         )
     })?;
-    let window_start_ordinal = ordinal.saturating_sub(u64::from(max_items / 2));
+    let window_start_ordinal = ordinal.saturating_sub(u64::from(request.max_items / 2));
     let start_after = if window_start_ordinal == 0 {
         None
     } else {
@@ -149,7 +200,7 @@ pub(super) fn resolve_gallery_location_anchor(
     };
     Ok((
         GalleryLocationAnchorResolution {
-            requested_location_id: requested_location_id.to_owned(),
+            requested_location_id: request.requested_location_id.to_owned(),
             location_id: Some(anchor.location_id),
             ordinal: Some(ordinal),
             window_start_ordinal,
