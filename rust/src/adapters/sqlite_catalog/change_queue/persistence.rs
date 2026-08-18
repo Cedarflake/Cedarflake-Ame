@@ -1,10 +1,11 @@
 use rusqlite::{Connection, OptionalExtension, Row, Transaction, params};
 
 use crate::domain::{
-    DurableLibraryChange, LibraryChangeFailure, LibraryChangeId, LibraryChangeIntent,
-    LibraryChangeIntentKind, LibraryChangeLeaseUpdateOutcome, LibraryChangeOrigin,
-    LibraryChangeQueueHealth, LibraryChangeQueueMetrics, LibraryChangeQueuePolicy,
-    LibraryChangeQueueStatus, LibraryChangeScope, LibraryRootGeneration, ScanError,
+    DurableLibraryChange, LibraryChangeCatchUpEvidence, LibraryChangeFailure, LibraryChangeId,
+    LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeLeaseUpdateOutcome,
+    LibraryChangeOrigin, LibraryChangeQueueHealth, LibraryChangeQueueMetrics,
+    LibraryChangeQueuePolicy, LibraryChangeQueueStatus, LibraryChangeScope, LibraryRootGeneration,
+    ScanError,
 };
 
 use super::super::{database_error, sqlite_integer, sqlite_u32, sqlite_unsigned};
@@ -15,6 +16,7 @@ pub(super) struct ActiveChange {
     pub(super) intent: LibraryChangeIntent,
     pub(super) status: LibraryChangeQueueStatus,
     pub(super) catalog_revision_at_enqueue: u64,
+    pub(super) catch_up_evidence: Option<LibraryChangeCatchUpEvidence>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -321,7 +323,7 @@ pub(super) fn load_active_changes(
             "SELECT id, intent_kind, scope, relative_path, previous_relative_path, origin,
                     first_observed_unix_ms, most_recent_observed_unix_ms,
                     first_sequence, most_recent_sequence, coalesced_observation_count,
-                    status, catalog_revision_at_enqueue
+                    status, catalog_revision_at_enqueue, catch_up_source, catch_up_watermark
              FROM library_change_queue
              WHERE root_id = ?1 AND root_generation = ?2
                AND status IN ('pending', 'leased', 'retry_wait')
@@ -372,6 +374,8 @@ struct RawActiveChange {
     coalesced_observation_count: i64,
     status: String,
     catalog_revision_at_enqueue: i64,
+    catch_up_source: Option<String>,
+    catch_up_watermark: Option<String>,
 }
 
 fn read_active_change_row(row: &Row<'_>) -> rusqlite::Result<RawActiveChange> {
@@ -389,6 +393,8 @@ fn read_active_change_row(row: &Row<'_>) -> rusqlite::Result<RawActiveChange> {
         coalesced_observation_count: row.get(10)?,
         status: row.get(11)?,
         catalog_revision_at_enqueue: row.get(12)?,
+        catch_up_source: row.get(13)?,
+        catch_up_watermark: row.get(14)?,
     })
 }
 
@@ -397,6 +403,16 @@ fn active_change_from_raw(
     root_generation: LibraryRootGeneration,
     raw: RawActiveChange,
 ) -> Result<ActiveChange, ScanError> {
+    let catch_up_evidence = match (raw.catch_up_source, raw.catch_up_watermark) {
+        (Some(source), Some(watermark)) => Some(LibraryChangeCatchUpEvidence { source, watermark }),
+        (None, None) => None,
+        _ => {
+            return Err(ScanError::new(
+                "change_queue_catch_up_evidence_invalid",
+                "The stored catch-up evidence is incomplete",
+            ));
+        }
+    };
     Ok(ActiveChange {
         id: change_id_from_sqlite(raw.id)?,
         intent: LibraryChangeIntent {
@@ -421,6 +437,7 @@ fn active_change_from_raw(
             raw.catalog_revision_at_enqueue,
             "enqueue catalog revision",
         )?,
+        catch_up_evidence,
     })
 }
 
@@ -429,6 +446,7 @@ pub(super) fn insert_change(
     intent: &LibraryChangeIntent,
     enqueued_unix_ms: i64,
     catalog_revision: u64,
+    evidence: Option<&LibraryChangeCatchUpEvidence>,
     policy: LibraryChangeQueuePolicy,
 ) -> Result<LibraryChangeId, ScanError> {
     let ready_unix_ms = stabilization_deadline(intent, enqueued_unix_ms, policy);
@@ -439,10 +457,11 @@ pub(super) fn insert_change(
                previous_relative_path, origin, first_observed_unix_ms,
                most_recent_observed_unix_ms, first_sequence, most_recent_sequence,
                coalesced_observation_count, status, ready_unix_ms,
-               catalog_revision_at_enqueue, created_unix_ms, updated_unix_ms
+               catalog_revision_at_enqueue, catch_up_source, catch_up_watermark,
+               created_unix_ms, updated_unix_ms
              ) VALUES (
                ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12,
-               'pending', ?13, ?14, ?15, ?15
+               'pending', ?13, ?14, ?15, ?16, ?17, ?17
              )",
             params![
                 intent.root_id,
@@ -459,6 +478,8 @@ pub(super) fn insert_change(
                 i64::from(intent.coalesced_observation_count),
                 ready_unix_ms,
                 sqlite_integer(catalog_revision, "catalog revision")?,
+                evidence.map(|value| value.source.as_str()),
+                evidence.map(|value| value.watermark.as_str()),
                 enqueued_unix_ms,
             ],
         )
@@ -470,6 +491,7 @@ pub(super) fn update_change(
     transaction: &Transaction<'_>,
     change_id: LibraryChangeId,
     intent: &LibraryChangeIntent,
+    evidence: Option<&LibraryChangeCatchUpEvidence>,
     enqueued_unix_ms: i64,
     policy: LibraryChangeQueuePolicy,
 ) -> Result<(), ScanError> {
@@ -483,8 +505,10 @@ pub(super) fn update_change(
                  coalesced_observation_count = ?10, status = 'pending',
                  ready_unix_ms = ?11, attempt_count = 0, next_retry_unix_ms = NULL,
                  lease_expires_unix_ms = NULL, superseded_by_change_id = NULL,
-                 updated_unix_ms = ?12
-             WHERE id = ?13 AND status IN ('pending', 'retry_wait')",
+                 catch_up_source = COALESCE(?12, catch_up_source),
+                 catch_up_watermark = COALESCE(?13, catch_up_watermark),
+                 updated_unix_ms = ?14
+             WHERE id = ?15 AND status IN ('pending', 'retry_wait')",
             params![
                 intent_kind_to_db(intent.kind),
                 scope_to_db(intent.scope),
@@ -497,6 +521,8 @@ pub(super) fn update_change(
                 intent.most_recent_sequence.to_string(),
                 i64::from(intent.coalesced_observation_count),
                 stabilization_deadline(intent, enqueued_unix_ms, policy),
+                evidence.map(|value| value.source.as_str()),
+                evidence.map(|value| value.watermark.as_str()),
                 enqueued_unix_ms,
                 sqlite_integer(change_id.value(), "change ID")?,
             ],
@@ -602,6 +628,8 @@ fn read_durable_change_row(row: &Row<'_>) -> rusqlite::Result<RawDurableChange> 
             coalesced_observation_count: row.get(10)?,
             status: row.get(11)?,
             catalog_revision_at_enqueue: row.get(12)?,
+            catch_up_source: row.get(21)?,
+            catch_up_watermark: row.get(22)?,
         },
         ready_unix_ms: row.get(13)?,
         attempt_count: row.get(14)?,

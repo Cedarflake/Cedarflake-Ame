@@ -36,3 +36,4 @@ Recorded decisions:
 - [ADR 0019: Publish incremental catalog deltas atomically](0019-atomic-incremental-catalog-deltas.md)
 - [ADR 0020: Run continuous library synchronization with the desktop lifecycle](0020-production-library-synchronization-lifecycle.md)
 - [ADR 0021: Recover library freshness through bounded authoritative reconciliation](0021-authoritative-library-recovery-and-consistency.md)
+- [ADR 0022: Catch up Windows downtime through the USN change journal](0022-windows-usn-downtime-catch-up.md)

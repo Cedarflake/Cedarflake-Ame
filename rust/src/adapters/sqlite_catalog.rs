@@ -32,8 +32,9 @@ use gallery::{
 use migrations::migrate_schema;
 
 mod catalog_delta;
+mod catch_up;
 mod change_queue;
-const SCHEMA_VERSION: i64 = 18;
+const SCHEMA_VERSION: i64 = 19;
 const SCAN_QUEUE_LEASE_MILLIS: i64 = 15 * 60 * 1_000;
 const LOCATION_STAGE_BATCH: usize = 128;
 const MAX_LAYOUT_MANIFEST_CHUNK_ITEMS: u32 = 4_096;

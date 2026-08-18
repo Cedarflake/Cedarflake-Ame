@@ -10,8 +10,9 @@ use tempfile::tempdir;
 use crate::adapters::SqliteCatalog;
 use crate::application::AuthoritativeRecoveryPolicy;
 use crate::domain::{
-    CatalogFreshnessState, LibraryChangeObservation, LibraryChangeObservationKind,
-    LibraryChangeOrigin, LibraryChangePlanningLimits, LibraryChangeQueuePolicy, LibraryChangeScope,
+    CatalogFreshnessState, LibraryChangeCatchUpCompletedRoot, LibraryChangeCatchUpReport,
+    LibraryChangeObservation, LibraryChangeObservationKind, LibraryChangeOrigin,
+    LibraryChangePlanningLimits, LibraryChangeQueuePolicy, LibraryChangeScope,
     LibraryChangeSourceBatch, LibraryChangeSourceError, LibraryChangeSourceHealth,
     LibraryChangeSourceStopReport, LibraryRootAvailability, LibraryRootGeneration, ScanRequest,
 };
@@ -373,6 +374,47 @@ fn production_poll_mode_leaves_authoritative_work_for_the_background_worker() {
     assert_eq!(completed.applied_mutation_count, 1);
     assert_eq!(
         completed.roots[0].freshness,
+        CatalogFreshnessState::Synchronized
+    );
+}
+
+#[test]
+fn production_catch_up_mode_starts_the_observer_before_resolving_startup_continuity() {
+    let fixture = RuntimeFixture::new();
+    let factory = FakeFactory::default();
+    let mut runtime = LibrarySynchronizationRuntime::new_production(
+        crate::ports::erase_library_change_source_factory(factory.clone()),
+    );
+    let mut catalog = fixture.catalog;
+
+    let pending = runtime
+        .poll_without_authoritative_recovery(&mut catalog, 1_000, |_| {
+            LibraryRootAvailability::Available
+        })
+        .expect("watcher-first poll");
+
+    assert_eq!(factory.state.lock().expect("fake state").start_count, 1);
+    assert_eq!(pending.roots[0].freshness, CatalogFreshnessState::Updating);
+    assert_eq!(pending.roots[0].freshness_unknown_count, 0);
+    let roots = runtime.pending_catch_up_roots();
+    assert_eq!(roots.len(), 1);
+    assert_eq!(roots[0].root_id, fixture.root_id);
+
+    runtime.acknowledge_catch_up(&LibraryChangeCatchUpReport {
+        completed_roots: vec![LibraryChangeCatchUpCompletedRoot {
+            root_id: roots[0].root_id.clone(),
+            root_generation: roots[0].root_generation,
+            fallback_code: None,
+        }],
+        ..Default::default()
+    });
+    let synchronized = runtime
+        .poll_without_authoritative_recovery(&mut catalog, 1_100, |_| {
+            LibraryRootAvailability::Available
+        })
+        .expect("resolved catch up");
+    assert_eq!(
+        synchronized.roots[0].freshness,
         CatalogFreshnessState::Synchronized
     );
 }

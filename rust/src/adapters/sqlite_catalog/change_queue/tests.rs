@@ -5,10 +5,10 @@ use tempfile::tempdir;
 
 use crate::application::{enqueue_library_change_plan, plan_library_changes};
 use crate::domain::{
-    LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeObservation,
-    LibraryChangeObservationKind, LibraryChangeOrigin, LibraryChangePlanningContext,
-    LibraryChangePlanningLimits, LibraryChangeQueueHealth, LibraryChangeScope,
-    LibraryChangeSourceHealth, LibraryRootAvailability, ScanRequest,
+    LibraryChangeCatchUpEvidence, LibraryChangeIntent, LibraryChangeIntentKind,
+    LibraryChangeObservation, LibraryChangeObservationKind, LibraryChangeOrigin,
+    LibraryChangePlanningContext, LibraryChangePlanningLimits, LibraryChangeQueueHealth,
+    LibraryChangeScope, LibraryChangeSourceHealth, LibraryRootAvailability, ScanRequest,
 };
 use crate::ports::CatalogRepository;
 
@@ -33,6 +33,12 @@ fn migrates_v16_without_losing_existing_catalog_rows() {
              );
              INSERT INTO library_roots(id, path, created_unix_ms)
              VALUES ('root-a', 'C:\\Source', 123);
+             CREATE TABLE asset_locations (
+               root_id TEXT NOT NULL,
+               relative_path TEXT NOT NULL,
+               scan_id TEXT NOT NULL,
+               location_id TEXT NOT NULL
+             );
              CREATE TABLE preserved_fixture(value TEXT NOT NULL);
              INSERT INTO preserved_fixture(value) VALUES ('kept');",
         )
@@ -80,7 +86,7 @@ fn migrates_v16_without_losing_existing_catalog_rows() {
         )
         .expect("migrated evidence");
 
-    assert_eq!(version, 18);
+    assert_eq!(version, 19);
     assert_eq!(revision, 7);
     assert_eq!(preserved, "kept");
     assert!(queue_exists);
@@ -1989,6 +1995,78 @@ fn queue_metrics_report_ready_delay_without_mutating_work() {
     assert_eq!(metrics.pending_count, 1);
     assert_eq!(metrics.ready_count, 1);
     assert_eq!(metrics.oldest_ready_delay_millis, 100);
+}
+
+#[test]
+fn catch_up_evidence_survives_persistence_and_later_live_coalescing() {
+    let directory = tempdir().expect("temporary directory");
+    let generation = LibraryRootGeneration::initial();
+    let policy = immediate_policy();
+    let mut catalog = queue_catalog(directory.path().join("catalog.sqlite3"));
+    let mut catch_up = path_intent("root-a", generation, 20, 1_000, "photo.jpg");
+    catch_up.origin = LibraryChangeOrigin::StartupCatchUp;
+    let evidence = LibraryChangeCatchUpEvidence {
+        source: "windows_usn_v1".to_owned(),
+        watermark: "volume|12|40".to_owned(),
+    };
+    catalog
+        .enqueue_library_change_intents_with_catch_up(&[catch_up], &evidence, 1_000, policy)
+        .expect("enqueue catch-up evidence");
+    catalog
+        .enqueue_library_change_intents(
+            &[path_intent("root-a", generation, 1, 1_001, "photo.jpg")],
+            1_001,
+            policy,
+        )
+        .expect("coalesce live evidence");
+
+    let leased = catalog
+        .lease_path_library_changes("root-a", generation, 1_001, policy)
+        .expect("lease retained evidence")
+        .pop()
+        .expect("change");
+
+    assert_eq!(
+        leased.change.catch_up_source.as_deref(),
+        Some("windows_usn_v1")
+    );
+    assert_eq!(
+        leased.change.catch_up_watermark.as_deref(),
+        Some("volume|12|40")
+    );
+}
+
+#[test]
+fn replayed_catch_up_range_coalesces_without_duplicate_work() {
+    let directory = tempdir().expect("temporary directory");
+    let generation = LibraryRootGeneration::initial();
+    let policy = immediate_policy();
+    let mut catalog = queue_catalog(directory.path().join("catalog.sqlite3"));
+    let mut catch_up = path_intent("root-a", generation, 20, 1_000, "photo.jpg");
+    catch_up.origin = LibraryChangeOrigin::StartupCatchUp;
+    let evidence = LibraryChangeCatchUpEvidence {
+        source: "windows_usn_v1".to_owned(),
+        watermark: "volume|12|40".to_owned(),
+    };
+
+    let first = catalog
+        .enqueue_library_change_intents_with_catch_up(&[catch_up.clone()], &evidence, 1_000, policy)
+        .expect("first catch-up enqueue");
+    let replay = catalog
+        .enqueue_library_change_intents_with_catch_up(&[catch_up], &evidence, 1_001, policy)
+        .expect("replayed catch-up enqueue");
+    let leased = catalog
+        .lease_path_library_changes("root-a", generation, 1_001, policy)
+        .expect("lease coalesced work");
+
+    assert_eq!(first.inserted_count, 1);
+    assert_eq!(replay.inserted_count, 0);
+    assert_eq!(replay.coalesced_count, 1);
+    assert_eq!(leased.len(), 1);
+    assert_eq!(
+        leased[0].change.catch_up_watermark.as_deref(),
+        Some("volume|12|40")
+    );
 }
 
 fn queue_catalog(path: PathBuf) -> SqliteCatalog {

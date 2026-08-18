@@ -2428,6 +2428,7 @@ fn migrated_v17_placeholder_preserves_the_normalized_legacy_location() {
     connection
         .execute_batch(
             "PRAGMA foreign_keys = OFF;
+             DROP INDEX asset_locations_root_relative;
              DROP INDEX scan_runs_one_active_root;
              ALTER TABLE library_change_queue DROP COLUMN authoritative_scan_id;
              ALTER TABLE library_change_root_state DROP COLUMN last_consistency_audit_unix_ms;
@@ -2459,7 +2460,12 @@ fn migrated_v17_placeholder_preserves_the_normalized_legacy_location() {
         )
         .expect("restore legacy location identity");
     connection
-        .execute("UPDATE schema_info SET version = 17", [])
+        .execute_batch(
+            "ALTER TABLE library_change_queue_contract
+               DROP COLUMN change_catch_up_complete;
+             DROP TABLE library_change_catch_up_state;
+             UPDATE schema_info SET version = 17;",
+        )
         .expect("restore v17 version");
     drop(connection);
     set_scan_fixture_offline_attribute(&source_path, true);
@@ -2489,7 +2495,7 @@ fn migrated_v17_placeholder_preserves_the_normalized_legacy_location() {
         .query_row("SELECT version FROM schema_info", [], |row| row.get(0))
         .expect("schema version");
     assert!(matches!(events.last(), Some(ScanEvent::Stale { .. })));
-    assert_eq!(version, 18);
+    assert_eq!(version, 19);
     assert_eq!(after.revision, before.revision);
     assert_eq!(after.assets.len(), 1);
     assert_eq!(retained.location_id, "legacy-v17-location");
@@ -2534,6 +2540,7 @@ fn migrated_v17_healthy_file_preserves_legacy_location_without_identity_evidence
     connection
         .execute_batch(
             "PRAGMA foreign_keys = OFF;
+             DROP INDEX asset_locations_root_relative;
              DROP INDEX scan_runs_one_active_root;
              ALTER TABLE library_change_queue DROP COLUMN authoritative_scan_id;
              ALTER TABLE library_change_root_state DROP COLUMN last_consistency_audit_unix_ms;
@@ -2567,7 +2574,12 @@ fn migrated_v17_healthy_file_preserves_legacy_location_without_identity_evidence
         )
         .expect("restore legacy location without identity evidence");
     connection
-        .execute("UPDATE schema_info SET version = 17", [])
+        .execute_batch(
+            "ALTER TABLE library_change_queue_contract
+               DROP COLUMN change_catch_up_complete;
+             DROP TABLE library_change_catch_up_state;
+             UPDATE schema_info SET version = 17;",
+        )
         .expect("restore v17 version");
     drop(connection);
     let mut events = Vec::new();

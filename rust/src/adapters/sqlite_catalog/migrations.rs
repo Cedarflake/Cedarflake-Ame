@@ -18,7 +18,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
 
     if !has_schema_info {
         let transaction = connection.transaction().map_err(database_error)?;
-        create_schema_v18(&transaction)?;
+        create_schema_v19(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -30,7 +30,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             .map_err(database_error)?;
         match version {
             SCHEMA_VERSION => {
-                repair_prerelease_v18_scan_owner_index(connection)?;
+                repair_prerelease_v19_path_index(connection)?;
                 return validate_current_schema_contract(connection);
             }
             1 => migrate_v1_to_v2(connection)?,
@@ -53,6 +53,10 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
                 validate_change_queue_authority(connection)?;
                 migrate_v17_to_v18(connection)?;
             }
+            18 => {
+                repair_prerelease_v18_scan_owner_index(connection)?;
+                migrate_v18_to_v19(connection)?;
+            }
             _ => {
                 return Err(ScanError::new(
                     "catalog_schema_unsupported",
@@ -63,13 +67,13 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
     }
 }
 
-fn create_schema_v18(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+fn create_schema_v19(transaction: &Transaction<'_>) -> Result<(), ScanError> {
     transaction
         .execute_batch(
             "CREATE TABLE schema_info (
                version INTEGER NOT NULL
              );
-             INSERT INTO schema_info(version) VALUES (18);
+             INSERT INTO schema_info(version) VALUES (19);
              CREATE TABLE catalog_state (
                revision INTEGER NOT NULL CHECK(revision >= 0)
              );
@@ -273,6 +277,7 @@ fn create_schema_v18(transaction: &Transaction<'_>) -> Result<(), ScanError> {
         )
         .map_err(database_error)?;
     add_authoritative_recovery_contract_marker(transaction)?;
+    add_change_catch_up_contract(transaction)?;
     Ok(())
 }
 
@@ -391,6 +396,7 @@ fn create_library_change_queue_schema(transaction: &Transaction<'_>) -> Result<(
 fn validate_current_schema_contract(connection: &Connection) -> Result<(), ScanError> {
     validate_change_queue_authority(connection)?;
     validate_authoritative_recovery_marker(connection)?;
+    validate_change_catch_up_contract(connection)?;
     let (has_scan_runs, has_single_scan_owner_index, has_scan_owner) = connection
         .query_row(
             "SELECT
@@ -415,6 +421,107 @@ fn validate_current_schema_contract(connection: &Connection) -> Result<(), ScanE
         return Err(unverifiable_authoritative_recovery_contract());
     }
     Ok(())
+}
+
+fn validate_change_catch_up_contract(connection: &Connection) -> Result<(), ScanError> {
+    let (has_table, has_marker, has_path_index) = connection
+        .query_row(
+            "SELECT
+               EXISTS(SELECT 1 FROM sqlite_master
+                 WHERE type = 'table' AND name = 'library_change_catch_up_state'),
+               EXISTS(SELECT 1 FROM pragma_table_info('library_change_queue_contract')
+                 WHERE name = 'change_catch_up_complete'),
+               EXISTS(SELECT 1 FROM pragma_index_list('asset_locations')
+                 WHERE name = 'asset_locations_root_relative'
+                   AND \"unique\" = 0 AND partial = 0)
+               AND (SELECT group_concat(name, ',') FROM (
+                 SELECT name FROM pragma_index_info('asset_locations_root_relative')
+                 ORDER BY seqno
+               )) = 'root_id,relative_path,scan_id,location_id'",
+            [],
+            |row| {
+                Ok((
+                    row.get::<_, bool>(0)?,
+                    row.get::<_, bool>(1)?,
+                    row.get::<_, bool>(2)?,
+                ))
+            },
+        )
+        .map_err(database_error)?;
+    if !has_table || !has_marker || !has_path_index {
+        return Err(ScanError::new(
+            "catalog_change_catch_up_contract_unverifiable",
+            "The catalog cannot prove its downtime catch-up checkpoint authority",
+        ));
+    }
+    let marker_complete = connection
+        .query_row(
+            "SELECT change_catch_up_complete = 1
+             FROM library_change_queue_contract WHERE singleton = 1",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .optional()
+        .map_err(database_error)?
+        .unwrap_or(false);
+    if !marker_complete {
+        return Err(ScanError::new(
+            "catalog_change_catch_up_contract_unverifiable",
+            "The catalog cannot prove its downtime catch-up checkpoint authority",
+        ));
+    }
+    Ok(())
+}
+
+fn repair_prerelease_v19_path_index(connection: &mut Connection) -> Result<(), ScanError> {
+    let (has_table, has_marker, has_named_index, has_columns) = connection
+        .query_row(
+            "SELECT
+               EXISTS(SELECT 1 FROM sqlite_master
+                 WHERE type = 'table' AND name = 'library_change_catch_up_state'),
+               EXISTS(SELECT 1 FROM pragma_table_info('library_change_queue_contract')
+                 WHERE name = 'change_catch_up_complete'),
+               EXISTS(SELECT 1 FROM sqlite_master
+                 WHERE type = 'index' AND name = 'asset_locations_root_relative'),
+               (SELECT COUNT(*) FROM pragma_table_info('asset_locations')
+                 WHERE name IN ('root_id', 'relative_path', 'scan_id', 'location_id')) = 4",
+            [],
+            |row| {
+                Ok((
+                    row.get::<_, bool>(0)?,
+                    row.get::<_, bool>(1)?,
+                    row.get::<_, bool>(2)?,
+                    row.get::<_, bool>(3)?,
+                ))
+            },
+        )
+        .map_err(database_error)?;
+    if has_named_index || !has_table || !has_marker || !has_columns {
+        return Ok(());
+    }
+    let marker_complete = connection
+        .query_row(
+            "SELECT change_catch_up_complete = 1
+             FROM library_change_queue_contract WHERE singleton = 1",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .optional()
+        .map_err(database_error)?
+        .unwrap_or(false);
+    if !marker_complete {
+        return Ok(());
+    }
+
+    let transaction = connection.transaction().map_err(database_error)?;
+    transaction
+        .execute(
+            "CREATE INDEX asset_locations_root_relative
+             ON asset_locations(root_id, relative_path, scan_id, location_id)",
+            [],
+        )
+        .map_err(database_error)?;
+    transaction.commit().map_err(database_error)
 }
 
 fn validate_authoritative_recovery_marker(connection: &Connection) -> Result<(), ScanError> {
@@ -1207,6 +1314,36 @@ fn migrate_v17_to_v18(connection: &mut Connection) -> Result<(), ScanError> {
     transaction.commit().map_err(database_error)
 }
 
+fn migrate_v18_to_v19(connection: &mut Connection) -> Result<(), ScanError> {
+    let transaction = connection.transaction().map_err(database_error)?;
+    add_change_catch_up_contract(&transaction)?;
+    transaction
+        .execute("UPDATE schema_info SET version = 19", [])
+        .map_err(database_error)?;
+    transaction.commit().map_err(database_error)
+}
+
+fn add_change_catch_up_contract(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+    transaction
+        .execute_batch(
+            "CREATE TABLE library_change_catch_up_state (
+               volume_id TEXT PRIMARY KEY CHECK(length(volume_id) BETWEEN 1 AND 512),
+               journal_id TEXT NOT NULL CHECK(length(journal_id) BETWEEN 1 AND 32),
+               next_usn TEXT NOT NULL CHECK(length(next_usn) BETWEEN 1 AND 32),
+               root_set_fingerprint TEXT NOT NULL
+                 CHECK(length(root_set_fingerprint) = 64),
+               catalog_revision INTEGER NOT NULL CHECK(catalog_revision >= 0),
+               updated_unix_ms INTEGER NOT NULL CHECK(updated_unix_ms >= 0)
+             );
+             CREATE INDEX asset_locations_root_relative
+               ON asset_locations(root_id, relative_path, scan_id, location_id);
+             ALTER TABLE library_change_queue_contract
+               ADD COLUMN change_catch_up_complete INTEGER NOT NULL DEFAULT 1
+               CHECK(change_catch_up_complete = 1);",
+        )
+        .map_err(database_error)
+}
+
 fn add_authoritative_recovery_contract_marker(
     transaction: &Transaction<'_>,
 ) -> Result<(), ScanError> {
@@ -1263,7 +1400,74 @@ fn normalize_relative_paths_for_continuous_synchronization(
 mod tests {
     use rusqlite::Connection;
 
-    use super::{migrate_schema, migrate_v16_to_v17, migrate_v17_to_v18};
+    use super::{migrate_schema, migrate_v16_to_v17, migrate_v17_to_v18, migrate_v18_to_v19};
+
+    #[test]
+    fn prerelease_v19_without_catch_up_marker_fails_closed() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        connection
+            .execute_batch(
+                "CREATE TABLE schema_info(version INTEGER NOT NULL);
+                 INSERT INTO schema_info(version) VALUES (19);
+                 CREATE TABLE library_change_queue_contract(
+                   singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+                   root_authority_complete INTEGER NOT NULL CHECK(root_authority_complete = 1),
+                   authoritative_recovery_complete INTEGER NOT NULL
+                     CHECK(authoritative_recovery_complete = 1),
+                   scan_ownership_complete INTEGER NOT NULL
+                     CHECK(scan_ownership_complete = 1)
+                 );
+                 INSERT INTO library_change_queue_contract VALUES (1, 1, 1, 1);",
+            )
+            .expect("prerelease v19 fixture without catch-up marker");
+
+        let error = migrate_schema(&mut connection).expect_err("missing catch-up contract");
+
+        assert_eq!(error.code, "catalog_change_catch_up_contract_unverifiable");
+    }
+
+    #[test]
+    fn prerelease_v19_with_complete_marker_repairs_missing_path_index() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh v19 catalog");
+        connection
+            .execute("DROP INDEX asset_locations_root_relative", [])
+            .expect("restore prerelease v19 index state");
+
+        migrate_schema(&mut connection).expect("repair derived lookup index");
+
+        let index_columns = connection
+            .prepare(
+                "SELECT name FROM pragma_index_info('asset_locations_root_relative')
+                 ORDER BY seqno",
+            )
+            .expect("index query")
+            .query_map([], |row| row.get::<_, String>(0))
+            .expect("index rows")
+            .collect::<Result<Vec<_>, _>>()
+            .expect("index columns");
+        assert_eq!(
+            index_columns,
+            ["root_id", "relative_path", "scan_id", "location_id"]
+        );
+    }
+
+    #[test]
+    fn prerelease_v19_with_malformed_path_index_fails_closed() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh v19 catalog");
+        connection
+            .execute_batch(
+                "DROP INDEX asset_locations_root_relative;
+                 CREATE INDEX asset_locations_root_relative
+                   ON asset_locations(root_id);",
+            )
+            .expect("malformed prerelease index");
+
+        let error = migrate_schema(&mut connection).expect_err("malformed derived lookup index");
+
+        assert_eq!(error.code, "catalog_change_catch_up_contract_unverifiable");
+    }
 
     #[test]
     fn prerelease_v18_without_recovery_marker_fails_closed() {
@@ -1306,6 +1510,12 @@ mod tests {
                    id TEXT PRIMARY KEY,
                    root_id TEXT NOT NULL,
                    status TEXT NOT NULL
+                 );
+                 CREATE TABLE asset_locations(
+                   root_id TEXT NOT NULL,
+                   relative_path TEXT NOT NULL,
+                   scan_id TEXT NOT NULL,
+                   location_id TEXT NOT NULL
                  );
                  INSERT INTO scan_runs VALUES ('foreground-a', 'root-a', 'running');
                  INSERT INTO scan_runs VALUES (
@@ -1359,6 +1569,12 @@ mod tests {
                    id TEXT PRIMARY KEY,
                    root_id TEXT NOT NULL,
                    status TEXT NOT NULL
+                 );
+                 CREATE TABLE asset_locations(
+                   root_id TEXT NOT NULL,
+                   relative_path TEXT NOT NULL,
+                   scan_id TEXT NOT NULL,
+                   location_id TEXT NOT NULL
                  );
                  CREATE UNIQUE INDEX scan_runs_one_active_root
                    ON scan_runs(root_id) WHERE status IN ('running', 'paused');
@@ -1482,5 +1698,45 @@ mod tests {
         assert_eq!(location_path, "album/nested/photo.png");
         assert_eq!(frontier_path, "album/nested");
         assert_eq!(entry_path, "album/nested/photo.png");
+    }
+
+    #[test]
+    fn v19_migration_adds_empty_catch_up_authority() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        connection
+            .execute_batch(
+                "CREATE TABLE schema_info(version INTEGER NOT NULL);
+                 INSERT INTO schema_info(version) VALUES (16);
+                 CREATE TABLE asset_locations(
+                   root_id TEXT NOT NULL,
+                   relative_path TEXT NOT NULL,
+                   scan_id TEXT NOT NULL,
+                   location_id TEXT NOT NULL
+                 );",
+            )
+            .expect("v16 fixture");
+        migrate_v16_to_v17(&mut connection).expect("v17 migration");
+        migrate_v17_to_v18(&mut connection).expect("v18 migration");
+        migrate_v18_to_v19(&mut connection).expect("v19 migration");
+
+        let (version, marker, checkpoint_count, has_path_index): (i64, bool, i64, bool) =
+            connection
+                .query_row(
+                    "SELECT
+                   (SELECT version FROM schema_info),
+                   (SELECT change_catch_up_complete = 1
+                    FROM library_change_queue_contract WHERE singleton = 1),
+                   (SELECT COUNT(*) FROM library_change_catch_up_state),
+                   EXISTS(SELECT 1 FROM sqlite_master
+                     WHERE type = 'index' AND name = 'asset_locations_root_relative')",
+                    [],
+                    |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+                )
+                .expect("v19 evidence");
+
+        assert_eq!(version, 19);
+        assert!(marker);
+        assert_eq!(checkpoint_count, 0);
+        assert!(has_path_index);
     }
 }

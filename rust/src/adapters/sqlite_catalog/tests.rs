@@ -1331,13 +1331,14 @@ fn migrates_v12_by_materializing_the_file_time_fallback_key() {
                scan_id TEXT NOT NULL,
                location_id TEXT NOT NULL,
                root_id TEXT NOT NULL,
+               relative_path TEXT NOT NULL,
                created_unix_ms INTEGER,
                modified_unix_ms INTEGER NOT NULL,
                capture_local_time TEXT,
                PRIMARY KEY(scan_id, location_id)
              );
              INSERT INTO asset_locations VALUES (
-               'scan-1', 'location-1', 'root-1',
+               'scan-1', 'location-1', 'root-1', 'Album/photo.png',
                1749988800000, 1784116800000, NULL
              );
              CREATE INDEX asset_locations_gallery_time
@@ -1386,6 +1387,7 @@ fn migrates_v13_with_an_empty_preview_artifact_index() {
              CREATE TABLE asset_locations (
                scan_id TEXT NOT NULL, asset_id TEXT NOT NULL,
                location_id TEXT NOT NULL, root_id TEXT NOT NULL,
+               relative_path TEXT NOT NULL,
                preview_path TEXT NOT NULL
              );",
         )
@@ -1446,11 +1448,14 @@ fn migrates_v14_preview_ownership_to_every_active_location() {
              CREATE TABLE asset_locations (
                scan_id TEXT NOT NULL, asset_id TEXT NOT NULL,
                location_id TEXT NOT NULL, root_id TEXT NOT NULL,
+               relative_path TEXT NOT NULL,
                preview_path TEXT NOT NULL
              );
              INSERT INTO asset_locations VALUES
-               ('scan-1', 'asset-1', 'location-1', 'root-1', 'C:\\Cache\\shared.jpg'),
-               ('scan-2', 'asset-2', 'location-2', 'root-2', 'C:\\Cache\\shared.jpg');
+               ('scan-1', 'asset-1', 'location-1', 'root-1', 'shared.jpg',
+                'C:\\Cache\\shared.jpg'),
+               ('scan-2', 'asset-2', 'location-2', 'root-2', 'shared.jpg',
+                'C:\\Cache\\shared.jpg');
              CREATE TABLE preview_artifacts (
                artifact_key TEXT PRIMARY KEY,
                location_id TEXT NOT NULL,
@@ -1529,13 +1534,16 @@ fn migrates_v15_by_reconciling_preview_ownership_with_active_locations() {
                scan_id TEXT NOT NULL,
                location_id TEXT NOT NULL,
                root_id TEXT NOT NULL,
+               relative_path TEXT NOT NULL,
                preview_path TEXT NOT NULL,
                preview_status TEXT NOT NULL
              );
              INSERT INTO asset_locations VALUES
-               ('scan-1', 'location-1', 'root-1', 'C:\\Cache\\shared.jpg', 'ready'),
-               ('scan-2', 'location-2', 'root-2', 'C:\\Cache\\shared.jpg', 'ready'),
-               ('scan-retired', 'location-retired', 'root-retired',
+               ('scan-1', 'location-1', 'root-1', 'shared.jpg',
+                'C:\\Cache\\shared.jpg', 'ready'),
+               ('scan-2', 'location-2', 'root-2', 'shared.jpg',
+                'C:\\Cache\\shared.jpg', 'ready'),
+               ('scan-retired', 'location-retired', 'root-retired', 'retired.jpg',
                 'C:\\Cache\\retired.jpg', 'ready');
              CREATE TABLE preview_artifacts (
                artifact_key TEXT PRIMARY KEY,
@@ -1644,6 +1652,37 @@ fn gallery_time_query_uses_its_ordering_index() {
             .iter()
             .any(|detail| detail.contains("asset_locations_gallery_time")),
         "unexpected gallery-time query plan: {details:?}"
+    );
+}
+
+#[test]
+fn active_relative_path_lookup_uses_its_complete_lookup_index() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let catalog = SqliteCatalog::open(path).expect("catalog");
+    let details = catalog
+        .connection
+        .prepare(
+            "EXPLAIN QUERY PLAN
+             SELECT locations.location_id
+             FROM library_roots AS roots
+             JOIN asset_locations AS locations
+               ON locations.scan_id = roots.active_scan_id
+             WHERE locations.root_id = ?1 AND locations.relative_path = ?2
+             ORDER BY locations.location_id
+             LIMIT 1",
+        )
+        .expect("query plan")
+        .query_map(["root-a", "album/photo.jpg"], |row| row.get::<_, String>(3))
+        .expect("query-plan rows")
+        .collect::<Result<Vec<_>, _>>()
+        .expect("query-plan details");
+
+    assert!(
+        details
+            .iter()
+            .any(|detail| detail.contains("asset_locations_root_relative")),
+        "unexpected active path query plan: {details:?}"
     );
 }
 

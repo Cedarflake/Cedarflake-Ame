@@ -14,14 +14,19 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 #[cfg(windows)]
 use crate::adapters::{
-    SqliteCatalog, inspect_root_availability, production_library_change_source_factory,
+    SqliteCatalog, inspect_root_availability, production_library_change_catch_up_source,
+    production_library_change_source_factory,
 };
-use crate::domain::{LibrarySynchronizationSnapshot, ScanError};
+use crate::domain::{LibraryChangeCatchUpReport, LibrarySynchronizationSnapshot, ScanError};
 #[cfg(windows)]
 use crate::domain::{RecoverableScan, ScanEvent, ScanRequest};
 
 #[cfg(windows)]
 use super::LibrarySynchronizationRuntime;
+#[cfg(windows)]
+use crate::application::library_change_catch_up::{
+    LibraryChangeCatchUpExecution, process_library_change_catch_up,
+};
 #[cfg(windows)]
 use crate::application::{
     AuthoritativeLibraryChangeReport, cancel_scan,
@@ -59,12 +64,14 @@ struct RecoveryTask {
 enum RecoveryTaskKind {
     Authoritative,
     FullScan { scan_id: String },
+    CatchUp { root_ids: Vec<String> },
 }
 
 #[cfg(windows)]
 enum RecoveryTaskOutcome {
     Authoritative(AuthoritativeLibraryChangeReport),
     FullScan,
+    CatchUp(LibraryChangeCatchUpReport),
 }
 
 #[cfg(windows)]
@@ -92,7 +99,7 @@ pub(crate) fn start_production_library_synchronization()
             }
         }
         let runtime = runtime_state.get_or_insert_with(|| ProductionSynchronization {
-            runtime: LibrarySynchronizationRuntime::new_erased(
+            runtime: LibrarySynchronizationRuntime::new_production(
                 production_library_change_source_factory(),
             ),
             recovery: None,
@@ -158,17 +165,6 @@ fn poll_runtime(
     let now_unix_ms = now_unix_ms()?;
     let mut catalog = SqliteCatalog::open(storage.catalog_path)?;
     let recovered_mutation_count = runtime.poll_recovery(now_unix_ms)?;
-    let recoverable_scan = if runtime.recovery.is_none() {
-        runtime.next_authoritative_recoverable_scan(&catalog)?
-    } else {
-        None
-    };
-    if runtime.recovery.is_none()
-        && let Some(recoverable) = recoverable_scan
-        && runtime.recovery_is_due(&recovery_root_id(&recoverable), now_unix_ms)
-    {
-        runtime.start_recoverable_scan(recoverable)?;
-    }
     let mut snapshot = runtime.runtime.poll_without_authoritative_recovery(
         &mut catalog,
         now_unix_ms,
@@ -184,6 +180,28 @@ fn poll_runtime(
             )
         })?;
     if runtime.recovery.is_none() {
+        let pending_catch_up = runtime.runtime.pending_catch_up_roots();
+        if !pending_catch_up.is_empty() {
+            if pending_catch_up
+                .iter()
+                .all(|root| runtime.recovery_is_due(&root.root_id, now_unix_ms))
+            {
+                runtime.start_catch_up(pending_catch_up, now_unix_ms)?;
+            }
+            return Ok(snapshot);
+        }
+        if runtime.runtime.has_unready_catch_up_roots() {
+            return Ok(snapshot);
+        }
+    }
+    if runtime.recovery.is_none() {
+        let recoverable_scan = runtime.next_authoritative_recoverable_scan(&catalog)?;
+        if let Some(recoverable) = recoverable_scan
+            && runtime.recovery_is_due(&recovery_root_id(&recoverable), now_unix_ms)
+        {
+            runtime.start_recoverable_scan(recoverable)?;
+            return Ok(snapshot);
+        }
         let mut pending_full_scan = None;
         for request in runtime.runtime.pending_full_scan_requests() {
             if runtime.recovery_is_due(&request.root_id, now_unix_ms)
@@ -302,6 +320,10 @@ impl ProductionSynchronization {
             return Ok(0);
         };
         let root_id = task.root_id.clone();
+        let catch_up_root_ids = match &task.kind {
+            RecoveryTaskKind::CatchUp { root_ids } => Some(root_ids.clone()),
+            RecoveryTaskKind::Authoritative | RecoveryTaskKind::FullScan { .. } => None,
+        };
         if let Some(worker) = task.worker.take() {
             let _ = worker.join();
         }
@@ -319,12 +341,75 @@ impl ProductionSynchronization {
                 self.recovery_retries.remove(&root_id);
                 Ok(0)
             }
+            Ok(RecoveryTaskOutcome::CatchUp(report)) => {
+                for completed in &report.completed_roots {
+                    self.recovery_retries.remove(&completed.root_id);
+                }
+                self.runtime.acknowledge_catch_up(&report);
+                Ok(0)
+            }
             Err(error) => {
-                self.record_recovery_failure(&root_id, now_unix_ms);
-                self.runtime.record_full_scan_failure(&root_id, error.code);
+                if let Some(root_ids) = catch_up_root_ids {
+                    for affected_root_id in &root_ids {
+                        self.record_recovery_failure(affected_root_id, now_unix_ms);
+                    }
+                    self.runtime.record_catch_up_failure(&root_ids, &error.code);
+                } else {
+                    self.record_recovery_failure(&root_id, now_unix_ms);
+                    self.runtime.record_full_scan_failure(&root_id, error.code);
+                }
                 Ok(0)
             }
         }
+    }
+
+    fn start_catch_up(
+        &mut self,
+        roots: Vec<crate::domain::IncrementalCatalogRoot>,
+        now_unix_ms: i64,
+    ) -> Result<(), ScanError> {
+        if self.recovery.is_some() || roots.is_empty() {
+            return Ok(());
+        }
+        let root_ids = roots
+            .iter()
+            .map(|root| root.root_id.clone())
+            .collect::<Vec<_>>();
+        let catalog_path = storage_paths()?.catalog_path;
+        let queue_policy = self.runtime.queue_policy();
+        let cancelled = Arc::new(AtomicBool::new(false));
+        let worker_cancelled = Arc::clone(&cancelled);
+        let (sender, receiver) = mpsc::sync_channel(1);
+        let worker = thread::Builder::new()
+            .name("ame-usn-downtime-catch-up".to_owned())
+            .spawn(move || {
+                let source = production_library_change_catch_up_source();
+                let result = SqliteCatalog::open(catalog_path).and_then(|mut catalog| {
+                    process_library_change_catch_up(
+                        &source,
+                        &mut catalog,
+                        &roots,
+                        LibraryChangeCatchUpExecution::at(now_unix_ms, queue_policy),
+                        &worker_cancelled,
+                    )
+                    .map(RecoveryTaskOutcome::CatchUp)
+                });
+                let _ = sender.send(result);
+            })
+            .map_err(|error| {
+                ScanError::new(
+                    "library_change_catch_up_worker_start_failed",
+                    format!("Could not start downtime catch-up: {error}"),
+                )
+            })?;
+        self.recovery = Some(RecoveryTask {
+            root_id: root_ids[0].clone(),
+            kind: RecoveryTaskKind::CatchUp { root_ids },
+            cancelled,
+            receiver,
+            worker: Some(worker),
+        });
+        Ok(())
     }
 
     fn start_recoverable_scan(&mut self, recoverable: RecoverableScan) -> Result<(), ScanError> {
