@@ -27,15 +27,20 @@ The controlled fixtures prove:
 | Single scan owner | Reject a second running or paused authoritative scan for the same root |
 | Restart safety | Persist the requirement to preserve the previous snapshot and reject publication |
 | Corrupt rescan | Keep the last trustworthy active location and catalog revision |
+| New full-scan issue | Keep a published root stale and do not advance its audit without prior evidence |
 | Migrated placeholder | Preserve a normalized v17 path with its legacy location identifier |
+| Migrated healthy file | Preserve a normalized v17 location and asset without identity evidence |
 | Limited rescan | Never replace an existing root with a partial snapshot |
 | Relative paths | Store slash-separated catalog and checkpoint paths across Windows and migration |
-| Schema v18 | Migrate v17 atomically, repair an unambiguous draft index, and fail closed on conflicts |
+| Scan lifecycle owner | Prevent production and Flutter from concurrently resuming one scan ID |
+| Multi-root recovery | Rotate a bounded cursor across every authoritative recoverable scan |
+| Schema v18 | Migrate v17 atomically, repair unambiguous draft ownership, and fail closed on conflicts |
 | Recovery retry | Apply bounded exponential retry per root without blocking another root |
+| Retry scheduling | Start workers only for currently due authoritative work |
 | Consistency audit | Persist completion time and never project synchronized before publication |
 | Watcher restart | Keep the continuity gap unresolved until a restarted observer is healthy |
 | Background worker | Do not enumerate authoritative scopes inside the production polling mutex |
-| Shutdown | Signal and join bounded recovery without consuming its pending queue evidence |
+| Shutdown | Retain timed-out worker ownership and block restart until a later join |
 | Source safety | Retry new and existing placeholders without hydration, removal, or audit success |
 
 ## Focused verification evidence
@@ -48,7 +53,7 @@ cargo test authoritative_scan --all-features -- --nocapture
 3 passed; 0 failed
 
 cargo test adapters::sqlite_catalog::migrations::tests --all-features -- --nocapture
-4 passed; 0 failed
+5 passed; 0 failed
 
 cargo test application::library_synchronization::tests --all-features -- --nocapture
 11 passed; 0 failed
@@ -56,8 +61,17 @@ cargo test application::library_synchronization::tests --all-features -- --nocap
 cargo test migrated_v17_placeholder_preserves_the_normalized_legacy_location --all-features -- --nocapture
 1 passed; 0 failed
 
+cargo test migrated_v17_healthy_file_preserves_legacy_location_without_identity_evidence --all-features -- --nocapture
+1 passed; 0 failed
+
+cargo test authoritative_full_scan_with_new_placeholder_remains_stale_without_advancing_audit --all-features -- --nocapture
+1 passed; 0 failed
+
+cargo test application::library_synchronization::production::tests --all-features -- --nocapture
+5 passed; 0 failed
+
 cargo test --all-targets --all-features
-310 total; 305 passed; 0 failed; 5 explicit ignores
+317 total; 312 passed; 0 failed; 5 explicit ignores
 ```
 
 No authorization-bound source root is required or accessed by these fixtures.
@@ -72,7 +86,7 @@ No authorization-bound source root is required or accessed by these fixtures.
 release guardrails, format, Clippy with warnings denied, and Dart analysis: passed
 
 ./tool/quality_verify_daily.ps1
-Rust: 310 total; 305 passed; 0 failed; 5 existing explicit ignores
+Rust: 317 total; 312 passed; 0 failed; 5 existing explicit ignores
 Flutter: all test files passed
 Windows controlled picker and scan integration: 2 passed
 Windows native accessibility integration: 2 passed
@@ -86,19 +100,23 @@ git diff --check
 passed
 ```
 
-An unprivileged Daily invocation reached the documented workspace-only Flutter SDK lock before
-creating a Dart or `flutter_tester` child. It was interrupted through its own terminal session and
-the same repository command passed with scoped sandbox approval. The same rule was applied to the
-Windows Release gate. No SDK lock was deleted and no unrelated Dart or Flutter process was
-terminated.
+An unprivileged Daily invocation could not write Dart's user-level telemetry configuration; the
+same repository command passed with scoped sandbox approval. An unprivileged Windows Release
+invocation later remained before child-process creation while holding the repository tool lock.
+Terminal interruption did not unwind its PowerShell host, so only the two process IDs proven to
+belong to this turn's Release invocations were stopped before the same script passed with scoped
+approval. No SDK or repository lock file was deleted, and no unrelated Dart, Flutter, or PowerShell
+process was terminated.
 
 ## Independent audit
 
 The first dedicated PR audit returned `REQUEST CHANGES` with four High, one Medium, and one Low
-finding. The current head moves bounded recovery out of the production polling mutex, retains gaps
-through watcher restart, retries placeholders, preserves normalized v17 legacy locations, enforces
-one active scan per root, proves selective scan-lease release and bounded cancellation, and updates
-the schema and acceptance claims. Final independent re-audit is pending before merge.
+finding. Its first re-audit confirmed those paths closed, then returned two High, three Medium, and
+one Low follow-up finding. The current working tree additionally keeps new full-scan issues stale,
+preserves healthy legacy location identity, separates foreground and authoritative recoverable
+scans, rotates across multiple recovery roots, retains timed-out worker ownership, and schedules
+only due authoritative work. Final independent re-audit of the committed head remains required
+before merge.
 
 ## Remaining boundary
 

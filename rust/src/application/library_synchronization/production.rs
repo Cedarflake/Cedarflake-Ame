@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 #[cfg(windows)]
 use std::sync::atomic::{AtomicBool, Ordering};
 #[cfg(windows)]
-use std::sync::mpsc::{self, Receiver, TryRecvError};
+use std::sync::mpsc::{self, Receiver, RecvTimeoutError, TryRecvError};
 #[cfg(windows)]
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
 #[cfg(windows)]
@@ -25,7 +25,7 @@ use super::LibrarySynchronizationRuntime;
 #[cfg(windows)]
 use crate::application::{
     AuthoritativeLibraryChangeReport, cancel_scan,
-    process_ready_authoritative_library_change_cancellable, run_scan, storage_paths,
+    process_ready_authoritative_library_change_cancellable, run_authoritative_scan, storage_paths,
 };
 #[cfg(windows)]
 use crate::ports::CatalogRepository;
@@ -37,13 +37,13 @@ static SYNCHRONIZATION_RUNTIME: OnceLock<Mutex<Option<ProductionSynchronization>
 const RECOVERY_RETRY_INITIAL_MILLIS: i64 = 1_000;
 #[cfg(windows)]
 const RECOVERY_RETRY_MAXIMUM_MILLIS: i64 = 5 * 60 * 1_000;
-
 #[cfg(windows)]
 struct ProductionSynchronization {
     runtime: LibrarySynchronizationRuntime,
     recovery: Option<RecoveryTask>,
-    checked_recoverable_scan: bool,
     recovery_retries: BTreeMap<String, RecoveryRetryState>,
+    recoverable_scan_cursor: Option<String>,
+    is_stopping: bool,
 }
 
 #[cfg(windows)]
@@ -79,13 +79,26 @@ pub(crate) fn start_production_library_synchronization()
     #[cfg(windows)]
     {
         let mut runtime_state = lock_runtime()?;
+        if let Some(runtime) = runtime_state.as_mut()
+            && runtime.is_stopping
+        {
+            if runtime.finish_stopping()? {
+                *runtime_state = None;
+            } else {
+                return Err(ScanError::new(
+                    "library_synchronization_stop_in_progress",
+                    "The prior synchronization runtime is still stopping",
+                ));
+            }
+        }
         let runtime = runtime_state.get_or_insert_with(|| ProductionSynchronization {
             runtime: LibrarySynchronizationRuntime::new_erased(
                 production_library_change_source_factory(),
             ),
             recovery: None,
-            checked_recoverable_scan: false,
             recovery_retries: BTreeMap::new(),
+            recoverable_scan_cursor: None,
+            is_stopping: false,
         });
         poll_runtime(runtime)
     }
@@ -106,6 +119,12 @@ pub(crate) fn poll_production_library_synchronization()
                 "Library synchronization must start before it can be polled",
             )
         })?;
+        if runtime.is_stopping {
+            return Err(ScanError::new(
+                "library_synchronization_stop_in_progress",
+                "Library synchronization is still stopping",
+            ));
+        }
         poll_runtime(runtime)
     }
     #[cfg(not(windows))]
@@ -117,13 +136,12 @@ pub(crate) fn poll_production_library_synchronization()
 pub(crate) fn stop_production_library_synchronization() -> Result<(), ScanError> {
     #[cfg(windows)]
     {
-        let runtime_state = {
-            let mut guarded = lock_runtime()?;
-            guarded.take()
-        };
-        if let Some(mut runtime) = runtime_state {
+        let mut guarded = lock_runtime()?;
+        if let Some(runtime) = guarded.as_mut() {
+            runtime.is_stopping = true;
             runtime.stop()?;
         }
+        guarded.take();
         Ok(())
     }
     #[cfg(not(windows))]
@@ -140,16 +158,16 @@ fn poll_runtime(
     let now_unix_ms = now_unix_ms()?;
     let mut catalog = SqliteCatalog::open(storage.catalog_path)?;
     let recovered_mutation_count = runtime.poll_recovery(now_unix_ms)?;
-    if !runtime.checked_recoverable_scan && runtime.recovery.is_none() {
-        if let Some(recoverable) = catalog.load_recoverable_scan()? {
-            let root_id = recovery_root_id(&recoverable);
-            if runtime.recovery_is_due(&root_id, now_unix_ms) {
-                runtime.start_recoverable_scan(recoverable)?;
-                runtime.checked_recoverable_scan = true;
-            }
-        } else {
-            runtime.checked_recoverable_scan = true;
-        }
+    let recoverable_scan = if runtime.recovery.is_none() {
+        runtime.next_authoritative_recoverable_scan(&catalog)?
+    } else {
+        None
+    };
+    if runtime.recovery.is_none()
+        && let Some(recoverable) = recoverable_scan
+        && runtime.recovery_is_due(&recovery_root_id(&recoverable), now_unix_ms)
+    {
+        runtime.start_recoverable_scan(recoverable)?;
     }
     let mut snapshot = runtime.runtime.poll_without_authoritative_recovery(
         &mut catalog,
@@ -166,12 +184,16 @@ fn poll_runtime(
             )
         })?;
     if runtime.recovery.is_none() {
-        if let Some(request) = runtime
-            .runtime
-            .pending_full_scan_requests()
-            .into_iter()
-            .find(|request| runtime.recovery_is_due(&request.root_id, now_unix_ms))
-        {
+        let mut pending_full_scan = None;
+        for request in runtime.runtime.pending_full_scan_requests() {
+            if runtime.recovery_is_due(&request.root_id, now_unix_ms)
+                && !catalog.has_active_scan_for_root(&request.root_id)?
+            {
+                pending_full_scan = Some(request);
+                break;
+            }
+        }
+        if let Some(request) = pending_full_scan {
             let scan_id = format!(
                 "sync-recovery-{}-{}-{}",
                 request.root_generation.value(),
@@ -191,27 +213,46 @@ fn poll_runtime(
             runtime
                 .runtime
                 .acknowledge_full_scan_started(&request.root_id, request.queue_high_watermark);
-        } else if let Some(root) = snapshot.roots.iter().find(|root| {
-            root.availability == crate::domain::LibraryRootAvailability::Available
-                && root.source_health == crate::domain::LibraryChangeSourceHealth::Healthy
-                && (root.pending_change_count > 0 || root.retry_wait_count > 0)
-                && runtime.recovery_is_due(&root.root_id, now_unix_ms)
-        }) {
-            let root_generation = crate::domain::LibraryRootGeneration::new(root.root_generation)
-                .ok_or_else(|| {
+        } else if let Some((root_id, root_generation)) =
+            ready_authoritative_root(runtime, &catalog, &snapshot, now_unix_ms)?
+        {
+            runtime.start_authoritative_recovery(root_id, root_generation, now_unix_ms)?;
+        }
+    }
+    Ok(snapshot)
+}
+
+#[cfg(windows)]
+fn ready_authoritative_root(
+    runtime: &ProductionSynchronization,
+    catalog: &SqliteCatalog,
+    snapshot: &LibrarySynchronizationSnapshot,
+    now_unix_ms: i64,
+) -> Result<Option<(String, crate::domain::LibraryRootGeneration)>, ScanError> {
+    for root in &snapshot.roots {
+        if root.availability != crate::domain::LibraryRootAvailability::Available
+            || root.source_health != crate::domain::LibraryChangeSourceHealth::Healthy
+            || !runtime.recovery_is_due(&root.root_id, now_unix_ms)
+        {
+            continue;
+        }
+        let root_generation = crate::domain::LibraryRootGeneration::new(root.root_generation)
+            .ok_or_else(|| {
                 ScanError::new(
                     "library_root_generation_invalid",
                     "The synchronization root generation is invalid",
                 )
             })?;
-            runtime.start_authoritative_recovery(
-                root.root_id.clone(),
-                root_generation,
-                now_unix_ms,
-            )?;
+        if catalog.has_ready_authoritative_library_change(
+            &root.root_id,
+            root_generation,
+            now_unix_ms,
+            runtime.runtime.queue_policy(),
+        )? {
+            return Ok(Some((root.root_id.clone(), root_generation)));
         }
     }
-    Ok(snapshot)
+    Ok(None)
 }
 
 #[cfg(windows)]
@@ -229,6 +270,22 @@ fn lock_runtime() -> Result<MutexGuard<'static, Option<ProductionSynchronization
 
 #[cfg(windows)]
 impl ProductionSynchronization {
+    fn next_authoritative_recoverable_scan(
+        &mut self,
+        catalog: &SqliteCatalog,
+    ) -> Result<Option<RecoverableScan>, ScanError> {
+        let mut recoverable = catalog
+            .load_authoritative_recoverable_scan_after(self.recoverable_scan_cursor.as_deref())?;
+        if recoverable.is_none() && self.recoverable_scan_cursor.is_some() {
+            self.recoverable_scan_cursor = None;
+            recoverable = catalog.load_authoritative_recoverable_scan_after(None)?;
+        }
+        if let Some(scan) = recoverable.as_ref() {
+            self.recoverable_scan_cursor = Some(scan.scan_id.clone());
+        }
+        Ok(recoverable)
+    }
+
     fn poll_recovery(&mut self, now_unix_ms: i64) -> Result<u32, ScanError> {
         let Some(task) = self.recovery.as_mut() else {
             return Ok(0);
@@ -245,7 +302,6 @@ impl ProductionSynchronization {
             return Ok(0);
         };
         let root_id = task.root_id.clone();
-        let was_full_scan = matches!(&task.kind, RecoveryTaskKind::FullScan { .. });
         if let Some(worker) = task.worker.take() {
             let _ = worker.join();
         }
@@ -264,9 +320,6 @@ impl ProductionSynchronization {
             }
             Err(error) => {
                 self.record_recovery_failure(&root_id, now_unix_ms);
-                if was_full_scan {
-                    self.checked_recoverable_scan = false;
-                }
                 self.runtime.record_full_scan_failure(&root_id, error.code);
                 Ok(0)
             }
@@ -372,12 +425,15 @@ impl ProductionSynchronization {
     }
 
     fn stop(&mut self) -> Result<(), ScanError> {
-        let runtime_result = self.runtime.stop();
-        let recovery_result = self.stop_recovery();
-        runtime_result.and(recovery_result)
+        self.stop_recovery()?;
+        self.runtime.stop()
     }
 
     fn stop_recovery(&mut self) -> Result<(), ScanError> {
+        self.stop_recovery_with_timeout(Duration::from_secs(2))
+    }
+
+    fn stop_recovery_with_timeout(&mut self, timeout: Duration) -> Result<(), ScanError> {
         let Some(mut task) = self.recovery.take() else {
             return Ok(());
         };
@@ -385,18 +441,37 @@ impl ProductionSynchronization {
         if let RecoveryTaskKind::FullScan { scan_id } = &task.kind {
             let _ = cancel_scan(scan_id);
         }
-        match task.receiver.recv_timeout(Duration::from_secs(2)) {
-            Ok(_) => {
+        match task.receiver.recv_timeout(timeout) {
+            Ok(_) | Err(RecvTimeoutError::Disconnected) => {
                 if let Some(worker) = task.worker.take() {
                     let _ = worker.join();
                 }
                 Ok(())
             }
-            Err(_) => Err(ScanError::new(
-                "authoritative_recovery_stop_timeout",
-                "Authoritative recovery did not stop within two seconds",
-            )),
+            Err(RecvTimeoutError::Timeout) => {
+                self.recovery = Some(task);
+                Err(ScanError::new(
+                    "authoritative_recovery_stop_timeout",
+                    "Authoritative recovery did not stop within the bounded shutdown window",
+                ))
+            }
         }
+    }
+
+    fn finish_stopping(&mut self) -> Result<bool, ScanError> {
+        if let Some(task) = self.recovery.as_mut() {
+            match task.receiver.try_recv() {
+                Ok(_) | Err(TryRecvError::Disconnected) => {
+                    if let Some(worker) = task.worker.take() {
+                        let _ = worker.join();
+                    }
+                    self.recovery = None;
+                }
+                Err(TryRecvError::Empty) => return Ok(false),
+            }
+        }
+        self.runtime.stop()?;
+        Ok(true)
     }
 
     fn recovery_is_due(&self, root_id: &str, now_unix_ms: i64) -> bool {
@@ -435,7 +510,7 @@ fn run_recovery_scan(request: ScanRequest, cancelled: &AtomicBool) -> Result<(),
     let scan_id = request.scan_id.clone();
     let mut completed = false;
     let mut terminal_error = None;
-    run_scan(request, |event| {
+    run_authoritative_scan(request, |event| {
         match event {
             ScanEvent::Completed { was_limited, .. } if !was_limited => completed = true,
             ScanEvent::Completed { .. } => {
@@ -513,8 +588,9 @@ mod tests {
         let mut production = ProductionSynchronization {
             runtime: LibrarySynchronizationRuntime::new_erased(factory),
             recovery: None,
-            checked_recoverable_scan: true,
             recovery_retries: BTreeMap::new(),
+            recoverable_scan_cursor: None,
+            is_stopping: false,
         };
 
         production.record_recovery_failure("root-a", 1_000);
@@ -532,6 +608,54 @@ mod tests {
             retry.next_attempt_unix_ms,
             2_000 + RECOVERY_RETRY_MAXIMUM_MILLIS
         );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn recoverable_scan_cursor_rotates_across_multiple_roots() {
+        let directory = tempfile::tempdir().expect("catalog directory");
+        let mut catalog =
+            SqliteCatalog::open(directory.path().join("catalog.sqlite3")).expect("catalog");
+        for (scan_id, root_id, root_path) in [
+            ("sync-recovery-a", "root-a", "C:\\RecoveryA"),
+            ("sync-recovery-b", "root-b", "C:\\RecoveryB"),
+        ] {
+            let request = ScanRequest {
+                scan_id: scan_id.to_owned(),
+                root_path: root_path.to_owned(),
+                max_items: None,
+                max_entries: None,
+                preview_edge: 512,
+            };
+            catalog
+                .begin_authoritative_scan(&request, root_id, root_path)
+                .expect("authoritative scan");
+        }
+        let factory = crate::adapters::production_library_change_source_factory();
+        let mut production = ProductionSynchronization {
+            runtime: LibrarySynchronizationRuntime::new_erased(factory),
+            recovery: None,
+            recovery_retries: BTreeMap::new(),
+            recoverable_scan_cursor: None,
+            is_stopping: false,
+        };
+
+        let first = production
+            .next_authoritative_recoverable_scan(&catalog)
+            .expect("first recovery")
+            .expect("first scan");
+        let second = production
+            .next_authoritative_recoverable_scan(&catalog)
+            .expect("second recovery")
+            .expect("second scan");
+        let wrapped = production
+            .next_authoritative_recoverable_scan(&catalog)
+            .expect("wrapped recovery")
+            .expect("wrapped scan");
+
+        assert_eq!(first.scan_id, "sync-recovery-a");
+        assert_eq!(second.scan_id, "sync-recovery-b");
+        assert_eq!(wrapped.scan_id, "sync-recovery-a");
     }
 
     #[cfg(windows)]
@@ -558,13 +682,58 @@ mod tests {
                 receiver,
                 worker: Some(worker),
             }),
-            checked_recoverable_scan: true,
             recovery_retries: BTreeMap::new(),
+            recoverable_scan_cursor: None,
+            is_stopping: false,
         };
 
         production.stop_recovery().expect("stop bounded recovery");
 
         assert!(cancelled.load(Ordering::Acquire));
+        assert!(production.recovery.is_none());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn recovery_stop_timeout_retains_worker_ownership_until_a_later_join() {
+        let factory = crate::adapters::production_library_change_source_factory();
+        let cancelled = Arc::new(AtomicBool::new(false));
+        let release = Arc::new(AtomicBool::new(false));
+        let worker_release = Arc::clone(&release);
+        let (sender, receiver) = mpsc::sync_channel(1);
+        let worker = thread::spawn(move || {
+            while !worker_release.load(Ordering::Acquire) {
+                thread::yield_now();
+            }
+            let _ = sender.send(Ok(RecoveryTaskOutcome::Authoritative(
+                AuthoritativeLibraryChangeReport::default(),
+            )));
+        });
+        let mut production = ProductionSynchronization {
+            runtime: LibrarySynchronizationRuntime::new_erased(factory),
+            recovery: Some(RecoveryTask {
+                root_id: "root-a".to_owned(),
+                kind: RecoveryTaskKind::Authoritative,
+                cancelled: Arc::clone(&cancelled),
+                receiver,
+                worker: Some(worker),
+            }),
+            recovery_retries: BTreeMap::new(),
+            recoverable_scan_cursor: None,
+            is_stopping: true,
+        };
+
+        let error = production
+            .stop_recovery_with_timeout(Duration::from_millis(10))
+            .expect_err("uncooperative worker must exceed the short stop window");
+
+        assert_eq!(error.code, "authoritative_recovery_stop_timeout");
+        assert!(cancelled.load(Ordering::Acquire));
+        assert!(production.recovery.is_some());
+        release.store(true, Ordering::Release);
+        production
+            .stop_recovery_with_timeout(Duration::from_secs(1))
+            .expect("later stop joins retained worker");
         assert!(production.recovery.is_none());
     }
 }

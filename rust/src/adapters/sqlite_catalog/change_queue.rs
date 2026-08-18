@@ -269,6 +269,41 @@ impl LibraryChangeQueue for SqliteCatalog {
 }
 
 impl SqliteCatalog {
+    pub(crate) fn has_ready_authoritative_library_change(
+        &self,
+        root_id: &str,
+        root_generation: LibraryRootGeneration,
+        now_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<bool, ScanError> {
+        validate_policy(policy)?;
+        validate_root_id(root_id)?;
+        self.connection
+            .query_row(
+                "SELECT EXISTS(
+                   SELECT 1 FROM library_change_queue
+                   WHERE root_id = ?1 AND root_generation = ?2
+                     AND attempt_count < ?3
+                     AND (scope <> 'path' OR intent_kind = 'freshness_unknown')
+                     AND (
+                       (status = 'pending' AND ready_unix_ms <= ?4)
+                       OR (status = 'retry_wait' AND next_retry_unix_ms IS NOT NULL
+                         AND next_retry_unix_ms <= ?4)
+                       OR (status = 'leased' AND lease_expires_unix_ms IS NOT NULL
+                         AND lease_expires_unix_ms <= ?4)
+                     )
+                 )",
+                params![
+                    root_id,
+                    sqlite_integer(root_generation.value(), "root generation")?,
+                    i64::from(policy.max_attempts),
+                    now_unix_ms,
+                ],
+                |row| row.get::<_, bool>(0),
+            )
+            .map_err(database_error)
+    }
+
     fn lease_library_changes_matching(
         &mut self,
         root_id: &str,

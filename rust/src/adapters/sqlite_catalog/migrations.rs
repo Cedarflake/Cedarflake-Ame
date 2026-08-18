@@ -84,6 +84,8 @@ fn create_schema_v18(transaction: &Transaction<'_>) -> Result<(), ScanError> {
                id TEXT PRIMARY KEY,
                root_id TEXT NOT NULL,
                status TEXT NOT NULL,
+               scan_owner TEXT NOT NULL DEFAULT 'foreground'
+                 CHECK(scan_owner IN ('foreground', 'authoritative_recovery')),
                started_unix_ms INTEGER NOT NULL,
                completed_unix_ms INTEGER,
                asset_count INTEGER NOT NULL DEFAULT 0,
@@ -389,25 +391,64 @@ fn create_library_change_queue_schema(transaction: &Transaction<'_>) -> Result<(
 fn validate_current_schema_contract(connection: &Connection) -> Result<(), ScanError> {
     validate_change_queue_authority(connection)?;
     validate_authoritative_recovery_marker(connection)?;
-    let (has_scan_runs, has_single_scan_owner_index) = connection
+    let (has_scan_runs, has_single_scan_owner_index, has_scan_owner) = connection
         .query_row(
             "SELECT
                EXISTS(SELECT 1 FROM sqlite_master
                  WHERE type = 'table' AND name = 'scan_runs'),
                EXISTS(SELECT 1 FROM pragma_index_list('scan_runs')
                  WHERE name = 'scan_runs_one_active_root'
-                   AND \"unique\" = 1 AND partial = 1)",
+                   AND \"unique\" = 1 AND partial = 1),
+               EXISTS(SELECT 1 FROM pragma_table_info('scan_runs')
+                 WHERE name = 'scan_owner')",
             [],
-            |row| Ok((row.get::<_, bool>(0)?, row.get::<_, bool>(1)?)),
+            |row| {
+                Ok((
+                    row.get::<_, bool>(0)?,
+                    row.get::<_, bool>(1)?,
+                    row.get::<_, bool>(2)?,
+                ))
+            },
         )
         .map_err(database_error)?;
-    if has_scan_runs && !has_single_scan_owner_index {
+    if has_scan_runs && (!has_single_scan_owner_index || !has_scan_owner) {
         return Err(unverifiable_authoritative_recovery_contract());
     }
     Ok(())
 }
 
 fn validate_authoritative_recovery_marker(connection: &Connection) -> Result<(), ScanError> {
+    validate_authoritative_recovery_base_marker(connection)?;
+    let has_scan_ownership_contract = connection
+        .query_row(
+            "SELECT EXISTS(
+               SELECT 1 FROM pragma_table_info('library_change_queue_contract')
+               WHERE name = 'scan_ownership_complete'
+             )",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    if !has_scan_ownership_contract {
+        return Err(unverifiable_authoritative_recovery_contract());
+    }
+    let ownership_complete = connection
+        .query_row(
+            "SELECT scan_ownership_complete = 1
+             FROM library_change_queue_contract WHERE singleton = 1",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .optional()
+        .map_err(database_error)?
+        .unwrap_or(false);
+    if !ownership_complete {
+        return Err(unverifiable_authoritative_recovery_contract());
+    }
+    Ok(())
+}
+
+fn validate_authoritative_recovery_base_marker(connection: &Connection) -> Result<(), ScanError> {
     let has_recovery_contract = connection
         .query_row(
             "SELECT EXISTS(
@@ -439,58 +480,106 @@ fn validate_authoritative_recovery_marker(connection: &Connection) -> Result<(),
 
 fn repair_prerelease_v18_scan_owner_index(connection: &mut Connection) -> Result<(), ScanError> {
     validate_change_queue_authority(connection)?;
-    validate_authoritative_recovery_marker(connection)?;
-    let (has_scan_runs, has_single_scan_owner_index) = connection
-        .query_row(
-            "SELECT
+    validate_authoritative_recovery_base_marker(connection)?;
+    let (has_scan_runs, has_single_scan_owner_index, has_scan_owner, has_ownership_marker) =
+        connection
+            .query_row(
+                "SELECT
                EXISTS(SELECT 1 FROM sqlite_master
                  WHERE type = 'table' AND name = 'scan_runs'),
                EXISTS(SELECT 1 FROM pragma_index_list('scan_runs')
                  WHERE name = 'scan_runs_one_active_root'
-                   AND \"unique\" = 1 AND partial = 1)",
-            [],
-            |row| Ok((row.get::<_, bool>(0)?, row.get::<_, bool>(1)?)),
-        )
-        .map_err(database_error)?;
-    if !has_scan_runs || has_single_scan_owner_index {
+                   AND \"unique\" = 1 AND partial = 1),
+               EXISTS(SELECT 1 FROM pragma_table_info('scan_runs')
+                 WHERE name = 'scan_owner'),
+               EXISTS(SELECT 1 FROM pragma_table_info('library_change_queue_contract')
+                 WHERE name = 'scan_ownership_complete')",
+                [],
+                |row| {
+                    Ok((
+                        row.get::<_, bool>(0)?,
+                        row.get::<_, bool>(1)?,
+                        row.get::<_, bool>(2)?,
+                        row.get::<_, bool>(3)?,
+                    ))
+                },
+            )
+            .map_err(database_error)?;
+    if (!has_scan_runs || has_single_scan_owner_index && has_scan_owner) && has_ownership_marker {
         return Ok(());
     }
     let transaction = connection
         .transaction_with_behavior(TransactionBehavior::Immediate)
         .map_err(database_error)?;
-    let has_single_scan_owner_index = transaction
+    let (has_single_scan_owner_index, has_scan_owner, has_ownership_marker) = transaction
         .query_row(
-            "SELECT EXISTS(SELECT 1 FROM pragma_index_list('scan_runs')
-               WHERE name = 'scan_runs_one_active_root'
-                 AND \"unique\" = 1 AND partial = 1)",
+            "SELECT
+               EXISTS(SELECT 1 FROM pragma_index_list('scan_runs')
+                 WHERE name = 'scan_runs_one_active_root'
+                   AND \"unique\" = 1 AND partial = 1),
+               EXISTS(SELECT 1 FROM pragma_table_info('scan_runs')
+                 WHERE name = 'scan_owner'),
+               EXISTS(SELECT 1 FROM pragma_table_info('library_change_queue_contract')
+                 WHERE name = 'scan_ownership_complete')",
             [],
-            |row| row.get::<_, bool>(0),
+            |row| {
+                Ok((
+                    row.get::<_, bool>(0)?,
+                    row.get::<_, bool>(1)?,
+                    row.get::<_, bool>(2)?,
+                ))
+            },
         )
         .map_err(database_error)?;
-    if has_single_scan_owner_index {
+    if has_single_scan_owner_index && has_scan_owner && has_ownership_marker {
         return transaction.commit().map_err(database_error);
     }
-    let has_conflicting_scan = transaction
-        .query_row(
-            "SELECT EXISTS(
-               SELECT 1 FROM scan_runs
-               WHERE status IN ('running', 'paused')
-               GROUP BY root_id HAVING COUNT(*) > 1
-             )",
-            [],
-            |row| row.get::<_, bool>(0),
-        )
-        .map_err(database_error)?;
+    let has_conflicting_scan = if has_scan_runs {
+        transaction
+            .query_row(
+                "SELECT EXISTS(
+                   SELECT 1 FROM scan_runs
+                   WHERE status IN ('running', 'paused')
+                   GROUP BY root_id HAVING COUNT(*) > 1
+                 )",
+                [],
+                |row| row.get::<_, bool>(0),
+            )
+            .map_err(database_error)?
+    } else {
+        false
+    };
     if has_conflicting_scan {
         return Err(unverifiable_authoritative_recovery_contract());
     }
-    transaction
-        .execute(
-            "CREATE UNIQUE INDEX scan_runs_one_active_root
-             ON scan_runs(root_id) WHERE status IN ('running', 'paused')",
-            [],
-        )
-        .map_err(database_error)?;
+    if has_scan_runs && !has_scan_owner {
+        transaction
+            .execute_batch(
+                "ALTER TABLE scan_runs ADD COLUMN scan_owner TEXT NOT NULL DEFAULT 'foreground'
+                   CHECK(scan_owner IN ('foreground', 'authoritative_recovery'));
+                 UPDATE scan_runs SET scan_owner = 'authoritative_recovery'
+                 WHERE id LIKE 'sync-recovery-%';",
+            )
+            .map_err(database_error)?;
+    }
+    if !has_ownership_marker {
+        transaction
+            .execute_batch(
+                "ALTER TABLE library_change_queue_contract
+                   ADD COLUMN scan_ownership_complete INTEGER NOT NULL DEFAULT 1
+                   CHECK(scan_ownership_complete = 1);",
+            )
+            .map_err(database_error)?;
+    }
+    if has_scan_runs && !has_single_scan_owner_index {
+        transaction
+            .execute(
+                "CREATE UNIQUE INDEX scan_runs_one_active_root
+                 ON scan_runs(root_id) WHERE status IN ('running', 'paused')",
+                [],
+            )
+            .map_err(database_error)?;
+    }
     transaction.commit().map_err(database_error)
 }
 
@@ -1097,6 +1186,8 @@ fn migrate_v17_to_v18(connection: &mut Connection) -> Result<(), ScanError> {
                    CHECK(change_queue_high_watermark IS NULL OR change_queue_high_watermark > 0);
                  ALTER TABLE scan_runs ADD COLUMN requires_previous_snapshot INTEGER NOT NULL
                    DEFAULT 0 CHECK(requires_previous_snapshot IN (0, 1));
+                 ALTER TABLE scan_runs ADD COLUMN scan_owner TEXT NOT NULL DEFAULT 'foreground'
+                   CHECK(scan_owner IN ('foreground', 'authoritative_recovery'));
                  UPDATE scan_runs
                  SET status = 'interrupted_unrecoverable',
                      completed_unix_ms = COALESCE(completed_unix_ms, started_unix_ms),
@@ -1123,7 +1214,10 @@ fn add_authoritative_recovery_contract_marker(
         .execute_batch(
             "ALTER TABLE library_change_queue_contract
                ADD COLUMN authoritative_recovery_complete INTEGER NOT NULL DEFAULT 1
-               CHECK(authoritative_recovery_complete = 1);",
+               CHECK(authoritative_recovery_complete = 1);
+             ALTER TABLE library_change_queue_contract
+               ADD COLUMN scan_ownership_complete INTEGER NOT NULL DEFAULT 1
+               CHECK(scan_ownership_complete = 1);",
         )
         .map_err(database_error)
 }
@@ -1195,7 +1289,7 @@ mod tests {
     }
 
     #[test]
-    fn prerelease_v18_repairs_missing_single_scan_owner_index() {
+    fn prerelease_v18_repairs_unambiguous_scan_ownership_contract() {
         let mut connection = Connection::open_in_memory().expect("catalog");
         connection
             .execute_batch(
@@ -1212,22 +1306,82 @@ mod tests {
                    id TEXT PRIMARY KEY,
                    root_id TEXT NOT NULL,
                    status TEXT NOT NULL
+                 );
+                 INSERT INTO scan_runs VALUES ('foreground-a', 'root-a', 'running');
+                 INSERT INTO scan_runs VALUES (
+                   'sync-recovery-1-2-3', 'root-b', 'running'
                  );",
             )
             .expect("repairable prerelease v18 fixture");
 
         migrate_schema(&mut connection).expect("repair scan ownership index");
-        let has_index = connection
+        let (has_index, ownership_marker, foreground_owner, recovery_owner): (
+            bool,
+            bool,
+            String,
+            String,
+        ) = connection
             .query_row(
-                "SELECT EXISTS(SELECT 1 FROM pragma_index_list('scan_runs')
-                   WHERE name = 'scan_runs_one_active_root'
-                     AND \"unique\" = 1 AND partial = 1)",
+                "SELECT
+                   EXISTS(SELECT 1 FROM pragma_index_list('scan_runs')
+                     WHERE name = 'scan_runs_one_active_root'
+                       AND \"unique\" = 1 AND partial = 1),
+                   (SELECT scan_ownership_complete = 1
+                    FROM library_change_queue_contract WHERE singleton = 1),
+                   (SELECT scan_owner FROM scan_runs WHERE id = 'foreground-a'),
+                   (SELECT scan_owner FROM scan_runs WHERE id = 'sync-recovery-1-2-3')",
                 [],
-                |row| row.get::<_, bool>(0),
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
             )
             .expect("scan index evidence");
 
         assert!(has_index);
+        assert!(ownership_marker);
+        assert_eq!(foreground_owner, "foreground");
+        assert_eq!(recovery_owner, "authoritative_recovery");
+    }
+
+    #[test]
+    fn prerelease_v18_with_existing_index_repairs_missing_scan_owner() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        connection
+            .execute_batch(
+                "CREATE TABLE schema_info(version INTEGER NOT NULL);
+                 INSERT INTO schema_info(version) VALUES (18);
+                 CREATE TABLE library_change_queue_contract(
+                   singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+                   root_authority_complete INTEGER NOT NULL CHECK(root_authority_complete = 1),
+                   authoritative_recovery_complete INTEGER NOT NULL
+                     CHECK(authoritative_recovery_complete = 1)
+                 );
+                 INSERT INTO library_change_queue_contract VALUES (1, 1, 1);
+                 CREATE TABLE scan_runs(
+                   id TEXT PRIMARY KEY,
+                   root_id TEXT NOT NULL,
+                   status TEXT NOT NULL
+                 );
+                 CREATE UNIQUE INDEX scan_runs_one_active_root
+                   ON scan_runs(root_id) WHERE status IN ('running', 'paused');
+                 INSERT INTO scan_runs VALUES (
+                   'sync-recovery-7-8-9', 'root-a', 'running'
+                 );",
+            )
+            .expect("indexed prerelease v18 fixture");
+
+        migrate_schema(&mut connection).expect("repair missing scan owner");
+        let (owner, ownership_marker): (String, bool) = connection
+            .query_row(
+                "SELECT
+                   (SELECT scan_owner FROM scan_runs WHERE id = 'sync-recovery-7-8-9'),
+                   (SELECT scan_ownership_complete = 1
+                    FROM library_change_queue_contract WHERE singleton = 1)",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .expect("repaired ownership evidence");
+
+        assert_eq!(owner, "authoritative_recovery");
+        assert!(ownership_marker);
     }
 
     #[test]

@@ -171,6 +171,12 @@ pub trait CatalogRepository {
         root_id: &str,
         root_path: &str,
     ) -> Result<ScanCheckpoint, ScanError>;
+    fn begin_authoritative_scan(
+        &mut self,
+        request: &ScanRequest,
+        root_id: &str,
+        root_path: &str,
+    ) -> Result<ScanCheckpoint, ScanError>;
     fn has_active_locations(&self) -> Result<bool, ScanError>;
     fn load_active_location_by_file_identity(
         &self,
@@ -237,6 +243,10 @@ pub trait CatalogRepository {
     ) -> Result<(), ScanError>;
     fn load_recoverable_scan(&self) -> Result<Option<RecoverableScan>, ScanError>;
     fn load_paused_scan(&self) -> Result<Option<RecoverableScan>, ScanError>;
+    fn load_authoritative_recoverable_scan_after(
+        &self,
+        after_scan_id: Option<&str>,
+    ) -> Result<Option<RecoverableScan>, ScanError>;
     fn claim_next_directory(&mut self, scan_id: &str) -> Result<Option<String>, ScanError>;
     fn is_current_directory_enumerated(
         &self,

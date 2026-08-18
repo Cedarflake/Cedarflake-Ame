@@ -2312,6 +2312,87 @@ fn corrupt_rescan_preserves_the_last_trustworthy_published_location() {
 
 #[cfg(windows)]
 #[test]
+fn authoritative_full_scan_with_new_placeholder_remains_stale_without_advancing_audit() {
+    let source = tempdir().expect("source directory");
+    let storage = tempdir().expect("storage directory");
+    RgbaImage::from_pixel(8, 6, Rgba([20, 40, 60, 255]))
+        .save(source.path().join("published.png"))
+        .expect("published fixture");
+    let storage_paths = StoragePaths {
+        catalog_path: storage.path().join("catalog.sqlite3"),
+        preview_root: storage.path().join("previews"),
+        preview_budget_bytes: 64 * 1024 * 1024,
+        settings_path: storage.path().join("settings.sqlite3"),
+    };
+    run_scan_with_storage(
+        ScanRequest {
+            scan_id: "placeholder-full-scan-initial".to_owned(),
+            root_path: source.path().to_string_lossy().into_owned(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+        |_| true,
+        storage_paths.clone(),
+    )
+    .expect("initial scan");
+    let before = load_test_snapshot(&storage_paths);
+    let connection = Connection::open(&storage_paths.catalog_path).expect("catalog database");
+    let before_audit: Option<i64> = connection
+        .query_row(
+            "SELECT last_consistency_audit_unix_ms FROM library_change_root_state LIMIT 1",
+            [],
+            |row| row.get(0),
+        )
+        .expect("initial audit time");
+    drop(connection);
+    let placeholder_path = source.path().join("new-placeholder.png");
+    RgbaImage::from_pixel(8, 6, Rgba([80, 100, 120, 255]))
+        .save(&placeholder_path)
+        .expect("placeholder fixture");
+    set_scan_fixture_offline_attribute(&placeholder_path, true);
+    let mut events = Vec::new();
+
+    run_scan_with_storage_owned(
+        ScanRequest {
+            scan_id: "sync-recovery-placeholder-full-scan".to_owned(),
+            root_path: source.path().to_string_lossy().into_owned(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+        |event| {
+            events.push(event);
+            true
+        },
+        storage_paths.clone(),
+        true,
+    )
+    .expect("placeholder full scan remains recoverable");
+    set_scan_fixture_offline_attribute(&placeholder_path, false);
+
+    let after = load_test_snapshot(&storage_paths);
+    let connection = Connection::open(&storage_paths.catalog_path).expect("catalog database");
+    let (status, owner, after_audit): (String, String, Option<i64>) = connection
+        .query_row(
+            "SELECT scans.status, scans.scan_owner, state.last_consistency_audit_unix_ms
+             FROM scan_runs AS scans
+             JOIN library_change_root_state AS state ON state.root_id = scans.root_id
+             WHERE scans.id = 'sync-recovery-placeholder-full-scan'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .expect("authoritative scan state");
+    assert!(matches!(events.last(), Some(ScanEvent::Stale { .. })));
+    assert_eq!(status, "stale");
+    assert_eq!(owner, "authoritative_recovery");
+    assert_eq!(after_audit, before_audit);
+    assert_eq!(after.revision, before.revision);
+    assert_eq!(after.assets.len(), 1);
+}
+
+#[cfg(windows)]
+#[test]
 fn migrated_v17_placeholder_preserves_the_normalized_legacy_location() {
     let source = tempdir().expect("source directory");
     let storage = tempdir().expect("storage directory");
@@ -2353,6 +2434,9 @@ fn migrated_v17_placeholder_preserves_the_normalized_legacy_location() {
              ALTER TABLE scan_runs DROP COLUMN requires_previous_snapshot;
              ALTER TABLE scan_runs DROP COLUMN root_generation_at_start;
              ALTER TABLE scan_runs DROP COLUMN change_queue_high_watermark;
+             ALTER TABLE scan_runs DROP COLUMN scan_owner;
+             ALTER TABLE library_change_queue_contract
+               DROP COLUMN scan_ownership_complete;
              ALTER TABLE library_change_queue_contract
                DROP COLUMN authoritative_recovery_complete;",
         )
@@ -2411,6 +2495,107 @@ fn migrated_v17_placeholder_preserves_the_normalized_legacy_location() {
     assert_eq!(retained.location_id, "legacy-v17-location");
     assert_eq!(retained.relative_path, "album/retained.png");
     assert_eq!(retained.asset_id, old_asset_id);
+}
+
+#[cfg(windows)]
+#[test]
+fn migrated_v17_healthy_file_preserves_legacy_location_without_identity_evidence() {
+    let source = tempdir().expect("source directory");
+    let storage = tempdir().expect("storage directory");
+    let album = source.path().join("album");
+    fs::create_dir(&album).expect("album directory");
+    let source_path = album.join("healthy.png");
+    RgbaImage::from_pixel(8, 6, Rgba([20, 40, 60, 255]))
+        .save(&source_path)
+        .expect("fixture image");
+    let storage_paths = StoragePaths {
+        catalog_path: storage.path().join("catalog.sqlite3"),
+        preview_root: storage.path().join("previews"),
+        preview_budget_bytes: 64 * 1024 * 1024,
+        settings_path: storage.path().join("settings.sqlite3"),
+    };
+    run_scan_with_storage(
+        ScanRequest {
+            scan_id: "v17-healthy-initial".to_owned(),
+            root_path: source.path().to_string_lossy().into_owned(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+        |_| true,
+        storage_paths.clone(),
+    )
+    .expect("initial scan");
+    let before = load_test_snapshot(&storage_paths);
+    let before_asset = before.assets.first().expect("published asset");
+    let old_location_id = before_asset.location_id.clone();
+    let old_asset_id = before_asset.asset_id.clone();
+    let connection = Connection::open(&storage_paths.catalog_path).expect("catalog database");
+    connection
+        .execute_batch(
+            "PRAGMA foreign_keys = OFF;
+             DROP INDEX scan_runs_one_active_root;
+             ALTER TABLE library_change_queue DROP COLUMN authoritative_scan_id;
+             ALTER TABLE library_change_root_state DROP COLUMN last_consistency_audit_unix_ms;
+             ALTER TABLE scan_runs DROP COLUMN requires_previous_snapshot;
+             ALTER TABLE scan_runs DROP COLUMN root_generation_at_start;
+             ALTER TABLE scan_runs DROP COLUMN change_queue_high_watermark;
+             ALTER TABLE scan_runs DROP COLUMN scan_owner;
+             ALTER TABLE library_change_queue_contract
+               DROP COLUMN scan_ownership_complete;
+             ALTER TABLE library_change_queue_contract
+               DROP COLUMN authoritative_recovery_complete;",
+        )
+        .expect("restore v17 table shape");
+    connection
+        .execute(
+            "UPDATE preview_artifact_locations
+             SET location_id = 'legacy-v17-healthy-location'
+             WHERE location_id = ?1",
+            [&old_location_id],
+        )
+        .expect("restore legacy preview owner");
+    connection
+        .execute(
+            "UPDATE asset_locations
+             SET relative_path = 'album\\healthy.png',
+                 location_id = 'legacy-v17-healthy-location',
+                 file_identity_scheme = NULL,
+                 file_identity_value = NULL
+             WHERE location_id = ?1",
+            [&old_location_id],
+        )
+        .expect("restore legacy location without identity evidence");
+    connection
+        .execute("UPDATE schema_info SET version = 17", [])
+        .expect("restore v17 version");
+    drop(connection);
+    let mut events = Vec::new();
+
+    run_scan_with_storage(
+        ScanRequest {
+            scan_id: "v17-healthy-rescan".to_owned(),
+            root_path: source.path().to_string_lossy().into_owned(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+        |event| {
+            events.push(event);
+            true
+        },
+        storage_paths.clone(),
+    )
+    .expect("healthy migrated rescan");
+
+    let after = load_test_snapshot(&storage_paths);
+    let retained = after.assets.first().expect("retained legacy location");
+    assert!(matches!(events.last(), Some(ScanEvent::Completed { .. })));
+    assert_eq!(after.assets.len(), 1);
+    assert_eq!(retained.location_id, "legacy-v17-healthy-location");
+    assert_eq!(retained.relative_path, "album/healthy.png");
+    assert_eq!(retained.asset_id, old_asset_id);
+    assert!(!fs::read(&source_path).expect("source bytes").is_empty());
 }
 
 #[cfg(windows)]

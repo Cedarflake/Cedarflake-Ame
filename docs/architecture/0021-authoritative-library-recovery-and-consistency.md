@@ -66,9 +66,13 @@ whether or not a prior catalog location exists; recovery neither opens it nor re
 audit for that scope.
 
 When the bounded set is exceeded, the worker restores the lease to pending and records one full-scan
-request. Production runs at most one recovery scan at a time on a background thread. Failures use a
-per-root exponential retry from one second to five minutes; another root is not delayed by that
-state. Shutdown requests cancellation and keeps the desktop close path bounded.
+request. Production starts bounded work only for an authoritative queue row that is currently due;
+future and exhausted retry rows remain projected without creating an empty worker every poll.
+Production runs at most one recovery scan at a time on a background thread. Failures use a per-root
+exponential retry from one second to five minutes; another root is not delayed by that state.
+Shutdown requests cancellation and keeps the desktop close path bounded. If that bound expires,
+the runtime retains the worker handle in an explicit stopping state and rejects restart until a
+later join proves the old worker ended.
 
 A full scan captures the current root generation and the highest unresolved queue ID in the same
 transaction that creates its scan run. A transactional guard plus a unique partial index allow only
@@ -78,20 +82,30 @@ publishes the catalog snapshot, and completes only queue work through the captur
 transaction. Evidence arriving later remains unresolved. Abandonment releases only rows frozen by
 that scan, leaving independent worker leases unchanged.
 
+Scan lifecycle ownership is durable. Foreground scans remain owned by the Flutter controller;
+authoritative recovery scans remain owned by the production synchronization runtime. Each owner
+loads only its own recoverable rows, so one scan ID cannot be resumed concurrently by both
+lifecycles. Production rotates a persisted-ID cursor over recoverable authoritative scans one row at
+a time, wrapping after the last row, so recovery remains bounded without stranding another root.
+
 Schema v18 adds the scan generation, queue watermark, previous-snapshot requirement, scan ownership
-of frozen queue rows, and last successful consistency-audit time. It also gives v18 an explicit
-contract marker and validates the single-scan ownership index. An early prerelease v18 database
-with no conflicting active scans receives that index atomically; ambiguous overlapping ownership
-fails closed. Migration from v17
+of frozen queue rows, foreground-versus-authoritative lifecycle ownership, and last successful
+consistency-audit time. It also gives v18 an explicit contract marker and validates the single-scan
+ownership index. An early prerelease v18 database with no conflicting active scans receives the
+missing index and lifecycle owner atomically; its reserved `sync-recovery-` IDs identify draft
+authoritative rows, while ambiguous overlapping ownership fails closed. Migration from v17
 normalizes catalog and scan relative paths to slash-separated form and invalidates pre-v18 running
 or paused scans whose queue authority cannot be reconstructed. Because a v17 location identifier
-was derived from its historical path spelling, previous-snapshot preservation resolves the active
-location by root plus normalized relative path rather than recomputing a new identifier.
+was derived from its historical path spelling, every rescan resolves the active location by root
+plus normalized relative path and retains that location identifier before considering file
+identity or state changes.
 
-The full-scan pipeline preserves the active catalog whenever an unreadable or uninspectable item
-requires prior evidence. This condition is persisted in the scan checkpoint and defensively blocks
-publication after restart. A limited replacement scan likewise remains stale instead of replacing a
-previously published root with a partial snapshot.
+The full-scan pipeline preserves the active catalog whenever any entry in a previously published
+root is unreadable, a placeholder, or otherwise uninspectable, including a newly appeared path with
+no prior location. This completeness gap is persisted in the scan checkpoint and defensively
+blocks publication, queue completion, and audit advancement after restart. A limited replacement
+scan likewise remains stale instead of replacing a previously published root with a partial
+snapshot.
 
 After a successful authoritative root reconciliation or full scan, SQLite records the audit time in
 the same publication transaction. The runtime enqueues the next root audit only when the source is
@@ -106,12 +120,14 @@ actually publishes.
 - queue fixtures prove generation and high-watermark capture, preservation of later evidence, and
   selective release after scan abandonment;
 - scan fixtures prove corrupt rescans and limited replacement scans preserve the last trustworthy
-  catalog, including restart-safe checkpoint rejection;
-- migration fixtures prove v17 to v18 path normalization, preservation of a legacy-identifier
-  placeholder, invalidation of unverifiable running scans, and fail-closed handling of a prerelease
-  v18 database;
+  catalog, including a new full-scan placeholder and restart-safe checkpoint rejection;
+- migration fixtures prove v17 to v18 path normalization, preservation of healthy and placeholder
+  legacy identifiers, invalidation of unverifiable running scans, and repair or fail-closed handling
+  of a prerelease v18 database;
 - runtime fixtures prove cold-start recovery, degraded-source restart continuity, background-only
-  authoritative work, cancellation, delayed audit completion, and bounded per-root retry;
+  authoritative work, foreground-versus-authoritative recovery isolation, bounded multi-root
+  rotation, managed stop timeout, due-only scheduling, delayed audit completion, and bounded
+  per-root retry;
 - complete format, Clippy, Rust, Flutter, Windows integration, bridge, Daily, and Windows release
   gates pass before the slice is merged;
 - no real-library root is accessed by this implementation validation.

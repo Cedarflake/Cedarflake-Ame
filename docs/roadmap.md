@@ -1921,11 +1921,14 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   previous-snapshot requirement for unreadable rescans, and records authoritative audit completion.
   Production runs both bounded reconciliation and full-scan escalation outside the polling mutex,
   only after a healthy observer establishes continuity, with cancellable shutdown and bounded
-  per-root retry. Placeholders remain unresolved without hydration or false audit success, v17 path
-  normalization preserves legacy location identity, and one root cannot own overlapping active
-  scans. The seven-day consistency audit cannot project freshness before publication. Controlled
-  fixtures do not access a real library; complete Daily, Windows Release, and independent-audit
-  evidence remains required before this bullet is promoted to complete.
+  per-root retry. Placeholders and other uninspectable entries remain unresolved through full-scan
+  escalation without hydration or false audit success, and v17 path normalization preserves legacy
+  location identity for both healthy and unavailable files. Durable lifecycle ownership separates
+  foreground scans from bounded multi-root production recovery; timed-out workers block restart,
+  future or exhausted retry rows do not create empty workers, and one root cannot own overlapping
+  active scans. The seven-day consistency audit cannot project freshness before publication.
+  Controlled fixtures do not access a real library; complete Daily, Windows Release, and
+  independent-audit evidence remains required before this bullet is promoted to complete.
 - The current R2b closeout working tree passed the complete local Daily gate and Windows Release
   gate on 2026-08-12, including packaged Rust-library loading and the release bridge smoke test.
   This is current-stage evidence, not a release candidate or completion of R10.

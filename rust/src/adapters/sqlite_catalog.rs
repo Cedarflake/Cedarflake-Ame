@@ -114,16 +114,28 @@ impl SqliteCatalog {
     }
 }
 
-impl CatalogRepository for SqliteCatalog {
-    fn catalog_path(&self) -> &Path {
-        &self.path
-    }
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ScanOwner {
+    Foreground,
+    AuthoritativeRecovery,
+}
 
-    fn begin_scan(
+impl ScanOwner {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::Foreground => "foreground",
+            Self::AuthoritativeRecovery => "authoritative_recovery",
+        }
+    }
+}
+
+impl SqliteCatalog {
+    fn begin_scan_owned(
         &mut self,
         request: &ScanRequest,
         root_id: &str,
         root_path: &str,
+        owner: ScanOwner,
     ) -> Result<ScanCheckpoint, ScanError> {
         let now = unix_time_ms();
         let transaction = self.connection.transaction().map_err(database_error)?;
@@ -170,9 +182,9 @@ impl CatalogRepository for SqliteCatalog {
         let existing = transaction
             .query_row(
                 "SELECT root_id, status, max_items, max_entries, preview_edge,
-                        last_visited_relative_path, visited_entries, accepted_items, issue_count
-                        , root_generation_at_start, change_queue_high_watermark,
-                        requires_previous_snapshot
+                        last_visited_relative_path, visited_entries, accepted_items, issue_count,
+                        root_generation_at_start, change_queue_high_watermark,
+                        requires_previous_snapshot, scan_owner
                  FROM scan_runs WHERE id = ?1",
                 [&request.scan_id],
                 |row| {
@@ -189,6 +201,7 @@ impl CatalogRepository for SqliteCatalog {
                         row.get::<_, Option<i64>>(9)?,
                         row.get::<_, Option<i64>>(10)?,
                         row.get::<_, bool>(11)?,
+                        row.get::<_, String>(12)?,
                     ))
                 },
             )
@@ -207,6 +220,7 @@ impl CatalogRepository for SqliteCatalog {
             stored_root_generation,
             _stored_high_watermark,
             requires_previous_snapshot,
+            stored_owner,
         )) = existing
         {
             let stored_max_items = optional_sqlite_u32(max_items, "item limit")?;
@@ -219,10 +233,11 @@ impl CatalogRepository for SqliteCatalog {
                 || stored_max_entries != request.max_entries
                 || stored_preview_edge != request.preview_edge
                 || stored_root_generation != Some(root_generation_at_start)
+                || stored_owner != owner.as_str()
             {
                 return Err(ScanError::new(
                     "catalog_scan_resume_mismatch",
-                    "The stored scan cannot be resumed with different identity or parameters",
+                    "The stored scan cannot be resumed with different identity, ownership, or parameters",
                 ));
             }
             if is_paused {
@@ -245,8 +260,8 @@ impl CatalogRepository for SqliteCatalog {
                 .execute(
                     "INSERT INTO scan_runs(
                        id, root_id, status, started_unix_ms, max_items, max_entries, preview_edge,
-                       root_generation_at_start, change_queue_high_watermark
-                     ) VALUES (?1, ?2, 'running', ?3, ?4, ?5, ?6, ?7, ?8)",
+                       root_generation_at_start, change_queue_high_watermark, scan_owner
+                     ) VALUES (?1, ?2, 'running', ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
                     params![
                         request.scan_id,
                         root_id,
@@ -256,6 +271,7 @@ impl CatalogRepository for SqliteCatalog {
                         i64::from(request.preview_edge),
                         root_generation_at_start,
                         change_queue_high_watermark,
+                        owner.as_str(),
                     ],
                 )
                 .map_err(database_error)?;
@@ -290,6 +306,48 @@ impl CatalogRepository for SqliteCatalog {
         };
         transaction.commit().map_err(database_error)?;
         Ok(checkpoint)
+    }
+
+    pub(crate) fn has_active_scan_for_root(&self, root_id: &str) -> Result<bool, ScanError> {
+        self.connection
+            .query_row(
+                "SELECT EXISTS(
+                   SELECT 1 FROM scan_runs
+                   WHERE root_id = ?1 AND status IN ('running', 'paused')
+                 )",
+                [root_id],
+                |row| row.get::<_, bool>(0),
+            )
+            .map_err(database_error)
+    }
+}
+
+impl CatalogRepository for SqliteCatalog {
+    fn catalog_path(&self) -> &Path {
+        &self.path
+    }
+
+    fn begin_scan(
+        &mut self,
+        request: &ScanRequest,
+        root_id: &str,
+        root_path: &str,
+    ) -> Result<ScanCheckpoint, ScanError> {
+        self.begin_scan_owned(request, root_id, root_path, ScanOwner::Foreground)
+    }
+
+    fn begin_authoritative_scan(
+        &mut self,
+        request: &ScanRequest,
+        root_id: &str,
+        root_path: &str,
+    ) -> Result<ScanCheckpoint, ScanError> {
+        self.begin_scan_owned(
+            request,
+            root_id,
+            root_path,
+            ScanOwner::AuthoritativeRecovery,
+        )
     }
 
     fn has_active_locations(&self) -> Result<bool, ScanError> {
@@ -942,11 +1000,25 @@ impl CatalogRepository for SqliteCatalog {
     }
 
     fn load_recoverable_scan(&self) -> Result<Option<RecoverableScan>, ScanError> {
-        load_scan_with_status(&self.connection, "running")
+        load_scan_with_status(&self.connection, "running", ScanOwner::Foreground)
     }
 
     fn load_paused_scan(&self) -> Result<Option<RecoverableScan>, ScanError> {
-        load_scan_with_status(&self.connection, "paused")
+        load_scan_with_status(&self.connection, "paused", ScanOwner::Foreground)
+    }
+
+    fn load_authoritative_recoverable_scan_after(
+        &self,
+        after_scan_id: Option<&str>,
+    ) -> Result<Option<RecoverableScan>, ScanError> {
+        load_scans_with_status(
+            &self.connection,
+            "running",
+            ScanOwner::AuthoritativeRecovery,
+            after_scan_id,
+            1,
+        )
+        .map(|mut scans| scans.pop())
     }
 
     fn claim_next_directory(&mut self, scan_id: &str) -> Result<Option<String>, ScanError> {
@@ -2512,6 +2584,7 @@ fn parse_capture_time_source(value: &str) -> Result<CaptureTimeSource, ScanError
 fn load_scan_with_status(
     connection: &Connection,
     status: &str,
+    owner: ScanOwner,
 ) -> Result<Option<RecoverableScan>, ScanError> {
     let stored = connection
         .query_row(
@@ -2520,10 +2593,10 @@ fn load_scan_with_status(
                     scans.issue_count
              FROM scan_runs AS scans
              JOIN library_roots AS roots ON roots.id = scans.root_id
-             WHERE scans.status = ?1
+             WHERE scans.status = ?1 AND scans.scan_owner = ?2
              ORDER BY scans.started_unix_ms DESC, scans.id DESC
              LIMIT 1",
-            [status],
+            params![status, owner.as_str()],
             |row| {
                 Ok((
                     row.get::<_, String>(0)?,
@@ -2565,6 +2638,76 @@ fn load_scan_with_status(
             },
         )
         .transpose()
+}
+
+fn load_scans_with_status(
+    connection: &Connection,
+    status: &str,
+    owner: ScanOwner,
+    after_scan_id: Option<&str>,
+    limit: u32,
+) -> Result<Vec<RecoverableScan>, ScanError> {
+    if !(1..=64).contains(&limit) {
+        return Err(ScanError::new(
+            "catalog_recoverable_scan_limit_invalid",
+            "Recoverable scan queries require a limit between 1 and 64",
+        ));
+    }
+    let mut statement = connection
+        .prepare(
+            "SELECT scans.id, roots.path, scans.max_items, scans.max_entries,
+                    scans.preview_edge, scans.visited_entries, scans.accepted_items,
+                    scans.issue_count
+             FROM scan_runs AS scans
+             JOIN library_roots AS roots ON roots.id = scans.root_id
+             WHERE scans.status = ?1 AND scans.scan_owner = ?2
+               AND (?3 IS NULL OR scans.id > ?3)
+             ORDER BY scans.id
+             LIMIT ?4",
+        )
+        .map_err(database_error)?;
+    let rows = statement
+        .query_map(
+            params![status, owner.as_str(), after_scan_id, i64::from(limit)],
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, Option<i64>>(2)?,
+                    row.get::<_, Option<i64>>(3)?,
+                    row.get::<_, i64>(4)?,
+                    row.get::<_, i64>(5)?,
+                    row.get::<_, i64>(6)?,
+                    row.get::<_, i64>(7)?,
+                ))
+            },
+        )
+        .map_err(database_error)?;
+    let mut recoverable = Vec::new();
+    for row in rows {
+        let (
+            scan_id,
+            root_path,
+            max_items,
+            max_entries,
+            preview_edge,
+            visited_entries,
+            accepted_items,
+            issue_count,
+        ) = row.map_err(database_error)?;
+        recoverable.push(RecoverableScan {
+            scan_id,
+            display_root_path: user_visible_path(&root_path),
+            root_path,
+            max_items: optional_sqlite_u32(max_items, "item limit")?,
+            max_entries: optional_sqlite_u32(max_entries, "entry limit")?,
+            preview_edge: sqlite_u32(preview_edge, "preview edge")?,
+            visited_entries: sqlite_unsigned(visited_entries, "visited entry count")?,
+            accepted_items: sqlite_unsigned(accepted_items, "accepted item count")?,
+            issue_count: sqlite_unsigned(issue_count, "issue count")?,
+        });
+    }
+    Ok(recoverable)
 }
 
 fn database_error(error: rusqlite::Error) -> ScanError {

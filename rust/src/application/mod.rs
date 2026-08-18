@@ -34,6 +34,7 @@ pub use preview_cleanup::{cancel_preview_cleanup, clear_previews, clear_retired_
 pub use preview_recovery::{
     PreviewRecoveryPhase, PreviewRecoverySnapshot, preview_recovery_snapshot,
 };
+pub(crate) use scan_library::run_authoritative_scan;
 pub use scan_library::{
     cancel_scan, load_paused_scan, load_recoverable_scan, pause_scan, run_scan,
 };
