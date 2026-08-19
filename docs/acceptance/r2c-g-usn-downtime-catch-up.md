@@ -204,8 +204,8 @@ opens could both observe the marker absent before either obtained the migration 
 second writer would race the first marker creation. The current work revalidates the exact marker
 inside `BEGIN IMMEDIATE`, accepts another writer's completed repair, and retains fail-closed handling
 for malformed named objects; a dual-connection regression replays both stale preflight results.
-Final independent re-audit remains pending; R2c-G is not marked complete until that committed head
-has no remaining Critical, High, Medium, or Low findings.
+The final independent re-audit of committed head `de6ffad` returned `APPROVE` with no Critical,
+High, Medium, or Low findings. R2c-G is complete and audit-hardened.
 
 ## Remaining boundary
 

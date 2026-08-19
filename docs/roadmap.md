@@ -1329,6 +1329,15 @@ R2c-G - USN downtime catch-up:
   explicit fallback;
 - validate changes made while Ame is closed.
 
+Status: **complete and audit-hardened on 2026-08-19**. ADR 0022 owns watcher-first bounded Windows
+USN catch-up, schema v19 checkpoints and durable cross-root handoff lineage, explicit authoritative
+fallback, exact-case reconstruction, preview ownership, and fail-closed prerelease repair.
+`docs/acceptance/r2c-g-usn-downtime-catch-up.md` records controlled fixtures, 391 Rust tests with
+five existing explicit ignores, all Flutter tests, both Windows integration suites, the Windows
+Release and 10,000-file synthetic performance gates, and final independent approval with no
+remaining findings. Direct journal candidates remained unavailable to the standard workstation
+token; permission fallback passed without elevation or source mutation.
+
 R2c-H - large-library reliability:
 
 - run small and synthetic correctness fixtures first;
@@ -1714,10 +1723,10 @@ may serve as benchmarks or fallbacks but are not automatically preferred over ma
 
 Active stage: **R2c - continuous directory synchronization and incremental indexing**
 
-Active slice: **R2c-G - downtime catch-up**. R2c-A contracts, R2c-B live Windows observation,
+Active slice: **R2c-H - large-library reliability**. R2c-A contracts, R2c-B live Windows observation,
 R2c-C durable queue and coalescing, R2c-D incremental delta publication, R2c-E production UI and
-lifecycle, and R2c-F recovery and consistency are complete. R2c-G is under PR validation and
-independent audit; its completion status is not claimed until those gates pass.
+lifecycle, R2c-F recovery and consistency, and R2c-G downtime catch-up are complete and
+audit-hardened. R2c-H now owns the authorized serial read-only target-library reliability evidence.
 
 Planned next stage: **R3 - exact duplicate evidence**, still blocked behind R2c catalog-freshness
 acceptance.
@@ -1760,20 +1769,22 @@ or later analysis workflows.
 
 ### 10.1 Verified implementation snapshot
 
-This snapshot was synchronized on 2026-08-18 against the live working tree and fresh local gates.
+This snapshot was synchronized on 2026-08-19 against the live working tree and fresh local gates.
 The live working tree, current schema, accepted ADRs, and fresh verification remain authoritative;
 this roadmap does not preserve drifting commit hashes or duplicate complete test transcripts.
 
 - R0 and R1 are accepted. The Rust-owned SQLite catalog, Flutter/Rust bridge, external preview
   storage, resumable multi-root scanning, atomic publication, per-file issue isolation, file
   identity, and revision-safe bounded queries are connected end to end.
-- The catalog schema is v18 and the storage-settings schema is v2. Schema v17 introduced the
+- The catalog schema is v19 and the storage-settings schema is v2. Schema v17 introduced the
   durable normalized change queue, root-generation tombstones, lease/retry state, catalog-revision
   evidence, bounded terminal-row retention, and permanent highest-generation authority. Schema v18
   adds authoritative scan ownership, generation and queue-watermark capture, previous-snapshot
   preservation, consistency-audit evidence, normalized historical relative paths, and single-scan
-  root ownership without losing the v16 preview ownership reconciliation or earlier root, scan,
-  asset, location, frontier, capture-evidence, identity, and query evidence.
+  root ownership. Schema v19 adds exact per-volume catch-up checkpoints, bounded queue and full-scan
+  lineage, normalized cross-root identity handoff, exact-case path lookup, preview-repair authority,
+  and fail-closed relational validation without losing the v16 preview ownership reconciliation or
+  earlier root, scan, asset, location, frontier, capture-evidence, identity, and query evidence.
 - The authorized read-only target-library acceptance published 30,629 locations for
   `local-primary` and 48,384 for `cloud-primary`, for 79,013 active locations in one retained
   catalog. Sampled source bytes and source entries remained unchanged, and cloud-only placeholders
@@ -1932,6 +1943,18 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   Controlled fixtures did not access a real library. The complete Daily and Windows Release gates
   passed on 2026-08-18, and final independent audit returned no Critical, High, Medium, or Low
   findings.
+- R2c-G is complete and audit-hardened. The application starts live observation before one bounded
+  per-volume Windows USN catch-up, validates journal and catalog continuity, atomically enrolls all
+  affected roots before advancing the exclusive checkpoint, and degrades every unsupported,
+  permission-denied, discontinuous, malformed, unbounded, or unverifiable range to durable
+  authoritative work. Schema v19 preserves exact-case candidates, deleted-parent reconstruction,
+  bounded multi-watermark queue and full-scan lineage, stable cross-root asset identity, and
+  compatible preview ownership without dependency cycles or Cartesian snapshot growth. Exact-shape
+  migration validation rejects orphan or malformed authority; one-time prerelease preview repair is
+  serialized across concurrent catalog opens. Controlled fixtures and the 10,000-file synthetic
+  gate accessed no real library, requested no elevation, and mutated no source media. The complete
+  Daily and Windows Release gates passed on 2026-08-19, and final independent audit returned no
+  Critical, High, Medium, or Low findings. Authorized target-library evidence remains R2c-H.
 - The current R2b closeout working tree passed the complete local Daily gate and Windows Release
   gate on 2026-08-12, including packaged Rust-library loading and the release bridge smoke test.
   This is current-stage evidence, not a release candidate or completion of R10.
