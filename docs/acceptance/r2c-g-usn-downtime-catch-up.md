@@ -35,7 +35,7 @@ The controlled fixtures prove:
 | Queue evidence | Preserve a bounded lineage of unconsumed catch-up watermarks through coalescing and supersession |
 | Explicit fallback | Enqueue `FreshnessUnknown` for every affected root on uncertain evidence |
 | Standard token | Fall back on `usn_volume_open_failed` without requesting elevation |
-| Schema v19 | Migrate v18 atomically, validate exact checkpoint, legacy and normalized handoff, lineage, and preview-repair markers, reject orphan or unverifiable authority, and repair only provable marker-complete state |
+| Schema v19 | Migrate v18 atomically, validate exact checkpoint, legacy and normalized handoff, lineage, and preview-repair markers, reject orphan or unverifiable authority, and serialize one-time repair across concurrent opens |
 | Query bound | Use an exact root-and-relative-path index during authoritative reconciliation |
 | Root isolation | Allow a ready root to recover while another root still lacks healthy continuity evidence |
 | Checkpoint retention | Delete at most 128 obsolete checkpoints after seven days and never while a freshness gap is unresolved |
@@ -54,7 +54,7 @@ cargo test adapters::windows_usn_catch_up::tests --all-features -- --nocapture
 19 passed; 0 failed
 
 cargo test adapters::sqlite_catalog::migrations::tests --all-features -- --nocapture
-23 passed; 0 failed
+24 passed; 0 failed
 
 cargo test application::incremental_library_changes::tests --all-features -- --nocapture
 25 passed; 0 failed
@@ -97,7 +97,9 @@ either handoff form owns it. Reopen fixtures restore prerelease v19 states with 
 artifact row, a missing normalized full-scan artifact row, or an invalid ready expectation already
 published into the active snapshot after terminal handoff cleanup. They prove all three forms are
 downgraded before bounded adoption, full-scan adoption, or later preview reuse, and that a stale
-active owner is removed atomically.
+active owner is removed atomically. A dual-connection fixture gives both connections the same stale
+marker-absent preflight, commits the repair through the first writer, and proves the second writer
+revalidates and accepts the completed marker rather than racing its creation.
 The controlled real Win32 temporary-root test was executed with both the normal sandboxed token and
 the same standard token outside the workspace sandbox.
 Both reached the documented `usn_volume_open_failed` permission fallback. Ame did not elevate or
@@ -111,7 +113,7 @@ the production adapter path is covered by deterministic backend and parser fixtu
 140 files checked; 0 changed
 
 ./tool/quality_verify_daily.ps1
-Rust: 390 total; 385 passed; 0 failed; 5 existing explicit ignores
+Rust: 391 total; 386 passed; 0 failed; 5 existing explicit ignores
 Flutter: all test files passed
 Windows controlled picker and scan integration: 2 passed
 Windows native accessibility integration: 2 passed
@@ -197,8 +199,13 @@ expectation into the active snapshot and removed its terminal handoff. The curre
 same transaction to current active-scan locations and removes any stale owner, with missing-row and
 stale-row reopen regressions. A separate exact-shape repair marker makes that full scan one-time for
 prerelease v19 catalogs; fresh and v18-migrated catalogs start complete, later opens skip the scan,
-and malformed markers fail closed. Final independent re-audit remains pending; R2c-G is not marked
-complete until that committed head has no remaining Critical, High, Medium, or Low findings.
+and malformed markers fail closed. The tenth audit of `35b5521` found that two concurrent first
+opens could both observe the marker absent before either obtained the migration writer lock, so the
+second writer would race the first marker creation. The current work revalidates the exact marker
+inside `BEGIN IMMEDIATE`, accepts another writer's completed repair, and retains fail-closed handling
+for malformed named objects; a dual-connection regression replays both stale preflight results.
+Final independent re-audit remains pending; R2c-G is not marked complete until that committed head
+has no remaining Critical, High, Medium, or Low findings.
 
 ## Remaining boundary
 

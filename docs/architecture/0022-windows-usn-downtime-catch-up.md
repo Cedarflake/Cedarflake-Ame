@@ -153,8 +153,9 @@ the unique artifact-path lookup and covers prerelease catalogs that deleted the 
 left it stale, or already published the invalid expectation and cleaned its handoff; ordinary
 healthy fresh catalogs and v18 migrations record the exact repair marker immediately. A prerelease
 v19 catalog without that marker performs the repair and creates the marker in the same transaction;
-later opens validate the marker and skip the catalog scan. A malformed same-name marker fails
-closed. Once no active row or
+after acquiring the writer transaction it revalidates the marker so concurrent first opens accept
+the repair committed by the first writer instead of racing marker creation. Later opens validate
+the marker and skip the catalog scan. A malformed same-name marker fails closed. Once no active row or
 frozen scan owns a lineage edge, the
 same transaction removes that edge; deleting the final edge cascades the batch and its items, then
 reclaims only artifacts or assets that have neither an active location nor another handoff owner.
@@ -230,7 +231,8 @@ boundary. The following invariants are binding:
   case-sensitive root filtering, and multiple roots on one volume with one journal read;
 - migration fixtures cover fresh v19, v18 to v19 preservation, prerelease handoff and scan-lineage
   repair, exact checkpoint, legacy-handoff, normalized-handoff, and foreign-key shape, owner and
-  reverse-provenance validation, orphan rejection, and fail-closed malformed v19;
+  reverse-provenance validation, orphan rejection, serialized dual-connection preview repair, and
+  fail-closed malformed v19;
 - application fixtures prove enqueue-before-checkpoint, replay after interruption, root-set and
   catalog-revision mismatch fallback, retained catch-up queue metadata, both path move orders,
   bidirectional bounded and full-scan handoff without wait cycles, `N + L` full-scan cardinality,

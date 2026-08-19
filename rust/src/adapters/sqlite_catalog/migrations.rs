@@ -433,6 +433,13 @@ fn validate_current_schema_contract(connection: &Connection) -> Result<(), ScanE
 }
 
 fn repair_v19_preview_expectations(connection: &mut Connection) -> Result<(), ScanError> {
+    if preview_repair_marker_is_complete(connection)? {
+        return Ok(());
+    }
+    repair_missing_v19_preview_expectation_marker(connection)
+}
+
+fn preview_repair_marker_is_complete(connection: &Connection) -> Result<bool, ScanError> {
     let marker_type = connection
         .query_row(
             "SELECT type FROM sqlite_master
@@ -468,11 +475,20 @@ fn repair_v19_preview_expectations(connection: &mut Connection) -> Result<(), Sc
                 "The catalog preview repair marker is malformed",
             ));
         }
-        return Ok(());
+        return Ok(true);
     }
+    Ok(false)
+}
+
+fn repair_missing_v19_preview_expectation_marker(
+    connection: &mut Connection,
+) -> Result<(), ScanError> {
     let transaction = connection
         .transaction_with_behavior(TransactionBehavior::Immediate)
         .map_err(database_error)?;
+    if preview_repair_marker_is_complete(&transaction)? {
+        return transaction.commit().map_err(database_error);
+    }
     transaction
         .execute_batch(
             "UPDATE library_change_catch_up_handoffs
@@ -2669,8 +2685,12 @@ fn normalize_relative_paths_for_continuous_synchronization(
 #[cfg(test)]
 mod tests {
     use rusqlite::Connection;
+    use tempfile::NamedTempFile;
 
-    use super::{migrate_schema, migrate_v16_to_v17, migrate_v17_to_v18, migrate_v18_to_v19};
+    use super::{
+        migrate_schema, migrate_v16_to_v17, migrate_v17_to_v18, migrate_v18_to_v19,
+        preview_repair_marker_is_complete, repair_missing_v19_preview_expectation_marker,
+    };
 
     type CatchUpAuthorityMigrationState = (
         i64,
@@ -3165,6 +3185,28 @@ mod tests {
         let error = migrate_schema(&mut connection).expect_err("malformed preview repair marker");
 
         assert_eq!(error.code, "catalog_change_catch_up_contract_unverifiable");
+    }
+
+    #[test]
+    fn concurrent_prerelease_v19_preview_repair_accepts_completed_marker() {
+        let catalog = NamedTempFile::new().expect("temporary catalog");
+        let mut first = Connection::open(catalog.path()).expect("first catalog connection");
+        migrate_schema(&mut first).expect("fresh v19 catalog");
+        first
+            .execute_batch("DROP TABLE library_change_preview_repair_contract")
+            .expect("restore prerelease preview repair marker");
+        let mut second = Connection::open(catalog.path()).expect("second catalog connection");
+
+        assert!(!preview_repair_marker_is_complete(&first).expect("first marker preflight"));
+        assert!(!preview_repair_marker_is_complete(&second).expect("second marker preflight"));
+
+        repair_missing_v19_preview_expectation_marker(&mut first)
+            .expect("first connection preview repair");
+        repair_missing_v19_preview_expectation_marker(&mut second)
+            .expect("second connection accepts completed repair");
+
+        assert!(preview_repair_marker_is_complete(&first).expect("first repaired marker"));
+        assert!(preview_repair_marker_is_complete(&second).expect("second repaired marker"));
     }
 
     #[test]
