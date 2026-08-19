@@ -1363,15 +1363,15 @@ tests with seven explicit ignores, all Flutter and Windows integration gates, Wi
 The target-root phase intentionally did not execute authoritative leases or publication, so its
 queue and storage measurements are not an end-to-end recovery-time claim.
 
-R2c status: **implementation complete; post-integration hardening awaits independent re-audit**.
+R2c status: **complete and audit-hardened on 2026-08-19**.
 R2c-A through R2c-H now provide the
 normalized observation contract, live Windows watcher, durable queue, atomic incremental
 publication, production UI lifecycle, authoritative recovery, downtime catch-up, and target-scale
 catch-up, queue, storage, and source-safety evidence required by this stage. Target-scale
 authoritative recovery timing remains extended R10 evidence. A later full-range review identified
 live authoritative lease expiry, migrated identity backfill, target-evidence scope, and bounded-root
-fairness gaps; the current head closes those paths and requires a fresh independent audit before the
-PR returns to Ready.
+fairness gaps; post-integration hardening closed those paths plus the follow-up retry-exhaustion edge,
+and the final independent full-range re-audit returned no Critical, High, Medium, or Low findings.
 
 #### R2c.12 Acceptance evidence
 
@@ -1978,7 +1978,7 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   seven-day consistency audit
   cannot project freshness before publication.
   Controlled fixtures did not access a real library. The complete Daily and Windows Release gates
-  passed on 2026-08-18, and final independent audit returned no Critical, High, Medium, or Low
+  passed on 2026-08-19, and final independent audit returned no Critical, High, Medium, or Low
   findings.
 - R2c-G is complete and audit-hardened. The application starts live observation before one bounded
   per-volume Windows USN catch-up, validates journal and catalog continuity, atomically enrolls all

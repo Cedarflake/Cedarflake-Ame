@@ -154,8 +154,11 @@ remains independent, and successful bounded or full-scan recovery clears the ret
 
 A later full-range PR review identified live authoritative lease expiry under foreground polling,
 migrated incremental identity duplication, target-evidence overstatement, and bounded-root
-starvation. The post-integration hardening and evidence above address those findings; this document
-does not claim their final independent re-audit until that review is recorded on the committed head.
+starvation. Its first re-audit confirmed those four paths closed and found one Medium follow-up in
+final-attempt and policy-lowering retry normalization. The final independent full-range re-audit of
+committed head `b1436fc` returned `APPROVE` with zero Critical, High, Medium, or Low findings. It
+confirmed live-worker lease isolation, worker-loss exhaustion, migrated identity continuity,
+bounded-root fairness, and the narrowed target-evidence boundary without finding a new regression.
 
 ## Remaining boundary
 
