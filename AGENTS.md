@@ -449,8 +449,8 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   trees; they never become part of unattended daily verification.
 - `./tool/acceptance_run_r2c_reliability.ps1` is the R2c-H closeout gate. It first exercises the
   production Windows observer against a disposable source root, then backs up the retained catalog
-  into fresh isolated storage and measures catch-up against both explicitly authorized roots without
-  publishing authoritative work or reading cloud-placeholder content.
+  into pre-created empty isolated storage and measures catch-up against both explicitly authorized
+  roots without publishing authoritative work or reading cloud-placeholder content.
 - `./tool/acceptance_test_r2c_reliability_guardrails.ps1` verifies the R2c-H authorization token,
   cloud acknowledgement, path-separation, and fresh-storage boundary without accessing a real
   library.

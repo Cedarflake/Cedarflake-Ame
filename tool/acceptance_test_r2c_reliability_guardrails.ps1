@@ -55,11 +55,13 @@ try {
     }
 
     try {
+        $overlapStorage = Join-Path $localRoot "overlap"
+        New-Item -ItemType Directory -Path $overlapStorage -Force | Out-Null
         & "$PSScriptRoot\acceptance_run_r2c_reliability.ps1" `
             -LocalRoot $localRoot `
             -CloudRoot $cloudRoot `
             -SourceCatalogPath $catalogPath `
-            -StorageRoot (Join-Path $localRoot "overlap") `
+            -StorageRoot $overlapStorage `
             -AuthorizationToken $requiredToken `
             -AcknowledgeCloudReadOnly `
             -ValidationOnly
@@ -85,6 +87,7 @@ try {
     }
 
     Remove-Item -LiteralPath $storageRoot -Recurse -Force
+    New-Item -ItemType Directory -Path $storageRoot -Force | Out-Null
     $valid = & "$PSScriptRoot\acceptance_run_r2c_reliability.ps1" `
         -LocalRoot $localRoot `
         -CloudRoot $cloudRoot `
@@ -94,6 +97,91 @@ try {
         -AcknowledgeCloudReadOnly `
         -ValidationOnly
     Assert-Contains ($valid | Out-String) "AME_R2C_H_VALIDATION status=passed"
+
+    $junctionTarget = Join-Path $localRoot "junction-storage"
+    $junctionStorage = Join-Path $testRoot "junction-storage-alias"
+    New-Item -ItemType Directory -Path $junctionTarget -Force | Out-Null
+    New-Item -ItemType Junction -Path $junctionStorage -Target $junctionTarget | Out-Null
+    try {
+        & "$PSScriptRoot\acceptance_run_r2c_reliability.ps1" `
+            -LocalRoot $localRoot `
+            -CloudRoot $cloudRoot `
+            -SourceCatalogPath $catalogPath `
+            -StorageRoot $junctionStorage `
+            -AuthorizationToken $requiredToken `
+            -AcknowledgeCloudReadOnly `
+            -ValidationOnly
+        throw "Junction-aliased R2c-H storage unexpectedly succeeded"
+    } catch {
+        Assert-Contains $_.Exception.Message "outside every source path"
+    } finally {
+        [System.IO.Directory]::Delete($junctionStorage)
+    }
+
+    $processJob = $null
+    $jobProcess = $null
+    $sideProcess = $null
+    try {
+        $hostExecutable = (Get-Process -Id $PID).Path
+        $processJob = [AmeR2cProcessJob]::new()
+        $jobProcess = $processJob.Start(
+            $hostExecutable,
+            '-NoProfile -NonInteractive -Command "Start-Sleep -Seconds 30"',
+            $repositoryRoot
+        )
+        $sideProcess = Start-Process `
+            -FilePath $hostExecutable `
+            -ArgumentList @(
+                "-NoProfile",
+                "-NonInteractive",
+                "-Command",
+                "Start-Sleep -Seconds 30"
+            ) `
+            -WindowStyle Hidden `
+            -PassThru
+        Start-Sleep -Milliseconds 250
+        if ([UInt64]$processJob.PeakMemoryBytes -eq 0) {
+            throw "The R2c-H process job did not account for its child"
+        }
+        $processJob.Dispose()
+        $processJob = $null
+        if (-not $jobProcess.WaitForExit(5000)) {
+            throw "The R2c-H process job did not stop its owned child"
+        }
+        $sideProcess.Refresh()
+        if ($sideProcess.HasExited) {
+            throw "The R2c-H process job stopped an unrelated same-name process"
+        }
+    } finally {
+        if ($null -ne $processJob) {
+            $processJob.Dispose()
+        }
+        if ($null -ne $jobProcess -and -not $jobProcess.HasExited) {
+            $jobProcess.WaitForExit(5000) | Out-Null
+        }
+        if ($null -ne $sideProcess -and -not $sideProcess.HasExited) {
+            Stop-Process -Id $sideProcess.Id -Force
+            $sideProcess.WaitForExit()
+        }
+    }
+
+    $exitCodeJob = $null
+    try {
+        $exitCodeJob = [AmeR2cProcessJob]::new()
+        $exitCodeProcess = $exitCodeJob.Start(
+            $hostExecutable,
+            '-NoProfile -NonInteractive -Command "exit 7"',
+            $repositoryRoot
+        )
+        $exitCodeProcess.WaitForExit()
+        if ([int]$exitCodeJob.PrimaryExitCode -ne 7) {
+            throw "The R2c-H process job lost its owned process exit code"
+        }
+    } finally {
+        if ($null -ne $exitCodeJob) {
+            $exitCodeJob.Dispose()
+        }
+    }
 
     Write-Output "AME_R2C_H_GUARDRAILS status=passed"
 } finally {

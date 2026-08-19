@@ -145,7 +145,7 @@ regeneration churn. Run the dedicated gate only with current authorization for `
 ./tool/acceptance_run_preview_performance.ps1 `
   -RootPath "<authorized local-primary root>" `
   -SourceCatalogPath "<current catalog path>" `
-  -StorageRoot "<new empty storage outside every source tree>" `
+  -StorageRoot "<pre-created empty storage outside every source tree>" `
   -AuthorizationToken "<current preview-performance authorization token>"
 ```
 
@@ -200,11 +200,12 @@ bounded metadata snapshot of every source entry, placeholder attributes, and det
 of locally available `local-primary` samples. Reparse directories are not followed and files marked
 offline or recall-on-access are never opened.
 
-The wrapper enforces a time limit, a peak-working-set limit, distinct non-overlapping paths, fresh
-isolated storage, an exact token, and an explicit cloud read-only acknowledgement. Its non-accessing
-guardrails are exercised by `./tool/acceptance_test_r2c_reliability_guardrails.ps1`. A passing tool
-implementation or `-ValidationOnly` result is not real-library evidence; the authorization-bound
-workload must finish successfully. See
+The wrapper enforces a time limit, a peak job-memory limit, physically resolved non-overlapping
+paths, pre-created empty isolated storage, an exact token, and an explicit cloud read-only
+acknowledgement. Its non-accessing guardrails exercise junction rejection and process-job ownership
+through `./tool/acceptance_test_r2c_reliability_guardrails.ps1`. A passing tool implementation or
+`-ValidationOnly` result is not real-library evidence; the authorization-bound workload must finish
+successfully. See
 [r2c-h-large-library-reliability.md](./r2c-h-large-library-reliability.md) for the accepted metrics and
 remaining platform limitations.
 

@@ -30,6 +30,9 @@ use super::LibrarySynchronizationRuntime;
 use crate::application::library_change_catch_up::{
     LibraryChangeCatchUpExecution, process_library_change_catch_up,
 };
+use crate::application::storage::{
+    resolved_path_is_within, resolved_paths_overlap, resolved_paths_same,
+};
 
 const CONSENT_TOKEN: &str = "CEDARFLAKE_AME_R2C_RELIABILITY_ACCEPTANCE_V1";
 const EVENT_SAMPLE_COUNT: usize = 24;
@@ -278,6 +281,19 @@ fn r2c_h_small_read_only_reliability_fixture() {
     assert!(report.contains("source_unchanged=true"));
 }
 
+#[test]
+fn r2c_h_hashing_rejects_a_sample_that_grows_past_its_limit() {
+    let fixture = tempdir().expect("bounded hash fixture");
+    let sample = fixture.path().join("oversized.bin");
+    let file = fs::File::create(&sample).expect("create bounded hash sample");
+    file.set_len(HASH_SAMPLE_FILE_LIMIT.saturating_add(1))
+        .expect("grow bounded hash sample");
+
+    let error = hash_files(&[sample]).expect_err("oversized hash sample must fail");
+
+    assert!(error.contains("bounded read limit"));
+}
+
 fn run_real_library_acceptance(configuration: &AcceptanceConfiguration, report_path: &Path) {
     let isolated_root = configuration.storage_root.join("real-catalog");
     ensure_fresh_directory(&isolated_root).expect("fresh isolated R2c-H storage");
@@ -484,15 +500,15 @@ fn acceptance_configuration() -> Result<AcceptanceConfiguration, String> {
         return Err("the cloud read-only acknowledgement is required".to_owned());
     }
     let source_catalog = absolute_file_environment("CEDARFLAKE_AME_R2C_H_SOURCE_CATALOG")?;
-    let storage_root = absolute_environment("CEDARFLAKE_AME_R2C_H_STORAGE_ROOT")?;
+    let storage_root = absolute_directory_environment("CEDARFLAKE_AME_R2C_H_STORAGE_ROOT")?;
     let local_root = absolute_directory_environment("CEDARFLAKE_AME_R2C_H_LOCAL_ROOT")?;
     let cloud_root = absolute_directory_environment("CEDARFLAKE_AME_R2C_H_CLOUD_ROOT")?;
-    if paths_overlap(&local_root, &cloud_root)
-        || paths_overlap(&local_root, &storage_root)
-        || paths_overlap(&cloud_root, &storage_root)
-        || paths_overlap(&source_catalog, &storage_root)
-        || paths_overlap(&source_catalog, &local_root)
-        || paths_overlap(&source_catalog, &cloud_root)
+    if resolved_paths_overlap(&local_root, &cloud_root).map_err(storage_error_message)?
+        || resolved_paths_overlap(&local_root, &storage_root).map_err(storage_error_message)?
+        || resolved_paths_overlap(&cloud_root, &storage_root).map_err(storage_error_message)?
+        || resolved_paths_overlap(&source_catalog, &storage_root).map_err(storage_error_message)?
+        || resolved_path_is_within(&source_catalog, &local_root).map_err(storage_error_message)?
+        || resolved_path_is_within(&source_catalog, &cloud_root).map_err(storage_error_message)?
     {
         return Err("acceptance roots, catalog, and isolated storage must not overlap".to_owned());
     }
@@ -643,7 +659,7 @@ fn hash_files(paths: &[PathBuf]) -> Result<Vec<[u8; 32]>, String> {
     paths
         .iter()
         .map(|path| {
-            let mut file = fs::OpenOptions::new()
+            let file = fs::OpenOptions::new()
                 .read(true)
                 .custom_flags(FILE_FLAG_OPEN_REPARSE_POINT)
                 .open(path)
@@ -658,14 +674,23 @@ fn hash_files(paths: &[PathBuf]) -> Result<Vec<[u8; 32]>, String> {
             {
                 return Err("a source hash sample became unsafe to read".to_owned());
             }
+            if metadata.len() > HASH_SAMPLE_FILE_LIMIT {
+                return Err("a source hash sample exceeded the bounded read limit".to_owned());
+            }
             let mut hasher = Hasher::new();
             let mut buffer = [0_u8; 64 * 1024];
+            let mut bounded = file.take(HASH_SAMPLE_FILE_LIMIT.saturating_add(1));
+            let mut total_read = 0_u64;
             loop {
-                let read = file
+                let read = bounded
                     .read(&mut buffer)
                     .map_err(|_| "a source hash sample could not be read".to_owned())?;
                 if read == 0 {
                     break;
+                }
+                total_read = total_read.saturating_add(u64::try_from(read).unwrap_or(u64::MAX));
+                if total_read > HASH_SAMPLE_FILE_LIMIT {
+                    return Err("a source hash sample exceeded the bounded read limit".to_owned());
                 }
                 hasher.update(&buffer[..read]);
             }
@@ -754,10 +779,10 @@ fn append_report(path: &Path, line: &str) -> Result<(), String> {
 fn report_path() -> Result<PathBuf, String> {
     let report = absolute_environment("CEDARFLAKE_AME_R2C_H_REPORT")?;
     let storage = absolute_environment("CEDARFLAKE_AME_R2C_H_STORAGE_ROOT")?;
-    if report
+    let parent = report
         .parent()
-        .is_none_or(|parent| !paths_same(parent, &storage))
-    {
+        .ok_or_else(|| "the R2c-H report must have a parent directory".to_owned())?;
+    if !resolved_paths_same(parent, &storage).map_err(storage_error_message)? {
         return Err("the R2c-H report must remain directly inside isolated storage".to_owned());
     }
     Ok(report)
@@ -808,20 +833,6 @@ fn absolute_file_environment(name: &str) -> Result<PathBuf, String> {
 fn paths_same(left: &Path, right: &Path) -> bool {
     left.to_string_lossy()
         .eq_ignore_ascii_case(&right.to_string_lossy())
-}
-
-fn paths_overlap(left: &Path, right: &Path) -> bool {
-    let left = left.to_string_lossy().replace('/', "\\").to_lowercase();
-    let right = right.to_string_lossy().replace('/', "\\").to_lowercase();
-    let left = left.trim_end_matches('\\');
-    let right = right.trim_end_matches('\\');
-    left == right
-        || left
-            .strip_prefix(right)
-            .is_some_and(|suffix| suffix.starts_with('\\'))
-        || right
-            .strip_prefix(left)
-            .is_some_and(|suffix| suffix.starts_with('\\'))
 }
 
 fn modified_nanos(metadata: &Metadata) -> u128 {
@@ -898,4 +909,8 @@ fn sqlite_family_bytes(path: &Path) -> u64 {
 
 fn database_message(error: rusqlite::Error) -> String {
     format!("isolated catalog database operation failed: {error}")
+}
+
+fn storage_error_message(error: crate::domain::ScanError) -> String {
+    format!("{}: {}", error.code, error.message)
 }
