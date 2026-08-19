@@ -181,6 +181,7 @@ pub(super) fn recover_expired_leases(
     root_generation: LibraryRootGeneration,
     now_unix_ms: i64,
     policy: LibraryChangeQueuePolicy,
+    selection: i64,
 ) -> Result<(), ScanError> {
     let expired = {
         let mut statement = transaction
@@ -188,8 +189,13 @@ pub(super) fn recover_expired_leases(
                 "SELECT id, attempt_count FROM library_change_queue
                  WHERE root_id = ?1 AND root_generation = ?2
                    AND status = 'leased' AND lease_expires_unix_ms <= ?3
+                   AND (
+                     ?4 = 0
+                     OR (?4 = 1 AND scope = 'path' AND intent_kind <> 'freshness_unknown')
+                     OR (?4 = 2 AND (scope <> 'path' OR intent_kind = 'freshness_unknown'))
+                   )
                  ORDER BY lease_expires_unix_ms, id
-                 LIMIT ?4",
+                 LIMIT ?5",
             )
             .map_err(database_error)?;
         let rows = statement
@@ -198,6 +204,7 @@ pub(super) fn recover_expired_leases(
                     root_id,
                     sqlite_integer(root_generation.value(), "root generation")?,
                     now_unix_ms,
+                    selection,
                     i64::from(LibraryChangeQueuePolicy::MAX_UNRESOLVED_CHANGES),
                 ],
                 |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)),
@@ -237,6 +244,7 @@ pub(super) fn enforce_retry_attempt_limit(
     root_generation: LibraryRootGeneration,
     now_unix_ms: i64,
     policy: LibraryChangeQueuePolicy,
+    selection: i64,
 ) -> Result<(), ScanError> {
     transaction
         .execute(
@@ -244,12 +252,18 @@ pub(super) fn enforce_retry_attempt_limit(
              SET next_retry_unix_ms = NULL, updated_unix_ms = ?1
              WHERE root_id = ?2 AND root_generation = ?3
                AND status = 'retry_wait' AND attempt_count >= ?4
-               AND next_retry_unix_ms IS NOT NULL",
+               AND next_retry_unix_ms IS NOT NULL
+               AND (
+                 ?5 = 0
+                 OR (?5 = 1 AND scope = 'path' AND intent_kind <> 'freshness_unknown')
+                 OR (?5 = 2 AND (scope <> 'path' OR intent_kind = 'freshness_unknown'))
+               )",
             params![
                 now_unix_ms,
                 root_id,
                 sqlite_integer(root_generation.value(), "root generation")?,
                 i64::from(policy.max_attempts),
+                selection,
             ],
         )
         .map_err(database_error)?;

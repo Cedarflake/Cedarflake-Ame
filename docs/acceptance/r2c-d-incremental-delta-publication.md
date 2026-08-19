@@ -23,7 +23,7 @@ The controlled fixtures prove:
 | Recreated old rename path | Publish the replacement at the old path and the original asset at the new path atomically |
 | Case-only rename | Remove the obsolete Windows spelling without duplicating one physical location |
 | Rename then removal | Remove the obsolete old location even when the destination is also gone before processing |
-| Identity backfill | Persist newly available identity and retain asset continuity through a later rename |
+| Identity backfill | Persist identity, retain asset continuity, and reuse a migrated v17 location ID |
 | Same-path replacement | Create a new asset and inherit no prior derived evidence |
 | Authoritative absence | Remove the active location and make its orphaned evidence reclaimable |
 | Related valid paths | Publish every mutation at one shared catalog revision |
@@ -88,6 +88,12 @@ passed 390 tests with seven existing explicit ignores. The fixtures use temporar
 the Windows offline attribute, clear that attribute after inspection, and never open placeholder
 content through the discovery adapter. The complete repository Daily subsequently passed with 397
 Rust tests total, all Flutter test files, both Windows integrations, and the shared quality gates.
+
+Post-integration migration hardening reopens a true v17 catalog whose backslash path and legacy
+location identifier are normalized by v18, then executes the first live path identity backfill.
+The focused incremental suite passed 26 tests and proved the mutation retains that identifier,
+creates no duplicate location, and leaves the scan asset count unchanged. The current complete Rust
+suite passed 400 tests total: 393 passed and seven existing explicit ignores.
 
 ## Remaining boundary
 

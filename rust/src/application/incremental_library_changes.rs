@@ -591,8 +591,14 @@ where
                         "Identity backfill requires current file evidence",
                     )
                 })?;
-                let built =
-                    build_location(inspector, leased, file, &decision, selected_prior.as_ref())?;
+                let prior = selected_prior.as_ref().ok_or_else(|| {
+                    failure(
+                        "incremental_identity_backfill_prior_missing",
+                        "Identity backfill requires the prior catalog location",
+                    )
+                })?;
+                let mut built = build_location(inspector, leased, file, &decision, Some(prior))?;
+                built.location.location_id.clone_from(&prior.location_id);
                 revalidation.push(RevalidationTarget::Present {
                     relative_path: relative_path.to_owned(),
                     expected: expected_state(file),

@@ -86,6 +86,14 @@ If a valid runtime policy lowers the attempt limit, existing retry-wait work at 
 reported as exhausted immediately and its obsolete retry deadline is cleared on the next lease
 pass.
 
+Expiry recovery is scoped to the worker class performing the lease pass. A production path-only
+pass may recover path leases but cannot reclaim an expired subtree, root, or freshness-gap lease
+from the single active authoritative worker. After a crash or restart no such in-process owner
+exists; authoritative readiness detects the expired row and the next authoritative lease pass
+performs the normal retry-wait transition. This keeps a slow but live authoritative read from
+consuming attempts merely because foreground polling continues, while preserving durable crash
+recovery.
+
 The initial configurable stabilization default is 500 ms. Controlled fixtures place repeated
 create, modify, and remove evidence 50-100 ms apart and prove that it becomes one final-state
 reconciliation after the deadline. This is validation evidence for the initial default, not a
@@ -140,12 +148,14 @@ unresolved freshness gaps, health, and oldest ready delay without mutating work.
   lease from completing;
 - lowering capacity before a parent subtree or root event measures the normalized retained result;
 - lease expiry, structured retry, retry exhaustion, and new-evidence reopening are bounded;
+- a path-only poll cannot recover an expired authoritative lease, while the authoritative lease
+  path still recovers it after the worker lifecycle is absent;
 - queue metrics and retention cleanup are structured, non-mutating, and bounded;
 - repository Daily passes without accessing a real library or modifying source media.
 
 ## Validation evidence
 
-Thirty-six focused queue tests cover the v16 migration, root-state seeding, prerelease v17
+Forty-eight focused queue tests cover the v16 migration, root-state seeding, prerelease v17
 authority-marker rejection, repeated plans,
 process and watcher restart recovery, equal-time origin changes, wall-clock rollback, paired and
 directory rename persistence and overlap, divergent nested rename evidence, create/remove
@@ -153,11 +163,12 @@ final-state work, subtree and normalized capacity supersession under a lowered p
 generation activation including roots with no queue work, permanent removed-root rejection after
 cleanup and re-registration, missing-authority failure, lease-expiry recovery, explicit and
 policy-adjusted retry exhaustion, new-evidence reopening, delay metrics, explicit bounded cleanup,
-and automatic retention. The full Rust suite reached schema v17 through every historical migration
-fixture with 239 passing tests and five existing explicit authorization- or performance-bound
-ignores. Clippy passed for all targets and features with warnings denied.
+and automatic retention, including path-worker isolation from an expired authoritative lease. The
+full Rust suite reached the current schema through every historical migration fixture with 393
+passing tests and seven existing explicit authorization- or performance-bound ignores. Clippy
+passed for all targets and features with warnings denied.
 
-The 2026-08-17 lock-aware Daily gate passed formatting, Rust, Dart analysis, every Flutter test,
+The latest 2026-08-19 lock-aware Daily gate passed formatting, Rust, Dart analysis, every Flutter test,
 the controlled Windows picker-and-scan integration, both native accessibility scenarios, generated
 bridge compatibility, release guardrails, and whitespace validation. The first sandboxed Daily
 attempt reached the Flutter SDK lock without creating a Dart child and was stopped; the identical

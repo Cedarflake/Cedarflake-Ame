@@ -428,8 +428,23 @@ impl SqliteCatalog {
             transaction.commit().map_err(database_error)?;
             return Ok(Vec::new());
         }
-        recover_expired_leases(&transaction, root_id, root_generation, now_unix_ms, policy)?;
-        enforce_retry_attempt_limit(&transaction, root_id, root_generation, now_unix_ms, policy)?;
+        let selection_sql = selection.sql_value();
+        recover_expired_leases(
+            &transaction,
+            root_id,
+            root_generation,
+            now_unix_ms,
+            policy,
+            selection_sql,
+        )?;
+        enforce_retry_attempt_limit(
+            &transaction,
+            root_id,
+            root_generation,
+            now_unix_ms,
+            policy,
+            selection_sql,
+        )?;
         let limit = match selection {
             LeaseSelection::Authoritative => 1,
             LeaseSelection::All | LeaseSelection::Path => i64::from(policy.max_lease_batch),
@@ -467,7 +482,7 @@ impl SqliteCatalog {
                         i64::from(policy.max_attempts),
                         now_unix_ms,
                         limit,
-                        selection.sql_value(),
+                        selection_sql,
                     ],
                     |row| row.get::<_, i64>(0),
                 )

@@ -70,7 +70,8 @@ The application processes path-scoped work as follows:
 6. apply ADR 0007 and ADR 0016 to decide unchanged, add, modify, rename, replacement, or removal;
 7. reconcile both affected paths of a paired rename, including a replacement recreated at the old
    path and Windows case-only spelling changes;
-8. persist newly available identity on an otherwise unchanged location, and preserve complete
+8. persist newly available identity on an otherwise unchanged location while retaining the exact
+   prior location identifier, including after v17 path normalization, and preserve complete
    compatible preview state including structured failure evidence;
 9. revalidate present files, filesystem containment, and authoritative absence immediately before
    publication;
@@ -109,6 +110,8 @@ access. R2c-D introduces no schema migration and continues using schema v17.
 - controlled valid images prove unchanged, add, edit, metadata-engine reinspection, paired rename,
   same-path replacement, authoritative removal, rename-followed-by-removal, identity backfill,
   old-path replacement, and Windows case-only rename outcomes;
+- migrated v17 identity backfill reuses the active legacy location identifier instead of creating a
+  second location from the normalized path spelling;
 - related valid files publish at one revision and one malformed image cannot block an independent
   valid sibling;
 - a new cloud-only placeholder creates no location, an existing placeholder retains its last

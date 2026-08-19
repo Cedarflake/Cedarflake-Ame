@@ -24,16 +24,19 @@ The controlled fixtures prove:
 | Later evidence | Preserve queue work created after the full-scan watermark |
 | Scan abandonment | Immediately release only rows frozen by that scan |
 | Existing worker lease | Leave independent pre-scan leases under their original owner |
+| Slow authoritative worker | Foreground path polling cannot reclaim its lease after nominal expiry |
 | Single scan owner | Reject a second running or paused authoritative scan for the same root |
 | Restart safety | Persist the requirement to preserve the previous snapshot and reject publication |
 | Corrupt rescan | Keep the last trustworthy active location and catalog revision |
 | New full-scan issue | Keep a published root stale and do not advance its audit without prior evidence |
 | Migrated placeholder | Preserve a normalized v17 path with its legacy location identifier |
 | Migrated healthy file | Preserve a normalized v17 location and asset without identity evidence |
+| Migrated identity backfill | Reuse the legacy v17 location identifier without duplicating the location |
 | Limited rescan | Never replace an existing root with a partial snapshot |
 | Relative paths | Store slash-separated catalog and checkpoint paths across Windows and migration |
 | Scan lifecycle owner | Prevent production and Flutter from concurrently resuming one scan ID |
 | Multi-root recovery | Rotate a bounded cursor across every authoritative recoverable scan |
+| Bounded root fairness | Rotate due bounded authoritative roots even when the first stays ready |
 | Schema v18 | Migrate v17 atomically, repair unambiguous draft ownership, and fail closed on conflicts |
 | Recovery retry | Preserve bounded exponential retry across re-escalation without blocking another root |
 | Retry scheduling | Start workers only for currently due authoritative work |
@@ -68,11 +71,34 @@ cargo test authoritative_full_scan_with_new_placeholder_remains_stale_without_ad
 1 passed; 0 failed
 
 cargo test application::library_synchronization::production::tests --all-features -- --nocapture
-6 passed; 0 failed
+7 passed; 0 failed
 
 cargo test --all-targets --all-features
 318 total; 313 passed; 0 failed; 5 explicit ignores
 ```
+
+Post-integration hardening added deterministic coverage for the later full-range findings:
+
+```text
+cargo test adapters::sqlite_catalog::change_queue::tests --all-features -- --nocapture
+48 passed; 0 failed
+
+cargo test application::incremental_library_changes::tests --all-features -- --nocapture
+26 passed; 0 failed
+
+cargo test application::library_synchronization::production::tests --all-features -- --nocapture
+7 passed; 0 failed
+
+cargo test adapters::sqlite_catalog::migrations::tests --all-features -- --nocapture
+24 passed; 0 failed
+
+cargo test --locked --manifest-path rust/Cargo.toml --all-targets --all-features
+400 total; 393 passed; 0 failed; 7 explicit ignores
+```
+
+These fixtures prove foreground path polling cannot reclaim a live authoritative lease after its
+nominal deadline, v17-to-v19 reopen plus live identity backfill retains one legacy location, and
+bounded authoritative selection rotates across continuously ready roots.
 
 No authorization-bound source root is required or accessed by these fixtures.
 
@@ -100,6 +126,12 @@ git diff --check
 passed
 ```
 
+The 2026-08-19 post-integration `quality_lint`, complete Daily, and Windows Release gates passed.
+Daily repeated the 400-test Rust result, every Flutter test, Windows Scan 2/2, Accessibility 2/2,
+bridge compatibility, guardrails, formatting, and whitespace. Windows Release built the x64
+application and passed both packaged bridge smoke tests. No authorization-bound source root was
+accessed.
+
 An unprivileged Daily invocation could not write Dart's user-level telemetry configuration; the
 same repository command passed with scoped sandbox approval. An unprivileged Windows Release
 invocation later remained before child-process creation while holding the repository tool lock.
@@ -118,9 +150,15 @@ Critical, High, Medium, or Low findings. It confirmed that per-root full-scan fa
 bounded re-escalation, repeated failures continue toward the five-minute ceiling, another root
 remains independent, and successful bounded or full-scan recovery clears the retry state.
 
+A later full-range PR review identified live authoritative lease expiry under foreground polling,
+migrated incremental identity duplication, target-evidence overstatement, and bounded-root
+starvation. The post-integration hardening and evidence above address those findings; this document
+does not claim their final independent re-audit until that review is recorded on the committed head.
+
 ## Remaining boundary
 
 R2c-F does not add a Windows USN Journal adapter or claim downtime catch-up performance. R2c-G
-remains conditional under the roadmap's fallback and measured-budget criteria. Target-library
-reliability, event-to-visible latency, idle overhead, persistent queue growth, database growth, and
-recovery timing remain R2c-H evidence.
+remains conditional under the roadmap's fallback and measured-budget criteria. R2c-H owns
+target-library catch-up ingress, queue, storage, memory, and source-safety evidence, but its
+authorization-bound phase intentionally does not measure target-scale authoritative recovery and
+publication timing; that extended measurement remains R10 evidence.

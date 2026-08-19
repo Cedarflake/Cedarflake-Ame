@@ -1448,6 +1448,52 @@ fn expired_lease_recovers_after_restart_with_bounded_backoff() {
 }
 
 #[test]
+fn path_poll_cannot_recover_an_expired_authoritative_worker_lease() {
+    let directory = tempdir().expect("temporary directory");
+    let generation = LibraryRootGeneration::initial();
+    let policy = retry_policy();
+    let mut catalog = queue_catalog(directory.path().join("catalog.sqlite3"));
+    catalog
+        .enqueue_library_change_intents(
+            &[intent(
+                "root-a",
+                generation,
+                1,
+                1_000,
+                LibraryChangeIntentKind::FreshnessUnknown,
+                LibraryChangeScope::Root,
+                "",
+            )],
+            1_000,
+            policy,
+        )
+        .expect("enqueue authoritative work");
+    let authoritative = catalog
+        .lease_authoritative_library_change("root-a", generation, 1_000, policy)
+        .expect("lease authoritative work")
+        .expect("authoritative lease");
+
+    let path_work = catalog
+        .lease_path_library_changes("root-a", generation, 1_101, policy)
+        .expect("poll path work after the authoritative lease duration");
+    let metrics = catalog
+        .load_library_change_root_queue_metrics("root-a", generation, 1_101, policy)
+        .expect("load expired authoritative metrics");
+
+    assert!(path_work.is_empty());
+    assert_eq!(metrics.leased_count, 1);
+    assert_eq!(metrics.expired_lease_count, 1);
+    catalog
+        .complete_library_change(
+            authoritative.change.id,
+            authoritative.lease_generation,
+            0,
+            1_101,
+        )
+        .expect("the live authoritative worker retains publication authority");
+}
+
+#[test]
 fn deferred_lease_restores_the_attempt_budget_for_normal_coordination() {
     let directory = tempdir().expect("temporary directory");
     let generation = LibraryRootGeneration::initial();

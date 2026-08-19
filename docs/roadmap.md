@@ -921,8 +921,9 @@ R2c-G adds supported-volume downtime catch-up only after that workflow is trustw
 provides large-library reliability evidence. USN catch-up therefore enhances R2c without blocking
 its first running-time value.
 
-R2c unlocks R3 only after R2c-A through R2c-F and the target-library portions of R2c-H prove the
-running-time workflow, recovery ladder, bounded resource behavior, and truthful freshness state.
+R2c unlocks R3 only after R2c-A through R2c-F prove the running-time workflow, recovery ladder, and
+truthful freshness state, while the target-library portion of R2c-H proves bounded catch-up ingress,
+queue and storage behavior, and source safety at the retained-catalog scale.
 R2c-G is conditional: it does not block R3 when startup can regain trustworthy freshness through a
 bounded authoritative reconciliation, but it remains the preferred supported-volume optimization
 when downtime catch-up cost or missed-change evidence exceeds the recorded budget.
@@ -1318,9 +1319,11 @@ R2c-F - recovery and consistency:
 Status: **complete and audit-hardened on 2026-08-18**. ADR 0021 owns the bounded authoritative
 subtree/root worker, schema v18 full-scan generation and queue-watermark coordination,
 previous-snapshot preservation, background escalation, bounded retry, and low-frequency consistency
-audit. `docs/acceptance/r2c-f-recovery-consistency.md` records controlled fixtures, 318 Rust tests
-with five existing explicit ignores, all Flutter tests, both Windows integration suites, the Windows
-Release gate, and final independent approval with no remaining findings.
+audit. Production isolates a live authoritative lease from foreground path polling, rotates due
+bounded work across roots, and preserves migrated v17 location identifiers during incremental
+identity backfill. `docs/acceptance/r2c-f-recovery-consistency.md` records the original controlled
+fixtures plus post-integration hardening at 400 Rust tests total, all Flutter tests, both Windows
+integration suites, and the Windows Release gate.
 
 R2c-G - USN downtime catch-up:
 
@@ -1344,7 +1347,8 @@ R2c-H - large-library reliability:
 - then use the already authorized real roots in read-only mode, serially and with isolated derived
   storage;
 - measure idle overhead, event-to-visible P50/P95 latency, event-storm coalescing, persistent queue
-  growth, transaction time, startup catch-up, memory, database growth, cancellation, and recovery;
+  growth, transaction time, startup catch-up, memory, database growth, cancellation, and controlled
+  recovery; target-root authoritative convergence timing is deferred to extended R10 evidence;
 - verify source bytes, source entries, and cloud-placeholder state remain unchanged.
 
 Status: **complete and audit-hardened on 2026-08-19**. The final controlled Windows observer run
@@ -1353,16 +1357,21 @@ two-root read-only rerun preserved 85,556 source entries plus 32 deterministic b
 isolated catch-up honestly recorded two `usn_volume_open_failed` fallbacks without elevation,
 leasing, publication, placeholder hydration, or source mutation. Physical path aliases are rejected
 before any write, Cargo and descendants remain inside one kill-on-close Job Object, and hash reads
-are bounded after opening. `docs/acceptance/r2c-h-large-library-reliability.md` records 395 Rust
+are bounded after opening. `docs/acceptance/r2c-h-large-library-reliability.md` records 400 Rust
 tests with seven explicit ignores, all Flutter and Windows integration gates, Windows Release,
 10,000-file synthetic performance, and final independent approval with no remaining findings.
+The target-root phase intentionally did not execute authoritative leases or publication, so its
+queue and storage measurements are not an end-to-end recovery-time claim.
 
-R2c status: **complete and audit-hardened on 2026-08-19**. R2c-A through R2c-H now provide the
+R2c status: **implementation complete; post-integration hardening awaits independent re-audit**.
+R2c-A through R2c-H now provide the
 normalized observation contract, live Windows watcher, durable queue, atomic incremental
 publication, production UI lifecycle, authoritative recovery, downtime catch-up, and target-scale
-reliability evidence required by this stage. The final full-range integration audit returned no
-Critical, High, Medium, or Low findings after closing placeholder freshness and synchronization
-recovery lifecycle gaps.
+catch-up, queue, storage, and source-safety evidence required by this stage. Target-scale
+authoritative recovery timing remains extended R10 evidence. A later full-range review identified
+live authoritative lease expiry, migrated identity backfill, target-evidence scope, and bounded-root
+fairness gaps; the current head closes those paths and requires a fresh independent audit before the
+PR returns to Ready.
 
 #### R2c.12 Acceptance evidence
 
@@ -1630,7 +1639,8 @@ Scope:
 - peak memory and cache-size enforcement;
 - catalog migration and application upgrade tests;
 - remaining condition-triggered million-item manifest adaptation and extended synchronization
-  catch-up evidence that was not required for earlier target-library value;
+  catch-up evidence that was not required for earlier target-library value, including target-root
+  authoritative recovery and publication timing;
 - installer, signing strategy, diagnostics export, and recovery documentation;
 - formal i18n infrastructure and additional locale catalogs only after product copy is stable and
   the supported locales are separately confirmed;
@@ -1961,8 +1971,11 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   uninspectable entries remain unresolved through full-scan escalation without hydration or false
   audit success, and v17 path normalization preserves legacy location identity for both healthy and
   unavailable files. Durable lifecycle ownership separates foreground scans from bounded multi-root
-  production recovery; timed-out workers block restart, future or exhausted retry rows do not create
-  empty workers, and one root cannot own overlapping active scans. The seven-day consistency audit
+  production recovery; foreground path polling cannot reclaim a slow live authoritative lease,
+  bounded authoritative root selection rotates fairly, timed-out workers block restart, future or
+  exhausted retry rows do not create empty workers, and one root cannot own overlapping active
+  scans. Incremental identity backfill retains a normalized v17 location's legacy identifier. The
+  seven-day consistency audit
   cannot project freshness before publication.
   Controlled fixtures did not access a real library. The complete Daily and Windows Release gates
   passed on 2026-08-18, and final independent audit returned no Critical, High, Medium, or Low
@@ -1987,6 +2000,8 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   85,556 source entries plus 32 deterministic local byte samples before and after. Physical path
   aliases fail before writes, Cargo descendants are contained by one kill-on-close Job Object, hash
   reads remain bounded after open, and final memory/deadline samples cannot bypass their ceilings.
+  This target-root phase does not claim authoritative recovery convergence or lease timing; those
+  target-scale measurements remain extended R10 evidence.
   The complete Daily, Windows Release, and 10,000-file synthetic gates passed on 2026-08-19, and
   final independent audit returned no Critical, High, Medium, or Low findings.
 - The current R2b closeout working tree passed the complete local Daily gate and Windows Release

@@ -56,6 +56,11 @@ durable until the restarted source is healthy. The worker enumerates through the
 with an absolute ceiling of 4,096 directory entries and 128 affected paths. The default audit
 interval is seven days. Policies cannot raise these ceilings or disable the interval bound.
 
+Production foreground path polling cannot reclaim the lease held by that active authoritative
+worker, even when the bounded filesystem work crosses the nominal lease duration. Only an
+authoritative lease pass recovers an expired authoritative row after no in-process worker owns it,
+so crash recovery remains durable without making a slow live worker consume the retry budget.
+
 The worker combines the final filesystem paths with every currently published location in the
 affected subtree. It prepares additions, modifications, identity-preserving moves, replacements,
 and authoritative absences through the same ADR 0007 reconciliation path as R2c-D, revalidates the
@@ -71,6 +76,9 @@ future and exhausted retry rows remain projected without creating an empty worke
 Production runs at most one recovery scan at a time on a background thread. Failures use a per-root
 exponential retry from one second to five minutes; a bounded re-escalation preserves that failure
 history until recovery succeeds, and another root is not delayed by that state.
+Bounded authoritative selection rotates a per-root cursor after each chosen root and wraps at the
+end of the current root snapshot. A continuously ready first root therefore cannot starve another
+healthy root with due authoritative work.
 Shutdown requests cancellation and keeps the desktop close path bounded. If that bound expires,
 the runtime retains the worker handle in an explicit stopping state and rejects restart until a
 later join proves the old worker ended.
@@ -127,8 +135,8 @@ actually publishes.
   of a prerelease v18 database;
 - runtime fixtures prove cold-start recovery, degraded-source restart continuity, background-only
   authoritative work, foreground-versus-authoritative recovery isolation, bounded multi-root
-  rotation, managed stop timeout, due-only scheduling, delayed audit completion, and bounded
-  per-root retry;
+  rotation for both bounded and full-scan work, live-worker lease isolation across nominal expiry,
+  managed stop timeout, due-only scheduling, delayed audit completion, and bounded per-root retry;
 - complete format, Clippy, Rust, Flutter, Windows integration, bridge, Daily, and Windows release
   gates pass before the slice is merged;
 - no real-library root is accessed by this implementation validation.

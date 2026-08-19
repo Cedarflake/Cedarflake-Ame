@@ -449,6 +449,113 @@ fn identity_backfill_preserves_asset_continuity_for_a_later_rename() {
 
 #[cfg(windows)]
 #[test]
+fn identity_backfill_preserves_a_migrated_v17_location_identifier() {
+    let source = tempdir().expect("source directory");
+    fs::create_dir(source.path().join("album")).expect("album directory");
+    write_png(
+        &source.path().join("album").join("legacy.png"),
+        3,
+        3,
+        [14, 15, 16],
+    );
+    let fixture = seed_catalog_without_identity(source, &["album/legacy.png"]);
+    let original = fixture
+        .location("album/legacy.png")
+        .expect("legacy location");
+    let legacy_location_id = stable_location_id(&fixture.root_id, r"album\legacy.png");
+    let catalog_path = fixture._storage.path().join("catalog.sqlite3");
+    let CatalogFixture {
+        source,
+        _storage,
+        catalog,
+        root_id,
+        root_path,
+    } = fixture;
+    drop(catalog);
+    let connection = Connection::open(&catalog_path).expect("migration fixture catalog");
+    connection
+        .execute_batch(
+            "PRAGMA foreign_keys = OFF;
+             DROP INDEX asset_locations_root_relative;
+             DROP TABLE library_change_scan_handoff_items;
+             DROP TABLE library_change_scan_handoff_lineage;
+             DROP TABLE library_change_scan_handoff_batches;
+             DROP TABLE library_change_queue_catch_up_lineage;
+             DROP TABLE library_change_preview_repair_contract;
+             DROP TABLE scan_run_catch_up_lineage;
+             DROP TABLE library_change_catch_up_handoffs;
+             DROP INDEX scan_runs_one_active_root;
+             ALTER TABLE library_change_queue DROP COLUMN authoritative_scan_id;
+             ALTER TABLE library_change_root_state DROP COLUMN last_consistency_audit_unix_ms;
+             ALTER TABLE scan_runs DROP COLUMN requires_previous_snapshot;
+             ALTER TABLE scan_runs DROP COLUMN root_generation_at_start;
+             ALTER TABLE scan_runs DROP COLUMN change_queue_high_watermark;
+             ALTER TABLE scan_runs DROP COLUMN scan_owner;
+             ALTER TABLE library_change_queue_contract DROP COLUMN scan_ownership_complete;
+             ALTER TABLE library_change_queue_contract DROP COLUMN authoritative_recovery_complete;",
+        )
+        .expect("restore v17 table shape");
+    let updated = connection
+        .execute(
+            "UPDATE asset_locations
+             SET relative_path = 'album\\legacy.png', location_id = ?1
+             WHERE root_id = ?2 AND relative_path = ?3",
+            [
+                legacy_location_id.as_str(),
+                root_id.as_str(),
+                "album/legacy.png",
+            ],
+        )
+        .expect("restore the v17 path and location identity");
+    assert_eq!(updated, 1);
+    connection
+        .execute_batch(
+            "ALTER TABLE library_change_queue_contract DROP COLUMN scan_handoff_batch_complete;
+             ALTER TABLE library_change_queue_contract DROP COLUMN scan_catch_up_lineage_complete;
+             ALTER TABLE library_change_queue_contract DROP COLUMN change_catch_up_complete;
+             DROP TABLE library_change_catch_up_state;
+             UPDATE schema_info SET version = 17;",
+        )
+        .expect("restore v17 version");
+    drop(connection);
+    let catalog = SqliteCatalog::open(catalog_path.clone()).expect("migrate v17 catalog");
+    let mut fixture = CatalogFixture {
+        source,
+        _storage,
+        catalog,
+        root_id,
+        root_path,
+    };
+    fixture.enqueue(&[intent(&fixture.root_id, "album/legacy.png", None, 1)]);
+
+    let backfill = fixture.process();
+
+    assert_eq!(backfill.applied_mutation_count, 1);
+    let identified = fixture
+        .location("album/legacy.png")
+        .expect("identified location");
+    assert_eq!(identified.asset_id, original.asset_id);
+    assert_eq!(identified.location_id, legacy_location_id);
+    assert!(identified.file_identity.is_some());
+    let connection = Connection::open(catalog_path).expect("verified migration fixture catalog");
+    let (schema_version, location_count, asset_count): (i64, i64, i64) = connection
+        .query_row(
+            "SELECT
+               (SELECT version FROM schema_info),
+               (SELECT COUNT(*) FROM asset_locations
+                WHERE root_id = ?1 AND relative_path = 'album/legacy.png'),
+               (SELECT asset_count FROM scan_runs WHERE id = 'baseline-scan')",
+            [&fixture.root_id],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .expect("load post-backfill counts");
+    assert_eq!(schema_version, 19);
+    assert_eq!(location_count, 1);
+    assert_eq!(asset_count, 1);
+}
+
+#[cfg(windows)]
+#[test]
 fn paired_rename_reconciles_a_replacement_at_the_previous_path() {
     let source = tempdir().expect("source directory");
     write_png(&source.path().join("old.png"), 3, 3, [21, 22, 23]);

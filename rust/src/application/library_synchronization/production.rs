@@ -48,6 +48,7 @@ struct ProductionSynchronization {
     recovery: Option<RecoveryTask>,
     recovery_retries: BTreeMap<String, RecoveryRetryState>,
     recoverable_scan_cursor: Option<String>,
+    authoritative_root_cursor: Option<String>,
     is_stopping: bool,
 }
 
@@ -105,6 +106,7 @@ pub(crate) fn start_production_library_synchronization()
             recovery: None,
             recovery_retries: BTreeMap::new(),
             recoverable_scan_cursor: None,
+            authoritative_root_cursor: None,
             is_stopping: false,
         });
         poll_runtime(runtime)
@@ -245,12 +247,26 @@ fn poll_runtime(
 
 #[cfg(windows)]
 fn ready_authoritative_root(
-    runtime: &ProductionSynchronization,
+    runtime: &mut ProductionSynchronization,
     catalog: &SqliteCatalog,
     snapshot: &LibrarySynchronizationSnapshot,
     now_unix_ms: i64,
 ) -> Result<Option<(String, crate::domain::LibraryRootGeneration)>, ScanError> {
-    for root in &snapshot.roots {
+    if snapshot.roots.is_empty() {
+        return Ok(None);
+    }
+    let start_index = runtime
+        .authoritative_root_cursor
+        .as_ref()
+        .and_then(|root_id| {
+            snapshot
+                .roots
+                .iter()
+                .position(|root| &root.root_id == root_id)
+        })
+        .map_or(0, |index| (index + 1) % snapshot.roots.len());
+    for offset in 0..snapshot.roots.len() {
+        let root = &snapshot.roots[(start_index + offset) % snapshot.roots.len()];
         if root.availability != crate::domain::LibraryRootAvailability::Available
             || root.source_health != crate::domain::LibraryChangeSourceHealth::Healthy
             || !runtime.recovery_is_due(&root.root_id, now_unix_ms)
@@ -270,6 +286,7 @@ fn ready_authoritative_root(
             now_unix_ms,
             runtime.runtime.queue_policy(),
         )? {
+            runtime.authoritative_root_cursor = Some(root.root_id.clone());
             return Ok(Some((root.root_id.clone(), root_generation)));
         }
     }
@@ -664,6 +681,8 @@ fn unsupported_platform() -> ScanError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(windows)]
+    use crate::ports::LibraryChangeQueue;
 
     #[test]
     fn current_time_is_representable() {
@@ -679,6 +698,7 @@ mod tests {
             recovery: None,
             recovery_retries: BTreeMap::new(),
             recoverable_scan_cursor: None,
+            authoritative_root_cursor: None,
             is_stopping: false,
         };
 
@@ -708,6 +728,7 @@ mod tests {
             recovery: None,
             recovery_retries: BTreeMap::new(),
             recoverable_scan_cursor: None,
+            authoritative_root_cursor: None,
             is_stopping: false,
         };
         production.record_recovery_failure("root-b", 5_000);
@@ -800,6 +821,102 @@ mod tests {
 
     #[cfg(windows)]
     #[test]
+    fn authoritative_root_cursor_prevents_a_busy_first_root_from_starving_peers() {
+        let directory = tempfile::tempdir().expect("catalog directory");
+        let mut catalog =
+            SqliteCatalog::open(directory.path().join("catalog.sqlite3")).expect("catalog");
+        let generation = crate::domain::LibraryRootGeneration::initial();
+        let policy = crate::domain::LibraryChangeQueuePolicy {
+            debounce_millis: 0,
+            ..crate::domain::LibraryChangeQueuePolicy::default()
+        };
+        for (root_id, root_path) in [("root-a", "C:\\RootA"), ("root-b", "C:\\RootB")] {
+            let scan_id = format!("scan-{root_id}");
+            catalog
+                .begin_scan(
+                    &ScanRequest {
+                        scan_id: scan_id.clone(),
+                        root_path: root_path.to_owned(),
+                        max_items: None,
+                        max_entries: None,
+                        preview_edge: 512,
+                    },
+                    root_id,
+                    root_path,
+                )
+                .expect("begin root scan");
+            catalog
+                .publish_scan(&scan_id, root_id, 0, 0)
+                .expect("publish root scan");
+            catalog
+                .enqueue_library_change_intents(
+                    &[crate::domain::LibraryChangeIntent {
+                        root_id: root_id.to_owned(),
+                        root_generation: generation,
+                        kind: crate::domain::LibraryChangeIntentKind::FreshnessUnknown,
+                        scope: crate::domain::LibraryChangeScope::Root,
+                        relative_path: String::new(),
+                        previous_relative_path: None,
+                        origin: crate::domain::LibraryChangeOrigin::ConsistencyAudit,
+                        first_observed_unix_ms: 1_000,
+                        most_recent_observed_unix_ms: 1_000,
+                        first_sequence: 1,
+                        most_recent_sequence: 1,
+                        coalesced_observation_count: 1,
+                    }],
+                    1_000,
+                    policy,
+                )
+                .expect("enqueue authoritative work");
+        }
+        let snapshot = LibrarySynchronizationSnapshot {
+            is_running: true,
+            catalog_revision: 0,
+            applied_mutation_count: 0,
+            roots: ["root-a", "root-b"]
+                .into_iter()
+                .map(|root_id| crate::domain::LibraryRootSynchronizationStatus {
+                    root_id: root_id.to_owned(),
+                    root_generation: generation.value(),
+                    availability: crate::domain::LibraryRootAvailability::Available,
+                    freshness: crate::domain::CatalogFreshnessState::NeedsReconciliation,
+                    freshness_cause: crate::domain::CatalogFreshnessCause::EvidenceGap,
+                    source_health: crate::domain::LibraryChangeSourceHealth::Healthy,
+                    queue_health: crate::domain::LibraryChangeQueueHealth::Healthy,
+                    pending_change_count: 1,
+                    retry_wait_count: 0,
+                    freshness_unknown_count: 1,
+                    last_issue_code: None,
+                })
+                .collect(),
+        };
+        let factory = crate::adapters::production_library_change_source_factory();
+        let mut production = ProductionSynchronization {
+            runtime: LibrarySynchronizationRuntime::new_erased(factory),
+            recovery: None,
+            recovery_retries: BTreeMap::new(),
+            recoverable_scan_cursor: None,
+            authoritative_root_cursor: None,
+            is_stopping: false,
+        };
+
+        let first = ready_authoritative_root(&mut production, &catalog, &snapshot, 2_000)
+            .expect("first ready root")
+            .expect("first root");
+        let second = ready_authoritative_root(&mut production, &catalog, &snapshot, 2_000)
+            .expect("second ready root")
+            .expect("second root");
+        let wrapped = ready_authoritative_root(&mut production, &catalog, &snapshot, 2_000)
+            .expect("wrapped ready root")
+            .expect("wrapped root");
+
+        assert_eq!(first.0, "root-a");
+        assert_eq!(second.0, "root-b");
+        assert_eq!(wrapped.0, "root-a");
+    }
+
+    #[cfg(windows)]
+    #[test]
     fn recoverable_scan_cursor_rotates_across_multiple_roots() {
         let directory = tempfile::tempdir().expect("catalog directory");
         let mut catalog =
@@ -825,6 +942,7 @@ mod tests {
             recovery: None,
             recovery_retries: BTreeMap::new(),
             recoverable_scan_cursor: None,
+            authoritative_root_cursor: None,
             is_stopping: false,
         };
 
@@ -872,6 +990,7 @@ mod tests {
             }),
             recovery_retries: BTreeMap::new(),
             recoverable_scan_cursor: None,
+            authoritative_root_cursor: None,
             is_stopping: false,
         };
 
@@ -908,6 +1027,7 @@ mod tests {
             }),
             recovery_retries: BTreeMap::new(),
             recoverable_scan_cursor: None,
+            authoritative_root_cursor: None,
             is_stopping: true,
         };
 

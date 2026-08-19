@@ -94,15 +94,23 @@ truthful recovery-ladder result: both roots retained their last catalog and rece
 authoritative evidence gaps in the isolated copy. The run did not elevate the process or relabel the
 fallback as direct catch-up.
 
+Because this authorization-bound phase intentionally did not lease or publish those gaps, it does
+not measure target-library authoritative enumeration, media inspection, publication, convergence
+time, or lease duration. Those target-scale timings remain extended R10 reliability evidence. R2c
+correctness for slow authoritative ownership is instead covered by deterministic fake-clock queue
+fixtures that cross the nominal lease deadline while foreground polling continues; target-library
+queue and storage measurements must not be interpreted as an end-to-end recovery benchmark.
+
 ## Repository gates
 
-The complete Daily gate passed on 2026-08-19. Rust reported 395 tests: 388 passed and seven explicit
+The latest complete Daily gate passed on 2026-08-19. Rust reported 400 tests: 393 passed and seven explicit
 authorization or manual-performance tests were ignored, including the two R2c-H wrapper-owned
 tests. All Flutter widget tests, the controlled Windows scan integration, the native Windows
 accessibility integration, generated bridge compatibility, formatting, Clippy with warnings denied,
 Dart analysis, script guardrails, and tracked-diff whitespace passed. The Windows Release build and
-packaged bridge smoke test also passed. The target-library run and the final Daily rerun subsequently
-passed, and the independent PR audit approved the final implementation with no findings.
+packaged bridge smoke test also passed. No authorization-bound target workload was repeated during
+this post-integration hardening; the retained source evidence above remains the separately
+authorized record.
 
 ## Independent audit
 
