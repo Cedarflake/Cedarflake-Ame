@@ -183,6 +183,31 @@ try {
         }
     }
 
+    $limitProbeTime = [DateTime]::UtcNow
+    $memoryLimitFailure = [AmeR2cProcessJob]::ResourceLimitFailure(
+        2,
+        1,
+        $limitProbeTime,
+        $limitProbeTime.AddSeconds(1)
+    )
+    Assert-Contains $memoryLimitFailure "exceeded the memory limit"
+    $timeLimitFailure = [AmeR2cProcessJob]::ResourceLimitFailure(
+        0,
+        [UInt64]::MaxValue,
+        $limitProbeTime,
+        $limitProbeTime
+    )
+    Assert-Contains $timeLimitFailure "exceeded its time limit"
+    $withinLimit = [AmeR2cProcessJob]::ResourceLimitFailure(
+        0,
+        [UInt64]::MaxValue,
+        $limitProbeTime,
+        $limitProbeTime.AddSeconds(1)
+    )
+    if ($null -ne $withinLimit) {
+        throw "The R2c-H resource limit helper rejected a bounded final sample"
+    }
+
     Write-Output "AME_R2C_H_GUARDRAILS status=passed"
 } finally {
     if (Test-Path -LiteralPath $testRoot) {

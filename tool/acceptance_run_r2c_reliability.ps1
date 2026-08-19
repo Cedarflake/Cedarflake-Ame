@@ -179,6 +179,24 @@ public sealed class AmeR2cProcessJob : IDisposable
         }
     }
 
+    public static string ResourceLimitFailure(
+        ulong observedMemoryBytes,
+        ulong memoryLimitBytes,
+        DateTime observedAtUtc,
+        DateTime deadlineUtc)
+    {
+        if (observedMemoryBytes > memoryLimitBytes)
+        {
+            return "R2c-H reliability acceptance exceeded the memory limit of " +
+                memoryLimitBytes + " bytes";
+        }
+        if (observedAtUtc >= deadlineUtc)
+        {
+            return "R2c-H reliability acceptance exceeded its time limit";
+        }
+        return null;
+    }
+
     public static string ResolveExistingPath(string path)
     {
         using (SafeFileHandle handle = CreateFile(
@@ -463,7 +481,7 @@ $processArguments = (
     "test --release --locked --manifest-path rust\Cargo.toml " +
     "r2c_h_ -- --ignored --nocapture --test-threads=1"
 )
-$deadline = (Get-Date).AddSeconds($TimeLimitSeconds)
+$deadlineUtc = [DateTime]::UtcNow.AddSeconds($TimeLimitSeconds)
 $peakJobMemoryBytes = [UInt64]0
 $failure = $null
 $process = $null
@@ -478,15 +496,12 @@ try {
         if ($observedJobMemoryBytes -gt $peakJobMemoryBytes) {
             $peakJobMemoryBytes = $observedJobMemoryBytes
         }
-        if ($observedJobMemoryBytes -gt $MemoryLimitBytes) {
-            $failure = (
-                "R2c-H reliability acceptance exceeded the memory limit of " +
-                "$MemoryLimitBytes bytes"
-            )
-        }
-        if ((Get-Date) -ge $deadline) {
-            $failure = "R2c-H reliability acceptance exceeded its time limit"
-        }
+        $failure = [AmeR2cProcessJob]::ResourceLimitFailure(
+            $observedJobMemoryBytes,
+            $MemoryLimitBytes,
+            [DateTime]::UtcNow,
+            $deadlineUtc
+        )
         if ($null -ne $failure) {
             $processJob.Dispose()
             $processJob = $null
@@ -500,7 +515,15 @@ try {
     }
     if ($null -eq $failure) {
         $peakJobMemoryBytes = [UInt64]$processJob.PeakMemoryBytes
-        $processExitCode = [int]$processJob.PrimaryExitCode
+        $failure = [AmeR2cProcessJob]::ResourceLimitFailure(
+            $peakJobMemoryBytes,
+            $MemoryLimitBytes,
+            [DateTime]::UtcNow,
+            $deadlineUtc
+        )
+        if ($null -eq $failure) {
+            $processExitCode = [int]$processJob.PrimaryExitCode
+        }
     }
 } finally {
     if ($null -ne $processJob) {
