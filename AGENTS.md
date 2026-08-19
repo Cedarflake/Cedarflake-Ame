@@ -447,6 +447,13 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
 - `./tool/acceptance_run_read_only_library.ps1` and `./tool/acceptance_verify_read_only_catalog.ps1` are the
   real-library gate. They require current authorization, explicit roots, and storage outside source
   trees; they never become part of unattended daily verification.
+- `./tool/acceptance_run_r2c_reliability.ps1` is the R2c-H closeout gate. It first exercises the
+  production Windows observer against a disposable source root, then backs up the retained catalog
+  into pre-created empty isolated storage and measures catch-up against both explicitly authorized
+  roots without publishing authoritative work or reading cloud-placeholder content.
+- `./tool/acceptance_test_r2c_reliability_guardrails.ps1` verifies the R2c-H authorization token,
+  cloud acknowledgement, path-separation, and fresh-storage boundary without accessing a real
+  library.
 - `./tool/release_verify_windows.ps1` is the Windows packaging and release-bridge gate. Run it when
   desktop integration, native packaging, generated bridge loading, or release behavior changes.
 - `./tool/release_verify_candidate.ps1` is the release-candidate orchestrator. It runs the daily, Windows
