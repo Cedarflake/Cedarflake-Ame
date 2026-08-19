@@ -16,6 +16,7 @@ The controlled fixtures prove:
 
 | Boundary | Required result |
 | --- | --- |
+| Process ownership | Permit one packaged Ame process per Windows user across desktop sessions |
 | Desktop start | Start one synchronization runtime after Rust and the initial catalog are ready |
 | Startup publication | Refresh a current synchronization revision even when it was published before screen subscription |
 | Continuity authority | Persist a root freshness gap on cold start and after an unavailable interval |
@@ -92,6 +93,7 @@ bridge compatibility, release guardrails, and whitespace: passed
 
 ./tool/release_verify_windows.ps1
 Windows x64 Release build: passed
+same-user duplicate process rejection and replacement startup: passed
 release bridge and system accent smoke integration: 2 passed
 ```
 
@@ -123,6 +125,13 @@ repository Daily passed with 397 Rust tests total, all Flutter test files, both 
 and the shared quality gates. The Windows Release gate then built the x64 application and passed both
 packaged bridge smoke tests. The final full-range R2c integration audit returned no Critical, High,
 Medium, or Low findings after these lifecycle corrections.
+
+The production process-ownership closeout repeated the complete Daily with 402 Rust tests total,
+395 passing and seven existing explicit ignores, all Flutter files, Windows Scan 2/2, Windows
+Accessibility 2/2, bridge compatibility, formatting, and whitespace. The Windows Release gate built
+the packaged runner, kept the primary process alive while a same-user duplicate exited before
+runtime initialization, started a replacement after the owner exited, loaded the packaged Rust
+library in both owning processes, and passed both bridge smoke tests.
 
 ## Remaining boundary
 

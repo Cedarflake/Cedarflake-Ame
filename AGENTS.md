@@ -454,8 +454,10 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
 - `./tool/acceptance_test_r2c_reliability_guardrails.ps1` verifies the R2c-H authorization token,
   cloud acknowledgement, path-separation, and fresh-storage boundary without accessing a real
   library.
-- `./tool/release_verify_windows.ps1` is the Windows packaging and release-bridge gate. Run it when
-  desktop integration, native packaging, generated bridge loading, or release behavior changes.
+- `./tool/release_verify_windows.ps1` is the Windows packaging and release-bridge gate. It also
+  proves that a packaged process rejects a same-user duplicate before runtime initialization and
+  that a replacement starts after the original process exits. Run it when desktop integration,
+  native packaging, generated bridge loading, or release behavior changes.
 - `./tool/release_verify_candidate.ps1` is the release-candidate orchestrator. It runs the daily, Windows
   release, and synthetic performance gates in order, and adds retained real-library validation only
   when explicitly requested with all authorization-bound paths.

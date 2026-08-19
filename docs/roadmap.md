@@ -1748,19 +1748,20 @@ may serve as benchmarks or fallbacks but are not automatically preferred over ma
 
 ## 10. Current active stage
 
-Active stage: **R3 - exact duplicate understanding**
+Active stage: **R2c - continuous directory synchronization closeout**
 
-Active slice: **not yet selected**. R2c-A through R2c-H are complete and independently
-audit-hardened; no R3 implementation is included in the R2c closeout.
+Active slice: **production process ownership hardening and final integration audit**. R2c-A through
+R2c-H remain implemented; no R3 implementation is included in the R2c closeout.
 
-Planned next work: evaluate the exact-fingerprint engine and define the first R3 vertical slice under
-the R3 scope and acceptance boundaries above.
+Planned next work: complete the R2c closeout gates and independent integration audit, then submit the
+completed R2c branch to `main` without merging it.
 
 R2b implementation, deterministic preview-lifecycle correctness, retained-catalog interaction
 Profile, real-library catalog parity, Daily, Windows Release, and bounded source-readable preview
-performance gates are complete. R2b was accepted on 2026-08-13 and R2c was accepted on 2026-08-19.
-R3 may now begin, while the R2b interaction and source-safety contracts and the R2c freshness
-contracts remain regression boundaries rather than migration work to repeat.
+performance gates are complete. R2b was accepted on 2026-08-13. R2c implementation is in final
+closeout and must pass its current gates and independent audit before R3 may begin; the R2b
+interaction and source-safety contracts and the R2c freshness contracts remain regression
+boundaries rather than migration work to repeat.
 
 The frozen R2b interaction comparison revision is
 `6d3f0686a91b85402251fe07fcc1690f268effd5`. It remains historical A/B evidence rather than a moving
@@ -1972,14 +1973,17 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   audit success, and v17 path normalization preserves legacy location identity for both healthy and
   unavailable files. Durable lifecycle ownership separates foreground scans from bounded multi-root
   production recovery; foreground path polling cannot reclaim a slow live authoritative lease,
-  bounded authoritative root selection rotates fairly, timed-out workers block restart, future or
-  exhausted retry rows do not create empty workers, and one root cannot own overlapping active
-  scans. Incremental identity backfill retains a normalized v17 location's legacy identifier. The
-  seven-day consistency audit
-  cannot project freshness before publication.
+  and the Windows runner permits only one same-user production process to own that in-memory lease
+  boundary before Flutter, Rust, or catalog initialization. Bounded authoritative root selection
+  rotates fairly, timed-out workers block restart, future or exhausted retry rows do not create
+  empty workers, and one root cannot own overlapping active scans. After process owner loss, a new
+  SQLite connection can normalize and recover the expired work. Incremental identity backfill
+  retains a normalized v17 location's legacy identifier. The seven-day consistency audit cannot
+  project freshness before publication.
   Controlled fixtures did not access a real library. The complete Daily and Windows Release gates
-  passed on 2026-08-19, and final independent audit returned no Critical, High, Medium, or Low
-  findings.
+  passed on 2026-08-19 with 402 Rust tests total, all Flutter files, both Windows integrations,
+  packaged duplicate-process rejection, owner-loss replacement startup, bridge compatibility,
+  formatting, and whitespace. Final independent audit of this closeout remains pending.
 - R2c-G is complete and audit-hardened. The application starts live observation before one bounded
   per-volume Windows USN catch-up, validates journal and catalog continuity, atomically enrolls all
   affected roots before advancing the exclusive checkpoint, and degrades every unsupported,

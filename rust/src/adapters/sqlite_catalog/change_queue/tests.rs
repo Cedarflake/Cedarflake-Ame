@@ -1494,14 +1494,15 @@ fn path_poll_cannot_recover_an_expired_authoritative_worker_lease() {
 }
 
 #[test]
-fn expired_final_authoritative_attempt_is_normalized_after_worker_loss() {
+fn expired_final_authoritative_attempt_is_normalized_by_a_new_connection_after_owner_loss() {
     let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
     let generation = LibraryRootGeneration::initial();
     let policy = LibraryChangeQueuePolicy {
         max_attempts: 1,
         ..retry_policy()
     };
-    let mut catalog = queue_catalog(directory.path().join("catalog.sqlite3"));
+    let mut catalog = queue_catalog(path.clone());
     catalog
         .enqueue_library_change_intents(
             &[intent(
@@ -1521,30 +1522,34 @@ fn expired_final_authoritative_attempt_is_normalized_after_worker_loss() {
         .lease_authoritative_library_change("root-a", generation, 1_000, policy)
         .expect("lease final authoritative attempt")
         .expect("authoritative lease");
+    drop(catalog);
+
+    let mut recovery = SqliteCatalog::open(path).expect("independent recovery connection");
 
     assert!(
-        catalog
+        recovery
             .has_ready_authoritative_library_change("root-a", generation, 1_101, policy)
             .expect("expired authoritative readiness")
     );
     assert!(
-        catalog
+        recovery
             .lease_authoritative_library_change("root-a", generation, 1_101, policy)
             .expect("normalize expired final attempt")
             .is_none()
     );
-    let metrics = catalog
+    let metrics = recovery
         .load_library_change_root_queue_metrics("root-a", generation, 1_101, policy)
         .expect("exhausted authoritative metrics");
-    let (status, next_retry_unix_ms, failure_code): (String, Option<i64>, Option<String>) = catalog
-        .connection
-        .query_row(
-            "SELECT status, next_retry_unix_ms, last_failure_code
+    let (status, next_retry_unix_ms, failure_code): (String, Option<i64>, Option<String>) =
+        recovery
+            .connection
+            .query_row(
+                "SELECT status, next_retry_unix_ms, last_failure_code
              FROM library_change_queue WHERE id = ?1",
-            [sqlite_integer(lease.change.id.value(), "change ID").expect("change ID")],
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
-        )
-        .expect("normalized final attempt");
+                [sqlite_integer(lease.change.id.value(), "change ID").expect("change ID")],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .expect("normalized final attempt");
 
     assert_eq!(status, "retry_wait");
     assert_eq!(next_retry_unix_ms, None);

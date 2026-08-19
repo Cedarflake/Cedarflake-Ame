@@ -212,7 +212,8 @@ remaining platform limitations.
 ## Release gate
 
 The standard release gate runs daily verification, Windows Release packaging, the packaged bridge
-smoke test, and the synthetic performance gate:
+smoke test, packaged same-user process ownership and replacement-start verification, and the
+synthetic performance gate:
 
 ```powershell
 ./tool/release_verify_candidate.ps1

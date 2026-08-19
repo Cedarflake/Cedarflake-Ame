@@ -23,6 +23,7 @@ R2c-F work and must not be approximated by a path worker.
 - preserve the accepted gallery interaction state across an incremental catalog revision;
 - identify refresh anchors and explicit selections by logical asset identity rather than location;
 - present simple Chinese freshness and degraded states without claiming health early;
+- keep one production process as the exclusive owner of the current user's catalog lifecycle;
 - stop observers and polling before window destruction, with a bounded user-visible close path;
 - leave unsupported authoritative recovery work durable for R2c-F.
 
@@ -44,6 +45,14 @@ Accepted. Rust owns observer instances, durable work, incremental publication, a
 polls a small snapshot and refreshes only after the catalog exposes a newer revision.
 
 ## Decision
+
+The Windows runner acquires a named operating-system mutex before console, COM, Flutter, Rust, or
+catalog initialization. The mutex uses the global Windows kernel-object namespace plus the current
+user SID, so one user cannot start concurrent Ame processes in separate desktop sessions while a
+different Windows user remains independent. The owner retains the handle for the complete process
+lifetime. A duplicate launch exits successfully before starting application work; failure to
+establish the ownership boundary fails closed. Windows releases the handle when the owner exits,
+including abnormal termination, so a later process can recover the durable catalog normally.
 
 The Rust application layer owns one `LibrarySynchronizationRuntime`. Its production adapter starts a
 Windows observer for every currently available registered root, stops observers whose root is removed,
@@ -127,9 +136,12 @@ media is never modified by this lifecycle.
   closure;
 - window fixtures prove reverse-order, idempotent coordinated shutdown and destruction after the
   configured timeout;
+- the packaged Windows gate proves duplicate same-user processes cannot cross the application
+  initialization boundary and that a replacement process starts after the owner exits;
 - bridge generation, format, Clippy with warnings denied, Dart analysis, complete Rust and Flutter
   tests, Windows controlled integration, and repository Daily pass;
-- the Windows release gate proves generated bridge and packaged desktop startup compatibility.
+- the Windows release gate proves generated bridge, packaged desktop startup, and process ownership
+  compatibility.
 
 ## Validation evidence
 

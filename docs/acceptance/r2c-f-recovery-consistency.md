@@ -25,6 +25,8 @@ The controlled fixtures prove:
 | Scan abandonment | Immediately release only rows frozen by that scan |
 | Existing worker lease | Leave independent pre-scan leases under their original owner |
 | Slow authoritative worker | Foreground path polling cannot reclaim its lease after nominal expiry |
+| Process owner | Reject another same-user production process before it can reclaim a live lease |
+| Owner loss | Recover an expired authoritative lease through a new SQLite connection |
 | Single scan owner | Reject a second running or paused authoritative scan for the same root |
 | Restart safety | Persist the requirement to preserve the previous snapshot and reject publication |
 | Corrupt rescan | Keep the last trustworthy active location and catalog revision |
@@ -99,8 +101,9 @@ cargo test --locked --manifest-path rust/Cargo.toml --all-targets --all-features
 These fixtures prove foreground path polling cannot reclaim a live authoritative lease after its
 nominal deadline, v17-to-v19 reopen plus live identity backfill retains one legacy location, and
 bounded authoritative selection rotates across continuously ready roots. They also prove an
-expired final authoritative attempt is normalized after worker loss and a lower retry policy clears
-obsolete authoritative deadlines without allowing path leasing.
+expired final authoritative attempt is normalized through an independent connection after worker
+loss and a lower retry policy clears obsolete authoritative deadlines without allowing path
+leasing.
 
 No authorization-bound source root is required or accessed by these fixtures.
 
@@ -122,6 +125,7 @@ bridge compatibility, release guardrails, and whitespace: passed
 
 ./tool/release_verify_windows.ps1
 Windows x64 Release build: passed
+same-user duplicate process rejection and replacement startup: passed
 release bridge and system accent smoke integration: 2 passed
 
 git diff --check
@@ -131,8 +135,9 @@ passed
 The 2026-08-19 post-integration `quality_lint`, complete Daily, and Windows Release gates passed.
 Daily repeated the 402-test Rust result, every Flutter test, Windows Scan 2/2, Accessibility 2/2,
 bridge compatibility, guardrails, formatting, and whitespace. Windows Release built the x64
-application and passed both packaged bridge smoke tests. No authorization-bound source root was
-accessed.
+application, rejected a concurrent same-user process before runtime initialization, started a
+replacement after the owner exited, and passed both packaged bridge smoke tests. No
+authorization-bound real-library acceptance workload was run.
 
 An unprivileged Daily invocation could not write Dart's user-level telemetry configuration; the
 same repository command passed with scoped sandbox approval. An unprivileged Windows Release
