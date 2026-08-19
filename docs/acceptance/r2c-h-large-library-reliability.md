@@ -1,6 +1,6 @@
 # R2c-H large-library reliability acceptance
 
-Status: acceptance evidence complete; independent audit pending
+Status: complete and independently approved
 
 Date: 2026-08-19
 
@@ -102,7 +102,15 @@ tests. All Flutter widget tests, the controlled Windows scan integration, the na
 accessibility integration, generated bridge compatibility, formatting, Clippy with warnings denied,
 Dart analysis, script guardrails, and tracked-diff whitespace passed. The Windows Release build and
 packaged bridge smoke test also passed. The target-library run and the final Daily rerun subsequently
-passed; only the independent PR audit remains outstanding.
+passed, and the independent PR audit approved the final implementation with no findings.
+
+## Independent audit
+
+The final independent review of implementation head `9911498` approved R2c-H with zero Critical,
+High, Medium, or Low findings. Earlier review rounds identified and then verified closure of
+physical-path alias isolation, process-tree ownership, bounded hash reads, and final resource-limit
+sampling. The reviewer independently reran the R2c-H guardrails, focused Rust tests, Clippy with
+warnings denied, and committed-range whitespace checks without accessing either real root.
 
 ## Remaining platform boundary
 

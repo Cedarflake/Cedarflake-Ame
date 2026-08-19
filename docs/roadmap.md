@@ -1347,6 +1347,21 @@ R2c-H - large-library reliability:
   growth, transaction time, startup catch-up, memory, database growth, cancellation, and recovery;
 - verify source bytes, source entries, and cloud-placeholder state remain unchanged.
 
+Status: **complete and audit-hardened on 2026-08-19**. The final controlled Windows observer run
+recorded 35 ms event-to-visible P95, bounded coalescing and restart recovery, and the authorized
+two-root read-only rerun preserved 85,556 source entries plus 32 deterministic byte samples. Its
+isolated catch-up honestly recorded two `usn_volume_open_failed` fallbacks without elevation,
+leasing, publication, placeholder hydration, or source mutation. Physical path aliases are rejected
+before any write, Cargo and descendants remain inside one kill-on-close Job Object, and hash reads
+are bounded after opening. `docs/acceptance/r2c-h-large-library-reliability.md` records 395 Rust
+tests with seven explicit ignores, all Flutter and Windows integration gates, Windows Release,
+10,000-file synthetic performance, and final independent approval with no remaining findings.
+
+R2c status: **complete and audit-hardened on 2026-08-19**. R2c-A through R2c-H now provide the
+normalized observation contract, live Windows watcher, durable queue, atomic incremental
+publication, production UI lifecycle, authoritative recovery, downtime catch-up, and target-scale
+reliability evidence required by this stage.
+
 #### R2c.12 Acceptance evidence
 
 R2c is not complete until all applicable evidence exists. Its preview evidence is limited to
@@ -1721,21 +1736,19 @@ may serve as benchmarks or fallbacks but are not automatically preferred over ma
 
 ## 10. Current active stage
 
-Active stage: **R2c - continuous directory synchronization and incremental indexing**
+Active stage: **R3 - exact duplicate understanding**
 
-Active slice: **R2c-H - large-library reliability**. R2c-A contracts, R2c-B live Windows observation,
-R2c-C durable queue and coalescing, R2c-D incremental delta publication, R2c-E production UI and
-lifecycle, R2c-F recovery and consistency, and R2c-G downtime catch-up are complete and
-audit-hardened. R2c-H now owns the authorized serial read-only target-library reliability evidence.
+Active slice: **not yet selected**. R2c-A through R2c-H are complete and independently
+audit-hardened; no R3 implementation is included in the R2c closeout.
 
-Planned next stage: **R3 - exact duplicate evidence**, still blocked behind R2c catalog-freshness
-acceptance.
+Planned next work: evaluate the exact-fingerprint engine and define the first R3 vertical slice under
+the R3 scope and acceptance boundaries above.
 
 R2b implementation, deterministic preview-lifecycle correctness, retained-catalog interaction
 Profile, real-library catalog parity, Daily, Windows Release, and bounded source-readable preview
-performance gates are complete. R2b was accepted on 2026-08-13. R2c may now begin, but the R2b
-interaction and source-safety contracts remain regression boundaries rather than migration work to
-repeat.
+performance gates are complete. R2b was accepted on 2026-08-13 and R2c was accepted on 2026-08-19.
+R3 may now begin, while the R2b interaction and source-safety contracts and the R2c freshness
+contracts remain regression boundaries rather than migration work to repeat.
 
 The frozen R2b interaction comparison revision is
 `6d3f0686a91b85402251fe07fcc1690f268effd5`. It remains historical A/B evidence rather than a moving
@@ -1954,7 +1967,17 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   serialized across concurrent catalog opens. Controlled fixtures and the 10,000-file synthetic
   gate accessed no real library, requested no elevation, and mutated no source media. The complete
   Daily and Windows Release gates passed on 2026-08-19, and final independent audit returned no
-  Critical, High, Medium, or Low findings. Authorized target-library evidence remains R2c-H.
+  Critical, High, Medium, or Low findings. Authorized target-library evidence is recorded by the
+  completed R2c-H acceptance.
+- R2c-H is complete and audit-hardened. The controlled production watcher records bounded idle,
+  event-to-visible, storm-coalescing, restart, shutdown, queue, and storage evidence. The explicitly
+  authorized two-root workload uses a read-only retained catalog and isolated SQLite backup,
+  performs catch-up discovery without leasing or publishing authoritative work, and verifies all
+  85,556 source entries plus 32 deterministic local byte samples before and after. Physical path
+  aliases fail before writes, Cargo descendants are contained by one kill-on-close Job Object, hash
+  reads remain bounded after open, and final memory/deadline samples cannot bypass their ceilings.
+  The complete Daily, Windows Release, and 10,000-file synthetic gates passed on 2026-08-19, and
+  final independent audit returned no Critical, High, Medium, or Low findings.
 - The current R2b closeout working tree passed the complete local Daily gate and Windows Release
   gate on 2026-08-12, including packaged Rust-library loading and the release bridge smoke test.
   This is current-stage evidence, not a release candidate or completion of R10.
