@@ -1363,15 +1363,14 @@ tests with seven explicit ignores, all Flutter and Windows integration gates, Wi
 The target-root phase intentionally did not execute authoritative leases or publication, so its
 queue and storage measurements are not an end-to-end recovery-time claim.
 
-R2c status: **complete and audit-hardened on 2026-08-19**.
-R2c-A through R2c-H now provide the
+R2c status: **complete and audit-hardened on 2026-08-19**. R2c-A through R2c-H provide the
 normalized observation contract, live Windows watcher, durable queue, atomic incremental
 publication, production UI lifecycle, authoritative recovery, downtime catch-up, and target-scale
 catch-up, queue, storage, and source-safety evidence required by this stage. Target-scale
-authoritative recovery timing remains extended R10 evidence. A later full-range review identified
-live authoritative lease expiry, migrated identity backfill, target-evidence scope, and bounded-root
-fairness gaps; post-integration hardening closed those paths plus the follow-up retry-exhaustion edge,
-and the final independent full-range re-audit returned no Critical, High, Medium, or Low findings.
+authoritative recovery timing remains extended R10 evidence. Production process ownership is
+established before runtime and catalog initialization, so one same-user Windows application process
+owns authoritative lease execution across sessions. All applicable closeout gates and the final
+independent integration audit are complete.
 
 #### R2c.12 Acceptance evidence
 
@@ -1748,20 +1747,20 @@ may serve as benchmarks or fallbacks but are not automatically preferred over ma
 
 ## 10. Current active stage
 
-Active stage: **R2c - continuous directory synchronization closeout**
+Active stage: **R3 - exact duplicate understanding**
 
-Active slice: **production process ownership hardening and final integration audit**. R2c-A through
-R2c-H remain implemented; no R3 implementation is included in the R2c closeout.
+Active slice: **not yet selected**. R2c-A through R2c-H are complete and audit-hardened; no R3
+implementation is included in the R2c closeout branch.
 
-Planned next work: complete the R2c closeout gates and independent integration audit, then submit the
-completed R2c branch to `main` without merging it.
+Planned next work: select the first bounded R3 vertical slice after the completed R2c branch has been
+submitted to `main` for review. The R2c pull request remains unmerged.
 
 R2b implementation, deterministic preview-lifecycle correctness, retained-catalog interaction
 Profile, real-library catalog parity, Daily, Windows Release, and bounded source-readable preview
-performance gates are complete. R2b was accepted on 2026-08-13. R2c implementation is in final
-closeout and must pass its current gates and independent audit before R3 may begin; the R2b
-interaction and source-safety contracts and the R2c freshness contracts remain regression
-boundaries rather than migration work to repeat.
+performance gates are complete. R2b was accepted on 2026-08-13. R2c completed its implementation,
+current gates, and independent integration audit on 2026-08-19; the R2b interaction and source-safety
+contracts and the R2c freshness contracts remain regression boundaries rather than migration work
+to repeat.
 
 The frozen R2b interaction comparison revision is
 `6d3f0686a91b85402251fe07fcc1690f268effd5`. It remains historical A/B evidence rather than a moving
@@ -1983,7 +1982,8 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   Controlled fixtures did not access a real library. The complete Daily and Windows Release gates
   passed on 2026-08-19 with 402 Rust tests total, all Flutter files, both Windows integrations,
   packaged duplicate-process rejection, owner-loss replacement startup, bridge compatibility,
-  formatting, and whitespace. Final independent audit of this closeout remains pending.
+  formatting, and whitespace. The final independent integration audit found no remaining code or
+  contract findings.
 - R2c-G is complete and audit-hardened. The application starts live observation before one bounded
   per-volume Windows USN catch-up, validates journal and catalog continuity, atomically enrolls all
   affected roots before advancing the exclusive checkpoint, and degrades every unsupported,
