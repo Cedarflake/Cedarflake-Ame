@@ -5,10 +5,11 @@ use tempfile::tempdir;
 
 use crate::application::{enqueue_library_change_plan, plan_library_changes};
 use crate::domain::{
-    LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeObservation,
-    LibraryChangeObservationKind, LibraryChangeOrigin, LibraryChangePlanningContext,
-    LibraryChangePlanningLimits, LibraryChangeQueueHealth, LibraryChangeScope,
-    LibraryChangeSourceHealth, LibraryRootAvailability, ScanRequest,
+    LibraryChangeCatchUpEvidence, LibraryChangeCatchUpQueueBatch, LibraryChangeIntent,
+    LibraryChangeIntentKind, LibraryChangeObservation, LibraryChangeObservationKind,
+    LibraryChangeOrigin, LibraryChangePlanningContext, LibraryChangePlanningLimits,
+    LibraryChangeQueueHealth, LibraryChangeScope, LibraryChangeSourceHealth,
+    LibraryRootAvailability, ScanRequest,
 };
 use crate::ports::CatalogRepository;
 
@@ -33,6 +34,28 @@ fn migrates_v16_without_losing_existing_catalog_rows() {
              );
              INSERT INTO library_roots(id, path, created_unix_ms)
              VALUES ('root-a', 'C:\\Source', 123);
+             CREATE TABLE scan_runs (
+               id TEXT PRIMARY KEY,
+               root_id TEXT NOT NULL,
+               status TEXT NOT NULL,
+               started_unix_ms INTEGER NOT NULL,
+               completed_unix_ms INTEGER,
+               current_directory_relative_path TEXT,
+               current_directory_enumerated INTEGER NOT NULL DEFAULT 0,
+               last_visited_relative_path TEXT
+             );
+             CREATE TABLE asset_locations (
+               root_id TEXT NOT NULL,
+               relative_path TEXT NOT NULL,
+               scan_id TEXT NOT NULL,
+               location_id TEXT NOT NULL,
+               preview_path TEXT NOT NULL DEFAULT '',
+               preview_status TEXT NOT NULL DEFAULT 'pending'
+             );
+             CREATE TABLE preview_artifacts (
+               artifact_path TEXT NOT NULL,
+               lifecycle_state TEXT NOT NULL
+             );
              CREATE TABLE preserved_fixture(value TEXT NOT NULL);
              INSERT INTO preserved_fixture(value) VALUES ('kept');",
         )
@@ -80,7 +103,7 @@ fn migrates_v16_without_losing_existing_catalog_rows() {
         )
         .expect("migrated evidence");
 
-    assert_eq!(version, 18);
+    assert_eq!(version, 19);
     assert_eq!(revision, 7);
     assert_eq!(preserved, "kept");
     assert!(queue_exists);
@@ -1925,6 +1948,179 @@ fn metrics_and_cleanup_are_structured_and_bounded() {
 }
 
 #[test]
+fn terminal_retention_atomically_releases_all_handoff_owners() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let generation = LibraryRootGeneration::initial();
+    let policy = immediate_policy();
+    let mut catalog = queue_catalog(path);
+    let evidence = LibraryChangeCatchUpEvidence {
+        source: "windows_usn_v1".to_owned(),
+        watermark: "volume|12|40".to_owned(),
+    };
+    catalog
+        .enqueue_library_change_intents_with_catch_up(
+            &[path_intent("root-a", generation, 1, 1_000, "a.jpg")],
+            &evidence,
+            1_000,
+            policy,
+        )
+        .expect("enqueue catch-up work");
+    let lease = catalog
+        .lease_library_changes("root-a", generation, 1_000, policy)
+        .expect("lease catch-up work")
+        .pop()
+        .expect("catch-up lease");
+    catalog
+        .connection
+        .execute_batch(
+            "INSERT INTO assets(id, created_unix_ms) VALUES ('asset-a', 1);
+             INSERT INTO preview_artifacts(
+               artifact_key, source_file_size, source_modified_unix_ms,
+               source_identity_scheme, source_identity_value, algorithm_id,
+               algorithm_version, orientation_contract, size_bucket,
+               encoded_width, encoded_height, artifact_path, byte_size,
+               lifecycle_state, created_unix_ms, last_used_unix_ms
+             ) VALUES (
+               'preview-a', 1, 1, 'windows-file-id-128-v1', 'volume:file',
+               'preview', 1, 'orientation-v1', 128, 8, 8, 'cache/a.jpg', 1,
+               'ready', 1, 1
+             );
+             INSERT INTO library_change_catch_up_handoffs(
+               catch_up_source, catch_up_watermark,
+               file_identity_scheme, file_identity_value,
+               asset_id, source_location_id, root_id, absolute_path, relative_path,
+               preview_path, file_size, created_unix_ms, modified_unix_ms,
+               width, height, preview_status, preview_issue_code, preview_issue_message,
+               metadata_engine_id, metadata_engine_version, capture_local_time,
+               capture_offset_minutes, capture_time_source, capture_raw_value,
+               updated_unix_ms
+             ) VALUES (
+               'windows_usn_v1', 'volume|12|40', 'windows-file-id-128-v1', 'volume:file',
+               'asset-a', 'location-a', 'root-a', 'C:/source/a.jpg', 'a.jpg',
+               'cache/a.jpg', 1, NULL, 1, 8, 8, 'ready', NULL, NULL,
+               'metadata', '1', NULL, NULL, NULL, NULL, 1
+             );
+             INSERT INTO library_change_scan_handoff_batches(
+               id, source_root_id, updated_unix_ms
+             ) VALUES ('batch-a', 'root-a', 1);
+             INSERT INTO library_change_scan_handoff_lineage(
+               batch_id, catch_up_source, catch_up_watermark, enrolled_unix_ms
+             ) VALUES ('batch-a', 'windows_usn_v1', 'volume|12|40', 1);
+             INSERT INTO library_change_scan_handoff_items(
+               batch_id, file_identity_scheme, file_identity_value,
+               asset_id, source_location_id, root_id, absolute_path, relative_path,
+               preview_path, file_size, created_unix_ms, modified_unix_ms,
+               width, height, preview_status, preview_issue_code, preview_issue_message,
+               metadata_engine_id, metadata_engine_version, capture_local_time,
+               capture_offset_minutes, capture_time_source, capture_raw_value
+             ) VALUES (
+               'batch-a', 'windows-file-id-128-v1', 'volume:file',
+               'asset-a', 'location-a', 'root-a', 'C:/source/a.jpg', 'a.jpg',
+               'cache/a.jpg', 1, NULL, 1, 8, 8, 'ready', NULL, NULL,
+               'metadata', '1', NULL, NULL, NULL, NULL
+             );",
+        )
+        .expect("handoff fixtures");
+    catalog
+        .complete_library_change(lease.change.id, lease.lease_generation, 0, 1_010)
+        .expect("complete catch-up work");
+
+    assert_eq!(
+        catalog
+            .cleanup_terminal_library_changes(1_010, 1)
+            .expect("atomic terminal cleanup"),
+        1,
+    );
+    let retained: (i64, i64, i64, i64, i64, i64, String) = catalog
+        .connection
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM library_change_queue),
+               (SELECT COUNT(*) FROM library_change_catch_up_handoffs),
+               (SELECT COUNT(*) FROM library_change_scan_handoff_batches),
+               (SELECT COUNT(*) FROM library_change_scan_handoff_lineage),
+               (SELECT COUNT(*) FROM library_change_scan_handoff_items),
+               (SELECT COUNT(*) FROM assets WHERE id = 'asset-a'),
+               (SELECT lifecycle_state FROM preview_artifacts WHERE artifact_key = 'preview-a')",
+            [],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                    row.get(5)?,
+                    row.get(6)?,
+                ))
+            },
+        )
+        .expect("retention result");
+    assert_eq!(retained, (0, 0, 0, 0, 0, 0, "stale".to_owned()));
+}
+
+#[test]
+fn terminal_retention_preserves_lineage_provenance_for_an_active_scan() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let generation = LibraryRootGeneration::initial();
+    let policy = immediate_policy();
+    let mut catalog = queue_catalog(path.clone());
+    let evidence = LibraryChangeCatchUpEvidence {
+        source: "windows_usn_v1".to_owned(),
+        watermark: "volume|12|41".to_owned(),
+    };
+    catalog
+        .enqueue_library_change_intents_with_catch_up(
+            &[intent(
+                "root-a",
+                generation,
+                1,
+                1_000,
+                LibraryChangeIntentKind::FreshnessUnknown,
+                LibraryChangeScope::Root,
+                "",
+            )],
+            &evidence,
+            1_000,
+            policy,
+        )
+        .expect("enqueue catch-up gap");
+    let request = scan_request("retention-owned-scan");
+    catalog
+        .begin_scan(&request, "root-a", &request.root_path)
+        .expect("begin authoritative scan");
+    catalog
+        .connection
+        .execute(
+            "UPDATE library_change_queue
+             SET status = 'superseded', lease_expires_unix_ms = NULL,
+                 updated_unix_ms = 1_010",
+            [],
+        )
+        .expect("make frozen queue provenance terminal");
+
+    assert_eq!(
+        catalog
+            .cleanup_terminal_library_changes(1_010, 1)
+            .expect("retain active scan provenance"),
+        0,
+    );
+    drop(catalog);
+    let mut catalog = SqliteCatalog::open(path).expect("reopen with provable frozen lineage");
+    catalog
+        .abandon_scan("retention-owned-scan", "cancelled", 0)
+        .expect("release frozen lineage");
+    assert_eq!(
+        catalog
+            .cleanup_terminal_library_changes(i64::MAX, 1)
+            .expect("clean released queue provenance"),
+        1,
+    );
+}
+
+#[test]
 fn enqueue_runs_bounded_terminal_retention_cleanup() {
     let directory = tempdir().expect("temporary directory");
     let path = directory.path().join("catalog.sqlite3");
@@ -1989,6 +2185,232 @@ fn queue_metrics_report_ready_delay_without_mutating_work() {
     assert_eq!(metrics.pending_count, 1);
     assert_eq!(metrics.ready_count, 1);
     assert_eq!(metrics.oldest_ready_delay_millis, 100);
+}
+
+#[test]
+fn catch_up_evidence_survives_persistence_and_later_live_coalescing() {
+    let directory = tempdir().expect("temporary directory");
+    let generation = LibraryRootGeneration::initial();
+    let policy = immediate_policy();
+    let mut catalog = queue_catalog(directory.path().join("catalog.sqlite3"));
+    let mut catch_up = path_intent("root-a", generation, 20, 1_000, "photo.jpg");
+    catch_up.origin = LibraryChangeOrigin::StartupCatchUp;
+    let evidence = LibraryChangeCatchUpEvidence {
+        source: "windows_usn_v1".to_owned(),
+        watermark: "volume|12|40".to_owned(),
+    };
+    catalog
+        .enqueue_library_change_intents_with_catch_up(&[catch_up], &evidence, 1_000, policy)
+        .expect("enqueue catch-up evidence");
+    catalog
+        .enqueue_library_change_intents(
+            &[path_intent("root-a", generation, 1, 1_001, "photo.jpg")],
+            1_001,
+            policy,
+        )
+        .expect("coalesce live evidence");
+
+    let leased = catalog
+        .lease_path_library_changes("root-a", generation, 1_001, policy)
+        .expect("lease retained evidence")
+        .pop()
+        .expect("change");
+
+    assert_eq!(
+        leased.change.catch_up_source.as_deref(),
+        Some("windows_usn_v1")
+    );
+    assert_eq!(
+        leased.change.catch_up_watermark.as_deref(),
+        Some("volume|12|40")
+    );
+}
+
+#[test]
+fn replayed_catch_up_range_coalesces_without_duplicate_work() {
+    let directory = tempdir().expect("temporary directory");
+    let generation = LibraryRootGeneration::initial();
+    let policy = immediate_policy();
+    let mut catalog = queue_catalog(directory.path().join("catalog.sqlite3"));
+    let mut catch_up = path_intent("root-a", generation, 20, 1_000, "photo.jpg");
+    catch_up.origin = LibraryChangeOrigin::StartupCatchUp;
+    let evidence = LibraryChangeCatchUpEvidence {
+        source: "windows_usn_v1".to_owned(),
+        watermark: "volume|12|40".to_owned(),
+    };
+
+    let first = catalog
+        .enqueue_library_change_intents_with_catch_up(&[catch_up.clone()], &evidence, 1_000, policy)
+        .expect("first catch-up enqueue");
+    let replay = catalog
+        .enqueue_library_change_intents_with_catch_up(&[catch_up], &evidence, 1_001, policy)
+        .expect("replayed catch-up enqueue");
+    let leased = catalog
+        .lease_path_library_changes("root-a", generation, 1_001, policy)
+        .expect("lease coalesced work");
+
+    assert_eq!(first.inserted_count, 1);
+    assert_eq!(replay.inserted_count, 0);
+    assert_eq!(replay.coalesced_count, 1);
+    assert_eq!(leased.len(), 1);
+    assert_eq!(
+        leased[0].change.catch_up_watermark.as_deref(),
+        Some("volume|12|40")
+    );
+}
+
+#[test]
+fn catch_up_root_batches_roll_back_together_when_one_root_cannot_enqueue() {
+    let directory = tempdir().expect("temporary directory");
+    let mut catalog =
+        SqliteCatalog::open(directory.path().join("catalog.sqlite3")).expect("catalog");
+    let transaction = catalog.connection.transaction().expect("root transaction");
+    for (root_id, path) in [("root-a", "C:\\SourceA"), ("root-b", "C:\\SourceB")] {
+        transaction
+            .execute(
+                "INSERT INTO library_roots(id, path, created_unix_ms) VALUES (?1, ?2, 1)",
+                [root_id, path],
+            )
+            .expect("registered root fixture");
+        activate_root_change_queue(&transaction, root_id, 1).expect("root generation");
+    }
+    transaction.commit().expect("registered roots");
+    catalog
+        .connection
+        .execute_batch(
+            "CREATE TRIGGER reject_second_catch_up_root
+             BEFORE INSERT ON library_change_queue
+             WHEN NEW.root_id = 'root-b'
+             BEGIN SELECT RAISE(ABORT, 'fixture rejection'); END;",
+        )
+        .expect("rejection trigger");
+    let evidence = LibraryChangeCatchUpEvidence {
+        source: "windows_usn_v1".to_owned(),
+        watermark: "volume|12|40".to_owned(),
+    };
+    let batches = [
+        LibraryChangeCatchUpQueueBatch {
+            intents: vec![path_intent(
+                "root-a",
+                LibraryRootGeneration::initial(),
+                1,
+                10,
+                "old.jpg",
+            )],
+            evidence: Some(evidence.clone()),
+        },
+        LibraryChangeCatchUpQueueBatch {
+            intents: vec![path_intent(
+                "root-b",
+                LibraryRootGeneration::initial(),
+                2,
+                10,
+                "new.jpg",
+            )],
+            evidence: Some(evidence),
+        },
+    ];
+
+    catalog
+        .enqueue_library_change_catch_up_batches(&batches, 10, immediate_policy())
+        .expect_err("second root rejection");
+
+    let queued = catalog
+        .connection
+        .query_row("SELECT COUNT(*) FROM library_change_queue", [], |row| {
+            row.get::<_, i64>(0)
+        })
+        .expect("queue count");
+    assert_eq!(queued, 0);
+}
+
+#[test]
+fn newer_catch_up_coalescing_retains_every_unconsumed_watermark() {
+    let directory = tempdir().expect("temporary directory");
+    let generation = LibraryRootGeneration::initial();
+    let policy = immediate_policy();
+    let mut catalog = queue_catalog(directory.path().join("catalog.sqlite3"));
+    let intent = path_intent("root-a", generation, 1, 1_000, "photo.jpg");
+    let first = LibraryChangeCatchUpEvidence {
+        source: "windows_usn_v1".to_owned(),
+        watermark: "volume|12|40".to_owned(),
+    };
+    let second = LibraryChangeCatchUpEvidence {
+        source: "windows_usn_v1".to_owned(),
+        watermark: "volume|12|80".to_owned(),
+    };
+
+    catalog
+        .enqueue_library_change_intents_with_catch_up(
+            std::slice::from_ref(&intent),
+            &first,
+            1_000,
+            policy,
+        )
+        .expect("first watermark");
+    catalog
+        .enqueue_library_change_intents_with_catch_up(&[intent], &second, 1_001, policy)
+        .expect("second watermark");
+    let leased = catalog
+        .lease_path_library_changes("root-a", generation, 1_001, policy)
+        .expect("lease")
+        .pop()
+        .expect("change");
+
+    assert_eq!(
+        leased.change.catch_up_watermark.as_deref(),
+        Some("volume|12|80")
+    );
+    assert_eq!(leased.change.catch_up_lineage, vec![second, first]);
+}
+
+#[test]
+fn unresolved_catch_up_watermark_lineage_is_bounded() {
+    let directory = tempdir().expect("temporary directory");
+    let generation = LibraryRootGeneration::initial();
+    let policy = immediate_policy();
+    let mut catalog = queue_catalog(directory.path().join("catalog.sqlite3"));
+    let intent = path_intent("root-a", generation, 1, 1_000, "photo.jpg");
+    for watermark in 0..64 {
+        catalog
+            .enqueue_library_change_intents_with_catch_up(
+                std::slice::from_ref(&intent),
+                &LibraryChangeCatchUpEvidence {
+                    source: "windows_usn_v1".to_owned(),
+                    watermark: format!("volume|12|{watermark}"),
+                },
+                1_000 + watermark,
+                policy,
+            )
+            .expect("bounded watermark lineage");
+    }
+
+    let error = catalog
+        .enqueue_library_change_intents_with_catch_up(
+            &[intent],
+            &LibraryChangeCatchUpEvidence {
+                source: "windows_usn_v1".to_owned(),
+                watermark: "volume|12|overflow".to_owned(),
+            },
+            2_000,
+            policy,
+        )
+        .expect_err("lineage overflow");
+    assert_eq!(error.code, "change_queue_catch_up_lineage_limit_exceeded");
+
+    let leased = catalog
+        .lease_path_library_changes("root-a", generation, 2_000, policy)
+        .expect("lease retained lineage")
+        .pop()
+        .expect("change");
+    assert_eq!(leased.change.catch_up_lineage.len(), 64);
+    assert!(
+        leased
+            .change
+            .catch_up_lineage
+            .iter()
+            .all(|evidence| evidence.watermark != "volume|12|overflow")
+    );
 }
 
 fn queue_catalog(path: PathBuf) -> SqliteCatalog {

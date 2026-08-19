@@ -1,4 +1,4 @@
-use super::LibraryChangeIntent;
+use super::{LibraryChangeCatchUpEvidence, LibraryChangeIntent};
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct LibraryChangeId(u64);
@@ -43,6 +43,7 @@ pub struct DurableLibraryChange {
     pub catalog_revision_at_success: Option<u64>,
     pub catch_up_source: Option<String>,
     pub catch_up_watermark: Option<String>,
+    pub catch_up_lineage: Vec<LibraryChangeCatchUpEvidence>,
     pub superseded_by_change_id: Option<LibraryChangeId>,
 }
 

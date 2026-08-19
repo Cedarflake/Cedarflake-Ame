@@ -1,12 +1,12 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use rusqlite::{OptionalExtension, TransactionBehavior, params};
 
 use crate::domain::{
     AssetLocationView, CatalogDeltaBatch, CatalogDeltaPublication, CatalogDeltaPublicationStatus,
     DerivedEvidenceDisposition, FileIdentityEvidence, IncrementalCatalogRoot,
-    IncrementalReconciliationOutcome, LibraryRootGeneration, PreviewStatus,
-    RetainedPreviewExpectation, ScanError,
+    IncrementalReconciliationOutcome, LibraryChangeCatchUpEvidence, LibraryChangeId,
+    LibraryRootGeneration, PreviewStatus, RetainedPreviewExpectation, ScanError,
 };
 use crate::ports::IncrementalCatalogRepository;
 
@@ -18,6 +18,7 @@ use super::{
 const MAX_DELTA_MUTATIONS: usize = 256;
 const MAX_REMOVALS_PER_MUTATION: usize = 4;
 const MAX_DELTA_COMPLETIONS: usize = 128;
+const MAX_CATCH_UP_LINEAGE_PER_CHANGE: usize = 64;
 
 impl IncrementalCatalogRepository for SqliteCatalog {
     fn load_incremental_catalog_roots(&self) -> Result<Vec<IncrementalCatalogRoot>, ScanError> {
@@ -169,6 +170,7 @@ impl IncrementalCatalogRepository for SqliteCatalog {
     fn load_incremental_location_by_file_identity(
         &self,
         identity: &FileIdentityEvidence,
+        catch_up_lineage: &[LibraryChangeCatchUpEvidence],
     ) -> Result<Option<AssetLocationView>, ScanError> {
         if identity.scheme.is_empty()
             || identity.value.is_empty()
@@ -180,11 +182,20 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                 "Incremental file identity evidence must be non-empty and contain no NUL bytes",
             ));
         }
-        load_incremental_location(
+        let active = load_incremental_location(
             self,
             "locations.file_identity_scheme = ?1 AND locations.file_identity_value = ?2",
             params![identity.scheme, identity.value],
-        )
+        )?;
+        if active.is_some() {
+            return Ok(active);
+        }
+        for evidence in catch_up_lineage {
+            if let Some(location) = load_catch_up_handoff_location(self, identity, evidence)? {
+                return Ok(Some(location));
+            }
+        }
+        Ok(None)
     }
 
     fn load_incremental_locations_in_subtree(
@@ -219,11 +230,11 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                  WHERE locations.root_id = ?1
                    AND (
                      ?2 = ''
-                     OR locations.relative_path = ?2 COLLATE NOCASE
+                     OR locations.relative_path = ?2
                      OR substr(locations.relative_path, 1, length(?2) + 1)
-                          = (?2 || '/') COLLATE NOCASE
+                          = (?2 || '/')
                    )
-                 ORDER BY locations.relative_path COLLATE NOCASE, locations.location_id
+                 ORDER BY locations.relative_path, locations.location_id
                  LIMIT ?3",
             )
             .map_err(database_error)?;
@@ -325,10 +336,12 @@ impl IncrementalCatalogRepository for SqliteCatalog {
             ));
         }
         let mut completed_root_authority = false;
+        let mut catch_up_evidence_by_change = HashMap::new();
         for completion in &batch.completions {
             let leased = transaction
                 .query_row(
-                    "SELECT status, lease_generation, root_id, root_generation, scope
+                    "SELECT status, lease_generation, root_id, root_generation, scope,
+                            catch_up_source, catch_up_watermark
                      FROM library_change_queue WHERE id = ?1",
                     [sqlite_integer(completion.change_id.value(), "change ID")?],
                     |row| {
@@ -338,12 +351,23 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                             row.get::<_, String>(2)?,
                             row.get::<_, i64>(3)?,
                             row.get::<_, String>(4)?,
+                            row.get::<_, Option<String>>(5)?,
+                            row.get::<_, Option<String>>(6)?,
                         ))
                     },
                 )
                 .optional()
                 .map_err(database_error)?;
-            let Some((status, lease_generation, root_id, root_generation, scope)) = leased else {
+            let Some((
+                status,
+                lease_generation,
+                root_id,
+                root_generation,
+                scope,
+                catch_up_source,
+                catch_up_watermark,
+            )) = leased
+            else {
                 return Ok(publication(
                     CatalogDeltaPublicationStatus::StaleLease,
                     current_revision,
@@ -362,16 +386,29 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                 ));
             }
             completed_root_authority |= scope == "root";
+            let primary_evidence = match (catch_up_source, catch_up_watermark) {
+                (Some(source), Some(watermark)) => {
+                    Some(LibraryChangeCatchUpEvidence { source, watermark })
+                }
+                (None, None) => None,
+                _ => {
+                    return Err(ScanError::new(
+                        "catalog_delta_catch_up_evidence_invalid",
+                        "A leased catalog delta contains incomplete catch-up evidence",
+                    ));
+                }
+            };
+            let lineage = load_change_catch_up_lineage(
+                &transaction,
+                completion.change_id,
+                primary_evidence.as_ref(),
+            )?;
+            catch_up_evidence_by_change.insert(completion.change_id, lineage);
         }
 
         for mutation in &batch.mutations {
             if let Some(expectation) = &mutation.retained_preview_expectation
-                && !retained_preview_matches(
-                    &transaction,
-                    &active_scan_id,
-                    &batch.root_id,
-                    expectation,
-                )?
+                && !retained_preview_matches(&transaction, expectation)?
             {
                 return Ok(publication(
                     CatalogDeltaPublicationStatus::StalePreviewState,
@@ -410,6 +447,18 @@ impl IncrementalCatalogRepository for SqliteCatalog {
         }
 
         for mutation in &batch.mutations {
+            if let Some(lineage) = catch_up_evidence_by_change.get(&mutation.change_id) {
+                for evidence in lineage {
+                    retain_catch_up_handoff_snapshots(
+                        &transaction,
+                        &active_scan_id,
+                        &batch.root_id,
+                        &mutation.remove_location_ids,
+                        evidence,
+                        completed_unix_ms,
+                    )?;
+                }
+            }
             let mut removals = mutation
                 .remove_location_ids
                 .iter()
@@ -548,6 +597,14 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                 ));
             }
         }
+        let completed_evidence = catch_up_evidence_by_change
+            .into_values()
+            .flatten()
+            .map(|evidence| (evidence.source, evidence.watermark))
+            .collect::<HashSet<_>>();
+        for (source, watermark) in completed_evidence {
+            cleanup_terminal_catch_up_handoffs(&transaction, &source, &watermark)?;
+        }
         if completed_root_authority {
             transaction
                 .execute(
@@ -617,37 +674,577 @@ where
         .transpose()
 }
 
+pub(super) fn load_scan_location_by_file_identity(
+    catalog: &SqliteCatalog,
+    scan_id: &str,
+    identity: &FileIdentityEvidence,
+) -> Result<Option<AssetLocationView>, ScanError> {
+    let active = load_incremental_location(
+        catalog,
+        "locations.file_identity_scheme = ?1 AND locations.file_identity_value = ?2",
+        params![identity.scheme, identity.value],
+    )?;
+    if active.is_some() {
+        return Ok(active);
+    }
+    let normalized = catalog
+        .connection
+        .query_row(
+            "SELECT items.asset_id, items.source_location_id, items.root_id,
+                    items.absolute_path, items.relative_path, items.preview_path,
+                    items.file_size, items.created_unix_ms, items.modified_unix_ms,
+                    items.width, items.height, items.preview_status,
+                    items.preview_issue_code, items.preview_issue_message,
+                    items.metadata_engine_id, items.metadata_engine_version,
+                    items.capture_local_time, items.capture_offset_minutes,
+                    items.capture_time_source, items.capture_raw_value,
+                    items.file_identity_scheme, items.file_identity_value
+             FROM scan_run_catch_up_lineage AS current_lineage
+             JOIN library_change_scan_handoff_lineage AS handoff_lineage
+               ON handoff_lineage.catch_up_source = current_lineage.catch_up_source
+              AND handoff_lineage.catch_up_watermark = current_lineage.catch_up_watermark
+             JOIN library_change_scan_handoff_batches AS batches
+               ON batches.id = handoff_lineage.batch_id
+             JOIN library_change_scan_handoff_items AS items
+               ON items.batch_id = batches.id
+             WHERE current_lineage.scan_id = ?1
+               AND items.file_identity_scheme = ?2
+               AND items.file_identity_value = ?3
+             ORDER BY current_lineage.enrolled_unix_ms DESC,
+                      batches.updated_unix_ms DESC, batches.id
+             LIMIT 1",
+            params![scan_id, identity.scheme, identity.value],
+            read_stored_asset,
+        )
+        .optional()
+        .map_err(database_error)?
+        .map(stored_asset_view)
+        .transpose()?;
+    if normalized.is_some() {
+        return Ok(normalized);
+    }
+    catalog
+        .connection
+        .query_row(
+            "SELECT handoffs.asset_id, handoffs.source_location_id, handoffs.root_id,
+                    handoffs.absolute_path, handoffs.relative_path, handoffs.preview_path,
+                    handoffs.file_size, handoffs.created_unix_ms,
+                    handoffs.modified_unix_ms, handoffs.width, handoffs.height,
+                    handoffs.preview_status, handoffs.preview_issue_code,
+                    handoffs.preview_issue_message, handoffs.metadata_engine_id,
+                    handoffs.metadata_engine_version, handoffs.capture_local_time,
+                    handoffs.capture_offset_minutes, handoffs.capture_time_source,
+                    handoffs.capture_raw_value, handoffs.file_identity_scheme,
+                    handoffs.file_identity_value
+             FROM scan_run_catch_up_lineage AS lineage
+             JOIN library_change_catch_up_handoffs AS handoffs
+               ON handoffs.catch_up_source = lineage.catch_up_source
+              AND handoffs.catch_up_watermark = lineage.catch_up_watermark
+             WHERE lineage.scan_id = ?1
+               AND handoffs.file_identity_scheme = ?2
+               AND handoffs.file_identity_value = ?3
+             ORDER BY lineage.enrolled_unix_ms DESC, handoffs.updated_unix_ms DESC,
+                      lineage.catch_up_source, lineage.catch_up_watermark
+             LIMIT 1",
+            params![scan_id, identity.scheme, identity.value],
+            read_stored_asset,
+        )
+        .optional()
+        .map_err(database_error)?
+        .map(stored_asset_view)
+        .transpose()
+}
+
+fn load_catch_up_handoff_location(
+    catalog: &SqliteCatalog,
+    identity: &FileIdentityEvidence,
+    evidence: &LibraryChangeCatchUpEvidence,
+) -> Result<Option<AssetLocationView>, ScanError> {
+    let normalized = catalog
+        .connection
+        .query_row(
+            "SELECT items.asset_id, items.source_location_id, items.root_id,
+                    items.absolute_path, items.relative_path, items.preview_path,
+                    items.file_size, items.created_unix_ms, items.modified_unix_ms,
+                    items.width, items.height, items.preview_status,
+                    items.preview_issue_code, items.preview_issue_message,
+                    items.metadata_engine_id, items.metadata_engine_version,
+                    items.capture_local_time, items.capture_offset_minutes,
+                    items.capture_time_source, items.capture_raw_value,
+                    items.file_identity_scheme, items.file_identity_value
+             FROM library_change_scan_handoff_lineage AS lineage
+             JOIN library_change_scan_handoff_batches AS batches ON batches.id = lineage.batch_id
+             JOIN library_change_scan_handoff_items AS items ON items.batch_id = batches.id
+             WHERE lineage.catch_up_source = ?1 AND lineage.catch_up_watermark = ?2
+               AND items.file_identity_scheme = ?3 AND items.file_identity_value = ?4
+             ORDER BY lineage.enrolled_unix_ms DESC, batches.updated_unix_ms DESC, batches.id
+             LIMIT 1",
+            params![
+                evidence.source,
+                evidence.watermark,
+                identity.scheme,
+                identity.value,
+            ],
+            read_stored_asset,
+        )
+        .optional()
+        .map_err(database_error)?
+        .map(stored_asset_view)
+        .transpose()?;
+    if normalized.is_some() {
+        return Ok(normalized);
+    }
+    catalog
+        .connection
+        .query_row(
+            "SELECT asset_id, source_location_id, root_id, absolute_path, relative_path,
+                    preview_path, file_size, created_unix_ms, modified_unix_ms,
+                    width, height, preview_status, preview_issue_code,
+                    preview_issue_message, metadata_engine_id, metadata_engine_version,
+                    capture_local_time, capture_offset_minutes, capture_time_source,
+                    capture_raw_value, file_identity_scheme, file_identity_value
+             FROM library_change_catch_up_handoffs
+             WHERE catch_up_source = ?1 AND catch_up_watermark = ?2
+               AND file_identity_scheme = ?3 AND file_identity_value = ?4",
+            params![
+                evidence.source,
+                evidence.watermark,
+                identity.scheme,
+                identity.value,
+            ],
+            read_stored_asset,
+        )
+        .optional()
+        .map_err(database_error)?
+        .map(stored_asset_view)
+        .transpose()
+}
+
+fn load_change_catch_up_lineage(
+    transaction: &rusqlite::Transaction<'_>,
+    change_id: LibraryChangeId,
+    primary_evidence: Option<&LibraryChangeCatchUpEvidence>,
+) -> Result<Vec<LibraryChangeCatchUpEvidence>, ScanError> {
+    let mut statement = transaction
+        .prepare_cached(
+            "SELECT catch_up_source, catch_up_watermark
+             FROM library_change_queue_catch_up_lineage
+             WHERE change_id = ?1
+             ORDER BY enrolled_unix_ms DESC, catch_up_source, catch_up_watermark
+             LIMIT ?2",
+        )
+        .map_err(database_error)?;
+    let rows = statement
+        .query_map(
+            params![
+                sqlite_integer(change_id.value(), "change ID")?,
+                i64::try_from(MAX_CATCH_UP_LINEAGE_PER_CHANGE + 1).unwrap_or(i64::MAX),
+            ],
+            |row| {
+                Ok(LibraryChangeCatchUpEvidence {
+                    source: row.get(0)?,
+                    watermark: row.get(1)?,
+                })
+            },
+        )
+        .map_err(database_error)?;
+    let mut lineage = Vec::new();
+    for row in rows {
+        lineage.push(row.map_err(database_error)?);
+    }
+    if lineage.len() > MAX_CATCH_UP_LINEAGE_PER_CHANGE
+        || primary_evidence.is_some_and(|evidence| !lineage.contains(evidence))
+        || (primary_evidence.is_none() && !lineage.is_empty())
+    {
+        return Err(ScanError::new(
+            "catalog_delta_catch_up_lineage_invalid",
+            "A catalog delta lease has invalid or unbounded catch-up watermark lineage",
+        ));
+    }
+    Ok(lineage)
+}
+
 fn retained_preview_matches(
+    transaction: &rusqlite::Transaction<'_>,
+    expectation: &RetainedPreviewExpectation,
+) -> Result<bool, ScanError> {
+    transaction
+        .query_row(
+            "SELECT EXISTS(
+               SELECT 1
+               FROM asset_locations AS locations
+               JOIN library_roots AS roots ON roots.active_scan_id = locations.scan_id
+               WHERE locations.location_id = ?1
+                 AND locations.preview_path = ?2
+                 AND locations.preview_status = ?3
+                 AND locations.preview_issue_code IS ?4
+                 AND locations.preview_issue_message IS ?5
+               UNION ALL
+               SELECT 1 FROM library_change_catch_up_handoffs AS handoffs
+               WHERE handoffs.source_location_id = ?1
+                 AND handoffs.preview_path = ?2
+                 AND handoffs.preview_status = ?3
+                  AND handoffs.preview_issue_code IS ?4
+                  AND handoffs.preview_issue_message IS ?5
+               UNION ALL
+               SELECT 1 FROM library_change_scan_handoff_items AS handoffs
+               WHERE handoffs.source_location_id = ?1
+                 AND handoffs.preview_path = ?2
+                 AND handoffs.preview_status = ?3
+                 AND handoffs.preview_issue_code IS ?4
+                 AND handoffs.preview_issue_message IS ?5
+             )",
+            params![
+                expectation.location_id,
+                expectation.preview_path,
+                preview_status_text(&expectation.preview_status),
+                expectation.preview_issue_code,
+                expectation.preview_issue_message,
+            ],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)
+}
+
+fn retain_catch_up_handoff_snapshots(
     transaction: &rusqlite::Transaction<'_>,
     scan_id: &str,
     root_id: &str,
-    expectation: &RetainedPreviewExpectation,
-) -> Result<bool, ScanError> {
-    let stored = transaction
-        .query_row(
-            "SELECT preview_path, preview_status, preview_issue_code, preview_issue_message
-             FROM asset_locations
-             WHERE scan_id = ?1 AND root_id = ?2 AND location_id = ?3",
-            params![scan_id, root_id, expectation.location_id],
-            |row| {
-                Ok((
-                    row.get::<_, String>(0)?,
-                    row.get::<_, String>(1)?,
-                    row.get::<_, Option<String>>(2)?,
-                    row.get::<_, Option<String>>(3)?,
-                ))
-            },
+    location_ids: &[String],
+    evidence: &LibraryChangeCatchUpEvidence,
+    updated_unix_ms: i64,
+) -> Result<(), ScanError> {
+    for location_id in location_ids {
+        transaction
+            .execute(
+                "INSERT INTO library_change_catch_up_handoffs(
+                   catch_up_source, catch_up_watermark,
+                   file_identity_scheme, file_identity_value,
+                   asset_id, source_location_id, root_id, absolute_path, relative_path,
+                   preview_path, file_size, created_unix_ms, modified_unix_ms,
+                   width, height, preview_status, preview_issue_code, preview_issue_message,
+                   metadata_engine_id, metadata_engine_version, capture_local_time,
+                   capture_offset_minutes, capture_time_source, capture_raw_value,
+                   updated_unix_ms
+                 )
+                 SELECT ?1, ?2, locations.file_identity_scheme, locations.file_identity_value,
+                        locations.asset_id, locations.location_id, locations.root_id,
+                        locations.absolute_path, locations.relative_path,
+                        locations.preview_path, locations.file_size, locations.created_unix_ms,
+                        locations.modified_unix_ms, locations.width, locations.height,
+                        locations.preview_status, locations.preview_issue_code,
+                        locations.preview_issue_message, locations.metadata_engine_id,
+                        locations.metadata_engine_version, locations.capture_local_time,
+                        locations.capture_offset_minutes, locations.capture_time_source,
+                        locations.capture_raw_value, ?6
+                 FROM asset_locations AS locations
+                 WHERE locations.scan_id = ?3 AND locations.root_id = ?4
+                   AND locations.location_id = ?5
+                   AND locations.file_identity_scheme IS NOT NULL
+                   AND locations.file_identity_value IS NOT NULL
+                 ON CONFLICT(
+                   catch_up_source, catch_up_watermark,
+                   file_identity_scheme, file_identity_value
+                 ) DO NOTHING",
+                params![
+                    evidence.source,
+                    evidence.watermark,
+                    scan_id,
+                    root_id,
+                    location_id,
+                    updated_unix_ms,
+                ],
+            )
+            .map_err(database_error)?;
+    }
+    Ok(())
+}
+
+pub(super) fn retain_scan_handoff_snapshots(
+    transaction: &rusqlite::Transaction<'_>,
+    scan_id: &str,
+    previous_scan_id: &str,
+    root_id: &str,
+    updated_unix_ms: i64,
+) -> Result<(), ScanError> {
+    transaction
+        .execute(
+            "INSERT INTO library_change_scan_handoff_batches(
+               id, source_root_id, updated_unix_ms
+             )
+             SELECT ?1, ?3, ?4
+             WHERE EXISTS (
+               SELECT 1 FROM scan_run_catch_up_lineage AS lineage
+               WHERE lineage.scan_id = ?1
+                 AND (
+                   EXISTS (
+                     SELECT 1
+                     FROM library_change_queue_catch_up_lineage AS peer_lineage
+                     JOIN library_change_queue AS peer ON peer.id = peer_lineage.change_id
+                     WHERE peer_lineage.catch_up_source = lineage.catch_up_source
+                       AND peer_lineage.catch_up_watermark = lineage.catch_up_watermark
+                       AND peer.root_id <> ?3
+                       AND peer.status IN ('pending', 'leased', 'retry_wait')
+                   ) OR EXISTS (
+                     SELECT 1
+                     FROM scan_run_catch_up_lineage AS peer_lineage
+                     JOIN scan_runs AS peer_scan ON peer_scan.id = peer_lineage.scan_id
+                     WHERE peer_lineage.catch_up_source = lineage.catch_up_source
+                       AND peer_lineage.catch_up_watermark = lineage.catch_up_watermark
+                       AND peer_scan.root_id <> ?3
+                       AND peer_scan.status IN ('running', 'paused')
+                   )
+                 )
+             ) AND EXISTS (
+               SELECT 1 FROM asset_locations AS locations
+               WHERE locations.scan_id = ?2 AND locations.root_id = ?3
+                 AND locations.file_identity_scheme IS NOT NULL
+                 AND locations.file_identity_value IS NOT NULL
+                 AND NOT EXISTS (
+                   SELECT 1 FROM asset_locations AS replacement
+                   WHERE replacement.scan_id = ?1
+                     AND replacement.file_identity_scheme = locations.file_identity_scheme
+                     AND replacement.file_identity_value = locations.file_identity_value
+                 )
+             )",
+            params![scan_id, previous_scan_id, root_id, updated_unix_ms],
         )
-        .optional()
         .map_err(database_error)?;
-    Ok(
-        stored.is_some_and(|(path, status, issue_code, issue_message)| {
-            path == expectation.preview_path
-                && status == preview_status_text(&expectation.preview_status)
-                && issue_code == expectation.preview_issue_code
-                && issue_message == expectation.preview_issue_message
-        }),
+    transaction
+        .execute(
+            "INSERT INTO library_change_scan_handoff_lineage(
+               batch_id, catch_up_source, catch_up_watermark, enrolled_unix_ms
+             )
+             SELECT ?1, lineage.catch_up_source, lineage.catch_up_watermark,
+                    lineage.enrolled_unix_ms
+             FROM scan_run_catch_up_lineage AS lineage
+             WHERE lineage.scan_id = ?1
+               AND EXISTS (
+                 SELECT 1 FROM library_change_scan_handoff_batches WHERE id = ?1
+               )
+               AND (
+                 EXISTS (
+                   SELECT 1
+                   FROM library_change_queue_catch_up_lineage AS peer_lineage
+                   JOIN library_change_queue AS peer ON peer.id = peer_lineage.change_id
+                   WHERE peer_lineage.catch_up_source = lineage.catch_up_source
+                     AND peer_lineage.catch_up_watermark = lineage.catch_up_watermark
+                     AND peer.root_id <> ?2
+                     AND peer.status IN ('pending', 'leased', 'retry_wait')
+                 ) OR EXISTS (
+                   SELECT 1
+                   FROM scan_run_catch_up_lineage AS peer_lineage
+                   JOIN scan_runs AS peer_scan ON peer_scan.id = peer_lineage.scan_id
+                   WHERE peer_lineage.catch_up_source = lineage.catch_up_source
+                     AND peer_lineage.catch_up_watermark = lineage.catch_up_watermark
+                     AND peer_scan.root_id <> ?2
+                     AND peer_scan.status IN ('running', 'paused')
+                 )
+               )",
+            params![scan_id, root_id],
+        )
+        .map_err(database_error)?;
+    transaction
+        .execute(
+            "INSERT INTO library_change_scan_handoff_items(
+               batch_id, file_identity_scheme, file_identity_value,
+               asset_id, source_location_id, root_id, absolute_path, relative_path,
+               preview_path, file_size, created_unix_ms, modified_unix_ms,
+               width, height, preview_status, preview_issue_code, preview_issue_message,
+               metadata_engine_id, metadata_engine_version, capture_local_time,
+               capture_offset_minutes, capture_time_source, capture_raw_value
+             )
+             SELECT ?1, locations.file_identity_scheme, locations.file_identity_value,
+                    locations.asset_id, locations.location_id, locations.root_id,
+                    locations.absolute_path, locations.relative_path,
+                    locations.preview_path, locations.file_size, locations.created_unix_ms,
+                    locations.modified_unix_ms, locations.width, locations.height,
+                    locations.preview_status, locations.preview_issue_code,
+                    locations.preview_issue_message, locations.metadata_engine_id,
+                    locations.metadata_engine_version, locations.capture_local_time,
+                    locations.capture_offset_minutes, locations.capture_time_source,
+                    locations.capture_raw_value
+             FROM asset_locations AS locations
+             WHERE locations.scan_id = ?2 AND locations.root_id = ?3
+               AND EXISTS (
+                 SELECT 1 FROM library_change_scan_handoff_batches WHERE id = ?1
+               )
+               AND locations.file_identity_scheme IS NOT NULL
+               AND locations.file_identity_value IS NOT NULL
+                AND NOT EXISTS (
+                  SELECT 1 FROM asset_locations AS replacement
+                  WHERE replacement.scan_id = ?1
+                    AND replacement.file_identity_scheme = locations.file_identity_scheme
+                    AND replacement.file_identity_value = locations.file_identity_value
+                )
+                AND locations.location_id = (
+                  SELECT MIN(representative.location_id)
+                  FROM asset_locations AS representative
+                  WHERE representative.scan_id = locations.scan_id
+                    AND representative.root_id = locations.root_id
+                    AND representative.file_identity_scheme = locations.file_identity_scheme
+                    AND representative.file_identity_value = locations.file_identity_value
+                )",
+            params![scan_id, previous_scan_id, root_id],
+        )
+        .map_err(database_error)?;
+    Ok(())
+}
+
+pub(super) fn cleanup_terminal_catch_up_handoffs(
+    transaction: &rusqlite::Transaction<'_>,
+    source: &str,
+    watermark: &str,
+) -> Result<(), ScanError> {
+    cleanup_terminal_catch_up_handoffs_batch(
+        transaction,
+        &[(source.to_owned(), watermark.to_owned())],
     )
+}
+
+pub(super) fn cleanup_terminal_catch_up_handoffs_batch(
+    transaction: &rusqlite::Transaction<'_>,
+    evidence: &[(String, String)],
+) -> Result<(), ScanError> {
+    let mut removed_owner = false;
+    for (source, watermark) in evidence {
+        let has_active_work = transaction
+            .query_row(
+                "SELECT EXISTS(
+                   SELECT 1
+                   FROM library_change_queue_catch_up_lineage AS lineage
+                   JOIN library_change_queue AS changes ON changes.id = lineage.change_id
+                   WHERE lineage.catch_up_source = ?1 AND lineage.catch_up_watermark = ?2
+                     AND changes.status IN ('pending', 'leased', 'retry_wait')
+                   UNION ALL
+                   SELECT 1
+                   FROM scan_run_catch_up_lineage AS lineage
+                   JOIN scan_runs AS scans ON scans.id = lineage.scan_id
+                   WHERE lineage.catch_up_source = ?1 AND lineage.catch_up_watermark = ?2
+                     AND scans.status IN ('running', 'paused')
+                 )",
+                params![source, watermark],
+                |row| row.get::<_, bool>(0),
+            )
+            .map_err(database_error)?;
+        if !has_active_work {
+            removed_owner |= release_catch_up_handoff_evidence(transaction, source, watermark)?;
+        }
+    }
+    if removed_owner {
+        super::mark_unreferenced_preview_artifacts_stale(transaction)?;
+        super::delete_orphan_assets(transaction)?;
+    }
+    Ok(())
+}
+
+pub(super) fn cleanup_obsolete_catch_up_handoffs(
+    transaction: &rusqlite::Transaction<'_>,
+    updated_before_unix_ms: i64,
+    limit: u32,
+) -> Result<(), ScanError> {
+    let evidence = {
+        let mut statement = transaction
+            .prepare(
+                "SELECT handoffs.catch_up_source, handoffs.catch_up_watermark
+                 FROM (
+                   SELECT catch_up_source, catch_up_watermark, updated_unix_ms
+                   FROM library_change_catch_up_handoffs
+                   UNION ALL
+                   SELECT lineage.catch_up_source, lineage.catch_up_watermark,
+                          batches.updated_unix_ms
+                   FROM library_change_scan_handoff_lineage AS lineage
+                   JOIN library_change_scan_handoff_batches AS batches
+                     ON batches.id = lineage.batch_id
+                 ) AS handoffs
+                 WHERE handoffs.updated_unix_ms < ?1
+                   AND NOT EXISTS (
+                     SELECT 1
+                     FROM library_change_queue_catch_up_lineage AS lineage
+                     JOIN library_change_queue AS changes ON changes.id = lineage.change_id
+                     WHERE lineage.catch_up_source = handoffs.catch_up_source
+                       AND lineage.catch_up_watermark = handoffs.catch_up_watermark
+                       AND changes.status IN ('pending', 'leased', 'retry_wait')
+                   )
+                   AND NOT EXISTS (
+                     SELECT 1
+                     FROM scan_run_catch_up_lineage AS lineage
+                     JOIN scan_runs AS scans ON scans.id = lineage.scan_id
+                     WHERE lineage.catch_up_source = handoffs.catch_up_source
+                       AND lineage.catch_up_watermark = handoffs.catch_up_watermark
+                       AND scans.status IN ('running', 'paused')
+                   )
+                 GROUP BY handoffs.catch_up_source, handoffs.catch_up_watermark
+                 ORDER BY MIN(handoffs.updated_unix_ms),
+                          handoffs.catch_up_source, handoffs.catch_up_watermark
+                 LIMIT ?2",
+            )
+            .map_err(database_error)?;
+        let rows = statement
+            .query_map(params![updated_before_unix_ms, i64::from(limit)], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            })
+            .map_err(database_error)?;
+        let mut evidence = Vec::new();
+        for row in rows {
+            evidence.push(row.map_err(database_error)?);
+        }
+        evidence
+    };
+    cleanup_terminal_catch_up_handoffs_batch(transaction, &evidence)
+}
+
+fn release_catch_up_handoff_evidence(
+    transaction: &rusqlite::Transaction<'_>,
+    source: &str,
+    watermark: &str,
+) -> Result<bool, ScanError> {
+    let batch_ids = {
+        let mut statement = transaction
+            .prepare(
+                "SELECT batch_id FROM library_change_scan_handoff_lineage
+                 WHERE catch_up_source = ?1 AND catch_up_watermark = ?2",
+            )
+            .map_err(database_error)?;
+        let rows = statement
+            .query_map(params![source, watermark], |row| row.get::<_, String>(0))
+            .map_err(database_error)?;
+        let mut batch_ids = Vec::new();
+        for row in rows {
+            batch_ids.push(row.map_err(database_error)?);
+        }
+        batch_ids
+    };
+    let removed_legacy = transaction
+        .execute(
+            "DELETE FROM library_change_catch_up_handoffs
+             WHERE catch_up_source = ?1 AND catch_up_watermark = ?2",
+            params![source, watermark],
+        )
+        .map_err(database_error)?;
+    transaction
+        .execute(
+            "DELETE FROM library_change_scan_handoff_lineage
+             WHERE catch_up_source = ?1 AND catch_up_watermark = ?2",
+            params![source, watermark],
+        )
+        .map_err(database_error)?;
+    let mut removed_batches = 0_usize;
+    for batch_id in batch_ids {
+        removed_batches = removed_batches.saturating_add(
+            transaction
+                .execute(
+                    "DELETE FROM library_change_scan_handoff_batches
+                     WHERE id = ?1 AND NOT EXISTS (
+                       SELECT 1 FROM library_change_scan_handoff_lineage
+                       WHERE batch_id = ?1
+                     )",
+                    [batch_id],
+                )
+                .map_err(database_error)?,
+        );
+    }
+    Ok(removed_legacy > 0 || removed_batches > 0)
 }
 
 fn load_affected_state(
@@ -743,7 +1340,17 @@ fn mark_affected_preview_artifacts_stale(
                    AND NOT EXISTS (
                      SELECT 1 FROM preview_artifact_locations AS owners
                      WHERE owners.artifact_key = preview_artifacts.artifact_key
-                   )",
+                   )
+                    AND NOT EXISTS (
+                      SELECT 1 FROM library_change_catch_up_handoffs AS handoffs
+                      WHERE handoffs.preview_status = 'ready'
+                        AND handoffs.preview_path = preview_artifacts.artifact_path
+                    )
+                    AND NOT EXISTS (
+                      SELECT 1 FROM library_change_scan_handoff_items AS handoffs
+                      WHERE handoffs.preview_status = 'ready'
+                        AND handoffs.preview_path = preview_artifacts.artifact_path
+                    )",
                 [artifact_key],
             )
             .map_err(database_error)?;
@@ -761,7 +1368,13 @@ fn delete_affected_orphan_assets(
                 "DELETE FROM assets
                  WHERE id = ?1 AND NOT EXISTS (
                    SELECT 1 FROM asset_locations WHERE asset_locations.asset_id = assets.id
-                 )",
+                  ) AND NOT EXISTS (
+                    SELECT 1 FROM library_change_catch_up_handoffs AS handoffs
+                    WHERE handoffs.asset_id = assets.id
+                  ) AND NOT EXISTS (
+                    SELECT 1 FROM library_change_scan_handoff_items AS handoffs
+                    WHERE handoffs.asset_id = assets.id
+                  )",
                 [asset_id],
             )
             .map_err(database_error)?;
@@ -822,6 +1435,12 @@ fn validate_delta_batch(batch: &CatalogDeltaBatch) -> Result<(), ScanError> {
         }
     }
     for mutation in &batch.mutations {
+        if !change_ids.contains(&mutation.change_id) {
+            return Err(ScanError::new(
+                "catalog_delta_mutation_change_invalid",
+                "Every catalog mutation must belong to a completed lease in the same batch",
+            ));
+        }
         let valid_evidence_contract = match mutation.outcome {
             IncrementalReconciliationOutcome::Added
             | IncrementalReconciliationOutcome::Replaced => {

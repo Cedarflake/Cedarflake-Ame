@@ -1,15 +1,18 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 
 use crate::domain::{
     AssetLocationView, CatalogCursor, CatalogDeltaBatch, CatalogDeltaPublication, CatalogSnapshot,
     DiscoveredFile, ExpectedFileState, FileIdentityEvidence, GalleryLayoutManifestChunk,
     GalleryLayoutManifestCursor, GalleryQuery, GalleryTimeAnchor, GalleryTimeline,
-    IncrementalCatalogRoot, LibraryChangeSourceBatch, LibraryChangeSourceError,
-    LibraryChangeSourceHealth, LibraryChangeSourceStopReport, LibraryFolderCursor,
-    LibraryFolderPage, LibraryRootGeneration, MediaInspection, MetadataInspection, PreviewArtifact,
-    PreviewMaterialization, PreviewReclamationCandidate, RecoverableScan, ScanCheckpoint,
-    ScanError, ScanIssue, ScanRequest, StorageConfiguration,
+    IncrementalCatalogRoot, LibraryChangeCatchUpBatch, LibraryChangeCatchUpCheckpoint,
+    LibraryChangeCatchUpEvidence, LibraryChangeCatchUpLimits, LibraryChangeCatchUpQueueBatch,
+    LibraryChangeSourceBatch, LibraryChangeSourceError, LibraryChangeSourceHealth,
+    LibraryChangeSourceStopReport, LibraryFolderCursor, LibraryFolderPage, LibraryRootGeneration,
+    MediaInspection, MetadataInspection, PreviewArtifact, PreviewMaterialization,
+    PreviewReclamationCandidate, RecoverableScan, ScanCheckpoint, ScanError, ScanIssue,
+    ScanRequest, StorageConfiguration,
 };
 use crate::domain::{
     LeasedLibraryChange, LibraryChangeEnqueueReport, LibraryChangeFailure, LibraryChangeId,
@@ -74,6 +77,19 @@ pub trait LibraryChangeQueue {
         enqueued_unix_ms: i64,
         policy: LibraryChangeQueuePolicy,
     ) -> Result<LibraryChangeEnqueueReport, ScanError>;
+    fn enqueue_library_change_intents_with_catch_up(
+        &mut self,
+        intents: &[LibraryChangeIntent],
+        evidence: &LibraryChangeCatchUpEvidence,
+        enqueued_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<LibraryChangeEnqueueReport, ScanError>;
+    fn enqueue_library_change_catch_up_batches(
+        &mut self,
+        batches: &[LibraryChangeCatchUpQueueBatch],
+        enqueued_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<Vec<LibraryChangeEnqueueReport>, ScanError>;
     fn lease_library_changes(
         &mut self,
         root_id: &str,
@@ -135,6 +151,33 @@ pub trait LibraryChangeQueue {
     ) -> Result<u32, ScanError>;
 }
 
+pub trait LibraryChangeCatchUpRepository {
+    fn load_library_change_catch_up_checkpoints(
+        &self,
+    ) -> Result<Vec<LibraryChangeCatchUpCheckpoint>, ScanError>;
+    fn save_library_change_catch_up_checkpoint(
+        &mut self,
+        checkpoint: &LibraryChangeCatchUpCheckpoint,
+    ) -> Result<(), ScanError>;
+    fn cleanup_obsolete_library_change_catch_up_checkpoints(
+        &mut self,
+        retained_volume_ids: &[String],
+        updated_before_unix_ms: i64,
+        limit: u32,
+    ) -> Result<u32, ScanError>;
+}
+
+pub trait LibraryChangeCatchUpSource: Send + Sync + 'static {
+    fn read_changes(
+        &self,
+        roots: &[IncrementalCatalogRoot],
+        checkpoints: &[LibraryChangeCatchUpCheckpoint],
+        observed_unix_ms: i64,
+        limits: LibraryChangeCatchUpLimits,
+        cancelled: &AtomicBool,
+    ) -> Result<LibraryChangeCatchUpBatch, ScanError>;
+}
+
 pub trait IncrementalCatalogRepository {
     fn load_incremental_catalog_roots(&self) -> Result<Vec<IncrementalCatalogRoot>, ScanError>;
     fn load_incremental_catalog_root(
@@ -149,6 +192,7 @@ pub trait IncrementalCatalogRepository {
     fn load_incremental_location_by_file_identity(
         &self,
         identity: &FileIdentityEvidence,
+        catch_up_lineage: &[LibraryChangeCatchUpEvidence],
     ) -> Result<Option<AssetLocationView>, ScanError>;
     fn load_incremental_locations_in_subtree(
         &self,
@@ -178,8 +222,9 @@ pub trait CatalogRepository {
         root_path: &str,
     ) -> Result<ScanCheckpoint, ScanError>;
     fn has_active_locations(&self) -> Result<bool, ScanError>;
-    fn load_active_location_by_file_identity(
+    fn load_scan_location_by_file_identity(
         &self,
+        scan_id: &str,
         identity: &FileIdentityEvidence,
     ) -> Result<Option<AssetLocationView>, ScanError>;
     fn load_active_location(
@@ -219,6 +264,10 @@ pub trait CatalogRepository {
         &mut self,
         candidate: &PreviewReclamationCandidate,
         actual_bytes: u64,
+    ) -> Result<bool, ScanError>;
+    fn invalidate_preview_recovery_artifact(
+        &mut self,
+        candidate: &PreviewReclamationCandidate,
     ) -> Result<bool, ScanError>;
     fn touch_preview_artifacts(&mut self, artifacts: &[(String, String)])
     -> Result<u64, ScanError>;

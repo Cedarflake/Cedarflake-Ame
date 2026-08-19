@@ -2,14 +2,37 @@ use tempfile::tempdir;
 
 use crate::domain::{
     AssetLocationView, CatalogDeltaBatch, CatalogDeltaMutation, CatalogDeltaPublicationStatus,
-    DerivedEvidenceDisposition, IncrementalReconciliationOutcome, LibraryChangeCompletion,
-    LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeOrigin, LibraryChangeQueuePolicy,
-    LibraryChangeScope, LibraryRootGeneration, PreviewArtifact, PreviewStatus,
-    RetainedPreviewExpectation, ScanRequest,
+    DerivedEvidenceDisposition, FileIdentityEvidence, IncrementalReconciliationOutcome,
+    LibraryChangeCatchUpEvidence, LibraryChangeCompletion, LibraryChangeIntent,
+    LibraryChangeIntentKind, LibraryChangeOrigin, LibraryChangeQueuePolicy, LibraryChangeScope,
+    LibraryRootGeneration, PreviewArtifact, PreviewStatus, RetainedPreviewExpectation, ScanRequest,
 };
 use crate::ports::{CatalogRepository, IncrementalCatalogRepository, LibraryChangeQueue};
 
 use super::super::SqliteCatalog;
+
+#[test]
+fn authoritative_subtree_window_keeps_case_distinct_siblings_outside_its_capacity() {
+    let directory = tempdir().expect("temporary directory");
+    let mut catalog =
+        SqliteCatalog::open(directory.path().join("catalog.sqlite3")).expect("open catalog");
+    seed_catalog(
+        &mut catalog,
+        "root-a",
+        "C:/source",
+        &[
+            location("asset-upper", "location-upper", "root-a", "Album/upper.jpg"),
+            location("asset-lower", "location-lower", "root-a", "album/lower.jpg"),
+        ],
+    );
+
+    let locations = catalog
+        .load_incremental_locations_in_subtree("root-a", "Album", 1)
+        .expect("load exact-case authoritative subtree");
+
+    assert_eq!(locations.len(), 1);
+    assert_eq!(locations[0].relative_path, "Album/upper.jpg");
+}
 
 #[test]
 fn publishes_a_location_and_completes_its_lease_at_one_revision() {
@@ -32,6 +55,7 @@ fn publishes_a_location_and_completes_its_lease_at_one_revision() {
                 root_generation: LibraryRootGeneration::initial(),
                 expected_catalog_revision: root.catalog_revision,
                 mutations: vec![CatalogDeltaMutation {
+                    change_id: leased.change.id,
                     outcome: IncrementalReconciliationOutcome::Added,
                     evidence_disposition: DerivedEvidenceDisposition::NoReusableEvidence,
                     remove_location_ids: Vec::new(),
@@ -88,6 +112,7 @@ fn rejects_a_delta_with_inconsistent_reconciliation_evidence() {
                 root_generation: LibraryRootGeneration::initial(),
                 expected_catalog_revision: revision,
                 mutations: vec![CatalogDeltaMutation {
+                    change_id: leased.change.id,
                     outcome: IncrementalReconciliationOutcome::Modified,
                     evidence_disposition: DerivedEvidenceDisposition::NoReusableEvidence,
                     remove_location_ids: Vec::new(),
@@ -151,6 +176,7 @@ fn a_superseded_lease_cannot_publish_catalog_state() {
                 root_generation: LibraryRootGeneration::initial(),
                 expected_catalog_revision: root.catalog_revision,
                 mutations: vec![CatalogDeltaMutation {
+                    change_id: leased.change.id,
                     outcome: IncrementalReconciliationOutcome::Added,
                     evidence_disposition: DerivedEvidenceDisposition::NoReusableEvidence,
                     remove_location_ids: Vec::new(),
@@ -205,6 +231,7 @@ fn a_changed_catalog_revision_rejects_the_complete_delta_batch() {
                 root_generation: LibraryRootGeneration::initial(),
                 expected_catalog_revision: stale_revision,
                 mutations: vec![CatalogDeltaMutation {
+                    change_id: leased.change.id,
                     outcome: IncrementalReconciliationOutcome::Added,
                     evidence_disposition: DerivedEvidenceDisposition::NoReusableEvidence,
                     remove_location_ids: Vec::new(),
@@ -272,6 +299,7 @@ fn a_running_full_scan_blocks_incremental_publication() {
                 root_generation: LibraryRootGeneration::initial(),
                 expected_catalog_revision: revision,
                 mutations: vec![CatalogDeltaMutation {
+                    change_id: leased.change.id,
                     outcome: IncrementalReconciliationOutcome::Added,
                     evidence_disposition: DerivedEvidenceDisposition::NoReusableEvidence,
                     remove_location_ids: Vec::new(),
@@ -330,6 +358,7 @@ fn a_retired_root_generation_cannot_publish_a_leased_delta() {
                 root_generation: LibraryRootGeneration::initial(),
                 expected_catalog_revision: revision,
                 mutations: vec![CatalogDeltaMutation {
+                    change_id: leased.change.id,
                     outcome: IncrementalReconciliationOutcome::Added,
                     evidence_disposition: DerivedEvidenceDisposition::NoReusableEvidence,
                     remove_location_ids: Vec::new(),
@@ -389,6 +418,7 @@ fn queue_completion_failure_rolls_back_the_catalog_delta_and_revision() {
                 root_generation: LibraryRootGeneration::initial(),
                 expected_catalog_revision: revision,
                 mutations: vec![CatalogDeltaMutation {
+                    change_id: leased.change.id,
                     outcome: IncrementalReconciliationOutcome::Added,
                     evidence_disposition: DerivedEvidenceDisposition::NoReusableEvidence,
                     remove_location_ids: Vec::new(),
@@ -486,6 +516,7 @@ fn identity_preserving_rename_moves_preview_ownership_atomically() {
                 root_generation: LibraryRootGeneration::initial(),
                 expected_catalog_revision: root.catalog_revision,
                 mutations: vec![CatalogDeltaMutation {
+                    change_id: leased.change.id,
                     outcome: IncrementalReconciliationOutcome::RenamedOrMoved,
                     evidence_disposition: DerivedEvidenceDisposition::RetainCompatible,
                     remove_location_ids: vec![old_location.location_id.clone()],
@@ -591,6 +622,7 @@ fn preview_cleanup_invalidates_a_prepared_retained_preview_delta() {
                 root_generation: LibraryRootGeneration::initial(),
                 expected_catalog_revision: root.catalog_revision,
                 mutations: vec![CatalogDeltaMutation {
+                    change_id: leased.change.id,
                     outcome: IncrementalReconciliationOutcome::RenamedOrMoved,
                     evidence_disposition: DerivedEvidenceDisposition::RetainCompatible,
                     remove_location_ids: vec![old_location.location_id.clone()],
@@ -673,6 +705,7 @@ fn delta_maintenance_does_not_scan_or_rewrite_unaffected_global_state() {
                 root_generation: LibraryRootGeneration::initial(),
                 expected_catalog_revision: root.catalog_revision,
                 mutations: vec![CatalogDeltaMutation {
+                    change_id: leased.change.id,
                     outcome: IncrementalReconciliationOutcome::Added,
                     evidence_disposition: DerivedEvidenceDisposition::NoReusableEvidence,
                     remove_location_ids: Vec::new(),
@@ -719,6 +752,160 @@ fn delta_maintenance_does_not_scan_or_rewrite_unaffected_global_state() {
         )
         .expect("load asset count");
     assert_eq!(asset_count, 1);
+}
+
+#[test]
+fn terminal_lineage_cleanup_preserves_other_watermark_owners() {
+    let directory = tempdir().expect("temporary directory");
+    let mut catalog =
+        SqliteCatalog::open(directory.path().join("catalog.sqlite3")).expect("open catalog");
+    catalog
+        .connection
+        .execute_batch(
+            "INSERT INTO assets(id, created_unix_ms) VALUES ('asset-a', 1);
+             INSERT INTO preview_artifacts(
+               artifact_key, source_file_size, source_modified_unix_ms,
+               source_identity_scheme, source_identity_value,
+               algorithm_id, algorithm_version, orientation_contract, size_bucket,
+               encoded_width, encoded_height, artifact_path, byte_size,
+               lifecycle_state, created_unix_ms, last_used_unix_ms
+             ) VALUES (
+               'artifact-a', 1, 1, 'windows-file-id-128-v1', 'volume:file',
+               'preview', 1, 'orientation', 256, 1, 1,
+               'C:/preview/photo.jpg', 1, 'ready', 1, 1
+             );
+             INSERT INTO library_change_catch_up_handoffs(
+               catch_up_source, catch_up_watermark,
+               file_identity_scheme, file_identity_value,
+               asset_id, source_location_id, root_id, absolute_path, relative_path,
+               preview_path, file_size, created_unix_ms, modified_unix_ms,
+               width, height, preview_status, preview_issue_code, preview_issue_message,
+               metadata_engine_id, metadata_engine_version, capture_local_time,
+               capture_offset_minutes, capture_time_source, capture_raw_value,
+               updated_unix_ms
+             ) VALUES
+             (
+               'windows_usn_v1', 'watermark-1', 'windows-file-id-128-v1', 'volume:file',
+               'asset-a', 'location-a', 'root-a', 'C:/source/photo.jpg', 'photo.jpg',
+               'C:/preview/photo.jpg', 1, NULL, 1, 1, 1, 'ready', NULL, NULL,
+               'metadata', '1', NULL, NULL, NULL, NULL, 1
+             ),
+             (
+               'windows_usn_v1', 'watermark-2', 'windows-file-id-128-v1', 'volume:file',
+               'asset-a', 'location-a', 'root-a', 'C:/source/photo.jpg', 'photo.jpg',
+               'C:/preview/photo.jpg', 1, NULL, 1, 1, 1, 'ready', NULL, NULL,
+               'metadata', '1', NULL, NULL, NULL, NULL, 2
+             );",
+        )
+        .expect("seed handoff owners");
+
+    let transaction = catalog
+        .connection
+        .transaction()
+        .expect("cleanup transaction");
+    super::cleanup_terminal_catch_up_handoffs(&transaction, "windows_usn_v1", "watermark-1")
+        .expect("cleanup first watermark");
+    transaction.commit().expect("commit first cleanup");
+
+    let (asset_count, lifecycle, handoff_count) = catalog
+        .connection
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM assets WHERE id = 'asset-a'),
+               (SELECT lifecycle_state FROM preview_artifacts WHERE artifact_key = 'artifact-a'),
+               (SELECT COUNT(*) FROM library_change_catch_up_handoffs)",
+            [],
+            |row| {
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, i64>(2)?,
+                ))
+            },
+        )
+        .expect("retained owner state");
+    assert_eq!(
+        (asset_count, lifecycle.as_str(), handoff_count),
+        (1, "ready", 1)
+    );
+
+    let transaction = catalog.connection.transaction().expect("final transaction");
+    super::cleanup_terminal_catch_up_handoffs(&transaction, "windows_usn_v1", "watermark-2")
+        .expect("cleanup final watermark");
+    transaction.commit().expect("commit final cleanup");
+    let (asset_count, lifecycle, handoff_count) = catalog
+        .connection
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM assets WHERE id = 'asset-a'),
+               (SELECT lifecycle_state FROM preview_artifacts WHERE artifact_key = 'artifact-a'),
+               (SELECT COUNT(*) FROM library_change_catch_up_handoffs)",
+            [],
+            |row| {
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, i64>(2)?,
+                ))
+            },
+        )
+        .expect("released owner state");
+    assert_eq!(
+        (asset_count, lifecycle.as_str(), handoff_count),
+        (0, "stale", 0)
+    );
+}
+
+#[test]
+fn incremental_identity_lookup_reads_a_normalized_scan_handoff_batch() {
+    let directory = tempdir().expect("temporary directory");
+    let catalog =
+        SqliteCatalog::open(directory.path().join("catalog.sqlite3")).expect("open catalog");
+    catalog
+        .connection
+        .execute_batch(
+            "INSERT INTO library_change_scan_handoff_batches(
+               id, source_root_id, updated_unix_ms
+             ) VALUES ('scan-source', 'root-source', 10);
+             INSERT INTO library_change_scan_handoff_lineage(
+               batch_id, catch_up_source, catch_up_watermark, enrolled_unix_ms
+             ) VALUES ('scan-source', 'windows_usn_v1', 'volume|12|40', 10);
+             INSERT INTO library_change_scan_handoff_items(
+               batch_id, file_identity_scheme, file_identity_value,
+               asset_id, source_location_id, root_id, absolute_path, relative_path,
+               preview_path, file_size, created_unix_ms, modified_unix_ms,
+               width, height, preview_status, preview_issue_code, preview_issue_message,
+               metadata_engine_id, metadata_engine_version, capture_local_time,
+               capture_offset_minutes, capture_time_source, capture_raw_value
+             ) VALUES (
+               'scan-source', 'windows-file-id-128-v1', 'volume:file',
+               'asset-a', 'location-source', 'root-source',
+               'C:/source/photo.jpg', 'photo.jpg', 'C:/preview/photo.jpg',
+               10, 1, 2, 8, 6, 'ready', NULL, NULL,
+               'metadata', '1', NULL, NULL, NULL, NULL
+             );",
+        )
+        .expect("normalized scan handoff fixture");
+
+    let location = catalog
+        .load_incremental_location_by_file_identity(
+            &FileIdentityEvidence {
+                scheme: "windows-file-id-128-v1".to_owned(),
+                value: "volume:file".to_owned(),
+            },
+            &[LibraryChangeCatchUpEvidence {
+                source: "windows_usn_v1".to_owned(),
+                watermark: "volume|12|40".to_owned(),
+            }],
+        )
+        .expect("load normalized handoff")
+        .expect("retained location");
+
+    assert_eq!(location.asset_id, "asset-a");
+    assert_eq!(location.location_id, "location-source");
+    assert_eq!(location.relative_path, "photo.jpg");
+    assert_eq!(location.preview_path, "C:/preview/photo.jpg");
+    assert!(matches!(location.preview_status, PreviewStatus::Ready));
 }
 
 fn seed_catalog(

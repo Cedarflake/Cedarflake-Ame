@@ -1,13 +1,18 @@
+use std::collections::HashSet;
+
 use rusqlite::{Connection, OptionalExtension, Row, Transaction, params};
 
 use crate::domain::{
-    DurableLibraryChange, LibraryChangeFailure, LibraryChangeId, LibraryChangeIntent,
-    LibraryChangeIntentKind, LibraryChangeLeaseUpdateOutcome, LibraryChangeOrigin,
-    LibraryChangeQueueHealth, LibraryChangeQueueMetrics, LibraryChangeQueuePolicy,
-    LibraryChangeQueueStatus, LibraryChangeScope, LibraryRootGeneration, ScanError,
+    DurableLibraryChange, LibraryChangeCatchUpEvidence, LibraryChangeFailure, LibraryChangeId,
+    LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeLeaseUpdateOutcome,
+    LibraryChangeOrigin, LibraryChangeQueueHealth, LibraryChangeQueueMetrics,
+    LibraryChangeQueuePolicy, LibraryChangeQueueStatus, LibraryChangeScope, LibraryRootGeneration,
+    ScanError,
 };
 
 use super::super::{database_error, sqlite_integer, sqlite_u32, sqlite_unsigned};
+
+const MAX_CATCH_UP_LINEAGE_PER_CHANGE: usize = 64;
 
 #[derive(Clone, Debug)]
 pub(super) struct ActiveChange {
@@ -15,6 +20,7 @@ pub(super) struct ActiveChange {
     pub(super) intent: LibraryChangeIntent,
     pub(super) status: LibraryChangeQueueStatus,
     pub(super) catalog_revision_at_enqueue: u64,
+    pub(super) catch_up_evidence: Option<LibraryChangeCatchUpEvidence>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -321,7 +327,7 @@ pub(super) fn load_active_changes(
             "SELECT id, intent_kind, scope, relative_path, previous_relative_path, origin,
                     first_observed_unix_ms, most_recent_observed_unix_ms,
                     first_sequence, most_recent_sequence, coalesced_observation_count,
-                    status, catalog_revision_at_enqueue
+                    status, catalog_revision_at_enqueue, catch_up_source, catch_up_watermark
              FROM library_change_queue
              WHERE root_id = ?1 AND root_generation = ?2
                AND status IN ('pending', 'leased', 'retry_wait')
@@ -372,6 +378,8 @@ struct RawActiveChange {
     coalesced_observation_count: i64,
     status: String,
     catalog_revision_at_enqueue: i64,
+    catch_up_source: Option<String>,
+    catch_up_watermark: Option<String>,
 }
 
 fn read_active_change_row(row: &Row<'_>) -> rusqlite::Result<RawActiveChange> {
@@ -389,6 +397,8 @@ fn read_active_change_row(row: &Row<'_>) -> rusqlite::Result<RawActiveChange> {
         coalesced_observation_count: row.get(10)?,
         status: row.get(11)?,
         catalog_revision_at_enqueue: row.get(12)?,
+        catch_up_source: row.get(13)?,
+        catch_up_watermark: row.get(14)?,
     })
 }
 
@@ -397,6 +407,16 @@ fn active_change_from_raw(
     root_generation: LibraryRootGeneration,
     raw: RawActiveChange,
 ) -> Result<ActiveChange, ScanError> {
+    let catch_up_evidence = match (raw.catch_up_source, raw.catch_up_watermark) {
+        (Some(source), Some(watermark)) => Some(LibraryChangeCatchUpEvidence { source, watermark }),
+        (None, None) => None,
+        _ => {
+            return Err(ScanError::new(
+                "change_queue_catch_up_evidence_invalid",
+                "The stored catch-up evidence is incomplete",
+            ));
+        }
+    };
     Ok(ActiveChange {
         id: change_id_from_sqlite(raw.id)?,
         intent: LibraryChangeIntent {
@@ -421,6 +441,7 @@ fn active_change_from_raw(
             raw.catalog_revision_at_enqueue,
             "enqueue catalog revision",
         )?,
+        catch_up_evidence,
     })
 }
 
@@ -429,6 +450,7 @@ pub(super) fn insert_change(
     intent: &LibraryChangeIntent,
     enqueued_unix_ms: i64,
     catalog_revision: u64,
+    evidence: Option<&LibraryChangeCatchUpEvidence>,
     policy: LibraryChangeQueuePolicy,
 ) -> Result<LibraryChangeId, ScanError> {
     let ready_unix_ms = stabilization_deadline(intent, enqueued_unix_ms, policy);
@@ -439,10 +461,11 @@ pub(super) fn insert_change(
                previous_relative_path, origin, first_observed_unix_ms,
                most_recent_observed_unix_ms, first_sequence, most_recent_sequence,
                coalesced_observation_count, status, ready_unix_ms,
-               catalog_revision_at_enqueue, created_unix_ms, updated_unix_ms
+               catalog_revision_at_enqueue, catch_up_source, catch_up_watermark,
+               created_unix_ms, updated_unix_ms
              ) VALUES (
                ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12,
-               'pending', ?13, ?14, ?15, ?15
+               'pending', ?13, ?14, ?15, ?16, ?17, ?17
              )",
             params![
                 intent.root_id,
@@ -459,17 +482,24 @@ pub(super) fn insert_change(
                 i64::from(intent.coalesced_observation_count),
                 ready_unix_ms,
                 sqlite_integer(catalog_revision, "catalog revision")?,
+                evidence.map(|value| value.source.as_str()),
+                evidence.map(|value| value.watermark.as_str()),
                 enqueued_unix_ms,
             ],
         )
         .map_err(database_error)?;
-    change_id_from_sqlite(transaction.last_insert_rowid())
+    let change_id = change_id_from_sqlite(transaction.last_insert_rowid())?;
+    if let Some(evidence) = evidence {
+        attach_catch_up_lineage(transaction, change_id, evidence, enqueued_unix_ms)?;
+    }
+    Ok(change_id)
 }
 
 pub(super) fn update_change(
     transaction: &Transaction<'_>,
     change_id: LibraryChangeId,
     intent: &LibraryChangeIntent,
+    evidence: Option<&LibraryChangeCatchUpEvidence>,
     enqueued_unix_ms: i64,
     policy: LibraryChangeQueuePolicy,
 ) -> Result<(), ScanError> {
@@ -483,8 +513,10 @@ pub(super) fn update_change(
                  coalesced_observation_count = ?10, status = 'pending',
                  ready_unix_ms = ?11, attempt_count = 0, next_retry_unix_ms = NULL,
                  lease_expires_unix_ms = NULL, superseded_by_change_id = NULL,
-                 updated_unix_ms = ?12
-             WHERE id = ?13 AND status IN ('pending', 'retry_wait')",
+                 catch_up_source = COALESCE(?12, catch_up_source),
+                 catch_up_watermark = COALESCE(?13, catch_up_watermark),
+                 updated_unix_ms = ?14
+             WHERE id = ?15 AND status IN ('pending', 'retry_wait')",
             params![
                 intent_kind_to_db(intent.kind),
                 scope_to_db(intent.scope),
@@ -497,12 +529,86 @@ pub(super) fn update_change(
                 intent.most_recent_sequence.to_string(),
                 i64::from(intent.coalesced_observation_count),
                 stabilization_deadline(intent, enqueued_unix_ms, policy),
+                evidence.map(|value| value.source.as_str()),
+                evidence.map(|value| value.watermark.as_str()),
                 enqueued_unix_ms,
                 sqlite_integer(change_id.value(), "change ID")?,
             ],
         )
         .map_err(database_error)?;
+    if let Some(evidence) = evidence {
+        attach_catch_up_lineage(transaction, change_id, evidence, enqueued_unix_ms)?;
+    }
     Ok(())
+}
+
+pub(super) fn transfer_catch_up_lineage(
+    transaction: &Transaction<'_>,
+    source_ids: impl IntoIterator<Item = LibraryChangeId>,
+    target_id: LibraryChangeId,
+) -> Result<(), ScanError> {
+    for source_id in source_ids {
+        if source_id == target_id {
+            continue;
+        }
+        transaction
+            .execute(
+                "INSERT OR IGNORE INTO library_change_queue_catch_up_lineage(
+                   change_id, catch_up_source, catch_up_watermark, enrolled_unix_ms
+                 )
+                 SELECT ?1, catch_up_source, catch_up_watermark, enrolled_unix_ms
+                 FROM library_change_queue_catch_up_lineage WHERE change_id = ?2",
+                params![
+                    sqlite_integer(target_id.value(), "target change ID")?,
+                    sqlite_integer(source_id.value(), "source change ID")?,
+                ],
+            )
+            .map_err(database_error)?;
+    }
+    validate_catch_up_lineage_bound(transaction, target_id)
+}
+
+fn attach_catch_up_lineage(
+    transaction: &Transaction<'_>,
+    change_id: LibraryChangeId,
+    evidence: &LibraryChangeCatchUpEvidence,
+    enrolled_unix_ms: i64,
+) -> Result<(), ScanError> {
+    transaction
+        .execute(
+            "INSERT OR IGNORE INTO library_change_queue_catch_up_lineage(
+               change_id, catch_up_source, catch_up_watermark, enrolled_unix_ms
+             ) VALUES (?1, ?2, ?3, ?4)",
+            params![
+                sqlite_integer(change_id.value(), "change ID")?,
+                evidence.source,
+                evidence.watermark,
+                enrolled_unix_ms,
+            ],
+        )
+        .map_err(database_error)?;
+    validate_catch_up_lineage_bound(transaction, change_id)
+}
+
+fn validate_catch_up_lineage_bound(
+    transaction: &Transaction<'_>,
+    change_id: LibraryChangeId,
+) -> Result<(), ScanError> {
+    let count = transaction
+        .query_row(
+            "SELECT COUNT(*) FROM library_change_queue_catch_up_lineage WHERE change_id = ?1",
+            [sqlite_integer(change_id.value(), "change ID")?],
+            |row| row.get::<_, i64>(0),
+        )
+        .map_err(database_error)?;
+    if usize::try_from(count).unwrap_or(usize::MAX) > MAX_CATCH_UP_LINEAGE_PER_CHANGE {
+        Err(ScanError::new(
+            "change_queue_catch_up_lineage_limit_exceeded",
+            "One durable change accumulated too many unresolved catch-up watermarks",
+        ))
+    } else {
+        Ok(())
+    }
 }
 
 pub(super) fn mark_superseded(
@@ -583,7 +689,48 @@ pub(super) fn load_change(
             read_durable_change_row,
         )
         .map_err(database_error)?;
-    durable_change_from_raw(raw)
+    let catch_up_lineage = load_catch_up_lineage(transaction, change_id)?;
+    durable_change_from_raw(raw, catch_up_lineage)
+}
+
+fn load_catch_up_lineage(
+    transaction: &Transaction<'_>,
+    change_id: i64,
+) -> Result<Vec<LibraryChangeCatchUpEvidence>, ScanError> {
+    let mut statement = transaction
+        .prepare_cached(
+            "SELECT catch_up_source, catch_up_watermark
+             FROM library_change_queue_catch_up_lineage
+             WHERE change_id = ?1
+             ORDER BY enrolled_unix_ms DESC, catch_up_source, catch_up_watermark
+             LIMIT ?2",
+        )
+        .map_err(database_error)?;
+    let rows = statement
+        .query_map(
+            params![
+                change_id,
+                i64::try_from(MAX_CATCH_UP_LINEAGE_PER_CHANGE + 1).unwrap_or(i64::MAX),
+            ],
+            |row| {
+                Ok(LibraryChangeCatchUpEvidence {
+                    source: row.get(0)?,
+                    watermark: row.get(1)?,
+                })
+            },
+        )
+        .map_err(database_error)?;
+    let mut lineage = Vec::new();
+    for row in rows {
+        lineage.push(row.map_err(database_error)?);
+    }
+    if lineage.len() > MAX_CATCH_UP_LINEAGE_PER_CHANGE {
+        return Err(ScanError::new(
+            "change_queue_catch_up_lineage_limit_exceeded",
+            "One durable change exceeds the bounded catch-up watermark lineage",
+        ));
+    }
+    Ok(lineage)
 }
 
 fn read_durable_change_row(row: &Row<'_>) -> rusqlite::Result<RawDurableChange> {
@@ -602,6 +749,8 @@ fn read_durable_change_row(row: &Row<'_>) -> rusqlite::Result<RawDurableChange> 
             coalesced_observation_count: row.get(10)?,
             status: row.get(11)?,
             catalog_revision_at_enqueue: row.get(12)?,
+            catch_up_source: row.get(21)?,
+            catch_up_watermark: row.get(22)?,
         },
         ready_unix_ms: row.get(13)?,
         attempt_count: row.get(14)?,
@@ -619,7 +768,10 @@ fn read_durable_change_row(row: &Row<'_>) -> rusqlite::Result<RawDurableChange> 
     })
 }
 
-fn durable_change_from_raw(raw: RawDurableChange) -> Result<DurableLibraryChange, ScanError> {
+fn durable_change_from_raw(
+    raw: RawDurableChange,
+    catch_up_lineage: Vec<LibraryChangeCatchUpEvidence>,
+) -> Result<DurableLibraryChange, ScanError> {
     let root_generation =
         LibraryRootGeneration::new(sqlite_unsigned(raw.root_generation, "root generation")?)
             .ok_or_else(|| {
@@ -639,6 +791,29 @@ fn durable_change_from_raw(raw: RawDurableChange) -> Result<DurableLibraryChange
             ));
         }
     };
+    let primary_evidence = match (&raw.catch_up_source, &raw.catch_up_watermark) {
+        (Some(source), Some(watermark)) => Some(LibraryChangeCatchUpEvidence {
+            source: source.clone(),
+            watermark: watermark.clone(),
+        }),
+        (None, None) => None,
+        _ => {
+            return Err(ScanError::new(
+                "change_queue_catch_up_evidence_invalid",
+                "The stored catch-up evidence is incomplete",
+            ));
+        }
+    };
+    if primary_evidence
+        .as_ref()
+        .is_some_and(|evidence| !catch_up_lineage.contains(evidence))
+        || (primary_evidence.is_none() && !catch_up_lineage.is_empty())
+    {
+        return Err(ScanError::new(
+            "change_queue_catch_up_lineage_invalid",
+            "The durable catch-up watermark lineage does not include its primary evidence",
+        ));
+    }
     Ok(DurableLibraryChange {
         id: active.id,
         intent: active.intent,
@@ -656,6 +831,7 @@ fn durable_change_from_raw(raw: RawDurableChange) -> Result<DurableLibraryChange
             .transpose()?,
         catch_up_source: raw.catch_up_source,
         catch_up_watermark: raw.catch_up_watermark,
+        catch_up_lineage,
         superseded_by_change_id: raw
             .superseded_by_change_id
             .map(change_id_from_sqlite)
@@ -890,7 +1066,7 @@ fn invalid_enum(field: &str, value: &str) -> ScanError {
 }
 
 pub(super) fn cleanup_terminal_records(
-    connection: &Connection,
+    transaction: &Transaction<'_>,
     terminal_before_unix_ms: i64,
     limit: u32,
 ) -> Result<u32, ScanError> {
@@ -900,18 +1076,67 @@ pub(super) fn cleanup_terminal_records(
             "The terminal change cleanup batch exceeds its absolute bound",
         ));
     }
-    let deleted_changes = connection
-        .execute(
-            "DELETE FROM library_change_queue
-             WHERE id IN (
-               SELECT id FROM library_change_queue
-               WHERE status IN ('completed', 'superseded') AND updated_unix_ms <= ?1
-               ORDER BY updated_unix_ms, id
-               LIMIT ?2
-             )",
-            params![terminal_before_unix_ms, i64::from(limit)],
-        )
-        .map_err(database_error)?;
+    let change_ids = {
+        let mut statement = transaction
+            .prepare(
+                "SELECT changes.id FROM library_change_queue AS changes
+                 WHERE changes.status IN ('completed', 'superseded')
+                   AND changes.updated_unix_ms <= ?1
+                   AND NOT EXISTS (
+                     SELECT 1
+                     FROM library_change_queue_catch_up_lineage AS lineage
+                     JOIN scan_run_catch_up_lineage AS frozen
+                       ON frozen.catch_up_source = lineage.catch_up_source
+                      AND frozen.catch_up_watermark = lineage.catch_up_watermark
+                     JOIN scan_runs AS scans ON scans.id = frozen.scan_id
+                     WHERE lineage.change_id = changes.id
+                       AND scans.status IN ('running', 'paused')
+                   )
+                 ORDER BY changes.updated_unix_ms, changes.id
+                 LIMIT ?2",
+            )
+            .map_err(database_error)?;
+        let rows = statement
+            .query_map(params![terminal_before_unix_ms, i64::from(limit)], |row| {
+                row.get::<_, i64>(0)
+            })
+            .map_err(database_error)?;
+        let mut change_ids = Vec::new();
+        for row in rows {
+            change_ids.push(row.map_err(database_error)?);
+        }
+        change_ids
+    };
+    let mut evidence = HashSet::new();
+    let mut deleted_changes = 0_usize;
+    for change_id in change_ids {
+        let mut statement = transaction
+            .prepare_cached(
+                "SELECT catch_up_source, catch_up_watermark
+                 FROM library_change_queue_catch_up_lineage WHERE change_id = ?1",
+            )
+            .map_err(database_error)?;
+        let rows = statement
+            .query_map([change_id], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            })
+            .map_err(database_error)?;
+        for row in rows {
+            evidence.insert(row.map_err(database_error)?);
+        }
+        drop(statement);
+        deleted_changes = deleted_changes.saturating_add(
+            transaction
+                .execute(
+                    "DELETE FROM library_change_queue WHERE id = ?1",
+                    [change_id],
+                )
+                .map_err(database_error)?,
+        );
+    }
+    let mut evidence = evidence.into_iter().collect::<Vec<_>>();
+    evidence.sort_unstable();
+    super::super::catalog_delta::cleanup_terminal_catch_up_handoffs_batch(transaction, &evidence)?;
     let deleted_changes = u32::try_from(deleted_changes).map_err(|_| {
         ScanError::new(
             "change_queue_cleanup_count_invalid",

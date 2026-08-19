@@ -16,6 +16,7 @@ pub struct IncrementalCatalogRoot {
 
 #[derive(Clone, Debug)]
 pub struct CatalogDeltaMutation {
+    pub change_id: LibraryChangeId,
     pub outcome: IncrementalReconciliationOutcome,
     pub evidence_disposition: DerivedEvidenceDisposition,
     pub remove_location_ids: Vec<String>,

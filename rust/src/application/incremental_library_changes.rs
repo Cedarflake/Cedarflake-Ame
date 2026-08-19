@@ -5,10 +5,10 @@ use crate::domain::{
     AssetLocationView, CatalogDeltaBatch, CatalogDeltaMutation, CatalogDeltaPublicationStatus,
     DerivedEvidenceDisposition, DiscoveredFile, ExpectedFileState, IncrementalLibraryChangeReport,
     IncrementalReconciliationDecision, IncrementalReconciliationOutcome, LeasedLibraryChange,
-    LibraryChangeCompletion, LibraryChangeFailure, LibraryChangeIntentKind,
-    LibraryChangeLeaseUpdateOutcome, LibraryChangeQueuePolicy, LibraryChangeScope,
-    LibraryRootGeneration, PreviewStatus, ReconciliationFileEvidence, ReconciliationObservedState,
-    RetainedPreviewExpectation, ScanError, ScanIssue,
+    LibraryChangeCatchUpEvidence, LibraryChangeCompletion, LibraryChangeFailure,
+    LibraryChangeIntentKind, LibraryChangeLeaseUpdateOutcome, LibraryChangeQueuePolicy,
+    LibraryChangeScope, LibraryRootGeneration, PreviewStatus, ReconciliationFileEvidence,
+    ReconciliationObservedState, RetainedPreviewExpectation, ScanError, ScanIssue,
 };
 use crate::ports::{IncrementalCatalogRepository, LibraryChangeQueue, MediaInspector};
 
@@ -480,6 +480,7 @@ where
         mut removals,
     } = context;
     let intent = &leased.change.intent;
+    let catch_up_lineage = leased_catch_up_lineage(leased)?;
     let path_prior = repository
         .load_incremental_location_by_relative_path(&intent.root_id, relative_path)
         .map_err(scan_failure)?;
@@ -491,7 +492,10 @@ where
             let identity_prior = file
                 .file_identity
                 .as_ref()
-                .map(|identity| repository.load_incremental_location_by_file_identity(identity))
+                .map(|identity| {
+                    repository
+                        .load_incremental_location_by_file_identity(identity, catch_up_lineage)
+                })
                 .transpose()
                 .map_err(scan_failure)?
                 .flatten();
@@ -606,6 +610,7 @@ where
                     expected: expected_state(file),
                 });
                 Some(CatalogDeltaMutation {
+                    change_id: leased.change.id,
                     outcome: decision.outcome,
                     evidence_disposition: decision.evidence_disposition,
                     remove_location_ids: removals,
@@ -616,6 +621,7 @@ where
                 })
             } else {
                 (!removals.is_empty()).then_some(CatalogDeltaMutation {
+                    change_id: leased.change.id,
                     outcome: IncrementalReconciliationOutcome::Removed,
                     evidence_disposition: DerivedEvidenceDisposition::RemoveFromCurrentProjection,
                     remove_location_ids: removals,
@@ -632,6 +638,7 @@ where
                 push_unique(&mut removals, prior.location_id.clone());
             }
             Some(CatalogDeltaMutation {
+                change_id: leased.change.id,
                 outcome: decision.outcome,
                 evidence_disposition: decision.evidence_disposition,
                 remove_location_ids: removals,
@@ -665,6 +672,7 @@ where
                 expected: expected_state(file),
             });
             Some(CatalogDeltaMutation {
+                change_id: leased.change.id,
                 outcome: decision.outcome,
                 evidence_disposition: decision.evidence_disposition,
                 remove_location_ids: removals,
@@ -1062,6 +1070,30 @@ fn failure(code: impl Into<String>, message: impl Into<String>) -> LibraryChange
 fn push_unique(values: &mut Vec<String>, value: String) {
     if !values.contains(&value) {
         values.push(value);
+    }
+}
+
+fn leased_catch_up_lineage(
+    leased: &LeasedLibraryChange,
+) -> Result<&[LibraryChangeCatchUpEvidence], LibraryChangeFailure> {
+    match (
+        leased.change.catch_up_source.as_ref(),
+        leased.change.catch_up_watermark.as_ref(),
+    ) {
+        (Some(source), Some(watermark))
+            if leased
+                .change
+                .catch_up_lineage
+                .iter()
+                .any(|evidence| evidence.source == *source && evidence.watermark == *watermark) =>
+        {
+            Ok(&leased.change.catch_up_lineage)
+        }
+        (None, None) if leased.change.catch_up_lineage.is_empty() => Ok(&[]),
+        _ => Err(failure(
+            "incremental_catch_up_evidence_incomplete",
+            "A leased change contains incomplete catch-up handoff lineage",
+        )),
     }
 }
 

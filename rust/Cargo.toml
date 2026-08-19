@@ -25,7 +25,13 @@ todo = "deny"
 
 [target."cfg(windows)".dependencies]
 notify = { version = "=8.2.0", default-features = false }
-windows-sys = { version = "0.61.2", features = ["Win32_Storage_FileSystem"] }
+windows-sys = { version = "0.61.2", features = [
+  "Win32_Foundation",
+  "Win32_Security",
+  "Win32_Storage_FileSystem",
+  "Win32_System_IO",
+  "Win32_System_Ioctl",
+] }
 
 [patch.crates-io]
 notify = { path = "vendor/notify" }

@@ -50,11 +50,24 @@ pub(crate) struct LibrarySynchronizationRuntime {
     queue_policy: LibraryChangeQueuePolicy,
     recovery_policy: AuthoritativeRecoveryPolicy,
     ingress_capacity: usize,
+    defer_startup_catch_up: bool,
     is_running: bool,
 }
 
 impl LibrarySynchronizationRuntime {
+    #[cfg(test)]
     pub(crate) fn new_erased(start_source: LibraryChangeSourceStarter) -> Self {
+        Self::new_with_catch_up_mode(start_source, false)
+    }
+
+    pub(crate) fn new_production(start_source: LibraryChangeSourceStarter) -> Self {
+        Self::new_with_catch_up_mode(start_source, true)
+    }
+
+    fn new_with_catch_up_mode(
+        start_source: LibraryChangeSourceStarter,
+        defer_startup_catch_up: bool,
+    ) -> Self {
         Self {
             start_source,
             roots: BTreeMap::new(),
@@ -63,6 +76,7 @@ impl LibrarySynchronizationRuntime {
             queue_policy: LibraryChangeQueuePolicy::default(),
             recovery_policy: AuthoritativeRecoveryPolicy::default(),
             ingress_capacity: DEFAULT_INGRESS_CAPACITY,
+            defer_startup_catch_up,
             is_running: true,
         }
     }
@@ -87,6 +101,7 @@ impl LibrarySynchronizationRuntime {
             queue_policy,
             recovery_policy,
             ingress_capacity,
+            defer_startup_catch_up: false,
             is_running: true,
         }
     }
@@ -158,7 +173,7 @@ impl LibrarySynchronizationRuntime {
                 }
                 runtime.source_health = LibraryChangeSourceHealth::Stopped;
             } else {
-                if runtime.needs_continuity_gap {
+                if runtime.needs_continuity_gap && !self.defer_startup_catch_up {
                     runtime.pending_plan = Some(continuity_gap_plan(&root, now_unix_ms));
                     runtime.needs_continuity_gap = false;
                     persist_pending_plan(runtime, repository, now_unix_ms, self.queue_policy)?;
@@ -209,6 +224,7 @@ impl LibrarySynchronizationRuntime {
             if process_authoritative_recovery
                 && availability == LibraryRootAvailability::Available
                 && runtime.source_health == LibraryChangeSourceHealth::Healthy
+                && !runtime.needs_continuity_gap
             {
                 let recovery = process_ready_authoritative_library_change(
                     repository,
@@ -261,6 +277,7 @@ impl LibrarySynchronizationRuntime {
                 && metrics.leased_count == 0
                 && metrics.retry_wait_count == 0
                 && runtime.pending_full_scan.is_none()
+                && !runtime.needs_continuity_gap
                 && let Some(refreshed_root) =
                     repository.load_incremental_catalog_root(&root.root_id)?
                 && consistency_audit_is_due(
@@ -355,6 +372,49 @@ impl LibrarySynchronizationRuntime {
             .values()
             .filter_map(|runtime| runtime.pending_full_scan.clone())
             .collect()
+    }
+
+    pub(crate) fn pending_catch_up_roots(&self) -> Vec<IncrementalCatalogRoot> {
+        self.roots
+            .values()
+            .filter(|runtime| {
+                runtime.needs_continuity_gap
+                    && runtime.availability == LibraryRootAvailability::Available
+                    && runtime.source_health == LibraryChangeSourceHealth::Healthy
+            })
+            .map(|runtime| runtime.root.clone())
+            .collect()
+    }
+
+    pub(crate) fn root_is_ready_for_authoritative_recovery(&self, root_id: &str) -> bool {
+        self.roots.get(root_id).is_some_and(|runtime| {
+            !runtime.needs_continuity_gap
+                && runtime.availability == LibraryRootAvailability::Available
+                && runtime.source_health == LibraryChangeSourceHealth::Healthy
+        })
+    }
+
+    pub(crate) fn acknowledge_catch_up(
+        &mut self,
+        report: &crate::domain::LibraryChangeCatchUpReport,
+    ) {
+        for completed in &report.completed_roots {
+            let Some(runtime) = self.roots.get_mut(&completed.root_id) else {
+                continue;
+            };
+            if runtime.root.root_generation == completed.root_generation {
+                runtime.needs_continuity_gap = false;
+                runtime.last_issue_code = completed.fallback_code.clone();
+            }
+        }
+    }
+
+    pub(crate) fn record_catch_up_failure(&mut self, root_ids: &[String], code: &str) {
+        for root_id in root_ids {
+            if let Some(runtime) = self.roots.get_mut(root_id) {
+                runtime.last_issue_code = Some(code.to_owned());
+            }
+        }
     }
 
     pub(crate) const fn queue_policy(&self) -> LibraryChangeQueuePolicy {
@@ -541,7 +601,8 @@ fn project_root_status(
             CatalogFreshnessState::NeedsReconciliation,
             CatalogFreshnessCause::ChangeSourceUnhealthy,
         )
-    } else if runtime.root.has_running_scan
+    } else if runtime.needs_continuity_gap
+        || runtime.root.has_running_scan
         || runtime.root.active_scan_id.is_none()
         || unresolved > 0
         || runtime.source_health == LibraryChangeSourceHealth::Starting

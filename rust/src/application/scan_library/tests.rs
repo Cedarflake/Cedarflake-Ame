@@ -9,7 +9,12 @@ use image::{ExtendedColorType, ImageEncoder, ImageFormat, Rgb, RgbImage, Rgba, R
 use rusqlite::Connection;
 use tempfile::tempdir;
 
-use crate::domain::{GalleryQuery, ScanIssue};
+use crate::domain::{
+    GalleryQuery, LibraryChangeCatchUpEvidence, LibraryChangeCatchUpQueueBatch,
+    LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeOrigin, LibraryChangeQueuePolicy,
+    LibraryChangeScope, LibraryRootGeneration, ScanIssue,
+};
+use crate::ports::LibraryChangeQueue;
 
 use super::*;
 
@@ -297,6 +302,371 @@ fn completed_scan_publishes_metadata_then_materializes_an_external_preview() {
     assert_eq!(artifact.3, "ready");
     assert!(artifact.4 > 0);
     assert_eq!(PathBuf::from(artifact.5), preview_path);
+}
+
+#[test]
+fn bidirectional_full_scan_catch_up_preserves_cross_root_assets_and_previews() {
+    assert_bidirectional_full_scan_catch_up("full-handoff", false, false);
+}
+
+#[test]
+fn full_scan_handoff_deduplicates_hard_links_and_repairs_missing_preview() {
+    assert_bidirectional_full_scan_catch_up("full-handoff-recovery", true, true);
+}
+
+fn assert_bidirectional_full_scan_catch_up(
+    scenario: &str,
+    inject_hard_link_location: bool,
+    repair_missing_handoff_preview: bool,
+) {
+    let source = tempdir().expect("source directory");
+    let destination = tempdir().expect("destination directory");
+    let storage = tempdir().expect("storage directory");
+    let source_path = source.path().join("source.png");
+    let destination_path = destination.path().join("destination.png");
+    let moved_to_destination_path = destination.path().join("source.png");
+    let moved_to_source_path = source.path().join("destination.png");
+    let source_initial_scan_id = format!("{scenario}-source-initial");
+    let destination_initial_scan_id = format!("{scenario}-destination-initial");
+    let source_recovery_scan_id = format!("{scenario}-source-recovery");
+    let destination_recovery_scan_id = format!("{scenario}-destination-recovery");
+    RgbaImage::from_pixel(8, 6, Rgba([70, 100, 130, 255]))
+        .save(&source_path)
+        .expect("source fixture image");
+    RgbaImage::from_pixel(7, 5, Rgba([130, 100, 70, 255]))
+        .save(&destination_path)
+        .expect("destination fixture image");
+    let storage_paths = StoragePaths {
+        catalog_path: storage.path().join("catalog.sqlite3"),
+        preview_root: storage.path().join("previews"),
+        preview_budget_bytes: 64 * 1024 * 1024,
+        settings_path: storage.path().join("settings.sqlite3"),
+    };
+    let source_root_path = source.path().to_string_lossy().into_owned();
+    let destination_root_path = destination.path().to_string_lossy().into_owned();
+    run_scan_with_storage(
+        ScanRequest {
+            scan_id: source_initial_scan_id.clone(),
+            root_path: source_root_path.clone(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+        |_| true,
+        storage_paths.clone(),
+    )
+    .expect("initial source scan");
+    run_scan_with_storage(
+        ScanRequest {
+            scan_id: destination_initial_scan_id,
+            root_path: destination_root_path.clone(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+        |_| true,
+        storage_paths.clone(),
+    )
+    .expect("initial destination scan");
+    let initial = load_test_snapshot(&storage_paths);
+    let initial_source_asset = initial
+        .assets
+        .iter()
+        .find(|asset| asset.relative_path == "source.png")
+        .expect("initial source asset");
+    let initial_destination_asset = initial
+        .assets
+        .iter()
+        .find(|asset| asset.relative_path == "destination.png")
+        .expect("initial destination asset");
+    let source_asset_id = initial_source_asset.asset_id.clone();
+    let source_location_id = initial_source_asset.location_id.clone();
+    let destination_asset_id = initial_destination_asset.asset_id.clone();
+    let destination_location_id = initial_destination_asset.location_id.clone();
+    let source_preview = crate::application::preview::materialize_preview_with_storage(
+        crate::domain::PreviewRequest {
+            location_id: source_location_id.clone(),
+            preview_edge: 128,
+            retry_failed: false,
+            protected_location_ids: Vec::new(),
+        },
+        storage_paths.clone(),
+    )
+    .expect("source preview");
+    let destination_preview = crate::application::preview::materialize_preview_with_storage(
+        crate::domain::PreviewRequest {
+            location_id: destination_location_id.clone(),
+            preview_edge: 128,
+            retry_failed: false,
+            protected_location_ids: Vec::new(),
+        },
+        storage_paths.clone(),
+    )
+    .expect("destination preview");
+    assert!(matches!(
+        source_preview.preview_status,
+        PreviewStatus::Ready
+    ));
+    assert!(matches!(
+        destination_preview.preview_status,
+        PreviewStatus::Ready
+    ));
+    if inject_hard_link_location {
+        let hard_link_location_id = "000-full-handoff-source-hard-link";
+        let hard_link_absolute_path = source
+            .path()
+            .join("source-hard-link.png")
+            .to_string_lossy()
+            .into_owned();
+        let connection = Connection::open(&storage_paths.catalog_path).expect("hard-link catalog");
+        connection
+            .execute(
+                "INSERT INTO asset_locations(
+                   scan_id, asset_id, location_id, root_id, absolute_path, relative_path,
+                   preview_path, file_size, created_unix_ms, modified_unix_ms,
+                   file_local_time, parent_relative_path, natural_name_key, width, height,
+                   preview_status, preview_issue_code, preview_issue_message,
+                   metadata_engine_id, metadata_engine_version, capture_local_time,
+                   capture_offset_minutes, capture_time_source, capture_raw_value,
+                   file_identity_scheme, file_identity_value
+                 )
+                 SELECT scan_id, asset_id, ?1, root_id, ?2, 'source-hard-link.png',
+                        preview_path, file_size, created_unix_ms, modified_unix_ms,
+                        file_local_time, '', 'source-hard-link.png', width, height,
+                        preview_status, preview_issue_code, preview_issue_message,
+                        metadata_engine_id, metadata_engine_version, capture_local_time,
+                        capture_offset_minutes, capture_time_source, capture_raw_value,
+                        file_identity_scheme, file_identity_value
+                 FROM asset_locations
+                 WHERE scan_id = ?4 AND location_id = ?3",
+                rusqlite::params![
+                    hard_link_location_id,
+                    hard_link_absolute_path,
+                    source_location_id,
+                    source_initial_scan_id,
+                ],
+            )
+            .expect("duplicate hard-link identity location");
+        connection
+            .execute(
+                "INSERT OR IGNORE INTO preview_artifact_locations(artifact_key, location_id)
+                 SELECT artifact_key, ?1 FROM preview_artifact_locations WHERE location_id = ?2",
+                rusqlite::params![hard_link_location_id, source_location_id],
+            )
+            .expect("duplicate hard-link preview owner");
+        let duplicate_identity_count = connection
+            .query_row(
+                "SELECT COUNT(*)
+                 FROM asset_locations AS candidate
+                 WHERE candidate.scan_id = ?2
+                   AND (candidate.file_identity_scheme, candidate.file_identity_value) = (
+                     SELECT original.file_identity_scheme, original.file_identity_value
+                     FROM asset_locations AS original
+                     WHERE original.scan_id = ?2
+                       AND original.location_id = ?1
+                   )",
+                rusqlite::params![source_location_id, source_initial_scan_id],
+                |row| row.get::<_, i64>(0),
+            )
+            .expect("duplicate hard-link identity count");
+        assert_eq!(duplicate_identity_count, 2);
+    }
+
+    fs::rename(&source_path, &moved_to_destination_path).expect("source-first move");
+    fs::rename(&destination_path, &moved_to_source_path).expect("destination-first move");
+    let source_canonical = FileDiscovery::new(&source_root_path)
+        .expect("source discovery")
+        .canonical_root()
+        .expect("source canonical root")
+        .to_string_lossy()
+        .into_owned();
+    let destination_canonical = FileDiscovery::new(&destination_root_path)
+        .expect("destination discovery")
+        .canonical_root()
+        .expect("destination canonical root")
+        .to_string_lossy()
+        .into_owned();
+    let source_root_id = stable_id("library-root-v1", &source_canonical);
+    let destination_root_id = stable_id("library-root-v1", &destination_canonical);
+    let generation = LibraryRootGeneration::initial();
+    let intent = |root_id: String| LibraryChangeIntent {
+        root_id,
+        root_generation: generation,
+        kind: LibraryChangeIntentKind::FreshnessUnknown,
+        scope: LibraryChangeScope::Root,
+        relative_path: String::new(),
+        previous_relative_path: None,
+        origin: LibraryChangeOrigin::StartupCatchUp,
+        first_observed_unix_ms: 1_000,
+        most_recent_observed_unix_ms: 1_000,
+        first_sequence: 1,
+        most_recent_sequence: 1,
+        coalesced_observation_count: 1,
+    };
+    let mut catch_up_catalog =
+        SqliteCatalog::open(storage_paths.catalog_path.clone()).expect("catch-up catalog");
+    for watermark in 0..64 {
+        let evidence = LibraryChangeCatchUpEvidence {
+            source: "windows_usn_v1".to_owned(),
+            watermark: format!("volume|44|{watermark}"),
+        };
+        catch_up_catalog
+            .enqueue_library_change_catch_up_batches(
+                &[
+                    LibraryChangeCatchUpQueueBatch {
+                        intents: vec![intent(source_root_id.clone())],
+                        evidence: Some(evidence.clone()),
+                    },
+                    LibraryChangeCatchUpQueueBatch {
+                        intents: vec![intent(destination_root_id.clone())],
+                        evidence: Some(evidence),
+                    },
+                ],
+                1_000 + watermark,
+                LibraryChangeQueuePolicy::default(),
+            )
+            .expect("atomic cross-root catch-up enqueue");
+    }
+    drop(catch_up_catalog);
+
+    run_scan_with_storage_owned(
+        ScanRequest {
+            scan_id: source_recovery_scan_id,
+            root_path: source_root_path,
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+        |_| true,
+        storage_paths.clone(),
+        true,
+    )
+    .expect("source-first authoritative scan");
+    let source_publication = Connection::open(&storage_paths.catalog_path)
+        .expect("source publication catalog")
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM library_change_catch_up_handoffs),
+               (SELECT COUNT(*) FROM library_change_scan_handoff_batches),
+               (SELECT COUNT(*) FROM library_change_scan_handoff_items),
+               (SELECT COUNT(*) FROM library_change_scan_handoff_lineage),
+               (SELECT COUNT(*) FROM library_change_queue
+                 WHERE root_id = ?1 AND status IN ('pending', 'leased', 'retry_wait')),
+               (SELECT COUNT(*) FROM scan_run_catch_up_lineage)",
+            [&destination_root_id],
+            |row| {
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, i64>(1)?,
+                    row.get::<_, i64>(2)?,
+                    row.get::<_, i64>(3)?,
+                    row.get::<_, i64>(4)?,
+                    row.get::<_, i64>(5)?,
+                ))
+            },
+        )
+        .expect("source publication evidence");
+    assert_eq!(source_publication, (0, 1, 1, 64, 1, 0));
+    if repair_missing_handoff_preview {
+        let connection =
+            Connection::open(&storage_paths.catalog_path).expect("prerelease preview catalog");
+        assert_eq!(
+            connection
+                .execute(
+                    "DELETE FROM preview_artifacts WHERE artifact_path = ?1",
+                    [&source_preview.preview_path],
+                )
+                .expect("restore prerelease missing handoff preview"),
+            1
+        );
+        connection
+            .execute_batch("DROP TABLE library_change_preview_repair_contract")
+            .expect("restore prerelease preview repair marker");
+        drop(connection);
+        SqliteCatalog::open(storage_paths.catalog_path.clone())
+            .expect("repair prerelease missing handoff preview");
+    }
+    run_scan_with_storage_owned(
+        ScanRequest {
+            scan_id: destination_recovery_scan_id,
+            root_path: destination_root_path,
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+        |_| true,
+        storage_paths.clone(),
+        true,
+    )
+    .expect("destination authoritative scan");
+
+    let final_snapshot = load_test_snapshot(&storage_paths);
+    let moved_source = final_snapshot
+        .assets
+        .iter()
+        .find(|asset| asset.relative_path == "source.png")
+        .expect("source-first moved asset");
+    let moved_destination = final_snapshot
+        .assets
+        .iter()
+        .find(|asset| asset.relative_path == "destination.png")
+        .expect("destination-first moved asset");
+    assert_eq!(final_snapshot.assets.len(), 2);
+    assert_eq!(moved_source.asset_id, source_asset_id);
+    assert_ne!(moved_source.location_id, source_location_id);
+    assert_eq!(moved_destination.asset_id, destination_asset_id);
+    assert_ne!(moved_destination.location_id, destination_location_id);
+    if repair_missing_handoff_preview {
+        assert!(moved_source.preview_path.is_empty());
+        assert!(matches!(
+            moved_source.preview_status,
+            PreviewStatus::Pending
+        ));
+        assert_eq!(
+            moved_destination.preview_path,
+            destination_preview.preview_path
+        );
+        assert!(matches!(
+            moved_destination.preview_status,
+            PreviewStatus::Ready
+        ));
+    } else {
+        assert_eq!(moved_source.preview_path, source_preview.preview_path);
+        assert!(matches!(moved_source.preview_status, PreviewStatus::Ready));
+        assert_eq!(
+            moved_destination.preview_path,
+            destination_preview.preview_path
+        );
+        assert!(matches!(
+            moved_destination.preview_status,
+            PreviewStatus::Ready
+        ));
+    }
+    let connection = Connection::open(storage_paths.catalog_path).expect("final catalog");
+    let terminal_evidence: (i64, i64, i64, i64, i64, i64) = connection
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM library_change_catch_up_handoffs),
+               (SELECT COUNT(*) FROM library_change_scan_handoff_batches),
+               (SELECT COUNT(*) FROM library_change_scan_handoff_items),
+               (SELECT COUNT(*) FROM library_change_scan_handoff_lineage),
+               (SELECT COUNT(*) FROM scan_run_catch_up_lineage),
+               (SELECT COUNT(*) FROM library_change_queue
+                 WHERE status IN ('pending', 'leased', 'retry_wait'))",
+            [],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                    row.get(5)?,
+                ))
+            },
+        )
+        .expect("terminal handoff evidence");
+    assert_eq!(terminal_evidence, (0, 0, 0, 0, 0, 0));
 }
 
 #[test]
@@ -2428,6 +2798,14 @@ fn migrated_v17_placeholder_preserves_the_normalized_legacy_location() {
     connection
         .execute_batch(
             "PRAGMA foreign_keys = OFF;
+              DROP INDEX asset_locations_root_relative;
+              DROP TABLE library_change_scan_handoff_items;
+              DROP TABLE library_change_scan_handoff_lineage;
+              DROP TABLE library_change_scan_handoff_batches;
+              DROP TABLE library_change_queue_catch_up_lineage;
+             DROP TABLE library_change_preview_repair_contract;
+             DROP TABLE scan_run_catch_up_lineage;
+             DROP TABLE library_change_catch_up_handoffs;
              DROP INDEX scan_runs_one_active_root;
              ALTER TABLE library_change_queue DROP COLUMN authoritative_scan_id;
              ALTER TABLE library_change_root_state DROP COLUMN last_consistency_audit_unix_ms;
@@ -2459,7 +2837,16 @@ fn migrated_v17_placeholder_preserves_the_normalized_legacy_location() {
         )
         .expect("restore legacy location identity");
     connection
-        .execute("UPDATE schema_info SET version = 17", [])
+        .execute_batch(
+            "ALTER TABLE library_change_queue_contract
+               DROP COLUMN scan_handoff_batch_complete;
+              ALTER TABLE library_change_queue_contract
+               DROP COLUMN scan_catch_up_lineage_complete;
+             ALTER TABLE library_change_queue_contract
+               DROP COLUMN change_catch_up_complete;
+             DROP TABLE library_change_catch_up_state;
+             UPDATE schema_info SET version = 17;",
+        )
         .expect("restore v17 version");
     drop(connection);
     set_scan_fixture_offline_attribute(&source_path, true);
@@ -2489,7 +2876,7 @@ fn migrated_v17_placeholder_preserves_the_normalized_legacy_location() {
         .query_row("SELECT version FROM schema_info", [], |row| row.get(0))
         .expect("schema version");
     assert!(matches!(events.last(), Some(ScanEvent::Stale { .. })));
-    assert_eq!(version, 18);
+    assert_eq!(version, 19);
     assert_eq!(after.revision, before.revision);
     assert_eq!(after.assets.len(), 1);
     assert_eq!(retained.location_id, "legacy-v17-location");
@@ -2534,6 +2921,14 @@ fn migrated_v17_healthy_file_preserves_legacy_location_without_identity_evidence
     connection
         .execute_batch(
             "PRAGMA foreign_keys = OFF;
+              DROP INDEX asset_locations_root_relative;
+              DROP TABLE library_change_scan_handoff_items;
+              DROP TABLE library_change_scan_handoff_lineage;
+              DROP TABLE library_change_scan_handoff_batches;
+              DROP TABLE library_change_queue_catch_up_lineage;
+             DROP TABLE library_change_preview_repair_contract;
+             DROP TABLE scan_run_catch_up_lineage;
+             DROP TABLE library_change_catch_up_handoffs;
              DROP INDEX scan_runs_one_active_root;
              ALTER TABLE library_change_queue DROP COLUMN authoritative_scan_id;
              ALTER TABLE library_change_root_state DROP COLUMN last_consistency_audit_unix_ms;
@@ -2567,7 +2962,16 @@ fn migrated_v17_healthy_file_preserves_legacy_location_without_identity_evidence
         )
         .expect("restore legacy location without identity evidence");
     connection
-        .execute("UPDATE schema_info SET version = 17", [])
+        .execute_batch(
+            "ALTER TABLE library_change_queue_contract
+               DROP COLUMN scan_handoff_batch_complete;
+              ALTER TABLE library_change_queue_contract
+               DROP COLUMN scan_catch_up_lineage_complete;
+             ALTER TABLE library_change_queue_contract
+               DROP COLUMN change_catch_up_complete;
+             DROP TABLE library_change_catch_up_state;
+             UPDATE schema_info SET version = 17;",
+        )
         .expect("restore v17 version");
     drop(connection);
     let mut events = Vec::new();

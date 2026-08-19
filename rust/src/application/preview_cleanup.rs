@@ -483,7 +483,9 @@ mod tests {
 
     use tempfile::tempdir;
 
-    use crate::domain::{AssetLocationView, PreviewStatus, ScanRequest, StorageConfiguration};
+    use crate::domain::{
+        AssetLocationView, PreviewArtifact, PreviewStatus, ScanRequest, StorageConfiguration,
+    };
 
     use super::*;
 
@@ -778,5 +780,27 @@ mod tests {
         catalog
             .publish_scan(&request.scan_id, "cleanup-root", 1, 0)
             .expect("publish scan");
+        let location = catalog
+            .load_active_location("cleanup-location")
+            .expect("active location query")
+            .expect("active location");
+        let artifact = PreviewArtifact {
+            artifact_key: "cleanup-artifact".to_owned(),
+            algorithm_id: "ame-jpeg-thumbnail".to_owned(),
+            algorithm_version: 2,
+            orientation_contract: "exif-display-v1".to_owned(),
+            size_bucket: 512,
+            path: artifact_path.to_string_lossy().into_owned(),
+            byte_size: fs::metadata(artifact_path)
+                .expect("artifact metadata")
+                .len(),
+            encoded_width: 512,
+            encoded_height: 384,
+            width: location.width,
+            height: location.height,
+        };
+        catalog
+            .update_active_preview(&location, Some(&artifact))
+            .expect("publish preview artifact");
     }
 }

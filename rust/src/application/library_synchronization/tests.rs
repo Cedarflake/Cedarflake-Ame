@@ -10,8 +10,9 @@ use tempfile::tempdir;
 use crate::adapters::SqliteCatalog;
 use crate::application::AuthoritativeRecoveryPolicy;
 use crate::domain::{
-    CatalogFreshnessState, LibraryChangeObservation, LibraryChangeObservationKind,
-    LibraryChangeOrigin, LibraryChangePlanningLimits, LibraryChangeQueuePolicy, LibraryChangeScope,
+    CatalogFreshnessState, LibraryChangeCatchUpCompletedRoot, LibraryChangeCatchUpReport,
+    LibraryChangeObservation, LibraryChangeObservationKind, LibraryChangeOrigin,
+    LibraryChangePlanningLimits, LibraryChangeQueuePolicy, LibraryChangeScope,
     LibraryChangeSourceBatch, LibraryChangeSourceError, LibraryChangeSourceHealth,
     LibraryChangeSourceStopReport, LibraryRootAvailability, LibraryRootGeneration, ScanRequest,
 };
@@ -375,6 +376,100 @@ fn production_poll_mode_leaves_authoritative_work_for_the_background_worker() {
         completed.roots[0].freshness,
         CatalogFreshnessState::Synchronized
     );
+}
+
+#[test]
+fn production_catch_up_mode_starts_the_observer_before_resolving_startup_continuity() {
+    let fixture = RuntimeFixture::new();
+    let factory = FakeFactory::default();
+    let mut runtime = LibrarySynchronizationRuntime::new_production(
+        crate::ports::erase_library_change_source_factory(factory.clone()),
+    );
+    let mut catalog = fixture.catalog;
+
+    let pending = runtime
+        .poll_without_authoritative_recovery(&mut catalog, 1_000, |_| {
+            LibraryRootAvailability::Available
+        })
+        .expect("watcher-first poll");
+
+    assert_eq!(factory.state.lock().expect("fake state").start_count, 1);
+    assert_eq!(pending.roots[0].freshness, CatalogFreshnessState::Updating);
+    assert_eq!(pending.roots[0].freshness_unknown_count, 0);
+    let roots = runtime.pending_catch_up_roots();
+    assert_eq!(roots.len(), 1);
+    assert_eq!(roots[0].root_id, fixture.root_id);
+
+    runtime.acknowledge_catch_up(&LibraryChangeCatchUpReport {
+        completed_roots: vec![LibraryChangeCatchUpCompletedRoot {
+            root_id: roots[0].root_id.clone(),
+            root_generation: roots[0].root_generation,
+            fallback_code: None,
+        }],
+        ..Default::default()
+    });
+    let synchronized = runtime
+        .poll_without_authoritative_recovery(&mut catalog, 1_100, |_| {
+            LibraryRootAvailability::Available
+        })
+        .expect("resolved catch up");
+    assert_eq!(
+        synchronized.roots[0].freshness,
+        CatalogFreshnessState::Synchronized
+    );
+}
+
+#[test]
+fn catch_up_readiness_is_isolated_per_root() {
+    let fixture = RuntimeFixture::new();
+    let factory = FakeFactory::default();
+    let mut runtime = LibrarySynchronizationRuntime::new_production(
+        crate::ports::erase_library_change_source_factory(factory),
+    );
+    let mut catalog = fixture.catalog;
+    let other_root_path = fixture._storage.path().join("other-source");
+    std::fs::create_dir_all(&other_root_path).expect("other source root");
+    let request = ScanRequest {
+        scan_id: "other-runtime-scan".to_owned(),
+        root_path: other_root_path.to_string_lossy().into_owned(),
+        max_items: None,
+        max_entries: None,
+        preview_edge: 512,
+    };
+    let checkpoint = catalog
+        .begin_scan(&request, "other-runtime-root", &request.root_path)
+        .expect("begin other root scan");
+    catalog
+        .publish_scan(
+            &request.scan_id,
+            "other-runtime-root",
+            checkpoint.accepted_items,
+            checkpoint.issue_count,
+        )
+        .expect("publish other root");
+    runtime
+        .poll_without_authoritative_recovery(&mut catalog, 1_000, |_| {
+            LibraryRootAvailability::Available
+        })
+        .expect("establish both observers");
+    let pending = runtime.pending_catch_up_roots();
+    assert_eq!(pending.len(), 2);
+    let completed = pending
+        .iter()
+        .find(|root| root.root_id == fixture.root_id)
+        .expect("primary pending root");
+
+    runtime.acknowledge_catch_up(&LibraryChangeCatchUpReport {
+        completed_roots: vec![LibraryChangeCatchUpCompletedRoot {
+            root_id: completed.root_id.clone(),
+            root_generation: completed.root_generation,
+            fallback_code: None,
+        }],
+        ..Default::default()
+    });
+
+    assert!(runtime.root_is_ready_for_authoritative_recovery(&fixture.root_id));
+    assert!(!runtime.root_is_ready_for_authoritative_recovery("other-runtime-root"));
 }
 
 #[test]

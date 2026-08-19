@@ -1,12 +1,14 @@
 use rusqlite::Transaction;
 
 use crate::domain::{
-    LibraryChangeEnqueueReport, LibraryChangeFailure, LibraryChangeIntent, LibraryChangeIntentKind,
-    LibraryChangeQueuePolicy, LibraryChangeQueueStatus, LibraryChangeScope, ScanError,
+    LibraryChangeCatchUpEvidence, LibraryChangeEnqueueReport, LibraryChangeFailure,
+    LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeQueuePolicy,
+    LibraryChangeQueueStatus, LibraryChangeScope, ScanError,
 };
 
 use super::persistence::{
-    ActiveChange, insert_change, load_active_changes, mark_superseded, update_change,
+    ActiveChange, insert_change, load_active_changes, mark_superseded, transfer_catch_up_lineage,
+    update_change,
 };
 
 const MAX_FAILURE_CODE_BYTES: usize = 128;
@@ -15,11 +17,12 @@ const MAX_ROOT_ID_BYTES: usize = 1_024;
 const MAX_RELATIVE_PATH_BYTES: usize = 131_072;
 
 #[derive(Clone, Copy)]
-struct DegradationContext {
+struct DegradationContext<'a> {
     enqueued_unix_ms: i64,
     catalog_revision: u64,
     policy: LibraryChangeQueuePolicy,
     capacity_degraded: bool,
+    evidence: Option<&'a LibraryChangeCatchUpEvidence>,
 }
 
 pub(super) fn enqueue_one(
@@ -28,6 +31,7 @@ pub(super) fn enqueue_one(
     enqueued_unix_ms: i64,
     catalog_revision: u64,
     policy: LibraryChangeQueuePolicy,
+    evidence: Option<&LibraryChangeCatchUpEvidence>,
     report: &mut LibraryChangeEnqueueReport,
 ) -> Result<(), ScanError> {
     let active = load_active_changes(
@@ -47,6 +51,7 @@ pub(super) fn enqueue_one(
                 catalog_revision,
                 policy,
                 capacity_degraded: false,
+                evidence,
             },
         );
     }
@@ -61,6 +66,7 @@ pub(super) fn enqueue_one(
                 catalog_revision,
                 policy,
                 capacity_degraded: false,
+                evidence,
             },
         );
     }
@@ -88,6 +94,12 @@ pub(super) fn enqueue_one(
         for change in &absorbed {
             merge_older_evidence(&mut merged, &change.intent);
         }
+        let retained_evidence = evidence.or_else(|| {
+            absorbed
+                .iter()
+                .rev()
+                .find_map(|change| change.catch_up_evidence.as_ref())
+        });
         let retained = active.len().saturating_sub(absorbed.len());
         if retained > usize::try_from(policy.max_unresolved_changes).unwrap_or(usize::MAX) {
             drop(absorbed);
@@ -101,10 +113,23 @@ pub(super) fn enqueue_one(
                     catalog_revision,
                     policy,
                     capacity_degraded: true,
+                    evidence,
                 },
             );
         }
-        update_change(transaction, target_id, &merged, enqueued_unix_ms, policy)?;
+        update_change(
+            transaction,
+            target_id,
+            &merged,
+            retained_evidence,
+            enqueued_unix_ms,
+            policy,
+        )?;
+        transfer_catch_up_lineage(
+            transaction,
+            absorbed.iter().map(|change| change.id),
+            target_id,
+        )?;
         let superseded = mark_superseded(
             transaction,
             absorbed.iter().map(|change| change.id),
@@ -140,6 +165,7 @@ pub(super) fn enqueue_one(
                 catalog_revision,
                 policy,
                 capacity_degraded: true,
+                evidence,
             },
         );
     }
@@ -158,12 +184,24 @@ pub(super) fn enqueue_one(
         }
         merge_older_evidence(&mut merged, &change.intent);
     }
+    let retained_evidence = evidence.or_else(|| {
+        absorbed
+            .iter()
+            .rev()
+            .find_map(|change| change.catch_up_evidence.as_ref())
+    });
     let change_id = insert_change(
         transaction,
         &merged,
         enqueued_unix_ms,
         catalog_revision,
+        retained_evidence,
         policy,
+    )?;
+    transfer_catch_up_lineage(
+        transaction,
+        absorbed.iter().map(|change| change.id),
+        change_id,
     )?;
     let superseded = mark_superseded(
         transaction,
@@ -182,7 +220,7 @@ fn degrade_to_root(
     active: Vec<ActiveChange>,
     incoming: &LibraryChangeIntent,
     report: &mut LibraryChangeEnqueueReport,
-    context: DegradationContext,
+    context: DegradationContext<'_>,
 ) -> Result<(), ScanError> {
     let mut root = incoming.clone();
     root.kind = LibraryChangeIntentKind::FreshnessUnknown;
@@ -192,6 +230,12 @@ fn degrade_to_root(
     for change in &active {
         merge_older_evidence(&mut root, &change.intent);
     }
+    let retained_evidence = context.evidence.or_else(|| {
+        active
+            .iter()
+            .rev()
+            .find_map(|change| change.catch_up_evidence.as_ref())
+    });
     let existing_root = active.iter().find(|change| {
         is_unleased(change.status)
             && change.intent.scope == LibraryChangeScope::Root
@@ -202,6 +246,7 @@ fn degrade_to_root(
             transaction,
             existing_root.id,
             &root,
+            retained_evidence,
             context.enqueued_unix_ms,
             context.policy,
         )?;
@@ -213,11 +258,17 @@ fn degrade_to_root(
             &root,
             context.enqueued_unix_ms,
             context.catalog_revision,
+            retained_evidence,
             context.policy,
         )?;
         report.inserted_count = report.inserted_count.saturating_add(1);
         id
     };
+    transfer_catch_up_lineage(
+        transaction,
+        active.iter().map(|change| change.id),
+        target_id,
+    )?;
     let superseded = mark_superseded(
         transaction,
         active

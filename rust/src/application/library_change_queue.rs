@@ -1,6 +1,7 @@
 use crate::domain::{
-    LibraryChangeEnqueueReport, LibraryChangeIntent, LibraryChangeIntentKind,
-    LibraryChangePlanningResult, LibraryChangeQueuePolicy, LibraryChangeScope, ScanError,
+    LibraryChangeCatchUpEvidence, LibraryChangeCatchUpQueueBatch, LibraryChangeEnqueueReport,
+    LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangePlanningResult,
+    LibraryChangeQueuePolicy, LibraryChangeScope, ScanError,
 };
 use crate::ports::LibraryChangeQueue;
 
@@ -23,6 +24,27 @@ where
         validate_intent(plan, intent)?;
     }
     queue.enqueue_library_change_intents(&plan.intents, enqueued_unix_ms, policy)
+}
+
+pub(crate) fn prepare_library_change_catch_up_plan(
+    plan: &LibraryChangePlanningResult,
+    evidence: Option<&LibraryChangeCatchUpEvidence>,
+) -> Result<LibraryChangeCatchUpQueueBatch, ScanError> {
+    if let Some(evidence) = evidence
+        && (evidence.source.trim().is_empty() || evidence.watermark.trim().is_empty())
+    {
+        return Err(ScanError::new(
+            "library_change_catch_up_evidence_invalid",
+            "Journal-derived work requires a non-empty source and watermark",
+        ));
+    }
+    for intent in &plan.intents {
+        validate_intent(plan, intent)?;
+    }
+    Ok(LibraryChangeCatchUpQueueBatch {
+        intents: plan.intents.clone(),
+        evidence: evidence.cloned(),
+    })
 }
 
 fn validate_intent(

@@ -2,6 +2,7 @@ use std::fmt::{Display, Formatter};
 
 mod library_catalog_delta;
 pub(crate) mod library_change;
+mod library_change_catch_up;
 pub(crate) mod library_change_queue;
 pub(crate) mod library_synchronization;
 
@@ -20,6 +21,11 @@ pub use library_change::{
     LibraryChangeSourceBatch, LibraryChangeSourceError, LibraryChangeSourceHealth,
     LibraryChangeSourceStopReport, LibraryRootGeneration, ReconciliationFileEvidence,
     ReconciliationObservedState,
+};
+pub use library_change_catch_up::{
+    LibraryChangeCatchUpBatch, LibraryChangeCatchUpCheckpoint, LibraryChangeCatchUpCompletedRoot,
+    LibraryChangeCatchUpEvidence, LibraryChangeCatchUpLimits, LibraryChangeCatchUpQueueBatch,
+    LibraryChangeCatchUpReport, LibraryChangeCatchUpRootResult,
 };
 pub use library_change_queue::{
     DurableLibraryChange, LeasedLibraryChange, LibraryChangeEnqueueReport, LibraryChangeFailure,

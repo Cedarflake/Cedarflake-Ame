@@ -1,6 +1,7 @@
 mod authoritative_library_changes;
 mod directory_synchronization;
 mod incremental_library_changes;
+mod library_change_catch_up;
 mod library_change_observer;
 mod library_change_queue;
 /// flutter_rust_bridge:ignore
@@ -23,6 +24,7 @@ pub use directory_synchronization::{plan_library_changes, reconcile_path_evidenc
 pub use incremental_library_changes::process_ready_library_changes;
 pub(crate) use library_change_observer::LibraryChangeObserver;
 pub use library_change_queue::enqueue_library_change_plan;
+pub(crate) use library_change_queue::prepare_library_change_catch_up_plan;
 pub use load_catalog::{
     load_catalog, load_catalog_around_asset, load_catalog_around_location,
     load_catalog_asset_by_id, load_catalog_at_time, load_gallery_layout_manifest_chunk,
