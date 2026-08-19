@@ -13,6 +13,7 @@ acceptance work. A passing lower gate never claims that a higher gate ran.
 | Retained Profile | `./tool/performance_profile_retained_gallery.ps1` | Frozen-interaction Profile frame, memory, garbage-collection, query, publication, and retained-detail evidence; no source preview materialization | Guarded R2b gallery adaptations on the retained catalog |
 | Preview performance acceptance | `./tool/acceptance_run_preview_performance.ps1` | Cold/warm bucket latency, cache growth, reuse, reclamation, regeneration, bounded memory, and sampled source integrity | Explicitly authorized R2b preview closeout only |
 | Real library | `./tool/acceptance_run_read_only_library.ps1` and `./tool/acceptance_verify_read_only_catalog.ps1` | Explicitly authorized source scan, source integrity sampling, retained multi-root catalog validation | Only with current authorization and explicit paths |
+| R2c reliability | `./tool/acceptance_run_r2c_reliability.ps1` | Real watcher latency and coalescing on a disposable root; isolated retained-catalog catch-up, queue, storage, memory, placeholder, metadata, and source-byte evidence | Explicitly authorized R2c-H closeout only |
 | Release | `./tool/release_verify_candidate.ps1` | Daily gate, Windows Release and bridge smoke, synthetic performance gate, optional retained real-library validation | Before a release candidate |
 | Portable artifact | `./tool/release_package_portable_windows.ps1` | Versioned Windows x64 ZIP plus archive-structure verification | After a release build passes |
 
@@ -174,6 +175,38 @@ catalog through the production loading API:
 ```
 
 The presence of a retained catalog or an old token does not authorize a new source scan.
+
+## R2c reliability gate
+
+Run the R2c-H gate only after the synthetic performance gate passes and current authorization names
+both logical roots, the retained catalog, and new empty derived storage:
+
+```powershell
+./tool/acceptance_run_r2c_reliability.ps1 `
+  -LocalRoot "<authorized local-primary root>" `
+  -CloudRoot "<authorized cloud-primary root>" `
+  -SourceCatalogPath "<retained catalog path>" `
+  -StorageRoot "<new empty storage outside every source tree>" `
+  -AuthorizationToken "<current R2c-H authorization token>" `
+  -AcknowledgeCloudReadOnly
+```
+
+The first half uses temporary files only and measures the production Windows observer, event-to-
+catalog P50/P95, idle polling, event-storm coalescing, durable queue recovery, database growth, and
+bounded shutdown. The second half opens the supplied catalog read-only, creates an online SQLite
+backup in isolated storage, and runs only downtime-catch-up discovery against the authorized roots.
+It does not publish the resulting authoritative work. Before and after that operation it compares a
+bounded metadata snapshot of every source entry, placeholder attributes, and deterministic hashes
+of locally available `local-primary` samples. Reparse directories are not followed and files marked
+offline or recall-on-access are never opened.
+
+The wrapper enforces a time limit, a peak-working-set limit, distinct non-overlapping paths, fresh
+isolated storage, an exact token, and an explicit cloud read-only acknowledgement. Its non-accessing
+guardrails are exercised by `./tool/acceptance_test_r2c_reliability_guardrails.ps1`. A passing tool
+implementation or `-ValidationOnly` result is not real-library evidence; the authorization-bound
+workload must finish successfully. See
+[r2c-h-large-library-reliability.md](./r2c-h-large-library-reliability.md) for the accepted metrics and
+remaining platform limitations.
 
 ## Release gate
 
