@@ -146,6 +146,76 @@ fn live_observation_publishes_a_delta_and_advances_the_shared_revision() {
     );
 }
 
+#[cfg(windows)]
+#[test]
+fn new_cloud_placeholder_remains_unresolved_after_a_live_path_event() {
+    let fixture = RuntimeFixture::new();
+    let factory = FakeFactory::default();
+    let mut runtime = runtime(factory.clone());
+    let mut catalog = fixture.catalog;
+    runtime
+        .poll(&mut catalog, 900, |_| LibraryRootAvailability::Available)
+        .expect("complete startup recovery");
+    let placeholder = fixture.source_root.join("online-only.png");
+    std::fs::write(&placeholder, b"must not be hydrated").expect("placeholder fixture");
+    set_offline_attribute(&placeholder, true);
+    enqueue_live_path_observation(&factory, &fixture.root_id, "online-only.png", 1);
+
+    let snapshot = runtime
+        .poll(&mut catalog, 1_000, |_| LibraryRootAvailability::Available)
+        .expect("retain unresolved placeholder work");
+    set_offline_attribute(&placeholder, false);
+
+    assert_eq!(snapshot.applied_mutation_count, 0);
+    assert_eq!(snapshot.roots[0].retry_wait_count, 1);
+    assert_eq!(snapshot.roots[0].freshness, CatalogFreshnessState::Updating);
+    assert!(
+        catalog
+            .load_incremental_location_by_relative_path(&fixture.root_id, "online-only.png")
+            .expect("load placeholder location")
+            .is_none()
+    );
+}
+
+#[cfg(windows)]
+#[test]
+fn existing_cloud_placeholder_retains_catalog_evidence_and_remains_unresolved() {
+    let fixture = RuntimeFixture::new();
+    let factory = FakeFactory::default();
+    let mut runtime = runtime(factory.clone());
+    let mut catalog = fixture.catalog;
+    runtime
+        .poll(&mut catalog, 900, |_| LibraryRootAvailability::Available)
+        .expect("complete startup recovery");
+    let placeholder = fixture.source_root.join("retained.png");
+    write_png(&placeholder, 4, 3, [30, 40, 50]);
+    enqueue_live_path_observation(&factory, &fixture.root_id, "retained.png", 1);
+    runtime
+        .poll(&mut catalog, 1_000, |_| LibraryRootAvailability::Available)
+        .expect("publish initial local file");
+    let prior = catalog
+        .load_incremental_location_by_relative_path(&fixture.root_id, "retained.png")
+        .expect("load prior location")
+        .expect("published prior location");
+    set_offline_attribute(&placeholder, true);
+    enqueue_live_path_observation(&factory, &fixture.root_id, "retained.png", 2);
+
+    let snapshot = runtime
+        .poll(&mut catalog, 1_100, |_| LibraryRootAvailability::Available)
+        .expect("retain unresolved placeholder work");
+    set_offline_attribute(&placeholder, false);
+    let retained = catalog
+        .load_incremental_location_by_relative_path(&fixture.root_id, "retained.png")
+        .expect("load retained location")
+        .expect("last trustworthy location");
+
+    assert_eq!(snapshot.applied_mutation_count, 0);
+    assert_eq!(snapshot.roots[0].retry_wait_count, 1);
+    assert_eq!(snapshot.roots[0].freshness, CatalogFreshnessState::Updating);
+    assert_eq!(retained.location_id, prior.location_id);
+    assert_eq!(retained.asset_id, prior.asset_id);
+}
+
 #[test]
 fn enqueue_failure_retains_the_drained_plan_until_persistence_recovers() {
     let fixture = RuntimeFixture::new();
@@ -672,6 +742,46 @@ fn empty_batch() -> LibraryChangeSourceBatch {
         dropped_observation_count: 0,
         ignored_callback_count: 0,
     }
+}
+
+#[cfg(windows)]
+fn enqueue_live_path_observation(
+    factory: &FakeFactory,
+    root_id: &str,
+    relative_path: &str,
+    sequence: u64,
+) {
+    factory
+        .state
+        .lock()
+        .expect("fake state")
+        .batches
+        .push_back(LibraryChangeSourceBatch {
+            observations: vec![LibraryChangeObservation {
+                root_id: root_id.to_owned(),
+                root_generation: LibraryRootGeneration::initial(),
+                sequence,
+                observed_unix_ms: 1_000,
+                kind: LibraryChangeObservationKind::Modified,
+                scope: LibraryChangeScope::Path,
+                relative_path: relative_path.to_owned(),
+                previous_relative_path: None,
+                origin: LibraryChangeOrigin::LiveNotification,
+            }],
+            health: LibraryChangeSourceHealth::Healthy,
+            dropped_observation_count: 0,
+            ignored_callback_count: 0,
+        });
+}
+
+#[cfg(windows)]
+fn set_offline_attribute(path: &Path, is_offline: bool) {
+    let status = std::process::Command::new("attrib.exe")
+        .arg(if is_offline { "+O" } else { "-O" })
+        .arg(path)
+        .status()
+        .expect("attrib executable");
+    assert!(status.success());
 }
 
 fn write_png(path: &Path, width: u32, height: u32, color: [u8; 3]) {

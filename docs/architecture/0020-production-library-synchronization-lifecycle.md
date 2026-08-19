@@ -73,7 +73,11 @@ time, coalesces newer revisions, and retries briefly when another query transiti
 It requests a background refresh only after the published revision exceeds the visible revision.
 The screen subscribes before sampling the service's current snapshot and queues that current revision,
 so a delta published during application startup cannot be lost merely because it preceded widget
-construction. Existing assets remain visible while the new bounded window and timeline load.
+construction. Existing assets remain visible while the new bounded window and timeline load. The
+controller reports whether a refresh was applied, temporarily busy, superseded, or failed. Only busy
+or superseded work receives the short automatic retry. A catalog or bridge failure stops that retry,
+keeps the target revision pending, and presents one localized retry surface until a later snapshot or
+an explicit user retry starts another attempt.
 
 Refresh continuity uses stable identity:
 
@@ -110,7 +114,8 @@ media is never modified by this lifecycle.
 - Flutter service fixtures prove DTO mapping, non-overlapping polling, failure degradation, and one
   Rust stop call across repeated shutdown requests;
 - gallery controller, selection, navigation, viewer, layout, and production-screen fixtures prove
-  background revision refresh without blanking, rename continuity, and authoritative-removal closure;
+  background revision refresh without blanking, bounded failure handling, rename continuity, and
+  authoritative-removal closure;
 - window fixtures prove reverse-order, idempotent coordinated shutdown and destruction after the
   configured timeout;
 - bridge generation, format, Clippy with warnings denied, Dart analysis, complete Rust and Flutter

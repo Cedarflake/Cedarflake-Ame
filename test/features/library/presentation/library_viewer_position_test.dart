@@ -161,6 +161,53 @@ void main() {
   );
 
   testWidgets(
+    "synchronization refresh failure stops automatic retries and stays visible",
+    (tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final initialState = _libraryState(assetCount: 1);
+      final catalog = _FailingSynchronizationCatalog();
+      final synchronization = _TestLibrarySynchronization(
+        _synchronizationSnapshot(BigInt.two),
+      );
+      addTearDown(synchronization.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            initialLibraryStateProvider.overrideWithValue(initialState),
+            libraryCatalogProvider.overrideWithValue(catalog),
+            librarySynchronizationProvider.overrideWithValue(synchronization),
+          ],
+          child: const AmeApp(),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(catalog.loadCount, 1);
+      expect(
+        find.text(LibraryStrings.synchronizationRefreshFailed),
+        findsOneWidget,
+      );
+
+      await tester.pump(const Duration(seconds: 3));
+      expect(catalog.loadCount, 1);
+
+      await tester.tap(find.byKey(const Key("library-retry-button")));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(catalog.loadCount, 2);
+      expect(
+        find.text(LibraryStrings.synchronizationRefreshFailed),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
     "keeps the preferred viewer location until authoritative lookup resolves it",
     (tester) async {
       tester.view.physicalSize = const Size(1280, 800);
@@ -636,6 +683,38 @@ class _SynchronizationViewerCatalog
     _heldAssetLookup = null;
     heldAssetLookup?.complete(asset);
   }
+}
+
+class _FailingSynchronizationCatalog implements LibraryCatalog {
+  int loadCount = 0;
+
+  @override
+  Future<LibrarySnapshot> load({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    LibraryCatalogCursor? after,
+    LibraryCatalogCursor? before,
+  }) async {
+    loadCount += 1;
+    throw const LibraryCatalogFailure(
+      code: "catalog_unavailable",
+      message: "controlled synchronization refresh failure",
+    );
+  }
+
+  @override
+  Future<LibrarySnapshot> loadAtTime({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    required LibraryTimeAnchor anchor,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<LibraryTimeline> loadTimeline(LibraryGalleryQuery query) =>
+      throw UnimplementedError();
+
+  @override
+  Future<bool> unregisterRoot(String rootId) => throw UnimplementedError();
 }
 
 class _RecordingPlatformActions implements LibraryPlatformActions {

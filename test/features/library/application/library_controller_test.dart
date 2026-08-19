@@ -57,7 +57,7 @@ void main() {
         ),
       );
 
-      expect(await refresh, isTrue);
+      expect(await refresh, LibraryQueryUpdateOutcome.applied);
       state = container.read(libraryControllerProvider);
       expect(state.catalogRevision, BigInt.two);
       expect(state.assets.single.assetId, "asset-before");

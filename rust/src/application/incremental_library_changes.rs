@@ -551,19 +551,7 @@ where
             revalidation.push(RevalidationTarget::CatalogAbsent(relative_path.to_owned()));
             (decision, None, path_prior.clone())
         }
-        InspectedPath::PreservedIssue(issue) => {
-            completion_issue = Some(issue.clone());
-            (
-                IncrementalReconciliationDecision {
-                    outcome: IncrementalReconciliationOutcome::Skipped,
-                    evidence_disposition: DerivedEvidenceDisposition::PreserveLastTrustworthy,
-                    current: None,
-                    issue_code: Some(issue.code),
-                },
-                None,
-                path_prior.clone().or(candidate_prior.clone()),
-            )
-        }
+        InspectedPath::PreservedIssue(issue) => return Err(issue),
         InspectedPath::Retry(issue) => return Err(issue),
     };
     match decision.outcome {

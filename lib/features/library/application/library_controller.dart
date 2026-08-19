@@ -21,6 +21,8 @@ const _maxVisibleRangePageLoads = 2;
 const _retainedDetailHighWatermark = 5000;
 const _retainedDetailLowWatermark = 3500;
 
+enum LibraryQueryUpdateOutcome { applied, busy, superseded, failed }
+
 class _RetainedCatalogPage {
   const _RetainedCatalogPage({
     required this.assets,
@@ -403,6 +405,27 @@ class LibraryController extends Notifier<LibraryState> {
     BigInt? minimumCatalogRevision,
     bool showRefreshingStatus = true,
   }) async {
+    final outcome = await _updateQuery(
+      query,
+      anchorLocationId: anchorLocationId,
+      anchorAssetId: anchorAssetId,
+      fallbackGlobalItemIndex: fallbackGlobalItemIndex,
+      forceRefresh: forceRefresh,
+      minimumCatalogRevision: minimumCatalogRevision,
+      showRefreshingStatus: showRefreshingStatus,
+    );
+    return outcome == LibraryQueryUpdateOutcome.applied;
+  }
+
+  Future<LibraryQueryUpdateOutcome> _updateQuery(
+    LibraryGalleryQuery query, {
+    String? anchorLocationId,
+    String? anchorAssetId,
+    int? fallbackGlobalItemIndex,
+    bool forceRefresh = false,
+    BigInt? minimumCatalogRevision,
+    bool showRefreshingStatus = true,
+  }) async {
     final normalized = query.copyWith(
       folderRelativePath: query.folderRelativePath
           ?.replaceAll("\\", "/")
@@ -419,7 +442,7 @@ class LibraryController extends Notifier<LibraryState> {
     if (!forceRefresh &&
         normalized == state.query &&
         _queryTransitionBaseState == null) {
-      return true;
+      return LibraryQueryUpdateOutcome.applied;
     }
     if (!forceRefresh &&
         normalized == state.query &&
@@ -429,13 +452,13 @@ class LibraryController extends Notifier<LibraryState> {
       _queryTransitionBaseState = null;
       _queryTransitionRequestSequence = null;
       state = baseState;
-      return true;
+      return LibraryQueryUpdateOutcome.applied;
     }
     if (state.status == LibraryStatus.choosingDirectory ||
         state.isScanning ||
         state.status == LibraryStatus.paused ||
         state.isLoadingTimeAnchor) {
-      return false;
+      return LibraryQueryUpdateOutcome.busy;
     }
     final priorSequence = _scanSequence;
     final isContinuingQueryTransition =
@@ -509,7 +532,7 @@ class LibraryController extends Notifier<LibraryState> {
         );
       }
       if (_isDisposed || requestSequence != _scanSequence) {
-        return false;
+        return LibraryQueryUpdateOutcome.superseded;
       }
       final baseState = _queryTransitionBaseState ?? state;
       final windowStart =
@@ -546,7 +569,7 @@ class LibraryController extends Notifier<LibraryState> {
       );
       _queryTransitionBaseState = null;
       _queryTransitionRequestSequence = null;
-      return true;
+      return LibraryQueryUpdateOutcome.applied;
     } on Object catch (error) {
       if (!_isDisposed && requestSequence == _scanSequence) {
         final baseState = _queryTransitionBaseState ?? state;
@@ -559,17 +582,17 @@ class LibraryController extends Notifier<LibraryState> {
               : baseState.errorMessage,
         );
       }
-      return false;
+      return LibraryQueryUpdateOutcome.failed;
     }
   }
 
-  Future<bool> refreshFromSynchronization({
+  Future<LibraryQueryUpdateOutcome> refreshFromSynchronization({
     required BigInt catalogRevision,
     String? anchorLocationId,
     String? anchorAssetId,
     int? fallbackGlobalItemIndex,
   }) {
-    return updateQuery(
+    return _updateQuery(
       state.query,
       anchorLocationId: anchorLocationId,
       anchorAssetId: anchorAssetId,

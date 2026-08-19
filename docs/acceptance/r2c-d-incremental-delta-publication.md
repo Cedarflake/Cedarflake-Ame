@@ -28,6 +28,8 @@ The controlled fixtures prove:
 | Authoritative absence | Remove the active location and make its orphaned evidence reclaimable |
 | Related valid paths | Publish every mutation at one shared catalog revision |
 | Malformed sibling | Retry only the unreadable path while an independent valid path publishes |
+| New cloud placeholder | Create no catalog location, perform no hydration, and retain durable retry work |
+| Existing cloud placeholder | Preserve the last trustworthy location and retain durable retry work |
 | Stale lease | Publish no catalog row or revision after newer overlapping evidence supersedes the lease |
 | Revision race | Reject the complete batch after another catalog publication changes the revision |
 | Full scan | Leave pending work unleased and reject a transaction that races a running scan |
@@ -79,6 +81,13 @@ format, Clippy, Dart analysis, bridge compatibility, release guardrails, and whi
 The initial workspace-only Daily reached the documented Flutter SDK lock before creating a Dart
 child. It was stopped, and the identical repository command passed with the scoped sandbox approval
 required by `AGENTS.md`; no SDK lock was deleted and no unrelated process was terminated.
+
+The 2026-08-19 final integration audit hardening added production-runtime fixtures for both cloud
+placeholder cases. The focused synchronization suite passed 15 tests, and the complete Rust suite
+passed 390 tests with seven existing explicit ignores. The fixtures use temporary files marked with
+the Windows offline attribute, clear that attribute after inspection, and never open placeholder
+content through the discovery adapter. The complete repository Daily subsequently passed with 397
+Rust tests total, all Flutter test files, both Windows integrations, and the shared quality gates.
 
 ## Remaining boundary
 

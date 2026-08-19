@@ -83,6 +83,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   late LibrarySynchronizationSnapshot _synchronizationSnapshot;
   BigInt? _pendingSynchronizationRevision;
   bool _isApplyingSynchronizationRevision = false;
+  bool _hasSynchronizationRefreshFailure = false;
   Timer? _synchronizationRefreshRetry;
   final Map<int, LibraryGalleryLayoutDimensionUpdate>
   _pendingLayoutDimensionUpdates = {};
@@ -206,27 +207,59 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     }
     _isApplyingSynchronizationRevision = true;
     _pendingSynchronizationRevision = null;
+    late final LibraryQueryUpdateOutcome updateOutcome;
     try {
-      await _applyQuery(state.query, synchronizationRevision: targetRevision);
+      updateOutcome = await _applyQuery(
+        state.query,
+        synchronizationRevision: targetRevision,
+      );
     } finally {
       _isApplyingSynchronizationRevision = false;
     }
     if (!mounted) {
       return;
     }
+    switch (updateOutcome) {
+      case LibraryQueryUpdateOutcome.applied:
+        _setSynchronizationRefreshFailure(false);
+        break;
+      case LibraryQueryUpdateOutcome.busy:
+      case LibraryQueryUpdateOutcome.superseded:
+        _pendingSynchronizationRevision = targetRevision;
+        _synchronizationRefreshRetry = Timer(
+          const Duration(milliseconds: 250),
+          _scheduleSynchronizationRefresh,
+        );
+        return;
+      case LibraryQueryUpdateOutcome.failed:
+        _pendingSynchronizationRevision = targetRevision;
+        _setSynchronizationRefreshFailure(true);
+        return;
+    }
     final publishedRevision =
         ref.read(libraryControllerProvider).catalogRevision ?? BigInt.zero;
     if (publishedRevision < targetRevision) {
       _pendingSynchronizationRevision = targetRevision;
-      _synchronizationRefreshRetry = Timer(
-        const Duration(milliseconds: 250),
-        _scheduleSynchronizationRefresh,
-      );
+      _setSynchronizationRefreshFailure(true);
       return;
     }
     if (_pendingSynchronizationRevision != null) {
       _scheduleSynchronizationRefresh();
     }
+  }
+
+  void _setSynchronizationRefreshFailure(bool hasFailure) {
+    if (!mounted || _hasSynchronizationRefreshFailure == hasFailure) {
+      return;
+    }
+    setState(() => _hasSynchronizationRefreshFailure = hasFailure);
+  }
+
+  Future<void> _retrySynchronizationRefresh() {
+    if (_pendingSynchronizationRevision != null) {
+      _scheduleSynchronizationRefresh();
+    }
+    return Future<void>.value();
   }
 
   @override
@@ -235,6 +268,12 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     _synchronizeLayoutDimensionContext(state.catalogRevision, state.queryId);
     final amePreferences = ref.watch(amePreferencesControllerProvider);
     final controller = _libraryController;
+    final taskSurfaceState = _hasSynchronizationRefreshFailure
+        ? state.copyWith(
+            status: LibraryStatus.stale,
+            errorMessage: LibraryStrings.synchronizationRefreshFailed,
+          )
+        : state;
     final queryId = _queryId(state);
     final catalogRevision = state.catalogRevision;
     final manifestRequest =
@@ -379,17 +418,21 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                     ),
                 ],
               ),
-              if (viewerCatalogAsset == null && _showsTaskSurface(state))
+              if (viewerCatalogAsset == null &&
+                  (_hasSynchronizationRefreshFailure ||
+                      _showsTaskSurface(state)))
                 Align(
                   alignment: Alignment.bottomCenter,
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: 24),
                     child: LibraryTaskSurface(
-                      state: state,
+                      state: taskSurfaceState,
                       onPause: controller.pauseScan,
                       onCancel: controller.cancelScan,
                       onResume: controller.resumePausedScan,
-                      onRetry: controller.retry,
+                      onRetry: _hasSynchronizationRefreshFailure
+                          ? _retrySynchronizationRefresh
+                          : controller.retry,
                       onDismiss: controller.dismissCompletedImport,
                     ),
                   ),
@@ -971,7 +1014,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     });
   }
 
-  Future<void> _applyQuery(
+  Future<LibraryQueryUpdateOutcome> _applyQuery(
     LibraryGalleryQuery query, {
     BigInt? synchronizationRevision,
   }) async {
@@ -1014,13 +1057,15 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     final fallbackGlobalItemIndex = viewerIndex >= 0
         ? currentState.windowStartItemOffset + viewerIndex
         : frozenPosition?.globalItemIndex;
-    final didUpdate = synchronizationRevision == null
-        ? await controller.updateQuery(
-            query,
-            anchorLocationId: requestedAnchorLocationId,
-            anchorAssetId: anchorAssetId,
-            fallbackGlobalItemIndex: fallbackGlobalItemIndex,
-          )
+    final updateOutcome = synchronizationRevision == null
+        ? (await controller.updateQuery(
+                query,
+                anchorLocationId: requestedAnchorLocationId,
+                anchorAssetId: anchorAssetId,
+                fallbackGlobalItemIndex: fallbackGlobalItemIndex,
+              )
+              ? LibraryQueryUpdateOutcome.applied
+              : LibraryQueryUpdateOutcome.failed)
         : await controller.refreshFromSynchronization(
             catalogRevision: synchronizationRevision,
             anchorLocationId: requestedAnchorLocationId,
@@ -1028,17 +1073,17 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
             fallbackGlobalItemIndex: fallbackGlobalItemIndex,
           );
     if (!mounted || requestGeneration != _queryTransitionGeneration) {
-      return;
+      return LibraryQueryUpdateOutcome.superseded;
     }
-    if (!didUpdate) {
+    if (updateOutcome != LibraryQueryUpdateOutcome.applied) {
       _pendingQueryPosition = null;
       _scheduleRecoveredDimensionPublication();
-      return;
+      return updateOutcome;
     }
     if (synchronizationRevision != null) {
       await _reconcileViewerAfterSynchronization();
       if (!mounted || requestGeneration != _queryTransitionGeneration) {
-        return;
+        return LibraryQueryUpdateOutcome.superseded;
       }
     }
     final state = ref.read(libraryControllerProvider);
@@ -1105,6 +1150,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
         );
       }
     });
+    return LibraryQueryUpdateOutcome.applied;
   }
 
   Future<void> _reconcileViewerAfterSynchronization() async {

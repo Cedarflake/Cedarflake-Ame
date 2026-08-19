@@ -51,6 +51,7 @@ abstract final class LibraryStrings {
   static const emptyLibraryTitle = "建立你的图片图库";
   static const emptyLibraryBody = "选择要在 Ame 中一起浏览的文件夹。";
   static const updatingLibrary = "正在更新图库…";
+  static const synchronizationRefreshFailed = "无法显示最新图库，请重试。";
   static const noSearchResults = "没有找到匹配的图片";
   static const noSearchResultsHint = "请尝试其他名称或路径。";
   static const noSourceResults = "此文件夹中没有可显示的图片";

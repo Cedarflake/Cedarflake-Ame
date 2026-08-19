@@ -1914,7 +1914,9 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   orphan assets, active count, one catalog revision, and queue completion. Retained preview state
   is compare-and-swapped against cleanup/reclamation, filesystem access rejects intermediate
   links, paired rename reconciles both final paths, identity evidence is backfilled, and normal
-  full-scan coordination restores rather than consumes retry attempts. Thirty-six focused tests
+  full-scan coordination restores rather than consumes retry attempts. Cloud-only placeholders
+  preserve the last trustworthy location and remain durable retry work without content access or
+  terminal completion. Thirty-eight focused tests
   prove these boundaries together with unchanged, add, edit, same-path replacement, authoritative
   removal, related-batch revision atomicity, malformed-file isolation, stale
   lease/revision/generation rejection, evidence validation, injected rollback, metadata-engine
@@ -1930,7 +1932,9 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   bounded Chinese root states, refreshes only published revisions, and
   preserves source scope, filters, selection, preview demand, stable asset identity, preferred
   location, await-safe viewer continuity, and the nearest surviving ordinal. A bridge failure before root
-  metrics shows `需要核对`, and desktop destruction remains bounded after coordinated shutdown.
+  metrics shows `需要核对`. Background refresh distinguishes applied, busy, superseded, and failed
+  outcomes; permanent catalog failures stop automatic retries, retain the target revision, and show
+  one localized retry action. Desktop destruction remains bounded after coordinated shutdown.
   Eight runtime tests, preferred-location and ordinal SQLite fixtures, and production screen tests
   cover enqueue rollback, continuity gaps, rename, removal, and timeout behavior. The 2026-08-18
   Daily passed 283 Rust tests with five existing intentional ignores, all Flutter tests, both

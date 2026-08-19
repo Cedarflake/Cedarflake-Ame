@@ -74,7 +74,9 @@ The application processes path-scoped work as follows:
    compatible preview state including structured failure evidence;
 9. revalidate present files, filesystem containment, and authoritative absence immediately before
    publication;
-10. publish ready independent work together while returning unreadable files to bounded retry.
+10. publish ready independent work together while returning unreadable files and cloud-only
+    placeholders to bounded retry. Placeholder inspection preserves the last trustworthy catalog
+    evidence, performs no content access, and cannot terminally complete the durable path work.
 
 A full scan that starts after leasing is a coordination deferral, not a processing failure. The
 queue returns the lease to ready state and restores its attempt budget. The same rule applies if
@@ -109,6 +111,8 @@ access. R2c-D introduces no schema migration and continues using schema v17.
   old-path replacement, and Windows case-only rename outcomes;
 - related valid files publish at one revision and one malformed image cannot block an independent
   valid sibling;
+- a new cloud-only placeholder creates no location, an existing placeholder retains its last
+  trustworthy location, and both remain durable unresolved work without hydration;
 - identity-preserving rename transfers compatible preview ownership atomically and preserves
   structured failed-preview evidence;
 - preview cleanup invalidates an already prepared retain-compatible delta without changing the

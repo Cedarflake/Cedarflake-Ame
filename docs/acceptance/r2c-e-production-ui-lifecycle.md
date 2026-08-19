@@ -28,6 +28,8 @@ The controlled fixtures prove:
 | Root metrics | Report bounded queue counts for only the requested root generation |
 | Stable anchor | Prefer the requested active location, follow a rename, and fall back near the prior ordinal after removal |
 | Background refresh | Keep old assets visible until the newer revision and timeline publish together |
+| Refresh contention | Retry only a busy or superseded controller transition and keep one coalesced target |
+| Refresh failure | Stop automatic retries, retain the pending revision, and show one localized retry surface |
 | Selection | Preserve explicit asset selection across a revision and clear complete-query select-all |
 | Viewer | Remain independent from the bounded detail window, follow a preferred location across rename, and close only after authoritative removal |
 | Navigation state | Preserve source, filters, layout, preview demand, and logical scroll position |
@@ -103,6 +105,15 @@ removal, a SQLite-triggered queue enqueue failure, preferred-location selection 
 asset even when another location is the only loaded detail, removal fallback at the prior ordinal, a
 delayed asset lookup racing same-asset navigation, a bridge failure before the first root status, and
 destruction after the configured shutdown timeout.
+
+The 2026-08-19 final integration audit hardening made synchronization refresh outcomes explicit as
+applied, busy, superseded, or failed. A controlled permanent catalog failure produced one automatic
+attempt, remained at one attempt after four seconds of virtual time, displayed the localized stale
+surface, and performed exactly one additional attempt after the user selected retry. The focused
+controller suite passed 39 tests and the viewer-position suite passed seven tests. The complete
+repository Daily passed with 397 Rust tests total, all Flutter test files, both Windows integrations,
+and the shared quality gates. The Windows Release gate then built the x64 application and passed both
+packaged bridge smoke tests.
 
 ## Remaining boundary
 
