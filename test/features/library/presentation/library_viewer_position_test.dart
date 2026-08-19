@@ -370,6 +370,30 @@ void main() {
   );
 
   testWidgets(
+    "failed scan feedback can be acknowledged before synchronization retry",
+    (tester) => _verifyTerminalScanFeedbackAcknowledgement(
+      tester,
+      terminalUpdate: const LibraryScanFailed(
+        code: "catalog_database_busy",
+        message: "The catalog database remained busy after waiting",
+      ),
+      terminalTitle: "添加文件夹失败",
+    ),
+  );
+
+  testWidgets(
+    "cancelled scan feedback can be acknowledged before synchronization retry",
+    (tester) => _verifyTerminalScanFeedbackAcknowledgement(
+      tester,
+      terminalUpdate: const LibraryScanCancelled(
+        acceptedItems: 0,
+        issueCount: 0,
+      ),
+      terminalTitle: "已取消添加文件夹",
+    ),
+  );
+
+  testWidgets(
     "keeps the preferred viewer location until authoritative lookup resolves it",
     (tester) async {
       tester.view.physicalSize = const Size(1280, 800);
@@ -639,6 +663,81 @@ Future<void> _pumpSynchronizationRefresh(WidgetTester tester) async {
   for (var index = 0; index < 8; index++) {
     await tester.pump(const Duration(milliseconds: 100));
   }
+}
+
+Future<void> _verifyTerminalScanFeedbackAcknowledgement(
+  WidgetTester tester, {
+  required LibraryScanUpdate terminalUpdate,
+  required String terminalTitle,
+}) async {
+  tester.view.physicalSize = const Size(1280, 800);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+  final initialState = _libraryState(assetCount: 1);
+  final catalog = _FailingSynchronizationCatalog();
+  final scanner = _HeldLibraryScanner();
+  final synchronization = _TestLibrarySynchronization(
+    _synchronizationSnapshot(BigInt.two),
+  );
+  addTearDown(synchronization.dispose);
+  addTearDown(scanner.dispose);
+
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        initialLibraryStateProvider.overrideWithValue(initialState),
+        libraryCatalogProvider.overrideWithValue(catalog),
+        libraryScannerProvider.overrideWithValue(scanner),
+        librarySynchronizationProvider.overrideWithValue(synchronization),
+      ],
+      child: const AmeApp(),
+    ),
+  );
+  await tester.pump();
+  await tester.pump(const Duration(seconds: 1));
+  expect(
+    find.text(LibraryStrings.synchronizationRefreshFailed),
+    findsOneWidget,
+  );
+
+  final container = ProviderScope.containerOf(
+    tester.element(find.byType(AmeApp)),
+  );
+  await container
+      .read(libraryControllerProvider.notifier)
+      .scanDirectory(r"C:\Pictures");
+  final scanId = scanner.scanId;
+  expect(scanId, isNotNull);
+  scanner.add(LibraryScanStarted(scanId: scanId!, rootPath: r"C:\Pictures"));
+  scanner.add(terminalUpdate);
+  await tester.pump();
+
+  expect(find.text(terminalTitle), findsOneWidget);
+  expect(find.byKey(const Key("library-retry-button")), findsOneWidget);
+  expect(find.byKey(const Key("library-task-dismiss-button")), findsOneWidget);
+  expect(find.text(LibraryStrings.synchronizationRefreshFailed), findsNothing);
+  expect(scanner.scanCount, 1);
+
+  await tester.tap(find.byKey(const Key("library-task-dismiss-button")));
+  await tester.pump();
+
+  expect(find.text(terminalTitle), findsNothing);
+  expect(
+    find.text(LibraryStrings.synchronizationRefreshFailed),
+    findsOneWidget,
+  );
+  expect(find.byKey(const Key("library-retry-button")), findsOneWidget);
+
+  await tester.tap(find.byKey(const Key("library-retry-button")));
+  await _pumpSynchronizationRefresh(tester);
+
+  expect(catalog.loadCount, 2);
+  expect(scanner.scanCount, 1);
+  expect(
+    find.text(LibraryStrings.synchronizationRefreshFailed),
+    findsOneWidget,
+  );
 }
 
 LibraryState _libraryState({
@@ -979,6 +1078,7 @@ class _HeldLibraryScanner implements LibraryScanner {
   final StreamController<LibraryScanUpdate> _updates =
       StreamController.broadcast(sync: true);
   String? scanId;
+  int scanCount = 0;
 
   @override
   bool cancel(String scanId) => true;
@@ -1000,6 +1100,7 @@ class _HeldLibraryScanner implements LibraryScanner {
     required int? entryLimit,
     required int previewEdge,
   }) {
+    scanCount += 1;
     this.scanId = scanId;
     return _updates.stream;
   }

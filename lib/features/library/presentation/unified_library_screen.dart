@@ -446,7 +446,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                       onRetry: showsSynchronizationRefreshFailure
                           ? _retrySynchronizationRefresh
                           : controller.retry,
-                      onDismiss: controller.dismissCompletedImport,
+                      onDismiss: controller.dismissTaskFeedback,
                     ),
                   ),
                 ),

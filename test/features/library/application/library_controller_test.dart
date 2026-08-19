@@ -338,7 +338,7 @@ void main() {
     expect(state.visitedEntries, 1);
     expect(state.stagedAssetCount, 1);
 
-    controller.dismissCompletedImport();
+    controller.dismissTaskFeedback();
     final dismissedState = container.read(libraryControllerProvider);
     expect(dismissedState.status, LibraryStatus.completed);
     expect(dismissedState.scanId, isNull);

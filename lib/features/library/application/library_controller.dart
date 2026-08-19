@@ -332,11 +332,18 @@ class LibraryController extends Notifier<LibraryState> {
     }
   }
 
-  void dismissCompletedImport() {
-    if (state.status != LibraryStatus.completed || state.scanId == null) {
+  void dismissTaskFeedback() {
+    final isDismissible =
+        state.status == LibraryStatus.completed ||
+        state.status == LibraryStatus.failed ||
+        state.status == LibraryStatus.cancelled;
+    if (!isDismissible || state.scanId == null) {
       return;
     }
     state = state.copyWith(
+      status: state.roots.isEmpty
+          ? LibraryStatus.empty
+          : LibraryStatus.completed,
       scanId: null,
       rootPath: null,
       displayRootPath: null,
@@ -348,6 +355,7 @@ class LibraryController extends Notifier<LibraryState> {
       itemLimit: null,
       entryLimit: null,
       isScanLimited: false,
+      errorMessage: null,
     );
   }
 

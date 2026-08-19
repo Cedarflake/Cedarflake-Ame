@@ -81,8 +81,10 @@ an explicit user retry starts another attempt. Revisions observed during an acti
 maximum pending value; if that attempt fails, the new snapshot starts exactly one coalesced follow-up
 attempt without converting the original permanent failure into a timer loop. An active, paused,
 cancelling, failed, cancelled, or completed scan surface retains priority over synchronization refresh
-failure so its progress, controls, and acknowledgement cannot be hidden. The synchronization failure
-remains pending and is shown after the scan feedback is dismissed.
+failure so its progress, controls, and acknowledgement cannot be hidden. Failed and cancelled scan
+feedback retains its scan retry action and also provides an explicit acknowledgement that clears only
+the transient task feedback. The synchronization failure remains pending and is shown after the scan
+feedback is dismissed.
 
 Refresh continuity uses stable identity:
 

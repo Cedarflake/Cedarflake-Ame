@@ -31,7 +31,7 @@ The controlled fixtures prove:
 | Refresh contention | Retry only a busy or superseded controller transition and keep one coalesced target |
 | Refresh failure | Stop automatic retries, retain the pending revision, and show one localized retry surface |
 | In-flight newer revision | Retain the maximum revision and start one coalesced follow-up after failure |
-| Scan task priority | Keep scan progress, controls, completion, and acknowledgement above a pending refresh error |
+| Scan task priority | Keep scan progress, controls, terminal retry, and acknowledgement above a pending refresh error |
 | Selection | Preserve explicit asset selection across a revision and clear complete-query select-all |
 | Viewer | Remain independent from the bounded detail window, follow a preferred location across rename, and close only after authoritative removal |
 | Navigation state | Preserve source, filters, layout, preview demand, and logical scroll position |
@@ -112,10 +112,12 @@ The 2026-08-19 final integration audit hardening made synchronization refresh ou
 applied, busy, superseded, or failed. A controlled permanent catalog failure produced one automatic
 attempt, remained at one attempt after four seconds of virtual time, displayed the localized stale
 surface, and performed exactly one additional attempt after the user selected retry. The focused
-controller suite passed 39 tests and the viewer-position suite passed nine tests. The latter includes
+controller suite passed 39 tests and the viewer-position suite passed 11 tests. The latter includes
 an in-flight revision 2 failure with revisions 3 and 4 coalesced into exactly one successful revision
 4 attempt, plus a held scan whose progress, pause, cancel, completion, and dismissal remain visible
-before the pending synchronization retry surface returns. The complete
+before the pending synchronization retry surface returns. Failed and cancelled scan feedback retain
+their scan retry and explicit acknowledgement actions; acknowledgement reveals the pending
+synchronization retry without restarting the scanner. The complete
 repository Daily passed with 397 Rust tests total, all Flutter test files, both Windows integrations,
 and the shared quality gates. The Windows Release gate then built the x64 application and passed both
 packaged bridge smoke tests.
