@@ -93,7 +93,7 @@ Post-integration migration hardening reopens a true v17 catalog whose backslash 
 location identifier are normalized by v18, then executes the first live path identity backfill.
 The focused incremental suite passed 26 tests and proved the mutation retains that identifier,
 creates no duplicate location, and leaves the scan asset count unchanged. The current complete Rust
-suite passed 400 tests total: 393 passed and seven existing explicit ignores.
+suite passed 402 tests total: 395 passed and seven existing explicit ignores.
 
 ## Remaining boundary
 

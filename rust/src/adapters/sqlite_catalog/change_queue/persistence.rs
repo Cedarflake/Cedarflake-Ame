@@ -244,7 +244,6 @@ pub(super) fn enforce_retry_attempt_limit(
     root_generation: LibraryRootGeneration,
     now_unix_ms: i64,
     policy: LibraryChangeQueuePolicy,
-    selection: i64,
 ) -> Result<(), ScanError> {
     transaction
         .execute(
@@ -252,18 +251,12 @@ pub(super) fn enforce_retry_attempt_limit(
              SET next_retry_unix_ms = NULL, updated_unix_ms = ?1
              WHERE root_id = ?2 AND root_generation = ?3
                AND status = 'retry_wait' AND attempt_count >= ?4
-               AND next_retry_unix_ms IS NOT NULL
-               AND (
-                 ?5 = 0
-                 OR (?5 = 1 AND scope = 'path' AND intent_kind <> 'freshness_unknown')
-                 OR (?5 = 2 AND (scope <> 'path' OR intent_kind = 'freshness_unknown'))
-               )",
+               AND next_retry_unix_ms IS NOT NULL",
             params![
                 now_unix_ms,
                 root_id,
                 sqlite_integer(root_generation.value(), "root generation")?,
                 i64::from(policy.max_attempts),
-                selection,
             ],
         )
         .map_err(database_error)?;

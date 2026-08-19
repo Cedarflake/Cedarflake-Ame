@@ -103,14 +103,14 @@ queue and storage measurements must not be interpreted as an end-to-end recovery
 
 ## Repository gates
 
-The latest complete Daily gate passed on 2026-08-19. Rust reported 400 tests: 393 passed and seven explicit
-authorization or manual-performance tests were ignored, including the two R2c-H wrapper-owned
-tests. All Flutter widget tests, the controlled Windows scan integration, the native Windows
-accessibility integration, generated bridge compatibility, formatting, Clippy with warnings denied,
-Dart analysis, script guardrails, and tracked-diff whitespace passed. The Windows Release build and
-packaged bridge smoke test also passed. No authorization-bound target workload was repeated during
-this post-integration hardening; the retained source evidence above remains the separately
-authorized record.
+The latest complete Daily gate passed on 2026-08-19. Rust reported 402 tests: 395 passed and seven
+explicit authorization or manual-performance tests were ignored, including the two R2c-H
+wrapper-owned tests. All Flutter widget tests, the controlled Windows scan integration, the native
+Windows accessibility integration, generated bridge compatibility, formatting, Clippy with
+warnings denied, Dart analysis, script guardrails, and tracked-diff whitespace passed. The Windows
+Release build and packaged bridge smoke test also passed. No authorization-bound target workload
+was repeated during this post-integration hardening; the retained source evidence above remains the
+separately authorized record.
 
 ## Independent audit
 

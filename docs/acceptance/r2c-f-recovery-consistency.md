@@ -81,7 +81,7 @@ Post-integration hardening added deterministic coverage for the later full-range
 
 ```text
 cargo test adapters::sqlite_catalog::change_queue::tests --all-features -- --nocapture
-48 passed; 0 failed
+50 passed; 0 failed
 
 cargo test application::incremental_library_changes::tests --all-features -- --nocapture
 26 passed; 0 failed
@@ -93,12 +93,14 @@ cargo test adapters::sqlite_catalog::migrations::tests --all-features -- --nocap
 24 passed; 0 failed
 
 cargo test --locked --manifest-path rust/Cargo.toml --all-targets --all-features
-400 total; 393 passed; 0 failed; 7 explicit ignores
+402 total; 395 passed; 0 failed; 7 explicit ignores
 ```
 
 These fixtures prove foreground path polling cannot reclaim a live authoritative lease after its
 nominal deadline, v17-to-v19 reopen plus live identity backfill retains one legacy location, and
-bounded authoritative selection rotates across continuously ready roots.
+bounded authoritative selection rotates across continuously ready roots. They also prove an
+expired final authoritative attempt is normalized after worker loss and a lower retry policy clears
+obsolete authoritative deadlines without allowing path leasing.
 
 No authorization-bound source root is required or accessed by these fixtures.
 
@@ -127,7 +129,7 @@ passed
 ```
 
 The 2026-08-19 post-integration `quality_lint`, complete Daily, and Windows Release gates passed.
-Daily repeated the 400-test Rust result, every Flutter test, Windows Scan 2/2, Accessibility 2/2,
+Daily repeated the 402-test Rust result, every Flutter test, Windows Scan 2/2, Accessibility 2/2,
 bridge compatibility, guardrails, formatting, and whitespace. Windows Release built the x64
 application and passed both packaged bridge smoke tests. No authorization-bound source root was
 accessed.

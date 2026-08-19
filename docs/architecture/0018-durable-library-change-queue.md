@@ -84,7 +84,7 @@ second, and caps at five minutes; absolute policy bounds reject more than 32 att
 delay. New source evidence reopens an exhausted row with a fresh bounded attempt budget.
 If a valid runtime policy lowers the attempt limit, existing retry-wait work at the new limit is
 reported as exhausted immediately and its obsolete retry deadline is cleared on the next lease
-pass.
+pass, regardless of which worker class triggered that bounded maintenance.
 
 Expiry recovery is scoped to the worker class performing the lease pass. A production path-only
 pass may recover path leases but cannot reclaim an expired subtree, root, or freshness-gap lease
@@ -92,7 +92,8 @@ from the single active authoritative worker. After a crash or restart no such in
 exists; authoritative readiness detects the expired row and the next authoritative lease pass
 performs the normal retry-wait transition. This keeps a slow but live authoritative read from
 consuming attempts merely because foreground polling continues, while preserving durable crash
-recovery.
+recovery. An expired final attempt is still eligible for this normalization pass, which records the
+lease-expiry failure and leaves durable exhausted work instead of stranding an expired leased row.
 
 The initial configurable stabilization default is 500 ms. Controlled fixtures place repeated
 create, modify, and remove evidence 50-100 ms apart and prove that it becomes one final-state
@@ -149,13 +150,15 @@ unresolved freshness gaps, health, and oldest ready delay without mutating work.
 - lowering capacity before a parent subtree or root event measures the normalized retained result;
 - lease expiry, structured retry, retry exhaustion, and new-evidence reopening are bounded;
 - a path-only poll cannot recover an expired authoritative lease, while the authoritative lease
-  path still recovers it after the worker lifecycle is absent;
+  path still recovers it after the worker lifecycle is absent, including a final attempt;
+- lowering the retry limit clears obsolete deadlines for every affected worker class without
+  allowing a path poll to lease authoritative work;
 - queue metrics and retention cleanup are structured, non-mutating, and bounded;
 - repository Daily passes without accessing a real library or modifying source media.
 
 ## Validation evidence
 
-Forty-eight focused queue tests cover the v16 migration, root-state seeding, prerelease v17
+Fifty focused queue tests cover the v16 migration, root-state seeding, prerelease v17
 authority-marker rejection, repeated plans,
 process and watcher restart recovery, equal-time origin changes, wall-clock rollback, paired and
 directory rename persistence and overlap, divergent nested rename evidence, create/remove
@@ -163,8 +166,9 @@ final-state work, subtree and normalized capacity supersession under a lowered p
 generation activation including roots with no queue work, permanent removed-root rejection after
 cleanup and re-registration, missing-authority failure, lease-expiry recovery, explicit and
 policy-adjusted retry exhaustion, new-evidence reopening, delay metrics, explicit bounded cleanup,
-and automatic retention, including path-worker isolation from an expired authoritative lease. The
-full Rust suite reached the current schema through every historical migration fixture with 393
+and automatic retention, including path-worker isolation from an expired authoritative lease,
+final-attempt crash normalization, and retry-policy lowering across worker classes. The full Rust
+suite reached the current schema through every historical migration fixture with 395
 passing tests and seven existing explicit authorization- or performance-bound ignores. Clippy
 passed for all targets and features with warnings denied.
 

@@ -390,14 +390,13 @@ impl SqliteCatalog {
         self.connection
             .query_row(
                 "SELECT EXISTS(
-                   SELECT 1 FROM library_change_queue
+               SELECT 1 FROM library_change_queue
                    WHERE root_id = ?1 AND root_generation = ?2
-                     AND attempt_count < ?3
                      AND (scope <> 'path' OR intent_kind = 'freshness_unknown')
                      AND (
-                       (status = 'pending' AND ready_unix_ms <= ?4)
-                       OR (status = 'retry_wait' AND next_retry_unix_ms IS NOT NULL
-                         AND next_retry_unix_ms <= ?4)
+                       (attempt_count < ?3 AND status = 'pending' AND ready_unix_ms <= ?4)
+                       OR (attempt_count < ?3 AND status = 'retry_wait'
+                         AND next_retry_unix_ms IS NOT NULL AND next_retry_unix_ms <= ?4)
                        OR (status = 'leased' AND lease_expires_unix_ms IS NOT NULL
                          AND lease_expires_unix_ms <= ?4)
                      )
@@ -437,14 +436,7 @@ impl SqliteCatalog {
             policy,
             selection_sql,
         )?;
-        enforce_retry_attempt_limit(
-            &transaction,
-            root_id,
-            root_generation,
-            now_unix_ms,
-            policy,
-            selection_sql,
-        )?;
+        enforce_retry_attempt_limit(&transaction, root_id, root_generation, now_unix_ms, policy)?;
         let limit = match selection {
             LeaseSelection::Authoritative => 1,
             LeaseSelection::All | LeaseSelection::Path => i64::from(policy.max_lease_batch),

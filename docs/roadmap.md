@@ -1322,7 +1322,7 @@ previous-snapshot preservation, background escalation, bounded retry, and low-fr
 audit. Production isolates a live authoritative lease from foreground path polling, rotates due
 bounded work across roots, and preserves migrated v17 location identifiers during incremental
 identity backfill. `docs/acceptance/r2c-f-recovery-consistency.md` records the original controlled
-fixtures plus post-integration hardening at 400 Rust tests total, all Flutter tests, both Windows
+fixtures plus post-integration hardening at 402 Rust tests total, all Flutter tests, both Windows
 integration suites, and the Windows Release gate.
 
 R2c-G - USN downtime catch-up:
@@ -1357,7 +1357,7 @@ two-root read-only rerun preserved 85,556 source entries plus 32 deterministic b
 isolated catch-up honestly recorded two `usn_volume_open_failed` fallbacks without elevation,
 leasing, publication, placeholder hydration, or source mutation. Physical path aliases are rejected
 before any write, Cargo and descendants remain inside one kill-on-close Job Object, and hash reads
-are bounded after opening. `docs/acceptance/r2c-h-large-library-reliability.md` records 400 Rust
+are bounded after opening. `docs/acceptance/r2c-h-large-library-reliability.md` records 402 Rust
 tests with seven explicit ignores, all Flutter and Windows integration gates, Windows Release,
 10,000-file synthetic performance, and final independent approval with no remaining findings.
 The target-root phase intentionally did not execute authoritative leases or publication, so its

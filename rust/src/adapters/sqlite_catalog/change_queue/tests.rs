@@ -1494,6 +1494,67 @@ fn path_poll_cannot_recover_an_expired_authoritative_worker_lease() {
 }
 
 #[test]
+fn expired_final_authoritative_attempt_is_normalized_after_worker_loss() {
+    let directory = tempdir().expect("temporary directory");
+    let generation = LibraryRootGeneration::initial();
+    let policy = LibraryChangeQueuePolicy {
+        max_attempts: 1,
+        ..retry_policy()
+    };
+    let mut catalog = queue_catalog(directory.path().join("catalog.sqlite3"));
+    catalog
+        .enqueue_library_change_intents(
+            &[intent(
+                "root-a",
+                generation,
+                1,
+                1_000,
+                LibraryChangeIntentKind::FreshnessUnknown,
+                LibraryChangeScope::Root,
+                "",
+            )],
+            1_000,
+            policy,
+        )
+        .expect("enqueue authoritative work");
+    let lease = catalog
+        .lease_authoritative_library_change("root-a", generation, 1_000, policy)
+        .expect("lease final authoritative attempt")
+        .expect("authoritative lease");
+
+    assert!(
+        catalog
+            .has_ready_authoritative_library_change("root-a", generation, 1_101, policy)
+            .expect("expired authoritative readiness")
+    );
+    assert!(
+        catalog
+            .lease_authoritative_library_change("root-a", generation, 1_101, policy)
+            .expect("normalize expired final attempt")
+            .is_none()
+    );
+    let metrics = catalog
+        .load_library_change_root_queue_metrics("root-a", generation, 1_101, policy)
+        .expect("exhausted authoritative metrics");
+    let (status, next_retry_unix_ms, failure_code): (String, Option<i64>, Option<String>) = catalog
+        .connection
+        .query_row(
+            "SELECT status, next_retry_unix_ms, last_failure_code
+             FROM library_change_queue WHERE id = ?1",
+            [sqlite_integer(lease.change.id.value(), "change ID").expect("change ID")],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .expect("normalized final attempt");
+
+    assert_eq!(status, "retry_wait");
+    assert_eq!(next_retry_unix_ms, None);
+    assert_eq!(failure_code.as_deref(), Some("change_lease_expired"));
+    assert_eq!(metrics.leased_count, 0);
+    assert_eq!(metrics.retry_wait_count, 1);
+    assert_eq!(metrics.exhausted_retry_count, 1);
+}
+
+#[test]
 fn deferred_lease_restores_the_attempt_budget_for_normal_coordination() {
     let directory = tempdir().expect("temporary directory");
     let generation = LibraryRootGeneration::initial();
@@ -1740,6 +1801,76 @@ fn lowering_retry_limit_exposes_and_normalizes_exhausted_work() {
         )
         .expect("normalized retry deadline");
     assert_eq!(next_retry_unix_ms, None);
+}
+
+#[test]
+fn path_poll_normalizes_a_lowered_authoritative_retry_limit_without_leasing_it() {
+    let directory = tempdir().expect("temporary directory");
+    let generation = LibraryRootGeneration::initial();
+    let initial_policy = retry_policy();
+    let lowered_policy = LibraryChangeQueuePolicy {
+        max_attempts: 1,
+        ..initial_policy
+    };
+    let mut catalog = queue_catalog(directory.path().join("catalog.sqlite3"));
+    catalog
+        .enqueue_library_change_intents(
+            &[intent(
+                "root-a",
+                generation,
+                1,
+                1_000,
+                LibraryChangeIntentKind::FreshnessUnknown,
+                LibraryChangeScope::Root,
+                "",
+            )],
+            1_000,
+            initial_policy,
+        )
+        .expect("enqueue authoritative work");
+    let lease = catalog
+        .lease_authoritative_library_change("root-a", generation, 1_000, initial_policy)
+        .expect("lease authoritative work")
+        .expect("authoritative lease");
+    catalog
+        .retry_library_change(
+            lease.change.id,
+            lease.lease_generation,
+            &LibraryChangeFailure {
+                code: "source_busy".to_owned(),
+                message: "The source is temporarily busy.".to_owned(),
+            },
+            1_001,
+            initial_policy,
+        )
+        .expect("schedule authoritative retry");
+
+    assert!(
+        catalog
+            .lease_path_library_changes("root-a", generation, 1_002, lowered_policy)
+            .expect("normalize the lowered retry limit")
+            .is_empty()
+    );
+    let next_retry_unix_ms: Option<i64> = catalog
+        .connection
+        .query_row(
+            "SELECT next_retry_unix_ms FROM library_change_queue WHERE id = ?1",
+            [sqlite_integer(lease.change.id.value(), "change ID").expect("change ID")],
+            |row| row.get(0),
+        )
+        .expect("normalized authoritative retry deadline");
+    let metrics = catalog
+        .load_library_change_root_queue_metrics("root-a", generation, 1_002, lowered_policy)
+        .expect("lowered authoritative retry metrics");
+
+    assert_eq!(next_retry_unix_ms, None);
+    assert_eq!(metrics.retry_wait_count, 1);
+    assert_eq!(metrics.exhausted_retry_count, 1);
+    assert!(
+        !catalog
+            .has_ready_authoritative_library_change("root-a", generation, 1_002, lowered_policy)
+            .expect("exhausted authoritative readiness")
+    );
 }
 
 #[test]

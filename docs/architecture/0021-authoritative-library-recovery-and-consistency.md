@@ -59,7 +59,10 @@ interval is seven days. Policies cannot raise these ceilings or disable the inte
 Production foreground path polling cannot reclaim the lease held by that active authoritative
 worker, even when the bounded filesystem work crosses the nominal lease duration. Only an
 authoritative lease pass recovers an expired authoritative row after no in-process worker owns it,
-so crash recovery remains durable without making a slow live worker consume the retry budget.
+so crash recovery remains durable without making a slow live worker consume the retry budget. The
+readiness check includes an expired final attempt so the recovery pass can record durable exhausted
+work instead of leaving the row permanently leased. A lowered retry limit is normalized by bounded
+queue maintenance without making authoritative work eligible for path leasing.
 
 The worker combines the final filesystem paths with every currently published location in the
 affected subtree. It prepares additions, modifications, identity-preserving moves, replacements,
@@ -136,7 +139,8 @@ actually publishes.
 - runtime fixtures prove cold-start recovery, degraded-source restart continuity, background-only
   authoritative work, foreground-versus-authoritative recovery isolation, bounded multi-root
   rotation for both bounded and full-scan work, live-worker lease isolation across nominal expiry,
-  managed stop timeout, due-only scheduling, delayed audit completion, and bounded per-root retry;
+  final-attempt crash normalization, policy-lowering exhaustion, managed stop timeout, due-only
+  scheduling, delayed audit completion, and bounded per-root retry;
 - complete format, Clippy, Rust, Flutter, Windows integration, bridge, Daily, and Windows release
   gates pass before the slice is merged;
 - no real-library root is accessed by this implementation validation.
