@@ -83,8 +83,9 @@ attempt without converting the original permanent failure into a timer loop. An 
 cancelling, failed, cancelled, or completed scan surface retains priority over synchronization refresh
 failure so its progress, controls, and acknowledgement cannot be hidden. Failed and cancelled scan
 feedback retains its scan retry action and also provides an explicit acknowledgement that clears only
-the transient task feedback. The synchronization failure remains pending and is shown after the scan
-feedback is dismissed.
+the transient task feedback. Failures before a scan identifier is allocated provide the same working
+acknowledgement rather than a dead action. The synchronization failure remains pending and is shown
+after the task feedback is dismissed.
 
 Refresh continuity uses stable identity:
 

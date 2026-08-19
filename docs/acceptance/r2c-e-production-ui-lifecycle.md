@@ -112,12 +112,13 @@ The 2026-08-19 final integration audit hardening made synchronization refresh ou
 applied, busy, superseded, or failed. A controlled permanent catalog failure produced one automatic
 attempt, remained at one attempt after four seconds of virtual time, displayed the localized stale
 surface, and performed exactly one additional attempt after the user selected retry. The focused
-controller suite passed 39 tests and the viewer-position suite passed 11 tests. The latter includes
+controller suite passed 39 tests and the viewer-position suite passed 12 tests. The latter includes
 an in-flight revision 2 failure with revisions 3 and 4 coalesced into exactly one successful revision
 4 attempt, plus a held scan whose progress, pause, cancel, completion, and dismissal remain visible
 before the pending synchronization retry surface returns. Failed and cancelled scan feedback retain
 their scan retry and explicit acknowledgement actions; acknowledgement reveals the pending
-synchronization retry without restarting the scanner. The complete
+synchronization retry without restarting the scanner. A controlled directory-picker failure before
+scan allocation proves the same acknowledgement path with zero scanner starts. The complete
 repository Daily passed with 397 Rust tests total, all Flutter test files, both Windows integrations,
 and the shared quality gates. The Windows Release gate then built the x64 application and passed both
 packaged bridge smoke tests.

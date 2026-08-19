@@ -1,6 +1,7 @@
 import "dart:async";
 
 import "package:cedarflake_ame/app/ame_app.dart";
+import "package:cedarflake_ame/features/library/adapters/directory_picker.dart";
 import "package:cedarflake_ame/features/library/adapters/windows_library_platform_actions.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
@@ -391,6 +392,90 @@ void main() {
       ),
       terminalTitle: "已取消添加文件夹",
     ),
+  );
+
+  testWidgets(
+    "pre-scan failure can be acknowledged before synchronization retry",
+    (tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final initialState = _libraryState(assetCount: 1);
+      final catalog = _FailingSynchronizationCatalog();
+      final scanner = _HeldLibraryScanner();
+      final synchronization = _TestLibrarySynchronization(
+        _synchronizationSnapshot(BigInt.two),
+      );
+      addTearDown(synchronization.dispose);
+      addTearDown(scanner.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            initialLibraryStateProvider.overrideWithValue(initialState),
+            directoryPickerProvider.overrideWithValue(
+              const _FailingDirectoryPicker(),
+            ),
+            libraryCatalogProvider.overrideWithValue(catalog),
+            libraryScannerProvider.overrideWithValue(scanner),
+            librarySynchronizationProvider.overrideWithValue(synchronization),
+          ],
+          child: const AmeApp(),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      expect(
+        find.text(LibraryStrings.synchronizationRefreshFailed),
+        findsOneWidget,
+      );
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(AmeApp)),
+      );
+      final originalState = container.read(libraryControllerProvider);
+      await container
+          .read(libraryControllerProvider.notifier)
+          .chooseDirectoryAndScan();
+      await tester.pump();
+
+      final failedState = container.read(libraryControllerProvider);
+      expect(failedState.status, LibraryStatus.failed);
+      expect(failedState.scanId, isNull);
+      expect(scanner.scanCount, 0);
+      expect(find.text("添加文件夹失败"), findsOneWidget);
+      expect(find.byKey(const Key("library-retry-button")), findsOneWidget);
+      expect(
+        find.byKey(const Key("library-task-dismiss-button")),
+        findsOneWidget,
+      );
+      expect(
+        find.text(LibraryStrings.synchronizationRefreshFailed),
+        findsNothing,
+      );
+
+      await tester.tap(find.byKey(const Key("library-task-dismiss-button")));
+      await tester.pump();
+
+      final acknowledgedState = container.read(libraryControllerProvider);
+      expect(acknowledgedState.status, LibraryStatus.completed);
+      expect(acknowledgedState.roots, originalState.roots);
+      expect(acknowledgedState.assets, originalState.assets);
+      expect(acknowledgedState.catalogRevision, originalState.catalogRevision);
+      expect(acknowledgedState.errorMessage, isNull);
+      expect(find.text("添加文件夹失败"), findsNothing);
+      expect(
+        find.text(LibraryStrings.synchronizationRefreshFailed),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const Key("library-retry-button")));
+      await _pumpSynchronizationRefresh(tester);
+
+      expect(catalog.loadCount, 2);
+      expect(scanner.scanCount, 0);
+    },
   );
 
   testWidgets(
@@ -1113,6 +1198,15 @@ class _HeldLibraryScanner implements LibraryScanner {
     if (!_updates.isClosed) {
       await _updates.close();
     }
+  }
+}
+
+class _FailingDirectoryPicker implements DirectoryPicker {
+  const _FailingDirectoryPicker();
+
+  @override
+  Future<String?> pickDirectory() {
+    throw StateError("controlled picker failure");
   }
 }
 

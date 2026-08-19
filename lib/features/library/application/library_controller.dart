@@ -337,7 +337,7 @@ class LibraryController extends Notifier<LibraryState> {
         state.status == LibraryStatus.completed ||
         state.status == LibraryStatus.failed ||
         state.status == LibraryStatus.cancelled;
-    if (!isDismissible || state.scanId == null) {
+    if (!isDismissible) {
       return;
     }
     state = state.copyWith(
