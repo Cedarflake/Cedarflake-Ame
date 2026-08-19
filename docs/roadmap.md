@@ -1360,7 +1360,9 @@ tests with seven explicit ignores, all Flutter and Windows integration gates, Wi
 R2c status: **complete and audit-hardened on 2026-08-19**. R2c-A through R2c-H now provide the
 normalized observation contract, live Windows watcher, durable queue, atomic incremental
 publication, production UI lifecycle, authoritative recovery, downtime catch-up, and target-scale
-reliability evidence required by this stage.
+reliability evidence required by this stage. The final full-range integration audit returned no
+Critical, High, Medium, or Low findings after closing placeholder freshness and synchronization
+recovery lifecycle gaps.
 
 #### R2c.12 Acceptance evidence
 
