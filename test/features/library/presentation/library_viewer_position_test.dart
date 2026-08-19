@@ -5,6 +5,7 @@ import "package:cedarflake_ame/features/library/adapters/windows_library_platfor
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_platform_actions.dart";
+import "package:cedarflake_ame/features/library/application/library_scanner.dart";
 import "package:cedarflake_ame/features/library/application/library_synchronization.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
@@ -169,16 +170,19 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       final initialState = _libraryState(assetCount: 1);
       final catalog = _FailingSynchronizationCatalog();
+      final scanner = _HeldLibraryScanner();
       final synchronization = _TestLibrarySynchronization(
         _synchronizationSnapshot(BigInt.two),
       );
       addTearDown(synchronization.dispose);
+      addTearDown(scanner.dispose);
 
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             initialLibraryStateProvider.overrideWithValue(initialState),
             libraryCatalogProvider.overrideWithValue(catalog),
+            libraryScannerProvider.overrideWithValue(scanner),
             librarySynchronizationProvider.overrideWithValue(synchronization),
           ],
           child: const AmeApp(),
@@ -204,6 +208,164 @@ void main() {
         find.text(LibraryStrings.synchronizationRefreshFailed),
         findsOneWidget,
       );
+    },
+  );
+
+  testWidgets(
+    "newer synchronization revisions coalesce after an in-flight failure",
+    (tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final initialState = _libraryState(assetCount: 1);
+      final catalog = _HeldFailureSynchronizationCatalog(
+        _snapshotFromState(initialState, revision: BigInt.from(4)),
+      );
+      final scanner = _HeldLibraryScanner();
+      final synchronization = _TestLibrarySynchronization(
+        _synchronizationSnapshot(BigInt.two),
+      );
+      addTearDown(synchronization.dispose);
+      addTearDown(scanner.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            initialLibraryStateProvider.overrideWithValue(initialState),
+            libraryCatalogProvider.overrideWithValue(catalog),
+            libraryScannerProvider.overrideWithValue(scanner),
+            librarySynchronizationProvider.overrideWithValue(synchronization),
+          ],
+          child: const AmeApp(),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+      expect(catalog.loadCount, 1);
+
+      synchronization.publish(_synchronizationSnapshot(BigInt.from(3)));
+      synchronization.publish(_synchronizationSnapshot(BigInt.from(4)));
+      await tester.pump();
+      catalog.failHeldLoad();
+      await _pumpSynchronizationRefresh(tester);
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(AmeApp)),
+      );
+      expect(catalog.loadCount, 2);
+      expect(
+        container.read(libraryControllerProvider).catalogRevision,
+        BigInt.from(4),
+      );
+      expect(
+        find.text(LibraryStrings.synchronizationRefreshFailed),
+        findsNothing,
+      );
+
+      await tester.pump(const Duration(seconds: 3));
+      expect(catalog.loadCount, 2);
+    },
+  );
+
+  testWidgets(
+    "scan feedback takes priority over a pending synchronization failure",
+    (tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final initialState = _libraryState(assetCount: 1);
+      final catalog = _FailOnceSynchronizationCatalog(
+        _snapshotFromState(initialState),
+      );
+      final scanner = _HeldLibraryScanner();
+      final synchronization = _TestLibrarySynchronization(
+        _synchronizationSnapshot(BigInt.two),
+      );
+      addTearDown(synchronization.dispose);
+      addTearDown(scanner.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            initialLibraryStateProvider.overrideWithValue(initialState),
+            libraryCatalogProvider.overrideWithValue(catalog),
+            libraryScannerProvider.overrideWithValue(scanner),
+            librarySynchronizationProvider.overrideWithValue(synchronization),
+          ],
+          child: const AmeApp(),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      expect(
+        find.text(LibraryStrings.synchronizationRefreshFailed),
+        findsOneWidget,
+      );
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(AmeApp)),
+      );
+      await container
+          .read(libraryControllerProvider.notifier)
+          .scanDirectory(r"C:\Pictures");
+      final scanId = scanner.scanId;
+      expect(scanId, isNotNull);
+      scanner.add(
+        LibraryScanStarted(
+          scanId: scanId!,
+          rootPath: r"C:\Pictures",
+          itemLimit: null,
+          entryLimit: null,
+        ),
+      );
+      scanner.add(
+        const LibraryScanProgress(
+          visitedEntries: 128,
+          acceptedItems: 64,
+          issueCount: 0,
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text("正在添加文件夹“Pictures”…"), findsOneWidget);
+      expect(find.text("已检查 128 个文件 · 已找到 64 张图片"), findsOneWidget);
+      expect(find.byKey(const Key("library-pause-button")), findsOneWidget);
+      expect(find.byKey(const Key("library-cancel-button")), findsOneWidget);
+      expect(find.byKey(const Key("library-retry-button")), findsNothing);
+      expect(
+        find.text(LibraryStrings.synchronizationRefreshFailed),
+        findsNothing,
+      );
+
+      scanner.add(
+        LibraryScanCompleted(
+          assetCount: 64,
+          issueCount: 0,
+          catalogPath: initialState.catalogPath ?? "",
+          wasLimited: false,
+        ),
+      );
+      await scanner.close();
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text("导入完成"), findsOneWidget);
+      expect(
+        find.byKey(const Key("library-task-dismiss-button")),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key("library-retry-button")), findsNothing);
+
+      await tester.tap(find.byKey(const Key("library-task-dismiss-button")));
+      await tester.pump();
+
+      expect(
+        find.text(LibraryStrings.synchronizationRefreshFailed),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key("library-retry-button")), findsOneWidget);
     },
   );
 
@@ -572,6 +734,16 @@ LibrarySynchronizationSnapshot _synchronizationSnapshot(BigInt revision) {
   );
 }
 
+LibrarySnapshot _snapshotFromState(LibraryState state, {BigInt? revision}) {
+  return LibrarySnapshot(
+    catalogPath: state.catalogPath ?? "",
+    revision: revision ?? state.catalogRevision ?? BigInt.one,
+    queryId: state.queryId,
+    roots: state.roots,
+    assets: state.assets,
+  );
+}
+
 class _TestLibrarySynchronization implements LibrarySynchronization {
   _TestLibrarySynchronization(this._current);
 
@@ -710,11 +882,151 @@ class _FailingSynchronizationCatalog implements LibraryCatalog {
   }) => throw UnimplementedError();
 
   @override
-  Future<LibraryTimeline> loadTimeline(LibraryGalleryQuery query) =>
-      throw UnimplementedError();
+  Future<LibraryTimeline> loadTimeline(LibraryGalleryQuery query) async {
+    return LibraryTimeline(
+      revision: BigInt.one,
+      queryId: "viewer-position",
+      totalItems: 1,
+      buckets: const [LibraryTimeBucket(itemCount: 1, aspectRatioSum: 4 / 3)],
+    );
+  }
 
   @override
   Future<bool> unregisterRoot(String rootId) => throw UnimplementedError();
+}
+
+class _HeldFailureSynchronizationCatalog implements LibraryCatalog {
+  _HeldFailureSynchronizationCatalog(this.snapshot);
+
+  final LibrarySnapshot snapshot;
+  final Completer<void> _heldLoad = Completer<void>();
+  int loadCount = 0;
+
+  @override
+  Future<LibrarySnapshot> load({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    LibraryCatalogCursor? after,
+    LibraryCatalogCursor? before,
+  }) async {
+    loadCount += 1;
+    if (loadCount == 1) {
+      await _heldLoad.future;
+      throw const LibraryCatalogFailure(
+        code: "catalog_unavailable",
+        message: "controlled in-flight synchronization failure",
+      );
+    }
+    return snapshot;
+  }
+
+  @override
+  Future<LibrarySnapshot> loadAtTime({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    required LibraryTimeAnchor anchor,
+  }) async => snapshot;
+
+  @override
+  Future<LibraryTimeline> loadTimeline(LibraryGalleryQuery query) async =>
+      _timelineFromSnapshot(snapshot);
+
+  @override
+  Future<bool> unregisterRoot(String rootId) async => true;
+
+  void failHeldLoad() => _heldLoad.complete();
+}
+
+class _FailOnceSynchronizationCatalog implements LibraryCatalog {
+  _FailOnceSynchronizationCatalog(this.snapshot);
+
+  final LibrarySnapshot snapshot;
+  int loadCount = 0;
+
+  @override
+  Future<LibrarySnapshot> load({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    LibraryCatalogCursor? after,
+    LibraryCatalogCursor? before,
+  }) async {
+    loadCount += 1;
+    if (loadCount == 1) {
+      throw const LibraryCatalogFailure(
+        code: "catalog_unavailable",
+        message: "controlled synchronization refresh failure",
+      );
+    }
+    return snapshot;
+  }
+
+  @override
+  Future<LibrarySnapshot> loadAtTime({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    required LibraryTimeAnchor anchor,
+  }) async => snapshot;
+
+  @override
+  Future<LibraryTimeline> loadTimeline(LibraryGalleryQuery query) async =>
+      _timelineFromSnapshot(snapshot);
+
+  @override
+  Future<bool> unregisterRoot(String rootId) async => true;
+}
+
+class _HeldLibraryScanner implements LibraryScanner {
+  final StreamController<LibraryScanUpdate> _updates =
+      StreamController.broadcast(sync: true);
+  String? scanId;
+
+  @override
+  bool cancel(String scanId) => true;
+
+  @override
+  Future<RecoverableLibraryScan?> loadPausedScan() async => null;
+
+  @override
+  Future<RecoverableLibraryScan?> loadRecoverableScan() async => null;
+
+  @override
+  bool pause(String scanId) => true;
+
+  @override
+  Stream<LibraryScanUpdate> scan({
+    required String scanId,
+    required String rootPath,
+    required int? itemLimit,
+    required int? entryLimit,
+    required int previewEdge,
+  }) {
+    this.scanId = scanId;
+    return _updates.stream;
+  }
+
+  void add(LibraryScanUpdate update) => _updates.add(update);
+
+  Future<void> close() => _updates.close();
+
+  Future<void> dispose() async {
+    if (!_updates.isClosed) {
+      await _updates.close();
+    }
+  }
+}
+
+LibraryTimeline _timelineFromSnapshot(LibrarySnapshot snapshot) {
+  return LibraryTimeline(
+    revision: snapshot.revision,
+    queryId: snapshot.queryId,
+    totalItems: snapshot.assets.length,
+    buckets: [
+      LibraryTimeBucket(
+        itemCount: snapshot.assets.length,
+        aspectRatioSum: snapshot.assets.length * 4 / 3,
+      ),
+    ],
+  );
 }
 
 class _RecordingPlatformActions implements LibraryPlatformActions {

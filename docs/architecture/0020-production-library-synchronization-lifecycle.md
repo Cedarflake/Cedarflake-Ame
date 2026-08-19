@@ -77,7 +77,12 @@ construction. Existing assets remain visible while the new bounded window and ti
 controller reports whether a refresh was applied, temporarily busy, superseded, or failed. Only busy
 or superseded work receives the short automatic retry. A catalog or bridge failure stops that retry,
 keeps the target revision pending, and presents one localized retry surface until a later snapshot or
-an explicit user retry starts another attempt.
+an explicit user retry starts another attempt. Revisions observed during an active attempt retain the
+maximum pending value; if that attempt fails, the new snapshot starts exactly one coalesced follow-up
+attempt without converting the original permanent failure into a timer loop. An active, paused,
+cancelling, failed, cancelled, or completed scan surface retains priority over synchronization refresh
+failure so its progress, controls, and acknowledgement cannot be hidden. The synchronization failure
+remains pending and is shown after the scan feedback is dismissed.
 
 Refresh continuity uses stable identity:
 
@@ -114,8 +119,9 @@ media is never modified by this lifecycle.
 - Flutter service fixtures prove DTO mapping, non-overlapping polling, failure degradation, and one
   Rust stop call across repeated shutdown requests;
 - gallery controller, selection, navigation, viewer, layout, and production-screen fixtures prove
-  background revision refresh without blanking, bounded failure handling, rename continuity, and
-  authoritative-removal closure;
+  background revision refresh without blanking, maximum-revision coalescing across an in-flight
+  failure, scan-task priority, bounded failure handling, rename continuity, and authoritative-removal
+  closure;
 - window fixtures prove reverse-order, idempotent coordinated shutdown and destruction after the
   configured timeout;
 - bridge generation, format, Clippy with warnings denied, Dart analysis, complete Rust and Flutter

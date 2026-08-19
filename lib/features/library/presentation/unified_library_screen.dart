@@ -171,11 +171,15 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     if (snapshot.catalogRevision <= (currentRevision ?? BigInt.zero)) {
       return;
     }
-    final pendingRevision = _pendingSynchronizationRevision;
-    if (pendingRevision == null || snapshot.catalogRevision > pendingRevision) {
-      _pendingSynchronizationRevision = snapshot.catalogRevision;
-    }
+    _retainPendingSynchronizationRevision(snapshot.catalogRevision);
     _scheduleSynchronizationRefresh();
+  }
+
+  void _retainPendingSynchronizationRevision(BigInt revision) {
+    final pendingRevision = _pendingSynchronizationRevision;
+    if (pendingRevision == null || revision > pendingRevision) {
+      _pendingSynchronizationRevision = revision;
+    }
   }
 
   void _scheduleSynchronizationRefresh() {
@@ -219,28 +223,35 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     if (!mounted) {
       return;
     }
+    final revisionQueuedDuringAttempt = _pendingSynchronizationRevision;
     switch (updateOutcome) {
       case LibraryQueryUpdateOutcome.applied:
         _setSynchronizationRefreshFailure(false);
         break;
       case LibraryQueryUpdateOutcome.busy:
       case LibraryQueryUpdateOutcome.superseded:
-        _pendingSynchronizationRevision = targetRevision;
+        _retainPendingSynchronizationRevision(targetRevision);
         _synchronizationRefreshRetry = Timer(
           const Duration(milliseconds: 250),
           _scheduleSynchronizationRefresh,
         );
         return;
       case LibraryQueryUpdateOutcome.failed:
-        _pendingSynchronizationRevision = targetRevision;
+        _retainPendingSynchronizationRevision(targetRevision);
         _setSynchronizationRefreshFailure(true);
+        if (revisionQueuedDuringAttempt != null) {
+          _scheduleSynchronizationRefresh();
+        }
         return;
     }
     final publishedRevision =
         ref.read(libraryControllerProvider).catalogRevision ?? BigInt.zero;
     if (publishedRevision < targetRevision) {
-      _pendingSynchronizationRevision = targetRevision;
+      _retainPendingSynchronizationRevision(targetRevision);
       _setSynchronizationRefreshFailure(true);
+      if (revisionQueuedDuringAttempt != null) {
+        _scheduleSynchronizationRefresh();
+      }
       return;
     }
     if (_pendingSynchronizationRevision != null) {
@@ -268,7 +279,10 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     _synchronizeLayoutDimensionContext(state.catalogRevision, state.queryId);
     final amePreferences = ref.watch(amePreferencesControllerProvider);
     final controller = _libraryController;
-    final taskSurfaceState = _hasSynchronizationRefreshFailure
+    final hasLibraryTaskSurface = _showsTaskSurface(state);
+    final showsSynchronizationRefreshFailure =
+        _hasSynchronizationRefreshFailure && !hasLibraryTaskSurface;
+    final taskSurfaceState = showsSynchronizationRefreshFailure
         ? state.copyWith(
             status: LibraryStatus.stale,
             errorMessage: LibraryStrings.synchronizationRefreshFailed,
@@ -419,8 +433,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                 ],
               ),
               if (viewerCatalogAsset == null &&
-                  (_hasSynchronizationRefreshFailure ||
-                      _showsTaskSurface(state)))
+                  (showsSynchronizationRefreshFailure || hasLibraryTaskSurface))
                 Align(
                   alignment: Alignment.bottomCenter,
                   child: Padding(
@@ -430,7 +443,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                       onPause: controller.pauseScan,
                       onCancel: controller.cancelScan,
                       onResume: controller.resumePausedScan,
-                      onRetry: _hasSynchronizationRefreshFailure
+                      onRetry: showsSynchronizationRefreshFailure
                           ? _retrySynchronizationRefresh
                           : controller.retry,
                       onDismiss: controller.dismissCompletedImport,
