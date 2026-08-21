@@ -35,6 +35,10 @@ notification policy, development diagnostics, and immediate window-close behavio
 - Positive candidates use the existing final-state path reconciler and may publish between inventory
   pages. Removal candidates are not loaded until complete enumeration grants absence authority, and
   every candidate still rechecks current filesystem and catalog state before publication.
+- Offline or recall cloud files remain staged as present file entries even when Windows reports a
+  reparse attribute. Matching same-path size and modification evidence preserves the trustworthy
+  location without hydration, removal work, or retry exhaustion; changed evidence remains
+  unresolved until it can be revalidated.
 - A later watcher gap increments the continuity revision, cancels the older worker, supersedes its
   queue authority and staged candidates, and starts a higher durable epoch. A stale worker cannot
   enqueue another candidate page after losing its lease.
@@ -50,17 +54,19 @@ notification policy, development diagnostics, and immediate window-close behavio
 
 ## Focused verification
 
-- metadata inventory: 19 passed, covering atomic next-epoch allocation, clock rollback, startup
+- metadata inventory: 20 passed, covering atomic next-epoch allocation, clock rollback, startup
   convergence, capacity one with a protected authority, incomplete-run continuation, newer-gap
   supersession, cancellation, durable retry exhaustion, absence preservation, placeholders,
   reparse rejection, hard-link identity claims, cleanup, and terminalization;
+- cloud-placeholder classification: two passed, covering the production reparse-plus-recall shape
+  and an existing catalog location completing inventory without removal or retry work;
 - authoritative recovery: eight passed, including oversized subtree transition to pageable
   inventory, unchanged full-scan ownership, exact additions and removals, cancellation, placeholders,
   rename identity, and bounded policy validation;
 - synchronization lifecycle: 34 selected, 32 passed and two authorization-bound R2c-H tests
   ignored, including continuity-revision cancellation, root fairness, watcher-before-authority,
   availability recovery, retry isolation, bounded shutdown, and recoverable-scan rotation;
-- complete Rust suite: 446 total, 439 passed, seven existing explicit ignores, zero failures;
+- complete Rust suite: 448 total, 441 passed, seven existing explicit ignores, zero failures;
 - `cargo check --all-targets --all-features`: passed with no warnings;
 - repository lint: passed, including formatting, Clippy with warnings denied, and Dart analysis;
 - complete Daily: passed, including the Rust suite, all Flutter tests, Windows Scan 2/2, Windows

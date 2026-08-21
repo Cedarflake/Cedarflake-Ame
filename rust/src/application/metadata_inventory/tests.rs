@@ -169,6 +169,57 @@ fn placeholder_evidence_is_staged_and_enqueued_without_media_inspection() {
 }
 
 #[test]
+fn unchanged_reparse_cloud_placeholder_preserves_location_without_retry() {
+    let mut fixture = InventoryFixture::new(&["cloud-only.png"]);
+    let prior = fixture
+        .location("cloud-only.png")
+        .expect("published placeholder location");
+    let mut source = FixedInventorySource {
+        page: Some(MetadataInventoryPage {
+            page_index: 1,
+            entries: vec![MetadataInventoryEntry {
+                relative_path: "cloud-only.png".to_owned(),
+                kind: MetadataInventoryEntryKind::File,
+                file_size: Some(prior.file_size),
+                modified_unix_ms: prior.modified_unix_ms,
+                file_identity: None,
+                placeholder_state: MetadataInventoryPlaceholderState::Offline,
+                is_reparse_point: true,
+            }],
+            cursor: Some("cloud-only.png".to_owned()),
+            is_complete: true,
+        }),
+    };
+    let request = fixture.request();
+
+    let report = run_metadata_inventory(
+        &mut fixture.catalog,
+        &mut source,
+        &request,
+        2_000,
+        4,
+        queue_policy(),
+        &AtomicBool::new(false),
+    )
+    .expect("metadata-only reparse placeholder inventory");
+
+    assert!(report.is_complete);
+    assert_eq!(report.candidate_count, 0);
+    assert_eq!(report.absence_candidate_count, 0);
+    assert!(fixture.location("cloud-only.png").is_some());
+    let metrics = fixture
+        .catalog
+        .load_library_change_root_queue_metrics(
+            &fixture.root_id,
+            LibraryRootGeneration::initial(),
+            2_000,
+            queue_policy(),
+        )
+        .expect("queue metrics");
+    assert_eq!(metrics.pending_count + metrics.retry_wait_count, 0);
+}
+
+#[test]
 fn source_failure_terminates_the_durable_inventory_run() {
     let mut fixture = InventoryFixture::new(&[]);
     let request = fixture.request();

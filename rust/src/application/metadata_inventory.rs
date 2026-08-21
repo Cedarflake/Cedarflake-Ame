@@ -653,11 +653,14 @@ where
 }
 
 fn inventory_matches_location(entry: &MetadataInventoryEntry, prior: &AssetLocationView) -> bool {
-    if entry.placeholder_state != MetadataInventoryPlaceholderState::Available
-        || entry.is_reparse_point
-        || entry.file_size != Some(prior.file_size)
-        || entry.modified_unix_ms != prior.modified_unix_ms
+    if entry.file_size != Some(prior.file_size) || entry.modified_unix_ms != prior.modified_unix_ms
     {
+        return false;
+    }
+    if entry.placeholder_state != MetadataInventoryPlaceholderState::Available {
+        return entry.file_identity.is_none();
+    }
+    if entry.is_reparse_point {
         return false;
     }
     match (&entry.file_identity, &prior.file_identity) {

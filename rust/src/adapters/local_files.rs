@@ -325,7 +325,7 @@ impl FileDiscovery {
         let relative_path = relative_path_text(relative_path_value);
         let is_reparse_point = is_link_or_reparse_point(&metadata);
         let placeholder_state = metadata_placeholder_state(&metadata);
-        if is_reparse_point {
+        if is_reparse_point && placeholder_state == MetadataInventoryPlaceholderState::Available {
             match path.metadata() {
                 Ok(target_metadata) if target_metadata.is_dir() => {
                     return Err(ScanIssue {
@@ -348,13 +348,12 @@ impl FileDiscovery {
                 }
             }
         }
-        let kind = if metadata.is_dir() {
-            MetadataInventoryEntryKind::Directory
-        } else if metadata.is_file() && !is_reparse_point {
-            MetadataInventoryEntryKind::File
-        } else {
-            MetadataInventoryEntryKind::Other
-        };
+        let kind = metadata_inventory_entry_kind(
+            metadata.is_dir(),
+            metadata.is_file(),
+            is_reparse_point,
+            placeholder_state,
+        );
         if kind == MetadataInventoryEntryKind::Directory
             && (is_reparse_point
                 || placeholder_state != MetadataInventoryPlaceholderState::Available)
@@ -373,6 +372,7 @@ impl FileDiscovery {
         }
         let file_identity = if kind == MetadataInventoryEntryKind::File
             && placeholder_state == MetadataInventoryPlaceholderState::Available
+            && !is_reparse_point
         {
             file_identity(&path).ok().flatten()
         } else {
@@ -434,6 +434,23 @@ impl FileDiscovery {
             }
         }
         Ok((current, metadata))
+    }
+}
+
+fn metadata_inventory_entry_kind(
+    is_directory: bool,
+    is_regular_file: bool,
+    is_reparse_point: bool,
+    placeholder_state: MetadataInventoryPlaceholderState,
+) -> MetadataInventoryEntryKind {
+    if is_directory {
+        MetadataInventoryEntryKind::Directory
+    } else if (is_regular_file && !is_reparse_point)
+        || placeholder_state != MetadataInventoryPlaceholderState::Available
+    {
+        MetadataInventoryEntryKind::File
+    } else {
+        MetadataInventoryEntryKind::Other
     }
 }
 
@@ -840,8 +857,31 @@ mod tests {
             inventory_entry.placeholder_state,
             MetadataInventoryPlaceholderState::Offline
         );
+        assert_eq!(inventory_entry.kind, MetadataInventoryEntryKind::File);
         assert!(inventory_entry.file_identity.is_none());
         assert_eq!(fs::read(file_path).expect("fixture bytes"), original);
+    }
+
+    #[test]
+    fn reparse_cloud_placeholder_remains_a_present_file_entry() {
+        assert_eq!(
+            metadata_inventory_entry_kind(
+                false,
+                false,
+                true,
+                MetadataInventoryPlaceholderState::RecallOnDataAccess,
+            ),
+            MetadataInventoryEntryKind::File
+        );
+        assert_eq!(
+            metadata_inventory_entry_kind(
+                false,
+                false,
+                true,
+                MetadataInventoryPlaceholderState::Available,
+            ),
+            MetadataInventoryEntryKind::Other
+        );
     }
 
     #[cfg(windows)]
