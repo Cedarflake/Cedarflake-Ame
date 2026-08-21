@@ -1443,6 +1443,7 @@ impl SseDecode for crate::domain::library_synchronization::LibraryRootSynchroniz
         let mut var_pendingChangeCount = <u64>::sse_decode(deserializer);
         let mut var_retryWaitCount = <u64>::sse_decode(deserializer);
         let mut var_freshnessUnknownCount = <u64>::sse_decode(deserializer);
+        let mut var_recoveryBlocked = <bool>::sse_decode(deserializer);
         let mut var_lastIssueCode = <Option<String>>::sse_decode(deserializer);
         return crate::domain::library_synchronization::LibraryRootSynchronizationStatus {
             root_id: var_rootId,
@@ -1456,6 +1457,7 @@ impl SseDecode for crate::domain::library_synchronization::LibraryRootSynchroniz
             pending_change_count: var_pendingChangeCount,
             retry_wait_count: var_retryWaitCount,
             freshness_unknown_count: var_freshnessUnknownCount,
+            recovery_blocked: var_recoveryBlocked,
             last_issue_code: var_lastIssueCode,
         };
     }
@@ -2910,6 +2912,7 @@ impl flutter_rust_bridge::IntoDart
             self.pending_change_count.into_into_dart().into_dart(),
             self.retry_wait_count.into_into_dart().into_dart(),
             self.freshness_unknown_count.into_into_dart().into_dart(),
+            self.recovery_blocked.into_into_dart().into_dart(),
             self.last_issue_code.into_into_dart().into_dart(),
         ]
         .into_dart()
@@ -3880,6 +3883,7 @@ impl SseEncode for crate::domain::library_synchronization::LibraryRootSynchroniz
         <u64>::sse_encode(self.pending_change_count, serializer);
         <u64>::sse_encode(self.retry_wait_count, serializer);
         <u64>::sse_encode(self.freshness_unknown_count, serializer);
+        <bool>::sse_encode(self.recovery_blocked, serializer);
         <Option<String>>::sse_encode(self.last_issue_code, serializer);
     }
 }

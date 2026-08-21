@@ -1490,8 +1490,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   dco_decode_library_root_synchronization_status(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 12)
-      throw Exception('unexpected arr length: expect 12 but see ${arr.length}');
+    if (arr.length != 13)
+      throw Exception('unexpected arr length: expect 13 but see ${arr.length}');
     return LibraryRootSynchronizationStatus(
       rootId: dco_decode_String(arr[0]),
       rootGeneration: dco_decode_u_64(arr[1]),
@@ -1504,7 +1504,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       pendingChangeCount: dco_decode_u_64(arr[8]),
       retryWaitCount: dco_decode_u_64(arr[9]),
       freshnessUnknownCount: dco_decode_u_64(arr[10]),
-      lastIssueCode: dco_decode_opt_String(arr[11]),
+      recoveryBlocked: dco_decode_bool(arr[11]),
+      lastIssueCode: dco_decode_opt_String(arr[12]),
     );
   }
 
@@ -2617,6 +2618,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_pendingChangeCount = sse_decode_u_64(deserializer);
     var var_retryWaitCount = sse_decode_u_64(deserializer);
     var var_freshnessUnknownCount = sse_decode_u_64(deserializer);
+    var var_recoveryBlocked = sse_decode_bool(deserializer);
     var var_lastIssueCode = sse_decode_opt_String(deserializer);
     return LibraryRootSynchronizationStatus(
       rootId: var_rootId,
@@ -2630,6 +2632,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       pendingChangeCount: var_pendingChangeCount,
       retryWaitCount: var_retryWaitCount,
       freshnessUnknownCount: var_freshnessUnknownCount,
+      recoveryBlocked: var_recoveryBlocked,
       lastIssueCode: var_lastIssueCode,
     );
   }
@@ -3886,6 +3889,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_u_64(self.pendingChangeCount, serializer);
     sse_encode_u_64(self.retryWaitCount, serializer);
     sse_encode_u_64(self.freshnessUnknownCount, serializer);
+    sse_encode_bool(self.recoveryBlocked, serializer);
     sse_encode_opt_String(self.lastIssueCode, serializer);
   }
 

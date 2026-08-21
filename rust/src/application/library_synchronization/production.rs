@@ -271,7 +271,7 @@ fn project_active_recovery_as_updating(
         if root_ids.contains(&status.root_id)
             && status.availability == crate::domain::LibraryRootAvailability::Available
             && status.source_health == crate::domain::LibraryChangeSourceHealth::Healthy
-            && status.freshness != crate::domain::CatalogFreshnessState::NeedsReconciliation
+            && !status.recovery_blocked
         {
             status.freshness = crate::domain::CatalogFreshnessState::Updating;
             status.freshness_cause = crate::domain::CatalogFreshnessCause::PendingChanges;
@@ -970,6 +970,7 @@ mod tests {
                 pending_change_count: 1,
                 retry_wait_count: 0,
                 freshness_unknown_count: 0,
+                recovery_blocked: false,
                 last_issue_code: Some("catalog_database_busy".to_owned()),
             }],
         };
@@ -983,6 +984,53 @@ mod tests {
         assert_eq!(
             snapshot.roots[0].freshness_cause,
             crate::domain::CatalogFreshnessCause::PendingChanges
+        );
+        assert_eq!(
+            snapshot.roots[0].phase,
+            LibrarySynchronizationPhase::Reconciliation
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn active_bounded_recovery_projects_updating_after_nominal_lease_expiry() {
+        let (_sender, receiver) = mpsc::sync_channel(1);
+        let recovery = RecoveryTask {
+            root_id: "root-a".to_owned(),
+            kind: RecoveryTaskKind::BoundedAuthoritative {
+                continuity_revision: 0,
+            },
+            phase: Arc::new(Mutex::new(LibrarySynchronizationPhase::Reconciliation)),
+            cancelled: Arc::new(AtomicBool::new(false)),
+            receiver,
+            worker: None,
+        };
+        let mut snapshot = LibrarySynchronizationSnapshot {
+            is_running: true,
+            catalog_revision: 1,
+            applied_mutation_count: 0,
+            roots: vec![crate::domain::LibraryRootSynchronizationStatus {
+                root_id: "root-a".to_owned(),
+                root_generation: 1,
+                availability: crate::domain::LibraryRootAvailability::Available,
+                freshness: crate::domain::CatalogFreshnessState::NeedsReconciliation,
+                freshness_cause: crate::domain::CatalogFreshnessCause::EvidenceGap,
+                phase: LibrarySynchronizationPhase::Blocked,
+                source_health: crate::domain::LibraryChangeSourceHealth::Healthy,
+                queue_health: crate::domain::LibraryChangeQueueHealth::Degraded,
+                pending_change_count: 1,
+                retry_wait_count: 0,
+                freshness_unknown_count: 1,
+                recovery_blocked: false,
+                last_issue_code: None,
+            }],
+        };
+
+        project_active_recovery_as_updating(Some(&recovery), &mut snapshot);
+
+        assert_eq!(
+            snapshot.roots[0].freshness,
+            crate::domain::CatalogFreshnessState::Updating
         );
         assert_eq!(
             snapshot.roots[0].phase,
@@ -1020,6 +1068,7 @@ mod tests {
                 pending_change_count: 1,
                 retry_wait_count: 1,
                 freshness_unknown_count: 0,
+                recovery_blocked: true,
                 last_issue_code: Some("metadata_inventory_enumeration_failed".to_owned()),
             }],
         };
@@ -1261,6 +1310,7 @@ mod tests {
                     pending_change_count: 1,
                     retry_wait_count: 0,
                     freshness_unknown_count: 1,
+                    recovery_blocked: false,
                     last_issue_code: None,
                 })
                 .collect(),

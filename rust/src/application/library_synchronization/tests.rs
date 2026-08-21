@@ -623,6 +623,45 @@ fn exhausted_retry_projects_its_durable_failure_after_runtime_recreation() {
         )
         .expect("lease authoritative work")
         .expect("authoritative lease");
+    let roots = catalog
+        .load_incremental_catalog_roots()
+        .expect("load catalog roots");
+    let mut restarted = LibrarySynchronizationRuntime::with_policy(
+        FakeFactory::default(),
+        LibraryChangePlanningLimits::default(),
+        crate::domain::LibraryChangeRestartPolicy::default(),
+        policy,
+        AuthoritativeRecoveryPolicy::default(),
+        64,
+    );
+    restarted.reconcile_roots(&roots);
+    let root = restarted
+        .roots
+        .get_mut(&fixture.root_id)
+        .expect("recreated runtime root");
+    root.availability = LibraryRootAvailability::Available;
+    root.source_health = LibraryChangeSourceHealth::Healthy;
+    root.needs_continuity_gap = false;
+    let expired_lease_metrics = catalog
+        .load_library_change_root_queue_metrics(
+            &fixture.root_id,
+            LibraryRootGeneration::initial(),
+            31_001,
+            policy,
+        )
+        .expect("load nominally expired lease metrics");
+    let active_status = project_root_status(root, &expired_lease_metrics);
+
+    assert_eq!(
+        active_status.freshness,
+        CatalogFreshnessState::NeedsReconciliation
+    );
+    assert_eq!(
+        active_status.queue_health,
+        LibraryChangeQueueHealth::Degraded
+    );
+    assert!(!active_status.recovery_blocked);
+
     catalog
         .retry_library_change(
             leased.change.id,
@@ -643,31 +682,13 @@ fn exhausted_retry_projects_its_durable_failure_after_runtime_recreation() {
             policy,
         )
         .expect("load exhausted queue metrics");
-    let roots = catalog
-        .load_incremental_catalog_roots()
-        .expect("load catalog roots");
-    let mut restarted = LibrarySynchronizationRuntime::with_policy(
-        FakeFactory::default(),
-        LibraryChangePlanningLimits::default(),
-        crate::domain::LibraryChangeRestartPolicy::default(),
-        policy,
-        AuthoritativeRecoveryPolicy::default(),
-        64,
-    );
-    restarted.reconcile_roots(&roots);
-    let root = restarted
-        .roots
-        .get_mut(&fixture.root_id)
-        .expect("recreated runtime root");
-    root.availability = LibraryRootAvailability::Available;
-    root.source_health = LibraryChangeSourceHealth::Healthy;
-    root.needs_continuity_gap = false;
 
     let status = project_root_status(root, &metrics);
 
     assert_eq!(status.freshness, CatalogFreshnessState::NeedsReconciliation);
     assert_eq!(status.phase, LibrarySynchronizationPhase::Blocked);
     assert_eq!(status.queue_health, LibraryChangeQueueHealth::Degraded);
+    assert!(status.recovery_blocked);
     assert_eq!(
         status.last_issue_code.as_deref(),
         Some("metadata_inventory_enumeration_failed")

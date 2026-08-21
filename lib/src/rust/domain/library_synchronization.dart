@@ -21,6 +21,7 @@ class LibraryRootSynchronizationStatus {
   final BigInt pendingChangeCount;
   final BigInt retryWaitCount;
   final BigInt freshnessUnknownCount;
+  final bool recoveryBlocked;
   final String? lastIssueCode;
 
   const LibraryRootSynchronizationStatus({
@@ -35,6 +36,7 @@ class LibraryRootSynchronizationStatus {
     required this.pendingChangeCount,
     required this.retryWaitCount,
     required this.freshnessUnknownCount,
+    required this.recoveryBlocked,
     this.lastIssueCode,
   });
 
@@ -51,6 +53,7 @@ class LibraryRootSynchronizationStatus {
       pendingChangeCount.hashCode ^
       retryWaitCount.hashCode ^
       freshnessUnknownCount.hashCode ^
+      recoveryBlocked.hashCode ^
       lastIssueCode.hashCode;
 
   @override
@@ -69,6 +72,7 @@ class LibraryRootSynchronizationStatus {
           pendingChangeCount == other.pendingChangeCount &&
           retryWaitCount == other.retryWaitCount &&
           freshnessUnknownCount == other.freshnessUnknownCount &&
+          recoveryBlocked == other.recoveryBlocked &&
           lastIssueCode == other.lastIssueCode;
 }
 

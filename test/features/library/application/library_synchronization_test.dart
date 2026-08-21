@@ -525,6 +525,7 @@ rust_sync.LibrarySynchronizationSnapshot _snapshot({
         pendingChangeCount: BigInt.zero,
         retryWaitCount: BigInt.zero,
         freshnessUnknownCount: BigInt.zero,
+        recoveryBlocked: false,
         lastIssueCode: lastIssueCode,
       ),
     ],

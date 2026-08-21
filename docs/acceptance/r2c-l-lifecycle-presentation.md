@@ -25,8 +25,9 @@ and restart-only non-scan continuity work. R2c-M owns replacement performance an
   changes. Development logs include the active root phase, phase elapsed milliseconds, pending,
   retry, and freshness-gap counts, source status, and stable issue code.
 - Durable exhausted work projects its stored failure code after process restart. Active recovery
-  follows the typed root freshness projection, so it cannot hide a degraded queue and transient
-  persistence contention cannot suppress the worker's real phase.
+  follows a typed recovery-blocked flag, so it cannot hide an exhausted queue, while a protected
+  live worker crossing its nominal lease and transient persistence contention continue to expose
+  the worker's real phase.
 - Normal update, automatic retry, and successful convergence remain silent. A blocked condition
   uses one root-and-generation-stable notification key; a cause transition updates the active
   record in place. Notification detail includes the localized phase, a structured phase start used
@@ -45,8 +46,9 @@ and restart-only non-scan continuity work. R2c-M owns replacement performance an
   recreation;
 - metadata inventory: 15 passed, including enumeration, comparison, and queue-publication phase
   reporting;
-- production recovery lifecycle: 11 passed, including non-scan cancellation, full-scan retention,
-  stale continuity cancellation, and bounded stop ownership;
+- production recovery lifecycle: 12 passed, including protected live work beyond nominal lease,
+  exhausted-work blocking, transient contention phase reporting, non-scan cancellation, full-scan
+  retention, stale continuity cancellation, and bounded stop ownership;
 - Flutter synchronization: 11 passed, including typed phase mapping, stable phase timing,
   generation-bounded blocked projection, and structured development logging;
 - gallery synchronization and notification integration: 16 passed, including generation-bounded
@@ -58,7 +60,7 @@ and restart-only non-scan continuity work. R2c-M owns replacement performance an
 - navigation semantics: five passed;
 - window lifecycle: three passed, including hide-before-wait and bounded shutdown timeout;
 - repository lint: passed with formatting, Clippy warnings denied, and Dart analysis;
-- complete Daily: Rust 453 total, 446 passed, seven existing explicit ignores; all Flutter tests,
+- complete Daily: Rust 454 total, 447 passed, seven existing explicit ignores; all Flutter tests,
   Windows Scan 2/2, Windows Accessibility 2/2, bridge compatibility, and whitespace passed;
 - Windows Release: passed with the Release build and packaged bridge smoke integration 2/2.
 

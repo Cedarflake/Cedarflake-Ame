@@ -38,5 +38,6 @@ pub struct LibraryRootSynchronizationStatus {
     pub pending_change_count: u64,
     pub retry_wait_count: u64,
     pub freshness_unknown_count: u64,
+    pub recovery_blocked: bool,
     pub last_issue_code: Option<String>,
 }

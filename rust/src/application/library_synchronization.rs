@@ -672,6 +672,8 @@ fn project_root_status(
         pending_change_count: metrics.pending_count.saturating_add(metrics.leased_count),
         retry_wait_count: metrics.retry_wait_count,
         freshness_unknown_count: metrics.freshness_unknown_count,
+        recovery_blocked: runtime.blocking_issue_code.is_some()
+            || metrics.exhausted_retry_count > 0,
         last_issue_code,
     }
 }
