@@ -142,19 +142,24 @@ identity and local content availability remain separate: a verified, fully local
 Files item is a file, while partial, offline, or recall content remains present but unreadable. A
 non-Cloud reparse point is never treated as a media file or traversable directory.
 
-Exact-path classification uses the same `FileAttributeTagInfo` contract and does not scan the
-parent directory. Before any signature, identity, metadata, or preview read, the adapter opens a
-validation handle with `FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_OPEN_NO_RECALL` and without delete
-sharing, validates the attributes and tag, then opens the content with `FILE_FLAG_OPEN_NO_RECALL`.
-It rechecks the opened content handle and compares its file identity with the still-live validation
-handle before returning the reader. This rejects dehydration and replacement races before source
-bytes can be consumed even on filesystems that permit the pathname to be unlinked concurrently.
+Exact-path classification issues one exact-name `FindFirstFileW` directory enumeration and merges
+its attributes with `FileAttributeTagInfo` from the no-follow handle. It therefore retains the
+enumeration-only `FILE_ATTRIBUTE_RECALL_ON_OPEN` bit in constant work without scanning parent
+siblings. Before any signature, identity, metadata, or preview read, the adapter opens a validation
+handle with `FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_OPEN_NO_RECALL` and without delete sharing,
+validates the merged attributes and tag, then opens the content with
+`FILE_FLAG_OPEN_NO_RECALL`. It rechecks the opened content handle and compares its file identity
+with the still-live validation handle before returning the reader. This rejects dehydration and
+replacement races before source bytes can be consumed even on filesystems that permit the pathname
+to be unlinked concurrently.
 
-The Windows adapter contains two narrow `unsafe` calls for this contract:
+The Windows adapter contains three narrow `unsafe` contracts for this boundary:
 `GetFileInformationByHandleEx(FileAttributeTagInfo)` writes one initialized, exactly sized
-`FILE_ATTRIBUTE_TAG_INFO`, and `CfGetPlaceholderStateFromAttributeTag` consumes only the returned
-integer attributes and tag. Both calls remain inside the adapter; no raw handle, pointer, Win32
-structure, or Cloud Files state crosses into application, domain, persistence, or presentation.
+`FILE_ATTRIBUTE_TAG_INFO`; `FindFirstFileW` writes one initialized `WIN32_FIND_DATAW` for an exact,
+terminated extended path and its search handle is closed exactly once with `FindClose`; and
+`CfGetPlaceholderStateFromAttributeTag` consumes only the returned integer attributes and tag. All
+calls remain inside the adapter; no raw handle, pointer, Win32 structure, or Cloud Files state
+crosses into application, domain, persistence, or presentation.
 
 Positive candidates may publish before the complete inventory finishes only after the ordinary
 path reconciler rechecks final state. This permits additions and modifications to become visible as

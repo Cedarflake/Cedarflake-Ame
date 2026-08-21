@@ -37,11 +37,12 @@ notification policy, development diagnostics, and immediate window-close behavio
   every candidate still rechecks current filesystem and catalog state before publication.
 - Cloud Files identity is resolved from attributes plus reparse tag without following the target.
   Fully local Cloud Files remain readable file entries; offline, partial, or recall content remains
-  present without hydration. Directory enumeration retains `RecallOnOpen`, while exact paths use a
-  no-follow, no-recall `FileAttributeTagInfo` query instead of scanning siblings. Source reads keep a
-  live validation handle, open content with no-recall, and recheck availability and matching file
-  identity before consuming bytes. Matching unavailable entries preserve trustworthy locations
-  without removal work or retry exhaustion; changed evidence remains unresolved.
+  present without hydration. Exact paths merge one exact-name directory enumeration with a
+  no-follow, no-recall `FileAttributeTagInfo` query, retaining enumeration-only `RecallOnOpen` in
+  constant work without scanning siblings. Source reads keep a live validation handle, open content
+  with no-recall, and recheck availability and matching file identity before consuming bytes.
+  Matching unavailable entries preserve trustworthy locations without removal work or retry
+  exhaustion; changed evidence remains unresolved.
 - A later watcher gap increments the continuity revision, cancels the older worker, supersedes its
   queue authority and staged candidates, and starts a higher durable epoch. A stale worker cannot
   enqueue another candidate page after losing its lease.
@@ -69,7 +70,7 @@ notification policy, development diagnostics, and immediate window-close behavio
 - synchronization lifecycle: 34 selected, 32 passed and two authorization-bound R2c-H tests
   ignored, including continuity-revision cancellation, root fairness, watcher-before-authority,
   availability recovery, retry isolation, bounded shutdown, and recoverable-scan rotation;
-- complete Rust suite: 451 total, 444 passed, seven existing explicit ignores, zero failures;
+- complete Rust suite: 452 total, 445 passed, seven existing explicit ignores, zero failures;
 - `cargo check --all-targets --all-features`: passed with no warnings;
 - repository lint: passed, including formatting, Clippy with warnings denied, and Dart analysis;
 - complete Daily: passed, including the Rust suite, all Flutter tests, Windows Scan 2/2, Windows

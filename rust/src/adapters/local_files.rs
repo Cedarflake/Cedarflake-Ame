@@ -8,12 +8,16 @@ use std::fs::OpenOptions;
 #[cfg(windows)]
 use std::mem::size_of;
 #[cfg(windows)]
+use std::os::windows::ffi::OsStrExt;
+#[cfg(windows)]
 use std::os::windows::fs::MetadataExt;
 #[cfg(windows)]
 use std::os::windows::fs::OpenOptionsExt;
 #[cfg(windows)]
 use std::os::windows::io::AsRawHandle;
 
+#[cfg(windows)]
+use windows_sys::Win32::Foundation::INVALID_HANDLE_VALUE;
 #[cfg(windows)]
 use windows_sys::Win32::Storage::CloudFilters::{
     CF_PLACEHOLDER_STATE_INVALID, CF_PLACEHOLDER_STATE_PARTIAL,
@@ -24,7 +28,8 @@ use windows_sys::Win32::Storage::CloudFilters::{
 use windows_sys::Win32::Storage::FileSystem::{
     FILE_ATTRIBUTE_REPARSE_POINT, FILE_ATTRIBUTE_TAG_INFO, FILE_FLAG_BACKUP_SEMANTICS,
     FILE_FLAG_OPEN_NO_RECALL, FILE_FLAG_OPEN_REPARSE_POINT, FILE_ID_INFO, FILE_SHARE_READ,
-    FILE_SHARE_WRITE, FileAttributeTagInfo, FileIdInfo, GetFileInformationByHandleEx,
+    FILE_SHARE_WRITE, FileAttributeTagInfo, FileIdInfo, FindClose, FindFirstFileW,
+    GetFileInformationByHandleEx, WIN32_FIND_DATAW,
 };
 
 use crate::domain::{
@@ -123,6 +128,13 @@ enum ReparseKind {
     None,
     CloudFiles,
     Other,
+}
+
+#[cfg(windows)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct AttributeTagEvidence {
+    attributes: u32,
+    reparse_tag: u32,
 }
 
 impl Iterator for DirectoryEntryPaths {
@@ -551,9 +563,9 @@ fn entry_reparse_evidence(
     if !has_reparse_point_attribute(metadata.file_attributes()) {
         return Ok((ReparseKind::None, metadata_state));
     }
-    let info = file_attribute_tag_info(path)?;
-    let attributes = metadata.file_attributes() | info.FileAttributes;
-    reparse_evidence_from_attribute_tag(attributes, info.ReparseTag)
+    let validation = open_validation_handle(path)?;
+    let evidence = exact_attribute_tag_evidence(path, &validation, metadata.file_attributes())?;
+    reparse_evidence_from_attribute_tag(evidence.attributes, evidence.reparse_tag)
 }
 
 #[cfg(windows)]
@@ -760,12 +772,6 @@ fn open_validation_handle(path: &Path) -> std::io::Result<File> {
 }
 
 #[cfg(windows)]
-fn file_attribute_tag_info(path: &Path) -> std::io::Result<FILE_ATTRIBUTE_TAG_INFO> {
-    let file = open_validation_handle(path)?;
-    file_attribute_tag_info_from_handle(&file)
-}
-
-#[cfg(windows)]
 fn file_attribute_tag_info_from_handle(file: &File) -> std::io::Result<FILE_ATTRIBUTE_TAG_INFO> {
     let mut info = FILE_ATTRIBUTE_TAG_INFO::default();
     // SAFETY: ADR 0023 fixes this no-follow/no-recall query contract: the live file owns the
@@ -785,6 +791,98 @@ fn file_attribute_tag_info_from_handle(file: &File) -> std::io::Result<FILE_ATTR
     Ok(info)
 }
 
+#[cfg(windows)]
+fn exact_attribute_tag_evidence(
+    path: &Path,
+    file: &File,
+    known_attributes: u32,
+) -> std::io::Result<AttributeTagEvidence> {
+    let handle_info = file_attribute_tag_info_from_handle(file)?;
+    let enumeration_info = exact_directory_entry_info(path)?;
+    combine_attribute_tag_evidence(known_attributes, &handle_info, &enumeration_info)
+}
+
+#[cfg(windows)]
+fn combine_attribute_tag_evidence(
+    known_attributes: u32,
+    handle_info: &FILE_ATTRIBUTE_TAG_INFO,
+    enumeration_info: &WIN32_FIND_DATAW,
+) -> std::io::Result<AttributeTagEvidence> {
+    let attributes =
+        known_attributes | handle_info.FileAttributes | enumeration_info.dwFileAttributes;
+    let enumeration_tag = if has_reparse_point_attribute(enumeration_info.dwFileAttributes) {
+        enumeration_info.dwReserved0
+    } else {
+        0
+    };
+    if handle_info.ReparseTag != 0
+        && enumeration_tag != 0
+        && handle_info.ReparseTag != enumeration_tag
+    {
+        return Err(std::io::Error::other(
+            "The source reparse identity changed during classification",
+        ));
+    }
+    Ok(AttributeTagEvidence {
+        attributes,
+        reparse_tag: if handle_info.ReparseTag != 0 {
+            handle_info.ReparseTag
+        } else {
+            enumeration_tag
+        },
+    })
+}
+
+#[cfg(windows)]
+fn exact_directory_entry_info(path: &Path) -> std::io::Result<WIN32_FIND_DATAW> {
+    let wide_path = windows_extended_path(path);
+    let mut info = WIN32_FIND_DATAW::default();
+    // SAFETY: ADR 0023 fixes this exact-name enumeration contract: `wide_path` is a terminated
+    // UTF-16 path, `info` is aligned and writable, and the returned search handle is closed once.
+    let handle = unsafe { FindFirstFileW(wide_path.as_ptr(), &raw mut info) };
+    if handle == INVALID_HANDLE_VALUE {
+        return Err(std::io::Error::last_os_error());
+    }
+    // SAFETY: `handle` is the live search handle returned by the successful call above and is not
+    // used again after this close.
+    let close_result = unsafe { FindClose(handle) };
+    if close_result == 0 {
+        return Err(std::io::Error::last_os_error());
+    }
+    Ok(info)
+}
+
+#[cfg(windows)]
+fn windows_extended_path(path: &Path) -> Vec<u16> {
+    let separator = u16::from(b'\\');
+    let mut path_units = path
+        .as_os_str()
+        .encode_wide()
+        .map(|unit| {
+            if unit == u16::from(b'/') {
+                separator
+            } else {
+                unit
+            }
+        })
+        .collect::<Vec<_>>();
+    let is_device_path =
+        path_units.starts_with(&[separator, separator, u16::from(b'?'), separator])
+            || path_units.starts_with(&[separator, separator, u16::from(b'.'), separator]);
+    if path.is_absolute() && !is_device_path {
+        let mut extended = vec![separator, separator, u16::from(b'?'), separator];
+        if path_units.starts_with(&[separator, separator]) {
+            extended.extend("UNC\\".encode_utf16());
+            extended.extend_from_slice(&path_units[2..]);
+        } else {
+            extended.append(&mut path_units);
+        }
+        path_units = extended;
+    }
+    path_units.push(0);
+    path_units
+}
+
 #[cfg(not(windows))]
 fn file_identity(_path: &Path) -> std::io::Result<Option<FileIdentityEvidence>> {
     Ok(None)
@@ -801,8 +899,8 @@ fn open_source_file_with_hook(
     after_validation: impl FnOnce(),
 ) -> std::io::Result<File> {
     let validation = open_validation_handle(path)?;
-    let info = file_attribute_tag_info_from_handle(&validation)?;
-    validate_source_file_info(&info)?;
+    let validation_evidence = exact_attribute_tag_evidence(path, &validation, 0)?;
+    validate_source_file_info(&validation_evidence)?;
     let expected_identity = file_identity_from_handle(&validation)?;
     after_validation();
     let source = OpenOptions::new()
@@ -811,7 +909,10 @@ fn open_source_file_with_hook(
         .custom_flags(FILE_FLAG_OPEN_NO_RECALL)
         .open(path)?;
     let source_info = file_attribute_tag_info_from_handle(&source)?;
-    validate_source_file_info(&source_info)?;
+    validate_source_file_info(&AttributeTagEvidence {
+        attributes: source_info.FileAttributes,
+        reparse_tag: source_info.ReparseTag,
+    })?;
     if file_identity_from_handle(&source)? != expected_identity {
         return Err(std::io::Error::other(
             "The source path changed while it was being opened",
@@ -821,8 +922,8 @@ fn open_source_file_with_hook(
 }
 
 #[cfg(windows)]
-fn validate_source_file_info(info: &FILE_ATTRIBUTE_TAG_INFO) -> std::io::Result<()> {
-    let attributes = info.FileAttributes;
+fn validate_source_file_info(info: &AttributeTagEvidence) -> std::io::Result<()> {
+    let attributes = info.attributes;
     let placeholder_state = metadata_placeholder_state_from_attributes(attributes);
     if placeholder_state != MetadataInventoryPlaceholderState::Available {
         return Err(std::io::Error::other(
@@ -830,7 +931,7 @@ fn validate_source_file_info(info: &FILE_ATTRIBUTE_TAG_INFO) -> std::io::Result<
         ));
     }
     if attributes & FILE_ATTRIBUTE_REPARSE_POINT != 0 {
-        let cloud_state = cloud_placeholder_state_from_attribute_tag(attributes, info.ReparseTag)?;
+        let cloud_state = cloud_placeholder_state_from_attribute_tag(attributes, info.reparse_tag)?;
         if cloud_state & CF_PLACEHOLDER_STATE_PLACEHOLDER == 0 {
             return Err(std::io::Error::other(
                 "The source path is an unsupported reparse point",
@@ -1203,9 +1304,20 @@ mod tests {
             IO_REPARSE_TAG_CLOUD_2,
         )
         .expect("Cloud Files tag state");
+        let handle_info = FILE_ATTRIBUTE_TAG_INFO {
+            FileAttributes: FILE_ATTRIBUTE_REPARSE_POINT,
+            ReparseTag: IO_REPARSE_TAG_CLOUD_2,
+        };
+        let enumeration_info = WIN32_FIND_DATAW {
+            dwFileAttributes: FILE_ATTRIBUTE_REPARSE_POINT | FILE_ATTRIBUTE_RECALL_ON_OPEN,
+            dwReserved0: IO_REPARSE_TAG_CLOUD_2,
+            ..WIN32_FIND_DATAW::default()
+        };
+        let exact_evidence = combine_attribute_tag_evidence(0, &handle_info, &enumeration_info)
+            .expect("exact enumeration evidence");
         let recall = reparse_evidence_from_attribute_tag(
-            FILE_ATTRIBUTE_REPARSE_POINT | FILE_ATTRIBUTE_RECALL_ON_OPEN,
-            IO_REPARSE_TAG_CLOUD_2,
+            exact_evidence.attributes,
+            exact_evidence.reparse_tag,
         )
         .expect("recall Cloud Files tag state");
         let symlink = reparse_evidence_from_attribute_tag(
@@ -1235,6 +1347,17 @@ mod tests {
                 MetadataInventoryPlaceholderState::Available,
             )
         );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn exact_enumeration_uses_an_extended_literal_path() {
+        let path = Path::new(r"C:\library\图片\photo.png");
+        let wide = windows_extended_path(path);
+        let rendered = String::from_utf16(&wide[..wide.len() - 1]).expect("UTF-16 path");
+
+        assert_eq!(rendered, r"\\?\C:\library\图片\photo.png");
+        assert_eq!(wide.last(), Some(&0));
     }
 
     #[cfg(windows)]

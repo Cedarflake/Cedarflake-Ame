@@ -1484,10 +1484,11 @@ into durable inventory continuation, and yields after one comparison or absence 
 publication protects the exact authority lease, applies bounded backpressure without advancing a
 cursor or consuming an attempt, and rejects output after a newer watcher gap supersedes the worker.
 Focused epoch, overflow, cancellation, retry-exhaustion, capacity-one, fairness, and no-full-scan
-fixtures pass together with the complete 451-test Rust suite. Cloud Files identity, local
-availability, no-recall source opening, and matching unavailable metadata now remain safe without
-hydration, removal work, or retry exhaustion. Repository lint, complete Daily, and Windows Release
-gates pass. Independent audit remains required before R2c-K is accepted.
+fixtures pass together with the complete 452-test Rust suite. Cloud Files identity, exact-name
+enumeration evidence, local availability, no-recall source opening, and matching unavailable
+metadata now remain safe without hydration, removal work, or retry exhaustion. Repository lint,
+complete Daily, and Windows Release gates pass. Independent audit remains required before R2c-K is
+accepted.
 
 R2c-L - lifecycle, presentation, and diagnostics:
 
