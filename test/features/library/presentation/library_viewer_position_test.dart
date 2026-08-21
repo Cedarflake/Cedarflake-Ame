@@ -467,6 +467,50 @@ void main() {
     expect(scanner.scanCount, 0);
   });
 
+  testWidgets("root generation change resolves the prior blocked condition", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final initialState = _libraryState(assetCount: 1);
+    final synchronization = _TestLibrarySynchronization(
+      _needsReconciliationSnapshot(),
+    );
+    addTearDown(synchronization.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(initialState),
+          libraryCatalogProvider.overrideWithValue(
+            _SynchronizationViewerCatalog(_snapshotFromState(initialState)),
+          ),
+          librarySynchronizationProvider.overrideWithValue(synchronization),
+        ],
+        child: const AmeApp(),
+      ),
+    );
+    await tester.pump();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(AmeApp)),
+    );
+    expect(
+      container.read(ameNotificationControllerProvider).history.single.isActive,
+      isTrue,
+    );
+
+    synchronization.publish(_automaticRecoverySnapshot(generation: BigInt.two));
+    await tester.pump();
+
+    final notifications = container.read(ameNotificationControllerProvider);
+    expect(notifications.history, hasLength(1));
+    expect(notifications.history.single.isActive, isFalse);
+    expect(notifications.pendingIds, isEmpty);
+  });
+
   testWidgets(
     "scan feedback takes priority over a pending synchronization failure",
     (tester) async {
@@ -1146,7 +1190,9 @@ LibrarySynchronizationSnapshot _needsReconciliationSnapshot() {
   );
 }
 
-LibrarySynchronizationSnapshot _automaticRecoverySnapshot() {
+LibrarySynchronizationSnapshot _automaticRecoverySnapshot({
+  BigInt? generation,
+}) {
   return LibrarySynchronizationSnapshot(
     isRunning: true,
     catalogRevision: BigInt.one,
@@ -1154,7 +1200,7 @@ LibrarySynchronizationSnapshot _automaticRecoverySnapshot() {
     roots: {
       "root-1": LibraryRootSynchronizationStatus(
         rootId: "root-1",
-        rootGeneration: BigInt.one,
+        rootGeneration: generation ?? BigInt.one,
         availability: LibraryRootAvailability.available,
         freshness: LibraryCatalogFreshness.updating,
         freshnessCause: LibraryCatalogFreshnessCause.evidenceGap,

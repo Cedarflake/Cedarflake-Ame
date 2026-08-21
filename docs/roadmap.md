@@ -1504,11 +1504,14 @@ Implementation status: the typed synchronization snapshot now exposes watcher st
 enumeration, inventory comparison, queue publication, retry wait, bounded reconciliation, full
 scan, blocked, synchronized, and unavailable phases. Flutter retains phase start time per root
 generation and emits structured development diagnostics with elapsed time, bounded queue counts,
-source status, and issue code. Normal update, retry, and convergence remain silent; blocked cause
-changes update one root-keyed notification in place with phase, elapsed, source path, counts, and
-technical code. Existing shutdown ownership hides the window before waiting, cancels non-scan work,
-and preserves only full-scan checkpoints. Focused tests, repository lint, complete Daily, and
-Windows Release pass. Independent audit remains pending, so R2c-L is not yet accepted.
+source status, and issue code. Durable exhausted work retains its diagnostic code across restart,
+and active recovery follows typed freshness instead of inferring blocking state from code strings.
+Normal update, retry, and convergence remain silent; blocked cause changes update one
+root-and-generation-keyed notification in place with phase, current elapsed time, source path,
+counts, and technical code. Existing shutdown ownership hides the window before waiting, cancels
+non-scan work, and preserves only full-scan checkpoints. Focused tests, repository lint, complete
+Daily with 453 Rust tests and all Flutter/Windows integration partitions, and Windows Release pass
+on the audit-fix head. Independent re-audit remains pending, so R2c-L is not yet accepted.
 
 R2c-M - replacement reliability and closeout:
 

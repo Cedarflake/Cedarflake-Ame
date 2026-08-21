@@ -28,6 +28,7 @@ void main() {
         title: "更新受阻",
         message: "检测到无法确认的文件变化。",
         detail: "3 项等待重试",
+        elapsedStartedAt: null,
         severity: AmeNotificationSeverity.warning,
         dedupeKey: "root-a:evidence-gap",
         isPersistent: true,

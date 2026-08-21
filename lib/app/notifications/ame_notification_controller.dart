@@ -11,6 +11,7 @@ class AmeNotificationDraft {
     required this.severity,
     this.dedupeKey,
     this.detail,
+    this.elapsedStartedAt,
     this.sourcePath,
     this.technicalCode,
     this.actionId,
@@ -24,6 +25,7 @@ class AmeNotificationDraft {
   final AmeNotificationSeverity severity;
   final String? dedupeKey;
   final String? detail;
+  final DateTime? elapsedStartedAt;
   final String? sourcePath;
   final String? technicalCode;
   final String? actionId;
@@ -44,6 +46,7 @@ class AmeNotificationEntry {
     required this.isPersistent,
     this.dedupeKey,
     this.detail,
+    this.elapsedStartedAt,
     this.sourcePath,
     this.technicalCode,
     this.actionId,
@@ -61,6 +64,7 @@ class AmeNotificationEntry {
   final bool isPersistent;
   final String? dedupeKey;
   final String? detail;
+  final DateTime? elapsedStartedAt;
   final String? sourcePath;
   final String? technicalCode;
   final String? actionId;
@@ -76,6 +80,7 @@ class AmeNotificationEntry {
     bool? isActive,
     bool? isPersistent,
     Object? detail = _unchanged,
+    Object? elapsedStartedAt = _unchanged,
     Object? sourcePath = _unchanged,
     Object? technicalCode = _unchanged,
     Object? actionId = _unchanged,
@@ -93,6 +98,9 @@ class AmeNotificationEntry {
       isPersistent: isPersistent ?? this.isPersistent,
       dedupeKey: dedupeKey,
       detail: detail == _unchanged ? this.detail : detail as String?,
+      elapsedStartedAt: elapsedStartedAt == _unchanged
+          ? this.elapsedStartedAt
+          : elapsedStartedAt as DateTime?,
       sourcePath: sourcePath == _unchanged
           ? this.sourcePath
           : sourcePath as String?,
@@ -168,6 +176,7 @@ class AmeNotificationController extends Notifier<AmeNotificationState> {
           isActive: true,
           isPersistent: draft.isPersistent,
           detail: draft.detail,
+          elapsedStartedAt: draft.elapsedStartedAt,
           sourcePath: draft.sourcePath,
           technicalCode: draft.technicalCode,
           actionId: draft.actionId,
@@ -195,6 +204,7 @@ class AmeNotificationController extends Notifier<AmeNotificationState> {
       isPersistent: draft.isPersistent,
       dedupeKey: dedupeKey,
       detail: draft.detail,
+      elapsedStartedAt: draft.elapsedStartedAt,
       sourcePath: draft.sourcePath,
       technicalCode: draft.technicalCode,
       actionId: draft.actionId,

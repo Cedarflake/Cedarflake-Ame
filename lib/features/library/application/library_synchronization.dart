@@ -195,6 +195,7 @@ class RustLibrarySynchronization implements LibrarySynchronization {
       final current = entry.value;
       final previous = _current.roots[entry.key];
       if (previous?.freshness == LibraryCatalogFreshness.needsReconciliation &&
+          previous?.rootGeneration == current.rootGeneration &&
           current.freshness == LibraryCatalogFreshness.updating) {
         retainedFailure = true;
         roots[entry.key] = LibraryRootSynchronizationStatus(

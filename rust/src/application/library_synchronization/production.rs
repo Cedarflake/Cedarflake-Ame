@@ -271,7 +271,7 @@ fn project_active_recovery_as_updating(
         if root_ids.contains(&status.root_id)
             && status.availability == crate::domain::LibraryRootAvailability::Available
             && status.source_health == crate::domain::LibraryChangeSourceHealth::Healthy
-            && !has_blocking_recovery_issue(status.last_issue_code.as_deref())
+            && status.freshness != crate::domain::CatalogFreshnessState::NeedsReconciliation
         {
             status.freshness = crate::domain::CatalogFreshnessState::Updating;
             status.freshness_cause = crate::domain::CatalogFreshnessCause::PendingChanges;
@@ -293,18 +293,6 @@ impl RecoveryTask {
             RecoveryTaskKind::FullScan { .. } => LibrarySynchronizationPhase::FullScan,
         }
     }
-}
-
-#[cfg(windows)]
-fn has_blocking_recovery_issue(issue_code: Option<&str>) -> bool {
-    issue_code.is_some_and(|code| {
-        code.starts_with("catalog_")
-            || code.starts_with("change_queue_")
-            || code.starts_with("database_")
-            || code.starts_with("authoritative_")
-            || code.starts_with("library_reconciliation_")
-            || code.starts_with("metadata_inventory_")
-    })
 }
 
 #[cfg(windows)]
@@ -954,7 +942,7 @@ mod tests {
 
     #[cfg(windows)]
     #[test]
-    fn active_bounded_recovery_projects_updating_after_nominal_lease_expiry() {
+    fn active_recovery_projects_its_real_phase_during_transient_catalog_contention() {
         let (_sender, receiver) = mpsc::sync_channel(1);
         let recovery = RecoveryTask {
             root_id: "root-a".to_owned(),
@@ -974,15 +962,15 @@ mod tests {
                 root_id: "root-a".to_owned(),
                 root_generation: 1,
                 availability: crate::domain::LibraryRootAvailability::Available,
-                freshness: crate::domain::CatalogFreshnessState::NeedsReconciliation,
-                freshness_cause: crate::domain::CatalogFreshnessCause::EvidenceGap,
-                phase: LibrarySynchronizationPhase::Blocked,
+                freshness: crate::domain::CatalogFreshnessState::Updating,
+                freshness_cause: crate::domain::CatalogFreshnessCause::PendingChanges,
+                phase: LibrarySynchronizationPhase::QueuePublication,
                 source_health: crate::domain::LibraryChangeSourceHealth::Healthy,
-                queue_health: crate::domain::LibraryChangeQueueHealth::Degraded,
+                queue_health: crate::domain::LibraryChangeQueueHealth::Healthy,
                 pending_change_count: 1,
                 retry_wait_count: 0,
-                freshness_unknown_count: 1,
-                last_issue_code: Some("change_source_rescan_required".to_owned()),
+                freshness_unknown_count: 0,
+                last_issue_code: Some("catalog_database_busy".to_owned()),
             }],
         };
 
@@ -1004,7 +992,7 @@ mod tests {
 
     #[cfg(windows)]
     #[test]
-    fn active_recovery_does_not_hide_a_blocking_catalog_failure() {
+    fn active_recovery_does_not_hide_durable_degraded_queue_state() {
         let (_sender, receiver) = mpsc::sync_channel(1);
         let recovery = RecoveryTask {
             root_id: "root-a".to_owned(),
@@ -1032,7 +1020,7 @@ mod tests {
                 pending_change_count: 1,
                 retry_wait_count: 1,
                 freshness_unknown_count: 0,
-                last_issue_code: Some("catalog_database_error".to_owned()),
+                last_issue_code: Some("metadata_inventory_enumeration_failed".to_owned()),
             }],
         };
 
@@ -1044,7 +1032,7 @@ mod tests {
         );
         assert_eq!(
             snapshot.roots[0].last_issue_code.as_deref(),
-            Some("catalog_database_error")
+            Some("metadata_inventory_enumeration_failed")
         );
     }
 

@@ -701,6 +701,10 @@ fn inventory_failure_exhausts_durable_retry_without_starting_a_full_scan() {
 
     assert_eq!(metrics.exhausted_retry_count, 1);
     assert_eq!(metrics.ready_count, 0);
+    assert_eq!(
+        metrics.latest_exhausted_failure_code.as_deref(),
+        Some("root_unavailable")
+    );
     assert!(
         fixture
             .catalog

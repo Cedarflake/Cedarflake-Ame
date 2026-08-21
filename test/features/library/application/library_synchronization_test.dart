@@ -316,6 +316,41 @@ void main() {
     },
   );
 
+  test("blocked state does not cross a root generation boundary", () async {
+    final nextGenerationReturned = Completer<void>();
+    final synchronization = RustLibrarySynchronization(
+      startCall: () async => _snapshot(
+        revision: 9,
+        freshness: rust_change.CatalogFreshnessState.needsReconciliation,
+        lastIssueCode: "catalog_database_error",
+      ),
+      pollCall: () async {
+        if (!nextGenerationReturned.isCompleted) {
+          nextGenerationReturned.complete();
+        }
+        return _snapshot(
+          revision: 10,
+          rootGeneration: BigInt.two,
+          freshness: rust_change.CatalogFreshnessState.updating,
+        );
+      },
+      stopCall: () async {},
+      pollInterval: const Duration(milliseconds: 5),
+      enableDebugLogging: false,
+    );
+
+    await synchronization.start();
+    await nextGenerationReturned.future;
+    await Future<void>.delayed(Duration.zero);
+
+    final status = synchronization.current.statusFor("root-a");
+    expect(status?.rootGeneration, BigInt.two);
+    expect(status?.freshness, LibraryCatalogFreshness.updating);
+    expect(status?.phase, LibrarySynchronizationPhase.queuePublication);
+    expect(status?.lastIssueCode, isNull);
+    await synchronization.stop();
+  });
+
   test(
     "development diagnostics include root phase elapsed counts and code",
     () async {
@@ -453,6 +488,7 @@ LibraryRootSynchronizationStatus _rootStatus(String rootId) {
 
 rust_sync.LibrarySynchronizationSnapshot _snapshot({
   required int revision,
+  BigInt? rootGeneration,
   rust_change.CatalogFreshnessState freshness =
       rust_change.CatalogFreshnessState.synchronized,
   rust_sync.LibrarySynchronizationPhase? phase,
@@ -465,7 +501,7 @@ rust_sync.LibrarySynchronizationSnapshot _snapshot({
     roots: [
       rust_sync.LibraryRootSynchronizationStatus(
         rootId: "root-a",
-        rootGeneration: BigInt.one,
+        rootGeneration: rootGeneration ?? BigInt.one,
         availability: rust_domain.LibraryRootAvailability.available,
         freshness: freshness,
         freshnessCause:

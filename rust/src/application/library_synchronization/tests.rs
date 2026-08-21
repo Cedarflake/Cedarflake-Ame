@@ -10,18 +10,19 @@ use tempfile::tempdir;
 use crate::adapters::SqliteCatalog;
 use crate::application::AuthoritativeRecoveryPolicy;
 use crate::domain::{
-    CatalogFreshnessState, LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeObservation,
-    LibraryChangeObservationKind, LibraryChangeOrigin, LibraryChangePlanningLimits,
-    LibraryChangeQueuePolicy, LibraryChangeScope, LibraryChangeSourceBatch,
-    LibraryChangeSourceError, LibraryChangeSourceHealth, LibraryChangeSourceStopReport,
-    LibraryRootAvailability, LibraryRootGeneration, LibrarySynchronizationPhase, ScanRequest,
+    CatalogFreshnessState, LibraryChangeFailure, LibraryChangeIntent, LibraryChangeIntentKind,
+    LibraryChangeObservation, LibraryChangeObservationKind, LibraryChangeOrigin,
+    LibraryChangePlanningLimits, LibraryChangeQueueHealth, LibraryChangeQueuePolicy,
+    LibraryChangeScope, LibraryChangeSourceBatch, LibraryChangeSourceError,
+    LibraryChangeSourceHealth, LibraryChangeSourceStopReport, LibraryRootAvailability,
+    LibraryRootGeneration, LibrarySynchronizationPhase, ScanRequest,
 };
 use crate::ports::{
     CatalogRepository, IncrementalCatalogRepository, LibraryChangeQueue, LibraryChangeSource,
     LibraryChangeSourceFactory, LibraryChangeSourceRequest,
 };
 
-use super::LibrarySynchronizationRuntime;
+use super::{LibrarySynchronizationRuntime, project_root_status};
 
 #[derive(Clone, Default)]
 struct FakeFactory {
@@ -579,6 +580,97 @@ fn recovery_writer_contention_blocks_only_after_the_bounded_grace_period() {
             .blocking_issue_code
             .as_deref(),
         Some("catalog_database_busy")
+    );
+}
+
+#[test]
+fn exhausted_retry_projects_its_durable_failure_after_runtime_recreation() {
+    let fixture = RuntimeFixture::new();
+    let mut catalog = fixture.catalog;
+    let policy = LibraryChangeQueuePolicy {
+        debounce_millis: 0,
+        max_attempts: 1,
+        retry_initial_delay_millis: 1,
+        retry_maximum_delay_millis: 1,
+        ..LibraryChangeQueuePolicy::default()
+    };
+    catalog
+        .enqueue_library_change_intents(
+            &[LibraryChangeIntent {
+                root_id: fixture.root_id.clone(),
+                root_generation: LibraryRootGeneration::initial(),
+                kind: LibraryChangeIntentKind::FreshnessUnknown,
+                scope: LibraryChangeScope::Root,
+                relative_path: String::new(),
+                previous_relative_path: None,
+                origin: LibraryChangeOrigin::StartupCatchUp,
+                first_observed_unix_ms: 1_000,
+                most_recent_observed_unix_ms: 1_000,
+                first_sequence: 1,
+                most_recent_sequence: 1,
+                coalesced_observation_count: 1,
+            }],
+            1_000,
+            policy,
+        )
+        .expect("enqueue authoritative work");
+    let leased = catalog
+        .lease_authoritative_library_change(
+            &fixture.root_id,
+            LibraryRootGeneration::initial(),
+            1_000,
+            policy,
+        )
+        .expect("lease authoritative work")
+        .expect("authoritative lease");
+    catalog
+        .retry_library_change(
+            leased.change.id,
+            leased.lease_generation,
+            &LibraryChangeFailure {
+                code: "metadata_inventory_enumeration_failed".to_owned(),
+                message: "inventory enumeration failed".to_owned(),
+            },
+            1_000,
+            policy,
+        )
+        .expect("exhaust authoritative retry");
+    let metrics = catalog
+        .load_library_change_root_queue_metrics(
+            &fixture.root_id,
+            LibraryRootGeneration::initial(),
+            1_001,
+            policy,
+        )
+        .expect("load exhausted queue metrics");
+    let roots = catalog
+        .load_incremental_catalog_roots()
+        .expect("load catalog roots");
+    let mut restarted = LibrarySynchronizationRuntime::with_policy(
+        FakeFactory::default(),
+        LibraryChangePlanningLimits::default(),
+        crate::domain::LibraryChangeRestartPolicy::default(),
+        policy,
+        AuthoritativeRecoveryPolicy::default(),
+        64,
+    );
+    restarted.reconcile_roots(&roots);
+    let root = restarted
+        .roots
+        .get_mut(&fixture.root_id)
+        .expect("recreated runtime root");
+    root.availability = LibraryRootAvailability::Available;
+    root.source_health = LibraryChangeSourceHealth::Healthy;
+    root.needs_continuity_gap = false;
+
+    let status = project_root_status(root, &metrics);
+
+    assert_eq!(status.freshness, CatalogFreshnessState::NeedsReconciliation);
+    assert_eq!(status.phase, LibrarySynchronizationPhase::Blocked);
+    assert_eq!(status.queue_health, LibraryChangeQueueHealth::Degraded);
+    assert_eq!(
+        status.last_issue_code.as_deref(),
+        Some("metadata_inventory_enumeration_failed")
     );
 }
 

@@ -651,6 +651,15 @@ fn project_root_status(
                 LibrarySynchronizationPhase::Synchronized,
             )
         };
+    let last_issue_code = if metrics.exhausted_retry_count > 0 {
+        metrics
+            .latest_exhausted_failure_code
+            .clone()
+            .or_else(|| runtime.blocking_issue_code.clone())
+            .or_else(|| runtime.last_issue_code.clone())
+    } else {
+        runtime.last_issue_code.clone()
+    };
     LibraryRootSynchronizationStatus {
         root_id: runtime.root.root_id.clone(),
         root_generation: runtime.root.root_generation.value(),
@@ -663,7 +672,7 @@ fn project_root_status(
         pending_change_count: metrics.pending_count.saturating_add(metrics.leased_count),
         retry_wait_count: metrics.retry_wait_count,
         freshness_unknown_count: metrics.freshness_unknown_count,
-        last_issue_code: runtime.last_issue_code.clone(),
+        last_issue_code,
     }
 }
 

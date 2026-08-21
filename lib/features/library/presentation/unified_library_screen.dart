@@ -327,6 +327,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       final status = entry.value;
       final root = roots[rootId];
       final priorKey = _synchronizationNotificationKeys[rootId];
+      final currentGenerationKey = _synchronizationNotificationKey(status);
       switch (status.freshness) {
         case LibraryCatalogFreshness.needsReconciliation:
           final key = _synchronizationNotificationKey(status);
@@ -343,6 +344,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
               severity: _synchronizationNotificationSeverity(status),
               dedupeKey: key,
               detail: _synchronizationNotificationDetail(status),
+              elapsedStartedAt: status.phaseStartedAt,
               sourcePath: root?.displayPath,
               technicalCode: status.lastIssueCode,
               isPersistent: true,
@@ -362,6 +364,10 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
           }
           break;
         case LibraryCatalogFreshness.updating:
+          if (priorKey != null && priorKey != currentGenerationKey) {
+            _notificationController.resolve(priorKey);
+            _synchronizationNotificationKeys.remove(rootId);
+          }
           break;
       }
     }
@@ -370,7 +376,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   String _synchronizationNotificationKey(
     LibraryRootSynchronizationStatus status,
   ) {
-    return "library.rootReconciliation:${status.rootId}";
+    return "library.rootReconciliation:${status.rootId}:${status.rootGeneration}";
   }
 
   String _synchronizationNotificationMessage(
@@ -443,11 +449,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   String? _synchronizationNotificationDetail(
     LibraryRootSynchronizationStatus status,
   ) {
-    final elapsed = DateTime.now().difference(status.phaseStartedAt);
-    final details = <String>[
-      "阶段：${_synchronizationPhaseLabel(status.phase)}",
-      "已持续 ${_formatSynchronizationElapsed(elapsed)}",
-    ];
+    final details = <String>["阶段：${_synchronizationPhaseLabel(status.phase)}"];
     if (status.pendingChangeCount > BigInt.zero) {
       details.add("${status.pendingChangeCount} 项等待处理");
     }
@@ -483,19 +485,6 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       LibrarySynchronizationPhase.unavailable =>
         LibraryStrings.synchronizationPhaseUnavailable,
     };
-  }
-
-  String _formatSynchronizationElapsed(Duration elapsed) {
-    final seconds = elapsed.isNegative ? 0 : elapsed.inSeconds;
-    if (seconds < 60) {
-      return "$seconds 秒";
-    }
-    final minutes = seconds ~/ 60;
-    if (minutes < 60) {
-      return "$minutes 分 ${seconds % 60} 秒";
-    }
-    final hours = minutes ~/ 60;
-    return "$hours 小时 ${minutes % 60} 分";
   }
 
   AmeNotificationSeverity _synchronizationNotificationSeverity(

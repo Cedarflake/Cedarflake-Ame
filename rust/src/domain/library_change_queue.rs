@@ -140,7 +140,7 @@ pub enum LibraryChangeQueueHealth {
     Degraded,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LibraryChangeQueueMetrics {
     pub health: LibraryChangeQueueHealth,
     pub pending_count: u64,
@@ -151,6 +151,7 @@ pub struct LibraryChangeQueueMetrics {
     pub ready_count: u64,
     pub expired_lease_count: u64,
     pub exhausted_retry_count: u64,
+    pub latest_exhausted_failure_code: Option<String>,
     pub freshness_unknown_count: u64,
     pub oldest_ready_delay_millis: u64,
 }

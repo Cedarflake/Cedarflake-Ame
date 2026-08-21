@@ -24,10 +24,14 @@ and restart-only non-scan continuity work. R2c-M owns replacement performance an
 - Flutter retains one phase start time per root generation and resets it only when the phase
   changes. Development logs include the active root phase, phase elapsed milliseconds, pending,
   retry, and freshness-gap counts, source status, and stable issue code.
+- Durable exhausted work projects its stored failure code after process restart. Active recovery
+  follows the typed root freshness projection, so it cannot hide a degraded queue and transient
+  persistence contention cannot suppress the worker's real phase.
 - Normal update, automatic retry, and successful convergence remain silent. A blocked condition
-  uses one root-stable notification key; a cause transition updates the active record in place.
-  Notification detail includes the localized phase, elapsed time, bounded queue counts, source
-  path, and technical issue code.
+  uses one root-and-generation-stable notification key; a cause transition updates the active
+  record in place. Notification detail includes the localized phase, a structured phase start used
+  to calculate current elapsed time when opened, bounded queue counts, source path, and technical
+  issue code.
 - An automatic retry cannot replace an existing blocked projection with an updating projection.
   The blocked phase, cause, issue code, and phase start remain stable until a synchronized snapshot
   proves convergence.
@@ -37,20 +41,24 @@ and restart-only non-scan continuity work. R2c-M owns replacement performance an
 
 ## Verification evidence
 
-- synchronization runtime: 19 passed;
+- synchronization runtime: 20 passed, including durable exhausted-failure projection after runtime
+  recreation;
 - metadata inventory: 15 passed, including enumeration, comparison, and queue-publication phase
   reporting;
 - production recovery lifecycle: 11 passed, including non-scan cancellation, full-scan retention,
   stale continuity cancellation, and bounded stop ownership;
-- Flutter synchronization: 10 passed, including typed phase mapping, stable phase timing, stable
-  blocked projection, and structured development logging;
-- gallery synchronization and notification integration: 15 passed, including root-keyed cause
-  updates, silent normal synchronization, convergence, and no manual scan fallback;
+- Flutter synchronization: 11 passed, including typed phase mapping, stable phase timing,
+  generation-bounded blocked projection, and structured development logging;
+- gallery synchronization and notification integration: 16 passed, including generation-bounded
+  active conditions, root-keyed cause updates, silent normal synchronization, convergence, and no
+  manual scan fallback;
 - notification controller: four passed;
+- notification presentation: five passed, including current elapsed-time calculation when details
+  open;
 - navigation semantics: five passed;
 - window lifecycle: three passed, including hide-before-wait and bounded shutdown timeout;
 - repository lint: passed with formatting, Clippy warnings denied, and Dart analysis;
-- complete Daily: Rust 452 total, 445 passed, seven existing explicit ignores; all Flutter tests,
+- complete Daily: Rust 453 total, 446 passed, seven existing explicit ignores; all Flutter tests,
   Windows Scan 2/2, Windows Accessibility 2/2, bridge compatibility, and whitespace passed;
 - Windows Release: passed with the Release build and packaged bridge smoke integration 2/2.
 
