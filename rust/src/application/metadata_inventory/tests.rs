@@ -220,6 +220,47 @@ fn unchanged_reparse_cloud_placeholder_preserves_location_without_retry() {
 }
 
 #[test]
+fn hydrated_cloud_files_reparse_matches_the_existing_location() {
+    let mut fixture = InventoryFixture::new(&["cloud-local.png"]);
+    let prior = fixture
+        .location("cloud-local.png")
+        .expect("published local Cloud Files location");
+    let mut source = FixedInventorySource {
+        page: Some(MetadataInventoryPage {
+            page_index: 1,
+            entries: vec![MetadataInventoryEntry {
+                relative_path: "cloud-local.png".to_owned(),
+                kind: MetadataInventoryEntryKind::File,
+                file_size: Some(prior.file_size),
+                modified_unix_ms: prior.modified_unix_ms,
+                file_identity: prior.file_identity.clone(),
+                placeholder_state: MetadataInventoryPlaceholderState::Available,
+                is_reparse_point: true,
+            }],
+            cursor: Some("cloud-local.png".to_owned()),
+            is_complete: true,
+        }),
+    };
+    let request = fixture.request();
+
+    let report = run_metadata_inventory(
+        &mut fixture.catalog,
+        &mut source,
+        &request,
+        2_000,
+        4,
+        queue_policy(),
+        &AtomicBool::new(false),
+    )
+    .expect("metadata-only hydrated Cloud Files inventory");
+
+    assert!(report.is_complete);
+    assert_eq!(report.candidate_count, 0);
+    assert_eq!(report.absence_candidate_count, 0);
+    assert!(fixture.location("cloud-local.png").is_some());
+}
+
+#[test]
 fn source_failure_terminates_the_durable_inventory_run() {
     let mut fixture = InventoryFixture::new(&[]);
     let request = fixture.request();

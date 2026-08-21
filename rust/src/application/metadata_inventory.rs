@@ -660,9 +660,6 @@ fn inventory_matches_location(entry: &MetadataInventoryEntry, prior: &AssetLocat
     if entry.placeholder_state != MetadataInventoryPlaceholderState::Available {
         return entry.file_identity.is_none();
     }
-    if entry.is_reparse_point {
-        return false;
-    }
     match (&entry.file_identity, &prior.file_identity) {
         (Some(current), Some(previous)) => current == previous,
         (None, None) => true,

@@ -130,14 +130,31 @@ an empty complete scope. Unreadable, reparse, placeholder, escaped, over-depth, 
 otherwise incomplete directories fail the run and cannot authorize descendant absence. Within one
 root, one prior path cannot be claimed by multiple rename candidates carrying the same file
 identity; additional hard-link paths remain ordinary final-state reconciliation candidates.
-Terminal directory symlinks and junctions are classified through target metadata only far enough
-to reject them; an unclassifiable reparse target also fails closed. The inventory never traverses
-the target.
+Terminal symlinks, junctions, and unrecognized reparse points fail closed from no-follow reparse
+evidence; the inventory never opens or traverses their targets.
 
-On Windows, entry classification retains the metadata returned by directory enumeration until the
-inventory row is constructed. This is required because `FILE_ATTRIBUTE_RECALL_ON_OPEN` is an
-enumeration-only attribute. The adapter decides placeholder and reparse state from that retained
-evidence before any target-following metadata request or file-identity handle is permitted.
+On Windows, entry classification retains directory-enumeration attributes and queries
+`FileAttributeTagInfo` through a no-follow, no-recall handle. `FILE_ATTRIBUTE_RECALL_ON_OPEN` is an
+enumeration-only attribute, while a fully hydrated Cloud Files item can retain its reparse tag
+without any recall attribute. The adapter therefore calls
+`CfGetPlaceholderStateFromAttributeTag` with the attributes and tag for the same entry. Cloud Files
+identity and local content availability remain separate: a verified, fully local regular Cloud
+Files item is a file, while partial, offline, or recall content remains present but unreadable. A
+non-Cloud reparse point is never treated as a media file or traversable directory.
+
+Exact-path classification uses the same `FileAttributeTagInfo` contract and does not scan the
+parent directory. Before any signature, identity, metadata, or preview read, the adapter opens a
+validation handle with `FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_OPEN_NO_RECALL` and without delete
+sharing, validates the attributes and tag, then opens the content with `FILE_FLAG_OPEN_NO_RECALL`.
+It rechecks the opened content handle and compares its file identity with the still-live validation
+handle before returning the reader. This rejects dehydration and replacement races before source
+bytes can be consumed even on filesystems that permit the pathname to be unlinked concurrently.
+
+The Windows adapter contains two narrow `unsafe` calls for this contract:
+`GetFileInformationByHandleEx(FileAttributeTagInfo)` writes one initialized, exactly sized
+`FILE_ATTRIBUTE_TAG_INFO`, and `CfGetPlaceholderStateFromAttributeTag` consumes only the returned
+integer attributes and tag. Both calls remain inside the adapter; no raw handle, pointer, Win32
+structure, or Cloud Files state crosses into application, domain, persistence, or presentation.
 
 Positive candidates may publish before the complete inventory finishes only after the ordinary
 path reconciler rechecks final state. This permits additions and modifications to become visible as

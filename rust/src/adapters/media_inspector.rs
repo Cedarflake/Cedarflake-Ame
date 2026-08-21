@@ -1,3 +1,4 @@
+use std::io::BufReader;
 use std::path::Path;
 
 use image::{ImageDecoder, ImageReader, Limits};
@@ -7,6 +8,7 @@ use crate::ports::{MediaInspector, MetadataExtractor};
 
 use super::exif_metadata::KamadakExifExtractor;
 use super::image_orientation::from_image_orientation;
+use super::local_files::open_source_file;
 
 const MAX_SOURCE_DIMENSION: u32 = 100_000;
 const MAX_DECODER_ALLOCATION: u64 = 256 * 1024 * 1024;
@@ -38,8 +40,10 @@ impl MediaInspector for LocalMediaInspector {
     #[flutter_rust_bridge::frb(ignore)]
     fn inspect(&self, file: &DiscoveredFile) -> Result<MediaInspection, ScanIssue> {
         let source_path = Path::new(&file.absolute_path);
-        let mut reader = ImageReader::open(source_path)
-            .and_then(|reader| reader.with_guessed_format())
+        let source = open_source_file(source_path)
+            .map_err(|error| media_issue(file, "image_open_failed", error))?;
+        let mut reader = ImageReader::new(BufReader::new(source))
+            .with_guessed_format()
             .map_err(|error| media_issue(file, "image_open_failed", error))?;
         let mut limits = Limits::default();
         limits.max_image_width = Some(MAX_SOURCE_DIMENSION);

@@ -1,4 +1,3 @@
-use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
 
@@ -10,6 +9,7 @@ use jpeg_decoder::{Decoder, PixelFormat};
 use crate::domain::ImageOrientation;
 
 use super::image_orientation::{apply_image_orientation, from_image_orientation};
+use super::local_files::open_source_file;
 
 pub(crate) struct DecodedJpegPreview {
     pub(crate) image: DynamicImage,
@@ -22,7 +22,7 @@ pub(crate) fn decode_scaled_jpeg(
     requested_edge: u32,
     max_decoding_buffer_size: u64,
 ) -> Option<DecodedJpegPreview> {
-    let file = File::open(path).ok()?;
+    let file = open_source_file(path).ok()?;
     let mut decoder = Decoder::new(BufReader::new(file));
     decoder.set_max_decoding_buffer_size(max_decoding_buffer_size.try_into().ok()?);
     decoder.read_info().ok()?;
@@ -78,6 +78,8 @@ fn exif_orientation(raw_exif: Option<&[u8]>) -> ImageOrientation {
 
 #[cfg(test)]
 mod tests {
+    use std::fs::File;
+
     use image::codecs::jpeg::JpegEncoder;
     use image::{ExtendedColorType, ImageEncoder, Rgb, RgbImage};
     use tempfile::tempdir;

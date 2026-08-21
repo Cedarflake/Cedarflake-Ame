@@ -15,9 +15,16 @@ use std::os::windows::fs::OpenOptionsExt;
 use std::os::windows::io::AsRawHandle;
 
 #[cfg(windows)]
+use windows_sys::Win32::Storage::CloudFilters::{
+    CF_PLACEHOLDER_STATE_INVALID, CF_PLACEHOLDER_STATE_PARTIAL,
+    CF_PLACEHOLDER_STATE_PARTIALLY_ON_DISK, CF_PLACEHOLDER_STATE_PLACEHOLDER,
+    CfGetPlaceholderStateFromAttributeTag,
+};
+#[cfg(windows)]
 use windows_sys::Win32::Storage::FileSystem::{
-    FILE_ATTRIBUTE_REPARSE_POINT, FILE_FLAG_BACKUP_SEMANTICS, FILE_ID_INFO, FileIdInfo,
-    GetFileInformationByHandleEx,
+    FILE_ATTRIBUTE_REPARSE_POINT, FILE_ATTRIBUTE_TAG_INFO, FILE_FLAG_BACKUP_SEMANTICS,
+    FILE_FLAG_OPEN_NO_RECALL, FILE_FLAG_OPEN_REPARSE_POINT, FILE_ID_INFO, FILE_SHARE_READ,
+    FILE_SHARE_WRITE, FileAttributeTagInfo, FileIdInfo, GetFileInformationByHandleEx,
 };
 
 use crate::domain::{
@@ -50,17 +57,27 @@ pub struct FileDiscovery {
 pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
     let path = Path::new(root_path);
     match path.symlink_metadata() {
-        Ok(metadata) if is_cloud_placeholder(&metadata) => RootAvailabilityEvidence {
-            availability: LibraryRootAvailability::Offline,
-            message: Some("The source root is not locally available".to_owned()),
-        },
-        Ok(metadata) if metadata.is_dir() => RootAvailabilityEvidence {
-            availability: LibraryRootAvailability::Available,
-            message: None,
-        },
-        Ok(_) => RootAvailabilityEvidence {
-            availability: LibraryRootAvailability::Missing,
-            message: Some("The stored source path is no longer a directory".to_owned()),
+        Ok(metadata) => match entry_reparse_evidence(path, &metadata) {
+            Ok((_, state)) if state != MetadataInventoryPlaceholderState::Available => {
+                RootAvailabilityEvidence {
+                    availability: LibraryRootAvailability::Offline,
+                    message: Some("The source root is not locally available".to_owned()),
+                }
+            }
+            Ok((_, _)) if metadata.is_dir() => RootAvailabilityEvidence {
+                availability: LibraryRootAvailability::Available,
+                message: None,
+            },
+            Ok(_) => RootAvailabilityEvidence {
+                availability: LibraryRootAvailability::Missing,
+                message: Some("The stored source path is no longer a directory".to_owned()),
+            },
+            Err(error) => RootAvailabilityEvidence {
+                availability: LibraryRootAvailability::Inaccessible,
+                message: Some(format!(
+                    "The source root cannot be classified safely: {error}"
+                )),
+            },
         },
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => RootAvailabilityEvidence {
             availability: LibraryRootAvailability::Missing,
@@ -97,6 +114,15 @@ pub(crate) struct CheckedDirectoryEntryPaths {
 pub(crate) struct CheckedDirectoryEntry {
     relative_path: String,
     metadata: Metadata,
+    reparse_kind: ReparseKind,
+    placeholder_state: MetadataInventoryPlaceholderState,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ReparseKind {
+    None,
+    CloudFiles,
+    Other,
 }
 
 impl Iterator for DirectoryEntryPaths {
@@ -140,15 +166,13 @@ impl Iterator for CheckedDirectoryEntryPaths {
                 .strip_prefix(&self.root)
                 .map(relative_path_text)
                 .map_err(|_| path_containment_issue(&entry.path()))?;
+            let path = entry.path();
             let metadata = entry.metadata().map_err(|error| ScanIssue {
-                path: Some(path_text(entry.path())),
+                path: Some(path_text(&path)),
                 code: "directory_entry_metadata_unreadable".to_owned(),
                 message: error.to_string(),
             })?;
-            Ok(CheckedDirectoryEntry {
-                relative_path,
-                metadata,
-            })
+            checked_directory_entry_from_metadata(relative_path, &path, metadata)
         })
     }
 }
@@ -248,17 +272,11 @@ impl FileDiscovery {
                 };
             }
         };
-        self.visit_relative_path_with_metadata(relative_path_text(relative_path), path, metadata)
-    }
-
-    pub(crate) fn visit_relative_path_from_directory_entry(
-        &self,
-        relative_path: &str,
-    ) -> FileVisit {
-        match self.checked_directory_entry(relative_path) {
+        let relative_path = relative_path_text(relative_path);
+        match checked_directory_entry_from_metadata(relative_path.clone(), &path, metadata) {
             Ok(entry) => self.visit_directory_entry(entry),
             Err(issue) => FileVisit {
-                relative_path: relative_path.to_owned(),
+                relative_path,
                 outcome: FileVisitOutcome::Issue(issue),
             },
         }
@@ -267,7 +285,13 @@ impl FileDiscovery {
     pub(crate) fn visit_directory_entry(&self, entry: CheckedDirectoryEntry) -> FileVisit {
         let relative_path = entry.relative_path;
         let path = self.root.join(Path::new(&relative_path));
-        self.visit_relative_path_with_metadata(relative_path, path, entry.metadata)
+        self.visit_relative_path_with_metadata(
+            relative_path,
+            path,
+            entry.metadata,
+            entry.reparse_kind,
+            entry.placeholder_state,
+        )
     }
 
     fn visit_relative_path_with_metadata(
@@ -275,9 +299,11 @@ impl FileDiscovery {
         relative_path: String,
         path: PathBuf,
         metadata: Metadata,
+        reparse_kind: ReparseKind,
+        placeholder_state: MetadataInventoryPlaceholderState,
     ) -> FileVisit {
         let file_type = metadata.file_type();
-        if is_cloud_placeholder(&metadata) {
+        if placeholder_state != MetadataInventoryPlaceholderState::Available {
             return FileVisit {
                 relative_path,
                 outcome: FileVisitOutcome::Issue(ScanIssue {
@@ -305,7 +331,7 @@ impl FileDiscovery {
                 outcome: FileVisitOutcome::Ignored,
             };
         }
-        if is_link_or_reparse_point(&metadata) {
+        if reparse_kind == ReparseKind::Other {
             return FileVisit {
                 relative_path,
                 outcome: FileVisitOutcome::Ignored,
@@ -366,30 +392,14 @@ impl FileDiscovery {
         &self,
         relative_path: &str,
     ) -> Result<MetadataInventoryEntry, ScanIssue> {
-        self.checked_directory_entry(relative_path)
-            .and_then(|entry| self.metadata_inventory_entry_from_directory_entry(entry))
-    }
-
-    fn checked_directory_entry(
-        &self,
-        relative_path: &str,
-    ) -> Result<CheckedDirectoryEntry, ScanIssue> {
         let relative_path_value = validated_relative_path(relative_path)?;
-        let expected_relative_path = relative_path_text(relative_path_value);
-        let parent = relative_path_value
-            .parent()
-            .unwrap_or_else(|| Path::new(""));
-        let entries = self.checked_entry_paths_in_directory(&relative_path_text(parent))?;
-        for entry in entries {
-            let entry = entry?;
-            if entry.relative_path == expected_relative_path {
-                return Ok(entry);
-            }
-        }
-        Err(path_metadata_issue(
-            &self.root.join(relative_path_value),
-            std::io::Error::from(std::io::ErrorKind::NotFound),
-        ))
+        let (path, metadata) = self.checked_existing_path(relative_path_value)?;
+        checked_directory_entry_from_metadata(
+            relative_path_text(relative_path_value),
+            &path,
+            metadata,
+        )
+        .and_then(|entry| self.metadata_inventory_entry_from_directory_entry(entry))
     }
 
     pub(crate) fn metadata_inventory_entry_from_directory_entry(
@@ -398,7 +408,13 @@ impl FileDiscovery {
     ) -> Result<MetadataInventoryEntry, ScanIssue> {
         let relative_path_value = validated_relative_path(&entry.relative_path)?;
         let path = self.root.join(relative_path_value);
-        self.metadata_inventory_entry_from_metadata(&entry.relative_path, &path, &entry.metadata)
+        self.metadata_inventory_entry_from_metadata(
+            &entry.relative_path,
+            &path,
+            &entry.metadata,
+            entry.reparse_kind,
+            entry.placeholder_state,
+        )
     }
 
     fn metadata_inventory_entry_from_metadata(
@@ -406,38 +422,20 @@ impl FileDiscovery {
         relative_path: &str,
         path: &Path,
         metadata: &Metadata,
+        reparse_kind: ReparseKind,
+        placeholder_state: MetadataInventoryPlaceholderState,
     ) -> Result<MetadataInventoryEntry, ScanIssue> {
-        let is_reparse_point = is_link_or_reparse_point(metadata);
-        let placeholder_state = metadata_placeholder_state(metadata);
-        if is_reparse_point && placeholder_state == MetadataInventoryPlaceholderState::Available {
-            match path.metadata() {
-                Ok(target_metadata) if target_metadata.is_dir() => {
-                    return Err(ScanIssue {
-                        path: Some(path_text(path)),
-                        code: "metadata_inventory_reparse_directory".to_owned(),
-                        message:
-                            "The inventory cannot prove descendants through a reparse directory"
-                                .to_owned(),
-                    });
-                }
-                Ok(_) => {}
-                Err(error) => {
-                    return Err(ScanIssue {
-                        path: Some(path_text(path)),
-                        code: "metadata_inventory_reparse_unverifiable".to_owned(),
-                        message: format!(
-                            "The inventory could not classify a reparse target safely: {error}"
-                        ),
-                    });
-                }
-            }
+        let is_reparse_point = reparse_kind != ReparseKind::None;
+        if reparse_kind == ReparseKind::Other {
+            return Err(ScanIssue {
+                path: Some(path_text(path)),
+                code: "metadata_inventory_reparse_directory".to_owned(),
+                message: "The inventory cannot prove descendants through this reparse point"
+                    .to_owned(),
+            });
         }
-        let kind = metadata_inventory_entry_kind(
-            metadata.is_dir(),
-            metadata.is_file(),
-            is_reparse_point,
-            placeholder_state,
-        );
+        let kind =
+            metadata_inventory_entry_kind(metadata.is_dir(), metadata.is_file(), reparse_kind);
         if kind == MetadataInventoryEntryKind::Directory
             && (is_reparse_point
                 || placeholder_state != MetadataInventoryPlaceholderState::Available)
@@ -456,7 +454,6 @@ impl FileDiscovery {
         }
         let file_identity = if kind == MetadataInventoryEntryKind::File
             && placeholder_state == MetadataInventoryPlaceholderState::Available
-            && !is_reparse_point
         {
             file_identity(path).ok().flatten()
         } else {
@@ -480,10 +477,15 @@ impl FileDiscovery {
     ) -> Result<(), ScanIssue> {
         let relative_path = validated_relative_path(relative_path)?;
         let (path, metadata) = self.checked_existing_path(relative_path)?;
-        if metadata.file_type().is_symlink() || !metadata.is_file() {
+        let evidence = checked_directory_entry_from_metadata(
+            relative_path_text(relative_path),
+            &path,
+            metadata,
+        )?;
+        if !evidence.metadata.is_file() || evidence.reparse_kind == ReparseKind::Other {
             return Err(path_containment_issue(&path));
         }
-        revalidate_file_state_with_metadata(expected, &path, &metadata)
+        revalidate_file_state_with_metadata(expected, &path, &evidence)
     }
 
     fn checked_existing_path(
@@ -521,17 +523,84 @@ impl FileDiscovery {
     }
 }
 
+fn checked_directory_entry_from_metadata(
+    relative_path: String,
+    path: &Path,
+    metadata: Metadata,
+) -> Result<CheckedDirectoryEntry, ScanIssue> {
+    let (reparse_kind, placeholder_state) =
+        entry_reparse_evidence(path, &metadata).map_err(|error| ScanIssue {
+            path: Some(path_text(path)),
+            code: "file_reparse_evidence_unreadable".to_owned(),
+            message: error.to_string(),
+        })?;
+    Ok(CheckedDirectoryEntry {
+        relative_path,
+        metadata,
+        reparse_kind,
+        placeholder_state,
+    })
+}
+
+#[cfg(windows)]
+fn entry_reparse_evidence(
+    path: &Path,
+    metadata: &Metadata,
+) -> std::io::Result<(ReparseKind, MetadataInventoryPlaceholderState)> {
+    let metadata_state = metadata_placeholder_state(metadata);
+    if !has_reparse_point_attribute(metadata.file_attributes()) {
+        return Ok((ReparseKind::None, metadata_state));
+    }
+    let info = file_attribute_tag_info(path)?;
+    let attributes = metadata.file_attributes() | info.FileAttributes;
+    reparse_evidence_from_attribute_tag(attributes, info.ReparseTag)
+}
+
+#[cfg(windows)]
+fn reparse_evidence_from_attribute_tag(
+    attributes: u32,
+    reparse_tag: u32,
+) -> std::io::Result<(ReparseKind, MetadataInventoryPlaceholderState)> {
+    let placeholder_state = metadata_placeholder_state_from_attributes(attributes);
+    let cloud_state = cloud_placeholder_state_from_attribute_tag(attributes, reparse_tag)?;
+    if cloud_state & CF_PLACEHOLDER_STATE_PLACEHOLDER == 0 {
+        return Ok((ReparseKind::Other, placeholder_state));
+    }
+    let placeholder_state = if cloud_state
+        & (CF_PLACEHOLDER_STATE_PARTIAL | CF_PLACEHOLDER_STATE_PARTIALLY_ON_DISK)
+        != 0
+        && placeholder_state == MetadataInventoryPlaceholderState::Available
+    {
+        MetadataInventoryPlaceholderState::RecallOnDataAccess
+    } else {
+        placeholder_state
+    };
+    Ok((ReparseKind::CloudFiles, placeholder_state))
+}
+
+#[cfg(not(windows))]
+fn entry_reparse_evidence(
+    _path: &Path,
+    metadata: &Metadata,
+) -> std::io::Result<(ReparseKind, MetadataInventoryPlaceholderState)> {
+    Ok((
+        if metadata.file_type().is_symlink() {
+            ReparseKind::Other
+        } else {
+            ReparseKind::None
+        },
+        MetadataInventoryPlaceholderState::Available,
+    ))
+}
+
 fn metadata_inventory_entry_kind(
     is_directory: bool,
     is_regular_file: bool,
-    is_reparse_point: bool,
-    placeholder_state: MetadataInventoryPlaceholderState,
+    reparse_kind: ReparseKind,
 ) -> MetadataInventoryEntryKind {
     if is_directory {
         MetadataInventoryEntryKind::Directory
-    } else if is_regular_file
-        && (!is_reparse_point || placeholder_state != MetadataInventoryPlaceholderState::Available)
-    {
+    } else if is_regular_file && reparse_kind != ReparseKind::Other {
         MetadataInventoryEntryKind::File
     } else {
         MetadataInventoryEntryKind::Other
@@ -604,24 +673,26 @@ pub fn revalidate_file_state(expected: &ExpectedFileState) -> Result<(), ScanIss
         code: "source_revalidation_failed".to_owned(),
         message: error.to_string(),
     })?;
-    if metadata.file_type().is_symlink() || !metadata.is_file() {
+    let evidence = checked_directory_entry_from_metadata(String::new(), path, metadata)?;
+    if !evidence.metadata.is_file() || evidence.reparse_kind == ReparseKind::Other {
         return Err(path_containment_issue(path));
     }
-    revalidate_file_state_with_metadata(expected, path, &metadata)
+    revalidate_file_state_with_metadata(expected, path, &evidence)
 }
 
 fn revalidate_file_state_with_metadata(
     expected: &ExpectedFileState,
     path: &Path,
-    metadata: &Metadata,
+    evidence: &CheckedDirectoryEntry,
 ) -> Result<(), ScanIssue> {
-    if is_cloud_placeholder(metadata) {
+    if evidence.placeholder_state != MetadataInventoryPlaceholderState::Available {
         return Err(ScanIssue {
             path: Some(expected.absolute_path.clone()),
             code: "source_became_unavailable".to_owned(),
             message: "The file is no longer locally available".to_owned(),
         });
     }
+    let metadata = &evidence.metadata;
     if metadata.len() != expected.file_size
         || modified_unix_ms(metadata) != expected.modified_unix_ms
     {
@@ -650,10 +721,12 @@ fn revalidate_file_state_with_metadata(
 
 #[cfg(windows)]
 fn file_identity(path: &Path) -> std::io::Result<Option<FileIdentityEvidence>> {
-    let file = OpenOptions::new()
-        .access_mode(0)
-        .custom_flags(FILE_FLAG_BACKUP_SEMANTICS)
-        .open(path)?;
+    let file = open_validation_handle(path)?;
+    file_identity_from_handle(&file)
+}
+
+#[cfg(windows)]
+fn file_identity_from_handle(file: &File) -> std::io::Result<Option<FileIdentityEvidence>> {
     let mut info = FILE_ID_INFO::default();
     // SAFETY: ADR 0007 fixes the complete contract: the live file owns the handle for this call,
     // `info` is aligned and writable, and the buffer length exactly matches `FILE_ID_INFO`.
@@ -675,9 +748,125 @@ fn file_identity(path: &Path) -> std::io::Result<Option<FileIdentityEvidence>> {
     }))
 }
 
+#[cfg(windows)]
+fn open_validation_handle(path: &Path) -> std::io::Result<File> {
+    OpenOptions::new()
+        .access_mode(0)
+        .share_mode(FILE_SHARE_READ | FILE_SHARE_WRITE)
+        .custom_flags(
+            FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_NO_RECALL | FILE_FLAG_OPEN_REPARSE_POINT,
+        )
+        .open(path)
+}
+
+#[cfg(windows)]
+fn file_attribute_tag_info(path: &Path) -> std::io::Result<FILE_ATTRIBUTE_TAG_INFO> {
+    let file = open_validation_handle(path)?;
+    file_attribute_tag_info_from_handle(&file)
+}
+
+#[cfg(windows)]
+fn file_attribute_tag_info_from_handle(file: &File) -> std::io::Result<FILE_ATTRIBUTE_TAG_INFO> {
+    let mut info = FILE_ATTRIBUTE_TAG_INFO::default();
+    // SAFETY: ADR 0023 fixes this no-follow/no-recall query contract: the live file owns the
+    // handle, `info` is aligned and writable, and the exact structure size is passed to Win32.
+    let result = unsafe {
+        GetFileInformationByHandleEx(
+            file.as_raw_handle(),
+            FileAttributeTagInfo,
+            (&raw mut info).cast(),
+            u32::try_from(size_of::<FILE_ATTRIBUTE_TAG_INFO>())
+                .expect("FILE_ATTRIBUTE_TAG_INFO size fits u32"),
+        )
+    };
+    if result == 0 {
+        return Err(std::io::Error::last_os_error());
+    }
+    Ok(info)
+}
+
 #[cfg(not(windows))]
 fn file_identity(_path: &Path) -> std::io::Result<Option<FileIdentityEvidence>> {
     Ok(None)
+}
+
+#[cfg(windows)]
+pub(crate) fn open_source_file(path: &Path) -> std::io::Result<File> {
+    open_source_file_with_hook(path, || {})
+}
+
+#[cfg(windows)]
+fn open_source_file_with_hook(
+    path: &Path,
+    after_validation: impl FnOnce(),
+) -> std::io::Result<File> {
+    let validation = open_validation_handle(path)?;
+    let info = file_attribute_tag_info_from_handle(&validation)?;
+    validate_source_file_info(&info)?;
+    let expected_identity = file_identity_from_handle(&validation)?;
+    after_validation();
+    let source = OpenOptions::new()
+        .read(true)
+        .share_mode(FILE_SHARE_READ | FILE_SHARE_WRITE)
+        .custom_flags(FILE_FLAG_OPEN_NO_RECALL)
+        .open(path)?;
+    let source_info = file_attribute_tag_info_from_handle(&source)?;
+    validate_source_file_info(&source_info)?;
+    if file_identity_from_handle(&source)? != expected_identity {
+        return Err(std::io::Error::other(
+            "The source path changed while it was being opened",
+        ));
+    }
+    Ok(source)
+}
+
+#[cfg(windows)]
+fn validate_source_file_info(info: &FILE_ATTRIBUTE_TAG_INFO) -> std::io::Result<()> {
+    let attributes = info.FileAttributes;
+    let placeholder_state = metadata_placeholder_state_from_attributes(attributes);
+    if placeholder_state != MetadataInventoryPlaceholderState::Available {
+        return Err(std::io::Error::other(
+            "The cloud source content is not locally available",
+        ));
+    }
+    if attributes & FILE_ATTRIBUTE_REPARSE_POINT != 0 {
+        let cloud_state = cloud_placeholder_state_from_attribute_tag(attributes, info.ReparseTag)?;
+        if cloud_state & CF_PLACEHOLDER_STATE_PLACEHOLDER == 0 {
+            return Err(std::io::Error::other(
+                "The source path is an unsupported reparse point",
+            ));
+        }
+        if cloud_state & (CF_PLACEHOLDER_STATE_PARTIAL | CF_PLACEHOLDER_STATE_PARTIALLY_ON_DISK)
+            != 0
+        {
+            return Err(std::io::Error::other(
+                "The cloud source content is not locally available",
+            ));
+        }
+    }
+    Ok(())
+}
+
+#[cfg(not(windows))]
+pub(crate) fn open_source_file(path: &Path) -> std::io::Result<File> {
+    File::open(path)
+}
+
+#[cfg(windows)]
+fn cloud_placeholder_state_from_attribute_tag(
+    attributes: u32,
+    reparse_tag: u32,
+) -> std::io::Result<u32> {
+    // SAFETY: ADR 0023 limits this value-only Cloud Files call to initialized file attributes and
+    // a reparse tag returned by `FileAttributeTagInfo` for the same no-follow, no-recall handle.
+    let state = unsafe { CfGetPlaceholderStateFromAttributeTag(attributes, reparse_tag) };
+    if state == CF_PLACEHOLDER_STATE_INVALID {
+        Err(std::io::Error::other(
+            "Cloud Files rejected the file attributes and reparse tag",
+        ))
+    } else {
+        Ok(state)
+    }
 }
 
 fn modified_unix_ms(metadata: &Metadata) -> i64 {
@@ -736,7 +925,7 @@ fn has_image_extension(path: &Path) -> bool {
 
 fn has_supported_magic(path: &Path) -> std::io::Result<bool> {
     let mut header = [0_u8; 16];
-    let mut file = File::open(path)?;
+    let mut file = open_source_file(path)?;
     let read_count = file.read(&mut header)?;
     let header = &header[..read_count];
 
@@ -749,11 +938,6 @@ fn has_supported_magic(path: &Path) -> std::io::Result<bool> {
         || header.starts_with(b"MM\0*")
         || header.starts_with(b"RIFF") && header.get(8..12) == Some(b"WEBP")
         || header.get(4..8) == Some(b"ftyp"))
-}
-
-#[cfg(windows)]
-fn is_cloud_placeholder(metadata: &Metadata) -> bool {
-    metadata_placeholder_state(metadata) != MetadataInventoryPlaceholderState::Available
 }
 
 #[cfg(all(windows, test))]
@@ -769,12 +953,17 @@ fn has_cloud_placeholder_attribute(attributes: u32) -> bool {
 
 #[cfg(windows)]
 fn metadata_placeholder_state(metadata: &Metadata) -> MetadataInventoryPlaceholderState {
-    use std::os::windows::fs::MetadataExt;
+    metadata_placeholder_state_from_attributes(metadata.file_attributes())
+}
+
+#[cfg(windows)]
+fn metadata_placeholder_state_from_attributes(
+    attributes: u32,
+) -> MetadataInventoryPlaceholderState {
     use windows_sys::Win32::Storage::FileSystem::{
         FILE_ATTRIBUTE_OFFLINE, FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS, FILE_ATTRIBUTE_RECALL_ON_OPEN,
     };
 
-    let attributes = metadata.file_attributes();
     if attributes & FILE_ATTRIBUTE_OFFLINE != 0 {
         MetadataInventoryPlaceholderState::Offline
     } else if attributes & FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS != 0 {
@@ -784,11 +973,6 @@ fn metadata_placeholder_state(metadata: &Metadata) -> MetadataInventoryPlacehold
     } else {
         MetadataInventoryPlaceholderState::Available
     }
-}
-
-#[cfg(not(windows))]
-fn is_cloud_placeholder(_metadata: &Metadata) -> bool {
-    false
 }
 
 #[cfg(not(windows))]
@@ -928,7 +1112,8 @@ mod tests {
         let inventory_entry = discovery
             .metadata_inventory_entry("offline.png")
             .expect("offline metadata inventory entry");
-        let automatic_visit = discovery.visit_relative_path_from_directory_entry("offline.png");
+        let automatic_visit = discovery.visit_relative_path("offline.png");
+        let guarded_open = open_source_file(&file_path);
 
         let clear_offline = Command::new("attrib.exe")
             .arg("-O")
@@ -938,6 +1123,7 @@ mod tests {
         assert!(clear_offline.success());
         assert_eq!(issues.len(), 1);
         assert_eq!(issues[0].code, "cloud_placeholder_skipped");
+        assert!(guarded_open.is_err());
         assert!(matches!(
             automatic_visit.outcome,
             FileVisitOutcome::Issue(issue) if issue.code == "cloud_placeholder_skipped"
@@ -951,34 +1137,103 @@ mod tests {
         assert_eq!(fs::read(file_path).expect("fixture bytes"), original);
     }
 
+    #[cfg(windows)]
+    #[test]
+    fn guarded_source_open_rejects_replacement_and_rechecks_availability() {
+        use std::process::Command;
+
+        let directory = tempdir().expect("temporary directory");
+        let source_path = directory.path().join("source.png");
+        fs::write(&source_path, b"source-bytes").expect("source fixture");
+        let replaced = open_source_file_with_hook(&source_path, || {
+            fs::remove_file(&source_path).expect("remove original fixture");
+            fs::write(&source_path, b"replacement").expect("replacement fixture");
+        });
+        assert!(replaced.is_err());
+
+        fs::write(&source_path, b"source-bytes").expect("restore source fixture");
+
+        let dehydrated = open_source_file_with_hook(&source_path, || {
+            let status = Command::new("attrib.exe")
+                .arg("+O")
+                .arg(&source_path)
+                .status()
+                .expect("attrib executable");
+            assert!(status.success());
+        });
+        let clear_offline = Command::new("attrib.exe")
+            .arg("-O")
+            .arg(&source_path)
+            .status()
+            .expect("attrib executable");
+        assert!(clear_offline.success());
+        assert!(dehydrated.is_err());
+    }
+
     #[test]
     fn reparse_cloud_placeholder_remains_a_present_file_entry() {
         assert_eq!(
-            metadata_inventory_entry_kind(
-                false,
-                true,
-                true,
-                MetadataInventoryPlaceholderState::RecallOnDataAccess,
-            ),
+            metadata_inventory_entry_kind(false, true, ReparseKind::CloudFiles),
             MetadataInventoryEntryKind::File
         );
         assert_eq!(
-            metadata_inventory_entry_kind(
-                false,
-                false,
-                true,
-                MetadataInventoryPlaceholderState::RecallOnDataAccess,
-            ),
+            metadata_inventory_entry_kind(false, false, ReparseKind::CloudFiles),
             MetadataInventoryEntryKind::Other
         );
         assert_eq!(
-            metadata_inventory_entry_kind(
-                false,
-                true,
-                true,
-                MetadataInventoryPlaceholderState::Available,
-            ),
+            metadata_inventory_entry_kind(false, true, ReparseKind::Other),
             MetadataInventoryEntryKind::Other
+        );
+        assert_eq!(
+            metadata_inventory_entry_kind(false, true, ReparseKind::None),
+            MetadataInventoryEntryKind::File
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn cloud_files_tag_distinguishes_hydrated_placeholder_from_other_reparse_points() {
+        use windows_sys::Win32::Storage::FileSystem::FILE_ATTRIBUTE_RECALL_ON_OPEN;
+        use windows_sys::Win32::System::SystemServices::{
+            IO_REPARSE_TAG_CLOUD_2, IO_REPARSE_TAG_SYMLINK,
+        };
+
+        let cloud = reparse_evidence_from_attribute_tag(
+            FILE_ATTRIBUTE_REPARSE_POINT,
+            IO_REPARSE_TAG_CLOUD_2,
+        )
+        .expect("Cloud Files tag state");
+        let recall = reparse_evidence_from_attribute_tag(
+            FILE_ATTRIBUTE_REPARSE_POINT | FILE_ATTRIBUTE_RECALL_ON_OPEN,
+            IO_REPARSE_TAG_CLOUD_2,
+        )
+        .expect("recall Cloud Files tag state");
+        let symlink = reparse_evidence_from_attribute_tag(
+            FILE_ATTRIBUTE_REPARSE_POINT,
+            IO_REPARSE_TAG_SYMLINK,
+        )
+        .expect("symlink tag state");
+
+        assert_eq!(
+            cloud,
+            (
+                ReparseKind::CloudFiles,
+                MetadataInventoryPlaceholderState::Available,
+            )
+        );
+        assert_eq!(
+            recall,
+            (
+                ReparseKind::CloudFiles,
+                MetadataInventoryPlaceholderState::RecallOnOpen,
+            )
+        );
+        assert_eq!(
+            symlink,
+            (
+                ReparseKind::Other,
+                MetadataInventoryPlaceholderState::Available,
+            )
         );
     }
 

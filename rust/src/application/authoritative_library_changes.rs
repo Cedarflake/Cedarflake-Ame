@@ -291,10 +291,7 @@ fn enumerate_scopes(
             schedule_directory(&mut directories, &mut scheduled_directories, String::new());
             continue;
         }
-        match discovery
-            .visit_relative_path_from_directory_entry(scope)
-            .outcome
-        {
+        match discovery.visit_relative_path(scope).outcome {
             FileVisitOutcome::Directory => {
                 schedule_directory(&mut directories, &mut scheduled_directories, scope.clone())
             }
