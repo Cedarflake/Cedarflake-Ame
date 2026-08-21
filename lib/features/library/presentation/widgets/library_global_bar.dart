@@ -3,6 +3,8 @@ import "dart:math" as math;
 import "package:flutter/material.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/notifications/ame_notification_controller.dart";
+import "../../../../app/presentation/ame_notifications.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/window/ame_window_chrome.dart";
 import "../library_strings.dart";
@@ -12,12 +14,18 @@ class LibraryGlobalBar extends StatelessWidget {
     required this.isBusy,
     required this.searchController,
     required this.onSearchChanged,
+    required this.notifications,
+    required this.onNotificationsOpened,
+    required this.onNotificationSelected,
     super.key,
   });
 
   final bool isBusy;
   final TextEditingController searchController;
   final ValueChanged<String> onSearchChanged;
+  final AmeNotificationState notifications;
+  final VoidCallback onNotificationsOpened;
+  final ValueChanged<AmeNotificationEntry> onNotificationSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +40,11 @@ class LibraryGlobalBar extends StatelessWidget {
             final isCompact = constraints.maxWidth < 980;
             final leadingWidth = isCompact ? 72.0 : 244.0;
             const captionWidth = 48.0 * 3 + 8;
-            final edgeReserve = math.max(leadingWidth, captionWidth);
+            const notificationWidth = 48.0;
+            const notificationGap = 8.0;
+            const trailingWidth =
+                captionWidth + notificationWidth + notificationGap;
+            final edgeReserve = math.max(leadingWidth, trailingWidth);
             final searchWidth = math.min(
               720.0,
               math.max(360.0, constraints.maxWidth - edgeReserve * 2 - 32),
@@ -93,6 +105,18 @@ class LibraryGlobalBar extends StatelessWidget {
                         ],
                         onChanged: onSearchChanged,
                       ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  right: captionWidth + notificationGap,
+                  top: 8,
+                  child: SizedBox.square(
+                    dimension: notificationWidth,
+                    child: AmeNotificationHistoryButton(
+                      state: notifications,
+                      onOpened: onNotificationsOpened,
+                      onSelected: onNotificationSelected,
                     ),
                   ),
                 ),

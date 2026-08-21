@@ -4,6 +4,8 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../app/notifications/ame_notification_controller.dart";
+import "../../../app/notifications/ame_notification_strings.dart";
 import "../application/ame_preferences.dart";
 import "widgets/settings_section.dart";
 import "widgets/storage_settings_section.dart";
@@ -68,7 +70,6 @@ class AmeSettingsPage extends ConsumerWidget {
                                 if (value != null) {
                                   unawaited(
                                     _savePreferences(
-                                      context,
                                       ref,
                                       preferences.copyWith(theme: value),
                                     ),
@@ -104,7 +105,6 @@ class AmeSettingsPage extends ConsumerWidget {
                                 if (value != null) {
                                   unawaited(
                                     _savePreferences(
-                                      context,
                                       ref,
                                       preferences.copyWith(
                                         viewerWheelBehavior: value,
@@ -135,7 +135,6 @@ class AmeSettingsPage extends ConsumerWidget {
                                 if (value != null) {
                                   unawaited(
                                     _savePreferences(
-                                      context,
                                       ref,
                                       preferences.copyWith(
                                         viewerOpenBehavior: value,
@@ -171,7 +170,6 @@ class AmeSettingsPage extends ConsumerWidget {
                                 if (value != null) {
                                   unawaited(
                                     _savePreferences(
-                                      context,
                                       ref,
                                       preferences.copyWith(
                                         previewLoadingSpeed: value,
@@ -221,7 +219,6 @@ class AmeSettingsPage extends ConsumerWidget {
   }
 
   Future<void> _savePreferences(
-    BuildContext context,
     WidgetRef ref,
     AmePreferences preferences,
   ) async {
@@ -230,11 +227,17 @@ class AmeSettingsPage extends ConsumerWidget {
           .read(amePreferencesControllerProvider.notifier)
           .update(preferences);
     } on Object catch (error) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text("无法保存设置：$error")));
-      }
+      ref
+          .read(ameNotificationControllerProvider.notifier)
+          .publish(
+            AmeNotificationDraft(
+              title: "无法保存设置",
+              message: AmeNotificationStrings.operationFailed,
+              detail: error.toString(),
+              severity: AmeNotificationSeverity.error,
+              isPersistent: true,
+            ),
+          );
     }
   }
 }

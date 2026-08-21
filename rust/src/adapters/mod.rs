@@ -8,7 +8,7 @@ mod sqlite_catalog;
 mod storage_settings;
 #[cfg(windows)]
 mod windows_library_change_source;
-#[cfg(windows)]
+#[cfg(all(windows, test))]
 mod windows_usn_catch_up;
 
 pub(crate) use local_files::user_visible_path;
@@ -43,7 +43,7 @@ pub(crate) fn production_library_change_source_factory() -> crate::ports::Librar
     })
 }
 
-#[cfg(windows)]
+#[cfg(all(windows, test))]
 pub(crate) fn production_library_change_catch_up_source()
 -> impl crate::ports::LibraryChangeCatchUpSource {
     windows_usn_catch_up::WindowsUsnCatchUpSource::production()

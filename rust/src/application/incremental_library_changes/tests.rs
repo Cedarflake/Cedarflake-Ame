@@ -890,7 +890,6 @@ fn bidirectional_authoritative_moves_preserve_both_assets_without_a_dependency_c
         )
         .expect("publish authoritative handoff");
         assert_eq!(report.incremental.completed_count, 1);
-        assert!(report.full_scan.is_none());
     }
     let moved_second = catalog
         .load_incremental_location_by_relative_path("first-root", "from-second.png")

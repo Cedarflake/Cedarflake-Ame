@@ -22,10 +22,12 @@ pub use library_change::{
     LibraryChangeSourceStopReport, LibraryRootGeneration, ReconciliationFileEvidence,
     ReconciliationObservedState,
 };
+pub use library_change_catch_up::LibraryChangeCatchUpEvidence;
+#[cfg(test)]
 pub use library_change_catch_up::{
     LibraryChangeCatchUpBatch, LibraryChangeCatchUpCheckpoint, LibraryChangeCatchUpCompletedRoot,
-    LibraryChangeCatchUpEvidence, LibraryChangeCatchUpLimits, LibraryChangeCatchUpQueueBatch,
-    LibraryChangeCatchUpReport, LibraryChangeCatchUpRootResult,
+    LibraryChangeCatchUpLimits, LibraryChangeCatchUpQueueBatch, LibraryChangeCatchUpReport,
+    LibraryChangeCatchUpRootResult,
 };
 pub use library_change_queue::{
     DurableLibraryChange, LeasedLibraryChange, LibraryChangeEnqueueReport, LibraryChangeFailure,

@@ -54,6 +54,7 @@ void main() {
         _MemoryWindowPreferenceStore(),
         shutdownCoordinator: coordinator,
         maximumShutdownDuration: const Duration(milliseconds: 1),
+        hideWindow: () async {},
         destroyWindow: () async => destroyCount += 1,
       );
 
@@ -63,6 +64,28 @@ void main() {
       shutdownBlocker.complete();
     },
   );
+
+  test("close hides the window before waiting for shutdown", () async {
+    final coordinator = AmeShutdownCoordinator();
+    final shutdownBlocker = Completer<void>();
+    coordinator.register(() => shutdownBlocker.future);
+    final calls = <String>[];
+    final actions = WindowManagerActions(
+      _MemoryWindowPreferenceStore(),
+      shutdownCoordinator: coordinator,
+      maximumShutdownDuration: const Duration(seconds: 1),
+      hideWindow: () async => calls.add("hide"),
+      destroyWindow: () async => calls.add("destroy"),
+    );
+
+    final close = actions.close();
+    await Future<void>.delayed(Duration.zero);
+
+    expect(calls, ["hide"]);
+    shutdownBlocker.complete();
+    await close;
+    expect(calls, ["hide", "destroy"]);
+  });
 }
 
 class _MemoryWindowPreferenceStore implements AmeWindowPreferenceStore {

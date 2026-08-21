@@ -1,6 +1,8 @@
 use std::path::PathBuf;
+use std::thread;
+use std::time::Duration;
 
-use rusqlite::Connection;
+use rusqlite::{Connection, TransactionBehavior};
 use tempfile::tempdir;
 
 use crate::application::{enqueue_library_change_plan, plan_library_changes};
@@ -2593,6 +2595,73 @@ fn unresolved_catch_up_watermark_lineage_is_bounded() {
             .iter()
             .all(|evidence| evidence.watermark != "volume|12|overflow")
     );
+}
+
+#[test]
+fn path_lease_waits_for_concurrent_writer_before_reading_snapshot() {
+    let directory = tempdir().expect("temporary directory");
+    let catalog_path = directory.path().join("catalog.sqlite3");
+    let generation = LibraryRootGeneration::initial();
+    let policy = immediate_policy();
+    let mut catalog = queue_catalog(catalog_path.clone());
+    catalog
+        .enqueue_library_change_intents(
+            &[path_intent("root-a", generation, 1, 1_000, "photo.jpg")],
+            1_000,
+            policy,
+        )
+        .expect("queued path change");
+
+    let mut blocker = Connection::open(catalog_path).expect("blocking catalog connection");
+    let blocker_transaction = blocker
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .expect("blocking writer transaction");
+    blocker_transaction
+        .execute("UPDATE catalog_state SET revision = revision", [])
+        .expect("blocking writer mutation");
+
+    let lease = thread::spawn(move || {
+        catalog.lease_path_library_changes("root-a", generation, 1_000, policy)
+    });
+    thread::sleep(Duration::from_millis(100));
+    blocker_transaction
+        .commit()
+        .expect("release blocking writer transaction");
+
+    let leased = lease
+        .join()
+        .expect("lease worker")
+        .expect("lease waits for the current writer");
+    assert_eq!(leased.len(), 1);
+}
+
+#[test]
+fn empty_path_lease_stays_read_only_while_another_writer_is_active() {
+    let directory = tempdir().expect("temporary directory");
+    let catalog_path = directory.path().join("catalog.sqlite3");
+    let generation = LibraryRootGeneration::initial();
+    let policy = immediate_policy();
+    let mut catalog = queue_catalog(catalog_path.clone());
+    let holder = SqliteCatalog::open(catalog_path).expect("lock holder catalog");
+    holder
+        .connection
+        .execute_batch(
+            "BEGIN IMMEDIATE;
+             UPDATE catalog_state SET revision = revision;",
+        )
+        .expect("hold catalog writer lock");
+
+    let started = std::time::Instant::now();
+    let leased = catalog
+        .lease_path_library_changes("root-a", generation, 1_000, policy)
+        .expect("empty lease inspection remains read-only");
+
+    holder
+        .connection
+        .execute_batch("ROLLBACK")
+        .expect("release catalog writer lock");
+    assert!(leased.is_empty());
+    assert!(started.elapsed() < Duration::from_secs(1));
 }
 
 fn queue_catalog(path: PathBuf) -> SqliteCatalog {

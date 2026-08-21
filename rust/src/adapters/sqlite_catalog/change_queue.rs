@@ -1,10 +1,11 @@
 use rusqlite::{Transaction, TransactionBehavior, params};
 
+#[cfg(test)]
+use crate::domain::LibraryChangeCatchUpQueueBatch;
 use crate::domain::{
-    LeasedLibraryChange, LibraryChangeCatchUpEvidence, LibraryChangeCatchUpQueueBatch,
-    LibraryChangeEnqueueReport, LibraryChangeFailure, LibraryChangeId, LibraryChangeIntent,
-    LibraryChangeLeaseUpdateOutcome, LibraryChangeQueueMetrics, LibraryChangeQueuePolicy,
-    LibraryRootGeneration, ScanError,
+    LeasedLibraryChange, LibraryChangeCatchUpEvidence, LibraryChangeEnqueueReport,
+    LibraryChangeFailure, LibraryChangeId, LibraryChangeIntent, LibraryChangeLeaseUpdateOutcome,
+    LibraryChangeQueueMetrics, LibraryChangeQueuePolicy, LibraryRootGeneration, ScanError,
 };
 use crate::ports::LibraryChangeQueue;
 
@@ -33,6 +34,7 @@ impl LibraryChangeQueue for SqliteCatalog {
         enqueue_intents(self, intents, None, enqueued_unix_ms, policy)
     }
 
+    #[cfg(test)]
     fn enqueue_library_change_intents_with_catch_up(
         &mut self,
         intents: &[LibraryChangeIntent],
@@ -44,6 +46,7 @@ impl LibraryChangeQueue for SqliteCatalog {
         enqueue_intents(self, intents, Some(evidence), enqueued_unix_ms, policy)
     }
 
+    #[cfg(test)]
     fn enqueue_library_change_catch_up_batches(
         &mut self,
         batches: &[LibraryChangeCatchUpQueueBatch],
@@ -135,7 +138,10 @@ impl LibraryChangeQueue for SqliteCatalog {
         catalog_revision_at_success: u64,
         completed_unix_ms: i64,
     ) -> Result<LibraryChangeLeaseUpdateOutcome, ScanError> {
-        let transaction = self.connection.transaction().map_err(database_error)?;
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(database_error)?;
         let outcome = classify_lease_update(
             &transaction,
             change_id,
@@ -172,7 +178,10 @@ impl LibraryChangeQueue for SqliteCatalog {
     ) -> Result<LibraryChangeLeaseUpdateOutcome, ScanError> {
         validate_policy(policy)?;
         validate_failure(failure)?;
-        let transaction = self.connection.transaction().map_err(database_error)?;
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(database_error)?;
         let outcome = classify_lease_update(&transaction, change_id, lease_generation, None)?;
         if outcome == LibraryChangeLeaseUpdateOutcome::Applied {
             let attempt_count = transaction
@@ -215,7 +224,10 @@ impl LibraryChangeQueue for SqliteCatalog {
         lease_generation: u64,
         deferred_unix_ms: i64,
     ) -> Result<LibraryChangeLeaseUpdateOutcome, ScanError> {
-        let transaction = self.connection.transaction().map_err(database_error)?;
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(database_error)?;
         let outcome = classify_lease_update(&transaction, change_id, lease_generation, None)?;
         if outcome == LibraryChangeLeaseUpdateOutcome::Applied {
             transaction
@@ -271,7 +283,10 @@ impl LibraryChangeQueue for SqliteCatalog {
         terminal_before_unix_ms: i64,
         limit: u32,
     ) -> Result<u32, ScanError> {
-        let transaction = self.connection.transaction().map_err(database_error)?;
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(database_error)?;
         let deleted = cleanup_terminal_records(&transaction, terminal_before_unix_ms, limit)?;
         transaction.commit().map_err(database_error)?;
         Ok(deleted)
@@ -290,7 +305,10 @@ fn enqueue_intents(
     if intents.is_empty() {
         return Ok(LibraryChangeEnqueueReport::default());
     }
-    let transaction = catalog.connection.transaction().map_err(database_error)?;
+    let transaction = catalog
+        .connection
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .map_err(database_error)?;
     cleanup_for_enqueue(&transaction, enqueued_unix_ms, policy)?;
     let report =
         enqueue_intents_in_transaction(&transaction, intents, evidence, enqueued_unix_ms, policy)?;
@@ -298,7 +316,7 @@ fn enqueue_intents(
     Ok(report)
 }
 
-fn validate_enqueue_batch(intents: &[LibraryChangeIntent]) -> Result<(), ScanError> {
+pub(super) fn validate_enqueue_batch(intents: &[LibraryChangeIntent]) -> Result<(), ScanError> {
     let Some(first) = intents.first() else {
         return Ok(());
     };
@@ -319,7 +337,7 @@ fn cleanup_for_enqueue(
     Ok(())
 }
 
-fn enqueue_intents_in_transaction(
+pub(super) fn enqueue_intents_in_transaction(
     transaction: &Transaction<'_>,
     intents: &[LibraryChangeIntent],
     evidence: Option<&LibraryChangeCatchUpEvidence>,
@@ -362,6 +380,7 @@ fn enqueue_intents_in_transaction(
     Ok(report)
 }
 
+#[cfg(test)]
 fn validate_catch_up_evidence(evidence: &LibraryChangeCatchUpEvidence) -> Result<(), ScanError> {
     if evidence.source.trim().is_empty()
         || evidence.source.len() > 128
@@ -422,12 +441,61 @@ impl SqliteCatalog {
     ) -> Result<Vec<LeasedLibraryChange>, ScanError> {
         validate_policy(policy)?;
         validate_root_id(root_id)?;
-        let transaction = self.connection.transaction().map_err(database_error)?;
+        let selection_sql = selection.sql_value();
+        let pass_is_needed = self
+            .connection
+            .query_row(
+                "SELECT EXISTS(
+                   SELECT 1 FROM library_change_root_state AS state
+                   WHERE state.root_id = ?1 AND state.generation = ?2 AND state.is_active = 1
+                 ) AND EXISTS(
+                   SELECT 1 FROM library_change_queue AS queue
+                   WHERE queue.root_id = ?1 AND queue.root_generation = ?2
+                     AND (
+                       (queue.status = 'retry_wait' AND queue.attempt_count >= ?3
+                         AND queue.next_retry_unix_ms IS NOT NULL)
+                       OR (
+                         (
+                           ?5 = 0
+                           OR (?5 = 1 AND queue.scope = 'path'
+                             AND queue.intent_kind <> 'freshness_unknown')
+                           OR (?5 = 2 AND (queue.scope <> 'path'
+                             OR queue.intent_kind = 'freshness_unknown'))
+                         )
+                         AND (
+                           (queue.attempt_count < ?3 AND queue.status = 'pending'
+                             AND queue.ready_unix_ms <= ?4)
+                           OR (queue.attempt_count < ?3 AND queue.status = 'retry_wait'
+                             AND queue.next_retry_unix_ms IS NOT NULL
+                             AND queue.next_retry_unix_ms <= ?4)
+                           OR (queue.status = 'leased'
+                             AND queue.lease_expires_unix_ms IS NOT NULL
+                             AND queue.lease_expires_unix_ms <= ?4)
+                         )
+                       )
+                     )
+                 )",
+                params![
+                    root_id,
+                    sqlite_integer(root_generation.value(), "root generation")?,
+                    i64::from(policy.max_attempts),
+                    now_unix_ms,
+                    selection_sql,
+                ],
+                |row| row.get::<_, bool>(0),
+            )
+            .map_err(database_error)?;
+        if !pass_is_needed {
+            return Ok(Vec::new());
+        }
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(database_error)?;
         if !root_generation_is_current(&transaction, root_id, root_generation)? {
             transaction.commit().map_err(database_error)?;
             return Ok(Vec::new());
         }
-        let selection_sql = selection.sql_value();
         recover_expired_leases(
             &transaction,
             root_id,

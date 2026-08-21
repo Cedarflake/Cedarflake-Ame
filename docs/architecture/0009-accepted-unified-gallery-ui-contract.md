@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-07
-- Last amended: 2026-08-16
+- Last amended: 2026-08-20
 - Supersedes: ADR 0003
 
 ## Context
@@ -31,8 +31,11 @@ Use one unified gallery with these presentation rules.
 
 ### Shell and navigation
 
-- The global bar contains application identity and centered gallery search. App-drawn window controls
-  may share this surface as defined by ADR 0012, but library import and settings do not.
+- The global bar contains application identity and centered gallery search. One icon-only notification
+  history control sits immediately before the app-drawn window controls defined by ADR 0012; library
+  import and settings do not appear there. The control uses the ordinary notification icon when the
+  current-session history is read and the notification-with-dot icon when unread entries exist. It
+  never adds a text label or numeric count to the bar.
 - The global bar and sidebar share the Material `surfaceContainerLow` application backdrop. The
   gallery or settings canvas is one `surfaceContainerLowest` Material pane with a rounded leading
   top corner. Tonal surface hierarchy and spacing separate these regions; full-window header and
@@ -150,9 +153,12 @@ Use one unified gallery with these presentation rules.
   focus, and pointer targets remain fully visible; source media is never changed.
 - The `方形` layout is a uniform square grid. Small, medium, and large density choices remain
   independent from shape.
-- Layout shape, density, and query changes (including sort field, direction, filters, and search)
-  preserve one logical viewport anchor identified by the actual card nearest the anchor point,
-  stable location ID, and card and viewport fractions. Unknown-dimension recovery uses the same
+- Layout shape, density, and refinements within the current source scope (including sort field,
+  direction, filters, and search) preserve one logical viewport anchor identified by the actual
+  card nearest the anchor point, stable location ID, and card and viewport fractions. Explicitly
+  selecting Library, another source root, or a child folder starts that newly selected scope at its
+  first result instead of carrying over the previous scope's time or viewport anchor.
+  Unknown-dimension recovery uses the same
   center-card contract, freezes the current logical range until later native movement, and expands
   preview demand from the center toward both sides. A new query obtains the anchor's new ordinal
   from the application layer; only a confirmed absence falls back intentionally to the first
@@ -188,6 +194,15 @@ Use one unified gallery with these presentation rules.
 
 - Import and update work uses temporary action-specific bottom progress with cancellation; there is
   no permanent task destination.
+- Non-task status changes and failures use one bounded bottom notification queue. Source rows retain
+  only their compact availability or freshness label; reconciliation cause, affected counts, source
+  path, stable technical code, and retry or reconcile action belong to the notification detail
+  surface and current-session history. Persistent failures remain until acknowledged or resolved,
+  transient success notices dismiss automatically, and repeated active conditions update one
+  deduplicated history entry instead of generating notification spam.
+- Active, paused, cancelling, failed, cancelled, and completed scan feedback retains priority over
+  the notification surface. Acknowledging a notification removes it from the bottom queue without
+  falsifying source freshness or deleting its bounded history entry.
 - Settings is a sidebar-selected destination rendered in the existing main canvas. It keeps the
   global bar and source sidebar visible and never opens an application-settings dialog.
 - The settings canvas uses shallow, plain-language Material rows grouped as Personalization,
@@ -242,6 +257,14 @@ The official Material 3 menu catalog remains the basis of settings choices. Flut
 verified to provide controlled `DropdownMenu` selection, selection callbacks, disabled search, and
 select-only behavior. Preview loading speed therefore reuses the repository-owned `SettingsChoice`
 composition and adds no custom pointer, focus, keyboard, or semantics layer.
+
+The official Material 3 Icon button, Menu, and Badge catalogs were evaluated for notification
+history and unread state. Flutter 3.44.9 provides `IconButton`, `MenuAnchor`, constrained
+`MenuStyle`, and small `Badge`; the pinned Material Symbols package also provides distinct
+`notifications_rounded` and `notifications_unread_rounded` glyphs. The accepted bar uses the two
+glyph states because the product requires an icon swap with a dot and no count. The bounded history
+reuses `AmeMenuAnchor` so pointer, keyboard, focus, dismissal, and accessibility behavior remain
+framework-owned; the product layer owns only queue state, text, severity, and action routing.
 
 Flutter 3.44.9 can publish retained `OverlayPortal` semantics updates that violate Windows
 `AccessibilityBridge` transaction preconditions. Sibling `Tooltip` and stable `MenuAnchor`

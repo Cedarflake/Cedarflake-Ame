@@ -105,6 +105,211 @@ void main() {
     await synchronization.stop();
   });
 
+  test("short catalog writer contention retains the prior snapshot", () async {
+    final firstPoll = Completer<void>();
+    final synchronization = RustLibrarySynchronization(
+      startCall: () async => _snapshot(
+        revision: 9,
+        freshness: rust_change.CatalogFreshnessState.updating,
+      ),
+      pollCall: () async {
+        if (!firstPoll.isCompleted) {
+          firstPoll.complete();
+        }
+        throw const rust_domain.ScanError(
+          code: "catalog_database_busy",
+          message: "writer is publishing",
+        );
+      },
+      stopCall: () async {},
+      pollInterval: const Duration(milliseconds: 1),
+      transientFailureTolerance: const Duration(minutes: 1),
+      now: () => DateTime.utc(2026, 8, 21),
+      enableDebugLogging: false,
+    );
+
+    await synchronization.start();
+    await firstPoll.future;
+    await Future<void>.delayed(Duration.zero);
+
+    expect(
+      synchronization.current.statusFor("root-a")?.freshness,
+      LibraryCatalogFreshness.updating,
+    );
+    expect(synchronization.current.lastErrorCode, isNull);
+    await synchronization.stop();
+  });
+
+  test(
+    "catalog writer contention becomes visible after the bounded wait",
+    () async {
+      final firstPoll = Completer<void>();
+      final secondPoll = Completer<void>();
+      var pollCalls = 0;
+      var currentTime = DateTime.utc(2026, 8, 21);
+      final synchronization = RustLibrarySynchronization(
+        startCall: () async => _snapshot(
+          revision: 9,
+          freshness: rust_change.CatalogFreshnessState.updating,
+        ),
+        pollCall: () async {
+          pollCalls += 1;
+          if (pollCalls == 1) {
+            firstPoll.complete();
+          } else if (pollCalls == 2) {
+            secondPoll.complete();
+          }
+          throw const rust_domain.ScanError(
+            code: "catalog_database_locked",
+            message: "writer remained locked",
+          );
+        },
+        stopCall: () async {},
+        pollInterval: const Duration(milliseconds: 10),
+        transientFailureTolerance: const Duration(seconds: 30),
+        now: () => currentTime,
+        enableDebugLogging: false,
+      );
+
+      await synchronization.start();
+      await firstPoll.future;
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        synchronization.current.statusFor("root-a")?.freshness,
+        LibraryCatalogFreshness.updating,
+      );
+      expect(synchronization.current.lastErrorCode, isNull);
+
+      currentTime = currentTime.add(const Duration(seconds: 31));
+      await secondPoll.future;
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        synchronization.current.statusFor("root-a")?.freshness,
+        LibraryCatalogFreshness.needsReconciliation,
+      );
+      expect(synchronization.current.lastErrorCode, "catalog_database_locked");
+      await synchronization.stop();
+    },
+  );
+
+  test(
+    "poll failure remains stable through retry until synchronization succeeds",
+    () async {
+      final retryReturned = Completer<void>();
+      final releaseSynchronized = Completer<void>();
+      final synchronizedReturned = Completer<void>();
+      var pollCalls = 0;
+      final synchronization = RustLibrarySynchronization(
+        startCall: () async => _snapshot(revision: 9),
+        pollCall: () async {
+          pollCalls += 1;
+          if (pollCalls == 1) {
+            throw const rust_domain.ScanError(
+              code: "catalog_database_error",
+              message: "write failed",
+            );
+          }
+          if (pollCalls == 2) {
+            retryReturned.complete();
+            return _snapshot(
+              revision: 9,
+              freshness: rust_change.CatalogFreshnessState.updating,
+            );
+          }
+          await releaseSynchronized.future;
+          if (!synchronizedReturned.isCompleted) {
+            synchronizedReturned.complete();
+          }
+          return _snapshot(revision: 10);
+        },
+        stopCall: () async {},
+        pollInterval: const Duration(milliseconds: 1),
+        enableDebugLogging: false,
+      );
+
+      await synchronization.start();
+      await retryReturned.future;
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        synchronization.current.statusFor("root-a")?.freshness,
+        LibraryCatalogFreshness.needsReconciliation,
+      );
+      expect(synchronization.current.lastErrorCode, "catalog_database_error");
+
+      releaseSynchronized.complete();
+      await synchronizedReturned.future;
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        synchronization.current.statusFor("root-a")?.freshness,
+        LibraryCatalogFreshness.synchronized,
+      );
+      expect(synchronization.current.lastErrorCode, isNull);
+      await synchronization.stop();
+    },
+  );
+
+  test(
+    "per-root failure remains stable while automatic recovery is running",
+    () async {
+      final recoveryReturned = Completer<void>();
+      final releaseSynchronized = Completer<void>();
+      var pollCalls = 0;
+      final synchronization = RustLibrarySynchronization(
+        startCall: () async => _snapshot(
+          revision: 9,
+          freshness: rust_change.CatalogFreshnessState.needsReconciliation,
+          lastIssueCode: "catalog_database_error",
+        ),
+        pollCall: () async {
+          pollCalls += 1;
+          if (pollCalls == 1) {
+            recoveryReturned.complete();
+            return _snapshot(
+              revision: 9,
+              freshness: rust_change.CatalogFreshnessState.updating,
+            );
+          }
+          await releaseSynchronized.future;
+          return _snapshot(revision: 10);
+        },
+        stopCall: () async {},
+        pollInterval: const Duration(milliseconds: 1),
+        enableDebugLogging: false,
+      );
+
+      await synchronization.start();
+      await recoveryReturned.future;
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        synchronization.current.statusFor("root-a")?.freshness,
+        LibraryCatalogFreshness.needsReconciliation,
+      );
+      expect(
+        synchronization.current.statusFor("root-a")?.lastIssueCode,
+        "catalog_database_error",
+      );
+      expect(synchronization.current.lastErrorCode, isNull);
+
+      releaseSynchronized.complete();
+      await Future<void>.delayed(const Duration(milliseconds: 5));
+
+      expect(
+        synchronization.current.statusFor("root-a")?.freshness,
+        LibraryCatalogFreshness.synchronized,
+      );
+      expect(
+        synchronization.current.statusFor("root-a")?.lastIssueCode,
+        isNull,
+      );
+      await synchronization.stop();
+    },
+  );
+
   test("equal snapshots have an order-independent hash code", () {
     final rootA = _rootStatus("root-a");
     final rootB = _rootStatus("root-b");
@@ -140,7 +345,12 @@ LibraryRootSynchronizationStatus _rootStatus(String rootId) {
   );
 }
 
-rust_sync.LibrarySynchronizationSnapshot _snapshot({required int revision}) {
+rust_sync.LibrarySynchronizationSnapshot _snapshot({
+  required int revision,
+  rust_change.CatalogFreshnessState freshness =
+      rust_change.CatalogFreshnessState.synchronized,
+  String? lastIssueCode,
+}) {
   return rust_sync.LibrarySynchronizationSnapshot(
     isRunning: true,
     catalogRevision: BigInt.from(revision),
@@ -150,13 +360,17 @@ rust_sync.LibrarySynchronizationSnapshot _snapshot({required int revision}) {
         rootId: "root-a",
         rootGeneration: BigInt.one,
         availability: rust_domain.LibraryRootAvailability.available,
-        freshness: rust_change.CatalogFreshnessState.synchronized,
-        freshnessCause: rust_change.CatalogFreshnessCause.noPendingChanges,
+        freshness: freshness,
+        freshnessCause:
+            freshness == rust_change.CatalogFreshnessState.synchronized
+            ? rust_change.CatalogFreshnessCause.noPendingChanges
+            : rust_change.CatalogFreshnessCause.pendingChanges,
         sourceHealth: rust_change.LibraryChangeSourceHealth.healthy,
         queueHealth: rust_queue.LibraryChangeQueueHealth.idle,
         pendingChangeCount: BigInt.zero,
         retryWaitCount: BigInt.zero,
         freshnessUnknownCount: BigInt.zero,
+        lastIssueCode: lastIssueCode,
       ),
     ],
   );

@@ -1,7 +1,8 @@
 # R2c-F recovery and consistency validation
 
 - Date: 2026-08-18
-- Scope: bounded authoritative recovery, full-scan escalation, and low-frequency consistency audit
+- Last amended: 2026-08-21
+- Scope: bounded authoritative recovery, evidence-driven full-scan escalation, and legacy audit retirement
 - Source-media access: controlled temporary fixtures only, read-only except fixture setup
 - Real-library access: none
 
@@ -27,10 +28,15 @@ The controlled fixtures prove:
 | Slow authoritative worker | Foreground path polling cannot reclaim its lease after nominal expiry |
 | Process owner | Reject another same-user production process before it can reclaim a live lease |
 | Owner loss | Recover an expired authoritative lease through a new SQLite connection |
+| Concurrent catalog writer | Wait before reading mutable scan or queue state; do not fail a later deferred write upgrade |
+| Prolonged writer contention | Keep recovery updating and retryable for 30 seconds before surfacing one blocked condition |
 | Single scan owner | Reject a second running or paused authoritative scan for the same root |
 | Restart safety | Persist the requirement to preserve the previous snapshot and reject publication |
 | Corrupt rescan | Keep the last trustworthy active location and catalog revision |
-| New full-scan issue | Keep a published root stale and do not advance its audit without prior evidence |
+| Authoritative media failure | Publish independent trustworthy evidence and atomically enqueue exact path retries |
+| Authoritative finalization race | Publish stable evidence, preserve or omit the exact changed paths, and retry only those paths |
+| Media-only restart | Convert a prerelease previous-snapshot checkpoint into the same durable retry contract |
+| New full-scan issue | Keep a published root stale and do not advance freshness without prior evidence |
 | Migrated placeholder | Preserve a normalized v17 path with its legacy location identifier |
 | Migrated healthy file | Preserve a normalized v17 location and asset without identity evidence |
 | Migrated identity backfill | Reuse the legacy v17 location identifier without duplicating the location |
@@ -42,11 +48,13 @@ The controlled fixtures prove:
 | Schema v18 | Migrate v17 atomically, repair unambiguous draft ownership, and fail closed on conflicts |
 | Recovery retry | Preserve bounded exponential retry across re-escalation without blocking another root |
 | Retry scheduling | Start workers only for currently due authoritative work |
-| Consistency audit | Persist completion time and never project synchronized before publication |
+| Elapsed time | Never enqueue a periodic root scan merely because time passed |
+| Legacy audit | Retire prerelease root-audit rows and audit-only scans without dropping historical path retries |
+| Active recovery status | Project an in-progress authoritative scan as updating, not as an idle reconciliation request |
 | Watcher restart | Keep the continuity gap unresolved until a restarted observer is healthy |
 | Background worker | Do not enumerate authoritative scopes inside the production polling mutex |
-| Shutdown | Retain timed-out worker ownership and block restart until a later join |
-| Source safety | Retry new and existing placeholders without hydration, removal, or audit success |
+| Shutdown | Suspend full scans at a durable checkpoint; cancel non-scan recovery and retain timed-out ownership until join |
+| Source safety | Retry new and existing placeholders without hydration, removal, or false freshness |
 
 ## Focused verification evidence
 
@@ -104,6 +112,47 @@ bounded authoritative selection rotates across continuously ready roots. They al
 expired final authoritative attempt is normalized through an independent connection after worker
 loss and a lower retry policy clears obsolete authoritative deadlines without allowing path
 leasing.
+
+The 2026-08-20 media-recovery hardening added the atomic path-retry publication and active-recovery
+status fixtures:
+
+```text
+cargo test --locked --manifest-path rust/Cargo.toml -j 1 application::scan_library::tests -- --nocapture
+30 passed; 0 failed; 2 explicit ignores
+
+cargo test --locked --manifest-path rust/Cargo.toml -j 1 application::library_synchronization::tests -- --nocapture
+16 passed; 0 failed
+
+cargo test --locked --manifest-path rust/Cargo.toml -j 1 adapters::sqlite_catalog::change_queue::tests -- --nocapture
+50 passed; 0 failed
+
+cargo test --locked --manifest-path rust/Cargo.toml --all-targets --all-features -j 1
+405 total; 398 passed; 0 failed; 7 explicit ignores
+
+./tool/quality_lint.ps1
+release guardrails, format, Clippy with warnings denied, and Dart analysis: passed
+```
+
+The authoritative fixtures cover an existing undecodable location, a newly discovered undecodable
+path, the prerelease persisted media-only checkpoint, exact retry insertion after the captured root
+gap is completed, preservation of controlled source bytes, and the running-scan status projection.
+
+The 2026-08-21 finalization-race correction extends that exact-path contract to source changes found
+after enumeration. A controlled authoritative scan changes one previously published image and
+removes one newly discovered image during final validation. The scan completes, publishes the
+independent stable snapshot, retains the prior trustworthy location, omits the unverified new
+location, and leaves exactly two durable path retries instead of abandoning and restarting the
+whole root:
+
+```text
+cargo test --locked --manifest-path rust/Cargo.toml authoritative_finalization_races_publish_stable_evidence_and_retry_exact_paths -- --nocapture
+1 passed; 0 failed
+```
+
+The same 2026-08-20 closeout head passed the complete Daily: 405 Rust tests total with 398 passing
+and seven existing explicit ignores, all Flutter test files, Windows Scan 2/2, Windows
+Accessibility 2/2, bridge compatibility, release guardrails, formatting across 145 files, Dart
+analysis, and whitespace validation.
 
 No authorization-bound source root is required or accessed by these fixtures.
 
@@ -172,3 +221,25 @@ remains conditional under the roadmap's fallback and measured-budget criteria. R
 target-library catch-up ingress, queue, storage, memory, and source-safety evidence, but its
 authorization-bound phase intentionally does not measure target-scale authoritative recovery and
 publication timing; that extended measurement remains R10 evidence.
+
+## 2026-08-21 policy correction
+
+The current working tree removes seven-day scheduling, retires only legacy root-reconcile audit
+rows, preserves historical path retries that reused the same origin, keeps disconnected full scans
+recoverable, and suspends production full scans during shutdown. Five focused Rust regressions passed
+for elapsed-time scheduling, legacy audit retirement, disconnected scan retention, shutdown scan
+suspension, and production full-scan stop ownership. The complete Daily passed 412 Rust tests total
+with 405 passing and seven existing explicit ignores, all Flutter files, both Windows integration
+suites, bridge compatibility, formatting, analysis, and whitespace validation. The Windows Release
+gate built the x64 application and passed both packaged bridge smoke tests. No authorization-bound
+real-library workload was run.
+
+The same-day SQLite writer-coordination amendment makes queue and scan read-modify-write paths acquire
+the writer before reading mutable state, leaves an empty path poll read-only, and gives background
+recovery the same 30-second transient-contention window as foreground synchronization. Deterministic
+two-connection fixtures prove that path leasing and directory claiming wait for an existing writer,
+while an empty queue probe returns without competing for the writer. Runtime fixtures prove transient
+recovery contention remains non-blocking until the bound and other database failures block
+immediately. The Daily static partition passed 418 Rust tests total with 411 passing and seven existing
+explicit ignores, formatting across 145 files, Clippy with warnings denied, Dart analysis, bridge-hash
+compatibility, and whitespace validation. No real library was accessed.

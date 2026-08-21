@@ -1,5 +1,7 @@
+#[cfg(test)]
 use super::{LibraryChangeIntent, LibraryChangeObservation, LibraryRootGeneration};
 
+#[cfg(test)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LibraryChangeCatchUpCheckpoint {
     pub volume_id: String,
@@ -16,12 +18,14 @@ pub struct LibraryChangeCatchUpEvidence {
     pub watermark: String,
 }
 
+#[cfg(test)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LibraryChangeCatchUpQueueBatch {
     pub intents: Vec<LibraryChangeIntent>,
     pub evidence: Option<LibraryChangeCatchUpEvidence>,
 }
 
+#[cfg(test)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LibraryChangeCatchUpRootResult {
     pub root_id: String,
@@ -31,12 +35,14 @@ pub struct LibraryChangeCatchUpRootResult {
     pub evidence: Option<LibraryChangeCatchUpEvidence>,
 }
 
+#[cfg(test)]
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct LibraryChangeCatchUpBatch {
     pub roots: Vec<LibraryChangeCatchUpRootResult>,
     pub checkpoints: Vec<LibraryChangeCatchUpCheckpoint>,
 }
 
+#[cfg(test)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct LibraryChangeCatchUpLimits {
     pub max_records_per_volume: usize,
@@ -44,6 +50,7 @@ pub struct LibraryChangeCatchUpLimits {
     pub max_observations_per_root: usize,
 }
 
+#[cfg(test)]
 impl LibraryChangeCatchUpLimits {
     pub const MAX_RECORDS_PER_VOLUME: usize = 65_536;
     pub const MAX_EVIDENCE_BYTES_PER_VOLUME: usize = 64 * 1_024 * 1_024;
@@ -59,6 +66,7 @@ impl LibraryChangeCatchUpLimits {
     }
 }
 
+#[cfg(test)]
 impl Default for LibraryChangeCatchUpLimits {
     fn default() -> Self {
         Self {
@@ -69,6 +77,7 @@ impl Default for LibraryChangeCatchUpLimits {
     }
 }
 
+#[cfg(test)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LibraryChangeCatchUpCompletedRoot {
     pub root_id: String,
@@ -76,6 +85,7 @@ pub struct LibraryChangeCatchUpCompletedRoot {
     pub fallback_code: Option<String>,
 }
 
+#[cfg(test)]
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct LibraryChangeCatchUpReport {
     pub completed_roots: Vec<LibraryChangeCatchUpCompletedRoot>,

@@ -193,6 +193,7 @@ pub struct LibraryChangeSourceBatch {
     pub health: LibraryChangeSourceHealth,
     pub dropped_observation_count: u64,
     pub ignored_callback_count: u64,
+    pub last_issue_code: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

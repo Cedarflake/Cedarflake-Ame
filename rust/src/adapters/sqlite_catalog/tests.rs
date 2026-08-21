@@ -6,6 +6,7 @@ use std::time::{Duration, Instant};
 use tempfile::tempdir;
 
 use crate::domain::GallerySortDirection;
+use crate::ports::LibraryChangeQueue;
 
 use super::*;
 
@@ -945,6 +946,44 @@ fn catalog_writers_wait_for_short_writer_contention() {
         .expect("release catalog writer lock");
     assert_eq!(writer.join().expect("contending writer thread"), Ok(1));
     assert!(attempt_started.elapsed() >= Duration::from_millis(100));
+}
+
+#[test]
+fn scan_directory_claim_waits_for_writer_before_reading_snapshot() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let request = fixture_request("contended-scan", "C:\\Pictures");
+    let mut catalog = SqliteCatalog::open(path.clone()).expect("scan catalog");
+    catalog
+        .begin_scan(&request, "contended-root", &request.root_path)
+        .expect("begin contended scan");
+    let holder = SqliteCatalog::open(path).expect("lock holder catalog");
+    holder
+        .connection
+        .execute_batch(
+            "BEGIN IMMEDIATE;
+             UPDATE catalog_state SET revision = revision;",
+        )
+        .expect("hold catalog writer lock");
+
+    let claim = thread::spawn(move || catalog.claim_next_directory("contended-scan"));
+    thread::sleep(Duration::from_millis(100));
+    assert!(
+        !claim.is_finished(),
+        "scan claim must wait instead of failing against a stale read snapshot"
+    );
+    holder
+        .connection
+        .execute_batch("COMMIT")
+        .expect("release catalog writer lock");
+
+    assert_eq!(
+        claim
+            .join()
+            .expect("scan claim thread")
+            .expect("scan claim waits for the current writer"),
+        Some(String::new())
+    );
 }
 
 #[test]
@@ -3773,4 +3812,109 @@ fn recoverable_scan_queries_keep_foreground_and_authoritative_owners_separate() 
     assert_eq!(second_recovery.scan_id, second_authoritative.scan_id);
     assert!(end_of_page.is_none());
     assert_eq!(ownership_error.code, "catalog_scan_resume_mismatch");
+}
+
+#[test]
+fn legacy_root_audit_and_its_exclusive_recovery_scan_are_retired() {
+    let directory = tempdir().expect("catalog directory");
+    let mut catalog =
+        SqliteCatalog::open(directory.path().join("catalog.sqlite3")).expect("catalog");
+    let root_id = "legacy-audit-root";
+    let root_path = "C:\\LegacyAudit";
+    let initial = fixture_request("legacy-audit-initial", root_path);
+    catalog
+        .begin_scan(&initial, root_id, root_path)
+        .expect("begin initial scan");
+    catalog
+        .publish_scan(&initial.scan_id, root_id, 0, 0)
+        .expect("publish initial scan");
+    let generation = LibraryRootGeneration::initial();
+    let policy = LibraryChangeQueuePolicy {
+        debounce_millis: 0,
+        ..LibraryChangeQueuePolicy::default()
+    };
+    catalog
+        .enqueue_library_change_intents(
+            &[LibraryChangeIntent {
+                root_id: root_id.to_owned(),
+                root_generation: generation,
+                kind: LibraryChangeIntentKind::Reconcile,
+                scope: LibraryChangeScope::Root,
+                relative_path: String::new(),
+                previous_relative_path: None,
+                origin: LibraryChangeOrigin::ConsistencyAudit,
+                first_observed_unix_ms: 1_000,
+                most_recent_observed_unix_ms: 1_000,
+                first_sequence: 1,
+                most_recent_sequence: 1,
+                coalesced_observation_count: 1,
+            }],
+            1_000,
+            policy,
+        )
+        .expect("enqueue legacy audit");
+    let recovery = fixture_request("legacy-audit-recovery", root_path);
+    catalog
+        .begin_authoritative_scan(&recovery, root_id, root_path)
+        .expect("begin legacy audit recovery scan");
+
+    let retired = catalog
+        .retire_legacy_consistency_audits(2_000)
+        .expect("retire legacy audit");
+    let scan_status: String = catalog
+        .connection
+        .query_row(
+            "SELECT status FROM scan_runs WHERE id = ?1",
+            [&recovery.scan_id],
+            |row| row.get(0),
+        )
+        .expect("retired scan status");
+    let metrics = catalog
+        .load_library_change_root_queue_metrics(root_id, generation, 2_000, policy)
+        .expect("retired queue metrics");
+
+    assert_eq!(retired, 1);
+    assert_eq!(scan_status, "superseded");
+    assert!(
+        catalog
+            .load_authoritative_recoverable_scan_after(None)
+            .expect("recoverable scans")
+            .is_none()
+    );
+    assert_eq!(metrics.pending_count, 0);
+    assert_eq!(metrics.leased_count, 0);
+    assert_eq!(metrics.retry_wait_count, 0);
+    assert_eq!(metrics.superseded_count, 1);
+
+    catalog
+        .enqueue_library_change_intents(
+            &[LibraryChangeIntent {
+                root_id: root_id.to_owned(),
+                root_generation: generation,
+                kind: LibraryChangeIntentKind::Reconcile,
+                scope: LibraryChangeScope::Path,
+                relative_path: "retry.png".to_owned(),
+                previous_relative_path: None,
+                origin: LibraryChangeOrigin::ConsistencyAudit,
+                first_observed_unix_ms: 3_000,
+                most_recent_observed_unix_ms: 3_000,
+                first_sequence: 1,
+                most_recent_sequence: 1,
+                coalesced_observation_count: 1,
+            }],
+            3_000,
+            policy,
+        )
+        .expect("enqueue historical path retry");
+
+    assert_eq!(
+        catalog
+            .retire_legacy_consistency_audits(4_000)
+            .expect("preserve historical path retry"),
+        0
+    );
+    let retained = catalog
+        .load_library_change_root_queue_metrics(root_id, generation, 4_000, policy)
+        .expect("retained path metrics");
+    assert_eq!(retained.pending_count, 1);
 }
