@@ -108,14 +108,14 @@ impl MetadataInventorySource for LocalMetadataInventory {
                 self.is_complete = true;
                 break;
             };
-            let Some(relative_path) = current.next() else {
+            let Some(directory_entry) = current.next() else {
                 self.stack.pop();
                 continue;
             };
-            let relative_path = relative_path.map_err(issue_error)?;
+            let directory_entry = directory_entry.map_err(issue_error)?;
             let entry = self
                 .discovery
-                .metadata_inventory_entry(&relative_path)
+                .metadata_inventory_entry_from_directory_entry(directory_entry)
                 .map_err(issue_error)?;
             if entry.kind == MetadataInventoryEntryKind::Directory {
                 self.pending_directory = Some(entry.relative_path.clone());

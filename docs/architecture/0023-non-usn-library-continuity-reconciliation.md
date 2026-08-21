@@ -134,6 +134,11 @@ Terminal directory symlinks and junctions are classified through target metadata
 to reject them; an unclassifiable reparse target also fails closed. The inventory never traverses
 the target.
 
+On Windows, entry classification retains the metadata returned by directory enumeration until the
+inventory row is constructed. This is required because `FILE_ATTRIBUTE_RECALL_ON_OPEN` is an
+enumeration-only attribute. The adapter decides placeholder and reparse state from that retained
+evidence before any target-following metadata request or file-identity handle is permitted.
+
 Positive candidates may publish before the complete inventory finishes only after the ordinary
 path reconciler rechecks final state. This permits additions and modifications to become visible as
 they are discovered. Absence is different: removal or subtree replacement requires a complete,

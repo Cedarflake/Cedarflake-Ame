@@ -88,10 +88,15 @@ pub struct DirectoryEntryPaths {
     index: u64,
 }
 
-pub struct CheckedDirectoryEntryPaths {
+pub(crate) struct CheckedDirectoryEntryPaths {
     root: PathBuf,
     directory_path: PathBuf,
     entries: ReadDir,
+}
+
+pub(crate) struct CheckedDirectoryEntry {
+    relative_path: String,
+    metadata: Metadata,
 }
 
 impl Iterator for DirectoryEntryPaths {
@@ -121,7 +126,7 @@ impl Iterator for DirectoryEntryPaths {
 }
 
 impl Iterator for CheckedDirectoryEntryPaths {
-    type Item = Result<String, ScanIssue>;
+    type Item = Result<CheckedDirectoryEntry, ScanIssue>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.entries.next().map(|entry| {
@@ -130,11 +135,20 @@ impl Iterator for CheckedDirectoryEntryPaths {
                 code: "directory_entry_unreadable".to_owned(),
                 message: error.to_string(),
             })?;
-            entry
+            let relative_path = entry
                 .path()
                 .strip_prefix(&self.root)
                 .map(relative_path_text)
-                .map_err(|_| path_containment_issue(&entry.path()))
+                .map_err(|_| path_containment_issue(&entry.path()))?;
+            let metadata = entry.metadata().map_err(|error| ScanIssue {
+                path: Some(path_text(entry.path())),
+                code: "directory_entry_metadata_unreadable".to_owned(),
+                message: error.to_string(),
+            })?;
+            Ok(CheckedDirectoryEntry {
+                relative_path,
+                metadata,
+            })
         })
     }
 }
@@ -194,7 +208,7 @@ impl FileDiscovery {
         })
     }
 
-    pub fn checked_entry_paths_in_directory(
+    pub(crate) fn checked_entry_paths_in_directory(
         &self,
         relative_directory: &str,
     ) -> Result<CheckedDirectoryEntryPaths, ScanIssue> {
@@ -234,8 +248,45 @@ impl FileDiscovery {
                 };
             }
         };
-        let relative_path = relative_path_text(relative_path);
+        self.visit_relative_path_with_metadata(relative_path_text(relative_path), path, metadata)
+    }
+
+    pub(crate) fn visit_relative_path_from_directory_entry(
+        &self,
+        relative_path: &str,
+    ) -> FileVisit {
+        match self.checked_directory_entry(relative_path) {
+            Ok(entry) => self.visit_directory_entry(entry),
+            Err(issue) => FileVisit {
+                relative_path: relative_path.to_owned(),
+                outcome: FileVisitOutcome::Issue(issue),
+            },
+        }
+    }
+
+    pub(crate) fn visit_directory_entry(&self, entry: CheckedDirectoryEntry) -> FileVisit {
+        let relative_path = entry.relative_path;
+        let path = self.root.join(Path::new(&relative_path));
+        self.visit_relative_path_with_metadata(relative_path, path, entry.metadata)
+    }
+
+    fn visit_relative_path_with_metadata(
+        &self,
+        relative_path: String,
+        path: PathBuf,
+        metadata: Metadata,
+    ) -> FileVisit {
         let file_type = metadata.file_type();
+        if is_cloud_placeholder(&metadata) {
+            return FileVisit {
+                relative_path,
+                outcome: FileVisitOutcome::Issue(ScanIssue {
+                    path: Some(path_text(&path)),
+                    code: "cloud_placeholder_skipped".to_owned(),
+                    message: "The file is not locally available and was not hydrated".to_owned(),
+                }),
+            };
+        }
         if file_type.is_symlink() {
             return FileVisit {
                 relative_path,
@@ -254,15 +305,10 @@ impl FileDiscovery {
                 outcome: FileVisitOutcome::Ignored,
             };
         }
-
-        if is_cloud_placeholder(&metadata) {
+        if is_link_or_reparse_point(&metadata) {
             return FileVisit {
                 relative_path,
-                outcome: FileVisitOutcome::Issue(ScanIssue {
-                    path: Some(path_text(&path)),
-                    code: "cloud_placeholder_skipped".to_owned(),
-                    message: "The file is not locally available and was not hydrated".to_owned(),
-                }),
+                outcome: FileVisitOutcome::Ignored,
             };
         }
 
@@ -320,11 +366,49 @@ impl FileDiscovery {
         &self,
         relative_path: &str,
     ) -> Result<MetadataInventoryEntry, ScanIssue> {
+        self.checked_directory_entry(relative_path)
+            .and_then(|entry| self.metadata_inventory_entry_from_directory_entry(entry))
+    }
+
+    fn checked_directory_entry(
+        &self,
+        relative_path: &str,
+    ) -> Result<CheckedDirectoryEntry, ScanIssue> {
         let relative_path_value = validated_relative_path(relative_path)?;
-        let (path, metadata) = self.checked_existing_path(relative_path_value)?;
-        let relative_path = relative_path_text(relative_path_value);
-        let is_reparse_point = is_link_or_reparse_point(&metadata);
-        let placeholder_state = metadata_placeholder_state(&metadata);
+        let expected_relative_path = relative_path_text(relative_path_value);
+        let parent = relative_path_value
+            .parent()
+            .unwrap_or_else(|| Path::new(""));
+        let entries = self.checked_entry_paths_in_directory(&relative_path_text(parent))?;
+        for entry in entries {
+            let entry = entry?;
+            if entry.relative_path == expected_relative_path {
+                return Ok(entry);
+            }
+        }
+        Err(path_metadata_issue(
+            &self.root.join(relative_path_value),
+            std::io::Error::from(std::io::ErrorKind::NotFound),
+        ))
+    }
+
+    pub(crate) fn metadata_inventory_entry_from_directory_entry(
+        &self,
+        entry: CheckedDirectoryEntry,
+    ) -> Result<MetadataInventoryEntry, ScanIssue> {
+        let relative_path_value = validated_relative_path(&entry.relative_path)?;
+        let path = self.root.join(relative_path_value);
+        self.metadata_inventory_entry_from_metadata(&entry.relative_path, &path, &entry.metadata)
+    }
+
+    fn metadata_inventory_entry_from_metadata(
+        &self,
+        relative_path: &str,
+        path: &Path,
+        metadata: &Metadata,
+    ) -> Result<MetadataInventoryEntry, ScanIssue> {
+        let is_reparse_point = is_link_or_reparse_point(metadata);
+        let placeholder_state = metadata_placeholder_state(metadata);
         if is_reparse_point && placeholder_state == MetadataInventoryPlaceholderState::Available {
             match path.metadata() {
                 Ok(target_metadata) if target_metadata.is_dir() => {
@@ -374,15 +458,15 @@ impl FileDiscovery {
             && placeholder_state == MetadataInventoryPlaceholderState::Available
             && !is_reparse_point
         {
-            file_identity(&path).ok().flatten()
+            file_identity(path).ok().flatten()
         } else {
             None
         };
         Ok(MetadataInventoryEntry {
-            relative_path,
+            relative_path: relative_path.to_owned(),
             kind,
             file_size: (kind == MetadataInventoryEntryKind::File).then_some(metadata.len()),
-            modified_unix_ms: modified_unix_ms(&metadata),
+            modified_unix_ms: modified_unix_ms(metadata),
             file_identity,
             placeholder_state,
             is_reparse_point,
@@ -445,8 +529,8 @@ fn metadata_inventory_entry_kind(
 ) -> MetadataInventoryEntryKind {
     if is_directory {
         MetadataInventoryEntryKind::Directory
-    } else if (is_regular_file && !is_reparse_point)
-        || placeholder_state != MetadataInventoryPlaceholderState::Available
+    } else if is_regular_file
+        && (!is_reparse_point || placeholder_state != MetadataInventoryPlaceholderState::Available)
     {
         MetadataInventoryEntryKind::File
     } else {
@@ -844,6 +928,7 @@ mod tests {
         let inventory_entry = discovery
             .metadata_inventory_entry("offline.png")
             .expect("offline metadata inventory entry");
+        let automatic_visit = discovery.visit_relative_path_from_directory_entry("offline.png");
 
         let clear_offline = Command::new("attrib.exe")
             .arg("-O")
@@ -853,6 +938,10 @@ mod tests {
         assert!(clear_offline.success());
         assert_eq!(issues.len(), 1);
         assert_eq!(issues[0].code, "cloud_placeholder_skipped");
+        assert!(matches!(
+            automatic_visit.outcome,
+            FileVisitOutcome::Issue(issue) if issue.code == "cloud_placeholder_skipped"
+        ));
         assert_eq!(
             inventory_entry.placeholder_state,
             MetadataInventoryPlaceholderState::Offline
@@ -867,7 +956,7 @@ mod tests {
         assert_eq!(
             metadata_inventory_entry_kind(
                 false,
-                false,
+                true,
                 true,
                 MetadataInventoryPlaceholderState::RecallOnDataAccess,
             ),
@@ -877,6 +966,15 @@ mod tests {
             metadata_inventory_entry_kind(
                 false,
                 false,
+                true,
+                MetadataInventoryPlaceholderState::RecallOnDataAccess,
+            ),
+            MetadataInventoryEntryKind::Other
+        );
+        assert_eq!(
+            metadata_inventory_entry_kind(
+                false,
+                true,
                 true,
                 MetadataInventoryPlaceholderState::Available,
             ),

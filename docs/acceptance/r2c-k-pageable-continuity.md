@@ -36,9 +36,10 @@ notification policy, development diagnostics, and immediate window-close behavio
   pages. Removal candidates are not loaded until complete enumeration grants absence authority, and
   every candidate still rechecks current filesystem and catalog state before publication.
 - Offline or recall cloud files remain staged as present file entries even when Windows reports a
-  reparse attribute. Matching same-path size and modification evidence preserves the trustworthy
-  location without hydration, removal work, or retry exhaustion; changed evidence remains
-  unresolved until it can be revalidated.
+  reparse attribute. Inventory retains `DirEntry` enumeration metadata through classification so
+  `RecallOnOpen` is detected before any target-following or identity open. Matching same-path size
+  and modification evidence preserves the trustworthy location without hydration, removal work, or
+  retry exhaustion; changed evidence remains unresolved until it can be revalidated.
 - A later watcher gap increments the continuity revision, cancels the older worker, supersedes its
   queue authority and staged candidates, and starts a higher durable epoch. A stale worker cannot
   enqueue another candidate page after losing its lease.

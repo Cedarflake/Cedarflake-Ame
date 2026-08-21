@@ -796,7 +796,10 @@ fn build_location(
 }
 
 fn inspect_path(discovery: &FileDiscovery, relative_path: &str) -> InspectedPath {
-    match discovery.visit_relative_path(relative_path).outcome {
+    match discovery
+        .visit_relative_path_from_directory_entry(relative_path)
+        .outcome
+    {
         FileVisitOutcome::File(file) => InspectedPath::File(file),
         FileVisitOutcome::Directory | FileVisitOutcome::Ignored => InspectedPath::CatalogAbsent,
         FileVisitOutcome::Issue(issue) if issue.code == "file_missing" => {

@@ -291,7 +291,10 @@ fn enumerate_scopes(
             schedule_directory(&mut directories, &mut scheduled_directories, String::new());
             continue;
         }
-        match discovery.visit_relative_path(scope).outcome {
+        match discovery
+            .visit_relative_path_from_directory_entry(scope)
+            .outcome
+        {
             FileVisitOutcome::Directory => {
                 schedule_directory(&mut directories, &mut scheduled_directories, scope.clone())
             }
@@ -312,11 +315,11 @@ fn enumerate_scopes(
         let entries = discovery
             .checked_entry_paths_in_directory(&directory)
             .map_err(|issue| EnumerationFailure::Issue(scan_issue_failure(issue)))?;
-        for relative_path in entries {
+        for directory_entry in entries {
             if cancellation.load(Ordering::Relaxed) {
                 return Err(EnumerationFailure::Cancelled);
             }
-            let relative_path = relative_path
+            let directory_entry = directory_entry
                 .map_err(|issue| EnumerationFailure::Issue(scan_issue_failure(issue)))?;
             visited_entries = visited_entries
                 .checked_add(1)
@@ -324,7 +327,9 @@ fn enumerate_scopes(
             if visited_entries > policy.max_scope_entries {
                 return Err(EnumerationFailure::Capacity);
             }
-            match discovery.visit_relative_path(&relative_path).outcome {
+            let visit = discovery.visit_directory_entry(directory_entry);
+            let relative_path = visit.relative_path;
+            match visit.outcome {
                 FileVisitOutcome::Directory => {
                     schedule_directory(&mut directories, &mut scheduled_directories, relative_path)
                 }
