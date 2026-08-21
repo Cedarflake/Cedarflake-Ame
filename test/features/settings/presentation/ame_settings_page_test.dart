@@ -1,5 +1,6 @@
 import "dart:async";
 
+import "package:cedarflake_ame/app/notifications/ame_notification_controller.dart";
 import "package:cedarflake_ame/app/presentation/ame_theme.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
 import "package:cedarflake_ame/features/settings/presentation/ame_settings_page.dart";
@@ -151,6 +152,52 @@ void main() {
       preferenceStore.saved?.previewLoadingSpeed,
       PreviewLoadingSpeed.large,
     );
+  });
+
+  testWidgets("publishes a persistent notification when settings cannot save", (
+    tester,
+  ) async {
+    final gateway = _FakeStorageSettingsGateway(_status());
+    addTearDown(gateway.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          amePreferenceStoreProvider.overrideWithValue(
+            const _FailingAmePreferenceStore(),
+          ),
+          storageSettingsGatewayProvider.overrideWithValue(gateway),
+        ],
+        child: MaterialApp(
+          theme: buildAmeTheme(),
+          home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: true)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final themeMenu = find.byType(DropdownMenu<AmeThemePreference>);
+    await tester.tap(
+      find
+          .descendant(
+            of: themeMenu,
+            matching: find.byIcon(Symbols.arrow_drop_down_rounded),
+          )
+          .hitTestable(),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text("浅色").hitTestable());
+    await tester.pumpAndSettle();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(AmeSettingsPage)),
+    );
+    final notification = container
+        .read(ameNotificationControllerProvider)
+        .current;
+    expect(notification?.title, "无法保存设置");
+    expect(notification?.detail, contains("controlled settings failure"));
+    expect(notification?.isPersistent, isTrue);
   });
 
   testWidgets("saves the preview budget without a dialog save action", (
@@ -464,5 +511,17 @@ class _RecordingAmePreferenceStore implements AmePreferenceStore {
   @override
   Future<void> saveAmePreferences(AmePreferences preferences) async {
     saved = preferences;
+  }
+}
+
+class _FailingAmePreferenceStore implements AmePreferenceStore {
+  const _FailingAmePreferenceStore();
+
+  @override
+  Future<AmePreferences> loadAmePreferences() async => const AmePreferences();
+
+  @override
+  Future<void> saveAmePreferences(AmePreferences preferences) {
+    throw StateError("controlled settings failure");
   }
 }

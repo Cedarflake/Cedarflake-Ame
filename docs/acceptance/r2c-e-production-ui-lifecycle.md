@@ -1,7 +1,8 @@
 # R2c-E production UI and lifecycle validation
 
 - Date: 2026-08-18
-- Scope: production observer lifecycle, bounded bridge state, gallery revision refresh, and desktop shutdown
+- Last amended: 2026-08-21
+- Scope: production observer lifecycle, bounded bridge state, gallery revision refresh, notification feedback, and desktop shutdown
 - Source-media access: controlled temporary fixtures only, read-only
 - Real-library access: none
 
@@ -36,11 +37,15 @@ The controlled fixtures prove:
 | Selection | Preserve explicit asset selection across a revision and clear complete-query select-all |
 | Viewer | Remain independent from the bounded detail window, follow a preferred location across rename, and close only after authoritative removal |
 | Navigation state | Preserve source, filters, layout, preview demand, and logical scroll position |
-| Product status | Render `已同步`, `正在更新图库`, `需要核对`, or `目录不可用`, including start failure before root metrics exist |
-| Manual refresh | Route `更新图库` through the application scan use case |
+| Product status | Render `已同步`, `正在更新图库`, `更新受阻`, or `目录不可用`, including start failure before root metrics exist |
+| Reconciliation feedback | Keep normal updating, automatic recovery, retry, and success out of notifications; retain blocked/error detail until true synchronization; expose localized cause, bounded counts, source path, and issue code through one per-root error notification across cause transitions; never turn automatic recovery into a manual full-scan action |
+| Notification history | Place one icon-only control before the window controls, switch to the unread-dot glyph without a count, and retain at most 100 current-session entries |
+| Notification priority | Keep active or terminal scan feedback above notifications without deleting the pending notification |
+| Manual refresh | Route `更新图库` through the application-owned full scan use case; do not replace it with watcher or journal catch-up |
 | Polling | Prevent overlapping polls and coalesce newer catalog revisions |
+| SQLite writer coordination | Acquire the writer before read-modify-write work and keep an empty path-queue poll read-only |
 | Stop | Wait for an active poll and invoke Rust stop only once |
-| Window close | Run shutdown actions once in reverse order and keep destruction bounded to six seconds |
+| Window close | Hide immediately, then run shutdown actions once in reverse order and destroy within six seconds |
 | Bridge | Generate typed start, poll, stop, freshness, and stable-anchor contracts |
 | Source safety | Perform no source-media mutation or cloud hydration |
 
@@ -133,10 +138,34 @@ the packaged runner, kept the primary process alive while a same-user duplicate 
 runtime initialization, started a replacement after the owner exited, loaded the packaged Rust
 library in both owning processes, and passed both bridge smoke tests.
 
+The 2026-08-20 presentation hardening moved synchronization refresh failure, reconciliation cause,
+and ordinary gallery operation feedback out of competing sidebar or Snackbar surfaces and into one
+bounded notification queue. Notification controller tests passed 4 cases and notification widget
+tests passed 4 cases. The viewer-position suite passed 13 tests, including reconciliation detail,
+unread-to-read icon state, and `立即核对` routing. The unified gallery suite passed 31 tests,
+including fixed placement before the caption controls and deterministic scroll-to-top when Library,
+another source, or a child folder becomes the selected scope. These fixtures use only controlled
+catalog, synchronization, scanner, and path-string fakes; they do not access a real library.
+The settings-page suite passed 6 tests, including a persistent notification with retained diagnostic
+detail when preference persistence fails.
+The complete Daily then passed 405 Rust tests total with 398 passing and seven existing explicit
+ignores, every Flutter test file, Windows Scan 2/2, Windows Accessibility 2/2, bridge compatibility,
+release guardrails, formatting across 145 files, Dart analysis, and whitespace validation.
+
 ## Remaining boundary
 
 R2c-E does not claim authoritative subtree or root consistency after overflow, evidence gaps, watcher
-failure, or a low-frequency audit mismatch. Those rows remain durable and truthfully project
+failure, or a proven journal-continuity failure. Those rows remain durable and truthfully project
 `NeedsReconciliation`. R2c-F owns the escalation ladder, authoritative reconciliation, cancellation,
 rollback, repeated-change recovery, and health recovery proof. Downtime journal catch-up remains the
 conditional R2c-G slice, and large-library reliability evidence remains R2c-H.
+
+The 2026-08-21 shutdown amendment hides the window before waiting for teardown and leaves a
+disconnected full scan recoverable instead of abandoning its staged checkpoint. Non-scan background
+work is cancelled and re-established from watcher, queue, and USN authority on the next start. The
+focused window suite passed 3 tests, including immediate hide before the bounded shutdown wait, and
+the viewer-position suite passed 13 tests, including failure-only notification history. The complete
+Daily passed 412 Rust tests total with 405 passing and seven existing explicit ignores, every Flutter
+test file, Windows Scan 2/2, Windows Accessibility 2/2, bridge compatibility, formatting, analysis,
+and whitespace validation. The Windows Release gate built the x64 application and passed both
+packaged bridge smoke tests. No authorization-bound real-library workload was run.

@@ -1,7 +1,8 @@
+#[cfg(test)]
+use crate::domain::{LibraryChangeCatchUpEvidence, LibraryChangeCatchUpQueueBatch};
 use crate::domain::{
-    LibraryChangeCatchUpEvidence, LibraryChangeCatchUpQueueBatch, LibraryChangeEnqueueReport,
-    LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangePlanningResult,
-    LibraryChangeQueuePolicy, LibraryChangeScope, ScanError,
+    LibraryChangeEnqueueReport, LibraryChangeIntent, LibraryChangeIntentKind,
+    LibraryChangePlanningResult, LibraryChangeQueuePolicy, LibraryChangeScope, ScanError,
 };
 use crate::ports::LibraryChangeQueue;
 
@@ -26,6 +27,7 @@ where
     queue.enqueue_library_change_intents(&plan.intents, enqueued_unix_ms, policy)
 }
 
+#[cfg(test)]
 pub(crate) fn prepare_library_change_catch_up_plan(
     plan: &LibraryChangePlanningResult,
     evidence: Option<&LibraryChangeCatchUpEvidence>,

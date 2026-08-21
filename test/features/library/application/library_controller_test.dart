@@ -666,6 +666,8 @@ void main() {
     expect(state.stagedAssetCount, 40);
     expect(state.issueCount, 3);
     expect(scanner.startedScanId, "scan-recover");
+    expect(scanner.scanCallCount, 0);
+    expect(scanner.resumeCallCount, 1);
   });
 
   test("restores a paused scan without starting it until resume", () async {
@@ -707,6 +709,8 @@ void main() {
     expect(state.status, LibraryStatus.scanning);
     expect(state.isResumingScan, isTrue);
     expect(scanner.startedScanId, "scan-paused");
+    expect(scanner.scanCallCount, 0);
+    expect(scanner.resumeCallCount, 1);
   });
 
   test("forwards pause and keeps the staged scan private", () async {
@@ -2219,6 +2223,7 @@ class _FakeLibraryScanner implements LibraryScanner {
   int? startedItemLimit;
   int? startedEntryLimit;
   int scanCallCount = 0;
+  int resumeCallCount = 0;
 
   void add(LibraryScanUpdate update) {
     _controller.add(update);
@@ -2270,6 +2275,21 @@ class _FakeLibraryScanner implements LibraryScanner {
     if (throwFirstScan && scanCallCount == 1) {
       throw StateError("synthetic stream creation failure");
     }
+    startedScanId = scanId;
+    startedItemLimit = itemLimit;
+    startedEntryLimit = entryLimit;
+    return _controller.stream;
+  }
+
+  @override
+  Stream<LibraryScanUpdate> resume({
+    required String scanId,
+    required String rootPath,
+    required int? itemLimit,
+    required int? entryLimit,
+    required int previewEdge,
+  }) {
+    resumeCallCount += 1;
     startedScanId = scanId;
     startedItemLimit = itemLimit;
     startedEntryLimit = entryLimit;
@@ -2504,6 +2524,23 @@ class _DelayedDoneLibraryScanner implements LibraryScanner {
     final controller = StreamController<LibraryScanUpdate>();
     _controllers.add(controller);
     return controller.stream;
+  }
+
+  @override
+  Stream<LibraryScanUpdate> resume({
+    required String scanId,
+    required String rootPath,
+    required int? itemLimit,
+    required int? entryLimit,
+    required int previewEdge,
+  }) {
+    return scan(
+      scanId: scanId,
+      rootPath: rootPath,
+      itemLimit: itemLimit,
+      entryLimit: entryLimit,
+      previewEdge: previewEdge,
+    );
   }
 }
 

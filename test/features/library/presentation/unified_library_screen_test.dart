@@ -63,9 +63,24 @@ void main() {
       find.byKey(const Key("library-global-bar")),
     );
     final closeCenter = tester.getCenter(find.byKey(const Key("window-close")));
+    final minimizeCenter = tester.getCenter(
+      find.byKey(const Key("window-minimize")),
+    );
+    final notificationCenter = tester.getCenter(
+      find.byKey(const Key("notification-history-button")),
+    );
     expect(searchCenter.dy, closeTo(globalBarCenter.dy, 0.1));
     expect(tester.getSize(find.byKey(const Key("library-search"))).height, 44);
     expect(closeCenter.dy, closeTo(globalBarCenter.dy, 0.1));
+    expect(notificationCenter.dx, lessThan(minimizeCenter.dx));
+    expect(
+      notificationCenter.dx,
+      greaterThan(
+        tester.getTopRight(find.byKey(const Key("library-search"))).dx,
+      ),
+    );
+    expect(find.byKey(const Key("notification-read-icon")), findsOneWidget);
+    expect(find.text("通知历史"), findsNothing);
     expect(
       find.ancestor(
         of: find.byKey(const Key("library-search")),
@@ -1428,6 +1443,101 @@ void main() {
       expect(find.text(LibraryStrings.openInExplorer), findsOneWidget);
       await tester.sendKeyEvent(LogicalKeyboardKey.escape);
       await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets(
+    "starts a selected folder at the top instead of reusing the prior time anchor",
+    (tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final assets = [
+        for (var index = 0; index < 120; index++)
+          _galleryAsset(
+            id: "folder-scope-$index",
+            captureLocalTime: "2026-08-05T00:00:00.000000000",
+          ),
+      ];
+      final initialSnapshot = LibrarySnapshot(
+        catalogPath: "C:\\AmeData\\ame.sqlite3",
+        revision: BigInt.one,
+        queryId: "folder-scope-initial",
+        roots: const [
+          LibraryRoot(
+            id: "root-1",
+            path: "C:\\Pictures",
+            displayPath: "C:\\Pictures",
+            activeScanId: "scan-1",
+            createdUnixMs: 1,
+            assetCount: 120,
+            issueCount: 0,
+            availability: LibraryRootAvailability.available,
+          ),
+        ],
+        assets: assets,
+      );
+      final initialState = LibraryState.fromSnapshot(initialSnapshot).copyWith(
+        timeline: LibraryTimeline(
+          revision: BigInt.one,
+          queryId: initialSnapshot.queryId,
+          totalItems: assets.length,
+          buckets: const [
+            LibraryTimeBucket(
+              monthKey: "2026-08",
+              itemCount: 120,
+              aspectRatioSum: 160,
+            ),
+          ],
+        ),
+      );
+      final catalog = _AnchorResolvingQueryCatalog(initialSnapshot);
+      final folderCatalog = _RecordingFolderCatalog();
+      final container = ProviderContainer(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(initialState),
+          initialLibraryViewPreferencesProvider.overrideWithValue(
+            const LibraryViewPreferences(
+              layoutShape: GalleryLayoutShape.square,
+              thumbnailSize: GalleryThumbnailSize.medium,
+            ),
+          ),
+          libraryCatalogProvider.overrideWithValue(catalog),
+          libraryFolderCatalogProvider.overrideWithValue(folderCatalog),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(container: container, child: const AmeApp()),
+      );
+      await tester.pump();
+
+      final scrollPosition = _galleryScrollPosition(tester);
+      scrollPosition.jumpTo(scrollPosition.maxScrollExtent * 0.55);
+      await tester.pump();
+      await tester.pump();
+      expect(scrollPosition.pixels, greaterThan(0));
+
+      await tester.tap(find.byKey(const ValueKey("source-expand-root-1")));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey("folder-title-root-1-Album")));
+      await tester.pumpAndSettle();
+
+      expect(catalog.requestedLocationIds, isEmpty);
+      expect(
+        container.read(libraryControllerProvider).query.folderRelativePath,
+        "Album",
+      );
+      expect(
+        scrollPosition.pixels,
+        closeTo(scrollPosition.minScrollExtent, 0.01),
+      );
+      expect(
+        tester.widget<Slider>(find.byKey(const Key("timeline-slider"))).value,
+        1,
+      );
     },
   );
 
@@ -2884,6 +2994,17 @@ class _NoopLibraryScanner implements LibraryScanner {
 
   @override
   Stream<LibraryScanUpdate> scan({
+    required String scanId,
+    required String rootPath,
+    required int? itemLimit,
+    required int? entryLimit,
+    required int previewEdge,
+  }) {
+    return const Stream.empty();
+  }
+
+  @override
+  Stream<LibraryScanUpdate> resume({
     required String scanId,
     required String rootPath,
     required int? itemLimit,

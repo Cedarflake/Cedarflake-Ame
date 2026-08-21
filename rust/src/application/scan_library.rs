@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use std::path::Path;
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
@@ -10,8 +10,8 @@ use crate::adapters::{
     is_current_preview_artifact, revalidate_file_state, user_visible_path,
 };
 use crate::domain::{
-    AssetLocationView, DiscoveredFile, PreviewStatus, RecoverableScan, ScanError, ScanEvent,
-    ScanIssue, ScanRequest,
+    AssetLocationView, DiscoveredFile, LibraryChangeQueuePolicy, PreviewStatus, RecoverableScan,
+    ScanCheckpoint, ScanError, ScanEvent, ScanIssue, ScanRequest,
 };
 use crate::ports::{CatalogRepository, IncrementalCatalogRepository, MediaInspector};
 
@@ -23,24 +23,57 @@ const CHECKPOINT_INTERVAL: u64 = 128;
 const DIRECTORY_ENTRY_BATCH: usize = 256;
 const DIRECTORY_ENTRY_WINDOW: u32 = 256;
 const FINALIZATION_WINDOW: u32 = 256;
+const AUTHORITATIVE_RETRY_PATH_LIMIT: usize =
+    LibraryChangeQueuePolicy::MAX_UNRESOLVED_CHANGES as usize;
 const CONTROL_RUNNING: u8 = 0;
 const CONTROL_PAUSE: u8 = 1;
 const CONTROL_CANCEL: u8 = 2;
+const CONTROL_SUSPEND: u8 = 3;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum FullScanReason {
+    ExplicitUserRequest,
+    ResumeForegroundCheckpoint,
+    ResumeAuthoritativeCheckpoint,
+}
 
 pub fn run_scan(
     request: ScanRequest,
     publish: impl FnMut(ScanEvent) -> bool,
 ) -> Result<(), ScanError> {
     let storage = storage_paths()?;
-    run_scan_with_storage(request, publish, storage)
+    run_scan_with_storage_reason(
+        request,
+        publish,
+        storage,
+        FullScanReason::ExplicitUserRequest,
+    )
 }
 
-pub(crate) fn run_authoritative_scan(
+pub fn resume_scan(
     request: ScanRequest,
     publish: impl FnMut(ScanEvent) -> bool,
 ) -> Result<(), ScanError> {
     let storage = storage_paths()?;
-    run_scan_with_storage_owned(request, publish, storage, true)
+    run_scan_with_storage_reason(
+        request,
+        publish,
+        storage,
+        FullScanReason::ResumeForegroundCheckpoint,
+    )
+}
+
+pub(crate) fn resume_authoritative_scan(
+    request: ScanRequest,
+    publish: impl FnMut(ScanEvent) -> bool,
+) -> Result<(), ScanError> {
+    let storage = storage_paths()?;
+    run_scan_with_storage_reason(
+        request,
+        publish,
+        storage,
+        FullScanReason::ResumeAuthoritativeCheckpoint,
+    )
 }
 
 pub fn load_recoverable_scan() -> Result<Option<RecoverableScan>, ScanError> {
@@ -53,19 +86,39 @@ pub fn load_paused_scan() -> Result<Option<RecoverableScan>, ScanError> {
     SqliteCatalog::open(storage.catalog_path)?.load_paused_scan()
 }
 
+#[cfg(test)]
 pub(super) fn run_scan_with_storage(
     request: ScanRequest,
     publish: impl FnMut(ScanEvent) -> bool,
     storage: StoragePaths,
 ) -> Result<(), ScanError> {
-    run_scan_with_storage_owned(request, publish, storage, false)
+    run_scan_with_storage_reason(
+        request,
+        publish,
+        storage,
+        FullScanReason::ExplicitUserRequest,
+    )
 }
 
-fn run_scan_with_storage_owned(
+#[cfg(test)]
+pub(super) fn resume_scan_with_storage(
+    request: ScanRequest,
+    publish: impl FnMut(ScanEvent) -> bool,
+    storage: StoragePaths,
+) -> Result<(), ScanError> {
+    run_scan_with_storage_reason(
+        request,
+        publish,
+        storage,
+        FullScanReason::ResumeForegroundCheckpoint,
+    )
+}
+
+fn run_scan_with_storage_reason(
     request: ScanRequest,
     mut publish: impl FnMut(ScanEvent) -> bool,
     storage: StoragePaths,
-    is_authoritative_recovery: bool,
+    reason: FullScanReason,
 ) -> Result<(), ScanError> {
     validate_request(&request)?;
     let media_inspector = LocalMediaInspector::new();
@@ -78,11 +131,35 @@ fn run_scan_with_storage_owned(
     let had_published_root = catalog
         .load_incremental_catalog_root(&root_id)?
         .is_some_and(|root| root.active_scan_id.is_some());
-    let mut checkpoint = if is_authoritative_recovery {
-        catalog.begin_authoritative_scan(&request, &root_id, &root_path)?
-    } else {
-        catalog.begin_scan(&request, &root_id, &root_path)?
+    let is_authoritative_recovery = reason == FullScanReason::ResumeAuthoritativeCheckpoint;
+    let mut checkpoint = match reason {
+        FullScanReason::ExplicitUserRequest => {
+            catalog.begin_scan(&request, &root_id, &root_path)?
+        }
+        FullScanReason::ResumeForegroundCheckpoint => {
+            catalog.resume_scan(&request, &root_id, &root_path)?
+        }
+        FullScanReason::ResumeAuthoritativeCheckpoint => {
+            catalog.resume_authoritative_scan(&request, &root_id, &root_path)?
+        }
     };
+    let mut authoritative_retry_paths = BTreeSet::new();
+    if is_authoritative_recovery {
+        let issue_limit = LibraryChangeQueuePolicy::MAX_UNRESOLVED_CHANGES.saturating_add(1);
+        let persisted_issues = catalog.load_scan_issues(&request.scan_id, issue_limit)?;
+        let evidence_is_complete = persisted_issues.len() <= AUTHORITATIVE_RETRY_PATH_LIMIT;
+        let evidence_allows_publication = restore_authoritative_retry_paths(
+            &persisted_issues,
+            &canonical_root,
+            Path::new(&request.root_path),
+            evidence_is_complete,
+            &mut authoritative_retry_paths,
+        );
+        if checkpoint.requires_previous_snapshot && evidence_allows_publication {
+            checkpoint.requires_previous_snapshot = false;
+            catalog.checkpoint_scan(&request.scan_id, &checkpoint)?;
+        }
+    }
     let has_active_locations = catalog.has_active_locations()?;
     let control = register_scan(&request.scan_id)?;
     let _registration = ScanRegistration {
@@ -95,7 +172,7 @@ fn run_scan_with_storage_owned(
         item_limit: request.max_items,
         entry_limit: request.max_entries,
     }) {
-        catalog.abandon_scan(&request.scan_id, "detached", 0)?;
+        retain_detached_scan(&mut catalog, &request, &checkpoint, 0)?;
         return Ok(());
     }
 
@@ -107,7 +184,7 @@ fn run_scan_with_storage_owned(
             issue_count: checkpoint.issue_count,
         })
     {
-        catalog.abandon_scan(&request.scan_id, "detached", checkpoint.issue_count)?;
+        retain_detached_scan(&mut catalog, &request, &checkpoint, checkpoint.issue_count)?;
         return Ok(());
     }
 
@@ -140,7 +217,7 @@ fn run_scan_with_storage_owned(
                         scan_id: request.scan_id.clone(),
                         issue: user_visible_issue(issue),
                     }) {
-                        catalog.abandon_scan(&request.scan_id, "detached", issue_count)?;
+                        retain_detached_scan(&mut catalog, &request, &checkpoint, issue_count)?;
                         return Ok(());
                     }
                     if had_published_root {
@@ -296,7 +373,12 @@ fn run_scan_with_storage_owned(
                                 scan_id: request.scan_id.clone(),
                                 issue: user_visible_issue(issue.clone()),
                             }) {
-                                catalog.abandon_scan(&request.scan_id, "detached", issue_count)?;
+                                retain_detached_scan(
+                                    &mut catalog,
+                                    &request,
+                                    &checkpoint,
+                                    issue_count,
+                                )?;
                                 return Ok(());
                             }
                         }
@@ -400,9 +482,10 @@ fn run_scan_with_storage_owned(
                                         scan_id: request.scan_id.clone(),
                                         issue: user_visible_issue(issue),
                                     }) {
-                                        catalog.abandon_scan(
-                                            &request.scan_id,
-                                            "detached",
+                                        retain_detached_scan(
+                                            &mut catalog,
+                                            &request,
+                                            &checkpoint,
                                             issue_count,
                                         )?;
                                         return Ok(());
@@ -450,27 +533,31 @@ fn run_scan_with_storage_owned(
                             Err(issue) => {
                                 issue_count += 1;
                                 catalog.record_issue(&request.scan_id, &issue)?;
-                                if had_published_root {
-                                    if let Some(prior) = preservation_prior.as_ref() {
-                                        catalog.stage_location(
-                                            &request.scan_id,
-                                            &root_id,
-                                            prior,
-                                        )?;
-                                        accepted_items = accepted_items.checked_add(1).ok_or_else(
-                                            || {
-                                            ScanError::new(
-                                                "accepted_item_count_overflow",
-                                                "The accepted item count exceeded the supported range",
-                                            )
-                                            },
-                                        )?;
-                                    }
-                                    checkpoint.accepted_items = accepted_items;
-                                    checkpoint.issue_count = issue_count;
-                                    checkpoint.requires_previous_snapshot = true;
-                                    catalog.checkpoint_scan(&request.scan_id, &checkpoint)?;
+                                if had_published_root
+                                    && let Some(prior) = preservation_prior.as_ref()
+                                {
+                                    catalog.stage_location(&request.scan_id, &root_id, prior)?;
+                                    accepted_items =
+                                        accepted_items.checked_add(1).ok_or_else(|| {
+                                                ScanError::new(
+                                                    "accepted_item_count_overflow",
+                                                    "The accepted item count exceeded the supported range",
+                                                )
+                                            })?;
                                 }
+                                if is_authoritative_recovery {
+                                    if !retain_authoritative_retry_path(
+                                        &mut authoritative_retry_paths,
+                                        &file.relative_path,
+                                    ) {
+                                        checkpoint.requires_previous_snapshot = true;
+                                    }
+                                } else if had_published_root {
+                                    checkpoint.requires_previous_snapshot = true;
+                                }
+                                checkpoint.accepted_items = accepted_items;
+                                checkpoint.issue_count = issue_count;
+                                catalog.checkpoint_scan(&request.scan_id, &checkpoint)?;
                                 discovered_event = Some(ScanEvent::Issue {
                                     scan_id: request.scan_id.clone(),
                                     issue: user_visible_issue(issue),
@@ -491,7 +578,7 @@ fn run_scan_with_storage_owned(
                 let did_accept_asset =
                     matches!(&discovered_event, Some(ScanEvent::AssetDiscovered { .. }));
                 if discovered_event.is_some_and(|event| !publish(event)) {
-                    catalog.abandon_scan(&request.scan_id, "detached", issue_count)?;
+                    retain_detached_scan(&mut catalog, &request, &checkpoint, issue_count)?;
                     return Ok(());
                 }
                 let should_publish_progress = visited_entries == 1
@@ -505,7 +592,7 @@ fn run_scan_with_storage_owned(
                         issue_count,
                     })
                 {
-                    catalog.abandon_scan(&request.scan_id, "detached", issue_count)?;
+                    retain_detached_scan(&mut catalog, &request, &checkpoint, issue_count)?;
                     return Ok(());
                 }
                 if request
@@ -563,7 +650,7 @@ fn run_scan_with_storage_owned(
         accepted_items,
         issue_count,
     }) {
-        catalog.abandon_scan(&request.scan_id, "detached", issue_count)?;
+        retain_detached_scan(&mut catalog, &request, &checkpoint, issue_count)?;
         return Ok(());
     }
     let mut validated_items = 0_u64;
@@ -577,7 +664,7 @@ fn run_scan_with_storage_owned(
         if window.is_empty() {
             break;
         }
-        for (location_id, expected) in window {
+        for (location_id, relative_path, expected) in window {
             if finish_if_controlled(
                 control.load(Ordering::Relaxed),
                 &mut catalog,
@@ -587,23 +674,32 @@ fn run_scan_with_storage_owned(
             )? {
                 return Ok(());
             }
-            if let Err(issue) = revalidate_file_state(&expected) {
+            let preserves_retry_evidence =
+                is_authoritative_recovery && authoritative_retry_paths.contains(&relative_path);
+            if !preserves_retry_evidence && let Err(issue) = revalidate_file_state(&expected) {
                 issue_count += 1;
                 catalog.record_issue(&request.scan_id, &issue)?;
                 if !publish(ScanEvent::Issue {
                     scan_id: request.scan_id.clone(),
                     issue: user_visible_issue(issue),
                 }) {
-                    catalog.abandon_scan(&request.scan_id, "detached", issue_count)?;
+                    retain_detached_scan(&mut catalog, &request, &checkpoint, issue_count)?;
                     return Ok(());
                 }
-                catalog.abandon_scan(&request.scan_id, "stale", issue_count)?;
-                publish(ScanEvent::Stale {
-                    scan_id: request.scan_id,
-                    accepted_items,
-                    issue_count,
-                });
-                return Ok(());
+                if !is_authoritative_recovery
+                    || !retain_authoritative_retry_path(
+                        &mut authoritative_retry_paths,
+                        &relative_path,
+                    )
+                {
+                    catalog.abandon_scan(&request.scan_id, "stale", issue_count)?;
+                    publish(ScanEvent::Stale {
+                        scan_id: request.scan_id,
+                        accepted_items,
+                        issue_count,
+                    });
+                    return Ok(());
+                }
             }
             validated_items = validated_items.checked_add(1).ok_or_else(|| {
                 ScanError::new(
@@ -623,7 +719,7 @@ fn run_scan_with_storage_owned(
                     issue_count,
                 })
             {
-                catalog.abandon_scan(&request.scan_id, "detached", issue_count)?;
+                retain_detached_scan(&mut catalog, &request, &checkpoint, issue_count)?;
                 return Ok(());
             }
         }
@@ -645,7 +741,38 @@ fn run_scan_with_storage_owned(
         return Ok(());
     }
 
-    catalog.publish_scan(&request.scan_id, &root_id, accepted_items, issue_count)?;
+    if is_authoritative_recovery {
+        accepted_items = catalog.preserve_authoritative_retry_evidence(
+            &request.scan_id,
+            &root_id,
+            &authoritative_retry_paths
+                .iter()
+                .cloned()
+                .collect::<Vec<_>>(),
+        )?;
+        if accepted_items != total_items
+            && !publish(ScanEvent::Finalizing {
+                scan_id: request.scan_id.clone(),
+                validated_items: accepted_items,
+                total_items: accepted_items,
+                visited_entries,
+                accepted_items,
+                issue_count,
+            })
+        {
+            retain_detached_scan(&mut catalog, &request, &checkpoint, issue_count)?;
+            return Ok(());
+        }
+        catalog.publish_authoritative_scan(
+            &request.scan_id,
+            &root_id,
+            accepted_items,
+            issue_count,
+            &authoritative_retry_paths.into_iter().collect::<Vec<_>>(),
+        )?;
+    } else {
+        catalog.publish_scan(&request.scan_id, &root_id, accepted_items, issue_count)?;
+    }
     publish(ScanEvent::Completed {
         scan_id: request.scan_id,
         root_id,
@@ -660,6 +787,94 @@ fn run_scan_with_storage_owned(
 fn user_visible_issue(mut issue: ScanIssue) -> ScanIssue {
     issue.path = issue.path.as_deref().map(user_visible_path);
     issue
+}
+
+fn restore_authoritative_retry_paths(
+    issues: &[ScanIssue],
+    canonical_root: &Path,
+    requested_root: &Path,
+    evidence_is_complete: bool,
+    retry_paths: &mut BTreeSet<String>,
+) -> bool {
+    let mut has_retryable_authoritative_issue = false;
+    let mut all_evidence_is_compatible = evidence_is_complete;
+    for issue in issues {
+        if is_retryable_authoritative_path_issue(&issue.code) {
+            has_retryable_authoritative_issue = true;
+            let Some(relative_path) = issue.path.as_deref().and_then(|path| {
+                authoritative_retry_relative_path(path, canonical_root, requested_root)
+            }) else {
+                all_evidence_is_compatible = false;
+                continue;
+            };
+            if !retain_authoritative_retry_path(retry_paths, &relative_path) {
+                all_evidence_is_compatible = false;
+            }
+        } else if !is_nonblocking_scan_issue(&issue.code) {
+            all_evidence_is_compatible = false;
+        }
+    }
+    has_retryable_authoritative_issue && all_evidence_is_compatible
+}
+
+fn authoritative_retry_relative_path(
+    issue_path: &str,
+    canonical_root: &Path,
+    requested_root: &Path,
+) -> Option<String> {
+    let issue_path = Path::new(issue_path);
+    let relative_path = issue_path
+        .strip_prefix(requested_root)
+        .or_else(|_| issue_path.strip_prefix(canonical_root))
+        .ok()?;
+    if relative_path.as_os_str().is_empty() {
+        return None;
+    }
+    Some(relative_path.to_string_lossy().replace('\\', "/"))
+}
+
+fn retain_authoritative_retry_path(
+    retry_paths: &mut BTreeSet<String>,
+    relative_path: &str,
+) -> bool {
+    if retry_paths.contains(relative_path) {
+        return true;
+    }
+    if retry_paths.len() >= AUTHORITATIVE_RETRY_PATH_LIMIT {
+        return false;
+    }
+    retry_paths.insert(relative_path.to_owned())
+}
+
+fn is_retryable_media_issue(code: &str) -> bool {
+    matches!(
+        code,
+        "image_open_failed" | "image_dimensions_failed" | "image_dimensions_exceeded"
+    )
+}
+
+fn is_retryable_authoritative_path_issue(code: &str) -> bool {
+    is_retryable_media_issue(code)
+        || matches!(
+            code,
+            "source_changed_during_scan"
+                | "source_replaced_during_scan"
+                | "source_revalidation_failed"
+                | "source_became_unavailable"
+                | "source_identity_unavailable"
+        )
+}
+
+fn is_nonblocking_scan_issue(code: &str) -> bool {
+    matches!(
+        code,
+        "file_identity_unavailable"
+            | "orientation_read_failed"
+            | "metadata_read_failed"
+            | "metadata_size_exceeded"
+            | "metadata_parse_failed"
+            | "capture_time_invalid"
+    )
 }
 
 pub fn cancel_scan(scan_id: &str) -> bool {
@@ -681,6 +896,17 @@ pub fn pause_scan(scan_id: &str) -> bool {
         return false;
     };
     token.store(CONTROL_PAUSE, Ordering::Relaxed);
+    true
+}
+
+pub(crate) fn suspend_scan(scan_id: &str) -> bool {
+    let Ok(scans) = active_scans().lock() else {
+        return false;
+    };
+    let Some(token) = scans.get(scan_id) else {
+        return false;
+    };
+    token.store(CONTROL_SUSPEND, Ordering::Relaxed);
     true
 }
 
@@ -712,8 +938,23 @@ fn finish_if_controlled(
             });
             Ok(true)
         }
+        CONTROL_SUSPEND => {
+            catalog.checkpoint_scan(&request.scan_id, checkpoint)?;
+            Ok(true)
+        }
         _ => Ok(false),
     }
+}
+
+fn retain_detached_scan(
+    catalog: &mut impl CatalogRepository,
+    request: &ScanRequest,
+    checkpoint: &ScanCheckpoint,
+    issue_count: u64,
+) -> Result<(), ScanError> {
+    let mut retained = checkpoint.clone();
+    retained.issue_count = issue_count;
+    catalog.checkpoint_scan(&request.scan_id, &retained)
 }
 
 fn validate_request(request: &ScanRequest) -> Result<(), ScanError> {

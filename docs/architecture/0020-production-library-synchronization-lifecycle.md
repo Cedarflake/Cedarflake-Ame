@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-18
+- Last amended: 2026-08-21
 
 ## Context
 
@@ -24,7 +25,9 @@ R2c-F work and must not be approximated by a path worker.
 - identify refresh anchors and explicit selections by logical asset identity rather than location;
 - present simple Chinese freshness and degraded states without claiming health early;
 - keep one production process as the exclusive owner of the current user's catalog lifecycle;
-- stop observers and polling before window destruction, with a bounded user-visible close path;
+- remove the desktop window immediately on close while background teardown remains bounded;
+- preserve only full-scan checkpoints across shutdown and re-establish all other change evidence on
+  the next start;
 - leave unsupported authoritative recovery work durable for R2c-F.
 
 ## Considered options
@@ -62,15 +65,21 @@ only the R2c-D path worker. Subtree, root, and freshness-gap rows remain unlease
 Draining observer memory and committing the durable queue form an explicit handoff. The runtime retains
 one drained plan in memory until enqueue succeeds and retries that plan before polling the observer
 again. A database failure therefore degrades the visible source state without losing the only copy of
-the observations. A cold start and every unavailable-to-available transition enqueue a root
-`FreshnessUnknown` intent before the runtime can report synchronized freshness. R2c-F must complete the
-authoritative recovery work before that state can clear.
+the observations. Under ADR 0023, a cold start and every unavailable-to-available transition first
+establish live observation, then start a new metadata-inventory continuity epoch. Inventory pages
+produce bounded path or subtree candidates through the same final-state reconciler, while complete
+scope authority is required before a removal may publish. Watcher evidence loss extends or replaces
+that epoch instead of entering USN catch-up or starting a full scan. The runtime cannot report
+synchronized freshness until the continuity epoch and its retained queue work are complete.
 
 The runtime publishes a bounded `LibrarySynchronizationSnapshot` containing the running flag, catalog
 revision, applied-mutation count, and one status per configured root. Each root status contains the
 durable root generation, availability, freshness and cause, observer health, bounded queue counts, and
 an optional issue code. The bridge exposes only start, poll, and stop application calls. Adapter,
 watcher, SQLite, absolute-path inspection, and queue-row types do not cross it.
+The runtime retains the last observer issue code while the root still has unresolved authoritative
+work. A successful watcher restart does not clear that diagnostic; only a root snapshot that is
+actually `Synchronized` clears it.
 
 Flutter starts synchronization after Rust and the initial catalog are ready. A single timer-driven
 service prevents overlapping polls, retains the last trustworthy revision on a polling failure, and
@@ -111,15 +120,57 @@ Refresh continuity uses stable identity:
 - the active source, filters, layout preferences, preview state, and logical scroll anchor remain owned
   by their existing accepted UI contracts.
 
-Source rows render the four Chinese product states `已同步`, `正在更新图库`, `需要核对`, and
-`目录不可用`. A bridge failure before the first per-root snapshot projects configured available roots
-as `需要核对` rather than leaving them indefinitely in `正在更新图库`. The existing `更新图库` action
-invokes the application scan use case; it does not enumerate or mutate files in Flutter.
+Source rows render the four Chinese product states `已同步`, `正在更新图库`, `更新受阻`, and
+`目录不可用`. `需要核对` is not a product state. A bridge failure before the first per-root snapshot
+projects configured available roots as `更新受阻` rather than leaving them indefinitely in
+`正在更新图库`. The existing `更新图库` action explicitly invokes the application-owned full scan for
+that root; it is not an incremental watcher or metadata-inventory action, and Flutter does not
+enumerate or mutate files itself.
+`正在更新图库` includes recoverable evidence gaps while the healthy observer and durable recovery
+pipeline remain able to converge automatically. `更新受阻` is reserved for a failed observer,
+exhausted durable work, bridge failure, or another condition whose automatic recovery path is no
+longer healthy; it must not be used merely because authoritative work is queued.
+
+The row label remains deliberately compact. Normal updating, automatic recovery, retry wait, and
+successful convergence do not publish notifications. A notification is created only after the
+condition becomes `NeedsReconciliation`, a bridge/catalog refresh fails, or another error requires
+user awareness or action. Active errors are keyed by root and update in place across cause, health,
+or issue-code changes instead of producing alternating history records. Starting an automatic retry
+does not resolve that active error or change the row back to `正在更新图库`; only a synchronized root
+snapshot proves convergence and resolves it. Notification details retain
+the bounded affected-work counts, source display path, stable technical code, and a connected retry
+action only when the failed application operation can actually be replayed. Root recovery remains
+automatic and never exposes an action that starts a manual full scan. Successful automatic recovery resolves the active error
+without adding a success notice, and acknowledgement never changes the Rust-owned freshness state.
+Scan-task state remains separate and retains presentation priority.
+
+SQLite busy or locked results caused by another bounded Ame publication are treated as transient
+writer contention for 30 seconds. During that interval Flutter retains the prior trustworthy
+synchronization snapshot, publishes no notification, and retries through the existing non-overlapping
+poll. Background metadata inventory or authoritative recovery applies the same per-root grace while
+retaining its durable work and bounded retry schedule. Contention that outlives the bound becomes one sticky
+catalog failure and remains visible until a synchronized snapshot proves recovery. Debug builds log each slow call and failure code plus one
+bounded per-root state heartbeat without exposing this diagnostic vocabulary in the ordinary UI.
+Catalog operations that read state before mutating it acquire an immediate SQLite write transaction
+before the first read. This makes the configured busy timeout serialize with an existing writer
+instead of allowing a deferred WAL snapshot to fail immediately during its later write upgrade.
+The path queue performs a read-only readiness probe first and does not open a write transaction when
+there is no due work or retry maintenance. Full-scan directory claims, staging, checkpoints,
+publication, queue leases, completion, retry, and cleanup use the same writer-before-read boundary.
 
 Window management enables close prevention only so shutdown can be coordinated. Close requests share
-one memoized operation, run registered shutdown actions in reverse order, wait no longer than six
-seconds, and then destroy the window even if shutdown reports an error or exceeds the bound. Source
-media is never modified by this lifecycle.
+one memoized operation and hide the window before waiting for background work, so a slow scanner never
+looks like a frozen or flashing close. Registered shutdown actions then run in reverse order for no
+longer than six seconds, after which the hidden window is destroyed even if teardown reports an error
+or exceeds the bound.
+
+Shutdown preserves different work according to its authority. A running foreground or authoritative
+full scan records its traversal checkpoint and remains recoverable; the next process resumes it.
+Watcher instances, metadata inventories, path reconciliation, subtree reconciliation, and bounded
+root recovery are cancelled instead of continuing in-memory authority across the process boundary.
+The next process first establishes a new watcher boundary and starts a new metadata-inventory epoch.
+Old unresolved non-scan rows are coalesced or superseded into that new authority; only a full scan
+resumes its prior checkpoint. Source media is never modified by this lifecycle.
 
 ## Validation gates
 
@@ -127,15 +178,21 @@ media is never modified by this lifecycle.
   availability-transition continuity gaps, unavailable and removed-root handling, idempotent stop,
   retained evidence gaps, and deterministic time;
 - SQLite fixtures prove root metrics isolation, preferred-location asset anchors, rename resolution,
-  direct stable-asset lookup, and nearest-ordinal fallback after removal;
+  direct stable-asset lookup, nearest-ordinal fallback after removal, read-only empty queue polling,
+  and deterministic waiting when a second connection already owns the writer boundary;
 - Flutter service fixtures prove DTO mapping, non-overlapping polling, failure degradation, and one
   Rust stop call across repeated shutdown requests;
 - gallery controller, selection, navigation, viewer, layout, and production-screen fixtures prove
   background revision refresh without blanking, maximum-revision coalescing across an in-flight
   failure, scan-task priority, bounded failure handling, rename continuity, and authoritative-removal
   closure;
-- window fixtures prove reverse-order, idempotent coordinated shutdown and destruction after the
-  configured timeout;
+- notification fixtures prove bounded history and queue state, active-condition deduplication,
+  unread icon switching without a numeric badge, detailed reconciliation evidence, application-use-
+  case action routing, task-surface priority, and transient dismissal;
+- window fixtures prove immediate hide, reverse-order idempotent coordinated shutdown, and
+  destruction after the configured timeout;
+- scan lifecycle fixtures prove shutdown checkpoints and resumes full scans while non-scan recovery
+  restarts only after a new watcher and metadata-inventory continuity epoch;
 - the packaged Windows gate proves duplicate same-user processes cannot cross the application
   initialization boundary and that a replacement process starts after the owner exits;
 - bridge generation, format, Clippy with warnings denied, Dart analysis, complete Rust and Flutter
@@ -157,10 +214,11 @@ by the R2c-E validation.
 - Flutter uses bounded polling rather than receiving unbounded filesystem event streams. The polling
   interval adds a small visibility delay but makes overlap, shutdown, and degradation explicit.
 - A runtime start failure cannot mutate catalog state; the last trustworthy catalog remains visible.
-- Root, subtree, overflow, watcher-gap, and audit recovery remain pending work and truthfully show
+- Root, subtree, overflow, and watcher-gap recovery remain pending work and truthfully show
   `NeedsReconciliation` until R2c-F completes them.
-- The six-second window-close bound favors a responsive exit. Durable queue state and generation guards
-  make unfinished work safe to resume on the next start.
+- The window disappears immediately on close. The six-second hidden teardown bound prevents resource
+  leakage while a new metadata-inventory epoch, full-scan checkpoints, and generation guards make
+  unfinished work safe on the next start.
 
 ## Replacement strategy
 

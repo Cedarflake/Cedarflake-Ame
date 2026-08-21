@@ -194,19 +194,19 @@ void main() {
 
       expect(catalog.loadCount, 1);
       expect(
-        find.text(LibraryStrings.synchronizationRefreshFailed),
+        find.text(LibraryStrings.synchronizationRefreshFailureTitle),
         findsOneWidget,
       );
 
       await tester.pump(const Duration(seconds: 3));
       expect(catalog.loadCount, 1);
 
-      await tester.tap(find.byKey(const Key("library-retry-button")));
+      await tester.tap(find.byKey(const Key("notification-primary-action")));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
       expect(catalog.loadCount, 2);
       expect(
-        find.text(LibraryStrings.synchronizationRefreshFailed),
+        find.text(LibraryStrings.synchronizationRefreshFailureTitle),
         findsOneWidget,
       );
     },
@@ -260,12 +260,146 @@ void main() {
         BigInt.from(4),
       );
       expect(
-        find.text(LibraryStrings.synchronizationRefreshFailed),
+        find.text(LibraryStrings.synchronizationRefreshFailureTitle),
         findsNothing,
       );
 
       await tester.pump(const Duration(seconds: 3));
       expect(catalog.loadCount, 2);
+    },
+  );
+
+  testWidgets(
+    "automatic retry keeps one error until synchronization proves recovery",
+    (tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final initialState = _libraryState(assetCount: 1);
+      final scanner = _HeldLibraryScanner();
+      final synchronization = _TestLibrarySynchronization(
+        _needsReconciliationSnapshot(),
+      );
+      addTearDown(synchronization.dispose);
+      addTearDown(scanner.dispose);
+      final catalog = _SynchronizationViewerCatalog(
+        _snapshotFromState(initialState, revision: BigInt.two),
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            initialLibraryStateProvider.overrideWithValue(initialState),
+            libraryCatalogProvider.overrideWithValue(catalog),
+            libraryScannerProvider.overrideWithValue(scanner),
+            librarySynchronizationProvider.overrideWithValue(synchronization),
+          ],
+          child: const AmeApp(),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text("“Pictures”更新受阻"), findsOneWidget);
+      expect(
+        find.text("Windows 拒绝了目录监控访问。Ame 会保留上次可信内容，并在恢复后重新核对。"),
+        findsOneWidget,
+      );
+      expect(find.text("3 项等待处理 · 2 项等待重试 · 1 项状态尚未确认"), findsOneWidget);
+      expect(find.byKey(const Key("notification-unread-icon")), findsOneWidget);
+
+      synchronization.publish(_automaticRecoverySnapshot());
+      await tester.pump();
+
+      expect(find.text("“Pictures”更新受阻"), findsOneWidget);
+      expect(find.text("短时间内的文件变化超出监控可确认范围，Ame 正在重新核对该目录。"), findsNothing);
+      expect(
+        find.byKey(const Key("notification-primary-action")),
+        findsNothing,
+      );
+
+      synchronization.publish(_synchronizedRootSnapshot());
+      await tester.pump();
+
+      expect(find.text("“Pictures”更新受阻"), findsNothing);
+      expect(
+        find.byKey(const Key("notification-primary-action")),
+        findsNothing,
+      );
+
+      await tester.tap(find.byKey(const Key("notification-history-button")));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key("notification-history-item-ame-notification-2")),
+        findsNothing,
+      );
+      await tester.tap(
+        find.byKey(const Key("notification-history-item-ame-notification-1")),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text("change_source_callback_access_denied"), findsOneWidget);
+      expect(find.text(r"C:\Pictures"), findsWidgets);
+
+      await tester.tap(find.text("关闭"));
+      await tester.pumpAndSettle();
+      expect(scanner.scanCount, 0);
+    },
+  );
+
+  testWidgets(
+    "catalog persistence failure is reported without starting a manual scan",
+    (tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final initialState = _libraryState(assetCount: 1);
+      final scanner = _HeldLibraryScanner();
+      final synchronization = _TestLibrarySynchronization(
+        _persistenceFailureSnapshot(),
+      );
+      addTearDown(synchronization.dispose);
+      addTearDown(scanner.dispose);
+      final catalog = _SynchronizationViewerCatalog(
+        _snapshotFromState(initialState, revision: BigInt.two),
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            initialLibraryStateProvider.overrideWithValue(initialState),
+            libraryCatalogProvider.overrideWithValue(catalog),
+            libraryScannerProvider.overrideWithValue(scanner),
+            librarySynchronizationProvider.overrideWithValue(synchronization),
+          ],
+          child: const AmeApp(),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text("“Pictures”更新受阻"), findsOneWidget);
+      expect(
+        find.text(LibraryStrings.synchronizationPersistenceFailed),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key("notification-primary-action")),
+        findsNothing,
+      );
+      expect(scanner.scanCount, 0);
+
+      await tester.tap(find.byKey(const Key("notification-history-button")));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key("notification-history-item-ame-notification-1")),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text("catalog_database_busy"), findsOneWidget);
+      expect(find.text(r"C:\Pictures"), findsWidgets);
+      expect(scanner.scanCount, 0);
     },
   );
 
@@ -301,7 +435,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
       expect(
-        find.text(LibraryStrings.synchronizationRefreshFailed),
+        find.text(LibraryStrings.synchronizationRefreshFailureTitle),
         findsOneWidget,
       );
 
@@ -336,7 +470,7 @@ void main() {
       expect(find.byKey(const Key("library-cancel-button")), findsOneWidget);
       expect(find.byKey(const Key("library-retry-button")), findsNothing);
       expect(
-        find.text(LibraryStrings.synchronizationRefreshFailed),
+        find.text(LibraryStrings.synchronizationRefreshFailureTitle),
         findsNothing,
       );
 
@@ -363,10 +497,13 @@ void main() {
       await tester.pump();
 
       expect(
-        find.text(LibraryStrings.synchronizationRefreshFailed),
+        find.text(LibraryStrings.synchronizationRefreshFailureTitle),
         findsOneWidget,
       );
-      expect(find.byKey(const Key("library-retry-button")), findsOneWidget);
+      expect(
+        find.byKey(const Key("notification-primary-action")),
+        findsOneWidget,
+      );
     },
   );
 
@@ -427,7 +564,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
       expect(
-        find.text(LibraryStrings.synchronizationRefreshFailed),
+        find.text(LibraryStrings.synchronizationRefreshFailureTitle),
         findsOneWidget,
       );
 
@@ -451,7 +588,7 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.text(LibraryStrings.synchronizationRefreshFailed),
+        find.text(LibraryStrings.synchronizationRefreshFailureTitle),
         findsNothing,
       );
 
@@ -466,11 +603,11 @@ void main() {
       expect(acknowledgedState.errorMessage, isNull);
       expect(find.text("添加文件夹失败"), findsNothing);
       expect(
-        find.text(LibraryStrings.synchronizationRefreshFailed),
+        find.text(LibraryStrings.synchronizationRefreshFailureTitle),
         findsOneWidget,
       );
 
-      await tester.tap(find.byKey(const Key("library-retry-button")));
+      await tester.tap(find.byKey(const Key("notification-primary-action")));
       await _pumpSynchronizationRefresh(tester);
 
       expect(catalog.loadCount, 2);
@@ -782,7 +919,7 @@ Future<void> _verifyTerminalScanFeedbackAcknowledgement(
   await tester.pump();
   await tester.pump(const Duration(seconds: 1));
   expect(
-    find.text(LibraryStrings.synchronizationRefreshFailed),
+    find.text(LibraryStrings.synchronizationRefreshFailureTitle),
     findsOneWidget,
   );
 
@@ -801,7 +938,10 @@ Future<void> _verifyTerminalScanFeedbackAcknowledgement(
   expect(find.text(terminalTitle), findsOneWidget);
   expect(find.byKey(const Key("library-retry-button")), findsOneWidget);
   expect(find.byKey(const Key("library-task-dismiss-button")), findsOneWidget);
-  expect(find.text(LibraryStrings.synchronizationRefreshFailed), findsNothing);
+  expect(
+    find.text(LibraryStrings.synchronizationRefreshFailureTitle),
+    findsNothing,
+  );
   expect(scanner.scanCount, 1);
 
   await tester.tap(find.byKey(const Key("library-task-dismiss-button")));
@@ -809,18 +949,18 @@ Future<void> _verifyTerminalScanFeedbackAcknowledgement(
 
   expect(find.text(terminalTitle), findsNothing);
   expect(
-    find.text(LibraryStrings.synchronizationRefreshFailed),
+    find.text(LibraryStrings.synchronizationRefreshFailureTitle),
     findsOneWidget,
   );
-  expect(find.byKey(const Key("library-retry-button")), findsOneWidget);
+  expect(find.byKey(const Key("notification-primary-action")), findsOneWidget);
 
-  await tester.tap(find.byKey(const Key("library-retry-button")));
+  await tester.tap(find.byKey(const Key("notification-primary-action")));
   await _pumpSynchronizationRefresh(tester);
 
   expect(catalog.loadCount, 2);
   expect(scanner.scanCount, 1);
   expect(
-    find.text(LibraryStrings.synchronizationRefreshFailed),
+    find.text(LibraryStrings.synchronizationRefreshFailureTitle),
     findsOneWidget,
   );
 }
@@ -915,6 +1055,93 @@ LibrarySynchronizationSnapshot _synchronizationSnapshot(BigInt revision) {
     catalogRevision: revision,
     appliedMutationCount: 1,
     roots: const {},
+  );
+}
+
+LibrarySynchronizationSnapshot _needsReconciliationSnapshot() {
+  return LibrarySynchronizationSnapshot(
+    isRunning: true,
+    catalogRevision: BigInt.one,
+    appliedMutationCount: 0,
+    roots: {
+      "root-1": LibraryRootSynchronizationStatus(
+        rootId: "root-1",
+        rootGeneration: BigInt.one,
+        availability: LibraryRootAvailability.available,
+        freshness: LibraryCatalogFreshness.needsReconciliation,
+        freshnessCause: LibraryCatalogFreshnessCause.changeSourceUnhealthy,
+        sourceStatus: LibraryChangeSourceStatus.failed,
+        pendingChangeCount: BigInt.from(3),
+        retryWaitCount: BigInt.two,
+        freshnessUnknownCount: BigInt.one,
+        lastIssueCode: "change_source_callback_access_denied",
+      ),
+    },
+  );
+}
+
+LibrarySynchronizationSnapshot _automaticRecoverySnapshot() {
+  return LibrarySynchronizationSnapshot(
+    isRunning: true,
+    catalogRevision: BigInt.one,
+    appliedMutationCount: 0,
+    roots: {
+      "root-1": LibraryRootSynchronizationStatus(
+        rootId: "root-1",
+        rootGeneration: BigInt.one,
+        availability: LibraryRootAvailability.available,
+        freshness: LibraryCatalogFreshness.updating,
+        freshnessCause: LibraryCatalogFreshnessCause.evidenceGap,
+        sourceStatus: LibraryChangeSourceStatus.healthy,
+        pendingChangeCount: BigInt.zero,
+        retryWaitCount: BigInt.zero,
+        freshnessUnknownCount: BigInt.one,
+        lastIssueCode: "change_source_rescan_required",
+      ),
+    },
+  );
+}
+
+LibrarySynchronizationSnapshot _persistenceFailureSnapshot() {
+  return LibrarySynchronizationSnapshot(
+    isRunning: true,
+    catalogRevision: BigInt.one,
+    appliedMutationCount: 0,
+    roots: {
+      "root-1": LibraryRootSynchronizationStatus(
+        rootId: "root-1",
+        rootGeneration: BigInt.one,
+        availability: LibraryRootAvailability.available,
+        freshness: LibraryCatalogFreshness.needsReconciliation,
+        freshnessCause: LibraryCatalogFreshnessCause.pendingChanges,
+        sourceStatus: LibraryChangeSourceStatus.healthy,
+        pendingChangeCount: BigInt.one,
+        retryWaitCount: BigInt.one,
+        freshnessUnknownCount: BigInt.zero,
+        lastIssueCode: "catalog_database_busy",
+      ),
+    },
+  );
+}
+
+LibrarySynchronizationSnapshot _synchronizedRootSnapshot() {
+  return LibrarySynchronizationSnapshot(
+    isRunning: true,
+    catalogRevision: BigInt.two,
+    appliedMutationCount: 1,
+    roots: {
+      "root-1": LibraryRootSynchronizationStatus(
+        rootId: "root-1",
+        rootGeneration: BigInt.one,
+        availability: LibraryRootAvailability.available,
+        freshness: LibraryCatalogFreshness.synchronized,
+        freshnessCause: LibraryCatalogFreshnessCause.noPendingChanges,
+        sourceStatus: LibraryChangeSourceStatus.healthy,
+        pendingChangeCount: BigInt.zero,
+        retryWaitCount: BigInt.zero,
+        freshnessUnknownCount: BigInt.zero,
+      ),
+    },
   );
 }
 
@@ -1179,6 +1406,19 @@ class _HeldLibraryScanner implements LibraryScanner {
 
   @override
   Stream<LibraryScanUpdate> scan({
+    required String scanId,
+    required String rootPath,
+    required int? itemLimit,
+    required int? entryLimit,
+    required int previewEdge,
+  }) {
+    scanCount += 1;
+    this.scanId = scanId;
+    return _updates.stream;
+  }
+
+  @override
+  Stream<LibraryScanUpdate> resume({
     required String scanId,
     required String rootPath,
     required int? itemLimit,

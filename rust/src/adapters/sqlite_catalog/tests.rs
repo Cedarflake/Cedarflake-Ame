@@ -6,6 +6,7 @@ use std::time::{Duration, Instant};
 use tempfile::tempdir;
 
 use crate::domain::GallerySortDirection;
+use crate::ports::LibraryChangeQueue;
 
 use super::*;
 
@@ -945,6 +946,44 @@ fn catalog_writers_wait_for_short_writer_contention() {
         .expect("release catalog writer lock");
     assert_eq!(writer.join().expect("contending writer thread"), Ok(1));
     assert!(attempt_started.elapsed() >= Duration::from_millis(100));
+}
+
+#[test]
+fn scan_directory_claim_waits_for_writer_before_reading_snapshot() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let request = fixture_request("contended-scan", "C:\\Pictures");
+    let mut catalog = SqliteCatalog::open(path.clone()).expect("scan catalog");
+    catalog
+        .begin_scan(&request, "contended-root", &request.root_path)
+        .expect("begin contended scan");
+    let holder = SqliteCatalog::open(path).expect("lock holder catalog");
+    holder
+        .connection
+        .execute_batch(
+            "BEGIN IMMEDIATE;
+             UPDATE catalog_state SET revision = revision;",
+        )
+        .expect("hold catalog writer lock");
+
+    let claim = thread::spawn(move || catalog.claim_next_directory("contended-scan"));
+    thread::sleep(Duration::from_millis(100));
+    assert!(
+        !claim.is_finished(),
+        "scan claim must wait instead of failing against a stale read snapshot"
+    );
+    holder
+        .connection
+        .execute_batch("COMMIT")
+        .expect("release catalog writer lock");
+
+    assert_eq!(
+        claim
+            .join()
+            .expect("scan claim thread")
+            .expect("scan claim waits for the current writer"),
+        Some(String::new())
+    );
 }
 
 #[test]
@@ -2175,8 +2214,21 @@ fn persists_and_validates_a_recoverable_scan_checkpoint() {
     assert_eq!(recoverable.visited_entries, 128);
     assert_eq!(recoverable.accepted_items, 40);
     assert_eq!(recoverable.issue_count, 3);
+    let create_error = restored
+        .begin_scan(&request, "unexpected-root", "C:\\Unexpected")
+        .expect_err("new scans cannot reuse a checkpoint identifier");
+    assert_eq!(create_error.code, "catalog_scan_already_exists");
+    let unexpected_root_count = restored
+        .connection
+        .query_row(
+            "SELECT COUNT(*) FROM library_roots WHERE id = 'unexpected-root'",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .expect("unexpected root count");
+    assert_eq!(unexpected_root_count, 0);
     let resumed = restored
-        .begin_scan(&request, "root-resume", raw_root_path)
+        .resume_scan(&request, "root-resume", raw_root_path)
         .expect("resume scan");
     assert_eq!(
         resumed.last_visited_relative_path,
@@ -2194,7 +2246,7 @@ fn persists_and_validates_a_recoverable_scan_checkpoint() {
     let mut changed_request = request.clone();
     changed_request.preview_edge = 256;
     let error = restored
-        .begin_scan(&changed_request, "root-resume", "C:\\Pictures")
+        .resume_scan(&changed_request, "root-resume", "C:\\Pictures")
         .expect_err("changed parameters cannot reuse a checkpoint");
     assert_eq!(error.code, "catalog_scan_resume_mismatch");
 }
@@ -3761,7 +3813,7 @@ fn recoverable_scan_queries_keep_foreground_and_authoritative_owners_separate() 
         .load_authoritative_recoverable_scan_after(Some(&second_recovery.scan_id))
         .expect("authoritative recovery end");
     let ownership_error = catalog
-        .begin_scan(
+        .resume_scan(
             &first_authoritative,
             "root-recovery-a",
             &first_authoritative.root_path,
@@ -3773,4 +3825,146 @@ fn recoverable_scan_queries_keep_foreground_and_authoritative_owners_separate() 
     assert_eq!(second_recovery.scan_id, second_authoritative.scan_id);
     assert!(end_of_page.is_none());
     assert_eq!(ownership_error.code, "catalog_scan_resume_mismatch");
+}
+
+#[test]
+fn authoritative_resume_after_root_unregister_fails_without_recreating_catalog_state() {
+    let directory = tempdir().expect("catalog directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let mut catalog = SqliteCatalog::open(path).expect("catalog");
+    let root_id = "removed-recovery-root";
+    let recovery = fixture_request("removed-recovery-scan", "C:\\RemovedRecovery");
+    catalog
+        .begin_authoritative_scan(&recovery, root_id, &recovery.root_path)
+        .expect("begin authoritative scan");
+    let loaded = catalog
+        .load_authoritative_recoverable_scan_after(None)
+        .expect("load authoritative checkpoint")
+        .expect("authoritative checkpoint");
+    assert_eq!(loaded.scan_id, recovery.scan_id);
+
+    assert!(catalog.unregister_root(root_id).expect("unregister root"));
+    let error = catalog
+        .resume_authoritative_scan(&recovery, root_id, &recovery.root_path)
+        .expect_err("removed checkpoint must fail closed");
+
+    assert_eq!(error.code, "catalog_scan_resume_missing");
+    let counts: (i64, i64, i64) = catalog
+        .connection
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM library_roots WHERE id = ?1),
+               (SELECT COUNT(*) FROM scan_runs WHERE root_id = ?1),
+               (SELECT COUNT(*) FROM scan_directory_frontier
+                  WHERE scan_id = ?2)",
+            rusqlite::params![root_id, recovery.scan_id],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .expect("catalog counts");
+    assert_eq!(counts, (0, 0, 0));
+}
+
+#[test]
+fn legacy_root_audit_and_its_exclusive_recovery_scan_are_retired() {
+    let directory = tempdir().expect("catalog directory");
+    let mut catalog =
+        SqliteCatalog::open(directory.path().join("catalog.sqlite3")).expect("catalog");
+    let root_id = "legacy-audit-root";
+    let root_path = "C:\\LegacyAudit";
+    let initial = fixture_request("legacy-audit-initial", root_path);
+    catalog
+        .begin_scan(&initial, root_id, root_path)
+        .expect("begin initial scan");
+    catalog
+        .publish_scan(&initial.scan_id, root_id, 0, 0)
+        .expect("publish initial scan");
+    let generation = LibraryRootGeneration::initial();
+    let policy = LibraryChangeQueuePolicy {
+        debounce_millis: 0,
+        ..LibraryChangeQueuePolicy::default()
+    };
+    catalog
+        .enqueue_library_change_intents(
+            &[LibraryChangeIntent {
+                root_id: root_id.to_owned(),
+                root_generation: generation,
+                kind: LibraryChangeIntentKind::Reconcile,
+                scope: LibraryChangeScope::Root,
+                relative_path: String::new(),
+                previous_relative_path: None,
+                origin: LibraryChangeOrigin::ConsistencyAudit,
+                first_observed_unix_ms: 1_000,
+                most_recent_observed_unix_ms: 1_000,
+                first_sequence: 1,
+                most_recent_sequence: 1,
+                coalesced_observation_count: 1,
+            }],
+            1_000,
+            policy,
+        )
+        .expect("enqueue legacy audit");
+    let recovery = fixture_request("legacy-audit-recovery", root_path);
+    catalog
+        .begin_authoritative_scan(&recovery, root_id, root_path)
+        .expect("begin legacy audit recovery scan");
+
+    let retired = catalog
+        .retire_legacy_consistency_audits(2_000)
+        .expect("retire legacy audit");
+    let scan_status: String = catalog
+        .connection
+        .query_row(
+            "SELECT status FROM scan_runs WHERE id = ?1",
+            [&recovery.scan_id],
+            |row| row.get(0),
+        )
+        .expect("retired scan status");
+    let metrics = catalog
+        .load_library_change_root_queue_metrics(root_id, generation, 2_000, policy)
+        .expect("retired queue metrics");
+
+    assert_eq!(retired, 1);
+    assert_eq!(scan_status, "superseded");
+    assert!(
+        catalog
+            .load_authoritative_recoverable_scan_after(None)
+            .expect("recoverable scans")
+            .is_none()
+    );
+    assert_eq!(metrics.pending_count, 0);
+    assert_eq!(metrics.leased_count, 0);
+    assert_eq!(metrics.retry_wait_count, 0);
+    assert_eq!(metrics.superseded_count, 1);
+
+    catalog
+        .enqueue_library_change_intents(
+            &[LibraryChangeIntent {
+                root_id: root_id.to_owned(),
+                root_generation: generation,
+                kind: LibraryChangeIntentKind::Reconcile,
+                scope: LibraryChangeScope::Path,
+                relative_path: "retry.png".to_owned(),
+                previous_relative_path: None,
+                origin: LibraryChangeOrigin::ConsistencyAudit,
+                first_observed_unix_ms: 3_000,
+                most_recent_observed_unix_ms: 3_000,
+                first_sequence: 1,
+                most_recent_sequence: 1,
+                coalesced_observation_count: 1,
+            }],
+            3_000,
+            policy,
+        )
+        .expect("enqueue historical path retry");
+
+    assert_eq!(
+        catalog
+            .retire_legacy_consistency_audits(4_000)
+            .expect("preserve historical path retry"),
+        0
+    );
+    let retained = catalog
+        .load_library_change_root_queue_metrics(root_id, generation, 4_000, policy)
+        .expect("retained path metrics");
+    assert_eq!(retained.pending_count, 1);
 }

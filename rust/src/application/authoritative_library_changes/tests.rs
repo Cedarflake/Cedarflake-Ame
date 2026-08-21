@@ -76,7 +76,6 @@ fn bounded_subtree_reconciles_addition_and_removal_at_one_revision() {
         .expect("outside remains published");
     assert_eq!(report.incremental.completed_count, 1);
     assert_eq!(report.incremental.applied_mutation_count, 2);
-    assert!(report.full_scan.is_none());
     assert_eq!(refreshed.catalog_revision, root.catalog_revision + 1);
     assert!(
         catalog
@@ -98,7 +97,7 @@ fn bounded_subtree_reconciles_addition_and_removal_at_one_revision() {
 }
 
 #[test]
-fn oversized_authoritative_scope_defers_without_publishing_and_requests_full_scan() {
+fn oversized_authoritative_scope_retries_for_metadata_inventory_without_publishing() {
     let source = tempdir().expect("source directory");
     let storage = tempdir().expect("storage directory");
     write_png(&source.path().join("one.png"), [10, 20, 30, 255]);
@@ -118,10 +117,9 @@ fn oversized_authoritative_scope_defers_without_publishing_and_requests_full_sca
         AuthoritativeRecoveryPolicy {
             max_scope_entries: 1,
             max_scope_paths: 1,
-            audit_interval_millis: 1_000,
         },
     )
-    .expect("overflow escalation");
+    .expect("bounded metadata retry");
     let metrics = catalog
         .load_library_change_root_queue_metrics(
             &root.root_id,
@@ -131,17 +129,10 @@ fn oversized_authoritative_scope_defers_without_publishing_and_requests_full_sca
         )
         .expect("queue metrics");
 
-    assert_eq!(report.incremental.deferred_count, 1);
+    assert_eq!(report.incremental.retried_count, 1);
     assert_eq!(report.incremental.applied_mutation_count, 0);
     assert_eq!(report.incremental.catalog_revision, root.catalog_revision);
-    assert_eq!(
-        report
-            .full_scan
-            .as_ref()
-            .map(|request| request.root_id.as_str()),
-        Some(root.root_id.as_str())
-    );
-    assert_eq!(metrics.pending_count, 1);
+    assert_eq!(metrics.retry_wait_count, 1);
     assert_eq!(only_root(&catalog).catalog_revision, root.catalog_revision);
 }
 
@@ -422,6 +413,5 @@ fn fixture_recovery_policy() -> AuthoritativeRecoveryPolicy {
     AuthoritativeRecoveryPolicy {
         max_scope_entries: 64,
         max_scope_paths: 32,
-        audit_interval_millis: 1_000,
     }
 }

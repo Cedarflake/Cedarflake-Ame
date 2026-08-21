@@ -1,7 +1,13 @@
 # ADR 0022: Catch up Windows downtime through the USN change journal
 
-- Status: Accepted
+- Status: Superseded by ADR 0023
 - Date: 2026-08-18
+- Last amended: 2026-08-21
+
+ADR 0023 replaces the production USN decision with one non-privileged live-watcher and metadata-
+inventory continuity model. This record remains historical evidence for schema v19 migration and
+the implementation that preceded that decision. It no longer authorizes production journal access,
+UAC, or USN fallback scheduling.
 
 ## Context
 
@@ -171,9 +177,17 @@ durable. The root remains `Updating` or `NeedsReconciliation` until catch-up or 
 authoritative recovery publishes. Unsupported platforms use the same explicit fallback and never
 claim journal coverage.
 
+Fallback remains evidence-driven. Ordinary process restart, elapsed time, and a temporary watcher
+interruption do not authorize a full scan when the journal range is continuous. A fallback root is
+first offered to ADR 0021's bounded authoritative worker; only a verified capacity overflow or
+structural completeness gap can escalate it to the resumable full-scan pipeline.
+
 One background catch-up operation and the existing authoritative recovery worker are mutually
-exclusive. Shutdown requests cancellation and retains the worker handle in the same explicit
-stopping lifecycle used by ADR 0021; restart is rejected until the previous worker is joined.
+exclusive. Shutdown cancels catch-up rather than carrying its in-memory candidates across the
+process boundary; the next process establishes the live watcher first and rereads the uncommitted
+journal range from the last durable checkpoint. The worker handle remains in the same explicit
+stopping lifecycle used by ADR 0021, and an in-process restart is rejected until the previous worker
+is joined.
 Catch-up readiness is evaluated per root: one unavailable or unhealthy root cannot block a healthy
 root whose catch-up evidence is already durable from running its authoritative recovery. Subtree
 catalog containment and ordering use the same exact-case semantics as USN candidate distribution,

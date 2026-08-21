@@ -298,15 +298,22 @@ class LibraryController extends Notifier<LibraryState> {
     );
     _activeScanRun = run;
     try {
-      final stream = ref
-          .read(libraryScannerProvider)
-          .scan(
-            scanId: scanId,
-            rootPath: rootPath,
-            itemLimit: itemLimit,
-            entryLimit: entryLimit,
-            previewEdge: previewEdge,
-          );
+      final scanner = ref.read(libraryScannerProvider);
+      final stream = isResuming
+          ? scanner.resume(
+              scanId: scanId,
+              rootPath: rootPath,
+              itemLimit: itemLimit,
+              entryLimit: entryLimit,
+              previewEdge: previewEdge,
+            )
+          : scanner.scan(
+              scanId: scanId,
+              rootPath: rootPath,
+              itemLimit: itemLimit,
+              entryLimit: entryLimit,
+              previewEdge: previewEdge,
+            );
       _subscription = stream.listen(
         (update) => _handleUpdate(run, update),
         onError: (Object error, StackTrace stackTrace) {

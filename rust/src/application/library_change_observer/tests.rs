@@ -70,6 +70,7 @@ impl LibraryChangeSource for FakeSource {
                 health: self.health,
                 dropped_observation_count: 0,
                 ignored_callback_count: 0,
+                last_issue_code: None,
             })
         })
     }
@@ -199,6 +200,52 @@ fn failed_callback_ingress_stops_the_source_and_schedules_bounded_backoff() {
 }
 
 #[test]
+fn recoverable_gap_keeps_the_healthy_source_running() {
+    let stops = Arc::new(Mutex::new(0));
+    let batch = LibraryChangeSourceBatch {
+        observations: vec![LibraryChangeObservation {
+            root_id: "root-a".to_owned(),
+            root_generation: LibraryRootGeneration::new(7).expect("generation"),
+            sequence: 1,
+            observed_unix_ms: 1_000,
+            kind: LibraryChangeObservationKind::EvidenceGap,
+            scope: LibraryChangeScope::Root,
+            relative_path: String::new(),
+            previous_relative_path: None,
+            origin: LibraryChangeOrigin::LiveNotification,
+        }],
+        health: LibraryChangeSourceHealth::Healthy,
+        dropped_observation_count: 0,
+        ignored_callback_count: 0,
+        last_issue_code: Some("change_source_rescan_required".to_owned()),
+    };
+    let source = FakeSource {
+        health: LibraryChangeSourceHealth::Healthy,
+        batches: VecDeque::from([Ok(batch)]),
+        stops: Arc::clone(&stops),
+        stop_delay: Duration::ZERO,
+        should_fail_stop: false,
+    };
+    let factory = factory([Ok(source)]);
+    let state = Arc::clone(&factory.state);
+    let mut observer =
+        LibraryChangeObserver::start(factory, request(), limits(), restart_policy(), 0)
+            .expect("observer");
+
+    let poll = observer.poll(1).expect("recoverable gap poll");
+
+    assert_eq!(poll.source_health, LibraryChangeSourceHealth::Healthy);
+    assert_eq!(poll.restart_attempt, 0);
+    assert_eq!(poll.next_restart_unix_ms, None);
+    assert_eq!(
+        poll.planning.freshness,
+        CatalogFreshnessState::NeedsReconciliation
+    );
+    assert_eq!(*stops.lock().expect("stop count"), 0);
+    assert_eq!(state.lock().expect("factory state").starts, 1);
+}
+
+#[test]
 fn delivered_degraded_gap_restarts_the_source_and_can_recover_health() {
     let stops = Arc::new(Mutex::new(0));
     let degraded_batch = LibraryChangeSourceBatch {
@@ -216,6 +263,7 @@ fn delivered_degraded_gap_restarts_the_source_and_can_recover_health() {
         health: LibraryChangeSourceHealth::Degraded,
         dropped_observation_count: 1,
         ignored_callback_count: 0,
+        last_issue_code: Some("change_source_rescan_required".to_owned()),
     };
     let degraded_source = FakeSource {
         health: LibraryChangeSourceHealth::Healthy,
@@ -235,6 +283,10 @@ fn delivered_degraded_gap_restarts_the_source_and_can_recover_health() {
 
     assert_eq!(degraded.source_health, LibraryChangeSourceHealth::Degraded);
     assert_eq!(degraded.dropped_observation_count, 1);
+    assert_eq!(
+        degraded.last_source_error_code.as_deref(),
+        Some("change_source_rescan_required")
+    );
     assert_eq!(
         degraded.planning.freshness,
         CatalogFreshnessState::NeedsReconciliation
@@ -320,6 +372,7 @@ fn stale_generation_callbacks_cannot_enter_the_current_plan() {
         health: LibraryChangeSourceHealth::Healthy,
         dropped_observation_count: 0,
         ignored_callback_count: 0,
+        last_issue_code: None,
     };
     let source = FakeSource {
         health: LibraryChangeSourceHealth::Healthy,
@@ -345,34 +398,34 @@ fn stale_generation_callbacks_cannot_enter_the_current_plan() {
 }
 
 #[test]
-fn dropped_observations_force_root_reconciliation_even_if_a_source_claims_healthy() {
+fn dropped_observations_force_root_reconciliation_without_restarting_a_healthy_source() {
     let stops = Arc::new(Mutex::new(0));
     let batch = LibraryChangeSourceBatch {
         observations: Vec::new(),
         health: LibraryChangeSourceHealth::Healthy,
         dropped_observation_count: 1,
         ignored_callback_count: 0,
+        last_issue_code: Some("change_source_ingress_overflow".to_owned()),
     };
     let source = FakeSource {
         health: LibraryChangeSourceHealth::Healthy,
         batches: VecDeque::from([Ok(batch)]),
-        stops,
+        stops: Arc::clone(&stops),
         stop_delay: Duration::ZERO,
         should_fail_stop: false,
     };
-    let mut observer = LibraryChangeObserver::start(
-        factory([Ok(source)]),
-        request(),
-        limits(),
-        restart_policy(),
-        0,
-    )
-    .expect("observer");
+    let factory = factory([Ok(source)]);
+    let state = Arc::clone(&factory.state);
+    let mut observer =
+        LibraryChangeObserver::start(factory, request(), limits(), restart_policy(), 0)
+            .expect("observer");
 
     let poll = observer.poll(1).expect("poll");
 
-    assert_eq!(poll.source_health, LibraryChangeSourceHealth::Degraded);
+    assert_eq!(poll.source_health, LibraryChangeSourceHealth::Healthy);
     assert_eq!(poll.dropped_observation_count, 1);
+    assert_eq!(poll.restart_attempt, 0);
+    assert_eq!(poll.next_restart_unix_ms, None);
     assert_eq!(
         poll.planning.freshness,
         CatalogFreshnessState::NeedsReconciliation
@@ -381,6 +434,8 @@ fn dropped_observations_force_root_reconciliation_even_if_a_source_claims_health
         intent.kind == crate::domain::LibraryChangeIntentKind::FreshnessUnknown
             && intent.scope == LibraryChangeScope::Root
     }));
+    assert_eq!(*stops.lock().expect("stop count"), 0);
+    assert_eq!(state.lock().expect("factory state").starts, 1);
 }
 
 #[test]
@@ -391,6 +446,7 @@ fn dropped_observations_never_downgrade_failed_source_health() {
         health: LibraryChangeSourceHealth::Failed,
         dropped_observation_count: 1,
         ignored_callback_count: 0,
+        last_issue_code: Some("change_source_callback_failed".to_owned()),
     };
     let source = FakeSource {
         health: LibraryChangeSourceHealth::Healthy,

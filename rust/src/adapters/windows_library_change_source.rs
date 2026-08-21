@@ -6,7 +6,9 @@ use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use notify::event::{CreateKind, ModifyKind, RemoveKind, RenameMode};
-use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
+use notify::{
+    ErrorKind as NotifyErrorKind, Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher,
+};
 
 use crate::domain::{
     LibraryChangeObservation, LibraryChangeObservationKind, LibraryChangeOrigin,
@@ -38,11 +40,17 @@ struct CallbackState {
     ignored_callback_count: AtomicU64,
     next_sequence: AtomicU64,
     pending_rename_from: Mutex<Option<PendingRenameFrom>>,
+    last_issue: Mutex<Option<CallbackIssue>>,
 }
 
 struct PendingRenameFrom {
     path: PathBuf,
     observed_at: Instant,
+}
+
+struct CallbackIssue {
+    severity: LibraryChangeSourceHealth,
+    code: &'static str,
 }
 
 struct CallbackProcessor {
@@ -73,26 +81,27 @@ pub(super) fn start_windows_library_change_source(
         ignored_callback_count: AtomicU64::new(0),
         next_sequence: AtomicU64::new(1),
         pending_rename_from: Mutex::new(None),
+        last_issue: Mutex::new(None),
     });
     let processor_state = Arc::clone(&callback_state);
     let mut processor = CallbackProcessor {
         state: processor_state,
     };
     let mut watcher =
-        notify::recommended_watcher(move |result| processor.handle(result)).map_err(|_| {
+        notify::recommended_watcher(move |result| processor.handle(result)).map_err(|error| {
             callback_state.set_health(LibraryChangeSourceHealth::Failed);
             LibraryChangeSourceError::retryable(
-                "change_source_start_failed",
+                notify_start_issue_code(&error),
                 "The Windows library observer could not be created.",
             )
         })?;
     watcher
         .watch(&root_path, RecursiveMode::Recursive)
-        .map_err(|_| {
+        .map_err(|error| {
             callback_state.accepting.store(false, Ordering::Release);
             callback_state.set_health(LibraryChangeSourceHealth::Failed);
             LibraryChangeSourceError::retryable(
-                "change_source_watch_failed",
+                notify_watch_issue_code(&error),
                 "The library root could not be observed recursively.",
             )
         })?;
@@ -134,11 +143,8 @@ impl LibraryChangeSource for WindowsLibraryChangeSource {
             .swap(0, Ordering::AcqRel);
         let mut observations = Vec::with_capacity(max_observations);
         self.callback_state.flush_expired_rename();
-        if self
-            .callback_state
-            .evidence_gap
-            .swap(false, Ordering::AcqRel)
-        {
+        let (has_evidence_gap, last_issue_code) = self.callback_state.take_evidence_gap();
+        if has_evidence_gap {
             observations.push(self.callback_state.evidence_gap_observation());
         }
         while observations.len() < max_observations {
@@ -161,6 +167,7 @@ impl LibraryChangeSource for WindowsLibraryChangeSource {
             health: self.health(),
             dropped_observation_count,
             ignored_callback_count,
+            last_issue_code,
         })
     }
 
@@ -216,25 +223,31 @@ impl CallbackProcessor {
         }
         let event = match result {
             Ok(event) => event,
-            Err(_) => {
+            Err(error) => {
                 self.flush_incomplete_rename();
-                self.state
-                    .mark_evidence_gap(LibraryChangeSourceHealth::Failed);
+                self.state.mark_evidence_gap(
+                    LibraryChangeSourceHealth::Failed,
+                    notify_issue_code(&error),
+                );
                 return;
             }
         };
         if event.need_rescan() {
             self.flush_incomplete_rename();
-            self.state
-                .mark_evidence_gap(LibraryChangeSourceHealth::Degraded);
+            self.state.mark_evidence_gap(
+                LibraryChangeSourceHealth::Degraded,
+                "change_source_rescan_required",
+            );
             return;
         }
         if matches!(event.kind, EventKind::Remove(_))
             && event.paths.iter().any(|path| path == &self.state.root_path)
         {
             self.flush_incomplete_rename();
-            self.state
-                .mark_evidence_gap(LibraryChangeSourceHealth::Failed);
+            self.state.mark_evidence_gap(
+                LibraryChangeSourceHealth::Failed,
+                "change_source_root_removed",
+            );
             return;
         }
 
@@ -251,8 +264,10 @@ impl CallbackProcessor {
             }
             EventKind::Modify(ModifyKind::Name(RenameMode::Any | RenameMode::Other)) => {
                 self.flush_incomplete_rename();
-                self.state
-                    .mark_evidence_gap(LibraryChangeSourceHealth::Degraded);
+                self.state.mark_evidence_gap(
+                    LibraryChangeSourceHealth::Degraded,
+                    "change_source_rename_incomplete",
+                );
                 self.emit_paths(&event.paths, LibraryChangeObservationKind::Modified, None);
             }
             EventKind::Access(_) => self.flush_incomplete_rename(),
@@ -280,20 +295,26 @@ impl CallbackProcessor {
                     observed_at: Instant::now(),
                 });
             } else {
-                self.state
-                    .mark_evidence_gap(LibraryChangeSourceHealth::Failed);
+                self.state.mark_evidence_gap(
+                    LibraryChangeSourceHealth::Failed,
+                    "change_source_state_unavailable",
+                );
             }
         } else {
-            self.state
-                .mark_evidence_gap(LibraryChangeSourceHealth::Degraded);
+            self.state.mark_evidence_gap(
+                LibraryChangeSourceHealth::Degraded,
+                "change_source_rename_incomplete",
+            );
         }
     }
 
     fn handle_rename_to(&mut self, paths: &[PathBuf]) {
         if paths.len() != 1 {
             self.flush_incomplete_rename();
-            self.state
-                .mark_evidence_gap(LibraryChangeSourceHealth::Degraded);
+            self.state.mark_evidence_gap(
+                LibraryChangeSourceHealth::Degraded,
+                "change_source_rename_incomplete",
+            );
             return;
         }
         let pending = self
@@ -303,14 +324,18 @@ impl CallbackProcessor {
             .ok()
             .and_then(|mut pending| pending.take());
         let Some(pending) = pending else {
-            self.state
-                .mark_evidence_gap(LibraryChangeSourceHealth::Degraded);
+            self.state.mark_evidence_gap(
+                LibraryChangeSourceHealth::Degraded,
+                "change_source_rename_incomplete",
+            );
             self.emit_paths(paths, LibraryChangeObservationKind::Created, None);
             return;
         };
         if pending.observed_at.elapsed() > RENAME_PAIR_GRACE {
-            self.state
-                .mark_evidence_gap(LibraryChangeSourceHealth::Degraded);
+            self.state.mark_evidence_gap(
+                LibraryChangeSourceHealth::Degraded,
+                "change_source_rename_incomplete",
+            );
             self.emit_paths(paths, LibraryChangeObservationKind::Created, None);
             return;
         }
@@ -320,8 +345,10 @@ impl CallbackProcessor {
 
     fn handle_paired_rename(&self, paths: &[PathBuf]) {
         if paths.len() != 2 {
-            self.state
-                .mark_evidence_gap(LibraryChangeSourceHealth::Degraded);
+            self.state.mark_evidence_gap(
+                LibraryChangeSourceHealth::Degraded,
+                "change_source_event_incomplete",
+            );
             return;
         }
         self.emit_rename(&paths[0], &paths[1]);
@@ -329,23 +356,23 @@ impl CallbackProcessor {
 
     fn emit_rename(&self, previous_path: &Path, current_path: &Path) {
         let Some(previous_relative_path) = self.state.relative_path(previous_path) else {
-            self.state
-                .mark_evidence_gap(LibraryChangeSourceHealth::Degraded);
+            self.state.mark_evidence_gap(
+                LibraryChangeSourceHealth::Degraded,
+                "change_source_event_incomplete",
+            );
             return;
         };
         let Some(relative_path) = self.state.relative_path(current_path) else {
-            self.state
-                .mark_evidence_gap(LibraryChangeSourceHealth::Degraded);
+            self.state.mark_evidence_gap(
+                LibraryChangeSourceHealth::Degraded,
+                "change_source_event_incomplete",
+            );
             return;
         };
         let scope = match std::fs::metadata(current_path) {
             Ok(metadata) if metadata.is_dir() => LibraryChangeScope::Subtree,
             Ok(_) => LibraryChangeScope::Path,
-            Err(_) => {
-                self.state
-                    .mark_evidence_gap(LibraryChangeSourceHealth::Degraded);
-                LibraryChangeScope::Path
-            }
+            Err(_) => LibraryChangeScope::Subtree,
         };
         self.state.emit(LibraryChangeObservation {
             root_id: self.state.root_id.clone(),
@@ -369,14 +396,18 @@ impl CallbackProcessor {
         scope: Option<LibraryChangeScope>,
     ) {
         if paths.is_empty() {
-            self.state
-                .mark_evidence_gap(LibraryChangeSourceHealth::Degraded);
+            self.state.mark_evidence_gap(
+                LibraryChangeSourceHealth::Degraded,
+                "change_source_event_incomplete",
+            );
             return;
         }
         for path in paths {
             let Some(relative_path) = self.state.relative_path(path) else {
-                self.state
-                    .mark_evidence_gap(LibraryChangeSourceHealth::Degraded);
+                self.state.mark_evidence_gap(
+                    LibraryChangeSourceHealth::Degraded,
+                    "change_source_event_incomplete",
+                );
                 continue;
             };
             self.state.emit(LibraryChangeObservation {
@@ -398,11 +429,7 @@ impl CallbackProcessor {
             let is_directory = match std::fs::metadata(path) {
                 Ok(metadata) => kind == CreateKind::Folder || metadata.is_dir(),
                 Err(_) if kind == CreateKind::Folder => true,
-                Err(_) => {
-                    self.state
-                        .mark_evidence_gap(LibraryChangeSourceHealth::Degraded);
-                    false
-                }
+                Err(_) => true,
             };
             self.emit_paths(
                 std::slice::from_ref(path),
@@ -415,8 +442,10 @@ impl CallbackProcessor {
             );
         }
         if paths.is_empty() {
-            self.state
-                .mark_evidence_gap(LibraryChangeSourceHealth::Degraded);
+            self.state.mark_evidence_gap(
+                LibraryChangeSourceHealth::Degraded,
+                "change_source_event_incomplete",
+            );
         }
     }
 
@@ -437,11 +466,7 @@ impl CallbackProcessor {
         for path in paths {
             let is_directory = match std::fs::metadata(path) {
                 Ok(metadata) => metadata.is_dir(),
-                Err(_) => {
-                    self.state
-                        .mark_evidence_gap(LibraryChangeSourceHealth::Degraded);
-                    false
-                }
+                Err(_) => true,
             };
             self.emit_paths(
                 std::slice::from_ref(path),
@@ -454,8 +479,10 @@ impl CallbackProcessor {
             );
         }
         if paths.is_empty() {
-            self.state
-                .mark_evidence_gap(LibraryChangeSourceHealth::Degraded);
+            self.state.mark_evidence_gap(
+                LibraryChangeSourceHealth::Degraded,
+                "change_source_event_incomplete",
+            );
         }
     }
 
@@ -479,12 +506,18 @@ impl CallbackState {
             Err(TrySendError::Full(_)) => {
                 self.dropped_observation_count
                     .fetch_add(1, Ordering::Relaxed);
-                self.mark_evidence_gap(LibraryChangeSourceHealth::Degraded);
+                self.mark_evidence_gap(
+                    LibraryChangeSourceHealth::Degraded,
+                    "change_source_ingress_overflow",
+                );
             }
             Err(TrySendError::Disconnected(_)) => {
                 self.dropped_observation_count
                     .fetch_add(1, Ordering::Relaxed);
-                self.mark_evidence_gap(LibraryChangeSourceHealth::Failed);
+                self.mark_evidence_gap(
+                    LibraryChangeSourceHealth::Failed,
+                    "change_source_ingress_disconnected",
+                );
             }
         }
     }
@@ -521,10 +554,16 @@ impl CallbackState {
         match self.pending_rename_from.lock() {
             Ok(mut pending) => {
                 if pending.take().is_some() {
-                    self.mark_evidence_gap(LibraryChangeSourceHealth::Degraded);
+                    self.mark_evidence_gap(
+                        LibraryChangeSourceHealth::Degraded,
+                        "change_source_rename_incomplete",
+                    );
                 }
             }
-            Err(_) => self.mark_evidence_gap(LibraryChangeSourceHealth::Failed),
+            Err(_) => self.mark_evidence_gap(
+                LibraryChangeSourceHealth::Failed,
+                "change_source_state_unavailable",
+            ),
         }
     }
 
@@ -536,16 +575,57 @@ impl CallbackState {
                     .is_some_and(|rename| rename.observed_at.elapsed() >= RENAME_PAIR_GRACE)
                 {
                     pending.take();
-                    self.mark_evidence_gap(LibraryChangeSourceHealth::Degraded);
+                    self.mark_evidence_gap(
+                        LibraryChangeSourceHealth::Degraded,
+                        "change_source_rename_incomplete",
+                    );
                 }
             }
-            Err(_) => self.mark_evidence_gap(LibraryChangeSourceHealth::Failed),
+            Err(_) => self.mark_evidence_gap(
+                LibraryChangeSourceHealth::Failed,
+                "change_source_state_unavailable",
+            ),
         }
     }
 
-    fn mark_evidence_gap(&self, health: LibraryChangeSourceHealth) {
+    fn mark_evidence_gap(&self, severity: LibraryChangeSourceHealth, code: &'static str) {
+        let mut last_issue = self
+            .last_issue
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if last_issue
+            .as_ref()
+            .is_none_or(|current| health_code(severity) > health_code(current.severity))
+        {
+            *last_issue = Some(CallbackIssue { severity, code });
+        }
         self.evidence_gap.store(true, Ordering::Release);
-        self.raise_health(health);
+        if matches!(severity, LibraryChangeSourceHealth::Failed) {
+            self.raise_health(LibraryChangeSourceHealth::Failed);
+        }
+    }
+
+    #[cfg(test)]
+    fn take_issue_code(&self) -> Option<String> {
+        self.last_issue
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .take()
+            .map(|issue| issue.code.to_owned())
+    }
+
+    fn take_evidence_gap(&self) -> (bool, Option<String>) {
+        let mut last_issue = self
+            .last_issue
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let has_evidence_gap = self.evidence_gap.swap(false, Ordering::AcqRel);
+        let issue_code = if has_evidence_gap {
+            last_issue.take().map(|issue| issue.code.to_owned())
+        } else {
+            None
+        };
+        (has_evidence_gap, issue_code)
     }
 
     fn next_sequence(&self) -> u64 {
@@ -580,6 +660,55 @@ impl CallbackState {
             Ordering::AcqRel,
             Ordering::Acquire,
         );
+    }
+}
+
+fn notify_issue_code(error: &notify::Error) -> &'static str {
+    match &error.kind {
+        NotifyErrorKind::Io(error) => match error.kind() {
+            std::io::ErrorKind::PermissionDenied => "change_source_callback_access_denied",
+            std::io::ErrorKind::NotFound => "change_source_callback_path_unavailable",
+            _ => "change_source_callback_io_failed",
+        },
+        NotifyErrorKind::PathNotFound => "change_source_callback_path_unavailable",
+        NotifyErrorKind::WatchNotFound => "change_source_callback_watch_missing",
+        NotifyErrorKind::InvalidConfig(_) => "change_source_callback_invalid_configuration",
+        NotifyErrorKind::MaxFilesWatch => "change_source_callback_capacity_exceeded",
+        NotifyErrorKind::Generic(_) => "change_source_callback_failed",
+    }
+}
+
+fn notify_start_issue_code(error: &notify::Error) -> &'static str {
+    match &error.kind {
+        NotifyErrorKind::Io(error) if error.kind() == std::io::ErrorKind::PermissionDenied => {
+            "change_source_start_access_denied"
+        }
+        NotifyErrorKind::Io(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            "change_source_root_unavailable"
+        }
+        NotifyErrorKind::PathNotFound => "change_source_root_unavailable",
+        NotifyErrorKind::MaxFilesWatch => "change_source_start_capacity_exceeded",
+        NotifyErrorKind::InvalidConfig(_) => "change_source_start_invalid_configuration",
+        NotifyErrorKind::Generic(_) | NotifyErrorKind::Io(_) | NotifyErrorKind::WatchNotFound => {
+            "change_source_start_failed"
+        }
+    }
+}
+
+fn notify_watch_issue_code(error: &notify::Error) -> &'static str {
+    match &error.kind {
+        NotifyErrorKind::Io(error) if error.kind() == std::io::ErrorKind::PermissionDenied => {
+            "change_source_watch_access_denied"
+        }
+        NotifyErrorKind::Io(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            "change_source_root_unavailable"
+        }
+        NotifyErrorKind::PathNotFound => "change_source_root_unavailable",
+        NotifyErrorKind::MaxFilesWatch => "change_source_watch_capacity_exceeded",
+        NotifyErrorKind::InvalidConfig(_) => "change_source_watch_invalid_configuration",
+        NotifyErrorKind::Generic(_) | NotifyErrorKind::Io(_) | NotifyErrorKind::WatchNotFound => {
+            "change_source_watch_failed"
+        }
     }
 }
 

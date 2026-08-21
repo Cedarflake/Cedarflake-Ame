@@ -4,15 +4,19 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use rusqlite::types::Value;
-use rusqlite::{Connection, OptionalExtension, Row, Transaction, params, params_from_iter};
+use rusqlite::{
+    Connection, OptionalExtension, Row, Transaction, TransactionBehavior, params, params_from_iter,
+};
 
 use crate::domain::{
     AssetLocationView, CaptureTimeEvidence, CaptureTimeSource, CatalogCursor, CatalogSnapshot,
     ExpectedFileState, FileIdentityEvidence, GalleryLayoutDateGroup, GalleryLayoutManifestChunk,
     GalleryLayoutManifestCursor, GalleryQuery, GallerySortKey, GalleryTimeAnchor,
-    GalleryTimeBucket, GalleryTimeline, LibraryFolderCursor, LibraryFolderPage,
-    LibraryRootAvailability, LibraryRootView, PreviewArtifact, PreviewReclamationCandidate,
-    PreviewStatus, RecoverableScan, ScanCheckpoint, ScanError, ScanIssue, ScanRequest,
+    GalleryTimeBucket, GalleryTimeline, LibraryChangeIntent, LibraryChangeIntentKind,
+    LibraryChangeOrigin, LibraryChangeQueuePolicy, LibraryChangeScope, LibraryFolderCursor,
+    LibraryFolderPage, LibraryRootAvailability, LibraryRootGeneration, LibraryRootView,
+    PreviewArtifact, PreviewReclamationCandidate, PreviewStatus, RecoverableScan, ScanCheckpoint,
+    ScanError, ScanIssue, ScanRequest,
 };
 use crate::ports::CatalogRepository;
 
@@ -32,6 +36,7 @@ use gallery::{
 use migrations::migrate_schema;
 
 mod catalog_delta;
+#[cfg(test)]
 mod catch_up;
 mod change_queue;
 const SCHEMA_VERSION: i64 = 19;
@@ -47,6 +52,7 @@ pub struct SqliteCatalog {
     path: PathBuf,
     connection: Connection,
     pending_locations: Vec<PendingLocation>,
+    pending_authoritative_retry_paths: Vec<String>,
 }
 
 #[derive(Clone)]
@@ -98,6 +104,7 @@ impl SqliteCatalog {
             path,
             connection,
             pending_locations: Vec::with_capacity(LOCATION_STAGE_BATCH),
+            pending_authoritative_retry_paths: Vec::new(),
         })
     }
 
@@ -106,13 +113,223 @@ impl SqliteCatalog {
             return Ok(());
         }
         let pending = self.pending_locations.clone();
-        let transaction = self.connection.transaction().map_err(database_error)?;
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(database_error)?;
         for item in &pending {
             persist_location(&transaction, &item.scan_id, &item.root_id, &item.location)?;
         }
         transaction.commit().map_err(database_error)?;
         self.pending_locations.clear();
         Ok(())
+    }
+
+    pub(crate) fn load_scan_issues(
+        &self,
+        scan_id: &str,
+        limit: u32,
+    ) -> Result<Vec<ScanIssue>, ScanError> {
+        let mut statement = self
+            .connection
+            .prepare(
+                "SELECT path, code, message
+                 FROM scan_issues
+                 WHERE scan_id = ?1
+                 ORDER BY code, path, message
+                 LIMIT ?2",
+            )
+            .map_err(database_error)?;
+        let rows = statement
+            .query_map(params![scan_id, i64::from(limit)], |row| {
+                Ok(ScanIssue {
+                    path: row.get(0)?,
+                    code: row.get(1)?,
+                    message: row.get(2)?,
+                })
+            })
+            .map_err(database_error)?;
+        rows.collect::<Result<Vec<_>, _>>().map_err(database_error)
+    }
+
+    pub(crate) fn publish_authoritative_scan(
+        &mut self,
+        scan_id: &str,
+        root_id: &str,
+        asset_count: u64,
+        issue_count: u64,
+        retry_relative_paths: &[String],
+    ) -> Result<(), ScanError> {
+        if !self.pending_authoritative_retry_paths.is_empty() {
+            return Err(ScanError::new(
+                "catalog_authoritative_retry_paths_pending",
+                "Another authoritative publication still owns pending retry paths",
+            ));
+        }
+        self.pending_authoritative_retry_paths
+            .extend_from_slice(retry_relative_paths);
+        let result = <Self as CatalogRepository>::publish_scan(
+            self,
+            scan_id,
+            root_id,
+            asset_count,
+            issue_count,
+        );
+        self.pending_authoritative_retry_paths.clear();
+        result
+    }
+
+    pub(crate) fn preserve_authoritative_retry_evidence(
+        &mut self,
+        scan_id: &str,
+        root_id: &str,
+        retry_relative_paths: &[String],
+    ) -> Result<u64, ScanError> {
+        if root_id.trim().is_empty() || root_id.contains('\0') {
+            return Err(ScanError::new(
+                "catalog_root_id_invalid",
+                "The library root ID must be non-empty and contain no NUL bytes",
+            ));
+        }
+        let retry_path_limit = usize::try_from(LibraryChangeQueuePolicy::MAX_UNRESOLVED_CHANGES)
+            .map_err(|_| {
+                ScanError::new(
+                    "catalog_authoritative_retry_limit_invalid",
+                    "The authoritative retry path limit is outside the supported range",
+                )
+            })?;
+        if retry_relative_paths.len() > retry_path_limit
+            || retry_relative_paths.iter().any(|relative_path| {
+                relative_path.is_empty()
+                    || relative_path.contains('\0')
+                    || relative_path.contains('\\')
+            })
+        {
+            return Err(ScanError::new(
+                "catalog_authoritative_retry_paths_invalid",
+                "Authoritative retry evidence must contain bounded normalized relative paths",
+            ));
+        }
+        self.flush_pending_locations()?;
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(database_error)?;
+        let previous_active_scan = transaction
+            .query_row(
+                "SELECT roots.active_scan_id
+                 FROM scan_runs AS scans
+                 JOIN library_roots AS roots ON roots.id = scans.root_id
+                 WHERE scans.id = ?1 AND scans.root_id = ?2
+                   AND scans.status = 'running'
+                   AND scans.scan_owner = 'authoritative_recovery'",
+                params![scan_id, root_id],
+                |row| row.get::<_, Option<String>>(0),
+            )
+            .optional()
+            .map_err(database_error)?
+            .flatten()
+            .filter(|active_scan_id| active_scan_id != scan_id);
+        if retry_relative_paths.is_empty() {
+            let count = transaction
+                .query_row(
+                    "SELECT COUNT(*) FROM asset_locations WHERE scan_id = ?1",
+                    [scan_id],
+                    |row| row.get::<_, i64>(0),
+                )
+                .map_err(database_error)?;
+            transaction.commit().map_err(database_error)?;
+            return sqlite_unsigned(count, "staged file state count");
+        }
+        if !transaction
+            .query_row(
+                "SELECT EXISTS(
+                   SELECT 1 FROM scan_runs
+                   WHERE id = ?1 AND root_id = ?2 AND status = 'running'
+                     AND scan_owner = 'authoritative_recovery'
+                 )",
+                params![scan_id, root_id],
+                |row| row.get::<_, bool>(0),
+            )
+            .map_err(database_error)?
+        {
+            return Err(ScanError::new(
+                "catalog_authoritative_retry_scan_invalid",
+                "Retry evidence can only be preserved for a running authoritative scan",
+            ));
+        }
+        for relative_path in retry_relative_paths {
+            let staged_count = transaction
+                .query_row(
+                    "SELECT COUNT(*) FROM asset_locations
+                     WHERE scan_id = ?1 AND root_id = ?2 AND relative_path = ?3",
+                    params![scan_id, root_id, relative_path],
+                    |row| row.get::<_, i64>(0),
+                )
+                .map_err(database_error)?;
+            if staged_count > 1 {
+                return Err(ScanError::new(
+                    "catalog_authoritative_retry_path_ambiguous",
+                    "A retry path matched more than one staged catalog location",
+                ));
+            }
+            transaction
+                .execute(
+                    "DELETE FROM asset_locations
+                     WHERE scan_id = ?1 AND root_id = ?2 AND relative_path = ?3",
+                    params![scan_id, root_id, relative_path],
+                )
+                .map_err(database_error)?;
+            let Some(previous_active_scan) = previous_active_scan.as_deref() else {
+                continue;
+            };
+            let prior_count = transaction
+                .query_row(
+                    "SELECT COUNT(*) FROM asset_locations
+                     WHERE scan_id = ?1 AND root_id = ?2 AND relative_path = ?3",
+                    params![previous_active_scan, root_id, relative_path],
+                    |row| row.get::<_, i64>(0),
+                )
+                .map_err(database_error)?;
+            if prior_count > 1 {
+                return Err(ScanError::new(
+                    "catalog_authoritative_retry_prior_ambiguous",
+                    "A retry path matched more than one previously published catalog location",
+                ));
+            }
+            transaction
+                .execute(
+                    "INSERT INTO asset_locations(
+                       scan_id, asset_id, location_id, root_id, absolute_path, relative_path,
+                       preview_path, file_size, created_unix_ms, modified_unix_ms,
+                       file_local_time, parent_relative_path, natural_name_key, width, height,
+                       preview_status, preview_issue_code, preview_issue_message,
+                       metadata_engine_id, metadata_engine_version, capture_local_time,
+                       capture_offset_minutes, capture_time_source, capture_raw_value,
+                       file_identity_scheme, file_identity_value
+                     )
+                     SELECT ?1, asset_id, location_id, root_id, absolute_path, relative_path,
+                            preview_path, file_size, created_unix_ms, modified_unix_ms,
+                            file_local_time, parent_relative_path, natural_name_key, width, height,
+                            preview_status, preview_issue_code, preview_issue_message,
+                            metadata_engine_id, metadata_engine_version, capture_local_time,
+                            capture_offset_minutes, capture_time_source, capture_raw_value,
+                            file_identity_scheme, file_identity_value
+                     FROM asset_locations
+                     WHERE scan_id = ?2 AND root_id = ?3 AND relative_path = ?4",
+                    params![scan_id, previous_active_scan, root_id, relative_path],
+                )
+                .map_err(database_error)?;
+        }
+        let count = transaction
+            .query_row(
+                "SELECT COUNT(*) FROM asset_locations WHERE scan_id = ?1",
+                [scan_id],
+                |row| row.get::<_, i64>(0),
+            )
+            .map_err(database_error)?;
+        transaction.commit().map_err(database_error)?;
+        sqlite_unsigned(count, "staged file state count")
     }
 }
 
@@ -140,7 +357,23 @@ impl SqliteCatalog {
         owner: ScanOwner,
     ) -> Result<ScanCheckpoint, ScanError> {
         let now = unix_time_ms();
-        let transaction = self.connection.transaction().map_err(database_error)?;
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(database_error)?;
+        let scan_exists = transaction
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM scan_runs WHERE id = ?1)",
+                [&request.scan_id],
+                |row| row.get::<_, bool>(0),
+            )
+            .map_err(database_error)?;
+        if scan_exists {
+            return Err(ScanError::new(
+                "catalog_scan_already_exists",
+                "A new scan cannot reuse an existing scan identifier",
+            ));
+        }
         transaction
             .execute(
                 "INSERT INTO library_roots(id, path, created_unix_ms)
@@ -181,36 +414,150 @@ impl SqliteCatalog {
                 |row| Ok((row.get::<_, i64>(0)?, row.get::<_, Option<i64>>(1)?)),
             )
             .map_err(database_error)?;
-        let existing = transaction
+        transaction
+            .execute(
+                "INSERT INTO scan_runs(
+                   id, root_id, status, started_unix_ms, max_items, max_entries, preview_edge,
+                   root_generation_at_start, change_queue_high_watermark, scan_owner
+                 ) VALUES (?1, ?2, 'running', ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+                params![
+                    request.scan_id,
+                    root_id,
+                    now,
+                    request.max_items.map(i64::from),
+                    request.max_entries.map(i64::from),
+                    i64::from(request.preview_edge),
+                    root_generation_at_start,
+                    change_queue_high_watermark,
+                    owner.as_str(),
+                ],
+            )
+            .map_err(database_error)?;
+        if let Some(high_watermark) = change_queue_high_watermark {
+            transaction
+                .execute(
+                    "UPDATE library_change_queue
+                     SET status = 'leased', next_retry_unix_ms = NULL,
+                         lease_generation = lease_generation + 1,
+                         lease_expires_unix_ms = ?1, updated_unix_ms = ?2,
+                         authoritative_scan_id = ?3
+                     WHERE root_id = ?4 AND root_generation = ?5 AND id <= ?6
+                       AND status IN ('pending', 'retry_wait')",
+                    params![
+                        now.saturating_add(SCAN_QUEUE_LEASE_MILLIS),
+                        now,
+                        request.scan_id,
+                        root_id,
+                        root_generation_at_start,
+                        high_watermark,
+                    ],
+                )
+                .map_err(database_error)?;
+            transaction
+                .execute(
+                    "INSERT INTO scan_run_catch_up_lineage(
+                           scan_id, catch_up_source, catch_up_watermark, enrolled_unix_ms
+                         )
+                         SELECT ?1, lineage.catch_up_source,
+                                lineage.catch_up_watermark,
+                                MAX(lineage.enrolled_unix_ms)
+                         FROM library_change_queue AS changes
+                         JOIN library_change_queue_catch_up_lineage AS lineage
+                           ON lineage.change_id = changes.id
+                         WHERE changes.root_id = ?2
+                           AND changes.root_generation = ?3
+                           AND changes.id <= ?4
+                           AND changes.status IN ('pending', 'leased', 'retry_wait')
+                         GROUP BY lineage.catch_up_source, lineage.catch_up_watermark",
+                    params![
+                        request.scan_id,
+                        root_id,
+                        root_generation_at_start,
+                        high_watermark,
+                    ],
+                )
+                .map_err(database_error)?;
+            let lineage_count = transaction
+                .query_row(
+                    "SELECT COUNT(*) FROM scan_run_catch_up_lineage
+                         WHERE scan_id = ?1",
+                    [&request.scan_id],
+                    |row| row.get::<_, i64>(0),
+                )
+                .map_err(database_error)?;
+            if lineage_count > MAX_SCAN_CATCH_UP_LINEAGE {
+                return Err(ScanError::new(
+                    "catalog_scan_catch_up_lineage_limit_exceeded",
+                    "The scan captured too many catch-up watermarks",
+                ));
+            }
+        }
+        transaction
+            .execute(
+                "INSERT INTO scan_directory_frontier(scan_id, relative_path) VALUES (?1, '')",
+                [&request.scan_id],
+            )
+            .map_err(database_error)?;
+        transaction.commit().map_err(database_error)?;
+        Ok(ScanCheckpoint::default())
+    }
+
+    fn resume_scan_owned(
+        &mut self,
+        request: &ScanRequest,
+        root_id: &str,
+        root_path: &str,
+        owner: ScanOwner,
+    ) -> Result<ScanCheckpoint, ScanError> {
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(database_error)?;
+        let stored = transaction
             .query_row(
-                "SELECT root_id, status, max_items, max_entries, preview_edge,
-                        last_visited_relative_path, visited_entries, accepted_items, issue_count,
-                        root_generation_at_start, change_queue_high_watermark,
-                        requires_previous_snapshot, scan_owner
-                 FROM scan_runs WHERE id = ?1",
+                "SELECT scans.root_id, roots.path, scans.status,
+                        scans.max_items, scans.max_entries, scans.preview_edge,
+                        scans.last_visited_relative_path, scans.visited_entries,
+                        scans.accepted_items, scans.issue_count,
+                        scans.root_generation_at_start,
+                        scans.requires_previous_snapshot, scans.scan_owner,
+                        state.generation, state.is_active
+                 FROM scan_runs AS scans
+                 JOIN library_roots AS roots ON roots.id = scans.root_id
+                 JOIN library_change_root_state AS state ON state.root_id = scans.root_id
+                 WHERE scans.id = ?1",
                 [&request.scan_id],
                 |row| {
                     Ok((
                         row.get::<_, String>(0)?,
                         row.get::<_, String>(1)?,
-                        row.get::<_, Option<i64>>(2)?,
+                        row.get::<_, String>(2)?,
                         row.get::<_, Option<i64>>(3)?,
-                        row.get::<_, i64>(4)?,
-                        row.get::<_, Option<String>>(5)?,
-                        row.get::<_, i64>(6)?,
+                        row.get::<_, Option<i64>>(4)?,
+                        row.get::<_, i64>(5)?,
+                        row.get::<_, Option<String>>(6)?,
                         row.get::<_, i64>(7)?,
                         row.get::<_, i64>(8)?,
-                        row.get::<_, Option<i64>>(9)?,
+                        row.get::<_, i64>(9)?,
                         row.get::<_, Option<i64>>(10)?,
                         row.get::<_, bool>(11)?,
                         row.get::<_, String>(12)?,
+                        row.get::<_, i64>(13)?,
+                        row.get::<_, bool>(14)?,
                     ))
                 },
             )
             .optional()
-            .map_err(database_error)?;
-        let checkpoint = if let Some((
+            .map_err(database_error)?
+            .ok_or_else(|| {
+                ScanError::new(
+                    "catalog_scan_resume_missing",
+                    "The requested scan checkpoint no longer exists",
+                )
+            })?;
+        let (
             stored_root_id,
+            stored_root_path,
             status,
             max_items,
             max_entries,
@@ -220,145 +567,135 @@ impl SqliteCatalog {
             accepted_items,
             issue_count,
             stored_root_generation,
-            _stored_high_watermark,
             requires_previous_snapshot,
             stored_owner,
-        )) = existing
+            active_root_generation,
+            root_is_active,
+        ) = stored;
+        let stored_max_items = optional_sqlite_u32(max_items, "item limit")?;
+        let stored_max_entries = optional_sqlite_u32(max_entries, "entry limit")?;
+        let stored_preview_edge = sqlite_u32(preview_edge, "preview edge")?;
+        let is_paused = status == "paused";
+        if status != "running" && !is_paused
+            || stored_root_id != root_id
+            || stored_root_path != root_path
+            || stored_max_items != request.max_items
+            || stored_max_entries != request.max_entries
+            || stored_preview_edge != request.preview_edge
+            || stored_root_generation != Some(active_root_generation)
+            || !root_is_active
+            || stored_owner != owner.as_str()
         {
-            let stored_max_items = optional_sqlite_u32(max_items, "item limit")?;
-            let stored_max_entries = optional_sqlite_u32(max_entries, "entry limit")?;
-            let stored_preview_edge = sqlite_u32(preview_edge, "preview edge")?;
-            let is_paused = status == "paused";
-            if status != "running" && !is_paused
-                || stored_root_id != root_id
-                || stored_max_items != request.max_items
-                || stored_max_entries != request.max_entries
-                || stored_preview_edge != request.preview_edge
-                || stored_root_generation != Some(root_generation_at_start)
-                || stored_owner != owner.as_str()
-            {
-                return Err(ScanError::new(
-                    "catalog_scan_resume_mismatch",
-                    "The stored scan cannot be resumed with different identity, ownership, or parameters",
-                ));
-            }
-            if is_paused {
-                transaction
-                    .execute(
-                        "UPDATE scan_runs SET status = 'running' WHERE id = ?1 AND status = 'paused'",
-                        [&request.scan_id],
-                    )
-                    .map_err(database_error)?;
-            }
-            ScanCheckpoint {
-                last_visited_relative_path,
-                visited_entries: sqlite_unsigned(visited_entries, "visited entry count")?,
-                accepted_items: sqlite_unsigned(accepted_items, "accepted item count")?,
-                issue_count: sqlite_unsigned(issue_count, "issue count")?,
-                requires_previous_snapshot,
-            }
-        } else {
-            transaction
+            return Err(ScanError::new(
+                "catalog_scan_resume_mismatch",
+                "The stored scan cannot be resumed with different identity, ownership, or parameters",
+            ));
+        }
+        let checkpoint = ScanCheckpoint {
+            last_visited_relative_path,
+            visited_entries: sqlite_unsigned(visited_entries, "visited entry count")?,
+            accepted_items: sqlite_unsigned(accepted_items, "accepted item count")?,
+            issue_count: sqlite_unsigned(issue_count, "issue count")?,
+            requires_previous_snapshot,
+        };
+        let has_conflicting_scan = transaction
+            .query_row(
+                "SELECT EXISTS(
+                   SELECT 1 FROM scan_runs
+                   WHERE root_id = ?1 AND status IN ('running', 'paused') AND id <> ?2
+                 )",
+                params![root_id, request.scan_id],
+                |row| row.get::<_, bool>(0),
+            )
+            .map_err(database_error)?;
+        if has_conflicting_scan {
+            return Err(ScanError::new(
+                "catalog_root_scan_in_progress",
+                "Another authoritative scan already owns this library root",
+            ));
+        }
+        if is_paused {
+            let updated = transaction
                 .execute(
-                    "INSERT INTO scan_runs(
-                       id, root_id, status, started_unix_ms, max_items, max_entries, preview_edge,
-                       root_generation_at_start, change_queue_high_watermark, scan_owner
-                     ) VALUES (?1, ?2, 'running', ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
-                    params![
-                        request.scan_id,
-                        root_id,
-                        now,
-                        request.max_items.map(i64::from),
-                        request.max_entries.map(i64::from),
-                        i64::from(request.preview_edge),
-                        root_generation_at_start,
-                        change_queue_high_watermark,
-                        owner.as_str(),
-                    ],
-                )
-                .map_err(database_error)?;
-            if let Some(high_watermark) = change_queue_high_watermark {
-                transaction
-                    .execute(
-                        "UPDATE library_change_queue
-                         SET status = 'leased', next_retry_unix_ms = NULL,
-                             lease_generation = lease_generation + 1,
-                             lease_expires_unix_ms = ?1, updated_unix_ms = ?2,
-                             authoritative_scan_id = ?3
-                         WHERE root_id = ?4 AND root_generation = ?5 AND id <= ?6
-                           AND status IN ('pending', 'retry_wait')",
-                        params![
-                            now.saturating_add(SCAN_QUEUE_LEASE_MILLIS),
-                            now,
-                            request.scan_id,
-                            root_id,
-                            root_generation_at_start,
-                            high_watermark,
-                        ],
-                    )
-                    .map_err(database_error)?;
-                transaction
-                    .execute(
-                        "INSERT INTO scan_run_catch_up_lineage(
-                               scan_id, catch_up_source, catch_up_watermark, enrolled_unix_ms
-                             )
-                             SELECT ?1, lineage.catch_up_source,
-                                    lineage.catch_up_watermark,
-                                    MAX(lineage.enrolled_unix_ms)
-                             FROM library_change_queue AS changes
-                             JOIN library_change_queue_catch_up_lineage AS lineage
-                               ON lineage.change_id = changes.id
-                             WHERE changes.root_id = ?2
-                               AND changes.root_generation = ?3
-                               AND changes.id <= ?4
-                               AND changes.status IN ('pending', 'leased', 'retry_wait')
-                             GROUP BY lineage.catch_up_source, lineage.catch_up_watermark",
-                        params![
-                            request.scan_id,
-                            root_id,
-                            root_generation_at_start,
-                            high_watermark,
-                        ],
-                    )
-                    .map_err(database_error)?;
-                let lineage_count = transaction
-                    .query_row(
-                        "SELECT COUNT(*) FROM scan_run_catch_up_lineage
-                             WHERE scan_id = ?1",
-                        [&request.scan_id],
-                        |row| row.get::<_, i64>(0),
-                    )
-                    .map_err(database_error)?;
-                if lineage_count > MAX_SCAN_CATCH_UP_LINEAGE {
-                    return Err(ScanError::new(
-                        "catalog_scan_catch_up_lineage_limit_exceeded",
-                        "The scan captured too many catch-up watermarks",
-                    ));
-                }
-            }
-            transaction
-                .execute(
-                    "INSERT INTO scan_directory_frontier(scan_id, relative_path) VALUES (?1, '')",
+                    "UPDATE scan_runs SET status = 'running'
+                     WHERE id = ?1 AND status = 'paused'",
                     [&request.scan_id],
                 )
                 .map_err(database_error)?;
-            ScanCheckpoint::default()
-        };
+            if updated != 1 {
+                return Err(ScanError::new(
+                    "catalog_scan_resume_raced",
+                    "The scan checkpoint changed before it could be resumed",
+                ));
+            }
+        }
         transaction.commit().map_err(database_error)?;
         Ok(checkpoint)
     }
 
-    pub(crate) fn has_active_scan_for_root(&self, root_id: &str) -> Result<bool, ScanError> {
-        self.connection
-            .query_row(
-                "SELECT EXISTS(
-                   SELECT 1 FROM scan_runs
-                   WHERE root_id = ?1 AND status IN ('running', 'paused')
-                 )",
-                [root_id],
-                |row| row.get::<_, bool>(0),
+    pub(crate) fn retire_legacy_consistency_audits(
+        &mut self,
+        retired_unix_ms: i64,
+    ) -> Result<u32, ScanError> {
+        let scans = {
+            let mut statement = self
+                .connection
+                .prepare(
+                    "SELECT scans.id, scans.issue_count
+                     FROM scan_runs AS scans
+                     WHERE scans.status IN ('running', 'paused')
+                       AND scans.scan_owner = 'authoritative_recovery'
+                       AND EXISTS (
+                         SELECT 1 FROM library_change_queue AS changes
+                         WHERE changes.authoritative_scan_id = scans.id
+                           AND changes.status IN ('pending', 'leased', 'retry_wait')
+                           AND changes.origin = 'consistency_audit'
+                           AND changes.intent_kind = 'reconcile'
+                           AND changes.scope = 'root'
+                       )
+                       AND NOT EXISTS (
+                         SELECT 1 FROM library_change_queue AS changes
+                         WHERE changes.authoritative_scan_id = scans.id
+                           AND changes.status IN ('pending', 'leased', 'retry_wait')
+                           AND changes.origin <> 'consistency_audit'
+                       )
+                     ORDER BY scans.id",
+                )
+                .map_err(database_error)?;
+            let rows = statement
+                .query_map([], |row| {
+                    Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+                })
+                .map_err(database_error)?;
+            let mut scans = Vec::new();
+            for row in rows {
+                let (scan_id, issue_count) = row.map_err(database_error)?;
+                scans.push((scan_id, sqlite_unsigned(issue_count, "scan issue count")?));
+            }
+            scans
+        };
+        for (scan_id, issue_count) in scans {
+            self.abandon_scan(&scan_id, "superseded", issue_count)?;
+        }
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(database_error)?;
+        let retired = transaction
+            .execute(
+                "UPDATE library_change_queue
+                 SET status = 'superseded', next_retry_unix_ms = NULL,
+                     lease_expires_unix_ms = NULL, authoritative_scan_id = NULL,
+                     superseded_by_change_id = NULL, last_failure_code = NULL,
+                     last_failure_message = NULL, updated_unix_ms = ?1
+                 WHERE origin = 'consistency_audit'
+                   AND intent_kind = 'reconcile' AND scope = 'root'
+                   AND status IN ('pending', 'leased', 'retry_wait')",
+                [retired_unix_ms],
             )
-            .map_err(database_error)
+            .map_err(database_error)?;
+        transaction.commit().map_err(database_error)?;
+        Ok(u32::try_from(retired).unwrap_or(u32::MAX))
     }
 }
 
@@ -376,6 +713,16 @@ impl CatalogRepository for SqliteCatalog {
         self.begin_scan_owned(request, root_id, root_path, ScanOwner::Foreground)
     }
 
+    fn resume_scan(
+        &mut self,
+        request: &ScanRequest,
+        root_id: &str,
+        root_path: &str,
+    ) -> Result<ScanCheckpoint, ScanError> {
+        self.resume_scan_owned(request, root_id, root_path, ScanOwner::Foreground)
+    }
+
+    #[cfg(test)]
     fn begin_authoritative_scan(
         &mut self,
         request: &ScanRequest,
@@ -383,6 +730,20 @@ impl CatalogRepository for SqliteCatalog {
         root_path: &str,
     ) -> Result<ScanCheckpoint, ScanError> {
         self.begin_scan_owned(
+            request,
+            root_id,
+            root_path,
+            ScanOwner::AuthoritativeRecovery,
+        )
+    }
+
+    fn resume_authoritative_scan(
+        &mut self,
+        request: &ScanRequest,
+        root_id: &str,
+        root_path: &str,
+    ) -> Result<ScanCheckpoint, ScanError> {
+        self.resume_scan_owned(
             request,
             root_id,
             root_path,
@@ -524,7 +885,10 @@ impl CatalogRepository for SqliteCatalog {
         artifact: Option<&PreviewArtifact>,
     ) -> Result<(), ScanError> {
         let file_size = sqlite_integer(location.file_size, "file size")?;
-        let transaction = self.connection.transaction().map_err(database_error)?;
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(database_error)?;
         if let Some(artifact) = artifact {
             let artifact_bytes = sqlite_integer(artifact.byte_size, "preview artifact size")?;
             transaction
@@ -692,7 +1056,10 @@ impl CatalogRepository for SqliteCatalog {
 
     fn reset_all_previews_for_cleanup(&mut self) -> Result<u64, ScanError> {
         self.flush_pending_locations()?;
-        let transaction = self.connection.transaction().map_err(database_error)?;
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(database_error)?;
         let updated = transaction
             .execute(
                 "UPDATE asset_locations
@@ -743,7 +1110,10 @@ impl CatalogRepository for SqliteCatalog {
             ));
         }
         self.flush_pending_locations()?;
-        let transaction = self.connection.transaction().map_err(database_error)?;
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(database_error)?;
         let updated = transaction
             .execute(
                 "UPDATE asset_locations
@@ -875,7 +1245,10 @@ impl CatalogRepository for SqliteCatalog {
         &mut self,
         candidate: &PreviewReclamationCandidate,
     ) -> Result<bool, ScanError> {
-        let transaction = self.connection.transaction().map_err(database_error)?;
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(database_error)?;
         transaction
             .execute(
                 "UPDATE asset_locations
@@ -936,7 +1309,10 @@ impl CatalogRepository for SqliteCatalog {
         }
         let now = unix_time_ms();
         let oldest_retained = now.saturating_sub(60_000);
-        let transaction = self.connection.transaction().map_err(database_error)?;
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(database_error)?;
         let mut statement = transaction
             .prepare_cached(
                 "UPDATE preview_artifacts
@@ -1054,7 +1430,10 @@ impl CatalogRepository for SqliteCatalog {
         &mut self,
         candidate: &PreviewReclamationCandidate,
     ) -> Result<bool, ScanError> {
-        let transaction = self.connection.transaction().map_err(database_error)?;
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(database_error)?;
         transaction
             .execute(
                 "UPDATE asset_locations
@@ -1119,7 +1498,7 @@ impl CatalogRepository for SqliteCatalog {
                  SET last_visited_relative_path = ?2, visited_entries = ?3,
                      accepted_items = ?4, issue_count = ?5,
                      requires_previous_snapshot = ?6
-                 WHERE id = ?1 AND status = 'running'",
+                 WHERE id = ?1 AND status IN ('running', 'paused')",
                 params![
                     scan_id,
                     checkpoint.last_visited_relative_path,
@@ -1162,7 +1541,10 @@ impl CatalogRepository for SqliteCatalog {
     }
 
     fn claim_next_directory(&mut self, scan_id: &str) -> Result<Option<String>, ScanError> {
-        let transaction = self.connection.transaction().map_err(database_error)?;
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(database_error)?;
         let current = transaction
             .query_row(
                 "SELECT current_directory_relative_path
@@ -1248,7 +1630,10 @@ impl CatalogRepository for SqliteCatalog {
         if relative_paths.is_empty() {
             return Ok(());
         }
-        let transaction = self.connection.transaction().map_err(database_error)?;
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(database_error)?;
         let is_enumerating: bool = transaction
             .query_row(
                 "SELECT EXISTS(
@@ -1383,7 +1768,10 @@ impl CatalogRepository for SqliteCatalog {
     }
 
     fn enqueue_directory(&mut self, scan_id: &str, relative_path: &str) -> Result<(), ScanError> {
-        let transaction = self.connection.transaction().map_err(database_error)?;
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(database_error)?;
         let is_running: bool = transaction
             .query_row(
                 "SELECT EXISTS(
@@ -1418,7 +1806,10 @@ impl CatalogRepository for SqliteCatalog {
         let visited_entries = sqlite_integer(checkpoint.visited_entries, "visited entry count")?;
         let accepted_items = sqlite_integer(checkpoint.accepted_items, "accepted item count")?;
         let issue_count = sqlite_integer(checkpoint.issue_count, "issue count")?;
-        let transaction = self.connection.transaction().map_err(database_error)?;
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(database_error)?;
         let current_directory = transaction
             .query_row(
                 "SELECT current_directory_relative_path FROM scan_runs
@@ -1519,11 +1910,11 @@ impl CatalogRepository for SqliteCatalog {
         scan_id: &str,
         after_location_id: Option<&str>,
         limit: u32,
-    ) -> Result<Vec<(String, ExpectedFileState)>, ScanError> {
+    ) -> Result<Vec<(String, String, ExpectedFileState)>, ScanError> {
         let mut statement = self
             .connection
             .prepare(
-                "SELECT location_id, absolute_path, file_size, modified_unix_ms,
+                "SELECT location_id, relative_path, absolute_path, file_size, modified_unix_ms,
                         file_identity_scheme, file_identity_value
                  FROM asset_locations
                  WHERE scan_id = ?1 AND (?2 IS NULL OR location_id > ?2)
@@ -1537,10 +1928,11 @@ impl CatalogRepository for SqliteCatalog {
                     Ok((
                         row.get::<_, String>(0)?,
                         row.get::<_, String>(1)?,
-                        row.get::<_, i64>(2)?,
+                        row.get::<_, String>(2)?,
                         row.get::<_, i64>(3)?,
-                        row.get::<_, Option<String>>(4)?,
+                        row.get::<_, i64>(4)?,
                         row.get::<_, Option<String>>(5)?,
+                        row.get::<_, Option<String>>(6)?,
                     ))
                 },
             )
@@ -1549,6 +1941,7 @@ impl CatalogRepository for SqliteCatalog {
         for row in rows {
             let (
                 location_id,
+                relative_path,
                 absolute_path,
                 file_size,
                 modified_unix_ms,
@@ -1563,6 +1956,7 @@ impl CatalogRepository for SqliteCatalog {
             })?;
             states.push((
                 location_id,
+                relative_path,
                 ExpectedFileState {
                     absolute_path,
                     file_size,
@@ -1581,20 +1975,25 @@ impl CatalogRepository for SqliteCatalog {
         asset_count: u64,
         issue_count: u64,
     ) -> Result<(), ScanError> {
+        let retry_relative_paths = std::mem::take(&mut self.pending_authoritative_retry_paths);
         self.flush_pending_locations()?;
         let asset_count = sqlite_integer(asset_count, "asset count")?;
         let issue_count = sqlite_integer(issue_count, "issue count")?;
-        let transaction = self.connection.transaction().map_err(database_error)?;
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(database_error)?;
         let (
             previous_active_scan,
             root_generation_at_start,
             change_queue_high_watermark,
             requires_previous_snapshot,
+            scan_owner,
         ) = transaction
             .query_row(
                 "SELECT roots.active_scan_id, scans.root_generation_at_start,
                         scans.change_queue_high_watermark,
-                        scans.requires_previous_snapshot
+                        scans.requires_previous_snapshot, scans.scan_owner
                  FROM library_roots AS roots
                  JOIN scan_runs AS scans ON scans.id = ?1 AND scans.root_id = roots.id
                  WHERE roots.id = ?2",
@@ -1605,6 +2004,7 @@ impl CatalogRepository for SqliteCatalog {
                         row.get::<_, Option<i64>>(1)?,
                         row.get::<_, Option<i64>>(2)?,
                         row.get::<_, bool>(3)?,
+                        row.get::<_, String>(4)?,
                     ))
                 },
             )
@@ -1613,6 +2013,14 @@ impl CatalogRepository for SqliteCatalog {
             return Err(ScanError::new(
                 "catalog_scan_requires_previous_snapshot",
                 "The scan encountered evidence that requires retaining the previous catalog snapshot",
+            ));
+        }
+        if !retry_relative_paths.is_empty()
+            && scan_owner != ScanOwner::AuthoritativeRecovery.as_str()
+        {
+            return Err(ScanError::new(
+                "catalog_scan_retry_paths_owner_invalid",
+                "Only an authoritative recovery scan may publish durable retry paths",
             ));
         }
         let root_generation_at_start = root_generation_at_start.ok_or_else(|| {
@@ -1749,6 +2157,50 @@ impl CatalogRepository for SqliteCatalog {
                 )
                 .map_err(database_error)?;
         }
+        if !retry_relative_paths.is_empty() {
+            let root_generation = LibraryRootGeneration::new(sqlite_unsigned(
+                root_generation_at_start,
+                "root generation",
+            )?)
+            .ok_or_else(|| {
+                ScanError::new(
+                    "catalog_scan_generation_invalid",
+                    "The authoritative scan captured an invalid root generation",
+                )
+            })?;
+            let retry_intents = retry_relative_paths
+                .iter()
+                .zip(1_u64..)
+                .map(|(relative_path, sequence)| LibraryChangeIntent {
+                    root_id: root_id.to_owned(),
+                    root_generation,
+                    kind: LibraryChangeIntentKind::Reconcile,
+                    scope: LibraryChangeScope::Path,
+                    relative_path: relative_path.clone(),
+                    previous_relative_path: None,
+                    origin: LibraryChangeOrigin::StartupCatchUp,
+                    first_observed_unix_ms: completed_unix_ms,
+                    most_recent_observed_unix_ms: completed_unix_ms,
+                    first_sequence: sequence,
+                    most_recent_sequence: sequence,
+                    coalesced_observation_count: 1,
+                })
+                .collect::<Vec<_>>();
+            change_queue::validate_enqueue_batch(&retry_intents)?;
+            let report = change_queue::enqueue_intents_in_transaction(
+                &transaction,
+                &retry_intents,
+                None,
+                completed_unix_ms,
+                LibraryChangeQueuePolicy::default(),
+            )?;
+            if report.stale_generation_count > 0 {
+                return Err(ScanError::new(
+                    "catalog_scan_retry_generation_stale",
+                    "The authoritative retry paths no longer belong to the current root generation",
+                ));
+            }
+        }
         for (source, watermark) in &catch_up_lineage {
             catalog_delta::cleanup_terminal_catch_up_handoffs(&transaction, source, watermark)?;
         }
@@ -1779,7 +2231,10 @@ impl CatalogRepository for SqliteCatalog {
             .retain(|pending| pending.scan_id != scan_id);
         let issue_count = sqlite_integer(issue_count, "issue count")?;
         let now = unix_time_ms();
-        let transaction = self.connection.transaction().map_err(database_error)?;
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(database_error)?;
         let abandoned = transaction
             .execute(
                 "UPDATE scan_runs
@@ -2321,7 +2776,10 @@ impl CatalogRepository for SqliteCatalog {
 
     fn unregister_root(&mut self, root_id: &str) -> Result<bool, ScanError> {
         self.flush_pending_locations()?;
-        let transaction = self.connection.transaction().map_err(database_error)?;
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(database_error)?;
         let root_exists = transaction
             .query_row(
                 "SELECT EXISTS(SELECT 1 FROM library_roots WHERE id = ?1)",

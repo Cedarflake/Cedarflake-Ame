@@ -1,23 +1,27 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+#[cfg(test)]
 use std::sync::atomic::AtomicBool;
 
 use crate::domain::{
     AssetLocationView, CatalogCursor, CatalogDeltaBatch, CatalogDeltaPublication, CatalogSnapshot,
     DiscoveredFile, ExpectedFileState, FileIdentityEvidence, GalleryLayoutManifestChunk,
     GalleryLayoutManifestCursor, GalleryQuery, GalleryTimeAnchor, GalleryTimeline,
-    IncrementalCatalogRoot, LibraryChangeCatchUpBatch, LibraryChangeCatchUpCheckpoint,
-    LibraryChangeCatchUpEvidence, LibraryChangeCatchUpLimits, LibraryChangeCatchUpQueueBatch,
-    LibraryChangeSourceBatch, LibraryChangeSourceError, LibraryChangeSourceHealth,
-    LibraryChangeSourceStopReport, LibraryFolderCursor, LibraryFolderPage, LibraryRootGeneration,
-    MediaInspection, MetadataInspection, PreviewArtifact, PreviewMaterialization,
-    PreviewReclamationCandidate, RecoverableScan, ScanCheckpoint, ScanError, ScanIssue,
-    ScanRequest, StorageConfiguration,
+    IncrementalCatalogRoot, LibraryChangeCatchUpEvidence, LibraryChangeSourceBatch,
+    LibraryChangeSourceError, LibraryChangeSourceHealth, LibraryChangeSourceStopReport,
+    LibraryFolderCursor, LibraryFolderPage, LibraryRootGeneration, MediaInspection,
+    MetadataInspection, PreviewArtifact, PreviewMaterialization, PreviewReclamationCandidate,
+    RecoverableScan, ScanCheckpoint, ScanError, ScanIssue, ScanRequest, StorageConfiguration,
 };
 use crate::domain::{
     LeasedLibraryChange, LibraryChangeEnqueueReport, LibraryChangeFailure, LibraryChangeId,
     LibraryChangeIntent, LibraryChangeLeaseUpdateOutcome, LibraryChangeQueueMetrics,
     LibraryChangeQueuePolicy,
+};
+#[cfg(test)]
+use crate::domain::{
+    LibraryChangeCatchUpBatch, LibraryChangeCatchUpCheckpoint, LibraryChangeCatchUpLimits,
+    LibraryChangeCatchUpQueueBatch,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -77,6 +81,7 @@ pub trait LibraryChangeQueue {
         enqueued_unix_ms: i64,
         policy: LibraryChangeQueuePolicy,
     ) -> Result<LibraryChangeEnqueueReport, ScanError>;
+    #[cfg(test)]
     fn enqueue_library_change_intents_with_catch_up(
         &mut self,
         intents: &[LibraryChangeIntent],
@@ -84,6 +89,7 @@ pub trait LibraryChangeQueue {
         enqueued_unix_ms: i64,
         policy: LibraryChangeQueuePolicy,
     ) -> Result<LibraryChangeEnqueueReport, ScanError>;
+    #[cfg(test)]
     fn enqueue_library_change_catch_up_batches(
         &mut self,
         batches: &[LibraryChangeCatchUpQueueBatch],
@@ -151,6 +157,7 @@ pub trait LibraryChangeQueue {
     ) -> Result<u32, ScanError>;
 }
 
+#[cfg(test)]
 pub trait LibraryChangeCatchUpRepository {
     fn load_library_change_catch_up_checkpoints(
         &self,
@@ -167,6 +174,7 @@ pub trait LibraryChangeCatchUpRepository {
     ) -> Result<u32, ScanError>;
 }
 
+#[cfg(test)]
 pub trait LibraryChangeCatchUpSource: Send + Sync + 'static {
     fn read_changes(
         &self,
@@ -215,7 +223,20 @@ pub trait CatalogRepository {
         root_id: &str,
         root_path: &str,
     ) -> Result<ScanCheckpoint, ScanError>;
+    fn resume_scan(
+        &mut self,
+        request: &ScanRequest,
+        root_id: &str,
+        root_path: &str,
+    ) -> Result<ScanCheckpoint, ScanError>;
+    #[cfg(test)]
     fn begin_authoritative_scan(
+        &mut self,
+        request: &ScanRequest,
+        root_id: &str,
+        root_path: &str,
+    ) -> Result<ScanCheckpoint, ScanError>;
+    fn resume_authoritative_scan(
         &mut self,
         request: &ScanRequest,
         root_id: &str,
@@ -339,7 +360,7 @@ pub trait CatalogRepository {
         scan_id: &str,
         after_location_id: Option<&str>,
         limit: u32,
-    ) -> Result<Vec<(String, ExpectedFileState)>, ScanError>;
+    ) -> Result<Vec<(String, String, ExpectedFileState)>, ScanError>;
     fn publish_scan(
         &mut self,
         scan_id: &str,

@@ -10,14 +10,14 @@ use tempfile::tempdir;
 use crate::adapters::SqliteCatalog;
 use crate::application::AuthoritativeRecoveryPolicy;
 use crate::domain::{
-    CatalogFreshnessState, LibraryChangeCatchUpCompletedRoot, LibraryChangeCatchUpReport,
-    LibraryChangeObservation, LibraryChangeObservationKind, LibraryChangeOrigin,
-    LibraryChangePlanningLimits, LibraryChangeQueuePolicy, LibraryChangeScope,
-    LibraryChangeSourceBatch, LibraryChangeSourceError, LibraryChangeSourceHealth,
-    LibraryChangeSourceStopReport, LibraryRootAvailability, LibraryRootGeneration, ScanRequest,
+    CatalogFreshnessState, LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeObservation,
+    LibraryChangeObservationKind, LibraryChangeOrigin, LibraryChangePlanningLimits,
+    LibraryChangeQueuePolicy, LibraryChangeScope, LibraryChangeSourceBatch,
+    LibraryChangeSourceError, LibraryChangeSourceHealth, LibraryChangeSourceStopReport,
+    LibraryRootAvailability, LibraryRootGeneration, ScanRequest,
 };
 use crate::ports::{
-    CatalogRepository, IncrementalCatalogRepository, LibraryChangeSource,
+    CatalogRepository, IncrementalCatalogRepository, LibraryChangeQueue, LibraryChangeSource,
     LibraryChangeSourceFactory, LibraryChangeSourceRequest,
 };
 
@@ -127,6 +127,7 @@ fn live_observation_publishes_a_delta_and_advances_the_shared_revision() {
             health: LibraryChangeSourceHealth::Healthy,
             dropped_observation_count: 0,
             ignored_callback_count: 0,
+            last_issue_code: None,
         });
     let snapshot = runtime
         .poll(&mut catalog, 1_000, |_| LibraryRootAvailability::Available)
@@ -226,27 +227,43 @@ fn enqueue_failure_retains_the_drained_plan_until_persistence_recovers() {
         .poll(&mut catalog, 900, |_| LibraryRootAvailability::Available)
         .expect("complete startup recovery");
     write_png(&fixture.source_root.join("new.png"), 7, 5, [20, 30, 40]);
-    factory
-        .state
-        .lock()
-        .expect("fake state")
-        .batches
-        .push_back(LibraryChangeSourceBatch {
-            observations: vec![LibraryChangeObservation {
-                root_id: fixture.root_id.clone(),
-                root_generation: LibraryRootGeneration::initial(),
-                sequence: 1,
-                observed_unix_ms: 1_000,
-                kind: LibraryChangeObservationKind::Created,
-                scope: LibraryChangeScope::Path,
-                relative_path: "new.png".to_owned(),
-                previous_relative_path: None,
-                origin: LibraryChangeOrigin::LiveNotification,
-            }],
-            health: LibraryChangeSourceHealth::Healthy,
-            dropped_observation_count: 0,
-            ignored_callback_count: 0,
-        });
+    write_png(&fixture.source_root.join("later.png"), 8, 6, [50, 60, 70]);
+    let mut source_state = factory.state.lock().expect("fake state");
+    source_state.batches.push_back(LibraryChangeSourceBatch {
+        observations: vec![LibraryChangeObservation {
+            root_id: fixture.root_id.clone(),
+            root_generation: LibraryRootGeneration::initial(),
+            sequence: 1,
+            observed_unix_ms: 1_000,
+            kind: LibraryChangeObservationKind::Created,
+            scope: LibraryChangeScope::Path,
+            relative_path: "new.png".to_owned(),
+            previous_relative_path: None,
+            origin: LibraryChangeOrigin::LiveNotification,
+        }],
+        health: LibraryChangeSourceHealth::Healthy,
+        dropped_observation_count: 0,
+        ignored_callback_count: 0,
+        last_issue_code: None,
+    });
+    source_state.batches.push_back(LibraryChangeSourceBatch {
+        observations: vec![LibraryChangeObservation {
+            root_id: fixture.root_id.clone(),
+            root_generation: LibraryRootGeneration::initial(),
+            sequence: 2,
+            observed_unix_ms: 1_050,
+            kind: LibraryChangeObservationKind::Created,
+            scope: LibraryChangeScope::Path,
+            relative_path: "later.png".to_owned(),
+            previous_relative_path: None,
+            origin: LibraryChangeOrigin::LiveNotification,
+        }],
+        health: LibraryChangeSourceHealth::Healthy,
+        dropped_observation_count: 0,
+        ignored_callback_count: 0,
+        last_issue_code: None,
+    });
+    drop(source_state);
     let injector = rusqlite::Connection::open(catalog.catalog_path()).expect("injector connection");
     injector
         .execute_batch(
@@ -258,32 +275,64 @@ fn enqueue_failure_retains_the_drained_plan_until_persistence_recovers() {
         )
         .expect("install enqueue failure");
 
-    let error = runtime
+    let failed_snapshot = runtime
         .poll(&mut catalog, 1_000, |_| LibraryRootAvailability::Available)
-        .expect_err("enqueue must fail");
-    assert_eq!(error.code, "catalog_database_error");
+        .expect("one root enqueue failure must not abort the synchronization poll");
+    assert_eq!(
+        failed_snapshot.roots[0].freshness,
+        CatalogFreshnessState::NeedsReconciliation
+    );
+    assert_eq!(
+        failed_snapshot.roots[0].last_issue_code.as_deref(),
+        Some("catalog_database_error")
+    );
     assert!(
         catalog
             .load_incremental_location_by_relative_path(&fixture.root_id, "new.png")
             .expect("load absent location")
             .is_none()
     );
+    let repeated_failure = runtime
+        .poll(&mut catalog, 1_050, |_| LibraryRootAvailability::Available)
+        .expect("retrying the retained plan must remain a per-root failure");
+    assert_eq!(
+        repeated_failure.roots[0].freshness,
+        CatalogFreshnessState::NeedsReconciliation
+    );
     injector
         .execute_batch("DROP TRIGGER fail_runtime_enqueue;")
         .expect("remove enqueue failure");
 
-    let snapshot = runtime
+    let first_recovery = runtime
         .poll(&mut catalog, 1_100, |_| LibraryRootAvailability::Available)
         .expect("retry retained plan");
-
-    assert_eq!(snapshot.applied_mutation_count, 1);
-    assert_eq!(snapshot.catalog_revision, 2);
+    let snapshot = runtime
+        .poll(&mut catalog, 1_600, |_| LibraryRootAvailability::Available)
+        .expect("publish the observation retained behind the failed plan");
     assert!(
         catalog
             .load_incremental_location_by_relative_path(&fixture.root_id, "new.png")
             .expect("load recovered location")
             .is_some()
     );
+    assert!(
+        catalog
+            .load_incremental_location_by_relative_path(&fixture.root_id, "later.png")
+            .expect("load later recovered location")
+            .is_some()
+    );
+    assert_eq!(
+        first_recovery
+            .applied_mutation_count
+            .saturating_add(snapshot.applied_mutation_count),
+        2
+    );
+    assert_eq!(snapshot.catalog_revision, 2);
+    assert_eq!(
+        snapshot.roots[0].freshness,
+        CatalogFreshnessState::Synchronized
+    );
+    assert!(snapshot.roots[0].last_issue_code.is_none());
 }
 
 #[test]
@@ -310,6 +359,7 @@ fn evidence_gap_runs_bounded_authoritative_reconciliation_before_clearing() {
             health: LibraryChangeSourceHealth::Healthy,
             dropped_observation_count: 0,
             ignored_callback_count: 0,
+            last_issue_code: Some("change_source_event_incomplete".to_owned()),
         });
     let mut runtime = runtime(factory);
     let mut catalog = fixture.catalog;
@@ -324,6 +374,7 @@ fn evidence_gap_runs_bounded_authoritative_reconciliation_before_clearing() {
     );
     assert_eq!(snapshot.roots[0].freshness_unknown_count, 0);
     assert_eq!(snapshot.applied_mutation_count, 0);
+    assert!(snapshot.roots[0].last_issue_code.is_none());
 }
 
 #[test]
@@ -355,6 +406,7 @@ fn degraded_source_keeps_the_gap_until_the_restarted_observer_is_healthy() {
             health: LibraryChangeSourceHealth::Degraded,
             dropped_observation_count: 1,
             ignored_callback_count: 0,
+            last_issue_code: Some("change_source_rescan_required".to_owned()),
         });
 
     let degraded = runtime
@@ -367,6 +419,10 @@ fn degraded_source_keeps_the_gap_until_the_restarted_observer_is_healthy() {
     assert_eq!(
         degraded.roots[0].source_health,
         LibraryChangeSourceHealth::Degraded
+    );
+    assert_eq!(
+        degraded.roots[0].last_issue_code.as_deref(),
+        Some("change_source_rescan_required")
     );
     write_png(
         &fixture.source_root.join("during-restart.png"),
@@ -390,6 +446,10 @@ fn degraded_source_keeps_the_gap_until_the_restarted_observer_is_healthy() {
             recovered = Some(snapshot);
             break;
         }
+        assert_eq!(
+            snapshot.roots[0].last_issue_code.as_deref(),
+            Some("change_source_rescan_required")
+        );
         thread::sleep(Duration::from_millis(5));
     }
     let recovered = recovered.expect("restarted observer eventually reconciles the retained gap");
@@ -398,6 +458,7 @@ fn degraded_source_keeps_the_gap_until_the_restarted_observer_is_healthy() {
         recovered.roots[0].source_health,
         LibraryChangeSourceHealth::Healthy
     );
+    assert!(recovered.roots[0].last_issue_code.is_none());
     assert_eq!(factory.state.lock().expect("fake state").start_count, 2);
     assert!(
         catalog
@@ -408,7 +469,7 @@ fn degraded_source_keeps_the_gap_until_the_restarted_observer_is_healthy() {
 }
 
 #[test]
-fn production_poll_mode_leaves_authoritative_work_for_the_background_worker() {
+fn production_poll_mode_projects_automatic_authoritative_work_as_updating() {
     let fixture = RuntimeFixture::new();
     let factory = FakeFactory::default();
     let mut runtime = runtime(factory);
@@ -427,10 +488,8 @@ fn production_poll_mode_leaves_authoritative_work_for_the_background_worker() {
         .expect("production-mode poll");
 
     assert_eq!(pending.applied_mutation_count, 0);
-    assert_eq!(
-        pending.roots[0].freshness,
-        CatalogFreshnessState::NeedsReconciliation
-    );
+    assert_eq!(pending.roots[0].freshness, CatalogFreshnessState::Updating);
+    assert_eq!(pending.roots[0].freshness_unknown_count, 1);
     assert!(
         catalog
             .load_incremental_location_by_relative_path(&fixture.root_id, "background.png")
@@ -449,7 +508,7 @@ fn production_poll_mode_leaves_authoritative_work_for_the_background_worker() {
 }
 
 #[test]
-fn production_catch_up_mode_starts_the_observer_before_resolving_startup_continuity() {
+fn production_starts_the_observer_before_persisting_startup_inventory_work() {
     let fixture = RuntimeFixture::new();
     let factory = FakeFactory::default();
     let mut runtime = LibrarySynchronizationRuntime::new_production(
@@ -465,32 +524,194 @@ fn production_catch_up_mode_starts_the_observer_before_resolving_startup_continu
 
     assert_eq!(factory.state.lock().expect("fake state").start_count, 1);
     assert_eq!(pending.roots[0].freshness, CatalogFreshnessState::Updating);
-    assert_eq!(pending.roots[0].freshness_unknown_count, 0);
-    let roots = runtime.pending_catch_up_roots();
-    assert_eq!(roots.len(), 1);
-    assert_eq!(roots[0].root_id, fixture.root_id);
-
-    runtime.acknowledge_catch_up(&LibraryChangeCatchUpReport {
-        completed_roots: vec![LibraryChangeCatchUpCompletedRoot {
-            root_id: roots[0].root_id.clone(),
-            root_generation: roots[0].root_generation,
-            fallback_code: None,
-        }],
-        ..Default::default()
-    });
-    let synchronized = runtime
-        .poll_without_authoritative_recovery(&mut catalog, 1_100, |_| {
-            LibraryRootAvailability::Available
-        })
-        .expect("resolved catch up");
-    assert_eq!(
-        synchronized.roots[0].freshness,
-        CatalogFreshnessState::Synchronized
+    assert_eq!(pending.roots[0].freshness_unknown_count, 1);
+    assert!(
+        catalog
+            .load_recoverable_scan()
+            .expect("recoverable scan")
+            .is_none()
     );
 }
 
 #[test]
-fn catch_up_readiness_is_isolated_per_root() {
+fn recovery_writer_contention_blocks_only_after_the_bounded_grace_period() {
+    let fixture = RuntimeFixture::new();
+    let factory = FakeFactory::default();
+    let mut runtime = LibrarySynchronizationRuntime::new_production(
+        crate::ports::erase_library_change_source_factory(factory),
+    );
+    let mut catalog = fixture.catalog;
+    runtime
+        .poll_without_authoritative_recovery(&mut catalog, 1_000, |_| {
+            LibraryRootAvailability::Available
+        })
+        .expect("establish runtime root");
+
+    runtime.record_recovery_failure(&fixture.root_id, "catalog_database_busy", 1_000);
+    let root = runtime.roots.get(&fixture.root_id).expect("runtime root");
+    assert_eq!(root.recovery_contention_started_unix_ms, Some(1_000));
+    assert!(root.blocking_issue_code.is_none());
+
+    runtime.record_recovery_failure(&fixture.root_id, "catalog_database_busy", 30_999);
+    assert!(
+        runtime
+            .roots
+            .get(&fixture.root_id)
+            .expect("runtime root")
+            .blocking_issue_code
+            .is_none()
+    );
+
+    runtime.record_recovery_failure(&fixture.root_id, "catalog_database_busy", 31_000);
+    assert_eq!(
+        runtime
+            .roots
+            .get(&fixture.root_id)
+            .expect("runtime root")
+            .blocking_issue_code
+            .as_deref(),
+        Some("catalog_database_busy")
+    );
+}
+
+#[test]
+fn non_contention_recovery_failure_blocks_immediately() {
+    let fixture = RuntimeFixture::new();
+    let factory = FakeFactory::default();
+    let mut runtime = LibrarySynchronizationRuntime::new_production(
+        crate::ports::erase_library_change_source_factory(factory),
+    );
+    let mut catalog = fixture.catalog;
+    runtime
+        .poll_without_authoritative_recovery(&mut catalog, 1_000, |_| {
+            LibraryRootAvailability::Available
+        })
+        .expect("establish runtime root");
+
+    runtime.record_recovery_failure(&fixture.root_id, "catalog_database_error", 1_000);
+
+    assert_eq!(
+        runtime
+            .roots
+            .get(&fixture.root_id)
+            .expect("runtime root")
+            .blocking_issue_code
+            .as_deref(),
+        Some("catalog_database_error")
+    );
+}
+
+#[test]
+fn production_live_root_gap_persists_metadata_inventory_work_without_starting_a_scan() {
+    let fixture = RuntimeFixture::new();
+    let factory = FakeFactory::default();
+    let mut runtime = LibrarySynchronizationRuntime::new_production(
+        crate::ports::erase_library_change_source_factory(factory.clone()),
+    );
+    let mut catalog = fixture.catalog;
+    runtime
+        .poll(&mut catalog, 900, |_| LibraryRootAvailability::Available)
+        .expect("complete startup inventory");
+    factory
+        .state
+        .lock()
+        .expect("fake state")
+        .batches
+        .push_back(LibraryChangeSourceBatch {
+            observations: vec![LibraryChangeObservation {
+                root_id: fixture.root_id.clone(),
+                root_generation: LibraryRootGeneration::initial(),
+                sequence: 1,
+                observed_unix_ms: 1_000,
+                kind: LibraryChangeObservationKind::EvidenceGap,
+                scope: LibraryChangeScope::Root,
+                relative_path: String::new(),
+                previous_relative_path: None,
+                origin: LibraryChangeOrigin::LiveNotification,
+            }],
+            health: LibraryChangeSourceHealth::Healthy,
+            dropped_observation_count: 1,
+            ignored_callback_count: 0,
+            last_issue_code: Some("change_source_event_incomplete".to_owned()),
+        });
+
+    let snapshot = runtime
+        .poll_without_authoritative_recovery(&mut catalog, 1_000, |_| {
+            LibraryRootAvailability::Available
+        })
+        .expect("persist live gap as metadata inventory work");
+
+    assert_eq!(snapshot.roots[0].freshness, CatalogFreshnessState::Updating);
+    assert_eq!(snapshot.roots[0].freshness_unknown_count, 1);
+    let metrics = catalog
+        .load_library_change_root_queue_metrics(
+            &fixture.root_id,
+            LibraryRootGeneration::initial(),
+            1_000,
+            LibraryChangeQueuePolicy::default(),
+        )
+        .expect("load queue metrics");
+    assert_eq!(metrics.pending_count, 1);
+    assert!(
+        catalog
+            .load_recoverable_scan()
+            .expect("recoverable scan")
+            .is_none()
+    );
+}
+
+#[test]
+fn active_authoritative_recovery_projects_updating_before_its_freshness_gap() {
+    let fixture = RuntimeFixture::new();
+    let factory = FakeFactory::default();
+    let mut runtime = runtime(factory);
+    let mut catalog = fixture.catalog;
+    catalog
+        .enqueue_library_change_intents(
+            &[LibraryChangeIntent {
+                root_id: fixture.root_id.clone(),
+                root_generation: LibraryRootGeneration::initial(),
+                kind: LibraryChangeIntentKind::FreshnessUnknown,
+                scope: LibraryChangeScope::Root,
+                relative_path: String::new(),
+                previous_relative_path: None,
+                origin: LibraryChangeOrigin::StartupCatchUp,
+                first_observed_unix_ms: 1_000,
+                most_recent_observed_unix_ms: 1_000,
+                first_sequence: 1,
+                most_recent_sequence: 1,
+                coalesced_observation_count: 1,
+            }],
+            1_000,
+            LibraryChangeQueuePolicy::default(),
+        )
+        .expect("enqueue freshness gap");
+    let request = ScanRequest {
+        scan_id: "active-authoritative-recovery".to_owned(),
+        root_path: fixture.source_root.to_string_lossy().into_owned(),
+        max_items: None,
+        max_entries: None,
+        preview_edge: 512,
+    };
+    catalog
+        .begin_authoritative_scan(&request, &fixture.root_id, &request.root_path)
+        .expect("begin authoritative recovery");
+
+    let snapshot = runtime
+        .poll_without_authoritative_recovery(&mut catalog, 1_100, |_| {
+            LibraryRootAvailability::Available
+        })
+        .expect("project active recovery");
+
+    assert_eq!(snapshot.roots[0].freshness_unknown_count, 1);
+    assert_eq!(snapshot.roots[0].freshness, CatalogFreshnessState::Updating);
+    catalog
+        .abandon_scan(&request.scan_id, "cancelled", 0)
+        .expect("abandon fixture scan");
+}
+
+#[test]
+fn metadata_inventory_readiness_is_isolated_per_root() {
     let fixture = RuntimeFixture::new();
     let factory = FakeFactory::default();
     let mut runtime = LibrarySynchronizationRuntime::new_production(
@@ -518,25 +739,14 @@ fn catch_up_readiness_is_isolated_per_root() {
         )
         .expect("publish other root");
     runtime
-        .poll_without_authoritative_recovery(&mut catalog, 1_000, |_| {
-            LibraryRootAvailability::Available
+        .poll_without_authoritative_recovery(&mut catalog, 1_000, |root_path| {
+            if Path::new(root_path) == other_root_path {
+                LibraryRootAvailability::Offline
+            } else {
+                LibraryRootAvailability::Available
+            }
         })
         .expect("establish both observers");
-    let pending = runtime.pending_catch_up_roots();
-    assert_eq!(pending.len(), 2);
-    let completed = pending
-        .iter()
-        .find(|root| root.root_id == fixture.root_id)
-        .expect("primary pending root");
-
-    runtime.acknowledge_catch_up(&LibraryChangeCatchUpReport {
-        completed_roots: vec![LibraryChangeCatchUpCompletedRoot {
-            root_id: completed.root_id.clone(),
-            root_generation: completed.root_generation,
-            fallback_code: None,
-        }],
-        ..Default::default()
-    });
 
     assert!(runtime.root_is_ready_for_authoritative_recovery(&fixture.root_id));
     assert!(!runtime.root_is_ready_for_authoritative_recovery("other-runtime-root"));
@@ -628,7 +838,7 @@ fn shutdown_is_idempotent_and_stops_each_observer_once() {
 }
 
 #[test]
-fn low_frequency_audit_is_persisted_and_does_not_claim_freshness_before_completion() {
+fn elapsed_time_does_not_schedule_a_full_root_consistency_scan() {
     let fixture = RuntimeFixture::new();
     let factory = FakeFactory::default();
     let mut runtime = runtime_with_recovery_policy(
@@ -636,41 +846,40 @@ fn low_frequency_audit_is_persisted_and_does_not_claim_freshness_before_completi
         AuthoritativeRecoveryPolicy {
             max_scope_entries: 64,
             max_scope_paths: 32,
-            audit_interval_millis: 100,
         },
     );
     let mut catalog = fixture.catalog;
-    runtime
+    let initial = runtime
         .poll(&mut catalog, 1_000, |_| LibraryRootAvailability::Available)
         .expect("complete startup recovery");
-
-    let scheduled = runtime
-        .poll(&mut catalog, 1_100, |_| LibraryRootAvailability::Available)
-        .expect("schedule consistency audit");
-    assert_ne!(
-        scheduled.roots[0].freshness,
-        CatalogFreshnessState::Synchronized
-    );
-    let completed = runtime
-        .poll(&mut catalog, 1_100, |_| LibraryRootAvailability::Available)
-        .expect("complete consistency audit");
+    let prior_authoritative_pass = catalog
+        .load_incremental_catalog_root(&fixture.root_id)
+        .expect("load root")
+        .expect("root")
+        .last_consistency_audit_unix_ms;
+    let after_thirty_days = runtime
+        .poll(&mut catalog, 1_000 + 30 * 24 * 60 * 60 * 1_000, |_| {
+            LibraryRootAvailability::Available
+        })
+        .expect("poll after elapsed time");
     let root = catalog
         .load_incremental_catalog_root(&fixture.root_id)
-        .expect("load audited root")
-        .expect("audited root");
+        .expect("reload root")
+        .expect("root");
 
     assert_eq!(
-        completed.roots[0].freshness,
+        initial.roots[0].freshness,
         CatalogFreshnessState::Synchronized
     );
-    assert_eq!(root.last_consistency_audit_unix_ms, Some(1_100));
-    let not_due = runtime
-        .poll(&mut catalog, 1_150, |_| LibraryRootAvailability::Available)
-        .expect("poll before next audit");
     assert_eq!(
-        not_due.roots[0].freshness,
+        after_thirty_days.roots[0].freshness,
         CatalogFreshnessState::Synchronized
     );
+    assert_eq!(
+        root.last_consistency_audit_unix_ms,
+        prior_authoritative_pass
+    );
+    assert_eq!(after_thirty_days.roots[0].pending_change_count, 0);
 }
 
 struct RuntimeFixture {
@@ -741,6 +950,7 @@ fn empty_batch() -> LibraryChangeSourceBatch {
         health: LibraryChangeSourceHealth::Healthy,
         dropped_observation_count: 0,
         ignored_callback_count: 0,
+        last_issue_code: None,
     }
 }
 
@@ -771,6 +981,7 @@ fn enqueue_live_path_observation(
             health: LibraryChangeSourceHealth::Healthy,
             dropped_observation_count: 0,
             ignored_callback_count: 0,
+            last_issue_code: None,
         });
 }
 

@@ -3,7 +3,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::adapters::{FileDiscovery, FileVisitOutcome};
 use crate::domain::{
-    IncrementalLibraryChangeReport, LeasedLibraryChange, LibraryChangeFailure, LibraryChangeId,
+    IncrementalLibraryChangeReport, LeasedLibraryChange, LibraryChangeFailure,
     LibraryChangeIntentKind, LibraryChangeLeaseUpdateOutcome, LibraryChangeQueuePolicy,
     LibraryChangeScope, LibraryRootGeneration, ScanError, ScanIssue,
 };
@@ -15,13 +15,11 @@ use super::incremental_library_changes::{
 
 const MAX_AUTHORITATIVE_ENTRIES: u32 = 4_096;
 const MAX_AUTHORITATIVE_PATHS: u32 = 128;
-const MAX_AUDIT_INTERVAL_MILLIS: u64 = 365 * 24 * 60 * 60 * 1_000;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct AuthoritativeRecoveryPolicy {
     pub max_scope_entries: u32,
     pub max_scope_paths: u32,
-    pub audit_interval_millis: u64,
 }
 
 impl AuthoritativeRecoveryPolicy {
@@ -30,8 +28,6 @@ impl AuthoritativeRecoveryPolicy {
             && self.max_scope_entries <= MAX_AUTHORITATIVE_ENTRIES
             && self.max_scope_paths > 0
             && self.max_scope_paths <= MAX_AUTHORITATIVE_PATHS
-            && self.audit_interval_millis > 0
-            && self.audit_interval_millis <= MAX_AUDIT_INTERVAL_MILLIS
     }
 }
 
@@ -40,23 +36,13 @@ impl Default for AuthoritativeRecoveryPolicy {
         Self {
             max_scope_entries: MAX_AUTHORITATIVE_ENTRIES,
             max_scope_paths: MAX_AUTHORITATIVE_PATHS,
-            audit_interval_millis: 7 * 24 * 60 * 60 * 1_000,
         }
     }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) struct FullScanRecoveryRequest {
-    pub root_id: String,
-    pub root_path: String,
-    pub root_generation: LibraryRootGeneration,
-    pub queue_high_watermark: LibraryChangeId,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct AuthoritativeLibraryChangeReport {
     pub incremental: IncrementalLibraryChangeReport,
-    pub full_scan: Option<FullScanRecoveryRequest>,
 }
 
 pub(crate) fn process_ready_authoritative_library_change<Repository>(
@@ -119,7 +105,6 @@ where
                 catalog_revision: root.catalog_revision,
                 ..IncrementalLibraryChangeReport::default()
             },
-            full_scan: None,
         });
     };
     let discovery = match FileDiscovery::new(&root.root_path) {
@@ -143,12 +128,13 @@ where
     {
         Ok(paths) => paths,
         Err(EnumerationFailure::Capacity) => {
-            return escalate_to_full_scan(
+            return retry(
                 repository,
-                &root.root_path,
                 &leased,
                 root.catalog_revision,
+                metadata_inventory_required(),
                 now_unix_ms,
+                queue_policy,
             );
         }
         Err(EnumerationFailure::Issue(issue)) => {
@@ -186,23 +172,25 @@ where
             recovery_policy.max_scope_paths.saturating_add(1),
         )?;
         if locations.len() > recovery_policy.max_scope_paths as usize {
-            return escalate_to_full_scan(
+            return retry(
                 repository,
-                &root.root_path,
                 &leased,
                 root.catalog_revision,
+                metadata_inventory_required(),
                 now_unix_ms,
+                queue_policy,
             );
         }
         for location in locations {
             paths.insert(location.relative_path);
             if paths.len() > recovery_policy.max_scope_paths as usize {
-                return escalate_to_full_scan(
+                return retry(
                     repository,
-                    &root.root_path,
                     &leased,
                     root.catalog_revision,
+                    metadata_inventory_required(),
                     now_unix_ms,
+                    queue_policy,
                 );
             }
         }
@@ -221,10 +209,7 @@ where
             cancellation,
         },
     )?;
-    Ok(AuthoritativeLibraryChangeReport {
-        incremental,
-        full_scan: None,
-    })
+    Ok(AuthoritativeLibraryChangeReport { incremental })
 }
 
 fn recovery_scopes(leased: &LeasedLibraryChange) -> Result<Vec<String>, ScanError> {
@@ -335,38 +320,6 @@ fn schedule_directory(
     }
 }
 
-fn escalate_to_full_scan<Repository>(
-    repository: &mut Repository,
-    root_path: &str,
-    leased: &LeasedLibraryChange,
-    catalog_revision: u64,
-    now_unix_ms: i64,
-) -> Result<AuthoritativeLibraryChangeReport, ScanError>
-where
-    Repository: LibraryChangeQueue,
-{
-    let mut incremental = IncrementalLibraryChangeReport {
-        leased_count: 1,
-        catalog_revision,
-        ..IncrementalLibraryChangeReport::default()
-    };
-    match repository.defer_library_change(leased.change.id, leased.lease_generation, now_unix_ms)? {
-        LibraryChangeLeaseUpdateOutcome::Applied => incremental.deferred_count = 1,
-        LibraryChangeLeaseUpdateOutcome::Superseded
-        | LibraryChangeLeaseUpdateOutcome::LeaseMismatch
-        | LibraryChangeLeaseUpdateOutcome::Missing => incremental.superseded_count = 1,
-    }
-    Ok(AuthoritativeLibraryChangeReport {
-        incremental,
-        full_scan: Some(FullScanRecoveryRequest {
-            root_id: leased.change.intent.root_id.clone(),
-            root_path: root_path.to_owned(),
-            root_generation: leased.change.intent.root_generation,
-            queue_high_watermark: leased.change.id,
-        }),
-    })
-}
-
 fn defer_authoritative_change<Repository>(
     repository: &mut Repository,
     leased: &LeasedLibraryChange,
@@ -387,10 +340,7 @@ where
         | LibraryChangeLeaseUpdateOutcome::LeaseMismatch
         | LibraryChangeLeaseUpdateOutcome::Missing => incremental.superseded_count = 1,
     }
-    Ok(AuthoritativeLibraryChangeReport {
-        incremental,
-        full_scan: None,
-    })
+    Ok(AuthoritativeLibraryChangeReport { incremental })
 }
 
 fn retry<Repository>(
@@ -421,10 +371,14 @@ where
         | LibraryChangeLeaseUpdateOutcome::LeaseMismatch
         | LibraryChangeLeaseUpdateOutcome::Missing => incremental.superseded_count = 1,
     }
-    Ok(AuthoritativeLibraryChangeReport {
-        incremental,
-        full_scan: None,
-    })
+    Ok(AuthoritativeLibraryChangeReport { incremental })
+}
+
+fn metadata_inventory_required() -> LibraryChangeFailure {
+    LibraryChangeFailure {
+        code: "metadata_inventory_required".to_owned(),
+        message: "The authoritative scope exceeds one bounded metadata page".to_owned(),
+    }
 }
 
 fn validate_policy(policy: AuthoritativeRecoveryPolicy) -> Result<(), ScanError> {

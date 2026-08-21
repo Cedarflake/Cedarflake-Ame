@@ -1138,6 +1138,7 @@ pub(super) fn cleanup_terminal_catch_up_handoffs_batch(
     Ok(())
 }
 
+#[cfg(test)]
 pub(super) fn cleanup_obsolete_catch_up_handoffs(
     transaction: &rusqlite::Transaction<'_>,
     updated_before_unix_ms: i64,

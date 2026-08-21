@@ -172,7 +172,7 @@ where
             context,
             root_gap_origin
                 .map(|(_, _, origin)| origin)
-                .unwrap_or(LibraryChangeOrigin::ConsistencyAudit),
+                .unwrap_or(LibraryChangeOrigin::LiveNotification),
             if exceeded_observation_limit {
                 None
             } else {

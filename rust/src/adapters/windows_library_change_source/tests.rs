@@ -19,8 +19,8 @@ use crate::domain::{
 use crate::ports::{LibraryChangeSource, LibraryChangeSourceRequest};
 
 use super::{
-    CallbackProcessor, CallbackState, RENAME_PAIR_GRACE, health_code,
-    start_windows_library_change_source,
+    CallbackProcessor, CallbackState, RENAME_PAIR_GRACE, health_code, notify_start_issue_code,
+    notify_watch_issue_code, start_windows_library_change_source,
 };
 
 #[test]
@@ -89,11 +89,11 @@ fn rename_halves_outside_the_grace_window_cannot_claim_reliable_pairing() {
     assert_eq!(observations[0].relative_path, "new.jpg");
     assert!(observations[0].previous_relative_path.is_none());
     assert!(state.evidence_gap.load(Ordering::Acquire));
-    assert_eq!(state.health(), LibraryChangeSourceHealth::Degraded);
+    assert_eq!(state.health(), LibraryChangeSourceHealth::Healthy);
 }
 
 #[test]
-fn incomplete_rename_rescan_and_callback_error_cannot_claim_healthy_evidence() {
+fn recoverable_evidence_gaps_keep_transport_healthy_until_callback_failure() {
     let root = TempDir::new().expect("temporary root");
     let (state, _) = callback_state(root.path(), 8);
     let mut processor = CallbackProcessor {
@@ -107,17 +107,52 @@ fn incomplete_rename_rescan_and_callback_error_cannot_claim_healthy_evidence() {
     thread::sleep(RENAME_PAIR_GRACE + Duration::from_millis(10));
     state.flush_expired_rename();
     assert!(state.evidence_gap.load(Ordering::Acquire));
-    assert_eq!(state.health(), LibraryChangeSourceHealth::Degraded);
+    assert_eq!(state.health(), LibraryChangeSourceHealth::Healthy);
+    assert_eq!(
+        state.take_issue_code().as_deref(),
+        Some("change_source_rename_incomplete")
+    );
 
     state.evidence_gap.store(false, Ordering::Release);
     processor.handle(Ok(Event::new(EventKind::Other).set_flag(Flag::Rescan)));
     assert!(state.evidence_gap.load(Ordering::Acquire));
-    assert_eq!(state.health(), LibraryChangeSourceHealth::Degraded);
+    assert_eq!(state.health(), LibraryChangeSourceHealth::Healthy);
+    assert_eq!(
+        state.take_issue_code().as_deref(),
+        Some("change_source_rescan_required")
+    );
 
     state.evidence_gap.store(false, Ordering::Release);
     processor.handle(Err(notify::Error::generic("forced callback failure")));
     assert!(state.evidence_gap.load(Ordering::Acquire));
     assert_eq!(state.health(), LibraryChangeSourceHealth::Failed);
+    assert_eq!(
+        state.take_issue_code().as_deref(),
+        Some("change_source_callback_failed")
+    );
+
+    state.evidence_gap.store(false, Ordering::Release);
+    processor.handle(Err(notify::Error::io(std::io::Error::new(
+        std::io::ErrorKind::PermissionDenied,
+        "forced access failure",
+    ))));
+    assert!(state.evidence_gap.load(Ordering::Acquire));
+    assert_eq!(
+        state.take_issue_code().as_deref(),
+        Some("change_source_callback_access_denied")
+    );
+    let startup_error = notify::Error::io(std::io::Error::new(
+        std::io::ErrorKind::PermissionDenied,
+        "forced startup access failure",
+    ));
+    assert_eq!(
+        notify_start_issue_code(&startup_error),
+        "change_source_start_access_denied"
+    );
+    assert_eq!(
+        notify_watch_issue_code(&startup_error),
+        "change_source_watch_access_denied"
+    );
 }
 
 #[test]
@@ -192,7 +227,7 @@ fn callback_ingress_is_bounded_and_overflow_becomes_an_evidence_gap() {
 
     assert_eq!(state.dropped_observation_count.load(Ordering::Acquire), 1);
     assert!(state.evidence_gap.load(Ordering::Acquire));
-    assert_eq!(state.health(), LibraryChangeSourceHealth::Degraded);
+    assert_eq!(state.health(), LibraryChangeSourceHealth::Healthy);
 }
 
 #[test]
@@ -232,6 +267,10 @@ fn failed_health_cannot_be_downgraded_by_a_later_rescan_signal() {
     processor.handle(Ok(Event::new(EventKind::Other).set_flag(Flag::Rescan)));
 
     assert_eq!(state.health(), LibraryChangeSourceHealth::Failed);
+    assert_eq!(
+        state.take_issue_code().as_deref(),
+        Some("change_source_callback_failed")
+    );
 }
 
 #[test]
@@ -274,7 +313,7 @@ fn stop_gate_is_rechecked_at_the_bounded_channel_boundary() {
 }
 
 #[test]
-fn vanished_metadata_keeps_conservative_work_and_marks_an_evidence_gap() {
+fn vanished_metadata_keeps_conservative_subtree_work_without_degrading_transport() {
     let root = TempDir::new().expect("temporary root");
     let (state, receiver) = callback_state(root.path(), 4);
     let mut processor = CallbackProcessor {
@@ -287,8 +326,13 @@ fn vanished_metadata_keeps_conservative_work_and_marks_an_evidence_gap() {
     let observations = drain_receiver(&receiver);
     assert_eq!(observations.len(), 1);
     assert_eq!(observations[0].relative_path, "already-gone.jpg");
-    assert!(state.evidence_gap.load(Ordering::Acquire));
-    assert_eq!(state.health(), LibraryChangeSourceHealth::Degraded);
+    assert_eq!(
+        observations[0].kind,
+        LibraryChangeObservationKind::DirectoryChanged
+    );
+    assert_eq!(observations[0].scope, LibraryChangeScope::Subtree);
+    assert!(!state.evidence_gap.load(Ordering::Acquire));
+    assert_eq!(state.health(), LibraryChangeSourceHealth::Healthy);
 }
 
 #[test]
@@ -478,6 +522,7 @@ fn callback_state(
             ignored_callback_count: std::sync::atomic::AtomicU64::new(0),
             next_sequence: std::sync::atomic::AtomicU64::new(1),
             pending_rename_from: Mutex::new(None),
+            last_issue: Mutex::new(None),
         }),
         receiver,
     )

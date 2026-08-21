@@ -4,6 +4,9 @@ import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../app/notifications/ame_notification_controller.dart";
+import "../../../app/notifications/ame_notification_strings.dart";
+import "../../../app/presentation/ame_notifications.dart";
 import "../adapters/windows_library_platform_actions.dart";
 import "../../settings/application/ame_preferences.dart";
 import "../../settings/presentation/ame_settings_page.dart";
@@ -45,10 +48,15 @@ class UnifiedLibraryScreen extends ConsumerStatefulWidget {
 class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   static const _layoutDimensionQuietDelay = Duration(milliseconds: 160);
   static const _layoutDimensionMaximumDelay = Duration(milliseconds: 600);
+  static const _retrySynchronizationNotificationAction =
+      "library.retrySynchronization";
+  static const _synchronizationRefreshNotificationKey =
+      "library.synchronizationRefresh";
 
   late final ScrollController _galleryScrollController;
   final Set<ScrollPosition> _galleryScrollPositions = {};
   late final LibraryController _libraryController;
+  late final AmeNotificationController _notificationController;
   late final TextEditingController _searchController;
   late GallerySelection _selection;
   late String _selectionStableQueryId;
@@ -84,6 +92,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   BigInt? _pendingSynchronizationRevision;
   bool _isApplyingSynchronizationRevision = false;
   bool _hasSynchronizationRefreshFailure = false;
+  final Map<String, String> _synchronizationNotificationKeys = {};
   Timer? _synchronizationRefreshRetry;
   final Map<int, LibraryGalleryLayoutDimensionUpdate>
   _pendingLayoutDimensionUpdates = {};
@@ -111,6 +120,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       onDetach: _handleGalleryScrollPositionDetached,
     );
     _libraryController = ref.read(libraryControllerProvider.notifier);
+    _notificationController = ref.read(
+      ameNotificationControllerProvider.notifier,
+    );
     final state = ref.read(libraryControllerProvider);
     final viewPreferences = ref.read(initialLibraryViewPreferencesProvider);
     final amePreferences = ref.read(initialAmePreferencesProvider);
@@ -131,6 +143,11 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       _handleSynchronizationSnapshot,
     );
     _synchronizationSnapshot = synchronization.current;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _recordSynchronizationNotifications(_synchronizationSnapshot);
+      }
+    });
     _queueSynchronizationRevision(_synchronizationSnapshot);
   }
 
@@ -162,6 +179,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     if (!mounted) {
       return;
     }
+    _recordSynchronizationNotifications(snapshot);
     setState(() => _synchronizationSnapshot = snapshot);
     _queueSynchronizationRevision(snapshot);
   }
@@ -263,6 +281,21 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     if (!mounted || _hasSynchronizationRefreshFailure == hasFailure) {
       return;
     }
+    if (hasFailure) {
+      _notificationController.publish(
+        const AmeNotificationDraft(
+          title: LibraryStrings.synchronizationRefreshFailureTitle,
+          message: LibraryStrings.synchronizationRefreshFailureMessage,
+          severity: AmeNotificationSeverity.error,
+          dedupeKey: _synchronizationRefreshNotificationKey,
+          actionId: _retrySynchronizationNotificationAction,
+          actionLabel: LibraryStrings.retry,
+          isPersistent: true,
+        ),
+      );
+    } else {
+      _notificationController.resolve(_synchronizationRefreshNotificationKey);
+    }
     setState(() => _hasSynchronizationRefreshFailure = hasFailure);
   }
 
@@ -273,21 +306,213 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     return Future<void>.value();
   }
 
+  void _recordSynchronizationNotifications(
+    LibrarySynchronizationSnapshot snapshot,
+  ) {
+    final roots = {
+      for (final root in ref.read(libraryControllerProvider).roots)
+        root.id: root,
+    };
+    final reportedRootIds = snapshot.roots.keys.toSet();
+    for (final rootId in _synchronizationNotificationKeys.keys.toList()) {
+      if (!reportedRootIds.contains(rootId)) {
+        final key = _synchronizationNotificationKeys.remove(rootId);
+        if (key != null) {
+          _notificationController.resolve(key);
+        }
+      }
+    }
+    for (final entry in snapshot.roots.entries) {
+      final rootId = entry.key;
+      final status = entry.value;
+      final root = roots[rootId];
+      final priorKey = _synchronizationNotificationKeys[rootId];
+      switch (status.freshness) {
+        case LibraryCatalogFreshness.needsReconciliation:
+          final key = _synchronizationNotificationKey(status);
+          if (priorKey != null && priorKey != key) {
+            _notificationController.resolve(priorKey);
+          }
+          _synchronizationNotificationKeys[rootId] = key;
+          _notificationController.publish(
+            AmeNotificationDraft(
+              title: LibraryStrings.synchronizationReconciliationTitle(
+                _notificationRootName(root, rootId),
+              ),
+              message: _synchronizationNotificationMessage(status),
+              severity: _synchronizationNotificationSeverity(status),
+              dedupeKey: key,
+              detail: _synchronizationNotificationDetail(status),
+              sourcePath: root?.displayPath,
+              technicalCode: status.lastIssueCode,
+              isPersistent: true,
+            ),
+          );
+          break;
+        case LibraryCatalogFreshness.synchronized:
+          if (priorKey != null) {
+            _notificationController.resolve(priorKey);
+          }
+          _synchronizationNotificationKeys.remove(rootId);
+          break;
+        case LibraryCatalogFreshness.unavailable:
+          if (priorKey != null) {
+            _notificationController.resolve(priorKey);
+            _synchronizationNotificationKeys.remove(rootId);
+          }
+          break;
+        case LibraryCatalogFreshness.updating:
+          break;
+      }
+    }
+  }
+
+  String _synchronizationNotificationKey(
+    LibraryRootSynchronizationStatus status,
+  ) {
+    return "library.rootReconciliation:${status.rootId}";
+  }
+
+  String _synchronizationNotificationMessage(
+    LibraryRootSynchronizationStatus status,
+  ) {
+    final issueMessage = _synchronizationIssueMessage(status.lastIssueCode);
+    if (issueMessage != null) {
+      return issueMessage;
+    }
+    return switch (status.freshnessCause) {
+      LibraryCatalogFreshnessCause.changeSourceUnhealthy =>
+        LibraryStrings.synchronizationSourceUnhealthy,
+      LibraryCatalogFreshnessCause.evidenceGap =>
+        LibraryStrings.synchronizationEvidenceGap,
+      LibraryCatalogFreshnessCause.boundedCapacityExceeded =>
+        LibraryStrings.synchronizationCapacityExceeded,
+      LibraryCatalogFreshnessCause.noPendingChanges ||
+      LibraryCatalogFreshnessCause.pendingChanges ||
+      LibraryCatalogFreshnessCause.rootUnavailable =>
+        LibraryStrings.synchronizationNeedsReconciliation,
+    };
+  }
+
+  String? _synchronizationIssueMessage(String? issueCode) {
+    final message = switch (issueCode) {
+      "change_source_callback_access_denied" ||
+      "change_source_start_access_denied" ||
+      "change_source_watch_access_denied" =>
+        LibraryStrings.synchronizationMonitoringAccessDenied,
+      "change_source_callback_path_unavailable" ||
+      "change_source_root_removed" ||
+      "change_source_root_unavailable" =>
+        LibraryStrings.synchronizationMonitoringPathUnavailable,
+      "change_source_callback_capacity_exceeded" ||
+      "change_source_ingress_overflow" ||
+      "change_source_rescan_required" ||
+      "change_source_start_capacity_exceeded" ||
+      "change_source_watch_capacity_exceeded" =>
+        LibraryStrings.synchronizationMonitoringCapacityExceeded,
+      "change_source_event_incomplete" || "change_source_rename_incomplete" =>
+        LibraryStrings.synchronizationMonitoringEventIncomplete,
+      "change_source_callback_failed" ||
+      "change_source_callback_invalid_configuration" ||
+      "change_source_callback_io_failed" ||
+      "change_source_callback_watch_missing" ||
+      "change_source_ingress_disconnected" ||
+      "change_source_state_unavailable" ||
+      "change_source_start_failed" ||
+      "change_source_start_invalid_configuration" ||
+      "change_source_watch_invalid_configuration" ||
+      "change_source_watch_failed" =>
+        LibraryStrings.synchronizationMonitoringFailed,
+      _ => null,
+    };
+    if (message != null || issueCode == null) {
+      return message;
+    }
+    if (issueCode.startsWith("authoritative_") ||
+        issueCode.startsWith("library_reconciliation_")) {
+      return LibraryStrings.synchronizationRecoveryFailed;
+    }
+    if (issueCode.startsWith("catalog_") ||
+        issueCode.startsWith("change_queue_") ||
+        issueCode.startsWith("database_")) {
+      return LibraryStrings.synchronizationPersistenceFailed;
+    }
+    return null;
+  }
+
+  String? _synchronizationNotificationDetail(
+    LibraryRootSynchronizationStatus status,
+  ) {
+    final details = <String>[];
+    if (status.pendingChangeCount > BigInt.zero) {
+      details.add("${status.pendingChangeCount} 项等待处理");
+    }
+    if (status.retryWaitCount > BigInt.zero) {
+      details.add("${status.retryWaitCount} 项等待重试");
+    }
+    if (status.freshnessUnknownCount > BigInt.zero) {
+      details.add("${status.freshnessUnknownCount} 项状态尚未确认");
+    }
+    return details.isEmpty ? null : details.join(" · ");
+  }
+
+  AmeNotificationSeverity _synchronizationNotificationSeverity(
+    LibraryRootSynchronizationStatus status,
+  ) {
+    final issueCode = status.lastIssueCode;
+    if (status.sourceStatus == LibraryChangeSourceStatus.failed ||
+        issueCode?.startsWith("catalog_") == true ||
+        issueCode?.startsWith("change_queue_") == true ||
+        issueCode?.startsWith("database_") == true) {
+      return AmeNotificationSeverity.error;
+    }
+    return AmeNotificationSeverity.warning;
+  }
+
+  String _notificationRootName(LibraryRoot? root, String rootId) {
+    final displayPath = root?.displayPath.trim();
+    if (displayPath == null || displayPath.isEmpty) {
+      return rootId;
+    }
+    final normalized = displayPath.replaceAll("\\", "/");
+    final segments = normalized
+        .split("/")
+        .where((segment) => segment.isNotEmpty)
+        .toList();
+    return segments.isEmpty ? displayPath : segments.last;
+  }
+
+  void _handleNotificationAction(AmeNotificationEntry notification) {
+    switch (notification.actionId) {
+      case _retrySynchronizationNotificationAction:
+        unawaited(_retrySynchronizationRefresh());
+        break;
+      case null:
+        break;
+      default:
+        break;
+    }
+  }
+
+  void _showNotificationDetails(AmeNotificationEntry notification) {
+    unawaited(
+      showAmeNotificationDetails(
+        context,
+        notification,
+        onAction: _handleNotificationAction,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(libraryControllerProvider);
+    final notifications = ref.watch(ameNotificationControllerProvider);
     _synchronizeLayoutDimensionContext(state.catalogRevision, state.queryId);
     final amePreferences = ref.watch(amePreferencesControllerProvider);
     final controller = _libraryController;
     final hasLibraryTaskSurface = _showsTaskSurface(state);
-    final showsSynchronizationRefreshFailure =
-        _hasSynchronizationRefreshFailure && !hasLibraryTaskSurface;
-    final taskSurfaceState = showsSynchronizationRefreshFailure
-        ? state.copyWith(
-            status: LibraryStatus.stale,
-            errorMessage: LibraryStrings.synchronizationRefreshFailed,
-          )
-        : state;
+    final currentNotification = notifications.current;
     final queryId = _queryId(state);
     final catalogRevision = state.catalogRevision;
     final manifestRequest =
@@ -378,6 +603,10 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                         isBusy: state.isBusy,
                         searchController: _searchController,
                         onSearchChanged: _onSearchChanged,
+                        notifications: notifications,
+                        onNotificationsOpened:
+                            _notificationController.markAllRead,
+                        onNotificationSelected: _showNotificationDetails,
                       ),
                       Expanded(
                         child: _buildLibrary(
@@ -432,21 +661,33 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                     ),
                 ],
               ),
-              if (viewerCatalogAsset == null &&
-                  (showsSynchronizationRefreshFailure || hasLibraryTaskSurface))
+              if (viewerCatalogAsset == null && hasLibraryTaskSurface)
                 Align(
                   alignment: Alignment.bottomCenter,
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: 24),
                     child: LibraryTaskSurface(
-                      state: taskSurfaceState,
+                      state: state,
                       onPause: controller.pauseScan,
                       onCancel: controller.cancelScan,
                       onResume: controller.resumePausedScan,
-                      onRetry: showsSynchronizationRefreshFailure
-                          ? _retrySynchronizationRefresh
-                          : controller.retry,
+                      onRetry: controller.retry,
                       onDismiss: controller.dismissTaskFeedback,
+                    ),
+                  ),
+                ),
+              if (viewerCatalogAsset == null &&
+                  !hasLibraryTaskSurface &&
+                  currentNotification != null)
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 24),
+                    child: AmeNotificationSurface(
+                      key: ValueKey(currentNotification.id),
+                      notification: currentNotification,
+                      onAction: _handleNotificationAction,
+                      onDismiss: _notificationController.dismiss,
                     ),
                   ),
                 ),
@@ -1030,14 +1271,17 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   Future<LibraryQueryUpdateOutcome> _applyQuery(
     LibraryGalleryQuery query, {
     BigInt? synchronizationRevision,
+    bool preserveGalleryPosition = true,
   }) async {
     final requestGeneration = ++_queryTransitionGeneration;
     final currentState = ref.read(libraryControllerProvider);
     final isContinuingQueryTransition = _pendingQueryPosition != null;
-    final frozenPosition = _freezeCurrentGalleryPosition(
-      currentState,
-      allowPreviousQueryIdentity: isContinuingQueryTransition,
-    );
+    final frozenPosition = preserveGalleryPosition
+        ? _freezeCurrentGalleryPosition(
+            currentState,
+            allowPreviousQueryIdentity: isContinuingQueryTransition,
+          )
+        : null;
     _pendingQueryPosition = frozenPosition;
     final viewerAnchor =
         synchronizationRevision == null || _viewerAssetId == null
@@ -1153,7 +1397,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     setState(() {
       _pendingQueryPosition = null;
       _visibleGalleryPosition = nextPosition;
-      if (nextPosition == null) {
+      if (!preserveGalleryPosition || nextPosition == null) {
         _galleryLayoutTransition = null;
       } else {
         _galleryLayoutTransitionGeneration += 1;
@@ -1163,7 +1407,23 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
         );
       }
     });
+    if (!preserveGalleryPosition) {
+      _scheduleGalleryStartReset(requestGeneration);
+    }
     return LibraryQueryUpdateOutcome.applied;
+  }
+
+  void _scheduleGalleryStartReset(int requestGeneration) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || requestGeneration != _queryTransitionGeneration) {
+        return;
+      }
+      for (final position in _galleryScrollPositions) {
+        if ((position.pixels - position.minScrollExtent).abs() >= 0.5) {
+          position.jumpTo(position.minScrollExtent);
+        }
+      }
+    });
   }
 
   Future<void> _reconcileViewerAfterSynchronization() async {
@@ -1355,7 +1615,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
           );
     } on Object catch (error) {
       if (mounted) {
-        _showMessage("无法保存图库显示设置：$error");
+        _publishFailureNotification("无法保存图库显示设置", error);
       }
     }
   }
@@ -1404,7 +1664,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     } on Object catch (error) {
       if (mounted) {
         setState(() => _sidebarWidth = previousWidth);
-        _showMessage("无法保存侧栏宽度：$error");
+        _publishFailureNotification("无法保存侧栏宽度", error);
       }
     }
   }
@@ -1429,11 +1689,11 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
           .read(libraryPlatformActionsProvider)
           .copyText(asset.displayPath);
       if (mounted) {
-        _showMessage("已复制文件路径");
+        _publishSuccessNotification("已复制文件路径");
       }
     } on Object catch (error) {
       if (mounted) {
-        _showMessage("无法复制路径：$error");
+        _publishFailureNotification("无法复制路径", error);
       }
     }
   }
@@ -1445,7 +1705,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
           .revealFile(asset.sourcePath);
     } on Object catch (error) {
       if (mounted) {
-        _showMessage("无法在文件资源管理器中打开：$error");
+        _publishFailureNotification("无法在文件资源管理器中打开", error);
       }
     }
   }
@@ -1455,7 +1715,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       await ref.read(libraryPlatformActionsProvider).revealDirectory(root.path);
     } on Object catch (error) {
       if (mounted) {
-        _showMessage("无法在文件资源管理器中打开：$error");
+        _publishFailureNotification("无法在文件资源管理器中打开", error);
       }
     }
   }
@@ -1467,7 +1727,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
           .revealLibraryFolder(root.path, folder.relativePath);
     } on Object catch (error) {
       if (mounted) {
-        _showMessage("无法在文件资源管理器中打开：$error");
+        _publishFailureNotification("无法在文件资源管理器中打开", error);
       }
     }
   }
@@ -1519,7 +1779,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
         .read(libraryControllerProvider.notifier)
         .unregisterRoot(root);
     if (mounted && didRemove) {
-      _showMessage("已从 Ame 中移除，原图片未作任何修改");
+      _publishSuccessNotification("已从 Ame 中移除，原图片未作任何修改");
     }
   }
 
@@ -1534,7 +1794,10 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   void _selectLibrary(LibraryState state) {
     setState(() => _destination = _LibraryDestination.gallery);
     unawaited(
-      _applyQuery(state.query.copyWith(rootId: null, folderRelativePath: null)),
+      _applyQuery(
+        state.query.copyWith(rootId: null, folderRelativePath: null),
+        preserveGalleryPosition: false,
+      ),
     );
   }
 
@@ -1543,6 +1806,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     unawaited(
       _applyQuery(
         state.query.copyWith(rootId: root.id, folderRelativePath: null),
+        preserveGalleryPosition: false,
       ),
     );
   }
@@ -1560,6 +1824,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
           folderRelativePath: folder.relativePath,
           includeDescendants: true,
         ),
+        preserveGalleryPosition: false,
       ),
     );
   }
@@ -1623,7 +1888,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
           .read(libraryControllerProvider)
           .timeNavigationErrorMessage;
       if (error != null) {
-        _showMessage("无法跳转到所选日期：$error");
+        _publishFailureNotification("无法跳转到所选日期", error);
       }
     }
     return didSeek;
@@ -1747,10 +2012,26 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     );
   }
 
-  void _showMessage(String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+  void _publishSuccessNotification(String message) {
+    _notificationController.publish(
+      AmeNotificationDraft(
+        title: message,
+        message: "",
+        severity: AmeNotificationSeverity.success,
+      ),
+    );
+  }
+
+  void _publishFailureNotification(String title, Object error) {
+    _notificationController.publish(
+      AmeNotificationDraft(
+        title: title,
+        message: AmeNotificationStrings.operationFailed,
+        severity: AmeNotificationSeverity.error,
+        detail: error.toString(),
+        isPersistent: true,
+      ),
+    );
   }
 
   static String _queryId(LibraryState state) {

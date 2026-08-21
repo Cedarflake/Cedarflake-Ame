@@ -3,9 +3,10 @@ use std::thread;
 use std::time::Duration;
 
 use crate::domain::{
-    LibraryChangeObserverPoll, LibraryChangePlanningContext, LibraryChangePlanningLimits,
-    LibraryChangeRestartPolicy, LibraryChangeSourceError, LibraryChangeSourceHealth,
-    LibraryChangeSourceStopReport, LibraryRootAvailability,
+    LibraryChangeObservation, LibraryChangeObservationKind, LibraryChangeObserverPoll,
+    LibraryChangeOrigin, LibraryChangePlanningContext, LibraryChangePlanningLimits,
+    LibraryChangeRestartPolicy, LibraryChangeScope, LibraryChangeSourceError,
+    LibraryChangeSourceHealth, LibraryChangeSourceStopReport, LibraryRootAvailability,
 };
 use crate::ports::{
     BoxedLibraryChangeSource, LibraryChangeSourceRequest, LibraryChangeSourceStarter,
@@ -126,15 +127,32 @@ impl LibraryChangeObserver {
                     dropped_observation_count = batch.dropped_observation_count;
                     ignored_callback_count = batch.ignored_callback_count;
                     self.source_health = batch.health;
+                    if let Some(code) = batch.last_issue_code {
+                        self.last_source_error_code = Some(code);
+                    }
                     observations = batch.observations;
                     if dropped_observation_count > 0
-                        && matches!(
-                            self.source_health,
-                            LibraryChangeSourceHealth::Healthy
-                                | LibraryChangeSourceHealth::Starting
-                        )
+                        && !observations.iter().any(|observation| {
+                            observation.kind == LibraryChangeObservationKind::EvidenceGap
+                        })
                     {
-                        self.source_health = LibraryChangeSourceHealth::Degraded;
+                        let sequence = observations
+                            .iter()
+                            .map(|observation| observation.sequence)
+                            .max()
+                            .unwrap_or(0)
+                            .saturating_add(1);
+                        observations.push(LibraryChangeObservation {
+                            root_id: self.request.root_id.clone(),
+                            root_generation: self.request.root_generation,
+                            sequence,
+                            observed_unix_ms: now_unix_ms,
+                            kind: LibraryChangeObservationKind::EvidenceGap,
+                            scope: LibraryChangeScope::Root,
+                            relative_path: String::new(),
+                            previous_relative_path: None,
+                            origin: LibraryChangeOrigin::LiveNotification,
+                        });
                     }
                     should_restart = matches!(
                         self.source_health,
