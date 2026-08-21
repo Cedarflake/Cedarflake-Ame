@@ -36,10 +36,11 @@ pub use library_change_queue::{
     LibraryChangeQueueMetrics, LibraryChangeQueuePolicy, LibraryChangeQueueStatus,
 };
 pub use library_metadata_inventory::{
-    MetadataInventoryComparisonStatus, MetadataInventoryComparisonUpdate, MetadataInventoryEntry,
-    MetadataInventoryEntryKind, MetadataInventoryPage, MetadataInventoryPlaceholderState,
-    MetadataInventoryReport, MetadataInventoryRun, MetadataInventoryRunRequest,
-    MetadataInventoryRunStatus, MetadataInventoryScope,
+    MetadataInventoryCleanupReport, MetadataInventoryComparisonStatus,
+    MetadataInventoryComparisonUpdate, MetadataInventoryEntry, MetadataInventoryEntryKind,
+    MetadataInventoryPage, MetadataInventoryPlaceholderState, MetadataInventoryReport,
+    MetadataInventoryRun, MetadataInventoryRunRequest, MetadataInventoryRunStatus,
+    MetadataInventoryScope,
 };
 pub use library_synchronization::{
     LibraryRootSynchronizationStatus, LibrarySynchronizationSnapshot,

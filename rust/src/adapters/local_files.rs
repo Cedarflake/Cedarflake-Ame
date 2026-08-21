@@ -266,11 +266,26 @@ impl FileDiscovery {
             };
         }
 
-        if !has_image_extension(&path) && !has_supported_magic(&path) {
-            return FileVisit {
-                relative_path,
-                outcome: FileVisitOutcome::Ignored,
-            };
+        if !has_image_extension(&path) {
+            match has_supported_magic(&path) {
+                Ok(true) => {}
+                Ok(false) => {
+                    return FileVisit {
+                        relative_path,
+                        outcome: FileVisitOutcome::Ignored,
+                    };
+                }
+                Err(error) => {
+                    return FileVisit {
+                        relative_path,
+                        outcome: FileVisitOutcome::Issue(ScanIssue {
+                            path: Some(path_text(&path)),
+                            code: "media_signature_unreadable".to_owned(),
+                            message: format!("The file signature could not be read: {error}"),
+                        }),
+                    };
+                }
+            }
         }
 
         let created_unix_ms = created_unix_ms(&metadata);
@@ -310,6 +325,29 @@ impl FileDiscovery {
         let relative_path = relative_path_text(relative_path_value);
         let is_reparse_point = is_link_or_reparse_point(&metadata);
         let placeholder_state = metadata_placeholder_state(&metadata);
+        if is_reparse_point {
+            match path.metadata() {
+                Ok(target_metadata) if target_metadata.is_dir() => {
+                    return Err(ScanIssue {
+                        path: Some(path_text(path)),
+                        code: "metadata_inventory_reparse_directory".to_owned(),
+                        message:
+                            "The inventory cannot prove descendants through a reparse directory"
+                                .to_owned(),
+                    });
+                }
+                Ok(_) => {}
+                Err(error) => {
+                    return Err(ScanIssue {
+                        path: Some(path_text(path)),
+                        code: "metadata_inventory_reparse_unverifiable".to_owned(),
+                        message: format!(
+                            "The inventory could not classify a reparse target safely: {error}"
+                        ),
+                    });
+                }
+            }
+        }
         let kind = if metadata.is_dir() {
             MetadataInventoryEntryKind::Directory
         } else if metadata.is_file() && !is_reparse_point {
@@ -595,17 +633,13 @@ fn has_image_extension(path: &Path) -> bool {
         .unwrap_or(false)
 }
 
-fn has_supported_magic(path: &Path) -> bool {
+fn has_supported_magic(path: &Path) -> std::io::Result<bool> {
     let mut header = [0_u8; 16];
-    let Ok(mut file) = File::open(path) else {
-        return false;
-    };
-    let Ok(read_count) = file.read(&mut header) else {
-        return false;
-    };
+    let mut file = File::open(path)?;
+    let read_count = file.read(&mut header)?;
     let header = &header[..read_count];
 
-    header.starts_with(b"\x89PNG\r\n\x1a\n")
+    Ok(header.starts_with(b"\x89PNG\r\n\x1a\n")
         || header.starts_with(b"\xff\xd8\xff")
         || header.starts_with(b"GIF87a")
         || header.starts_with(b"GIF89a")
@@ -613,7 +647,7 @@ fn has_supported_magic(path: &Path) -> bool {
         || header.starts_with(b"II*\0")
         || header.starts_with(b"MM\0*")
         || header.starts_with(b"RIFF") && header.get(8..12) == Some(b"WEBP")
-        || header.get(4..8) == Some(b"ftyp")
+        || header.get(4..8) == Some(b"ftyp"))
 }
 
 #[cfg(windows)]

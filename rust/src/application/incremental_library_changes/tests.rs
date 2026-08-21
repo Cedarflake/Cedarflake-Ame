@@ -1,8 +1,10 @@
 use std::fs;
+#[cfg(windows)]
+use std::os::windows::fs::OpenOptionsExt;
 use std::path::Path;
 use std::sync::atomic::AtomicBool;
 
-use image::{Rgb, RgbImage};
+use image::{ImageFormat, Rgb, RgbImage};
 use rusqlite::Connection;
 use tempfile::{TempDir, tempdir};
 
@@ -301,6 +303,44 @@ fn one_unreadable_image_retries_without_blocking_a_valid_sibling() {
         fs::read(fixture.source.path().join("broken.jpg")).expect("broken bytes after delta"),
         broken_bytes
     );
+}
+
+#[cfg(windows)]
+#[test]
+fn locked_wrong_extension_retries_without_removing_trustworthy_catalog_state() {
+    let source = tempdir().expect("source directory");
+    write_png_with_format(&source.path().join("image.data"), 2, 2, [31, 32, 33]);
+    let mut fixture = seed_catalog(source, &["image.data"]);
+    let before = fixture.location("image.data").expect("original location");
+    write_png_with_format(
+        &fixture.source.path().join("image.data"),
+        4,
+        3,
+        [41, 42, 43],
+    );
+    let _exclusive_lock = fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .share_mode(0)
+        .open(fixture.source.path().join("image.data"))
+        .expect("exclusive fixture lock");
+    fixture.enqueue(&[intent(&fixture.root_id, "image.data", None, 1)]);
+
+    let report = fixture.process();
+
+    assert_eq!(report.completed_count, 0);
+    assert_eq!(report.retried_count, 1);
+    assert_eq!(report.applied_mutation_count, 0);
+    let retained = fixture
+        .location("image.data")
+        .expect("last trustworthy location");
+    assert_eq!(retained.location_id, before.location_id);
+    assert_eq!(retained.asset_id, before.asset_id);
+    let metrics = fixture
+        .catalog
+        .load_library_change_queue_metrics(2_000, policy())
+        .expect("queue metrics");
+    assert_eq!(metrics.retry_wait_count, 1);
 }
 
 #[test]
@@ -1393,4 +1433,13 @@ fn policy() -> LibraryChangeQueuePolicy {
 fn write_png(path: &Path, width: u32, height: u32, color: [u8; 3]) {
     let image = RgbImage::from_pixel(width, height, Rgb(color));
     image.save(path).expect("write PNG fixture");
+}
+
+fn write_png_with_format(path: &Path, width: u32, height: u32, color: [u8; 3]) {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).expect("PNG parent");
+    }
+    RgbImage::from_pixel(width, height, Rgb(color))
+        .save_with_format(path, ImageFormat::Png)
+        .expect("write PNG fixture");
 }

@@ -15,6 +15,9 @@ use crate::ports::{
 };
 
 const MAX_INVENTORY_PAGE_ENTRIES: u32 = 4_096;
+const MAX_INVENTORY_CLEANUP_RUNS: u32 = 128;
+const INVENTORY_TERMINAL_RETENTION_MILLIS: i64 = 7 * 24 * 60 * 60 * 1_000;
+const TERMINATION_ATTEMPTS: usize = 2;
 
 pub fn run_local_metadata_inventory<Repository>(
     repository: &mut Repository,
@@ -67,6 +70,7 @@ where
     Source: MetadataInventorySource,
 {
     validate_request(request, page_limit, queue_policy)?;
+    drain_terminal_inventory_cleanup(repository, observed_unix_ms)?;
     repository.begin_metadata_inventory(request)?;
     let result = run_started_metadata_inventory(
         repository,
@@ -77,10 +81,35 @@ where
         queue_policy,
         cancellation,
     );
-    if let Err(error) = &result {
-        terminate_failed(repository, &request.run_id, error, observed_unix_ms);
+    match result {
+        Ok(mut report) => {
+            if drain_terminal_inventory_cleanup(repository, observed_unix_ms).is_err() {
+                report.cleanup_pending = true;
+            }
+            Ok(report)
+        }
+        Err(error) => {
+            if let Err(terminal_error) =
+                terminate_failed(repository, &request.run_id, &error, observed_unix_ms)
+            {
+                return Err(combined_inventory_error(
+                    "metadata_inventory_termination_failed",
+                    &error,
+                    &terminal_error,
+                ));
+            }
+            if let Err(cleanup_error) =
+                drain_terminal_inventory_cleanup(repository, observed_unix_ms)
+            {
+                return Err(combined_inventory_error(
+                    "metadata_inventory_cleanup_failed",
+                    &error,
+                    &cleanup_error,
+                ));
+            }
+            Err(error)
+        }
     }
-    result
 }
 
 fn run_started_metadata_inventory<Repository, Source>(
@@ -399,15 +428,95 @@ fn terminate_failed<Repository>(
     run_id: &str,
     error: &ScanError,
     updated_unix_ms: i64,
-) where
+) -> Result<(), ScanError>
+where
     Repository: MetadataInventoryRepository,
 {
-    let _ = repository.terminate_metadata_inventory(
-        run_id,
-        MetadataInventoryRunStatus::Failed,
-        Some((&error.code, &error.message)),
-        updated_unix_ms,
-    );
+    let issue_code = bounded_text(&error.code, 128);
+    let issue_message = bounded_text(&error.message, 4_096);
+    retry_terminalization(|| {
+        repository
+            .terminate_metadata_inventory(
+                run_id,
+                MetadataInventoryRunStatus::Failed,
+                Some((&issue_code, &issue_message)),
+                updated_unix_ms,
+            )
+            .map(|_| ())
+    })
+}
+
+fn retry_terminalization(
+    mut terminalize: impl FnMut() -> Result<(), ScanError>,
+) -> Result<(), ScanError> {
+    let mut last_error = None;
+    for attempt in 0..TERMINATION_ATTEMPTS {
+        match terminalize() {
+            Ok(()) => return Ok(()),
+            Err(termination_error)
+                if attempt + 1 < TERMINATION_ATTEMPTS
+                    && is_catalog_contention(&termination_error.code) =>
+            {
+                last_error = Some(termination_error);
+            }
+            Err(termination_error) => return Err(termination_error),
+        }
+    }
+    Err(last_error.unwrap_or_else(|| {
+        ScanError::new(
+            "metadata_inventory_termination_failed",
+            "Metadata inventory terminalization did not complete",
+        )
+    }))
+}
+
+fn drain_terminal_inventory_cleanup<Repository>(
+    repository: &mut Repository,
+    observed_unix_ms: i64,
+) -> Result<(), ScanError>
+where
+    Repository: MetadataInventoryRepository,
+{
+    let terminal_before_unix_ms =
+        observed_unix_ms.saturating_sub(INVENTORY_TERMINAL_RETENTION_MILLIS);
+    loop {
+        let cleanup = repository.cleanup_terminal_metadata_inventories(
+            terminal_before_unix_ms,
+            MAX_INVENTORY_PAGE_ENTRIES,
+            MAX_INVENTORY_CLEANUP_RUNS,
+        )?;
+        if !cleanup.has_more {
+            return Ok(());
+        }
+    }
+}
+
+fn is_catalog_contention(code: &str) -> bool {
+    matches!(code, "catalog_database_busy" | "catalog_database_locked")
+}
+
+fn combined_inventory_error(code: &str, primary: &ScanError, secondary: &ScanError) -> ScanError {
+    ScanError::new(
+        code,
+        bounded_text(
+            &format!(
+                "Primary failure [{}]: {}; follow-up failure [{}]: {}",
+                primary.code, primary.message, secondary.code, secondary.message
+            ),
+            4_096,
+        ),
+    )
+}
+
+fn bounded_text(value: &str, max_bytes: usize) -> String {
+    if value.len() <= max_bytes {
+        return value.to_owned();
+    }
+    let mut end = max_bytes;
+    while !value.is_char_boundary(end) {
+        end -= 1;
+    }
+    value[..end].to_owned()
 }
 
 fn validate_request(

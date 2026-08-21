@@ -223,4 +223,30 @@ mod tests {
             "metadata_inventory_source_complete"
         );
     }
+
+    #[cfg(windows)]
+    #[test]
+    fn terminal_reparse_directory_blocks_complete_inventory_authority() {
+        let source = tempdir().expect("source directory");
+        let outside = tempdir().expect("outside directory");
+        fs::write(outside.path().join("hidden.png"), b"outside bytes").expect("outside fixture");
+        let link = source.path().join("linked");
+        if let Err(error) = std::os::windows::fs::symlink_dir(outside.path(), &link) {
+            if error.kind() == std::io::ErrorKind::PermissionDenied {
+                return;
+            }
+            panic!("create directory link: {error}");
+        }
+        let mut inventory = LocalMetadataInventory::new(
+            &source.path().to_string_lossy(),
+            &MetadataInventoryScope::Root,
+        )
+        .expect("inventory source");
+
+        let error = inventory
+            .next_page(32, &AtomicBool::new(false))
+            .expect_err("reparse directory must block complete authority");
+
+        assert_eq!(error.code, "metadata_inventory_reparse_directory");
+    }
 }

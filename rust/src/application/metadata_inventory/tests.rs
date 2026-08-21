@@ -20,7 +20,7 @@ use crate::ports::{
     MetadataInventorySource,
 };
 
-use super::run_metadata_inventory;
+use super::{retry_terminalization, run_metadata_inventory};
 
 #[test]
 fn closed_process_metadata_changes_converge_through_bounded_inventory_pages() {
@@ -195,6 +195,141 @@ fn source_failure_terminates_the_durable_inventory_run() {
     assert!(!run.absence_authority);
 }
 
+#[test]
+fn terminalization_retries_one_transient_catalog_contention_failure() {
+    let mut attempts = 0;
+
+    retry_terminalization(|| {
+        attempts += 1;
+        if attempts == 1 {
+            Err(ScanError::new(
+                "catalog_database_busy",
+                "fixture writer still owns the catalog",
+            ))
+        } else {
+            Ok(())
+        }
+    })
+    .expect("second terminalization attempt");
+
+    assert_eq!(attempts, 2);
+}
+
+#[test]
+fn newer_epoch_supersedes_an_orphaned_active_run_and_cleanup_stays_bounded() {
+    let mut fixture = InventoryFixture::new(&[]);
+    let first = fixture.request();
+    fixture
+        .catalog
+        .begin_metadata_inventory(&first)
+        .expect("begin first inventory");
+    fixture
+        .catalog
+        .stage_metadata_inventory_page(
+            &first.run_id,
+            &MetadataInventoryPage {
+                page_index: 1,
+                entries: vec![metadata_entry("orphaned.txt")],
+                cursor: Some("orphaned.txt".to_owned()),
+                is_complete: false,
+            },
+            2_100,
+        )
+        .expect("stage orphaned entry");
+    let second = MetadataInventoryRunRequest {
+        run_id: "inventory-2".to_owned(),
+        epoch: 2,
+        started_unix_ms: 3_000,
+        ..first.clone()
+    };
+
+    fixture
+        .catalog
+        .begin_metadata_inventory(&second)
+        .expect("newer epoch");
+
+    let superseded = fixture
+        .catalog
+        .load_metadata_inventory_run(&first.run_id)
+        .expect("load first run")
+        .expect("superseded run");
+    assert_eq!(superseded.status, MetadataInventoryRunStatus::Superseded);
+    let cleanup = fixture
+        .catalog
+        .cleanup_terminal_metadata_inventories(4_000, 1, 1)
+        .expect("bounded cleanup");
+    assert_eq!(cleanup.removed_entry_count, 1);
+    assert_eq!(cleanup.removed_run_count, 1);
+    assert!(!cleanup.has_more);
+    assert!(
+        fixture
+            .catalog
+            .load_metadata_inventory_run(&first.run_id)
+            .expect("load cleaned run")
+            .is_none()
+    );
+    assert_eq!(
+        fixture
+            .catalog
+            .load_metadata_inventory_run(&second.run_id)
+            .expect("load active run")
+            .expect("active run")
+            .status,
+        MetadataInventoryRunStatus::Running
+    );
+}
+
+#[test]
+fn terminal_inventory_cleanup_deletes_staging_in_bounded_batches() {
+    let mut fixture = InventoryFixture::new(&[]);
+    let request = fixture.request();
+    fixture
+        .catalog
+        .begin_metadata_inventory(&request)
+        .expect("begin inventory");
+    fixture
+        .catalog
+        .stage_metadata_inventory_page(
+            &request.run_id,
+            &MetadataInventoryPage {
+                page_index: 1,
+                entries: vec![
+                    metadata_entry("a.txt"),
+                    metadata_entry("b.txt"),
+                    metadata_entry("c.txt"),
+                ],
+                cursor: Some("c.txt".to_owned()),
+                is_complete: false,
+            },
+            2_100,
+        )
+        .expect("stage entries");
+    fixture
+        .catalog
+        .terminate_metadata_inventory(
+            &request.run_id,
+            MetadataInventoryRunStatus::Failed,
+            Some(("fixture_failure", "fixture failure")),
+            2_200,
+        )
+        .expect("terminate inventory");
+
+    let first = fixture
+        .catalog
+        .cleanup_terminal_metadata_inventories(3_000, 2, 1)
+        .expect("first cleanup batch");
+    assert_eq!(first.removed_entry_count, 2);
+    assert_eq!(first.removed_run_count, 0);
+    assert!(first.has_more);
+    let second = fixture
+        .catalog
+        .cleanup_terminal_metadata_inventories(3_000, 2, 1)
+        .expect("second cleanup batch");
+    assert_eq!(second.removed_entry_count, 1);
+    assert_eq!(second.removed_run_count, 1);
+    assert!(!second.has_more);
+}
+
 #[cfg(windows)]
 #[test]
 fn one_previous_path_is_not_reused_for_multiple_hard_link_candidates() {
@@ -361,6 +496,18 @@ fn queue_policy() -> LibraryChangeQueuePolicy {
         debounce_millis: 0,
         max_lease_batch: 128,
         ..LibraryChangeQueuePolicy::default()
+    }
+}
+
+fn metadata_entry(relative_path: &str) -> MetadataInventoryEntry {
+    MetadataInventoryEntry {
+        relative_path: relative_path.to_owned(),
+        kind: MetadataInventoryEntryKind::File,
+        file_size: Some(1),
+        modified_unix_ms: 1,
+        file_identity: None,
+        placeholder_state: MetadataInventoryPlaceholderState::Available,
+        is_reparse_point: false,
     }
 }
 

@@ -1463,7 +1463,7 @@ fixed-bound metadata pages without content reads, media filtering, placeholder i
 reparse-directory traversal. Controlled closed-process fixtures cover additions, modifications,
 deletions, file and directory moves, placeholders, Chinese and long paths, missing subtrees,
 hard-link rename pairing, cancellation, and durable failure termination. Production epoch and
-paging scheduling remain R2c-K. Focused tests, the 433-test Rust suite, repository lint, complete
+paging scheduling remain R2c-K. Focused tests, the 438-test Rust suite, repository lint, complete
 Daily, and Windows Release gates pass; R2c-J is not accepted until its independent audit finishes.
 
 R2c-K - pageable recovery and continuity epochs:
@@ -1951,7 +1951,7 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
 - R0 and R1 are accepted. The Rust-owned SQLite catalog, Flutter/Rust bridge, external preview
   storage, resumable multi-root scanning, atomic publication, per-file issue isolation, file
   identity, and revision-safe bounded queries are connected end to end.
-- The catalog schema is v19 and the storage-settings schema is v2. Schema v17 introduced the
+- The catalog schema is v20 and the storage-settings schema is v2. Schema v17 introduced the
   durable normalized change queue, root-generation tombstones, lease/retry state, catalog-revision
   evidence, bounded terminal-row retention, and permanent highest-generation authority. Schema v18
   adds authoritative scan ownership, generation and queue-watermark capture, previous-snapshot
@@ -1960,6 +1960,9 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   lineage, normalized cross-root identity handoff, exact-case path lookup, preview-repair authority,
   and fail-closed relational validation without losing the v16 preview ownership reconciliation or
   earlier root, scan, asset, location, frontier, capture-evidence, identity, and query evidence.
+  Schema v20 adds durable metadata-inventory runs, fixed-bound staging and cleanup, completion and
+  absence authority, and the `metadata_inventory` change origin while preserving the v19 queue and
+  lineage contract.
 - The authorized read-only target-library acceptance published 30,629 locations for
   `local-primary` and 48,384 for `cloud-primary`, for 79,013 active locations in one retained
   catalog. Sampled source bytes and source entries remained unchanged, and cloud-only placeholders
@@ -2175,7 +2178,7 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   inferred from the historical R2c-G/H evidence.
 - R2c-J implementation and local verification are complete. Schema v20 inventory persistence,
   bounded metadata-only discovery, safe positive-candidate routing, and complete-scope absence
-  authority pass focused fixtures, repository lint, the complete Daily gate with 433 Rust tests,
+  authority pass focused fixtures, repository lint, the complete Daily gate with 438 Rust tests,
   and Windows Release verification. Independent audit is pending; production continuity epochs and
   pageable scheduling remain R2c-K.
 - The current R2b closeout working tree passed the complete local Daily gate and Windows Release

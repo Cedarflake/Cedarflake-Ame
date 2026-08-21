@@ -101,6 +101,13 @@ pub struct MetadataInventoryComparisonUpdate {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct MetadataInventoryCleanupReport {
+    pub removed_entry_count: u32,
+    pub removed_run_count: u32,
+    pub has_more: bool,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct MetadataInventoryReport {
     pub staged_entry_count: u64,
     pub candidate_count: u64,
@@ -109,6 +116,7 @@ pub struct MetadataInventoryReport {
     pub enqueued_count: u64,
     pub coalesced_count: u64,
     pub superseded_count: u64,
+    pub cleanup_pending: bool,
     pub is_complete: bool,
     pub is_cancelled: bool,
 }

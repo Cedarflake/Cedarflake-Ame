@@ -130,6 +130,9 @@ an empty complete scope. Unreadable, reparse, placeholder, escaped, over-depth, 
 otherwise incomplete directories fail the run and cannot authorize descendant absence. Within one
 root, one prior path cannot be claimed by multiple rename candidates carrying the same file
 identity; additional hard-link paths remain ordinary final-state reconciliation candidates.
+Terminal directory symlinks and junctions are classified through target metadata only far enough
+to reject them; an unclassifiable reparse target also fails closed. The inventory never traverses
+the target.
 
 Positive candidates may publish before the complete inventory finishes only after the ordinary
 path reconciler rechecks final state. This permits additions and modifications to become visible as
@@ -162,6 +165,9 @@ scope-wide absence publishes only after the complete run succeeds.
 Repeated transport, filesystem, catalog, or inventory failure preserves the last trustworthy
 catalog and durable work. It becomes a blocked root condition with a structured issue code. It does
 not silently claim freshness and does not start a full scan.
+Final-state reconciliation treats an unknown-extension signature probe as three states: supported,
+unsupported, or unreadable. Only a successfully read unsupported signature is ignored; an open or
+read failure retries while preserving the last trustworthy location.
 
 ### Full-scan authority
 
@@ -232,6 +238,12 @@ root generation, epoch, scope, cursor, completion authority, and bounded cleanup
 change queue only to admit the `metadata_inventory` origin while preserving row identifiers,
 leases, retry state, catch-up lineage, authoritative ownership, and self-references. Inventory
 staging is derived data and is never placed inside a source root.
+Terminal staging is removed in transactions of at most 4,096 entries. Terminal run summaries are
+retained for seven days and removed in transactions of at most 128 runs. A newer generation or
+epoch atomically supersedes an older active run before acquiring the root; terminalization retries
+bounded database contention and reports both the primary and terminalization failures if it cannot
+close the run. The next newer epoch can therefore recover an orphaned active run without granting
+it absence authority.
 
 Schema v19 USN checkpoint, lineage, and handoff objects remain valid migration input. Production
 stops creating new USN evidence. The migration may remove ownerless derived checkpoints and terminal

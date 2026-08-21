@@ -9,11 +9,11 @@ use crate::domain::{
     IncrementalCatalogRoot, LibraryChangeCatchUpEvidence, LibraryChangeSourceBatch,
     LibraryChangeSourceError, LibraryChangeSourceHealth, LibraryChangeSourceStopReport,
     LibraryFolderCursor, LibraryFolderPage, LibraryRootGeneration, MediaInspection,
-    MetadataInspection, MetadataInventoryComparisonUpdate, MetadataInventoryEntry,
-    MetadataInventoryPage, MetadataInventoryRun, MetadataInventoryRunRequest,
-    MetadataInventoryRunStatus, PreviewArtifact, PreviewMaterialization,
-    PreviewReclamationCandidate, RecoverableScan, ScanCheckpoint, ScanError, ScanIssue,
-    ScanRequest, StorageConfiguration,
+    MetadataInspection, MetadataInventoryCleanupReport, MetadataInventoryComparisonUpdate,
+    MetadataInventoryEntry, MetadataInventoryPage, MetadataInventoryRun,
+    MetadataInventoryRunRequest, MetadataInventoryRunStatus, PreviewArtifact,
+    PreviewMaterialization, PreviewReclamationCandidate, RecoverableScan, ScanCheckpoint,
+    ScanError, ScanIssue, ScanRequest, StorageConfiguration,
 };
 use crate::domain::{
     LeasedLibraryChange, LibraryChangeEnqueueReport, LibraryChangeFailure, LibraryChangeId,
@@ -287,6 +287,12 @@ pub trait MetadataInventoryRepository {
         &self,
         run_id: &str,
     ) -> Result<Option<MetadataInventoryRun>, ScanError>;
+    fn cleanup_terminal_metadata_inventories(
+        &mut self,
+        terminal_before_unix_ms: i64,
+        entry_limit: u32,
+        run_limit: u32,
+    ) -> Result<MetadataInventoryCleanupReport, ScanError>;
 }
 
 pub trait CatalogRepository {
