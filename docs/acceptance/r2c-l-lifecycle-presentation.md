@@ -1,6 +1,6 @@
 # R2c-L lifecycle, presentation, and diagnostics acceptance
 
-Status: implementation and local verification complete; independent audit pending
+Status: accepted after independent audit
 
 Date: 2026-08-22
 
@@ -66,10 +66,9 @@ and restart-only non-scan continuity work. R2c-M owns replacement performance an
 
 All filesystem fixtures use disposable directories and isolated catalogs. No real library root was
 accessed, no placeholder was hydrated, and no source media was modified. Independent read-only
-audit remains required before R2c-L can be accepted or merged into `codex/r2c`.
+audit reported no Critical, High, Medium, or Low findings.
 
 ## Next boundary
 
-After independent audit and merge, R2c-M measures replacement event-to-visible latency and
-metadata-only startup continuity, repeats migration and source-safety evidence, and performs the
-final R2c closeout gates.
+After merge, R2c-M measures replacement event-to-visible latency and metadata-only startup
+continuity, repeats migration and source-safety evidence, and performs the final R2c closeout gates.
