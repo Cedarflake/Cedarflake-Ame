@@ -1500,6 +1500,16 @@ R2c-L - lifecycle, presentation, and diagnostics:
 R2c-L is complete only when status cannot oscillate during automatic retries, blocked detail is
 actionable, normal synchronization is silent, and shutdown never leaves a visible stalled window.
 
+Implementation status: the typed synchronization snapshot now exposes watcher startup, inventory
+enumeration, inventory comparison, queue publication, retry wait, bounded reconciliation, full
+scan, blocked, synchronized, and unavailable phases. Flutter retains phase start time per root
+generation and emits structured development diagnostics with elapsed time, bounded queue counts,
+source status, and issue code. Normal update, retry, and convergence remain silent; blocked cause
+changes update one root-keyed notification in place with phase, elapsed, source path, counts, and
+technical code. Existing shutdown ownership hides the window before waiting, cancels non-scan work,
+and preserves only full-scan checkpoints. Focused tests, repository lint, complete Daily, and
+Windows Release pass. Independent audit remains pending, so R2c-L is not yet accepted.
+
 R2c-M - replacement reliability and closeout:
 
 - repeat controlled Windows event-to-visible, storm, restart, overflow, cancellation, and source-
@@ -1909,8 +1919,8 @@ Low findings. R2c-L owns stable four-state presentation, blocked-notification de
 development diagnostics, and immediate window hiding with non-scan cancellation. R3 is paused; no
 R3 implementation is included in the R2c integration branch.
 
-Current work: implement R2c-L on its dedicated branch, audit and merge it into `codex/r2c`, then
-proceed to R2c-M.
+Current work: submit the verified R2c-L implementation for independent audit, close every finding,
+merge it into `codex/r2c`, then proceed to R2c-M.
 
 Each R2c-I through R2c-M slice uses a dedicated branch and PR into `codex/r2c`, receives an
 independent read-only audit, and merges only after its findings close. The final `codex/r2c` PR
@@ -1956,9 +1966,10 @@ or later analysis workflows.
 
 ### 10.1 Verified implementation snapshot
 
-This snapshot was synchronized on 2026-08-21 against the live working tree and current planning
+This snapshot was synchronized on 2026-08-22 against the live working tree and current planning
 decision. Historical gate claims retain their recorded dates; R2c-I through R2c-K have current
-replacement evidence, while R2c-L and R2c-M have no completion claim until their evidence is run.
+replacement evidence. R2c-L has implementation and local verification evidence but remains
+unaccepted until independent audit; R2c-M has no completion claim until its evidence is run.
 The live working tree, current schema, accepted ADRs, and fresh verification remain authoritative;
 this roadmap does not preserve drifting commit hashes or duplicate complete test transcripts.
 

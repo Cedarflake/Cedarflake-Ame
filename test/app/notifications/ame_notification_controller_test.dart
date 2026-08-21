@@ -10,7 +10,7 @@ void main() {
       ameNotificationControllerProvider.notifier,
     );
     const draft = AmeNotificationDraft(
-      title: "需要核对",
+      title: "更新受阻",
       message: "检测到无法确认的文件变化。",
       severity: AmeNotificationSeverity.warning,
       dedupeKey: "root-a:evidence-gap",
@@ -25,7 +25,7 @@ void main() {
     controller.dismiss(id);
     controller.publish(
       const AmeNotificationDraft(
-        title: "需要核对",
+        title: "更新受阻",
         message: "检测到无法确认的文件变化。",
         detail: "3 项等待重试",
         severity: AmeNotificationSeverity.warning,
@@ -120,7 +120,7 @@ void main() {
       ameNotificationControllerProvider.notifier,
     );
     const activeDraft = AmeNotificationDraft(
-      title: "需要核对",
+      title: "更新受阻",
       message: "目录状态尚未确认。",
       severity: AmeNotificationSeverity.warning,
       dedupeKey: "root-a:unknown",
@@ -140,7 +140,7 @@ void main() {
     controller.publish(activeDraft);
 
     final state = container.read(ameNotificationControllerProvider);
-    expect(state.history.first.title, "需要核对");
+    expect(state.history.first.title, "更新受阻");
     expect(
       state.history.where((entry) => entry.dedupeKey == "root-a:unknown"),
       hasLength(1),

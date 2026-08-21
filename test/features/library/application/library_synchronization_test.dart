@@ -10,6 +10,7 @@ import "package:cedarflake_ame/src/rust/domain/library_change_queue.dart"
     as rust_queue;
 import "package:cedarflake_ame/src/rust/domain/library_synchronization.dart"
     as rust_sync;
+import "package:flutter/foundation.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
@@ -29,6 +30,7 @@ void main() {
       final root = synchronization.current.statusFor("root-a");
       expect(root?.availability, LibraryRootAvailability.available);
       expect(root?.freshness, LibraryCatalogFreshness.synchronized);
+      expect(root?.phase, LibrarySynchronizationPhase.synchronized);
       await synchronization.stop();
       expect(synchronization.current.isRunning, isFalse);
     },
@@ -293,6 +295,10 @@ void main() {
         synchronization.current.statusFor("root-a")?.lastIssueCode,
         "catalog_database_error",
       );
+      expect(
+        synchronization.current.statusFor("root-a")?.phase,
+        LibrarySynchronizationPhase.blocked,
+      );
       expect(synchronization.current.lastErrorCode, isNull);
 
       releaseSynchronized.complete();
@@ -309,6 +315,104 @@ void main() {
       await synchronization.stop();
     },
   );
+
+  test(
+    "development diagnostics include root phase elapsed counts and code",
+    () async {
+      final messages = <String>[];
+      final priorDebugPrint = debugPrint;
+      debugPrint = (message, {wrapWidth}) {
+        if (message != null) {
+          messages.add(message);
+        }
+      };
+      addTearDown(() => debugPrint = priorDebugPrint);
+      final synchronization = RustLibrarySynchronization(
+        startCall: () async => _snapshot(
+          revision: 9,
+          freshness: rust_change.CatalogFreshnessState.updating,
+          lastIssueCode: "metadata_inventory_pending",
+        ),
+        pollCall: () async => _snapshot(revision: 9),
+        stopCall: () async {},
+        pollInterval: const Duration(days: 1),
+        now: () => DateTime.utc(2026, 8, 21),
+        enableDebugLogging: true,
+      );
+
+      await synchronization.start();
+
+      final diagnostics = messages.join("\n");
+      expect(diagnostics, contains("root_phase=queuePublication"));
+      expect(diagnostics, contains("root_phase_elapsed_ms=0"));
+      expect(diagnostics, contains("pending=0 retry=0 gaps=0"));
+      expect(diagnostics, contains("code=metadata_inventory_pending"));
+      await synchronization.stop();
+    },
+  );
+
+  test("phase start is retained until the root phase changes", () async {
+    var currentTime = DateTime.utc(2026, 8, 21, 10);
+    final samePhaseReturned = Completer<void>();
+    final releaseTransition = Completer<void>();
+    final transitionReturned = Completer<void>();
+    var pollCalls = 0;
+    final synchronization = RustLibrarySynchronization(
+      startCall: () async => _snapshot(
+        revision: 9,
+        freshness: rust_change.CatalogFreshnessState.updating,
+      ),
+      pollCall: () async {
+        pollCalls += 1;
+        if (pollCalls == 1) {
+          samePhaseReturned.complete();
+          return _snapshot(
+            revision: 9,
+            freshness: rust_change.CatalogFreshnessState.updating,
+          );
+        }
+        await releaseTransition.future;
+        if (!transitionReturned.isCompleted) {
+          transitionReturned.complete();
+        }
+        return _snapshot(
+          revision: 9,
+          freshness: rust_change.CatalogFreshnessState.updating,
+          phase: rust_sync.LibrarySynchronizationPhase.inventoryComparison,
+        );
+      },
+      stopCall: () async {},
+      pollInterval: const Duration(milliseconds: 5),
+      now: () => currentTime,
+      enableDebugLogging: false,
+    );
+
+    await synchronization.start();
+    final initialPhaseStart = synchronization.current
+        .statusFor("root-a")!
+        .phaseStartedAt;
+    currentTime = currentTime.add(const Duration(seconds: 5));
+    await samePhaseReturned.future;
+    await Future<void>.delayed(Duration.zero);
+
+    expect(
+      synchronization.current.statusFor("root-a")?.phaseStartedAt,
+      initialPhaseStart,
+    );
+
+    currentTime = currentTime.add(const Duration(seconds: 3));
+    releaseTransition.complete();
+    await transitionReturned.future;
+    await Future<void>.delayed(Duration.zero);
+
+    final transitioned = synchronization.current.statusFor("root-a");
+    expect(
+      transitioned?.phase,
+      LibrarySynchronizationPhase.inventoryComparison,
+    );
+    expect(transitioned?.phaseStartedAt, currentTime);
+    await synchronization.stop();
+  });
 
   test("equal snapshots have an order-independent hash code", () {
     final rootA = _rootStatus("root-a");
@@ -338,6 +442,8 @@ LibraryRootSynchronizationStatus _rootStatus(String rootId) {
     availability: LibraryRootAvailability.available,
     freshness: LibraryCatalogFreshness.synchronized,
     freshnessCause: LibraryCatalogFreshnessCause.noPendingChanges,
+    phase: LibrarySynchronizationPhase.synchronized,
+    phaseStartedAt: DateTime.utc(2026, 8, 21),
     sourceStatus: LibraryChangeSourceStatus.healthy,
     pendingChangeCount: BigInt.zero,
     retryWaitCount: BigInt.zero,
@@ -349,6 +455,7 @@ rust_sync.LibrarySynchronizationSnapshot _snapshot({
   required int revision,
   rust_change.CatalogFreshnessState freshness =
       rust_change.CatalogFreshnessState.synchronized,
+  rust_sync.LibrarySynchronizationPhase? phase,
   String? lastIssueCode,
 }) {
   return rust_sync.LibrarySynchronizationSnapshot(
@@ -365,6 +472,18 @@ rust_sync.LibrarySynchronizationSnapshot _snapshot({
             freshness == rust_change.CatalogFreshnessState.synchronized
             ? rust_change.CatalogFreshnessCause.noPendingChanges
             : rust_change.CatalogFreshnessCause.pendingChanges,
+        phase:
+            phase ??
+            switch (freshness) {
+              rust_change.CatalogFreshnessState.synchronized =>
+                rust_sync.LibrarySynchronizationPhase.synchronized,
+              rust_change.CatalogFreshnessState.updating =>
+                rust_sync.LibrarySynchronizationPhase.queuePublication,
+              rust_change.CatalogFreshnessState.needsReconciliation =>
+                rust_sync.LibrarySynchronizationPhase.blocked,
+              rust_change.CatalogFreshnessState.unavailable =>
+                rust_sync.LibrarySynchronizationPhase.unavailable,
+            },
         sourceHealth: rust_change.LibraryChangeSourceHealth.healthy,
         queueHealth: rust_queue.LibraryChangeQueueHealth.idle,
         pendingChangeCount: BigInt.zero,

@@ -25,6 +25,19 @@ enum LibraryChangeSourceStatus {
   unsupported,
 }
 
+enum LibrarySynchronizationPhase {
+  watcherStartup,
+  inventoryEnumeration,
+  inventoryComparison,
+  queuePublication,
+  retryWait,
+  reconciliation,
+  fullScan,
+  blocked,
+  synchronized,
+  unavailable,
+}
+
 class LibraryRootSynchronizationStatus {
   const LibraryRootSynchronizationStatus({
     required this.rootId,
@@ -32,6 +45,8 @@ class LibraryRootSynchronizationStatus {
     required this.availability,
     required this.freshness,
     required this.freshnessCause,
+    required this.phase,
+    required this.phaseStartedAt,
     required this.sourceStatus,
     required this.pendingChangeCount,
     required this.retryWaitCount,
@@ -44,13 +59,21 @@ class LibraryRootSynchronizationStatus {
   final LibraryRootAvailability availability;
   final LibraryCatalogFreshness freshness;
   final LibraryCatalogFreshnessCause freshnessCause;
+  final LibrarySynchronizationPhase phase;
+  final DateTime phaseStartedAt;
   final LibraryChangeSourceStatus sourceStatus;
   final BigInt pendingChangeCount;
   final BigInt retryWaitCount;
   final BigInt freshnessUnknownCount;
   final String? lastIssueCode;
 
-  LibraryRootSynchronizationStatus degraded({String? issueCode}) {
+  LibraryRootSynchronizationStatus degraded({
+    String? issueCode,
+    required DateTime occurredAt,
+  }) {
+    final targetPhase = availability == LibraryRootAvailability.available
+        ? LibrarySynchronizationPhase.blocked
+        : LibrarySynchronizationPhase.unavailable;
     return LibraryRootSynchronizationStatus(
       rootId: rootId,
       rootGeneration: rootGeneration,
@@ -61,6 +84,8 @@ class LibraryRootSynchronizationStatus {
       freshnessCause: availability == LibraryRootAvailability.available
           ? LibraryCatalogFreshnessCause.changeSourceUnhealthy
           : LibraryCatalogFreshnessCause.rootUnavailable,
+      phase: targetPhase,
+      phaseStartedAt: phase == targetPhase ? phaseStartedAt : occurredAt,
       sourceStatus: LibraryChangeSourceStatus.failed,
       pendingChangeCount: pendingChangeCount,
       retryWaitCount: retryWaitCount,
@@ -77,6 +102,8 @@ class LibraryRootSynchronizationStatus {
         availability == other.availability &&
         freshness == other.freshness &&
         freshnessCause == other.freshnessCause &&
+        phase == other.phase &&
+        phaseStartedAt == other.phaseStartedAt &&
         sourceStatus == other.sourceStatus &&
         pendingChangeCount == other.pendingChangeCount &&
         retryWaitCount == other.retryWaitCount &&
@@ -91,6 +118,8 @@ class LibraryRootSynchronizationStatus {
     availability,
     freshness,
     freshnessCause,
+    phase,
+    phaseStartedAt,
     sourceStatus,
     pendingChangeCount,
     retryWaitCount,
@@ -123,14 +152,20 @@ class LibrarySynchronizationSnapshot {
 
   LibraryRootSynchronizationStatus? statusFor(String rootId) => roots[rootId];
 
-  LibrarySynchronizationSnapshot degraded(String errorCode) {
+  LibrarySynchronizationSnapshot degraded(
+    String errorCode, {
+    required DateTime occurredAt,
+  }) {
     return LibrarySynchronizationSnapshot(
       isRunning: isRunning,
       catalogRevision: catalogRevision,
       appliedMutationCount: 0,
       roots: {
         for (final entry in roots.entries)
-          entry.key: entry.value.degraded(issueCode: errorCode),
+          entry.key: entry.value.degraded(
+            issueCode: errorCode,
+            occurredAt: occurredAt,
+          ),
       },
       lastErrorCode: errorCode,
     );

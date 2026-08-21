@@ -69,6 +69,16 @@ abstract final class LibraryStrings {
   static const synchronizationRecoveryFailed = "图库重新核对未能完成，Ame 将自动重试。";
   static const synchronizationPersistenceFailed = "图库更新记录保存失败，Ame 将自动重试。";
   static const synchronizationNeedsReconciliation = "Ame 无法证明当前图库与目录完全一致。";
+  static const synchronizationPhaseWatcherStartup = "启动目录监控";
+  static const synchronizationPhaseInventoryEnumeration = "枚举目录元数据";
+  static const synchronizationPhaseInventoryComparison = "比较目录元数据";
+  static const synchronizationPhaseQueuePublication = "发布图库更新";
+  static const synchronizationPhaseRetryWait = "等待自动重试";
+  static const synchronizationPhaseReconciliation = "核对受影响内容";
+  static const synchronizationPhaseFullScan = "执行全量扫描";
+  static const synchronizationPhaseBlocked = "等待故障恢复";
+  static const synchronizationPhaseSynchronized = "同步完成";
+  static const synchronizationPhaseUnavailable = "等待目录恢复";
   static const retry = "重试";
   static const noSearchResults = "没有找到匹配的图片";
   static const noSearchResultsHint = "请尝试其他名称或路径。";

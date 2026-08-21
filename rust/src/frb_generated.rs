@@ -1430,6 +1430,10 @@ impl SseDecode for crate::domain::library_synchronization::LibraryRootSynchroniz
             <crate::domain::library_change::CatalogFreshnessState>::sse_decode(deserializer);
         let mut var_freshnessCause =
             <crate::domain::library_change::CatalogFreshnessCause>::sse_decode(deserializer);
+        let mut var_phase =
+            <crate::domain::library_synchronization::LibrarySynchronizationPhase>::sse_decode(
+                deserializer,
+            );
         let mut var_sourceHealth =
             <crate::domain::library_change::LibraryChangeSourceHealth>::sse_decode(deserializer);
         let mut var_queueHealth =
@@ -1446,6 +1450,7 @@ impl SseDecode for crate::domain::library_synchronization::LibraryRootSynchroniz
             availability: var_availability,
             freshness: var_freshness,
             freshness_cause: var_freshnessCause,
+            phase: var_phase,
             source_health: var_sourceHealth,
             queue_health: var_queueHealth,
             pending_change_count: var_pendingChangeCount,
@@ -1479,6 +1484,26 @@ impl SseDecode for crate::domain::LibraryRootView {
             issue_count: var_issueCount,
             availability: var_availability,
             availability_message: var_availabilityMessage,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::library_synchronization::LibrarySynchronizationPhase {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::domain::library_synchronization::LibrarySynchronizationPhase::WatcherStartup,
+1 => crate::domain::library_synchronization::LibrarySynchronizationPhase::InventoryEnumeration,
+2 => crate::domain::library_synchronization::LibrarySynchronizationPhase::InventoryComparison,
+3 => crate::domain::library_synchronization::LibrarySynchronizationPhase::QueuePublication,
+4 => crate::domain::library_synchronization::LibrarySynchronizationPhase::RetryWait,
+5 => crate::domain::library_synchronization::LibrarySynchronizationPhase::Reconciliation,
+6 => crate::domain::library_synchronization::LibrarySynchronizationPhase::FullScan,
+7 => crate::domain::library_synchronization::LibrarySynchronizationPhase::Blocked,
+8 => crate::domain::library_synchronization::LibrarySynchronizationPhase::Synchronized,
+9 => crate::domain::library_synchronization::LibrarySynchronizationPhase::Unavailable,
+            _ => unreachable!("Invalid variant for LibrarySynchronizationPhase: {}", inner),
         };
     }
 }
@@ -2879,6 +2904,7 @@ impl flutter_rust_bridge::IntoDart
             self.availability.into_into_dart().into_dart(),
             self.freshness.into_into_dart().into_dart(),
             self.freshness_cause.into_into_dart().into_dart(),
+            self.phase.into_into_dart().into_dart(),
             self.source_health.into_into_dart().into_dart(),
             self.queue_health.into_into_dart().into_dart(),
             self.pending_change_count.into_into_dart().into_dart(),
@@ -2929,6 +2955,39 @@ impl flutter_rust_bridge::IntoIntoDart<crate::domain::LibraryRootView>
     for crate::domain::LibraryRootView
 {
     fn into_into_dart(self) -> crate::domain::LibraryRootView {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::domain::library_synchronization::LibrarySynchronizationPhase
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::WatcherStartup => 0.into_dart(),
+            Self::InventoryEnumeration => 1.into_dart(),
+            Self::InventoryComparison => 2.into_dart(),
+            Self::QueuePublication => 3.into_dart(),
+            Self::RetryWait => 4.into_dart(),
+            Self::Reconciliation => 5.into_dart(),
+            Self::FullScan => 6.into_dart(),
+            Self::Blocked => 7.into_dart(),
+            Self::Synchronized => 8.into_dart(),
+            Self::Unavailable => 9.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::library_synchronization::LibrarySynchronizationPhase
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<
+        crate::domain::library_synchronization::LibrarySynchronizationPhase,
+    > for crate::domain::library_synchronization::LibrarySynchronizationPhase
+{
+    fn into_into_dart(self) -> crate::domain::library_synchronization::LibrarySynchronizationPhase {
         self
     }
 }
@@ -3807,6 +3866,9 @@ impl SseEncode for crate::domain::library_synchronization::LibraryRootSynchroniz
             self.freshness_cause,
             serializer,
         );
+        <crate::domain::library_synchronization::LibrarySynchronizationPhase>::sse_encode(
+            self.phase, serializer,
+        );
         <crate::domain::library_change::LibraryChangeSourceHealth>::sse_encode(
             self.source_health,
             serializer,
@@ -3834,6 +3896,23 @@ impl SseEncode for crate::domain::LibraryRootView {
         <u64>::sse_encode(self.issue_count, serializer);
         <crate::domain::LibraryRootAvailability>::sse_encode(self.availability, serializer);
         <Option<String>>::sse_encode(self.availability_message, serializer);
+    }
+}
+
+impl SseEncode for crate::domain::library_synchronization::LibrarySynchronizationPhase {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(match self {crate::domain::library_synchronization::LibrarySynchronizationPhase::WatcherStartup => { 0 }
+crate::domain::library_synchronization::LibrarySynchronizationPhase::InventoryEnumeration => { 1 }
+crate::domain::library_synchronization::LibrarySynchronizationPhase::InventoryComparison => { 2 }
+crate::domain::library_synchronization::LibrarySynchronizationPhase::QueuePublication => { 3 }
+crate::domain::library_synchronization::LibrarySynchronizationPhase::RetryWait => { 4 }
+crate::domain::library_synchronization::LibrarySynchronizationPhase::Reconciliation => { 5 }
+crate::domain::library_synchronization::LibrarySynchronizationPhase::FullScan => { 6 }
+crate::domain::library_synchronization::LibrarySynchronizationPhase::Blocked => { 7 }
+crate::domain::library_synchronization::LibrarySynchronizationPhase::Synchronized => { 8 }
+crate::domain::library_synchronization::LibrarySynchronizationPhase::Unavailable => { 9 }
+ _ => { unimplemented!(""); }}, serializer);
     }
 }
 

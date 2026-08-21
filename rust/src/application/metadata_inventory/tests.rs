@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::fs;
 use std::path::Path;
 use std::sync::atomic::AtomicBool;
@@ -22,8 +23,11 @@ use crate::ports::{
 };
 
 use super::{
+    MetadataInventoryProgressPhase, MetadataInventoryWorkerControl,
     leased_change_requires_metadata_inventory, metadata_inventory_run_id,
-    process_leased_metadata_inventory_change, retry_terminalization, run_metadata_inventory,
+    process_leased_metadata_inventory_change,
+    process_leased_metadata_inventory_change_with_progress, retry_terminalization,
+    run_metadata_inventory,
 };
 
 #[test]
@@ -448,6 +452,7 @@ fn startup_gap_uses_inventory_and_completes_its_authoritative_lease() {
         .expect("enqueue startup authority");
     let mut report = None;
     let mut completed_candidates = 0_u32;
+    let progress = RefCell::new(Vec::new());
     for _ in 0..8 {
         let leased = fixture
             .catalog
@@ -465,14 +470,16 @@ fn startup_gap_uses_inventory_and_completes_its_authoritative_lease() {
             .load_incremental_catalog_root(&fixture.root_id)
             .expect("load root")
             .expect("root");
-        let current = process_leased_metadata_inventory_change(
+        let current = process_leased_metadata_inventory_change_with_progress(
             &mut fixture.catalog,
             &root,
             &leased,
             2_000,
             1,
             policy,
-            &AtomicBool::new(false),
+            MetadataInventoryWorkerControl::with_progress(&AtomicBool::new(false), &|phase| {
+                progress.borrow_mut().push(phase)
+            }),
         )
         .expect("process startup inventory page");
         completed_candidates = completed_candidates.saturating_add(
@@ -493,6 +500,21 @@ fn startup_gap_uses_inventory_and_completes_its_authoritative_lease() {
         }
     }
     let report = report.expect("inventory recovery report");
+    assert!(
+        progress
+            .borrow()
+            .contains(&MetadataInventoryProgressPhase::Enumeration)
+    );
+    assert!(
+        progress
+            .borrow()
+            .contains(&MetadataInventoryProgressPhase::Comparison)
+    );
+    assert!(
+        progress
+            .borrow()
+            .contains(&MetadataInventoryProgressPhase::QueuePublication)
+    );
 
     assert!(report.inventory.is_complete);
     assert_eq!(report.inventory.staged_entry_count, 1);

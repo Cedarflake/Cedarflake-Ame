@@ -1490,20 +1490,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   dco_decode_library_root_synchronization_status(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 11)
-      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
+    if (arr.length != 12)
+      throw Exception('unexpected arr length: expect 12 but see ${arr.length}');
     return LibraryRootSynchronizationStatus(
       rootId: dco_decode_String(arr[0]),
       rootGeneration: dco_decode_u_64(arr[1]),
       availability: dco_decode_library_root_availability(arr[2]),
       freshness: dco_decode_catalog_freshness_state(arr[3]),
       freshnessCause: dco_decode_catalog_freshness_cause(arr[4]),
-      sourceHealth: dco_decode_library_change_source_health(arr[5]),
-      queueHealth: dco_decode_library_change_queue_health(arr[6]),
-      pendingChangeCount: dco_decode_u_64(arr[7]),
-      retryWaitCount: dco_decode_u_64(arr[8]),
-      freshnessUnknownCount: dco_decode_u_64(arr[9]),
-      lastIssueCode: dco_decode_opt_String(arr[10]),
+      phase: dco_decode_library_synchronization_phase(arr[5]),
+      sourceHealth: dco_decode_library_change_source_health(arr[6]),
+      queueHealth: dco_decode_library_change_queue_health(arr[7]),
+      pendingChangeCount: dco_decode_u_64(arr[8]),
+      retryWaitCount: dco_decode_u_64(arr[9]),
+      freshnessUnknownCount: dco_decode_u_64(arr[10]),
+      lastIssueCode: dco_decode_opt_String(arr[11]),
     );
   }
 
@@ -1524,6 +1525,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       availability: dco_decode_library_root_availability(arr[7]),
       availabilityMessage: dco_decode_opt_String(arr[8]),
     );
+  }
+
+  @protected
+  LibrarySynchronizationPhase dco_decode_library_synchronization_phase(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return LibrarySynchronizationPhase.values[raw as int];
   }
 
   @protected
@@ -2600,6 +2609,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_availability = sse_decode_library_root_availability(deserializer);
     var var_freshness = sse_decode_catalog_freshness_state(deserializer);
     var var_freshnessCause = sse_decode_catalog_freshness_cause(deserializer);
+    var var_phase = sse_decode_library_synchronization_phase(deserializer);
     var var_sourceHealth = sse_decode_library_change_source_health(
       deserializer,
     );
@@ -2614,6 +2624,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       availability: var_availability,
       freshness: var_freshness,
       freshnessCause: var_freshnessCause,
+      phase: var_phase,
       sourceHealth: var_sourceHealth,
       queueHealth: var_queueHealth,
       pendingChangeCount: var_pendingChangeCount,
@@ -2646,6 +2657,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       availability: var_availability,
       availabilityMessage: var_availabilityMessage,
     );
+  }
+
+  @protected
+  LibrarySynchronizationPhase sse_decode_library_synchronization_phase(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return LibrarySynchronizationPhase.values[inner];
   }
 
   @protected
@@ -3860,6 +3880,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_library_root_availability(self.availability, serializer);
     sse_encode_catalog_freshness_state(self.freshness, serializer);
     sse_encode_catalog_freshness_cause(self.freshnessCause, serializer);
+    sse_encode_library_synchronization_phase(self.phase, serializer);
     sse_encode_library_change_source_health(self.sourceHealth, serializer);
     sse_encode_library_change_queue_health(self.queueHealth, serializer);
     sse_encode_u_64(self.pendingChangeCount, serializer);
@@ -3883,6 +3904,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_u_64(self.issueCount, serializer);
     sse_encode_library_root_availability(self.availability, serializer);
     sse_encode_opt_String(self.availabilityMessage, serializer);
+  }
+
+  @protected
+  void sse_encode_library_synchronization_phase(
+    LibrarySynchronizationPhase self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
   }
 
   @protected

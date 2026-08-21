@@ -443,7 +443,11 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   String? _synchronizationNotificationDetail(
     LibraryRootSynchronizationStatus status,
   ) {
-    final details = <String>[];
+    final elapsed = DateTime.now().difference(status.phaseStartedAt);
+    final details = <String>[
+      "阶段：${_synchronizationPhaseLabel(status.phase)}",
+      "已持续 ${_formatSynchronizationElapsed(elapsed)}",
+    ];
     if (status.pendingChangeCount > BigInt.zero) {
       details.add("${status.pendingChangeCount} 项等待处理");
     }
@@ -453,7 +457,45 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     if (status.freshnessUnknownCount > BigInt.zero) {
       details.add("${status.freshnessUnknownCount} 项状态尚未确认");
     }
-    return details.isEmpty ? null : details.join(" · ");
+    return details.join(" · ");
+  }
+
+  String _synchronizationPhaseLabel(LibrarySynchronizationPhase phase) {
+    return switch (phase) {
+      LibrarySynchronizationPhase.watcherStartup =>
+        LibraryStrings.synchronizationPhaseWatcherStartup,
+      LibrarySynchronizationPhase.inventoryEnumeration =>
+        LibraryStrings.synchronizationPhaseInventoryEnumeration,
+      LibrarySynchronizationPhase.inventoryComparison =>
+        LibraryStrings.synchronizationPhaseInventoryComparison,
+      LibrarySynchronizationPhase.queuePublication =>
+        LibraryStrings.synchronizationPhaseQueuePublication,
+      LibrarySynchronizationPhase.retryWait =>
+        LibraryStrings.synchronizationPhaseRetryWait,
+      LibrarySynchronizationPhase.reconciliation =>
+        LibraryStrings.synchronizationPhaseReconciliation,
+      LibrarySynchronizationPhase.fullScan =>
+        LibraryStrings.synchronizationPhaseFullScan,
+      LibrarySynchronizationPhase.blocked =>
+        LibraryStrings.synchronizationPhaseBlocked,
+      LibrarySynchronizationPhase.synchronized =>
+        LibraryStrings.synchronizationPhaseSynchronized,
+      LibrarySynchronizationPhase.unavailable =>
+        LibraryStrings.synchronizationPhaseUnavailable,
+    };
+  }
+
+  String _formatSynchronizationElapsed(Duration elapsed) {
+    final seconds = elapsed.isNegative ? 0 : elapsed.inSeconds;
+    if (seconds < 60) {
+      return "$seconds 秒";
+    }
+    final minutes = seconds ~/ 60;
+    if (minutes < 60) {
+      return "$minutes 分 ${seconds % 60} 秒";
+    }
+    final hours = minutes ~/ 60;
+    return "$hours 小时 ${minutes % 60} 分";
   }
 
   AmeNotificationSeverity _synchronizationNotificationSeverity(

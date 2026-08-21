@@ -14,7 +14,7 @@ use crate::domain::{
     LibraryChangeObservationKind, LibraryChangeOrigin, LibraryChangePlanningLimits,
     LibraryChangeQueuePolicy, LibraryChangeScope, LibraryChangeSourceBatch,
     LibraryChangeSourceError, LibraryChangeSourceHealth, LibraryChangeSourceStopReport,
-    LibraryRootAvailability, LibraryRootGeneration, ScanRequest,
+    LibraryRootAvailability, LibraryRootGeneration, LibrarySynchronizationPhase, ScanRequest,
 };
 use crate::ports::{
     CatalogRepository, IncrementalCatalogRepository, LibraryChangeQueue, LibraryChangeSource,
@@ -170,6 +170,10 @@ fn new_cloud_placeholder_remains_unresolved_after_a_live_path_event() {
     assert_eq!(snapshot.applied_mutation_count, 0);
     assert_eq!(snapshot.roots[0].retry_wait_count, 1);
     assert_eq!(snapshot.roots[0].freshness, CatalogFreshnessState::Updating);
+    assert_eq!(
+        snapshot.roots[0].phase,
+        LibrarySynchronizationPhase::RetryWait
+    );
     assert!(
         catalog
             .load_incremental_location_by_relative_path(&fixture.root_id, "online-only.png")
@@ -213,6 +217,10 @@ fn existing_cloud_placeholder_retains_catalog_evidence_and_remains_unresolved() 
     assert_eq!(snapshot.applied_mutation_count, 0);
     assert_eq!(snapshot.roots[0].retry_wait_count, 1);
     assert_eq!(snapshot.roots[0].freshness, CatalogFreshnessState::Updating);
+    assert_eq!(
+        snapshot.roots[0].phase,
+        LibrarySynchronizationPhase::RetryWait
+    );
     assert_eq!(retained.location_id, prior.location_id);
     assert_eq!(retained.asset_id, prior.asset_id);
 }
@@ -775,6 +783,10 @@ fn unavailable_root_retains_catalog_state_without_starting_an_observer() {
     assert_eq!(
         snapshot.roots[0].freshness,
         CatalogFreshnessState::Unavailable
+    );
+    assert_eq!(
+        snapshot.roots[0].phase,
+        LibrarySynchronizationPhase::Unavailable
     );
     assert_eq!(factory.state.lock().expect("fake state").start_count, 0);
     assert!(

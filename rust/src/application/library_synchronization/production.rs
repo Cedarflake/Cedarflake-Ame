@@ -16,7 +16,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use crate::adapters::{
     SqliteCatalog, inspect_root_availability, production_library_change_source_factory,
 };
-use crate::domain::{LeasedLibraryChange, LibrarySynchronizationSnapshot, ScanError};
+use crate::domain::{
+    LeasedLibraryChange, LibrarySynchronizationPhase, LibrarySynchronizationSnapshot, ScanError,
+};
 #[cfg(windows)]
 use crate::domain::{RecoverableScan, ScanEvent, ScanRequest};
 
@@ -24,11 +26,12 @@ use crate::domain::{RecoverableScan, ScanEvent, ScanRequest};
 use super::LibrarySynchronizationRuntime;
 #[cfg(windows)]
 use crate::application::{
-    AuthoritativeLibraryChangeReport, MetadataInventoryRecoveryReport, defer_authoritative_change,
+    AuthoritativeLibraryChangeReport, MetadataInventoryProgressPhase,
+    MetadataInventoryRecoveryReport, MetadataInventoryWorkerControl, defer_authoritative_change,
     leased_change_requires_metadata_inventory,
     process_leased_authoritative_library_change_cancellable,
-    process_leased_metadata_inventory_change, resume_authoritative_scan, storage_paths,
-    suspend_scan,
+    process_leased_metadata_inventory_change_with_progress, resume_authoritative_scan,
+    storage_paths, suspend_scan,
 };
 #[cfg(windows)]
 use crate::ports::{CatalogRepository, IncrementalCatalogRepository, LibraryChangeQueue};
@@ -58,6 +61,7 @@ struct ProductionSynchronization {
 struct RecoveryTask {
     root_id: String,
     kind: RecoveryTaskKind,
+    phase: Arc<Mutex<LibrarySynchronizationPhase>>,
     cancelled: Arc<AtomicBool>,
     receiver: Receiver<Result<RecoveryTaskOutcome, ScanError>>,
     worker: Option<JoinHandle<()>>,
@@ -259,6 +263,10 @@ fn project_active_recovery_as_updating(
         return;
     };
     let root_ids = std::slice::from_ref(&recovery.root_id);
+    let recovery_phase = recovery
+        .phase
+        .lock()
+        .map_or_else(|_| recovery.default_phase(), |phase| *phase);
     for status in &mut snapshot.roots {
         if root_ids.contains(&status.root_id)
             && status.availability == crate::domain::LibraryRootAvailability::Available
@@ -267,6 +275,22 @@ fn project_active_recovery_as_updating(
         {
             status.freshness = crate::domain::CatalogFreshnessState::Updating;
             status.freshness_cause = crate::domain::CatalogFreshnessCause::PendingChanges;
+            status.phase = recovery_phase;
+        }
+    }
+}
+
+#[cfg(windows)]
+impl RecoveryTask {
+    const fn default_phase(&self) -> LibrarySynchronizationPhase {
+        match &self.kind {
+            RecoveryTaskKind::BoundedAuthoritative { .. } => {
+                LibrarySynchronizationPhase::Reconciliation
+            }
+            RecoveryTaskKind::MetadataInventory { .. } => {
+                LibrarySynchronizationPhase::InventoryEnumeration
+            }
+            RecoveryTaskKind::FullScan { .. } => LibrarySynchronizationPhase::FullScan,
         }
     }
 }
@@ -281,6 +305,23 @@ fn has_blocking_recovery_issue(issue_code: Option<&str>) -> bool {
             || code.starts_with("library_reconciliation_")
             || code.starts_with("metadata_inventory_")
     })
+}
+
+#[cfg(windows)]
+const fn synchronization_phase(
+    phase: MetadataInventoryProgressPhase,
+) -> LibrarySynchronizationPhase {
+    match phase {
+        MetadataInventoryProgressPhase::Enumeration => {
+            LibrarySynchronizationPhase::InventoryEnumeration
+        }
+        MetadataInventoryProgressPhase::Comparison => {
+            LibrarySynchronizationPhase::InventoryComparison
+        }
+        MetadataInventoryProgressPhase::QueuePublication => {
+            LibrarySynchronizationPhase::QueuePublication
+        }
+    }
 }
 
 #[cfg(windows)]
@@ -486,6 +527,13 @@ impl ProductionSynchronization {
         let cancelled = Arc::new(AtomicBool::new(false));
         let worker_cancelled = Arc::clone(&cancelled);
         let worker_root_id = root_id.clone();
+        let initial_phase = if is_inventory {
+            LibrarySynchronizationPhase::InventoryEnumeration
+        } else {
+            LibrarySynchronizationPhase::Reconciliation
+        };
+        let phase = Arc::new(Mutex::new(initial_phase));
+        let worker_phase = Arc::clone(&phase);
         let (sender, receiver) = mpsc::sync_channel(1);
         let worker = thread::Builder::new()
             .name(format!("ame-{recovery_kind}-recovery"))
@@ -524,14 +572,22 @@ impl ProductionSynchronization {
                         });
                     }
                     if is_inventory {
-                        process_leased_metadata_inventory_change(
+                        let report_progress = |progress| {
+                            if let Ok(mut phase) = worker_phase.lock() {
+                                *phase = synchronization_phase(progress);
+                            }
+                        };
+                        process_leased_metadata_inventory_change_with_progress(
                             &mut catalog,
                             &root,
                             &leased,
                             now_unix_ms,
                             METADATA_INVENTORY_WORK_PAGE_ENTRIES,
                             queue_policy,
-                            &worker_cancelled,
+                            MetadataInventoryWorkerControl::with_progress(
+                                &worker_cancelled,
+                                &report_progress,
+                            ),
                         )
                         .map(RecoveryTaskOutcome::MetadataInventory)
                     } else {
@@ -558,6 +614,7 @@ impl ProductionSynchronization {
         self.recovery = Some(RecoveryTask {
             root_id,
             kind: task_kind,
+            phase,
             cancelled,
             receiver,
             worker: Some(worker),
@@ -578,6 +635,7 @@ impl ProductionSynchronization {
         eprintln!("[Ame sync] recovery started kind=full-scan root={root_id} scan={scan_id}");
         let cancelled = Arc::new(AtomicBool::new(false));
         let worker_cancelled = Arc::clone(&cancelled);
+        let phase = Arc::new(Mutex::new(LibrarySynchronizationPhase::FullScan));
         let (sender, receiver) = mpsc::sync_channel(1);
         let worker = thread::Builder::new()
             .name("ame-authoritative-recovery".to_owned())
@@ -595,6 +653,7 @@ impl ProductionSynchronization {
         self.recovery = Some(RecoveryTask {
             root_id,
             kind: RecoveryTaskKind::FullScan { scan_id },
+            phase,
             cancelled,
             receiver,
             worker: Some(worker),
@@ -902,6 +961,7 @@ mod tests {
             kind: RecoveryTaskKind::BoundedAuthoritative {
                 continuity_revision: 0,
             },
+            phase: Arc::new(Mutex::new(LibrarySynchronizationPhase::Reconciliation)),
             cancelled: Arc::new(AtomicBool::new(false)),
             receiver,
             worker: None,
@@ -916,6 +976,7 @@ mod tests {
                 availability: crate::domain::LibraryRootAvailability::Available,
                 freshness: crate::domain::CatalogFreshnessState::NeedsReconciliation,
                 freshness_cause: crate::domain::CatalogFreshnessCause::EvidenceGap,
+                phase: LibrarySynchronizationPhase::Blocked,
                 source_health: crate::domain::LibraryChangeSourceHealth::Healthy,
                 queue_health: crate::domain::LibraryChangeQueueHealth::Degraded,
                 pending_change_count: 1,
@@ -935,6 +996,10 @@ mod tests {
             snapshot.roots[0].freshness_cause,
             crate::domain::CatalogFreshnessCause::PendingChanges
         );
+        assert_eq!(
+            snapshot.roots[0].phase,
+            LibrarySynchronizationPhase::Reconciliation
+        );
     }
 
     #[cfg(windows)]
@@ -946,6 +1011,7 @@ mod tests {
             kind: RecoveryTaskKind::BoundedAuthoritative {
                 continuity_revision: 0,
             },
+            phase: Arc::new(Mutex::new(LibrarySynchronizationPhase::Reconciliation)),
             cancelled: Arc::new(AtomicBool::new(false)),
             receiver,
             worker: None,
@@ -960,6 +1026,7 @@ mod tests {
                 availability: crate::domain::LibraryRootAvailability::Available,
                 freshness: crate::domain::CatalogFreshnessState::NeedsReconciliation,
                 freshness_cause: crate::domain::CatalogFreshnessCause::EvidenceGap,
+                phase: LibrarySynchronizationPhase::Blocked,
                 source_health: crate::domain::LibraryChangeSourceHealth::Healthy,
                 queue_health: crate::domain::LibraryChangeQueueHealth::Degraded,
                 pending_change_count: 1,
@@ -1034,6 +1101,9 @@ mod tests {
             kind: RecoveryTaskKind::MetadataInventory {
                 continuity_revision: first_revision,
             },
+            phase: Arc::new(Mutex::new(
+                LibrarySynchronizationPhase::InventoryEnumeration,
+            )),
             cancelled: Arc::clone(&cancelled),
             receiver,
             worker: None,
@@ -1122,6 +1192,7 @@ mod tests {
             kind: RecoveryTaskKind::BoundedAuthoritative {
                 continuity_revision: 0,
             },
+            phase: Arc::new(Mutex::new(LibrarySynchronizationPhase::Reconciliation)),
             cancelled: Arc::new(AtomicBool::new(false)),
             receiver,
             worker: None,
@@ -1196,6 +1267,7 @@ mod tests {
                     availability: crate::domain::LibraryRootAvailability::Available,
                     freshness: crate::domain::CatalogFreshnessState::NeedsReconciliation,
                     freshness_cause: crate::domain::CatalogFreshnessCause::EvidenceGap,
+                    phase: LibrarySynchronizationPhase::Blocked,
                     source_health: crate::domain::LibraryChangeSourceHealth::Healthy,
                     queue_health: crate::domain::LibraryChangeQueueHealth::Healthy,
                     pending_change_count: 1,
@@ -1303,6 +1375,7 @@ mod tests {
                 kind: RecoveryTaskKind::BoundedAuthoritative {
                     continuity_revision: 0,
                 },
+                phase: Arc::new(Mutex::new(LibrarySynchronizationPhase::Reconciliation)),
                 cancelled: Arc::clone(&cancelled),
                 receiver,
                 worker: Some(worker),
@@ -1339,6 +1412,7 @@ mod tests {
                 kind: RecoveryTaskKind::FullScan {
                     scan_id: "sync-recovery-a".to_owned(),
                 },
+                phase: Arc::new(Mutex::new(LibrarySynchronizationPhase::FullScan)),
                 cancelled: Arc::clone(&cancelled),
                 receiver,
                 worker: None,
@@ -1379,6 +1453,7 @@ mod tests {
                 kind: RecoveryTaskKind::BoundedAuthoritative {
                     continuity_revision: 0,
                 },
+                phase: Arc::new(Mutex::new(LibrarySynchronizationPhase::Reconciliation)),
                 cancelled: Arc::clone(&cancelled),
                 receiver,
                 worker: Some(worker),

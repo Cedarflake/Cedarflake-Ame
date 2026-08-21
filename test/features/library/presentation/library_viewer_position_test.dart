@@ -1,6 +1,7 @@
 import "dart:async";
 
 import "package:cedarflake_ame/app/ame_app.dart";
+import "package:cedarflake_ame/app/notifications/ame_notification_controller.dart";
 import "package:cedarflake_ame/features/library/adapters/directory_picker.dart";
 import "package:cedarflake_ame/features/library/adapters/windows_library_platform_actions.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
@@ -305,7 +306,10 @@ void main() {
         find.text("Windows 拒绝了目录监控访问。Ame 会保留上次可信内容，并在恢复后重新核对。"),
         findsOneWidget,
       );
-      expect(find.text("3 项等待处理 · 2 项等待重试 · 1 项状态尚未确认"), findsOneWidget);
+      expect(find.textContaining("阶段：等待故障恢复"), findsOneWidget);
+      expect(find.textContaining("3 项等待处理"), findsOneWidget);
+      expect(find.textContaining("2 项等待重试"), findsOneWidget);
+      expect(find.textContaining("1 项状态尚未确认"), findsOneWidget);
       expect(find.byKey(const Key("notification-unread-icon")), findsOneWidget);
 
       synchronization.publish(_automaticRecoverySnapshot());
@@ -316,6 +320,24 @@ void main() {
       expect(
         find.byKey(const Key("notification-primary-action")),
         findsNothing,
+      );
+
+      synchronization.publish(_persistenceFailureSnapshot());
+      await tester.pump();
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(AmeApp)),
+      );
+      expect(
+        container.read(ameNotificationControllerProvider).history,
+        hasLength(1),
+      );
+      expect(
+        container
+            .read(ameNotificationControllerProvider)
+            .history
+            .single
+            .technicalCode,
+        "catalog_database_busy",
       );
 
       synchronization.publish(_synchronizedRootSnapshot());
@@ -339,7 +361,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text("change_source_callback_access_denied"), findsOneWidget);
+      expect(find.text("catalog_database_busy"), findsOneWidget);
       expect(find.text(r"C:\Pictures"), findsWidgets);
 
       await tester.tap(find.text("关闭"));
@@ -402,6 +424,48 @@ void main() {
       expect(scanner.scanCount, 0);
     },
   );
+
+  testWidgets("normal synchronization and convergence remain silent", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final initialState = _libraryState(assetCount: 1);
+    final scanner = _HeldLibraryScanner();
+    final synchronization = _TestLibrarySynchronization(
+      _automaticRecoverySnapshot(),
+    );
+    addTearDown(synchronization.dispose);
+    addTearDown(scanner.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(initialState),
+          libraryCatalogProvider.overrideWithValue(
+            _SynchronizationViewerCatalog(_snapshotFromState(initialState)),
+          ),
+          libraryScannerProvider.overrideWithValue(scanner),
+          librarySynchronizationProvider.overrideWithValue(synchronization),
+        ],
+        child: const AmeApp(),
+      ),
+    );
+    await tester.pump();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(AmeApp)),
+    );
+    expect(container.read(ameNotificationControllerProvider).history, isEmpty);
+
+    synchronization.publish(_synchronizedRootSnapshot());
+    await tester.pump();
+
+    expect(container.read(ameNotificationControllerProvider).history, isEmpty);
+    expect(scanner.scanCount, 0);
+  });
 
   testWidgets(
     "scan feedback takes priority over a pending synchronization failure",
@@ -1070,6 +1134,8 @@ LibrarySynchronizationSnapshot _needsReconciliationSnapshot() {
         availability: LibraryRootAvailability.available,
         freshness: LibraryCatalogFreshness.needsReconciliation,
         freshnessCause: LibraryCatalogFreshnessCause.changeSourceUnhealthy,
+        phase: LibrarySynchronizationPhase.blocked,
+        phaseStartedAt: DateTime.utc(2026, 8, 21),
         sourceStatus: LibraryChangeSourceStatus.failed,
         pendingChangeCount: BigInt.from(3),
         retryWaitCount: BigInt.two,
@@ -1092,6 +1158,8 @@ LibrarySynchronizationSnapshot _automaticRecoverySnapshot() {
         availability: LibraryRootAvailability.available,
         freshness: LibraryCatalogFreshness.updating,
         freshnessCause: LibraryCatalogFreshnessCause.evidenceGap,
+        phase: LibrarySynchronizationPhase.inventoryEnumeration,
+        phaseStartedAt: DateTime.utc(2026, 8, 21),
         sourceStatus: LibraryChangeSourceStatus.healthy,
         pendingChangeCount: BigInt.zero,
         retryWaitCount: BigInt.zero,
@@ -1114,6 +1182,8 @@ LibrarySynchronizationSnapshot _persistenceFailureSnapshot() {
         availability: LibraryRootAvailability.available,
         freshness: LibraryCatalogFreshness.needsReconciliation,
         freshnessCause: LibraryCatalogFreshnessCause.pendingChanges,
+        phase: LibrarySynchronizationPhase.blocked,
+        phaseStartedAt: DateTime.utc(2026, 8, 21),
         sourceStatus: LibraryChangeSourceStatus.healthy,
         pendingChangeCount: BigInt.one,
         retryWaitCount: BigInt.one,
@@ -1136,6 +1206,8 @@ LibrarySynchronizationSnapshot _synchronizedRootSnapshot() {
         availability: LibraryRootAvailability.available,
         freshness: LibraryCatalogFreshness.synchronized,
         freshnessCause: LibraryCatalogFreshnessCause.noPendingChanges,
+        phase: LibrarySynchronizationPhase.synchronized,
+        phaseStartedAt: DateTime.utc(2026, 8, 21),
         sourceStatus: LibraryChangeSourceStatus.healthy,
         pendingChangeCount: BigInt.zero,
         retryWaitCount: BigInt.zero,
