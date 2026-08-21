@@ -1038,6 +1038,7 @@ fn scope_from_db(value: &str) -> Result<LibraryChangeScope, ScanError> {
 fn origin_to_db(origin: LibraryChangeOrigin) -> &'static str {
     match origin {
         LibraryChangeOrigin::LiveNotification => "live_notification",
+        LibraryChangeOrigin::MetadataInventory => "metadata_inventory",
         LibraryChangeOrigin::StartupCatchUp => "startup_catch_up",
         LibraryChangeOrigin::UserRefresh => "user_refresh",
         LibraryChangeOrigin::ConsistencyAudit => "consistency_audit",
@@ -1047,6 +1048,7 @@ fn origin_to_db(origin: LibraryChangeOrigin) -> &'static str {
 fn origin_from_db(value: &str) -> Result<LibraryChangeOrigin, ScanError> {
     match value {
         "live_notification" => Ok(LibraryChangeOrigin::LiveNotification),
+        "metadata_inventory" => Ok(LibraryChangeOrigin::MetadataInventory),
         "startup_catch_up" => Ok(LibraryChangeOrigin::StartupCatchUp),
         "user_refresh" => Ok(LibraryChangeOrigin::UserRefresh),
         "consistency_audit" => Ok(LibraryChangeOrigin::ConsistencyAudit),

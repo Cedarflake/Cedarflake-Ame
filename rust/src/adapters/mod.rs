@@ -2,6 +2,7 @@ mod exif_metadata;
 mod image_orientation;
 mod jpeg_preview;
 mod local_files;
+mod local_metadata_inventory;
 mod media_inspector;
 mod preview_cache;
 mod sqlite_catalog;
@@ -15,6 +16,7 @@ pub(crate) use local_files::user_visible_path;
 pub use local_files::{
     FileDiscovery, FileVisitOutcome, inspect_root_availability, revalidate_file_state,
 };
+pub use local_metadata_inventory::LocalMetadataInventory;
 pub(crate) use media_inspector::LocalMediaInspector;
 pub use preview_cache::LocalPreviewStore;
 pub(crate) use preview_cache::{

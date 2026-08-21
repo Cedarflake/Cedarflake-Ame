@@ -4,6 +4,7 @@ mod library_catalog_delta;
 pub(crate) mod library_change;
 mod library_change_catch_up;
 pub(crate) mod library_change_queue;
+mod library_metadata_inventory;
 pub(crate) mod library_synchronization;
 
 pub use library_catalog_delta::{
@@ -33,6 +34,13 @@ pub use library_change_queue::{
     DurableLibraryChange, LeasedLibraryChange, LibraryChangeEnqueueReport, LibraryChangeFailure,
     LibraryChangeId, LibraryChangeLeaseUpdateOutcome, LibraryChangeQueueHealth,
     LibraryChangeQueueMetrics, LibraryChangeQueuePolicy, LibraryChangeQueueStatus,
+};
+pub use library_metadata_inventory::{
+    MetadataInventoryCleanupReport, MetadataInventoryComparisonStatus,
+    MetadataInventoryComparisonUpdate, MetadataInventoryEntry, MetadataInventoryEntryKind,
+    MetadataInventoryPage, MetadataInventoryPlaceholderState, MetadataInventoryReport,
+    MetadataInventoryRun, MetadataInventoryRunRequest, MetadataInventoryRunStatus,
+    MetadataInventoryScope,
 };
 pub use library_synchronization::{
     LibraryRootSynchronizationStatus, LibrarySynchronizationSnapshot,

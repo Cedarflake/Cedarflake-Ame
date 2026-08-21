@@ -29,6 +29,7 @@ impl LibraryRootGeneration {
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LibraryChangeOrigin {
     LiveNotification,
+    MetadataInventory,
     StartupCatchUp,
     UserRefresh,
     ConsistencyAudit,

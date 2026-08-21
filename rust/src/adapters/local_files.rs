@@ -22,6 +22,7 @@ use windows_sys::Win32::Storage::FileSystem::{
 
 use crate::domain::{
     DiscoveredFile, ExpectedFileState, FileIdentityEvidence, LibraryRootAvailability,
+    MetadataInventoryEntry, MetadataInventoryEntryKind, MetadataInventoryPlaceholderState,
     RootAvailabilityEvidence, ScanError, ScanIssue,
 };
 
@@ -265,11 +266,26 @@ impl FileDiscovery {
             };
         }
 
-        if !has_image_extension(&path) && !has_supported_magic(&path) {
-            return FileVisit {
-                relative_path,
-                outcome: FileVisitOutcome::Ignored,
-            };
+        if !has_image_extension(&path) {
+            match has_supported_magic(&path) {
+                Ok(true) => {}
+                Ok(false) => {
+                    return FileVisit {
+                        relative_path,
+                        outcome: FileVisitOutcome::Ignored,
+                    };
+                }
+                Err(error) => {
+                    return FileVisit {
+                        relative_path,
+                        outcome: FileVisitOutcome::Issue(ScanIssue {
+                            path: Some(path_text(&path)),
+                            code: "media_signature_unreadable".to_owned(),
+                            message: format!("The file signature could not be read: {error}"),
+                        }),
+                    };
+                }
+            }
         }
 
         let created_unix_ms = created_unix_ms(&metadata);
@@ -298,6 +314,79 @@ impl FileDiscovery {
                 issues,
             }),
         }
+    }
+
+    pub(crate) fn metadata_inventory_entry(
+        &self,
+        relative_path: &str,
+    ) -> Result<MetadataInventoryEntry, ScanIssue> {
+        let relative_path_value = validated_relative_path(relative_path)?;
+        let (path, metadata) = self.checked_existing_path(relative_path_value)?;
+        let relative_path = relative_path_text(relative_path_value);
+        let is_reparse_point = is_link_or_reparse_point(&metadata);
+        let placeholder_state = metadata_placeholder_state(&metadata);
+        if is_reparse_point {
+            match path.metadata() {
+                Ok(target_metadata) if target_metadata.is_dir() => {
+                    return Err(ScanIssue {
+                        path: Some(path_text(path)),
+                        code: "metadata_inventory_reparse_directory".to_owned(),
+                        message:
+                            "The inventory cannot prove descendants through a reparse directory"
+                                .to_owned(),
+                    });
+                }
+                Ok(_) => {}
+                Err(error) => {
+                    return Err(ScanIssue {
+                        path: Some(path_text(path)),
+                        code: "metadata_inventory_reparse_unverifiable".to_owned(),
+                        message: format!(
+                            "The inventory could not classify a reparse target safely: {error}"
+                        ),
+                    });
+                }
+            }
+        }
+        let kind = if metadata.is_dir() {
+            MetadataInventoryEntryKind::Directory
+        } else if metadata.is_file() && !is_reparse_point {
+            MetadataInventoryEntryKind::File
+        } else {
+            MetadataInventoryEntryKind::Other
+        };
+        if kind == MetadataInventoryEntryKind::Directory
+            && (is_reparse_point
+                || placeholder_state != MetadataInventoryPlaceholderState::Available)
+        {
+            return Err(ScanIssue {
+                path: Some(path_text(path)),
+                code: if is_reparse_point {
+                    "metadata_inventory_reparse_directory"
+                } else {
+                    "metadata_inventory_placeholder_directory"
+                }
+                .to_owned(),
+                message: "The inventory cannot prove descendants without traversing this directory"
+                    .to_owned(),
+            });
+        }
+        let file_identity = if kind == MetadataInventoryEntryKind::File
+            && placeholder_state == MetadataInventoryPlaceholderState::Available
+        {
+            file_identity(&path).ok().flatten()
+        } else {
+            None
+        };
+        Ok(MetadataInventoryEntry {
+            relative_path,
+            kind,
+            file_size: (kind == MetadataInventoryEntryKind::File).then_some(metadata.len()),
+            modified_unix_ms: modified_unix_ms(&metadata),
+            file_identity,
+            placeholder_state,
+            is_reparse_point,
+        })
     }
 
     pub fn revalidate_relative_file_state(
@@ -544,17 +633,13 @@ fn has_image_extension(path: &Path) -> bool {
         .unwrap_or(false)
 }
 
-fn has_supported_magic(path: &Path) -> bool {
+fn has_supported_magic(path: &Path) -> std::io::Result<bool> {
     let mut header = [0_u8; 16];
-    let Ok(mut file) = File::open(path) else {
-        return false;
-    };
-    let Ok(read_count) = file.read(&mut header) else {
-        return false;
-    };
+    let mut file = File::open(path)?;
+    let read_count = file.read(&mut header)?;
     let header = &header[..read_count];
 
-    header.starts_with(b"\x89PNG\r\n\x1a\n")
+    Ok(header.starts_with(b"\x89PNG\r\n\x1a\n")
         || header.starts_with(b"\xff\xd8\xff")
         || header.starts_with(b"GIF87a")
         || header.starts_with(b"GIF89a")
@@ -562,17 +647,15 @@ fn has_supported_magic(path: &Path) -> bool {
         || header.starts_with(b"II*\0")
         || header.starts_with(b"MM\0*")
         || header.starts_with(b"RIFF") && header.get(8..12) == Some(b"WEBP")
-        || header.get(4..8) == Some(b"ftyp")
+        || header.get(4..8) == Some(b"ftyp"))
 }
 
 #[cfg(windows)]
 fn is_cloud_placeholder(metadata: &Metadata) -> bool {
-    use std::os::windows::fs::MetadataExt;
-
-    has_cloud_placeholder_attribute(metadata.file_attributes())
+    metadata_placeholder_state(metadata) != MetadataInventoryPlaceholderState::Available
 }
 
-#[cfg(windows)]
+#[cfg(all(windows, test))]
 fn has_cloud_placeholder_attribute(attributes: u32) -> bool {
     use windows_sys::Win32::Storage::FileSystem::{
         FILE_ATTRIBUTE_OFFLINE, FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS, FILE_ATTRIBUTE_RECALL_ON_OPEN,
@@ -583,9 +666,33 @@ fn has_cloud_placeholder_attribute(attributes: u32) -> bool {
         || attributes & FILE_ATTRIBUTE_RECALL_ON_OPEN != 0
 }
 
+#[cfg(windows)]
+fn metadata_placeholder_state(metadata: &Metadata) -> MetadataInventoryPlaceholderState {
+    use std::os::windows::fs::MetadataExt;
+    use windows_sys::Win32::Storage::FileSystem::{
+        FILE_ATTRIBUTE_OFFLINE, FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS, FILE_ATTRIBUTE_RECALL_ON_OPEN,
+    };
+
+    let attributes = metadata.file_attributes();
+    if attributes & FILE_ATTRIBUTE_OFFLINE != 0 {
+        MetadataInventoryPlaceholderState::Offline
+    } else if attributes & FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS != 0 {
+        MetadataInventoryPlaceholderState::RecallOnDataAccess
+    } else if attributes & FILE_ATTRIBUTE_RECALL_ON_OPEN != 0 {
+        MetadataInventoryPlaceholderState::RecallOnOpen
+    } else {
+        MetadataInventoryPlaceholderState::Available
+    }
+}
+
 #[cfg(not(windows))]
 fn is_cloud_placeholder(_metadata: &Metadata) -> bool {
     false
+}
+
+#[cfg(not(windows))]
+fn metadata_placeholder_state(_metadata: &Metadata) -> MetadataInventoryPlaceholderState {
+    MetadataInventoryPlaceholderState::Available
 }
 
 #[cfg(test)]
@@ -717,6 +824,9 @@ mod tests {
                 _ => None,
             })
             .collect::<Vec<_>>();
+        let inventory_entry = discovery
+            .metadata_inventory_entry("offline.png")
+            .expect("offline metadata inventory entry");
 
         let clear_offline = Command::new("attrib.exe")
             .arg("-O")
@@ -726,6 +836,11 @@ mod tests {
         assert!(clear_offline.success());
         assert_eq!(issues.len(), 1);
         assert_eq!(issues[0].code, "cloud_placeholder_skipped");
+        assert_eq!(
+            inventory_entry.placeholder_state,
+            MetadataInventoryPlaceholderState::Offline
+        );
+        assert!(inventory_entry.file_identity.is_none());
         assert_eq!(fs::read(file_path).expect("fixture bytes"), original);
     }
 

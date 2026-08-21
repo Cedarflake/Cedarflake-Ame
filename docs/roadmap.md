@@ -1457,6 +1457,16 @@ R2c-J - metadata-inventory persistence and discovery:
 R2c-J is complete only when controlled closed-process create, modify, delete, rename, directory move,
 placeholder, Chinese-path, and long-path changes converge without a media scan or source mutation.
 
+Implementation status: schema v20 now preserves the v19 queue and lineage while adding exact-shape
+inventory run/staging authority and the `metadata_inventory` queue origin. The local adapter emits
+fixed-bound metadata pages without content reads, media filtering, placeholder identity opens, or
+reparse-directory traversal. Controlled closed-process fixtures cover additions, modifications,
+deletions, file and directory moves, placeholders, Chinese and long paths, missing subtrees,
+hard-link rename pairing, cancellation, and durable failure termination. Production epoch and
+paging scheduling remain R2c-K. Focused tests, the 439-test Rust suite, repository lint, complete
+Daily, and Windows Release gates pass; the final independent audit found no remaining findings, so
+R2c-J is accepted.
+
 R2c-K - pageable recovery and continuity epochs:
 
 - make cold start, availability recovery, watcher restart, rescan, incomplete rename, and overflow
@@ -1491,8 +1501,9 @@ R2c-M - replacement reliability and closeout:
 R2c status: **reopened on 2026-08-21 under ADR 0023**. R2c-A through R2c-F remain accepted
 foundations. R2c-G and its USN-specific acceptance remain historical implementation and migration
 evidence. R2c-H remains a valid source-safety and baseline measurement record but does not validate
-the replacement continuity model. R2c-I through R2c-M are active and must complete before the R2c
-integration branch is ready for final review against `main` or R3 begins.
+the replacement continuity model. R2c-I and R2c-J are complete; R2c-K through R2c-M remain active
+and must complete before the R2c integration branch is ready for final review against `main` or R3
+begins.
 
 #### R2c.12 Acceptance evidence
 
@@ -1880,13 +1891,15 @@ may serve as benchmarks or fallbacks but are not automatically preferred over ma
 
 Active stage: **R2c - non-USN continuity replacement**
 
-Active slice: **R2c-I - non-USN production cutover closeout**. The implementation, local gates, and
-final independent audit are complete under ADR 0023, with no Critical, High, Medium, or Low
-findings. R2c-J starts only after this accepted slice merges into `codex/r2c`. R3 is paused; no R3
-implementation is included in the R2c integration branch.
+Active slice: **R2c-K - pageable recovery and continuity epochs**. R2c-I and R2c-J completed their
+implementation, local gates, and final independent audits with no Critical, High, Medium, or Low
+findings. R2c-K now owns production continuity epochs, cold-start and watcher-gap scheduling,
+durable page continuation, live-event supersession, bounded backpressure, restart semantics, and
+fairness. R3 is paused; no R3 implementation is included in the R2c integration branch.
 
-Planned next work after R2c-I merge: add the forward metadata-inventory run and staging migration,
-bounded metadata enumeration, active-catalog comparison, and complete-scope absence authority.
+Current work: merge the accepted R2c-J persistence and discovery slice into `codex/r2c`, then
+implement the R2c-K production orchestration boundary.
+
 Each R2c-I through R2c-M slice uses a dedicated branch and PR into `codex/r2c`, receives an
 independent read-only audit, and merges only after its findings close. The final `codex/r2c` PR
 targets `main` for one last audit and remains unmerged until explicitly authorized.
@@ -1932,15 +1945,16 @@ or later analysis workflows.
 ### 10.1 Verified implementation snapshot
 
 This snapshot was synchronized on 2026-08-21 against the live working tree and current planning
-decision. Historical gate claims retain their recorded dates; R2c-I has current replacement
-evidence, while R2c-J through R2c-M have no completion claim until their evidence is run.
+decision. Historical gate claims retain their recorded dates; R2c-I and R2c-J have current
+replacement evidence, while R2c-K through R2c-M have no completion claim until their evidence is
+run.
 The live working tree, current schema, accepted ADRs, and fresh verification remain authoritative;
 this roadmap does not preserve drifting commit hashes or duplicate complete test transcripts.
 
 - R0 and R1 are accepted. The Rust-owned SQLite catalog, Flutter/Rust bridge, external preview
   storage, resumable multi-root scanning, atomic publication, per-file issue isolation, file
   identity, and revision-safe bounded queries are connected end to end.
-- The catalog schema is v19 and the storage-settings schema is v2. Schema v17 introduced the
+- The catalog schema is v20 and the storage-settings schema is v2. Schema v17 introduced the
   durable normalized change queue, root-generation tombstones, lease/retry state, catalog-revision
   evidence, bounded terminal-row retention, and permanent highest-generation authority. Schema v18
   adds authoritative scan ownership, generation and queue-watermark capture, previous-snapshot
@@ -1949,6 +1963,9 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   lineage, normalized cross-root identity handoff, exact-case path lookup, preview-repair authority,
   and fail-closed relational validation without losing the v16 preview ownership reconciliation or
   earlier root, scan, asset, location, frontier, capture-evidence, identity, and query evidence.
+  Schema v20 adds durable metadata-inventory runs, fixed-bound staging and cleanup, completion and
+  absence authority, and the `metadata_inventory` change origin while preserving the v19 queue and
+  lineage contract.
 - The authorized read-only target-library acceptance published 30,629 locations for
   `local-primary` and 48,384 for `cloud-primary`, for 79,013 active locations in one retained
   catalog. Sampled source bytes and source entries remained unchanged, and cloud-only placeholders
@@ -2159,9 +2176,14 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   no longer schedules USN or automatic full scans; scan resume is fail-closed and cannot recreate a
   removed root or checkpoint; schema v19 remains compatible; and focused, Daily, Windows Release,
   and zero-finding independent-audit evidence is recorded in
-  `docs/acceptance/r2c-i-non-usn-cutover.md`. R2c-J through R2c-M are not yet complete; no inventory
-  migration, target-scale replacement performance, or final R2c integration audit claim may be
+  `docs/acceptance/r2c-i-non-usn-cutover.md`. R2c-K through R2c-M are not yet complete; no
+  target-scale replacement performance or final R2c integration audit claim may be
   inferred from the historical R2c-G/H evidence.
+- R2c-J implementation and local verification are complete. Schema v20 inventory persistence,
+  bounded metadata-only discovery, safe positive-candidate routing, and complete-scope absence
+  authority pass focused fixtures, repository lint, the complete Daily gate with 439 Rust tests,
+  Windows Release verification, and a final independent audit with no remaining findings.
+  Production continuity epochs and pageable scheduling remain R2c-K.
 - The current R2b closeout working tree passed the complete local Daily gate and Windows Release
   gate on 2026-08-12, including packaged Rust-library loading and the release bridge smoke test.
   This is current-stage evidence, not a release candidate or completion of R10.

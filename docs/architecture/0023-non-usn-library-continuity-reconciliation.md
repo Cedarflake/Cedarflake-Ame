@@ -114,6 +114,26 @@ follow an untrusted reparse directory outside the root, or hydrate a placeholder
 evidence in application storage outside source roots and compares it with the published catalog in
 bounded pages.
 
+Schema v20 stores one `library_metadata_inventory_runs` row per inventory authority and derived
+entries in `library_metadata_inventory_entries`. The run owns its root generation, epoch, scope,
+enumeration cursor, comparison cursor, absence cursor, counts, terminal issue, and explicit
+enumeration/absence-completion flags. One partial unique index permits at most one running or
+comparing inventory per root. A contract marker, exact columns, index predicates, foreign keys,
+root-generation relationships, staged counts, scope containment, and the queue's
+`metadata_inventory` origin are validated when the catalog opens. A malformed or partially
+migrated contract fails closed.
+
+The local adapter enumerates every filesystem entry kind without extension or media-signature
+filtering. It obtains file identity only for locally available files; offline, recall-on-open, and
+recall-on-data-access entries never receive an identity-handle open. A missing requested subtree is
+an empty complete scope. Unreadable, reparse, placeholder, escaped, over-depth, cancelled, or
+otherwise incomplete directories fail the run and cannot authorize descendant absence. Within one
+root, one prior path cannot be claimed by multiple rename candidates carrying the same file
+identity; additional hard-link paths remain ordinary final-state reconciliation candidates.
+Terminal directory symlinks and junctions are classified through target metadata only far enough
+to reject them; an unclassifiable reparse target also fails closed. The inventory never traverses
+the target.
+
 Positive candidates may publish before the complete inventory finishes only after the ordinary
 path reconciler rechecks final state. This permits additions and modifications to become visible as
 they are discovered. Absence is different: removal or subtree replacement requires a complete,
@@ -145,6 +165,9 @@ scope-wide absence publishes only after the complete run succeeds.
 Repeated transport, filesystem, catalog, or inventory failure preserves the last trustworthy
 catalog and durable work. It becomes a blocked root condition with a structured issue code. It does
 not silently claim freshness and does not start a full scan.
+Final-state reconciliation treats an unknown-extension signature probe as three states: supported,
+unsupported, or unreadable. Only a successfully read unsupported signature is ignored; an open or
+read failure retries while preserving the last trustworthy location.
 
 ### Full-scan authority
 
@@ -210,9 +233,17 @@ and elapsed time. These diagnostics do not change product policy or expose raw d
 
 ### Persistence and migration
 
-A forward schema migration adds exact-shape metadata-inventory run and staging contracts with root
-generation, epoch, scope, cursor, completion authority, and bounded cleanup. Inventory staging is
-derived data and is never placed inside a source root.
+A forward schema v20 migration adds exact-shape metadata-inventory run and staging contracts with
+root generation, epoch, scope, cursor, completion authority, and bounded cleanup. It rebuilds the
+change queue only to admit the `metadata_inventory` origin while preserving row identifiers,
+leases, retry state, catch-up lineage, authoritative ownership, and self-references. Inventory
+staging is derived data and is never placed inside a source root.
+Terminal staging is removed in transactions of at most 4,096 entries. Terminal run summaries are
+retained for seven days and removed in transactions of at most 128 runs. A newer generation or
+epoch atomically supersedes an older active run before acquiring the root; terminalization retries
+bounded database contention and reports both the primary and terminalization failures if it cannot
+close the run. The next newer epoch can therefore recover an orphaned active run without granting
+it absence authority.
 
 Schema v19 USN checkpoint, lineage, and handoff objects remain valid migration input. Production
 stops creating new USN evidence. The migration may remove ownerless derived checkpoints and terminal

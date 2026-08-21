@@ -12,7 +12,7 @@ use crate::ports::LibraryChangeSourceRequest;
 
 pub use crate::application::{
     enqueue_library_change_plan, plan_library_changes, process_ready_library_changes,
-    reconcile_path_evidence,
+    reconcile_path_evidence, run_local_metadata_inventory,
 };
 pub use crate::domain::{
     CatalogDeltaBatch, CatalogDeltaMutation, CatalogDeltaPublication,
@@ -31,9 +31,15 @@ pub use crate::domain::{
     LibraryChangeId, LibraryChangeLeaseUpdateOutcome, LibraryChangeObserverPoll,
     LibraryChangeQueueHealth, LibraryChangeQueueMetrics, LibraryChangeQueuePolicy,
     LibraryChangeQueueStatus, LibraryChangeRestartPolicy, LibraryChangeSourceError,
-    LibraryChangeSourceStopReport, ScanError,
+    LibraryChangeSourceStopReport, MetadataInventoryComparisonStatus,
+    MetadataInventoryComparisonUpdate, MetadataInventoryEntry, MetadataInventoryEntryKind,
+    MetadataInventoryPage, MetadataInventoryPlaceholderState, MetadataInventoryReport,
+    MetadataInventoryRun, MetadataInventoryRunRequest, MetadataInventoryRunStatus,
+    MetadataInventoryScope, ScanError,
 };
-pub use crate::ports::{IncrementalCatalogRepository, LibraryChangeQueue};
+pub use crate::ports::{
+    IncrementalCatalogRepository, LibraryChangeQueue, MetadataInventoryRepository,
+};
 
 #[cfg(windows)]
 pub struct WindowsLibraryChangeObserver {

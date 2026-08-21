@@ -24,6 +24,7 @@ use super::user_visible_path;
 
 mod folders;
 mod gallery;
+mod metadata_inventory;
 mod migrations;
 
 use change_queue::{activate_root_change_queue, retire_root_change_queue};
@@ -39,7 +40,7 @@ mod catalog_delta;
 #[cfg(test)]
 mod catch_up;
 mod change_queue;
-const SCHEMA_VERSION: i64 = 19;
+const SCHEMA_VERSION: i64 = 20;
 const SCAN_QUEUE_LEASE_MILLIS: i64 = 15 * 60 * 1_000;
 const MAX_SCAN_CATCH_UP_LINEAGE: i64 = 4_096;
 const LOCATION_STAGE_BATCH: usize = 128;
