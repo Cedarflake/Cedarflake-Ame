@@ -1,4 +1,5 @@
 use std::fs;
+use std::io::BufReader;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -12,6 +13,7 @@ use crate::ports::PreviewStore;
 
 use super::image_orientation::{apply_image_orientation, from_image_orientation};
 use super::jpeg_preview::decode_scaled_jpeg;
+use super::local_files::open_source_file;
 
 struct PreviewDimensions {
     source_width: u32,
@@ -261,8 +263,10 @@ impl PreviewStore for LocalPreviewStore {
             .map(existing_materialization);
         }
 
-        let mut reader = ImageReader::open(source_path)
-            .and_then(|reader| reader.with_guessed_format())
+        let source = open_source_file(source_path)
+            .map_err(|error| preview_issue(file, "image_open_failed", error))?;
+        let mut reader = ImageReader::new(BufReader::new(source))
+            .with_guessed_format()
             .map_err(|error| preview_issue(file, "image_open_failed", error))?;
         if reader.format() == Some(ImageFormat::Jpeg)
             && let Some(decoded) = decode_scaled_jpeg(source_path, edge, MAX_DECODER_ALLOCATION)
@@ -530,8 +534,10 @@ fn cached_artifact_dimensions(path: &Path, edge: u32) -> Option<(u32, u32)> {
 }
 
 fn source_uses_default_orientation(path: &Path) -> bool {
-    let Ok(mut reader) = ImageReader::open(path).and_then(|reader| reader.with_guessed_format())
-    else {
+    let Ok(source) = open_source_file(path) else {
+        return false;
+    };
+    let Ok(mut reader) = ImageReader::new(BufReader::new(source)).with_guessed_format() else {
         return false;
     };
     let mut limits = Limits::default();
@@ -619,8 +625,10 @@ fn inspect_source_display_dimensions(
     file: &DiscoveredFile,
     source_path: &Path,
 ) -> Result<(u32, u32), ScanIssue> {
-    let mut reader = ImageReader::open(source_path)
-        .and_then(|reader| reader.with_guessed_format())
+    let source = open_source_file(source_path)
+        .map_err(|error| preview_issue(file, "image_open_failed", error))?;
+    let mut reader = ImageReader::new(BufReader::new(source))
+        .with_guessed_format()
         .map_err(|error| preview_issue(file, "image_open_failed", error))?;
     let mut limits = Limits::default();
     limits.max_image_width = Some(MAX_SOURCE_DIMENSION);

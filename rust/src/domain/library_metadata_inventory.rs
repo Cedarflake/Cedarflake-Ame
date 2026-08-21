@@ -59,6 +59,15 @@ pub struct MetadataInventoryRunRequest {
     pub started_unix_ms: i64,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MetadataInventoryStartRequest {
+    pub run_id: String,
+    pub root_id: String,
+    pub root_generation: LibraryRootGeneration,
+    pub scope: MetadataInventoryScope,
+    pub started_unix_ms: i64,
+}
+
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub enum MetadataInventoryRunStatus {
     Running,
@@ -119,4 +128,5 @@ pub struct MetadataInventoryReport {
     pub cleanup_pending: bool,
     pub is_complete: bool,
     pub is_cancelled: bool,
+    pub is_backpressured: bool,
 }

@@ -1478,6 +1478,18 @@ R2c-K - pageable recovery and continuity epochs:
 R2c-K is complete only when oversized and racing scopes remain bounded, no partial absence publishes,
 and every automatic failure either converges or remains durably `更新受阻` without a full scan.
 
+Implementation status: production now allocates root-generation inventory epochs atomically,
+routes startup and evidence-gap authority into metadata inventory, converts oversized subtree work
+into durable inventory continuation, and yields after one comparison or absence page. Candidate
+publication protects the exact authority lease, applies bounded backpressure without advancing a
+cursor or consuming an attempt, and rejects output after a newer watcher gap supersedes the worker.
+Focused epoch, overflow, cancellation, retry-exhaustion, capacity-one, fairness, and no-full-scan
+fixtures pass together with the complete 452-test Rust suite. Cloud Files identity, exact-name
+enumeration evidence, local availability, no-recall source opening, and matching unavailable
+metadata now remain safe without hydration, removal work, or retry exhaustion. Repository lint,
+complete Daily, and Windows Release gates pass. Final independent audit reported no Critical, High,
+Medium, or Low findings. R2c-K is accepted.
+
 R2c-L - lifecycle, presentation, and diagnostics:
 
 - map product status to `已同步`, `正在更新图库`, `更新受阻`, or `目录不可用` and remove `需要核对`;
@@ -1501,9 +1513,9 @@ R2c-M - replacement reliability and closeout:
 R2c status: **reopened on 2026-08-21 under ADR 0023**. R2c-A through R2c-F remain accepted
 foundations. R2c-G and its USN-specific acceptance remain historical implementation and migration
 evidence. R2c-H remains a valid source-safety and baseline measurement record but does not validate
-the replacement continuity model. R2c-I and R2c-J are complete; R2c-K through R2c-M remain active
-and must complete before the R2c integration branch is ready for final review against `main` or R3
-begins.
+the replacement continuity model. R2c-I through R2c-K are complete; R2c-L is active and R2c-M
+remains pending. Both must complete before the R2c integration branch is ready for final review
+against `main` or R3 begins.
 
 #### R2c.12 Acceptance evidence
 
@@ -1891,14 +1903,14 @@ may serve as benchmarks or fallbacks but are not automatically preferred over ma
 
 Active stage: **R2c - non-USN continuity replacement**
 
-Active slice: **R2c-K - pageable recovery and continuity epochs**. R2c-I and R2c-J completed their
-implementation, local gates, and final independent audits with no Critical, High, Medium, or Low
-findings. R2c-K now owns production continuity epochs, cold-start and watcher-gap scheduling,
-durable page continuation, live-event supersession, bounded backpressure, restart semantics, and
-fairness. R3 is paused; no R3 implementation is included in the R2c integration branch.
+Active slice: **R2c-L - lifecycle, presentation, and diagnostics**. R2c-I through R2c-K completed
+their implementation, local gates, and final independent audits with no Critical, High, Medium, or
+Low findings. R2c-L owns stable four-state presentation, blocked-notification deduplication,
+development diagnostics, and immediate window hiding with non-scan cancellation. R3 is paused; no
+R3 implementation is included in the R2c integration branch.
 
-Current work: merge the accepted R2c-J persistence and discovery slice into `codex/r2c`, then
-implement the R2c-K production orchestration boundary.
+Current work: implement R2c-L on its dedicated branch, audit and merge it into `codex/r2c`, then
+proceed to R2c-M.
 
 Each R2c-I through R2c-M slice uses a dedicated branch and PR into `codex/r2c`, receives an
 independent read-only audit, and merges only after its findings close. The final `codex/r2c` PR
@@ -1945,9 +1957,8 @@ or later analysis workflows.
 ### 10.1 Verified implementation snapshot
 
 This snapshot was synchronized on 2026-08-21 against the live working tree and current planning
-decision. Historical gate claims retain their recorded dates; R2c-I and R2c-J have current
-replacement evidence, while R2c-K through R2c-M have no completion claim until their evidence is
-run.
+decision. Historical gate claims retain their recorded dates; R2c-I through R2c-K have current
+replacement evidence, while R2c-L and R2c-M have no completion claim until their evidence is run.
 The live working tree, current schema, accepted ADRs, and fresh verification remain authoritative;
 this roadmap does not preserve drifting commit hashes or duplicate complete test transcripts.
 
@@ -2176,14 +2187,19 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   no longer schedules USN or automatic full scans; scan resume is fail-closed and cannot recreate a
   removed root or checkpoint; schema v19 remains compatible; and focused, Daily, Windows Release,
   and zero-finding independent-audit evidence is recorded in
-  `docs/acceptance/r2c-i-non-usn-cutover.md`. R2c-K through R2c-M are not yet complete; no
+  `docs/acceptance/r2c-i-non-usn-cutover.md`. R2c-L and R2c-M are not yet complete; no
   target-scale replacement performance or final R2c integration audit claim may be
   inferred from the historical R2c-G/H evidence.
 - R2c-J implementation and local verification are complete. Schema v20 inventory persistence,
   bounded metadata-only discovery, safe positive-candidate routing, and complete-scope absence
   authority pass focused fixtures, repository lint, the complete Daily gate with 439 Rust tests,
   Windows Release verification, and a final independent audit with no remaining findings.
-  Production continuity epochs and pageable scheduling remain R2c-K.
+  Production continuity epochs and pageable scheduling are completed by R2c-K.
+- R2c-K implementation and local verification are complete. Production continuity epochs,
+  pageable metadata recovery, constant-work exact path checks, Cloud Files availability, live-event
+  supersession, backpressure, retry, cancellation, and fairness pass focused fixtures, repository
+  lint, the complete Daily gate with 452 Rust tests, Windows Release verification, and a final
+  independent audit with no remaining findings.
 - The current R2b closeout working tree passed the complete local Daily gate and Windows Release
   gate on 2026-08-12, including packaged Rust-library loading and the release bridge smoke test.
   This is current-stage evidence, not a release candidate or completion of R10.

@@ -10,17 +10,21 @@ use crate::application::StoragePaths;
 use crate::application::process_ready_library_changes;
 use crate::application::scan_library::{run_scan_with_storage, stable_id};
 use crate::domain::{
-    LibraryChangeQueuePolicy, LibraryRootGeneration, MetadataInventoryEntry,
-    MetadataInventoryEntryKind, MetadataInventoryPage, MetadataInventoryPlaceholderState,
-    MetadataInventoryRunRequest, MetadataInventoryRunStatus, MetadataInventoryScope, ScanError,
+    LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeOrigin, LibraryChangeQueuePolicy,
+    LibraryChangeScope, LibraryRootGeneration, MetadataInventoryEntry, MetadataInventoryEntryKind,
+    MetadataInventoryPage, MetadataInventoryPlaceholderState, MetadataInventoryRunRequest,
+    MetadataInventoryRunStatus, MetadataInventoryScope, MetadataInventoryStartRequest, ScanError,
     ScanRequest,
 };
 use crate::ports::{
-    IncrementalCatalogRepository, LibraryChangeQueue, MetadataInventoryRepository,
-    MetadataInventorySource,
+    CatalogRepository, IncrementalCatalogRepository, LibraryChangeQueue,
+    MetadataInventoryRepository, MetadataInventorySource,
 };
 
-use super::{retry_terminalization, run_metadata_inventory};
+use super::{
+    leased_change_requires_metadata_inventory, metadata_inventory_run_id,
+    process_leased_metadata_inventory_change, retry_terminalization, run_metadata_inventory,
+};
 
 #[test]
 fn closed_process_metadata_changes_converge_through_bounded_inventory_pages() {
@@ -165,6 +169,98 @@ fn placeholder_evidence_is_staged_and_enqueued_without_media_inspection() {
 }
 
 #[test]
+fn unchanged_reparse_cloud_placeholder_preserves_location_without_retry() {
+    let mut fixture = InventoryFixture::new(&["cloud-only.png"]);
+    let prior = fixture
+        .location("cloud-only.png")
+        .expect("published placeholder location");
+    let mut source = FixedInventorySource {
+        page: Some(MetadataInventoryPage {
+            page_index: 1,
+            entries: vec![MetadataInventoryEntry {
+                relative_path: "cloud-only.png".to_owned(),
+                kind: MetadataInventoryEntryKind::File,
+                file_size: Some(prior.file_size),
+                modified_unix_ms: prior.modified_unix_ms,
+                file_identity: None,
+                placeholder_state: MetadataInventoryPlaceholderState::Offline,
+                is_reparse_point: true,
+            }],
+            cursor: Some("cloud-only.png".to_owned()),
+            is_complete: true,
+        }),
+    };
+    let request = fixture.request();
+
+    let report = run_metadata_inventory(
+        &mut fixture.catalog,
+        &mut source,
+        &request,
+        2_000,
+        4,
+        queue_policy(),
+        &AtomicBool::new(false),
+    )
+    .expect("metadata-only reparse placeholder inventory");
+
+    assert!(report.is_complete);
+    assert_eq!(report.candidate_count, 0);
+    assert_eq!(report.absence_candidate_count, 0);
+    assert!(fixture.location("cloud-only.png").is_some());
+    let metrics = fixture
+        .catalog
+        .load_library_change_root_queue_metrics(
+            &fixture.root_id,
+            LibraryRootGeneration::initial(),
+            2_000,
+            queue_policy(),
+        )
+        .expect("queue metrics");
+    assert_eq!(metrics.pending_count + metrics.retry_wait_count, 0);
+}
+
+#[test]
+fn hydrated_cloud_files_reparse_matches_the_existing_location() {
+    let mut fixture = InventoryFixture::new(&["cloud-local.png"]);
+    let prior = fixture
+        .location("cloud-local.png")
+        .expect("published local Cloud Files location");
+    let mut source = FixedInventorySource {
+        page: Some(MetadataInventoryPage {
+            page_index: 1,
+            entries: vec![MetadataInventoryEntry {
+                relative_path: "cloud-local.png".to_owned(),
+                kind: MetadataInventoryEntryKind::File,
+                file_size: Some(prior.file_size),
+                modified_unix_ms: prior.modified_unix_ms,
+                file_identity: prior.file_identity.clone(),
+                placeholder_state: MetadataInventoryPlaceholderState::Available,
+                is_reparse_point: true,
+            }],
+            cursor: Some("cloud-local.png".to_owned()),
+            is_complete: true,
+        }),
+    };
+    let request = fixture.request();
+
+    let report = run_metadata_inventory(
+        &mut fixture.catalog,
+        &mut source,
+        &request,
+        2_000,
+        4,
+        queue_policy(),
+        &AtomicBool::new(false),
+    )
+    .expect("metadata-only hydrated Cloud Files inventory");
+
+    assert!(report.is_complete);
+    assert_eq!(report.candidate_count, 0);
+    assert_eq!(report.absence_candidate_count, 0);
+    assert!(fixture.location("cloud-local.png").is_some());
+}
+
+#[test]
 fn source_failure_terminates_the_durable_inventory_run() {
     let mut fixture = InventoryFixture::new(&[]);
     let request = fixture.request();
@@ -277,6 +373,387 @@ fn newer_epoch_supersedes_an_orphaned_active_run_and_cleanup_stays_bounded() {
             .status,
         MetadataInventoryRunStatus::Running
     );
+}
+
+#[test]
+fn next_epoch_is_allocated_atomically_and_does_not_depend_on_wall_clock_order() {
+    let mut fixture = InventoryFixture::new(&[]);
+    let first = fixture
+        .catalog
+        .begin_next_metadata_inventory(&MetadataInventoryStartRequest {
+            run_id: "inventory-next-1".to_owned(),
+            root_id: fixture.root_id.clone(),
+            root_generation: LibraryRootGeneration::initial(),
+            scope: MetadataInventoryScope::Root,
+            started_unix_ms: 5_000,
+        })
+        .expect("begin first allocated epoch");
+    let second = fixture
+        .catalog
+        .begin_next_metadata_inventory(&MetadataInventoryStartRequest {
+            run_id: "inventory-next-2".to_owned(),
+            root_id: fixture.root_id.clone(),
+            root_generation: LibraryRootGeneration::initial(),
+            scope: MetadataInventoryScope::Subtree {
+                relative_path: "album".to_owned(),
+            },
+            started_unix_ms: 4_000,
+        })
+        .expect("begin second allocated epoch");
+
+    assert_eq!(first.request.epoch, 1);
+    assert_eq!(second.request.epoch, 2);
+    assert_eq!(second.request.started_unix_ms, 4_000);
+    assert_eq!(
+        fixture
+            .catalog
+            .load_metadata_inventory_run(&first.request.run_id)
+            .expect("load first allocated epoch")
+            .expect("first allocated epoch")
+            .status,
+        MetadataInventoryRunStatus::Superseded
+    );
+}
+
+#[test]
+fn startup_gap_uses_inventory_and_completes_its_authoritative_lease() {
+    let mut fixture = InventoryFixture::new(&["removed.png"]);
+    fs::remove_file(fixture.source.path().join("removed.png")).expect("remove fixture");
+    write_png(&fixture.source.path().join("added.png"), 3, 2, [40, 50, 60]);
+    let policy = LibraryChangeQueuePolicy {
+        max_unresolved_changes: 1,
+        max_lease_batch: 1,
+        ..queue_policy()
+    };
+    fixture
+        .catalog
+        .enqueue_library_change_intents(
+            &[LibraryChangeIntent {
+                root_id: fixture.root_id.clone(),
+                root_generation: LibraryRootGeneration::initial(),
+                kind: LibraryChangeIntentKind::FreshnessUnknown,
+                scope: LibraryChangeScope::Root,
+                relative_path: String::new(),
+                previous_relative_path: None,
+                origin: LibraryChangeOrigin::StartupCatchUp,
+                first_observed_unix_ms: 2_000,
+                most_recent_observed_unix_ms: 2_000,
+                first_sequence: 1,
+                most_recent_sequence: 1,
+                coalesced_observation_count: 1,
+            }],
+            2_000,
+            policy,
+        )
+        .expect("enqueue startup authority");
+    let mut report = None;
+    let mut completed_candidates = 0_u32;
+    for _ in 0..8 {
+        let leased = fixture
+            .catalog
+            .lease_authoritative_library_change(
+                &fixture.root_id,
+                LibraryRootGeneration::initial(),
+                2_000,
+                policy,
+            )
+            .expect("lease startup authority")
+            .expect("startup authority");
+        assert!(leased_change_requires_metadata_inventory(&leased));
+        let root = fixture
+            .catalog
+            .load_incremental_catalog_root(&fixture.root_id)
+            .expect("load root")
+            .expect("root");
+        let current = process_leased_metadata_inventory_change(
+            &mut fixture.catalog,
+            &root,
+            &leased,
+            2_000,
+            1,
+            policy,
+            &AtomicBool::new(false),
+        )
+        .expect("process startup inventory page");
+        completed_candidates = completed_candidates.saturating_add(
+            process_ready_library_changes(
+                &mut fixture.catalog,
+                &fixture.root_id,
+                LibraryRootGeneration::initial(),
+                2_000,
+                policy,
+            )
+            .expect("publish inventory candidates")
+            .completed_count,
+        );
+        let is_complete = current.inventory.is_complete;
+        report = Some(current);
+        if is_complete {
+            break;
+        }
+    }
+    let report = report.expect("inventory recovery report");
+
+    assert!(report.inventory.is_complete);
+    assert_eq!(report.inventory.staged_entry_count, 1);
+    assert_eq!(report.inventory.candidate_count, 2);
+    assert_eq!(report.incremental.leased_count, 1);
+    assert_eq!(completed_candidates, 2);
+    assert!(fixture.location("removed.png").is_none());
+    assert!(fixture.location("added.png").is_some());
+}
+
+#[test]
+fn newer_gap_supersedes_an_incomplete_inventory_epoch_and_its_staged_candidates() {
+    let mut fixture = InventoryFixture::new(&[]);
+    write_png(&fixture.source.path().join("first.png"), 2, 2, [10, 20, 30]);
+    write_png(
+        &fixture.source.path().join("second.png"),
+        2,
+        2,
+        [40, 50, 60],
+    );
+    let policy = queue_policy();
+    let first_intent = LibraryChangeIntent {
+        root_id: fixture.root_id.clone(),
+        root_generation: LibraryRootGeneration::initial(),
+        kind: LibraryChangeIntentKind::FreshnessUnknown,
+        scope: LibraryChangeScope::Root,
+        relative_path: String::new(),
+        previous_relative_path: None,
+        origin: LibraryChangeOrigin::StartupCatchUp,
+        first_observed_unix_ms: 2_000,
+        most_recent_observed_unix_ms: 2_000,
+        first_sequence: 1,
+        most_recent_sequence: 1,
+        coalesced_observation_count: 1,
+    };
+    fixture
+        .catalog
+        .enqueue_library_change_intents(std::slice::from_ref(&first_intent), 2_000, policy)
+        .expect("enqueue first epoch");
+    let first_lease = fixture
+        .catalog
+        .lease_authoritative_library_change(
+            &fixture.root_id,
+            LibraryRootGeneration::initial(),
+            2_000,
+            policy,
+        )
+        .expect("lease first epoch")
+        .expect("first epoch");
+    let first_run_id = metadata_inventory_run_id(&first_lease);
+    let root = fixture
+        .catalog
+        .load_incremental_catalog_root(&fixture.root_id)
+        .expect("load root")
+        .expect("root");
+    let first_report = process_leased_metadata_inventory_change(
+        &mut fixture.catalog,
+        &root,
+        &first_lease,
+        2_000,
+        1,
+        policy,
+        &AtomicBool::new(false),
+    )
+    .expect("start first epoch");
+    assert!(!first_report.inventory.is_complete);
+
+    let newer_intent = LibraryChangeIntent {
+        origin: LibraryChangeOrigin::LiveNotification,
+        first_observed_unix_ms: 3_000,
+        most_recent_observed_unix_ms: 3_000,
+        first_sequence: 2,
+        most_recent_sequence: 2,
+        ..first_intent
+    };
+    fixture
+        .catalog
+        .enqueue_library_change_intents(&[newer_intent], 3_000, policy)
+        .expect("enqueue newer gap");
+    let second_lease = fixture
+        .catalog
+        .lease_authoritative_library_change(
+            &fixture.root_id,
+            LibraryRootGeneration::initial(),
+            3_000,
+            policy,
+        )
+        .expect("lease newer epoch")
+        .expect("newer epoch");
+    let second_run_id = metadata_inventory_run_id(&second_lease);
+    process_leased_metadata_inventory_change(
+        &mut fixture.catalog,
+        &root,
+        &second_lease,
+        3_000,
+        1,
+        policy,
+        &AtomicBool::new(false),
+    )
+    .expect("start newer epoch");
+
+    let first_run = fixture
+        .catalog
+        .load_metadata_inventory_run(&first_run_id)
+        .expect("load first run")
+        .expect("first run");
+    let second_run = fixture
+        .catalog
+        .load_metadata_inventory_run(&second_run_id)
+        .expect("load second run")
+        .expect("second run");
+    assert_eq!(first_run.status, MetadataInventoryRunStatus::Superseded);
+    assert_eq!(second_run.request.epoch, first_run.request.epoch + 1);
+}
+
+#[test]
+fn inventory_failure_exhausts_durable_retry_without_starting_a_full_scan() {
+    let mut fixture = InventoryFixture::new(&[]);
+    fs::remove_dir(fixture.source.path()).expect("remove source fixture");
+    let policy = LibraryChangeQueuePolicy {
+        max_attempts: 2,
+        retry_initial_delay_millis: 1,
+        retry_maximum_delay_millis: 1,
+        ..queue_policy()
+    };
+    fixture
+        .catalog
+        .enqueue_library_change_intents(
+            &[LibraryChangeIntent {
+                root_id: fixture.root_id.clone(),
+                root_generation: LibraryRootGeneration::initial(),
+                kind: LibraryChangeIntentKind::FreshnessUnknown,
+                scope: LibraryChangeScope::Root,
+                relative_path: String::new(),
+                previous_relative_path: None,
+                origin: LibraryChangeOrigin::StartupCatchUp,
+                first_observed_unix_ms: 2_000,
+                most_recent_observed_unix_ms: 2_000,
+                first_sequence: 1,
+                most_recent_sequence: 1,
+                coalesced_observation_count: 1,
+            }],
+            2_000,
+            policy,
+        )
+        .expect("enqueue failing inventory");
+    let root = fixture
+        .catalog
+        .load_incremental_catalog_root(&fixture.root_id)
+        .expect("load root")
+        .expect("root");
+    for now_unix_ms in [2_000, 2_001] {
+        let leased = fixture
+            .catalog
+            .lease_authoritative_library_change(
+                &fixture.root_id,
+                LibraryRootGeneration::initial(),
+                now_unix_ms,
+                policy,
+            )
+            .expect("lease failing inventory")
+            .expect("failing inventory authority");
+        let report = process_leased_metadata_inventory_change(
+            &mut fixture.catalog,
+            &root,
+            &leased,
+            now_unix_ms,
+            16,
+            policy,
+            &AtomicBool::new(false),
+        )
+        .expect("record inventory failure");
+        assert_eq!(report.incremental.retried_count, 1);
+    }
+    let metrics = fixture
+        .catalog
+        .load_library_change_root_queue_metrics(
+            &fixture.root_id,
+            LibraryRootGeneration::initial(),
+            2_001,
+            policy,
+        )
+        .expect("load exhausted inventory metrics");
+
+    assert_eq!(metrics.exhausted_retry_count, 1);
+    assert_eq!(metrics.ready_count, 0);
+    assert!(
+        fixture
+            .catalog
+            .load_recoverable_scan()
+            .expect("recoverable scan")
+            .is_none()
+    );
+}
+
+#[test]
+fn cancelled_automatic_inventory_defers_authority_and_preserves_absence() {
+    let mut fixture = InventoryFixture::new(&["retained.png"]);
+    fs::remove_file(fixture.source.path().join("retained.png")).expect("remove fixture");
+    let policy = queue_policy();
+    fixture
+        .catalog
+        .enqueue_library_change_intents(
+            &[LibraryChangeIntent {
+                root_id: fixture.root_id.clone(),
+                root_generation: LibraryRootGeneration::initial(),
+                kind: LibraryChangeIntentKind::FreshnessUnknown,
+                scope: LibraryChangeScope::Root,
+                relative_path: String::new(),
+                previous_relative_path: None,
+                origin: LibraryChangeOrigin::StartupCatchUp,
+                first_observed_unix_ms: 2_000,
+                most_recent_observed_unix_ms: 2_000,
+                first_sequence: 1,
+                most_recent_sequence: 1,
+                coalesced_observation_count: 1,
+            }],
+            2_000,
+            policy,
+        )
+        .expect("enqueue cancellable inventory");
+    let leased = fixture
+        .catalog
+        .lease_authoritative_library_change(
+            &fixture.root_id,
+            LibraryRootGeneration::initial(),
+            2_000,
+            policy,
+        )
+        .expect("lease cancellable inventory")
+        .expect("cancellable inventory");
+    let root = fixture
+        .catalog
+        .load_incremental_catalog_root(&fixture.root_id)
+        .expect("load root")
+        .expect("root");
+
+    let report = process_leased_metadata_inventory_change(
+        &mut fixture.catalog,
+        &root,
+        &leased,
+        2_000,
+        1,
+        policy,
+        &AtomicBool::new(true),
+    )
+    .expect("cancel inventory");
+    let metrics = fixture
+        .catalog
+        .load_library_change_root_queue_metrics(
+            &fixture.root_id,
+            LibraryRootGeneration::initial(),
+            2_000,
+            policy,
+        )
+        .expect("load cancelled inventory metrics");
+
+    assert!(report.inventory.is_cancelled);
+    assert_eq!(report.incremental.deferred_count, 1);
+    assert_eq!(metrics.pending_count, 1);
+    assert!(fixture.location("retained.png").is_some());
 }
 
 #[test]

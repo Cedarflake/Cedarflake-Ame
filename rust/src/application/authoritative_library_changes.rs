@@ -3,9 +3,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::adapters::{FileDiscovery, FileVisitOutcome};
 use crate::domain::{
-    IncrementalLibraryChangeReport, LeasedLibraryChange, LibraryChangeFailure,
-    LibraryChangeIntentKind, LibraryChangeLeaseUpdateOutcome, LibraryChangeQueuePolicy,
-    LibraryChangeScope, LibraryRootGeneration, ScanError, ScanIssue,
+    IncrementalCatalogRoot, IncrementalLibraryChangeReport, LeasedLibraryChange,
+    LibraryChangeFailure, LibraryChangeIntentKind, LibraryChangeLeaseUpdateOutcome,
+    LibraryChangeQueuePolicy, LibraryChangeScope, LibraryRootGeneration, ScanError, ScanIssue,
 };
 use crate::ports::{IncrementalCatalogRepository, LibraryChangeQueue};
 
@@ -107,12 +107,47 @@ where
             },
         });
     };
+    process_leased_authoritative_library_change_cancellable(
+        repository,
+        &root,
+        &leased,
+        now_unix_ms,
+        queue_policy,
+        recovery_policy,
+        cancellation,
+    )
+}
+
+pub(crate) fn process_leased_authoritative_library_change_cancellable<Repository>(
+    repository: &mut Repository,
+    root: &IncrementalCatalogRoot,
+    leased: &LeasedLibraryChange,
+    now_unix_ms: i64,
+    queue_policy: LibraryChangeQueuePolicy,
+    recovery_policy: AuthoritativeRecoveryPolicy,
+    cancellation: &AtomicBool,
+) -> Result<AuthoritativeLibraryChangeReport, ScanError>
+where
+    Repository: IncrementalCatalogRepository + LibraryChangeQueue,
+{
+    validate_policy(recovery_policy)?;
+    if leased.change.intent.root_id != root.root_id
+        || leased.change.intent.root_generation != root.root_generation
+    {
+        return Err(ScanError::new(
+            "authoritative_lease_root_mismatch",
+            "The authoritative lease does not belong to the selected catalog root",
+        ));
+    }
+    if cancellation.load(Ordering::Relaxed) {
+        return defer_authoritative_change(repository, leased, root.catalog_revision, now_unix_ms);
+    }
     let discovery = match FileDiscovery::new(&root.root_path) {
         Ok(discovery) => discovery,
         Err(error) => {
-            return retry(
+            return retry_authoritative_change(
                 repository,
-                &leased,
+                leased,
                 root.catalog_revision,
                 LibraryChangeFailure {
                     code: error.code,
@@ -123,14 +158,14 @@ where
             );
         }
     };
-    let scopes = recovery_scopes(&leased)?;
+    let scopes = recovery_scopes(leased)?;
     let observed_paths = match enumerate_scopes(&discovery, &scopes, recovery_policy, cancellation)
     {
         Ok(paths) => paths,
         Err(EnumerationFailure::Capacity) => {
-            return retry(
+            return retry_authoritative_change(
                 repository,
-                &leased,
+                leased,
                 root.catalog_revision,
                 metadata_inventory_required(),
                 now_unix_ms,
@@ -138,9 +173,9 @@ where
             );
         }
         Err(EnumerationFailure::Issue(issue)) => {
-            return retry(
+            return retry_authoritative_change(
                 repository,
-                &leased,
+                leased,
                 root.catalog_revision,
                 issue,
                 now_unix_ms,
@@ -150,7 +185,7 @@ where
         Err(EnumerationFailure::Cancelled) => {
             return defer_authoritative_change(
                 repository,
-                &leased,
+                leased,
                 root.catalog_revision,
                 now_unix_ms,
             );
@@ -161,20 +196,20 @@ where
         if cancellation.load(Ordering::Relaxed) {
             return defer_authoritative_change(
                 repository,
-                &leased,
+                leased,
                 root.catalog_revision,
                 now_unix_ms,
             );
         }
         let locations = repository.load_incremental_locations_in_subtree(
-            root_id,
+            &root.root_id,
             scope,
             recovery_policy.max_scope_paths.saturating_add(1),
         )?;
         if locations.len() > recovery_policy.max_scope_paths as usize {
-            return retry(
+            return retry_authoritative_change(
                 repository,
-                &leased,
+                leased,
                 root.catalog_revision,
                 metadata_inventory_required(),
                 now_unix_ms,
@@ -184,9 +219,9 @@ where
         for location in locations {
             paths.insert(location.relative_path);
             if paths.len() > recovery_policy.max_scope_paths as usize {
-                return retry(
+                return retry_authoritative_change(
                     repository,
-                    &leased,
+                    leased,
                     root.catalog_revision,
                     metadata_inventory_required(),
                     now_unix_ms,
@@ -199,10 +234,10 @@ where
     let incremental = process_authoritative_path_set(
         repository,
         AuthoritativePathSetRequest {
-            root_id,
-            root_generation,
+            root_id: &root.root_id,
+            root_generation: root.root_generation,
             expected_catalog_revision: root.catalog_revision,
-            leased: &leased,
+            leased,
             relative_paths: &relative_paths,
             now_unix_ms,
             queue_policy,
@@ -277,11 +312,11 @@ fn enumerate_scopes(
         let entries = discovery
             .checked_entry_paths_in_directory(&directory)
             .map_err(|issue| EnumerationFailure::Issue(scan_issue_failure(issue)))?;
-        for relative_path in entries {
+        for directory_entry in entries {
             if cancellation.load(Ordering::Relaxed) {
                 return Err(EnumerationFailure::Cancelled);
             }
-            let relative_path = relative_path
+            let directory_entry = directory_entry
                 .map_err(|issue| EnumerationFailure::Issue(scan_issue_failure(issue)))?;
             visited_entries = visited_entries
                 .checked_add(1)
@@ -289,7 +324,9 @@ fn enumerate_scopes(
             if visited_entries > policy.max_scope_entries {
                 return Err(EnumerationFailure::Capacity);
             }
-            match discovery.visit_relative_path(&relative_path).outcome {
+            let visit = discovery.visit_directory_entry(directory_entry);
+            let relative_path = visit.relative_path;
+            match visit.outcome {
                 FileVisitOutcome::Directory => {
                     schedule_directory(&mut directories, &mut scheduled_directories, relative_path)
                 }
@@ -320,7 +357,7 @@ fn schedule_directory(
     }
 }
 
-fn defer_authoritative_change<Repository>(
+pub(crate) fn defer_authoritative_change<Repository>(
     repository: &mut Repository,
     leased: &LeasedLibraryChange,
     catalog_revision: u64,
@@ -343,7 +380,7 @@ where
     Ok(AuthoritativeLibraryChangeReport { incremental })
 }
 
-fn retry<Repository>(
+pub(crate) fn retry_authoritative_change<Repository>(
     repository: &mut Repository,
     leased: &LeasedLibraryChange,
     catalog_revision: u64,

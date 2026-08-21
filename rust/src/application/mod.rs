@@ -18,9 +18,11 @@ mod preview_recovery;
 mod scan_library;
 mod storage;
 
+#[cfg(test)]
+pub(crate) use authoritative_library_changes::process_ready_authoritative_library_change_cancellable;
 pub(crate) use authoritative_library_changes::{
-    AuthoritativeLibraryChangeReport, AuthoritativeRecoveryPolicy,
-    process_ready_authoritative_library_change_cancellable,
+    AuthoritativeLibraryChangeReport, AuthoritativeRecoveryPolicy, defer_authoritative_change,
+    process_leased_authoritative_library_change_cancellable, retry_authoritative_change,
 };
 pub use directory_synchronization::{plan_library_changes, reconcile_path_evidence};
 pub use incremental_library_changes::process_ready_library_changes;
@@ -34,6 +36,10 @@ pub use load_catalog::{
     load_gallery_timeline, load_library_folders, unregister_library_root,
 };
 pub use metadata_inventory::run_local_metadata_inventory;
+pub(crate) use metadata_inventory::{
+    MetadataInventoryRecoveryReport, leased_change_requires_metadata_inventory,
+    process_leased_metadata_inventory_change,
+};
 pub use preview::materialize_preview;
 pub(crate) use preview_cleanup::{acquire_preview_generation, acquire_preview_reclamation};
 pub use preview_cleanup::{cancel_preview_cleanup, clear_previews, clear_retired_previews};

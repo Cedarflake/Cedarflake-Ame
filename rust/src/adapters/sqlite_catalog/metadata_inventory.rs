@@ -8,7 +8,7 @@ use crate::domain::{
     MetadataInventoryComparisonStatus, MetadataInventoryComparisonUpdate, MetadataInventoryEntry,
     MetadataInventoryEntryKind, MetadataInventoryPage, MetadataInventoryPlaceholderState,
     MetadataInventoryRun, MetadataInventoryRunRequest, MetadataInventoryRunStatus,
-    MetadataInventoryScope, ScanError,
+    MetadataInventoryScope, MetadataInventoryStartRequest, ScanError,
 };
 use crate::ports::MetadataInventoryRepository;
 
@@ -25,6 +25,71 @@ type StoredEntryParts<'a> = (
 );
 
 impl MetadataInventoryRepository for SqliteCatalog {
+    fn begin_next_metadata_inventory(
+        &mut self,
+        request: &MetadataInventoryStartRequest,
+    ) -> Result<MetadataInventoryRun, ScanError> {
+        validate_start_request(request)?;
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(database_error)?;
+        if let Some(existing) = load_run(&transaction, &request.run_id)? {
+            let is_active = matches!(
+                existing.status,
+                MetadataInventoryRunStatus::Running | MetadataInventoryRunStatus::Comparing
+            );
+            if is_active
+                && existing.request.root_id == request.root_id
+                && existing.request.root_generation == request.root_generation
+                && existing.request.scope == request.scope
+            {
+                validate_active_root(&transaction, &existing.request)?;
+                transaction.commit().map_err(database_error)?;
+                return Ok(existing);
+            }
+            return Err(ScanError::new(
+                "metadata_inventory_run_duplicate",
+                "The metadata inventory run identity already exists",
+            ));
+        }
+        let latest_epoch = transaction
+            .query_row(
+                "SELECT MAX(epoch)
+                 FROM library_metadata_inventory_runs
+                 WHERE root_id = ?1 AND root_generation = ?2",
+                params![
+                    request.root_id,
+                    sqlite_integer(
+                        request.root_generation.value(),
+                        "metadata inventory root generation",
+                    )?,
+                ],
+                |row| row.get::<_, Option<i64>>(0),
+            )
+            .map_err(database_error)?
+            .map(|epoch| sqlite_unsigned(epoch, "metadata inventory epoch"))
+            .transpose()?
+            .unwrap_or(0);
+        let epoch = latest_epoch.checked_add(1).ok_or_else(|| {
+            ScanError::new(
+                "metadata_inventory_epoch_overflow",
+                "The metadata inventory epoch exceeded the supported range",
+            )
+        })?;
+        let run_request = MetadataInventoryRunRequest {
+            run_id: request.run_id.clone(),
+            root_id: request.root_id.clone(),
+            root_generation: request.root_generation,
+            epoch,
+            scope: request.scope.clone(),
+            started_unix_ms: request.started_unix_ms,
+        };
+        let run = begin_metadata_inventory_transaction(&transaction, &run_request)?;
+        transaction.commit().map_err(database_error)?;
+        Ok(run)
+    }
+
     fn begin_metadata_inventory(
         &mut self,
         request: &MetadataInventoryRunRequest,
@@ -34,91 +99,7 @@ impl MetadataInventoryRepository for SqliteCatalog {
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(database_error)?;
-        validate_active_root(&transaction, request)?;
-        let existing_run = transaction
-            .query_row(
-                "SELECT id FROM library_metadata_inventory_runs WHERE id = ?1",
-                [&request.run_id],
-                |row| row.get::<_, String>(0),
-            )
-            .optional()
-            .map_err(database_error)?;
-        if existing_run.is_some() {
-            return Err(ScanError::new(
-                "metadata_inventory_run_exists",
-                "The metadata inventory run already exists",
-            ));
-        }
-        let active_run = transaction
-            .query_row(
-                "SELECT id, root_generation, epoch
-                 FROM library_metadata_inventory_runs
-                 WHERE root_id = ?1 AND status IN ('running', 'comparing')",
-                [&request.root_id],
-                |row| {
-                    Ok((
-                        row.get::<_, String>(0)?,
-                        row.get::<_, i64>(1)?,
-                        row.get::<_, i64>(2)?,
-                    ))
-                },
-            )
-            .optional()
-            .map_err(database_error)?;
-        if let Some((active_id, active_generation, active_epoch)) = active_run {
-            let active_generation = sqlite_unsigned(
-                active_generation,
-                "active metadata inventory root generation",
-            )?;
-            let active_epoch = sqlite_unsigned(active_epoch, "active metadata inventory epoch")?;
-            let request_generation = request.root_generation.value();
-            if active_generation > request_generation
-                || active_generation == request_generation && active_epoch >= request.epoch
-            {
-                return Err(ScanError::new(
-                    "metadata_inventory_active_conflict",
-                    "A current or newer metadata inventory already owns this root",
-                ));
-            }
-            transaction
-                .execute(
-                    "UPDATE library_metadata_inventory_runs
-                     SET status = 'superseded',
-                         last_issue_code = 'metadata_inventory_newer_epoch',
-                         last_issue_message = 'A newer metadata inventory superseded this run',
-                         updated_unix_ms = ?2
-                     WHERE id = ?1 AND status IN ('running', 'comparing')",
-                    params![active_id, request.started_unix_ms],
-                )
-                .map_err(database_error)?;
-        }
-        let (scope_kind, scope_relative_path) = scope_parts(&request.scope);
-        transaction
-            .execute(
-                "INSERT INTO library_metadata_inventory_runs(
-                   id, root_id, root_generation, epoch, scope_kind, scope_relative_path,
-                   status, next_page_index, started_unix_ms, updated_unix_ms
-                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'running', 1, ?7, ?7)",
-                params![
-                    request.run_id,
-                    request.root_id,
-                    sqlite_integer(
-                        request.root_generation.value(),
-                        "metadata inventory root generation",
-                    )?,
-                    sqlite_integer(request.epoch, "metadata inventory epoch")?,
-                    scope_kind,
-                    scope_relative_path,
-                    request.started_unix_ms,
-                ],
-            )
-            .map_err(database_error)?;
-        let run = load_run(&transaction, &request.run_id)?.ok_or_else(|| {
-            ScanError::new(
-                "metadata_inventory_run_missing",
-                "The metadata inventory run was not persisted",
-            )
-        })?;
+        let run = begin_metadata_inventory_transaction(&transaction, request)?;
         transaction.commit().map_err(database_error)?;
         Ok(run)
     }
@@ -722,6 +703,97 @@ impl MetadataInventoryRepository for SqliteCatalog {
     }
 }
 
+fn begin_metadata_inventory_transaction(
+    transaction: &Transaction<'_>,
+    request: &MetadataInventoryRunRequest,
+) -> Result<MetadataInventoryRun, ScanError> {
+    validate_active_root(transaction, request)?;
+    let existing_run = transaction
+        .query_row(
+            "SELECT id FROM library_metadata_inventory_runs WHERE id = ?1",
+            [&request.run_id],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()
+        .map_err(database_error)?;
+    if existing_run.is_some() {
+        return Err(ScanError::new(
+            "metadata_inventory_run_exists",
+            "The metadata inventory run already exists",
+        ));
+    }
+    let active_run = transaction
+        .query_row(
+            "SELECT id, root_generation, epoch
+             FROM library_metadata_inventory_runs
+             WHERE root_id = ?1 AND status IN ('running', 'comparing')",
+            [&request.root_id],
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, i64>(1)?,
+                    row.get::<_, i64>(2)?,
+                ))
+            },
+        )
+        .optional()
+        .map_err(database_error)?;
+    if let Some((active_id, active_generation, active_epoch)) = active_run {
+        let active_generation = sqlite_unsigned(
+            active_generation,
+            "active metadata inventory root generation",
+        )?;
+        let active_epoch = sqlite_unsigned(active_epoch, "active metadata inventory epoch")?;
+        let request_generation = request.root_generation.value();
+        if active_generation > request_generation
+            || active_generation == request_generation && active_epoch >= request.epoch
+        {
+            return Err(ScanError::new(
+                "metadata_inventory_active_conflict",
+                "A current or newer metadata inventory already owns this root",
+            ));
+        }
+        transaction
+            .execute(
+                "UPDATE library_metadata_inventory_runs
+                 SET status = 'superseded',
+                     last_issue_code = 'metadata_inventory_newer_epoch',
+                     last_issue_message = 'A newer metadata inventory superseded this run',
+                     updated_unix_ms = ?2
+                 WHERE id = ?1 AND status IN ('running', 'comparing')",
+                params![active_id, request.started_unix_ms],
+            )
+            .map_err(database_error)?;
+    }
+    let (scope_kind, scope_relative_path) = scope_parts(&request.scope);
+    transaction
+        .execute(
+            "INSERT INTO library_metadata_inventory_runs(
+               id, root_id, root_generation, epoch, scope_kind, scope_relative_path,
+               status, next_page_index, started_unix_ms, updated_unix_ms
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'running', 1, ?7, ?7)",
+            params![
+                request.run_id,
+                request.root_id,
+                sqlite_integer(
+                    request.root_generation.value(),
+                    "metadata inventory root generation",
+                )?,
+                sqlite_integer(request.epoch, "metadata inventory epoch")?,
+                scope_kind,
+                scope_relative_path,
+                request.started_unix_ms,
+            ],
+        )
+        .map_err(database_error)?;
+    load_run(transaction, &request.run_id)?.ok_or_else(|| {
+        ScanError::new(
+            "metadata_inventory_run_missing",
+            "The metadata inventory run was not persisted",
+        )
+    })
+}
+
 fn validate_active_root(
     transaction: &Transaction<'_>,
     request: &MetadataInventoryRunRequest,
@@ -1065,6 +1137,17 @@ fn validate_run_request(request: &MetadataInventoryRunRequest) -> Result<(), Sca
             validate_relative_path(relative_path, false)
         }
     }
+}
+
+fn validate_start_request(request: &MetadataInventoryStartRequest) -> Result<(), ScanError> {
+    validate_run_request(&MetadataInventoryRunRequest {
+        run_id: request.run_id.clone(),
+        root_id: request.root_id.clone(),
+        root_generation: request.root_generation,
+        epoch: 1,
+        scope: request.scope.clone(),
+        started_unix_ms: request.started_unix_ms,
+    })
 }
 
 fn validate_page(page: &MetadataInventoryPage) -> Result<(), ScanError> {

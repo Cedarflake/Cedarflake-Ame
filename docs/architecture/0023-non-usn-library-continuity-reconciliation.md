@@ -130,9 +130,36 @@ an empty complete scope. Unreadable, reparse, placeholder, escaped, over-depth, 
 otherwise incomplete directories fail the run and cannot authorize descendant absence. Within one
 root, one prior path cannot be claimed by multiple rename candidates carrying the same file
 identity; additional hard-link paths remain ordinary final-state reconciliation candidates.
-Terminal directory symlinks and junctions are classified through target metadata only far enough
-to reject them; an unclassifiable reparse target also fails closed. The inventory never traverses
-the target.
+Terminal symlinks, junctions, and unrecognized reparse points fail closed from no-follow reparse
+evidence; the inventory never opens or traverses their targets.
+
+On Windows, entry classification retains directory-enumeration attributes and queries
+`FileAttributeTagInfo` through a no-follow, no-recall handle. `FILE_ATTRIBUTE_RECALL_ON_OPEN` is an
+enumeration-only attribute, while a fully hydrated Cloud Files item can retain its reparse tag
+without any recall attribute. The adapter therefore calls
+`CfGetPlaceholderStateFromAttributeTag` with the attributes and tag for the same entry. Cloud Files
+identity and local content availability remain separate: a verified, fully local regular Cloud
+Files item is a file, while partial, offline, or recall content remains present but unreadable. A
+non-Cloud reparse point is never treated as a media file or traversable directory.
+
+Exact-path classification issues one exact-name `FindFirstFileW` directory enumeration and merges
+its attributes with `FileAttributeTagInfo` from the no-follow handle. It therefore retains the
+enumeration-only `FILE_ATTRIBUTE_RECALL_ON_OPEN` bit in constant work without scanning parent
+siblings. Before any signature, identity, metadata, or preview read, the adapter opens a validation
+handle with `FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_OPEN_NO_RECALL` and without delete sharing,
+validates the merged attributes and tag, then opens the content with
+`FILE_FLAG_OPEN_NO_RECALL`. It rechecks the opened content handle and compares its file identity
+with the still-live validation handle before returning the reader. This rejects dehydration and
+replacement races before source bytes can be consumed even on filesystems that permit the pathname
+to be unlinked concurrently.
+
+The Windows adapter contains three narrow `unsafe` contracts for this boundary:
+`GetFileInformationByHandleEx(FileAttributeTagInfo)` writes one initialized, exactly sized
+`FILE_ATTRIBUTE_TAG_INFO`; `FindFirstFileW` writes one initialized `WIN32_FIND_DATAW` for an exact,
+terminated extended path and its search handle is closed exactly once with `FindClose`; and
+`CfGetPlaceholderStateFromAttributeTag` consumes only the returned integer attributes and tag. All
+calls remain inside the adapter; no raw handle, pointer, Win32 structure, or Cloud Files state
+crosses into application, domain, persistence, or presentation.
 
 Positive candidates may publish before the complete inventory finishes only after the ordinary
 path reconciler rechecks final state. This permits additions and modifications to become visible as
@@ -161,6 +188,16 @@ The existing 4,096-entry and 128-path limits remain bounds for one synchronous a
 they are no longer escalation thresholds for a full scan. Work beyond either ceiling becomes a
 pageable metadata-inventory run with a durable scope and cursor. Pages may discover candidates, but
 scope-wide absence publishes only after the complete run succeeds.
+
+The durable queue keeps the inventory's leased root or subtree row as a protected authority while
+one comparison or absence page is admitted. Candidate enqueue first verifies the exact lease and
+then coalesces the page without allowing that authority row to absorb its own output. The authority
+row is a control reservation rather than retained candidate work; the absolute 4,096-row bound is
+still enforced, so production pages contain at most 4,095 candidates. If existing path work leaves
+less capacity, the inventory cursor does not advance, the lease is deferred without consuming an
+attempt, and another root may run while the path queue drains. A newer live gap supersedes the
+protected lease, invalidates further output from the older worker, and atomically starts the next
+inventory epoch instead of trusting staged evidence from the interrupted boundary.
 
 Repeated transport, filesystem, catalog, or inventory failure preserves the last trustworthy
 catalog and durable work. It becomes a blocked root condition with a structured issue code. It does

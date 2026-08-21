@@ -612,6 +612,9 @@ fn production_live_root_gap_persists_metadata_inventory_work_without_starting_a_
     runtime
         .poll(&mut catalog, 900, |_| LibraryRootAvailability::Available)
         .expect("complete startup inventory");
+    let startup_revision = runtime
+        .root_continuity_revision(&fixture.root_id)
+        .expect("startup continuity revision");
     factory
         .state
         .lock()
@@ -643,6 +646,12 @@ fn production_live_root_gap_persists_metadata_inventory_work_without_starting_a_
 
     assert_eq!(snapshot.roots[0].freshness, CatalogFreshnessState::Updating);
     assert_eq!(snapshot.roots[0].freshness_unknown_count, 1);
+    assert!(
+        runtime
+            .root_continuity_revision(&fixture.root_id)
+            .expect("live-gap continuity revision")
+            > startup_revision
+    );
     let metrics = catalog
         .load_library_change_root_queue_metrics(
             &fixture.root_id,
