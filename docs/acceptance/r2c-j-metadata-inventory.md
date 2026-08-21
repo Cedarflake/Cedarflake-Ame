@@ -1,6 +1,6 @@
 # R2c-J metadata-inventory persistence and discovery acceptance
 
-Status: audit remediation implemented; final independent re-audit pending
+Status: complete; final independent audit approved
 
 Date: 2026-08-21
 
@@ -67,7 +67,7 @@ R2c-K.
   whitespace validation;
 - `./tool/release_verify_windows.ps1`: passed, including the Windows Release build and two packaged
   bridge smoke tests;
-- independent read-only audit: pending.
+- independent read-only audit: APPROVE, with no remaining Critical, High, Medium, or Low findings.
 
 The focused fixtures use disposable directories and isolated catalogs. They do not access
 `local-primary` or `cloud-primary`, hydrate cloud content, or modify any real source media.
