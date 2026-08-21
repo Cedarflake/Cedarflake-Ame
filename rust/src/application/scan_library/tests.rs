@@ -14,7 +14,7 @@ use crate::domain::{
     LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeOrigin, LibraryChangeQueuePolicy,
     LibraryChangeScope, LibraryRootGeneration, ScanIssue,
 };
-use crate::ports::LibraryChangeQueue;
+use crate::ports::{CatalogRepository, LibraryChangeQueue};
 
 use super::*;
 
@@ -54,6 +54,64 @@ fn enqueue_root_freshness_unknown(storage: &StoragePaths, root_id: &str, observe
             LibraryChangeQueuePolicy::default(),
         )
         .expect("enqueue root freshness gap");
+}
+
+fn begin_authoritative_checkpoint(storage: &StoragePaths, request: &ScanRequest) {
+    let canonical_root = FileDiscovery::new(&request.root_path)
+        .expect("authoritative discovery")
+        .canonical_root()
+        .expect("authoritative canonical root")
+        .to_string_lossy()
+        .into_owned();
+    let root_id = stable_id("library-root-v1", &canonical_root);
+    SqliteCatalog::open(storage.catalog_path.clone())
+        .expect("authoritative catalog")
+        .begin_authoritative_scan(request, &root_id, &canonical_root)
+        .expect("begin authoritative checkpoint");
+}
+
+#[test]
+fn missing_foreground_checkpoint_resume_fails_without_creating_catalog_state_or_events() {
+    let source = tempdir().expect("source directory");
+    let storage = tempdir().expect("storage directory");
+    let storage_paths = StoragePaths {
+        catalog_path: storage.path().join("catalog.sqlite3"),
+        preview_root: storage.path().join("previews"),
+        preview_budget_bytes: 64 * 1024 * 1024,
+        settings_path: storage.path().join("settings.sqlite3"),
+    };
+    let mut events = Vec::new();
+
+    let error = resume_scan_with_storage(
+        ScanRequest {
+            scan_id: "missing-checkpoint".to_owned(),
+            root_path: source.path().to_string_lossy().into_owned(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+        |event| {
+            events.push(event);
+            true
+        },
+        storage_paths.clone(),
+    )
+    .expect_err("missing checkpoint must fail closed");
+
+    assert_eq!(error.code, "catalog_scan_resume_missing");
+    assert!(events.is_empty());
+    let connection = Connection::open(&storage_paths.catalog_path).expect("catalog database");
+    let counts: (i64, i64, i64) = connection
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM library_roots),
+               (SELECT COUNT(*) FROM scan_runs),
+               (SELECT COUNT(*) FROM scan_directory_frontier)",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .expect("catalog counts");
+    assert_eq!(counts, (0, 0, 0));
 }
 
 fn orientation_jpeg_fixture(orientation: u16, width: u32, height: u32) -> Vec<u8> {
@@ -553,6 +611,16 @@ fn assert_bidirectional_full_scan_catch_up(
     }
     drop(catch_up_catalog);
 
+    begin_authoritative_checkpoint(
+        &storage_paths,
+        &ScanRequest {
+            scan_id: source_recovery_scan_id.clone(),
+            root_path: source_root_path.clone(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+    );
     run_scan_with_storage_reason(
         ScanRequest {
             scan_id: source_recovery_scan_id,
@@ -563,7 +631,7 @@ fn assert_bidirectional_full_scan_catch_up(
         },
         |_| true,
         storage_paths.clone(),
-        FullScanReason::ResumeCheckpoint,
+        FullScanReason::ResumeAuthoritativeCheckpoint,
     )
     .expect("source-first authoritative scan");
     let source_publication = Connection::open(&storage_paths.catalog_path)
@@ -610,6 +678,16 @@ fn assert_bidirectional_full_scan_catch_up(
         SqliteCatalog::open(storage_paths.catalog_path.clone())
             .expect("repair prerelease missing handoff preview");
     }
+    begin_authoritative_checkpoint(
+        &storage_paths,
+        &ScanRequest {
+            scan_id: destination_recovery_scan_id.clone(),
+            root_path: destination_root_path.clone(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+    );
     run_scan_with_storage_reason(
         ScanRequest {
             scan_id: destination_recovery_scan_id,
@@ -620,7 +698,7 @@ fn assert_bidirectional_full_scan_catch_up(
         },
         |_| true,
         storage_paths.clone(),
-        FullScanReason::ResumeCheckpoint,
+        FullScanReason::ResumeAuthoritativeCheckpoint,
     )
     .expect("destination authoritative scan");
 
@@ -1455,7 +1533,7 @@ fn paused_scan_waits_for_explicit_resume_and_publishes_without_duplicates() {
     drop(paused_catalog);
 
     let mut resumed_events = Vec::new();
-    run_scan_with_storage(
+    resume_scan_with_storage(
         request,
         |event| {
             resumed_events.push(event);
@@ -1730,7 +1808,7 @@ fn interrupted_deep_scan_resumes_only_the_current_directory_without_duplicates()
     assert_eq!(current_directory, "01-interrupted");
 
     let mut resumed_events = Vec::new();
-    run_scan_with_storage(
+    resume_scan_with_storage(
         request,
         |event| {
             resumed_events.push(event);
@@ -2563,7 +2641,7 @@ fn missing_checkpoint_position_marks_recovery_stale() {
     drop(catalog);
 
     let mut events = Vec::new();
-    run_scan_with_storage(
+    resume_scan_with_storage(
         request,
         |event| {
             events.push(event);
@@ -2823,6 +2901,16 @@ fn authoritative_media_failures_publish_good_evidence_and_enqueue_exact_path_ret
     enqueue_root_freshness_unknown(&storage_paths, &root_id, 10_000);
     let mut events = Vec::new();
 
+    begin_authoritative_checkpoint(
+        &storage_paths,
+        &ScanRequest {
+            scan_id: "authoritative-media-recovery".to_owned(),
+            root_path: source.path().to_string_lossy().into_owned(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+    );
     run_scan_with_storage_reason(
         ScanRequest {
             scan_id: "authoritative-media-recovery".to_owned(),
@@ -2836,7 +2924,7 @@ fn authoritative_media_failures_publish_good_evidence_and_enqueue_exact_path_ret
             true
         },
         storage_paths.clone(),
-        FullScanReason::ResumeCheckpoint,
+        FullScanReason::ResumeAuthoritativeCheckpoint,
     )
     .expect("authoritative media recovery");
 
@@ -2948,6 +3036,16 @@ fn authoritative_finalization_races_publish_stable_evidence_and_retry_exact_path
     let mut removed_new = false;
     let mut events = Vec::new();
 
+    begin_authoritative_checkpoint(
+        &storage_paths,
+        &ScanRequest {
+            scan_id: "authoritative-race-recovery".to_owned(),
+            root_path: source.path().to_string_lossy().into_owned(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+    );
     run_scan_with_storage_reason(
         ScanRequest {
             scan_id: "authoritative-race-recovery".to_owned(),
@@ -2973,7 +3071,7 @@ fn authoritative_finalization_races_publish_stable_evidence_and_retry_exact_path
             true
         },
         storage_paths.clone(),
-        FullScanReason::ResumeCheckpoint,
+        FullScanReason::ResumeAuthoritativeCheckpoint,
     )
     .expect("authoritative race recovery");
 
@@ -3114,7 +3212,7 @@ fn authoritative_resume_converts_legacy_media_staleness_into_a_path_retry() {
             true
         },
         storage_paths.clone(),
-        FullScanReason::ResumeCheckpoint,
+        FullScanReason::ResumeAuthoritativeCheckpoint,
     )
     .expect("resume legacy authoritative scan");
 
@@ -3180,6 +3278,16 @@ fn authoritative_full_scan_with_new_placeholder_remains_stale_without_advancing_
     set_scan_fixture_offline_attribute(&placeholder_path, true);
     let mut events = Vec::new();
 
+    begin_authoritative_checkpoint(
+        &storage_paths,
+        &ScanRequest {
+            scan_id: "sync-recovery-placeholder-full-scan".to_owned(),
+            root_path: source.path().to_string_lossy().into_owned(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+    );
     run_scan_with_storage_reason(
         ScanRequest {
             scan_id: "sync-recovery-placeholder-full-scan".to_owned(),
@@ -3193,7 +3301,7 @@ fn authoritative_full_scan_with_new_placeholder_remains_stale_without_advancing_
             true
         },
         storage_paths.clone(),
-        FullScanReason::ResumeCheckpoint,
+        FullScanReason::ResumeAuthoritativeCheckpoint,
     )
     .expect("placeholder full scan remains recoverable");
     set_scan_fixture_offline_attribute(&placeholder_path, false);

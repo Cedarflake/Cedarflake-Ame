@@ -2,7 +2,7 @@ use crate::application::{
     cancel_scan, load_catalog, load_catalog_around_asset, load_catalog_around_location,
     load_catalog_asset_by_id, load_catalog_at_time, load_gallery_layout_manifest_chunk,
     load_gallery_timeline, load_library_folders, load_paused_scan, load_recoverable_scan,
-    pause_scan, run_scan, unregister_library_root,
+    pause_scan, resume_scan, run_scan, unregister_library_root,
 };
 use crate::domain::{
     CatalogCursor, CatalogSnapshot, GalleryLayoutManifestChunk, GalleryLayoutManifestCursor,
@@ -16,6 +16,17 @@ pub fn scan_library(request: ScanRequest, sink: StreamSink<ScanEvent>) -> Result
         request,
         |event| sink.add(event).is_ok(),
         |request, publish| run_scan(request, publish),
+    )
+}
+
+pub fn resume_library_scan(
+    request: ScanRequest,
+    sink: StreamSink<ScanEvent>,
+) -> Result<(), ScanError> {
+    scan_library_with(
+        request,
+        |event| sink.add(event).is_ok(),
+        |request, publish| resume_scan(request, publish),
     )
 }
 

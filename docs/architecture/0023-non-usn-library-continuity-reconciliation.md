@@ -163,6 +163,12 @@ decision to the user.
 Every full-scan request carries a typed reason. Production rejects any reason outside the allowlist,
 and deterministic tests prove that all automatic synchronization paths are unable to create one.
 
+Create-new and resume-existing scans use separate application, persistence, and desktop-bridge
+entrypoints. Resume is a fail-closed transaction: it requires the exact existing scan, active root,
+root generation, owner, parameters, and running or paused state. It never inserts a root, scan,
+frontier, or queue lease. A checkpoint removed by root unregistration or another terminal lifecycle
+transition cannot be recreated by a stale recovery coordinator.
+
 ### Shutdown and restart
 
 Closing the application hides the desktop window immediately. A running explicit or first-import

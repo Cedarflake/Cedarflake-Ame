@@ -12,6 +12,9 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 Stream<ScanEvent> scanLibrary({required ScanRequest request}) =>
     RustLib.instance.api.crateApiCatalogScanLibrary(request: request);
 
+Stream<ScanEvent> resumeLibraryScan({required ScanRequest request}) =>
+    RustLib.instance.api.crateApiCatalogResumeLibraryScan(request: request);
+
 Future<CatalogSnapshot> loadLibraryCatalog({
   required int maxItems,
   required GalleryQuery query,

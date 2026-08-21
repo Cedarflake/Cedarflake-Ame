@@ -449,4 +449,13 @@ class _NoopScanner implements LibraryScanner {
     required int? entryLimit,
     required int previewEdge,
   }) => const Stream.empty();
+
+  @override
+  Stream<LibraryScanUpdate> resume({
+    required String scanId,
+    required String rootPath,
+    required int? itemLimit,
+    required int? entryLimit,
+    required int previewEdge,
+  }) => const Stream.empty();
 }

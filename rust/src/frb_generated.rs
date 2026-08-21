@@ -38,7 +38,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 527042355;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -791418665;
 
 // Section: executor
 
@@ -742,6 +742,44 @@ fn wire__crate__api__catalog__remove_library_root_impl(
                 let output_ok = crate::api::catalog::remove_library_root(api_root_id)?;
                 Ok(output_ok)
             })())
+        },
+    )
+}
+fn wire__crate__api__catalog__resume_library_scan_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "resume_library_scan",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_request = <crate::domain::ScanRequest>::sse_decode(&mut deserializer);
+            let api_sink = <StreamSink<
+                crate::domain::ScanEvent,
+                flutter_rust_bridge::for_generated::SseCodec,
+            >>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let output_ok =
+                        crate::api::catalog::resume_library_scan(api_request, api_sink)?;
+                    Ok(output_ok)
+                })())
+            }
         },
     )
 }
@@ -2202,14 +2240,17 @@ fn pde_ffi_dispatcher_primary_impl(
             rust_vec_len,
             data_len,
         ),
-        21 => wire__crate__api__catalog__scan_library_impl(port, ptr, rust_vec_len, data_len),
-        22 => wire__crate__api__synchronization__start_library_synchronization_impl(
+        21 => {
+            wire__crate__api__catalog__resume_library_scan_impl(port, ptr, rust_vec_len, data_len)
+        }
+        22 => wire__crate__api__catalog__scan_library_impl(port, ptr, rust_vec_len, data_len),
+        23 => wire__crate__api__synchronization__start_library_synchronization_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        23 => wire__crate__api__synchronization__stop_library_synchronization_impl(
+        24 => wire__crate__api__synchronization__stop_library_synchronization_impl(
             port,
             ptr,
             rust_vec_len,
@@ -2248,7 +2289,7 @@ fn pde_ffi_dispatcher_sync_impl(
         16 => wire__crate__api__storage__load_storage_status_impl(ptr, rust_vec_len, data_len),
         18 => wire__crate__api__catalog__pause_library_scan_impl(ptr, rust_vec_len, data_len),
         20 => wire__crate__api__catalog__remove_library_root_impl(ptr, rust_vec_len, data_len),
-        24 => wire__crate__api__storage__update_storage_settings_impl(ptr, rust_vec_len, data_len),
+        25 => wire__crate__api__storage__update_storage_settings_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }

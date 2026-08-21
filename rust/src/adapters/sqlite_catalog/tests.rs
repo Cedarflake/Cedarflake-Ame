@@ -2214,8 +2214,21 @@ fn persists_and_validates_a_recoverable_scan_checkpoint() {
     assert_eq!(recoverable.visited_entries, 128);
     assert_eq!(recoverable.accepted_items, 40);
     assert_eq!(recoverable.issue_count, 3);
+    let create_error = restored
+        .begin_scan(&request, "unexpected-root", "C:\\Unexpected")
+        .expect_err("new scans cannot reuse a checkpoint identifier");
+    assert_eq!(create_error.code, "catalog_scan_already_exists");
+    let unexpected_root_count = restored
+        .connection
+        .query_row(
+            "SELECT COUNT(*) FROM library_roots WHERE id = 'unexpected-root'",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .expect("unexpected root count");
+    assert_eq!(unexpected_root_count, 0);
     let resumed = restored
-        .begin_scan(&request, "root-resume", raw_root_path)
+        .resume_scan(&request, "root-resume", raw_root_path)
         .expect("resume scan");
     assert_eq!(
         resumed.last_visited_relative_path,
@@ -2233,7 +2246,7 @@ fn persists_and_validates_a_recoverable_scan_checkpoint() {
     let mut changed_request = request.clone();
     changed_request.preview_edge = 256;
     let error = restored
-        .begin_scan(&changed_request, "root-resume", "C:\\Pictures")
+        .resume_scan(&changed_request, "root-resume", "C:\\Pictures")
         .expect_err("changed parameters cannot reuse a checkpoint");
     assert_eq!(error.code, "catalog_scan_resume_mismatch");
 }
@@ -3800,7 +3813,7 @@ fn recoverable_scan_queries_keep_foreground_and_authoritative_owners_separate() 
         .load_authoritative_recoverable_scan_after(Some(&second_recovery.scan_id))
         .expect("authoritative recovery end");
     let ownership_error = catalog
-        .begin_scan(
+        .resume_scan(
             &first_authoritative,
             "root-recovery-a",
             &first_authoritative.root_path,
@@ -3812,6 +3825,43 @@ fn recoverable_scan_queries_keep_foreground_and_authoritative_owners_separate() 
     assert_eq!(second_recovery.scan_id, second_authoritative.scan_id);
     assert!(end_of_page.is_none());
     assert_eq!(ownership_error.code, "catalog_scan_resume_mismatch");
+}
+
+#[test]
+fn authoritative_resume_after_root_unregister_fails_without_recreating_catalog_state() {
+    let directory = tempdir().expect("catalog directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let mut catalog = SqliteCatalog::open(path).expect("catalog");
+    let root_id = "removed-recovery-root";
+    let recovery = fixture_request("removed-recovery-scan", "C:\\RemovedRecovery");
+    catalog
+        .begin_authoritative_scan(&recovery, root_id, &recovery.root_path)
+        .expect("begin authoritative scan");
+    let loaded = catalog
+        .load_authoritative_recoverable_scan_after(None)
+        .expect("load authoritative checkpoint")
+        .expect("authoritative checkpoint");
+    assert_eq!(loaded.scan_id, recovery.scan_id);
+
+    assert!(catalog.unregister_root(root_id).expect("unregister root"));
+    let error = catalog
+        .resume_authoritative_scan(&recovery, root_id, &recovery.root_path)
+        .expect_err("removed checkpoint must fail closed");
+
+    assert_eq!(error.code, "catalog_scan_resume_missing");
+    let counts: (i64, i64, i64) = catalog
+        .connection
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM library_roots WHERE id = ?1),
+               (SELECT COUNT(*) FROM scan_runs WHERE root_id = ?1),
+               (SELECT COUNT(*) FROM scan_directory_frontier
+                  WHERE scan_id = ?2)",
+            rusqlite::params![root_id, recovery.scan_id],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .expect("catalog counts");
+    assert_eq!(counts, (0, 0, 0));
 }
 
 #[test]

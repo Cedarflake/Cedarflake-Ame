@@ -223,7 +223,20 @@ pub trait CatalogRepository {
         root_id: &str,
         root_path: &str,
     ) -> Result<ScanCheckpoint, ScanError>;
+    fn resume_scan(
+        &mut self,
+        request: &ScanRequest,
+        root_id: &str,
+        root_path: &str,
+    ) -> Result<ScanCheckpoint, ScanError>;
+    #[cfg(test)]
     fn begin_authoritative_scan(
+        &mut self,
+        request: &ScanRequest,
+        root_id: &str,
+        root_path: &str,
+    ) -> Result<ScanCheckpoint, ScanError>;
+    fn resume_authoritative_scan(
         &mut self,
         request: &ScanRequest,
         root_id: &str,

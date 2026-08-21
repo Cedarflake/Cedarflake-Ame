@@ -1417,6 +1417,19 @@ class _HeldLibraryScanner implements LibraryScanner {
     return _updates.stream;
   }
 
+  @override
+  Stream<LibraryScanUpdate> resume({
+    required String scanId,
+    required String rootPath,
+    required int? itemLimit,
+    required int? entryLimit,
+    required int previewEdge,
+  }) {
+    scanCount += 1;
+    this.scanId = scanId;
+    return _updates.stream;
+  }
+
   void add(LibraryScanUpdate update) => _updates.add(update);
 
   Future<void> close() => _updates.close();

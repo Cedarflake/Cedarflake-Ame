@@ -1,6 +1,6 @@
 # R2c-I non-USN production cutover acceptance
 
-Status: accepted on 2026-08-21
+Status: implementation verified on 2026-08-21; merge acceptance awaits final independent audit
 
 ## Scope
 
@@ -20,8 +20,13 @@ compatibility.
 - Bounded authoritative work that exceeds one page returns the structured
   `metadata_inventory_required` retry result without advancing the catalog revision or creating a
   full-scan request.
-- Full scans have an internal typed authority boundary. User-requested scans start new work; the
-  production recovery coordinator can only resume a scan that already has a durable checkpoint.
+- Full scans have separate create-new and resume-existing persistence operations and separate
+  Flutter/Rust bridge entrypoints. User-requested scans start new work with a fresh scan identifier;
+  foreground restart and production recovery can only resume an existing checkpoint whose root,
+  owner, generation, parameters, and running or paused state still match.
+- Resume fails closed before emitting `Started` and never inserts a root, scan, frontier, or queue
+  lease when the checkpoint has been removed or changed. Root unregistration racing a previously
+  loaded recovery checkpoint therefore cannot recreate the removed root.
 - Schema v19 tables, lineage, handoff evidence, catalog rows, assets, previews, and root-generation
   authority remain readable. Historical catch-up execution APIs are excluded from production while
   their persistence shapes remain available to migration and compatibility paths.
@@ -38,13 +43,18 @@ than escalating to a full scan.
   persistence without a recoverable scan;
 - production recovery coordinator: 10 passed, including bounded scheduling, fairness, cancellation,
   and checkpoint-only scan resumption;
-- scan library: 33 passed and 2 explicitly ignored, including full-scan checkpoint resumption;
+- scan library: 36 total, 34 passed and 2 explicitly ignored, including foreground and
+  authoritative checkpoint resumption plus missing-checkpoint fail-closed behavior;
+- SQLite catalog: 58 passed, including create/resume separation and unregister-before-resume
+  transaction coverage;
+- Flutter library controller: 39 passed, including typed foreground restart and paused-scan resume
+  routing without invoking the create-new bridge;
 - schema migrations: 24 passed, including v17, v18, prerelease v19, and current v19 fail-closed
   fixtures;
 - historical catch-up compatibility service: 5 passed under the test-only boundary;
 - `cargo check --all-targets --all-features`: passed without warnings;
 - `cargo clippy --all-targets --all-features -- -D warnings`: passed;
-- Rust complete suite: 419 total, 412 passed and 7 explicitly ignored.
+- Rust complete suite: 421 total, 414 passed and 7 explicitly ignored.
 
 ## Repository gates
 

@@ -1880,15 +1880,16 @@ may serve as benchmarks or fallbacks but are not automatically preferred over ma
 
 Active stage: **R2c - non-USN continuity replacement**
 
-Active slice: **R2c-J - metadata-inventory persistence and discovery**. R2c-I completed the non-USN
-production cutover under ADR 0023. R3 is paused; no R3 implementation is included in the R2c
-integration branch.
+Active slice: **R2c-I - non-USN production cutover closeout**. The implementation and local gates
+are complete under ADR 0023; merge acceptance remains pending its final independent audit. R2c-J
+starts only after this slice merges into `codex/r2c`. R3 is paused; no R3 implementation is included
+in the R2c integration branch.
 
-Planned next work: add the forward metadata-inventory run and staging migration, bounded metadata
-enumeration, active-catalog comparison, and complete-scope absence authority. Each R2c-I through
-R2c-M slice uses a dedicated branch and PR into `codex/r2c`, receives an independent read-only audit,
-and merges only after its findings close. The final `codex/r2c` PR targets `main` for one last audit
-and remains unmerged until explicitly authorized.
+Planned next work after R2c-I merge: add the forward metadata-inventory run and staging migration,
+bounded metadata enumeration, active-catalog comparison, and complete-scope absence authority.
+Each R2c-I through R2c-M slice uses a dedicated branch and PR into `codex/r2c`, receives an
+independent read-only audit, and merges only after its findings close. The final `codex/r2c` PR
+targets `main` for one last audit and remains unmerged until explicitly authorized.
 
 R2b implementation, deterministic preview-lifecycle correctness, retained-catalog interaction
 Profile, real-library catalog parity, Daily, Windows Release, and bounded source-readable preview
@@ -2154,8 +2155,10 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   The complete Daily, Windows Release, and 10,000-file synthetic gates passed on 2026-08-19, and
   final independent audit returned no Critical, High, Medium, or Low findings. It does not validate
   the ADR 0023 metadata-inventory replacement.
-- R2c-I is complete. Production no longer schedules USN or automatic full scans, schema v19 remains
-  compatible, and its focused, Daily, and Windows Release evidence is recorded in
+- R2c-I implementation and local verification are complete, while merge acceptance remains in its
+  final independent audit. Production no longer schedules USN or automatic full scans; scan resume
+  is fail-closed and cannot recreate a removed root or checkpoint; schema v19 remains compatible;
+  and focused, Daily, and Windows Release evidence is recorded in
   `docs/acceptance/r2c-i-non-usn-cutover.md`. R2c-J through R2c-M are not yet complete; no inventory
   migration, target-scale replacement performance, or final audit claim may be inferred from the
   historical R2c-G/H evidence.

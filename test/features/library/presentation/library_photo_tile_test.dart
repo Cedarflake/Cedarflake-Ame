@@ -290,4 +290,15 @@ class _FakeScanner implements LibraryScanner {
   }) {
     return const Stream.empty();
   }
+
+  @override
+  Stream<LibraryScanUpdate> resume({
+    required String scanId,
+    required String rootPath,
+    required int? itemLimit,
+    required int? entryLimit,
+    required int previewEdge,
+  }) {
+    return const Stream.empty();
+  }
 }

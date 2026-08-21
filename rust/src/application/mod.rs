@@ -39,7 +39,7 @@ pub use preview_recovery::{
     PreviewRecoveryPhase, PreviewRecoverySnapshot, preview_recovery_snapshot,
 };
 pub use scan_library::{
-    cancel_scan, load_paused_scan, load_recoverable_scan, pause_scan, run_scan,
+    cancel_scan, load_paused_scan, load_recoverable_scan, pause_scan, resume_scan, run_scan,
 };
 pub(crate) use scan_library::{resume_authoritative_scan, suspend_scan};
 pub(crate) use storage::{StoragePaths, storage_paths};

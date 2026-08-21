@@ -33,7 +33,8 @@ const CONTROL_SUSPEND: u8 = 3;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum FullScanReason {
     ExplicitUserRequest,
-    ResumeCheckpoint,
+    ResumeForegroundCheckpoint,
+    ResumeAuthoritativeCheckpoint,
 }
 
 pub fn run_scan(
@@ -49,12 +50,30 @@ pub fn run_scan(
     )
 }
 
+pub fn resume_scan(
+    request: ScanRequest,
+    publish: impl FnMut(ScanEvent) -> bool,
+) -> Result<(), ScanError> {
+    let storage = storage_paths()?;
+    run_scan_with_storage_reason(
+        request,
+        publish,
+        storage,
+        FullScanReason::ResumeForegroundCheckpoint,
+    )
+}
+
 pub(crate) fn resume_authoritative_scan(
     request: ScanRequest,
     publish: impl FnMut(ScanEvent) -> bool,
 ) -> Result<(), ScanError> {
     let storage = storage_paths()?;
-    run_scan_with_storage_reason(request, publish, storage, FullScanReason::ResumeCheckpoint)
+    run_scan_with_storage_reason(
+        request,
+        publish,
+        storage,
+        FullScanReason::ResumeAuthoritativeCheckpoint,
+    )
 }
 
 pub fn load_recoverable_scan() -> Result<Option<RecoverableScan>, ScanError> {
@@ -81,6 +100,20 @@ pub(super) fn run_scan_with_storage(
     )
 }
 
+#[cfg(test)]
+pub(super) fn resume_scan_with_storage(
+    request: ScanRequest,
+    publish: impl FnMut(ScanEvent) -> bool,
+    storage: StoragePaths,
+) -> Result<(), ScanError> {
+    run_scan_with_storage_reason(
+        request,
+        publish,
+        storage,
+        FullScanReason::ResumeForegroundCheckpoint,
+    )
+}
+
 fn run_scan_with_storage_reason(
     request: ScanRequest,
     mut publish: impl FnMut(ScanEvent) -> bool,
@@ -98,14 +131,20 @@ fn run_scan_with_storage_reason(
     let had_published_root = catalog
         .load_incremental_catalog_root(&root_id)?
         .is_some_and(|root| root.active_scan_id.is_some());
-    let is_checkpoint_resume = reason == FullScanReason::ResumeCheckpoint;
-    let mut checkpoint = if is_checkpoint_resume {
-        catalog.begin_authoritative_scan(&request, &root_id, &root_path)?
-    } else {
-        catalog.begin_scan(&request, &root_id, &root_path)?
+    let is_authoritative_recovery = reason == FullScanReason::ResumeAuthoritativeCheckpoint;
+    let mut checkpoint = match reason {
+        FullScanReason::ExplicitUserRequest => {
+            catalog.begin_scan(&request, &root_id, &root_path)?
+        }
+        FullScanReason::ResumeForegroundCheckpoint => {
+            catalog.resume_scan(&request, &root_id, &root_path)?
+        }
+        FullScanReason::ResumeAuthoritativeCheckpoint => {
+            catalog.resume_authoritative_scan(&request, &root_id, &root_path)?
+        }
     };
     let mut authoritative_retry_paths = BTreeSet::new();
-    if is_checkpoint_resume {
+    if is_authoritative_recovery {
         let issue_limit = LibraryChangeQueuePolicy::MAX_UNRESOLVED_CHANGES.saturating_add(1);
         let persisted_issues = catalog.load_scan_issues(&request.scan_id, issue_limit)?;
         let evidence_is_complete = persisted_issues.len() <= AUTHORITATIVE_RETRY_PATH_LIMIT;
@@ -506,7 +545,7 @@ fn run_scan_with_storage_reason(
                                                 )
                                             })?;
                                 }
-                                if is_checkpoint_resume {
+                                if is_authoritative_recovery {
                                     if !retain_authoritative_retry_path(
                                         &mut authoritative_retry_paths,
                                         &file.relative_path,
@@ -636,7 +675,7 @@ fn run_scan_with_storage_reason(
                 return Ok(());
             }
             let preserves_retry_evidence =
-                is_checkpoint_resume && authoritative_retry_paths.contains(&relative_path);
+                is_authoritative_recovery && authoritative_retry_paths.contains(&relative_path);
             if !preserves_retry_evidence && let Err(issue) = revalidate_file_state(&expected) {
                 issue_count += 1;
                 catalog.record_issue(&request.scan_id, &issue)?;
@@ -647,7 +686,7 @@ fn run_scan_with_storage_reason(
                     retain_detached_scan(&mut catalog, &request, &checkpoint, issue_count)?;
                     return Ok(());
                 }
-                if !is_checkpoint_resume
+                if !is_authoritative_recovery
                     || !retain_authoritative_retry_path(
                         &mut authoritative_retry_paths,
                         &relative_path,
@@ -702,7 +741,7 @@ fn run_scan_with_storage_reason(
         return Ok(());
     }
 
-    if is_checkpoint_resume {
+    if is_authoritative_recovery {
         accepted_items = catalog.preserve_authoritative_retry_evidence(
             &request.scan_id,
             &root_id,

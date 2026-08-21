@@ -73,7 +73,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => 527042355;
+  int get rustContentHash => -791418665;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -166,6 +166,10 @@ abstract class RustLibApi extends BaseApi {
   crateApiSynchronizationPollLibrarySynchronization();
 
   bool crateApiCatalogRemoveLibraryRoot({required String rootId});
+
+  Stream<ScanEvent> crateApiCatalogResumeLibraryScan({
+    required ScanRequest request,
+  });
 
   Stream<ScanEvent> crateApiCatalogScanLibrary({required ScanRequest request});
 
@@ -837,7 +841,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  Stream<ScanEvent> crateApiCatalogScanLibrary({required ScanRequest request}) {
+  Stream<ScanEvent> crateApiCatalogResumeLibraryScan({
+    required ScanRequest request,
+  }) {
     final sink = RustStreamSink<ScanEvent>();
     unawaited(
       handler.executeNormal(
@@ -850,6 +856,42 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
               generalizedFrbRustBinding,
               serializer,
               funcId: 21,
+              port: port_,
+            );
+          },
+          codec: SseCodec(
+            decodeSuccessData: sse_decode_unit,
+            decodeErrorData: sse_decode_scan_error,
+          ),
+          constMeta: kCrateApiCatalogResumeLibraryScanConstMeta,
+          argValues: [request, sink],
+          apiImpl: this,
+        ),
+      ),
+    );
+    return sink.stream;
+  }
+
+  TaskConstMeta get kCrateApiCatalogResumeLibraryScanConstMeta =>
+      const TaskConstMeta(
+        debugName: "resume_library_scan",
+        argNames: ["request", "sink"],
+      );
+
+  @override
+  Stream<ScanEvent> crateApiCatalogScanLibrary({required ScanRequest request}) {
+    final sink = RustStreamSink<ScanEvent>();
+    unawaited(
+      handler.executeNormal(
+        NormalTask(
+          callFfi: (port_) {
+            final serializer = SseSerializer(generalizedFrbRustBinding);
+            sse_encode_box_autoadd_scan_request(request, serializer);
+            sse_encode_StreamSink_scan_event_Sse(sink, serializer);
+            pdeCallFfi(
+              generalizedFrbRustBinding,
+              serializer,
+              funcId: 22,
               port: port_,
             );
           },
@@ -881,7 +923,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 22,
+            funcId: 23,
             port: port_,
           );
         },
@@ -912,7 +954,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 23,
+            funcId: 24,
             port: port_,
           );
         },
@@ -943,7 +985,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_box_autoadd_storage_settings_update(update, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 24)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 25)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_storage_status,
