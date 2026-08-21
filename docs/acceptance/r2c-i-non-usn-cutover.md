@@ -1,6 +1,6 @@
 # R2c-I non-USN production cutover acceptance
 
-Status: implementation verified on 2026-08-21; merge acceptance awaits final independent audit
+Status: accepted on 2026-08-21 after independent audit
 
 ## Scope
 
@@ -65,6 +65,7 @@ than escalating to a full scan.
 - `./tool/release_verify_windows.ps1`: passed; Windows Release built and both packaged bridge smoke
   tests passed;
 - `git diff --check`: passed.
+- final independent read-only audit: passed with no Critical, High, Medium, or Low findings.
 
 No real-library root was accessed, no cloud placeholder was hydrated, and no source media was
 modified during this acceptance run.

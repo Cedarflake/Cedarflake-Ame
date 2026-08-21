@@ -1880,10 +1880,10 @@ may serve as benchmarks or fallbacks but are not automatically preferred over ma
 
 Active stage: **R2c - non-USN continuity replacement**
 
-Active slice: **R2c-I - non-USN production cutover closeout**. The implementation and local gates
-are complete under ADR 0023; merge acceptance remains pending its final independent audit. R2c-J
-starts only after this slice merges into `codex/r2c`. R3 is paused; no R3 implementation is included
-in the R2c integration branch.
+Active slice: **R2c-I - non-USN production cutover closeout**. The implementation, local gates, and
+final independent audit are complete under ADR 0023, with no Critical, High, Medium, or Low
+findings. R2c-J starts only after this accepted slice merges into `codex/r2c`. R3 is paused; no R3
+implementation is included in the R2c integration branch.
 
 Planned next work after R2c-I merge: add the forward metadata-inventory run and staging migration,
 bounded metadata enumeration, active-catalog comparison, and complete-scope absence authority.
@@ -2155,13 +2155,13 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   The complete Daily, Windows Release, and 10,000-file synthetic gates passed on 2026-08-19, and
   final independent audit returned no Critical, High, Medium, or Low findings. It does not validate
   the ADR 0023 metadata-inventory replacement.
-- R2c-I implementation and local verification are complete, while merge acceptance remains in its
-  final independent audit. Production no longer schedules USN or automatic full scans; scan resume
-  is fail-closed and cannot recreate a removed root or checkpoint; schema v19 remains compatible;
-  and focused, Daily, and Windows Release evidence is recorded in
+- R2c-I implementation, local verification, and final independent audit are complete. Production
+  no longer schedules USN or automatic full scans; scan resume is fail-closed and cannot recreate a
+  removed root or checkpoint; schema v19 remains compatible; and focused, Daily, Windows Release,
+  and zero-finding independent-audit evidence is recorded in
   `docs/acceptance/r2c-i-non-usn-cutover.md`. R2c-J through R2c-M are not yet complete; no inventory
-  migration, target-scale replacement performance, or final audit claim may be inferred from the
-  historical R2c-G/H evidence.
+  migration, target-scale replacement performance, or final R2c integration audit claim may be
+  inferred from the historical R2c-G/H evidence.
 - The current R2b closeout working tree passed the complete local Daily gate and Windows Release
   gate on 2026-08-12, including packaged Rust-library loading and the release bridge smoke test.
   This is current-stage evidence, not a release candidate or completion of R10.
