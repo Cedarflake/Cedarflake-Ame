@@ -1513,9 +1513,9 @@ R2c-M - replacement reliability and closeout:
 R2c status: **reopened on 2026-08-21 under ADR 0023**. R2c-A through R2c-F remain accepted
 foundations. R2c-G and its USN-specific acceptance remain historical implementation and migration
 evidence. R2c-H remains a valid source-safety and baseline measurement record but does not validate
-the replacement continuity model. R2c-I through R2c-K are complete; R2c-L and R2c-M remain active
-and must complete before the R2c integration branch is ready for final review against `main` or R3
-begins.
+the replacement continuity model. R2c-I through R2c-K are complete; R2c-L is active and R2c-M
+remains pending. Both must complete before the R2c integration branch is ready for final review
+against `main` or R3 begins.
 
 #### R2c.12 Acceptance evidence
 
