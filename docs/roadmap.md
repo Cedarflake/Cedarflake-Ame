@@ -1500,8 +1500,9 @@ R2c-M - replacement reliability and closeout:
 R2c status: **reopened on 2026-08-21 under ADR 0023**. R2c-A through R2c-F remain accepted
 foundations. R2c-G and its USN-specific acceptance remain historical implementation and migration
 evidence. R2c-H remains a valid source-safety and baseline measurement record but does not validate
-the replacement continuity model. R2c-I through R2c-M are active and must complete before the R2c
-integration branch is ready for final review against `main` or R3 begins.
+the replacement continuity model. R2c-I and R2c-J are complete; R2c-K through R2c-M remain active
+and must complete before the R2c integration branch is ready for final review against `main` or R3
+begins.
 
 #### R2c.12 Acceptance evidence
 
@@ -1943,8 +1944,9 @@ or later analysis workflows.
 ### 10.1 Verified implementation snapshot
 
 This snapshot was synchronized on 2026-08-21 against the live working tree and current planning
-decision. Historical gate claims retain their recorded dates; R2c-I has current replacement
-evidence, while R2c-J through R2c-M have no completion claim until their evidence is run.
+decision. Historical gate claims retain their recorded dates; R2c-I and R2c-J have current
+replacement evidence, while R2c-K through R2c-M have no completion claim until their evidence is
+run.
 The live working tree, current schema, accepted ADRs, and fresh verification remain authoritative;
 this roadmap does not preserve drifting commit hashes or duplicate complete test transcripts.
 
