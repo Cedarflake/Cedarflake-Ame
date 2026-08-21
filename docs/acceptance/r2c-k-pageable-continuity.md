@@ -1,6 +1,6 @@
 # R2c-K pageable continuity acceptance
 
-Status: implementation and repository verification complete; independent audit pending
+Status: accepted after implementation, repository verification, and independent audit
 
 Date: 2026-08-22
 
@@ -58,12 +58,13 @@ notification policy, development diagnostics, and immediate window-close behavio
 
 ## Focused verification
 
-- metadata inventory: 20 passed, covering atomic next-epoch allocation, clock rollback, startup
+- metadata inventory: 21 passed, covering atomic next-epoch allocation, clock rollback, startup
   convergence, capacity one with a protected authority, incomplete-run continuation, newer-gap
   supersession, cancellation, durable retry exhaustion, absence preservation, placeholders,
   reparse rejection, hard-link identity claims, cleanup, and terminalization;
-- cloud-placeholder classification: two passed, covering the production reparse-plus-recall shape
-  and an existing catalog location completing inventory without removal or retry work;
+- local-file and Cloud Files classification: 12 passed, covering hydrated and unavailable Cloud
+  Files, enumeration-only recall evidence, non-Cloud reparse rejection, guarded source opening,
+  identity replacement, long paths, and source-byte preservation;
 - authoritative recovery: eight passed, including oversized subtree transition to pageable
   inventory, unchanged full-scan ownership, exact additions and removals, cancellation, placeholders,
   rename identity, and bounded policy validation;
@@ -78,8 +79,8 @@ notification policy, development diagnostics, and immediate window-close behavio
 - Windows Release: passed, including the Release build and packaged bridge smoke test 2/2.
 
 The fixtures use disposable directories and isolated catalogs. They do not access `local-primary`
-or `cloud-primary`, hydrate cloud content, or modify any real source media. Independent read-only
-audit evidence remains required before R2c-K is accepted.
+or `cloud-primary`, hydrate cloud content, or modify any real source media. Final independent
+read-only audit reported zero Critical, High, Medium, or Low findings.
 
 ## Next boundary
 
