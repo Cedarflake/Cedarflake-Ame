@@ -1478,6 +1478,15 @@ R2c-K - pageable recovery and continuity epochs:
 R2c-K is complete only when oversized and racing scopes remain bounded, no partial absence publishes,
 and every automatic failure either converges or remains durably `更新受阻` without a full scan.
 
+Implementation status: production now allocates root-generation inventory epochs atomically,
+routes startup and evidence-gap authority into metadata inventory, converts oversized subtree work
+into durable inventory continuation, and yields after one comparison or absence page. Candidate
+publication protects the exact authority lease, applies bounded backpressure without advancing a
+cursor or consuming an attempt, and rejects output after a newer watcher gap supersedes the worker.
+Focused epoch, overflow, cancellation, retry-exhaustion, capacity-one, fairness, and no-full-scan
+fixtures pass together with the complete 446-test Rust suite. Repository lint, complete Daily, and
+Windows Release gates pass. Independent audit remains required before R2c-K is accepted.
+
 R2c-L - lifecycle, presentation, and diagnostics:
 
 - map product status to `已同步`, `正在更新图库`, `更新受阻`, or `目录不可用` and remove `需要核对`;
@@ -1897,8 +1906,8 @@ findings. R2c-K now owns production continuity epochs, cold-start and watcher-ga
 durable page continuation, live-event supersession, bounded backpressure, restart semantics, and
 fairness. R3 is paused; no R3 implementation is included in the R2c integration branch.
 
-Current work: merge the accepted R2c-J persistence and discovery slice into `codex/r2c`, then
-implement the R2c-K production orchestration boundary.
+Current work: submit the verified R2c-K production orchestration boundary for independent audit,
+then merge its dedicated branch into `codex/r2c` before starting R2c-L.
 
 Each R2c-I through R2c-M slice uses a dedicated branch and PR into `codex/r2c`, receives an
 independent read-only audit, and merges only after its findings close. The final `codex/r2c` PR

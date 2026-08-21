@@ -6,6 +6,9 @@ use tempfile::{TempDir, tempdir};
 
 use crate::adapters::SqliteCatalog;
 use crate::application::StoragePaths;
+use crate::application::metadata_inventory::{
+    leased_change_requires_metadata_inventory, process_leased_metadata_inventory_change,
+};
 use crate::application::scan_library::run_scan_with_storage;
 use crate::domain::{
     IncrementalCatalogRoot, LibraryChangeIntent, LibraryChangeOrigin, LibraryChangeQueuePolicy,
@@ -134,6 +137,121 @@ fn oversized_authoritative_scope_retries_for_metadata_inventory_without_publishi
     assert_eq!(report.incremental.catalog_revision, root.catalog_revision);
     assert_eq!(metrics.retry_wait_count, 1);
     assert_eq!(only_root(&catalog).catalog_revision, root.catalog_revision);
+}
+
+#[test]
+fn oversized_subtree_continues_with_pageable_inventory_without_starting_a_scan() {
+    let source = tempdir().expect("source directory");
+    let storage = tempdir().expect("storage directory");
+    let album = source.path().join("album");
+    fs::create_dir(&album).expect("album directory");
+    write_png(&album.join("removed.png"), [10, 20, 30, 255]);
+    write_png(&album.join("kept.png"), [40, 50, 60, 255]);
+    let paths = fixture_storage(&storage);
+    publish_initial_scan(&source, paths.clone(), "initial-pageable-scan");
+    let mut catalog = SqliteCatalog::open(paths.catalog_path.clone()).expect("catalog");
+    let root = only_root(&catalog);
+    let active_scan_id = root.active_scan_id.clone();
+    fs::remove_file(album.join("removed.png")).expect("remove fixture");
+    write_png(&album.join("added.png"), [70, 80, 90, 255]);
+    enqueue_intent(
+        &mut catalog,
+        subtree_intent(&root, LibraryChangeIntentKind::Reconcile, "album", None),
+        3_000,
+    );
+
+    let bounded = process_ready_authoritative_library_change(
+        &mut catalog,
+        &root.root_id,
+        root.root_generation,
+        3_000,
+        immediate_queue_policy(),
+        AuthoritativeRecoveryPolicy {
+            max_scope_entries: 1,
+            max_scope_paths: 1,
+        },
+    )
+    .expect("bounded scope requests pageable inventory");
+    let leased = catalog
+        .lease_authoritative_library_change(
+            &root.root_id,
+            root.root_generation,
+            3_010,
+            immediate_queue_policy(),
+        )
+        .expect("lease pageable retry")
+        .expect("pageable retry");
+    assert_eq!(bounded.incremental.retried_count, 1);
+    assert!(leased_change_requires_metadata_inventory(&leased));
+    assert_eq!(
+        leased
+            .change
+            .last_failure
+            .as_ref()
+            .map(|failure| failure.code.as_str()),
+        Some("metadata_inventory_required")
+    );
+
+    let mut current_lease = Some(leased);
+    let mut inventory = None;
+    let mut completed_candidates = 0_u32;
+    for _ in 0..12 {
+        let leased = current_lease.take().unwrap_or_else(|| {
+            catalog
+                .lease_authoritative_library_change(
+                    &root.root_id,
+                    root.root_generation,
+                    3_010,
+                    immediate_queue_policy(),
+                )
+                .expect("lease inventory continuation")
+                .expect("inventory continuation")
+        });
+        let current = process_leased_metadata_inventory_change(
+            &mut catalog,
+            &root,
+            &leased,
+            3_010,
+            1,
+            immediate_queue_policy(),
+            &AtomicBool::new(false),
+        )
+        .expect("pageable subtree inventory");
+        completed_candidates = completed_candidates.saturating_add(
+            crate::application::process_ready_library_changes(
+                &mut catalog,
+                &root.root_id,
+                root.root_generation,
+                3_010,
+                immediate_queue_policy(),
+            )
+            .expect("publish pageable inventory candidates")
+            .completed_count,
+        );
+        let is_complete = current.inventory.is_complete;
+        inventory = Some(current);
+        if is_complete {
+            break;
+        }
+    }
+    let inventory = inventory.expect("inventory recovery report");
+    let refreshed = only_root(&catalog);
+
+    assert!(inventory.inventory.is_complete);
+    assert_eq!(completed_candidates, 2);
+    assert_eq!(refreshed.active_scan_id, active_scan_id);
+    assert!(
+        catalog
+            .load_incremental_location_by_relative_path(&root.root_id, "album/removed.png")
+            .expect("removed path")
+            .is_none()
+    );
+    assert!(
+        catalog
+            .load_incremental_location_by_relative_path(&root.root_id, "album/added.png")
+            .expect("added path")
+            .is_some()
+    );
 }
 
 #[test]

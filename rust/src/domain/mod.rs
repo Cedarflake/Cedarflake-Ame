@@ -40,7 +40,7 @@ pub use library_metadata_inventory::{
     MetadataInventoryComparisonUpdate, MetadataInventoryEntry, MetadataInventoryEntryKind,
     MetadataInventoryPage, MetadataInventoryPlaceholderState, MetadataInventoryReport,
     MetadataInventoryRun, MetadataInventoryRunRequest, MetadataInventoryRunStatus,
-    MetadataInventoryScope,
+    MetadataInventoryScope, MetadataInventoryStartRequest,
 };
 pub use library_synchronization::{
     LibraryRootSynchronizationStatus, LibrarySynchronizationSnapshot,

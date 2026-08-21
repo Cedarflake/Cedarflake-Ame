@@ -11,9 +11,9 @@ use crate::domain::{
     LibraryFolderCursor, LibraryFolderPage, LibraryRootGeneration, MediaInspection,
     MetadataInspection, MetadataInventoryCleanupReport, MetadataInventoryComparisonUpdate,
     MetadataInventoryEntry, MetadataInventoryPage, MetadataInventoryRun,
-    MetadataInventoryRunRequest, MetadataInventoryRunStatus, PreviewArtifact,
-    PreviewMaterialization, PreviewReclamationCandidate, RecoverableScan, ScanCheckpoint,
-    ScanError, ScanIssue, ScanRequest, StorageConfiguration,
+    MetadataInventoryRunRequest, MetadataInventoryRunStatus, MetadataInventoryStartRequest,
+    PreviewArtifact, PreviewMaterialization, PreviewReclamationCandidate, RecoverableScan,
+    ScanCheckpoint, ScanError, ScanIssue, ScanRequest, StorageConfiguration,
 };
 use crate::domain::{
     LeasedLibraryChange, LibraryChangeEnqueueReport, LibraryChangeFailure, LibraryChangeId,
@@ -83,6 +83,19 @@ pub trait LibraryChangeQueue {
         enqueued_unix_ms: i64,
         policy: LibraryChangeQueuePolicy,
     ) -> Result<LibraryChangeEnqueueReport, ScanError>;
+    fn enqueue_metadata_inventory_candidates(
+        &mut self,
+        authority: &LeasedLibraryChange,
+        intents: &[LibraryChangeIntent],
+        enqueued_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<Option<LibraryChangeEnqueueReport>, ScanError> {
+        let _ = (authority, intents, enqueued_unix_ms, policy);
+        Err(ScanError::new(
+            "metadata_inventory_candidate_enqueue_unsupported",
+            "This change queue does not support inventory authority protection",
+        ))
+    }
     #[cfg(test)]
     fn enqueue_library_change_intents_with_catch_up(
         &mut self,
@@ -226,6 +239,10 @@ pub trait MetadataInventorySource {
 }
 
 pub trait MetadataInventoryRepository {
+    fn begin_next_metadata_inventory(
+        &mut self,
+        request: &MetadataInventoryStartRequest,
+    ) -> Result<MetadataInventoryRun, ScanError>;
     fn begin_metadata_inventory(
         &mut self,
         request: &MetadataInventoryRunRequest,

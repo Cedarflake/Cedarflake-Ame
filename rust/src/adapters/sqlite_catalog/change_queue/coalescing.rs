@@ -2,7 +2,7 @@ use rusqlite::Transaction;
 
 use crate::domain::{
     LibraryChangeCatchUpEvidence, LibraryChangeEnqueueReport, LibraryChangeFailure,
-    LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeQueuePolicy,
+    LibraryChangeId, LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeQueuePolicy,
     LibraryChangeQueueStatus, LibraryChangeScope, ScanError,
 };
 
@@ -25,21 +25,36 @@ struct DegradationContext<'a> {
     evidence: Option<&'a LibraryChangeCatchUpEvidence>,
 }
 
+pub(super) struct EnqueueContext<'a> {
+    pub(super) enqueued_unix_ms: i64,
+    pub(super) catalog_revision: u64,
+    pub(super) policy: LibraryChangeQueuePolicy,
+    pub(super) evidence: Option<&'a LibraryChangeCatchUpEvidence>,
+    pub(super) protected_change_id: Option<LibraryChangeId>,
+}
+
 pub(super) fn enqueue_one(
     transaction: &Transaction<'_>,
     incoming: &LibraryChangeIntent,
-    enqueued_unix_ms: i64,
-    catalog_revision: u64,
-    policy: LibraryChangeQueuePolicy,
-    evidence: Option<&LibraryChangeCatchUpEvidence>,
+    context: EnqueueContext<'_>,
     report: &mut LibraryChangeEnqueueReport,
 ) -> Result<(), ScanError> {
+    let EnqueueContext {
+        enqueued_unix_ms,
+        catalog_revision,
+        policy,
+        evidence,
+        protected_change_id,
+    } = context;
     let active = load_active_changes(
         transaction,
         &incoming.root_id,
         incoming.root_generation,
         policy.max_unresolved_changes,
-    )?;
+    )?
+    .into_iter()
+    .filter(|change| Some(change.id) != protected_change_id)
+    .collect::<Vec<_>>();
     if has_conflicting_rename(&active, incoming) {
         return degrade_to_root(
             transaction,

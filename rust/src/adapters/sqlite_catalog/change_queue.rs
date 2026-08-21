@@ -15,12 +15,14 @@ mod coalescing;
 mod persistence;
 
 use coalescing::{
-    enqueue_one, validate_failure, validate_intent_batch, validate_policy, validate_root_id,
+    EnqueueContext, enqueue_one, validate_failure, validate_intent_batch, validate_policy,
+    validate_root_id,
 };
 use persistence::{
     GenerationDisposition, classify_lease_update, cleanup_terminal_records,
-    enforce_retry_attempt_limit, establish_root_generation, load_change, load_metrics,
-    load_root_metrics, next_retry_deadline, recover_expired_leases, root_generation_is_current,
+    enforce_retry_attempt_limit, establish_root_generation, load_active_changes, load_change,
+    load_metrics, load_root_metrics, next_retry_deadline, recover_expired_leases,
+    root_generation_is_current,
 };
 pub(super) use persistence::{activate_root_change_queue, retire_root_change_queue};
 
@@ -32,6 +34,81 @@ impl LibraryChangeQueue for SqliteCatalog {
         policy: LibraryChangeQueuePolicy,
     ) -> Result<LibraryChangeEnqueueReport, ScanError> {
         enqueue_intents(self, intents, None, enqueued_unix_ms, policy)
+    }
+
+    fn enqueue_metadata_inventory_candidates(
+        &mut self,
+        authority: &LeasedLibraryChange,
+        intents: &[LibraryChangeIntent],
+        enqueued_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<Option<LibraryChangeEnqueueReport>, ScanError> {
+        validate_policy(policy)?;
+        validate_enqueue_batch(intents)?;
+        if intents.is_empty() {
+            return Ok(Some(LibraryChangeEnqueueReport::default()));
+        }
+        if intents.iter().any(|intent| {
+            intent.root_id != authority.change.intent.root_id
+                || intent.root_generation != authority.change.intent.root_generation
+        }) {
+            return Err(ScanError::new(
+                "metadata_inventory_candidate_authority_mismatch",
+                "Metadata inventory candidates must belong to their leased authority",
+            ));
+        }
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(database_error)?;
+        cleanup_for_enqueue(&transaction, enqueued_unix_ms, policy)?;
+        if classify_lease_update(
+            &transaction,
+            authority.change.id,
+            authority.lease_generation,
+            None,
+        )? != LibraryChangeLeaseUpdateOutcome::Applied
+        {
+            transaction.commit().map_err(database_error)?;
+            return Ok(None);
+        }
+        let active_count = load_active_changes(
+            &transaction,
+            &authority.change.intent.root_id,
+            authority.change.intent.root_generation,
+            policy.max_unresolved_changes,
+        )?
+        .len();
+        let retained_work_count = active_count.saturating_sub(1);
+        if retained_work_count.saturating_add(intents.len())
+            > usize::try_from(policy.max_unresolved_changes).unwrap_or(usize::MAX)
+            || active_count.saturating_add(intents.len())
+                > usize::try_from(LibraryChangeQueuePolicy::MAX_UNRESOLVED_CHANGES)
+                    .unwrap_or(usize::MAX)
+        {
+            return Err(ScanError::new(
+                "metadata_inventory_backpressure",
+                "The durable path queue must drain before inventory comparison continues",
+            ));
+        }
+        let catalog_revision = load_catalog_revision(&transaction)?;
+        let mut report = LibraryChangeEnqueueReport::default();
+        for intent in intents {
+            enqueue_one(
+                &transaction,
+                intent,
+                EnqueueContext {
+                    enqueued_unix_ms,
+                    catalog_revision,
+                    policy,
+                    evidence: None,
+                    protected_change_id: Some(authority.change.id),
+                },
+                &mut report,
+            )?;
+        }
+        transaction.commit().map_err(database_error)?;
+        Ok(Some(report))
     }
 
     #[cfg(test)]
@@ -370,10 +447,13 @@ pub(super) fn enqueue_intents_in_transaction(
         enqueue_one(
             transaction,
             intent,
-            enqueued_unix_ms,
-            catalog_revision,
-            policy,
-            evidence,
+            EnqueueContext {
+                enqueued_unix_ms,
+                catalog_revision,
+                policy,
+                evidence,
+                protected_change_id: None,
+            },
             &mut report,
         )?;
     }

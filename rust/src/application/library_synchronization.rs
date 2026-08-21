@@ -42,6 +42,7 @@ struct RootRuntime {
     recovery_contention_started_unix_ms: Option<i64>,
     pending_plan: Option<LibraryChangePlanningResult>,
     needs_continuity_gap: bool,
+    continuity_revision: u64,
 }
 
 pub(crate) struct LibrarySynchronizationRuntime {
@@ -222,6 +223,13 @@ impl LibrarySynchronizationRuntime {
                 && runtime.needs_continuity_gap
                 && runtime.source_health == LibraryChangeSourceHealth::Healthy
             {
+                runtime.continuity_revision =
+                    runtime.continuity_revision.checked_add(1).ok_or_else(|| {
+                        ScanError::new(
+                            "library_continuity_revision_overflow",
+                            "The library continuity revision exceeded the supported range",
+                        )
+                    })?;
                 runtime.pending_plan = Some(continuity_gap_plan(&root, now_unix_ms));
                 runtime.needs_continuity_gap = false;
                 persist_pending_plan_for_poll(runtime, repository, now_unix_ms, self.queue_policy);
@@ -352,6 +360,7 @@ impl LibrarySynchronizationRuntime {
                     recovery_contention_started_unix_ms: None,
                     pending_plan: None,
                     needs_continuity_gap: true,
+                    continuity_revision: 0,
                 });
         }
     }
@@ -362,6 +371,12 @@ impl LibrarySynchronizationRuntime {
                 && runtime.availability == LibraryRootAvailability::Available
                 && runtime.source_health == LibraryChangeSourceHealth::Healthy
         })
+    }
+
+    pub(crate) fn root_continuity_revision(&self, root_id: &str) -> Option<u64> {
+        self.roots
+            .get(root_id)
+            .map(|runtime| runtime.continuity_revision)
     }
 
     pub(crate) const fn queue_policy(&self) -> LibraryChangeQueuePolicy {

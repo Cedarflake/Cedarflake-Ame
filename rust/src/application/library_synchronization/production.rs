@@ -16,7 +16,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use crate::adapters::{
     SqliteCatalog, inspect_root_availability, production_library_change_source_factory,
 };
-use crate::domain::{LibrarySynchronizationSnapshot, ScanError};
+use crate::domain::{LeasedLibraryChange, LibrarySynchronizationSnapshot, ScanError};
 #[cfg(windows)]
 use crate::domain::{RecoverableScan, ScanEvent, ScanRequest};
 
@@ -24,11 +24,14 @@ use crate::domain::{RecoverableScan, ScanEvent, ScanRequest};
 use super::LibrarySynchronizationRuntime;
 #[cfg(windows)]
 use crate::application::{
-    AuthoritativeLibraryChangeReport, process_ready_authoritative_library_change_cancellable,
-    resume_authoritative_scan, storage_paths, suspend_scan,
+    AuthoritativeLibraryChangeReport, MetadataInventoryRecoveryReport, defer_authoritative_change,
+    leased_change_requires_metadata_inventory,
+    process_leased_authoritative_library_change_cancellable,
+    process_leased_metadata_inventory_change, resume_authoritative_scan, storage_paths,
+    suspend_scan,
 };
 #[cfg(windows)]
-use crate::ports::CatalogRepository;
+use crate::ports::{CatalogRepository, IncrementalCatalogRepository, LibraryChangeQueue};
 
 #[cfg(windows)]
 static SYNCHRONIZATION_RUNTIME: OnceLock<Mutex<Option<ProductionSynchronization>>> =
@@ -37,6 +40,9 @@ static SYNCHRONIZATION_RUNTIME: OnceLock<Mutex<Option<ProductionSynchronization>
 const RECOVERY_RETRY_INITIAL_MILLIS: i64 = 1_000;
 #[cfg(windows)]
 const RECOVERY_RETRY_MAXIMUM_MILLIS: i64 = 5 * 60 * 1_000;
+#[cfg(windows)]
+// The absolute 4096th queue slot remains the inventory authority while one candidate page drains.
+const METADATA_INVENTORY_WORK_PAGE_ENTRIES: u32 = 4_095;
 #[cfg(windows)]
 struct ProductionSynchronization {
     runtime: LibrarySynchronizationRuntime,
@@ -59,13 +65,15 @@ struct RecoveryTask {
 
 #[cfg(windows)]
 enum RecoveryTaskKind {
-    Authoritative,
+    BoundedAuthoritative { continuity_revision: u64 },
+    MetadataInventory { continuity_revision: u64 },
     FullScan { scan_id: String },
 }
 
 #[cfg(windows)]
 enum RecoveryTaskOutcome {
     Authoritative(AuthoritativeLibraryChangeReport),
+    MetadataInventory(MetadataInventoryRecoveryReport),
     FullScan,
 }
 
@@ -171,6 +179,7 @@ fn poll_runtime(
         now_unix_ms,
         |root_path| inspect_root_availability(root_path).availability,
     )?;
+    runtime.cancel_stale_automatic_recovery();
     snapshot.applied_mutation_count = snapshot
         .applied_mutation_count
         .checked_add(recovered_mutation_count)
@@ -196,7 +205,45 @@ fn poll_runtime(
         if let Some((root_id, root_generation)) =
             ready_authoritative_root(runtime, &catalog, &snapshot, now_unix_ms)?
         {
-            runtime.start_authoritative_recovery(root_id, root_generation, now_unix_ms)?;
+            let continuity_revision = runtime
+                .runtime
+                .root_continuity_revision(&root_id)
+                .ok_or_else(|| {
+                    ScanError::new(
+                        "library_continuity_root_missing",
+                        "The selected continuity root is no longer active",
+                    )
+                })?;
+            if let Some(leased) = catalog.lease_authoritative_library_change(
+                &root_id,
+                root_generation,
+                now_unix_ms,
+                runtime.runtime.queue_policy(),
+            )? {
+                let leased_for_defer = leased.clone();
+                if let Err(start_error) = runtime.start_automatic_recovery(
+                    root_id,
+                    root_generation,
+                    continuity_revision,
+                    leased,
+                    now_unix_ms,
+                ) {
+                    if let Err(defer_error) = catalog.defer_library_change(
+                        leased_for_defer.change.id,
+                        leased_for_defer.lease_generation,
+                        now_unix_ms,
+                    ) {
+                        return Err(ScanError::new(
+                            "authoritative_recovery_worker_start_cleanup_failed",
+                            format!(
+                                "{}; leased work could not be deferred: {}",
+                                start_error.message, defer_error.message
+                            ),
+                        ));
+                    }
+                    return Err(start_error);
+                }
+            }
         }
     }
     project_active_recovery_as_updating(runtime.recovery.as_ref(), &mut snapshot);
@@ -333,7 +380,8 @@ impl ProductionSynchronization {
         let root_id = task.root_id.clone();
         #[cfg(debug_assertions)]
         let recovery_kind = match &task.kind {
-            RecoveryTaskKind::Authoritative => "bounded-authoritative",
+            RecoveryTaskKind::BoundedAuthoritative { .. } => "bounded-authoritative",
+            RecoveryTaskKind::MetadataInventory { .. } => "metadata-inventory",
             RecoveryTaskKind::FullScan { .. } => "full-scan",
         };
         if let Some(worker) = task.worker.take() {
@@ -346,6 +394,18 @@ impl ProductionSynchronization {
                 eprintln!(
                     "[Ame sync] recovery finished kind={recovery_kind} root={root_id} result=ok mutations={}",
                     report.incremental.applied_mutation_count
+                );
+                self.runtime.acknowledge_recovery_success(&root_id);
+                self.recovery_retries.remove(&root_id);
+                Ok(report.incremental.applied_mutation_count)
+            }
+            Ok(RecoveryTaskOutcome::MetadataInventory(report)) => {
+                #[cfg(debug_assertions)]
+                eprintln!(
+                    "[Ame sync] recovery finished kind={recovery_kind} root={root_id} result=ok staged={} candidates={} mutations={}",
+                    report.inventory.staged_entry_count,
+                    report.inventory.candidate_count,
+                    report.incremental.applied_mutation_count,
                 );
                 self.runtime.acknowledge_recovery_success(&root_id);
                 self.recovery_retries.remove(&root_id);
@@ -389,17 +449,37 @@ impl ProductionSynchronization {
         )
     }
 
-    fn start_authoritative_recovery(
+    fn start_automatic_recovery(
         &mut self,
         root_id: String,
         root_generation: crate::domain::LibraryRootGeneration,
+        continuity_revision: u64,
+        leased: LeasedLibraryChange,
         now_unix_ms: i64,
     ) -> Result<(), ScanError> {
         if self.recovery.is_some() {
-            return Ok(());
+            return Err(ScanError::new(
+                "authoritative_recovery_already_running",
+                "Another authoritative recovery already owns the worker slot",
+            ));
         }
+        let is_inventory = leased_change_requires_metadata_inventory(&leased);
+        let task_kind = if is_inventory {
+            RecoveryTaskKind::MetadataInventory {
+                continuity_revision,
+            }
+        } else {
+            RecoveryTaskKind::BoundedAuthoritative {
+                continuity_revision,
+            }
+        };
+        let recovery_kind = if is_inventory {
+            "metadata-inventory"
+        } else {
+            "bounded-authoritative"
+        };
         #[cfg(debug_assertions)]
-        eprintln!("[Ame sync] recovery started kind=bounded-authoritative root={root_id}");
+        eprintln!("[Ame sync] recovery started kind={recovery_kind} root={root_id}");
         let catalog_path = storage_paths()?.catalog_path;
         let queue_policy = self.runtime.queue_policy();
         let recovery_policy = self.runtime.recovery_policy();
@@ -408,31 +488,76 @@ impl ProductionSynchronization {
         let worker_root_id = root_id.clone();
         let (sender, receiver) = mpsc::sync_channel(1);
         let worker = thread::Builder::new()
-            .name("ame-bounded-authoritative-recovery".to_owned())
+            .name(format!("ame-{recovery_kind}-recovery"))
             .spawn(move || {
                 let result = SqliteCatalog::open(catalog_path).and_then(|mut catalog| {
-                    process_ready_authoritative_library_change_cancellable(
-                        &mut catalog,
-                        &worker_root_id,
-                        root_generation,
-                        now_unix_ms,
-                        queue_policy,
-                        recovery_policy,
-                        &worker_cancelled,
-                    )
-                    .map(RecoveryTaskOutcome::Authoritative)
+                    let Some(root) = catalog.load_incremental_catalog_root(&worker_root_id)? else {
+                        return Ok(if is_inventory {
+                            RecoveryTaskOutcome::MetadataInventory(
+                                MetadataInventoryRecoveryReport::default(),
+                            )
+                        } else {
+                            RecoveryTaskOutcome::Authoritative(
+                                AuthoritativeLibraryChangeReport::default(),
+                            )
+                        });
+                    };
+                    if root.root_generation != root_generation
+                        || root.active_scan_id.is_none()
+                        || root.has_running_scan
+                    {
+                        let deferred = defer_authoritative_change(
+                            &mut catalog,
+                            &leased,
+                            root.catalog_revision,
+                            now_unix_ms,
+                        )?;
+                        return Ok(if is_inventory {
+                            RecoveryTaskOutcome::MetadataInventory(
+                                MetadataInventoryRecoveryReport {
+                                    incremental: deferred.incremental,
+                                    ..MetadataInventoryRecoveryReport::default()
+                                },
+                            )
+                        } else {
+                            RecoveryTaskOutcome::Authoritative(deferred)
+                        });
+                    }
+                    if is_inventory {
+                        process_leased_metadata_inventory_change(
+                            &mut catalog,
+                            &root,
+                            &leased,
+                            now_unix_ms,
+                            METADATA_INVENTORY_WORK_PAGE_ENTRIES,
+                            queue_policy,
+                            &worker_cancelled,
+                        )
+                        .map(RecoveryTaskOutcome::MetadataInventory)
+                    } else {
+                        process_leased_authoritative_library_change_cancellable(
+                            &mut catalog,
+                            &root,
+                            &leased,
+                            now_unix_ms,
+                            queue_policy,
+                            recovery_policy,
+                            &worker_cancelled,
+                        )
+                        .map(RecoveryTaskOutcome::Authoritative)
+                    }
                 });
                 let _ = sender.send(result);
             })
             .map_err(|error| {
                 ScanError::new(
                     "authoritative_recovery_worker_start_failed",
-                    format!("Could not start bounded authoritative recovery: {error}"),
+                    format!("Could not start {recovery_kind} recovery: {error}"),
                 )
             })?;
         self.recovery = Some(RecoveryTask {
             root_id,
-            kind: RecoveryTaskKind::Authoritative,
+            kind: task_kind,
             cancelled,
             receiver,
             worker: Some(worker),
@@ -477,6 +602,31 @@ impl ProductionSynchronization {
         Ok(())
     }
 
+    fn cancel_stale_automatic_recovery(&mut self) {
+        let Some(task) = self.recovery.as_ref() else {
+            return;
+        };
+        let expected_revision = match task.kind {
+            RecoveryTaskKind::BoundedAuthoritative {
+                continuity_revision,
+            }
+            | RecoveryTaskKind::MetadataInventory {
+                continuity_revision,
+            } => continuity_revision,
+            RecoveryTaskKind::FullScan { .. } => return,
+        };
+        let is_current = self
+            .runtime
+            .root_continuity_revision(&task.root_id)
+            .is_some_and(|revision| revision == expected_revision)
+            && self
+                .runtime
+                .root_is_ready_for_authoritative_recovery(&task.root_id);
+        if !is_current {
+            task.cancelled.store(true, Ordering::Release);
+        }
+    }
+
     fn stop(&mut self) -> Result<(), ScanError> {
         self.stop_recovery()?;
         self.runtime.stop()
@@ -494,7 +644,8 @@ impl ProductionSynchronization {
             RecoveryTaskKind::FullScan { scan_id } => {
                 let _ = suspend_scan(scan_id);
             }
-            RecoveryTaskKind::Authoritative => {
+            RecoveryTaskKind::BoundedAuthoritative { .. }
+            | RecoveryTaskKind::MetadataInventory { .. } => {
                 task.cancelled.store(true, Ordering::Release);
             }
         }
@@ -688,6 +839,55 @@ mod tests {
     #[cfg(windows)]
     use crate::ports::LibraryChangeQueue;
 
+    #[cfg(windows)]
+    #[derive(Clone, Copy)]
+    struct HealthyFactory;
+
+    #[cfg(windows)]
+    struct HealthySource;
+
+    #[cfg(windows)]
+    impl crate::ports::LibraryChangeSourceFactory for HealthyFactory {
+        type Source = HealthySource;
+
+        fn start(
+            &self,
+            _request: &crate::ports::LibraryChangeSourceRequest,
+        ) -> Result<Self::Source, crate::domain::LibraryChangeSourceError> {
+            Ok(HealthySource)
+        }
+    }
+
+    #[cfg(windows)]
+    impl crate::ports::LibraryChangeSource for HealthySource {
+        fn health(&self) -> crate::domain::LibraryChangeSourceHealth {
+            crate::domain::LibraryChangeSourceHealth::Healthy
+        }
+
+        fn drain(
+            &mut self,
+            _max_observations: usize,
+        ) -> Result<crate::domain::LibraryChangeSourceBatch, crate::domain::LibraryChangeSourceError>
+        {
+            Ok(crate::domain::LibraryChangeSourceBatch {
+                observations: Vec::new(),
+                health: crate::domain::LibraryChangeSourceHealth::Healthy,
+                dropped_observation_count: 0,
+                ignored_callback_count: 0,
+                last_issue_code: None,
+            })
+        }
+
+        fn stop(
+            &mut self,
+        ) -> Result<
+            crate::domain::LibraryChangeSourceStopReport,
+            crate::domain::LibraryChangeSourceError,
+        > {
+            Ok(crate::domain::LibraryChangeSourceStopReport::default())
+        }
+    }
+
     #[test]
     fn current_time_is_representable() {
         assert!(now_unix_ms().expect("current time") > 0);
@@ -699,7 +899,9 @@ mod tests {
         let (_sender, receiver) = mpsc::sync_channel(1);
         let recovery = RecoveryTask {
             root_id: "root-a".to_owned(),
-            kind: RecoveryTaskKind::Authoritative,
+            kind: RecoveryTaskKind::BoundedAuthoritative {
+                continuity_revision: 0,
+            },
             cancelled: Arc::new(AtomicBool::new(false)),
             receiver,
             worker: None,
@@ -741,7 +943,9 @@ mod tests {
         let (_sender, receiver) = mpsc::sync_channel(1);
         let recovery = RecoveryTask {
             root_id: "root-a".to_owned(),
-            kind: RecoveryTaskKind::Authoritative,
+            kind: RecoveryTaskKind::BoundedAuthoritative {
+                continuity_revision: 0,
+            },
             cancelled: Arc::new(AtomicBool::new(false)),
             receiver,
             worker: None,
@@ -774,6 +978,88 @@ mod tests {
         assert_eq!(
             snapshot.roots[0].last_issue_code.as_deref(),
             Some("catalog_database_error")
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn newer_continuity_revision_cancels_an_older_automatic_worker() {
+        let directory = tempfile::tempdir().expect("catalog directory");
+        let source = tempfile::tempdir().expect("source directory");
+        let root_path = source.path().to_string_lossy().into_owned();
+        let root_id = "root-a";
+        let mut catalog =
+            SqliteCatalog::open(directory.path().join("catalog.sqlite3")).expect("catalog");
+        catalog
+            .begin_scan(
+                &ScanRequest {
+                    scan_id: "scan-a".to_owned(),
+                    root_path: root_path.clone(),
+                    max_items: None,
+                    max_entries: None,
+                    preview_edge: 512,
+                },
+                root_id,
+                &root_path,
+            )
+            .expect("begin root scan");
+        catalog
+            .publish_scan("scan-a", root_id, 0, 0)
+            .expect("publish root scan");
+        let mut production = ProductionSynchronization {
+            runtime: LibrarySynchronizationRuntime::new_erased(
+                crate::ports::erase_library_change_source_factory(HealthyFactory),
+            ),
+            recovery: None,
+            recovery_retries: BTreeMap::new(),
+            recoverable_scan_cursor: None,
+            authoritative_root_cursor: None,
+            legacy_audits_retired: false,
+            is_stopping: false,
+        };
+        production
+            .runtime
+            .poll_without_authoritative_recovery(&mut catalog, 1_000, |_| {
+                crate::domain::LibraryRootAvailability::Available
+            })
+            .expect("establish first continuity epoch");
+        let first_revision = production
+            .runtime
+            .root_continuity_revision(root_id)
+            .expect("first continuity revision");
+        let cancelled = Arc::new(AtomicBool::new(false));
+        let (_sender, receiver) = mpsc::sync_channel(1);
+        production.recovery = Some(RecoveryTask {
+            root_id: root_id.to_owned(),
+            kind: RecoveryTaskKind::MetadataInventory {
+                continuity_revision: first_revision,
+            },
+            cancelled: Arc::clone(&cancelled),
+            receiver,
+            worker: None,
+        });
+        production
+            .runtime
+            .roots
+            .get_mut(root_id)
+            .expect("runtime root")
+            .needs_continuity_gap = true;
+        production
+            .runtime
+            .poll_without_authoritative_recovery(&mut catalog, 2_000, |_| {
+                crate::domain::LibraryRootAvailability::Available
+            })
+            .expect("establish newer continuity epoch");
+
+        production.cancel_stale_automatic_recovery();
+
+        assert!(cancelled.load(Ordering::Acquire));
+        assert!(
+            production
+                .runtime
+                .root_continuity_revision(root_id)
+                .expect("newer continuity revision")
+                > first_revision
         );
     }
 
@@ -833,7 +1119,9 @@ mod tests {
             .expect("bounded recovery result");
         production.recovery = Some(RecoveryTask {
             root_id: "root-a".to_owned(),
-            kind: RecoveryTaskKind::Authoritative,
+            kind: RecoveryTaskKind::BoundedAuthoritative {
+                continuity_revision: 0,
+            },
             cancelled: Arc::new(AtomicBool::new(false)),
             receiver,
             worker: None,
@@ -1012,7 +1300,9 @@ mod tests {
             runtime: LibrarySynchronizationRuntime::new_erased(factory),
             recovery: Some(RecoveryTask {
                 root_id: "root-a".to_owned(),
-                kind: RecoveryTaskKind::Authoritative,
+                kind: RecoveryTaskKind::BoundedAuthoritative {
+                    continuity_revision: 0,
+                },
                 cancelled: Arc::clone(&cancelled),
                 receiver,
                 worker: Some(worker),
@@ -1086,7 +1376,9 @@ mod tests {
             runtime: LibrarySynchronizationRuntime::new_erased(factory),
             recovery: Some(RecoveryTask {
                 root_id: "root-a".to_owned(),
-                kind: RecoveryTaskKind::Authoritative,
+                kind: RecoveryTaskKind::BoundedAuthoritative {
+                    continuity_revision: 0,
+                },
                 cancelled: Arc::clone(&cancelled),
                 receiver,
                 worker: Some(worker),

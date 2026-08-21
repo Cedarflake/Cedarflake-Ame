@@ -162,6 +162,16 @@ they are no longer escalation thresholds for a full scan. Work beyond either cei
 pageable metadata-inventory run with a durable scope and cursor. Pages may discover candidates, but
 scope-wide absence publishes only after the complete run succeeds.
 
+The durable queue keeps the inventory's leased root or subtree row as a protected authority while
+one comparison or absence page is admitted. Candidate enqueue first verifies the exact lease and
+then coalesces the page without allowing that authority row to absorb its own output. The authority
+row is a control reservation rather than retained candidate work; the absolute 4,096-row bound is
+still enforced, so production pages contain at most 4,095 candidates. If existing path work leaves
+less capacity, the inventory cursor does not advance, the lease is deferred without consuming an
+attempt, and another root may run while the path queue drains. A newer live gap supersedes the
+protected lease, invalidates further output from the older worker, and atomically starts the next
+inventory epoch instead of trusting staged evidence from the interrupted boundary.
+
 Repeated transport, filesystem, catalog, or inventory failure preserves the last trustworthy
 catalog and durable work. It becomes a blocked root condition with a structured issue code. It does
 not silently claim freshness and does not start a full scan.
