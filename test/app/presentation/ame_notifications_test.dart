@@ -135,18 +135,52 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     expect(dismissed, notification.id);
   });
+
+  testWidgets("notification details calculate elapsed time when opened", (
+    tester,
+  ) async {
+    final notification = _notification(
+      isUnread: false,
+      elapsedStartedAt: DateTime.now().subtract(
+        const Duration(minutes: 2, seconds: 3),
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildAmeTheme(),
+        home: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => showAmeNotificationDetails(
+              context,
+              notification,
+              onAction: (_) {},
+            ),
+            child: const Text("打开详情"),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text("打开详情"));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining("已持续 2 分"), findsOneWidget);
+  });
 }
 
 AmeNotificationEntry _notification({
   required bool isUnread,
   bool isPersistent = false,
   String? actionLabel,
+  DateTime? elapsedStartedAt,
 }) {
   return AmeNotificationEntry(
     id: "notification-1",
     title: "“Documents”需要重新核对",
     message: "检测到无法确认的文件变化，Ame 正在自动重新核对该目录。",
     detail: "3 项等待重试",
+    elapsedStartedAt: elapsedStartedAt,
     sourcePath: r"C:\Users\Example\Documents",
     technicalCode: "watcher_failed",
     actionId: actionLabel == null ? null : "library.reconcileRoot",

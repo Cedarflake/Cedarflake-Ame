@@ -37,8 +37,9 @@ pub use load_catalog::{
 };
 pub use metadata_inventory::run_local_metadata_inventory;
 pub(crate) use metadata_inventory::{
-    MetadataInventoryRecoveryReport, leased_change_requires_metadata_inventory,
-    process_leased_metadata_inventory_change,
+    MetadataInventoryProgressPhase, MetadataInventoryRecoveryReport,
+    MetadataInventoryWorkerControl, leased_change_requires_metadata_inventory,
+    process_leased_metadata_inventory_change_with_progress,
 };
 pub use preview::materialize_preview;
 pub(crate) use preview_cleanup::{acquire_preview_generation, acquire_preview_reclamation};

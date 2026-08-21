@@ -11,6 +11,20 @@ pub struct LibrarySynchronizationSnapshot {
     pub roots: Vec<LibraryRootSynchronizationStatus>,
 }
 
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+pub enum LibrarySynchronizationPhase {
+    WatcherStartup,
+    InventoryEnumeration,
+    InventoryComparison,
+    QueuePublication,
+    RetryWait,
+    Reconciliation,
+    FullScan,
+    Blocked,
+    Synchronized,
+    Unavailable,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LibraryRootSynchronizationStatus {
     pub root_id: String,
@@ -18,10 +32,12 @@ pub struct LibraryRootSynchronizationStatus {
     pub availability: LibraryRootAvailability,
     pub freshness: CatalogFreshnessState,
     pub freshness_cause: CatalogFreshnessCause,
+    pub phase: LibrarySynchronizationPhase,
     pub source_health: LibraryChangeSourceHealth,
     pub queue_health: LibraryChangeQueueHealth,
     pub pending_change_count: u64,
     pub retry_wait_count: u64,
     pub freshness_unknown_count: u64,
+    pub recovery_blocked: bool,
     pub last_issue_code: Option<String>,
 }

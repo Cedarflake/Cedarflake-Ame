@@ -27,6 +27,38 @@ pub(crate) struct MetadataInventoryRecoveryReport {
     pub inventory: MetadataInventoryReport,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum MetadataInventoryProgressPhase {
+    Enumeration,
+    Comparison,
+    QueuePublication,
+}
+
+#[derive(Clone, Copy)]
+pub(crate) struct MetadataInventoryWorkerControl<'a> {
+    cancellation: &'a AtomicBool,
+    progress: Option<&'a dyn Fn(MetadataInventoryProgressPhase)>,
+}
+
+impl<'a> MetadataInventoryWorkerControl<'a> {
+    pub(crate) const fn with_progress(
+        cancellation: &'a AtomicBool,
+        progress: &'a dyn Fn(MetadataInventoryProgressPhase),
+    ) -> Self {
+        Self {
+            cancellation,
+            progress: Some(progress),
+        }
+    }
+
+    const fn without_progress(cancellation: &'a AtomicBool) -> Self {
+        Self {
+            cancellation,
+            progress: None,
+        }
+    }
+}
+
 #[derive(Clone, Copy)]
 struct InventoryExecution<'a> {
     authority: Option<&'a LeasedLibraryChange>,
@@ -34,7 +66,7 @@ struct InventoryExecution<'a> {
     observed_unix_ms: i64,
     page_limit: u32,
     queue_policy: LibraryChangeQueuePolicy,
-    cancellation: &'a AtomicBool,
+    control: MetadataInventoryWorkerControl<'a>,
 }
 
 pub fn run_local_metadata_inventory<Repository>(
@@ -74,14 +106,14 @@ where
     )
 }
 
-pub(crate) fn run_next_local_metadata_inventory<Repository>(
+fn run_next_local_metadata_inventory<Repository>(
     repository: &mut Repository,
     request: &MetadataInventoryStartRequest,
     authority: &LeasedLibraryChange,
     observed_unix_ms: i64,
     page_limit: u32,
     queue_policy: LibraryChangeQueuePolicy,
-    cancellation: &AtomicBool,
+    control: MetadataInventoryWorkerControl<'_>,
 ) -> Result<MetadataInventoryReport, ScanError>
 where
     Repository: MetadataInventoryRepository + IncrementalCatalogRepository + LibraryChangeQueue,
@@ -114,7 +146,7 @@ where
             observed_unix_ms,
             page_limit,
             queue_policy,
-            cancellation,
+            control,
         },
     )
 }
@@ -132,6 +164,7 @@ pub(crate) fn leased_change_requires_metadata_inventory(leased: &LeasedLibraryCh
             .is_some_and(|failure| failure.code == "metadata_inventory_required")
 }
 
+#[cfg(test)]
 pub(crate) fn process_leased_metadata_inventory_change<Repository>(
     repository: &mut Repository,
     root: &IncrementalCatalogRoot,
@@ -140,6 +173,52 @@ pub(crate) fn process_leased_metadata_inventory_change<Repository>(
     page_limit: u32,
     queue_policy: LibraryChangeQueuePolicy,
     cancellation: &AtomicBool,
+) -> Result<MetadataInventoryRecoveryReport, ScanError>
+where
+    Repository: MetadataInventoryRepository + IncrementalCatalogRepository + LibraryChangeQueue,
+{
+    process_leased_metadata_inventory_change_internal(
+        repository,
+        root,
+        leased,
+        observed_unix_ms,
+        page_limit,
+        queue_policy,
+        MetadataInventoryWorkerControl::without_progress(cancellation),
+    )
+}
+
+pub(crate) fn process_leased_metadata_inventory_change_with_progress<Repository>(
+    repository: &mut Repository,
+    root: &IncrementalCatalogRoot,
+    leased: &LeasedLibraryChange,
+    observed_unix_ms: i64,
+    page_limit: u32,
+    queue_policy: LibraryChangeQueuePolicy,
+    control: MetadataInventoryWorkerControl<'_>,
+) -> Result<MetadataInventoryRecoveryReport, ScanError>
+where
+    Repository: MetadataInventoryRepository + IncrementalCatalogRepository + LibraryChangeQueue,
+{
+    process_leased_metadata_inventory_change_internal(
+        repository,
+        root,
+        leased,
+        observed_unix_ms,
+        page_limit,
+        queue_policy,
+        control,
+    )
+}
+
+fn process_leased_metadata_inventory_change_internal<Repository>(
+    repository: &mut Repository,
+    root: &IncrementalCatalogRoot,
+    leased: &LeasedLibraryChange,
+    observed_unix_ms: i64,
+    page_limit: u32,
+    queue_policy: LibraryChangeQueuePolicy,
+    control: MetadataInventoryWorkerControl<'_>,
 ) -> Result<MetadataInventoryRecoveryReport, ScanError>
 where
     Repository: MetadataInventoryRepository + IncrementalCatalogRepository + LibraryChangeQueue,
@@ -166,7 +245,7 @@ where
         observed_unix_ms,
         page_limit,
         queue_policy,
-        cancellation,
+        control,
     ) {
         Ok(report) => report,
         Err(error) => {
@@ -187,7 +266,7 @@ where
             });
         }
     };
-    if inventory.is_cancelled || cancellation.load(Ordering::Acquire) {
+    if inventory.is_cancelled || control.cancellation.load(Ordering::Acquire) {
         let authoritative = super::defer_authoritative_change(
             repository,
             leased,
@@ -325,7 +404,7 @@ where
             observed_unix_ms,
             page_limit,
             queue_policy,
-            cancellation,
+            control: MetadataInventoryWorkerControl::without_progress(cancellation),
         },
     )
 }
@@ -389,8 +468,10 @@ where
         observed_unix_ms,
         page_limit,
         queue_policy,
-        cancellation,
+        control,
     } = execution;
+    let cancellation = control.cancellation;
+    let progress = control.progress;
     let mut report = MetadataInventoryReport::default();
     let persisted = repository
         .load_metadata_inventory_run(&request.run_id)?
@@ -403,6 +484,7 @@ where
     report.staged_entry_count = persisted.staged_entry_count;
     report.candidate_count = persisted.candidate_count;
     if !persisted.enumeration_complete {
+        report_inventory_progress(progress, MetadataInventoryProgressPhase::Enumeration);
         loop {
             if cancellation.load(Ordering::Relaxed) {
                 terminate_cancelled(repository, &request.run_id, observed_unix_ms)?;
@@ -425,11 +507,13 @@ where
                 observed_unix_ms,
             )?;
             report.staged_entry_count = run.staged_entry_count;
+            report_inventory_progress(progress, MetadataInventoryProgressPhase::Enumeration);
             if is_complete {
                 break;
             }
         }
     }
+    report_inventory_progress(progress, MetadataInventoryProgressPhase::Comparison);
     if cancellation.load(Ordering::Relaxed) {
         terminate_cancelled(repository, &request.run_id, observed_unix_ms)?;
         report.is_cancelled = true;
@@ -490,6 +574,7 @@ where
                 }
             }
         }
+        report_inventory_progress(progress, MetadataInventoryProgressPhase::QueuePublication);
         match enqueue_candidates(
             repository,
             authority,
@@ -520,6 +605,7 @@ where
             observed_unix_ms,
         )?;
         report.candidate_count = run.candidate_count;
+        report_inventory_progress(progress, MetadataInventoryProgressPhase::Comparison);
         if yield_after_work_page {
             return Ok(report);
         }
@@ -556,6 +642,7 @@ where
                 )
             })?;
         }
+        report_inventory_progress(progress, MetadataInventoryProgressPhase::QueuePublication);
         match enqueue_candidates(
             repository,
             authority,
@@ -601,6 +688,7 @@ where
         )?;
         report.candidate_count = run.candidate_count;
         absence_cursor = Some(next_cursor);
+        report_inventory_progress(progress, MetadataInventoryProgressPhase::Comparison);
         if yield_after_work_page {
             return Ok(report);
         }
@@ -611,6 +699,15 @@ where
     report.candidate_count = run.candidate_count;
     report.is_complete = true;
     Ok(report)
+}
+
+fn report_inventory_progress(
+    progress: Option<&dyn Fn(MetadataInventoryProgressPhase)>,
+    phase: MetadataInventoryProgressPhase,
+) {
+    if let Some(progress) = progress {
+        progress(phase);
+    }
 }
 
 fn compare_entry<Repository>(

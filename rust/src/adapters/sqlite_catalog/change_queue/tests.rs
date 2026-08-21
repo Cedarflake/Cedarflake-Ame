@@ -1559,6 +1559,10 @@ fn expired_final_authoritative_attempt_is_normalized_by_a_new_connection_after_o
     assert_eq!(metrics.leased_count, 0);
     assert_eq!(metrics.retry_wait_count, 1);
     assert_eq!(metrics.exhausted_retry_count, 1);
+    assert_eq!(
+        metrics.latest_exhausted_failure_code.as_deref(),
+        Some("change_lease_expired")
+    );
 }
 
 #[test]

@@ -26,7 +26,7 @@ The controlled fixtures prove:
 | Path publication | Drain live path evidence through the durable queue and advance the catalog revision |
 | Unsupported scope | Retain subtree, root, and freshness-gap work for R2c-F without consuming retries |
 | Unavailable root | Preserve cached catalog state, avoid observer startup, and show `目录不可用` |
-| Degraded source | Preserve the last trustworthy revision and show `需要核对` |
+| Degraded source | Preserve the last trustworthy revision and show `更新受阻` |
 | Root metrics | Report bounded queue counts for only the requested root generation |
 | Stable anchor | Prefer the requested active location, follow a rename, and fall back near the prior ordinal after removal |
 | Background refresh | Keep old assets visible until the newer revision and timeline publish together |

@@ -15,11 +15,13 @@ class LibraryRootSynchronizationStatus {
   final LibraryRootAvailability availability;
   final CatalogFreshnessState freshness;
   final CatalogFreshnessCause freshnessCause;
+  final LibrarySynchronizationPhase phase;
   final LibraryChangeSourceHealth sourceHealth;
   final LibraryChangeQueueHealth queueHealth;
   final BigInt pendingChangeCount;
   final BigInt retryWaitCount;
   final BigInt freshnessUnknownCount;
+  final bool recoveryBlocked;
   final String? lastIssueCode;
 
   const LibraryRootSynchronizationStatus({
@@ -28,11 +30,13 @@ class LibraryRootSynchronizationStatus {
     required this.availability,
     required this.freshness,
     required this.freshnessCause,
+    required this.phase,
     required this.sourceHealth,
     required this.queueHealth,
     required this.pendingChangeCount,
     required this.retryWaitCount,
     required this.freshnessUnknownCount,
+    required this.recoveryBlocked,
     this.lastIssueCode,
   });
 
@@ -43,11 +47,13 @@ class LibraryRootSynchronizationStatus {
       availability.hashCode ^
       freshness.hashCode ^
       freshnessCause.hashCode ^
+      phase.hashCode ^
       sourceHealth.hashCode ^
       queueHealth.hashCode ^
       pendingChangeCount.hashCode ^
       retryWaitCount.hashCode ^
       freshnessUnknownCount.hashCode ^
+      recoveryBlocked.hashCode ^
       lastIssueCode.hashCode;
 
   @override
@@ -60,12 +66,27 @@ class LibraryRootSynchronizationStatus {
           availability == other.availability &&
           freshness == other.freshness &&
           freshnessCause == other.freshnessCause &&
+          phase == other.phase &&
           sourceHealth == other.sourceHealth &&
           queueHealth == other.queueHealth &&
           pendingChangeCount == other.pendingChangeCount &&
           retryWaitCount == other.retryWaitCount &&
           freshnessUnknownCount == other.freshnessUnknownCount &&
+          recoveryBlocked == other.recoveryBlocked &&
           lastIssueCode == other.lastIssueCode;
+}
+
+enum LibrarySynchronizationPhase {
+  watcherStartup,
+  inventoryEnumeration,
+  inventoryComparison,
+  queuePublication,
+  retryWait,
+  reconciliation,
+  fullScan,
+  blocked,
+  synchronized,
+  unavailable,
 }
 
 class LibrarySynchronizationSnapshot {

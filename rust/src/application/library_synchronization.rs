@@ -6,7 +6,8 @@ use crate::domain::{
     LibraryChangePlanningLimits, LibraryChangePlanningResult, LibraryChangeQueueHealth,
     LibraryChangeQueueMetrics, LibraryChangeQueuePolicy, LibraryChangeRestartPolicy,
     LibraryChangeScope, LibraryChangeSourceHealth, LibraryRootAvailability,
-    LibraryRootSynchronizationStatus, LibrarySynchronizationSnapshot, ScanError,
+    LibraryRootSynchronizationStatus, LibrarySynchronizationPhase, LibrarySynchronizationSnapshot,
+    ScanError,
 };
 use crate::ports::{
     IncrementalCatalogRepository, LibraryChangeQueue, LibraryChangeSourceRequest,
@@ -583,52 +584,81 @@ fn project_root_status(
         .pending_count
         .saturating_add(metrics.leased_count)
         .saturating_add(metrics.retry_wait_count);
-    let (freshness, freshness_cause) = if runtime.availability != LibraryRootAvailability::Available
-    {
-        (
-            CatalogFreshnessState::Unavailable,
-            CatalogFreshnessCause::RootUnavailable,
-        )
-    } else if matches!(
-        runtime.source_health,
-        LibraryChangeSourceHealth::Degraded
-            | LibraryChangeSourceHealth::Failed
-            | LibraryChangeSourceHealth::Stopped
-            | LibraryChangeSourceHealth::Unsupported
-    ) {
-        (
-            CatalogFreshnessState::NeedsReconciliation,
-            CatalogFreshnessCause::ChangeSourceUnhealthy,
-        )
-    } else if runtime.blocking_issue_code.is_some() {
-        (
-            CatalogFreshnessState::NeedsReconciliation,
-            CatalogFreshnessCause::EvidenceGap,
-        )
-    } else if runtime.root.has_running_scan {
-        (
-            CatalogFreshnessState::Updating,
-            CatalogFreshnessCause::PendingChanges,
-        )
-    } else if metrics.health == LibraryChangeQueueHealth::Degraded {
-        (
-            CatalogFreshnessState::NeedsReconciliation,
-            CatalogFreshnessCause::EvidenceGap,
-        )
-    } else if runtime.needs_continuity_gap
-        || runtime.root.active_scan_id.is_none()
-        || unresolved > 0
-        || runtime.source_health == LibraryChangeSourceHealth::Starting
-    {
-        (
-            CatalogFreshnessState::Updating,
-            CatalogFreshnessCause::PendingChanges,
-        )
+    let (freshness, freshness_cause, phase) =
+        if runtime.availability != LibraryRootAvailability::Available {
+            (
+                CatalogFreshnessState::Unavailable,
+                CatalogFreshnessCause::RootUnavailable,
+                LibrarySynchronizationPhase::Unavailable,
+            )
+        } else if matches!(
+            runtime.source_health,
+            LibraryChangeSourceHealth::Degraded
+                | LibraryChangeSourceHealth::Failed
+                | LibraryChangeSourceHealth::Stopped
+                | LibraryChangeSourceHealth::Unsupported
+        ) {
+            (
+                CatalogFreshnessState::NeedsReconciliation,
+                CatalogFreshnessCause::ChangeSourceUnhealthy,
+                LibrarySynchronizationPhase::Blocked,
+            )
+        } else if runtime.blocking_issue_code.is_some() {
+            (
+                CatalogFreshnessState::NeedsReconciliation,
+                CatalogFreshnessCause::EvidenceGap,
+                LibrarySynchronizationPhase::Blocked,
+            )
+        } else if runtime.root.has_running_scan {
+            (
+                CatalogFreshnessState::Updating,
+                CatalogFreshnessCause::PendingChanges,
+                LibrarySynchronizationPhase::FullScan,
+            )
+        } else if metrics.health == LibraryChangeQueueHealth::Degraded {
+            (
+                CatalogFreshnessState::NeedsReconciliation,
+                CatalogFreshnessCause::EvidenceGap,
+                LibrarySynchronizationPhase::Blocked,
+            )
+        } else if runtime.needs_continuity_gap
+            || runtime.source_health == LibraryChangeSourceHealth::Starting
+        {
+            (
+                CatalogFreshnessState::Updating,
+                CatalogFreshnessCause::PendingChanges,
+                LibrarySynchronizationPhase::WatcherStartup,
+            )
+        } else if metrics.retry_wait_count > 0
+            && metrics.pending_count == 0
+            && metrics.leased_count == 0
+        {
+            (
+                CatalogFreshnessState::Updating,
+                CatalogFreshnessCause::PendingChanges,
+                LibrarySynchronizationPhase::RetryWait,
+            )
+        } else if runtime.root.active_scan_id.is_none() || unresolved > 0 {
+            (
+                CatalogFreshnessState::Updating,
+                CatalogFreshnessCause::PendingChanges,
+                LibrarySynchronizationPhase::QueuePublication,
+            )
+        } else {
+            (
+                CatalogFreshnessState::Synchronized,
+                CatalogFreshnessCause::NoPendingChanges,
+                LibrarySynchronizationPhase::Synchronized,
+            )
+        };
+    let last_issue_code = if metrics.exhausted_retry_count > 0 {
+        metrics
+            .latest_exhausted_failure_code
+            .clone()
+            .or_else(|| runtime.blocking_issue_code.clone())
+            .or_else(|| runtime.last_issue_code.clone())
     } else {
-        (
-            CatalogFreshnessState::Synchronized,
-            CatalogFreshnessCause::NoPendingChanges,
-        )
+        runtime.last_issue_code.clone()
     };
     LibraryRootSynchronizationStatus {
         root_id: runtime.root.root_id.clone(),
@@ -636,12 +666,15 @@ fn project_root_status(
         availability: runtime.availability,
         freshness,
         freshness_cause,
+        phase,
         source_health: runtime.source_health,
         queue_health: metrics.health,
         pending_change_count: metrics.pending_count.saturating_add(metrics.leased_count),
         retry_wait_count: metrics.retry_wait_count,
         freshness_unknown_count: metrics.freshness_unknown_count,
-        last_issue_code: runtime.last_issue_code.clone(),
+        recovery_blocked: runtime.blocking_issue_code.is_some()
+            || metrics.exhausted_retry_count > 0,
+        last_issue_code,
     }
 }
 

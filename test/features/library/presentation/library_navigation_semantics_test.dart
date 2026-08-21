@@ -476,6 +476,8 @@ Widget _buildNavigation({
                 availability: LibraryRootAvailability.available,
                 freshness: LibraryCatalogFreshness.synchronized,
                 freshnessCause: LibraryCatalogFreshnessCause.noPendingChanges,
+                phase: LibrarySynchronizationPhase.synchronized,
+                phaseStartedAt: DateTime.utc(2026, 8, 21),
                 sourceStatus: LibraryChangeSourceStatus.healthy,
                 pendingChangeCount: BigInt.zero,
                 retryWaitCount: BigInt.zero,

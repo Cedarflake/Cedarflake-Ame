@@ -43,7 +43,7 @@ pub use library_metadata_inventory::{
     MetadataInventoryScope, MetadataInventoryStartRequest,
 };
 pub use library_synchronization::{
-    LibraryRootSynchronizationStatus, LibrarySynchronizationSnapshot,
+    LibraryRootSynchronizationStatus, LibrarySynchronizationPhase, LibrarySynchronizationSnapshot,
 };
 
 #[derive(Clone, Debug)]

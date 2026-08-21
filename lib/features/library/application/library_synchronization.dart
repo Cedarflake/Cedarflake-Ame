@@ -143,7 +143,7 @@ class RustLibrarySynchronization implements LibrarySynchronization {
       );
       _clearTransientFailure();
       _publish(
-        _current.degraded(errorCode),
+        _current.degraded(errorCode, occurredAt: _now()),
         phase: phase,
         elapsed: stopwatch.elapsed,
       );
@@ -195,6 +195,7 @@ class RustLibrarySynchronization implements LibrarySynchronization {
       final current = entry.value;
       final previous = _current.roots[entry.key];
       if (previous?.freshness == LibraryCatalogFreshness.needsReconciliation &&
+          previous?.rootGeneration == current.rootGeneration &&
           current.freshness == LibraryCatalogFreshness.updating) {
         retainedFailure = true;
         roots[entry.key] = LibraryRootSynchronizationStatus(
@@ -203,6 +204,8 @@ class RustLibrarySynchronization implements LibrarySynchronization {
           availability: current.availability,
           freshness: LibraryCatalogFreshness.needsReconciliation,
           freshnessCause: previous!.freshnessCause,
+          phase: previous.phase,
+          phaseStartedAt: previous.phaseStartedAt,
           sourceStatus: current.sourceStatus,
           pendingChangeCount: current.pendingChangeCount,
           retryWaitCount: current.retryWaitCount,
@@ -285,7 +288,7 @@ class RustLibrarySynchronization implements LibrarySynchronization {
       for (final entry in snapshot.roots.entries)
         entry.key:
             "${entry.value.freshness.name}:${entry.value.sourceStatus.name}:"
-            "${entry.value.lastIssueCode ?? "-"}",
+            "${entry.value.phase.name}:${entry.value.lastIssueCode ?? "-"}",
     };
     final hasTransition =
         signatures.length != _lastDebugRootSignatures.length ||
@@ -313,9 +316,12 @@ class RustLibrarySynchronization implements LibrarySynchronization {
       final root = status.rootId.length <= 8
           ? status.rootId
           : status.rootId.substring(0, 8);
+      final phaseElapsed = now.difference(status.phaseStartedAt);
       debugPrint(
         "[Ame sync] phase=$phase elapsed_ms=${elapsed.inMilliseconds} "
         "root=$root freshness=${status.freshness.name} "
+        "root_phase=${status.phase.name} "
+        "root_phase_elapsed_ms=${phaseElapsed.isNegative ? 0 : phaseElapsed.inMilliseconds} "
         "source=${status.sourceStatus.name} pending=${status.pendingChangeCount} "
         "retry=${status.retryWaitCount} gaps=${status.freshnessUnknownCount} "
         "code=${status.lastIssueCode ?? snapshot.lastErrorCode ?? "-"}",
@@ -326,60 +332,99 @@ class RustLibrarySynchronization implements LibrarySynchronization {
   LibrarySynchronizationSnapshot _mapSnapshot(
     rust_sync.LibrarySynchronizationSnapshot snapshot,
   ) {
+    final observedAt = _now();
     return LibrarySynchronizationSnapshot(
       isRunning: snapshot.isRunning,
       catalogRevision: snapshot.catalogRevision,
       appliedMutationCount: snapshot.appliedMutationCount,
       roots: {
         for (final root in snapshot.roots)
-          root.rootId: LibraryRootSynchronizationStatus(
-            rootId: root.rootId,
-            rootGeneration: root.rootGeneration,
-            availability: _mapAvailability(root.availability),
-            freshness: switch (root.freshness) {
-              rust_change.CatalogFreshnessState.synchronized =>
-                LibraryCatalogFreshness.synchronized,
-              rust_change.CatalogFreshnessState.updating =>
-                LibraryCatalogFreshness.updating,
-              rust_change.CatalogFreshnessState.needsReconciliation =>
-                LibraryCatalogFreshness.needsReconciliation,
-              rust_change.CatalogFreshnessState.unavailable =>
-                LibraryCatalogFreshness.unavailable,
-            },
-            freshnessCause: switch (root.freshnessCause) {
-              rust_change.CatalogFreshnessCause.noPendingChanges =>
-                LibraryCatalogFreshnessCause.noPendingChanges,
-              rust_change.CatalogFreshnessCause.pendingChanges =>
-                LibraryCatalogFreshnessCause.pendingChanges,
-              rust_change.CatalogFreshnessCause.rootUnavailable =>
-                LibraryCatalogFreshnessCause.rootUnavailable,
-              rust_change.CatalogFreshnessCause.changeSourceUnhealthy =>
-                LibraryCatalogFreshnessCause.changeSourceUnhealthy,
-              rust_change.CatalogFreshnessCause.evidenceGap =>
-                LibraryCatalogFreshnessCause.evidenceGap,
-              rust_change.CatalogFreshnessCause.boundedCapacityExceeded =>
-                LibraryCatalogFreshnessCause.boundedCapacityExceeded,
-            },
-            sourceStatus: switch (root.sourceHealth) {
-              rust_change.LibraryChangeSourceHealth.healthy =>
-                LibraryChangeSourceStatus.healthy,
-              rust_change.LibraryChangeSourceHealth.starting =>
-                LibraryChangeSourceStatus.starting,
-              rust_change.LibraryChangeSourceHealth.degraded =>
-                LibraryChangeSourceStatus.degraded,
-              rust_change.LibraryChangeSourceHealth.failed =>
-                LibraryChangeSourceStatus.failed,
-              rust_change.LibraryChangeSourceHealth.stopped =>
-                LibraryChangeSourceStatus.stopped,
-              rust_change.LibraryChangeSourceHealth.unsupported =>
-                LibraryChangeSourceStatus.unsupported,
-            },
-            pendingChangeCount: root.pendingChangeCount,
-            retryWaitCount: root.retryWaitCount,
-            freshnessUnknownCount: root.freshnessUnknownCount,
-            lastIssueCode: root.lastIssueCode,
-          ),
+          root.rootId: _mapRootStatus(root, observedAt),
       },
+    );
+  }
+
+  LibraryRootSynchronizationStatus _mapRootStatus(
+    rust_sync.LibraryRootSynchronizationStatus root,
+    DateTime observedAt,
+  ) {
+    final phase = switch (root.phase) {
+      rust_sync.LibrarySynchronizationPhase.watcherStartup =>
+        LibrarySynchronizationPhase.watcherStartup,
+      rust_sync.LibrarySynchronizationPhase.inventoryEnumeration =>
+        LibrarySynchronizationPhase.inventoryEnumeration,
+      rust_sync.LibrarySynchronizationPhase.inventoryComparison =>
+        LibrarySynchronizationPhase.inventoryComparison,
+      rust_sync.LibrarySynchronizationPhase.queuePublication =>
+        LibrarySynchronizationPhase.queuePublication,
+      rust_sync.LibrarySynchronizationPhase.retryWait =>
+        LibrarySynchronizationPhase.retryWait,
+      rust_sync.LibrarySynchronizationPhase.reconciliation =>
+        LibrarySynchronizationPhase.reconciliation,
+      rust_sync.LibrarySynchronizationPhase.fullScan =>
+        LibrarySynchronizationPhase.fullScan,
+      rust_sync.LibrarySynchronizationPhase.blocked =>
+        LibrarySynchronizationPhase.blocked,
+      rust_sync.LibrarySynchronizationPhase.synchronized =>
+        LibrarySynchronizationPhase.synchronized,
+      rust_sync.LibrarySynchronizationPhase.unavailable =>
+        LibrarySynchronizationPhase.unavailable,
+    };
+    final previous = _current.roots[root.rootId];
+    final phaseStartedAt =
+        previous != null &&
+            previous.rootGeneration == root.rootGeneration &&
+            previous.phase == phase
+        ? previous.phaseStartedAt
+        : observedAt;
+    return LibraryRootSynchronizationStatus(
+      rootId: root.rootId,
+      rootGeneration: root.rootGeneration,
+      availability: _mapAvailability(root.availability),
+      freshness: switch (root.freshness) {
+        rust_change.CatalogFreshnessState.synchronized =>
+          LibraryCatalogFreshness.synchronized,
+        rust_change.CatalogFreshnessState.updating =>
+          LibraryCatalogFreshness.updating,
+        rust_change.CatalogFreshnessState.needsReconciliation =>
+          LibraryCatalogFreshness.needsReconciliation,
+        rust_change.CatalogFreshnessState.unavailable =>
+          LibraryCatalogFreshness.unavailable,
+      },
+      freshnessCause: switch (root.freshnessCause) {
+        rust_change.CatalogFreshnessCause.noPendingChanges =>
+          LibraryCatalogFreshnessCause.noPendingChanges,
+        rust_change.CatalogFreshnessCause.pendingChanges =>
+          LibraryCatalogFreshnessCause.pendingChanges,
+        rust_change.CatalogFreshnessCause.rootUnavailable =>
+          LibraryCatalogFreshnessCause.rootUnavailable,
+        rust_change.CatalogFreshnessCause.changeSourceUnhealthy =>
+          LibraryCatalogFreshnessCause.changeSourceUnhealthy,
+        rust_change.CatalogFreshnessCause.evidenceGap =>
+          LibraryCatalogFreshnessCause.evidenceGap,
+        rust_change.CatalogFreshnessCause.boundedCapacityExceeded =>
+          LibraryCatalogFreshnessCause.boundedCapacityExceeded,
+      },
+      phase: phase,
+      phaseStartedAt: phaseStartedAt,
+      sourceStatus: switch (root.sourceHealth) {
+        rust_change.LibraryChangeSourceHealth.healthy =>
+          LibraryChangeSourceStatus.healthy,
+        rust_change.LibraryChangeSourceHealth.starting =>
+          LibraryChangeSourceStatus.starting,
+        rust_change.LibraryChangeSourceHealth.degraded =>
+          LibraryChangeSourceStatus.degraded,
+        rust_change.LibraryChangeSourceHealth.failed =>
+          LibraryChangeSourceStatus.failed,
+        rust_change.LibraryChangeSourceHealth.stopped =>
+          LibraryChangeSourceStatus.stopped,
+        rust_change.LibraryChangeSourceHealth.unsupported =>
+          LibraryChangeSourceStatus.unsupported,
+      },
+      pendingChangeCount: root.pendingChangeCount,
+      retryWaitCount: root.retryWaitCount,
+      freshnessUnknownCount: root.freshnessUnknownCount,
+      lastIssueCode: root.lastIssueCode,
     );
   }
 

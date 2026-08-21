@@ -888,6 +888,7 @@ fn load_filtered_metrics(
         exhausted,
         freshness_unknown,
         oldest_due,
+        latest_exhausted_failure_code,
     ) = connection
         .query_row(
             "SELECT
@@ -916,7 +917,18 @@ fn load_filtered_metrics(
                    THEN next_retry_unix_ms
                  WHEN status = 'leased' AND lease_expires_unix_ms <= ?1
                    THEN lease_expires_unix_ms
-                 ELSE NULL END)
+                 ELSE NULL END),
+               (SELECT exhausted_change.last_failure_code
+                FROM library_change_queue AS exhausted_change
+                WHERE (?3 IS NULL OR (
+                  exhausted_change.root_id = ?3
+                  AND exhausted_change.root_generation = ?4
+                ))
+                  AND exhausted_change.status = 'retry_wait'
+                  AND exhausted_change.attempt_count >= ?2
+                  AND exhausted_change.last_failure_code IS NOT NULL
+                ORDER BY exhausted_change.id DESC
+                LIMIT 1)
              FROM library_change_queue
              WHERE (?3 IS NULL OR (root_id = ?3 AND root_generation = ?4))",
             params![
@@ -939,6 +951,7 @@ fn load_filtered_metrics(
                     row.get::<_, i64>(7)?,
                     row.get::<_, i64>(8)?,
                     row.get::<_, Option<i64>>(9)?,
+                    row.get::<_, Option<String>>(10)?,
                 ))
             },
         )
@@ -975,6 +988,7 @@ fn load_filtered_metrics(
         ready_count,
         expired_lease_count,
         exhausted_retry_count,
+        latest_exhausted_failure_code,
         freshness_unknown_count: sqlite_unsigned(
             freshness_unknown,
             "freshness-unknown change count",

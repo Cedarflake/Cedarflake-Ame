@@ -253,6 +253,12 @@ Future<void> showAmeNotificationDetails(
                 const SizedBox(height: 8),
                 Text(detail),
               ],
+              if (notification.elapsedStartedAt case final startedAt?) ...[
+                const SizedBox(height: 8),
+                Text(
+                  "已持续 ${_formatElapsed(DateTime.now().difference(startedAt))}",
+                ),
+              ],
               if (notification.sourcePath case final sourcePath?) ...[
                 const SizedBox(height: 16),
                 Text(
@@ -293,6 +299,19 @@ Future<void> showAmeNotificationDetails(
       ],
     ),
   );
+}
+
+String _formatElapsed(Duration elapsed) {
+  final seconds = elapsed.isNegative ? 0 : elapsed.inSeconds;
+  if (seconds < 60) {
+    return "$seconds 秒";
+  }
+  final minutes = seconds ~/ 60;
+  if (minutes < 60) {
+    return "$minutes 分 ${seconds % 60} 秒";
+  }
+  final hours = minutes ~/ 60;
+  return "$hours 小时 ${minutes % 60} 分";
 }
 
 class _NotificationHistoryItem extends StatelessWidget {

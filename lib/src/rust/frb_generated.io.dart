@@ -201,6 +201,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   LibraryRootView dco_decode_library_root_view(dynamic raw);
 
   @protected
+  LibrarySynchronizationPhase dco_decode_library_synchronization_phase(
+    dynamic raw,
+  );
+
+  @protected
   LibrarySynchronizationSnapshot dco_decode_library_synchronization_snapshot(
     dynamic raw,
   );
@@ -565,6 +570,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   LibraryRootView sse_decode_library_root_view(SseDeserializer deserializer);
+
+  @protected
+  LibrarySynchronizationPhase sse_decode_library_synchronization_phase(
+    SseDeserializer deserializer,
+  );
 
   @protected
   LibrarySynchronizationSnapshot sse_decode_library_synchronization_snapshot(
@@ -1012,6 +1022,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_library_root_view(
     LibraryRootView self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_library_synchronization_phase(
+    LibrarySynchronizationPhase self,
     SseSerializer serializer,
   );
 

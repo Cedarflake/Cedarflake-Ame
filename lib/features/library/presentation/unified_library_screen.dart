@@ -327,6 +327,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       final status = entry.value;
       final root = roots[rootId];
       final priorKey = _synchronizationNotificationKeys[rootId];
+      final currentGenerationKey = _synchronizationNotificationKey(status);
       switch (status.freshness) {
         case LibraryCatalogFreshness.needsReconciliation:
           final key = _synchronizationNotificationKey(status);
@@ -343,6 +344,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
               severity: _synchronizationNotificationSeverity(status),
               dedupeKey: key,
               detail: _synchronizationNotificationDetail(status),
+              elapsedStartedAt: status.phaseStartedAt,
               sourcePath: root?.displayPath,
               technicalCode: status.lastIssueCode,
               isPersistent: true,
@@ -362,6 +364,10 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
           }
           break;
         case LibraryCatalogFreshness.updating:
+          if (priorKey != null && priorKey != currentGenerationKey) {
+            _notificationController.resolve(priorKey);
+            _synchronizationNotificationKeys.remove(rootId);
+          }
           break;
       }
     }
@@ -370,7 +376,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   String _synchronizationNotificationKey(
     LibraryRootSynchronizationStatus status,
   ) {
-    return "library.rootReconciliation:${status.rootId}";
+    return "library.rootReconciliation:${status.rootId}:${status.rootGeneration}";
   }
 
   String _synchronizationNotificationMessage(
@@ -443,7 +449,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   String? _synchronizationNotificationDetail(
     LibraryRootSynchronizationStatus status,
   ) {
-    final details = <String>[];
+    final details = <String>["阶段：${_synchronizationPhaseLabel(status.phase)}"];
     if (status.pendingChangeCount > BigInt.zero) {
       details.add("${status.pendingChangeCount} 项等待处理");
     }
@@ -453,7 +459,32 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     if (status.freshnessUnknownCount > BigInt.zero) {
       details.add("${status.freshnessUnknownCount} 项状态尚未确认");
     }
-    return details.isEmpty ? null : details.join(" · ");
+    return details.join(" · ");
+  }
+
+  String _synchronizationPhaseLabel(LibrarySynchronizationPhase phase) {
+    return switch (phase) {
+      LibrarySynchronizationPhase.watcherStartup =>
+        LibraryStrings.synchronizationPhaseWatcherStartup,
+      LibrarySynchronizationPhase.inventoryEnumeration =>
+        LibraryStrings.synchronizationPhaseInventoryEnumeration,
+      LibrarySynchronizationPhase.inventoryComparison =>
+        LibraryStrings.synchronizationPhaseInventoryComparison,
+      LibrarySynchronizationPhase.queuePublication =>
+        LibraryStrings.synchronizationPhaseQueuePublication,
+      LibrarySynchronizationPhase.retryWait =>
+        LibraryStrings.synchronizationPhaseRetryWait,
+      LibrarySynchronizationPhase.reconciliation =>
+        LibraryStrings.synchronizationPhaseReconciliation,
+      LibrarySynchronizationPhase.fullScan =>
+        LibraryStrings.synchronizationPhaseFullScan,
+      LibrarySynchronizationPhase.blocked =>
+        LibraryStrings.synchronizationPhaseBlocked,
+      LibrarySynchronizationPhase.synchronized =>
+        LibraryStrings.synchronizationPhaseSynchronized,
+      LibrarySynchronizationPhase.unavailable =>
+        LibraryStrings.synchronizationPhaseUnavailable,
+    };
   }
 
   AmeNotificationSeverity _synchronizationNotificationSeverity(
