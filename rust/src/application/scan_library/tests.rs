@@ -672,7 +672,13 @@ fn assert_bidirectional_full_scan_catch_up(
             1
         );
         connection
-            .execute_batch("DROP TABLE library_change_preview_repair_contract")
+            .execute_batch(
+                "DROP TABLE library_change_preview_repair_contract;
+                 DROP TABLE library_metadata_inventory_entries;
+                 DROP TABLE library_metadata_inventory_runs;
+                 DROP TABLE library_metadata_inventory_contract;
+                 UPDATE schema_info SET version = 19;",
+            )
             .expect("restore prerelease preview repair marker");
         drop(connection);
         SqliteCatalog::open(storage_paths.catalog_path.clone())
@@ -3369,6 +3375,9 @@ fn migrated_v17_placeholder_preserves_the_normalized_legacy_location() {
               DROP TABLE library_change_scan_handoff_batches;
               DROP TABLE library_change_queue_catch_up_lineage;
              DROP TABLE library_change_preview_repair_contract;
+             DROP TABLE library_metadata_inventory_entries;
+             DROP TABLE library_metadata_inventory_runs;
+             DROP TABLE library_metadata_inventory_contract;
              DROP TABLE scan_run_catch_up_lineage;
              DROP TABLE library_change_catch_up_handoffs;
              DROP INDEX scan_runs_one_active_root;
@@ -3441,7 +3450,7 @@ fn migrated_v17_placeholder_preserves_the_normalized_legacy_location() {
         .query_row("SELECT version FROM schema_info", [], |row| row.get(0))
         .expect("schema version");
     assert!(matches!(events.last(), Some(ScanEvent::Stale { .. })));
-    assert_eq!(version, 19);
+    assert_eq!(version, 20);
     assert_eq!(after.revision, before.revision);
     assert_eq!(after.assets.len(), 1);
     assert_eq!(retained.location_id, "legacy-v17-location");
@@ -3492,6 +3501,9 @@ fn migrated_v17_healthy_file_preserves_legacy_location_without_identity_evidence
               DROP TABLE library_change_scan_handoff_batches;
               DROP TABLE library_change_queue_catch_up_lineage;
              DROP TABLE library_change_preview_repair_contract;
+             DROP TABLE library_metadata_inventory_entries;
+             DROP TABLE library_metadata_inventory_runs;
+             DROP TABLE library_metadata_inventory_contract;
              DROP TABLE scan_run_catch_up_lineage;
              DROP TABLE library_change_catch_up_handoffs;
              DROP INDEX scan_runs_one_active_root;

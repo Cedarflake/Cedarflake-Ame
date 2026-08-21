@@ -22,6 +22,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
     if !has_schema_info {
         let transaction = connection.transaction().map_err(database_error)?;
         create_schema_v19(&transaction)?;
+        migrate_v19_to_v20_transaction(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -33,11 +34,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             .map_err(database_error)?;
         match version {
             SCHEMA_VERSION => {
-                repair_prerelease_v19_derived_indexes(connection)?;
-                repair_prerelease_v19_scan_lineage(connection)?;
-                repair_prerelease_v19_scan_handoff_batches(connection)?;
                 validate_current_schema_contract(connection)?;
-                repair_v19_preview_expectations(connection)?;
                 return Ok(());
             }
             1 => migrate_v1_to_v2(connection)?,
@@ -63,6 +60,15 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             18 => {
                 repair_prerelease_v18_scan_owner_index(connection)?;
                 migrate_v18_to_v19(connection)?;
+            }
+            19 => {
+                validate_prerelease_v19_catch_up_authority(connection)?;
+                repair_prerelease_v19_derived_indexes(connection)?;
+                repair_prerelease_v19_scan_lineage(connection)?;
+                repair_prerelease_v19_scan_handoff_batches(connection)?;
+                repair_v19_preview_expectations(connection)?;
+                validate_v19_schema_contract(connection)?;
+                migrate_v19_to_v20(connection)?;
             }
             _ => {
                 return Err(ScanError::new(
@@ -401,7 +407,7 @@ fn create_library_change_queue_schema(transaction: &Transaction<'_>) -> Result<(
     Ok(())
 }
 
-fn validate_current_schema_contract(connection: &Connection) -> Result<(), ScanError> {
+fn validate_v19_schema_contract(connection: &Connection) -> Result<(), ScanError> {
     validate_change_queue_authority(connection)?;
     validate_authoritative_recovery_marker(connection)?;
     validate_change_catch_up_contract(connection)?;
@@ -429,7 +435,273 @@ fn validate_current_schema_contract(connection: &Connection) -> Result<(), ScanE
     if has_scan_runs && (!has_single_scan_owner_index || !has_scan_owner) {
         return Err(unverifiable_authoritative_recovery_contract());
     }
+    if !preview_repair_marker_is_complete(connection)? {
+        return Err(ScanError::new(
+            "catalog_change_catch_up_contract_unverifiable",
+            "The catalog preview repair authority is missing",
+        ));
+    }
     Ok(())
+}
+
+fn validate_prerelease_v19_catch_up_authority(connection: &Connection) -> Result<(), ScanError> {
+    let has_marker = connection
+        .query_row(
+            "SELECT EXISTS(
+               SELECT 1 FROM pragma_table_info('library_change_queue_contract')
+               WHERE name = 'change_catch_up_complete'
+             )",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    if !has_marker {
+        return Err(ScanError::new(
+            "catalog_change_catch_up_contract_unverifiable",
+            "The catalog cannot prove its downtime catch-up checkpoint authority",
+        ));
+    }
+    let marker_complete = connection
+        .query_row(
+            "SELECT change_catch_up_complete = 1
+             FROM library_change_queue_contract WHERE singleton = 1",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .optional()
+        .map_err(database_error)?
+        .unwrap_or(false);
+    if !marker_complete {
+        return Err(ScanError::new(
+            "catalog_change_catch_up_contract_unverifiable",
+            "The catalog cannot prove its downtime catch-up checkpoint authority",
+        ));
+    }
+    Ok(())
+}
+
+fn validate_current_schema_contract(connection: &Connection) -> Result<(), ScanError> {
+    validate_v19_schema_contract(connection)?;
+    validate_metadata_inventory_contract(connection)
+}
+
+fn validate_metadata_inventory_contract(connection: &Connection) -> Result<(), ScanError> {
+    let structure_matches = table_columns_match(
+        connection,
+        "library_metadata_inventory_contract",
+        &[
+            ("singleton", "INTEGER", false, 1),
+            ("complete", "INTEGER", true, 0),
+        ],
+    )? && table_columns_match(
+        connection,
+        "library_metadata_inventory_runs",
+        &[
+            ("id", "TEXT", true, 1),
+            ("root_id", "TEXT", true, 0),
+            ("root_generation", "INTEGER", true, 0),
+            ("epoch", "INTEGER", true, 0),
+            ("scope_kind", "TEXT", true, 0),
+            ("scope_relative_path", "TEXT", true, 0),
+            ("status", "TEXT", true, 0),
+            ("next_page_index", "INTEGER", true, 0),
+            ("enumeration_cursor", "TEXT", false, 0),
+            ("comparison_cursor", "TEXT", false, 0),
+            ("absence_cursor", "TEXT", false, 0),
+            ("staged_entry_count", "INTEGER", true, 0),
+            ("candidate_count", "INTEGER", true, 0),
+            ("enumeration_complete", "INTEGER", true, 0),
+            ("absence_authority", "INTEGER", true, 0),
+            ("started_unix_ms", "INTEGER", true, 0),
+            ("updated_unix_ms", "INTEGER", true, 0),
+            ("completed_unix_ms", "INTEGER", false, 0),
+            ("last_issue_code", "TEXT", false, 0),
+            ("last_issue_message", "TEXT", false, 0),
+        ],
+    )? && table_columns_match(
+        connection,
+        "library_metadata_inventory_entries",
+        &[
+            ("run_id", "TEXT", true, 1),
+            ("relative_path", "TEXT", true, 2),
+            ("entry_kind", "TEXT", true, 0),
+            ("file_size", "INTEGER", false, 0),
+            ("modified_unix_ms", "INTEGER", true, 0),
+            ("file_identity_scheme", "TEXT", false, 0),
+            ("file_identity_value", "TEXT", false, 0),
+            ("placeholder_state", "TEXT", true, 0),
+            ("is_reparse_point", "INTEGER", true, 0),
+            ("staged_page_index", "INTEGER", true, 0),
+            ("comparison_status", "TEXT", true, 0),
+            ("candidate_previous_relative_path", "TEXT", false, 0),
+            ("staged_unix_ms", "INTEGER", true, 0),
+        ],
+    )?;
+    let indexes_match = named_index_matches(
+        connection,
+        "library_metadata_inventory_runs",
+        "library_metadata_inventory_runs_cleanup",
+        &["status", "updated_unix_ms", "id"],
+    )? && named_index_matches(
+        connection,
+        "library_metadata_inventory_entries",
+        "library_metadata_inventory_entries_compare",
+        &["run_id", "comparison_status", "relative_path"],
+    )? && named_index_matches(
+        connection,
+        "library_metadata_inventory_entries",
+        "library_metadata_inventory_entries_identity",
+        &[
+            "run_id",
+            "file_identity_scheme",
+            "file_identity_value",
+            "relative_path",
+        ],
+    )? && named_index_matches(
+        connection,
+        "library_metadata_inventory_entries",
+        "library_metadata_inventory_entries_previous",
+        &[
+            "run_id",
+            "candidate_previous_relative_path",
+            "relative_path",
+        ],
+    )?;
+    let active_index_matches = connection
+        .query_row(
+            "SELECT EXISTS(
+               SELECT 1 FROM pragma_index_list('library_metadata_inventory_runs')
+               WHERE name = 'library_metadata_inventory_runs_one_active_root'
+                 AND \"unique\" = 1 AND partial = 1
+             ) AND (SELECT group_concat(name, ',') FROM (
+               SELECT name FROM pragma_index_info(
+                 'library_metadata_inventory_runs_one_active_root'
+               ) ORDER BY seqno
+             )) = 'root_id'",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    let active_index_predicate_matches = schema_object_sql_matches(
+        connection,
+        "index",
+        "library_metadata_inventory_runs_one_active_root",
+        "CREATE UNIQUE INDEX library_metadata_inventory_runs_one_active_root
+           ON library_metadata_inventory_runs(root_id)
+           WHERE status IN ('running', 'comparing')",
+    )?;
+    let queue_accepts_inventory_origin = connection
+        .query_row(
+            "SELECT instr(
+               replace(replace(replace(replace(lower(sql), ' ', ''), char(10), ''),
+                 char(13), ''), char(9), ''),
+               '''metadata_inventory'''
+             ) > 0
+             FROM sqlite_master
+             WHERE type = 'table' AND name = 'library_change_queue'",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .optional()
+        .map_err(database_error)?
+        .unwrap_or(false);
+    let foreign_keys_match = cascade_foreign_key_matches(
+        connection,
+        "library_metadata_inventory_runs",
+        "root_id",
+        "library_roots",
+        "id",
+    )? && cascade_foreign_key_matches(
+        connection,
+        "library_metadata_inventory_entries",
+        "run_id",
+        "library_metadata_inventory_runs",
+        "id",
+    )?;
+    let marker_complete = connection
+        .query_row(
+            "SELECT singleton = 1 AND complete = 1
+             FROM library_metadata_inventory_contract",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .optional()
+        .map_err(database_error)?
+        .unwrap_or(false);
+    if !structure_matches
+        || !indexes_match
+        || !active_index_matches
+        || !active_index_predicate_matches
+        || !queue_accepts_inventory_origin
+        || !foreign_keys_match
+        || !marker_complete
+    {
+        return Err(unverifiable_metadata_inventory_contract());
+    }
+    let invalid_relations = connection
+        .query_row(
+            "SELECT
+               EXISTS(
+                 SELECT 1
+                 FROM library_metadata_inventory_runs AS runs
+                 LEFT JOIN library_roots AS roots ON roots.id = runs.root_id
+                 LEFT JOIN library_change_root_state AS state ON state.root_id = runs.root_id
+                 WHERE roots.id IS NULL OR state.root_id IS NULL
+                    OR (
+                      runs.status IN ('running', 'comparing')
+                      AND (
+                        state.is_active <> 1 OR state.generation <> runs.root_generation
+                        OR NOT EXISTS(
+                          SELECT 1 FROM scan_runs AS scans
+                          WHERE scans.id = roots.active_scan_id
+                            AND scans.status = 'completed'
+                        )
+                      )
+                    )
+               )
+               OR EXISTS(
+                 SELECT 1
+                 FROM library_metadata_inventory_runs AS runs
+                 WHERE runs.staged_entry_count <> (
+                   SELECT COUNT(*) FROM library_metadata_inventory_entries AS entries
+                   WHERE entries.run_id = runs.id
+                 )
+                    OR (runs.scope_kind = 'root' AND runs.scope_relative_path <> '')
+                    OR (runs.scope_kind = 'subtree' AND runs.scope_relative_path = '')
+               )
+               OR EXISTS(
+                 SELECT 1
+                 FROM library_metadata_inventory_entries AS entries
+                 JOIN library_metadata_inventory_runs AS runs ON runs.id = entries.run_id
+                 WHERE entries.staged_page_index >= runs.next_page_index
+                    OR (
+                      runs.scope_kind = 'subtree'
+                      AND entries.relative_path <> runs.scope_relative_path
+                      AND substr(entries.relative_path, 1, length(runs.scope_relative_path) + 1)
+                        <> runs.scope_relative_path || '/'
+                    )
+               )
+               OR EXISTS(SELECT 1 FROM pragma_foreign_key_check(
+                 'library_metadata_inventory_runs'
+               ))
+               OR EXISTS(SELECT 1 FROM pragma_foreign_key_check(
+                 'library_metadata_inventory_entries'
+               ))",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    if invalid_relations {
+        return Err(unverifiable_metadata_inventory_contract());
+    }
+    Ok(())
+}
+
+fn unverifiable_metadata_inventory_contract() -> ScanError {
+    ScanError::new(
+        "catalog_metadata_inventory_contract_unverifiable",
+        "The catalog cannot prove its metadata-inventory staging and completion authority",
+    )
 }
 
 fn repair_v19_preview_expectations(connection: &mut Connection) -> Result<(), ScanError> {
@@ -1144,6 +1416,34 @@ fn named_index_matches(
         .collect::<Result<Vec<_>, _>>()
         .map_err(database_error)?;
     Ok(columns == expected_columns)
+}
+
+fn schema_object_sql_matches(
+    connection: &Connection,
+    object_type: &str,
+    name: &str,
+    expected: &str,
+) -> Result<bool, ScanError> {
+    let actual = connection
+        .query_row(
+            "SELECT sql FROM sqlite_master WHERE type = ?1 AND name = ?2",
+            params![object_type, name],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()
+        .map_err(database_error)?;
+    Ok(
+        actual
+            .is_some_and(|actual| normalize_schema_sql(&actual) == normalize_schema_sql(expected)),
+    )
+}
+
+fn normalize_schema_sql(value: &str) -> String {
+    value
+        .chars()
+        .filter(|character| !character.is_whitespace())
+        .flat_map(char::to_lowercase)
+        .collect()
 }
 
 fn cascade_foreign_key_matches(
@@ -2408,6 +2708,257 @@ fn migrate_v18_to_v19(connection: &mut Connection) -> Result<(), ScanError> {
     transaction.commit().map_err(database_error)
 }
 
+fn migrate_v19_to_v20(connection: &mut Connection) -> Result<(), ScanError> {
+    let transaction = connection
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .map_err(database_error)?;
+    migrate_v19_to_v20_transaction(&transaction)?;
+    transaction.commit().map_err(database_error)
+}
+
+fn migrate_v19_to_v20_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+    rebuild_library_change_queue_for_metadata_inventory(transaction)?;
+    create_metadata_inventory_contract(transaction)?;
+    transaction
+        .execute("UPDATE schema_info SET version = 20", [])
+        .map_err(database_error)?;
+    Ok(())
+}
+
+fn rebuild_library_change_queue_for_metadata_inventory(
+    transaction: &Transaction<'_>,
+) -> Result<(), ScanError> {
+    transaction
+        .execute_batch(
+            "CREATE TABLE library_change_queue_v20 (
+               id INTEGER PRIMARY KEY AUTOINCREMENT,
+               root_id TEXT NOT NULL,
+               root_generation INTEGER NOT NULL CHECK(root_generation > 0),
+               intent_kind TEXT NOT NULL CHECK(intent_kind IN (
+                 'reconcile', 'rename_candidate', 'freshness_unknown'
+               )),
+               scope TEXT NOT NULL CHECK(scope IN ('path', 'subtree', 'root')),
+               relative_path TEXT NOT NULL,
+               previous_relative_path TEXT,
+               origin TEXT NOT NULL CHECK(origin IN (
+                 'live_notification', 'metadata_inventory', 'startup_catch_up',
+                 'user_refresh', 'consistency_audit'
+               )),
+               first_observed_unix_ms INTEGER NOT NULL,
+               most_recent_observed_unix_ms INTEGER NOT NULL,
+               first_sequence TEXT NOT NULL CHECK(length(first_sequence) > 0),
+               most_recent_sequence TEXT NOT NULL CHECK(length(most_recent_sequence) > 0),
+               coalesced_observation_count INTEGER NOT NULL
+                 CHECK(coalesced_observation_count > 0),
+               status TEXT NOT NULL CHECK(status IN (
+                 'pending', 'leased', 'retry_wait', 'completed', 'superseded'
+               )),
+               ready_unix_ms INTEGER NOT NULL,
+               attempt_count INTEGER NOT NULL DEFAULT 0 CHECK(attempt_count >= 0),
+               next_retry_unix_ms INTEGER,
+               lease_generation INTEGER NOT NULL DEFAULT 0 CHECK(lease_generation >= 0),
+               lease_expires_unix_ms INTEGER,
+               last_failure_code TEXT,
+               last_failure_message TEXT,
+               catalog_revision_at_enqueue INTEGER NOT NULL
+                 CHECK(catalog_revision_at_enqueue >= 0),
+               catalog_revision_at_success INTEGER
+                 CHECK(catalog_revision_at_success IS NULL OR catalog_revision_at_success >= 0),
+               catch_up_source TEXT,
+               catch_up_watermark TEXT,
+               authoritative_scan_id TEXT,
+               superseded_by_change_id INTEGER,
+               created_unix_ms INTEGER NOT NULL,
+               updated_unix_ms INTEGER NOT NULL,
+               CHECK(first_observed_unix_ms <= most_recent_observed_unix_ms),
+               CHECK(
+                 (last_failure_code IS NULL AND last_failure_message IS NULL)
+                 OR
+                 (last_failure_code IS NOT NULL AND last_failure_message IS NOT NULL)
+               ),
+               CHECK(
+                 (status = 'leased' AND lease_expires_unix_ms IS NOT NULL)
+                 OR
+                 (status <> 'leased' AND lease_expires_unix_ms IS NULL)
+               ),
+               CHECK(status = 'retry_wait' OR next_retry_unix_ms IS NULL),
+               CHECK(
+                 (status = 'completed' AND catalog_revision_at_success IS NOT NULL)
+                 OR
+                 (status <> 'completed' AND catalog_revision_at_success IS NULL)
+               ),
+               FOREIGN KEY(superseded_by_change_id) REFERENCES library_change_queue_v20(id)
+                 ON DELETE SET NULL
+             );
+             INSERT INTO library_change_queue_v20(
+               id, root_id, root_generation, intent_kind, scope, relative_path,
+               previous_relative_path, origin, first_observed_unix_ms,
+               most_recent_observed_unix_ms, first_sequence, most_recent_sequence,
+               coalesced_observation_count, status, ready_unix_ms, attempt_count,
+               next_retry_unix_ms, lease_generation, lease_expires_unix_ms,
+               last_failure_code, last_failure_message, catalog_revision_at_enqueue,
+               catalog_revision_at_success, catch_up_source, catch_up_watermark,
+               authoritative_scan_id, superseded_by_change_id, created_unix_ms, updated_unix_ms
+             )
+             SELECT
+               id, root_id, root_generation, intent_kind, scope, relative_path,
+               previous_relative_path, origin, first_observed_unix_ms,
+               most_recent_observed_unix_ms, first_sequence, most_recent_sequence,
+               coalesced_observation_count, status, ready_unix_ms, attempt_count,
+               next_retry_unix_ms, lease_generation, lease_expires_unix_ms,
+               last_failure_code, last_failure_message, catalog_revision_at_enqueue,
+               catalog_revision_at_success, catch_up_source, catch_up_watermark,
+               authoritative_scan_id, superseded_by_change_id, created_unix_ms, updated_unix_ms
+             FROM library_change_queue;
+             CREATE TABLE library_change_queue_catch_up_lineage_v20 (
+               change_id INTEGER NOT NULL,
+               catch_up_source TEXT NOT NULL CHECK(length(catch_up_source) BETWEEN 1 AND 128),
+               catch_up_watermark TEXT NOT NULL
+                 CHECK(length(catch_up_watermark) BETWEEN 1 AND 1024),
+               enrolled_unix_ms INTEGER NOT NULL,
+               PRIMARY KEY(change_id, catch_up_source, catch_up_watermark),
+               FOREIGN KEY(change_id) REFERENCES library_change_queue_v20(id) ON DELETE CASCADE
+             );
+             INSERT INTO library_change_queue_catch_up_lineage_v20(
+               change_id, catch_up_source, catch_up_watermark, enrolled_unix_ms
+             )
+             SELECT change_id, catch_up_source, catch_up_watermark, enrolled_unix_ms
+             FROM library_change_queue_catch_up_lineage;
+             DROP TABLE library_change_queue_catch_up_lineage;
+             DROP TABLE library_change_queue;
+             ALTER TABLE library_change_queue_v20 RENAME TO library_change_queue;
+             ALTER TABLE library_change_queue_catch_up_lineage_v20
+               RENAME TO library_change_queue_catch_up_lineage;
+             CREATE INDEX library_change_queue_eligible
+               ON library_change_queue(
+                 root_id, root_generation, status, ready_unix_ms, next_retry_unix_ms, id
+               );
+             CREATE INDEX library_change_queue_lease_expiry
+               ON library_change_queue(status, lease_expires_unix_ms, id);
+             CREATE INDEX library_change_queue_active_path
+               ON library_change_queue(
+                 root_id, root_generation, status, relative_path, scope, id
+               );
+             CREATE INDEX library_change_queue_cleanup
+               ON library_change_queue(status, updated_unix_ms, id);
+             CREATE INDEX library_change_queue_catch_up_lineage_evidence
+               ON library_change_queue_catch_up_lineage(
+                 catch_up_source, catch_up_watermark, change_id
+               );",
+        )
+        .map_err(database_error)
+}
+
+fn create_metadata_inventory_contract(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+    transaction
+        .execute_batch(
+            "CREATE TABLE library_metadata_inventory_contract (
+               singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+               complete INTEGER NOT NULL CHECK(complete = 1)
+             );
+             INSERT INTO library_metadata_inventory_contract(singleton, complete) VALUES (1, 1);
+             CREATE TABLE library_metadata_inventory_runs (
+               id TEXT NOT NULL PRIMARY KEY CHECK(length(id) BETWEEN 1 AND 256),
+               root_id TEXT NOT NULL,
+               root_generation INTEGER NOT NULL CHECK(root_generation > 0),
+               epoch INTEGER NOT NULL CHECK(epoch > 0),
+               scope_kind TEXT NOT NULL CHECK(scope_kind IN ('root', 'subtree')),
+               scope_relative_path TEXT NOT NULL,
+               status TEXT NOT NULL CHECK(status IN (
+                 'running', 'comparing', 'completed', 'failed', 'cancelled', 'superseded'
+               )),
+               next_page_index INTEGER NOT NULL CHECK(next_page_index > 0),
+               enumeration_cursor TEXT,
+               comparison_cursor TEXT,
+               absence_cursor TEXT,
+               staged_entry_count INTEGER NOT NULL DEFAULT 0 CHECK(staged_entry_count >= 0),
+               candidate_count INTEGER NOT NULL DEFAULT 0 CHECK(candidate_count >= 0),
+               enumeration_complete INTEGER NOT NULL DEFAULT 0
+                 CHECK(enumeration_complete IN (0, 1)),
+               absence_authority INTEGER NOT NULL DEFAULT 0
+                 CHECK(absence_authority IN (0, 1)),
+               started_unix_ms INTEGER NOT NULL,
+               updated_unix_ms INTEGER NOT NULL,
+               completed_unix_ms INTEGER,
+               last_issue_code TEXT,
+               last_issue_message TEXT,
+               CHECK(
+                 (scope_kind = 'root' AND scope_relative_path = '')
+                 OR
+                 (scope_kind = 'subtree' AND length(scope_relative_path) > 0)
+               ),
+               CHECK(instr(scope_relative_path, char(92)) = 0),
+               CHECK(
+                 (last_issue_code IS NULL AND last_issue_message IS NULL)
+                 OR
+                 (last_issue_code IS NOT NULL AND last_issue_message IS NOT NULL)
+               ),
+               CHECK(enumeration_complete = 1 OR absence_authority = 0),
+               CHECK(
+                 (status = 'completed' AND completed_unix_ms IS NOT NULL
+                   AND enumeration_complete = 1 AND absence_authority = 1)
+                 OR
+                 (status <> 'completed' AND completed_unix_ms IS NULL)
+               ),
+               UNIQUE(root_id, root_generation, epoch),
+               FOREIGN KEY(root_id) REFERENCES library_roots(id) ON DELETE CASCADE
+             );
+             CREATE UNIQUE INDEX library_metadata_inventory_runs_one_active_root
+               ON library_metadata_inventory_runs(root_id)
+               WHERE status IN ('running', 'comparing');
+             CREATE INDEX library_metadata_inventory_runs_cleanup
+               ON library_metadata_inventory_runs(status, updated_unix_ms, id);
+             CREATE TABLE library_metadata_inventory_entries (
+               run_id TEXT NOT NULL,
+               relative_path TEXT NOT NULL,
+               entry_kind TEXT NOT NULL CHECK(entry_kind IN ('file', 'directory', 'other')),
+               file_size INTEGER CHECK(file_size IS NULL OR file_size >= 0),
+               modified_unix_ms INTEGER NOT NULL,
+               file_identity_scheme TEXT,
+               file_identity_value TEXT,
+               placeholder_state TEXT NOT NULL CHECK(placeholder_state IN (
+                 'available', 'offline', 'recall_on_open', 'recall_on_data_access'
+               )),
+               is_reparse_point INTEGER NOT NULL CHECK(is_reparse_point IN (0, 1)),
+               staged_page_index INTEGER NOT NULL CHECK(staged_page_index > 0),
+               comparison_status TEXT NOT NULL DEFAULT 'pending'
+                 CHECK(comparison_status IN ('pending', 'unchanged', 'enqueued')),
+               candidate_previous_relative_path TEXT,
+               staged_unix_ms INTEGER NOT NULL,
+               CHECK(length(relative_path) > 0),
+               CHECK(instr(relative_path, char(92)) = 0),
+               CHECK(
+                 (entry_kind = 'file' AND file_size IS NOT NULL)
+                 OR
+                 (entry_kind <> 'file' AND file_size IS NULL)
+               ),
+               CHECK(
+                 (file_identity_scheme IS NULL AND file_identity_value IS NULL)
+                 OR
+                 (file_identity_scheme IS NOT NULL AND file_identity_value IS NOT NULL)
+               ),
+               CHECK(
+                 candidate_previous_relative_path IS NULL
+                 OR comparison_status = 'enqueued'
+               ),
+               PRIMARY KEY(run_id, relative_path),
+               FOREIGN KEY(run_id) REFERENCES library_metadata_inventory_runs(id)
+                 ON DELETE CASCADE
+             );
+             CREATE INDEX library_metadata_inventory_entries_compare
+               ON library_metadata_inventory_entries(run_id, comparison_status, relative_path);
+             CREATE INDEX library_metadata_inventory_entries_identity
+               ON library_metadata_inventory_entries(
+                 run_id, file_identity_scheme, file_identity_value, relative_path
+               );
+             CREATE INDEX library_metadata_inventory_entries_previous
+               ON library_metadata_inventory_entries(
+                 run_id, candidate_previous_relative_path, relative_path
+               );",
+        )
+        .map_err(database_error)
+}
+
 fn add_change_catch_up_contract(transaction: &Transaction<'_>) -> Result<(), ScanError> {
     transaction
         .execute_batch(
@@ -2688,9 +3239,164 @@ mod tests {
     use tempfile::NamedTempFile;
 
     use super::{
-        migrate_schema, migrate_v16_to_v17, migrate_v17_to_v18, migrate_v18_to_v19,
-        preview_repair_marker_is_complete, repair_missing_v19_preview_expectation_marker,
+        create_metadata_inventory_contract, create_schema_v19, migrate_schema, migrate_v16_to_v17,
+        migrate_v17_to_v18, migrate_v18_to_v19, preview_repair_marker_is_complete,
+        repair_missing_v19_preview_expectation_marker, repair_prerelease_v18_scan_owner_index,
     };
+
+    fn fresh_v19_catalog() -> Connection {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        let transaction = connection.transaction().expect("v19 transaction");
+        create_schema_v19(&transaction).expect("fresh v19 schema");
+        transaction.commit().expect("commit fresh v19 schema");
+        connection
+    }
+
+    #[test]
+    fn v20_migration_preserves_queue_lineage_and_admits_inventory_origin() {
+        let mut connection = fresh_v19_catalog();
+        connection
+            .execute_batch(
+                "INSERT INTO library_change_queue(
+                   id, root_id, root_generation, intent_kind, scope, relative_path,
+                   previous_relative_path, origin, first_observed_unix_ms,
+                   most_recent_observed_unix_ms, first_sequence, most_recent_sequence,
+                   coalesced_observation_count, status, ready_unix_ms,
+                   catalog_revision_at_enqueue, catch_up_source, catch_up_watermark,
+                   created_unix_ms, updated_unix_ms
+                 ) VALUES (
+                   41, 'root-a', 3, 'reconcile', 'path', 'photo.jpg', NULL,
+                   'startup_catch_up', 10, 10, '1', '1', 1, 'pending', 10, 2,
+                   'windows_usn_v1', 'volume|1|2', 10, 10
+                 );
+                 INSERT INTO library_change_queue_catch_up_lineage(
+                   change_id, catch_up_source, catch_up_watermark, enrolled_unix_ms
+                 ) VALUES (41, 'windows_usn_v1', 'volume|1|2', 10);",
+            )
+            .expect("v19 queue fixture");
+
+        migrate_schema(&mut connection).expect("migrate v19 to v20");
+        let (version, origin, lineage_count): (i64, String, i64) = connection
+            .query_row(
+                "SELECT
+                   (SELECT version FROM schema_info),
+                   (SELECT origin FROM library_change_queue WHERE id = 41),
+                   (SELECT COUNT(*) FROM library_change_queue_catch_up_lineage
+                    WHERE change_id = 41)",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .expect("migrated queue evidence");
+        assert_eq!(version, 20);
+        assert_eq!(origin, "startup_catch_up");
+        assert_eq!(lineage_count, 1);
+
+        connection
+            .execute(
+                "INSERT INTO library_change_queue(
+                   root_id, root_generation, intent_kind, scope, relative_path,
+                   previous_relative_path, origin, first_observed_unix_ms,
+                   most_recent_observed_unix_ms, first_sequence, most_recent_sequence,
+                   coalesced_observation_count, status, ready_unix_ms,
+                   catalog_revision_at_enqueue, created_unix_ms, updated_unix_ms
+                 ) VALUES (
+                   'root-a', 3, 'reconcile', 'path', 'new.jpg', NULL,
+                   'metadata_inventory', 11, 11, '2', '2', 1, 'pending', 11, 2, 11, 11
+                 )",
+                [],
+            )
+            .expect("metadata inventory origin");
+        let new_id: i64 = connection.last_insert_rowid();
+        assert!(new_id > 41);
+        migrate_schema(&mut connection).expect("validate current v20");
+    }
+
+    #[test]
+    fn current_v20_malformed_inventory_contract_fails_closed() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh v20 catalog");
+        connection
+            .execute_batch(
+                "DROP INDEX library_metadata_inventory_entries_compare;
+                 CREATE INDEX library_metadata_inventory_entries_compare
+                   ON library_metadata_inventory_entries(run_id, relative_path);",
+            )
+            .expect("malformed inventory index fixture");
+
+        let error = migrate_schema(&mut connection).expect_err("malformed inventory contract");
+
+        assert_eq!(
+            error.code,
+            "catalog_metadata_inventory_contract_unverifiable"
+        );
+    }
+
+    #[test]
+    fn current_v20_malformed_active_inventory_predicate_fails_closed() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh v20 catalog");
+        connection
+            .execute_batch(
+                "DROP INDEX library_metadata_inventory_runs_one_active_root;
+                 CREATE UNIQUE INDEX library_metadata_inventory_runs_one_active_root
+                   ON library_metadata_inventory_runs(root_id)
+                   WHERE status = 'running';",
+            )
+            .expect("malformed active inventory index fixture");
+
+        let error = migrate_schema(&mut connection).expect_err("malformed active inventory index");
+
+        assert_eq!(
+            error.code,
+            "catalog_metadata_inventory_contract_unverifiable"
+        );
+    }
+
+    #[test]
+    fn current_v20_without_inventory_queue_origin_fails_closed() {
+        let mut connection = fresh_v19_catalog();
+        let transaction = connection.transaction().expect("v20 fixture transaction");
+        create_metadata_inventory_contract(&transaction).expect("inventory contract fixture");
+        transaction
+            .execute("UPDATE schema_info SET version = 20", [])
+            .expect("v20 fixture version");
+        transaction.commit().expect("commit v20 fixture");
+
+        let error = migrate_schema(&mut connection).expect_err("missing inventory queue origin");
+
+        assert_eq!(
+            error.code,
+            "catalog_metadata_inventory_contract_unverifiable"
+        );
+    }
+
+    #[test]
+    fn current_v20_active_inventory_with_stale_generation_fails_closed() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh v20 catalog");
+        connection
+            .execute_batch(
+                "INSERT INTO library_roots(id, path, active_scan_id, created_unix_ms)
+                   VALUES ('root-a', 'C:/source', 'published-scan', 1);
+                 INSERT INTO library_change_root_state(
+                   root_id, generation, is_active, updated_unix_ms
+                 ) VALUES ('root-a', 1, 1, 1);
+                 INSERT INTO library_metadata_inventory_runs(
+                   id, root_id, root_generation, epoch, scope_kind, scope_relative_path,
+                   status, next_page_index, started_unix_ms, updated_unix_ms
+                 ) VALUES (
+                   'inventory-a', 'root-a', 2, 1, 'root', '', 'running', 1, 1, 1
+                 );",
+            )
+            .expect("stale inventory generation fixture");
+
+        let error = migrate_schema(&mut connection).expect_err("stale active inventory");
+
+        assert_eq!(
+            error.code,
+            "catalog_metadata_inventory_contract_unverifiable"
+        );
+    }
 
     type CatchUpAuthorityMigrationState = (
         i64,
@@ -2735,8 +3441,7 @@ mod tests {
 
     #[test]
     fn prerelease_v19_with_complete_marker_repairs_missing_path_index() {
-        let mut connection = Connection::open_in_memory().expect("catalog");
-        migrate_schema(&mut connection).expect("fresh v19 catalog");
+        let mut connection = fresh_v19_catalog();
         connection
             .execute("DROP INDEX asset_locations_root_relative", [])
             .expect("restore prerelease v19 index state");
@@ -2761,8 +3466,7 @@ mod tests {
 
     #[test]
     fn prerelease_v19_with_complete_marker_adds_durable_handoff_contract() {
-        let mut connection = Connection::open_in_memory().expect("catalog");
-        migrate_schema(&mut connection).expect("fresh v19 catalog");
+        let mut connection = fresh_v19_catalog();
         connection
             .execute_batch(
                 "INSERT INTO library_change_queue(
@@ -3285,7 +3989,8 @@ mod tests {
             )
             .expect("repairable prerelease v18 fixture");
 
-        migrate_schema(&mut connection).expect("repair scan ownership index");
+        repair_prerelease_v18_scan_owner_index(&mut connection)
+            .expect("repair scan ownership index");
         let (has_index, ownership_marker, foreground_owner, recovery_owner): (
             bool,
             bool,
@@ -3365,7 +4070,7 @@ mod tests {
             )
             .expect("indexed prerelease v18 fixture");
 
-        migrate_schema(&mut connection).expect("repair missing scan owner");
+        repair_prerelease_v18_scan_owner_index(&mut connection).expect("repair missing scan owner");
         let (owner, ownership_marker): (String, bool) = connection
             .query_row(
                 "SELECT

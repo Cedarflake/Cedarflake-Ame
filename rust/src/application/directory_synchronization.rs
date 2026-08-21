@@ -530,9 +530,10 @@ fn apply_evidence_summary(
 fn origin_rank(origin: LibraryChangeOrigin) -> u8 {
     match origin {
         LibraryChangeOrigin::LiveNotification => 0,
-        LibraryChangeOrigin::StartupCatchUp => 1,
-        LibraryChangeOrigin::UserRefresh => 2,
-        LibraryChangeOrigin::ConsistencyAudit => 3,
+        LibraryChangeOrigin::MetadataInventory => 1,
+        LibraryChangeOrigin::StartupCatchUp => 2,
+        LibraryChangeOrigin::UserRefresh => 3,
+        LibraryChangeOrigin::ConsistencyAudit => 4,
     }
 }
 

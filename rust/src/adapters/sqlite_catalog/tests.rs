@@ -145,7 +145,13 @@ fn prerelease_missing_active_preview_is_downgraded_on_reopen() {
     assert_eq!(handoff_count, 0);
     catalog
         .connection
-        .execute_batch("DROP TABLE library_change_preview_repair_contract")
+        .execute_batch(
+            "DROP TABLE library_change_preview_repair_contract;
+             DROP TABLE library_metadata_inventory_entries;
+             DROP TABLE library_metadata_inventory_runs;
+             DROP TABLE library_metadata_inventory_contract;
+             UPDATE schema_info SET version = 19;",
+        )
         .expect("restore prerelease preview repair marker");
     drop(catalog);
 
@@ -189,7 +195,13 @@ fn prerelease_stale_active_preview_and_owner_are_downgraded_on_reopen() {
         .expect("restore prerelease stale artifact");
     catalog
         .connection
-        .execute_batch("DROP TABLE library_change_preview_repair_contract")
+        .execute_batch(
+            "DROP TABLE library_change_preview_repair_contract;
+             DROP TABLE library_metadata_inventory_entries;
+             DROP TABLE library_metadata_inventory_runs;
+             DROP TABLE library_metadata_inventory_contract;
+             UPDATE schema_info SET version = 19;",
+        )
         .expect("restore prerelease preview repair marker");
     assert_eq!(preview_reference_count(&catalog, &artifact.artifact_key), 1);
     drop(catalog);

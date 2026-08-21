@@ -1,6 +1,5 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-#[cfg(test)]
 use std::sync::atomic::AtomicBool;
 
 use crate::domain::{
@@ -10,8 +9,11 @@ use crate::domain::{
     IncrementalCatalogRoot, LibraryChangeCatchUpEvidence, LibraryChangeSourceBatch,
     LibraryChangeSourceError, LibraryChangeSourceHealth, LibraryChangeSourceStopReport,
     LibraryFolderCursor, LibraryFolderPage, LibraryRootGeneration, MediaInspection,
-    MetadataInspection, PreviewArtifact, PreviewMaterialization, PreviewReclamationCandidate,
-    RecoverableScan, ScanCheckpoint, ScanError, ScanIssue, ScanRequest, StorageConfiguration,
+    MetadataInspection, MetadataInventoryComparisonUpdate, MetadataInventoryEntry,
+    MetadataInventoryPage, MetadataInventoryRun, MetadataInventoryRunRequest,
+    MetadataInventoryRunStatus, PreviewArtifact, PreviewMaterialization,
+    PreviewReclamationCandidate, RecoverableScan, ScanCheckpoint, ScanError, ScanIssue,
+    ScanRequest, StorageConfiguration,
 };
 use crate::domain::{
     LeasedLibraryChange, LibraryChangeEnqueueReport, LibraryChangeFailure, LibraryChangeId,
@@ -213,6 +215,78 @@ pub trait IncrementalCatalogRepository {
         batch: &CatalogDeltaBatch,
         completed_unix_ms: i64,
     ) -> Result<CatalogDeltaPublication, ScanError>;
+}
+
+pub trait MetadataInventorySource {
+    fn next_page(
+        &mut self,
+        max_entries: u32,
+        cancelled: &AtomicBool,
+    ) -> Result<MetadataInventoryPage, ScanError>;
+}
+
+pub trait MetadataInventoryRepository {
+    fn begin_metadata_inventory(
+        &mut self,
+        request: &MetadataInventoryRunRequest,
+    ) -> Result<MetadataInventoryRun, ScanError>;
+    fn stage_metadata_inventory_page(
+        &mut self,
+        run_id: &str,
+        page: &MetadataInventoryPage,
+        updated_unix_ms: i64,
+    ) -> Result<MetadataInventoryRun, ScanError>;
+    fn authorize_metadata_inventory_absence(
+        &mut self,
+        run_id: &str,
+        updated_unix_ms: i64,
+    ) -> Result<MetadataInventoryRun, ScanError>;
+    fn load_pending_metadata_inventory_entries(
+        &self,
+        run_id: &str,
+        limit: u32,
+    ) -> Result<Vec<MetadataInventoryEntry>, ScanError>;
+    fn load_metadata_inventory_previous_path(
+        &self,
+        run_id: &str,
+        identity: &FileIdentityEvidence,
+    ) -> Result<Option<String>, ScanError>;
+    fn record_metadata_inventory_comparisons(
+        &mut self,
+        run_id: &str,
+        updates: &[MetadataInventoryComparisonUpdate],
+        updated_unix_ms: i64,
+    ) -> Result<MetadataInventoryRun, ScanError>;
+    fn load_metadata_inventory_absence_candidates(
+        &self,
+        run_id: &str,
+        after_relative_path: Option<&str>,
+        limit: u32,
+    ) -> Result<Vec<String>, ScanError>;
+    fn advance_metadata_inventory_absence_cursor(
+        &mut self,
+        run_id: &str,
+        expected_cursor: Option<&str>,
+        next_cursor: &str,
+        candidate_count: u64,
+        updated_unix_ms: i64,
+    ) -> Result<MetadataInventoryRun, ScanError>;
+    fn complete_metadata_inventory(
+        &mut self,
+        run_id: &str,
+        completed_unix_ms: i64,
+    ) -> Result<MetadataInventoryRun, ScanError>;
+    fn terminate_metadata_inventory(
+        &mut self,
+        run_id: &str,
+        status: MetadataInventoryRunStatus,
+        issue: Option<(&str, &str)>,
+        updated_unix_ms: i64,
+    ) -> Result<MetadataInventoryRun, ScanError>;
+    fn load_metadata_inventory_run(
+        &self,
+        run_id: &str,
+    ) -> Result<Option<MetadataInventoryRun>, ScanError>;
 }
 
 pub trait CatalogRepository {

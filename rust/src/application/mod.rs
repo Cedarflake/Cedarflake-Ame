@@ -8,6 +8,7 @@ mod library_change_queue;
 /// flutter_rust_bridge:ignore
 mod library_synchronization;
 mod load_catalog;
+mod metadata_inventory;
 mod preview;
 mod preview_cleanup;
 #[cfg(test)]
@@ -32,6 +33,7 @@ pub use load_catalog::{
     load_catalog_asset_by_id, load_catalog_at_time, load_gallery_layout_manifest_chunk,
     load_gallery_timeline, load_library_folders, unregister_library_root,
 };
+pub use metadata_inventory::run_local_metadata_inventory;
 pub use preview::materialize_preview;
 pub(crate) use preview_cleanup::{acquire_preview_generation, acquire_preview_reclamation};
 pub use preview_cleanup::{cancel_preview_cleanup, clear_previews, clear_retired_previews};

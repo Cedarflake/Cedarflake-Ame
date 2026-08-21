@@ -482,6 +482,9 @@ fn identity_backfill_preserves_a_migrated_v17_location_identifier() {
              DROP TABLE library_change_scan_handoff_batches;
              DROP TABLE library_change_queue_catch_up_lineage;
              DROP TABLE library_change_preview_repair_contract;
+             DROP TABLE library_metadata_inventory_entries;
+             DROP TABLE library_metadata_inventory_runs;
+             DROP TABLE library_metadata_inventory_contract;
              DROP TABLE scan_run_catch_up_lineage;
              DROP TABLE library_change_catch_up_handoffs;
              DROP INDEX scan_runs_one_active_root;
@@ -549,7 +552,7 @@ fn identity_backfill_preserves_a_migrated_v17_location_identifier() {
             |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
         )
         .expect("load post-backfill counts");
-    assert_eq!(schema_version, 19);
+    assert_eq!(schema_version, 20);
     assert_eq!(location_count, 1);
     assert_eq!(asset_count, 1);
 }
@@ -1031,7 +1034,13 @@ fn assert_cross_root_move_preserves_continuity(
                 1
             );
             connection
-                .execute_batch("DROP TABLE library_change_preview_repair_contract")
+                .execute_batch(
+                    "DROP TABLE library_change_preview_repair_contract;
+                     DROP TABLE library_metadata_inventory_entries;
+                     DROP TABLE library_metadata_inventory_runs;
+                     DROP TABLE library_metadata_inventory_contract;
+                     UPDATE schema_info SET version = 19;",
+                )
                 .expect("restore prerelease preview repair marker");
             drop(connection);
             catalog = SqliteCatalog::open(catalog_path.clone())

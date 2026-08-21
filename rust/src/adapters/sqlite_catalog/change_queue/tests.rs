@@ -105,7 +105,7 @@ fn migrates_v16_without_losing_existing_catalog_rows() {
         )
         .expect("migrated evidence");
 
-    assert_eq!(version, 19);
+    assert_eq!(version, 20);
     assert_eq!(revision, 7);
     assert_eq!(preserved, "kept");
     assert!(queue_exists);
