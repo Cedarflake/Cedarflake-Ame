@@ -21,7 +21,8 @@ R2c-K.
   the `metadata_inventory` origin.
 - Current-schema validation checks exact inventory columns and indexes, the active-root index
   predicate, cascade relationships, the queue origin contract, marker completion, root generation,
-  published-catalog ownership, staged counts, scope containment, and foreign-key integrity.
+  published-catalog ownership, exact active staging counts, terminal cleanup bounds, scope
+  containment, and foreign-key integrity.
 - Local inventory walks root or subtree scopes in pages of at most 4,096 entries and records path,
   entry kind, size, modification time, optional Windows identity, reparse evidence, and placeholder
   state.
@@ -49,15 +50,16 @@ R2c-K.
 - metadata inventory: 14 passed, covering fixed-bound all-entry enumeration, empty missing subtree,
   controlled closed-process create/modify/delete/rename/directory move, Chinese and long paths,
   placeholder evidence, cancellation, durable failure, hard-link pairing, reparse-directory
-  rejection, bounded cleanup, orphan supersession, and terminalization retry;
+  rejection, partial and complete cleanup reopen, retained terminal summaries, orphan supersession,
+  and terminalization retry;
 - locked wrong-extension reconciliation: passed, proving unreadable signature evidence retains the
   last trustworthy catalog location and durable retry work;
-- schema migrations: 29 passed, including v19 queue/lineage preservation, new-origin admission,
-  exact-index and predicate rejection, missing-origin rejection, stale-generation rejection, and all
-  retained v17-v19 compatibility fixtures;
+- schema migrations: 30 passed, including v19 queue/lineage preservation, new-origin admission,
+  exact-index and predicate rejection, missing-origin rejection, stale-generation rejection,
+  active staged-count rejection, and all retained v17-v19 compatibility fixtures;
 - offline placeholder adapter: passed, proving inventory records the placeholder without file
   identity and preserves source bytes;
-- complete Rust suite: 438 total, 431 passed, seven existing explicit ignores, zero failures;
+- complete Rust suite: 439 total, 432 passed, seven existing explicit ignores, zero failures;
 - `./tool/quality_lint.ps1`: passed, including repository guardrails, formatting, Clippy with
   warnings denied, and Dart analysis;
 - `./tool/quality_verify_daily.ps1`: passed, including the complete Rust and Flutter suites,

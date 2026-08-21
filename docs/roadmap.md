@@ -1463,7 +1463,7 @@ fixed-bound metadata pages without content reads, media filtering, placeholder i
 reparse-directory traversal. Controlled closed-process fixtures cover additions, modifications,
 deletions, file and directory moves, placeholders, Chinese and long paths, missing subtrees,
 hard-link rename pairing, cancellation, and durable failure termination. Production epoch and
-paging scheduling remain R2c-K. Focused tests, the 438-test Rust suite, repository lint, complete
+paging scheduling remain R2c-K. Focused tests, the 439-test Rust suite, repository lint, complete
 Daily, and Windows Release gates pass; R2c-J is not accepted until its independent audit finishes.
 
 R2c-K - pageable recovery and continuity epochs:
@@ -2178,7 +2178,7 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   inferred from the historical R2c-G/H evidence.
 - R2c-J implementation and local verification are complete. Schema v20 inventory persistence,
   bounded metadata-only discovery, safe positive-candidate routing, and complete-scope absence
-  authority pass focused fixtures, repository lint, the complete Daily gate with 438 Rust tests,
+  authority pass focused fixtures, repository lint, the complete Daily gate with 439 Rust tests,
   and Windows Release verification. Independent audit is pending; production continuity epochs and
   pageable scheduling remain R2c-K.
 - The current R2b closeout working tree passed the complete local Daily gate and Windows Release

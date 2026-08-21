@@ -316,18 +316,38 @@ fn terminal_inventory_cleanup_deletes_staging_in_bounded_batches() {
 
     let first = fixture
         .catalog
-        .cleanup_terminal_metadata_inventories(3_000, 2, 1)
+        .cleanup_terminal_metadata_inventories(0, 2, 1)
         .expect("first cleanup batch");
     assert_eq!(first.removed_entry_count, 2);
     assert_eq!(first.removed_run_count, 0);
     assert!(first.has_more);
+    let catalog_path = fixture._storage.path().join("catalog.sqlite3");
+    drop(fixture.catalog);
+    fixture.catalog = SqliteCatalog::open(catalog_path.clone())
+        .expect("reopen partially cleaned terminal inventory");
     let second = fixture
         .catalog
-        .cleanup_terminal_metadata_inventories(3_000, 2, 1)
+        .cleanup_terminal_metadata_inventories(0, 2, 1)
         .expect("second cleanup batch");
     assert_eq!(second.removed_entry_count, 1);
-    assert_eq!(second.removed_run_count, 1);
+    assert_eq!(second.removed_run_count, 0);
     assert!(!second.has_more);
+    assert!(
+        fixture
+            .catalog
+            .load_metadata_inventory_run(&request.run_id)
+            .expect("load retained summary")
+            .is_some()
+    );
+    drop(fixture.catalog);
+    fixture.catalog = SqliteCatalog::open(catalog_path).expect("reopen cleaned catalog");
+    let expired = fixture
+        .catalog
+        .cleanup_terminal_metadata_inventories(3_000, 2, 1)
+        .expect("expired summary cleanup");
+    assert_eq!(expired.removed_entry_count, 0);
+    assert_eq!(expired.removed_run_count, 1);
+    assert!(!expired.has_more);
 }
 
 #[cfg(windows)]

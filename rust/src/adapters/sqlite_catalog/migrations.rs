@@ -662,10 +662,20 @@ fn validate_metadata_inventory_contract(connection: &Connection) -> Result<(), S
                OR EXISTS(
                  SELECT 1
                  FROM library_metadata_inventory_runs AS runs
-                 WHERE runs.staged_entry_count <> (
-                   SELECT COUNT(*) FROM library_metadata_inventory_entries AS entries
-                   WHERE entries.run_id = runs.id
+                 WHERE (
+                   runs.status IN ('running', 'comparing')
+                   AND runs.staged_entry_count <> (
+                     SELECT COUNT(*) FROM library_metadata_inventory_entries AS entries
+                     WHERE entries.run_id = runs.id
+                   )
                  )
+                    OR (
+                      runs.status IN ('completed', 'failed', 'cancelled', 'superseded')
+                      AND runs.staged_entry_count < (
+                        SELECT COUNT(*) FROM library_metadata_inventory_entries AS entries
+                        WHERE entries.run_id = runs.id
+                      )
+                    )
                     OR (runs.scope_kind = 'root' AND runs.scope_relative_path <> '')
                     OR (runs.scope_kind = 'subtree' AND runs.scope_relative_path = '')
                )
@@ -3391,6 +3401,38 @@ mod tests {
             .expect("stale inventory generation fixture");
 
         let error = migrate_schema(&mut connection).expect_err("stale active inventory");
+
+        assert_eq!(
+            error.code,
+            "catalog_metadata_inventory_contract_unverifiable"
+        );
+    }
+
+    #[test]
+    fn current_v20_active_inventory_with_staged_count_mismatch_fails_closed() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh v20 catalog");
+        connection
+            .execute_batch(
+                "INSERT INTO library_roots(id, path, created_unix_ms)
+                   VALUES ('root-a', 'C:/source', 1);
+                 INSERT INTO scan_runs(
+                   id, root_id, status, started_unix_ms, completed_unix_ms, preview_edge
+                 ) VALUES ('published-scan', 'root-a', 'completed', 1, 1, 128);
+                 UPDATE library_roots SET active_scan_id = 'published-scan' WHERE id = 'root-a';
+                 INSERT INTO library_change_root_state(
+                   root_id, generation, is_active, updated_unix_ms
+                 ) VALUES ('root-a', 1, 1, 1);
+                 INSERT INTO library_metadata_inventory_runs(
+                   id, root_id, root_generation, epoch, scope_kind, scope_relative_path,
+                   status, next_page_index, staged_entry_count, started_unix_ms, updated_unix_ms
+                 ) VALUES (
+                   'inventory-a', 'root-a', 1, 1, 'root', '', 'running', 2, 1, 1, 1
+                 );",
+            )
+            .expect("active staged-count mismatch fixture");
+
+        let error = migrate_schema(&mut connection).expect_err("active staged-count mismatch");
 
         assert_eq!(
             error.code,
