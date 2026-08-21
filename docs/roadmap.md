@@ -1464,7 +1464,8 @@ reparse-directory traversal. Controlled closed-process fixtures cover additions,
 deletions, file and directory moves, placeholders, Chinese and long paths, missing subtrees,
 hard-link rename pairing, cancellation, and durable failure termination. Production epoch and
 paging scheduling remain R2c-K. Focused tests, the 439-test Rust suite, repository lint, complete
-Daily, and Windows Release gates pass; R2c-J is not accepted until its independent audit finishes.
+Daily, and Windows Release gates pass; the final independent audit found no remaining findings, so
+R2c-J is accepted.
 
 R2c-K - pageable recovery and continuity epochs:
 
