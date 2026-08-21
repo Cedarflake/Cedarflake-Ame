@@ -15,14 +15,16 @@ param(
     [int]$TimeLimitSeconds = 1800,
     [ValidateRange(268435456, 4294967296)]
     [UInt64]$MemoryLimitBytes = 2147483648,
-    [switch]$ValidationOnly
+    [switch]$ValidationOnly,
+    [ValidateSet("Historical", "Replacement")]
+    [string]$AcceptanceProfile = "Historical"
 )
 
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "quality_common.ps1")
 
 if ($env:OS -ne "Windows_NT") {
-    throw "R2c-H reliability acceptance requires Windows"
+    throw "R2c reliability acceptance requires Windows"
 }
 
 if ($null -eq ("AmeR2cProcessJob" -as [type])) {
@@ -52,7 +54,7 @@ public sealed class AmeR2cProcessJob : IDisposable
         IntPtr rawHandle = CreateJobObject(IntPtr.Zero, null);
         if (rawHandle == IntPtr.Zero || rawHandle == new IntPtr(-1))
         {
-            throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not create the R2c-H process job");
+            throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not create the R2c process job");
         }
         jobHandle = new SafeFileHandle(rawHandle, true);
         JOBOBJECT_EXTENDED_LIMIT_INFORMATION limits = new JOBOBJECT_EXTENDED_LIMIT_INFORMATION();
@@ -64,7 +66,7 @@ public sealed class AmeR2cProcessJob : IDisposable
             Marshal.StructureToPtr(limits, buffer, false);
             if (!SetInformationJobObject(rawHandle, JobObjectExtendedLimitInformation, buffer, (uint)length))
             {
-                throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not configure the R2c-H process job");
+                throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not configure the R2c process job");
             }
         }
         catch
@@ -90,7 +92,7 @@ public sealed class AmeR2cProcessJob : IDisposable
         }
         if (processHandle != null)
         {
-            throw new InvalidOperationException("The R2c-H process job already owns a process");
+            throw new InvalidOperationException("The R2c process job already owns a process");
         }
         STARTUPINFO startup = new STARTUPINFO();
         startup.cb = (uint)Marshal.SizeOf(typeof(STARTUPINFO));
@@ -108,7 +110,7 @@ public sealed class AmeR2cProcessJob : IDisposable
             ref startup,
             out process))
         {
-            throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not start the R2c-H acceptance process");
+            throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not start the R2c acceptance process");
         }
         try
         {
@@ -116,13 +118,13 @@ public sealed class AmeR2cProcessJob : IDisposable
             {
                 int error = Marshal.GetLastWin32Error();
                 TerminateProcess(process.hProcess, 1);
-                throw new Win32Exception(error, "Could not assign the R2c-H process to its job");
+                throw new Win32Exception(error, "Could not assign the R2c process to its job");
             }
             if (ResumeThread(process.hThread) == UInt32.MaxValue)
             {
                 int error = Marshal.GetLastWin32Error();
                 TerminateProcess(process.hProcess, 1);
-                throw new Win32Exception(error, "Could not resume the R2c-H acceptance process");
+                throw new Win32Exception(error, "Could not resume the R2c acceptance process");
             }
             processHandle = new SafeFileHandle(process.hProcess, true);
             process.hProcess = IntPtr.Zero;
@@ -144,16 +146,16 @@ public sealed class AmeR2cProcessJob : IDisposable
         {
             if (processHandle == null || processHandle.IsClosed)
             {
-                throw new InvalidOperationException("The R2c-H process job has no owned process");
+                throw new InvalidOperationException("The R2c process job has no owned process");
             }
             uint exitCode;
             if (!GetExitCodeProcess(processHandle.DangerousGetHandle(), out exitCode))
             {
-                throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not read the R2c-H process exit code");
+                throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not read the R2c process exit code");
             }
             if (exitCode == 259)
             {
-                throw new InvalidOperationException("The R2c-H acceptance process is still active");
+                throw new InvalidOperationException("The R2c acceptance process is still active");
             }
             return exitCode;
         }
@@ -173,7 +175,7 @@ public sealed class AmeR2cProcessJob : IDisposable
                 (uint)length,
                 out returnedLength))
             {
-                throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not query R2c-H job memory");
+                throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not query R2c job memory");
             }
             return information.PeakJobMemoryUsed.ToUInt64();
         }
@@ -187,12 +189,12 @@ public sealed class AmeR2cProcessJob : IDisposable
     {
         if (observedMemoryBytes > memoryLimitBytes)
         {
-            return "R2c-H reliability acceptance exceeded the memory limit of " +
+            return "R2c reliability acceptance exceeded the memory limit of " +
                 memoryLimitBytes + " bytes";
         }
         if (observedAtUtc >= deadlineUtc)
         {
-            return "R2c-H reliability acceptance exceeded its time limit";
+            return "R2c reliability acceptance exceeded its time limit";
         }
         return null;
     }
@@ -210,13 +212,13 @@ public sealed class AmeR2cProcessJob : IDisposable
         {
             if (handle.IsInvalid)
             {
-                throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not resolve the R2c-H path");
+                throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not resolve the R2c path");
             }
             StringBuilder buffer = new StringBuilder(32768);
             uint length = GetFinalPathNameByHandle(handle, buffer, (uint)buffer.Capacity, 0);
             if (length == 0 || length >= buffer.Capacity)
             {
-                throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not read the resolved R2c-H path");
+                throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not read the resolved R2c path");
             }
             string resolved = buffer.ToString();
             if (resolved.StartsWith("\\\\?\\UNC\\", StringComparison.OrdinalIgnoreCase))
@@ -379,9 +381,15 @@ public sealed class AmeR2cProcessJob : IDisposable
 '@
 }
 
-$requiredToken = "CEDARFLAKE_AME_R2C_RELIABILITY_ACCEPTANCE_V1"
+$isReplacement = $AcceptanceProfile -ceq "Replacement"
+$acceptanceLabel = if ($isReplacement) { "R2c-M replacement" } else { "R2c-H reliability" }
+$requiredToken = if ($isReplacement) {
+    "CEDARFLAKE_AME_R2C_REPLACEMENT_ACCEPTANCE_V1"
+} else {
+    "CEDARFLAKE_AME_R2C_RELIABILITY_ACCEPTANCE_V1"
+}
 if ($AuthorizationToken -cne $requiredToken) {
-    throw "The exact current R2c-H reliability authorization token is required"
+    throw "The exact current $acceptanceLabel authorization token is required"
 }
 if (-not $AcknowledgeCloudReadOnly) {
     throw "The cloud root requires an explicit read-only acknowledgement"
@@ -401,7 +409,7 @@ if (-not (Test-Path -LiteralPath $absoluteCatalog -PathType Leaf)) {
     throw "The retained source catalog is not an available file"
 }
 if (-not (Test-Path -LiteralPath $absoluteStorage -PathType Container)) {
-    throw "R2c-H reliability acceptance storage must be a pre-created empty directory"
+    throw "$acceptanceLabel acceptance storage must be a pre-created empty directory"
 }
 
 $resolvedLocalRoot = [AmeR2cProcessJob]::ResolveExistingPath($absoluteLocalRoot)
@@ -440,7 +448,7 @@ if (Test-AmePathOverlap -Left $resolvedLocalRoot -Right $resolvedCloudRoot) {
 }
 foreach ($sourcePath in @($resolvedLocalRoot, $resolvedCloudRoot, $resolvedCatalog)) {
     if (Test-AmePathOverlap -Left $sourcePath -Right $resolvedStorage) {
-        throw "R2c-H isolated storage must remain outside every source path"
+        throw "$acceptanceLabel isolated storage must remain outside every source path"
     }
 }
 foreach ($rootPath in @($resolvedLocalRoot, $resolvedCloudRoot)) {
@@ -451,25 +459,44 @@ foreach ($rootPath in @($resolvedLocalRoot, $resolvedCloudRoot)) {
 $existingContent = Get-ChildItem -LiteralPath $resolvedStorage -Force |
     Select-Object -First 1
 if ($null -ne $existingContent) {
-    throw "R2c-H reliability acceptance storage must be empty"
+    throw "$acceptanceLabel acceptance storage must be empty"
 }
 
 if ($ValidationOnly) {
-    Write-Output "AME_R2C_H_VALIDATION status=passed"
+    $validationPrefix = if ($isReplacement) { "AME_R2C_M" } else { "AME_R2C_H" }
+    Write-Output "$validationPrefix`_VALIDATION status=passed"
     exit 0
 }
 
 $repositoryRoot = Get-AmeRepositoryRoot
 $cargo = (Get-AmeToolchain).Cargo
-$reportPath = Join-Path $resolvedStorage "r2c-h-large-library-reliability.log"
-$environment = @{
-    CEDARFLAKE_AME_R2C_H_CONSENT = $requiredToken
-    CEDARFLAKE_AME_R2C_H_CLOUD_READ_ONLY_ACK = "true"
-    CEDARFLAKE_AME_R2C_H_LOCAL_ROOT = $resolvedLocalRoot
-    CEDARFLAKE_AME_R2C_H_CLOUD_ROOT = $resolvedCloudRoot
-    CEDARFLAKE_AME_R2C_H_SOURCE_CATALOG = $resolvedCatalog
-    CEDARFLAKE_AME_R2C_H_STORAGE_ROOT = $resolvedStorage
-    CEDARFLAKE_AME_R2C_H_REPORT = $reportPath
+$reportPrefix = if ($isReplacement) { "AME_R2C_M" } else { "AME_R2C_H" }
+$reportName = if ($isReplacement) {
+    "r2c-m-replacement-reliability.log"
+} else {
+    "r2c-h-large-library-reliability.log"
+}
+$reportPath = Join-Path $resolvedStorage $reportName
+if ($isReplacement) {
+    $environment = @{
+        CEDARFLAKE_AME_R2C_M_CONSENT = $requiredToken
+        CEDARFLAKE_AME_R2C_M_CLOUD_READ_ONLY_ACK = "true"
+        CEDARFLAKE_AME_R2C_M_LOCAL_ROOT = $resolvedLocalRoot
+        CEDARFLAKE_AME_R2C_M_CLOUD_ROOT = $resolvedCloudRoot
+        CEDARFLAKE_AME_R2C_M_SOURCE_CATALOG = $resolvedCatalog
+        CEDARFLAKE_AME_R2C_M_STORAGE_ROOT = $resolvedStorage
+        CEDARFLAKE_AME_R2C_M_REPORT = $reportPath
+    }
+} else {
+    $environment = @{
+        CEDARFLAKE_AME_R2C_H_CONSENT = $requiredToken
+        CEDARFLAKE_AME_R2C_H_CLOUD_READ_ONLY_ACK = "true"
+        CEDARFLAKE_AME_R2C_H_LOCAL_ROOT = $resolvedLocalRoot
+        CEDARFLAKE_AME_R2C_H_CLOUD_ROOT = $resolvedCloudRoot
+        CEDARFLAKE_AME_R2C_H_SOURCE_CATALOG = $resolvedCatalog
+        CEDARFLAKE_AME_R2C_H_STORAGE_ROOT = $resolvedStorage
+        CEDARFLAKE_AME_R2C_H_REPORT = $reportPath
+    }
 }
 $previousEnvironment = @{}
 foreach ($name in $environment.Keys) {
@@ -477,9 +504,11 @@ foreach ($name in $environment.Keys) {
     [System.Environment]::SetEnvironmentVariable($name, $environment[$name], "Process")
 }
 
+$testFilter = if ($isReplacement) { "r2c_m_" } else { "r2c_h_" }
+$ignoredMode = if ($isReplacement) { "--include-ignored" } else { "--ignored" }
 $processArguments = (
-    "test --release --locked --manifest-path rust\Cargo.toml " +
-    "r2c_h_ -- --ignored --nocapture --test-threads=1"
+    "test --release --locked --manifest-path rust\Cargo.toml $testFilter " +
+    "-- $ignoredMode --nocapture --test-threads=1"
 )
 $deadlineUtc = [DateTime]::UtcNow.AddSeconds($TimeLimitSeconds)
 $peakJobMemoryBytes = [UInt64]0
@@ -547,14 +576,14 @@ if ($null -ne $failure) {
     throw $failure
 }
 if ($processExitCode -ne 0) {
-    throw "R2c-H reliability acceptance failed with exit code $processExitCode"
+    throw "$acceptanceLabel acceptance failed with exit code $processExitCode"
 }
 if (-not (Test-Path -LiteralPath $reportPath -PathType Leaf)) {
-    throw "R2c-H reliability acceptance completed without a report"
+    throw "$acceptanceLabel acceptance completed without a report"
 }
 
 $memoryLine = (
-    "AME_R2C_H_MEMORY peak_job_memory_bytes=$peakJobMemoryBytes " +
+    "$reportPrefix`_MEMORY peak_job_memory_bytes=$peakJobMemoryBytes " +
     "limit_bytes=$MemoryLimitBytes"
 )
 [System.IO.File]::AppendAllText(
@@ -564,4 +593,4 @@ $memoryLine = (
 )
 $report = [System.IO.File]::ReadAllText($reportPath)
 Write-Output $report.TrimEnd()
-Write-Output "AME_R2C_H_REPORT status=available"
+Write-Output "$reportPrefix`_REPORT status=available"

@@ -101,7 +101,7 @@ impl LibraryChangeQueuePolicy {
 impl Default for LibraryChangeQueuePolicy {
     fn default() -> Self {
         Self {
-            debounce_millis: 500,
+            debounce_millis: 250,
             max_unresolved_changes: Self::MAX_UNRESOLVED_CHANGES,
             max_lease_batch: 64,
             lease_duration_millis: 30_000,

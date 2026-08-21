@@ -14,6 +14,7 @@ acceptance work. A passing lower gate never claims that a higher gate ran.
 | Preview performance acceptance | `./tool/acceptance_run_preview_performance.ps1` | Cold/warm bucket latency, cache growth, reuse, reclamation, regeneration, bounded memory, and sampled source integrity | Explicitly authorized R2b preview closeout only |
 | Real library | `./tool/acceptance_run_read_only_library.ps1` and `./tool/acceptance_verify_read_only_catalog.ps1` | Explicitly authorized source scan, source integrity sampling, retained multi-root catalog validation | Only with current authorization and explicit paths |
 | R2c reliability | `./tool/acceptance_run_r2c_reliability.ps1` | Real watcher latency and coalescing on a disposable root; isolated retained-catalog catch-up, queue, storage, memory, placeholder, metadata, and source-byte evidence | Explicitly authorized R2c-H closeout only |
+| R2c replacement reliability | `./tool/acceptance_run_r2c_replacement_reliability.ps1` | Disposable watcher operation latency, storm and restart recovery; isolated retained-catalog metadata inventory, cached gallery, source metadata, placeholder, full-scan, storage, and memory evidence | Explicitly authorized R2c-M closeout only |
 | Release | `./tool/release_verify_candidate.ps1` | Daily gate, Windows Release and bridge smoke, synthetic performance gate, optional retained real-library validation | Before a release candidate |
 | Portable artifact | `./tool/release_package_portable_windows.ps1` | Versioned Windows x64 ZIP plus archive-structure verification | After a release build passes |
 
@@ -208,6 +209,40 @@ through `./tool/acceptance_test_r2c_reliability_guardrails.ps1`. A passing tool 
 successfully. See
 [r2c-h-large-library-reliability.md](./r2c-h-large-library-reliability.md) for the accepted metrics and
 remaining platform limitations.
+
+## R2c replacement reliability gate
+
+Run the R2c-M gate only with current authorization naming both logical roots, the retained catalog,
+and new empty derived storage:
+
+```powershell
+./tool/acceptance_run_r2c_replacement_reliability.ps1 `
+  -LocalRoot "<authorized local-primary root>" `
+  -CloudRoot "<authorized cloud-primary root>" `
+  -SourceCatalogPath "<retained catalog path>" `
+  -StorageRoot "<new empty storage outside every source tree>" `
+  -AuthorizationToken "<current R2c-M authorization token>" `
+  -AcknowledgeCloudReadOnly
+```
+
+The disposable phase measures production create, modify, rename, cross-directory move, same-path
+replacement, and delete visibility, requiring event-to-visible P95 no greater than one second. It
+also records storm coalescing, restart continuity, bounded shutdown, catalog growth, and unchanged
+full-scan rows. The retained phase opens the supplied catalog read-only, creates an online SQLite
+backup in isolated storage, proves a cached gallery page is available before continuity work, and
+runs the production metadata inventory directly for each authorized root. Each root must complete
+within 45 seconds before any complete source walk. This phase enumerates metadata without invoking
+media inspection, preview, signature, or hashing paths. A separate repeated-inventory pass compares
+complete Windows directory-entry metadata and placeholder attributes before and after; the report
+keeps that safety evidence distinct from the cold timing and verifies that no full-scan row was
+created.
+
+The wrapper retains the R2c-H Job Object, deadline, memory, physical path, empty storage, token, and
+cloud acknowledgement controls. Its non-accessing boundary is exercised through
+`./tool/acceptance_test_r2c_replacement_guardrails.ps1`. `-ValidationOnly`, disposable evidence, and
+the small retained-catalog fixture do not substitute for an authorized target-scale run. See
+[r2c-m-replacement-reliability.md](./r2c-m-replacement-reliability.md) for the recorded evidence and
+remaining authorization boundary.
 
 ## Release gate
 

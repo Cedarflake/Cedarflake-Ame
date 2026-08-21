@@ -454,6 +454,14 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
 - `./tool/acceptance_test_r2c_reliability_guardrails.ps1` verifies the R2c-H authorization token,
   cloud acknowledgement, path-separation, and fresh-storage boundary without accessing a real
   library.
+- `./tool/acceptance_run_r2c_replacement_reliability.ps1` is the R2c-M replacement closeout gate.
+  It measures production watcher operations against a disposable root, then backs up the retained
+  catalog into isolated storage and measures per-root metadata-only continuity without opening
+  media content or publishing a full scan. The retained-root phase requires current explicit
+  authorization.
+- `./tool/acceptance_test_r2c_replacement_guardrails.ps1` verifies the R2c-M authorization token,
+  cloud acknowledgement, physical path separation, and fresh-storage boundary without accessing a
+  real library.
 - `./tool/release_verify_windows.ps1` is the Windows packaging and release-bridge gate. It also
   proves that a packaged process rejects a same-user duplicate before runtime initialization and
   that a replacement starts after the original process exits. Run it when desktop integration,
