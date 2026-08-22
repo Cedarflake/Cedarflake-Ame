@@ -52,20 +52,21 @@ pre/post source snapshot around the cold pass.
 
 The small retained-catalog fixture passes with additions, modification, removal, and rename routed
 through metadata inventory in a fresh measurement process. The final Release disposable production
-run recorded 25 mixed operation samples with 554 ms P50 and 823 ms P95 under a 250 ms foreground
-poll cadence, 96 storm paths and 675 new observations coalesced into one new retained queue row,
-1,162 ms cross-process restart convergence, immediate shutdown, unchanged full-scan rows, and a
+run recorded 25 mixed operation samples with 557 ms P50 and 828 ms P95 under a 250 ms foreground
+poll cadence, 96 storm paths and 676 new observations coalesced into one new retained queue row,
+1,188 ms cross-process restart convergence, immediate shutdown, unchanged full-scan rows, and a
 745,472-byte isolated catalog.
 
 The authorization, cloud acknowledgement, physical path separation, junction alias, empty storage,
 deadline, process ownership, and memory-limit controls passed. The explicitly authorized retained
 phase completed against both logical roots in a fresh isolated catalog. `local-primary` inventoried
-35,086 entries in 7,482 ms with 1,314 candidates and 33,772 unchanged entries. `cloud-primary`
-inventoried 50,472 entries in 13,089 ms with 1,171 candidates and 49,301 unchanged entries. The
-cached gallery page was available in 40 ms, the layout manifest retained 79,119 items, the source
-metadata and placeholder-state safety pass remained unchanged, queue growth was zero, full-scan
-rows were unchanged, isolated catalog growth was 8,001,072 bytes, and peak Job Object memory was
-1,390,215,168 bytes under the 2,147,483,648-byte limit.
+35,086 entries in 7,674 ms with 1,314 candidates and 33,772 unchanged entries. `cloud-primary`
+inventoried 50,472 entries in 14,409 ms with 1,171 candidates and 49,301 unchanged entries. The two
+root-scoped cached gallery pages and initial manifest chunks were available in 515 ms, the authorized
+layout manifests retained 79,102 items, the source metadata and placeholder-state safety pass
+remained unchanged, queue growth was zero, full-scan rows were unchanged, isolated catalog growth
+was 8,001,072 bytes, and peak Job Object memory was 1,389,211,648 bytes under the
+2,147,483,648-byte limit.
 
 The target-tested implementation passes the complete Daily gate with 461 Rust tests total, 450
 passed and 11 authorization-bound or manual performance tests ignored. All Flutter test files,

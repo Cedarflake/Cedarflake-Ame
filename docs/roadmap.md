@@ -2222,12 +2222,13 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   verification, and a final independent audit with no remaining findings.
 - R2c-M replacement tooling and target evidence are implemented. The final Release disposable
   production coordinator records 25 mixed create, modify, rename, move, same-path replacement, and
-  delete samples at 554 ms P50 and 823 ms P95 under the 250 ms foreground cadence, bounded storm
-  coalescing, 1,162 ms cross-process restart convergence, immediate shutdown, and unchanged
+  delete samples at 557 ms P50 and 828 ms P95 under the 250 ms foreground cadence, bounded storm
+  coalescing, 1,188 ms cross-process restart convergence, immediate shutdown, and unchanged
   full-scan rows. The authorized isolated retained-catalog phase inventories 35,086
-  `local-primary` entries in 7,482 ms and 50,472 `cloud-primary` entries in 13,089 ms, preserves
-  source directory-entry metadata and placeholder state, retains the 79,119-item manifest, adds no
-  queue rows, and stays below the 2 GiB Job Object limit without media reads or source mutation.
+  `local-primary` entries in 7,674 ms and 50,472 `cloud-primary` entries in 14,409 ms, preserves
+  source directory-entry metadata and placeholder state, retains 79,102 authorized manifest items,
+  adds no queue rows, and stays below the 2 GiB Job Object limit without media reads or source
+  mutation.
   The target-tested head passes the complete Daily gate with 461 Rust tests total, 450 passed and
   11 ignored, all Flutter and Windows integration partitions, and Windows Release verification.
   R2c-M remains active until its final independent audit reports no remaining findings.

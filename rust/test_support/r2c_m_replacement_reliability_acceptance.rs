@@ -389,6 +389,8 @@ fn r2c_m_small_metadata_inventory_reliability_fixture() {
     assert!(report.contains("repeated_inventory_source_metadata_unchanged=true"));
     assert!(report.contains("cold_inventory_source_snapshot=not_measured"));
     assert!(report.contains("full_scan_rows_unchanged=true"));
+    assert!(report.contains("cached_gallery_items=4"));
+    assert!(report.contains("manifest_total_items=4"));
 
     let isolated_catalog = storage_root.join("replacement-catalog").join("ame.sqlite3");
     let unrelated_path = unrelated_root
@@ -465,42 +467,60 @@ fn run_prepared_metadata_inventory_acceptance(
     let cached_gallery_started = Instant::now();
     let mut catalog =
         SqliteCatalog::open(isolated_catalog.to_path_buf()).expect("isolated catalog");
-    let cached_gallery = catalog
-        .load_snapshot(
-            INITIAL_GALLERY_ITEMS,
-            &GalleryQuery::default(),
-            "r2c-m-cached",
-            None,
-            None,
-            None,
-        )
-        .expect("load cached gallery");
-    let manifest = catalog
-        .load_gallery_layout_manifest_chunk(
-            INITIAL_MANIFEST_ITEMS,
-            &GalleryQuery::default(),
-            "r2c-m-cached",
-            None,
-        )
-        .expect("load initial cached gallery manifest");
+    let catalog_roots = catalog
+        .load_incremental_catalog_roots()
+        .expect("load retained catalog roots");
+    assert_catalog_roots(&catalog_roots, roots);
+    let mut cached_gallery_items = 0_usize;
+    let mut initial_manifest_items = 0_usize;
+    let mut manifest_total_items = 0_u64;
+    for (logical_root, root_path) in roots {
+        let root = catalog_roots
+            .iter()
+            .find(|root| paths_same(&PathBuf::from(&root.root_path), root_path))
+            .expect("catalog root for authorized gallery measurement");
+        let query = GalleryQuery {
+            root_id: Some(root.root_id.clone()),
+            ..GalleryQuery::default()
+        };
+        let query_id = format!("r2c-m-cached-{logical_root}");
+        let cached_gallery = catalog
+            .load_snapshot(INITIAL_GALLERY_ITEMS, &query, &query_id, None, None, None)
+            .expect("load authorized cached gallery");
+        let manifest = catalog
+            .load_gallery_layout_manifest_chunk(INITIAL_MANIFEST_ITEMS, &query, &query_id, None)
+            .expect("load authorized cached gallery manifest");
+        assert!(
+            !cached_gallery.assets.is_empty(),
+            "authorized retained gallery is empty"
+        );
+        assert!(
+            cached_gallery
+                .assets
+                .iter()
+                .all(|asset| asset.root_id == root.root_id),
+            "cached gallery crossed its authorized root"
+        );
+        assert!(
+            !manifest.location_ids.is_empty(),
+            "authorized retained gallery manifest is empty"
+        );
+        cached_gallery_items = cached_gallery_items
+            .checked_add(cached_gallery.assets.len())
+            .expect("cached gallery item count overflow");
+        initial_manifest_items = initial_manifest_items
+            .checked_add(manifest.location_ids.len())
+            .expect("initial manifest item count overflow");
+        manifest_total_items = manifest_total_items
+            .checked_add(manifest.total_items)
+            .expect("manifest total item count overflow");
+    }
     let cached_gallery_ms = elapsed_millis(cached_gallery_started.elapsed());
-    assert!(
-        !cached_gallery.assets.is_empty(),
-        "retained gallery is empty"
-    );
-    assert!(
-        !manifest.location_ids.is_empty(),
-        "retained gallery manifest is empty"
-    );
     assert!(
         cached_gallery_ms <= CACHED_GALLERY_LIMIT_MS,
         "cached gallery did not become available within one second"
     );
 
-    let catalog_roots = catalog
-        .load_incremental_catalog_roots()
-        .expect("load retained catalog roots");
-    assert_catalog_roots(&catalog_roots, roots);
     let scan_rows_before = scan_row_count(isolated_catalog).expect("pre-inventory scan rows");
     let queue_before = queue_totals(isolated_catalog).expect("pre-inventory queue totals");
     let catalog_bytes_before = sqlite_family_bytes(isolated_catalog);
@@ -536,9 +556,9 @@ fn run_prepared_metadata_inventory_acceptance(
         report_path,
         &format!(
             "AME_R2C_M_REAL status=passed roots=2 cached_gallery_ms={cached_gallery_ms} cached_gallery_items={} initial_manifest_items={} manifest_total_items={} local_inventory_ms={} local_entries={} local_candidates={} local_unchanged={} cloud_inventory_ms={} cloud_entries={} cloud_candidates={} cloud_unchanged={} placeholder_entries={placeholder_count} metadata_boundary=local_metadata_inventory safety_snapshot_boundary=windows_directory_entries cold_inventory_source_snapshot=not_measured queue_rows_before={} queue_rows_after={} queue_growth={} catalog_bytes_before={catalog_bytes_before} catalog_bytes_after={catalog_bytes_after} catalog_growth={} backup_ms={backup_ms} repeated_inventory_source_metadata_unchanged=true repeated_inventory_placeholder_state_unchanged=true full_scan_rows_unchanged=true",
-            cached_gallery.assets.len(),
-            manifest.location_ids.len(),
-            manifest.total_items,
+            cached_gallery_items,
+            initial_manifest_items,
+            manifest_total_items,
             local.0,
             local.1,
             local.2,
