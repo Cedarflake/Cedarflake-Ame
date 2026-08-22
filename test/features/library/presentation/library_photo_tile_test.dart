@@ -281,7 +281,21 @@ class _FakeScanner implements LibraryScanner {
   bool pause(String scanId) => false;
 
   @override
+  bool suspend(String scanId) => false;
+
+  @override
   Stream<LibraryScanUpdate> scan({
+    required String scanId,
+    required String rootPath,
+    required int? itemLimit,
+    required int? entryLimit,
+    required int previewEdge,
+  }) {
+    return const Stream.empty();
+  }
+
+  @override
+  Stream<LibraryScanUpdate> resume({
     required String scanId,
     required String rootPath,
     required int? itemLimit,

@@ -6,6 +6,7 @@ import "package:cedarflake_ame/features/library/application/library_controller.d
 import "package:cedarflake_ame/features/library/domain/library_folder_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
+import "package:cedarflake_ame/features/library/domain/library_synchronization_models.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_folder_navigation_tile.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_navigation.dart";
@@ -42,6 +43,7 @@ void main() {
             ),
           ),
         );
+        expect(find.text(LibraryStrings.synchronized), findsOneWidget);
 
         seedColor.value = const Color(0xFF8E4D92);
         await tester.pumpAndSettle();
@@ -207,6 +209,24 @@ void main() {
     } finally {
       semanticsHandle.dispose();
     }
+  });
+
+  testWidgets("shows reconciliation when startup fails before root status", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: _buildNavigation(
+            hasSynchronizationFailure: true,
+            includeRootStatus: false,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text(LibraryStrings.needsReconciliation), findsOneWidget);
+    expect(find.text(LibraryStrings.synchronizing), findsNothing);
   });
 
   testWidgets("keeps the populated application semantics reachable", (
@@ -425,7 +445,10 @@ LibraryState _populatedLibraryState() {
   );
 }
 
-Widget _buildNavigation() {
+Widget _buildNavigation({
+  bool hasSynchronizationFailure = false,
+  bool includeRootStatus = true,
+}) {
   const folderPath = "Long album name that needs a path tooltip";
   return Align(
     alignment: Alignment.topLeft,
@@ -445,6 +468,24 @@ Widget _buildNavigation() {
           availability: LibraryRootAvailability.available,
         ),
       ],
+      rootSynchronizationStatuses: includeRootStatus
+          ? {
+              "root-1": LibraryRootSynchronizationStatus(
+                rootId: "root-1",
+                rootGeneration: BigInt.one,
+                availability: LibraryRootAvailability.available,
+                freshness: LibraryCatalogFreshness.synchronized,
+                freshnessCause: LibraryCatalogFreshnessCause.noPendingChanges,
+                phase: LibrarySynchronizationPhase.synchronized,
+                phaseStartedAt: DateTime.utc(2026, 8, 21),
+                sourceStatus: LibraryChangeSourceStatus.healthy,
+                pendingChangeCount: BigInt.zero,
+                retryWaitCount: BigInt.zero,
+                freshnessUnknownCount: BigInt.zero,
+              ),
+            }
+          : const {},
+      hasSynchronizationFailure: hasSynchronizationFailure,
       selectedRootId: "root-1",
       selectedFolderRelativePath: null,
       transientRootPath: null,

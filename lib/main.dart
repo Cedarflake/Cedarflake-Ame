@@ -5,9 +5,12 @@ import "app/ame_app.dart";
 import "app/bootstrap/ame_bootstrap_failure.dart";
 import "app/bootstrap/rust_library_loader.dart";
 import "app/window/ame_window_actions.dart";
+import "app/window/ame_shutdown_coordinator.dart";
 import "app/window/window_manager_actions.dart";
 import "features/library/application/library_catalog.dart";
 import "features/library/application/library_controller.dart";
+import "features/library/application/library_scan_shutdown.dart";
+import "features/library/application/library_synchronization.dart";
 import "features/library/application/library_view_preferences.dart";
 import "features/library/domain/library_models.dart";
 import "features/library/domain/library_state.dart";
@@ -17,9 +20,13 @@ import "features/settings/adapters/shared_preferences_ame_store.dart";
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final preferenceStore = SharedPreferencesAmeStore();
+  final shutdownCoordinator = AmeShutdownCoordinator();
   final amePreferences = await preferenceStore.loadAmePreferences();
   final viewPreferences = await preferenceStore.loadLibraryViewPreferences();
-  final windowActions = await initializeAmeWindow(preferenceStore);
+  final windowActions = await initializeAmeWindow(
+    preferenceStore,
+    shutdownCoordinator,
+  );
 
   try {
     await initializeRustLibrary();
@@ -33,6 +40,11 @@ Future<void> main() async {
       query: query,
     );
     final initialState = LibraryState.fromSnapshot(snapshot, query: query);
+    final synchronization = RustLibrarySynchronization();
+    final scanShutdownCoordinator = LibraryScanShutdownCoordinator();
+    shutdownCoordinator.register(synchronization.stop);
+    shutdownCoordinator.register(scanShutdownCoordinator.suspend);
+    await synchronization.start();
     runApp(
       ProviderScope(
         overrides: [
@@ -43,6 +55,10 @@ Future<void> main() async {
             viewPreferences,
           ),
           libraryCatalogProvider.overrideWithValue(catalog),
+          libraryScanShutdownCoordinatorProvider.overrideWithValue(
+            scanShutdownCoordinator,
+          ),
+          librarySynchronizationProvider.overrideWithValue(synchronization),
           initialLibraryStateProvider.overrideWithValue(initialState),
           libraryViewPreferenceStoreProvider.overrideWithValue(preferenceStore),
         ],

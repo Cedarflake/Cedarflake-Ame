@@ -1,5 +1,51 @@
 use std::fmt::{Display, Formatter};
 
+mod library_catalog_delta;
+pub(crate) mod library_change;
+mod library_change_catch_up;
+pub(crate) mod library_change_queue;
+mod library_metadata_inventory;
+pub(crate) mod library_synchronization;
+
+pub use library_catalog_delta::{
+    CatalogDeltaBatch, CatalogDeltaMutation, CatalogDeltaPublication,
+    CatalogDeltaPublicationStatus, IncrementalCatalogRoot, IncrementalLibraryChangeReport,
+    LibraryChangeCompletion, RetainedPreviewExpectation,
+};
+pub use library_change::{
+    CatalogFreshnessCause, CatalogFreshnessState, DerivedEvidenceDisposition,
+    IncrementalReconciliationDecision, IncrementalReconciliationOutcome, LibraryChangeIntent,
+    LibraryChangeIntentKind, LibraryChangeObservation, LibraryChangeObservationKind,
+    LibraryChangeObserverPoll, LibraryChangeOrigin, LibraryChangePlanningContext,
+    LibraryChangePlanningError, LibraryChangePlanningIssue, LibraryChangePlanningLimits,
+    LibraryChangePlanningResult, LibraryChangeRestartPolicy, LibraryChangeScope,
+    LibraryChangeSourceBatch, LibraryChangeSourceError, LibraryChangeSourceHealth,
+    LibraryChangeSourceStopReport, LibraryRootGeneration, ReconciliationFileEvidence,
+    ReconciliationObservedState,
+};
+pub use library_change_catch_up::LibraryChangeCatchUpEvidence;
+#[cfg(test)]
+pub use library_change_catch_up::{
+    LibraryChangeCatchUpBatch, LibraryChangeCatchUpCheckpoint, LibraryChangeCatchUpCompletedRoot,
+    LibraryChangeCatchUpLimits, LibraryChangeCatchUpQueueBatch, LibraryChangeCatchUpReport,
+    LibraryChangeCatchUpRootResult,
+};
+pub use library_change_queue::{
+    DurableLibraryChange, LeasedLibraryChange, LibraryChangeEnqueueReport, LibraryChangeFailure,
+    LibraryChangeId, LibraryChangeLeaseUpdateOutcome, LibraryChangeQueueHealth,
+    LibraryChangeQueueMetrics, LibraryChangeQueuePolicy, LibraryChangeQueueStatus,
+};
+pub use library_metadata_inventory::{
+    MetadataInventoryCleanupReport, MetadataInventoryComparisonStatus,
+    MetadataInventoryComparisonUpdate, MetadataInventoryEntry, MetadataInventoryEntryKind,
+    MetadataInventoryPage, MetadataInventoryPlaceholderState, MetadataInventoryReport,
+    MetadataInventoryRun, MetadataInventoryRunRequest, MetadataInventoryRunStatus,
+    MetadataInventoryScope, MetadataInventoryStartRequest,
+};
+pub use library_synchronization::{
+    LibraryRootSynchronizationStatus, LibrarySynchronizationPhase, LibrarySynchronizationSnapshot,
+};
+
 #[derive(Clone, Debug)]
 pub struct ScanRequest {
     pub scan_id: String,
@@ -28,6 +74,7 @@ pub struct ScanCheckpoint {
     pub visited_entries: u64,
     pub accepted_items: u64,
     pub issue_count: u64,
+    pub requires_previous_snapshot: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -180,7 +227,7 @@ pub struct LibraryRootView {
     pub availability_message: Option<String>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LibraryRootAvailability {
     Unknown,
     Available,

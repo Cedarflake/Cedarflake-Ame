@@ -24,7 +24,19 @@ dbg_macro = "deny"
 todo = "deny"
 
 [target."cfg(windows)".dependencies]
-windows-sys = { version = "0.61.2", features = ["Win32_Storage_FileSystem"] }
+notify = { version = "=8.2.0", default-features = false }
+windows-sys = { version = "0.61.2", features = [
+  "Win32_Foundation",
+  "Win32_Security",
+  "Win32_Storage_CloudFilters",
+  "Win32_Storage_FileSystem",
+  "Win32_System_IO",
+  "Win32_System_Ioctl",
+  "Win32_System_SystemServices",
+] }
+
+[patch.crates-io]
+notify = { path = "vendor/notify" }
 
 [dev-dependencies]
 rusqlite = { version = "0.40.1", features = ["backup", "bundled"] }

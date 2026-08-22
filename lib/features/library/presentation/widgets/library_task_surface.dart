@@ -91,8 +91,18 @@ class LibraryTaskSurface extends StatelessWidget {
                       child: const Text("继续"),
                     )
                   else if (state.status == LibraryStatus.failed ||
-                      state.status == LibraryStatus.cancelled ||
-                      state.status == LibraryStatus.stale)
+                      state.status == LibraryStatus.cancelled) ...[
+                    TextButton(
+                      key: const Key("library-retry-button"),
+                      onPressed: onRetry,
+                      child: const Text("重试"),
+                    ),
+                    TextButton(
+                      key: const Key("library-task-dismiss-button"),
+                      onPressed: onDismiss,
+                      child: const Text("知道了"),
+                    ),
+                  ] else if (state.status == LibraryStatus.stale)
                     TextButton(
                       key: const Key("library-retry-button"),
                       onPressed: onRetry,

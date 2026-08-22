@@ -4,6 +4,7 @@ import "package:cedarflake_ame/features/library/adapters/directory_picker.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_previewer.dart";
+import "package:cedarflake_ame/features/library/application/library_scan_shutdown.dart";
 import "package:cedarflake_ame/features/library/application/library_scanner.dart";
 import "package:cedarflake_ame/features/library/domain/gallery_layout_manifest.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
@@ -13,6 +14,61 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  test(
+    "synchronization refresh uses the stable asset anchor without blanking",
+    () async {
+      final pending = Completer<LibrarySnapshot>();
+      final initial = _snapshot(assets: [_asset(suffix: "before")]);
+      final catalog = _StableAnchorLibraryCatalog(
+        response: pending.future,
+        revision: BigInt.two,
+      );
+      final container = ProviderContainer(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(
+            LibraryState.fromSnapshot(initial),
+          ),
+          libraryCatalogProvider.overrideWithValue(catalog),
+        ],
+      );
+      addTearDown(container.dispose);
+      final controller = container.read(libraryControllerProvider.notifier);
+
+      final refresh = controller.refreshFromSynchronization(
+        catalogRevision: BigInt.two,
+        anchorLocationId: "location-before",
+        anchorAssetId: "asset-before",
+        fallbackGlobalItemIndex: 79,
+      );
+      await Future<void>.delayed(Duration.zero);
+      var state = container.read(libraryControllerProvider);
+      expect(state.assets.single.locationId, "location-before");
+      expect(state.status, isNot(LibraryStatus.refreshing));
+
+      pending.complete(
+        _snapshot(
+          revision: BigInt.two,
+          assets: [_renamedAsset()],
+          queryAnchorResolution: const LibraryQueryAnchorResolution(
+            requestedLocationId: "location-before",
+            locationId: "location-after",
+            ordinal: 0,
+            windowStartItemOffset: 0,
+          ),
+        ),
+      );
+
+      expect(await refresh, LibraryQueryUpdateOutcome.applied);
+      state = container.read(libraryControllerProvider);
+      expect(state.catalogRevision, BigInt.two);
+      expect(state.assets.single.assetId, "asset-before");
+      expect(state.assets.single.locationId, "location-after");
+      expect(catalog.requestedLocationId, "location-before");
+      expect(catalog.anchorAssetId, "asset-before");
+      expect(catalog.fallbackGlobalItemIndex, 79);
+    },
+  );
+
   test(
     "keeps the old query visible until an anchored query publishes",
     () async {
@@ -283,7 +339,7 @@ void main() {
     expect(state.visitedEntries, 1);
     expect(state.stagedAssetCount, 1);
 
-    controller.dismissCompletedImport();
+    controller.dismissTaskFeedback();
     final dismissedState = container.read(libraryControllerProvider);
     expect(dismissedState.status, LibraryStatus.completed);
     expect(dismissedState.scanId, isNull);
@@ -316,6 +372,45 @@ void main() {
       LibraryStatus.cancelling,
     );
   });
+
+  test(
+    "shutdown checkpoints an active foreground scan without cancelling it",
+    () async {
+      final scanner = _FakeLibraryScanner();
+      final shutdownCoordinator = LibraryScanShutdownCoordinator();
+      final container = ProviderContainer(
+        overrides: [
+          libraryScannerProvider.overrideWithValue(scanner),
+          libraryScanShutdownCoordinatorProvider.overrideWithValue(
+            shutdownCoordinator,
+          ),
+          libraryCatalogProvider.overrideWithValue(
+            _FakeLibraryCatalog(_snapshot()),
+          ),
+        ],
+      );
+      addTearDown(scanner.dispose);
+
+      final controller = container.read(libraryControllerProvider.notifier);
+      await controller.scanDirectory("C:\\Pictures");
+      final scanId = scanner.startedScanId ?? fail("scan did not start");
+      var didFinishShutdown = false;
+      final shutdown = shutdownCoordinator.suspend().then((_) {
+        didFinishShutdown = true;
+      });
+      await Future<void>.delayed(Duration.zero);
+
+      expect(scanner.suspendedScanId, scanId);
+      expect(didFinishShutdown, isFalse);
+
+      await scanner.close();
+      await shutdown;
+      container.dispose();
+
+      expect(didFinishShutdown, isTrue);
+      expect(scanner.cancelledScanId, isNull);
+    },
+  );
 
   test("keeps source changes distinct from generic failures", () async {
     final scanner = _FakeLibraryScanner();
@@ -611,6 +706,8 @@ void main() {
     expect(state.stagedAssetCount, 40);
     expect(state.issueCount, 3);
     expect(scanner.startedScanId, "scan-recover");
+    expect(scanner.scanCallCount, 0);
+    expect(scanner.resumeCallCount, 1);
   });
 
   test("restores a paused scan without starting it until resume", () async {
@@ -652,6 +749,8 @@ void main() {
     expect(state.status, LibraryStatus.scanning);
     expect(state.isResumingScan, isTrue);
     expect(scanner.startedScanId, "scan-paused");
+    expect(scanner.scanCallCount, 0);
+    expect(scanner.resumeCallCount, 1);
   });
 
   test("forwards pause and keeps the staged scan private", () async {
@@ -2022,6 +2121,22 @@ LibraryAsset _asset({String suffix = "1", String? previewPath}) {
   );
 }
 
+LibraryAsset _renamedAsset() {
+  return LibraryAsset(
+    assetId: "asset-before",
+    locationId: "location-after",
+    rootId: "root-1",
+    sourcePath: "C:\\Pictures\\after.png",
+    displayPath: "C:\\Pictures\\after.png",
+    relativePath: "after.png",
+    previewPath: "C:\\AmeCache\\before.jpg",
+    fileSize: BigInt.from(128),
+    modifiedUnixMs: 42,
+    width: 320,
+    height: 240,
+  );
+}
+
 LibraryAsset _pendingAsset(String suffix) {
   return LibraryAsset(
     assetId: "asset-$suffix",
@@ -2144,10 +2259,12 @@ class _FakeLibraryScanner implements LibraryScanner {
   final bool throwFirstScan;
   String? cancelledScanId;
   String? pausedScanId;
+  String? suspendedScanId;
   String? startedScanId;
   int? startedItemLimit;
   int? startedEntryLimit;
   int scanCallCount = 0;
+  int resumeCallCount = 0;
 
   void add(LibraryScanUpdate update) {
     _controller.add(update);
@@ -2188,6 +2305,12 @@ class _FakeLibraryScanner implements LibraryScanner {
   }
 
   @override
+  bool suspend(String scanId) {
+    suspendedScanId = scanId;
+    return true;
+  }
+
+  @override
   Stream<LibraryScanUpdate> scan({
     required String scanId,
     required String rootPath,
@@ -2199,6 +2322,21 @@ class _FakeLibraryScanner implements LibraryScanner {
     if (throwFirstScan && scanCallCount == 1) {
       throw StateError("synthetic stream creation failure");
     }
+    startedScanId = scanId;
+    startedItemLimit = itemLimit;
+    startedEntryLimit = entryLimit;
+    return _controller.stream;
+  }
+
+  @override
+  Stream<LibraryScanUpdate> resume({
+    required String scanId,
+    required String rootPath,
+    required int? itemLimit,
+    required int? entryLimit,
+    required int previewEdge,
+  }) {
+    resumeCallCount += 1;
     startedScanId = scanId;
     startedItemLimit = itemLimit;
     startedEntryLimit = entryLimit;
@@ -2243,6 +2381,59 @@ class _QueryAnchorLibraryCatalog
   @override
   Future<LibraryTimeline> loadTimeline(LibraryGalleryQuery query) async =>
       timeline;
+
+  @override
+  Future<bool> unregisterRoot(String rootId) async => false;
+}
+
+class _StableAnchorLibraryCatalog
+    implements LibraryCatalog, LibraryStableQueryAnchorCatalog {
+  _StableAnchorLibraryCatalog({required this.response, required this.revision});
+
+  final Future<LibrarySnapshot> response;
+  final BigInt revision;
+  String? requestedLocationId;
+  String? anchorAssetId;
+  int? fallbackGlobalItemIndex;
+
+  @override
+  Future<LibrarySnapshot> loadAroundAsset({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    required String requestedLocationId,
+    required String anchorAssetId,
+    required int fallbackGlobalItemIndex,
+  }) {
+    this.requestedLocationId = requestedLocationId;
+    this.anchorAssetId = anchorAssetId;
+    this.fallbackGlobalItemIndex = fallbackGlobalItemIndex;
+    return response;
+  }
+
+  @override
+  Future<LibrarySnapshot> load({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    LibraryCatalogCursor? after,
+    LibraryCatalogCursor? before,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<LibrarySnapshot> loadAtTime({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    required LibraryTimeAnchor anchor,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<LibraryTimeline> loadTimeline(LibraryGalleryQuery query) async {
+    return LibraryTimeline(
+      revision: revision,
+      queryId: "query-1",
+      totalItems: 1,
+      buckets: const [],
+    );
+  }
 
   @override
   Future<bool> unregisterRoot(String rootId) async => false;
@@ -2369,6 +2560,9 @@ class _DelayedDoneLibraryScanner implements LibraryScanner {
   bool pause(String scanId) => true;
 
   @override
+  bool suspend(String scanId) => true;
+
+  @override
   Stream<LibraryScanUpdate> scan({
     required String scanId,
     required String rootPath,
@@ -2380,6 +2574,23 @@ class _DelayedDoneLibraryScanner implements LibraryScanner {
     final controller = StreamController<LibraryScanUpdate>();
     _controllers.add(controller);
     return controller.stream;
+  }
+
+  @override
+  Stream<LibraryScanUpdate> resume({
+    required String scanId,
+    required String rootPath,
+    required int? itemLimit,
+    required int? entryLimit,
+    required int previewEdge,
+  }) {
+    return scan(
+      scanId: scanId,
+      rootPath: rootPath,
+      itemLimit: itemLimit,
+      entryLimit: entryLimit,
+      previewEdge: previewEdge,
+    );
   }
 }
 

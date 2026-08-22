@@ -6,10 +6,14 @@
 import 'api/catalog.dart';
 import 'api/preview.dart';
 import 'api/storage.dart';
+import 'api/synchronization.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:ffi' as ffi;
 import 'domain.dart';
+import 'domain/library_change.dart';
+import 'domain/library_change_queue.dart';
+import 'domain/library_synchronization.dart';
 import 'frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
@@ -42,6 +46,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   AssetLocationView dco_decode_box_asset_location_view(dynamic raw);
+
+  @protected
+  AssetLocationView dco_decode_box_autoadd_asset_location_view(dynamic raw);
 
   @protected
   CaptureTimeEvidence dco_decode_box_autoadd_capture_time_evidence(dynamic raw);
@@ -110,6 +117,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CatalogCursor dco_decode_catalog_cursor(dynamic raw);
 
   @protected
+  CatalogFreshnessCause dco_decode_catalog_freshness_cause(dynamic raw);
+
+  @protected
+  CatalogFreshnessState dco_decode_catalog_freshness_state(dynamic raw);
+
+  @protected
   CatalogSnapshot dco_decode_catalog_snapshot(dynamic raw);
 
   @protected
@@ -161,6 +174,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlatformInt64 dco_decode_i_64(dynamic raw);
 
   @protected
+  LibraryChangeQueueHealth dco_decode_library_change_queue_health(dynamic raw);
+
+  @protected
+  LibraryChangeSourceHealth dco_decode_library_change_source_health(
+    dynamic raw,
+  );
+
+  @protected
   LibraryFolderCursor dco_decode_library_folder_cursor(dynamic raw);
 
   @protected
@@ -173,7 +194,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   LibraryRootAvailability dco_decode_library_root_availability(dynamic raw);
 
   @protected
+  LibraryRootSynchronizationStatus
+  dco_decode_library_root_synchronization_status(dynamic raw);
+
+  @protected
   LibraryRootView dco_decode_library_root_view(dynamic raw);
+
+  @protected
+  LibrarySynchronizationPhase dco_decode_library_synchronization_phase(
+    dynamic raw,
+  );
+
+  @protected
+  LibrarySynchronizationSnapshot dco_decode_library_synchronization_snapshot(
+    dynamic raw,
+  );
 
   @protected
   List<String> dco_decode_list_String(dynamic raw);
@@ -193,6 +228,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<LibraryFolderView> dco_decode_list_library_folder_view(dynamic raw);
 
   @protected
+  List<LibraryRootSynchronizationStatus>
+  dco_decode_list_library_root_synchronization_status(dynamic raw);
+
+  @protected
   List<LibraryRootView> dco_decode_list_library_root_view(dynamic raw);
 
   @protected
@@ -208,6 +247,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   String? dco_decode_opt_String(dynamic raw);
+
+  @protected
+  AssetLocationView? dco_decode_opt_box_autoadd_asset_location_view(
+    dynamic raw,
+  );
 
   @protected
   CaptureTimeEvidence? dco_decode_opt_box_autoadd_capture_time_evidence(
@@ -327,6 +371,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  AssetLocationView sse_decode_box_autoadd_asset_location_view(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   CaptureTimeEvidence sse_decode_box_autoadd_capture_time_evidence(
     SseDeserializer deserializer,
   );
@@ -415,6 +464,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CatalogCursor sse_decode_catalog_cursor(SseDeserializer deserializer);
 
   @protected
+  CatalogFreshnessCause sse_decode_catalog_freshness_cause(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  CatalogFreshnessState sse_decode_catalog_freshness_state(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   CatalogSnapshot sse_decode_catalog_snapshot(SseDeserializer deserializer);
 
   @protected
@@ -476,6 +535,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
 
   @protected
+  LibraryChangeQueueHealth sse_decode_library_change_queue_health(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  LibraryChangeSourceHealth sse_decode_library_change_source_health(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   LibraryFolderCursor sse_decode_library_folder_cursor(
     SseDeserializer deserializer,
   );
@@ -496,7 +565,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  LibraryRootSynchronizationStatus
+  sse_decode_library_root_synchronization_status(SseDeserializer deserializer);
+
+  @protected
   LibraryRootView sse_decode_library_root_view(SseDeserializer deserializer);
+
+  @protected
+  LibrarySynchronizationPhase sse_decode_library_synchronization_phase(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  LibrarySynchronizationSnapshot sse_decode_library_synchronization_snapshot(
+    SseDeserializer deserializer,
+  );
 
   @protected
   List<String> sse_decode_list_String(SseDeserializer deserializer);
@@ -522,6 +605,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<LibraryRootSynchronizationStatus>
+  sse_decode_list_library_root_synchronization_status(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<LibraryRootView> sse_decode_list_library_root_view(
     SseDeserializer deserializer,
   );
@@ -539,6 +628,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   String? sse_decode_opt_String(SseDeserializer deserializer);
+
+  @protected
+  AssetLocationView? sse_decode_opt_box_autoadd_asset_location_view(
+    SseDeserializer deserializer,
+  );
 
   @protected
   CaptureTimeEvidence? sse_decode_opt_box_autoadd_capture_time_evidence(
@@ -680,6 +774,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_asset_location_view(
+    AssetLocationView self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_capture_time_evidence(
     CaptureTimeEvidence self,
     SseSerializer serializer,
@@ -788,6 +888,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_catalog_cursor(CatalogCursor self, SseSerializer serializer);
 
   @protected
+  void sse_encode_catalog_freshness_cause(
+    CatalogFreshnessCause self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_catalog_freshness_state(
+    CatalogFreshnessState self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_catalog_snapshot(
     CatalogSnapshot self,
     SseSerializer serializer,
@@ -866,6 +978,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
 
   @protected
+  void sse_encode_library_change_queue_health(
+    LibraryChangeQueueHealth self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_library_change_source_health(
+    LibraryChangeSourceHealth self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_library_folder_cursor(
     LibraryFolderCursor self,
     SseSerializer serializer,
@@ -890,8 +1014,26 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_library_root_synchronization_status(
+    LibraryRootSynchronizationStatus self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_library_root_view(
     LibraryRootView self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_library_synchronization_phase(
+    LibrarySynchronizationPhase self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_library_synchronization_snapshot(
+    LibrarySynchronizationSnapshot self,
     SseSerializer serializer,
   );
 
@@ -923,6 +1065,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_library_root_synchronization_status(
+    List<LibraryRootSynchronizationStatus> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_library_root_view(
     List<LibraryRootView> self,
     SseSerializer serializer,
@@ -948,6 +1096,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_box_autoadd_asset_location_view(
+    AssetLocationView? self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_opt_box_autoadd_capture_time_evidence(

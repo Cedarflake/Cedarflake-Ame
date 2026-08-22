@@ -2,9 +2,9 @@
 
 Status: active delivery plan
 
-Last confirmed with the user: 2026-08-16
+Last confirmed with the user: 2026-08-21
 
-Last implementation-status synchronization: 2026-08-16
+Last implementation-status synchronization: 2026-08-21
 
 Repository: this repository root
 
@@ -208,13 +208,15 @@ feature-completion evidence.
 ### 4.2 Global shell
 
 ```text
-Ame | [在图库中搜索] | 最小化 / 最大化 / 关闭
+Ame | [在图库中搜索] | 通知 | 最小化 / 最大化 / 关闭
 ```
 
 The Library row's folder-plus action is the current entry point into the Ame-owned `AddLibraryRoot`
 use case. It opens the folder picker and owns validation, progress, cancellation, and error state.
-The global bar contains application identity, gallery search, and app-drawn window controls only;
-library import and settings do not appear there.
+The global bar contains application identity, gallery search, one icon-only notification-history
+control, and app-drawn window controls; library import and settings do not appear there. The
+notification control is immediately before the caption controls. It uses the ordinary notification
+icon when read and the notification-with-dot icon when unread, without a text label or count.
 
 There is no permanent Task button or task-center navigation entry. While an import or library update
 is active, a temporary bottom progress surface uses the concrete action name, reports progress and
@@ -536,7 +538,7 @@ position when possible.
 - No user-visible pagination or page transitions are introduced.
 - Opening an image and returning restores its prior gallery item and scroll position.
 
-### 4.9 Temporary import feedback
+### 4.9 Temporary task and notification feedback
 
 An active import uses a bottom floating progress surface similar to the reference workflow:
 
@@ -554,6 +556,31 @@ permanent validation card, status bar, task center, or generic task entry.
 Bottom notifications and import feedback share one Material surface contract for color, width,
 corner radius, elevation, and placement. The same event must not produce competing gray and white
 notification surfaces.
+
+The sidebar keeps only compact per-source state such as `已同步`, `正在更新图库`, `更新受阻`, or
+`目录不可用`. Failure and reconciliation detail belongs to the bottom notification queue and
+the bounded current-session history opened from the global bar. A detail record may contain a
+localized reason, bounded affected-work counts, source path, technical code, and one connected retry
+action when the failed application operation can be replayed. Automatic root recovery never exposes
+a control that starts a manual full scan. Active conditions deduplicate until resolved; acknowledgement removes a
+surface from the queue but cannot change catalog freshness. Scan progress and terminal scan feedback
+retain priority over notifications.
+For root reconciliation, the active-condition identity is the root itself: observer-health,
+freshness-cause, and issue-code transitions update one record until the root is synchronized.
+Automatic authoritative recovery and retry remain `正在更新图库` without publishing notifications.
+Only a failed monitor, exhausted recovery, bridge/catalog refresh failure, or another blocked
+condition that can no longer converge automatically enters the notification queue; successful
+recovery resolves that active error without adding a success notice.
+An active error is not resolved merely because another automatic attempt has started. Its compact
+row state and one deduplicated notification remain stable until a synchronized snapshot proves
+convergence. Short SQLite writer contention during another Ame publication keeps the prior snapshot
+and retries silently for a bounded interval; only contention beyond that interval becomes a
+persistent catalog error.
+SQLite read-modify-write paths acquire an immediate writer transaction before observing mutable
+state, while an empty path-queue poll remains read-only. This serializes concurrent publication with
+the configured busy timeout instead of failing a deferred WAL snapshot during write upgrade.
+Foreground polling and background inventory or authoritative recovery keep ordinary writer contention
+silent and retryable for 30 seconds before projecting one persistent failure.
 
 ### 4.10 Accepted UI regression states
 
@@ -916,35 +943,34 @@ task-center product. It closes the distinction between:
 R2c does not authorize a gallery hot-path, manifest, or navigation rewrite. It publishes stable
 identity and catalog-revision changes through bounded application contracts; the accepted R2b
 gallery decides how to preserve its logical anchor and visible interaction. Delivery slices R2c-A
-through R2c-F establish the first complete running-time synchronization and recovery workflow.
-R2c-G adds supported-volume downtime catch-up only after that workflow is trustworthy, and R2c-H
-provides large-library reliability evidence. USN catch-up therefore enhances R2c without blocking
-its first running-time value.
+through R2c-F established the first running-time synchronization and recovery workflow. Historical
+R2c-G implemented USN catch-up, and R2c-H measured it honestly, but the target workstation's normal
+desktop token could not open either journal. ADR 0023 therefore supersedes that production design.
 
-R2c unlocks R3 only after R2c-A through R2c-F and the target-library portions of R2c-H prove the
-running-time workflow, recovery ladder, bounded resource behavior, and truthful freshness state.
-R2c-G is conditional: it does not block R3 when startup can regain trustworthy freshness through a
-bounded authoritative reconciliation, but it remains the preferred supported-volume optimization
-when downtime catch-up cost or missed-change evidence exceeds the recorded budget.
+R2c is reopened for R2c-I through R2c-M. These slices replace USN and automatic full-scan fallback
+with one non-privileged live-watcher and metadata-inventory continuity model, preserve the accepted
+incremental publication and UI contracts, and repeat target-scale reliability evidence. R3 remains
+blocked until the replacement proves trustworthy freshness without elevation or hidden full scans.
 
 User outcome:
 
 After a folder has been added to Ame, images created, edited, deleted, renamed, or moved inside that
 folder appear in the same unified gallery without requiring an ordinary full-root rescan. If Ame was
-closed, a supported Windows volume can catch up from durable filesystem change evidence. If change
-evidence is missing, overflowed, unsupported, or no longer trustworthy, Ame retains the last
-trustworthy catalog, reports the degraded state, and performs the smallest authoritative
-reconciliation needed to become current again.
+closed, it starts live observation and performs a metadata-only inventory that discovers downtime
+changes without decoding media or hydrating placeholders. If change evidence is missing, overflowed,
+or no longer trustworthy, Ame retains the last trustworthy catalog and continues the smallest
+pageable inventory scope needed to become current again. While that automatic path can converge, the
+root reports `正在更新图库`; it reports `更新受阻` only when the path has failed or exhausted.
 
 The user continues to see one library rather than a separate synchronization application. Ordinary
-wording is limited to concepts such as `已同步`, `正在更新图库`, `目录不可用`, `需要核对`, and
-`部分项目无法读取`. Terms such as watcher, USN, queue, delta, adapter, and watermark belong only in
-diagnostic details.
+wording is limited to concepts such as `已同步`, `正在更新图库`, `更新受阻`, `目录不可用`, and
+`部分项目无法读取`. `需要核对` is not a product state. Terms such as watcher, queue, delta, adapter,
+inventory epoch, and cursor belong only in diagnostic details.
 
 #### R2c.1 Safety and authority rules
 
-- Filesystem notifications and journal records are hints that identify what must be checked. They
-  are never accepted as the final file state.
+- Filesystem notifications and staged inventory rows are hints that identify what must be checked.
+  They are never accepted as the final file state.
 - The filesystem plus Ame's already accepted identity and source-state revalidation remain the
   evidence used to reconcile the catalog.
 - R2c observes and reconciles source state without changing it. It does not delete, move, copy,
@@ -957,8 +983,11 @@ diagnostic details.
   longer present. A partial or failed pass cannot publish a complete-removal claim.
 - A batch of related changes is visible at one catalog revision. The UI sees either the prior
   revision or the complete new revision, never a half-applied rename or replacement.
-- Full-root scanning remains the authority for first import, explicit rebuild, and final recovery.
-  It is no longer the default reaction to every normal directory change.
+- Full-root scanning is permitted only for first import, the explicit `更新图库` action, or resumption
+  of an already-started full scan. Every request carries one of these typed reasons.
+- Normal create, modify, delete, rename, move, process start, watcher restart, evidence loss,
+  overflow, retry, inventory size, availability recovery, and automatic reconciliation failure must
+  not trigger a complete root scan.
 
 #### R2c.2 Ownership and boundaries
 
@@ -967,7 +996,9 @@ The Rust domain defines Ame-owned, platform-independent values for:
 - library-root identity and configuration generation;
 - normalized change intent, such as path reconciliation, rename candidate, subtree reconciliation,
   and root freshness unknown;
-- change origin, such as live notification, startup catch-up, user refresh, or consistency audit;
+- change origin, such as live notification, startup metadata inventory, or user refresh; retired
+  `StartupCatchUp` and `consistency_audit` values remain readable only for forward compatibility
+  with prerelease R2c catalogs and never schedule USN or periodic-audit work;
 - reconciliation outcomes: unchanged, added, modified, renamed or moved, replaced, removed,
   skipped, retryable failure, and terminal issue;
 - watcher health and catalog-freshness states without exposing a Windows or third-party type.
@@ -992,7 +1023,8 @@ second synonym for it. The implementation must at least evaluate these responsib
 - `ChangeQueue`: durably records, leases, acknowledges, retries, and supersedes pending intents;
 - `IncrementalReconciler`: checks a path or bounded subtree and returns Ame reconciliation results;
 - `CatalogDeltaPublisher`: applies one batch at an atomic revision boundary;
-- `ChangeCatchUpSource`: supplies candidates observed while live notification was unavailable.
+- `MetadataInventory`: enumerates and pages current metadata evidence for a continuity epoch without
+  reading media content.
 
 Names are illustrative, not mandatory APIs. Before adding a port, inspect whether an existing scan,
 catalog, or filesystem contract already owns that responsibility.
@@ -1005,11 +1037,10 @@ Adapters own all platform and dependency details:
 - keep `notify` event kinds, paths, errors, threads, and global state behind the adapter;
 - continue using ADR 0007's Ame-owned Windows `FILE_ID_INFO` evidence for reconciliation instead of
   inventing another asset-identity rule;
-- persist the durable queue, retry state, catch-up watermarks, and delta publication through the
-  Rust SQLite adapter;
-- add an NTFS/ReFS USN Journal adapter only in the later R2c catch-up slice and only after a focused
-  ADR covers API behavior, journal invalidation, permissions, path reconstruction, `unsafe` safety
-  invariants, tests, and fallback;
+- persist the durable queue, retry state, inventory epoch and staging state, and delta publication
+  through the Rust SQLite adapter;
+- do not initialize the historical USN adapter, request elevation, show a UAC prompt, or maintain
+  separate privileged and unprivileged synchronization paths;
 - keep Flutter presentation-only. Flutter does not watch directories, enumerate roots, write SQL,
   or infer catalog policy from platform events.
 
@@ -1027,7 +1058,7 @@ shape:
 - pending, leased/in-progress, retry-wait, completed, and superseded states;
 - attempt count, next retry time, and structured last failure;
 - the catalog revision at enqueue and successful publication;
-- the catch-up source and watermark where applicable.
+- the owning metadata-inventory epoch, scope, page cursor, and completion authority where applicable.
 
 This state is durable task data, not disposable thumbnail cache. Its schema changes require forward
 migrations from every committed schema version and migration tests. Completed rows and obsolete
@@ -1133,21 +1164,25 @@ work does not replace trustworthy state.
   a clear state and a safe return path instead of displaying stale bytes as current.
 - Synchronization remains part of the existing library and source workflow. It does not create a
   sidebar Task entry or a second gallery.
-- `更新图库` requests application-owned reconciliation. It does not make Flutter enumerate files.
+- `更新图库` explicitly requests an application-owned full scan for the selected root. Automatic
+  watcher and metadata-inventory reconciliation remain the incremental path; Flutter does not
+  enumerate files.
 
 #### R2c.7 Lifecycle and race handling
 
 Startup order:
 
-1. Load the last trustworthy catalog, root configuration, unresolved change queue, and catch-up
-   watermark.
+1. Load the last trustworthy catalog, root configuration, unresolved change queue, and any
+   recoverable explicit full-scan checkpoint.
 2. Check each root's availability using metadata only.
-3. Establish live observation before running startup catch-up so new events do not open another
-   avoidable gap.
-4. Resume durable pending work and process already-known changes.
-5. Read a valid catch-up source from the last trustworthy watermark when available.
-6. If no continuous evidence is available, mark the root `需要核对` and run the smallest safe
-   authoritative metadata reconciliation.
+3. Establish live observation before continuity work so new events do not open another avoidable
+   gap.
+4. Start a new metadata-inventory epoch for every available root; do not resume pre-shutdown
+   in-memory non-scan authority.
+5. Reconcile positive candidates through the path worker while inventory pages continue; publish
+   removals only after the owning scope is completely enumerated and revalidated.
+6. Coalesce or supersede old unresolved non-scan work into the new epoch. Report `已同步` only after
+   the epoch and its retained queue boundary are complete.
 
 Root changes:
 
@@ -1162,73 +1197,86 @@ Root changes:
 Shutdown:
 
 - stop accepting new live callbacks;
-- finish or safely return the currently leased bounded batch;
-- persist health and the last acknowledged catch-up watermark;
+- immediately hide the desktop window so background teardown cannot present as an application hang;
+- suspend a running full scan at a durable checkpoint so the next process can resume it;
+- cancel watcher, metadata inventory, path, subtree, and bounded root work; on the next start
+  establish a new live watcher boundary and create a new inventory epoch;
+- safely return any currently leased non-scan batch instead of treating its old in-memory state as
+  evidence for changes that may occur while Ame is closed;
+- persist the full-scan checkpoint and durable catalog/queue state, but discard superseded inventory
+  staging after replacement authority exists;
 - use bounded graceful shutdown so a watcher or queue cannot hang the window close path;
-- leave incomplete work recoverable on the next startup.
+- leave full scans and durable queue work recoverable on the next startup without keeping the window
+  visible.
 
 #### R2c.8 Failure and degradation matrix
 
 - Single unreadable or malformed file: record a structured issue and continue the remaining batch.
 - File changes again during processing: fail final revalidation, coalesce the newer event, and retry.
 - Notification buffer overflow or known event loss: mark the root dirty/degraded, stop presenting it
-  as synchronized, and run an authoritative reconciliation of the narrowest known scope.
+  as synchronized, and start or extend metadata inventory for the narrowest known scope.
 - Watcher failure: restart with bounded exponential backoff and cover the missing interval through
-  catch-up or consistency reconciliation.
+  a new metadata-inventory continuity epoch; do not start a full scan.
 - Root offline, disconnected, or inaccessible: retain its catalog and display availability status;
   do not reinterpret failure as deletion.
 - Database transaction failure: roll back the entire delta, keep the intent retryable, and do not
   increment catalog revision.
-- Huge directory rename or removal: process descendants through bounded windows; do not keep every
-  row in memory or claim complete removals until the scope completes.
-- Catch-up log unsupported, truncated, recreated, or outside its retained range: invalidate the
-  watermark and fall back explicitly; never guess continuity.
+- Huge directory rename or removal: process descendants through durable inventory pages; do not keep
+  every row in memory or claim complete removals until the scope completes.
+- Inventory failure or repeated source races: preserve the last trustworthy catalog and durable
+  authority, then report `更新受阻` with one structured root error instead of starting a full scan.
 
 Escalation order is:
 
 ```text
 single path reconciliation
 -> dirty subtree reconciliation
--> root metadata reconciliation
--> complete root scan as the final recovery authority
+-> pageable metadata-inventory reconciliation
+-> blocked state when automatic continuity cannot converge
 ```
 
 The application must expose which level is in progress and why without leaking implementation
 jargon into normal UI copy.
 
-#### R2c.9 Startup catch-up with the Windows change journal
+#### R2c.9 Startup and evidence-loss metadata inventory
 
-USN Journal support is an enhancement slice, not a prerequisite for the first live-update delivery.
-The first R2c vertical slice should already provide reliable running-time observation, a durable
-queue, bounded reconciliation, delta publication, overflow recovery, and manual consistency update.
+ADR 0023 replaces the historical USN path with one non-privileged continuity model. Every available
+root establishes the live watcher first, then starts a new metadata-inventory epoch. The inventory:
 
-When implemented:
+- records normalized path, entry kind, size, modification evidence, Windows file identity when
+  available, and placeholder attributes;
+- never reads media bytes, decodes images, generates previews, follows an untrusted reparse directory
+  outside the root, or hydrates a cloud placeholder;
+- stages derived evidence in application storage and compares it with the published catalog in
+  bounded pages;
+- may publish additions and modifications early only after path final-state revalidation;
+- publishes an absence only after the complete owning scope succeeds;
+- accepts live watcher observations throughout the run and rechecks overlapping paths;
+- starts a newer epoch after an evidence gap rather than trusting partial staging;
+- may prioritize directory or retained metadata differences, but still performs the complete file-
+  metadata comparison required to detect in-place changes made while Ame was closed.
 
-- persist the journal identity, last trustworthy USN, volume identity, and associated catalog
-  revision per volume;
-- validate journal continuity before reading;
-- share one bounded journal reader for multiple roots on the same volume while filtering candidates
-  by root;
-- translate records only into paths or subtrees that must be reconciled;
-- treat file reference numbers and USN values as change-tracking evidence, never as `Asset`,
-  `ContentFingerprint`, or cross-machine identity;
-- handle journal recreation, truncation, unsupported filesystems, unavailable volumes, insufficient
-  permissions, and failed path reconstruction with explicit fallback;
-- introduce any new Windows `unsafe` only through an accepted ADR containing exact safety invariants
-  and focused tests.
+Without USN, another persistent journal, or an always-running service, this O(N) startup metadata
+cost is required for strict downtime correctness. It remains metadata reconciliation rather than a
+full media scan.
 
-#### R2c.10 Low-frequency consistency audit
+#### R2c.10 Explicit refresh and recovery triggers
 
-Live notification and journal catch-up do not eliminate the need for a low-frequency, cancellable,
-observable consistency audit:
+Ame does not schedule a periodic full-root consistency audit. A fixed seven-day interval adds
+unbounded work without supplying evidence that anything changed. Continuous freshness instead uses
+the live watcher, durable queue, and metadata-inventory epochs.
 
-- prefer directory and file metadata without reading media content;
-- schedule according to root health and last trustworthy audit rather than high-frequency fixed
-  polling;
-- allow `更新图库` for one selected root;
-- reconcile a dirty subtree or root before escalating to expensive media reanalysis;
-- publish removals only for the scope fully audited;
-- preserve cloud-placeholder rules and R2c's non-mutating source-observation boundary.
+A complete root scan may start only when one of these authorities exists:
+
+- a root is imported for the first time;
+- the user explicitly selects `更新图库` for that root;
+- an already-started full scan is resumed from its durable checkpoint.
+
+Normal file events, normal process restart, elapsed time, retry, watcher interruption, overflow,
+metadata-inventory size, and automatic recovery failure do not authorize a complete scan. Work that
+exceeds the 4,096-entry or 128-path batch ceiling continues through inventory pages. Legacy
+`StartupCatchUp` and `consistency_audit` rows are migration input only and never schedule USN or a
+periodic scan. The last trustworthy catalog remains visible while automatic continuity runs.
 
 #### R2c.11 Delivery slices
 
@@ -1243,6 +1291,10 @@ R2c-A - contracts and deterministic fixtures:
 R2c-A is complete only when the behavior can be tested without a platform watcher and the UI is not
 asked to infer business rules.
 
+Status: **complete on 2026-08-13**. ADR 0016 owns the platform-independent contract and
+deterministic fixtures; ADR 0017 records the R2c-B watcher decision without adding an unused
+dependency in R2c-A.
+
 R2c-B - live Windows observation:
 
 - add the admitted recursive watcher adapter;
@@ -1252,6 +1304,10 @@ R2c-B - live Windows observation:
 
 R2c-B is complete only when controlled real filesystem changes produce Ame-owned intents without
 blocking UI, decoding media in the callback, or growing memory without limit.
+
+Status: **complete on 2026-08-13; audit-hardened on 2026-08-14**. ADR 0017 owns the admitted Windows adapter and
+`docs/acceptance/r2c-b-windows-observation.md` records focused, controlled-filesystem, Daily, and
+Windows Release evidence. No real-library root was accessed.
 
 R2c-C - durable queue and coalescing:
 
@@ -1263,6 +1319,11 @@ R2c-C - durable queue and coalescing:
 R2c-C is complete only when an application terminated after enqueue resumes the same work and a
 burst of repeated notifications produces the minimum necessary reconciliation.
 
+Status: **complete and audit-hardened on 2026-08-17**. ADR 0018 owns the schema v17 leased SQLite
+queue and `docs/acceptance/r2c-c-durable-change-queue.md` records migration, restart, coalescing,
+stale-lease, retry, metrics, bounded-retention, Clippy, and Daily evidence. No real-library root was
+accessed.
+
 R2c-D - incremental delta publication:
 
 - connect the existing file-identity and media-safety rules;
@@ -1273,6 +1334,15 @@ R2c-D - incremental delta publication:
 R2c-D is complete only when every fundamental change is reflected without a normal root-wide scan,
 failed transactions leave the old catalog unchanged, and source media remains untouched.
 
+Status: **complete on 2026-08-18**. ADR 0019 owns identity-aware path reconciliation and the
+generation-, revision-, lease-, and full-scan-guarded SQLite delta transaction.
+`docs/acceptance/r2c-d-incremental-delta-publication.md` records unchanged, add, edit, paired
+rename, recreated-old-path and case-only rename, identity backfill, rename-followed-by-removal,
+same-path replacement, authoritative removal, preview ownership and cleanup races, filesystem-link
+containment, bounded maintenance, failure isolation, rollback, source-byte, Clippy, and Daily
+evidence. Subtree, root, and freshness-gap work remains durable and unleased by R2c-D for R2c-F
+authoritative reconciliation rather than publishing a partial removal claim.
+
 R2c-E - production UI and lifecycle:
 
 - start and stop synchronization with the desktop application;
@@ -1281,21 +1351,61 @@ R2c-E - production UI and lifecycle:
 - preserve active source, filters, selection, preview, and gallery scroll anchor through a bounded
   refresh.
 
-R2c-E is complete only after the real user path works end to end without a permanent task entry or
-manual re-import.
+R2c-E is complete. `docs/acceptance/r2c-e-production-ui-lifecycle.md` records production observer
+start and stop, bounded root freshness snapshots, live path publication, stable-asset gallery refresh,
+selection and viewer continuity, Chinese source status, idempotent bounded shutdown, bridge generation,
+complete Daily, and Windows release evidence. The real user path no longer requires a permanent task
+entry or manual re-import for ordinary supported path changes. The 2026-08-20 presentation hardening
+keeps compact source status in the sidebar, routes synchronization and reconciliation detail through
+one bounded notification queue and icon-only history control, and resets a newly selected Library,
+source, or child-folder scope to its first result instead of reusing the prior scope's time anchor.
 
 R2c-F - recovery and consistency:
 
 - force overflow, watcher failure, offline roots, database rollback, and repeated source changes;
-- implement the escalation ladder and low-frequency audit;
+- implement the bounded escalation ladder and explicit full-scan trigger contract;
 - prove that recovery does not publish mass false removals or claim health early.
 
-R2c-G - USN downtime catch-up:
+Status: **complete and audit-hardened on 2026-08-18; corrective hardening verified locally on
+2026-08-20**. ADR 0021 owns the bounded authoritative
+subtree/root worker, schema v18 full-scan generation and queue-watermark coordination,
+previous-snapshot preservation, background escalation, and bounded retry. Production isolates a
+live authoritative lease from foreground path polling, rotates due
+bounded work across roots, and preserves migrated v17 location identifiers during incremental
+identity backfill. `docs/acceptance/r2c-f-recovery-consistency.md` records the original controlled
+fixtures plus post-integration hardening. The 2026-08-20 correction separates structural
+full-scan incompleteness from isolated media decode failures, atomically publishes exact path
+retries, and projects an active authoritative scan as updating. The current local Rust suite is
+405 tests total with 398 passing and seven explicit ignores. The refreshed complete Daily also
+passed every Flutter test file, Windows Scan 2/2, Windows Accessibility 2/2, bridge compatibility,
+release guardrails, formatting, analysis, and whitespace. Hosted closeout remains required before
+the updated PR head is merged. The 2026-08-21 corrective working tree additionally separates a
+recoverable event-evidence gap from native watcher failure, keeps observation live during automatic
+authoritative recovery, narrows known-path metadata races to subtree work, and reserves `更新受阻`
+for blocked recovery. It also treats a bounded set of exact file changes discovered during
+authoritative full-scan finalization as path retries: the last trustworthy location is preserved or
+an unverified new location is omitted, while the independent root snapshot publishes instead of
+restarting a target-scale scan from zero. Structural path-set gaps and excessive exact-path races
+remain fail-closed. The deterministic finalization-race fixture passes; the refreshed complete gates
+for the full corrective working tree have not yet been run.
+
+R2c-G - historical USN downtime catch-up:
 
 - accept a focused ADR;
 - implement per-volume watermarks, continuity validation, root filtering, candidate enqueueing, and
   explicit fallback;
 - validate changes made while Ame is closed.
+
+Historical status: **implemented and audit-hardened on 2026-08-19; superseded for production by ADR
+0023 on 2026-08-21**. ADR 0022 records watcher-first bounded Windows USN catch-up, schema v19
+checkpoints and durable cross-root handoff lineage, explicit authoritative fallback, exact-case
+reconstruction, preview ownership, and fail-closed prerelease repair.
+`docs/acceptance/r2c-g-usn-downtime-catch-up.md` records controlled fixtures, 391 Rust tests with
+five existing explicit ignores, all Flutter tests, both Windows integration suites, the Windows
+Release and 10,000-file synthetic performance gates, and final independent approval with no
+remaining findings. Direct journal candidates remained unavailable to the standard workstation
+token; permission fallback passed without elevation or source mutation. Production must stop using
+this adapter, and schema v19 remains migration input only.
 
 R2c-H - large-library reliability:
 
@@ -1303,8 +1413,124 @@ R2c-H - large-library reliability:
 - then use the already authorized real roots in read-only mode, serially and with isolated derived
   storage;
 - measure idle overhead, event-to-visible P50/P95 latency, event-storm coalescing, persistent queue
-  growth, transaction time, startup catch-up, memory, database growth, cancellation, and recovery;
+  growth, transaction time, startup catch-up, memory, database growth, cancellation, and controlled
+  recovery; target-root authoritative convergence timing is deferred to extended R10 evidence;
 - verify source bytes, source entries, and cloud-placeholder state remain unchanged.
+
+Status: **complete and audit-hardened on 2026-08-19**. The final controlled Windows observer run
+recorded 35 ms event-to-visible P95, bounded coalescing and restart recovery, and the authorized
+two-root read-only rerun preserved 85,556 source entries plus 32 deterministic byte samples. Its
+isolated catch-up honestly recorded two `usn_volume_open_failed` fallbacks without elevation,
+leasing, publication, placeholder hydration, or source mutation. Physical path aliases are rejected
+before any write, Cargo and descendants remain inside one kill-on-close Job Object, and hash reads
+are bounded after opening. `docs/acceptance/r2c-h-large-library-reliability.md` records 402 Rust
+tests with seven explicit ignores, all Flutter and Windows integration gates, Windows Release,
+10,000-file synthetic performance, and final independent approval with no remaining findings.
+The target-root phase intentionally did not execute authoritative leases or publication, so its
+queue and storage measurements are not an end-to-end recovery-time claim.
+
+R2c-I - non-USN contract and production cutover:
+
+- accept ADR 0023 and mark ADR 0022 as superseded;
+- remove USN initialization, scheduling, checkpoints, and permission fallback from production;
+- keep schema v19 readable and preserve catalog, asset, preview, and user-decision authority;
+- add typed full-scan reasons and reject every non-allowlisted automatic request.
+
+R2c-I is complete only when production never opens a journal or requests elevation, existing v19
+catalogs migrate safely, and automatic startup or recovery cannot start a full scan.
+
+Status: **complete on 2026-08-21**. Production no longer constructs or schedules USN catch-up,
+startup continuity starts after the watcher is healthy, evidence gaps cannot create a scan run,
+oversized authoritative work returns `metadata_inventory_required`, and only user-requested or
+checkpoint-resume paths can enter the full scanner. Schema v19 migration and handoff compatibility
+remain intact. `docs/acceptance/r2c-i-non-usn-cutover.md` records the focused, Daily, and Windows
+Release evidence.
+
+R2c-J - metadata-inventory persistence and discovery:
+
+- add the forward inventory-run and staging migration with exact-shape validation;
+- enumerate path, kind, size, modification, identity, and placeholder attributes in bounded pages;
+- compare against the active catalog without decoding media or reading source bytes;
+- publish positive candidates through final-state path reconciliation and delay absence until the
+  complete scope is authoritative.
+
+R2c-J is complete only when controlled closed-process create, modify, delete, rename, directory move,
+placeholder, Chinese-path, and long-path changes converge without a media scan or source mutation.
+
+Implementation status: schema v20 now preserves the v19 queue and lineage while adding exact-shape
+inventory run/staging authority and the `metadata_inventory` queue origin. The local adapter emits
+fixed-bound metadata pages without content reads, media filtering, placeholder identity opens, or
+reparse-directory traversal. Controlled closed-process fixtures cover additions, modifications,
+deletions, file and directory moves, placeholders, Chinese and long paths, missing subtrees,
+hard-link rename pairing, cancellation, and durable failure termination. Production epoch and
+paging scheduling remain R2c-K. Focused tests, the 439-test Rust suite, repository lint, complete
+Daily, and Windows Release gates pass; the final independent audit found no remaining findings, so
+R2c-J is accepted.
+
+R2c-K - pageable recovery and continuity epochs:
+
+- make cold start, availability recovery, watcher restart, rescan, incomplete rename, and overflow
+  create or extend metadata-inventory epochs;
+- replace the 4,096-entry / 128-path automatic full-scan escalation with durable inventory paging;
+- coalesce live events with staged evidence and supersede interrupted non-scan authority on restart;
+- preserve exact removals, root generation, catalog revision, identity handoff, retry, and fairness.
+
+R2c-K is complete only when oversized and racing scopes remain bounded, no partial absence publishes,
+and every automatic failure either converges or remains durably `更新受阻` without a full scan.
+
+Implementation status: production now allocates root-generation inventory epochs atomically,
+routes startup and evidence-gap authority into metadata inventory, converts oversized subtree work
+into durable inventory continuation, and yields after one comparison or absence page. Candidate
+publication protects the exact authority lease, applies bounded backpressure without advancing a
+cursor or consuming an attempt, and rejects output after a newer watcher gap supersedes the worker.
+Focused epoch, overflow, cancellation, retry-exhaustion, capacity-one, fairness, and no-full-scan
+fixtures pass together with the complete 452-test Rust suite. Cloud Files identity, exact-name
+enumeration evidence, local availability, no-recall source opening, and matching unavailable
+metadata now remain safe without hydration, removal work, or retry exhaustion. Repository lint,
+complete Daily, and Windows Release gates pass. Final independent audit reported no Critical, High,
+Medium, or Low findings. R2c-K is accepted.
+
+R2c-L - lifecycle, presentation, and diagnostics:
+
+- map product status to `已同步`, `正在更新图库`, `更新受阻`, or `目录不可用` and remove `需要核对`;
+- keep normal update, retry, and success out of notifications while deduplicating blocked errors;
+- expose phase, elapsed time, bounded counts, and issue code in development diagnostics;
+- hide the window immediately, resume only full scans, and restart every non-scan continuity epoch.
+
+R2c-L is complete only when status cannot oscillate during automatic retries, blocked detail is
+actionable, normal synchronization is silent, and shutdown never leaves a visible stalled window.
+
+Implementation status: the typed synchronization snapshot now exposes watcher startup, inventory
+enumeration, inventory comparison, queue publication, retry wait, bounded reconciliation, full
+scan, blocked, synchronized, and unavailable phases. Flutter retains phase start time per root
+generation and emits structured development diagnostics with elapsed time, bounded queue counts,
+source status, and issue code. Durable exhausted work retains its diagnostic code across restart,
+and active recovery follows a typed blocking flag instead of inferring state from code strings or
+treating a protected live worker's nominal lease expiry as a product failure.
+Normal update, retry, and convergence remain silent; blocked cause changes update one
+root-and-generation-keyed notification in place with phase, current elapsed time, source path,
+counts, and technical code. Existing shutdown ownership hides the window before waiting, cancels
+non-scan work, and preserves only full-scan checkpoints. Focused tests, repository lint, complete
+Daily with 454 Rust tests and all Flutter/Windows integration partitions, and Windows Release pass
+on the audit-fix head. Final independent audit reported no Critical, High, Medium, or Low findings.
+R2c-L is accepted.
+
+R2c-M - replacement reliability and closeout:
+
+- repeat controlled Windows event-to-visible, storm, restart, overflow, cancellation, and source-
+  safety tests;
+- measure metadata-only startup continuity against the retained approximately 79,000-location
+  workload without media reads or placeholder hydration;
+- enforce event-to-visible P95 no greater than one second and an initial per-root metadata target no
+  greater than 45 seconds on the recorded workstation;
+- run migration, complete Daily, Windows Release, final independent audit, and final PR review.
+
+R2c status: **reopened on 2026-08-21 under ADR 0023**. R2c-A through R2c-F remain accepted
+foundations. R2c-G and its USN-specific acceptance remain historical implementation and migration
+evidence. R2c-H remains a valid source-safety and baseline measurement record but does not validate
+the replacement continuity model. R2c-I through R2c-M are complete with target-scale replacement
+evidence, complete gates, and final independent audits with no remaining findings. The R2c
+integration branch is ready for final review against `main`; R3 remains paused.
 
 #### R2c.12 Acceptance evidence
 
@@ -1317,16 +1543,20 @@ manual cleanup, storage relocation, and restart reconciliation remain R2b-owned 
 - the same controlled changes produce deterministic retain, invalidate, or remove semantics for
   derived evidence without keying any future smart-album result to an absolute path;
 - normal single-file changes do not trigger a complete root scan;
+- process start, watcher restart, overflow, retry, oversized inventory, and automatic recovery
+  failure do not trigger a complete root scan;
 - duplicate, reordered, incomplete, and late events converge on correct final filesystem state;
 - related changes publish atomically at one catalog revision;
 - a database failure or cancellation preserves the last trustworthy catalog;
 - queued work survives a controlled process interruption without duplicate publication;
-- a watcher overflow or failure marks the root degraded and recovers through the documented ladder;
+- a watcher overflow or failure marks the root updating or blocked and recovers through a new
+  metadata-inventory epoch;
 - an offline or disconnected root retains its last catalog and does not publish mass removals;
 - controlled content edits, same-path replacement, identity-proven rename or move, temporary
   unavailability, and authoritative removal produce the documented retain, atomic dimensions
   replacement, preview invalidation, or removal eligibility without a transient layout change;
-- OneDrive and other recall placeholders are not hydrated by observation, catch-up, or audit;
+- OneDrive and other recall placeholders are not hydrated by observation, metadata inventory, or
+  authoritative recovery;
 - the production Flutter gallery refreshes through bounded contracts and preserves stable identity
   and scroll position where the owning query remains valid;
 - source removal, application shutdown, pause, retry, and cancellation do not hang the desktop app;
@@ -1335,8 +1565,9 @@ manual cleanup, storage relocation, and restart reconciliation remain R2b-owned 
 - Rust format, Clippy with warnings denied, Rust tests, generated bridge checks, Flutter analysis,
   Flutter tests, Windows Debug/Release build, and `git diff --check` pass serially;
 - controlled fixtures and authorized real-root samples prove source bytes and entries are unchanged;
-- USN catch-up, when included, covers closed-app changes and safely falls back when continuity is
-  invalid;
+- closed-app create, modify, delete, rename, and move changes are covered by metadata inventory;
+- cached catalog content remains immediately usable while startup continuity runs;
+- development diagnostics expose active phase, elapsed time, bounded counts, and issue code;
 - remaining filesystem limitations and measured performance are recorded honestly.
 
 #### R2c.13 Explicit exclusions and anti-drift constraints
@@ -1348,7 +1579,10 @@ manual cleanup, storage relocation, and restart reconciliation remain R2b-owned 
   retain-or-invalidate policy from a filesystem event.
 - Do not accept platform notifications as authoritative state or assume they are ordered and unique.
 - Do not full-scan the approximately 259 GB library in response to every change.
-- Do not place the watcher, queue, USN, or SQLite policy in Flutter.
+- Do not place the watcher, queue, inventory, or SQLite policy in Flutter.
+- Do not initialize USN, request elevation, show a UAC prompt, or branch synchronization behavior on
+  administrative privileges.
+- Do not let an automatic synchronization or recovery path create a full-scan request.
 - Do not add a synchronization, task, timeline, or duplicate sidebar destination.
 - Do not mutate, normalize, hydrate, move, or delete source files.
 - Do not expose a production control before its complete application use case, failure state, and
@@ -1572,7 +1806,8 @@ Scope:
 - peak memory and cache-size enforcement;
 - catalog migration and application upgrade tests;
 - remaining condition-triggered million-item manifest adaptation and extended synchronization
-  catch-up evidence that was not required for earlier target-library value;
+  catch-up evidence that was not required for earlier target-library value, including target-root
+  authoritative recovery and publication timing;
 - installer, signing strategy, diagnostics export, and recovery documentation;
 - formal i18n infrastructure and additional locale catalogs only after product copy is stable and
   the supported locales are separately confirmed;
@@ -1612,7 +1847,7 @@ Large testing starts during R1 rather than waiting for R10:
 6. controlled read-only combined scan;
 7. warm incremental scan after known additions, removals, and modifications;
 8. live create, modify, rename, replacement, removal, and event-storm reconciliation during R2c;
-9. closed-application change catch-up and forced notification/journal fallback during R2c;
+9. closed-application metadata inventory and forced notification-loss recovery during R2c;
 10. exact-fingerprint reuse, regrouping, cancellation, and target-library duplicate coverage during
     R3;
 11. resumable review, override durability, and confidence-band sampling during R4 and R5;
@@ -1671,7 +1906,8 @@ may serve as benchmarks or fallbacks but are not automatically preferred over ma
 - Do not allow a third-party engine to redefine Ame's domain or database.
 - Do not confuse R1 explicit-rescan reconciliation with R2c automatic detection and catch-up.
 - Do not start R3 until R2c can prove that the catalog does not silently remain stale.
-- Do not treat filesystem notifications or USN records as authoritative file or asset state.
+- Do not treat filesystem notifications or staged inventory rows as authoritative file or asset
+  state.
 - Do not respond to ordinary source changes by repeatedly scanning every configured root.
 - Do not mutate source or target media during R8, and do not execute an R9 action without fresh
   authorization bound to the exact immutable plan and current-state revalidation.
@@ -1680,16 +1916,28 @@ may serve as benchmarks or fallbacks but are not automatically preferred over ma
 
 ## 10. Current active stage
 
-Active stage: **R2c - continuous directory synchronization and incremental indexing**
+Active stage: **R2c - non-USN continuity replacement**
 
-Planned next stage: **R3 - exact duplicate evidence**, still blocked behind R2c catalog-freshness
-acceptance.
+Active slice: **R2c integration review against `main` complete**. R2c-I through R2c-M completed
+their implementation, target evidence, complete gates, and stage audits. The foreground full-scan
+shutdown lifecycle correction passed complete local and hosted gates; final independent full-range
+re-audit reported no Critical, High, Medium, or Low findings. R3 is paused; no R3 implementation is
+included in the R2c integration branch.
+
+Current work: keep the final `codex/r2c` PR to `main` unmerged until explicit authorization. No
+additional R2c implementation or R3 work is scheduled on this branch.
+
+Each R2c-I through R2c-M slice uses a dedicated branch and PR into `codex/r2c`, receives an
+independent read-only audit, and merges only after its findings close. The final `codex/r2c` PR
+targets `main` for one last audit and remains unmerged until explicitly authorized.
 
 R2b implementation, deterministic preview-lifecycle correctness, retained-catalog interaction
 Profile, real-library catalog parity, Daily, Windows Release, and bounded source-readable preview
-performance gates are complete. R2b was accepted on 2026-08-13. R2c may now begin, but the R2b
-interaction and source-safety contracts remain regression boundaries rather than migration work to
-repeat.
+performance gates are complete. R2b was accepted on 2026-08-13. The former USN-based R2c reached its
+recorded implementation and audit state on 2026-08-19, then was reopened on 2026-08-21 after the
+target token could not use its primary continuity source and automatic fallback caused excessive
+recovery work. The R2b interaction and source-safety contracts and accepted R2c incremental
+publication contracts remain regression boundaries rather than migration work to repeat.
 
 The frozen R2b interaction comparison revision is
 `6d3f0686a91b85402251fe07fcc1690f268effd5`. It remains historical A/B evidence rather than a moving
@@ -1723,17 +1971,27 @@ or later analysis workflows.
 
 ### 10.1 Verified implementation snapshot
 
-This snapshot was synchronized on 2026-08-13 against the live working tree and fresh local gates.
+This snapshot was synchronized on 2026-08-22 against the live working tree and current planning
+decision. Historical gate claims retain their recorded dates; R2c-I through R2c-M have current
+replacement evidence and accepted stage audits.
 The live working tree, current schema, accepted ADRs, and fresh verification remain authoritative;
 this roadmap does not preserve drifting commit hashes or duplicate complete test transcripts.
 
 - R0 and R1 are accepted. The Rust-owned SQLite catalog, Flutter/Rust bridge, external preview
   storage, resumable multi-root scanning, atomic publication, per-file issue isolation, file
   identity, and revision-safe bounded queries are connected end to end.
-- The catalog schema is v16 and the storage-settings schema is v2. They add a transactional preview
-  artifact index, reconcile v15 ownership against ready previews in current active scans, and keep
-  explicit pending or retired preview-root ownership without losing earlier root, scan, asset,
-  location, frontier, capture-evidence, identity, or query evidence.
+- The catalog schema is v20 and the storage-settings schema is v2. Schema v17 introduced the
+  durable normalized change queue, root-generation tombstones, lease/retry state, catalog-revision
+  evidence, bounded terminal-row retention, and permanent highest-generation authority. Schema v18
+  adds authoritative scan ownership, generation and queue-watermark capture, previous-snapshot
+  preservation, consistency-audit evidence, normalized historical relative paths, and single-scan
+  root ownership. Schema v19 adds exact per-volume catch-up checkpoints, bounded queue and full-scan
+  lineage, normalized cross-root identity handoff, exact-case path lookup, preview-repair authority,
+  and fail-closed relational validation without losing the v16 preview ownership reconciliation or
+  earlier root, scan, asset, location, frontier, capture-evidence, identity, and query evidence.
+  Schema v20 adds durable metadata-inventory runs, fixed-bound staging and cleanup, completion and
+  absence authority, and the `metadata_inventory` change origin while preserving the v19 queue and
+  lineage contract.
 - The authorized read-only target-library acceptance published 30,629 locations for
   `local-primary` and 48,384 for `cloud-primary`, for 79,013 active locations in one retained
   catalog. Sampled source bytes and source entries remained unchanged, and cloud-only placeholders
@@ -1802,9 +2060,177 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   was 126,844,928 bytes, all 512 selected entries and 16 source-byte samples remained unchanged,
   and no preview request failed. The evidence accepts the current policy without triggering another
   optimization.
-- R2c is active and currently has no production watcher, durable change queue, freshness state,
-  delta publisher, or catch-up adapter. R3 and the later duplicate, review, classification,
-  similarity, semantic, organization-plan, and operation-journal domains have not started.
+- R2c-A is complete. Rust now exposes a selective platform-independent synchronization facade with
+  normalized observations and intents, root-generation isolation, explicit watcher-health and
+  catalog-freshness states, deterministic path/subtree/root coalescing, bounded evidence-gap
+  degradation, and ADR 0007-compatible final-state reconciliation outcomes. Forty-four focused tests,
+  including 22 adversarial blue-team fixtures, cover create, modify, transient create/remove,
+  paired and incomplete rename, path and nested-subtree supersession, stale generations, offline
+  roots, malformed/Chinese/long paths, event storms, exact overflow counts, same-state replacement,
+  identity-query degradation, path-bound authoritative removal, and failure preservation without a
+  platform watcher or Flutter policy. The attack matrix is recorded in
+  `docs/acceptance/r2c-a-blue-team.md`.
+- R2c-B is complete and its 2026-08-14 audit hardening replaces the unpatched dependency with the
+  ADR 0017 pinned `notify` 8.2.0 source plus narrow upstream-derived Windows backports. One bounded
+  recursive observer lifecycle per root converts controlled
+  create, modify, remove, paired rename, directory, rescan, callback-error, and overflow signals
+  into R2c-A observations and intents. Thirteen application lifecycle tests and fourteen adapter tests
+  cover non-blocking explicit-clock restart, crash-loop backoff, application-level dropped-evidence
+  degradation, generation isolation, stop-failure isolation, metadata races,
+  shutdown boundaries, queued native completions, server-exit acknowledgement, native notification
+  overflow, watched-root loss, degraded recovery, Chinese and long paths, and a real temporary recursive root without touching
+  a real library. The 2026-08-14 Daily gate passed all 207 Rust tests with 202 passing and five
+  intentional ignores, all Flutter tests, Windows scan and accessibility integrations, bridge
+  compatibility, and whitespace; the Windows Release gate built the packaged application and passed
+  both bridge smoke tests.
+- R2c-C is complete and audit-hardened. The application persists R2c-B plans through an Ame-owned
+  queue port into schema v17. Stable change IDs, 250 ms default configurable stabilization,
+  path/subtree/root supersession, paired rename paths, root generations, monotonic lease
+  generations, crash recovery, bounded retry and retention, enqueue/success revisions, optional
+  catch-up fields, structured health, and oldest-ready delay are durable. Source-local observation
+  sequence, origin, or future-skewed timestamp cannot outrank later durable ingress, and compact
+  highest-generation root tombstones survive terminal cleanup. Root registration seeds or advances
+  that authority before queue ingress, including lifecycles with no queued work. A prerelease v17
+  catalog without the complete-authority marker fails closed rather than guessing generation 1.
+  Thirty-six focused tests prove process and watcher restart recovery, including equal-time and
+  backward-clock source resets, minimum burst work, full old/new path and directory-subtree rename
+  overlap, normalized capacity after a policy decrease, removed-root rejection across cleanup and re-registration,
+  policy-adjusted retry exhaustion/reopening, migration, metrics, and cleanup. The 2026-08-17 Daily
+  passed 239 Rust tests with five existing intentional ignores, all Flutter tests,
+  both Windows integrations, bridge compatibility, formatting, and whitespace.
+- R2c-D is complete. The application now leases path work only after a trustworthy published root
+  is available and no full scan owns the publication boundary, checks final filesystem and media
+  state through the existing adapters, applies ADR 0007 identity rules, and revalidates each
+  present or absent path immediately before publication. Outcome and derived-evidence disposition
+  travel together through an Ame-owned delta contract. SQLite rechecks root generation, catalog
+  revision, active completed scan, and every lease generation under an immediate writer
+  transaction, then atomically updates only affected locations, compatible preview ownership,
+  orphan assets, active count, one catalog revision, and queue completion. Retained preview state
+  is compare-and-swapped against cleanup/reclamation, filesystem access rejects intermediate
+  links, paired rename reconciles both final paths, identity evidence is backfilled, and normal
+  full-scan coordination restores rather than consumes retry attempts. Cloud-only placeholders
+  preserve the last trustworthy location and remain durable retry work without content access or
+  terminal completion. Thirty-eight focused tests
+  prove these boundaries together with unchanged, add, edit, same-path replacement, authoritative
+  removal, related-batch revision atomicity, malformed-file isolation, stale
+  lease/revision/generation rejection, evidence validation, injected rollback, metadata-engine
+  compatibility, and controlled source-byte preservation. The 2026-08-18 Daily passed 270 Rust
+  tests with five
+  existing intentional ignores, all Flutter tests, both Windows integrations, bridge
+  compatibility, formatting, and whitespace. Authoritative subtree/root recovery, catch-up, and
+  real-library event acceptance remain later R2c slices.
+- R2c-E is complete and audit-hardened. The production desktop lifecycle starts and stops one Rust
+  synchronization runtime, retains drained observer evidence until durable enqueue succeeds, and
+  marks cold-start or recovered roots as needing authoritative reconciliation before claiming
+  freshness. Flutter consumes a revision already published before screen construction, projects
+  bounded Chinese root states, refreshes only published revisions, and
+  preserves source scope, filters, selection, preview demand, stable asset identity, preferred
+  location, await-safe viewer continuity, and the nearest surviving ordinal. A bridge failure before root
+  metrics shows `更新受阻`. Background refresh distinguishes applied, busy, superseded, and failed
+  outcomes; permanent catalog failures stop automatic retries, retain the target revision, and show
+  one localized retry action. A newer revision arriving during failed work is maximum-coalesced into
+  one follow-up attempt, while active or terminal scan feedback retains its progress, controls, retry,
+  and acknowledgement before the pending synchronization error is shown. Acknowledging failed or
+  cancelled scan feedback, including failure before scan allocation, clears only that transient task
+  surface and does not restart the scanner. Desktop destruction remains bounded after coordinated
+  shutdown.
+  Eight runtime tests, preferred-location and ordinal SQLite fixtures, and production screen tests
+  cover enqueue rollback, continuity gaps, rename, removal, and timeout behavior. The 2026-08-18
+  Daily passed 283 Rust tests with five existing intentional ignores, all Flutter tests, both
+  Windows integrations, bridge compatibility, formatting, and whitespace; the Windows Release gate
+  passed both packaged bridge smoke tests. Authoritative recovery remains R2c-F.
+- R2c-F is a retained accepted foundation. The historical implementation leases one bounded authoritative
+  subtree, root, or freshness-gap row, enumerates no more than 4,096 entries and 128 affected paths,
+  and publishes the complete retain/add/change/move/remove set at one catalog revision. Its historical
+  oversized-work path escalates to the resumable full scanner; ADR 0023 and R2c-K replace that
+  automatic escalation with metadata-inventory paging. Schema v18 captures the
+  root generation and unresolved queue high watermark when a scan begins, freezes only pre-watermark
+  work for that scan without consuming retry attempts, preserves later evidence, and releases only
+  its own rows on abandonment. It normalizes historical relative paths, persists a fail-closed
+  previous-snapshot requirement for unreadable rescans, and records authoritative audit completion.
+  Production runs both bounded reconciliation and full-scan escalation outside the polling mutex,
+  only after a healthy observer establishes continuity, with cancellable shutdown and bounded
+  per-root retry whose failure history survives bounded re-escalation. Placeholders and other
+  uninspectable entries remain unresolved through full-scan escalation without hydration or false
+  freshness, and v17 path normalization preserves legacy location identity for both healthy and
+  unavailable files. Durable lifecycle ownership separates foreground scans from bounded multi-root
+  production recovery; foreground path polling cannot reclaim a slow live authoritative lease,
+  and the Windows runner permits only one same-user production process to own that in-memory lease
+  boundary before Flutter, Rust, or catalog initialization. Bounded authoritative root selection
+  rotates fairly, timed-out workers block restart, future or exhausted retry rows do not create
+  empty workers, and one root cannot own overlapping active scans. After process owner loss, a new
+  SQLite connection can normalize and recover the expired work. Incremental identity backfill
+  retains a normalized v17 location's legacy identifier. The 2026-08-21 policy correction removes
+  periodic consistency-audit scheduling; prerelease audit rows are compatibility input only and are
+  retired without source enumeration. SQLite queue and scan mutations acquire the writer before
+  reading mutable state, empty path polls remain read-only, and ordinary foreground or background
+  writer contention remains silent and retryable for 30 seconds. Deterministic two-connection and
+  recovery-grace fixtures cover this boundary.
+  Controlled fixtures did not access a real library. The complete Daily and Windows Release gates
+  passed on 2026-08-19 with 402 Rust tests total, all Flutter files, both Windows integrations,
+  packaged duplicate-process rejection, owner-loss replacement startup, bridge compatibility,
+  formatting, and whitespace. The final independent integration audit found no remaining code or
+  contract findings.
+- Historical R2c-G was complete and audit-hardened for its recorded head, but ADR 0023 supersedes it
+  as a production design. That implementation starts live observation before one bounded per-volume
+  Windows USN catch-up, validates journal and catalog continuity, atomically enrolls all
+  affected roots before advancing the exclusive checkpoint, and degrades every unsupported,
+  permission-denied, discontinuous, malformed, unbounded, or unverifiable range to durable
+  authoritative work. Schema v19 preserves exact-case candidates, deleted-parent reconstruction,
+  bounded multi-watermark queue and full-scan lineage, stable cross-root asset identity, and
+  compatible preview ownership without dependency cycles or Cartesian snapshot growth. Exact-shape
+  migration validation rejects orphan or malformed authority; one-time prerelease preview repair is
+  serialized across concurrent catalog opens. Controlled fixtures and the 10,000-file synthetic
+  gate accessed no real library, requested no elevation, and mutated no source media. The complete
+  Daily and Windows Release gates passed on 2026-08-19, and final independent audit returned no
+  Critical, High, Medium, or Low findings. Authorized target-library evidence is recorded by the
+  completed historical R2c-H acceptance. Schema v19 remains forward-migration input; production
+  journal scheduling must be removed by R2c-I.
+- Historical R2c-H remains valid baseline and source-safety evidence. The controlled production watcher records bounded idle,
+  event-to-visible, storm-coalescing, restart, shutdown, queue, and storage evidence. The explicitly
+  authorized two-root workload uses a read-only retained catalog and isolated SQLite backup,
+  performs catch-up discovery without leasing or publishing authoritative work, and verifies all
+  85,556 source entries plus 32 deterministic local byte samples before and after. Physical path
+  aliases fail before writes, Cargo descendants are contained by one kill-on-close Job Object, hash
+  reads remain bounded after open, and final memory/deadline samples cannot bypass their ceilings.
+  This target-root phase does not claim authoritative recovery convergence or lease timing; those
+  target-scale measurements remain extended R10 evidence.
+  The complete Daily, Windows Release, and 10,000-file synthetic gates passed on 2026-08-19, and
+  final independent audit returned no Critical, High, Medium, or Low findings. It does not validate
+  the ADR 0023 metadata-inventory replacement.
+- R2c-I implementation, local verification, and final independent audit are complete. Production
+  no longer schedules USN or automatic full scans; scan resume is fail-closed and cannot recreate a
+  removed root or checkpoint; schema v19 remains compatible; and focused, Daily, Windows Release,
+  and zero-finding independent-audit evidence is recorded in
+  `docs/acceptance/r2c-i-non-usn-cutover.md`. Historical R2c-G/H evidence remains separate from the
+  target-scale replacement evidence recorded for R2c-M below.
+- R2c-J implementation and local verification are complete. Schema v20 inventory persistence,
+  bounded metadata-only discovery, safe positive-candidate routing, and complete-scope absence
+  authority pass focused fixtures, repository lint, the complete Daily gate with 439 Rust tests,
+  Windows Release verification, and a final independent audit with no remaining findings.
+  Production continuity epochs and pageable scheduling are completed by R2c-K.
+- R2c-K implementation and local verification are complete. Production continuity epochs,
+  pageable metadata recovery, constant-work exact path checks, Cloud Files availability, live-event
+  supersession, backpressure, retry, cancellation, and fairness pass focused fixtures, repository
+  lint, the complete Daily gate with 452 Rust tests, Windows Release verification, and a final
+  independent audit with no remaining findings.
+- R2c-L implementation and local verification are complete. Typed lifecycle phases, durable
+  exhausted-work diagnostics, protected active recovery, generation-bounded blocked presentation,
+  current elapsed detail, silent normal synchronization, and immediate close semantics pass
+  focused fixtures, repository lint, the complete Daily gate with 454 Rust tests, Windows Release
+  verification, and a final independent audit with no remaining findings.
+- R2c-M replacement tooling, target evidence, and stage audit are complete. The final Release disposable
+  production coordinator records 25 mixed create, modify, rename, move, same-path replacement, and
+  delete samples at 557 ms P50 and 828 ms P95 under the 250 ms foreground cadence, bounded storm
+  coalescing, 1,188 ms cross-process restart convergence, immediate shutdown, and unchanged
+  full-scan rows. The authorized isolated retained-catalog phase inventories 35,086
+  `local-primary` entries in 7,674 ms and 50,472 `cloud-primary` entries in 14,409 ms, preserves
+  source directory-entry metadata and placeholder state, retains 79,102 authorized manifest items,
+  adds no queue rows, and stays below the 2 GiB Job Object limit without media reads or source
+  mutation.
+  The target-tested head passes the complete Daily gate with 461 Rust tests total, 450 passed and
+  11 ignored, all Flutter and Windows integration partitions, and Windows Release verification.
+  The final independent read-only stage audit reports no Critical, High, Medium, or Low findings.
 - The current R2b closeout working tree passed the complete local Daily gate and Windows Release
   gate on 2026-08-12, including packaged Rust-library loading and the release bridge smoke test.
   This is current-stage evidence, not a release candidate or completion of R10.

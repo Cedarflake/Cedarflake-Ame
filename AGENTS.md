@@ -447,8 +447,25 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
 - `./tool/acceptance_run_read_only_library.ps1` and `./tool/acceptance_verify_read_only_catalog.ps1` are the
   real-library gate. They require current authorization, explicit roots, and storage outside source
   trees; they never become part of unattended daily verification.
-- `./tool/release_verify_windows.ps1` is the Windows packaging and release-bridge gate. Run it when
-  desktop integration, native packaging, generated bridge loading, or release behavior changes.
+- `./tool/acceptance_run_r2c_reliability.ps1` is the R2c-H closeout gate. It first exercises the
+  production Windows observer against a disposable source root, then backs up the retained catalog
+  into pre-created empty isolated storage and measures catch-up against both explicitly authorized
+  roots without publishing authoritative work or reading cloud-placeholder content.
+- `./tool/acceptance_test_r2c_reliability_guardrails.ps1` verifies the R2c-H authorization token,
+  cloud acknowledgement, path-separation, and fresh-storage boundary without accessing a real
+  library.
+- `./tool/acceptance_run_r2c_replacement_reliability.ps1` is the R2c-M replacement closeout gate.
+  It measures production watcher operations against a disposable root, then backs up the retained
+  catalog into isolated storage and measures per-root metadata-only continuity without opening
+  media content or publishing a full scan. The retained-root phase requires current explicit
+  authorization.
+- `./tool/acceptance_test_r2c_replacement_guardrails.ps1` verifies the R2c-M authorization token,
+  cloud acknowledgement, physical path separation, and fresh-storage boundary without accessing a
+  real library.
+- `./tool/release_verify_windows.ps1` is the Windows packaging and release-bridge gate. It also
+  proves that a packaged process rejects a same-user duplicate before runtime initialization and
+  that a replacement starts after the original process exits. Run it when desktop integration,
+  native packaging, generated bridge loading, or release behavior changes.
 - `./tool/release_verify_candidate.ps1` is the release-candidate orchestrator. It runs the daily, Windows
   release, and synthetic performance gates in order, and adds retained real-library validation only
   when explicitly requested with all authorization-bound paths.
@@ -547,6 +564,18 @@ completion tracker.
   operations.
 - Stage explicit files rather than broad paths when committing.
 - Use concise English Conventional Commit messages with a summary no longer than 20 words.
+- Write pull-request bodies as neutral technical summaries of the modifications in the current
+  head. State only what changed; do not turn the body into a user-facing announcement, release
+  note, maintainer narrative, bug-fix diary, or reviewer instruction. Omit verification results,
+  test and CI counts, performance measurements, audit verdicts and severity counts, zero-finding
+  claims, approval or merge-readiness claims, merge status, review iterations, debugging history,
+  descriptions of bugs that were fixed, agent actions, and conversation history. Keep verification
+  and audit evidence in their owning checks, acceptance records, or reviews rather than the
+  pull-request body.
+- When a pull request implements a named roadmap stage, include a concise `Roadmap scope` section
+  that links the canonical roadmap and maps its slices to the delivered modifications. This section
+  describes scope only; it must not restate completion claims, verification evidence, audit
+  outcomes, or merge readiness.
 - Split unrelated themes into separate commits so each rollback boundary remains coherent.
 - Do not commit generated caches, model files, local catalogs, source-media samples, build outputs,
   secrets, or external reference repositories.

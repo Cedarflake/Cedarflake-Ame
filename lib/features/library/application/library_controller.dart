@@ -12,6 +12,7 @@ import "library_preview_coordinator.dart";
 import "library_preview_queue.dart";
 import "library_preview_store.dart";
 import "library_previewer.dart";
+import "library_scan_shutdown.dart";
 import "library_scan_session.dart";
 import "library_scanner.dart";
 
@@ -20,6 +21,8 @@ const _timeNavigationRetryDelay = Duration(milliseconds: 120);
 const _maxVisibleRangePageLoads = 2;
 const _retainedDetailHighWatermark = 5000;
 const _retainedDetailLowWatermark = 3500;
+
+enum LibraryQueryUpdateOutcome { applied, busy, superseded, failed }
 
 class _RetainedCatalogPage {
   const _RetainedCatalogPage({
@@ -86,6 +89,8 @@ class LibraryController extends Notifier<LibraryState> {
   LibraryState? _queryTransitionBaseState;
   int? _queryTransitionRequestSequence;
   bool _isDisposed = false;
+  bool _isShutdownSuspending = false;
+  LibraryScanShutdownCoordinator? _scanShutdownCoordinator;
 
   LibraryPreviewCoordinator get _previews =>
       _previewCoordinator ??= LibraryPreviewCoordinator(
@@ -108,7 +113,13 @@ class LibraryController extends Notifier<LibraryState> {
           _previewCoordinator?.updateMaxActive(_maxActivePreviewsFor(speed)),
     );
     final scanner = ref.read(libraryScannerProvider);
+    final scanShutdownCoordinator = ref.read(
+      libraryScanShutdownCoordinatorProvider,
+    );
+    _scanShutdownCoordinator = scanShutdownCoordinator;
+    scanShutdownCoordinator.attach(this, _suspendActiveScanForShutdown);
     ref.onDispose(() {
+      scanShutdownCoordinator.detach(this);
       _isDisposed = true;
       final activeScanRun = _activeScanRun;
       _activeScanRun = null;
@@ -116,7 +127,9 @@ class LibraryController extends Notifier<LibraryState> {
         activeScanRun.streamDone.complete();
       }
       final scanId = _scanSession.activeScanId;
-      if (scanId != null) {
+      if (scanId != null &&
+          !_isShutdownSuspending &&
+          !scanShutdownCoordinator.isShuttingDown) {
         scanner.cancel(scanId);
       }
       _previewCoordinator?.dispose();
@@ -227,6 +240,8 @@ class LibraryController extends Notifier<LibraryState> {
             state.status == LibraryStatus.choosingDirectory &&
             allowedBusyStatus != LibraryStatus.choosingDirectory;
         if (_isDisposed ||
+            _isShutdownSuspending ||
+            (_scanShutdownCoordinator?.isShuttingDown ?? false) ||
             hasConflictingScan ||
             hasProtectedPausedScan ||
             hasDifferentPicker) {
@@ -296,15 +311,22 @@ class LibraryController extends Notifier<LibraryState> {
     );
     _activeScanRun = run;
     try {
-      final stream = ref
-          .read(libraryScannerProvider)
-          .scan(
-            scanId: scanId,
-            rootPath: rootPath,
-            itemLimit: itemLimit,
-            entryLimit: entryLimit,
-            previewEdge: previewEdge,
-          );
+      final scanner = ref.read(libraryScannerProvider);
+      final stream = isResuming
+          ? scanner.resume(
+              scanId: scanId,
+              rootPath: rootPath,
+              itemLimit: itemLimit,
+              entryLimit: entryLimit,
+              previewEdge: previewEdge,
+            )
+          : scanner.scan(
+              scanId: scanId,
+              rootPath: rootPath,
+              itemLimit: itemLimit,
+              entryLimit: entryLimit,
+              previewEdge: previewEdge,
+            );
       _subscription = stream.listen(
         (update) => _handleUpdate(run, update),
         onError: (Object error, StackTrace stackTrace) {
@@ -330,11 +352,41 @@ class LibraryController extends Notifier<LibraryState> {
     }
   }
 
-  void dismissCompletedImport() {
-    if (state.status != LibraryStatus.completed || state.scanId == null) {
+  Future<void> _suspendActiveScanForShutdown() async {
+    if (_isDisposed || _isShutdownSuspending) {
+      return;
+    }
+    _isShutdownSuspending = true;
+    await _scanStartQueue;
+    final scanner = ref.read(libraryScannerProvider);
+    while (!_isDisposed) {
+      final run = _activeScanRun;
+      if (run == null || run.streamDone.isCompleted) {
+        return;
+      }
+      if (scanner.suspend(run.scanId)) {
+        await run.streamDone.future;
+        return;
+      }
+      await Future.any([
+        run.streamDone.future,
+        Future<void>.delayed(const Duration(milliseconds: 10)),
+      ]);
+    }
+  }
+
+  void dismissTaskFeedback() {
+    final isDismissible =
+        state.status == LibraryStatus.completed ||
+        state.status == LibraryStatus.failed ||
+        state.status == LibraryStatus.cancelled;
+    if (!isDismissible) {
       return;
     }
     state = state.copyWith(
+      status: state.roots.isEmpty
+          ? LibraryStatus.empty
+          : LibraryStatus.completed,
       scanId: null,
       rootPath: null,
       displayRootPath: null,
@@ -346,6 +398,7 @@ class LibraryController extends Notifier<LibraryState> {
       itemLimit: null,
       entryLimit: null,
       isScanLimited: false,
+      errorMessage: null,
     );
   }
 
@@ -397,6 +450,32 @@ class LibraryController extends Notifier<LibraryState> {
   Future<bool> updateQuery(
     LibraryGalleryQuery query, {
     String? anchorLocationId,
+    String? anchorAssetId,
+    int? fallbackGlobalItemIndex,
+    bool forceRefresh = false,
+    BigInt? minimumCatalogRevision,
+    bool showRefreshingStatus = true,
+  }) async {
+    final outcome = await _updateQuery(
+      query,
+      anchorLocationId: anchorLocationId,
+      anchorAssetId: anchorAssetId,
+      fallbackGlobalItemIndex: fallbackGlobalItemIndex,
+      forceRefresh: forceRefresh,
+      minimumCatalogRevision: minimumCatalogRevision,
+      showRefreshingStatus: showRefreshingStatus,
+    );
+    return outcome == LibraryQueryUpdateOutcome.applied;
+  }
+
+  Future<LibraryQueryUpdateOutcome> _updateQuery(
+    LibraryGalleryQuery query, {
+    String? anchorLocationId,
+    String? anchorAssetId,
+    int? fallbackGlobalItemIndex,
+    bool forceRefresh = false,
+    BigInt? minimumCatalogRevision,
+    bool showRefreshingStatus = true,
   }) async {
     final normalized = query.copyWith(
       folderRelativePath: query.folderRelativePath
@@ -411,22 +490,26 @@ class LibraryController extends Notifier<LibraryState> {
       _queryTransitionBaseState = null;
       _queryTransitionRequestSequence = null;
     }
-    if (normalized == state.query && _queryTransitionBaseState == null) {
-      return true;
+    if (!forceRefresh &&
+        normalized == state.query &&
+        _queryTransitionBaseState == null) {
+      return LibraryQueryUpdateOutcome.applied;
     }
-    if (normalized == state.query && _queryTransitionBaseState != null) {
+    if (!forceRefresh &&
+        normalized == state.query &&
+        _queryTransitionBaseState != null) {
       _scanSequence += 1;
       final baseState = _queryTransitionBaseState!;
       _queryTransitionBaseState = null;
       _queryTransitionRequestSequence = null;
       state = baseState;
-      return true;
+      return LibraryQueryUpdateOutcome.applied;
     }
     if (state.status == LibraryStatus.choosingDirectory ||
         state.isScanning ||
         state.status == LibraryStatus.paused ||
         state.isLoadingTimeAnchor) {
-      return false;
+      return LibraryQueryUpdateOutcome.busy;
     }
     final priorSequence = _scanSequence;
     final isContinuingQueryTransition =
@@ -438,7 +521,7 @@ class LibraryController extends Notifier<LibraryState> {
     }
     _queryTransitionRequestSequence = requestSequence;
     state = state.copyWith(
-      status: LibraryStatus.refreshing,
+      status: showRefreshingStatus ? LibraryStatus.refreshing : state.status,
       isLoadingTimeline: true,
       pageErrorMessage: null,
       previousPageErrorMessage: null,
@@ -447,32 +530,43 @@ class LibraryController extends Notifier<LibraryState> {
     );
     try {
       final catalog = ref.read(libraryCatalogProvider);
+      final stableAnchorCatalog = catalog is LibraryStableQueryAnchorCatalog
+          ? catalog as LibraryStableQueryAnchorCatalog
+          : null;
       final anchorCatalog = catalog is LibraryQueryAnchorCatalog
           ? catalog as LibraryQueryAnchorCatalog
           : null;
-      var snapshot = anchorLocationId == null || anchorCatalog == null
-          ? await catalog.load(
-              maxItems: libraryCatalogWindow,
-              query: normalized,
-            )
-          : await anchorCatalog.loadAroundLocation(
-              maxItems: libraryCatalogWindow,
-              query: normalized,
-              anchorLocationId: anchorLocationId,
-            );
+      Future<LibrarySnapshot> loadSnapshot() {
+        if (anchorLocationId != null &&
+            anchorAssetId != null &&
+            stableAnchorCatalog != null) {
+          return stableAnchorCatalog.loadAroundAsset(
+            maxItems: libraryCatalogWindow,
+            query: normalized,
+            requestedLocationId: anchorLocationId,
+            anchorAssetId: anchorAssetId,
+            fallbackGlobalItemIndex: fallbackGlobalItemIndex ?? 0,
+          );
+        }
+        if (anchorLocationId != null && anchorCatalog != null) {
+          return anchorCatalog.loadAroundLocation(
+            maxItems: libraryCatalogWindow,
+            query: normalized,
+            anchorLocationId: anchorLocationId,
+          );
+        }
+        return catalog.load(maxItems: libraryCatalogWindow, query: normalized);
+      }
+
+      var snapshot = await loadSnapshot();
       final timeline = await catalog.loadTimeline(normalized);
+      if (minimumCatalogRevision != null &&
+          snapshot.revision < minimumCatalogRevision) {
+        snapshot = await loadSnapshot();
+      }
       if (snapshot.revision != timeline.revision ||
           snapshot.queryId != timeline.queryId) {
-        snapshot = anchorLocationId == null || anchorCatalog == null
-            ? await catalog.load(
-                maxItems: libraryCatalogWindow,
-                query: normalized,
-              )
-            : await anchorCatalog.loadAroundLocation(
-                maxItems: libraryCatalogWindow,
-                query: normalized,
-                anchorLocationId: anchorLocationId,
-              );
+        snapshot = await loadSnapshot();
         if (snapshot.revision != timeline.revision ||
             snapshot.queryId != timeline.queryId) {
           throw const LibraryCatalogFailure(
@@ -481,8 +575,15 @@ class LibraryController extends Notifier<LibraryState> {
           );
         }
       }
+      if (minimumCatalogRevision != null &&
+          snapshot.revision < minimumCatalogRevision) {
+        throw const LibraryCatalogFailure(
+          code: "catalog_revision_stale",
+          message: "The catalog revision has not reached the requested refresh",
+        );
+      }
       if (_isDisposed || requestSequence != _scanSequence) {
-        return false;
+        return LibraryQueryUpdateOutcome.superseded;
       }
       final baseState = _queryTransitionBaseState ?? state;
       final windowStart =
@@ -519,7 +620,7 @@ class LibraryController extends Notifier<LibraryState> {
       );
       _queryTransitionBaseState = null;
       _queryTransitionRequestSequence = null;
-      return true;
+      return LibraryQueryUpdateOutcome.applied;
     } on Object catch (error) {
       if (!_isDisposed && requestSequence == _scanSequence) {
         final baseState = _queryTransitionBaseState ?? state;
@@ -527,11 +628,30 @@ class LibraryController extends Notifier<LibraryState> {
         _queryTransitionRequestSequence = null;
         state = baseState.copyWith(
           isLoadingTimeline: false,
-          errorMessage: error.toString(),
+          errorMessage: showRefreshingStatus
+              ? error.toString()
+              : baseState.errorMessage,
         );
       }
-      return false;
+      return LibraryQueryUpdateOutcome.failed;
     }
+  }
+
+  Future<LibraryQueryUpdateOutcome> refreshFromSynchronization({
+    required BigInt catalogRevision,
+    String? anchorLocationId,
+    String? anchorAssetId,
+    int? fallbackGlobalItemIndex,
+  }) {
+    return _updateQuery(
+      state.query,
+      anchorLocationId: anchorLocationId,
+      anchorAssetId: anchorAssetId,
+      fallbackGlobalItemIndex: fallbackGlobalItemIndex,
+      forceRefresh: true,
+      minimumCatalogRevision: catalogRevision,
+      showRefreshingStatus: false,
+    );
   }
 
   Future<void> loadNextPage() async {

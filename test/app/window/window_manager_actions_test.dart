@@ -1,3 +1,6 @@
+import "dart:async";
+
+import "package:cedarflake_ame/app/window/ame_shutdown_coordinator.dart";
 import "package:cedarflake_ame/app/window/ame_window_placement.dart";
 import "package:cedarflake_ame/app/window/window_manager_actions.dart";
 import "package:flutter/material.dart";
@@ -39,6 +42,58 @@ void main() {
       expect(normalPlacement.isMaximized, isFalse);
     },
   );
+
+  test(
+    "close destroys the window after the bounded shutdown timeout",
+    () async {
+      final coordinator = AmeShutdownCoordinator();
+      final shutdownBlocker = Completer<void>();
+      coordinator.register(() => shutdownBlocker.future);
+      var destroyCount = 0;
+      final actions = WindowManagerActions(
+        _MemoryWindowPreferenceStore(),
+        shutdownCoordinator: coordinator,
+        maximumShutdownDuration: const Duration(milliseconds: 1),
+        hideWindow: () async {},
+        destroyWindow: () async => destroyCount += 1,
+      );
+
+      await Future.wait([actions.close(), actions.close()]);
+
+      expect(destroyCount, 1);
+      shutdownBlocker.complete();
+    },
+  );
+
+  test("close hides the window before waiting for shutdown", () async {
+    final coordinator = AmeShutdownCoordinator();
+    final shutdownBlocker = Completer<void>();
+    coordinator.register(() => shutdownBlocker.future);
+    final calls = <String>[];
+    final actions = WindowManagerActions(
+      _MemoryWindowPreferenceStore(),
+      shutdownCoordinator: coordinator,
+      maximumShutdownDuration: const Duration(seconds: 1),
+      hideWindow: () async => calls.add("hide"),
+      destroyWindow: () async => calls.add("destroy"),
+    );
+
+    final close = actions.close();
+    await Future<void>.delayed(Duration.zero);
+
+    expect(calls, ["hide"]);
+    shutdownBlocker.complete();
+    await close;
+    expect(calls, ["hide", "destroy"]);
+  });
+}
+
+class _MemoryWindowPreferenceStore implements AmeWindowPreferenceStore {
+  @override
+  Future<AmeWindowPlacement?> loadWindowPlacement() async => null;
+
+  @override
+  Future<void> saveWindowPlacement(AmeWindowPlacement placement) async {}
 }
 
 class _FakeWindowBootstrapActions implements AmeWindowBootstrapActions {

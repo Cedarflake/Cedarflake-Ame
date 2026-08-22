@@ -6,6 +6,7 @@ use std::time::{Duration, Instant};
 use tempfile::tempdir;
 
 use crate::domain::GallerySortDirection;
+use crate::ports::LibraryChangeQueue;
 
 use super::*;
 
@@ -117,6 +118,110 @@ fn preview_artifact_index_rolls_back_when_active_location_is_stale() {
 
     assert_eq!(error.code, "active_preview_location_stale");
     assert_eq!(artifact_count, 0);
+}
+
+#[test]
+fn prerelease_missing_active_preview_is_downgraded_on_reopen() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let mut catalog = SqliteCatalog::open(path.clone()).expect("catalog");
+    publish_fixture(
+        &mut catalog,
+        "prerelease-missing-preview-scan",
+        "prerelease-missing-preview-root",
+        "C:\\PrereleaseMissingPreview",
+        "prerelease-missing-preview-location",
+    );
+    let handoff_count: i64 = catalog
+        .connection
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM library_change_catch_up_handoffs)
+               + (SELECT COUNT(*) FROM library_change_scan_handoff_items)",
+            [],
+            |row| row.get(0),
+        )
+        .expect("terminal handoff count");
+    assert_eq!(handoff_count, 0);
+    catalog
+        .connection
+        .execute_batch(
+            "DROP TABLE library_change_preview_repair_contract;
+             DROP TABLE library_metadata_inventory_entries;
+             DROP TABLE library_metadata_inventory_runs;
+             DROP TABLE library_metadata_inventory_contract;
+             UPDATE schema_info SET version = 19;",
+        )
+        .expect("restore prerelease preview repair marker");
+    drop(catalog);
+
+    let reopened = SqliteCatalog::open(path).expect("repair missing active preview");
+    let repaired = reopened
+        .load_active_location("prerelease-missing-preview-location")
+        .expect("repaired active location query")
+        .expect("repaired active location");
+
+    assert!(repaired.preview_path.is_empty());
+    assert!(matches!(repaired.preview_status, PreviewStatus::Pending));
+    assert!(repaired.preview_issue_code.is_none());
+    assert!(repaired.preview_issue_message.is_none());
+}
+
+#[test]
+fn prerelease_stale_active_preview_and_owner_are_downgraded_on_reopen() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let mut catalog = SqliteCatalog::open(path.clone()).expect("catalog");
+    publish_fixture(
+        &mut catalog,
+        "prerelease-stale-preview-scan",
+        "prerelease-stale-preview-root",
+        "C:\\PrereleaseStalePreview",
+        "prerelease-stale-preview-location",
+    );
+    let artifact = publish_preview_artifact(
+        &mut catalog,
+        "prerelease-stale-preview-location",
+        "prerelease-stale-preview-artifact",
+        "C:\\AmeCache\\prerelease-stale-preview.jpg",
+    );
+    catalog
+        .connection
+        .execute(
+            "UPDATE preview_artifacts SET lifecycle_state = 'stale'
+             WHERE artifact_key = ?1",
+            [&artifact.artifact_key],
+        )
+        .expect("restore prerelease stale artifact");
+    catalog
+        .connection
+        .execute_batch(
+            "DROP TABLE library_change_preview_repair_contract;
+             DROP TABLE library_metadata_inventory_entries;
+             DROP TABLE library_metadata_inventory_runs;
+             DROP TABLE library_metadata_inventory_contract;
+             UPDATE schema_info SET version = 19;",
+        )
+        .expect("restore prerelease preview repair marker");
+    assert_eq!(preview_reference_count(&catalog, &artifact.artifact_key), 1);
+    drop(catalog);
+
+    let reopened = SqliteCatalog::open(path).expect("repair stale active preview");
+    let repaired = reopened
+        .load_active_location("prerelease-stale-preview-location")
+        .expect("repaired active location query")
+        .expect("repaired active location");
+
+    assert!(repaired.preview_path.is_empty());
+    assert!(matches!(repaired.preview_status, PreviewStatus::Pending));
+    assert_eq!(
+        preview_reference_count(&reopened, &artifact.artifact_key),
+        0
+    );
+    assert_eq!(
+        preview_lifecycle_state(&reopened, &artifact.artifact_key),
+        "stale"
+    );
 }
 
 #[test]
@@ -419,6 +524,166 @@ fn preview_reclamation_orders_stale_before_lru_and_preserves_protected_locations
 }
 
 #[test]
+fn handoff_preview_owners_survive_staling_and_reclamation_until_explicit_cleanup() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let mut catalog = SqliteCatalog::open(path).expect("catalog");
+    publish_fixture(
+        &mut catalog,
+        "handoff-owner-scan",
+        "handoff-owner-root",
+        "C:\\HandoffOwnerSource",
+        "handoff-owner-location",
+    );
+    let mut location = catalog
+        .load_active_location("handoff-owner-location")
+        .expect("active location query")
+        .expect("active location");
+    location.preview_path = "C:\\AmeCache\\handoff-owner.jpg".to_owned();
+    location.preview_status = PreviewStatus::Ready;
+    let artifact = PreviewArtifact {
+        artifact_key: "handoff-owner-artifact".to_owned(),
+        algorithm_id: "ame-jpeg-thumbnail".to_owned(),
+        algorithm_version: 2,
+        orientation_contract: "exif-display-v1".to_owned(),
+        size_bucket: 256,
+        path: location.preview_path.clone(),
+        byte_size: 1_024,
+        encoded_width: 40,
+        encoded_height: 50,
+        width: location.width,
+        height: location.height,
+    };
+    catalog
+        .update_active_preview(&location, Some(&artifact))
+        .expect("publish handoff-owned preview");
+    let identity = FileIdentityEvidence {
+        scheme: "windows-file-id-128-v1".to_owned(),
+        value: "handoff-owner-volume:file".to_owned(),
+    };
+    catalog
+        .connection
+        .execute(
+            "UPDATE asset_locations
+             SET file_identity_scheme = ?2, file_identity_value = ?3
+             WHERE location_id = ?1",
+            params![location.location_id, identity.scheme, identity.value],
+        )
+        .expect("assign handoff identity");
+    location.file_identity = Some(identity);
+    catalog
+        .connection
+        .execute_batch(
+            "INSERT INTO library_change_catch_up_handoffs(
+               catch_up_source, catch_up_watermark,
+               file_identity_scheme, file_identity_value,
+               asset_id, source_location_id, root_id, absolute_path, relative_path,
+               preview_path, file_size, created_unix_ms, modified_unix_ms,
+               width, height, preview_status, preview_issue_code, preview_issue_message,
+               metadata_engine_id, metadata_engine_version, capture_local_time,
+               capture_offset_minutes, capture_time_source, capture_raw_value,
+               updated_unix_ms
+             )
+             SELECT 'windows_usn_v1', 'legacy-owner',
+                    file_identity_scheme, file_identity_value,
+                    asset_id, location_id, root_id, absolute_path, relative_path,
+                    preview_path, file_size, created_unix_ms, modified_unix_ms,
+                    width, height, preview_status, preview_issue_code, preview_issue_message,
+                    metadata_engine_id, metadata_engine_version, capture_local_time,
+                    capture_offset_minutes, capture_time_source, capture_raw_value, 1
+             FROM asset_locations
+             WHERE scan_id = 'handoff-owner-scan' AND location_id = 'handoff-owner-location';
+             INSERT INTO library_change_scan_handoff_batches(id, source_root_id, updated_unix_ms)
+             VALUES ('handoff-owner-batch', 'handoff-owner-root', 1);
+             INSERT INTO library_change_scan_handoff_items(
+               batch_id, file_identity_scheme, file_identity_value,
+               asset_id, source_location_id, root_id, absolute_path, relative_path,
+               preview_path, file_size, created_unix_ms, modified_unix_ms,
+               width, height, preview_status, preview_issue_code, preview_issue_message,
+               metadata_engine_id, metadata_engine_version, capture_local_time,
+               capture_offset_minutes, capture_time_source, capture_raw_value
+             )
+             SELECT 'handoff-owner-batch', file_identity_scheme, file_identity_value,
+                    asset_id, location_id, root_id, absolute_path, relative_path,
+                    preview_path, file_size, created_unix_ms, modified_unix_ms,
+                    width, height, preview_status, preview_issue_code, preview_issue_message,
+                    metadata_engine_id, metadata_engine_version, capture_local_time,
+                    capture_offset_minutes, capture_time_source, capture_raw_value
+             FROM asset_locations
+             WHERE scan_id = 'handoff-owner-scan' AND location_id = 'handoff-owner-location';",
+        )
+        .expect("handoff preview owners");
+
+    location.preview_path.clear();
+    location.preview_status = PreviewStatus::Pending;
+    catalog
+        .update_active_preview(&location, None)
+        .expect("detach active preview owner");
+    assert_eq!(
+        preview_lifecycle_state(&catalog, &artifact.artifact_key),
+        "ready"
+    );
+    let candidates = catalog
+        .load_preview_reclamation_candidates(
+            &[],
+            "ame-jpeg-thumbnail",
+            2,
+            "exif-display-v1",
+            "c:\\amecache\\",
+            8,
+        )
+        .expect("handoff-protected reclamation candidates");
+    assert!(candidates.is_empty());
+    assert!(
+        !catalog
+            .remove_reclaimed_preview(&PreviewReclamationCandidate {
+                artifact_key: artifact.artifact_key.clone(),
+                path: artifact.path.clone(),
+            })
+            .expect("defensive handoff reclamation guard")
+    );
+
+    catalog
+        .reset_all_previews_for_cleanup()
+        .expect("explicit handoff preview cleanup");
+    let state: (i64, String, String, String, String) = catalog
+        .connection
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM preview_artifacts WHERE artifact_key = ?1),
+               (SELECT preview_status FROM library_change_catch_up_handoffs
+                WHERE catch_up_watermark = 'legacy-owner'),
+               (SELECT preview_path FROM library_change_catch_up_handoffs
+                WHERE catch_up_watermark = 'legacy-owner'),
+               (SELECT preview_status FROM library_change_scan_handoff_items
+                WHERE batch_id = 'handoff-owner-batch'),
+               (SELECT preview_path FROM library_change_scan_handoff_items
+                WHERE batch_id = 'handoff-owner-batch')",
+            [&artifact.artifact_key],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                ))
+            },
+        )
+        .expect("cleaned handoff preview state");
+    assert_eq!(
+        state,
+        (
+            0,
+            "pending".to_owned(),
+            String::new(),
+            "pending".to_owned(),
+            String::new()
+        )
+    );
+}
+
+#[test]
 fn shared_preview_is_protected_and_reset_through_every_active_location() {
     let directory = tempdir().expect("temporary directory");
     let path = directory.path().join("catalog.sqlite3");
@@ -696,6 +961,44 @@ fn catalog_writers_wait_for_short_writer_contention() {
 }
 
 #[test]
+fn scan_directory_claim_waits_for_writer_before_reading_snapshot() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let request = fixture_request("contended-scan", "C:\\Pictures");
+    let mut catalog = SqliteCatalog::open(path.clone()).expect("scan catalog");
+    catalog
+        .begin_scan(&request, "contended-root", &request.root_path)
+        .expect("begin contended scan");
+    let holder = SqliteCatalog::open(path).expect("lock holder catalog");
+    holder
+        .connection
+        .execute_batch(
+            "BEGIN IMMEDIATE;
+             UPDATE catalog_state SET revision = revision;",
+        )
+        .expect("hold catalog writer lock");
+
+    let claim = thread::spawn(move || catalog.claim_next_directory("contended-scan"));
+    thread::sleep(Duration::from_millis(100));
+    assert!(
+        !claim.is_finished(),
+        "scan claim must wait instead of failing against a stale read snapshot"
+    );
+    holder
+        .connection
+        .execute_batch("COMMIT")
+        .expect("release catalog writer lock");
+
+    assert_eq!(
+        claim
+            .join()
+            .expect("scan claim thread")
+            .expect("scan claim waits for the current writer"),
+        Some(String::new())
+    );
+}
+
+#[test]
 fn catalog_writer_timeout_has_a_specific_error_code() {
     let directory = tempdir().expect("temporary directory");
     let path = directory.path().join("catalog.sqlite3");
@@ -907,6 +1210,9 @@ fn migrates_v4_tasks_without_inventing_a_missing_directory_frontier() {
         .execute_batch(
             "CREATE TABLE schema_info (version INTEGER NOT NULL);
                  INSERT INTO schema_info(version) VALUES (4);
+                 CREATE TABLE library_roots (
+                   id TEXT PRIMARY KEY, active_scan_id TEXT
+                 );
                  CREATE TABLE scan_runs (
                    id TEXT PRIMARY KEY, root_id TEXT NOT NULL, status TEXT NOT NULL,
                    started_unix_ms INTEGER NOT NULL, completed_unix_ms INTEGER,
@@ -973,6 +1279,9 @@ fn migrates_v5_tasks_without_inventing_a_missing_entry_snapshot() {
         .execute_batch(
             "CREATE TABLE schema_info (version INTEGER NOT NULL);
                  INSERT INTO schema_info(version) VALUES (5);
+                 CREATE TABLE library_roots (
+                   id TEXT PRIMARY KEY, active_scan_id TEXT
+                 );
                  CREATE TABLE scan_runs (
                    id TEXT PRIMARY KEY, root_id TEXT NOT NULL, status TEXT NOT NULL,
                    started_unix_ms INTEGER NOT NULL, completed_unix_ms INTEGER,
@@ -1073,6 +1382,7 @@ fn migrates_v6_previews_as_ready_without_losing_the_artifact_path() {
                  );",
         )
         .expect("v6 schema");
+    ensure_legacy_scan_runs_contract(&connection);
     drop(connection);
 
     let catalog = SqliteCatalog::open(path).expect("migrated catalog");
@@ -1102,6 +1412,9 @@ fn migrates_v7_locations_as_unanalyzed_metadata() {
         .execute_batch(
             "CREATE TABLE schema_info (version INTEGER NOT NULL);
                  INSERT INTO schema_info(version) VALUES (7);
+                 CREATE TABLE library_roots (
+                   id TEXT PRIMARY KEY, active_scan_id TEXT
+                 );
                  CREATE TABLE asset_locations (
                    scan_id TEXT NOT NULL, asset_id TEXT NOT NULL,
                    location_id TEXT NOT NULL, root_id TEXT NOT NULL,
@@ -1121,6 +1434,7 @@ fn migrates_v7_locations_as_unanalyzed_metadata() {
                  );",
         )
         .expect("v7 schema");
+    ensure_legacy_scan_runs_contract(&connection);
     drop(connection);
 
     let catalog = SqliteCatalog::open(path).expect("migrated catalog");
@@ -1152,6 +1466,9 @@ fn migrates_v8_locations_with_unknown_file_identity() {
         .execute_batch(
             "CREATE TABLE schema_info (version INTEGER NOT NULL);
                  INSERT INTO schema_info(version) VALUES (8);
+                 CREATE TABLE library_roots (
+                   id TEXT PRIMARY KEY, active_scan_id TEXT
+                 );
                  CREATE TABLE asset_locations (
                    scan_id TEXT NOT NULL, asset_id TEXT NOT NULL,
                    location_id TEXT NOT NULL, root_id TEXT NOT NULL,
@@ -1174,6 +1491,7 @@ fn migrates_v8_locations_with_unknown_file_identity() {
                  );",
         )
         .expect("v8 schema");
+    ensure_legacy_scan_runs_contract(&connection);
     drop(connection);
 
     let catalog = SqliteCatalog::open(path).expect("migrated catalog");
@@ -1202,6 +1520,9 @@ fn migrates_v9_with_bounded_reconciliation_indexes() {
         .execute_batch(
             "CREATE TABLE schema_info (version INTEGER NOT NULL);
                  INSERT INTO schema_info(version) VALUES (9);
+                 CREATE TABLE library_roots (
+                   id TEXT PRIMARY KEY, active_scan_id TEXT
+                 );
                  CREATE TABLE asset_locations (
                    scan_id TEXT NOT NULL,
                    asset_id TEXT NOT NULL,
@@ -1212,16 +1533,20 @@ fn migrates_v9_with_bounded_reconciliation_indexes() {
                    capture_local_time TEXT,
                    file_identity_scheme TEXT,
                    file_identity_value TEXT,
+                   preview_path TEXT NOT NULL DEFAULT '',
+                   preview_status TEXT NOT NULL DEFAULT 'pending',
                    PRIMARY KEY(scan_id, location_id)
                  );
                  INSERT INTO asset_locations VALUES (
                    'scan-1', 'asset-1', 'location-1', 'root-1',
                    'archive/one.png', 1, NULL,
                    'windows-file-id-128-v1',
-                   '0000000000000001:00000000000000000000000000000002'
+                   '0000000000000001:00000000000000000000000000000002',
+                   '', 'pending'
                  );",
         )
         .expect("v9 schema");
+    ensure_legacy_scan_runs_contract(&connection);
     drop(connection);
 
     let catalog = SqliteCatalog::open(path).expect("migrated catalog");
@@ -1272,6 +1597,9 @@ fn migrates_v10_by_adding_the_gallery_time_index_without_rewriting_rows() {
         .execute_batch(
             "CREATE TABLE schema_info (version INTEGER NOT NULL);
                  INSERT INTO schema_info(version) VALUES (10);
+                 CREATE TABLE library_roots (
+                   id TEXT PRIMARY KEY, active_scan_id TEXT
+                 );
                  CREATE TABLE asset_locations (
                    scan_id TEXT NOT NULL,
                    location_id TEXT NOT NULL,
@@ -1279,14 +1607,17 @@ fn migrates_v10_by_adding_the_gallery_time_index_without_rewriting_rows() {
                    relative_path TEXT NOT NULL,
                    modified_unix_ms INTEGER NOT NULL,
                    capture_local_time TEXT,
+                   preview_path TEXT NOT NULL DEFAULT '',
+                   preview_status TEXT NOT NULL DEFAULT 'pending',
                    PRIMARY KEY(scan_id, location_id)
                  );
                  INSERT INTO asset_locations VALUES (
                    'scan-1', 'location-1', 'root-1', 'Album/img10.png', 123,
-                   '2025-08-07T10:20:30.000000000'
+                   '2025-08-07T10:20:30.000000000', '', 'pending'
                  );",
         )
         .expect("v10 schema");
+    ensure_legacy_scan_runs_contract(&connection);
     drop(connection);
 
     let catalog = SqliteCatalog::open(path).expect("migrated catalog");
@@ -1327,18 +1658,24 @@ fn migrates_v12_by_materializing_the_file_time_fallback_key() {
         .execute_batch(
             "CREATE TABLE schema_info (version INTEGER NOT NULL);
              INSERT INTO schema_info(version) VALUES (12);
+             CREATE TABLE library_roots (
+               id TEXT PRIMARY KEY, active_scan_id TEXT
+             );
              CREATE TABLE asset_locations (
                scan_id TEXT NOT NULL,
                location_id TEXT NOT NULL,
                root_id TEXT NOT NULL,
+               relative_path TEXT NOT NULL,
                created_unix_ms INTEGER,
                modified_unix_ms INTEGER NOT NULL,
                capture_local_time TEXT,
+               preview_path TEXT NOT NULL DEFAULT '',
+               preview_status TEXT NOT NULL DEFAULT 'pending',
                PRIMARY KEY(scan_id, location_id)
              );
              INSERT INTO asset_locations VALUES (
-               'scan-1', 'location-1', 'root-1',
-               1749988800000, 1784116800000, NULL
+               'scan-1', 'location-1', 'root-1', 'Album/photo.png',
+               1749988800000, 1784116800000, NULL, '', 'pending'
              );
              CREATE INDEX asset_locations_gallery_time
                ON asset_locations(
@@ -1352,6 +1689,7 @@ fn migrates_v12_by_materializing_the_file_time_fallback_key() {
                );",
         )
         .expect("v12 schema");
+    ensure_legacy_scan_runs_contract(&connection);
     drop(connection);
 
     let catalog = SqliteCatalog::open(path).expect("migrated catalog");
@@ -1386,10 +1724,13 @@ fn migrates_v13_with_an_empty_preview_artifact_index() {
              CREATE TABLE asset_locations (
                scan_id TEXT NOT NULL, asset_id TEXT NOT NULL,
                location_id TEXT NOT NULL, root_id TEXT NOT NULL,
-               preview_path TEXT NOT NULL
+               relative_path TEXT NOT NULL,
+               preview_path TEXT NOT NULL,
+               preview_status TEXT NOT NULL DEFAULT 'pending'
              );",
         )
         .expect("v13 schema");
+    ensure_legacy_scan_runs_contract(&connection);
     drop(connection);
 
     let catalog = SqliteCatalog::open(path).expect("migrated catalog");
@@ -1446,11 +1787,15 @@ fn migrates_v14_preview_ownership_to_every_active_location() {
              CREATE TABLE asset_locations (
                scan_id TEXT NOT NULL, asset_id TEXT NOT NULL,
                location_id TEXT NOT NULL, root_id TEXT NOT NULL,
-               preview_path TEXT NOT NULL
+               relative_path TEXT NOT NULL,
+               preview_path TEXT NOT NULL,
+               preview_status TEXT NOT NULL
              );
              INSERT INTO asset_locations VALUES
-               ('scan-1', 'asset-1', 'location-1', 'root-1', 'C:\\Cache\\shared.jpg'),
-               ('scan-2', 'asset-2', 'location-2', 'root-2', 'C:\\Cache\\shared.jpg');
+               ('scan-1', 'asset-1', 'location-1', 'root-1', 'shared.jpg',
+                'C:\\Cache\\shared.jpg', 'ready'),
+               ('scan-2', 'asset-2', 'location-2', 'root-2', 'shared.jpg',
+                'C:\\Cache\\shared.jpg', 'ready');
              CREATE TABLE preview_artifacts (
                artifact_key TEXT PRIMARY KEY,
                location_id TEXT NOT NULL,
@@ -1486,6 +1831,7 @@ fn migrates_v14_preview_ownership_to_every_active_location() {
              );",
         )
         .expect("v14 schema");
+    ensure_legacy_scan_runs_contract(&connection);
     drop(connection);
 
     let catalog = SqliteCatalog::open(path).expect("migrated catalog");
@@ -1529,13 +1875,16 @@ fn migrates_v15_by_reconciling_preview_ownership_with_active_locations() {
                scan_id TEXT NOT NULL,
                location_id TEXT NOT NULL,
                root_id TEXT NOT NULL,
+               relative_path TEXT NOT NULL,
                preview_path TEXT NOT NULL,
                preview_status TEXT NOT NULL
              );
              INSERT INTO asset_locations VALUES
-               ('scan-1', 'location-1', 'root-1', 'C:\\Cache\\shared.jpg', 'ready'),
-               ('scan-2', 'location-2', 'root-2', 'C:\\Cache\\shared.jpg', 'ready'),
-               ('scan-retired', 'location-retired', 'root-retired',
+               ('scan-1', 'location-1', 'root-1', 'shared.jpg',
+                'C:\\Cache\\shared.jpg', 'ready'),
+               ('scan-2', 'location-2', 'root-2', 'shared.jpg',
+                'C:\\Cache\\shared.jpg', 'ready'),
+               ('scan-retired', 'location-retired', 'root-retired', 'retired.jpg',
                 'C:\\Cache\\retired.jpg', 'ready');
              CREATE TABLE preview_artifacts (
                artifact_key TEXT PRIMARY KEY,
@@ -1581,6 +1930,7 @@ fn migrates_v15_by_reconciling_preview_ownership_with_active_locations() {
                ('wrong-path-artifact', 'location-1');",
         )
         .expect("v15 schema");
+    ensure_legacy_scan_runs_contract(&connection);
     drop(connection);
 
     let catalog = SqliteCatalog::open(path).expect("migrated catalog");
@@ -1644,6 +1994,37 @@ fn gallery_time_query_uses_its_ordering_index() {
             .iter()
             .any(|detail| detail.contains("asset_locations_gallery_time")),
         "unexpected gallery-time query plan: {details:?}"
+    );
+}
+
+#[test]
+fn active_relative_path_lookup_uses_its_complete_lookup_index() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let catalog = SqliteCatalog::open(path).expect("catalog");
+    let details = catalog
+        .connection
+        .prepare(
+            "EXPLAIN QUERY PLAN
+             SELECT locations.location_id
+             FROM library_roots AS roots
+             JOIN asset_locations AS locations
+               ON locations.scan_id = roots.active_scan_id
+             WHERE locations.root_id = ?1 AND locations.relative_path = ?2
+             ORDER BY locations.location_id
+             LIMIT 1",
+        )
+        .expect("query plan")
+        .query_map(["root-a", "album/photo.jpg"], |row| row.get::<_, String>(3))
+        .expect("query-plan rows")
+        .collect::<Result<Vec<_>, _>>()
+        .expect("query-plan details");
+
+    assert!(
+        details
+            .iter()
+            .any(|detail| detail.contains("asset_locations_root_relative")),
+        "unexpected active path query plan: {details:?}"
     );
 }
 
@@ -1823,10 +2204,11 @@ fn persists_and_validates_a_recoverable_scan_checkpoint() {
         .expect("begin scan");
     assert_eq!(initial.visited_entries, 0);
     let checkpoint = ScanCheckpoint {
-        last_visited_relative_path: Some("nested\\last.png".to_owned()),
+        last_visited_relative_path: Some("nested/last.png".to_owned()),
         visited_entries: 128,
         accepted_items: 40,
         issue_count: 3,
+        requires_previous_snapshot: true,
     };
     catalog
         .checkpoint_scan("scan-resume", &checkpoint)
@@ -1844,18 +2226,39 @@ fn persists_and_validates_a_recoverable_scan_checkpoint() {
     assert_eq!(recoverable.visited_entries, 128);
     assert_eq!(recoverable.accepted_items, 40);
     assert_eq!(recoverable.issue_count, 3);
+    let create_error = restored
+        .begin_scan(&request, "unexpected-root", "C:\\Unexpected")
+        .expect_err("new scans cannot reuse a checkpoint identifier");
+    assert_eq!(create_error.code, "catalog_scan_already_exists");
+    let unexpected_root_count = restored
+        .connection
+        .query_row(
+            "SELECT COUNT(*) FROM library_roots WHERE id = 'unexpected-root'",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .expect("unexpected root count");
+    assert_eq!(unexpected_root_count, 0);
     let resumed = restored
-        .begin_scan(&request, "root-resume", raw_root_path)
+        .resume_scan(&request, "root-resume", raw_root_path)
         .expect("resume scan");
     assert_eq!(
         resumed.last_visited_relative_path,
         checkpoint.last_visited_relative_path
     );
+    assert!(resumed.requires_previous_snapshot);
+    let publish_error = restored
+        .publish_scan("scan-resume", "root-resume", 40, 3)
+        .expect_err("an unresolved prior issue cannot publish");
+    assert_eq!(
+        publish_error.code,
+        "catalog_scan_requires_previous_snapshot"
+    );
 
     let mut changed_request = request.clone();
     changed_request.preview_edge = 256;
     let error = restored
-        .begin_scan(&changed_request, "root-resume", "C:\\Pictures")
+        .resume_scan(&changed_request, "root-resume", "C:\\Pictures")
         .expect_err("changed parameters cannot reuse a checkpoint");
     assert_eq!(error.code, "catalog_scan_resume_mismatch");
 }
@@ -2314,6 +2717,150 @@ fn gallery_location_anchor_resolves_name_order_and_direction() {
             .collect::<Vec<_>>(),
         ["img4", "img3", "img2"]
     );
+}
+
+#[test]
+fn gallery_asset_anchor_follows_a_renamed_location() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let mut catalog = SqliteCatalog::open(path).expect("catalog");
+    publish_gallery_query_fixture(
+        &mut catalog,
+        "asset-anchor-scan",
+        "asset-anchor-root",
+        "C:\\Pictures",
+        &[
+            ("before", "Album/before.png", None, Some(10), 10),
+            ("neighbor", "Album/neighbor.png", None, Some(20), 20),
+        ],
+    );
+    catalog
+        .connection
+        .execute(
+            "UPDATE asset_locations
+             SET location_id = 'after', relative_path = 'Album/after.png',
+                 absolute_path = 'C:\\Pictures\\Album\\after.png'
+             WHERE location_id = 'before'",
+            [],
+        )
+        .expect("rename active location while retaining its asset identity");
+
+    let query = GalleryQuery {
+        sort_key: GallerySortKey::FileName,
+        sort_direction: GallerySortDirection::Ascending,
+        ..GalleryQuery::default()
+    };
+    let page = catalog
+        .load_snapshot_around_asset(
+            3,
+            &query,
+            "stable-asset-anchor",
+            "before",
+            "asset-asset-anchor-scan-before",
+            0,
+        )
+        .expect("stable asset anchor");
+    let resolution = page.query_anchor_resolution.expect("resolution");
+    assert_eq!(resolution.requested_location_id, "before");
+    assert_eq!(resolution.location_id.as_deref(), Some("after"));
+    assert_eq!(resolution.ordinal, Some(0));
+    assert_eq!(page.assets[0].asset_id, "asset-asset-anchor-scan-before");
+    assert_eq!(page.assets[0].location_id, "after");
+}
+
+#[test]
+fn gallery_asset_anchor_prefers_the_requested_active_location() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let mut catalog = SqliteCatalog::open(path).expect("catalog");
+    publish_gallery_query_fixture(
+        &mut catalog,
+        "multi-location-scan",
+        "multi-location-root",
+        "C:\\Pictures",
+        &[
+            ("first", "Album/first.png", None, Some(10), 10),
+            ("second", "Album/second.png", None, Some(20), 20),
+        ],
+    );
+    catalog
+        .connection
+        .execute(
+            "UPDATE asset_locations
+             SET asset_id = 'asset-multi-location-scan-first'
+             WHERE location_id = 'second'",
+            [],
+        )
+        .expect("attach second location to the same asset");
+    let query = GalleryQuery {
+        sort_key: GallerySortKey::FileName,
+        sort_direction: GallerySortDirection::Ascending,
+        ..GalleryQuery::default()
+    };
+
+    let page = catalog
+        .load_snapshot_around_asset(
+            3,
+            &query,
+            "multi-location-anchor",
+            "second",
+            "asset-multi-location-scan-first",
+            1,
+        )
+        .expect("preferred stable asset anchor");
+    let resolution = page.query_anchor_resolution.expect("resolution");
+    assert_eq!(resolution.location_id.as_deref(), Some("second"));
+    assert_eq!(resolution.ordinal, Some(1));
+    let preferred = catalog
+        .load_active_location_by_asset_id("asset-multi-location-scan-first", Some("second"))
+        .expect("load preferred location")
+        .expect("preferred asset location");
+    assert_eq!(preferred.location_id, "second");
+}
+
+#[test]
+fn missing_asset_anchor_falls_back_to_the_nearest_surviving_ordinal() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let mut catalog = SqliteCatalog::open(path).expect("catalog");
+    publish_gallery_query_fixture(
+        &mut catalog,
+        "missing-anchor-scan",
+        "missing-anchor-root",
+        "C:\\Pictures",
+        &[
+            ("first", "Album/first.png", None, Some(10), 10),
+            ("middle", "Album/middle.png", None, Some(20), 20),
+            ("third", "Album/third.png", None, Some(30), 30),
+        ],
+    );
+    catalog
+        .connection
+        .execute(
+            "DELETE FROM asset_locations WHERE location_id = 'middle'",
+            [],
+        )
+        .expect("remove anchor location");
+    let query = GalleryQuery {
+        sort_key: GallerySortKey::FileName,
+        sort_direction: GallerySortDirection::Ascending,
+        ..GalleryQuery::default()
+    };
+
+    let page = catalog
+        .load_snapshot_around_asset(
+            3,
+            &query,
+            "missing-asset-anchor",
+            "middle",
+            "asset-missing-anchor-scan-middle",
+            1,
+        )
+        .expect("fallback stable asset anchor");
+    let resolution = page.query_anchor_resolution.expect("resolution");
+    assert_eq!(resolution.location_id.as_deref(), Some("third"));
+    assert_eq!(resolution.ordinal, Some(1));
+    assert_eq!(resolution.window_start_ordinal, 0);
 }
 
 #[test]
@@ -3027,6 +3574,30 @@ fn publish_empty_replacement_scan(
         .expect("publish empty replacement scan");
 }
 
+fn ensure_legacy_scan_runs_contract(connection: &Connection) {
+    connection
+        .execute_batch(
+            "CREATE TABLE IF NOT EXISTS scan_runs (
+               id TEXT PRIMARY KEY,
+               root_id TEXT NOT NULL,
+               status TEXT NOT NULL,
+               started_unix_ms INTEGER NOT NULL,
+               completed_unix_ms INTEGER,
+               asset_count INTEGER NOT NULL DEFAULT 0,
+               issue_count INTEGER NOT NULL DEFAULT 0,
+               max_items INTEGER,
+               max_entries INTEGER,
+               preview_edge INTEGER NOT NULL,
+               current_directory_relative_path TEXT,
+               current_directory_enumerated INTEGER NOT NULL DEFAULT 0,
+               last_visited_relative_path TEXT,
+               visited_entries INTEGER NOT NULL DEFAULT 0,
+               accepted_items INTEGER NOT NULL DEFAULT 0
+             );",
+        )
+        .expect("legacy scan run contract");
+}
+
 fn preview_reference_count(catalog: &SqliteCatalog, artifact_key: &str) -> i64 {
     catalog
         .connection
@@ -3185,4 +3756,227 @@ fn fixture_request(scan_id: &str, root_path: &str) -> ScanRequest {
         max_entries: Some(2_000),
         preview_edge: 512,
     }
+}
+
+#[test]
+fn one_root_cannot_have_overlapping_authoritative_scans() {
+    let directory = tempdir().expect("catalog directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let mut first = SqliteCatalog::open(path.clone()).expect("first catalog");
+    let first_request = fixture_request("root-scan-a", "C:\\Pictures");
+    first
+        .begin_scan(&first_request, "root-a", &first_request.root_path)
+        .expect("begin first scan");
+    let mut second = SqliteCatalog::open(path).expect("second catalog");
+    let second_request = fixture_request("root-scan-b", "C:\\Pictures");
+
+    let error = second
+        .begin_scan(&second_request, "root-a", &second_request.root_path)
+        .expect_err("overlapping root scan must fail");
+
+    assert_eq!(error.code, "catalog_root_scan_in_progress");
+    first
+        .abandon_scan(&first_request.scan_id, "cancelled", 0)
+        .expect("release first scan");
+    second
+        .begin_scan(&second_request, "root-a", &second_request.root_path)
+        .expect("begin second scan after release");
+}
+
+#[test]
+fn recoverable_scan_queries_keep_foreground_and_authoritative_owners_separate() {
+    let directory = tempdir().expect("catalog directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let mut catalog = SqliteCatalog::open(path).expect("catalog");
+    let first_authoritative = fixture_request("sync-recovery-a", "C:\\RecoveryA");
+    let second_authoritative = fixture_request("sync-recovery-b", "C:\\RecoveryB");
+    let foreground = fixture_request("foreground-c", "C:\\ForegroundC");
+    catalog
+        .begin_authoritative_scan(
+            &first_authoritative,
+            "root-recovery-a",
+            &first_authoritative.root_path,
+        )
+        .expect("first authoritative scan");
+    catalog
+        .begin_authoritative_scan(
+            &second_authoritative,
+            "root-recovery-b",
+            &second_authoritative.root_path,
+        )
+        .expect("second authoritative scan");
+    catalog
+        .begin_scan(&foreground, "root-foreground-c", &foreground.root_path)
+        .expect("foreground scan");
+
+    let foreground_recovery = catalog
+        .load_recoverable_scan()
+        .expect("foreground recovery")
+        .expect("foreground scan is recoverable");
+    let first_recovery = catalog
+        .load_authoritative_recoverable_scan_after(None)
+        .expect("first authoritative recovery")
+        .expect("first authoritative scan");
+    let second_recovery = catalog
+        .load_authoritative_recoverable_scan_after(Some(&first_recovery.scan_id))
+        .expect("second authoritative recovery")
+        .expect("second authoritative scan");
+    let end_of_page = catalog
+        .load_authoritative_recoverable_scan_after(Some(&second_recovery.scan_id))
+        .expect("authoritative recovery end");
+    let ownership_error = catalog
+        .resume_scan(
+            &first_authoritative,
+            "root-recovery-a",
+            &first_authoritative.root_path,
+        )
+        .expect_err("foreground lifecycle cannot claim authoritative scan");
+
+    assert_eq!(foreground_recovery.scan_id, foreground.scan_id);
+    assert_eq!(first_recovery.scan_id, first_authoritative.scan_id);
+    assert_eq!(second_recovery.scan_id, second_authoritative.scan_id);
+    assert!(end_of_page.is_none());
+    assert_eq!(ownership_error.code, "catalog_scan_resume_mismatch");
+}
+
+#[test]
+fn authoritative_resume_after_root_unregister_fails_without_recreating_catalog_state() {
+    let directory = tempdir().expect("catalog directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let mut catalog = SqliteCatalog::open(path).expect("catalog");
+    let root_id = "removed-recovery-root";
+    let recovery = fixture_request("removed-recovery-scan", "C:\\RemovedRecovery");
+    catalog
+        .begin_authoritative_scan(&recovery, root_id, &recovery.root_path)
+        .expect("begin authoritative scan");
+    let loaded = catalog
+        .load_authoritative_recoverable_scan_after(None)
+        .expect("load authoritative checkpoint")
+        .expect("authoritative checkpoint");
+    assert_eq!(loaded.scan_id, recovery.scan_id);
+
+    assert!(catalog.unregister_root(root_id).expect("unregister root"));
+    let error = catalog
+        .resume_authoritative_scan(&recovery, root_id, &recovery.root_path)
+        .expect_err("removed checkpoint must fail closed");
+
+    assert_eq!(error.code, "catalog_scan_resume_missing");
+    let counts: (i64, i64, i64) = catalog
+        .connection
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM library_roots WHERE id = ?1),
+               (SELECT COUNT(*) FROM scan_runs WHERE root_id = ?1),
+               (SELECT COUNT(*) FROM scan_directory_frontier
+                  WHERE scan_id = ?2)",
+            rusqlite::params![root_id, recovery.scan_id],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .expect("catalog counts");
+    assert_eq!(counts, (0, 0, 0));
+}
+
+#[test]
+fn legacy_root_audit_and_its_exclusive_recovery_scan_are_retired() {
+    let directory = tempdir().expect("catalog directory");
+    let mut catalog =
+        SqliteCatalog::open(directory.path().join("catalog.sqlite3")).expect("catalog");
+    let root_id = "legacy-audit-root";
+    let root_path = "C:\\LegacyAudit";
+    let initial = fixture_request("legacy-audit-initial", root_path);
+    catalog
+        .begin_scan(&initial, root_id, root_path)
+        .expect("begin initial scan");
+    catalog
+        .publish_scan(&initial.scan_id, root_id, 0, 0)
+        .expect("publish initial scan");
+    let generation = LibraryRootGeneration::initial();
+    let policy = LibraryChangeQueuePolicy {
+        debounce_millis: 0,
+        ..LibraryChangeQueuePolicy::default()
+    };
+    catalog
+        .enqueue_library_change_intents(
+            &[LibraryChangeIntent {
+                root_id: root_id.to_owned(),
+                root_generation: generation,
+                kind: LibraryChangeIntentKind::Reconcile,
+                scope: LibraryChangeScope::Root,
+                relative_path: String::new(),
+                previous_relative_path: None,
+                origin: LibraryChangeOrigin::ConsistencyAudit,
+                first_observed_unix_ms: 1_000,
+                most_recent_observed_unix_ms: 1_000,
+                first_sequence: 1,
+                most_recent_sequence: 1,
+                coalesced_observation_count: 1,
+            }],
+            1_000,
+            policy,
+        )
+        .expect("enqueue legacy audit");
+    let recovery = fixture_request("legacy-audit-recovery", root_path);
+    catalog
+        .begin_authoritative_scan(&recovery, root_id, root_path)
+        .expect("begin legacy audit recovery scan");
+
+    let retired = catalog
+        .retire_legacy_consistency_audits(2_000)
+        .expect("retire legacy audit");
+    let scan_status: String = catalog
+        .connection
+        .query_row(
+            "SELECT status FROM scan_runs WHERE id = ?1",
+            [&recovery.scan_id],
+            |row| row.get(0),
+        )
+        .expect("retired scan status");
+    let metrics = catalog
+        .load_library_change_root_queue_metrics(root_id, generation, 2_000, policy)
+        .expect("retired queue metrics");
+
+    assert_eq!(retired, 1);
+    assert_eq!(scan_status, "superseded");
+    assert!(
+        catalog
+            .load_authoritative_recoverable_scan_after(None)
+            .expect("recoverable scans")
+            .is_none()
+    );
+    assert_eq!(metrics.pending_count, 0);
+    assert_eq!(metrics.leased_count, 0);
+    assert_eq!(metrics.retry_wait_count, 0);
+    assert_eq!(metrics.superseded_count, 1);
+
+    catalog
+        .enqueue_library_change_intents(
+            &[LibraryChangeIntent {
+                root_id: root_id.to_owned(),
+                root_generation: generation,
+                kind: LibraryChangeIntentKind::Reconcile,
+                scope: LibraryChangeScope::Path,
+                relative_path: "retry.png".to_owned(),
+                previous_relative_path: None,
+                origin: LibraryChangeOrigin::ConsistencyAudit,
+                first_observed_unix_ms: 3_000,
+                most_recent_observed_unix_ms: 3_000,
+                first_sequence: 1,
+                most_recent_sequence: 1,
+                coalesced_observation_count: 1,
+            }],
+            3_000,
+            policy,
+        )
+        .expect("enqueue historical path retry");
+
+    assert_eq!(
+        catalog
+            .retire_legacy_consistency_audits(4_000)
+            .expect("preserve historical path retry"),
+        0
+    );
+    let retained = catalog
+        .load_library_change_root_queue_metrics(root_id, generation, 4_000, policy)
+        .expect("retained path metrics");
+    assert_eq!(retained.pending_count, 1);
 }

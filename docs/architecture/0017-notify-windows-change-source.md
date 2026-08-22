@@ -1,0 +1,196 @@
+# ADR 0017: Use a patched notify 8.2.0 behind the Windows change-source adapter
+
+- Status: Accepted
+- Date: 2026-08-13
+- Corrected: 2026-08-14
+- Last amended: 2026-08-21
+
+## Context
+
+R2c-B needed a maintained recursive Windows filesystem observation library. R2c-A recorded the
+dependency decision before admission, while deliberately avoiding an unused Cargo dependency or a
+premature platform implementation.
+
+The watcher supplies hints only. ADR 0016 owns normalized observations and ADR 0007 owns file
+identity and final reconciliation. No dependency event, error, path, thread, or lifecycle type may
+cross the adapter.
+
+## Decision drivers
+
+- recursive Windows observation through a narrow Rust API;
+- active maintenance and credible real-world adoption;
+- license and Rust-toolchain compatibility;
+- explicit event-loss and recovery signaling;
+- bounded callback, shutdown, restart, and packaging behavior;
+- replacement without catalog, application-contract, or Flutter migration.
+
+## Considered options
+
+### Patched `notify` 8.2.0 recommended watcher
+
+Selected for validation. The stable release uses Windows `ReadDirectoryChangesW`, supports
+recursive directory watching, and is used by several mature Rust applications. Version 8.2.0
+declares Rust 1.77 as its minimum and CC0-1.0 as its license, compatible with Ame's pinned Rust
+1.97.1 toolchain and distribution policy. Audit found that the published Windows backend ignores
+zero-byte and `ERROR_NOTIFY_ENUM_DIR` completions, silently unwatches a removed root, and drops
+other completion and rearm errors. Those gaps require the narrow upstream-derived backport recorded
+below; unpatched 8.2.0 is not admissible.
+
+### `notify` pre-release 9.x
+
+Rejected for this slice. A release-candidate line provides no R2c requirement that justifies
+admitting pre-release API and packaging churn over the current stable release.
+
+### `notify-debouncer-mini` or `notify-debouncer-full`
+
+Not admitted. R2c-C needs application-owned durable coalescing, generation protection, leasing,
+retry, and crash recovery. A dependency-owned in-memory debounce policy cannot become the authority
+for those semantics. R2c-B may use only the base watcher.
+
+### Direct `ReadDirectoryChangesW` implementation
+
+Rejected initially. It would add Windows buffer parsing, rename correlation, cancellation, and new
+`unsafe` maintenance without evidence that the mature adapter is insufficient.
+
+### Polling watcher
+
+Reserved as an explicit fallback experiment, not a default for the approximately 79,000-location
+target catalog. Fixed polling would add idle enumeration cost and still would not remove the need
+for explicit recovery when continuity evidence is unavailable.
+
+## Decision
+
+R2c-B admits the stable `notify` version 8.2.0 source behind a Windows `LibraryChangeSource`
+adapter, with a repository-owned Cargo patch under `rust/vendor/notify`. The patch is based on the
+crates.io source with checksum
+`4d3d07927151ff8575b7087f245456e549fea62edf0ec4e565a5ee50c8402bc3` and backports upstream
+Windows fixes `75d72fd1`, `21abf764`, `d01dc40d`, and `bc257049`. Its exact scope and replacement
+instructions are recorded in `rust/vendor/notify/AME-PATCHES.md`. The dependency remains
+Windows-targeted, disables default features, and uses neither a debouncer nor a polling fallback.
+`notify` and all transitive event, error, path, thread, and watcher types remain inside the adapter.
+
+The vendored Windows backend retains the dependency's existing `unsafe` Win32 boundary. The
+backport may only parse `FILE_NOTIFY_INFORMATION` after a nonzero successful completion, must rearm
+before delivering normal records, owns each overlapped request until its completion callback, and
+must release or close every handle on start, rearm, unwatch, and stop paths. Focused real-Windows
+overflow, root-removal, error, and bounded-stop tests are required whenever that file changes.
+Each watch is marked stopping before cancellation so an already-queued successful completion cannot
+rearm a closed handle. Watcher destruction joins the native server thread only after every watch has
+cancelled its outstanding request and closed its handles; the Ame adapter performs that destruction
+inside its existing bounded two-second stop task. A successful `LibraryChangeSource::stop` therefore
+proves the old native watcher has exited before the observer may schedule a replacement.
+The backport exists only because no stable upstream release contains these fixes; the 9.x release
+candidate remains rejected, and a future stable release is preferred over carrying this patch.
+
+The adapter must:
+
+- create one bounded recursive watcher lifecycle per available configured root;
+- convert callbacks immediately into Ame observations without decoding media, walking a subtree,
+  running a long transaction, or invoking Flutter;
+- treat every event as a hint; map `Event::need_rescan()` to a recoverable evidence gap while the
+  transport remains healthy, and map callback or ingress failure to failed source health;
+- keep dependency paths relative to the configured root before entering ADR 0016 normalization;
+- preserve paired rename evidence only when the dependency provides a trustworthy pair;
+- stop accepting callbacks before bounded shutdown and never hang desktop close;
+- expose restartable structured health while leaving metadata-inventory and authoritative recovery
+  to later application slices;
+- avoid polling unless a separately measured fallback policy accepts its idle cost.
+
+The application owns one `LibraryChangeObserver` lifecycle per configured available root. Its
+public Windows facade accepts only Ame values and a root path string. Polling that facade performs
+one non-blocking bounded drain and may make at most one restart attempt when the caller-provided
+clock reaches the current exponential-backoff deadline; it never sleeps on the UI call path.
+Runtime restarts start on a bounded worker and publish completion through a non-blocking receiver;
+`poll` never performs path canonicalization, native watcher construction, or recursive watch setup.
+The restart failure streak survives a merely successful watcher construction and resets only after
+two consecutive healthy drains, so an immediate runtime crash loop advances through the bounded
+exponential backoff instead of repeating the first delay forever. Independently of adapter health,
+any nonzero dropped-observation count forces degraded source health and root reconciliation at the
+application boundary.
+
+The adapter callback performs only lexical relative-path conversion, dependency-event mapping, an
+adjacent Windows rename-pair correlation, atomic health accounting, and `try_send` into a bounded
+standard channel. It does not read media bytes, enumerate a subtree, call SQLite, or invoke Flutter.
+The Windows backend emits rename `From` and `To` callbacks separately, so the adapter grants only a
+50 ms non-blocking correlation interval and rejects a `To` half that arrives after that deadline.
+A missing rename half, rescan flag, invalid path, or channel overflow produces one coalesced root
+evidence gap without declaring the still-operational native watcher failed. Known-path metadata
+races conservatively become subtree work instead of a root gap. Under ADR 0023, a root evidence gap
+starts or extends the smallest bounded metadata-inventory scope while the same healthy watcher
+continues covering later changes. Inventory evidence is paged and routed through the existing final-
+state reconciler; it never authorizes an automatic full scan. A callback error, watched-root loss,
+disconnected ingress, or poisoned callback state produces failed source health and uses the bounded
+restart path. The restarted watcher establishes a new continuity epoch before inventory may close
+freshness.
+
+The adapter maps dependency error kinds to stable Ame issue codes and delivers the highest-severity
+pending code with that batch; no dependency error type or raw message crosses the adapter. A short
+delivery gate linearizes callback enqueue with stop while the bounded `try_send` remains
+non-blocking. Failed source health is monotonic until restart, so a later recoverable gap cannot
+hide a prior callback failure. The observer isolates and restarts only a failed or explicitly
+transport-degraded source; evidence incompleteness by itself never creates a stop/restart loop.
+
+Directory create and modify hints use metadata only when the entry still exists. An ambiguous
+remove is conservatively promoted to subtree reconciliation because the deleted entry can no longer
+prove whether it was a file or directory. A dependency event for the configured root itself becomes
+failed health plus a root evidence gap, stops the watcher, and makes unavailable restart attempts
+retryable without interpreting the root contents as removed catalog state. Sequence numbers
+saturate instead of wrapping.
+
+Dependency default features must be reviewed when the Cargo entry is added. Windows packaging must
+not gain an external service or source-tree artifact.
+
+## Validation gates
+
+- controlled Windows create, modify, remove, paired/unpaired rename, and directory changes produce
+  ADR 0016 observations and no media reads in the callback;
+- root removal and generation change prevent late callbacks from publishing current work;
+- forced watcher error marks the source failed and enters bounded restart; a rescan indication or
+  ingress overflow keeps the transport healthy, requests metadata inventory, and does not restart
+  the live source or start a full scan;
+- callback ingress, channel capacity, restart backoff, and memory remain bounded under an event
+  storm;
+- watcher stop and application close complete within a measured bound;
+- Chinese, long, unavailable, and cloud-placeholder paths retain existing safety behavior;
+- focused adapter tests, repository Daily gate, Windows Release gate, and source immutability checks
+  pass.
+
+Focused evidence includes six vendored completion, shutdown, and root-loss tests, thirteen
+deterministic application lifecycle tests, and fourteen adapter tests.
+The real adapter test creates a temporary recursive root, performs directory creation plus file
+create, modify, rename, and removal, plans the resulting Ame observations through ADR 0016, verifies
+an untouched sentinel, and stops within the two-second bound. Other fixtures force rescan, callback
+error, incomplete rename, bounded-channel overflow, native notification-buffer overflow, stale
+generation, root removal, Chinese and long paths, health monotonicity, metadata disappearance,
+stop-boundary callbacks, queued-success shutdown, native-server completion, application-level
+dropped-evidence degradation, crash-loop backoff, non-blocking restart, expired rename pairs,
+invalid planning bounds, failed-stop isolation, and restart backoff. The 2026-08-14 Daily gate passed
+all 207 Rust tests with 202 passing and five
+authorization- or performance-bound tests ignored, all Flutter tests, the controlled Windows scan
+integration, native Windows accessibility integration, bridge compatibility, and whitespace
+validation. The Windows Release gate built the packaged application and passed both release-bridge
+smoke tests.
+
+## Consequences and risks
+
+- Native notification buffers can overflow and large directories may miss events. The patched
+  backend converts the Windows loss signal into `Flag::Rescan`; the adapter keeps observation live,
+  requests metadata inventory for the affected continuity epoch, and cannot claim freshness until
+  that inventory plus retained queue work completes.
+- Recursive watch behavior can vary when watched paths are removed or renamed. Root generation and
+  authoritative reconciliation contain the uncertainty.
+- The stable dependency line may raise its MSRV in a future minor release. Ame pins the admitted
+  version and reviews upgrades deliberately.
+- The base library does not provide Ame's durable debounce, queue, or recovery semantics; this is an
+  intentional application responsibility.
+- R2c-B keeps observation in memory only. R2c-C must persist normalized work before any lifecycle
+  may claim crash recovery, and R2c-D must provide catalog delta publication before observations can
+  update the visible catalog.
+
+## Replacement strategy
+
+Replace the patched source with a newer stable `notify` only after the native overflow, root-loss,
+rearm-error, and shutdown fixtures pass unchanged; otherwise replace only the adapter with a direct
+Windows implementation or another maintained watcher. ADR 0016 observations, queue state,
+reconciliation results, catalog schema, bridge, and Flutter remain unchanged. A failed R2c-B
+validation reopens this decision without weakening freshness or source-safety rules.

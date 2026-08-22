@@ -9,7 +9,12 @@ use image::{ExtendedColorType, ImageEncoder, ImageFormat, Rgb, RgbImage, Rgba, R
 use rusqlite::Connection;
 use tempfile::tempdir;
 
-use crate::domain::{GalleryQuery, ScanIssue};
+use crate::domain::{
+    GalleryQuery, LibraryChangeCatchUpEvidence, LibraryChangeCatchUpQueueBatch,
+    LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeOrigin, LibraryChangeQueuePolicy,
+    LibraryChangeScope, LibraryRootGeneration, ScanIssue,
+};
+use crate::ports::{CatalogRepository, LibraryChangeQueue};
 
 use super::*;
 
@@ -25,6 +30,88 @@ fn load_test_snapshot(storage: &StoragePaths) -> crate::domain::CatalogSnapshot 
             None,
         )
         .expect("test snapshot")
+}
+
+fn enqueue_root_freshness_unknown(storage: &StoragePaths, root_id: &str, observed_unix_ms: i64) {
+    let mut catalog = SqliteCatalog::open(storage.catalog_path.clone()).expect("queue catalog");
+    catalog
+        .enqueue_library_change_intents(
+            &[LibraryChangeIntent {
+                root_id: root_id.to_owned(),
+                root_generation: LibraryRootGeneration::initial(),
+                kind: LibraryChangeIntentKind::FreshnessUnknown,
+                scope: LibraryChangeScope::Root,
+                relative_path: String::new(),
+                previous_relative_path: None,
+                origin: LibraryChangeOrigin::StartupCatchUp,
+                first_observed_unix_ms: observed_unix_ms,
+                most_recent_observed_unix_ms: observed_unix_ms,
+                first_sequence: 1,
+                most_recent_sequence: 1,
+                coalesced_observation_count: 1,
+            }],
+            observed_unix_ms,
+            LibraryChangeQueuePolicy::default(),
+        )
+        .expect("enqueue root freshness gap");
+}
+
+fn begin_authoritative_checkpoint(storage: &StoragePaths, request: &ScanRequest) {
+    let canonical_root = FileDiscovery::new(&request.root_path)
+        .expect("authoritative discovery")
+        .canonical_root()
+        .expect("authoritative canonical root")
+        .to_string_lossy()
+        .into_owned();
+    let root_id = stable_id("library-root-v1", &canonical_root);
+    SqliteCatalog::open(storage.catalog_path.clone())
+        .expect("authoritative catalog")
+        .begin_authoritative_scan(request, &root_id, &canonical_root)
+        .expect("begin authoritative checkpoint");
+}
+
+#[test]
+fn missing_foreground_checkpoint_resume_fails_without_creating_catalog_state_or_events() {
+    let source = tempdir().expect("source directory");
+    let storage = tempdir().expect("storage directory");
+    let storage_paths = StoragePaths {
+        catalog_path: storage.path().join("catalog.sqlite3"),
+        preview_root: storage.path().join("previews"),
+        preview_budget_bytes: 64 * 1024 * 1024,
+        settings_path: storage.path().join("settings.sqlite3"),
+    };
+    let mut events = Vec::new();
+
+    let error = resume_scan_with_storage(
+        ScanRequest {
+            scan_id: "missing-checkpoint".to_owned(),
+            root_path: source.path().to_string_lossy().into_owned(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+        |event| {
+            events.push(event);
+            true
+        },
+        storage_paths.clone(),
+    )
+    .expect_err("missing checkpoint must fail closed");
+
+    assert_eq!(error.code, "catalog_scan_resume_missing");
+    assert!(events.is_empty());
+    let connection = Connection::open(&storage_paths.catalog_path).expect("catalog database");
+    let counts: (i64, i64, i64) = connection
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM library_roots),
+               (SELECT COUNT(*) FROM scan_runs),
+               (SELECT COUNT(*) FROM scan_directory_frontier)",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .expect("catalog counts");
+    assert_eq!(counts, (0, 0, 0));
 }
 
 fn orientation_jpeg_fixture(orientation: u16, width: u32, height: u32) -> Vec<u8> {
@@ -297,6 +384,397 @@ fn completed_scan_publishes_metadata_then_materializes_an_external_preview() {
     assert_eq!(artifact.3, "ready");
     assert!(artifact.4 > 0);
     assert_eq!(PathBuf::from(artifact.5), preview_path);
+}
+
+#[test]
+fn bidirectional_full_scan_catch_up_preserves_cross_root_assets_and_previews() {
+    assert_bidirectional_full_scan_catch_up("full-handoff", false, false);
+}
+
+#[test]
+fn full_scan_handoff_deduplicates_hard_links_and_repairs_missing_preview() {
+    assert_bidirectional_full_scan_catch_up("full-handoff-recovery", true, true);
+}
+
+fn assert_bidirectional_full_scan_catch_up(
+    scenario: &str,
+    inject_hard_link_location: bool,
+    repair_missing_handoff_preview: bool,
+) {
+    let source = tempdir().expect("source directory");
+    let destination = tempdir().expect("destination directory");
+    let storage = tempdir().expect("storage directory");
+    let source_path = source.path().join("source.png");
+    let destination_path = destination.path().join("destination.png");
+    let moved_to_destination_path = destination.path().join("source.png");
+    let moved_to_source_path = source.path().join("destination.png");
+    let source_initial_scan_id = format!("{scenario}-source-initial");
+    let destination_initial_scan_id = format!("{scenario}-destination-initial");
+    let source_recovery_scan_id = format!("{scenario}-source-recovery");
+    let destination_recovery_scan_id = format!("{scenario}-destination-recovery");
+    RgbaImage::from_pixel(8, 6, Rgba([70, 100, 130, 255]))
+        .save(&source_path)
+        .expect("source fixture image");
+    RgbaImage::from_pixel(7, 5, Rgba([130, 100, 70, 255]))
+        .save(&destination_path)
+        .expect("destination fixture image");
+    let storage_paths = StoragePaths {
+        catalog_path: storage.path().join("catalog.sqlite3"),
+        preview_root: storage.path().join("previews"),
+        preview_budget_bytes: 64 * 1024 * 1024,
+        settings_path: storage.path().join("settings.sqlite3"),
+    };
+    let source_root_path = source.path().to_string_lossy().into_owned();
+    let destination_root_path = destination.path().to_string_lossy().into_owned();
+    run_scan_with_storage(
+        ScanRequest {
+            scan_id: source_initial_scan_id.clone(),
+            root_path: source_root_path.clone(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+        |_| true,
+        storage_paths.clone(),
+    )
+    .expect("initial source scan");
+    run_scan_with_storage(
+        ScanRequest {
+            scan_id: destination_initial_scan_id,
+            root_path: destination_root_path.clone(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+        |_| true,
+        storage_paths.clone(),
+    )
+    .expect("initial destination scan");
+    let initial = load_test_snapshot(&storage_paths);
+    let initial_source_asset = initial
+        .assets
+        .iter()
+        .find(|asset| asset.relative_path == "source.png")
+        .expect("initial source asset");
+    let initial_destination_asset = initial
+        .assets
+        .iter()
+        .find(|asset| asset.relative_path == "destination.png")
+        .expect("initial destination asset");
+    let source_asset_id = initial_source_asset.asset_id.clone();
+    let source_location_id = initial_source_asset.location_id.clone();
+    let destination_asset_id = initial_destination_asset.asset_id.clone();
+    let destination_location_id = initial_destination_asset.location_id.clone();
+    let source_preview = crate::application::preview::materialize_preview_with_storage(
+        crate::domain::PreviewRequest {
+            location_id: source_location_id.clone(),
+            preview_edge: 128,
+            retry_failed: false,
+            protected_location_ids: Vec::new(),
+        },
+        storage_paths.clone(),
+    )
+    .expect("source preview");
+    let destination_preview = crate::application::preview::materialize_preview_with_storage(
+        crate::domain::PreviewRequest {
+            location_id: destination_location_id.clone(),
+            preview_edge: 128,
+            retry_failed: false,
+            protected_location_ids: Vec::new(),
+        },
+        storage_paths.clone(),
+    )
+    .expect("destination preview");
+    assert!(matches!(
+        source_preview.preview_status,
+        PreviewStatus::Ready
+    ));
+    assert!(matches!(
+        destination_preview.preview_status,
+        PreviewStatus::Ready
+    ));
+    if inject_hard_link_location {
+        let hard_link_location_id = "000-full-handoff-source-hard-link";
+        let hard_link_absolute_path = source
+            .path()
+            .join("source-hard-link.png")
+            .to_string_lossy()
+            .into_owned();
+        let connection = Connection::open(&storage_paths.catalog_path).expect("hard-link catalog");
+        connection
+            .execute(
+                "INSERT INTO asset_locations(
+                   scan_id, asset_id, location_id, root_id, absolute_path, relative_path,
+                   preview_path, file_size, created_unix_ms, modified_unix_ms,
+                   file_local_time, parent_relative_path, natural_name_key, width, height,
+                   preview_status, preview_issue_code, preview_issue_message,
+                   metadata_engine_id, metadata_engine_version, capture_local_time,
+                   capture_offset_minutes, capture_time_source, capture_raw_value,
+                   file_identity_scheme, file_identity_value
+                 )
+                 SELECT scan_id, asset_id, ?1, root_id, ?2, 'source-hard-link.png',
+                        preview_path, file_size, created_unix_ms, modified_unix_ms,
+                        file_local_time, '', 'source-hard-link.png', width, height,
+                        preview_status, preview_issue_code, preview_issue_message,
+                        metadata_engine_id, metadata_engine_version, capture_local_time,
+                        capture_offset_minutes, capture_time_source, capture_raw_value,
+                        file_identity_scheme, file_identity_value
+                 FROM asset_locations
+                 WHERE scan_id = ?4 AND location_id = ?3",
+                rusqlite::params![
+                    hard_link_location_id,
+                    hard_link_absolute_path,
+                    source_location_id,
+                    source_initial_scan_id,
+                ],
+            )
+            .expect("duplicate hard-link identity location");
+        connection
+            .execute(
+                "INSERT OR IGNORE INTO preview_artifact_locations(artifact_key, location_id)
+                 SELECT artifact_key, ?1 FROM preview_artifact_locations WHERE location_id = ?2",
+                rusqlite::params![hard_link_location_id, source_location_id],
+            )
+            .expect("duplicate hard-link preview owner");
+        let duplicate_identity_count = connection
+            .query_row(
+                "SELECT COUNT(*)
+                 FROM asset_locations AS candidate
+                 WHERE candidate.scan_id = ?2
+                   AND (candidate.file_identity_scheme, candidate.file_identity_value) = (
+                     SELECT original.file_identity_scheme, original.file_identity_value
+                     FROM asset_locations AS original
+                     WHERE original.scan_id = ?2
+                       AND original.location_id = ?1
+                   )",
+                rusqlite::params![source_location_id, source_initial_scan_id],
+                |row| row.get::<_, i64>(0),
+            )
+            .expect("duplicate hard-link identity count");
+        assert_eq!(duplicate_identity_count, 2);
+    }
+
+    fs::rename(&source_path, &moved_to_destination_path).expect("source-first move");
+    fs::rename(&destination_path, &moved_to_source_path).expect("destination-first move");
+    let source_canonical = FileDiscovery::new(&source_root_path)
+        .expect("source discovery")
+        .canonical_root()
+        .expect("source canonical root")
+        .to_string_lossy()
+        .into_owned();
+    let destination_canonical = FileDiscovery::new(&destination_root_path)
+        .expect("destination discovery")
+        .canonical_root()
+        .expect("destination canonical root")
+        .to_string_lossy()
+        .into_owned();
+    let source_root_id = stable_id("library-root-v1", &source_canonical);
+    let destination_root_id = stable_id("library-root-v1", &destination_canonical);
+    let generation = LibraryRootGeneration::initial();
+    let intent = |root_id: String| LibraryChangeIntent {
+        root_id,
+        root_generation: generation,
+        kind: LibraryChangeIntentKind::FreshnessUnknown,
+        scope: LibraryChangeScope::Root,
+        relative_path: String::new(),
+        previous_relative_path: None,
+        origin: LibraryChangeOrigin::StartupCatchUp,
+        first_observed_unix_ms: 1_000,
+        most_recent_observed_unix_ms: 1_000,
+        first_sequence: 1,
+        most_recent_sequence: 1,
+        coalesced_observation_count: 1,
+    };
+    let mut catch_up_catalog =
+        SqliteCatalog::open(storage_paths.catalog_path.clone()).expect("catch-up catalog");
+    for watermark in 0..64 {
+        let evidence = LibraryChangeCatchUpEvidence {
+            source: "windows_usn_v1".to_owned(),
+            watermark: format!("volume|44|{watermark}"),
+        };
+        catch_up_catalog
+            .enqueue_library_change_catch_up_batches(
+                &[
+                    LibraryChangeCatchUpQueueBatch {
+                        intents: vec![intent(source_root_id.clone())],
+                        evidence: Some(evidence.clone()),
+                    },
+                    LibraryChangeCatchUpQueueBatch {
+                        intents: vec![intent(destination_root_id.clone())],
+                        evidence: Some(evidence),
+                    },
+                ],
+                1_000 + watermark,
+                LibraryChangeQueuePolicy::default(),
+            )
+            .expect("atomic cross-root catch-up enqueue");
+    }
+    drop(catch_up_catalog);
+
+    begin_authoritative_checkpoint(
+        &storage_paths,
+        &ScanRequest {
+            scan_id: source_recovery_scan_id.clone(),
+            root_path: source_root_path.clone(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+    );
+    run_scan_with_storage_reason(
+        ScanRequest {
+            scan_id: source_recovery_scan_id,
+            root_path: source_root_path,
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+        |_| true,
+        storage_paths.clone(),
+        FullScanReason::ResumeAuthoritativeCheckpoint,
+    )
+    .expect("source-first authoritative scan");
+    let source_publication = Connection::open(&storage_paths.catalog_path)
+        .expect("source publication catalog")
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM library_change_catch_up_handoffs),
+               (SELECT COUNT(*) FROM library_change_scan_handoff_batches),
+               (SELECT COUNT(*) FROM library_change_scan_handoff_items),
+               (SELECT COUNT(*) FROM library_change_scan_handoff_lineage),
+               (SELECT COUNT(*) FROM library_change_queue
+                 WHERE root_id = ?1 AND status IN ('pending', 'leased', 'retry_wait')),
+               (SELECT COUNT(*) FROM scan_run_catch_up_lineage)",
+            [&destination_root_id],
+            |row| {
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, i64>(1)?,
+                    row.get::<_, i64>(2)?,
+                    row.get::<_, i64>(3)?,
+                    row.get::<_, i64>(4)?,
+                    row.get::<_, i64>(5)?,
+                ))
+            },
+        )
+        .expect("source publication evidence");
+    assert_eq!(source_publication, (0, 1, 1, 64, 1, 0));
+    if repair_missing_handoff_preview {
+        let connection =
+            Connection::open(&storage_paths.catalog_path).expect("prerelease preview catalog");
+        assert_eq!(
+            connection
+                .execute(
+                    "DELETE FROM preview_artifacts WHERE artifact_path = ?1",
+                    [&source_preview.preview_path],
+                )
+                .expect("restore prerelease missing handoff preview"),
+            1
+        );
+        connection
+            .execute_batch(
+                "DROP TABLE library_change_preview_repair_contract;
+                 DROP TABLE library_metadata_inventory_entries;
+                 DROP TABLE library_metadata_inventory_runs;
+                 DROP TABLE library_metadata_inventory_contract;
+                 UPDATE schema_info SET version = 19;",
+            )
+            .expect("restore prerelease preview repair marker");
+        drop(connection);
+        SqliteCatalog::open(storage_paths.catalog_path.clone())
+            .expect("repair prerelease missing handoff preview");
+    }
+    begin_authoritative_checkpoint(
+        &storage_paths,
+        &ScanRequest {
+            scan_id: destination_recovery_scan_id.clone(),
+            root_path: destination_root_path.clone(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+    );
+    run_scan_with_storage_reason(
+        ScanRequest {
+            scan_id: destination_recovery_scan_id,
+            root_path: destination_root_path,
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+        |_| true,
+        storage_paths.clone(),
+        FullScanReason::ResumeAuthoritativeCheckpoint,
+    )
+    .expect("destination authoritative scan");
+
+    let final_snapshot = load_test_snapshot(&storage_paths);
+    let moved_source = final_snapshot
+        .assets
+        .iter()
+        .find(|asset| asset.relative_path == "source.png")
+        .expect("source-first moved asset");
+    let moved_destination = final_snapshot
+        .assets
+        .iter()
+        .find(|asset| asset.relative_path == "destination.png")
+        .expect("destination-first moved asset");
+    assert_eq!(final_snapshot.assets.len(), 2);
+    assert_eq!(moved_source.asset_id, source_asset_id);
+    assert_ne!(moved_source.location_id, source_location_id);
+    assert_eq!(moved_destination.asset_id, destination_asset_id);
+    assert_ne!(moved_destination.location_id, destination_location_id);
+    if repair_missing_handoff_preview {
+        assert!(moved_source.preview_path.is_empty());
+        assert!(matches!(
+            moved_source.preview_status,
+            PreviewStatus::Pending
+        ));
+        assert_eq!(
+            moved_destination.preview_path,
+            destination_preview.preview_path
+        );
+        assert!(matches!(
+            moved_destination.preview_status,
+            PreviewStatus::Ready
+        ));
+    } else {
+        assert_eq!(moved_source.preview_path, source_preview.preview_path);
+        assert!(matches!(moved_source.preview_status, PreviewStatus::Ready));
+        assert_eq!(
+            moved_destination.preview_path,
+            destination_preview.preview_path
+        );
+        assert!(matches!(
+            moved_destination.preview_status,
+            PreviewStatus::Ready
+        ));
+    }
+    let connection = Connection::open(storage_paths.catalog_path).expect("final catalog");
+    let terminal_evidence: (i64, i64, i64, i64, i64, i64) = connection
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM library_change_catch_up_handoffs),
+               (SELECT COUNT(*) FROM library_change_scan_handoff_batches),
+               (SELECT COUNT(*) FROM library_change_scan_handoff_items),
+               (SELECT COUNT(*) FROM library_change_scan_handoff_lineage),
+               (SELECT COUNT(*) FROM scan_run_catch_up_lineage),
+               (SELECT COUNT(*) FROM library_change_queue
+                 WHERE status IN ('pending', 'leased', 'retry_wait'))",
+            [],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                    row.get(5)?,
+                ))
+            },
+        )
+        .expect("terminal handoff evidence");
+    assert_eq!(terminal_evidence, (0, 0, 0, 0, 0, 0));
 }
 
 #[test]
@@ -1061,7 +1539,7 @@ fn paused_scan_waits_for_explicit_resume_and_publishes_without_duplicates() {
     drop(paused_catalog);
 
     let mut resumed_events = Vec::new();
-    run_scan_with_storage(
+    resume_scan_with_storage(
         request,
         |event| {
             resumed_events.push(event);
@@ -1336,7 +1814,7 @@ fn interrupted_deep_scan_resumes_only_the_current_directory_without_duplicates()
     assert_eq!(current_directory, "01-interrupted");
 
     let mut resumed_events = Vec::new();
-    run_scan_with_storage(
+    resume_scan_with_storage(
         request,
         |event| {
             resumed_events.push(event);
@@ -1377,6 +1855,130 @@ fn interrupted_deep_scan_resumes_only_the_current_directory_without_duplicates()
         .expect("location count");
     assert_eq!(stored_locations, 130);
     assert_eq!(source.path().read_dir().expect("source entries").count(), 2,);
+}
+
+#[test]
+fn disconnected_scan_consumer_leaves_a_running_scan_for_next_start() {
+    let source = tempdir().expect("source directory");
+    let storage = tempdir().expect("storage directory");
+    let catalog_path = storage.path().join("catalog.sqlite3");
+    let request = ScanRequest {
+        scan_id: "disconnected-scan".to_owned(),
+        root_path: source.path().to_string_lossy().into_owned(),
+        max_items: None,
+        max_entries: None,
+        preview_edge: 128,
+    };
+
+    run_scan_with_storage(
+        request.clone(),
+        |_| false,
+        StoragePaths {
+            catalog_path: catalog_path.clone(),
+            preview_root: storage.path().join("previews"),
+            preview_budget_bytes: 64 * 1024 * 1024,
+            settings_path: storage.path().join("settings.sqlite3"),
+        },
+    )
+    .expect("detach scan consumer");
+
+    let recoverable = SqliteCatalog::open(catalog_path)
+        .expect("catalog")
+        .load_recoverable_scan()
+        .expect("recoverable scan query")
+        .expect("disconnected scan remains recoverable");
+    assert_eq!(recoverable.scan_id, request.scan_id);
+}
+
+#[test]
+fn shutdown_suspend_keeps_full_scan_running_for_automatic_resume() {
+    let source = tempdir().expect("source directory");
+    let storage = tempdir().expect("storage directory");
+    RgbaImage::from_pixel(4, 4, Rgba([10, 20, 30, 255]))
+        .save(source.path().join("one.png"))
+        .expect("fixture image");
+    let catalog_path = storage.path().join("catalog.sqlite3");
+    let preview_root = storage.path().join("previews");
+    let request = ScanRequest {
+        scan_id: "shutdown-suspended-scan".to_owned(),
+        root_path: source.path().to_string_lossy().into_owned(),
+        max_items: None,
+        max_entries: None,
+        preview_edge: 128,
+    };
+
+    run_scan_with_storage(
+        request.clone(),
+        |event| {
+            if matches!(event, ScanEvent::AssetDiscovered { .. }) {
+                assert!(suspend_scan(&request.scan_id));
+            }
+            true
+        },
+        StoragePaths {
+            catalog_path: catalog_path.clone(),
+            preview_root: preview_root.clone(),
+            preview_budget_bytes: 64 * 1024 * 1024,
+            settings_path: storage.path().join("settings.sqlite3"),
+        },
+    )
+    .expect("suspend full scan");
+
+    let recoverable = SqliteCatalog::open(catalog_path.clone())
+        .expect("catalog")
+        .load_recoverable_scan()
+        .expect("recoverable scan query")
+        .expect("suspended scan remains running");
+    assert_eq!(recoverable.scan_id, request.scan_id);
+
+    let mut resumed_events = Vec::new();
+    resume_scan_with_storage(
+        request,
+        |event| {
+            resumed_events.push(event);
+            true
+        },
+        StoragePaths {
+            catalog_path: catalog_path.clone(),
+            preview_root,
+            preview_budget_bytes: 64 * 1024 * 1024,
+            settings_path: storage.path().join("settings.sqlite3"),
+        },
+    )
+    .expect("resume shutdown-suspended scan");
+
+    assert!(matches!(
+        resumed_events.last(),
+        Some(ScanEvent::Completed { asset_count: 1, .. })
+    ));
+    assert!(
+        SqliteCatalog::open(catalog_path)
+            .expect("resumed catalog")
+            .load_recoverable_scan()
+            .expect("recoverable scan query")
+            .is_none()
+    );
+}
+
+#[test]
+fn shutdown_suspend_does_not_override_user_pause_or_cancel() {
+    let cancel_token = register_scan("shutdown-user-cancel").expect("register cancelled scan");
+    let cancel_registration = ScanRegistration {
+        scan_id: "shutdown-user-cancel".to_owned(),
+    };
+    assert!(cancel_scan("shutdown-user-cancel"));
+    assert!(!suspend_scan("shutdown-user-cancel"));
+    assert_eq!(cancel_token.load(Ordering::Relaxed), CONTROL_CANCEL);
+    drop(cancel_registration);
+
+    let pause_token = register_scan("shutdown-user-pause").expect("register paused scan");
+    let pause_registration = ScanRegistration {
+        scan_id: "shutdown-user-pause".to_owned(),
+    };
+    assert!(pause_scan("shutdown-user-pause"));
+    assert!(!suspend_scan("shutdown-user-pause"));
+    assert_eq!(pause_token.load(Ordering::Relaxed), CONTROL_PAUSE);
+    drop(pause_registration);
 }
 
 #[test]
@@ -2088,13 +2690,14 @@ fn missing_checkpoint_position_marks_recovery_stale() {
                 visited_entries: 2,
                 accepted_items: 1,
                 issue_count: 0,
+                requires_previous_snapshot: false,
             },
         )
         .expect("checkpoint");
     drop(catalog);
 
     let mut events = Vec::new();
-    run_scan_with_storage(
+    resume_scan_with_storage(
         request,
         |event| {
             events.push(event);
@@ -2245,4 +2848,793 @@ fn missing_source_marks_scan_stale_instead_of_publishing() {
         )
         .expect("active scan state");
     assert_eq!(active_scan, None);
+}
+
+#[test]
+fn corrupt_rescan_preserves_the_last_trustworthy_published_location() {
+    let source = tempdir().expect("source directory");
+    let storage = tempdir().expect("storage directory");
+    let source_path = source.path().join("retained.png");
+    RgbaImage::from_pixel(8, 6, Rgba([20, 40, 60, 255]))
+        .save(&source_path)
+        .expect("fixture image");
+    let storage_paths = StoragePaths {
+        catalog_path: storage.path().join("catalog.sqlite3"),
+        preview_root: storage.path().join("previews"),
+        preview_budget_bytes: 64 * 1024 * 1024,
+        settings_path: storage.path().join("settings.sqlite3"),
+    };
+    run_scan_with_storage(
+        ScanRequest {
+            scan_id: "trustworthy-initial-scan".to_owned(),
+            root_path: source.path().to_string_lossy().into_owned(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+        |_| true,
+        storage_paths.clone(),
+    )
+    .expect("initial scan");
+    let before = load_test_snapshot(&storage_paths);
+    let before_asset = before.assets.first().expect("published asset").clone();
+    let corrupt_bytes = b"not a decodable image";
+    fs::write(&source_path, corrupt_bytes).expect("controlled corruption");
+    let mut events = Vec::new();
+
+    run_scan_with_storage(
+        ScanRequest {
+            scan_id: "trustworthy-corrupt-rescan".to_owned(),
+            root_path: source.path().to_string_lossy().into_owned(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+        |event| {
+            events.push(event);
+            true
+        },
+        storage_paths.clone(),
+    )
+    .expect("corrupt rescan remains recoverable");
+
+    let after = load_test_snapshot(&storage_paths);
+    let after_asset = after.assets.first().expect("retained asset");
+    assert!(matches!(events.last(), Some(ScanEvent::Stale { .. })));
+    assert_eq!(after.revision, before.revision);
+    assert_eq!(after.assets.len(), 1);
+    assert_eq!(after_asset.asset_id, before_asset.asset_id);
+    assert_eq!(after_asset.width, before_asset.width);
+    assert_eq!(after_asset.height, before_asset.height);
+    assert_eq!(
+        fs::read(&source_path).expect("corrupt source bytes"),
+        corrupt_bytes
+    );
+}
+
+#[test]
+fn authoritative_media_failures_publish_good_evidence_and_enqueue_exact_path_retries() {
+    let source = tempdir().expect("source directory");
+    let storage = tempdir().expect("storage directory");
+    let retained_path = source.path().join("retained.png");
+    let good_path = source.path().join("good.png");
+    RgbaImage::from_pixel(8, 6, Rgba([20, 40, 60, 255]))
+        .save(&retained_path)
+        .expect("retained fixture");
+    RgbaImage::from_pixel(6, 4, Rgba([70, 90, 110, 255]))
+        .save(&good_path)
+        .expect("good fixture");
+    let storage_paths = StoragePaths {
+        catalog_path: storage.path().join("catalog.sqlite3"),
+        preview_root: storage.path().join("previews"),
+        preview_budget_bytes: 64 * 1024 * 1024,
+        settings_path: storage.path().join("settings.sqlite3"),
+    };
+    run_scan_with_storage(
+        ScanRequest {
+            scan_id: "authoritative-media-initial".to_owned(),
+            root_path: source.path().to_string_lossy().into_owned(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+        |_| true,
+        storage_paths.clone(),
+    )
+    .expect("initial scan");
+    let before = load_test_snapshot(&storage_paths);
+    let retained_before = before
+        .assets
+        .iter()
+        .find(|asset| asset.relative_path == "retained.png")
+        .expect("retained published asset")
+        .clone();
+    let root_id = retained_before.root_id.clone();
+    let retained_bytes = b"retained is no longer decodable";
+    let new_bytes = b"new file is not decodable";
+    fs::write(&retained_path, retained_bytes).expect("corrupt retained fixture");
+    fs::write(source.path().join("new.png"), new_bytes).expect("new corrupt fixture");
+    enqueue_root_freshness_unknown(&storage_paths, &root_id, 10_000);
+    let mut events = Vec::new();
+
+    begin_authoritative_checkpoint(
+        &storage_paths,
+        &ScanRequest {
+            scan_id: "authoritative-media-recovery".to_owned(),
+            root_path: source.path().to_string_lossy().into_owned(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+    );
+    run_scan_with_storage_reason(
+        ScanRequest {
+            scan_id: "authoritative-media-recovery".to_owned(),
+            root_path: source.path().to_string_lossy().into_owned(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+        |event| {
+            events.push(event);
+            true
+        },
+        storage_paths.clone(),
+        FullScanReason::ResumeAuthoritativeCheckpoint,
+    )
+    .expect("authoritative media recovery");
+
+    let after = load_test_snapshot(&storage_paths);
+    let retained_after = after
+        .assets
+        .iter()
+        .find(|asset| asset.relative_path == "retained.png")
+        .expect("retained trustworthy asset");
+    assert!(matches!(events.last(), Some(ScanEvent::Completed { .. })));
+    assert_eq!(after.revision, before.revision + 1);
+    assert_eq!(after.assets.len(), 2);
+    assert_eq!(retained_after.asset_id, retained_before.asset_id);
+    assert_eq!(retained_after.width, retained_before.width);
+    assert_eq!(retained_after.height, retained_before.height);
+    assert!(
+        after
+            .assets
+            .iter()
+            .all(|asset| asset.relative_path != "new.png")
+    );
+    assert_eq!(
+        fs::read(&retained_path).expect("retained bytes"),
+        retained_bytes
+    );
+    assert_eq!(
+        fs::read(source.path().join("new.png")).expect("new bytes"),
+        new_bytes
+    );
+    let connection = Connection::open(&storage_paths.catalog_path).expect("catalog database");
+    let mut statement = connection
+        .prepare(
+            "SELECT relative_path, status
+             FROM library_change_queue
+             WHERE root_id = ?1 AND scope = 'path'
+               AND status IN ('pending', 'leased', 'retry_wait')
+             ORDER BY relative_path",
+        )
+        .expect("retry query");
+    let retries = statement
+        .query_map([&root_id], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })
+        .expect("retry rows")
+        .collect::<Result<Vec<_>, _>>()
+        .expect("retry evidence");
+    assert_eq!(
+        retries,
+        vec![
+            ("new.png".to_owned(), "pending".to_owned()),
+            ("retained.png".to_owned(), "pending".to_owned()),
+        ]
+    );
+    let completed_root_gap = connection
+        .query_row(
+            "SELECT COUNT(*) FROM library_change_queue
+             WHERE root_id = ?1 AND scope = 'root' AND status = 'completed'",
+            [&root_id],
+            |row| row.get::<_, i64>(0),
+        )
+        .expect("completed root gap");
+    assert_eq!(completed_root_gap, 1);
+}
+
+#[test]
+fn authoritative_finalization_races_publish_stable_evidence_and_retry_exact_paths() {
+    let source = tempdir().expect("source directory");
+    let storage = tempdir().expect("storage directory");
+    let retained_path = source.path().join("retained.png");
+    let stable_path = source.path().join("stable.png");
+    RgbaImage::from_pixel(8, 6, Rgba([20, 40, 60, 255]))
+        .save(&retained_path)
+        .expect("retained fixture");
+    RgbaImage::from_pixel(6, 4, Rgba([70, 90, 110, 255]))
+        .save(&stable_path)
+        .expect("stable fixture");
+    let storage_paths = StoragePaths {
+        catalog_path: storage.path().join("catalog.sqlite3"),
+        preview_root: storage.path().join("previews"),
+        preview_budget_bytes: 64 * 1024 * 1024,
+        settings_path: storage.path().join("settings.sqlite3"),
+    };
+    run_scan_with_storage(
+        ScanRequest {
+            scan_id: "authoritative-race-initial".to_owned(),
+            root_path: source.path().to_string_lossy().into_owned(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+        |_| true,
+        storage_paths.clone(),
+    )
+    .expect("initial scan");
+    let before = load_test_snapshot(&storage_paths);
+    let retained_before = before
+        .assets
+        .iter()
+        .find(|asset| asset.relative_path == "retained.png")
+        .expect("retained published asset")
+        .clone();
+    let root_id = retained_before.root_id.clone();
+    let new_path = source.path().join("new.png");
+    RgbaImage::from_pixel(5, 5, Rgba([130, 150, 170, 255]))
+        .save(&new_path)
+        .expect("new fixture");
+    enqueue_root_freshness_unknown(&storage_paths, &root_id, 30_000);
+    let mut changed_retained = false;
+    let mut removed_new = false;
+    let mut events = Vec::new();
+
+    begin_authoritative_checkpoint(
+        &storage_paths,
+        &ScanRequest {
+            scan_id: "authoritative-race-recovery".to_owned(),
+            root_path: source.path().to_string_lossy().into_owned(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+    );
+    run_scan_with_storage_reason(
+        ScanRequest {
+            scan_id: "authoritative-race-recovery".to_owned(),
+            root_path: source.path().to_string_lossy().into_owned(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+        |event| {
+            if let ScanEvent::AssetDiscovered { asset, .. } = &event {
+                if asset.relative_path == "retained.png" && !changed_retained {
+                    RgbaImage::from_pixel(11, 7, Rgba([200, 30, 60, 255]))
+                        .save(&retained_path)
+                        .expect("external retained change");
+                    changed_retained = true;
+                }
+                if asset.relative_path == "new.png" && !removed_new {
+                    fs::remove_file(&new_path).expect("external new file removal");
+                    removed_new = true;
+                }
+            }
+            events.push(event);
+            true
+        },
+        storage_paths.clone(),
+        FullScanReason::ResumeAuthoritativeCheckpoint,
+    )
+    .expect("authoritative race recovery");
+
+    assert!(changed_retained);
+    assert!(removed_new);
+    assert!(matches!(events.last(), Some(ScanEvent::Completed { .. })));
+    assert!(events.iter().any(|event| matches!(
+        event,
+        ScanEvent::Issue {
+            issue: ScanIssue { code, .. },
+            ..
+        } if code == "source_changed_during_scan"
+    )));
+    assert!(events.iter().any(|event| matches!(
+        event,
+        ScanEvent::Issue {
+            issue: ScanIssue { code, .. },
+            ..
+        } if code == "source_revalidation_failed"
+    )));
+    let after = load_test_snapshot(&storage_paths);
+    let retained_after = after
+        .assets
+        .iter()
+        .find(|asset| asset.relative_path == "retained.png")
+        .expect("retained trustworthy asset");
+    assert_eq!(after.revision, before.revision + 1);
+    assert_eq!(after.assets.len(), 2);
+    assert_eq!(retained_after.asset_id, retained_before.asset_id);
+    assert_eq!(retained_after.width, retained_before.width);
+    assert_eq!(retained_after.height, retained_before.height);
+    assert!(
+        after
+            .assets
+            .iter()
+            .all(|asset| asset.relative_path != "new.png")
+    );
+    let connection = Connection::open(&storage_paths.catalog_path).expect("catalog database");
+    let mut statement = connection
+        .prepare(
+            "SELECT relative_path, status
+             FROM library_change_queue
+             WHERE root_id = ?1 AND scope = 'path'
+               AND status IN ('pending', 'leased', 'retry_wait')
+             ORDER BY relative_path",
+        )
+        .expect("retry query");
+    let retries = statement
+        .query_map([&root_id], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })
+        .expect("retry rows")
+        .collect::<Result<Vec<_>, _>>()
+        .expect("retry evidence");
+    assert_eq!(
+        retries,
+        vec![
+            ("new.png".to_owned(), "pending".to_owned()),
+            ("retained.png".to_owned(), "pending".to_owned()),
+        ]
+    );
+}
+
+#[test]
+fn authoritative_resume_converts_legacy_media_staleness_into_a_path_retry() {
+    let source = tempdir().expect("source directory");
+    let storage = tempdir().expect("storage directory");
+    let source_path = source.path().join("retained.png");
+    RgbaImage::from_pixel(8, 6, Rgba([20, 40, 60, 255]))
+        .save(&source_path)
+        .expect("fixture image");
+    let storage_paths = StoragePaths {
+        catalog_path: storage.path().join("catalog.sqlite3"),
+        preview_root: storage.path().join("previews"),
+        preview_budget_bytes: 64 * 1024 * 1024,
+        settings_path: storage.path().join("settings.sqlite3"),
+    };
+    run_scan_with_storage(
+        ScanRequest {
+            scan_id: "legacy-authoritative-initial".to_owned(),
+            root_path: source.path().to_string_lossy().into_owned(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+        |_| true,
+        storage_paths.clone(),
+    )
+    .expect("initial scan");
+    let root_id = load_test_snapshot(&storage_paths)
+        .assets
+        .first()
+        .expect("published asset")
+        .root_id
+        .clone();
+    fs::write(&source_path, b"not decodable").expect("corrupt fixture");
+    enqueue_root_freshness_unknown(&storage_paths, &root_id, 20_000);
+    let request = ScanRequest {
+        scan_id: "legacy-authoritative-recovery".to_owned(),
+        root_path: source.path().to_string_lossy().into_owned(),
+        max_items: None,
+        max_entries: None,
+        preview_edge: 128,
+    };
+    let canonical_root = FileDiscovery::new(&request.root_path)
+        .expect("discovery")
+        .canonical_root()
+        .expect("canonical root")
+        .to_string_lossy()
+        .into_owned();
+    let mut catalog =
+        SqliteCatalog::open(storage_paths.catalog_path.clone()).expect("legacy catalog");
+    let mut checkpoint = catalog
+        .begin_authoritative_scan(&request, &root_id, &canonical_root)
+        .expect("begin legacy authoritative scan");
+    catalog
+        .record_issue(
+            &request.scan_id,
+            &ScanIssue {
+                path: Some(source_path.to_string_lossy().into_owned()),
+                code: "image_dimensions_failed".to_owned(),
+                message: "legacy prerelease media failure".to_owned(),
+            },
+        )
+        .expect("legacy issue");
+    checkpoint.issue_count = 1;
+    checkpoint.requires_previous_snapshot = true;
+    catalog
+        .checkpoint_scan(&request.scan_id, &checkpoint)
+        .expect("legacy stale checkpoint");
+    drop(catalog);
+    let mut events = Vec::new();
+
+    run_scan_with_storage_reason(
+        request,
+        |event| {
+            events.push(event);
+            true
+        },
+        storage_paths.clone(),
+        FullScanReason::ResumeAuthoritativeCheckpoint,
+    )
+    .expect("resume legacy authoritative scan");
+
+    assert!(matches!(events.last(), Some(ScanEvent::Completed { .. })));
+    let connection = Connection::open(&storage_paths.catalog_path).expect("catalog database");
+    let (status, requires_previous_snapshot, retry_count): (String, bool, i64) = connection
+        .query_row(
+            "SELECT scans.status, scans.requires_previous_snapshot,
+                    (SELECT COUNT(*) FROM library_change_queue
+                     WHERE root_id = ?2 AND scope = 'path'
+                       AND relative_path = 'retained.png'
+                       AND status IN ('pending', 'leased', 'retry_wait'))
+             FROM scan_runs AS scans WHERE scans.id = ?1",
+            rusqlite::params!["legacy-authoritative-recovery", root_id],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .expect("legacy recovery evidence");
+    assert_eq!(status, "completed");
+    assert!(!requires_previous_snapshot);
+    assert_eq!(retry_count, 1);
+}
+
+#[cfg(windows)]
+#[test]
+fn authoritative_full_scan_with_new_placeholder_remains_stale_without_advancing_audit() {
+    let source = tempdir().expect("source directory");
+    let storage = tempdir().expect("storage directory");
+    RgbaImage::from_pixel(8, 6, Rgba([20, 40, 60, 255]))
+        .save(source.path().join("published.png"))
+        .expect("published fixture");
+    let storage_paths = StoragePaths {
+        catalog_path: storage.path().join("catalog.sqlite3"),
+        preview_root: storage.path().join("previews"),
+        preview_budget_bytes: 64 * 1024 * 1024,
+        settings_path: storage.path().join("settings.sqlite3"),
+    };
+    run_scan_with_storage(
+        ScanRequest {
+            scan_id: "placeholder-full-scan-initial".to_owned(),
+            root_path: source.path().to_string_lossy().into_owned(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+        |_| true,
+        storage_paths.clone(),
+    )
+    .expect("initial scan");
+    let before = load_test_snapshot(&storage_paths);
+    let connection = Connection::open(&storage_paths.catalog_path).expect("catalog database");
+    let before_audit: Option<i64> = connection
+        .query_row(
+            "SELECT last_consistency_audit_unix_ms FROM library_change_root_state LIMIT 1",
+            [],
+            |row| row.get(0),
+        )
+        .expect("initial audit time");
+    drop(connection);
+    let placeholder_path = source.path().join("new-placeholder.png");
+    RgbaImage::from_pixel(8, 6, Rgba([80, 100, 120, 255]))
+        .save(&placeholder_path)
+        .expect("placeholder fixture");
+    set_scan_fixture_offline_attribute(&placeholder_path, true);
+    let mut events = Vec::new();
+
+    begin_authoritative_checkpoint(
+        &storage_paths,
+        &ScanRequest {
+            scan_id: "sync-recovery-placeholder-full-scan".to_owned(),
+            root_path: source.path().to_string_lossy().into_owned(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+    );
+    run_scan_with_storage_reason(
+        ScanRequest {
+            scan_id: "sync-recovery-placeholder-full-scan".to_owned(),
+            root_path: source.path().to_string_lossy().into_owned(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+        |event| {
+            events.push(event);
+            true
+        },
+        storage_paths.clone(),
+        FullScanReason::ResumeAuthoritativeCheckpoint,
+    )
+    .expect("placeholder full scan remains recoverable");
+    set_scan_fixture_offline_attribute(&placeholder_path, false);
+
+    let after = load_test_snapshot(&storage_paths);
+    let connection = Connection::open(&storage_paths.catalog_path).expect("catalog database");
+    let (status, owner, after_audit): (String, String, Option<i64>) = connection
+        .query_row(
+            "SELECT scans.status, scans.scan_owner, state.last_consistency_audit_unix_ms
+             FROM scan_runs AS scans
+             JOIN library_change_root_state AS state ON state.root_id = scans.root_id
+             WHERE scans.id = 'sync-recovery-placeholder-full-scan'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .expect("authoritative scan state");
+    assert!(matches!(events.last(), Some(ScanEvent::Stale { .. })));
+    assert_eq!(status, "stale");
+    assert_eq!(owner, "authoritative_recovery");
+    assert_eq!(after_audit, before_audit);
+    assert_eq!(after.revision, before.revision);
+    assert_eq!(after.assets.len(), 1);
+}
+
+#[cfg(windows)]
+#[test]
+fn migrated_v17_placeholder_preserves_the_normalized_legacy_location() {
+    let source = tempdir().expect("source directory");
+    let storage = tempdir().expect("storage directory");
+    let album = source.path().join("album");
+    fs::create_dir(&album).expect("album directory");
+    let source_path = album.join("retained.png");
+    RgbaImage::from_pixel(8, 6, Rgba([20, 40, 60, 255]))
+        .save(&source_path)
+        .expect("fixture image");
+    let storage_paths = StoragePaths {
+        catalog_path: storage.path().join("catalog.sqlite3"),
+        preview_root: storage.path().join("previews"),
+        preview_budget_bytes: 64 * 1024 * 1024,
+        settings_path: storage.path().join("settings.sqlite3"),
+    };
+    run_scan_with_storage(
+        ScanRequest {
+            scan_id: "v17-normalization-initial".to_owned(),
+            root_path: source.path().to_string_lossy().into_owned(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+        |_| true,
+        storage_paths.clone(),
+    )
+    .expect("initial scan");
+    let before = load_test_snapshot(&storage_paths);
+    let before_asset = before.assets.first().expect("published asset");
+    let old_location_id = before_asset.location_id.clone();
+    let old_asset_id = before_asset.asset_id.clone();
+    let connection = Connection::open(&storage_paths.catalog_path).expect("catalog database");
+    connection
+        .execute_batch(
+            "PRAGMA foreign_keys = OFF;
+              DROP INDEX asset_locations_root_relative;
+              DROP TABLE library_change_scan_handoff_items;
+              DROP TABLE library_change_scan_handoff_lineage;
+              DROP TABLE library_change_scan_handoff_batches;
+              DROP TABLE library_change_queue_catch_up_lineage;
+             DROP TABLE library_change_preview_repair_contract;
+             DROP TABLE library_metadata_inventory_entries;
+             DROP TABLE library_metadata_inventory_runs;
+             DROP TABLE library_metadata_inventory_contract;
+             DROP TABLE scan_run_catch_up_lineage;
+             DROP TABLE library_change_catch_up_handoffs;
+             DROP INDEX scan_runs_one_active_root;
+             ALTER TABLE library_change_queue DROP COLUMN authoritative_scan_id;
+             ALTER TABLE library_change_root_state DROP COLUMN last_consistency_audit_unix_ms;
+             ALTER TABLE scan_runs DROP COLUMN requires_previous_snapshot;
+             ALTER TABLE scan_runs DROP COLUMN root_generation_at_start;
+             ALTER TABLE scan_runs DROP COLUMN change_queue_high_watermark;
+             ALTER TABLE scan_runs DROP COLUMN scan_owner;
+             ALTER TABLE library_change_queue_contract
+               DROP COLUMN scan_ownership_complete;
+             ALTER TABLE library_change_queue_contract
+               DROP COLUMN authoritative_recovery_complete;",
+        )
+        .expect("restore v17 table shape");
+    connection
+        .execute(
+            "UPDATE preview_artifact_locations
+             SET location_id = 'legacy-v17-location'
+             WHERE location_id = ?1",
+            [&old_location_id],
+        )
+        .expect("restore legacy preview owner");
+    connection
+        .execute(
+            "UPDATE asset_locations
+             SET relative_path = 'album\\retained.png',
+                 location_id = 'legacy-v17-location'
+             WHERE location_id = ?1",
+            [&old_location_id],
+        )
+        .expect("restore legacy location identity");
+    connection
+        .execute_batch(
+            "ALTER TABLE library_change_queue_contract
+               DROP COLUMN scan_handoff_batch_complete;
+              ALTER TABLE library_change_queue_contract
+               DROP COLUMN scan_catch_up_lineage_complete;
+             ALTER TABLE library_change_queue_contract
+               DROP COLUMN change_catch_up_complete;
+             DROP TABLE library_change_catch_up_state;
+             UPDATE schema_info SET version = 17;",
+        )
+        .expect("restore v17 version");
+    drop(connection);
+    set_scan_fixture_offline_attribute(&source_path, true);
+    let mut events = Vec::new();
+
+    run_scan_with_storage(
+        ScanRequest {
+            scan_id: "v17-normalization-placeholder-rescan".to_owned(),
+            root_path: source.path().to_string_lossy().into_owned(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+        |event| {
+            events.push(event);
+            true
+        },
+        storage_paths.clone(),
+    )
+    .expect("migrated placeholder rescan remains recoverable");
+    set_scan_fixture_offline_attribute(&source_path, false);
+
+    let after = load_test_snapshot(&storage_paths);
+    let retained = after.assets.first().expect("retained legacy location");
+    let version: i64 = Connection::open(&storage_paths.catalog_path)
+        .expect("migrated catalog")
+        .query_row("SELECT version FROM schema_info", [], |row| row.get(0))
+        .expect("schema version");
+    assert!(matches!(events.last(), Some(ScanEvent::Stale { .. })));
+    assert_eq!(version, 20);
+    assert_eq!(after.revision, before.revision);
+    assert_eq!(after.assets.len(), 1);
+    assert_eq!(retained.location_id, "legacy-v17-location");
+    assert_eq!(retained.relative_path, "album/retained.png");
+    assert_eq!(retained.asset_id, old_asset_id);
+}
+
+#[cfg(windows)]
+#[test]
+fn migrated_v17_healthy_file_preserves_legacy_location_without_identity_evidence() {
+    let source = tempdir().expect("source directory");
+    let storage = tempdir().expect("storage directory");
+    let album = source.path().join("album");
+    fs::create_dir(&album).expect("album directory");
+    let source_path = album.join("healthy.png");
+    RgbaImage::from_pixel(8, 6, Rgba([20, 40, 60, 255]))
+        .save(&source_path)
+        .expect("fixture image");
+    let storage_paths = StoragePaths {
+        catalog_path: storage.path().join("catalog.sqlite3"),
+        preview_root: storage.path().join("previews"),
+        preview_budget_bytes: 64 * 1024 * 1024,
+        settings_path: storage.path().join("settings.sqlite3"),
+    };
+    run_scan_with_storage(
+        ScanRequest {
+            scan_id: "v17-healthy-initial".to_owned(),
+            root_path: source.path().to_string_lossy().into_owned(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+        |_| true,
+        storage_paths.clone(),
+    )
+    .expect("initial scan");
+    let before = load_test_snapshot(&storage_paths);
+    let before_asset = before.assets.first().expect("published asset");
+    let old_location_id = before_asset.location_id.clone();
+    let old_asset_id = before_asset.asset_id.clone();
+    let connection = Connection::open(&storage_paths.catalog_path).expect("catalog database");
+    connection
+        .execute_batch(
+            "PRAGMA foreign_keys = OFF;
+              DROP INDEX asset_locations_root_relative;
+              DROP TABLE library_change_scan_handoff_items;
+              DROP TABLE library_change_scan_handoff_lineage;
+              DROP TABLE library_change_scan_handoff_batches;
+              DROP TABLE library_change_queue_catch_up_lineage;
+             DROP TABLE library_change_preview_repair_contract;
+             DROP TABLE library_metadata_inventory_entries;
+             DROP TABLE library_metadata_inventory_runs;
+             DROP TABLE library_metadata_inventory_contract;
+             DROP TABLE scan_run_catch_up_lineage;
+             DROP TABLE library_change_catch_up_handoffs;
+             DROP INDEX scan_runs_one_active_root;
+             ALTER TABLE library_change_queue DROP COLUMN authoritative_scan_id;
+             ALTER TABLE library_change_root_state DROP COLUMN last_consistency_audit_unix_ms;
+             ALTER TABLE scan_runs DROP COLUMN requires_previous_snapshot;
+             ALTER TABLE scan_runs DROP COLUMN root_generation_at_start;
+             ALTER TABLE scan_runs DROP COLUMN change_queue_high_watermark;
+             ALTER TABLE scan_runs DROP COLUMN scan_owner;
+             ALTER TABLE library_change_queue_contract
+               DROP COLUMN scan_ownership_complete;
+             ALTER TABLE library_change_queue_contract
+               DROP COLUMN authoritative_recovery_complete;",
+        )
+        .expect("restore v17 table shape");
+    connection
+        .execute(
+            "UPDATE preview_artifact_locations
+             SET location_id = 'legacy-v17-healthy-location'
+             WHERE location_id = ?1",
+            [&old_location_id],
+        )
+        .expect("restore legacy preview owner");
+    connection
+        .execute(
+            "UPDATE asset_locations
+             SET relative_path = 'album\\healthy.png',
+                 location_id = 'legacy-v17-healthy-location',
+                 file_identity_scheme = NULL,
+                 file_identity_value = NULL
+             WHERE location_id = ?1",
+            [&old_location_id],
+        )
+        .expect("restore legacy location without identity evidence");
+    connection
+        .execute_batch(
+            "ALTER TABLE library_change_queue_contract
+               DROP COLUMN scan_handoff_batch_complete;
+              ALTER TABLE library_change_queue_contract
+               DROP COLUMN scan_catch_up_lineage_complete;
+             ALTER TABLE library_change_queue_contract
+               DROP COLUMN change_catch_up_complete;
+             DROP TABLE library_change_catch_up_state;
+             UPDATE schema_info SET version = 17;",
+        )
+        .expect("restore v17 version");
+    drop(connection);
+    let mut events = Vec::new();
+
+    run_scan_with_storage(
+        ScanRequest {
+            scan_id: "v17-healthy-rescan".to_owned(),
+            root_path: source.path().to_string_lossy().into_owned(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+        |event| {
+            events.push(event);
+            true
+        },
+        storage_paths.clone(),
+    )
+    .expect("healthy migrated rescan");
+
+    let after = load_test_snapshot(&storage_paths);
+    let retained = after.assets.first().expect("retained legacy location");
+    assert!(matches!(events.last(), Some(ScanEvent::Completed { .. })));
+    assert_eq!(after.assets.len(), 1);
+    assert_eq!(retained.location_id, "legacy-v17-healthy-location");
+    assert_eq!(retained.relative_path, "album/healthy.png");
+    assert_eq!(retained.asset_id, old_asset_id);
+    assert!(!fs::read(&source_path).expect("source bytes").is_empty());
+}
+
+#[cfg(windows)]
+fn set_scan_fixture_offline_attribute(path: &std::path::Path, is_offline: bool) {
+    let status = std::process::Command::new("attrib.exe")
+        .arg(if is_offline { "+O" } else { "-O" })
+        .arg(path)
+        .status()
+        .expect("attrib executable");
+    assert!(status.success());
 }
