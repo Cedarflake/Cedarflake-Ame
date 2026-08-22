@@ -572,6 +572,10 @@ completion tracker.
   descriptions of bugs that were fixed, agent actions, and conversation history. Keep verification
   and audit evidence in their owning checks, acceptance records, or reviews rather than the
   pull-request body.
+- When a pull request implements a named roadmap stage, include a concise `Roadmap scope` section
+  that links the canonical roadmap and maps its slices to the delivered modifications. This section
+  describes scope only; it must not restate completion claims, verification evidence, audit
+  outcomes, or merge readiness.
 - Split unrelated themes into separate commits so each rollback boundary remains coherent.
 - Do not commit generated caches, model files, local catalogs, source-media samples, build outputs,
   secrets, or external reference repositories.
