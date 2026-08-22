@@ -15,8 +15,8 @@ use rusqlite::backup::Backup;
 use rusqlite::{Connection, OpenFlags};
 use tempfile::tempdir;
 
-use crate::adapters::SqliteCatalog;
-use crate::application::metadata_inventory::run_local_metadata_inventory;
+use crate::adapters::{LocalMetadataInventory, SqliteCatalog};
+use crate::application::metadata_inventory::run_metadata_inventory_with_source_for_test;
 use crate::application::scan_library::{run_scan_with_storage, stable_id};
 use crate::application::storage::{
     StoragePaths, resolved_path_is_within, resolved_paths_overlap, resolved_paths_same,
@@ -24,9 +24,10 @@ use crate::application::storage::{
 use crate::domain::{
     AssetLocationView, CatalogFreshnessState, GalleryQuery, IncrementalCatalogRoot,
     LibraryChangeQueuePolicy, LibraryChangeSourceHealth, LibrarySynchronizationSnapshot,
-    MetadataInventoryRunRequest, MetadataInventoryScope, ScanRequest,
+    MetadataInventoryPage, MetadataInventoryRunRequest, MetadataInventoryScope, ScanError,
+    ScanRequest,
 };
-use crate::ports::{CatalogRepository, IncrementalCatalogRepository};
+use crate::ports::{CatalogRepository, IncrementalCatalogRepository, MetadataInventorySource};
 
 use super::production::ProductionSynchronizationTestHarness;
 
@@ -330,24 +331,27 @@ fn r2c_m_small_metadata_inventory_reliability_fixture() {
     let fixture = tempdir().expect("small replacement fixture");
     let local_root = fixture.path().join("local");
     let cloud_root = fixture.path().join("cloud");
+    let unrelated_root = fixture.path().join("unrelated");
     let storage_root = fixture.path().join("acceptance");
     let source_catalog = fixture.path().join("retained.sqlite3");
     let preview_root = fixture.path().join("previews");
     let settings_path = fixture.path().join("settings.sqlite3");
     fs::create_dir_all(&local_root).expect("small local root");
     fs::create_dir_all(&cloud_root).expect("small cloud root");
+    fs::create_dir_all(&unrelated_root).expect("small unrelated root");
     fs::create_dir_all(&storage_root).expect("small acceptance storage");
     for root in [&local_root, &cloud_root] {
         write_png(&root.join("keep.png"), 2, 2, 11);
         write_png(&root.join("remove.png"), 3, 3, 23);
     }
+    write_png(&unrelated_root.join("outside-scope.png"), 2, 2, 71);
     let storage = StoragePaths {
         catalog_path: source_catalog.clone(),
         preview_root,
         preview_budget_bytes: 64 * 1024 * 1024,
         settings_path,
     };
-    for root in [&local_root, &cloud_root] {
+    for root in [&local_root, &cloud_root, &unrelated_root] {
         let root_path = root.canonicalize().expect("canonical small root");
         run_scan_with_storage(
             ScanRequest {
@@ -385,6 +389,32 @@ fn r2c_m_small_metadata_inventory_reliability_fixture() {
     assert!(report.contains("repeated_inventory_source_metadata_unchanged=true"));
     assert!(report.contains("cold_inventory_source_snapshot=not_measured"));
     assert!(report.contains("full_scan_rows_unchanged=true"));
+
+    let isolated_catalog = storage_root.join("replacement-catalog").join("ame.sqlite3");
+    let unrelated_path = unrelated_root
+        .canonicalize()
+        .expect("canonical unrelated root")
+        .to_string_lossy()
+        .into_owned();
+    let connection = Connection::open(isolated_catalog).expect("isolated replacement catalog");
+    let unrelated_root_id: String = connection
+        .query_row(
+            "SELECT id FROM library_roots WHERE path = ?1",
+            [&unrelated_path],
+            |row| row.get(0),
+        )
+        .expect("unrelated retained root");
+    let unrelated_inventory_runs: i64 = connection
+        .query_row(
+            "SELECT COUNT(*) FROM library_metadata_inventory_runs WHERE root_id = ?1",
+            [&unrelated_root_id],
+            |row| row.get(0),
+        )
+        .expect("unrelated inventory run count");
+    assert_eq!(
+        unrelated_inventory_runs, 0,
+        "an unapproved retained root entered the target measurement"
+    );
 }
 
 fn run_metadata_inventory_acceptance(configuration: &AcceptanceConfiguration, report_path: &Path) {
@@ -475,7 +505,8 @@ fn run_prepared_metadata_inventory_acceptance(
     let queue_before = queue_totals(isolated_catalog).expect("pre-inventory queue totals");
     let catalog_bytes_before = sqlite_family_bytes(isolated_catalog);
 
-    let root_reports = run_inventory_pass(&mut catalog, &catalog_roots, roots, true);
+    let root_reports =
+        run_inventory_pass(&mut catalog, &catalog_roots, roots, true, Some(report_path));
 
     let safety_before = snapshot_roots_from_directory_entries(roots)
         .expect("pre-safety-pass directory-entry metadata snapshot");
@@ -483,7 +514,7 @@ fn run_prepared_metadata_inventory_acceptance(
         .iter()
         .filter(|entry| is_cloud_placeholder(entry.attributes))
         .count();
-    run_inventory_pass(&mut catalog, &catalog_roots, roots, false);
+    run_inventory_pass(&mut catalog, &catalog_roots, roots, false, None);
     let safety_after = snapshot_roots_from_directory_entries(roots)
         .expect("post-safety-pass directory-entry metadata snapshot");
     assert_eq!(
@@ -529,17 +560,14 @@ fn assert_catalog_roots(
     catalog_roots: &[IncrementalCatalogRoot],
     roots: &[(&'static str, PathBuf); 2],
 ) {
-    assert_eq!(
-        catalog_roots.len(),
-        roots.len(),
-        "retained root count changed"
-    );
     for (_, expected_path) in roots {
-        assert!(
-            catalog_roots
-                .iter()
-                .any(|root| paths_same(&PathBuf::from(&root.root_path), expected_path)),
-            "retained catalog does not match an authorized logical root"
+        let matching_roots = catalog_roots
+            .iter()
+            .filter(|root| paths_same(&PathBuf::from(&root.root_path), expected_path))
+            .count();
+        assert_eq!(
+            matching_roots, 1,
+            "retained catalog must contain exactly one matching authorized logical root"
         );
     }
 }
@@ -549,6 +577,7 @@ fn run_inventory_pass(
     catalog_roots: &[IncrementalCatalogRoot],
     roots: &[(&'static str, PathBuf); 2],
     enforce_latency: bool,
+    report_path: Option<&Path>,
 ) -> BTreeMap<&'static str, (u64, u64, u64, u64)> {
     let mut reports = BTreeMap::new();
     for (logical_root, root_path) in roots {
@@ -567,9 +596,14 @@ fn run_inventory_pass(
             scope: MetadataInventoryScope::Root,
             started_unix_ms,
         };
+        let mut source = TimedMetadataInventorySource::new(
+            LocalMetadataInventory::new(&root.root_path, &MetadataInventoryScope::Root)
+                .expect("retained-root inventory source"),
+        );
         let inventory_started = Instant::now();
-        let inventory = run_local_metadata_inventory(
+        let inventory = run_metadata_inventory_with_source_for_test(
             catalog,
+            &mut source,
             &request,
             started_unix_ms,
             4_096,
@@ -578,6 +612,23 @@ fn run_inventory_pass(
         )
         .expect("metadata-only retained-root inventory");
         let inventory_ms = elapsed_millis(inventory_started.elapsed());
+        let source_ms = elapsed_millis(source.next_page_elapsed);
+        let repository_ms = inventory_ms.saturating_sub(source_ms);
+        if let Some(report_path) = report_path {
+            append_report(
+                report_path,
+                &format!(
+                    "AME_R2C_M_ROOT logical_root={logical_root} inventory_ms={inventory_ms} source_page_ms={source_ms} repository_ms={repository_ms} entries={} candidates={} unchanged={} complete={} cancelled={} backpressured={}",
+                    inventory.staged_entry_count,
+                    inventory.candidate_count,
+                    inventory.unchanged_count,
+                    inventory.is_complete,
+                    inventory.is_cancelled,
+                    inventory.is_backpressured,
+                ),
+            )
+            .expect("write retained-root timing report");
+        }
         assert!(inventory.is_complete, "metadata inventory did not complete");
         assert!(!inventory.is_cancelled, "metadata inventory was cancelled");
         assert!(
@@ -587,7 +638,7 @@ fn run_inventory_pass(
         if enforce_latency {
             assert!(
                 inventory_ms <= METADATA_ROOT_LIMIT_MS,
-                "initial metadata inventory exceeded 45 seconds for one root"
+                "initial metadata inventory for {logical_root} exceeded 45 seconds: total={inventory_ms}ms source={source_ms}ms repository={repository_ms}ms"
             );
         }
         reports.insert(
@@ -601,6 +652,33 @@ fn run_inventory_pass(
         );
     }
     reports
+}
+
+struct TimedMetadataInventorySource {
+    inner: LocalMetadataInventory,
+    next_page_elapsed: Duration,
+}
+
+impl TimedMetadataInventorySource {
+    const fn new(inner: LocalMetadataInventory) -> Self {
+        Self {
+            inner,
+            next_page_elapsed: Duration::ZERO,
+        }
+    }
+}
+
+impl MetadataInventorySource for TimedMetadataInventorySource {
+    fn next_page(
+        &mut self,
+        max_entries: u32,
+        cancelled: &AtomicBool,
+    ) -> Result<MetadataInventoryPage, ScanError> {
+        let started = Instant::now();
+        let result = self.inner.next_page(max_entries, cancelled);
+        self.next_page_elapsed += started.elapsed();
+        result
+    }
 }
 
 struct ControlledFixture {

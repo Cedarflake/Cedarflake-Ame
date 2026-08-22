@@ -1528,9 +1528,9 @@ R2c-M - replacement reliability and closeout:
 R2c status: **reopened on 2026-08-21 under ADR 0023**. R2c-A through R2c-F remain accepted
 foundations. R2c-G and its USN-specific acceptance remain historical implementation and migration
 evidence. R2c-H remains a valid source-safety and baseline measurement record but does not validate
-the replacement continuity model. R2c-I through R2c-L are complete; R2c-M is active. It must
-complete before the R2c integration branch is ready for final review
-against `main` or R3 begins.
+the replacement continuity model. R2c-I through R2c-L are complete; R2c-M target-scale evidence and
+complete gates pass while its final independent audit remains active. R2c-M must complete before
+the R2c integration branch is ready for final review against `main` or R3 begins.
 
 #### R2c.12 Acceptance evidence
 
@@ -1924,9 +1924,8 @@ findings. R2c-M owns target-scale replacement latency, migration and source-safe
 complete closeout gates, and the final R2c integration review. R3 is paused; no R3 implementation
 is included in the R2c integration branch.
 
-Current work: complete the authorization-bound retained-root R2c-M replacement measurement, record
-its independent audit, and merge the accepted stage into `codex/r2c` before opening the final
-unmerged `codex/r2c` PR to `main`.
+Current work: record the target-tested R2c-M head's independent audit and merge the accepted stage
+into `codex/r2c` before opening the final unmerged `codex/r2c` PR to `main`.
 
 Each R2c-I through R2c-M slice uses a dedicated branch and PR into `codex/r2c`, receives an
 independent read-only audit, and merges only after its findings close. The final `codex/r2c` PR
@@ -2221,19 +2220,17 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   current elapsed detail, silent normal synchronization, and immediate close semantics pass
   focused fixtures, repository lint, the complete Daily gate with 454 Rust tests, Windows Release
   verification, and a final independent audit with no remaining findings.
-- R2c-M replacement tooling and non-authorized evidence are implemented. The Release disposable
+- R2c-M replacement tooling and target evidence are implemented. The final Release disposable
   production coordinator records 25 mixed create, modify, rename, move, same-path replacement, and
-  delete samples at 586 ms P50 and 871 ms P95 under the 250 ms foreground cadence, bounded storm
-  coalescing, cross-process restart convergence, immediate shutdown, and unchanged full-scan rows.
-  The small retained-catalog fixture runs its gallery and metadata measurement in a fresh process.
-  Cold inventory timing precedes any complete source walk; a separate repeated safety pass is
-  enclosed by cached Windows directory-entry metadata snapshots, while first-touch no-recall safety
-  remains adapter-contract evidence. The complete Daily gate passes with 459 Rust tests total,
-  448 passed and 11 authorization-bound or manual performance tests ignored; all Flutter, Windows
-  Scan 2/2, Windows Accessibility 2/2, lint, bridge and whitespace checks pass, and Windows Release
-  passes. The latest independent read-only implementation audit reports no findings. R2c-M remains
-  active until current authorization permits the retained approximately 79,000-location
-  metadata-only measurement and the completed target evidence receives its final stage audit.
+  delete samples at 554 ms P50 and 823 ms P95 under the 250 ms foreground cadence, bounded storm
+  coalescing, 1,162 ms cross-process restart convergence, immediate shutdown, and unchanged
+  full-scan rows. The authorized isolated retained-catalog phase inventories 35,086
+  `local-primary` entries in 7,482 ms and 50,472 `cloud-primary` entries in 13,089 ms, preserves
+  source directory-entry metadata and placeholder state, retains the 79,119-item manifest, adds no
+  queue rows, and stays below the 2 GiB Job Object limit without media reads or source mutation.
+  The target-tested head passes the complete Daily gate with 461 Rust tests total, 450 passed and
+  11 ignored, all Flutter and Windows integration partitions, and Windows Release verification.
+  R2c-M remains active until its final independent audit reports no remaining findings.
 - The current R2b closeout working tree passed the complete local Daily gate and Windows Release
   gate on 2026-08-12, including packaged Rust-library loading and the release bridge smoke test.
   This is current-stage evidence, not a release candidate or completion of R10.

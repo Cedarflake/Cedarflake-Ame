@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use rusqlite::{OptionalExtension, TransactionBehavior, params};
+use rusqlite::{OptionalExtension, TransactionBehavior, params, params_from_iter};
 
 use crate::domain::{
     AssetLocationView, CatalogDeltaBatch, CatalogDeltaPublication, CatalogDeltaPublicationStatus,
@@ -19,6 +19,7 @@ const MAX_DELTA_MUTATIONS: usize = 256;
 const MAX_REMOVALS_PER_MUTATION: usize = 4;
 const MAX_DELTA_COMPLETIONS: usize = 128;
 const MAX_CATCH_UP_LINEAGE_PER_CHANGE: usize = 64;
+const MAX_INCREMENTAL_PATH_WINDOW: usize = 4_096;
 
 impl IncrementalCatalogRepository for SqliteCatalog {
     fn load_incremental_catalog_roots(&self) -> Result<Vec<IncrementalCatalogRoot>, ScanError> {
@@ -165,6 +166,62 @@ impl IncrementalCatalogRepository for SqliteCatalog {
             "locations.root_id = ?1 AND locations.relative_path = ?2",
             params![root_id, relative_path],
         )
+    }
+
+    fn load_incremental_locations_by_relative_paths(
+        &self,
+        root_id: &str,
+        relative_paths: &[String],
+    ) -> Result<Vec<AssetLocationView>, ScanError> {
+        validate_root_id(root_id)?;
+        if relative_paths.is_empty() {
+            return Ok(Vec::new());
+        }
+        if relative_paths.len() > MAX_INCREMENTAL_PATH_WINDOW
+            || relative_paths
+                .iter()
+                .any(|relative_path| relative_path.is_empty() || relative_path.contains('\0'))
+        {
+            return Err(ScanError::new(
+                "catalog_relative_path_window_invalid",
+                "An incremental catalog path window must contain at most 4096 valid paths",
+            ));
+        }
+        let placeholders = std::iter::repeat_n("?", relative_paths.len())
+            .collect::<Vec<_>>()
+            .join(", ");
+        let query = format!(
+            "SELECT locations.asset_id, locations.location_id, locations.root_id,
+                    locations.absolute_path, locations.relative_path,
+                    locations.preview_path, locations.file_size,
+                    locations.created_unix_ms, locations.modified_unix_ms,
+                    locations.width, locations.height,
+                    locations.preview_status, locations.preview_issue_code,
+                    locations.preview_issue_message, locations.metadata_engine_id,
+                    locations.metadata_engine_version, locations.capture_local_time,
+                    locations.capture_offset_minutes, locations.capture_time_source,
+                    locations.capture_raw_value, locations.file_identity_scheme,
+                    locations.file_identity_value
+             FROM library_roots AS roots
+             JOIN asset_locations AS locations ON locations.scan_id = roots.active_scan_id
+             WHERE locations.root_id = ?
+               AND locations.relative_path IN ({placeholders})
+             ORDER BY locations.relative_path, locations.location_id"
+        );
+        let parameters = std::iter::once(root_id).chain(relative_paths.iter().map(String::as_str));
+        let mut statement = self.connection.prepare(&query).map_err(database_error)?;
+        let rows = statement
+            .query_map(params_from_iter(parameters), read_stored_asset)
+            .map_err(database_error)?;
+        let mut locations = Vec::with_capacity(relative_paths.len());
+        let mut seen_paths = HashSet::with_capacity(relative_paths.len());
+        for row in rows {
+            let location = stored_asset_view(row.map_err(database_error)?)?;
+            if seen_paths.insert(location.relative_path.clone()) {
+                locations.push(location);
+            }
+        }
+        Ok(locations)
     }
 
     fn load_incremental_location_by_file_identity(

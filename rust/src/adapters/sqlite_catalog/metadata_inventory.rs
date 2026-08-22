@@ -1,7 +1,9 @@
 use std::collections::BTreeSet;
 use std::path::{Component, Path};
 
-use rusqlite::{ErrorCode, OptionalExtension, Row, Transaction, TransactionBehavior, params};
+use rusqlite::{
+    ErrorCode, OptionalExtension, Row, Transaction, TransactionBehavior, params, params_from_iter,
+};
 
 use crate::domain::{
     FileIdentityEvidence, LibraryRootGeneration, MetadataInventoryCleanupReport,
@@ -327,6 +329,80 @@ impl MetadataInventoryRepository for SqliteCatalog {
             )
             .optional()
             .map_err(database_error)
+    }
+
+    fn load_metadata_inventory_previous_paths(
+        &self,
+        run_id: &str,
+        identities: &[FileIdentityEvidence],
+    ) -> Result<Vec<(FileIdentityEvidence, String)>, ScanError> {
+        if identities.is_empty() {
+            return Ok(Vec::new());
+        }
+        if identities.len() > MAX_PAGE_ENTRIES as usize
+            || identities
+                .iter()
+                .any(|identity| identity.scheme.is_empty() || identity.value.is_empty())
+        {
+            return Err(ScanError::new(
+                "metadata_inventory_identity_window_invalid",
+                "Metadata inventory identity windows must contain at most 4096 complete identities",
+            ));
+        }
+        let requested_values = std::iter::repeat_n("(?, ?)", identities.len())
+            .collect::<Vec<_>>()
+            .join(", ");
+        let query = format!(
+            "WITH requested(file_identity_scheme, file_identity_value) AS (
+               VALUES {requested_values}
+             )
+             SELECT locations.file_identity_scheme, locations.file_identity_value,
+                    locations.relative_path
+             FROM requested
+             JOIN library_metadata_inventory_runs AS runs ON runs.id = ?
+             JOIN library_roots AS roots ON roots.id = runs.root_id
+             JOIN asset_locations AS locations
+               ON locations.root_id = roots.id
+              AND locations.scan_id = roots.active_scan_id
+              AND locations.file_identity_scheme = requested.file_identity_scheme
+              AND locations.file_identity_value = requested.file_identity_value
+             WHERE NOT EXISTS(
+               SELECT 1 FROM library_metadata_inventory_entries AS entries
+               WHERE entries.run_id = runs.id
+                 AND entries.relative_path = locations.relative_path
+                 AND entries.entry_kind = 'file'
+             )
+               AND NOT EXISTS(
+                 SELECT 1 FROM library_metadata_inventory_entries AS entries
+                 WHERE entries.run_id = runs.id
+                   AND entries.candidate_previous_relative_path = locations.relative_path
+               )
+             ORDER BY locations.file_identity_scheme, locations.file_identity_value,
+                      locations.relative_path"
+        );
+        let parameters = identities
+            .iter()
+            .flat_map(|identity| [identity.scheme.as_str(), identity.value.as_str()])
+            .chain(std::iter::once(run_id));
+        let mut statement = self.connection.prepare(&query).map_err(database_error)?;
+        let rows = statement
+            .query_map(params_from_iter(parameters), |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            })
+            .map_err(database_error)?;
+        let mut claimed_identities = BTreeSet::new();
+        let mut previous_paths = Vec::with_capacity(identities.len());
+        for row in rows {
+            let (scheme, value, relative_path) = row.map_err(database_error)?;
+            if claimed_identities.insert((scheme.clone(), value.clone())) {
+                previous_paths.push((FileIdentityEvidence { scheme, value }, relative_path));
+            }
+        }
+        Ok(previous_paths)
     }
 
     fn record_metadata_inventory_comparisons(

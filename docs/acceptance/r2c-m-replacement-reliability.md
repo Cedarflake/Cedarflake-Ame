@@ -1,6 +1,6 @@
 # R2c-M replacement reliability
 
-Status: target-scale evidence pending current authorization
+Status: target-scale evidence and final gates passed; independent audit pending
 
 ## Scope
 
@@ -51,26 +51,29 @@ pre/post source snapshot around the cold pass.
 ## Current evidence
 
 The small retained-catalog fixture passes with additions, modification, removal, and rename routed
-through metadata inventory in a fresh measurement process. The Release disposable production run
-recorded 25 mixed operation samples with 586 ms P50 and 871 ms P95 under a 250 ms foreground poll
-cadence, 96 storm paths and 677 new observations coalesced into one new retained queue row, 1,245 ms
-cross-process restart convergence, immediate shutdown, unchanged full-scan rows, and a
+through metadata inventory in a fresh measurement process. The final Release disposable production
+run recorded 25 mixed operation samples with 554 ms P50 and 823 ms P95 under a 250 ms foreground
+poll cadence, 96 storm paths and 675 new observations coalesced into one new retained queue row,
+1,162 ms cross-process restart convergence, immediate shutdown, unchanged full-scan rows, and a
 745,472-byte isolated catalog.
 
 The authorization, cloud acknowledgement, physical path separation, junction alias, empty storage,
-deadline, process ownership, and memory-limit controls are active. The target-scale retained-root
-phase has not run in this stage because the repository-local mapping is discovery data, not current
-authorization.
+deadline, process ownership, and memory-limit controls passed. The explicitly authorized retained
+phase completed against both logical roots in a fresh isolated catalog. `local-primary` inventoried
+35,086 entries in 7,482 ms with 1,314 candidates and 33,772 unchanged entries. `cloud-primary`
+inventoried 50,472 entries in 13,089 ms with 1,171 candidates and 49,301 unchanged entries. The
+cached gallery page was available in 40 ms, the layout manifest retained 79,119 items, the source
+metadata and placeholder-state safety pass remained unchanged, queue growth was zero, full-scan
+rows were unchanged, isolated catalog growth was 8,001,072 bytes, and peak Job Object memory was
+1,390,215,168 bytes under the 2,147,483,648-byte limit.
 
-The complete Daily gate passes on the final audited implementation with 459 Rust tests total,
-448 passed and 11 authorization-bound or manual performance tests ignored. All Flutter test files,
+The target-tested implementation passes the complete Daily gate with 461 Rust tests total, 450
+passed and 11 authorization-bound or manual performance tests ignored. All Flutter test files,
 Windows Scan 2/2, Windows Accessibility 2/2, bridge compatibility, formatting, lint, and whitespace
-checks pass. Windows Release and its packaged bridge and same-user process checks pass. The latest
-independent read-only implementation audit reports no Critical, High, Medium, or Low findings; the
-authorization-bound target result and its final stage audit are still pending.
+checks pass. Windows Release and its packaged bridge and same-user process checks pass. The final
+independent read-only stage audit remains pending.
 
 ## Acceptance boundary
 
-R2c-M remains incomplete until the explicitly authorized target-scale run passes, complete Daily
-and Windows Release gates pass on the same implementation, and the stage receives an independent
-read-only audit with no remaining Critical, High, Medium, or Low findings.
+R2c-M remains incomplete until the stage receives an independent read-only audit with no remaining
+Critical, High, Medium, or Low findings.

@@ -11,11 +11,11 @@ use crate::application::StoragePaths;
 use crate::application::process_ready_library_changes;
 use crate::application::scan_library::{run_scan_with_storage, stable_id};
 use crate::domain::{
-    LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeOrigin, LibraryChangeQueuePolicy,
-    LibraryChangeScope, LibraryRootGeneration, MetadataInventoryEntry, MetadataInventoryEntryKind,
-    MetadataInventoryPage, MetadataInventoryPlaceholderState, MetadataInventoryRunRequest,
-    MetadataInventoryRunStatus, MetadataInventoryScope, MetadataInventoryStartRequest, ScanError,
-    ScanRequest,
+    FileIdentityEvidence, LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeOrigin,
+    LibraryChangeQueuePolicy, LibraryChangeScope, LibraryRootGeneration, MetadataInventoryEntry,
+    MetadataInventoryEntryKind, MetadataInventoryPage, MetadataInventoryPlaceholderState,
+    MetadataInventoryRunRequest, MetadataInventoryRunStatus, MetadataInventoryScope,
+    MetadataInventoryStartRequest, ScanError, ScanRequest,
 };
 use crate::ports::{
     CatalogRepository, IncrementalCatalogRepository, LibraryChangeQueue,
@@ -885,6 +885,30 @@ fn one_previous_path_is_not_reused_for_multiple_hard_link_candidates() {
     assert_eq!(incremental.completed_count, 2);
     assert!(fixture.location("old.png").is_none());
     assert_eq!(first.asset_id, second.asset_id);
+}
+
+#[test]
+fn metadata_identity_window_is_empty_safe_and_bounded() {
+    let fixture = InventoryFixture::new(&[]);
+    assert!(
+        fixture
+            .catalog
+            .load_metadata_inventory_previous_paths("missing-run", &[])
+            .expect("load empty identity window")
+            .is_empty()
+    );
+    let identities = vec![
+        FileIdentityEvidence {
+            scheme: "fixture".to_owned(),
+            value: "identity".to_owned(),
+        };
+        4_097
+    ];
+    let error = fixture
+        .catalog
+        .load_metadata_inventory_previous_paths("missing-run", &identities)
+        .expect_err("reject oversized identity window");
+    assert_eq!(error.code, "metadata_inventory_identity_window_invalid");
 }
 
 struct FixedInventorySource {

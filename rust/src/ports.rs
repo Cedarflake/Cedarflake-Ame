@@ -212,6 +212,21 @@ pub trait IncrementalCatalogRepository {
         root_id: &str,
         relative_path: &str,
     ) -> Result<Option<AssetLocationView>, ScanError>;
+    fn load_incremental_locations_by_relative_paths(
+        &self,
+        root_id: &str,
+        relative_paths: &[String],
+    ) -> Result<Vec<AssetLocationView>, ScanError> {
+        let mut locations = Vec::with_capacity(relative_paths.len());
+        for relative_path in relative_paths {
+            if let Some(location) =
+                self.load_incremental_location_by_relative_path(root_id, relative_path)?
+            {
+                locations.push(location);
+            }
+        }
+        Ok(locations)
+    }
     fn load_incremental_location_by_file_identity(
         &self,
         identity: &FileIdentityEvidence,
@@ -268,6 +283,21 @@ pub trait MetadataInventoryRepository {
         run_id: &str,
         identity: &FileIdentityEvidence,
     ) -> Result<Option<String>, ScanError>;
+    fn load_metadata_inventory_previous_paths(
+        &self,
+        run_id: &str,
+        identities: &[FileIdentityEvidence],
+    ) -> Result<Vec<(FileIdentityEvidence, String)>, ScanError> {
+        let mut previous_paths = Vec::with_capacity(identities.len());
+        for identity in identities {
+            if let Some(previous_path) =
+                self.load_metadata_inventory_previous_path(run_id, identity)?
+            {
+                previous_paths.push((identity.clone(), previous_path));
+            }
+        }
+        Ok(previous_paths)
+    }
     fn record_metadata_inventory_comparisons(
         &mut self,
         run_id: &str,
