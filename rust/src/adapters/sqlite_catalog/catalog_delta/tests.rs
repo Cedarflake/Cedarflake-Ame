@@ -12,6 +12,58 @@ use crate::ports::{CatalogRepository, IncrementalCatalogRepository, LibraryChang
 use super::super::SqliteCatalog;
 
 #[test]
+fn incremental_path_window_is_bounded_and_root_scoped() {
+    let directory = tempdir().expect("temporary directory");
+    let mut catalog =
+        SqliteCatalog::open(directory.path().join("catalog.sqlite3")).expect("open catalog");
+    seed_catalog(
+        &mut catalog,
+        "root-a",
+        "C:/source-a",
+        &[
+            location("asset-a", "location-a", "root-a", "a.jpg"),
+            location("asset-c", "location-c", "root-a", "c.jpg"),
+        ],
+    );
+    seed_catalog(
+        &mut catalog,
+        "root-b",
+        "C:/source-b",
+        &[location("asset-b", "location-b", "root-b", "a.jpg")],
+    );
+
+    assert!(
+        catalog
+            .load_incremental_locations_by_relative_paths("root-a", &[])
+            .expect("load empty path window")
+            .is_empty()
+    );
+    let locations = catalog
+        .load_incremental_locations_by_relative_paths(
+            "root-a",
+            &[
+                "missing.jpg".to_owned(),
+                "c.jpg".to_owned(),
+                "a.jpg".to_owned(),
+            ],
+        )
+        .expect("load bounded path window");
+    assert_eq!(
+        locations
+            .iter()
+            .map(|location| (location.root_id.as_str(), location.relative_path.as_str()))
+            .collect::<Vec<_>>(),
+        vec![("root-a", "a.jpg"), ("root-a", "c.jpg")]
+    );
+
+    let oversized = vec!["a.jpg".to_owned(); 4_097];
+    let error = catalog
+        .load_incremental_locations_by_relative_paths("root-a", &oversized)
+        .expect_err("reject oversized path window");
+    assert_eq!(error.code, "catalog_relative_path_window_invalid");
+}
+
+#[test]
 fn authoritative_subtree_window_keeps_case_distinct_siblings_outside_its_capacity() {
     let directory = tempdir().expect("temporary directory");
     let mut catalog =

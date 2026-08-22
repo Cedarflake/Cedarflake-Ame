@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::adapters::LocalMetadataInventory;
@@ -98,6 +98,31 @@ where
     run_metadata_inventory(
         repository,
         &mut source,
+        request,
+        observed_unix_ms,
+        page_limit,
+        queue_policy,
+        cancellation,
+    )
+}
+
+#[cfg(test)]
+pub(crate) fn run_metadata_inventory_with_source_for_test<Repository, Source>(
+    repository: &mut Repository,
+    source: &mut Source,
+    request: &MetadataInventoryRunRequest,
+    observed_unix_ms: i64,
+    page_limit: u32,
+    queue_policy: LibraryChangeQueuePolicy,
+    cancellation: &AtomicBool,
+) -> Result<MetadataInventoryReport, ScanError>
+where
+    Repository: MetadataInventoryRepository + IncrementalCatalogRepository + LibraryChangeQueue,
+    Source: MetadataInventorySource,
+{
+    run_metadata_inventory(
+        repository,
+        source,
         request,
         observed_unix_ms,
         page_limit,
@@ -534,10 +559,49 @@ where
         if entries.is_empty() {
             break;
         }
+        let relative_paths = entries
+            .iter()
+            .filter(|entry| entry.kind == MetadataInventoryEntryKind::File)
+            .map(|entry| entry.relative_path.clone())
+            .collect::<Vec<_>>();
+        let path_priors = repository
+            .load_incremental_locations_by_relative_paths(&request.root_id, &relative_paths)?
+            .into_iter()
+            .map(|location| (location.relative_path.clone(), location))
+            .collect::<BTreeMap<_, _>>();
+        let identities = entries
+            .iter()
+            .filter(|entry| {
+                entry.kind == MetadataInventoryEntryKind::File
+                    && !path_priors.contains_key(&entry.relative_path)
+            })
+            .filter_map(|entry| entry.file_identity.as_ref())
+            .filter(|identity| {
+                !claimed_identities.contains(&(identity.scheme.clone(), identity.value.clone()))
+            })
+            .map(|identity| {
+                (
+                    (identity.scheme.clone(), identity.value.clone()),
+                    identity.clone(),
+                )
+            })
+            .collect::<BTreeMap<_, _>>()
+            .into_values()
+            .collect::<Vec<_>>();
+        let previous_paths = repository
+            .load_metadata_inventory_previous_paths(&request.run_id, &identities)?
+            .into_iter()
+            .map(|(identity, previous_path)| ((identity.scheme, identity.value), previous_path))
+            .collect::<BTreeMap<_, _>>();
         let mut intents = Vec::new();
         let mut updates = Vec::with_capacity(entries.len());
         for entry in entries {
-            let comparison = compare_entry(repository, request, &entry, &mut claimed_identities)?;
+            let comparison = compare_entry(
+                &entry,
+                path_priors.get(&entry.relative_path),
+                &previous_paths,
+                &mut claimed_identities,
+            );
             match comparison {
                 EntryComparison::Unchanged => {
                     report.unchanged_count = checked_add(
@@ -710,43 +774,34 @@ fn report_inventory_progress(
     }
 }
 
-fn compare_entry<Repository>(
-    repository: &Repository,
-    request: &MetadataInventoryRunRequest,
+fn compare_entry(
     entry: &MetadataInventoryEntry,
+    path_prior: Option<&AssetLocationView>,
+    previous_paths: &BTreeMap<(String, String), String>,
     claimed_identities: &mut BTreeSet<(String, String)>,
-) -> Result<EntryComparison, ScanError>
-where
-    Repository: MetadataInventoryRepository + IncrementalCatalogRepository,
-{
+) -> EntryComparison {
     if entry.kind != MetadataInventoryEntryKind::File {
-        return Ok(EntryComparison::Unchanged);
+        return EntryComparison::Unchanged;
     }
-    let path_prior = repository
-        .load_incremental_location_by_relative_path(&request.root_id, &entry.relative_path)?;
-    if path_prior
-        .as_ref()
-        .is_some_and(|prior| inventory_matches_location(entry, prior))
-    {
-        return Ok(EntryComparison::Unchanged);
+    if path_prior.is_some_and(|prior| inventory_matches_location(entry, prior)) {
+        return EntryComparison::Unchanged;
     }
     if path_prior.is_none()
         && let Some(identity) = entry.file_identity.as_ref()
     {
         let identity_key = (identity.scheme.clone(), identity.value.clone());
         if !claimed_identities.contains(&identity_key)
-            && let Some(previous_path) =
-                repository.load_metadata_inventory_previous_path(&request.run_id, identity)?
+            && let Some(previous_path) = previous_paths.get(&identity_key)
         {
             claimed_identities.insert(identity_key);
-            return Ok(EntryComparison::Candidate {
-                previous_path: Some(previous_path),
-            });
+            return EntryComparison::Candidate {
+                previous_path: Some(previous_path.clone()),
+            };
         }
     }
-    Ok(EntryComparison::Candidate {
+    EntryComparison::Candidate {
         previous_path: None,
-    })
+    }
 }
 
 fn inventory_matches_location(entry: &MetadataInventoryEntry, prior: &AssetLocationView) -> bool {

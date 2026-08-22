@@ -25,13 +25,14 @@ use crate::domain::{RecoverableScan, ScanEvent, ScanRequest};
 #[cfg(windows)]
 use super::LibrarySynchronizationRuntime;
 #[cfg(windows)]
+use crate::application::scan_library::resume_authoritative_scan_with_storage;
+#[cfg(windows)]
 use crate::application::{
     AuthoritativeLibraryChangeReport, MetadataInventoryProgressPhase,
     MetadataInventoryRecoveryReport, MetadataInventoryWorkerControl, defer_authoritative_change,
     leased_change_requires_metadata_inventory,
     process_leased_authoritative_library_change_cancellable,
-    process_leased_metadata_inventory_change_with_progress, resume_authoritative_scan,
-    storage_paths, suspend_scan,
+    process_leased_metadata_inventory_change_with_progress, storage_paths, suspend_scan,
 };
 #[cfg(windows)]
 use crate::ports::{CatalogRepository, IncrementalCatalogRepository, LibraryChangeQueue};
@@ -105,17 +106,7 @@ pub(crate) fn start_production_library_synchronization()
                 ));
             }
         }
-        let runtime = runtime_state.get_or_insert_with(|| ProductionSynchronization {
-            runtime: LibrarySynchronizationRuntime::new_production(
-                production_library_change_source_factory(),
-            ),
-            recovery: None,
-            recovery_retries: BTreeMap::new(),
-            recoverable_scan_cursor: None,
-            authoritative_root_cursor: None,
-            legacy_audits_retired: false,
-            is_stopping: false,
-        });
+        let runtime = runtime_state.get_or_insert_with(new_production_synchronization);
         poll_runtime(runtime)
     }
     #[cfg(not(windows))]
@@ -171,8 +162,16 @@ fn poll_runtime(
     runtime: &mut ProductionSynchronization,
 ) -> Result<LibrarySynchronizationSnapshot, ScanError> {
     let storage = storage_paths()?;
+    poll_runtime_with_storage(runtime, &storage)
+}
+
+#[cfg(windows)]
+fn poll_runtime_with_storage(
+    runtime: &mut ProductionSynchronization,
+    storage: &crate::application::storage::StoragePaths,
+) -> Result<LibrarySynchronizationSnapshot, ScanError> {
     let now_unix_ms = now_unix_ms()?;
-    let mut catalog = SqliteCatalog::open(storage.catalog_path)?;
+    let mut catalog = SqliteCatalog::open(storage.catalog_path.clone())?;
     if !runtime.legacy_audits_retired {
         catalog.retire_legacy_consistency_audits(now_unix_ms)?;
         runtime.legacy_audits_retired = true;
@@ -202,7 +201,7 @@ fn poll_runtime(
                 .root_is_ready_for_authoritative_recovery(&recovery_root_id(&recoverable))
             && runtime.recovery_is_due(&recovery_root_id(&recoverable), now_unix_ms)
         {
-            runtime.start_recoverable_scan(recoverable)?;
+            runtime.start_recoverable_scan(recoverable, storage.clone())?;
             project_active_recovery_as_updating(runtime.recovery.as_ref(), &mut snapshot);
             return Ok(snapshot);
         }
@@ -231,6 +230,7 @@ fn poll_runtime(
                     continuity_revision,
                     leased,
                     now_unix_ms,
+                    storage.catalog_path.clone(),
                 ) {
                     if let Err(defer_error) = catalog.defer_library_change(
                         leased_for_defer.change.id,
@@ -252,6 +252,45 @@ fn poll_runtime(
     }
     project_active_recovery_as_updating(runtime.recovery.as_ref(), &mut snapshot);
     Ok(snapshot)
+}
+
+#[cfg(windows)]
+fn new_production_synchronization() -> ProductionSynchronization {
+    ProductionSynchronization {
+        runtime: LibrarySynchronizationRuntime::new_production(
+            production_library_change_source_factory(),
+        ),
+        recovery: None,
+        recovery_retries: BTreeMap::new(),
+        recoverable_scan_cursor: None,
+        authoritative_root_cursor: None,
+        legacy_audits_retired: false,
+        is_stopping: false,
+    }
+}
+
+#[cfg(all(test, windows))]
+pub(crate) struct ProductionSynchronizationTestHarness {
+    runtime: ProductionSynchronization,
+    storage: crate::application::storage::StoragePaths,
+}
+
+#[cfg(all(test, windows))]
+impl ProductionSynchronizationTestHarness {
+    pub(crate) fn new(storage: crate::application::storage::StoragePaths) -> Self {
+        Self {
+            runtime: new_production_synchronization(),
+            storage,
+        }
+    }
+
+    pub(crate) fn poll(&mut self) -> Result<LibrarySynchronizationSnapshot, ScanError> {
+        poll_runtime_with_storage(&mut self.runtime, &self.storage)
+    }
+
+    pub(crate) fn stop(&mut self) -> Result<(), ScanError> {
+        self.runtime.stop()
+    }
 }
 
 #[cfg(windows)]
@@ -464,7 +503,11 @@ impl ProductionSynchronization {
         }
     }
 
-    fn start_recoverable_scan(&mut self, recoverable: RecoverableScan) -> Result<(), ScanError> {
+    fn start_recoverable_scan(
+        &mut self,
+        recoverable: RecoverableScan,
+        storage: crate::application::storage::StoragePaths,
+    ) -> Result<(), ScanError> {
         let root_id = recovery_root_id(&recoverable);
         self.start_recovery_scan(
             root_id,
@@ -475,6 +518,7 @@ impl ProductionSynchronization {
                 max_entries: recoverable.max_entries,
                 preview_edge: recoverable.preview_edge,
             },
+            storage,
         )
     }
 
@@ -485,6 +529,7 @@ impl ProductionSynchronization {
         continuity_revision: u64,
         leased: LeasedLibraryChange,
         now_unix_ms: i64,
+        catalog_path: std::path::PathBuf,
     ) -> Result<(), ScanError> {
         if self.recovery.is_some() {
             return Err(ScanError::new(
@@ -509,7 +554,6 @@ impl ProductionSynchronization {
         };
         #[cfg(debug_assertions)]
         eprintln!("[Ame sync] recovery started kind={recovery_kind} root={root_id}");
-        let catalog_path = storage_paths()?.catalog_path;
         let queue_policy = self.runtime.queue_policy();
         let recovery_policy = self.runtime.recovery_policy();
         let cancelled = Arc::new(AtomicBool::new(false));
@@ -614,6 +658,7 @@ impl ProductionSynchronization {
         &mut self,
         root_id: String,
         request: ScanRequest,
+        storage: crate::application::storage::StoragePaths,
     ) -> Result<(), ScanError> {
         if self.recovery.is_some() {
             return Ok(());
@@ -628,7 +673,7 @@ impl ProductionSynchronization {
         let worker = thread::Builder::new()
             .name("ame-authoritative-recovery".to_owned())
             .spawn(move || {
-                let result = run_recovery_scan(request, &worker_cancelled)
+                let result = run_recovery_scan(request, &worker_cancelled, storage)
                     .map(|()| RecoveryTaskOutcome::FullScan);
                 let _ = sender.send(result);
             })
@@ -766,7 +811,11 @@ fn one_line_message(message: &str) -> String {
 }
 
 #[cfg(windows)]
-fn run_recovery_scan(request: ScanRequest, cancelled: &AtomicBool) -> Result<(), ScanError> {
+fn run_recovery_scan(
+    request: ScanRequest,
+    cancelled: &AtomicBool,
+    storage: crate::application::storage::StoragePaths,
+) -> Result<(), ScanError> {
     let scan_id = request.scan_id.clone();
     let mut completed = false;
     let mut terminal_error = None;
@@ -774,78 +823,82 @@ fn run_recovery_scan(request: ScanRequest, cancelled: &AtomicBool) -> Result<(),
     let mut last_reported_entries = 0_u64;
     #[cfg(debug_assertions)]
     let mut isolated_finalization_races = 0_u32;
-    resume_authoritative_scan(request, |event| {
-        #[cfg(debug_assertions)]
-        match &event {
-            ScanEvent::Progress {
-                visited_entries,
-                accepted_items,
-                issue_count,
-                ..
-            } if *visited_entries == 1
-                || visited_entries.saturating_sub(last_reported_entries) >= 4_096 =>
-            {
-                last_reported_entries = *visited_entries;
-                eprintln!(
-                    "[Ame sync] recovery progress kind=full-scan scan={scan_id} visited={visited_entries} accepted={accepted_items} issues={issue_count}"
-                );
+    resume_authoritative_scan_with_storage(
+        request,
+        |event| {
+            #[cfg(debug_assertions)]
+            match &event {
+                ScanEvent::Progress {
+                    visited_entries,
+                    accepted_items,
+                    issue_count,
+                    ..
+                } if *visited_entries == 1
+                    || visited_entries.saturating_sub(last_reported_entries) >= 4_096 =>
+                {
+                    last_reported_entries = *visited_entries;
+                    eprintln!(
+                        "[Ame sync] recovery progress kind=full-scan scan={scan_id} visited={visited_entries} accepted={accepted_items} issues={issue_count}"
+                    );
+                }
+                ScanEvent::Finalizing {
+                    validated_items,
+                    total_items,
+                    visited_entries,
+                    issue_count,
+                    ..
+                } => {
+                    eprintln!(
+                        "[Ame sync] recovery progress kind=full-scan scan={scan_id} phase=finalizing validated={validated_items}/{total_items} visited={visited_entries} issues={issue_count}"
+                    );
+                }
+                ScanEvent::Issue { issue, .. }
+                    if matches!(
+                        issue.code.as_str(),
+                        "source_changed_during_scan"
+                            | "source_replaced_during_scan"
+                            | "source_revalidation_failed"
+                            | "source_became_unavailable"
+                            | "source_identity_unavailable"
+                    ) =>
+                {
+                    isolated_finalization_races = isolated_finalization_races.saturating_add(1);
+                    eprintln!(
+                        "[Ame sync] recovery progress kind=full-scan scan={scan_id} phase=isolating-file-race retry_paths={isolated_finalization_races} code={}",
+                        issue.code
+                    );
+                }
+                _ => {}
             }
-            ScanEvent::Finalizing {
-                validated_items,
-                total_items,
-                visited_entries,
-                issue_count,
-                ..
-            } => {
-                eprintln!(
-                    "[Ame sync] recovery progress kind=full-scan scan={scan_id} phase=finalizing validated={validated_items}/{total_items} visited={visited_entries} issues={issue_count}"
-                );
+            match event {
+                ScanEvent::Completed { was_limited, .. } if !was_limited => completed = true,
+                ScanEvent::Completed { .. } => {
+                    terminal_error = Some(ScanError::new(
+                        "authoritative_recovery_scan_limited",
+                        "An authoritative recovery scan cannot publish a limited result",
+                    ));
+                }
+                ScanEvent::Cancelled { .. } => {
+                    terminal_error = Some(ScanError::new(
+                        "authoritative_recovery_cancelled",
+                        "Authoritative recovery was cancelled",
+                    ));
+                }
+                ScanEvent::Stale { .. } => {
+                    terminal_error = Some(ScanError::new(
+                        "authoritative_recovery_stale",
+                        "Source state changed before authoritative recovery could publish",
+                    ));
+                }
+                ScanEvent::Failed { code, message, .. } => {
+                    terminal_error = Some(ScanError::new(code, message));
+                }
+                _ => {}
             }
-            ScanEvent::Issue { issue, .. }
-                if matches!(
-                    issue.code.as_str(),
-                    "source_changed_during_scan"
-                        | "source_replaced_during_scan"
-                        | "source_revalidation_failed"
-                        | "source_became_unavailable"
-                        | "source_identity_unavailable"
-                ) =>
-            {
-                isolated_finalization_races = isolated_finalization_races.saturating_add(1);
-                eprintln!(
-                    "[Ame sync] recovery progress kind=full-scan scan={scan_id} phase=isolating-file-race retry_paths={isolated_finalization_races} code={}",
-                    issue.code
-                );
-            }
-            _ => {}
-        }
-        match event {
-            ScanEvent::Completed { was_limited, .. } if !was_limited => completed = true,
-            ScanEvent::Completed { .. } => {
-                terminal_error = Some(ScanError::new(
-                    "authoritative_recovery_scan_limited",
-                    "An authoritative recovery scan cannot publish a limited result",
-                ));
-            }
-            ScanEvent::Cancelled { .. } => {
-                terminal_error = Some(ScanError::new(
-                    "authoritative_recovery_cancelled",
-                    "Authoritative recovery was cancelled",
-                ));
-            }
-            ScanEvent::Stale { .. } => {
-                terminal_error = Some(ScanError::new(
-                    "authoritative_recovery_stale",
-                    "Source state changed before authoritative recovery could publish",
-                ));
-            }
-            ScanEvent::Failed { code, message, .. } => {
-                terminal_error = Some(ScanError::new(code, message));
-            }
-            _ => {}
-        }
-        !cancelled.load(Ordering::Acquire)
-    })?;
+            !cancelled.load(Ordering::Acquire)
+        },
+        storage,
+    )?;
     if completed {
         return Ok(());
     }

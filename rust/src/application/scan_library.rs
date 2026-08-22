@@ -63,11 +63,11 @@ pub fn resume_scan(
     )
 }
 
-pub(crate) fn resume_authoritative_scan(
+pub(crate) fn resume_authoritative_scan_with_storage(
     request: ScanRequest,
     publish: impl FnMut(ScanEvent) -> bool,
+    storage: StoragePaths,
 ) -> Result<(), ScanError> {
-    let storage = storage_paths()?;
     run_scan_with_storage_reason(
         request,
         publish,
