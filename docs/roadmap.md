@@ -1528,9 +1528,9 @@ R2c-M - replacement reliability and closeout:
 R2c status: **reopened on 2026-08-21 under ADR 0023**. R2c-A through R2c-F remain accepted
 foundations. R2c-G and its USN-specific acceptance remain historical implementation and migration
 evidence. R2c-H remains a valid source-safety and baseline measurement record but does not validate
-the replacement continuity model. R2c-I through R2c-L are complete; R2c-M target-scale evidence and
-complete gates pass while its final independent audit remains active. R2c-M must complete before
-the R2c integration branch is ready for final review against `main` or R3 begins.
+the replacement continuity model. R2c-I through R2c-M are complete with target-scale replacement
+evidence, complete gates, and final independent audits with no remaining findings. The R2c
+integration branch is ready for final review against `main`; R3 remains paused.
 
 #### R2c.12 Acceptance evidence
 
@@ -1918,14 +1918,13 @@ may serve as benchmarks or fallbacks but are not automatically preferred over ma
 
 Active stage: **R2c - non-USN continuity replacement**
 
-Active slice: **R2c-M - replacement reliability and closeout**. R2c-I through R2c-L completed their
-implementation, local gates, and final independent audits with no Critical, High, Medium, or Low
-findings. R2c-M owns target-scale replacement latency, migration and source-safety repetition,
-complete closeout gates, and the final R2c integration review. R3 is paused; no R3 implementation
-is included in the R2c integration branch.
+Active slice: **R2c integration review against `main`**. R2c-I through R2c-M completed their
+implementation, target evidence, complete gates, and final independent audits with no Critical,
+High, Medium, or Low findings. R3 is paused; no R3 implementation is included in the R2c
+integration branch.
 
-Current work: record the target-tested R2c-M head's independent audit and merge the accepted stage
-into `codex/r2c` before opening the final unmerged `codex/r2c` PR to `main`.
+Current work: merge the accepted R2c-M stage into `codex/r2c`, then open the final unmerged
+`codex/r2c` PR to `main` for independent integration review.
 
 Each R2c-I through R2c-M slice uses a dedicated branch and PR into `codex/r2c`, receives an
 independent read-only audit, and merges only after its findings close. The final `codex/r2c` PR
@@ -1972,8 +1971,8 @@ or later analysis workflows.
 ### 10.1 Verified implementation snapshot
 
 This snapshot was synchronized on 2026-08-22 against the live working tree and current planning
-decision. Historical gate claims retain their recorded dates; R2c-I through R2c-L have current
-replacement evidence. R2c-M has no completion claim until its evidence is run.
+decision. Historical gate claims retain their recorded dates; R2c-I through R2c-M have current
+replacement evidence and accepted stage audits.
 The live working tree, current schema, accepted ADRs, and fresh verification remain authoritative;
 this roadmap does not preserve drifting commit hashes or duplicate complete test transcripts.
 
@@ -2202,9 +2201,8 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   no longer schedules USN or automatic full scans; scan resume is fail-closed and cannot recreate a
   removed root or checkpoint; schema v19 remains compatible; and focused, Daily, Windows Release,
   and zero-finding independent-audit evidence is recorded in
-  `docs/acceptance/r2c-i-non-usn-cutover.md`. R2c-M is not yet complete; no target-scale
-  replacement performance or final R2c integration audit claim may be
-  inferred from the historical R2c-G/H evidence.
+  `docs/acceptance/r2c-i-non-usn-cutover.md`. Historical R2c-G/H evidence remains separate from the
+  target-scale replacement evidence recorded for R2c-M below.
 - R2c-J implementation and local verification are complete. Schema v20 inventory persistence,
   bounded metadata-only discovery, safe positive-candidate routing, and complete-scope absence
   authority pass focused fixtures, repository lint, the complete Daily gate with 439 Rust tests,
@@ -2220,7 +2218,7 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   current elapsed detail, silent normal synchronization, and immediate close semantics pass
   focused fixtures, repository lint, the complete Daily gate with 454 Rust tests, Windows Release
   verification, and a final independent audit with no remaining findings.
-- R2c-M replacement tooling and target evidence are implemented. The final Release disposable
+- R2c-M replacement tooling, target evidence, and stage audit are complete. The final Release disposable
   production coordinator records 25 mixed create, modify, rename, move, same-path replacement, and
   delete samples at 557 ms P50 and 828 ms P95 under the 250 ms foreground cadence, bounded storm
   coalescing, 1,188 ms cross-process restart convergence, immediate shutdown, and unchanged
@@ -2231,7 +2229,7 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   mutation.
   The target-tested head passes the complete Daily gate with 461 Rust tests total, 450 passed and
   11 ignored, all Flutter and Windows integration partitions, and Windows Release verification.
-  R2c-M remains active until its final independent audit reports no remaining findings.
+  The final independent read-only stage audit reports no Critical, High, Medium, or Low findings.
 - The current R2b closeout working tree passed the complete local Daily gate and Windows Release
   gate on 2026-08-12, including packaged Rust-library loading and the release bridge smoke test.
   This is current-stage evidence, not a release candidate or completion of R10.

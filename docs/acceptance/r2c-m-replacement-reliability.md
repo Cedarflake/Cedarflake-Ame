@@ -1,6 +1,6 @@
 # R2c-M replacement reliability
 
-Status: target-scale evidence and final gates passed; independent audit pending
+Status: accepted on 2026-08-22
 
 ## Scope
 
@@ -72,9 +72,10 @@ The target-tested implementation passes the complete Daily gate with 461 Rust te
 passed and 11 authorization-bound or manual performance tests ignored. All Flutter test files,
 Windows Scan 2/2, Windows Accessibility 2/2, bridge compatibility, formatting, lint, and whitespace
 checks pass. Windows Release and its packaged bridge and same-user process checks pass. The final
-independent read-only stage audit remains pending.
+independent read-only stage audit reported no Critical, High, Medium, or Low findings.
 
 ## Acceptance boundary
 
-R2c-M remains incomplete until the stage receives an independent read-only audit with no remaining
-Critical, High, Medium, or Low findings.
+R2c-M is accepted with target-scale evidence, complete Daily and Windows Release gates, and an
+independent read-only stage audit with no remaining findings. The final R2c integration review
+against `main` remains a separate unmerged PR boundary.
