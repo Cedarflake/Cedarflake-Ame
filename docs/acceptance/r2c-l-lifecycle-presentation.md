@@ -85,5 +85,5 @@ correction.
 
 ## Next boundary
 
-After merge, R2c-M measures replacement event-to-visible latency and metadata-only startup
-continuity, repeats migration and source-safety evidence, and performs the final R2c closeout gates.
+The final R2c integration PR remains unmerged until explicit authorization. Any work after that
+merge, including R3, requires separate direction and is not part of this acceptance boundary.
