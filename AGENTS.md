@@ -564,12 +564,14 @@ completion tracker.
   operations.
 - Stage explicit files rather than broad paths when committing.
 - Use concise English Conventional Commit messages with a summary no longer than 20 words.
-- Write pull-request bodies as neutral engineering completion records. Include only delivered
-  scope and capabilities, stable contracts, verification evidence, and explicit remaining
-  boundaries for the current head. Do not use a pull-request body as a bug-fix diary: omit review
-  findings, audit iterations, debugging chronology, descriptions of bugs that were fixed, agent
-  actions, and conversation history. Do not address end users or use promotional release-note
-  language. Keep every statement current and evidence-backed.
+- Write pull-request bodies as neutral technical summaries of the modifications in the current
+  head. State only what changed; do not turn the body into a user-facing announcement, release
+  note, maintainer narrative, bug-fix diary, or reviewer instruction. Omit verification results,
+  test and CI counts, performance measurements, audit verdicts and severity counts, zero-finding
+  claims, approval or merge-readiness claims, merge status, review iterations, debugging history,
+  descriptions of bugs that were fixed, agent actions, and conversation history. Keep verification
+  and audit evidence in their owning checks, acceptance records, or reviews rather than the
+  pull-request body.
 - Split unrelated themes into separate commits so each rollback boundary remains coherent.
 - Do not commit generated caches, model files, local catalogs, source-media samples, build outputs,
   secrets, or external reference repositories.
