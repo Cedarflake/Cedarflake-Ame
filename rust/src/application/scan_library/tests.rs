@@ -1898,6 +1898,7 @@ fn shutdown_suspend_keeps_full_scan_running_for_automatic_resume() {
         .save(source.path().join("one.png"))
         .expect("fixture image");
     let catalog_path = storage.path().join("catalog.sqlite3");
+    let preview_root = storage.path().join("previews");
     let request = ScanRequest {
         scan_id: "shutdown-suspended-scan".to_owned(),
         root_path: source.path().to_string_lossy().into_owned(),
@@ -1916,19 +1917,68 @@ fn shutdown_suspend_keeps_full_scan_running_for_automatic_resume() {
         },
         StoragePaths {
             catalog_path: catalog_path.clone(),
-            preview_root: storage.path().join("previews"),
+            preview_root: preview_root.clone(),
             preview_budget_bytes: 64 * 1024 * 1024,
             settings_path: storage.path().join("settings.sqlite3"),
         },
     )
     .expect("suspend full scan");
 
-    let recoverable = SqliteCatalog::open(catalog_path)
+    let recoverable = SqliteCatalog::open(catalog_path.clone())
         .expect("catalog")
         .load_recoverable_scan()
         .expect("recoverable scan query")
         .expect("suspended scan remains running");
     assert_eq!(recoverable.scan_id, request.scan_id);
+
+    let mut resumed_events = Vec::new();
+    resume_scan_with_storage(
+        request,
+        |event| {
+            resumed_events.push(event);
+            true
+        },
+        StoragePaths {
+            catalog_path: catalog_path.clone(),
+            preview_root,
+            preview_budget_bytes: 64 * 1024 * 1024,
+            settings_path: storage.path().join("settings.sqlite3"),
+        },
+    )
+    .expect("resume shutdown-suspended scan");
+
+    assert!(matches!(
+        resumed_events.last(),
+        Some(ScanEvent::Completed { asset_count: 1, .. })
+    ));
+    assert!(
+        SqliteCatalog::open(catalog_path)
+            .expect("resumed catalog")
+            .load_recoverable_scan()
+            .expect("recoverable scan query")
+            .is_none()
+    );
+}
+
+#[test]
+fn shutdown_suspend_does_not_override_user_pause_or_cancel() {
+    let cancel_token = register_scan("shutdown-user-cancel").expect("register cancelled scan");
+    let cancel_registration = ScanRegistration {
+        scan_id: "shutdown-user-cancel".to_owned(),
+    };
+    assert!(cancel_scan("shutdown-user-cancel"));
+    assert!(!suspend_scan("shutdown-user-cancel"));
+    assert_eq!(cancel_token.load(Ordering::Relaxed), CONTROL_CANCEL);
+    drop(cancel_registration);
+
+    let pause_token = register_scan("shutdown-user-pause").expect("register paused scan");
+    let pause_registration = ScanRegistration {
+        scan_id: "shutdown-user-pause".to_owned(),
+    };
+    assert!(pause_scan("shutdown-user-pause"));
+    assert!(!suspend_scan("shutdown-user-pause"));
+    assert_eq!(pause_token.load(Ordering::Relaxed), CONTROL_PAUSE);
+    drop(pause_registration);
 }
 
 #[test]

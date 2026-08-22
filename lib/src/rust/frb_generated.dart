@@ -73,7 +73,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => -791418665;
+  int get rustContentHash => 1347387600;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -177,6 +177,8 @@ abstract class RustLibApi extends BaseApi {
   crateApiSynchronizationStartLibrarySynchronization();
 
   Future<void> crateApiSynchronizationStopLibrarySynchronization();
+
+  bool crateApiCatalogSuspendLibraryScan({required String scanId});
 
   StorageStatus crateApiStorageUpdateStorageSettings({
     required StorageSettingsUpdate update,
@@ -977,6 +979,32 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  bool crateApiCatalogSuspendLibraryScan({required String scanId}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(scanId, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 25)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiCatalogSuspendLibraryScanConstMeta,
+        argValues: [scanId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCatalogSuspendLibraryScanConstMeta =>
+      const TaskConstMeta(
+        debugName: "suspend_library_scan",
+        argNames: ["scanId"],
+      );
+
+  @override
   StorageStatus crateApiStorageUpdateStorageSettings({
     required StorageSettingsUpdate update,
   }) {
@@ -985,7 +1013,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_box_autoadd_storage_settings_update(update, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 25)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 26)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_storage_status,

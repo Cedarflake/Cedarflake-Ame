@@ -33,4 +33,18 @@ void main() {
     await shutdown;
     expect(didFinish, isTrue);
   });
+
+  test("shutdown runs remaining actions after one action fails", () async {
+    final coordinator = AmeShutdownCoordinator();
+    final events = <String>[];
+    coordinator.register(() async => events.add("synchronization"));
+    coordinator.register(() {
+      events.add("scan");
+      throw StateError("checkpoint failed");
+    });
+
+    await expectLater(coordinator.shutdown(), throwsStateError);
+
+    expect(events, ["scan", "synchronization"]);
+  });
 }

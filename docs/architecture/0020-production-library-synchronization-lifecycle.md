@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-18
-- Last amended: 2026-08-21
+- Last amended: 2026-08-22
 
 ## Context
 
@@ -189,9 +189,11 @@ resumes its prior checkpoint. Source media is never modified by this lifecycle.
 - notification fixtures prove bounded history and queue state, active-condition deduplication,
   unread icon switching without a numeric badge, detailed reconciliation evidence, application-use-
   case action routing, task-surface priority, and transient dismissal;
-- window fixtures prove immediate hide, reverse-order idempotent coordinated shutdown, and
-  destruction after the configured timeout;
-- scan lifecycle fixtures prove shutdown checkpoints and resumes full scans while non-scan recovery
+- window fixtures prove immediate hide, reverse-order idempotent coordinated shutdown, continuation
+  through an individual teardown failure, and destruction after the configured timeout;
+- scan lifecycle fixtures prove the desktop shutdown action reaches the active foreground scanner,
+  waits for its Rust stream to close after a durable checkpoint, leaves the scan recoverable for the
+  next process, and cannot override an explicit user pause or cancellation; non-scan recovery
   restarts only after a new watcher and metadata-inventory continuity epoch;
 - the packaged Windows gate proves duplicate same-user processes cannot cross the application
   initialization boundary and that a replacement process starts after the owner exits;

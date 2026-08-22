@@ -110,3 +110,6 @@ bool cancelLibraryScan({required String scanId}) =>
 
 bool pauseLibraryScan({required String scanId}) =>
     RustLib.instance.api.crateApiCatalogPauseLibraryScan(scanId: scanId);
+
+bool suspendLibraryScan({required String scanId}) =>
+    RustLib.instance.api.crateApiCatalogSuspendLibraryScan(scanId: scanId);

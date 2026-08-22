@@ -899,15 +899,22 @@ pub fn pause_scan(scan_id: &str) -> bool {
     true
 }
 
-pub(crate) fn suspend_scan(scan_id: &str) -> bool {
+pub fn suspend_scan(scan_id: &str) -> bool {
     let Ok(scans) = active_scans().lock() else {
         return false;
     };
     let Some(token) = scans.get(scan_id) else {
         return false;
     };
-    token.store(CONTROL_SUSPEND, Ordering::Relaxed);
-    true
+    match token.compare_exchange(
+        CONTROL_RUNNING,
+        CONTROL_SUSPEND,
+        Ordering::Relaxed,
+        Ordering::Relaxed,
+    ) {
+        Ok(_) | Err(CONTROL_SUSPEND) => true,
+        Err(_) => false,
+    }
 }
 
 fn finish_if_controlled(

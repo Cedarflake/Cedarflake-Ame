@@ -4,6 +4,7 @@ import "package:cedarflake_ame/features/library/adapters/directory_picker.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_previewer.dart";
+import "package:cedarflake_ame/features/library/application/library_scan_shutdown.dart";
 import "package:cedarflake_ame/features/library/application/library_scanner.dart";
 import "package:cedarflake_ame/features/library/domain/gallery_layout_manifest.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
@@ -371,6 +372,45 @@ void main() {
       LibraryStatus.cancelling,
     );
   });
+
+  test(
+    "shutdown checkpoints an active foreground scan without cancelling it",
+    () async {
+      final scanner = _FakeLibraryScanner();
+      final shutdownCoordinator = LibraryScanShutdownCoordinator();
+      final container = ProviderContainer(
+        overrides: [
+          libraryScannerProvider.overrideWithValue(scanner),
+          libraryScanShutdownCoordinatorProvider.overrideWithValue(
+            shutdownCoordinator,
+          ),
+          libraryCatalogProvider.overrideWithValue(
+            _FakeLibraryCatalog(_snapshot()),
+          ),
+        ],
+      );
+      addTearDown(scanner.dispose);
+
+      final controller = container.read(libraryControllerProvider.notifier);
+      await controller.scanDirectory("C:\\Pictures");
+      final scanId = scanner.startedScanId ?? fail("scan did not start");
+      var didFinishShutdown = false;
+      final shutdown = shutdownCoordinator.suspend().then((_) {
+        didFinishShutdown = true;
+      });
+      await Future<void>.delayed(Duration.zero);
+
+      expect(scanner.suspendedScanId, scanId);
+      expect(didFinishShutdown, isFalse);
+
+      await scanner.close();
+      await shutdown;
+      container.dispose();
+
+      expect(didFinishShutdown, isTrue);
+      expect(scanner.cancelledScanId, isNull);
+    },
+  );
 
   test("keeps source changes distinct from generic failures", () async {
     final scanner = _FakeLibraryScanner();
@@ -2219,6 +2259,7 @@ class _FakeLibraryScanner implements LibraryScanner {
   final bool throwFirstScan;
   String? cancelledScanId;
   String? pausedScanId;
+  String? suspendedScanId;
   String? startedScanId;
   int? startedItemLimit;
   int? startedEntryLimit;
@@ -2260,6 +2301,12 @@ class _FakeLibraryScanner implements LibraryScanner {
   @override
   bool pause(String scanId) {
     pausedScanId = scanId;
+    return true;
+  }
+
+  @override
+  bool suspend(String scanId) {
+    suspendedScanId = scanId;
     return true;
   }
 
@@ -2511,6 +2558,9 @@ class _DelayedDoneLibraryScanner implements LibraryScanner {
 
   @override
   bool pause(String scanId) => true;
+
+  @override
+  bool suspend(String scanId) => true;
 
   @override
   Stream<LibraryScanUpdate> scan({

@@ -38,7 +38,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -791418665;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1347387600;
 
 // Section: executor
 
@@ -881,6 +881,37 @@ fn wire__crate__api__synchronization__stop_library_synchronization_impl(
                     Ok(output_ok)
                 })())
             }
+        },
+    )
+}
+fn wire__crate__api__catalog__suspend_library_scan_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "suspend_library_scan",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_scan_id = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, ()>((move || {
+                let output_ok =
+                    Result::<_, ()>::Ok(crate::api::catalog::suspend_library_scan(api_scan_id))?;
+                Ok(output_ok)
+            })())
         },
     )
 }
@@ -2316,7 +2347,8 @@ fn pde_ffi_dispatcher_sync_impl(
         16 => wire__crate__api__storage__load_storage_status_impl(ptr, rust_vec_len, data_len),
         18 => wire__crate__api__catalog__pause_library_scan_impl(ptr, rust_vec_len, data_len),
         20 => wire__crate__api__catalog__remove_library_root_impl(ptr, rust_vec_len, data_len),
-        25 => wire__crate__api__storage__update_storage_settings_impl(ptr, rust_vec_len, data_len),
+        25 => wire__crate__api__catalog__suspend_library_scan_impl(ptr, rust_vec_len, data_len),
+        26 => wire__crate__api__storage__update_storage_settings_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }

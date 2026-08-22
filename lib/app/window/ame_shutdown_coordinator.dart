@@ -18,8 +18,18 @@ class AmeShutdownCoordinator {
   }
 
   Future<void> _run() async {
+    Object? firstFailure;
+    StackTrace? firstStackTrace;
     for (final action in _actions.reversed) {
-      await action();
+      try {
+        await action();
+      } on Object catch (error, stackTrace) {
+        firstFailure ??= error;
+        firstStackTrace ??= stackTrace;
+      }
+    }
+    if (firstFailure != null && firstStackTrace != null) {
+      Error.throwWithStackTrace(firstFailure, firstStackTrace);
     }
   }
 }

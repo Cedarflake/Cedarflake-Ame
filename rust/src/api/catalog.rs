@@ -2,7 +2,7 @@ use crate::application::{
     cancel_scan, load_catalog, load_catalog_around_asset, load_catalog_around_location,
     load_catalog_asset_by_id, load_catalog_at_time, load_gallery_layout_manifest_chunk,
     load_gallery_timeline, load_library_folders, load_paused_scan, load_recoverable_scan,
-    pause_scan, resume_scan, run_scan, unregister_library_root,
+    pause_scan, resume_scan, run_scan, suspend_scan, unregister_library_root,
 };
 use crate::domain::{
     CatalogCursor, CatalogSnapshot, GalleryLayoutManifestChunk, GalleryLayoutManifestCursor,
@@ -149,6 +149,11 @@ pub fn cancel_library_scan(scan_id: String) -> bool {
 #[flutter_rust_bridge::frb(sync)]
 pub fn pause_library_scan(scan_id: String) -> bool {
     pause_scan(&scan_id)
+}
+
+#[flutter_rust_bridge::frb(sync)]
+pub fn suspend_library_scan(scan_id: String) -> bool {
+    suspend_scan(&scan_id)
 }
 
 #[cfg(test)]

@@ -29,6 +29,8 @@ abstract interface class LibraryScanner {
   bool cancel(String scanId);
 
   bool pause(String scanId);
+
+  bool suspend(String scanId);
 }
 
 class RustLibraryScanner implements LibraryScanner {
@@ -152,6 +154,11 @@ class RustLibraryScanner implements LibraryScanner {
   @override
   bool pause(String scanId) {
     return rust_api.pauseLibraryScan(scanId: scanId);
+  }
+
+  @override
+  bool suspend(String scanId) {
+    return rust_api.suspendLibraryScan(scanId: scanId);
   }
 
   LibraryScanUpdate _mapEvent(

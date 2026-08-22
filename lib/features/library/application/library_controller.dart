@@ -12,6 +12,7 @@ import "library_preview_coordinator.dart";
 import "library_preview_queue.dart";
 import "library_preview_store.dart";
 import "library_previewer.dart";
+import "library_scan_shutdown.dart";
 import "library_scan_session.dart";
 import "library_scanner.dart";
 
@@ -88,6 +89,8 @@ class LibraryController extends Notifier<LibraryState> {
   LibraryState? _queryTransitionBaseState;
   int? _queryTransitionRequestSequence;
   bool _isDisposed = false;
+  bool _isShutdownSuspending = false;
+  LibraryScanShutdownCoordinator? _scanShutdownCoordinator;
 
   LibraryPreviewCoordinator get _previews =>
       _previewCoordinator ??= LibraryPreviewCoordinator(
@@ -110,7 +113,13 @@ class LibraryController extends Notifier<LibraryState> {
           _previewCoordinator?.updateMaxActive(_maxActivePreviewsFor(speed)),
     );
     final scanner = ref.read(libraryScannerProvider);
+    final scanShutdownCoordinator = ref.read(
+      libraryScanShutdownCoordinatorProvider,
+    );
+    _scanShutdownCoordinator = scanShutdownCoordinator;
+    scanShutdownCoordinator.attach(this, _suspendActiveScanForShutdown);
     ref.onDispose(() {
+      scanShutdownCoordinator.detach(this);
       _isDisposed = true;
       final activeScanRun = _activeScanRun;
       _activeScanRun = null;
@@ -118,7 +127,9 @@ class LibraryController extends Notifier<LibraryState> {
         activeScanRun.streamDone.complete();
       }
       final scanId = _scanSession.activeScanId;
-      if (scanId != null) {
+      if (scanId != null &&
+          !_isShutdownSuspending &&
+          !scanShutdownCoordinator.isShuttingDown) {
         scanner.cancel(scanId);
       }
       _previewCoordinator?.dispose();
@@ -229,6 +240,8 @@ class LibraryController extends Notifier<LibraryState> {
             state.status == LibraryStatus.choosingDirectory &&
             allowedBusyStatus != LibraryStatus.choosingDirectory;
         if (_isDisposed ||
+            _isShutdownSuspending ||
+            (_scanShutdownCoordinator?.isShuttingDown ?? false) ||
             hasConflictingScan ||
             hasProtectedPausedScan ||
             hasDifferentPicker) {
@@ -336,6 +349,29 @@ class LibraryController extends Notifier<LibraryState> {
     }
     if (ref.read(libraryScannerProvider).cancel(scanId)) {
       state = state.copyWith(status: LibraryStatus.cancelling);
+    }
+  }
+
+  Future<void> _suspendActiveScanForShutdown() async {
+    if (_isDisposed || _isShutdownSuspending) {
+      return;
+    }
+    _isShutdownSuspending = true;
+    await _scanStartQueue;
+    final scanner = ref.read(libraryScannerProvider);
+    while (!_isDisposed) {
+      final run = _activeScanRun;
+      if (run == null || run.streamDone.isCompleted) {
+        return;
+      }
+      if (scanner.suspend(run.scanId)) {
+        await run.streamDone.future;
+        return;
+      }
+      await Future.any([
+        run.streamDone.future,
+        Future<void>.delayed(const Duration(milliseconds: 10)),
+      ]);
     }
   }
 

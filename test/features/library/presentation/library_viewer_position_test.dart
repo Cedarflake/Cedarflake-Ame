@@ -1523,6 +1523,9 @@ class _HeldLibraryScanner implements LibraryScanner {
   bool pause(String scanId) => true;
 
   @override
+  bool suspend(String scanId) => true;
+
+  @override
   Stream<LibraryScanUpdate> scan({
     required String scanId,
     required String rootPath,

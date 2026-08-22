@@ -442,6 +442,9 @@ class _NoopScanner implements LibraryScanner {
   bool pause(String scanId) => false;
 
   @override
+  bool suspend(String scanId) => false;
+
+  @override
   Stream<LibraryScanUpdate> scan({
     required String scanId,
     required String rootPath,

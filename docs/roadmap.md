@@ -1919,12 +1919,14 @@ may serve as benchmarks or fallbacks but are not automatically preferred over ma
 Active stage: **R2c - non-USN continuity replacement**
 
 Active slice: **R2c integration review against `main`**. R2c-I through R2c-M completed their
-implementation, target evidence, complete gates, and final independent audits with no Critical,
-High, Medium, or Low findings. R3 is paused; no R3 implementation is included in the R2c
-integration branch.
+implementation, target evidence, complete gates, and stage audits. The integration review identified
+one foreground full-scan shutdown lifecycle gap; the correction and complete local gates are now
+complete, and independent re-audit of the corrected head is pending. R3 is paused; no R3
+implementation is included in the R2c integration branch.
 
-Current work: merge the accepted R2c-M stage into `codex/r2c`, then open the final unmerged
-`codex/r2c` PR to `main` for independent integration review.
+Current work: publish the foreground shutdown checkpoint correction to the existing unmerged
+`codex/r2c` PR, complete independent re-audit and hosted gates, and leave the PR unmerged for
+explicit authorization.
 
 Each R2c-I through R2c-M slice uses a dedicated branch and PR into `codex/r2c`, receives an
 independent read-only audit, and merges only after its findings close. The final `codex/r2c` PR

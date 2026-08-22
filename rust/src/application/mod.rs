@@ -47,9 +47,9 @@ pub use preview_cleanup::{cancel_preview_cleanup, clear_previews, clear_retired_
 pub use preview_recovery::{
     PreviewRecoveryPhase, PreviewRecoverySnapshot, preview_recovery_snapshot,
 };
-pub(crate) use scan_library::suspend_scan;
 pub use scan_library::{
     cancel_scan, load_paused_scan, load_recoverable_scan, pause_scan, resume_scan, run_scan,
+    suspend_scan,
 };
 pub(crate) use storage::{StoragePaths, storage_paths};
 pub use storage::{load_storage_status, update_storage_settings};
