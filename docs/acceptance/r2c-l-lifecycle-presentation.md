@@ -79,7 +79,9 @@ suite passed 41/41, and the shutdown coordinator suite passed 3/3. The refreshed
 passed 462 Rust tests total with 451 passing and 11 explicit ignores, every Flutter test file,
 Windows Scan 2/2, Windows Accessibility 2/2, bridge compatibility, analysis, formatting, and
 whitespace. Windows Release rebuilt the packaged application and passed both bridge smoke tests.
-No authorization-bound real-library workload was rerun for this lifecycle-only correction.
+The final independent full-range integration audit reported no Critical, High, Medium, or Low
+findings. No authorization-bound real-library workload was rerun for this lifecycle-only
+correction.
 
 ## Next boundary
 
