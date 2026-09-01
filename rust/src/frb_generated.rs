@@ -38,7 +38,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1347387600;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 941711727;
 
 // Section: executor
 
@@ -705,10 +705,13 @@ fn wire__crate__api__synchronization__poll_library_synchronization_impl(
             };
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_owner_ticket = <u64>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, crate::domain::ScanError>((move || {
-                    let output_ok = crate::api::synchronization::poll_library_synchronization()?;
+                    let output_ok = crate::api::synchronization::poll_library_synchronization(
+                        api_owner_ticket,
+                    )?;
                     Ok(output_ok)
                 })())
             }
@@ -740,6 +743,66 @@ fn wire__crate__api__catalog__remove_library_root_impl(
             deserializer.end();
             transform_result_sse::<_, crate::domain::ScanError>((move || {
                 let output_ok = crate::api::catalog::remove_library_root(api_root_id)?;
+                Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__synchronization__reserve_library_synchronization_start_ticket_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "reserve_library_synchronization_start_ticket",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            transform_result_sse::<_, crate::domain::ScanError>((move || {
+                let output_ok =
+                    crate::api::synchronization::reserve_library_synchronization_start_ticket()?;
+                Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__synchronization__reserve_library_synchronization_stop_fence_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "reserve_library_synchronization_stop_fence",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            transform_result_sse::<_, crate::domain::ScanError>((move || {
+                let output_ok =
+                    crate::api::synchronization::reserve_library_synchronization_stop_fence()?;
                 Ok(output_ok)
             })())
         },
@@ -842,10 +905,13 @@ fn wire__crate__api__synchronization__start_library_synchronization_impl(
             };
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_owner_ticket = <u64>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, crate::domain::ScanError>((move || {
-                    let output_ok = crate::api::synchronization::start_library_synchronization()?;
+                    let output_ok = crate::api::synchronization::start_library_synchronization(
+                        api_owner_ticket,
+                    )?;
                     Ok(output_ok)
                 })())
             }
@@ -874,10 +940,13 @@ fn wire__crate__api__synchronization__stop_library_synchronization_impl(
             };
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_cancellation_fence = <u64>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, crate::domain::ScanError>((move || {
-                    let output_ok = crate::api::synchronization::stop_library_synchronization()?;
+                    let output_ok = crate::api::synchronization::stop_library_synchronization(
+                        api_cancellation_fence,
+                    )?;
                     Ok(output_ok)
                 })())
             }
@@ -1123,6 +1192,57 @@ impl SseDecode for crate::domain::library_change::CatalogFreshnessState {
             2 => crate::domain::library_change::CatalogFreshnessState::NeedsReconciliation,
             3 => crate::domain::library_change::CatalogFreshnessState::Unavailable,
             _ => unreachable!("Invalid variant for CatalogFreshnessState: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::domain::CatalogReadRetryCause {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::domain::CatalogReadRetryCause::FileLockingProtocolFailed,
+            _ => unreachable!("Invalid variant for CatalogReadRetryCause: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::domain::CatalogReadRetryDetails {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_operation =
+            <crate::domain::CatalogReadRetryOperation>::sse_decode(deserializer);
+        let mut var_attempts = <u32>::sse_decode(deserializer);
+        let mut var_elapsedMs = <u64>::sse_decode(deserializer);
+        let mut var_cause = <crate::domain::CatalogReadRetryCause>::sse_decode(deserializer);
+        return crate::domain::CatalogReadRetryDetails {
+            operation: var_operation,
+            attempts: var_attempts,
+            elapsed_ms: var_elapsedMs,
+            cause: var_cause,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::CatalogReadRetryOperation {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::domain::CatalogReadRetryOperation::SessionValidation,
+            1 => crate::domain::CatalogReadRetryOperation::CatalogSnapshot,
+            2 => crate::domain::CatalogReadRetryOperation::CatalogSnapshotAroundLocation,
+            3 => crate::domain::CatalogReadRetryOperation::CatalogSnapshotAroundAsset,
+            4 => crate::domain::CatalogReadRetryOperation::GalleryTimeline,
+            5 => crate::domain::CatalogReadRetryOperation::GalleryLayoutManifest,
+            6 => crate::domain::CatalogReadRetryOperation::LibraryFolders,
+            7 => crate::domain::CatalogReadRetryOperation::CatalogAssetById,
+            8 => crate::domain::CatalogReadRetryOperation::WatcherGapAuthorityCount,
+            9 => crate::domain::CatalogReadRetryOperation::ActiveInventoryRunCount,
+            10 => crate::domain::CatalogReadRetryOperation::ActiveWatcherGapAuthority,
+            11 => crate::domain::CatalogReadRetryOperation::IncrementalLocation,
+            12 => crate::domain::CatalogReadRetryOperation::CompletedPersistentJournalRange,
+            _ => unreachable!("Invalid variant for CatalogReadRetryOperation: {}", inner),
         };
     }
 }
@@ -1461,6 +1581,10 @@ impl SseDecode for crate::domain::library_synchronization::LibraryRootSynchroniz
             <crate::domain::library_change::CatalogFreshnessState>::sse_decode(deserializer);
         let mut var_freshnessCause =
             <crate::domain::library_change::CatalogFreshnessCause>::sse_decode(deserializer);
+        let mut var_continuity =
+            <crate::domain::persistent_journal::PersistentJournalContinuityState>::sse_decode(
+                deserializer,
+            );
         let mut var_phase =
             <crate::domain::library_synchronization::LibrarySynchronizationPhase>::sse_decode(
                 deserializer,
@@ -1482,6 +1606,7 @@ impl SseDecode for crate::domain::library_synchronization::LibraryRootSynchroniz
             availability: var_availability,
             freshness: var_freshness,
             freshness_cause: var_freshnessCause,
+            continuity: var_continuity,
             phase: var_phase,
             source_health: var_sourceHealth,
             queue_health: var_queueHealth,
@@ -1729,6 +1854,19 @@ impl SseDecode for Option<crate::domain::CatalogCursor> {
     }
 }
 
+impl SseDecode for Option<crate::domain::CatalogReadRetryDetails> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<crate::domain::CatalogReadRetryDetails>::sse_decode(
+                deserializer,
+            ));
+        } else {
+            return None;
+        }
+    }
+}
+
 impl SseDecode for Option<crate::domain::FileIdentityEvidence> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1833,6 +1971,22 @@ impl SseDecode for Option<u64> {
         } else {
             return None;
         }
+    }
+}
+
+impl SseDecode for crate::domain::persistent_journal::PersistentJournalContinuityState {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::domain::persistent_journal::PersistentJournalContinuityState::BaselineRequired,
+1 => crate::domain::persistent_journal::PersistentJournalContinuityState::CatchingUp,
+2 => crate::domain::persistent_journal::PersistentJournalContinuityState::Current,
+3 => crate::domain::persistent_journal::PersistentJournalContinuityState::RecoveryRequired,
+4 => crate::domain::persistent_journal::PersistentJournalContinuityState::LiveOnly,
+5 => crate::domain::persistent_journal::PersistentJournalContinuityState::Unavailable,
+            _ => unreachable!("Invalid variant for PersistentJournalContinuityState: {}", inner),
+        };
     }
 }
 
@@ -1990,9 +2144,12 @@ impl SseDecode for crate::domain::ScanError {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_code = <String>::sse_decode(deserializer);
         let mut var_message = <String>::sse_decode(deserializer);
+        let mut var_retryDetails =
+            <Option<crate::domain::CatalogReadRetryDetails>>::sse_decode(deserializer);
         return crate::domain::ScanError {
             code: var_code,
             message: var_message,
+            retry_details: var_retryDetails,
         };
     }
 }
@@ -2298,17 +2455,17 @@ fn pde_ffi_dispatcher_primary_impl(
             rust_vec_len,
             data_len,
         ),
-        21 => {
+        23 => {
             wire__crate__api__catalog__resume_library_scan_impl(port, ptr, rust_vec_len, data_len)
         }
-        22 => wire__crate__api__catalog__scan_library_impl(port, ptr, rust_vec_len, data_len),
-        23 => wire__crate__api__synchronization__start_library_synchronization_impl(
+        24 => wire__crate__api__catalog__scan_library_impl(port, ptr, rust_vec_len, data_len),
+        25 => wire__crate__api__synchronization__start_library_synchronization_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        24 => wire__crate__api__synchronization__stop_library_synchronization_impl(
+        26 => wire__crate__api__synchronization__stop_library_synchronization_impl(
             port,
             ptr,
             rust_vec_len,
@@ -2347,8 +2504,18 @@ fn pde_ffi_dispatcher_sync_impl(
         16 => wire__crate__api__storage__load_storage_status_impl(ptr, rust_vec_len, data_len),
         18 => wire__crate__api__catalog__pause_library_scan_impl(ptr, rust_vec_len, data_len),
         20 => wire__crate__api__catalog__remove_library_root_impl(ptr, rust_vec_len, data_len),
-        25 => wire__crate__api__catalog__suspend_library_scan_impl(ptr, rust_vec_len, data_len),
-        26 => wire__crate__api__storage__update_storage_settings_impl(ptr, rust_vec_len, data_len),
+        21 => wire__crate__api__synchronization__reserve_library_synchronization_start_ticket_impl(
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        22 => wire__crate__api__synchronization__reserve_library_synchronization_stop_fence_impl(
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        27 => wire__crate__api__catalog__suspend_library_scan_impl(ptr, rust_vec_len, data_len),
+        28 => wire__crate__api__storage__update_storage_settings_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -2506,6 +2673,81 @@ impl flutter_rust_bridge::IntoIntoDart<crate::domain::library_change::CatalogFre
     for crate::domain::library_change::CatalogFreshnessState
 {
     fn into_into_dart(self) -> crate::domain::library_change::CatalogFreshnessState {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::CatalogReadRetryCause {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::FileLockingProtocolFailed => 0.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::CatalogReadRetryCause
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::CatalogReadRetryCause>
+    for crate::domain::CatalogReadRetryCause
+{
+    fn into_into_dart(self) -> crate::domain::CatalogReadRetryCause {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::CatalogReadRetryDetails {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.operation.into_into_dart().into_dart(),
+            self.attempts.into_into_dart().into_dart(),
+            self.elapsed_ms.into_into_dart().into_dart(),
+            self.cause.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::CatalogReadRetryDetails
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::CatalogReadRetryDetails>
+    for crate::domain::CatalogReadRetryDetails
+{
+    fn into_into_dart(self) -> crate::domain::CatalogReadRetryDetails {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::CatalogReadRetryOperation {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::SessionValidation => 0.into_dart(),
+            Self::CatalogSnapshot => 1.into_dart(),
+            Self::CatalogSnapshotAroundLocation => 2.into_dart(),
+            Self::CatalogSnapshotAroundAsset => 3.into_dart(),
+            Self::GalleryTimeline => 4.into_dart(),
+            Self::GalleryLayoutManifest => 5.into_dart(),
+            Self::LibraryFolders => 6.into_dart(),
+            Self::CatalogAssetById => 7.into_dart(),
+            Self::WatcherGapAuthorityCount => 8.into_dart(),
+            Self::ActiveInventoryRunCount => 9.into_dart(),
+            Self::ActiveWatcherGapAuthority => 10.into_dart(),
+            Self::IncrementalLocation => 11.into_dart(),
+            Self::CompletedPersistentJournalRange => 12.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::CatalogReadRetryOperation
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::CatalogReadRetryOperation>
+    for crate::domain::CatalogReadRetryOperation
+{
+    fn into_into_dart(self) -> crate::domain::CatalogReadRetryOperation {
         self
     }
 }
@@ -2938,6 +3180,7 @@ impl flutter_rust_bridge::IntoDart
             self.availability.into_into_dart().into_dart(),
             self.freshness.into_into_dart().into_dart(),
             self.freshness_cause.into_into_dart().into_dart(),
+            self.continuity.into_into_dart().into_dart(),
             self.phase.into_into_dart().into_dart(),
             self.source_health.into_into_dart().into_dart(),
             self.queue_health.into_into_dart().into_dart(),
@@ -3052,6 +3295,35 @@ impl
     fn into_into_dart(
         self,
     ) -> crate::domain::library_synchronization::LibrarySynchronizationSnapshot {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::domain::persistent_journal::PersistentJournalContinuityState
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::BaselineRequired => 0.into_dart(),
+            Self::CatchingUp => 1.into_dart(),
+            Self::Current => 2.into_dart(),
+            Self::RecoveryRequired => 3.into_dart(),
+            Self::LiveOnly => 4.into_dart(),
+            Self::Unavailable => 5.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::persistent_journal::PersistentJournalContinuityState
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<
+        crate::domain::persistent_journal::PersistentJournalContinuityState,
+    > for crate::domain::persistent_journal::PersistentJournalContinuityState
+{
+    fn into_into_dart(self) -> crate::domain::persistent_journal::PersistentJournalContinuityState {
         self
     }
 }
@@ -3246,6 +3518,7 @@ impl flutter_rust_bridge::IntoDart for crate::domain::ScanError {
         [
             self.code.into_into_dart().into_dart(),
             self.message.into_into_dart().into_dart(),
+            self.retry_details.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -3630,6 +3903,58 @@ impl SseEncode for crate::domain::library_change::CatalogFreshnessState {
     }
 }
 
+impl SseEncode for crate::domain::CatalogReadRetryCause {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::domain::CatalogReadRetryCause::FileLockingProtocolFailed => 0,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::domain::CatalogReadRetryDetails {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::domain::CatalogReadRetryOperation>::sse_encode(self.operation, serializer);
+        <u32>::sse_encode(self.attempts, serializer);
+        <u64>::sse_encode(self.elapsed_ms, serializer);
+        <crate::domain::CatalogReadRetryCause>::sse_encode(self.cause, serializer);
+    }
+}
+
+impl SseEncode for crate::domain::CatalogReadRetryOperation {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::domain::CatalogReadRetryOperation::SessionValidation => 0,
+                crate::domain::CatalogReadRetryOperation::CatalogSnapshot => 1,
+                crate::domain::CatalogReadRetryOperation::CatalogSnapshotAroundLocation => 2,
+                crate::domain::CatalogReadRetryOperation::CatalogSnapshotAroundAsset => 3,
+                crate::domain::CatalogReadRetryOperation::GalleryTimeline => 4,
+                crate::domain::CatalogReadRetryOperation::GalleryLayoutManifest => 5,
+                crate::domain::CatalogReadRetryOperation::LibraryFolders => 6,
+                crate::domain::CatalogReadRetryOperation::CatalogAssetById => 7,
+                crate::domain::CatalogReadRetryOperation::WatcherGapAuthorityCount => 8,
+                crate::domain::CatalogReadRetryOperation::ActiveInventoryRunCount => 9,
+                crate::domain::CatalogReadRetryOperation::ActiveWatcherGapAuthority => 10,
+                crate::domain::CatalogReadRetryOperation::IncrementalLocation => 11,
+                crate::domain::CatalogReadRetryOperation::CompletedPersistentJournalRange => 12,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
 impl SseEncode for crate::domain::CatalogSnapshot {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -3901,6 +4226,10 @@ impl SseEncode for crate::domain::library_synchronization::LibraryRootSynchroniz
             self.freshness_cause,
             serializer,
         );
+        <crate::domain::persistent_journal::PersistentJournalContinuityState>::sse_encode(
+            self.continuity,
+            serializer,
+        );
         <crate::domain::library_synchronization::LibrarySynchronizationPhase>::sse_encode(
             self.phase, serializer,
         );
@@ -4106,6 +4435,16 @@ impl SseEncode for Option<crate::domain::CatalogCursor> {
     }
 }
 
+impl SseEncode for Option<crate::domain::CatalogReadRetryDetails> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::domain::CatalogReadRetryDetails>::sse_encode(value, serializer);
+        }
+    }
+}
+
 impl SseEncode for Option<crate::domain::FileIdentityEvidence> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -4193,6 +4532,19 @@ impl SseEncode for Option<u64> {
         if let Some(value) = self {
             <u64>::sse_encode(value, serializer);
         }
+    }
+}
+
+impl SseEncode for crate::domain::persistent_journal::PersistentJournalContinuityState {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(match self {crate::domain::persistent_journal::PersistentJournalContinuityState::BaselineRequired => { 0 }
+crate::domain::persistent_journal::PersistentJournalContinuityState::CatchingUp => { 1 }
+crate::domain::persistent_journal::PersistentJournalContinuityState::Current => { 2 }
+crate::domain::persistent_journal::PersistentJournalContinuityState::RecoveryRequired => { 3 }
+crate::domain::persistent_journal::PersistentJournalContinuityState::LiveOnly => { 4 }
+crate::domain::persistent_journal::PersistentJournalContinuityState::Unavailable => { 5 }
+ _ => { unimplemented!(""); }}, serializer);
     }
 }
 
@@ -4332,6 +4684,10 @@ impl SseEncode for crate::domain::ScanError {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.code, serializer);
         <String>::sse_encode(self.message, serializer);
+        <Option<crate::domain::CatalogReadRetryDetails>>::sse_encode(
+            self.retry_details,
+            serializer,
+        );
     }
 }
 

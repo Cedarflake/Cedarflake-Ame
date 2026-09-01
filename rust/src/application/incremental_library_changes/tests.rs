@@ -1,29 +1,398 @@
 use std::fs;
 #[cfg(windows)]
 use std::os::windows::fs::OpenOptionsExt;
-use std::path::Path;
-use std::sync::atomic::AtomicBool;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use image::{ImageFormat, Rgb, RgbImage};
 use rusqlite::Connection;
-use tempfile::{TempDir, tempdir};
+use tempfile::{TempDir, tempdir, tempdir_in};
 
-use crate::adapters::{FileDiscovery, FileVisitOutcome, LocalMediaInspector, SqliteCatalog};
+use crate::adapters::{
+    FileDiscovery, FileVisitOutcome, LocalMediaInspector, PublicationGuardedFileDiscovery,
+    SqliteCatalog, configured_root_open_count, remove_persistent_journal_v22_contract_for_test,
+    reset_configured_root_open_instrumentation, reset_source_enumeration_instrumentation,
+    source_directory_open_count, source_entry_read_count,
+};
+use crate::application::metadata_inventory::{
+    MetadataInventoryRecoveryExecution, process_leased_metadata_inventory_change,
+    process_leased_metadata_inventory_change_with_retained_source,
+};
+use crate::application::persistent_journal_continuity::{
+    PersistentJournalBrokerRoot, SessionBackedPersistentJournalVolumeReader,
+    catch_up_persistent_journal_volume,
+};
 use crate::application::{
     AuthoritativeRecoveryPolicy, process_ready_authoritative_library_change_cancellable,
+    process_ready_metadata_inventory_recovery_candidates_cancellable,
 };
 use crate::domain::{
-    AssetLocationView, DerivedEvidenceDisposition, LibraryChangeCatchUpEvidence,
-    LibraryChangeCatchUpQueueBatch, LibraryChangeIntent, LibraryChangeIntentKind,
-    LibraryChangeOrigin, LibraryChangeQueuePolicy, LibraryChangeScope, LibraryRootGeneration,
-    PreviewArtifact, PreviewStatus, ScanRequest,
-};
-use crate::ports::{
-    CatalogRepository, IncrementalCatalogRepository, LibraryChangeQueue, MediaInspector,
+    AssetLocationView, CatalogDeltaBatch, CatalogDeltaPublication, DerivedEvidenceDisposition,
+    FileIdentityEvidence, JournalFileReference, JournalIdentifier, JournalUsn,
+    LibraryChangeCatchUpEvidence, LibraryChangeCatchUpQueueBatch, LibraryChangeEnqueueReport,
+    LibraryChangeFailure, LibraryChangeId, LibraryChangeIntent, LibraryChangeIntentKind,
+    LibraryChangeLane, LibraryChangeLeaseUpdateOutcome, LibraryChangeOrigin,
+    LibraryChangeQueueMetrics, LibraryChangeQueuePolicy, LibraryChangeScope, LibraryRootGeneration,
+    PersistentJournalBaselineClosingBoundary, PersistentJournalCapability,
+    PersistentJournalCapabilityState, PersistentJournalCheckpoint,
+    PersistentJournalContinuityState, PersistentJournalCrossRootLineage,
+    PersistentJournalEnrollmentBatch, PersistentJournalLineageState,
+    PersistentJournalPendingRename, PersistentJournalRangeState, PersistentJournalSourceRange,
+    PersistentJournalVolumeBatch, PersistentJournalVolumeIdentity, PersistentJournalVolumePage,
+    PreviewArtifact, PreviewStatus, ScanError, ScanRequest, TerminalMediaEvidence,
+    persistent_journal_batch_id, persistent_journal_pending_rename_id,
 };
 
+#[test]
+fn p1_revision_rebase_reprepares_and_revalidates_the_latest_file_state() {
+    let source = tempdir().expect("source directory");
+    let mut fixture = seed_catalog(source, &[]);
+    let target = fixture.source.path().join("created.png");
+    write_png(&target, 2, 2, [10, 20, 30]);
+    let mut change = intent(&fixture.root_id, "created.png", None, 1);
+    change.origin = LibraryChangeOrigin::StartupCatchUp;
+    fixture.enqueue(&[change]);
+    let races = prepare_revision_races(&mut fixture.catalog, fixture._storage.path(), 1);
+    let CatalogFixture {
+        source,
+        _storage,
+        catalog,
+        root_id,
+        ..
+    } = fixture;
+    let mut repository = RevisionRacingCatalog::new(catalog, races);
+    repository.rewrite_on_first_publication = Some(target);
+
+    let report = process_ready_library_changes_in_lane_cancellable(
+        &mut repository,
+        &root_id,
+        LibraryRootGeneration::initial(),
+        LibraryChangeLane::Journal,
+        2_000,
+        policy(),
+        &AtomicBool::new(false),
+    )
+    .expect("rebase P1 change");
+
+    assert_eq!(repository.publication_attempts, 2);
+    assert_eq!(report.completed_count, 1);
+    assert_eq!(report.retried_count, 0);
+    let location = repository
+        .catalog
+        .load_incremental_location_by_relative_path(&root_id, "created.png")
+        .expect("load refreshed location")
+        .expect("refreshed location");
+    assert_eq!((location.width, location.height), (4, 3));
+    assert!(source.path().join("created.png").is_file());
+    drop(repository);
+    drop(_storage);
+}
+
+#[test]
+fn p0_keeps_the_root_namespace_guard_through_the_sqlite_delta_commit() {
+    let parent = tempdir().expect("controlled ancestor");
+    let source = tempdir_in(parent.path()).expect("source root");
+    let mut fixture = seed_catalog(source, &[]);
+    write_png(
+        &fixture.source.path().join("created.png"),
+        2,
+        2,
+        [10, 20, 30],
+    );
+    fixture.enqueue(&[intent(&fixture.root_id, "created.png", None, 1)]);
+    let moved_root = fixture.source.path().with_file_name("held-p0-root");
+    let CatalogFixture {
+        source,
+        _storage,
+        catalog,
+        root_id,
+        ..
+    } = fixture;
+    let mut repository = RevisionRacingCatalog::new(catalog, Vec::new());
+    repository.guarded_rename_during_publication =
+        Some((source.path().to_path_buf(), moved_root.clone()));
+
+    let report = process_ready_library_changes_in_lane_cancellable(
+        &mut repository,
+        &root_id,
+        LibraryRootGeneration::initial(),
+        LibraryChangeLane::Live,
+        2_000,
+        policy(),
+        &AtomicBool::new(false),
+    )
+    .expect("publish guarded P0 delta");
+
+    assert_eq!(repository.publication_attempts, 1);
+    assert_eq!(report.completed_count, 1);
+    assert_eq!(report.retried_count, 0);
+    assert!(
+        repository
+            .catalog
+            .load_incremental_location_by_relative_path(&root_id, "created.png")
+            .expect("load P0 location")
+            .is_some()
+    );
+    fs::rename(source.path(), &moved_root).expect("root rename after publication guard drop");
+    fs::rename(&moved_root, source.path()).expect("restore source root");
+    drop(repository);
+    drop(_storage);
+    drop(source);
+    drop(parent);
+}
+
+#[test]
+fn p1_paired_rename_keeps_every_ancestor_guarded_through_commit() {
+    let parent = tempdir().expect("controlled ancestor");
+    let source = tempdir_in(parent.path()).expect("source root");
+    write_png(&source.path().join("old.png"), 2, 2, [30, 20, 10]);
+    let mut fixture = seed_catalog(source, &["old.png"]);
+    fs::rename(
+        fixture.source.path().join("old.png"),
+        fixture.source.path().join("new.png"),
+    )
+    .expect("same-volume source rename");
+    let mut change = intent(&fixture.root_id, "new.png", Some("old.png"), 1);
+    change.origin = LibraryChangeOrigin::StartupCatchUp;
+    fixture.enqueue(&[change]);
+    let moved_ancestor = parent.path().with_file_name("held-p1-ancestor");
+    let CatalogFixture {
+        source,
+        _storage,
+        catalog,
+        root_id,
+        ..
+    } = fixture;
+    let mut repository = RevisionRacingCatalog::new(catalog, Vec::new());
+    repository.guarded_rename_during_publication =
+        Some((parent.path().to_path_buf(), moved_ancestor.clone()));
+
+    let report = process_ready_library_changes_in_lane_cancellable(
+        &mut repository,
+        &root_id,
+        LibraryRootGeneration::initial(),
+        LibraryChangeLane::Journal,
+        2_000,
+        policy(),
+        &AtomicBool::new(false),
+    )
+    .expect("publish guarded paired P1 rename");
+
+    assert_eq!(repository.publication_attempts, 1);
+    assert_eq!(report.completed_count, 1);
+    assert_eq!(report.retried_count, 0);
+    assert!(
+        repository
+            .catalog
+            .load_incremental_location_by_relative_path(&root_id, "old.png")
+            .expect("load old P1 location")
+            .is_none()
+    );
+    assert!(
+        repository
+            .catalog
+            .load_incremental_location_by_relative_path(&root_id, "new.png")
+            .expect("load new P1 location")
+            .is_some()
+    );
+    fs::rename(parent.path(), &moved_ancestor)
+        .expect("ancestor rename after publication guard drop");
+    fs::rename(&moved_ancestor, parent.path()).expect("restore controlled ancestor");
+    drop(repository);
+    drop(_storage);
+    drop(source);
+    drop(parent);
+}
+
+#[test]
+fn p1_revision_rebase_is_bounded_under_sustained_catalog_churn() {
+    let source = tempdir().expect("source directory");
+    let mut fixture = seed_catalog(source, &[]);
+    write_png(
+        &fixture.source.path().join("created.png"),
+        2,
+        2,
+        [10, 20, 30],
+    );
+    let mut change = intent(&fixture.root_id, "created.png", None, 1);
+    change.origin = LibraryChangeOrigin::StartupCatchUp;
+    fixture.enqueue(&[change]);
+    let races = prepare_revision_races(&mut fixture.catalog, fixture._storage.path(), 3);
+    let CatalogFixture {
+        source: _source,
+        _storage,
+        catalog,
+        root_id,
+        ..
+    } = fixture;
+    let mut repository = RevisionRacingCatalog::new(catalog, races);
+
+    let report = process_ready_library_changes_in_lane_cancellable(
+        &mut repository,
+        &root_id,
+        LibraryRootGeneration::initial(),
+        LibraryChangeLane::Journal,
+        2_000,
+        policy(),
+        &AtomicBool::new(false),
+    )
+    .expect("bound P1 revision churn");
+
+    assert_eq!(repository.publication_attempts, 3);
+    assert_eq!(report.completed_count, 0);
+    assert_eq!(report.retried_count, 1);
+    let metrics = repository
+        .load_library_change_root_queue_metrics(
+            &root_id,
+            LibraryRootGeneration::initial(),
+            2_000,
+            policy(),
+        )
+        .expect("load bounded churn metrics");
+    assert_eq!(metrics.retry_wait_count, 1);
+    assert_eq!(metrics.leased_count, 0);
+    drop(repository);
+    drop(_storage);
+    drop(_source);
+}
+
+#[test]
+fn p1_revision_rebase_cancellation_returns_the_owned_lease() {
+    let source = tempdir().expect("source directory");
+    let mut fixture = seed_catalog(source, &[]);
+    write_png(
+        &fixture.source.path().join("created.png"),
+        2,
+        2,
+        [10, 20, 30],
+    );
+    let mut change = intent(&fixture.root_id, "created.png", None, 1);
+    change.origin = LibraryChangeOrigin::StartupCatchUp;
+    fixture.enqueue(&[change]);
+    let races = prepare_revision_races(&mut fixture.catalog, fixture._storage.path(), 1);
+    let CatalogFixture {
+        source: _source,
+        _storage,
+        catalog,
+        root_id,
+        ..
+    } = fixture;
+    let cancelled = Arc::new(AtomicBool::new(false));
+    let mut repository = RevisionRacingCatalog::new(catalog, races);
+    repository.cancel_after_first_publication = Some(Arc::clone(&cancelled));
+
+    let report = process_ready_library_changes_in_lane_cancellable(
+        &mut repository,
+        &root_id,
+        LibraryRootGeneration::initial(),
+        LibraryChangeLane::Journal,
+        2_000,
+        policy(),
+        cancelled.as_ref(),
+    )
+    .expect("cancel P1 revision rebase");
+
+    assert_eq!(repository.publication_attempts, 1);
+    assert_eq!(report.completed_count, 0);
+    assert_eq!(report.deferred_count, 1);
+    let metrics = repository
+        .load_library_change_root_queue_metrics(
+            &root_id,
+            LibraryRootGeneration::initial(),
+            2_000,
+            policy(),
+        )
+        .expect("load cancelled rebase metrics");
+    assert_eq!(metrics.pending_count, 1);
+    assert_eq!(metrics.leased_count, 0);
+    drop(repository);
+    drop(_storage);
+    drop(_source);
+}
+use crate::journal_broker::target_translation_recovery_fixture;
+use crate::ports::{
+    CatalogRepository, IncrementalCatalogRepository, LibraryChangeQueue, MediaInspector,
+    PersistentJournalRepository,
+};
+
+#[cfg(windows)]
+#[test]
+fn empty_path_queue_opens_no_source_root() {
+    let source = tempdir().expect("source directory");
+    let mut fixture = seed_catalog(source, &[]);
+    reset_configured_root_open_instrumentation(&fixture.root_path);
+    reset_source_enumeration_instrumentation(&fixture.root_path);
+
+    let report = fixture.process();
+
+    assert_eq!(report.leased_count, 0);
+    assert_eq!(configured_root_open_count(&fixture.root_path, true), 0);
+    assert_eq!(configured_root_open_count(&fixture.root_path, false), 0);
+    assert_eq!(source_entry_read_count(&fixture.root_path), 0);
+    assert_eq!(source_directory_open_count(&fixture.root_path), 0);
+}
+
+#[cfg(windows)]
+#[test]
+fn missing_v29_proof_retries_leased_work_before_any_source_root_open() {
+    let source = tempdir().expect("source directory");
+    let mut fixture = seed_catalog(source, &[]);
+    fixture.enqueue(&[intent(&fixture.root_id, "created.png", None, 1)]);
+    let connection = Connection::open(fixture.catalog.catalog_path()).expect("proof fixture");
+    connection
+        .execute(
+            "DELETE FROM library_root_publication_namespaces WHERE root_id = ?1",
+            [&fixture.root_id],
+        )
+        .expect("remove v29 publication proof");
+    drop(connection);
+    reset_configured_root_open_instrumentation(&fixture.root_path);
+    reset_source_enumeration_instrumentation(&fixture.root_path);
+
+    let report = fixture.process();
+
+    assert_eq!(report.leased_count, 1);
+    assert_eq!(report.retried_count, 1);
+    assert_eq!(report.completed_count, 0);
+    assert_eq!(configured_root_open_count(&fixture.root_path, true), 0);
+    assert_eq!(configured_root_open_count(&fixture.root_path, false), 0);
+    assert_eq!(source_entry_read_count(&fixture.root_path), 0);
+    assert_eq!(source_directory_open_count(&fixture.root_path), 0);
+}
+
+#[cfg(windows)]
+#[test]
+fn replacement_root_uses_only_the_proof_guard_and_enumerates_nothing() {
+    let source = tempdir().expect("source directory");
+    let mut fixture = seed_catalog(source, &[]);
+    fixture.enqueue(&[intent(&fixture.root_id, "replacement.png", None, 1)]);
+    let original = fixture.source.path().to_path_buf();
+    let retained = original.with_extension("incremental-proof-root");
+    fs::rename(&original, &retained).expect("retain proven root");
+    fs::create_dir(&original).expect("create replacement root");
+    write_png(&original.join("replacement.png"), 2, 2, [10, 20, 30]);
+    reset_configured_root_open_instrumentation(&fixture.root_path);
+    reset_source_enumeration_instrumentation(&fixture.root_path);
+
+    let report = fixture.process();
+
+    fs::remove_dir_all(&original).expect("remove replacement root");
+    fs::rename(&retained, &original).expect("restore proven root");
+    assert_eq!(report.leased_count, 1);
+    assert_eq!(report.retried_count, 1);
+    assert_eq!(report.completed_count, 0);
+    assert_eq!(configured_root_open_count(&fixture.root_path, true), 0);
+    assert_eq!(configured_root_open_count(&fixture.root_path, false), 0);
+    assert_eq!(source_entry_read_count(&fixture.root_path), 0);
+    assert_eq!(source_directory_open_count(&fixture.root_path), 0);
+    assert!(fixture.location("replacement.png").is_none());
+}
+
 use super::{
-    prepare_change, process_ready_library_changes, stable_id, stable_location_id, user_visible_path,
+    prepare_change, process_ready_library_changes,
+    process_ready_library_changes_in_lane_cancellable, stable_id, stable_location_id,
+    user_visible_path,
 };
 
 #[test]
@@ -72,6 +441,48 @@ fn created_file_is_added_in_one_incremental_revision() {
         fs::read(fixture.source.path().join("created.png")).expect("source bytes after delta"),
         source_bytes
     );
+}
+
+#[test]
+fn cancelled_journal_drain_yields_before_leasing_or_reading_source_files() {
+    let source = tempdir().expect("source directory");
+    let mut fixture = seed_catalog(source, &[]);
+    write_png(
+        &fixture.source.path().join("cancelled.png"),
+        3,
+        2,
+        [41, 51, 61],
+    );
+    fixture.enqueue(&[catch_up_intent(&fixture.root_id, "cancelled.png", 1)]);
+    let cancelled = AtomicBool::new(true);
+
+    let stopped = process_ready_library_changes_in_lane_cancellable(
+        &mut fixture.catalog,
+        &fixture.root_id,
+        LibraryRootGeneration::initial(),
+        LibraryChangeLane::Journal,
+        2_000,
+        policy(),
+        &cancelled,
+    )
+    .expect("cancel journal drain at its first boundary");
+
+    assert_eq!(stopped.leased_count, 0);
+    assert_eq!(stopped.completed_count, 0);
+    assert!(fixture.location("cancelled.png").is_none());
+    cancelled.store(false, Ordering::Release);
+    let resumed = process_ready_library_changes_in_lane_cancellable(
+        &mut fixture.catalog,
+        &fixture.root_id,
+        LibraryRootGeneration::initial(),
+        LibraryChangeLane::Journal,
+        2_001,
+        policy(),
+        &cancelled,
+    )
+    .expect("resume the same durable journal work");
+    assert_eq!(resumed.completed_count, 1);
+    assert!(fixture.location("cancelled.png").is_some());
 }
 
 #[test]
@@ -263,7 +674,7 @@ fn authoritative_absence_removes_the_location_from_the_current_projection() {
 }
 
 #[test]
-fn one_unreadable_image_retries_without_blocking_a_valid_sibling() {
+fn malformed_image_completes_once_without_blocking_a_valid_sibling() {
     let source = tempdir().expect("source directory");
     let mut fixture = seed_catalog(source, &[]);
     write_png(
@@ -284,8 +695,8 @@ fn one_unreadable_image_retries_without_blocking_a_valid_sibling() {
     let report = fixture.process();
 
     assert_eq!(report.leased_count, 2);
-    assert_eq!(report.completed_count, 1);
-    assert_eq!(report.retried_count, 1);
+    assert_eq!(report.completed_count, 2);
+    assert_eq!(report.retried_count, 0);
     assert_eq!(report.applied_mutation_count, 1);
     assert!(fixture.location("valid.png").is_some());
     assert!(fixture.location("broken.jpg").is_none());
@@ -293,8 +704,17 @@ fn one_unreadable_image_retries_without_blocking_a_valid_sibling() {
         .catalog
         .load_library_change_queue_metrics(2_000, policy())
         .expect("queue metrics");
-    assert_eq!(metrics.completed_count, 1);
-    assert_eq!(metrics.retry_wait_count, 1);
+    assert_eq!(metrics.completed_count, 2);
+    assert_eq!(metrics.retry_wait_count, 0);
+    let evidence = fixture
+        .catalog
+        .load_terminal_media_evidence_by_relative_paths(
+            &fixture.root_id,
+            &["broken.jpg".to_owned()],
+        )
+        .expect("load terminal media evidence");
+    assert_eq!(evidence.len(), 1);
+    assert_eq!(evidence[0].issue.code, "image_format_unsupported");
     assert_eq!(
         fs::read(fixture.source.path().join("valid.png")).expect("valid bytes after delta"),
         valid_bytes
@@ -302,6 +722,30 @@ fn one_unreadable_image_retries_without_blocking_a_valid_sibling() {
     assert_eq!(
         fs::read(fixture.source.path().join("broken.jpg")).expect("broken bytes after delta"),
         broken_bytes
+    );
+
+    write_png(
+        &fixture.source.path().join("broken.jpg"),
+        2,
+        3,
+        [220, 221, 222],
+    );
+    fixture.enqueue(&[intent(&fixture.root_id, "broken.jpg", None, 3)]);
+
+    let recovered = fixture.process();
+
+    assert_eq!(recovered.completed_count, 1);
+    assert_eq!(recovered.applied_mutation_count, 1);
+    assert!(fixture.location("broken.jpg").is_some());
+    assert!(
+        fixture
+            .catalog
+            .load_terminal_media_evidence_by_relative_paths(
+                &fixture.root_id,
+                &["broken.jpg".to_owned()],
+            )
+            .expect("reload terminal media evidence")
+            .is_empty()
     );
 }
 
@@ -421,8 +865,9 @@ fn authoritative_work_remains_pending_without_consuming_the_incremental_retry_bu
     assert_eq!(leased[0].change.attempt_count, 1);
 }
 
+#[cfg(windows)]
 #[test]
-fn unavailable_root_does_not_consume_a_path_retry_attempt() {
+fn unavailable_root_is_leased_then_durably_retried_without_source_inspection() {
     let source = tempdir().expect("source directory");
     let mut fixture = seed_catalog(source, &[]);
     let strict_policy = LibraryChangeQueuePolicy {
@@ -439,22 +884,33 @@ fn unavailable_root_does_not_consume_a_path_retry_attempt() {
         )
         .expect("enqueue path work");
     fs::remove_dir_all(fixture.source.path()).expect("make root unavailable");
+    reset_configured_root_open_instrumentation(&fixture.root_path);
+    reset_source_enumeration_instrumentation(&fixture.root_path);
 
     let report = fixture.process_with_policy(strict_policy);
 
-    assert_eq!(report.leased_count, 0);
-    assert_eq!(report.retried_count, 0);
-    let leased = fixture
+    assert_eq!(report.leased_count, 1);
+    assert_eq!(report.retried_count, 1);
+    assert_eq!(report.completed_count, 0);
+    assert_eq!(configured_root_open_count(&fixture.root_path, true), 0);
+    assert_eq!(configured_root_open_count(&fixture.root_path, false), 0);
+    assert_eq!(source_entry_read_count(&fixture.root_path), 0);
+    assert_eq!(source_directory_open_count(&fixture.root_path), 0);
+    let metrics = fixture
         .catalog
-        .lease_library_changes(
+        .load_library_change_root_queue_metrics(
             &fixture.root_id,
             LibraryRootGeneration::initial(),
             2_000,
             strict_policy,
         )
-        .expect("path work remains leasable");
-    assert_eq!(leased.len(), 1);
-    assert_eq!(leased[0].change.attempt_count, 1);
+        .expect("load unavailable-root retry metrics");
+    assert_eq!(metrics.retry_wait_count, 1);
+    assert_eq!(metrics.exhausted_retry_count, 1);
+    assert_eq!(
+        metrics.latest_exhausted_failure_code.as_deref(),
+        Some("root_publication_namespace_unavailable")
+    );
 }
 
 #[cfg(windows)]
@@ -489,7 +945,7 @@ fn identity_backfill_preserves_asset_continuity_for_a_later_rename() {
 
 #[cfg(windows)]
 #[test]
-fn identity_backfill_preserves_a_migrated_v17_location_identifier() {
+fn migrated_v17_location_is_preserved_while_unproven_namespace_blocks_backfill() {
     let source = tempdir().expect("source directory");
     fs::create_dir(source.path().join("album")).expect("album directory");
     write_png(
@@ -513,6 +969,7 @@ fn identity_backfill_preserves_a_migrated_v17_location_identifier() {
     } = fixture;
     drop(catalog);
     let connection = Connection::open(&catalog_path).expect("migration fixture catalog");
+    remove_persistent_journal_v22_contract_for_test(&connection);
     connection
         .execute_batch(
             "PRAGMA foreign_keys = OFF;
@@ -525,6 +982,8 @@ fn identity_backfill_preserves_a_migrated_v17_location_identifier() {
              DROP TABLE library_metadata_inventory_entries;
              DROP TABLE library_metadata_inventory_runs;
              DROP TABLE library_metadata_inventory_contract;
+             DROP TABLE library_terminal_media_evidence;
+             DROP TABLE library_terminal_media_evidence_contract;
              DROP TABLE scan_run_catch_up_lineage;
              DROP TABLE library_change_catch_up_handoffs;
              DROP INDEX scan_runs_one_active_root;
@@ -573,28 +1032,48 @@ fn identity_backfill_preserves_a_migrated_v17_location_identifier() {
 
     let backfill = fixture.process();
 
-    assert_eq!(backfill.applied_mutation_count, 1);
+    assert_eq!(backfill.applied_mutation_count, 0);
+    assert_eq!(backfill.retried_count, 1);
     let identified = fixture
         .location("album/legacy.png")
         .expect("identified location");
     assert_eq!(identified.asset_id, original.asset_id);
     assert_eq!(identified.location_id, legacy_location_id);
-    assert!(identified.file_identity.is_some());
+    assert!(identified.file_identity.is_none());
     let connection = Connection::open(catalog_path).expect("verified migration fixture catalog");
-    let (schema_version, location_count, asset_count): (i64, i64, i64) = connection
+    let (schema_version, location_count, asset_count, proof_count, failure_code): (
+        i64,
+        i64,
+        i64,
+        i64,
+        String,
+    ) = connection
         .query_row(
             "SELECT
                (SELECT version FROM schema_info),
                (SELECT COUNT(*) FROM asset_locations
-                WHERE root_id = ?1 AND relative_path = 'album/legacy.png'),
-               (SELECT asset_count FROM scan_runs WHERE id = 'baseline-scan')",
+                 WHERE root_id = ?1 AND relative_path = 'album/legacy.png'),
+               (SELECT asset_count FROM scan_runs WHERE id = 'baseline-scan'),
+               (SELECT COUNT(*) FROM library_root_publication_namespaces WHERE root_id = ?1),
+               (SELECT last_failure_code FROM library_change_queue
+                WHERE root_id = ?1 AND relative_path = 'album/legacy.png')",
             [&fixture.root_id],
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                ))
+            },
         )
         .expect("load post-backfill counts");
-    assert_eq!(schema_version, 20);
+    assert_eq!(schema_version, 30);
     assert_eq!(location_count, 1);
     assert_eq!(asset_count, 1);
+    assert_eq!(proof_count, 0);
+    assert_eq!(failure_code, "root_publication_namespace_unproven");
 }
 
 #[cfg(windows)]
@@ -675,7 +1154,16 @@ fn metadata_engine_mismatch_invalidates_a_rename_mutation_contract() {
         .expect("lease rename")
         .pop()
         .expect("rename lease");
-    let discovery = FileDiscovery::new(&fixture.root_path).expect("file discovery");
+    let expected_identity = FileDiscovery::new(&fixture.root_path)
+        .expect("file discovery")
+        .metadata_inventory_root_identity()
+        .expect("root identity")
+        .expect("stable root identity");
+    let discovery = PublicationGuardedFileDiscovery::new_incremental_publication_guard(
+        &fixture.root_path,
+        &expected_identity,
+    )
+    .expect("publication-guarded discovery");
     let inspector = LocalMediaInspector::new();
 
     let prepared =
@@ -758,6 +1246,168 @@ fn destination_first_cross_root_move_preserves_asset_and_preview_continuity() {
 
 #[cfg(windows)]
 #[test]
+fn persistent_journal_source_first_move_reaches_final_identity_reconciliation() {
+    assert_persistent_journal_cross_root_move_preserves_continuity(true);
+}
+
+#[cfg(windows)]
+#[test]
+fn persistent_journal_destination_first_move_reaches_final_identity_reconciliation() {
+    assert_persistent_journal_cross_root_move_preserves_continuity(false);
+}
+
+#[cfg(windows)]
+#[test]
+fn target_translation_recovery_source_first_preserves_final_identity() {
+    assert_target_translation_recovery_preserves_continuity(true);
+}
+
+#[cfg(windows)]
+#[test]
+fn target_translation_recovery_destination_first_preserves_final_identity() {
+    assert_target_translation_recovery_preserves_continuity(false);
+}
+
+#[cfg(windows)]
+#[test]
+fn persistent_journal_range_stays_catching_up_through_retry_until_terminal() {
+    let source = tempdir().expect("persistent journal retry source");
+    write_png_with_format(&source.path().join("locked.data"), 2, 2, [31, 32, 33]);
+    let mut fixture = seed_catalog(source, &["locked.data"]);
+    write_png_with_format(
+        &fixture.source.path().join("locked.data"),
+        4,
+        3,
+        [41, 42, 43],
+    );
+    fixture
+        .catalog
+        .save_persistent_journal_capability(&PersistentJournalCapability {
+            root_id: fixture.root_id.clone(),
+            root_generation: LibraryRootGeneration::initial(),
+            protocol_version: 5,
+            contract_version: 1,
+            state: PersistentJournalCapabilityState::Supported,
+            continuity: PersistentJournalContinuityState::CatchingUp,
+            failure: None,
+            updated_unix_ms: 500,
+        })
+        .expect("support retry journal root");
+    let volume = PersistentJournalVolumeIdentity {
+        volume_guid: "journal-retry-volume".to_owned(),
+        volume_serial: 91,
+    };
+    fixture
+        .catalog
+        .seed_persistent_journal_checkpoint_for_test(&PersistentJournalCheckpoint {
+            root_id: fixture.root_id.clone(),
+            root_generation: LibraryRootGeneration::initial(),
+            volume: volume.clone(),
+            root_file_reference: JournalFileReference::V3([9; 16]),
+            journal_id: JournalIdentifier::new(88).expect("journal"),
+            next_unread_usn: JournalUsn::new(10).expect("baseline"),
+            captured_exclusive_end: JournalUsn::new(10).expect("baseline end"),
+            covered_catalog_revision: 0,
+            protocol_version: 5,
+            contract_version: 1,
+            continuity: PersistentJournalContinuityState::CatchingUp,
+            failure: None,
+            updated_unix_ms: 500,
+        })
+        .expect("seed retry journal checkpoint");
+    let mut enrollment = PersistentJournalEnrollmentBatch {
+        range: PersistentJournalSourceRange {
+            batch_id: "retry-range".to_owned(),
+            root_id: fixture.root_id.clone(),
+            root_generation: LibraryRootGeneration::initial(),
+            volume: volume.clone(),
+            journal_id: JournalIdentifier::new(88).expect("journal"),
+            requested_start_usn: JournalUsn::new(10).expect("start"),
+            requested_end_usn: JournalUsn::new(20).expect("end"),
+            covered_until_usn: JournalUsn::new(20).expect("covered"),
+            is_complete: true,
+            protocol_version: 5,
+            contract_version: 1,
+            state: PersistentJournalRangeState::Enrolled,
+            enrolled_unix_ms: 1_000,
+            checkpointed_unix_ms: None,
+        },
+        intents: vec![catch_up_intent(&fixture.root_id, "locked.data", 1)],
+        cross_root_lineage: Vec::new(),
+        carried_cross_root_lineage: Vec::new(),
+        pending_renames: Vec::new(),
+        consumed_pending_rename_ids: Vec::new(),
+    };
+    enrollment.range.batch_id = persistent_journal_batch_id(&enrollment);
+    fixture
+        .catalog
+        .publish_persistent_journal_volume_batch(
+            &PersistentJournalVolumeBatch {
+                pages: vec![PersistentJournalVolumePage {
+                    enrollment,
+                    checkpoint: PersistentJournalCheckpoint {
+                        root_id: fixture.root_id.clone(),
+                        root_generation: LibraryRootGeneration::initial(),
+                        volume,
+                        root_file_reference: JournalFileReference::V3([9; 16]),
+                        journal_id: JournalIdentifier::new(88).expect("journal"),
+                        next_unread_usn: JournalUsn::new(20).expect("covered"),
+                        captured_exclusive_end: JournalUsn::new(20).expect("end"),
+                        covered_catalog_revision: 0,
+                        protocol_version: 5,
+                        contract_version: 1,
+                        continuity: PersistentJournalContinuityState::CatchingUp,
+                        failure: None,
+                        updated_unix_ms: 1_000,
+                    },
+                }],
+            },
+            1_000,
+            policy(),
+        )
+        .expect("publish retry journal page");
+
+    let lock = fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .share_mode(0)
+        .open(fixture.source.path().join("locked.data"))
+        .expect("exclusive retry lock");
+    let failed = fixture.process();
+    assert_eq!(failed.retried_count, 1);
+    assert_eq!(
+        fixture
+            .catalog
+            .load_persistent_journal_checkpoint(&fixture.root_id, LibraryRootGeneration::initial(),)
+            .expect("load retry checkpoint")
+            .expect("retry checkpoint")
+            .continuity,
+        PersistentJournalContinuityState::CatchingUp
+    );
+
+    drop(lock);
+    let completed = process_ready_library_changes(
+        &mut fixture.catalog,
+        &fixture.root_id,
+        LibraryRootGeneration::initial(),
+        10_000,
+        policy(),
+    )
+    .expect("retry persistent journal work");
+    assert_eq!(completed.completed_count, 1);
+    assert_eq!(
+        fixture
+            .catalog
+            .load_persistent_journal_checkpoint(&fixture.root_id, LibraryRootGeneration::initial(),)
+            .expect("load terminal checkpoint")
+            .expect("terminal checkpoint")
+            .continuity,
+        PersistentJournalContinuityState::Current
+    );
+}
+
+#[cfg(windows)]
+#[test]
 fn newer_watermark_keeps_an_older_cross_root_handoff_visible() {
     assert_cross_root_move_preserves_continuity(
         "a-source",
@@ -784,7 +1434,7 @@ fn preview_cleanup_downgrades_a_bounded_handoff_before_destination_adoption() {
 
 #[cfg(windows)]
 #[test]
-fn prerelease_stale_preview_is_downgraded_before_bounded_handoff_adoption() {
+fn prerelease_preview_repair_does_not_bypass_an_unproven_namespace() {
     assert_cross_root_move_preserves_continuity(
         "a-source",
         "z-destination",
@@ -1073,12 +1723,15 @@ fn assert_cross_root_move_preserves_continuity(
                     .expect("restore prerelease stale handoff preview"),
                 1
             );
+            remove_persistent_journal_v22_contract_for_test(&connection);
             connection
                 .execute_batch(
                     "DROP TABLE library_change_preview_repair_contract;
                      DROP TABLE library_metadata_inventory_entries;
                      DROP TABLE library_metadata_inventory_runs;
                      DROP TABLE library_metadata_inventory_contract;
+                     DROP TABLE library_terminal_media_evidence;
+                     DROP TABLE library_terminal_media_evidence_contract;
                      UPDATE schema_info SET version = 19;",
                 )
                 .expect("restore prerelease preview repair marker");
@@ -1111,6 +1764,37 @@ fn assert_cross_root_move_preserves_continuity(
         policy(),
     )
     .expect("publish destination handoff");
+    if repair_stale_handoff_preview {
+        assert_eq!(destination.completed_count, 0);
+        assert_eq!(destination.retried_count, 1);
+        assert!(
+            catalog
+                .load_incremental_location_by_relative_path(destination_root_id, "new.png")
+                .expect("load blocked destination location")
+                .is_none()
+        );
+        drop(catalog);
+        let connection = Connection::open(&catalog_path).expect("verify guarded preview repair");
+        let (proof_count, ready_handoff_count, failure_code): (i64, i64, String) = connection
+            .query_row(
+                "SELECT
+                   (SELECT COUNT(*) FROM library_root_publication_namespaces
+                    WHERE root_id = ?1),
+                   ((SELECT COUNT(*) FROM library_change_catch_up_handoffs
+                     WHERE preview_status = 'ready')
+                    + (SELECT COUNT(*) FROM library_change_scan_handoff_items
+                       WHERE preview_status = 'ready')),
+                   (SELECT last_failure_code FROM library_change_queue
+                    WHERE root_id = ?1 AND relative_path = 'new.png')",
+                [destination_root_id],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .expect("load guarded preview repair evidence");
+        assert_eq!(proof_count, 0);
+        assert_eq!(ready_handoff_count, 0);
+        assert_eq!(failure_code, "root_publication_namespace_unproven");
+        return;
+    }
     assert_eq!(destination.completed_count, 1);
     let moved = catalog
         .load_incremental_location_by_relative_path(destination_root_id, "new.png")
@@ -1158,10 +1842,1109 @@ fn assert_cross_root_move_preserves_continuity(
     );
 }
 
+#[cfg(windows)]
+fn assert_target_translation_recovery_preserves_continuity(source_first: bool) {
+    let storage = tempdir().expect("target translation recovery storage");
+    let source_path = storage.path().join("service-source");
+    let destination_path = storage.path().join("service-destination");
+    fs::create_dir_all(&source_path).expect("service source root");
+    fs::create_dir_all(&destination_path).expect("service destination root");
+    write_png(&source_path.join("old.png"), 3, 2, [111, 112, 113]);
+    let catalog_path = storage.path().join("catalog.sqlite3");
+    let mut catalog = SqliteCatalog::open(catalog_path.clone()).expect("service catalog");
+    seed_root(
+        &mut catalog,
+        "journal-source-root",
+        "service-source-scan",
+        &source_path,
+        &["old.png"],
+    );
+    seed_root(
+        &mut catalog,
+        "journal-destination-root",
+        "service-destination-scan",
+        &destination_path,
+        &[],
+    );
+    let mut original = catalog
+        .load_incremental_location_by_relative_path("journal-source-root", "old.png")
+        .expect("load service source")
+        .expect("service source location");
+    original.preview_status = PreviewStatus::Failed;
+    original.preview_issue_code = Some("preview_decode_failed".to_owned());
+    original.preview_issue_message = Some("service target recovery evidence".to_owned());
+    catalog
+        .update_active_preview(&original, None)
+        .expect("record service preview evidence");
+    for root_id in ["journal-source-root", "journal-destination-root"] {
+        catalog
+            .save_persistent_journal_capability(&PersistentJournalCapability {
+                root_id: root_id.to_owned(),
+                root_generation: LibraryRootGeneration::initial(),
+                protocol_version: 5,
+                contract_version: 1,
+                state: PersistentJournalCapabilityState::Supported,
+                continuity: PersistentJournalContinuityState::CatchingUp,
+                failure: None,
+                updated_unix_ms: 500,
+            })
+            .expect("support service journal root");
+    }
+    let volume = PersistentJournalVolumeIdentity {
+        volume_guid: "journal-volume-guid".to_owned(),
+        volume_serial: 55,
+    };
+    let baseline_checkpoint = |root_id: &str| PersistentJournalCheckpoint {
+        root_id: root_id.to_owned(),
+        root_generation: LibraryRootGeneration::initial(),
+        volume: volume.clone(),
+        root_file_reference: JournalFileReference::V3([7; 16]),
+        journal_id: JournalIdentifier::new(77).expect("journal"),
+        next_unread_usn: JournalUsn::new(10).expect("baseline"),
+        captured_exclusive_end: JournalUsn::new(10).expect("baseline end"),
+        covered_catalog_revision: 0,
+        protocol_version: 5,
+        contract_version: 1,
+        continuity: PersistentJournalContinuityState::CatchingUp,
+        failure: None,
+        updated_unix_ms: 500,
+    };
+    let mut checkpoints = [
+        baseline_checkpoint("journal-source-root"),
+        baseline_checkpoint("journal-destination-root"),
+    ];
+    for checkpoint in &checkpoints {
+        catalog
+            .seed_persistent_journal_checkpoint_for_test(checkpoint)
+            .expect("seed service journal checkpoint");
+    }
+    fs::rename(
+        source_path.join("old.png"),
+        destination_path.join("new.png"),
+    )
+    .expect("move service fixture");
+
+    let broker = target_translation_recovery_fixture();
+    let reader = SessionBackedPersistentJournalVolumeReader::new(
+        Arc::clone(&broker.journal),
+        broker.caller.clone(),
+        broker
+            .roots
+            .iter()
+            .enumerate()
+            .map(|(index, authorization)| PersistentJournalBrokerRoot {
+                authorization: authorization.clone(),
+                client_root_handle: u64::try_from(index + 1).expect("root handle"),
+                volume_serial: volume.volume_serial,
+            })
+            .collect(),
+    )
+    .expect("construct production session reader");
+    let cancelled = AtomicBool::new(false);
+    let first = catch_up_persistent_journal_volume(
+        &mut catalog,
+        &reader,
+        &checkpoints,
+        1_000,
+        policy(),
+        &cancelled,
+    )
+    .expect("publish target-failure safe prefix");
+    assert_eq!(first.enrolled_root_count, 1);
+    assert_eq!(first.advanced_checkpoint_count, 1);
+    assert_eq!(first.failed_root_count, 1);
+    assert_eq!(broker.physical_reads.load(Ordering::Acquire), 1);
+    let carries = catalog
+        .load_persistent_journal_pending_renames(
+            &volume,
+            JournalIdentifier::new(77).expect("journal"),
+        )
+        .expect("load synthesized OLD carry");
+    let [carry] = carries.as_slice() else {
+        panic!("expected one synthesized OLD carry")
+    };
+    assert_eq!(carry.old_usn, JournalUsn::new(15).expect("OLD"));
+    assert_eq!(carry.previous_relative_path, "old.png");
+    assert_eq!(carry.file_reference, JournalFileReference::V3([5; 16]));
+    assert_eq!(
+        catalog
+            .load_persistent_journal_checkpoint(
+                "journal-source-root",
+                LibraryRootGeneration::initial(),
+            )
+            .expect("source checkpoint")
+            .expect("source checkpoint row")
+            .next_unread_usn,
+        JournalUsn::new(18).expect("NEW barrier")
+    );
+    assert_eq!(
+        catalog
+            .load_persistent_journal_checkpoint(
+                "journal-destination-root",
+                LibraryRootGeneration::initial(),
+            )
+            .expect("target checkpoint")
+            .expect("target checkpoint row")
+            .next_unread_usn,
+        JournalUsn::new(10).expect("last trustworthy target checkpoint")
+    );
+    drop(catalog);
+
+    let mut catalog = SqliteCatalog::open(catalog_path.clone()).expect("reopen synthesized carry");
+    let destination_root = catalog
+        .load_incremental_catalog_root("journal-destination-root")
+        .expect("load recovery destination root")
+        .expect("recovery destination root");
+    let destination_baseline = catalog
+        .load_persistent_journal_baselines()
+        .expect("load recovery baselines")
+        .into_iter()
+        .find(|baseline| baseline.root_id == destination_root.root_id)
+        .expect("destination recovery baseline");
+    let first_inventory = catalog
+        .lease_metadata_inventory_recovery(
+            &destination_root.root_id,
+            destination_root.root_generation,
+            1_100,
+            policy(),
+        )
+        .expect("lease destination recovery inventory")
+        .expect("destination recovery inventory");
+    let mut control = Some(first_inventory);
+    let mut retained_source = None;
+    let mut enumeration = None;
+    for offset in 0..8_i64 {
+        let observed_unix_ms = 1_100 + offset;
+        let lease = control.take().unwrap_or_else(|| {
+            catalog
+                .lease_metadata_inventory_recovery(
+                    &destination_root.root_id,
+                    destination_root.root_generation,
+                    observed_unix_ms,
+                    policy(),
+                )
+                .expect("lease destination enumeration continuation")
+                .expect("destination enumeration continuation")
+        });
+        let page = process_leased_metadata_inventory_change_with_retained_source(
+            &mut catalog,
+            &destination_root,
+            &lease,
+            MetadataInventoryRecoveryExecution::without_progress(
+                observed_unix_ms,
+                4_096,
+                policy(),
+                &cancelled,
+            ),
+            retained_source.take(),
+        )
+        .expect("enumerate destination recovery baseline");
+        retained_source = page.retained_source;
+        if page.report.inventory.staged_entry_count > 0 {
+            enumeration = Some(page.report);
+            break;
+        }
+    }
+    let enumeration = enumeration.expect("destination enumeration stages its source entry");
+    assert_eq!(enumeration.inventory.staged_entry_count, 1);
+    assert!(!enumeration.inventory.is_complete);
+    catalog
+        .capture_persistent_journal_baseline_closing_boundary(
+            &PersistentJournalBaselineClosingBoundary {
+                change_id: destination_baseline.change_id,
+                volume: destination_baseline.volume.clone(),
+                root_file_reference: destination_baseline.root_file_reference.clone(),
+                journal_id: destination_baseline.journal_id,
+                closing_next_usn: JournalUsn::new(20).expect("recovery closing boundary"),
+                protocol_version: destination_baseline.protocol_version,
+                captured_unix_ms: 1_101,
+            },
+        )
+        .expect("close destination recovery baseline");
+    assert!(
+        !catalog
+            .persistent_journal_baseline_closing_is_covered(destination_baseline.change_id)
+            .expect("destination closing replay coverage"),
+        "the target must replay its pre-inventory gap before absence authority"
+    );
+    broker.recovered.store(true, Ordering::Release);
+    for (index, root_id) in ["journal-source-root", "journal-destination-root"]
+        .into_iter()
+        .enumerate()
+    {
+        checkpoints[index] = catalog
+            .load_persistent_journal_checkpoint(root_id, LibraryRootGeneration::initial())
+            .expect("load recovery checkpoint")
+            .expect("recovery checkpoint row");
+    }
+    let recovered = catch_up_persistent_journal_volume(
+        &mut catalog,
+        &reader,
+        &checkpoints,
+        1_102,
+        policy(),
+        &cancelled,
+    )
+    .expect("publish recovered NEW handoff");
+    assert_eq!(
+        recovered.enrolled_root_count, 2,
+        "recovered report: {recovered:?}"
+    );
+    assert_eq!(recovered.advanced_checkpoint_count, 2);
+    assert_eq!(recovered.failed_root_count, 0);
+    assert_eq!(broker.physical_reads.load(Ordering::Acquire), 2);
+    assert!(
+        catalog
+            .load_persistent_journal_pending_renames(
+                &volume,
+                JournalIdentifier::new(77).expect("journal"),
+            )
+            .expect("load consumed carry set")
+            .is_empty()
+    );
+    drop(catalog);
+
+    let mut catalog = SqliteCatalog::open(catalog_path.clone()).expect("reopen recovered handoff");
+    let roots = if source_first {
+        ["journal-source-root", "journal-destination-root"]
+    } else {
+        ["journal-destination-root", "journal-source-root"]
+    };
+    for (index, root_id) in roots.into_iter().enumerate() {
+        let report = process_ready_library_changes(
+            &mut catalog,
+            root_id,
+            LibraryRootGeneration::initial(),
+            2_000 + i64::try_from(index).expect("bounded index"),
+            policy(),
+        )
+        .expect("process recovered cross-root move");
+        assert_eq!(report.completed_count, 1);
+    }
+    assert!(
+        catalog
+            .persistent_journal_baseline_closing_is_covered(destination_baseline.change_id)
+            .expect("terminal destination closing replay coverage")
+    );
+    let mut inventory_completed = false;
+    for offset in 0..8_i64 {
+        let now_unix_ms = 2_100 + offset;
+        let candidates = process_ready_metadata_inventory_recovery_candidates_cancellable(
+            &mut catalog,
+            &destination_root.root_id,
+            destination_root.root_generation,
+            now_unix_ms,
+            policy(),
+            &cancelled,
+        )
+        .expect("drain destination recovery candidates");
+        if let Some(control) = catalog
+            .lease_metadata_inventory_recovery(
+                &destination_root.root_id,
+                destination_root.root_generation,
+                now_unix_ms,
+                policy(),
+            )
+            .expect("lease destination recovery continuation")
+        {
+            let continuation = process_leased_metadata_inventory_change(
+                &mut catalog,
+                &destination_root,
+                &control,
+                now_unix_ms,
+                4_096,
+                policy(),
+                &cancelled,
+            )
+            .expect("continue destination recovery baseline");
+            inventory_completed |= continuation.incremental.completed_count == 1;
+        }
+        if inventory_completed {
+            assert_eq!(candidates.retried_count, 0);
+            break;
+        }
+    }
+    assert!(
+        inventory_completed,
+        "destination P2 recovery must become Current"
+    );
+    assert_eq!(
+        catalog
+            .load_persistent_journal_checkpoint(
+                &destination_root.root_id,
+                destination_root.root_generation,
+            )
+            .expect("load destination recovery checkpoint")
+            .expect("destination recovery checkpoint")
+            .continuity,
+        PersistentJournalContinuityState::Current
+    );
+    drop(catalog);
+
+    let catalog = SqliteCatalog::open(catalog_path).expect("reopen completed recovery handoff");
+    let moved = catalog
+        .load_incremental_location_by_relative_path("journal-destination-root", "new.png")
+        .expect("load recovered destination")
+        .expect("recovered destination location");
+    assert_eq!(moved.asset_id, original.asset_id);
+    assert_eq!(moved.file_identity, original.file_identity);
+    assert!(matches!(moved.preview_status, PreviewStatus::Failed));
+    assert_eq!(
+        moved.preview_issue_code.as_deref(),
+        Some("preview_decode_failed")
+    );
+    assert!(
+        catalog
+            .load_incremental_location_by_relative_path("journal-source-root", "old.png")
+            .expect("load removed service source")
+            .is_none()
+    );
+    for root_id in ["journal-source-root", "journal-destination-root"] {
+        assert_eq!(
+            catalog
+                .load_persistent_journal_checkpoint(root_id, LibraryRootGeneration::initial())
+                .expect("load terminal service checkpoint")
+                .expect("terminal service checkpoint")
+                .continuity,
+            PersistentJournalContinuityState::Current
+        );
+    }
+}
+
+fn assert_persistent_journal_cross_root_move_preserves_continuity(source_first: bool) {
+    let storage = tempdir().expect("persistent journal cross-root storage");
+    let source_path = storage.path().join("journal-source");
+    let destination_path = storage.path().join("journal-destination");
+    fs::create_dir_all(&source_path).expect("journal source root");
+    fs::create_dir_all(&destination_path).expect("journal destination root");
+    write_png(&source_path.join("old.png"), 3, 2, [101, 102, 103]);
+    let catalog_path = storage.path().join("catalog.sqlite3");
+    let mut catalog = SqliteCatalog::open(catalog_path.clone()).expect("journal catalog");
+    seed_root(
+        &mut catalog,
+        "journal-source-root",
+        "journal-source-scan",
+        &source_path,
+        &["old.png"],
+    );
+    seed_root(
+        &mut catalog,
+        "journal-destination-root",
+        "journal-destination-scan",
+        &destination_path,
+        &[],
+    );
+    let mut original = catalog
+        .load_incremental_location_by_relative_path("journal-source-root", "old.png")
+        .expect("load journal source")
+        .expect("journal source location");
+    original.preview_status = PreviewStatus::Failed;
+    original.preview_issue_code = Some("preview_decode_failed".to_owned());
+    original.preview_issue_message = Some("persistent journal retained evidence".to_owned());
+    catalog
+        .update_active_preview(&original, None)
+        .expect("record journal preview evidence");
+    for root_id in ["journal-source-root", "journal-destination-root"] {
+        catalog
+            .save_persistent_journal_capability(&PersistentJournalCapability {
+                root_id: root_id.to_owned(),
+                root_generation: LibraryRootGeneration::initial(),
+                protocol_version: 5,
+                contract_version: 1,
+                state: PersistentJournalCapabilityState::Supported,
+                continuity: PersistentJournalContinuityState::CatchingUp,
+                failure: None,
+                updated_unix_ms: 500,
+            })
+            .expect("support journal root");
+    }
+    fs::rename(
+        source_path.join("old.png"),
+        destination_path.join("new.png"),
+    )
+    .expect("move persistent journal fixture");
+    let volume = PersistentJournalVolumeIdentity {
+        volume_guid: "journal-volume-guid".to_owned(),
+        volume_serial: 55,
+    };
+    for root_id in ["journal-source-root", "journal-destination-root"] {
+        catalog
+            .seed_persistent_journal_checkpoint_for_test(&PersistentJournalCheckpoint {
+                root_id: root_id.to_owned(),
+                root_generation: LibraryRootGeneration::initial(),
+                volume: volume.clone(),
+                root_file_reference: JournalFileReference::V3([7; 16]),
+                journal_id: JournalIdentifier::new(77).expect("journal"),
+                next_unread_usn: JournalUsn::new(10).expect("baseline"),
+                captured_exclusive_end: JournalUsn::new(10).expect("baseline end"),
+                covered_catalog_revision: 0,
+                protocol_version: 5,
+                contract_version: 1,
+                continuity: PersistentJournalContinuityState::CatchingUp,
+                failure: None,
+                updated_unix_ms: 500,
+            })
+            .expect("seed journal checkpoint");
+    }
+    let lineage = |owner_source_range_id: &str| PersistentJournalCrossRootLineage {
+        lineage_id: "journal-cross-root-lineage".to_owned(),
+        owner_source_range_id: owner_source_range_id.to_owned(),
+        volume: volume.clone(),
+        journal_id: JournalIdentifier::new(77).expect("journal"),
+        file_reference: JournalFileReference::V3([5; 16]),
+        old_usn: None,
+        new_usn: None,
+        previous_carry_id: None,
+        previous_root_id: "journal-source-root".to_owned(),
+        previous_root_generation: LibraryRootGeneration::initial(),
+        previous_relative_path: "old.png".to_owned(),
+        current_root_id: "journal-destination-root".to_owned(),
+        current_root_generation: LibraryRootGeneration::initial(),
+        current_relative_path: "new.png".to_owned(),
+        state: PersistentJournalLineageState::Pending,
+    };
+    let checkpoint = |root_id: &str| PersistentJournalCheckpoint {
+        root_id: root_id.to_owned(),
+        root_generation: LibraryRootGeneration::initial(),
+        volume: volume.clone(),
+        root_file_reference: JournalFileReference::V3([7; 16]),
+        journal_id: JournalIdentifier::new(77).expect("journal"),
+        next_unread_usn: JournalUsn::new(20).expect("covered"),
+        captured_exclusive_end: JournalUsn::new(20).expect("end"),
+        covered_catalog_revision: 0,
+        protocol_version: 5,
+        contract_version: 1,
+        continuity: PersistentJournalContinuityState::CatchingUp,
+        failure: None,
+        updated_unix_ms: 1_000,
+    };
+    let mut safe_prefix = PersistentJournalEnrollmentBatch {
+        range: PersistentJournalSourceRange {
+            batch_id: "journal-safe-prefix".to_owned(),
+            root_id: "journal-source-root".to_owned(),
+            root_generation: LibraryRootGeneration::initial(),
+            volume: volume.clone(),
+            journal_id: JournalIdentifier::new(77).expect("journal"),
+            requested_start_usn: JournalUsn::new(10).expect("prefix start"),
+            requested_end_usn: JournalUsn::new(20).expect("prefix end"),
+            covered_until_usn: JournalUsn::new(12).expect("safe prefix boundary"),
+            is_complete: false,
+            protocol_version: 5,
+            contract_version: 1,
+            state: PersistentJournalRangeState::Enrolled,
+            enrolled_unix_ms: 750,
+            checkpointed_unix_ms: None,
+        },
+        intents: Vec::new(),
+        cross_root_lineage: Vec::new(),
+        carried_cross_root_lineage: Vec::new(),
+        pending_renames: Vec::new(),
+        consumed_pending_rename_ids: Vec::new(),
+    };
+    safe_prefix.range.batch_id = persistent_journal_batch_id(&safe_prefix);
+    let mut prefix_checkpoint = checkpoint("journal-source-root");
+    prefix_checkpoint.next_unread_usn = JournalUsn::new(12).expect("safe prefix boundary");
+    prefix_checkpoint.updated_unix_ms = 750;
+    catalog
+        .publish_persistent_journal_volume_batch(
+            &PersistentJournalVolumeBatch {
+                pages: vec![PersistentJournalVolumePage {
+                    enrollment: safe_prefix,
+                    checkpoint: prefix_checkpoint,
+                }],
+            },
+            750,
+            policy(),
+        )
+        .expect("publish safe non-rename prefix before endpoint recovery");
+    assert_eq!(
+        catalog
+            .load_persistent_journal_checkpoint(
+                "journal-source-root",
+                LibraryRootGeneration::initial(),
+            )
+            .expect("load safe-prefix checkpoint")
+            .expect("safe-prefix checkpoint")
+            .next_unread_usn,
+        JournalUsn::new(12).expect("safe prefix boundary")
+    );
+    assert_eq!(
+        catalog
+            .load_persistent_journal_checkpoint(
+                "journal-destination-root",
+                LibraryRootGeneration::initial(),
+            )
+            .expect("load failed sibling checkpoint")
+            .expect("failed sibling checkpoint")
+            .next_unread_usn,
+        JournalUsn::new(10).expect("failed sibling remains at baseline")
+    );
+    let mut carry = PersistentJournalPendingRename {
+        carry_id: String::new(),
+        source_range_id: "journal-source-range".to_owned(),
+        volume: volume.clone(),
+        journal_id: JournalIdentifier::new(77).expect("journal"),
+        file_reference: JournalFileReference::V3([5; 16]),
+        old_usn: JournalUsn::new(15).expect("OLD USN"),
+        previous_root_id: "journal-source-root".to_owned(),
+        previous_root_generation: LibraryRootGeneration::initial(),
+        previous_relative_path: "old.png".to_owned(),
+        is_directory: false,
+        enrolled_unix_ms: 1_000,
+    };
+    carry.carry_id = persistent_journal_pending_rename_id(&carry);
+    let mut source_enrollment = PersistentJournalEnrollmentBatch {
+        range: PersistentJournalSourceRange {
+            batch_id: carry.source_range_id.clone(),
+            root_id: "journal-source-root".to_owned(),
+            root_generation: LibraryRootGeneration::initial(),
+            volume: volume.clone(),
+            journal_id: JournalIdentifier::new(77).expect("journal"),
+            requested_start_usn: JournalUsn::new(12).expect("start"),
+            requested_end_usn: JournalUsn::new(20).expect("end"),
+            covered_until_usn: JournalUsn::new(20).expect("covered"),
+            is_complete: true,
+            protocol_version: 5,
+            contract_version: 1,
+            state: PersistentJournalRangeState::Enrolled,
+            enrolled_unix_ms: 1_000,
+            checkpointed_unix_ms: None,
+        },
+        intents: vec![catch_up_intent("journal-source-root", "old.png", 1)],
+        cross_root_lineage: Vec::new(),
+        carried_cross_root_lineage: Vec::new(),
+        pending_renames: vec![carry],
+        consumed_pending_rename_ids: Vec::new(),
+    };
+    let source_range_id = persistent_journal_batch_id(&source_enrollment);
+    source_enrollment
+        .range
+        .batch_id
+        .clone_from(&source_range_id);
+    source_enrollment.pending_renames[0]
+        .source_range_id
+        .clone_from(&source_range_id);
+    catalog
+        .publish_persistent_journal_volume_batch(
+            &PersistentJournalVolumeBatch {
+                pages: vec![PersistentJournalVolumePage {
+                    enrollment: source_enrollment,
+                    checkpoint: checkpoint("journal-source-root"),
+                }],
+            },
+            1_000,
+            policy(),
+        )
+        .expect("publish journal OLD carry");
+    drop(catalog);
+
+    let mut catalog = SqliteCatalog::open(catalog_path).expect("reopen journal OLD carry");
+    let carries = catalog
+        .load_persistent_journal_pending_renames(
+            &volume,
+            JournalIdentifier::new(77).expect("journal"),
+        )
+        .expect("load reopened journal OLD carry");
+    let [durable_carry] = carries.as_slice() else {
+        panic!("expected one durable journal OLD carry");
+    };
+    assert_eq!(durable_carry.source_range_id, source_range_id);
+    let carried_lineage = |owner_source_range_id: &str| {
+        let mut item = lineage(owner_source_range_id);
+        item.old_usn = Some(durable_carry.old_usn);
+        item.new_usn = Some(JournalUsn::new(18).expect("NEW USN"));
+        item.previous_carry_id = Some(durable_carry.carry_id.clone());
+        item
+    };
+
+    let mut destination_enrollment = PersistentJournalEnrollmentBatch {
+        range: PersistentJournalSourceRange {
+            batch_id: "journal-destination-range".to_owned(),
+            root_id: "journal-destination-root".to_owned(),
+            root_generation: LibraryRootGeneration::initial(),
+            volume: volume.clone(),
+            journal_id: JournalIdentifier::new(77).expect("journal"),
+            requested_start_usn: JournalUsn::new(10).expect("start"),
+            requested_end_usn: JournalUsn::new(20).expect("end"),
+            covered_until_usn: JournalUsn::new(20).expect("covered"),
+            is_complete: true,
+            protocol_version: 5,
+            contract_version: 1,
+            state: PersistentJournalRangeState::Enrolled,
+            enrolled_unix_ms: 1_000,
+            checkpointed_unix_ms: None,
+        },
+        intents: vec![catch_up_intent("journal-destination-root", "new.png", 2)],
+        cross_root_lineage: vec![carried_lineage("journal-destination-range")],
+        carried_cross_root_lineage: vec![carried_lineage(&source_range_id)],
+        pending_renames: Vec::new(),
+        consumed_pending_rename_ids: vec![durable_carry.carry_id.clone()],
+    };
+    let destination_range_id = persistent_journal_batch_id(&destination_enrollment);
+    destination_enrollment
+        .range
+        .batch_id
+        .clone_from(&destination_range_id);
+    destination_enrollment.cross_root_lineage[0]
+        .owner_source_range_id
+        .clone_from(&destination_range_id);
+    catalog
+        .publish_persistent_journal_volume_batch(
+            &PersistentJournalVolumeBatch {
+                pages: vec![PersistentJournalVolumePage {
+                    enrollment: destination_enrollment,
+                    checkpoint: checkpoint("journal-destination-root"),
+                }],
+            },
+            1_000,
+            policy(),
+        )
+        .expect("publish carried journal cross-root handoff");
+    assert!(
+        catalog
+            .load_persistent_journal_pending_renames(
+                &volume,
+                JournalIdentifier::new(77).expect("journal"),
+            )
+            .expect("load consumed journal carries")
+            .is_empty()
+    );
+    for root_id in ["journal-source-root", "journal-destination-root"] {
+        assert_eq!(
+            catalog
+                .load_persistent_journal_checkpoint(root_id, LibraryRootGeneration::initial())
+                .expect("load pending journal checkpoint")
+                .expect("pending checkpoint")
+                .continuity,
+            PersistentJournalContinuityState::CatchingUp
+        );
+    }
+    let roots = if source_first {
+        ["journal-source-root", "journal-destination-root"]
+    } else {
+        ["journal-destination-root", "journal-source-root"]
+    };
+    for (index, root_id) in roots.into_iter().enumerate() {
+        let report = process_ready_library_changes(
+            &mut catalog,
+            root_id,
+            LibraryRootGeneration::initial(),
+            2_000 + i64::try_from(index).expect("bounded index"),
+            policy(),
+        )
+        .expect("process journal cross-root move");
+        assert_eq!(report.completed_count, 1);
+        if index == 0 {
+            for pending_root in ["journal-source-root", "journal-destination-root"] {
+                assert_eq!(
+                    catalog
+                        .load_persistent_journal_checkpoint(
+                            pending_root,
+                            LibraryRootGeneration::initial(),
+                        )
+                        .expect("load half-terminal journal checkpoint")
+                        .expect("half-terminal checkpoint")
+                        .continuity,
+                    PersistentJournalContinuityState::CatchingUp
+                );
+            }
+        }
+    }
+    let moved = catalog
+        .load_incremental_location_by_relative_path("journal-destination-root", "new.png")
+        .expect("load journal destination")
+        .expect("journal destination location");
+    assert_eq!(moved.asset_id, original.asset_id);
+    assert_eq!(moved.file_identity, original.file_identity);
+    assert!(matches!(moved.preview_status, PreviewStatus::Failed));
+    assert_eq!(
+        moved.preview_issue_code.as_deref(),
+        Some("preview_decode_failed")
+    );
+    assert!(
+        catalog
+            .load_incremental_location_by_relative_path("journal-source-root", "old.png")
+            .expect("load removed journal source")
+            .is_none()
+    );
+    for root_id in ["journal-source-root", "journal-destination-root"] {
+        assert_eq!(
+            catalog
+                .load_persistent_journal_checkpoint(root_id, LibraryRootGeneration::initial())
+                .expect("load terminal journal checkpoint")
+                .expect("terminal checkpoint")
+                .continuity,
+            PersistentJournalContinuityState::Current
+        );
+    }
+}
+
+struct RevisionRacingCatalog {
+    catalog: SqliteCatalog,
+    races: Vec<(String, String)>,
+    next_race: usize,
+    publication_attempts: usize,
+    rewrite_on_first_publication: Option<PathBuf>,
+    cancel_after_first_publication: Option<Arc<AtomicBool>>,
+    guarded_rename_during_publication: Option<(PathBuf, PathBuf)>,
+}
+
+impl RevisionRacingCatalog {
+    fn new(catalog: SqliteCatalog, races: Vec<(String, String)>) -> Self {
+        Self {
+            catalog,
+            races,
+            next_race: 0,
+            publication_attempts: 0,
+            rewrite_on_first_publication: None,
+            cancel_after_first_publication: None,
+            guarded_rename_during_publication: None,
+        }
+    }
+
+    fn advance_competing_revision(&mut self) -> Result<(), ScanError> {
+        let Some((scan_id, root_id)) = self.races.get(self.next_race).cloned() else {
+            return Ok(());
+        };
+        if self.next_race == 0
+            && let Some(path) = self.rewrite_on_first_publication.take()
+        {
+            write_png(&path, 4, 3, [91, 92, 93]);
+        }
+        self.catalog.publish_scan(&scan_id, &root_id, 0, 0)?;
+        self.next_race += 1;
+        if self.next_race == 1
+            && let Some(cancelled) = &self.cancel_after_first_publication
+        {
+            cancelled.store(true, Ordering::Release);
+        }
+        Ok(())
+    }
+}
+
+impl IncrementalCatalogRepository for RevisionRacingCatalog {
+    fn load_incremental_catalog_roots(
+        &self,
+    ) -> Result<Vec<crate::domain::IncrementalCatalogRoot>, ScanError> {
+        self.catalog.load_incremental_catalog_roots()
+    }
+
+    fn load_incremental_catalog_root(
+        &self,
+        root_id: &str,
+    ) -> Result<Option<crate::domain::IncrementalCatalogRoot>, ScanError> {
+        self.catalog.load_incremental_catalog_root(root_id)
+    }
+
+    fn load_incremental_location_by_relative_path(
+        &self,
+        root_id: &str,
+        relative_path: &str,
+    ) -> Result<Option<AssetLocationView>, ScanError> {
+        self.catalog
+            .load_incremental_location_by_relative_path(root_id, relative_path)
+    }
+
+    fn load_incremental_locations_by_relative_paths(
+        &self,
+        root_id: &str,
+        relative_paths: &[String],
+    ) -> Result<Vec<AssetLocationView>, ScanError> {
+        self.catalog
+            .load_incremental_locations_by_relative_paths(root_id, relative_paths)
+    }
+
+    fn load_incremental_location_by_file_identity(
+        &self,
+        identity: &FileIdentityEvidence,
+        catch_up_lineage: &[LibraryChangeCatchUpEvidence],
+    ) -> Result<Option<AssetLocationView>, ScanError> {
+        self.catalog
+            .load_incremental_location_by_file_identity(identity, catch_up_lineage)
+    }
+
+    fn load_incremental_locations_in_subtree(
+        &self,
+        root_id: &str,
+        relative_subtree: &str,
+        limit: u32,
+    ) -> Result<Vec<AssetLocationView>, ScanError> {
+        self.catalog
+            .load_incremental_locations_in_subtree(root_id, relative_subtree, limit)
+    }
+
+    fn load_terminal_media_evidence_by_relative_paths(
+        &self,
+        root_id: &str,
+        relative_paths: &[String],
+    ) -> Result<Vec<TerminalMediaEvidence>, ScanError> {
+        self.catalog
+            .load_terminal_media_evidence_by_relative_paths(root_id, relative_paths)
+    }
+
+    fn publish_catalog_delta(
+        &mut self,
+        batch: &CatalogDeltaBatch,
+        completed_unix_ms: i64,
+    ) -> Result<CatalogDeltaPublication, ScanError> {
+        self.publication_attempts += 1;
+        if let Some((source, destination)) = &self.guarded_rename_during_publication {
+            let error = fs::rename(source, destination)
+                .expect_err("the configured namespace guard must remain held through publication");
+            assert_eq!(error.raw_os_error(), Some(32));
+        }
+        self.advance_competing_revision()?;
+        self.catalog.publish_catalog_delta(batch, completed_unix_ms)
+    }
+}
+
+impl LibraryChangeQueue for RevisionRacingCatalog {
+    fn enqueue_library_change_intents(
+        &mut self,
+        intents: &[LibraryChangeIntent],
+        enqueued_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<LibraryChangeEnqueueReport, ScanError> {
+        self.catalog
+            .enqueue_library_change_intents(intents, enqueued_unix_ms, policy)
+    }
+
+    fn enqueue_metadata_inventory_candidates(
+        &mut self,
+        authority: &crate::domain::LeasedLibraryChange,
+        intents: &[LibraryChangeIntent],
+        enqueued_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<Option<LibraryChangeEnqueueReport>, ScanError> {
+        self.catalog.enqueue_metadata_inventory_candidates(
+            authority,
+            intents,
+            enqueued_unix_ms,
+            policy,
+        )
+    }
+
+    fn enqueue_library_change_intents_with_catch_up(
+        &mut self,
+        intents: &[LibraryChangeIntent],
+        evidence: &LibraryChangeCatchUpEvidence,
+        enqueued_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<LibraryChangeEnqueueReport, ScanError> {
+        self.catalog.enqueue_library_change_intents_with_catch_up(
+            intents,
+            evidence,
+            enqueued_unix_ms,
+            policy,
+        )
+    }
+
+    fn enqueue_library_change_catch_up_batches(
+        &mut self,
+        batches: &[LibraryChangeCatchUpQueueBatch],
+        enqueued_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<Vec<LibraryChangeEnqueueReport>, ScanError> {
+        self.catalog
+            .enqueue_library_change_catch_up_batches(batches, enqueued_unix_ms, policy)
+    }
+
+    fn lease_library_changes(
+        &mut self,
+        root_id: &str,
+        root_generation: LibraryRootGeneration,
+        now_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<Vec<crate::domain::LeasedLibraryChange>, ScanError> {
+        self.catalog
+            .lease_library_changes(root_id, root_generation, now_unix_ms, policy)
+    }
+
+    fn lease_path_library_changes(
+        &mut self,
+        root_id: &str,
+        root_generation: LibraryRootGeneration,
+        now_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<Vec<crate::domain::LeasedLibraryChange>, ScanError> {
+        self.catalog
+            .lease_path_library_changes(root_id, root_generation, now_unix_ms, policy)
+    }
+
+    fn lease_path_library_changes_in_lane(
+        &mut self,
+        root_id: &str,
+        root_generation: LibraryRootGeneration,
+        lane: LibraryChangeLane,
+        now_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<Vec<crate::domain::LeasedLibraryChange>, ScanError> {
+        self.catalog.lease_path_library_changes_in_lane(
+            root_id,
+            root_generation,
+            lane,
+            now_unix_ms,
+            policy,
+        )
+    }
+
+    fn lease_metadata_inventory_recovery_candidates(
+        &mut self,
+        root_id: &str,
+        root_generation: LibraryRootGeneration,
+        now_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<Vec<crate::domain::LeasedLibraryChange>, ScanError> {
+        self.catalog.lease_metadata_inventory_recovery_candidates(
+            root_id,
+            root_generation,
+            now_unix_ms,
+            policy,
+        )
+    }
+
+    fn lease_authoritative_library_change(
+        &mut self,
+        root_id: &str,
+        root_generation: LibraryRootGeneration,
+        now_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<Option<crate::domain::LeasedLibraryChange>, ScanError> {
+        self.catalog.lease_authoritative_library_change(
+            root_id,
+            root_generation,
+            now_unix_ms,
+            policy,
+        )
+    }
+
+    fn complete_library_change(
+        &mut self,
+        change_id: LibraryChangeId,
+        lease_generation: u64,
+        catalog_revision_at_success: u64,
+        completed_unix_ms: i64,
+    ) -> Result<LibraryChangeLeaseUpdateOutcome, ScanError> {
+        self.catalog.complete_library_change(
+            change_id,
+            lease_generation,
+            catalog_revision_at_success,
+            completed_unix_ms,
+        )
+    }
+
+    fn retry_library_change(
+        &mut self,
+        change_id: LibraryChangeId,
+        lease_generation: u64,
+        failure: &LibraryChangeFailure,
+        failed_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<LibraryChangeLeaseUpdateOutcome, ScanError> {
+        self.catalog.retry_library_change(
+            change_id,
+            lease_generation,
+            failure,
+            failed_unix_ms,
+            policy,
+        )
+    }
+
+    fn promote_live_watcher_gap_to_metadata_inventory(
+        &mut self,
+        change_id: LibraryChangeId,
+        lease_generation: u64,
+        failure: &LibraryChangeFailure,
+        promoted_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<LibraryChangeLeaseUpdateOutcome, ScanError> {
+        self.catalog.promote_live_watcher_gap_to_metadata_inventory(
+            change_id,
+            lease_generation,
+            failure,
+            promoted_unix_ms,
+            policy,
+        )
+    }
+
+    fn defer_library_change(
+        &mut self,
+        change_id: LibraryChangeId,
+        lease_generation: u64,
+        deferred_unix_ms: i64,
+    ) -> Result<LibraryChangeLeaseUpdateOutcome, ScanError> {
+        self.catalog
+            .defer_library_change(change_id, lease_generation, deferred_unix_ms)
+    }
+
+    fn load_library_change_queue_metrics(
+        &self,
+        now_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<LibraryChangeQueueMetrics, ScanError> {
+        self.catalog
+            .load_library_change_queue_metrics(now_unix_ms, policy)
+    }
+
+    fn load_library_change_root_queue_metrics(
+        &self,
+        root_id: &str,
+        root_generation: LibraryRootGeneration,
+        now_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<LibraryChangeQueueMetrics, ScanError> {
+        self.catalog.load_library_change_root_queue_metrics(
+            root_id,
+            root_generation,
+            now_unix_ms,
+            policy,
+        )
+    }
+
+    fn cleanup_terminal_library_changes(
+        &mut self,
+        terminal_before_unix_ms: i64,
+        limit: u32,
+    ) -> Result<u32, ScanError> {
+        self.catalog
+            .cleanup_terminal_library_changes(terminal_before_unix_ms, limit)
+    }
+}
+
+fn prepare_revision_races(
+    catalog: &mut SqliteCatalog,
+    parent: &Path,
+    count: usize,
+) -> Vec<(String, String)> {
+    (0..count)
+        .map(|index| {
+            let root_id = format!("revision-race-root-{index}");
+            let scan_id = format!("revision-race-scan-{index}");
+            let root_path = parent.join(&root_id);
+            fs::create_dir_all(&root_path).expect("create revision race root");
+            let root_path = root_path.to_string_lossy().into_owned();
+            catalog
+                .begin_scan(
+                    &ScanRequest {
+                        scan_id: scan_id.clone(),
+                        root_path: root_path.clone(),
+                        max_items: None,
+                        max_entries: None,
+                        preview_edge: 256,
+                    },
+                    &root_id,
+                    &root_path,
+                )
+                .expect("begin competing revision scan");
+            (scan_id, root_id)
+        })
+        .collect()
+}
+
 struct CatalogFixture {
+    catalog: SqliteCatalog,
     source: TempDir,
     _storage: TempDir,
-    catalog: SqliteCatalog,
     root_id: String,
     root_path: String,
 }
@@ -1235,8 +3018,17 @@ fn seed_root(
         max_entries: None,
         preview_edge: 256,
     };
+    let publication_identity = discovery
+        .metadata_inventory_root_identity()
+        .expect("root identity query")
+        .expect("root stable identity");
     catalog
-        .begin_scan(&request, root_id, &canonical_root)
+        .begin_scan_with_publication_namespace(
+            &request,
+            root_id,
+            &canonical_root,
+            &publication_identity,
+        )
         .expect("begin root scan");
     let inspector = LocalMediaInspector::new();
     for relative_path in relative_paths {
@@ -1320,8 +3112,17 @@ fn seed_catalog_with_options(
         max_entries: None,
         preview_edge: 256,
     };
+    let publication_identity = discovery
+        .metadata_inventory_root_identity()
+        .expect("baseline root identity query")
+        .expect("baseline root stable identity");
     catalog
-        .begin_scan(&request, &root_id, &root_path)
+        .begin_scan_with_publication_namespace(
+            &request,
+            &root_id,
+            &root_path,
+            &publication_identity,
+        )
         .expect("begin baseline scan");
     let inspector = LocalMediaInspector::new();
     for relative_path in relative_paths {

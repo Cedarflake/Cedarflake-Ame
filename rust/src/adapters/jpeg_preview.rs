@@ -19,10 +19,11 @@ pub(crate) struct DecodedJpegPreview {
 
 pub(crate) fn decode_scaled_jpeg(
     path: &Path,
+    source_root: &Path,
     requested_edge: u32,
     max_decoding_buffer_size: u64,
 ) -> Option<DecodedJpegPreview> {
-    let file = open_source_file(path).ok()?;
+    let file = open_source_file(path, source_root).ok()?;
     let mut decoder = Decoder::new(BufReader::new(file));
     decoder.set_max_decoding_buffer_size(max_decoding_buffer_size.try_into().ok()?);
     decoder.read_info().ok()?;
@@ -84,6 +85,7 @@ mod tests {
     use image::{ExtendedColorType, ImageEncoder, Rgb, RgbImage};
     use tempfile::tempdir;
 
+    use super::super::local_files::canonical_source_root_path;
     use super::*;
 
     #[test]
@@ -99,9 +101,10 @@ mod tests {
         });
         source.save(&source_path).expect("large jpeg fixture");
         drop(source);
+        let source_root = canonical_source_root_path(directory.path()).expect("canonical root");
 
-        let decoded =
-            decode_scaled_jpeg(&source_path, 256, 256 * 1024 * 1024).expect("scaled jpeg decode");
+        let decoded = decode_scaled_jpeg(&source_path, &source_root, 256, 256 * 1024 * 1024)
+            .expect("scaled jpeg decode");
         let scaled_thumbnail = decoded.image.thumbnail(256, 256).to_rgb8();
         let full_thumbnail = image::open(&source_path)
             .expect("full jpeg decode")
@@ -146,6 +149,7 @@ mod tests {
             )
             .expect("benchmark jpeg encoding");
         drop(source);
+        let source_root = canonical_source_root_path(directory.path()).expect("canonical root");
 
         let full_started = std::time::Instant::now();
         let full = image::open(&source_path)
@@ -154,7 +158,7 @@ mod tests {
         let full_elapsed = full_started.elapsed();
 
         let scaled_started = std::time::Instant::now();
-        let scaled = decode_scaled_jpeg(&source_path, 512, 256 * 1024 * 1024)
+        let scaled = decode_scaled_jpeg(&source_path, &source_root, 512, 256 * 1024 * 1024)
             .expect("scaled jpeg decode")
             .image
             .thumbnail(512, 512);

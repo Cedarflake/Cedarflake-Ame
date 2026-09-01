@@ -7,13 +7,22 @@ use tempfile::tempdir;
 
 use crate::application::{enqueue_library_change_plan, plan_library_changes};
 use crate::domain::{
-    LibraryChangeCatchUpEvidence, LibraryChangeCatchUpQueueBatch, LibraryChangeIntent,
-    LibraryChangeIntentKind, LibraryChangeObservation, LibraryChangeObservationKind,
-    LibraryChangeOrigin, LibraryChangePlanningContext, LibraryChangePlanningLimits,
-    LibraryChangeQueueHealth, LibraryChangeScope, LibraryChangeSourceHealth,
-    LibraryRootAvailability, ScanRequest,
+    JournalFileReference, JournalIdentifier, JournalUsn, LibraryChangeCatchUpEvidence,
+    LibraryChangeCatchUpQueueBatch, LibraryChangeIntent, LibraryChangeIntentKind,
+    LibraryChangeLane, LibraryChangeObservation, LibraryChangeObservationKind, LibraryChangeOrigin,
+    LibraryChangePlanningContext, LibraryChangePlanningLimits, LibraryChangeQueueHealth,
+    LibraryChangeScope, LibraryChangeSourceHealth, LibraryRecoveryAuthority,
+    LibraryRecoveryAuthorityReason, LibraryRootAvailability, MetadataInventoryComparisonStatus,
+    MetadataInventoryComparisonUpdate, MetadataInventoryEntry, MetadataInventoryEntryKind,
+    MetadataInventoryFrontierEntry, MetadataInventoryPage, MetadataInventoryPlaceholderState,
+    MetadataInventoryRunRequest, MetadataInventoryRunStatus, MetadataInventoryScope,
+    PersistentJournalBaselineStartRequest, PersistentJournalCapability,
+    PersistentJournalCapabilityState, PersistentJournalCheckpoint,
+    PersistentJournalContinuityState, PersistentJournalEnrollmentBatch,
+    PersistentJournalRangeState, PersistentJournalSourceRange, PersistentJournalVolumeIdentity,
+    ScanRequest, persistent_journal_batch_id, persistent_journal_batch_payload,
 };
-use crate::ports::CatalogRepository;
+use crate::ports::{CatalogRepository, MetadataInventoryRepository, PersistentJournalRepository};
 
 use super::*;
 
@@ -105,7 +114,7 @@ fn migrates_v16_without_losing_existing_catalog_rows() {
         )
         .expect("migrated evidence");
 
-    assert_eq!(version, 20);
+    assert_eq!(version, super::super::SCHEMA_VERSION);
     assert_eq!(revision, 7);
     assert_eq!(preserved, "kept");
     assert!(queue_exists);
@@ -383,8 +392,7 @@ fn source_restart_sequence_reset_preserves_the_newer_evidence_tuple() {
             policy,
         )
         .expect("enqueue evidence from the first source instance");
-    let mut restarted = path_intent("root-a", generation, 1, 2_000, "photo.jpg");
-    restarted.origin = LibraryChangeOrigin::ConsistencyAudit;
+    let restarted = path_intent("root-a", generation, 1, 2_000, "photo.jpg");
 
     let report = catalog
         .enqueue_library_change_intents(&[restarted], 2_000, policy)
@@ -402,7 +410,7 @@ fn source_restart_sequence_reset_preserves_the_newer_evidence_tuple() {
     assert_eq!(leased.change.intent.most_recent_observed_unix_ms, 2_000);
     assert_eq!(
         leased.change.intent.origin,
-        LibraryChangeOrigin::ConsistencyAudit,
+        LibraryChangeOrigin::LiveNotification,
     );
 }
 
@@ -457,8 +465,7 @@ fn wall_clock_rollback_cannot_preserve_an_older_source_tuple_or_deadline() {
             policy,
         )
         .expect("enqueue evidence before clock rollback");
-    let mut restarted = path_intent("root-a", generation, 1, 1_000, "photo.jpg");
-    restarted.origin = LibraryChangeOrigin::UserRefresh;
+    let restarted = path_intent("root-a", generation, 1, 1_000, "photo.jpg");
     catalog
         .enqueue_library_change_intents(&[restarted], 1_000, policy)
         .expect("enqueue later ingress after clock rollback");
@@ -474,7 +481,7 @@ fn wall_clock_rollback_cannot_preserve_an_older_source_tuple_or_deadline() {
     assert_eq!(leased.change.intent.most_recent_sequence, 1);
     assert_eq!(
         leased.change.intent.origin,
-        LibraryChangeOrigin::UserRefresh
+        LibraryChangeOrigin::LiveNotification
     );
 }
 
@@ -1129,6 +1136,49 @@ fn newer_root_generation_supersedes_old_work_and_rejects_late_enqueue() {
             policy,
         )
         .expect("enqueue old generation");
+    let mut retained_range = PersistentJournalEnrollmentBatch {
+        range: PersistentJournalSourceRange {
+            batch_id: "0".repeat(64),
+            root_id: "root-a".to_owned(),
+            root_generation: first_generation,
+            volume: PersistentJournalVolumeIdentity {
+                volume_guid: "volume-a".to_owned(),
+                volume_serial: 77,
+            },
+            journal_id: JournalIdentifier::new(44).expect("journal"),
+            requested_start_usn: JournalUsn::new(0).expect("start"),
+            requested_end_usn: JournalUsn::new(10).expect("end"),
+            covered_until_usn: JournalUsn::new(10).expect("covered"),
+            is_complete: true,
+            protocol_version: 4,
+            contract_version: 1,
+            state: PersistentJournalRangeState::Enrolled,
+            enrolled_unix_ms: 1_000,
+            checkpointed_unix_ms: None,
+        },
+        intents: Vec::new(),
+        cross_root_lineage: Vec::new(),
+        carried_cross_root_lineage: Vec::new(),
+        pending_renames: Vec::new(),
+        consumed_pending_rename_ids: Vec::new(),
+    };
+    retained_range.range.batch_id = persistent_journal_batch_id(&retained_range);
+    let retained_range_payload = persistent_journal_batch_payload(&retained_range);
+    catalog
+        .connection
+        .execute(
+            "INSERT INTO library_persistent_journal_source_ranges (
+               id, root_id, root_generation, volume_guid, volume_serial, journal_id,
+               requested_start_usn, requested_end_usn, covered_until_usn, is_complete,
+               protocol_version, contract_version, status, enrolled_unix_ms,
+               checkpointed_unix_ms, canonical_payload
+             ) VALUES (
+               ?1, 'root-a', 1, 'volume-a', '77', '44',
+               '0', '10', '10', 1, 4, 1, 'enrolled', 1000, NULL, ?2
+             )",
+            rusqlite::params![retained_range.range.batch_id, retained_range_payload],
+        )
+        .expect("seed durable range for old generation");
     let replacement_report = catalog
         .enqueue_library_change_intents(
             &[path_intent("root-a", next_generation, 2, 1_100, "new.jpg")],
@@ -1152,6 +1202,30 @@ fn newer_root_generation_supersedes_old_work_and_rejects_late_enqueue() {
 
     assert_eq!(replacement_report.superseded_count, 1);
     assert_eq!(stale_report.stale_generation_count, 1);
+    assert_eq!(
+        catalog
+            .connection
+            .query_row(
+                "SELECT COUNT(*) FROM library_persistent_journal_root_state
+                 WHERE root_id = 'root-a'",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .expect("retained journal generations"),
+        2
+    );
+    assert_eq!(
+        catalog
+            .connection
+            .query_row(
+                "SELECT COUNT(*) FROM library_persistent_journal_source_ranges
+                 WHERE id = ?1 AND root_generation = 1",
+                [retained_range.range.batch_id],
+                |row| row.get::<_, i64>(0),
+            )
+            .expect("retained historical source range"),
+        1
+    );
     assert!(
         catalog
             .lease_library_changes("root-a", first_generation, 1_200, policy)
@@ -1938,6 +2012,273 @@ fn newer_evidence_reopens_an_exhausted_change_with_a_fresh_retry_budget() {
 }
 
 #[test]
+fn live_path_work_does_not_supersede_a_leased_inventory_authority() {
+    let directory = tempdir().expect("temporary directory");
+    let generation = LibraryRootGeneration::initial();
+    let policy = immediate_policy();
+    let mut catalog = queue_catalog(directory.path().join("catalog.sqlite3"));
+    catalog
+        .enqueue_library_change_intents(
+            &[intent(
+                "root-a",
+                generation,
+                1,
+                1_000,
+                LibraryChangeIntentKind::FreshnessUnknown,
+                LibraryChangeScope::Root,
+                "",
+            )],
+            1_000,
+            policy,
+        )
+        .expect("enqueue inventory authority");
+    let authority = catalog
+        .lease_authoritative_library_change("root-a", generation, 1_000, policy)
+        .expect("lease inventory authority")
+        .expect("inventory authority");
+
+    let report = catalog
+        .enqueue_library_change_intents(
+            &[path_intent("root-a", generation, 2, 1_001, "new/photo.jpg")],
+            1_001,
+            policy,
+        )
+        .expect("enqueue live path work");
+    let metrics = catalog
+        .load_library_change_root_queue_metrics("root-a", generation, 1_001, policy)
+        .expect("queue metrics");
+
+    assert_eq!(report.superseded_count, 0);
+    assert_eq!(metrics.leased_count, 1);
+    assert_eq!(metrics.pending_count, 1);
+    assert_eq!(metrics.freshness_unknown_count, 1);
+    assert_eq!(
+        catalog
+            .complete_library_change(authority.change.id, authority.lease_generation, 0, 1_002,)
+            .expect("complete inventory authority"),
+        LibraryChangeLeaseUpdateOutcome::Applied,
+    );
+    let path_work = catalog
+        .lease_path_library_changes("root-a", generation, 1_002, policy)
+        .expect("lease retained path work");
+    assert_eq!(path_work.len(), 1);
+    assert_eq!(path_work[0].change.intent.relative_path, "new/photo.jpg");
+}
+
+#[test]
+fn live_path_work_preserves_a_subtree_promoted_to_inventory() {
+    let directory = tempdir().expect("temporary directory");
+    let generation = LibraryRootGeneration::initial();
+    let policy = immediate_policy();
+    let mut catalog = queue_catalog(directory.path().join("catalog.sqlite3"));
+    catalog
+        .enqueue_library_change_intents(
+            &[intent(
+                "root-a",
+                generation,
+                1,
+                1_000,
+                LibraryChangeIntentKind::Reconcile,
+                LibraryChangeScope::Subtree,
+                "album",
+            )],
+            1_000,
+            policy,
+        )
+        .expect("enqueue subtree work");
+    let first = catalog
+        .lease_authoritative_library_change("root-a", generation, 1_000, policy)
+        .expect("lease subtree work")
+        .expect("subtree work");
+    catalog
+        .retry_library_change(
+            first.change.id,
+            first.lease_generation,
+            &LibraryChangeFailure {
+                code: "metadata_inventory_required".to_owned(),
+                message: "The subtree exceeded bounded reconciliation".to_owned(),
+            },
+            1_001,
+            policy,
+        )
+        .expect("promote subtree to inventory");
+    let authority = catalog
+        .lease_authoritative_library_change("root-a", generation, 1_011, policy)
+        .expect("lease promoted inventory")
+        .expect("promoted inventory");
+
+    catalog
+        .enqueue_library_change_intents(
+            &[path_intent("root-a", generation, 2, 1_012, "album/new.jpg")],
+            1_012,
+            policy,
+        )
+        .expect("enqueue live path work");
+
+    assert_eq!(
+        catalog
+            .complete_library_change(authority.change.id, authority.lease_generation, 0, 1_013,)
+            .expect("complete promoted inventory"),
+        LibraryChangeLeaseUpdateOutcome::Applied,
+    );
+    let path_work = catalog
+        .lease_path_library_changes("root-a", generation, 1_013, policy)
+        .expect("lease retained path work")
+        .pop()
+        .expect("retained path work");
+    assert_eq!(path_work.change.intent.relative_path, "album/new.jpg");
+}
+
+#[test]
+fn live_path_capacity_backpressures_without_replacing_inventory_authority() {
+    let directory = tempdir().expect("temporary directory");
+    let generation = LibraryRootGeneration::initial();
+    let policy = LibraryChangeQueuePolicy {
+        max_unresolved_changes: 1,
+        max_lease_batch: 1,
+        ..immediate_policy()
+    };
+    let mut catalog = queue_catalog(directory.path().join("catalog.sqlite3"));
+    catalog
+        .enqueue_library_change_intents(
+            &[intent(
+                "root-a",
+                generation,
+                1,
+                1_000,
+                LibraryChangeIntentKind::FreshnessUnknown,
+                LibraryChangeScope::Root,
+                "",
+            )],
+            1_000,
+            policy,
+        )
+        .expect("enqueue inventory authority");
+    let authority = catalog
+        .lease_authoritative_library_change("root-a", generation, 1_000, policy)
+        .expect("lease inventory authority")
+        .expect("inventory authority");
+    catalog
+        .enqueue_library_change_intents(
+            &[path_intent("root-a", generation, 2, 1_001, "a.jpg")],
+            1_001,
+            policy,
+        )
+        .expect("fill retained path capacity");
+
+    let error = catalog
+        .enqueue_library_change_intents(
+            &[path_intent("root-a", generation, 3, 1_002, "b.jpg")],
+            1_002,
+            policy,
+        )
+        .expect_err("a second live path must backpressure");
+    assert_eq!(error.code, "change_queue_backpressure");
+    let retained = catalog
+        .lease_path_library_changes("root-a", generation, 1_002, policy)
+        .expect("lease first retained path")
+        .pop()
+        .expect("first retained path");
+    catalog
+        .complete_library_change(retained.change.id, retained.lease_generation, 0, 1_003)
+        .expect("complete first retained path");
+    catalog
+        .enqueue_library_change_intents(
+            &[path_intent("root-a", generation, 3, 1_004, "b.jpg")],
+            1_004,
+            policy,
+        )
+        .expect("retry after path capacity drains");
+
+    assert_eq!(
+        catalog
+            .complete_library_change(authority.change.id, authority.lease_generation, 0, 1_005,)
+            .expect("complete inventory authority"),
+        LibraryChangeLeaseUpdateOutcome::Applied,
+    );
+    let replacement = catalog
+        .lease_path_library_changes("root-a", generation, 1_005, policy)
+        .expect("lease retried path")
+        .pop()
+        .expect("retried path");
+    assert_eq!(replacement.change.intent.relative_path, "b.jpg");
+}
+
+#[test]
+fn conflicting_live_rename_replaces_a_leased_inventory_epoch_with_a_gap() {
+    let directory = tempdir().expect("temporary directory");
+    let generation = LibraryRootGeneration::initial();
+    let policy = immediate_policy();
+    let mut catalog = queue_catalog(directory.path().join("catalog.sqlite3"));
+    catalog
+        .enqueue_library_change_intents(
+            &[intent(
+                "root-a",
+                generation,
+                1,
+                1_000,
+                LibraryChangeIntentKind::FreshnessUnknown,
+                LibraryChangeScope::Root,
+                "",
+            )],
+            1_000,
+            policy,
+        )
+        .expect("enqueue inventory authority");
+    let authority = catalog
+        .lease_authoritative_library_change("root-a", generation, 1_000, policy)
+        .expect("lease inventory authority")
+        .expect("inventory authority");
+    catalog
+        .enqueue_library_change_intents(
+            &[rename_intent(
+                "root-a",
+                generation,
+                2,
+                1_001,
+                "old/photo.jpg",
+                "new-a/photo.jpg",
+            )],
+            1_001,
+            policy,
+        )
+        .expect("enqueue first rename");
+
+    let report = catalog
+        .enqueue_library_change_intents(
+            &[rename_intent(
+                "root-a",
+                generation,
+                3,
+                1_002,
+                "old/photo.jpg",
+                "new-b/photo.jpg",
+            )],
+            1_002,
+            policy,
+        )
+        .expect("degrade conflicting rename");
+
+    assert_eq!(report.superseded_count, 2);
+    assert!(report.freshness_unknown_enqueued);
+    assert_eq!(
+        catalog
+            .complete_library_change(authority.change.id, authority.lease_generation, 0, 1_003,)
+            .expect("reject superseded inventory authority"),
+        LibraryChangeLeaseUpdateOutcome::Superseded,
+    );
+    let replacement = catalog
+        .lease_authoritative_library_change("root-a", generation, 1_003, policy)
+        .expect("lease replacement gap")
+        .expect("replacement gap");
+    assert_eq!(
+        replacement.change.intent.kind,
+        LibraryChangeIntentKind::FreshnessUnknown
+    );
+    assert_eq!(replacement.change.intent.scope, LibraryChangeScope::Root);
+}
+
+#[test]
 fn normalized_capacity_overflow_degrades_to_one_root_gap() {
     let directory = tempdir().expect("temporary directory");
     let path = directory.path().join("catalog.sqlite3");
@@ -2376,7 +2717,7 @@ fn queue_metrics_report_ready_delay_without_mutating_work() {
 }
 
 #[test]
-fn catch_up_evidence_survives_persistence_and_later_live_coalescing() {
+fn catch_up_evidence_survives_persistence_alongside_later_live_work() {
     let directory = tempdir().expect("temporary directory");
     let generation = LibraryRootGeneration::initial();
     let policy = immediate_policy();
@@ -2396,22 +2737,40 @@ fn catch_up_evidence_survives_persistence_and_later_live_coalescing() {
             1_001,
             policy,
         )
-        .expect("coalesce live evidence");
+        .expect("enqueue live evidence");
 
-    let leased = catalog
-        .lease_path_library_changes("root-a", generation, 1_001, policy)
-        .expect("lease retained evidence")
+    let catch_up = catalog
+        .lease_path_library_changes_in_lane(
+            "root-a",
+            generation,
+            LibraryChangeLane::Journal,
+            1_001,
+            policy,
+        )
+        .expect("lease retained catch-up evidence")
         .pop()
-        .expect("change");
+        .expect("catch-up change");
+    let live = catalog
+        .lease_path_library_changes_in_lane(
+            "root-a",
+            generation,
+            LibraryChangeLane::Live,
+            1_001,
+            policy,
+        )
+        .expect("lease live evidence")
+        .pop()
+        .expect("live change");
 
     assert_eq!(
-        leased.change.catch_up_source.as_deref(),
+        catch_up.change.catch_up_source.as_deref(),
         Some("windows_usn_v1")
     );
     assert_eq!(
-        leased.change.catch_up_watermark.as_deref(),
+        catch_up.change.catch_up_watermark.as_deref(),
         Some("volume|12|40")
     );
+    assert_eq!(live.change.catch_up_source, None);
 }
 
 #[test]
@@ -2668,11 +3027,2908 @@ fn empty_path_lease_stays_read_only_while_another_writer_is_active() {
     assert!(started.elapsed() < Duration::from_secs(1));
 }
 
+#[test]
+fn lower_priority_lanes_cannot_consume_reserved_live_admission() {
+    let directory = tempdir().expect("temporary directory");
+    let generation = LibraryRootGeneration::initial();
+    let policy = LibraryChangeQueuePolicy {
+        max_unresolved_changes: 8,
+        max_lease_batch: 1,
+        ..immediate_policy()
+    };
+    let mut catalog = queue_catalog(directory.path().join("catalog.sqlite3"));
+
+    for index in 0..7 {
+        let mut journal = path_intent(
+            "root-a",
+            generation,
+            index + 1,
+            1_000 + i64::try_from(index).expect("timestamp"),
+            &format!("journal-{index}.jpg"),
+        );
+        journal.origin = LibraryChangeOrigin::StartupCatchUp;
+        catalog
+            .enqueue_library_change_intents(
+                &[journal],
+                1_000 + i64::try_from(index).expect("enqueue time"),
+                policy,
+            )
+            .expect("enqueue journal work");
+        let leased = catalog
+            .lease_path_library_changes_in_lane(
+                "root-a",
+                generation,
+                LibraryChangeLane::Journal,
+                1_000 + i64::try_from(index).expect("lease time"),
+                policy,
+            )
+            .expect("lease journal work");
+        assert_eq!(leased.len(), 1);
+    }
+
+    let (recovery_authorities, recovery_controls): (i64, i64) = catalog
+        .connection
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM library_recovery_authorities),
+               (SELECT COUNT(*) FROM library_change_queue
+                WHERE origin = 'metadata_inventory')",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .expect("ordinary journal backlog evidence");
+    assert_eq!(recovery_authorities, 0);
+    assert_eq!(recovery_controls, 0);
+
+    let mut recovery = path_intent("root-a", generation, 8, 1_100, "recovery.jpg");
+    recovery.origin = LibraryChangeOrigin::MetadataInventory;
+    let low_error = catalog
+        .enqueue_library_change_intents(&[recovery], 1_100, policy)
+        .expect_err("lower lane cannot consume P0 reserve");
+    assert_eq!(low_error.code, "change_queue_backpressure");
+
+    catalog
+        .enqueue_library_change_intents(
+            &[path_intent("root-a", generation, 9, 1_101, "live.jpg")],
+            1_101,
+            policy,
+        )
+        .expect("reserved P0 admission remains usable");
+    let live = catalog
+        .lease_path_library_changes_in_lane(
+            "root-a",
+            generation,
+            LibraryChangeLane::Live,
+            1_101,
+            policy,
+        )
+        .expect("lease reserved P0 work");
+    assert_eq!(live.len(), 1);
+    assert_eq!(live[0].change.intent.relative_path, "live.jpg");
+
+    let tiny_policy = LibraryChangeQueuePolicy {
+        max_unresolved_changes: 1,
+        max_lease_batch: 1,
+        ..immediate_policy()
+    };
+    let mut tiny_catalog = queue_catalog(directory.path().join("tiny-catalog.sqlite3"));
+    let mut tiny_journal = path_intent("root-a", generation, 10, 1_200, "journal.jpg");
+    tiny_journal.origin = LibraryChangeOrigin::StartupCatchUp;
+    let tiny_error = tiny_catalog
+        .enqueue_library_change_intents(&[tiny_journal], 1_200, tiny_policy)
+        .expect_err("one-entry queue remains fully reserved for P0");
+    assert_eq!(tiny_error.code, "change_queue_backpressure");
+    tiny_catalog
+        .enqueue_library_change_intents(
+            &[path_intent("root-a", generation, 11, 1_201, "live.jpg")],
+            1_201,
+            tiny_policy,
+        )
+        .expect("single reserved P0 admission remains usable");
+}
+
+#[test]
+fn p2_and_p1_have_distinct_steady_admission_reserves() {
+    let default_policy = LibraryChangeQueuePolicy::default();
+    assert_eq!(default_policy.lane_capacity(LibraryChangeLane::Live), 4_096);
+    assert_eq!(
+        default_policy.lane_capacity(LibraryChangeLane::Journal),
+        3_584
+    );
+    assert_eq!(
+        default_policy.lane_capacity(LibraryChangeLane::Recovery),
+        3_072
+    );
+
+    let directory = tempdir().expect("temporary directory");
+    let generation = LibraryRootGeneration::initial();
+    let policy = LibraryChangeQueuePolicy {
+        max_unresolved_changes: 16,
+        max_lease_batch: 1,
+        ..immediate_policy()
+    };
+    assert_eq!(policy.lane_capacity(LibraryChangeLane::Journal), 14);
+    assert_eq!(policy.lane_capacity(LibraryChangeLane::Recovery), 12);
+    let mut catalog = queue_catalog(directory.path().join("catalog.sqlite3"));
+
+    let recovery = (0_u64..12)
+        .map(|index| {
+            let mut intent = path_intent(
+                "root-a",
+                generation,
+                index + 1,
+                1_000 + i64::try_from(index).expect("recovery timestamp"),
+                &format!("recovery-{index}.jpg"),
+            );
+            intent.origin = LibraryChangeOrigin::MetadataInventory;
+            intent
+        })
+        .collect::<Vec<_>>();
+    catalog
+        .enqueue_library_change_intents(&recovery, 1_000, policy)
+        .expect("fill the P2 steady quota");
+
+    let journal = (0_u64..2)
+        .map(|index| {
+            let mut intent = path_intent(
+                "root-a",
+                generation,
+                20 + index,
+                2_000 + i64::try_from(index).expect("journal timestamp"),
+                &format!("journal-{index}.jpg"),
+            );
+            intent.origin = LibraryChangeOrigin::StartupCatchUp;
+            intent
+        })
+        .collect::<Vec<_>>();
+    catalog
+        .enqueue_library_change_intents(&journal, 2_000, policy)
+        .expect("P2 saturation must not consume the P1 reserve");
+
+    let live = (0_u64..2)
+        .map(|index| {
+            path_intent(
+                "root-a",
+                generation,
+                30 + index,
+                3_000 + i64::try_from(index).expect("live timestamp"),
+                &format!("live-{index}.jpg"),
+            )
+        })
+        .collect::<Vec<_>>();
+    catalog
+        .enqueue_library_change_intents(&live, 3_000, policy)
+        .expect("P2 and P1 saturation must preserve the P0 reserve");
+
+    let (p0, p1, p2): (i64, i64, i64) = catalog
+        .connection
+        .query_row(
+            "SELECT
+               SUM(lane = 'p0_live'),
+               SUM(lane = 'p1_journal'),
+               SUM(lane = 'p2_recovery')
+             FROM library_change_queue_lanes",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .expect("load lane occupancy");
+    assert_eq!((p0, p1, p2), (2, 2, 12));
+}
+
+#[test]
+fn live_watcher_gap_promotion_is_atomic_and_idempotent() {
+    let directory = tempdir().expect("temporary directory");
+    let generation = LibraryRootGeneration::initial();
+    let policy = immediate_policy();
+    let mut catalog = queue_catalog(directory.path().join("catalog.sqlite3"));
+    let opening = seed_current_journal_authority(&mut catalog);
+    catalog
+        .enqueue_library_change_intents(
+            &[intent(
+                "root-a",
+                generation,
+                1,
+                1_000,
+                LibraryChangeIntentKind::Reconcile,
+                LibraryChangeScope::Subtree,
+                "album",
+            )],
+            1_000,
+            policy,
+        )
+        .expect("enqueue bounded watcher work");
+    let live = catalog
+        .lease_authoritative_library_change("root-a", generation, 1_000, policy)
+        .expect("lease bounded watcher work")
+        .expect("bounded watcher lease");
+    let failure = LibraryChangeFailure {
+        code: "metadata_inventory_required".to_owned(),
+        message: "The bounded watcher scope could not be reconstructed".to_owned(),
+    };
+
+    assert_eq!(
+        catalog
+            .promote_live_watcher_gap_to_metadata_inventory(
+                live.change.id,
+                live.lease_generation,
+                &failure,
+                1_001,
+                policy,
+            )
+            .expect("promote proven watcher gap"),
+        LibraryChangeLeaseUpdateOutcome::Applied,
+    );
+    assert_eq!(
+        catalog
+            .promote_live_watcher_gap_to_metadata_inventory(
+                live.change.id,
+                live.lease_generation,
+                &failure,
+                1_002,
+                policy,
+            )
+            .expect("replay promotion"),
+        LibraryChangeLeaseUpdateOutcome::Superseded,
+    );
+
+    let evidence: (
+        String,
+        i64,
+        String,
+        String,
+        String,
+        i64,
+        Option<i64>,
+        String,
+        String,
+        i64,
+    ) = catalog
+        .connection
+        .query_row(
+            "SELECT original.status, original.superseded_by_change_id,
+                    recovery.origin, lanes.lane, recovery.status,
+                    recovery.lease_generation, recovery.lease_expires_unix_ms,
+                    recovery.last_failure_code, authority.reason,
+                    (SELECT COUNT(*) FROM library_recovery_authorities)
+             FROM library_change_queue AS original
+             JOIN library_change_queue AS recovery
+               ON recovery.id = original.superseded_by_change_id
+             JOIN library_change_queue_lanes AS lanes
+               ON lanes.change_id = recovery.id
+             JOIN library_recovery_authorities AS authority
+               ON authority.change_id = recovery.id
+             WHERE original.id = ?1",
+            [sqlite_integer(live.change.id.value(), "change ID").expect("change ID")],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                    row.get(5)?,
+                    row.get(6)?,
+                    row.get(7)?,
+                    row.get(8)?,
+                    row.get(9)?,
+                ))
+            },
+        )
+        .expect("atomic promotion evidence");
+    assert_eq!(evidence.0, "superseded");
+    assert!(evidence.1 > 0);
+    assert_eq!(evidence.2, "metadata_inventory");
+    assert_eq!(evidence.3, "p2_recovery");
+    assert_eq!(evidence.4, "pending");
+    assert_eq!(evidence.5, 0);
+    assert_eq!(evidence.6, None);
+    assert_eq!(evidence.7, "metadata_inventory_required");
+    assert_eq!(evidence.8, "watcher_uncovered_gap");
+    assert_eq!(evidence.9, 1);
+    let recovery_id =
+        LibraryChangeId::new(u64::try_from(evidence.1).expect("positive recovery change ID"))
+            .expect("recovery change ID");
+    let authority = catalog
+        .load_metadata_inventory_recovery_authority(recovery_id)
+        .expect("load watcher-gap authority")
+        .expect("watcher-gap authority");
+    let boundary = authority
+        .opening_boundary
+        .expect("watcher-gap opening boundary");
+    assert_eq!(boundary.volume, opening.volume);
+    assert_eq!(boundary.root_file_reference, opening.root_file_reference);
+    assert_eq!(boundary.journal_id, opening.journal_id);
+    assert_eq!(boundary.next_usn, opening.next_unread_usn);
+    assert_eq!(boundary.protocol_version, opening.protocol_version);
+    assert_eq!(boundary.contract_version, opening.contract_version);
+    let window: (String, Option<String>, String, String, String, String) = catalog
+        .connection
+        .query_row(
+            "SELECT baseline.phase, baseline.closing_next_usn,
+                    checkpoint.continuity_state, checkpoint.next_unread_usn,
+                    root.continuity_state, checkpoint.last_failure_code
+             FROM library_persistent_journal_baselines AS baseline
+             JOIN library_persistent_journal_checkpoints AS checkpoint
+               ON checkpoint.root_id = baseline.root_id
+              AND checkpoint.root_generation = baseline.root_generation
+             JOIN library_persistent_journal_root_state AS root
+               ON root.root_id = baseline.root_id
+              AND root.root_generation = baseline.root_generation
+             WHERE baseline.change_id = ?1",
+            [sqlite_integer(recovery_id.value(), "recovery change ID")
+                .expect("recovery change ID")],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                    row.get(5)?,
+                ))
+            },
+        )
+        .expect("watcher-gap recovery window");
+    assert_eq!(window.0, "inventory");
+    assert_eq!(window.1, None);
+    assert_eq!(window.2, "recovery_required");
+    assert_eq!(window.3, opening.next_unread_usn.to_canonical_text());
+    assert_eq!(window.4, "recovery_required");
+    assert_eq!(window.5, "metadata_inventory_required");
+}
+
+#[test]
+fn failed_live_watcher_gap_promotion_rolls_back_every_record() {
+    let directory = tempdir().expect("temporary directory");
+    let generation = LibraryRootGeneration::initial();
+    let policy = immediate_policy();
+    let mut catalog = queue_catalog(directory.path().join("catalog.sqlite3"));
+    seed_current_journal_authority(&mut catalog);
+    catalog
+        .enqueue_library_change_intents(
+            &[intent(
+                "root-a",
+                generation,
+                1,
+                1_000,
+                LibraryChangeIntentKind::Reconcile,
+                LibraryChangeScope::Subtree,
+                "album",
+            )],
+            1_000,
+            policy,
+        )
+        .expect("enqueue bounded watcher work");
+    let live = catalog
+        .lease_authoritative_library_change("root-a", generation, 1_000, policy)
+        .expect("lease bounded watcher work")
+        .expect("bounded watcher lease");
+    let failure = LibraryChangeFailure {
+        code: "metadata_inventory_required".to_owned(),
+        message: "The bounded watcher scope could not be reconstructed".to_owned(),
+    };
+    catalog
+        .connection
+        .execute_batch(
+            "CREATE TEMP TRIGGER inject_recovery_authority_failure
+             BEFORE INSERT ON library_recovery_authorities
+             BEGIN
+               SELECT RAISE(ABORT, 'injected promotion failure');
+             END;",
+        )
+        .expect("install transaction failure fixture");
+
+    let error = catalog
+        .promote_live_watcher_gap_to_metadata_inventory(
+            live.change.id,
+            live.lease_generation,
+            &failure,
+            1_001,
+            policy,
+        )
+        .expect_err("authority failure rolls back promotion");
+    assert_eq!(error.code, "metadata_inventory_recovery_authority_rejected");
+    let rollback_evidence: (String, Option<i64>, i64, i64, i64, String, String) = catalog
+        .connection
+        .query_row(
+            "SELECT status, superseded_by_change_id,
+                    (SELECT COUNT(*) FROM library_change_queue
+                     WHERE origin = 'metadata_inventory'),
+                    (SELECT COUNT(*) FROM library_recovery_authorities),
+                    (SELECT COUNT(*) FROM library_persistent_journal_baselines),
+                    (SELECT continuity_state FROM library_persistent_journal_checkpoints
+                     WHERE root_id = 'root-a'),
+                    (SELECT continuity_state FROM library_persistent_journal_root_state
+                     WHERE root_id = 'root-a')
+             FROM library_change_queue WHERE id = ?1",
+            [sqlite_integer(live.change.id.value(), "change ID").expect("change ID")],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                    row.get(5)?,
+                    row.get(6)?,
+                ))
+            },
+        )
+        .expect("rollback evidence");
+    assert_eq!(rollback_evidence.0, "leased");
+    assert_eq!(rollback_evidence.1, None);
+    assert_eq!(rollback_evidence.2, 0);
+    assert_eq!(rollback_evidence.3, 0);
+    assert_eq!(rollback_evidence.4, 0);
+    assert_eq!(rollback_evidence.5, "current");
+    assert_eq!(rollback_evidence.6, "current");
+
+    catalog
+        .connection
+        .execute_batch("DROP TRIGGER inject_recovery_authority_failure")
+        .expect("remove transaction failure fixture");
+    assert_eq!(
+        catalog
+            .promote_live_watcher_gap_to_metadata_inventory(
+                live.change.id,
+                live.lease_generation,
+                &failure,
+                1_002,
+                policy,
+            )
+            .expect("retry atomic promotion"),
+        LibraryChangeLeaseUpdateOutcome::Applied,
+    );
+}
+
+#[test]
+fn live_watcher_gap_promotion_respects_lower_lane_reserve() {
+    let directory = tempdir().expect("temporary directory");
+    let generation = LibraryRootGeneration::initial();
+    let policy = LibraryChangeQueuePolicy {
+        max_unresolved_changes: 2,
+        max_lease_batch: 1,
+        ..immediate_policy()
+    };
+    let mut catalog = queue_catalog(directory.path().join("catalog.sqlite3"));
+    seed_current_journal_authority(&mut catalog);
+    let mut journal = path_intent("root-a", generation, 1, 1_000, "journal.jpg");
+    journal.origin = LibraryChangeOrigin::StartupCatchUp;
+    catalog
+        .enqueue_library_change_intents(&[journal], 1_000, policy)
+        .expect("fill the lower-lane allowance");
+    assert_eq!(
+        catalog
+            .lease_path_library_changes_in_lane(
+                "root-a",
+                generation,
+                LibraryChangeLane::Journal,
+                1_000,
+                policy,
+            )
+            .expect("lease lower-lane work")
+            .len(),
+        1,
+    );
+    catalog
+        .enqueue_library_change_intents(
+            &[intent(
+                "root-a",
+                generation,
+                2,
+                1_001,
+                LibraryChangeIntentKind::Reconcile,
+                LibraryChangeScope::Subtree,
+                "album",
+            )],
+            1_001,
+            policy,
+        )
+        .expect("use reserved live admission");
+    let live = catalog
+        .lease_authoritative_library_change("root-a", generation, 1_001, policy)
+        .expect("lease reserved live work")
+        .expect("reserved live lease");
+    let error = catalog
+        .promote_live_watcher_gap_to_metadata_inventory(
+            live.change.id,
+            live.lease_generation,
+            &LibraryChangeFailure {
+                code: "metadata_inventory_required".to_owned(),
+                message: "The bounded watcher scope could not be reconstructed".to_owned(),
+            },
+            1_002,
+            policy,
+        )
+        .expect_err("P2 promotion cannot consume P0 reserve");
+    assert_eq!(error.code, "change_queue_backpressure");
+
+    let evidence: (String, Option<i64>, i64, i64, String, String) = catalog
+        .connection
+        .query_row(
+            "SELECT status, superseded_by_change_id,
+                    (SELECT COUNT(*) FROM library_change_queue
+                     WHERE origin = 'metadata_inventory'),
+                    (SELECT COUNT(*) FROM library_recovery_authorities),
+                    (SELECT continuity_state FROM library_persistent_journal_checkpoints
+                     WHERE root_id = 'root-a'),
+                    (SELECT continuity_state FROM library_persistent_journal_root_state
+                     WHERE root_id = 'root-a')
+             FROM library_change_queue WHERE id = ?1",
+            [sqlite_integer(live.change.id.value(), "change ID").expect("change ID")],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                    row.get(5)?,
+                ))
+            },
+        )
+        .expect("reserved admission evidence");
+    assert_eq!(evidence.0, "leased");
+    assert_eq!(evidence.1, None);
+    assert_eq!(evidence.2, 0);
+    assert_eq!(evidence.3, 0);
+    assert_eq!(evidence.4, "current");
+    assert_eq!(evidence.5, "current");
+}
+
+#[test]
+fn live_watcher_gap_without_current_checkpoint_fails_closed_without_p2() {
+    let directory = tempdir().expect("temporary directory");
+    let generation = LibraryRootGeneration::initial();
+    let policy = immediate_policy();
+    let mut catalog = queue_catalog(directory.path().join("catalog.sqlite3"));
+    catalog
+        .save_persistent_journal_capability(&PersistentJournalCapability {
+            root_id: "root-a".to_owned(),
+            root_generation: generation,
+            protocol_version: 5,
+            contract_version: 1,
+            state: PersistentJournalCapabilityState::Supported,
+            continuity: PersistentJournalContinuityState::Current,
+            failure: None,
+            updated_unix_ms: 900,
+        })
+        .expect("current journal root without checkpoint");
+    catalog
+        .enqueue_library_change_intents(
+            &[intent(
+                "root-a",
+                generation,
+                1,
+                1_000,
+                LibraryChangeIntentKind::Reconcile,
+                LibraryChangeScope::Subtree,
+                "album",
+            )],
+            1_000,
+            policy,
+        )
+        .expect("enqueue bounded watcher work");
+    let live = catalog
+        .lease_authoritative_library_change("root-a", generation, 1_000, policy)
+        .expect("lease bounded watcher work")
+        .expect("bounded watcher lease");
+    let failure = LibraryChangeFailure {
+        code: "metadata_inventory_required".to_owned(),
+        message: "The bounded watcher scope could not be reconstructed".to_owned(),
+    };
+
+    assert_eq!(
+        catalog
+            .promote_live_watcher_gap_to_metadata_inventory(
+                live.change.id,
+                live.lease_generation,
+                &failure,
+                1_001,
+                policy,
+            )
+            .expect("persist fail-closed retry"),
+        LibraryChangeLeaseUpdateOutcome::Applied,
+    );
+    let evidence: (String, String, i64, i64, i64, String, Option<String>) = catalog
+        .connection
+        .query_row(
+            "SELECT queue.status, queue.last_failure_code,
+                    (SELECT COUNT(*) FROM library_change_queue
+                     WHERE origin = 'metadata_inventory'),
+                    (SELECT COUNT(*) FROM library_recovery_authorities),
+                    (SELECT COUNT(*) FROM library_persistent_journal_baselines),
+                    root.continuity_state, root.last_failure_code
+             FROM library_change_queue AS queue
+             JOIN library_persistent_journal_root_state AS root
+               ON root.root_id = queue.root_id
+              AND root.root_generation = queue.root_generation
+             WHERE queue.id = ?1",
+            [sqlite_integer(live.change.id.value(), "change ID").expect("change ID")],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                    row.get(5)?,
+                    row.get(6)?,
+                ))
+            },
+        )
+        .expect("fail-closed promotion evidence");
+    assert_eq!(evidence.0, "retry_wait");
+    assert_eq!(evidence.1, "metadata_inventory_required");
+    assert_eq!(evidence.2, 0);
+    assert_eq!(evidence.3, 0);
+    assert_eq!(evidence.4, 0);
+    assert_eq!(evidence.5, "recovery_required");
+    assert_eq!(evidence.6, None);
+    assert_eq!(
+        catalog
+            .promote_live_watcher_gap_to_metadata_inventory(
+                live.change.id,
+                live.lease_generation,
+                &failure,
+                1_002,
+                policy,
+            )
+            .expect("idempotent stale promotion"),
+        LibraryChangeLeaseUpdateOutcome::LeaseMismatch,
+    );
+}
+
+#[test]
+fn live_only_watcher_gap_fails_closed_without_creating_recovery_authority() {
+    let directory = tempdir().expect("temporary directory");
+    let generation = LibraryRootGeneration::initial();
+    let policy = immediate_policy();
+    let mut catalog = queue_catalog(directory.path().join("catalog.sqlite3"));
+    catalog
+        .save_persistent_journal_capability(&PersistentJournalCapability {
+            root_id: "root-a".to_owned(),
+            root_generation: generation,
+            protocol_version: 5,
+            contract_version: 1,
+            state: PersistentJournalCapabilityState::LiveOnly,
+            continuity: PersistentJournalContinuityState::LiveOnly,
+            failure: None,
+            updated_unix_ms: 900,
+        })
+        .expect("live-only journal root");
+    catalog
+        .enqueue_library_change_intents(
+            &[intent(
+                "root-a",
+                generation,
+                1,
+                1_000,
+                LibraryChangeIntentKind::Reconcile,
+                LibraryChangeScope::Subtree,
+                "album",
+            )],
+            1_000,
+            policy,
+        )
+        .expect("enqueue bounded watcher work");
+    let live = catalog
+        .lease_authoritative_library_change("root-a", generation, 1_000, policy)
+        .expect("lease bounded watcher work")
+        .expect("bounded watcher lease");
+
+    assert_eq!(
+        catalog
+            .promote_live_watcher_gap_to_metadata_inventory(
+                live.change.id,
+                live.lease_generation,
+                &LibraryChangeFailure {
+                    code: "metadata_inventory_required".to_owned(),
+                    message: "The bounded watcher scope could not be reconstructed".to_owned(),
+                },
+                1_001,
+                policy,
+            )
+            .expect("persist live-only retry"),
+        LibraryChangeLeaseUpdateOutcome::Applied,
+    );
+    let evidence: (String, i64, i64, String) = catalog
+        .connection
+        .query_row(
+            "SELECT queue.status,
+                    (SELECT COUNT(*) FROM library_change_queue
+                     WHERE origin = 'metadata_inventory'),
+                    (SELECT COUNT(*) FROM library_recovery_authorities),
+                    root.continuity_state
+             FROM library_change_queue AS queue
+             JOIN library_persistent_journal_root_state AS root
+               ON root.root_id = queue.root_id
+              AND root.root_generation = queue.root_generation
+             WHERE queue.id = ?1",
+            [sqlite_integer(live.change.id.value(), "change ID").expect("change ID")],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        )
+        .expect("live-only fail-closed evidence");
+    assert_eq!(evidence.0, "retry_wait");
+    assert_eq!(evidence.1, 0);
+    assert_eq!(evidence.2, 0);
+    assert_eq!(evidence.3, "live_only");
+}
+
+#[test]
+fn p2_authoritative_lease_requires_matching_unretired_persisted_authority() {
+    let directory = tempdir().expect("temporary directory");
+    let generation = LibraryRootGeneration::initial();
+    let policy = immediate_policy();
+    let mut catalog = queue_catalog(directory.path().join("catalog.sqlite3"));
+    let mut recovery = intent(
+        "root-a",
+        generation,
+        1,
+        1_000,
+        LibraryChangeIntentKind::FreshnessUnknown,
+        LibraryChangeScope::Root,
+        "",
+    );
+    recovery.origin = LibraryChangeOrigin::ConsistencyAudit;
+    catalog
+        .enqueue_library_change_intents(&[recovery], 1_000, policy)
+        .expect("enqueue unauthorised P2-looking work");
+
+    assert!(
+        !catalog
+            .has_ready_metadata_inventory_recovery("root-a", generation, 1_000, policy)
+            .expect("check unauthorised recovery")
+    );
+    assert!(
+        catalog
+            .lease_metadata_inventory_recovery("root-a", generation, 1_000, policy)
+            .expect("reject unauthorised recovery lease")
+            .is_none()
+    );
+
+    catalog
+        .connection
+        .execute(
+            "DELETE FROM library_change_queue WHERE root_id = 'root-a'",
+            [],
+        )
+        .expect("retire unauthorised fixture work");
+    catalog
+        .save_persistent_journal_capability(&PersistentJournalCapability {
+            root_id: "root-a".to_owned(),
+            root_generation: generation,
+            protocol_version: 5,
+            contract_version: 1,
+            state: PersistentJournalCapabilityState::Supported,
+            continuity: PersistentJournalContinuityState::BaselineRequired,
+            failure: None,
+            updated_unix_ms: 1_000,
+        })
+        .expect("persist supported baseline capability");
+    let baseline = catalog
+        .begin_persistent_journal_baseline(
+            &PersistentJournalBaselineStartRequest {
+                run_id: "persisted-recovery-run".to_owned(),
+                root_id: "root-a".to_owned(),
+                root_generation: generation,
+                volume: PersistentJournalVolumeIdentity {
+                    volume_guid: "persisted-recovery-volume".to_owned(),
+                    volume_serial: 1,
+                },
+                root_file_reference: JournalFileReference::V2([1; 8]),
+                journal_id: JournalIdentifier::new(44).expect("journal ID"),
+                opening_next_usn: JournalUsn::new(20).expect("opening USN"),
+                protocol_version: 5,
+                contract_version: 1,
+                authorized_unix_ms: 1_000,
+            },
+            policy,
+        )
+        .expect("persist matching recovery authority and baseline");
+    let change_id = baseline.change_id;
+
+    assert!(
+        catalog
+            .has_ready_metadata_inventory_recovery("root-a", generation, 1_000, policy)
+            .expect("check authorised recovery")
+    );
+    assert_eq!(
+        catalog
+            .lease_metadata_inventory_recovery("root-a", generation, 1_000, policy)
+            .expect("lease authorised recovery")
+            .expect("authorised recovery lease")
+            .change
+            .id,
+        change_id
+    );
+}
+
+#[test]
+fn recovery_candidate_publication_replay_is_idempotent_and_persistently_owned() {
+    let directory = tempdir().expect("temporary directory");
+    let (mut catalog, authority) = recovery_inventory_catalog(
+        directory.path().join("catalog.sqlite3"),
+        "owned-replay-run",
+        &["new.jpg"],
+    );
+    let intent = metadata_candidate_intent("new.jpg", 10);
+    let update = metadata_candidate_update("new.jpg");
+
+    let first = catalog
+        .publish_metadata_inventory_comparison_candidates(
+            &authority,
+            "owned-replay-run",
+            std::slice::from_ref(&intent),
+            std::slice::from_ref(&update),
+            1_010,
+            immediate_policy(),
+        )
+        .expect("publish first candidate page")
+        .expect("authority remains leased");
+    let replay = catalog
+        .publish_metadata_inventory_comparison_candidates(
+            &authority,
+            "owned-replay-run",
+            std::slice::from_ref(&intent),
+            std::slice::from_ref(&update),
+            1_011,
+            immediate_policy(),
+        )
+        .expect("replay candidate page")
+        .expect("authority remains leased");
+    let evidence: (i64, i64, i64, String) = catalog
+        .connection
+        .query_row(
+            "SELECT run.candidate_count,
+                    (SELECT COUNT(*) FROM library_metadata_inventory_candidate_owners
+                     WHERE run_id = run.id),
+                    (SELECT COUNT(*) FROM library_change_queue AS queue
+                     JOIN library_metadata_inventory_candidate_owners AS owner
+                       ON owner.change_id = queue.id
+                     WHERE owner.run_id = run.id),
+                    entry.comparison_status
+             FROM library_metadata_inventory_runs AS run
+             JOIN library_metadata_inventory_entries AS entry ON entry.run_id = run.id
+             WHERE run.id = 'owned-replay-run'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        )
+        .expect("owned replay evidence");
+
+    assert_eq!(first.0.inserted_count, 1);
+    assert_eq!(replay.0, LibraryChangeEnqueueReport::default());
+    assert_eq!(first.1.candidate_count, 1);
+    assert_eq!(replay.1.candidate_count, 1);
+    assert_eq!(evidence, (1, 1, 1, "enqueued".to_owned()));
+
+    drop(catalog);
+    SqliteCatalog::open(directory.path().join("catalog.sqlite3"))
+        .expect("reopen owned recovery frontier");
+}
+
+#[test]
+fn recovery_candidate_publication_rolls_back_queue_when_owner_insert_fails() {
+    let directory = tempdir().expect("temporary directory");
+    let (mut catalog, authority) = recovery_inventory_catalog(
+        directory.path().join("catalog.sqlite3"),
+        "owner-failure-run",
+        &["owner.jpg"],
+    );
+    catalog
+        .connection
+        .execute_batch(
+            "CREATE TEMP TRIGGER inject_candidate_owner_failure
+             BEFORE INSERT ON library_metadata_inventory_candidate_owners
+             BEGIN
+               SELECT RAISE(ABORT, 'injected candidate owner failure');
+             END;",
+        )
+        .expect("install owner failure fixture");
+
+    catalog
+        .publish_metadata_inventory_comparison_candidates(
+            &authority,
+            "owner-failure-run",
+            &[metadata_candidate_intent("owner.jpg", 10)],
+            &[metadata_candidate_update("owner.jpg")],
+            1_010,
+            immediate_policy(),
+        )
+        .expect_err("owner failure must roll back queue publication");
+    assert_eq!(
+        recovery_publication_rollback_evidence(&catalog, "owner-failure-run"),
+        ("pending".to_owned(), 0, 0, 0, None),
+    );
+
+    catalog
+        .connection
+        .execute_batch("DROP TRIGGER inject_candidate_owner_failure")
+        .expect("remove owner failure fixture");
+    catalog
+        .publish_metadata_inventory_comparison_candidates(
+            &authority,
+            "owner-failure-run",
+            &[metadata_candidate_intent("owner.jpg", 10)],
+            &[metadata_candidate_update("owner.jpg")],
+            1_011,
+            immediate_policy(),
+        )
+        .expect("retry owner publication")
+        .expect("authority remains leased");
+}
+
+#[test]
+fn recovery_candidate_publication_rolls_back_owner_when_cursor_update_fails() {
+    let directory = tempdir().expect("temporary directory");
+    let (mut catalog, authority) = recovery_inventory_catalog(
+        directory.path().join("catalog.sqlite3"),
+        "cursor-failure-run",
+        &["cursor.jpg"],
+    );
+    catalog
+        .connection
+        .execute_batch(
+            "CREATE TEMP TRIGGER inject_candidate_cursor_failure
+             BEFORE UPDATE OF comparison_cursor ON library_metadata_inventory_runs
+             WHEN NEW.comparison_cursor IS NOT OLD.comparison_cursor
+             BEGIN
+               SELECT RAISE(ABORT, 'injected candidate cursor failure');
+             END;",
+        )
+        .expect("install cursor failure fixture");
+
+    catalog
+        .publish_metadata_inventory_comparison_candidates(
+            &authority,
+            "cursor-failure-run",
+            &[metadata_candidate_intent("cursor.jpg", 10)],
+            &[metadata_candidate_update("cursor.jpg")],
+            1_010,
+            immediate_policy(),
+        )
+        .expect_err("cursor failure must roll back owner and queue");
+    assert_eq!(
+        recovery_publication_rollback_evidence(&catalog, "cursor-failure-run"),
+        ("pending".to_owned(), 0, 0, 0, None),
+    );
+
+    catalog
+        .connection
+        .execute_batch("DROP TRIGGER inject_candidate_cursor_failure")
+        .expect("remove cursor failure fixture");
+    catalog
+        .publish_metadata_inventory_comparison_candidates(
+            &authority,
+            "cursor-failure-run",
+            &[metadata_candidate_intent("cursor.jpg", 10)],
+            &[metadata_candidate_update("cursor.jpg")],
+            1_011,
+            immediate_policy(),
+        )
+        .expect("retry cursor publication")
+        .expect("authority remains leased");
+}
+
+#[test]
+fn higher_priority_exact_work_atomically_takes_recovery_candidate_ownership() {
+    let directory = tempdir().expect("temporary directory");
+    let (mut catalog, authority) = recovery_inventory_catalog(
+        directory.path().join("catalog.sqlite3"),
+        "priority-owner-run",
+        &["journal.jpg", "live.jpg"],
+    );
+    catalog
+        .publish_metadata_inventory_comparison_candidates(
+            &authority,
+            "priority-owner-run",
+            &[
+                metadata_candidate_intent("journal.jpg", 10),
+                metadata_candidate_intent("live.jpg", 11),
+            ],
+            &[
+                metadata_candidate_update("journal.jpg"),
+                metadata_candidate_update("live.jpg"),
+            ],
+            1_010,
+            immediate_policy(),
+        )
+        .expect("publish recovery candidates")
+        .expect("authority remains leased");
+
+    let mut journal = path_intent(
+        "root-a",
+        LibraryRootGeneration::initial(),
+        20,
+        1_020,
+        "journal.jpg",
+    );
+    journal.origin = LibraryChangeOrigin::StartupCatchUp;
+    catalog
+        .enqueue_library_change_intents(&[journal], 1_020, immediate_policy())
+        .expect("publish matching P1 work");
+    catalog
+        .enqueue_library_change_intents(
+            &[path_intent(
+                "root-a",
+                LibraryRootGeneration::initial(),
+                21,
+                1_021,
+                "live.jpg",
+            )],
+            1_021,
+            immediate_policy(),
+        )
+        .expect("publish matching P0 work");
+
+    let owners = catalog
+        .connection
+        .prepare(
+            "SELECT owner.relative_path, lane.lane, queue.status,
+                    (SELECT COUNT(*) FROM library_change_queue AS recovery
+                     JOIN library_change_queue_lanes AS recovery_lane
+                       ON recovery_lane.change_id = recovery.id
+                     WHERE recovery_lane.lane = 'p2_recovery'
+                       AND recovery.scope = 'path'
+                       AND recovery.relative_path = owner.relative_path
+                       AND recovery.status = 'superseded')
+             FROM library_metadata_inventory_candidate_owners AS owner
+             JOIN library_change_queue AS queue ON queue.id = owner.change_id
+             JOIN library_change_queue_lanes AS lane ON lane.change_id = queue.id
+             WHERE owner.run_id = 'priority-owner-run'
+             ORDER BY owner.relative_path",
+        )
+        .expect("priority owner query")
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, i64>(3)?,
+            ))
+        })
+        .expect("priority owner rows")
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .expect("priority owner evidence");
+
+    assert_eq!(
+        owners,
+        vec![
+            (
+                "journal.jpg".to_owned(),
+                "p1_journal".to_owned(),
+                "pending".to_owned(),
+                1,
+            ),
+            (
+                "live.jpg".to_owned(),
+                "p0_live".to_owned(),
+                "pending".to_owned(),
+                1,
+            ),
+        ]
+    );
+}
+
+#[test]
+fn exhausted_recovery_candidate_prevents_authority_completion() {
+    let directory = tempdir().expect("temporary directory");
+    let (mut catalog, authority) = recovery_inventory_catalog(
+        directory.path().join("catalog.sqlite3"),
+        "exhausted-owner-run",
+        &["locked.jpg"],
+    );
+    let policy = LibraryChangeQueuePolicy {
+        max_attempts: 1,
+        ..immediate_policy()
+    };
+    catalog
+        .publish_metadata_inventory_comparison_candidates(
+            &authority,
+            "exhausted-owner-run",
+            &[metadata_candidate_intent("locked.jpg", 10)],
+            &[metadata_candidate_update("locked.jpg")],
+            1_010,
+            policy,
+        )
+        .expect("publish exhaustible candidate")
+        .expect("authority remains leased");
+    catalog
+        .authorize_metadata_inventory_absence("exhausted-owner-run", 1_011)
+        .expect("authorize empty absence page");
+    let publication = catalog
+        .complete_metadata_inventory("exhausted-owner-run", 1_012)
+        .expect("finish candidate publication");
+    assert_eq!(publication.status, MetadataInventoryRunStatus::Comparing);
+
+    let candidate = catalog
+        .lease_path_library_changes_in_lane(
+            "root-a",
+            LibraryRootGeneration::initial(),
+            LibraryChangeLane::Recovery,
+            1_020,
+            policy,
+        )
+        .expect("lease recovery candidate")
+        .pop()
+        .expect("recovery candidate");
+    assert_eq!(
+        catalog
+            .retry_library_change(
+                candidate.change.id,
+                candidate.lease_generation,
+                &LibraryChangeFailure {
+                    code: "path_locked".to_owned(),
+                    message: "The candidate remained locked".to_owned(),
+                },
+                1_021,
+                policy,
+            )
+            .expect("exhaust recovery candidate"),
+        LibraryChangeLeaseUpdateOutcome::Applied,
+    );
+    assert_eq!(
+        catalog
+            .finish_metadata_inventory_recovery(
+                authority.change.id,
+                authority.lease_generation,
+                0,
+                1_022,
+            )
+            .expect("apply completion barrier"),
+        None,
+    );
+    let evidence: (String, Option<i64>, String, Option<i64>, String) = catalog
+        .connection
+        .query_row(
+            "SELECT run.status, recovery.retired_unix_ms,
+                    control.status, candidate.next_retry_unix_ms, candidate.status
+             FROM library_metadata_inventory_runs AS run
+             JOIN library_recovery_authorities AS recovery ON recovery.run_id = run.id
+             JOIN library_change_queue AS control ON control.id = recovery.change_id
+             JOIN library_metadata_inventory_candidate_owners AS owner ON owner.run_id = run.id
+             JOIN library_change_queue AS candidate ON candidate.id = owner.change_id
+             WHERE run.id = 'exhausted-owner-run'",
+            [],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                ))
+            },
+        )
+        .expect("exhausted completion evidence");
+    assert_eq!(
+        evidence,
+        (
+            "comparing".to_owned(),
+            None,
+            "leased".to_owned(),
+            None,
+            "retry_wait".to_owned(),
+        )
+    );
+}
+
+#[test]
+fn p2_completion_atomically_establishes_namespace_proof_and_retires_authority() {
+    let directory = tempdir().expect("temporary directory");
+    let run_id = "atomic-proof-run";
+    let (mut catalog, authority) =
+        recovery_inventory_catalog(directory.path().join("catalog.sqlite3"), run_id, &[]);
+    catalog
+        .authorize_metadata_inventory_absence(run_id, 1_001)
+        .expect("authorize empty absence set");
+    let publication = catalog
+        .complete_metadata_inventory(run_id, 1_002)
+        .expect("complete candidate publication");
+    assert_eq!(publication.status, MetadataInventoryRunStatus::Comparing);
+
+    assert_eq!(
+        catalog
+            .finish_metadata_inventory_recovery(
+                authority.change.id,
+                authority.lease_generation,
+                0,
+                1_003,
+            )
+            .expect("finish atomic P2 publication"),
+        Some(LibraryChangeLeaseUpdateOutcome::Applied),
+    );
+    let evidence: (String, String, i64, i64, String, i64) = catalog
+        .connection
+        .query_row(
+            "SELECT proof.authority_kind, control.status,
+                    authority.retired_unix_ms,
+                    (SELECT COUNT(*) FROM library_metadata_inventory_spools
+                     WHERE run_id = ?1),
+                    run.status, proof.root_generation
+             FROM library_root_publication_namespaces AS proof
+             JOIN library_recovery_authorities AS authority
+               ON authority.root_id = proof.root_id
+              AND authority.root_generation = proof.root_generation
+             JOIN library_change_queue AS control ON control.id = authority.change_id
+             JOIN library_metadata_inventory_runs AS run ON run.id = authority.run_id
+             WHERE run.id = ?1",
+            [run_id],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                    row.get(5)?,
+                ))
+            },
+        )
+        .expect("atomic P2 proof evidence");
+    assert_eq!(
+        evidence,
+        (
+            "metadata_inventory".to_owned(),
+            "completed".to_owned(),
+            1_003,
+            0,
+            "completed".to_owned(),
+            1,
+        )
+    );
+}
+
+#[test]
+fn p2_namespace_conflict_rolls_back_completion_and_preserves_the_spool() {
+    let directory = tempdir().expect("temporary directory");
+    let run_id = "conflicting-proof-run";
+    let (mut catalog, authority) =
+        recovery_inventory_catalog(directory.path().join("catalog.sqlite3"), run_id, &[]);
+    catalog
+        .authorize_metadata_inventory_absence(run_id, 1_001)
+        .expect("authorize empty absence set");
+    catalog
+        .complete_metadata_inventory(run_id, 1_002)
+        .expect("complete candidate publication");
+    catalog
+        .connection
+        .execute(
+            "INSERT INTO library_root_publication_namespaces(
+               root_id, root_generation, identity_scheme, identity_value,
+               authority_kind, established_catalog_revision,
+               established_unix_ms, updated_unix_ms
+             ) VALUES (
+               'root-a', 1, 'windows-file-id-128-v1',
+               '000000000000004d:ffffffffffffffffffffffffffffffff',
+               'foreground_scan', 0, 1, 1
+             )",
+            [],
+        )
+        .expect("conflicting foreground proof");
+
+    let error = catalog
+        .finish_metadata_inventory_recovery(
+            authority.change.id,
+            authority.lease_generation,
+            0,
+            1_003,
+        )
+        .expect_err("conflicting proof must roll back P2 completion");
+    assert_eq!(error.code, "catalog_root_publication_namespace_conflict");
+    let evidence: (String, Option<i64>, String, i64, String) = catalog
+        .connection
+        .query_row(
+            "SELECT control.status, authority.retired_unix_ms, run.status,
+                    (SELECT COUNT(*) FROM library_metadata_inventory_spools
+                     WHERE run_id = run.id), proof.authority_kind
+             FROM library_recovery_authorities AS authority
+             JOIN library_change_queue AS control ON control.id = authority.change_id
+             JOIN library_metadata_inventory_runs AS run ON run.id = authority.run_id
+             JOIN library_root_publication_namespaces AS proof
+               ON proof.root_id = authority.root_id
+             WHERE run.id = ?1",
+            [run_id],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                ))
+            },
+        )
+        .expect("rolled-back P2 evidence");
+    assert_eq!(
+        evidence,
+        (
+            "leased".to_owned(),
+            None,
+            "comparing".to_owned(),
+            1,
+            "foreground_scan".to_owned(),
+        )
+    );
+}
+
+#[test]
+fn queue_coalescing_and_leases_preserve_lane_ownership() {
+    let directory = tempdir().expect("temporary directory");
+    let generation = LibraryRootGeneration::initial();
+    let policy = immediate_policy();
+    let mut catalog = queue_catalog(directory.path().join("catalog.sqlite3"));
+    let live = path_intent("root-a", generation, 1, 1_000, "live.jpg");
+    let mut journal = path_intent("root-a", generation, 2, 1_001, "journal.jpg");
+    journal.origin = LibraryChangeOrigin::StartupCatchUp;
+    let mut recovery = path_intent("root-a", generation, 3, 1_002, "recovery.jpg");
+    recovery.origin = LibraryChangeOrigin::MetadataInventory;
+
+    for (intent, now) in [(live, 1_000), (journal, 1_001), (recovery, 1_002)] {
+        catalog
+            .enqueue_library_change_intents(&[intent], now, policy)
+            .expect("enqueue isolated lane");
+    }
+    let lane_rows: Vec<(String, String)> = catalog
+        .connection
+        .prepare(
+            "SELECT queue.origin, lanes.lane
+             FROM library_change_queue AS queue
+             JOIN library_change_queue_lanes AS lanes ON lanes.change_id = queue.id
+             WHERE queue.status = 'pending'
+             ORDER BY queue.id",
+        )
+        .expect("lane query")
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+        .expect("lane rows")
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .expect("lane evidence");
+    assert_eq!(
+        lane_rows,
+        vec![
+            ("live_notification".to_owned(), "p0_live".to_owned()),
+            ("startup_catch_up".to_owned(), "p1_journal".to_owned()),
+            ("metadata_inventory".to_owned(), "p2_recovery".to_owned()),
+        ]
+    );
+
+    for (lane, origin) in [
+        (
+            LibraryChangeLane::Live,
+            LibraryChangeOrigin::LiveNotification,
+        ),
+        (
+            LibraryChangeLane::Journal,
+            LibraryChangeOrigin::StartupCatchUp,
+        ),
+        (
+            LibraryChangeLane::Recovery,
+            LibraryChangeOrigin::MetadataInventory,
+        ),
+    ] {
+        let leased = catalog
+            .lease_path_library_changes_in_lane("root-a", generation, lane, 1_010, policy)
+            .expect("lease lane");
+        assert_eq!(leased.len(), 1);
+        assert_eq!(leased[0].change.intent.origin, origin);
+    }
+}
+
+#[test]
+fn one_and_two_legacy_unowned_nonpath_rows_become_one_idempotent_blocked_survivor() {
+    let generation = LibraryRootGeneration::initial();
+    let policy = LibraryChangeQueuePolicy {
+        debounce_millis: 0,
+        max_lease_batch: 4,
+        ..LibraryChangeQueuePolicy::default()
+    };
+    for legacy_count in [1_i64, 2] {
+        let directory = tempdir().expect("temporary directory");
+        let catalog_path = directory.path().join("catalog.sqlite3");
+        let catalog = queue_catalog(catalog_path.clone());
+        catalog
+            .connection
+            .execute(
+                "WITH RECURSIVE sequence(value) AS (
+                   SELECT 0 UNION ALL SELECT value + 1 FROM sequence WHERE value + 1 < ?1
+                 )
+                 INSERT INTO library_change_queue(
+                   root_id, root_generation, intent_kind, scope, relative_path,
+                   origin, first_observed_unix_ms, most_recent_observed_unix_ms,
+                   first_sequence, most_recent_sequence, coalesced_observation_count,
+                   status, ready_unix_ms, catalog_revision_at_enqueue,
+                   catch_up_source, catch_up_watermark, created_unix_ms, updated_unix_ms
+                 )
+                 SELECT 'root-a', 1, 'reconcile', 'subtree', printf('legacy-%d', value),
+                        'metadata_inventory', 1000 + value, 1000 + value,
+                        printf('%d', value + 1), printf('%d', value + 1), 1,
+                        'pending', 1000 + value, 0, 'windows_usn_v1',
+                        printf('volume|1|%d', value + 1), 1000 + value, 1000 + value
+                 FROM sequence",
+                [legacy_count],
+            )
+            .expect("seed legacy rows");
+        catalog
+            .connection
+            .execute(
+                "INSERT INTO library_change_queue_catch_up_lineage(
+                   change_id, catch_up_source, catch_up_watermark, enrolled_unix_ms
+                 )
+                 SELECT id, catch_up_source, catch_up_watermark, created_unix_ms
+                 FROM library_change_queue WHERE root_id = 'root-a'",
+                [],
+            )
+            .expect("seed lineage");
+        assert!(
+            catalog
+                .has_ready_legacy_unowned_recovery_debt("root-a", generation, 2_000, policy,)
+                .expect("single or duplicate legacy debt must be scheduled")
+        );
+        drop(catalog);
+
+        let mut catalog = SqliteCatalog::open(catalog_path.clone()).expect("reopen legacy rows");
+        assert_eq!(
+            catalog
+                .compact_legacy_unowned_recovery_controls("root-a", generation, 2_000, policy,)
+                .expect("block legacy survivor"),
+            u32::try_from(legacy_count - 1).expect("superseded count")
+        );
+        let first_projection: (i64, i64, i64, Option<i64>) = catalog
+            .connection
+            .query_row(
+                "SELECT
+                   SUM(status = 'retry_wait' AND attempt_count = ?1
+                     AND next_retry_unix_ms IS NULL
+                     AND last_failure_code = 'legacy_recovery_authority_missing'),
+                   SUM(status = 'superseded'),
+                   SUM(status IN ('pending', 'leased')),
+                   MAX(CASE WHEN status = 'retry_wait' THEN updated_unix_ms END)
+                 FROM library_change_queue WHERE root_id = 'root-a'",
+                [i64::from(policy.max_attempts)],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+            )
+            .expect("blocked projection");
+        assert_eq!(first_projection.0, 1);
+        assert_eq!(first_projection.1, legacy_count - 1);
+        assert_eq!(first_projection.2, 0);
+        assert_eq!(first_projection.3, Some(2_000));
+        drop(catalog);
+
+        let mut catalog = SqliteCatalog::open(catalog_path.clone()).expect("reopen survivor");
+        assert_eq!(
+            catalog
+                .compact_legacy_unowned_recovery_controls("root-a", generation, 2_100, policy,)
+                .expect("idempotent blocked survivor"),
+            0
+        );
+        let updated_unix_ms = catalog
+            .connection
+            .query_row(
+                "SELECT updated_unix_ms FROM library_change_queue
+                 WHERE status = 'retry_wait'",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .expect("survivor update time");
+        assert_eq!(updated_unix_ms, 2_000);
+        assert!(
+            !catalog
+                .has_ready_legacy_unowned_recovery_debt("root-a", generation, 2_100, policy,)
+                .expect("blocked survivor must not restart a worker")
+        );
+
+        if legacy_count == 1 {
+            let replacement = LibraryChangeIntent {
+                root_id: "root-a".to_owned(),
+                root_generation: generation,
+                kind: LibraryChangeIntentKind::FreshnessUnknown,
+                scope: LibraryChangeScope::Root,
+                relative_path: String::new(),
+                previous_relative_path: None,
+                origin: LibraryChangeOrigin::MetadataInventory,
+                first_observed_unix_ms: 2_200,
+                most_recent_observed_unix_ms: 2_200,
+                first_sequence: 3,
+                most_recent_sequence: 3,
+                coalesced_observation_count: 1,
+            };
+            let transaction = catalog
+                .connection
+                .transaction()
+                .expect("replacement transaction");
+            let replacement_id = insert_persistent_journal_recovery_control(
+                &transaction,
+                &replacement,
+                2_200,
+                policy,
+            )
+            .expect("explicit replacement authority");
+            transaction.commit().expect("commit replacement");
+            let replacement_projection = catalog
+                .connection
+                .query_row(
+                    "SELECT
+                       SUM(status = 'superseded'
+                         AND last_failure_code = 'legacy_recovery_authority_missing'
+                         AND superseded_by_change_id = ?1),
+                       SUM(id = ?1 AND status = 'pending')
+                     FROM library_change_queue WHERE root_id = 'root-a'",
+                    [i64::try_from(replacement_id.value()).expect("replacement ID")],
+                    |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)),
+                )
+                .expect("replacement projection");
+            assert_eq!(replacement_projection, (1, 1));
+        }
+    }
+}
+
+#[test]
+fn legacy_unowned_nonpath_debt_compacts_to_one_blocked_control_across_reopen() {
+    let directory = tempdir().expect("temporary directory");
+    let catalog_path = directory.path().join("catalog.sqlite3");
+    let generation = LibraryRootGeneration::initial();
+    let policy = LibraryChangeQueuePolicy {
+        debounce_millis: 0,
+        max_lease_batch: 4,
+        ..LibraryChangeQueuePolicy::default()
+    };
+    let catalog = queue_catalog(catalog_path.clone());
+    let legacy_shapes = [
+        (
+            "reconcile",
+            "subtree",
+            "legacy-subtree",
+            None,
+            "metadata_inventory",
+        ),
+        ("reconcile", "root", "", None, "consistency_audit"),
+        ("freshness_unknown", "root", "", None, "user_refresh"),
+        (
+            "rename_candidate",
+            "subtree",
+            "renamed-subtree",
+            Some("prior-subtree"),
+            "metadata_inventory",
+        ),
+        (
+            "reconcile",
+            "subtree",
+            "legacy-peer",
+            None,
+            "consistency_audit",
+        ),
+    ];
+    for (index, (kind, scope, relative_path, previous_relative_path, origin)) in
+        legacy_shapes.into_iter().enumerate()
+    {
+        let ordinal = i64::try_from(index + 1).expect("legacy ordinal");
+        catalog
+            .connection
+            .execute(
+                "INSERT INTO library_change_queue(
+                   root_id, root_generation, intent_kind, scope, relative_path,
+                   previous_relative_path, origin, first_observed_unix_ms,
+                   most_recent_observed_unix_ms, first_sequence, most_recent_sequence,
+                   coalesced_observation_count, status, ready_unix_ms,
+                   catalog_revision_at_enqueue, catch_up_source, catch_up_watermark,
+                   created_unix_ms, updated_unix_ms
+                 ) VALUES (
+                   'root-a', 1, ?1, ?2, ?3, ?4,
+                   ?5, ?6, ?6, ?7, ?7, 1, 'pending', ?6, 0,
+                   'windows_usn_v1', ?8, ?6, ?6
+                 )",
+                rusqlite::params![
+                    kind,
+                    scope,
+                    relative_path,
+                    previous_relative_path,
+                    origin,
+                    1_000 + ordinal,
+                    ordinal.to_string(),
+                    format!("volume|12|{ordinal}"),
+                ],
+            )
+            .expect("insert valid legacy non-path debt");
+        let change_id = catalog.connection.last_insert_rowid();
+        catalog
+            .connection
+            .execute(
+                "INSERT INTO library_change_queue_catch_up_lineage(
+                   change_id, catch_up_source, catch_up_watermark, enrolled_unix_ms
+                 ) VALUES (?1, 'windows_usn_v1', ?2, ?3)",
+                rusqlite::params![change_id, format!("volume|12|{ordinal}"), 1_000 + ordinal,],
+            )
+            .expect("insert legacy catch-up lineage");
+    }
+    assert!(
+        catalog
+            .has_ready_legacy_unowned_recovery_debt("root-a", generation, 2_000, policy)
+            .expect("inspect initial debt")
+    );
+    drop(catalog);
+
+    let mut catalog = SqliteCatalog::open(catalog_path.clone()).expect("validate legacy shape");
+    assert_eq!(
+        catalog
+            .compact_legacy_unowned_recovery_controls("root-a", generation, 2_001, policy)
+            .expect("compact first bounded page"),
+        3
+    );
+    drop(catalog);
+
+    let mut catalog = SqliteCatalog::open(catalog_path).expect("reopen after bounded page");
+    assert_eq!(
+        catalog
+            .compact_legacy_unowned_recovery_controls("root-a", generation, 2_002, policy)
+            .expect("finish compacting legacy debt"),
+        1
+    );
+    assert_eq!(
+        catalog
+            .compact_legacy_unowned_recovery_controls("root-a", generation, 2_003, policy)
+            .expect("idempotent compact replay"),
+        0
+    );
+    assert!(
+        !catalog
+            .has_ready_legacy_unowned_recovery_debt("root-a", generation, 2_003, policy)
+            .expect("inspect compacted debt")
+    );
+    let evidence: (i64, i64, i64, i64, i64, i64, i64, i64, i64) = catalog
+        .connection
+        .query_row(
+            "SELECT
+               SUM(status = 'retry_wait'),
+               SUM(status = 'superseded'),
+               SUM(status = 'superseded' AND superseded_by_change_id IS NOT NULL),
+               SUM(status = 'retry_wait' AND scope = 'root'
+                   AND intent_kind = 'freshness_unknown' AND relative_path = ''),
+               SUM(status = 'retry_wait' AND coalesced_observation_count = 5
+                   AND attempt_count = ?1 AND next_retry_unix_ms IS NULL
+                   AND last_failure_code = 'legacy_recovery_authority_missing'),
+               (SELECT COUNT(*)
+                FROM library_change_queue_catch_up_lineage AS lineage
+                JOIN library_change_queue AS owned ON owned.id = lineage.change_id
+                WHERE owned.root_id = 'root-a' AND owned.root_generation = 1),
+               (SELECT COUNT(*) FROM library_recovery_authorities),
+               (SELECT COUNT(*) FROM library_persistent_journal_root_state
+                WHERE continuity_state = 'current'),
+               (SELECT COUNT(*) FROM library_metadata_inventory_runs
+                WHERE absence_authority = 1)
+             FROM library_change_queue
+             WHERE root_id = 'root-a' AND root_generation = 1",
+            [i64::from(policy.max_attempts)],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                    row.get(5)?,
+                    row.get(6)?,
+                    row.get(7)?,
+                    row.get(8)?,
+                ))
+            },
+        )
+        .expect("compacted debt evidence");
+    assert_eq!(evidence, (1, 4, 4, 1, 1, 5, 0, 0, 0));
+    assert!(
+        catalog
+            .journal_admission_has_headroom("root-a", generation, policy)
+            .expect("legacy control must not starve P1")
+    );
+    catalog
+        .enqueue_library_change_intents(
+            &[LibraryChangeIntent {
+                root_id: "root-a".to_owned(),
+                root_generation: generation,
+                kind: LibraryChangeIntentKind::Reconcile,
+                scope: LibraryChangeScope::Path,
+                relative_path: "journal-after-legacy.jpg".to_owned(),
+                previous_relative_path: None,
+                origin: LibraryChangeOrigin::StartupCatchUp,
+                first_observed_unix_ms: 2_004,
+                most_recent_observed_unix_ms: 2_004,
+                first_sequence: 10,
+                most_recent_sequence: 10,
+                coalesced_observation_count: 1,
+            }],
+            2_004,
+            policy,
+        )
+        .expect("admit P1 beside blocked legacy survivor");
+    assert_eq!(
+        catalog
+            .lease_path_library_changes_in_lane(
+                "root-a",
+                generation,
+                LibraryChangeLane::Journal,
+                2_004,
+                policy,
+            )
+            .expect("lease admitted P1")
+            .len(),
+        1
+    );
+}
+
+#[test]
+fn exactly_3584_mixed_nonpath_legacy_rows_release_capacity_without_authority() {
+    const LEGACY_NONPATH_P2: i64 = 3_584;
+
+    let directory = tempdir().expect("temporary directory");
+    let catalog_path = directory.path().join("catalog.sqlite3");
+    let generation = LibraryRootGeneration::initial();
+    let policy = LibraryChangeQueuePolicy {
+        debounce_millis: 0,
+        max_lease_batch: 64,
+        ..LibraryChangeQueuePolicy::default()
+    };
+    let catalog = queue_catalog(catalog_path.clone());
+    catalog
+        .connection
+        .execute(
+            "WITH RECURSIVE sequence(value) AS (
+               SELECT 0
+               UNION ALL
+               SELECT value + 1 FROM sequence WHERE value + 1 < ?1
+             )
+             INSERT INTO library_change_queue(
+               root_id, root_generation, intent_kind, scope, relative_path,
+               previous_relative_path, origin, first_observed_unix_ms,
+               most_recent_observed_unix_ms, first_sequence, most_recent_sequence,
+               coalesced_observation_count, status, ready_unix_ms,
+               catalog_revision_at_enqueue, catch_up_source, catch_up_watermark,
+               created_unix_ms, updated_unix_ms
+             )
+             SELECT
+               'root-a', 1,
+               CASE value % 4
+                 WHEN 2 THEN 'freshness_unknown'
+                 WHEN 3 THEN 'rename_candidate'
+                 ELSE 'reconcile'
+               END,
+               CASE value % 4 WHEN 0 THEN 'subtree' WHEN 3 THEN 'subtree' ELSE 'root' END,
+               CASE value % 4
+                 WHEN 0 THEN printf('subtree-%04d', value)
+                 WHEN 3 THEN printf('renamed-%04d', value)
+                 ELSE ''
+               END,
+               CASE value % 4 WHEN 3 THEN printf('prior-%04d', value) ELSE NULL END,
+               CASE value % 4
+                 WHEN 1 THEN 'consistency_audit'
+                 WHEN 2 THEN 'user_refresh'
+                 ELSE 'metadata_inventory'
+               END,
+               1000 + value, 1000 + value,
+               printf('%d', value + 1), printf('%d', value + 1),
+               1, 'pending', 1000 + value, 0,
+               'windows_usn_v1', printf('volume|12|%d', value + 1),
+               1000 + value, 1000 + value
+             FROM sequence",
+            [LEGACY_NONPATH_P2],
+        )
+        .expect("seed mixed valid legacy non-path debt");
+    catalog
+        .connection
+        .execute(
+            "INSERT INTO library_change_queue_catch_up_lineage(
+               change_id, catch_up_source, catch_up_watermark, enrolled_unix_ms
+             )
+             SELECT id, catch_up_source, catch_up_watermark, created_unix_ms
+             FROM library_change_queue
+             WHERE root_id = 'root-a' AND root_generation = 1",
+            [],
+        )
+        .expect("seed mixed legacy lineage");
+    drop(catalog);
+
+    let mut catalog = SqliteCatalog::open(catalog_path.clone()).expect("validate legacy debt");
+    let first = catalog
+        .compact_legacy_unowned_recovery_controls("root-a", generation, 5_000, policy)
+        .expect("compact first bounded mixed page");
+    assert_eq!(first, 63);
+    drop(catalog);
+
+    let mut catalog = SqliteCatalog::open(catalog_path).expect("reopen mixed legacy debt");
+    let mut superseded = u64::from(first);
+    let mut page = 1_i64;
+    loop {
+        page += 1;
+        let compacted = catalog
+            .compact_legacy_unowned_recovery_controls("root-a", generation, 5_000 + page, policy)
+            .expect("compact next bounded mixed page");
+        if compacted == 0 {
+            break;
+        }
+        superseded = superseded.saturating_add(u64::from(compacted));
+    }
+    assert_eq!(
+        superseded,
+        u64::try_from(LEGACY_NONPATH_P2 - 1).expect("expected superseded debt")
+    );
+    let evidence: (i64, i64, i64, i64, i64, i64, i64, i64) = catalog
+        .connection
+        .query_row(
+            "SELECT
+               SUM(status = 'pending'),
+               SUM(status = 'superseded'),
+               SUM(status = 'retry_wait'),
+               SUM(status = 'retry_wait' AND attempt_count = ?2
+                   AND last_failure_code = 'legacy_recovery_authority_missing'),
+               SUM(status = 'retry_wait' AND scope = 'root'
+                   AND intent_kind = 'freshness_unknown' AND relative_path = ''),
+               SUM(status = 'retry_wait' AND coalesced_observation_count = ?1),
+               (SELECT COUNT(*)
+                FROM library_change_queue_catch_up_lineage AS lineage
+                JOIN library_change_queue AS owned ON owned.id = lineage.change_id
+                WHERE owned.root_id = 'root-a' AND owned.root_generation = 1),
+               (SELECT COUNT(*) FROM library_recovery_authorities)
+             FROM library_change_queue
+             WHERE root_id = 'root-a' AND root_generation = 1",
+            rusqlite::params![LEGACY_NONPATH_P2, i64::from(policy.max_attempts)],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                    row.get(5)?,
+                    row.get(6)?,
+                    row.get(7)?,
+                ))
+            },
+        )
+        .expect("mixed debt survivor evidence");
+    assert_eq!(
+        evidence,
+        (0, LEGACY_NONPATH_P2 - 1, 1, 1, 1, 1, LEGACY_NONPATH_P2, 0,)
+    );
+    let metrics = catalog
+        .load_library_change_root_queue_metrics("root-a", generation, 6_000, policy)
+        .expect("load blocked survivor metrics");
+    assert_eq!(metrics.health, LibraryChangeQueueHealth::Degraded);
+    assert_eq!(metrics.retry_wait_count, 1);
+    assert_eq!(metrics.exhausted_retry_count, 1);
+    assert_eq!(metrics.freshness_unknown_count, 1);
+    assert_eq!(
+        metrics.latest_exhausted_failure_code.as_deref(),
+        Some("legacy_recovery_authority_missing")
+    );
+    assert_eq!(
+        catalog
+            .cleanup_terminal_library_changes(i64::MAX, 128)
+            .expect("retain superseded lineage while survivor is unresolved"),
+        0
+    );
+    assert!(
+        catalog
+            .journal_admission_has_headroom("root-a", generation, policy)
+            .expect("mixed non-path debt must release P1 capacity")
+    );
+
+    let replacement_intent = LibraryChangeIntent {
+        root_id: "root-a".to_owned(),
+        root_generation: generation,
+        kind: LibraryChangeIntentKind::FreshnessUnknown,
+        scope: LibraryChangeScope::Root,
+        relative_path: String::new(),
+        previous_relative_path: None,
+        origin: LibraryChangeOrigin::MetadataInventory,
+        first_observed_unix_ms: 6_001,
+        most_recent_observed_unix_ms: 6_001,
+        first_sequence: 4_000,
+        most_recent_sequence: 4_000,
+        coalesced_observation_count: 1,
+    };
+    let transaction = catalog
+        .connection
+        .transaction()
+        .expect("begin replacement authority control");
+    let replacement_id = insert_persistent_journal_recovery_control(
+        &transaction,
+        &replacement_intent,
+        6_001,
+        policy,
+    )
+    .expect("insert replacement authority control");
+    transaction
+        .commit()
+        .expect("commit replacement authority control");
+    let replacement_shape: (i64, i64, i64) = catalog
+        .connection
+        .query_row(
+            "SELECT
+               SUM(status = 'superseded'
+                   AND last_failure_code = 'legacy_recovery_authority_missing'
+                   AND superseded_by_change_id = ?1),
+               SUM(id = ?1 AND status = 'pending'),
+               SUM(status IN ('pending', 'leased', 'retry_wait'))
+             FROM library_change_queue
+             WHERE root_id = 'root-a' AND root_generation = 1",
+            [i64::try_from(replacement_id.value()).expect("replacement ID")],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .expect("load replacement shape");
+    assert_eq!(replacement_shape, (1, 1, 1));
+}
+
+#[test]
+fn capacity_deferred_live_gap_yields_to_ready_p0_path_and_real_failures_still_exhaust() {
+    let directory = tempdir().expect("temporary directory");
+    let generation = LibraryRootGeneration::initial();
+    let policy = LibraryChangeQueuePolicy {
+        max_unresolved_changes: 4,
+        max_lease_batch: 4,
+        max_attempts: 3,
+        ..immediate_policy()
+    };
+    assert_eq!(policy.lane_capacity(LibraryChangeLane::Recovery), 2);
+    let mut catalog = queue_catalog(directory.path().join("catalog.sqlite3"));
+    let p2_fillers = ["p2-a.jpg", "p2-b.jpg"]
+        .into_iter()
+        .enumerate()
+        .map(|(index, relative_path)| {
+            let mut filler = path_intent(
+                "root-a",
+                generation,
+                u64::try_from(index + 1).expect("P2 sequence"),
+                1_000,
+                relative_path,
+            );
+            filler.origin = LibraryChangeOrigin::UserRefresh;
+            filler
+        })
+        .collect::<Vec<_>>();
+    catalog
+        .enqueue_library_change_intents(&p2_fillers, 1_000, policy)
+        .expect("fill P2 capacity");
+    catalog
+        .enqueue_library_change_intents(
+            &[intent(
+                "root-a",
+                generation,
+                3,
+                1_001,
+                LibraryChangeIntentKind::FreshnessUnknown,
+                LibraryChangeScope::Root,
+                "",
+            )],
+            1_001,
+            policy,
+        )
+        .expect("enqueue P0 live gap");
+    let gap = catalog
+        .lease_live_authoritative_library_change("root-a", generation, 1_002, policy)
+        .expect("lease P0 gap")
+        .expect("P0 gap");
+    assert_eq!(
+        catalog
+            .defer_library_change_for_capacity(
+                gap.change.id,
+                gap.lease_generation,
+                LibraryChangeCapacityDeferral::MetadataInventoryLane,
+                1_002,
+                policy,
+            )
+            .expect("defer full P2 lane"),
+        LibraryChangeLeaseUpdateOutcome::Applied,
+    );
+    catalog
+        .enqueue_library_change_intents(
+            &[path_intent(
+                "root-a",
+                generation,
+                4,
+                1_003,
+                "visible-now.jpg",
+            )],
+            1_003,
+            policy,
+        )
+        .expect("enqueue normal P0 path beside capacity wait");
+    let ready_path = catalog
+        .lease_path_library_changes_in_lane(
+            "root-a",
+            generation,
+            LibraryChangeLane::Live,
+            1_003,
+            policy,
+        )
+        .expect("lease fair P0 path")
+        .pop()
+        .expect("capacity-wait gap must yield to normal P0 path");
+    assert_eq!(ready_path.change.intent.relative_path, "visible-now.jpg");
+    catalog
+        .complete_library_change(ready_path.change.id, ready_path.lease_generation, 0, 1_003)
+        .expect("complete fair P0 path");
+
+    for attempt in 1..=policy.max_attempts {
+        let failed_unix_ms = 1_100 + i64::from(attempt) * 100;
+        let leased = catalog
+            .lease_live_authoritative_library_change("root-a", generation, failed_unix_ms, policy)
+            .expect("lease real-failure gap")
+            .expect("real-failure retry budget");
+        catalog
+            .retry_library_change(
+                leased.change.id,
+                leased.lease_generation,
+                &LibraryChangeFailure {
+                    code: "real_processing_failure".to_owned(),
+                    message: "The source operation genuinely failed".to_owned(),
+                },
+                failed_unix_ms,
+                policy,
+            )
+            .expect("persist real processing failure");
+    }
+    assert!(
+        catalog
+            .lease_live_authoritative_library_change("root-a", generation, 2_000, policy)
+            .expect("load terminal real failure")
+            .is_none()
+    );
+    let terminal: (String, i64, Option<i64>, String) = catalog
+        .connection
+        .query_row(
+            "SELECT status, attempt_count, next_retry_unix_ms, last_failure_code
+             FROM library_change_queue
+             WHERE root_id = 'root-a' AND intent_kind = 'freshness_unknown'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        )
+        .expect("real failure terminal evidence");
+    assert_eq!(
+        terminal,
+        (
+            "retry_wait".to_owned(),
+            i64::from(policy.max_attempts),
+            None,
+            "real_processing_failure".to_owned(),
+        )
+    );
+    let metrics = catalog
+        .load_library_change_root_queue_metrics("root-a", generation, 2_000, policy)
+        .expect("real failure metrics");
+    assert_eq!(metrics.exhausted_retry_count, 1);
+    assert_eq!(
+        metrics.latest_exhausted_failure_code.as_deref(),
+        Some("real_processing_failure")
+    );
+}
+
+#[test]
+fn leased_capacity_deferred_live_gap_preserves_precise_p0_work_and_its_lease() {
+    let directory = tempdir().expect("temporary directory");
+    let generation = LibraryRootGeneration::initial();
+    let policy = LibraryChangeQueuePolicy {
+        max_unresolved_changes: 4,
+        max_lease_batch: 4,
+        max_attempts: 3,
+        ..immediate_policy()
+    };
+    assert_eq!(policy.lane_capacity(LibraryChangeLane::Recovery), 2);
+    let mut catalog = queue_catalog(directory.path().join("catalog.sqlite3"));
+    let p2_fillers = ["p2-a.jpg", "p2-b.jpg"]
+        .into_iter()
+        .enumerate()
+        .map(|(index, relative_path)| {
+            let mut filler = path_intent(
+                "root-a",
+                generation,
+                u64::try_from(index + 1).expect("P2 sequence"),
+                1_000,
+                relative_path,
+            );
+            filler.origin = LibraryChangeOrigin::UserRefresh;
+            filler
+        })
+        .collect::<Vec<_>>();
+    catalog
+        .enqueue_library_change_intents(&p2_fillers, 1_000, policy)
+        .expect("fill P2 capacity");
+    catalog
+        .enqueue_library_change_intents(
+            &[intent(
+                "root-a",
+                generation,
+                3,
+                1_001,
+                LibraryChangeIntentKind::FreshnessUnknown,
+                LibraryChangeScope::Root,
+                "",
+            )],
+            1_001,
+            policy,
+        )
+        .expect("enqueue P0 live gap");
+    let first_gap_lease = catalog
+        .lease_live_authoritative_library_change("root-a", generation, 1_002, policy)
+        .expect("lease P0 gap")
+        .expect("P0 gap");
+    assert_eq!(
+        catalog
+            .defer_library_change_for_capacity(
+                first_gap_lease.change.id,
+                first_gap_lease.lease_generation,
+                LibraryChangeCapacityDeferral::MetadataInventoryLane,
+                1_002,
+                policy,
+            )
+            .expect("defer full P2 lane"),
+        LibraryChangeLeaseUpdateOutcome::Applied,
+    );
+    let leased_gap = catalog
+        .lease_live_authoritative_library_change("root-a", generation, 1_012, policy)
+        .expect("re-lease due capacity gap")
+        .expect("due capacity gap");
+    assert_eq!(leased_gap.change.id, first_gap_lease.change.id);
+
+    let first_intent = path_intent("root-a", generation, 4, 1_013, "visible-now.jpg");
+    let mut first_report = LibraryChangeEnqueueReport::default();
+    let transaction = catalog
+        .connection
+        .transaction()
+        .expect("begin exact leased-gap coalescing transaction");
+    enqueue_one(
+        &transaction,
+        &first_intent,
+        EnqueueContext {
+            enqueued_unix_ms: 1_013,
+            catalog_revision: 0,
+            policy,
+            evidence: None,
+            protected_change_ids: &[],
+            allow_scope_degradation: true,
+        },
+        &mut first_report,
+    )
+    .expect("enqueue precise P0 work beside leased capacity gap");
+    transaction
+        .commit()
+        .expect("commit exact leased-gap coalescing transaction");
+    assert_eq!(first_report.inserted_count, 1);
+    assert_eq!(first_report.superseded_count, 0);
+    assert!(!first_report.freshness_unknown_enqueued);
+    let duplicate_intent = path_intent("root-a", generation, 5, 1_014, "visible-now.jpg");
+    let mut duplicate_report = LibraryChangeEnqueueReport::default();
+    let transaction = catalog
+        .connection
+        .transaction()
+        .expect("begin duplicate leased-gap coalescing transaction");
+    enqueue_one(
+        &transaction,
+        &duplicate_intent,
+        EnqueueContext {
+            enqueued_unix_ms: 1_014,
+            catalog_revision: 0,
+            policy,
+            evidence: None,
+            protected_change_ids: &[],
+            allow_scope_degradation: true,
+        },
+        &mut duplicate_report,
+    )
+    .expect("coalesce duplicate precise P0 work");
+    transaction
+        .commit()
+        .expect("commit duplicate leased-gap coalescing transaction");
+    assert_eq!(duplicate_report.inserted_count, 0);
+    assert_eq!(duplicate_report.coalesced_count, 1);
+    assert_eq!(duplicate_report.superseded_count, 0);
+
+    let evidence: (
+        i64,
+        String,
+        i64,
+        Option<i64>,
+        String,
+        i64,
+        String,
+        String,
+        i64,
+    ) = catalog
+        .connection
+        .query_row(
+            "SELECT
+               gap.id, gap.status, gap.lease_generation, gap.lease_expires_unix_ms,
+               gap.last_failure_code,
+               (SELECT COUNT(*) FROM library_live_gap_recovery_claims AS claim
+                WHERE claim.gap_change_id = gap.id),
+               path.status, path.relative_path, path.coalesced_observation_count
+             FROM library_change_queue AS gap
+             JOIN library_change_queue_lanes AS gap_lane ON gap_lane.change_id = gap.id
+             JOIN library_change_queue AS path
+               ON path.root_id = gap.root_id
+              AND path.root_generation = gap.root_generation
+              AND path.scope = 'path'
+             JOIN library_change_queue_lanes AS path_lane ON path_lane.change_id = path.id
+             WHERE gap.id = ?1 AND gap_lane.lane = 'p0_live'
+               AND path_lane.lane = 'p0_live'",
+            [i64::try_from(leased_gap.change.id.value()).expect("gap change ID")],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                    row.get(5)?,
+                    row.get(6)?,
+                    row.get(7)?,
+                    row.get(8)?,
+                ))
+            },
+        )
+        .expect("load leased gap and precise P0 evidence");
+    assert_eq!(
+        evidence,
+        (
+            i64::try_from(leased_gap.change.id.value()).expect("gap ID"),
+            "leased".to_owned(),
+            i64::try_from(leased_gap.lease_generation).expect("lease generation"),
+            Some(leased_gap.lease_expires_unix_ms),
+            LibraryChangeCapacityDeferral::MetadataInventoryLane
+                .failure_code()
+                .to_owned(),
+            0,
+            "pending".to_owned(),
+            "visible-now.jpg".to_owned(),
+            2,
+        )
+    );
+
+    let precise = catalog
+        .lease_path_library_changes_in_lane(
+            "root-a",
+            generation,
+            LibraryChangeLane::Live,
+            1_014,
+            policy,
+        )
+        .expect("lease precise P0 work")
+        .pop()
+        .expect("precise P0 work remains independently leasable");
+    assert_eq!(precise.change.intent.relative_path, "visible-now.jpg");
+    let retained_gap: (String, i64, Option<i64>) = catalog
+        .connection
+        .query_row(
+            "SELECT status, lease_generation, lease_expires_unix_ms
+             FROM library_change_queue WHERE id = ?1",
+            [i64::try_from(leased_gap.change.id.value()).expect("gap change ID")],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .expect("load retained gap lease");
+    assert_eq!(
+        retained_gap,
+        (
+            "leased".to_owned(),
+            i64::try_from(leased_gap.lease_generation).expect("lease generation"),
+            Some(leased_gap.lease_expires_unix_ms),
+        )
+    );
+}
+
+#[test]
+fn generic_retry_rejects_capacity_reserved_codes_without_mutating_the_lease() {
+    let directory = tempdir().expect("temporary directory");
+    let generation = LibraryRootGeneration::initial();
+    let policy = LibraryChangeQueuePolicy {
+        max_attempts: 2,
+        lease_duration_millis: 100,
+        ..immediate_policy()
+    };
+    let mut catalog = queue_catalog(directory.path().join("catalog.sqlite3"));
+    catalog
+        .enqueue_library_change_intents(
+            &[intent(
+                "root-a",
+                generation,
+                1,
+                1_000,
+                LibraryChangeIntentKind::FreshnessUnknown,
+                LibraryChangeScope::Root,
+                "",
+            )],
+            1_000,
+            policy,
+        )
+        .expect("enqueue root live gap");
+    let leased = catalog
+        .lease_live_authoritative_library_change("root-a", generation, 1_000, policy)
+        .expect("lease root live gap")
+        .expect("root live gap");
+    let state = |catalog: &SqliteCatalog| {
+        catalog
+            .connection
+            .query_row(
+                "SELECT status, attempt_count, next_retry_unix_ms, lease_generation,
+                        lease_expires_unix_ms, last_failure_code, last_failure_message,
+                        updated_unix_ms
+                 FROM library_change_queue WHERE id = ?1",
+                [i64::try_from(leased.change.id.value()).expect("change ID")],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, i64>(1)?,
+                        row.get::<_, Option<i64>>(2)?,
+                        row.get::<_, i64>(3)?,
+                        row.get::<_, Option<i64>>(4)?,
+                        row.get::<_, Option<String>>(5)?,
+                        row.get::<_, Option<String>>(6)?,
+                        row.get::<_, i64>(7)?,
+                    ))
+                },
+            )
+            .expect("load queue state")
+    };
+    let before = state(&catalog);
+    for code in [
+        LibraryChangeCapacityDeferral::MetadataInventoryLane.failure_code(),
+        "live_gap_p2_capacity_future_reserved",
+    ] {
+        let result = catalog.retry_library_change(
+            leased.change.id,
+            leased.lease_generation,
+            &LibraryChangeFailure {
+                code: code.to_owned(),
+                message: "A generic caller must not mint typed capacity state".to_owned(),
+            },
+            1_001,
+            policy,
+        );
+        if result.is_ok() {
+            let forged = catalog
+                .lease_live_authoritative_library_change("root-a", generation, 1_011, policy)
+                .expect("re-lease forged capacity state")
+                .expect("forged capacity state stays retryable");
+            assert!(
+                catalog
+                    .lease_live_authoritative_library_change(
+                        "root-a",
+                        generation,
+                        forged.lease_expires_unix_ms,
+                        policy,
+                    )
+                    .expect("recover forged expired lease")
+                    .is_none()
+            );
+            let forged_state = state(&catalog);
+            panic!(
+                "generic retry forged reserved capacity state and lease expiry refunded it: {forged_state:?}"
+            );
+        }
+        let error = result.expect_err("generic retry must reject reserved capacity codes");
+        assert_eq!(error.code, "change_queue_failure_code_reserved");
+        assert_eq!(state(&catalog), before);
+    }
+}
+
+#[test]
+fn forged_capacity_code_with_wrong_scope_does_not_refund_an_expired_lease() {
+    let directory = tempdir().expect("temporary directory");
+    let generation = LibraryRootGeneration::initial();
+    let policy = LibraryChangeQueuePolicy {
+        max_attempts: 1,
+        lease_duration_millis: 100,
+        ..immediate_policy()
+    };
+    let mut catalog = queue_catalog(directory.path().join("catalog.sqlite3"));
+    catalog
+        .enqueue_library_change_intents(
+            &[path_intent(
+                "root-a",
+                generation,
+                1,
+                1_000,
+                "wrong-scope.jpg",
+            )],
+            1_000,
+            policy,
+        )
+        .expect("enqueue P0 path");
+    let leased = catalog
+        .lease_path_library_changes_in_lane(
+            "root-a",
+            generation,
+            LibraryChangeLane::Live,
+            1_000,
+            policy,
+        )
+        .expect("lease P0 path")
+        .pop()
+        .expect("P0 path");
+    catalog
+        .connection
+        .execute(
+            "UPDATE library_change_queue
+             SET last_failure_code = ?1, last_failure_message = 'forged'
+             WHERE id = ?2",
+            rusqlite::params![
+                LibraryChangeCapacityDeferral::MetadataInventoryLane.failure_code(),
+                i64::try_from(leased.change.id.value()).expect("change ID"),
+            ],
+        )
+        .expect("forge reserved code on wrong scope");
+    assert!(
+        catalog
+            .lease_path_library_changes_in_lane(
+                "root-a",
+                generation,
+                LibraryChangeLane::Live,
+                leased.lease_expires_unix_ms,
+                policy,
+            )
+            .expect("recover expired wrong-scope lease")
+            .is_empty()
+    );
+    let terminal: (String, i64, Option<i64>, String) = catalog
+        .connection
+        .query_row(
+            "SELECT status, attempt_count, next_retry_unix_ms, last_failure_code
+             FROM library_change_queue WHERE id = ?1",
+            [i64::try_from(leased.change.id.value()).expect("change ID")],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        )
+        .expect("load wrong-scope terminal state");
+    assert_eq!(
+        terminal,
+        (
+            "retry_wait".to_owned(),
+            1,
+            None,
+            "change_lease_expired".to_owned(),
+        )
+    );
+    let metrics = catalog
+        .load_library_change_root_queue_metrics("root-a", generation, 1_200, policy)
+        .expect("load wrong-scope metrics");
+    assert_eq!(metrics.exhausted_retry_count, 1);
+    assert_eq!(
+        metrics.latest_exhausted_failure_code.as_deref(),
+        Some("change_lease_expired")
+    );
+}
+
+#[test]
+fn forged_capacity_code_with_a_recovery_claim_does_not_escape_terminal_state() {
+    let directory = tempdir().expect("temporary directory");
+    let generation = LibraryRootGeneration::initial();
+    let policy = LibraryChangeQueuePolicy {
+        max_attempts: 1,
+        ..immediate_policy()
+    };
+    let mut catalog = queue_catalog(directory.path().join("catalog.sqlite3"));
+    seed_current_journal_authority(&mut catalog);
+    catalog
+        .enqueue_library_change_intents(
+            &[intent(
+                "root-a",
+                generation,
+                1,
+                1_000,
+                LibraryChangeIntentKind::FreshnessUnknown,
+                LibraryChangeScope::Root,
+                "",
+            )],
+            1_000,
+            policy,
+        )
+        .expect("enqueue root live gap");
+    let leased = catalog
+        .lease_live_authoritative_library_change("root-a", generation, 1_000, policy)
+        .expect("lease root live gap")
+        .expect("root live gap");
+    assert_eq!(
+        catalog
+            .promote_live_watcher_gap_to_metadata_inventory(
+                leased.change.id,
+                leased.lease_generation,
+                &LibraryChangeFailure {
+                    code: "metadata_inventory_required".to_owned(),
+                    message: "The watcher gap needs a durable consumer".to_owned(),
+                },
+                1_001,
+                policy,
+            )
+            .expect("bind pending journal claim"),
+        LibraryChangeLeaseUpdateOutcome::Applied,
+    );
+    catalog
+        .connection
+        .execute(
+            "UPDATE library_change_queue
+             SET attempt_count = ?1, next_retry_unix_ms = 1_002,
+                 last_failure_code = ?2, last_failure_message = 'forged'
+             WHERE id = ?3 AND status = 'retry_wait'",
+            rusqlite::params![
+                i64::from(policy.max_attempts),
+                LibraryChangeCapacityDeferral::MetadataInventoryLane.failure_code(),
+                i64::try_from(leased.change.id.value()).expect("change ID"),
+            ],
+        )
+        .expect("forge reserved code on claimed gap");
+    assert!(
+        catalog
+            .lease_live_authoritative_library_change("root-a", generation, 2_000, policy)
+            .expect("enforce claimed-gap retry budget")
+            .is_none()
+    );
+    let terminal: (Option<i64>, String, i64) = catalog
+        .connection
+        .query_row(
+            "SELECT queue.next_retry_unix_ms, queue.last_failure_code,
+                    (SELECT COUNT(*) FROM library_live_gap_recovery_claims AS claim
+                     WHERE claim.gap_change_id = queue.id
+                       AND claim.consumer_kind = 'pending_journal')
+             FROM library_change_queue AS queue WHERE queue.id = ?1",
+            [i64::try_from(leased.change.id.value()).expect("change ID")],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .expect("load claimed-gap terminal state");
+    assert_eq!(
+        terminal,
+        (
+            None,
+            LibraryChangeCapacityDeferral::MetadataInventoryLane
+                .failure_code()
+                .to_owned(),
+            1,
+        )
+    );
+    let metrics = catalog
+        .load_library_change_root_queue_metrics("root-a", generation, 2_000, policy)
+        .expect("load claimed-gap metrics");
+    assert_eq!(metrics.exhausted_retry_count, 1);
+    assert_eq!(
+        metrics.latest_exhausted_failure_code.as_deref(),
+        Some(LibraryChangeCapacityDeferral::MetadataInventoryLane.failure_code())
+    );
+}
+
+#[test]
+fn forged_capacity_code_in_the_wrong_lane_does_not_escape_terminal_state() {
+    let directory = tempdir().expect("temporary directory");
+    let generation = LibraryRootGeneration::initial();
+    let policy = LibraryChangeQueuePolicy {
+        max_attempts: 1,
+        ..immediate_policy()
+    };
+    let mut catalog = queue_catalog(directory.path().join("catalog.sqlite3"));
+    let mut wrong_lane = intent(
+        "root-a",
+        generation,
+        1,
+        1_000,
+        LibraryChangeIntentKind::FreshnessUnknown,
+        LibraryChangeScope::Root,
+        "",
+    );
+    wrong_lane.origin = LibraryChangeOrigin::UserRefresh;
+    catalog
+        .enqueue_library_change_intents(&[wrong_lane], 1_000, policy)
+        .expect("enqueue wrong-lane root work");
+    let leased = catalog
+        .lease_authoritative_library_change("root-a", generation, 1_000, policy)
+        .expect("lease wrong-lane root work")
+        .expect("wrong-lane root work");
+    catalog
+        .connection
+        .execute(
+            "UPDATE library_change_queue
+             SET status = 'retry_wait', attempt_count = ?1, next_retry_unix_ms = 1_002,
+                 lease_expires_unix_ms = NULL, last_failure_code = ?2,
+                 last_failure_message = 'forged'
+             WHERE id = ?3",
+            rusqlite::params![
+                i64::from(policy.max_attempts),
+                LibraryChangeCapacityDeferral::MetadataInventoryLane.failure_code(),
+                i64::try_from(leased.change.id.value()).expect("change ID"),
+            ],
+        )
+        .expect("forge reserved code in P2 lane");
+    assert!(
+        catalog
+            .lease_authoritative_library_change("root-a", generation, 2_000, policy)
+            .expect("enforce wrong-lane retry budget")
+            .is_none()
+    );
+    let terminal: (Option<i64>, String, String) = catalog
+        .connection
+        .query_row(
+            "SELECT queue.next_retry_unix_ms, queue.last_failure_code, lane.lane
+             FROM library_change_queue AS queue
+             JOIN library_change_queue_lanes AS lane ON lane.change_id = queue.id
+             WHERE queue.id = ?1",
+            [i64::try_from(leased.change.id.value()).expect("change ID")],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .expect("load wrong-lane terminal state");
+    assert_eq!(
+        terminal,
+        (
+            None,
+            LibraryChangeCapacityDeferral::MetadataInventoryLane
+                .failure_code()
+                .to_owned(),
+            "p2_recovery".to_owned(),
+        )
+    );
+    let metrics = catalog
+        .load_library_change_root_queue_metrics("root-a", generation, 2_000, policy)
+        .expect("load wrong-lane metrics");
+    assert_eq!(metrics.exhausted_retry_count, 1);
+}
+
+#[test]
+fn forged_capacity_code_in_pending_status_does_not_block_normal_root_coalescing() {
+    let directory = tempdir().expect("temporary directory");
+    let generation = LibraryRootGeneration::initial();
+    let policy = immediate_policy();
+    let mut catalog = queue_catalog(directory.path().join("catalog.sqlite3"));
+    catalog
+        .enqueue_library_change_intents(
+            &[intent(
+                "root-a",
+                generation,
+                1,
+                1_000,
+                LibraryChangeIntentKind::FreshnessUnknown,
+                LibraryChangeScope::Root,
+                "",
+            )],
+            1_000,
+            policy,
+        )
+        .expect("enqueue pending root work");
+    catalog
+        .connection
+        .execute(
+            "UPDATE library_change_queue
+             SET last_failure_code = ?1, last_failure_message = 'forged'
+             WHERE root_id = 'root-a' AND status = 'pending'",
+            [LibraryChangeCapacityDeferral::MetadataInventoryLane.failure_code()],
+        )
+        .expect("forge reserved code in pending status");
+    let report = catalog
+        .enqueue_library_change_intents(
+            &[path_intent(
+                "root-a",
+                generation,
+                2,
+                1_001,
+                "normally-covered.jpg",
+            )],
+            1_001,
+            policy,
+        )
+        .expect("coalesce path into ordinary pending root");
+    assert_eq!(report.inserted_count, 0);
+    assert_eq!(report.coalesced_count, 1);
+    assert_eq!(report.superseded_count, 0);
+    let shape: (i64, String, String, i64) = catalog
+        .connection
+        .query_row(
+            "SELECT COUNT(*), MIN(scope), MIN(status),
+                    SUM(coalesced_observation_count)
+             FROM library_change_queue
+             WHERE root_id = 'root-a' AND status IN ('pending', 'leased', 'retry_wait')",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        )
+        .expect("load ordinary root coalescing evidence");
+    assert_eq!(shape, (1, "root".to_owned(), "pending".to_owned(), 2));
+}
+
 fn queue_catalog(path: PathBuf) -> SqliteCatalog {
     let mut catalog = SqliteCatalog::open(path).expect("catalog");
     let generation = register_root(&mut catalog, 1);
     assert_eq!(generation, LibraryRootGeneration::initial());
     catalog
+}
+
+fn seed_current_journal_authority(catalog: &mut SqliteCatalog) -> PersistentJournalCheckpoint {
+    let checkpoint = PersistentJournalCheckpoint {
+        root_id: "root-a".to_owned(),
+        root_generation: LibraryRootGeneration::initial(),
+        volume: PersistentJournalVolumeIdentity {
+            volume_guid: "watcher-gap-volume".to_owned(),
+            volume_serial: 41,
+        },
+        root_file_reference: JournalFileReference::V3([7; 16]),
+        journal_id: JournalIdentifier::new(83).expect("journal ID"),
+        next_unread_usn: JournalUsn::new(1_024).expect("opening USN"),
+        captured_exclusive_end: JournalUsn::new(1_024).expect("opening end"),
+        covered_catalog_revision: 0,
+        protocol_version: 5,
+        contract_version: 1,
+        continuity: PersistentJournalContinuityState::Current,
+        failure: None,
+        updated_unix_ms: 900,
+    };
+    catalog
+        .save_persistent_journal_capability(&PersistentJournalCapability {
+            root_id: checkpoint.root_id.clone(),
+            root_generation: checkpoint.root_generation,
+            protocol_version: checkpoint.protocol_version,
+            contract_version: checkpoint.contract_version,
+            state: PersistentJournalCapabilityState::Supported,
+            continuity: PersistentJournalContinuityState::Current,
+            failure: None,
+            updated_unix_ms: checkpoint.updated_unix_ms,
+        })
+        .expect("current journal authority");
+    catalog
+        .seed_persistent_journal_checkpoint_for_test(&checkpoint)
+        .expect("current journal checkpoint");
+    checkpoint
+}
+
+fn recovery_inventory_catalog(
+    path: PathBuf,
+    run_id: &str,
+    relative_paths: &[&str],
+) -> (SqliteCatalog, LeasedLibraryChange) {
+    let source_root = path
+        .parent()
+        .expect("catalog parent")
+        .join(format!("{run_id}-source"));
+    std::fs::create_dir(&source_root).expect("recovery source root");
+    let source_root_path = source_root.to_string_lossy().into_owned();
+    let mut catalog = queue_catalog(path);
+    catalog
+        .connection
+        .execute(
+            "UPDATE library_roots SET path = ?1 WHERE id = 'root-a'",
+            [&source_root_path],
+        )
+        .expect("bind recovery source root");
+    catalog
+        .connection
+        .execute(
+            "INSERT INTO scan_runs(
+               id, root_id, status, started_unix_ms, completed_unix_ms,
+               preview_edge, root_generation_at_start
+             ) VALUES ('published-scan', 'root-a', 'completed', 1, 2, 128, 1)",
+            [],
+        )
+        .expect("published scan fixture");
+    catalog
+        .connection
+        .execute(
+            "UPDATE library_roots SET active_scan_id = 'published-scan' WHERE id = 'root-a'",
+            [],
+        )
+        .expect("activate published scan fixture");
+    let generation = LibraryRootGeneration::initial();
+    let mut recovery = intent(
+        "root-a",
+        generation,
+        1,
+        1_000,
+        LibraryChangeIntentKind::FreshnessUnknown,
+        LibraryChangeScope::Root,
+        "",
+    );
+    recovery.origin = LibraryChangeOrigin::ConsistencyAudit;
+    catalog
+        .enqueue_library_change_intents(&[recovery], 1_000, immediate_policy())
+        .expect("enqueue recovery control");
+    let authority = catalog
+        .lease_authoritative_library_change("root-a", generation, 1_000, immediate_policy())
+        .expect("lease recovery control")
+        .expect("recovery control");
+    catalog
+        .authorize_metadata_inventory_recovery(&LibraryRecoveryAuthority {
+            change_id: authority.change.id,
+            run_id: run_id.to_owned(),
+            root_id: "root-a".to_owned(),
+            root_generation: generation,
+            reason: LibraryRecoveryAuthorityReason::ContainmentFailure,
+            opening_boundary: None,
+            authorized_unix_ms: 1_000,
+            retired_unix_ms: None,
+        })
+        .expect("persist recovery authority");
+    let run = catalog
+        .begin_metadata_inventory(&MetadataInventoryRunRequest {
+            run_id: run_id.to_owned(),
+            root_id: "root-a".to_owned(),
+            root_generation: generation,
+            epoch: 1,
+            scope: MetadataInventoryScope::Root,
+            started_unix_ms: 1_000,
+        })
+        .expect("begin recovery inventory");
+    let root_identity = crate::adapters::FileDiscovery::new(&source_root_path)
+        .expect("pin recovery source root")
+        .metadata_inventory_root_identity()
+        .expect("read recovery source identity")
+        .expect("stable recovery source identity");
+    catalog
+        .initialize_metadata_inventory_spool(&run, &authority, &root_identity, None, None, 1_000)
+        .expect("persist recovery source proof");
+    catalog
+        .stage_metadata_inventory_page(
+            run_id,
+            &MetadataInventoryPage {
+                page_index: 1,
+                entries: relative_paths
+                    .iter()
+                    .map(|relative_path| MetadataInventoryEntry {
+                        relative_path: (*relative_path).to_owned(),
+                        kind: MetadataInventoryEntryKind::File,
+                        file_size: Some(1),
+                        modified_unix_ms: 1,
+                        file_identity: None,
+                        placeholder_state: MetadataInventoryPlaceholderState::Available,
+                        is_reparse_point: false,
+                    })
+                    .collect(),
+                cursor: relative_paths.last().map(|path| (*path).to_owned()),
+                is_complete: true,
+                frontier: vec![MetadataInventoryFrontierEntry::completed("", None)],
+            },
+            1_001,
+        )
+        .expect("stage recovery inventory page");
+    (catalog, authority)
+}
+
+fn metadata_candidate_intent(relative_path: &str, sequence: u64) -> LibraryChangeIntent {
+    let mut intent = path_intent(
+        "root-a",
+        LibraryRootGeneration::initial(),
+        sequence,
+        1_010,
+        relative_path,
+    );
+    intent.origin = LibraryChangeOrigin::MetadataInventory;
+    intent
+}
+
+fn metadata_candidate_update(relative_path: &str) -> MetadataInventoryComparisonUpdate {
+    MetadataInventoryComparisonUpdate {
+        relative_path: relative_path.to_owned(),
+        status: MetadataInventoryComparisonStatus::Enqueued,
+        candidate_previous_relative_path: None,
+    }
+}
+
+fn recovery_publication_rollback_evidence(
+    catalog: &SqliteCatalog,
+    run_id: &str,
+) -> (String, i64, i64, i64, Option<String>) {
+    catalog
+        .connection
+        .query_row(
+            "SELECT entry.comparison_status, run.candidate_count,
+                    (SELECT COUNT(*) FROM library_metadata_inventory_candidate_owners
+                     WHERE run_id = run.id),
+                    (SELECT COUNT(*) FROM library_change_queue AS queue
+                     JOIN library_change_queue_lanes AS lane ON lane.change_id = queue.id
+                     WHERE queue.root_id = run.root_id
+                       AND queue.scope = 'path'
+                       AND lane.lane = 'p2_recovery'),
+                    run.comparison_cursor
+             FROM library_metadata_inventory_runs AS run
+             JOIN library_metadata_inventory_entries AS entry ON entry.run_id = run.id
+             WHERE run.id = ?1",
+            [run_id],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                ))
+            },
+        )
+        .expect("recovery publication rollback evidence")
 }
 
 fn register_root(catalog: &mut SqliteCatalog, now_unix_ms: i64) -> LibraryRootGeneration {

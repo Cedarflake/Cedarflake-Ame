@@ -1,6 +1,6 @@
 use super::{
-    AssetLocationView, DerivedEvidenceDisposition, IncrementalReconciliationOutcome,
-    LibraryChangeFailure, LibraryChangeId, LibraryRootGeneration,
+    AssetLocationView, DerivedEvidenceDisposition, FileIdentityEvidence,
+    IncrementalReconciliationOutcome, LibraryChangeFailure, LibraryChangeId, LibraryRootGeneration,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -12,6 +12,7 @@ pub struct IncrementalCatalogRoot {
     pub has_running_scan: bool,
     pub catalog_revision: u64,
     pub last_consistency_audit_unix_ms: Option<i64>,
+    pub publication_root_identity: Option<FileIdentityEvidence>,
 }
 
 #[derive(Clone, Debug)]
@@ -40,12 +41,30 @@ pub struct LibraryChangeCompletion {
     pub issue: Option<LibraryChangeFailure>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TerminalMediaEvidence {
+    pub relative_path: String,
+    pub file_size: u64,
+    pub modified_unix_ms: i64,
+    pub file_identity: Option<FileIdentityEvidence>,
+    pub inspection_engine_id: String,
+    pub inspection_engine_version: u32,
+    pub issue: LibraryChangeFailure,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TerminalMediaEvidenceUpdate {
+    pub change_id: LibraryChangeId,
+    pub evidence: TerminalMediaEvidence,
+}
+
 #[derive(Clone, Debug)]
 pub struct CatalogDeltaBatch {
     pub root_id: String,
     pub root_generation: LibraryRootGeneration,
     pub expected_catalog_revision: u64,
     pub mutations: Vec<CatalogDeltaMutation>,
+    pub terminal_media_evidence: Vec<TerminalMediaEvidenceUpdate>,
     pub completions: Vec<LibraryChangeCompletion>,
 }
 

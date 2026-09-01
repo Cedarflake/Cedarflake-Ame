@@ -229,6 +229,21 @@ void main() {
     expect(find.text(LibraryStrings.synchronizing), findsNothing);
   });
 
+  testWidgets("explains when continuity is limited to an open Ame session", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: _buildNavigation(continuity: LibraryContinuityState.liveOnly),
+        ),
+      ),
+    );
+
+    expect(find.text(LibraryStrings.continuityLiveOnly), findsOneWidget);
+    expect(find.text(LibraryStrings.synchronized), findsNothing);
+  });
+
   testWidgets("keeps the populated application semantics reachable", (
     tester,
   ) async {
@@ -448,6 +463,7 @@ LibraryState _populatedLibraryState() {
 Widget _buildNavigation({
   bool hasSynchronizationFailure = false,
   bool includeRootStatus = true,
+  LibraryContinuityState continuity = LibraryContinuityState.current,
 }) {
   const folderPath = "Long album name that needs a path tooltip";
   return Align(
@@ -476,6 +492,7 @@ Widget _buildNavigation({
                 availability: LibraryRootAvailability.available,
                 freshness: LibraryCatalogFreshness.synchronized,
                 freshnessCause: LibraryCatalogFreshnessCause.noPendingChanges,
+                continuity: continuity,
                 phase: LibrarySynchronizationPhase.synchronized,
                 phaseStartedAt: DateTime.utc(2026, 8, 21),
                 sourceStatus: LibraryChangeSourceStatus.healthy,

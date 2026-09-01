@@ -1,19 +1,23 @@
+#[cfg(test)]
+use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use crate::adapters::LocalMetadataInventory;
+use crate::adapters::{LocalMediaInspector, PublicationGuardedFileDiscovery};
 use crate::domain::{
     AssetLocationView, IncrementalCatalogRoot, IncrementalLibraryChangeReport, LeasedLibraryChange,
-    LibraryChangeFailure, LibraryChangeIntent, LibraryChangeIntentKind,
+    LibraryChangeFailure, LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeLane,
     LibraryChangeLeaseUpdateOutcome, LibraryChangeOrigin, LibraryChangeQueuePolicy,
-    LibraryChangeScope, MetadataInventoryComparisonStatus, MetadataInventoryComparisonUpdate,
-    MetadataInventoryEntry, MetadataInventoryEntryKind, MetadataInventoryPlaceholderState,
-    MetadataInventoryReport, MetadataInventoryRunRequest, MetadataInventoryRunStatus,
-    MetadataInventoryScope, MetadataInventoryStartRequest, ScanError,
+    LibraryChangeScope, LibraryRecoveryAuthorityReason, MetadataInventoryComparisonStatus,
+    MetadataInventoryComparisonUpdate, MetadataInventoryEntry, MetadataInventoryEntryKind,
+    MetadataInventoryPlaceholderState, MetadataInventoryReport, MetadataInventoryRunRequest,
+    MetadataInventoryRunStatus, MetadataInventoryScope, MetadataInventoryStartRequest, ScanError,
+    TerminalMediaEvidence,
 };
 use crate::ports::{
-    IncrementalCatalogRepository, LibraryChangeQueue, MetadataInventoryRepository,
-    MetadataInventorySource,
+    IncrementalCatalogRepository, LibraryChangeQueue, MediaInspector,
+    MetadataInventoryAbsencePublicationRequest, MetadataInventoryRepository,
+    MetadataInventorySource, MetadataInventorySourcePreparation,
 };
 
 const MAX_INVENTORY_PAGE_ENTRIES: u32 = 4_096;
@@ -21,10 +25,59 @@ const MAX_INVENTORY_CLEANUP_RUNS: u32 = 128;
 const INVENTORY_TERMINAL_RETENTION_MILLIS: i64 = 7 * 24 * 60 * 60 * 1_000;
 const TERMINATION_ATTEMPTS: usize = 2;
 
+#[cfg(test)]
+thread_local! {
+    static BEFORE_METADATA_INVENTORY_FINALIZATION_HOOK: RefCell<Option<Box<dyn FnOnce()>>> =
+        RefCell::new(None);
+}
+
+#[cfg(test)]
+fn set_before_metadata_inventory_finalization_hook(hook: impl FnOnce() + 'static) {
+    BEFORE_METADATA_INVENTORY_FINALIZATION_HOOK.with(|slot| {
+        *slot.borrow_mut() = Some(Box::new(hook));
+    });
+}
+
+#[cfg(test)]
+fn run_before_metadata_inventory_finalization_hook() {
+    BEFORE_METADATA_INVENTORY_FINALIZATION_HOOK.with(|slot| {
+        if let Some(hook) = slot.borrow_mut().take() {
+            hook();
+        }
+    });
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct MetadataInventoryRecoveryReport {
     pub incremental: IncrementalLibraryChangeReport,
     pub inventory: MetadataInventoryReport,
+}
+
+pub(crate) struct RetainedMetadataInventorySource {
+    run_id: String,
+    source: Box<dyn MetadataInventorySource>,
+}
+
+impl RetainedMetadataInventorySource {
+    pub(crate) fn run_id(&self) -> &str {
+        &self.run_id
+    }
+
+    #[cfg(test)]
+    pub(crate) fn for_test(
+        run_id: impl Into<String>,
+        source: Box<dyn MetadataInventorySource>,
+    ) -> Self {
+        Self {
+            run_id: run_id.into(),
+            source,
+        }
+    }
+}
+
+pub(crate) struct MetadataInventoryRecoveryPage {
+    pub report: MetadataInventoryRecoveryReport,
+    pub retained_source: Option<RetainedMetadataInventorySource>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -38,24 +91,68 @@ pub(crate) enum MetadataInventoryProgressPhase {
 pub(crate) struct MetadataInventoryWorkerControl<'a> {
     cancellation: &'a AtomicBool,
     progress: Option<&'a dyn Fn(MetadataInventoryProgressPhase)>,
+    page_yield: Option<&'a dyn Fn(MetadataInventoryProgressPhase)>,
 }
 
 impl<'a> MetadataInventoryWorkerControl<'a> {
-    pub(crate) const fn with_progress(
+    pub(crate) const fn with_progress_and_page_yield(
         cancellation: &'a AtomicBool,
         progress: &'a dyn Fn(MetadataInventoryProgressPhase),
+        page_yield: &'a dyn Fn(MetadataInventoryProgressPhase),
     ) -> Self {
         Self {
             cancellation,
             progress: Some(progress),
+            page_yield: Some(page_yield),
         }
     }
 
+    #[cfg(test)]
     const fn without_progress(cancellation: &'a AtomicBool) -> Self {
         Self {
             cancellation,
             progress: None,
+            page_yield: None,
         }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub(crate) struct MetadataInventoryRecoveryExecution<'a> {
+    observed_unix_ms: i64,
+    page_limit: u32,
+    queue_policy: LibraryChangeQueuePolicy,
+    control: MetadataInventoryWorkerControl<'a>,
+}
+
+impl<'a> MetadataInventoryRecoveryExecution<'a> {
+    pub(crate) const fn new(
+        observed_unix_ms: i64,
+        page_limit: u32,
+        queue_policy: LibraryChangeQueuePolicy,
+        control: MetadataInventoryWorkerControl<'a>,
+    ) -> Self {
+        Self {
+            observed_unix_ms,
+            page_limit,
+            queue_policy,
+            control,
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) const fn without_progress(
+        observed_unix_ms: i64,
+        page_limit: u32,
+        queue_policy: LibraryChangeQueuePolicy,
+        cancellation: &'a AtomicBool,
+    ) -> Self {
+        Self::new(
+            observed_unix_ms,
+            page_limit,
+            queue_policy,
+            MetadataInventoryWorkerControl::without_progress(cancellation),
+        )
     }
 }
 
@@ -67,43 +164,6 @@ struct InventoryExecution<'a> {
     page_limit: u32,
     queue_policy: LibraryChangeQueuePolicy,
     control: MetadataInventoryWorkerControl<'a>,
-}
-
-pub fn run_local_metadata_inventory<Repository>(
-    repository: &mut Repository,
-    request: &MetadataInventoryRunRequest,
-    observed_unix_ms: i64,
-    page_limit: u32,
-    queue_policy: LibraryChangeQueuePolicy,
-    cancellation: &AtomicBool,
-) -> Result<MetadataInventoryReport, ScanError>
-where
-    Repository: MetadataInventoryRepository + IncrementalCatalogRepository + LibraryChangeQueue,
-{
-    let root = repository
-        .load_incremental_catalog_root(&request.root_id)?
-        .ok_or_else(|| {
-            ScanError::new(
-                "metadata_inventory_root_missing",
-                "The metadata inventory root is no longer registered",
-            )
-        })?;
-    if root.root_generation != request.root_generation {
-        return Err(ScanError::new(
-            "metadata_inventory_root_stale",
-            "The metadata inventory root generation changed",
-        ));
-    }
-    let mut source = LocalMetadataInventory::new(&root.root_path, &request.scope)?;
-    run_metadata_inventory(
-        repository,
-        &mut source,
-        request,
-        observed_unix_ms,
-        page_limit,
-        queue_policy,
-        cancellation,
-    )
 }
 
 #[cfg(test)]
@@ -135,14 +195,24 @@ fn run_next_local_metadata_inventory<Repository>(
     repository: &mut Repository,
     request: &MetadataInventoryStartRequest,
     authority: &LeasedLibraryChange,
-    observed_unix_ms: i64,
-    page_limit: u32,
-    queue_policy: LibraryChangeQueuePolicy,
-    control: MetadataInventoryWorkerControl<'_>,
-) -> Result<MetadataInventoryReport, ScanError>
+    execution: MetadataInventoryRecoveryExecution<'_>,
+    retained_source: Option<RetainedMetadataInventorySource>,
+) -> Result<
+    (
+        MetadataInventoryReport,
+        Option<RetainedMetadataInventorySource>,
+    ),
+    ScanError,
+>
 where
     Repository: MetadataInventoryRepository + IncrementalCatalogRepository + LibraryChangeQueue,
 {
+    let MetadataInventoryRecoveryExecution {
+        observed_unix_ms,
+        page_limit,
+        queue_policy,
+        control,
+    } = execution;
     validate_start_request(request, page_limit, queue_policy)?;
     let root = repository
         .load_incremental_catalog_root(&request.root_id)?
@@ -158,35 +228,87 @@ where
             "The metadata inventory root generation changed",
         ));
     }
-    let mut source = LocalMetadataInventory::new(&root.root_path, &request.scope)?;
+    let recovery_authority = repository
+        .load_metadata_inventory_recovery_authority(authority.change.id)?
+        .filter(|current| {
+            current.root_id == root.root_id
+                && current.root_generation == root.root_generation
+                && current.retired_unix_ms.is_none()
+        })
+        .ok_or_else(|| {
+            ScanError::new(
+                "metadata_inventory_recovery_not_authorized",
+                "The P2 source requires its current durable recovery authority",
+            )
+        })?;
+    if root.publication_root_identity.is_none()
+        && !matches!(
+            recovery_authority.reason,
+            LibraryRecoveryAuthorityReason::ExistingRootBaseline
+                | LibraryRecoveryAuthorityReason::FirstImportBoundary
+        )
+    {
+        return Err(ScanError::new(
+            "root_publication_namespace_unproven",
+            "Only a first-authority baseline may capture a source without an existing publication namespace proof",
+        ));
+    }
+    let expected_publication_identity = root.publication_root_identity.clone();
+    let opening_guard = PublicationGuardedFileDiscovery::new_metadata_inventory_source_guard(
+        &root.root_path,
+        expected_publication_identity.as_ref(),
+    )?;
+    let expected_source_identity = opening_guard
+        .metadata_inventory_root_identity()?
+        .ok_or_else(|| {
+            ScanError::new(
+                "metadata_inventory_root_identity_unavailable",
+                "The recovery source root has no durable Windows file identity",
+            )
+        })?;
     drain_terminal_inventory_cleanup(repository, observed_unix_ms)?;
     let run = repository.begin_next_metadata_inventory(request)?;
-    finish_started_metadata_inventory(
-        repository,
-        &mut source,
-        &run.request,
-        InventoryExecution {
-            authority: Some(authority),
-            yield_after_work_page: true,
-            observed_unix_ms,
-            page_limit,
-            queue_policy,
-            control,
-        },
-    )
+    let mut retained_source = if run.enumeration_complete {
+        None
+    } else if let Some(retained) = retained_source
+        && retained.run_id == run.request.run_id
+    {
+        Some(retained)
+    } else {
+        Some(RetainedMetadataInventorySource {
+            run_id: run.request.run_id.clone(),
+            source: repository.open_metadata_inventory_source(
+                &root.root_path,
+                &request.scope,
+                &run,
+                authority,
+                expected_publication_identity.as_ref(),
+                &expected_source_identity,
+            )?,
+        })
+    };
+    let execution = InventoryExecution {
+        authority: Some(authority),
+        yield_after_work_page: true,
+        observed_unix_ms,
+        page_limit,
+        queue_policy,
+        control,
+    };
+    let report = match retained_source.as_mut() {
+        Some(retained) => finish_started_metadata_inventory(
+            repository,
+            Some(retained.source.as_mut()),
+            &run.request,
+            execution,
+        )?,
+        None => finish_started_metadata_inventory(repository, None, &run.request, execution)?,
+    };
+    Ok((report, retained_source))
 }
 
 pub(crate) fn leased_change_requires_metadata_inventory(leased: &LeasedLibraryChange) -> bool {
-    leased.change.intent.kind == LibraryChangeIntentKind::FreshnessUnknown
-        || matches!(
-            leased.change.intent.origin,
-            LibraryChangeOrigin::StartupCatchUp | LibraryChangeOrigin::ConsistencyAudit
-        )
-        || leased
-            .change
-            .last_failure
-            .as_ref()
-            .is_some_and(|failure| failure.code == "metadata_inventory_required")
+    metadata_inventory_recovery_reason(leased).is_some()
 }
 
 #[cfg(test)]
@@ -206,22 +328,24 @@ where
         repository,
         root,
         leased,
-        observed_unix_ms,
-        page_limit,
-        queue_policy,
-        MetadataInventoryWorkerControl::without_progress(cancellation),
+        MetadataInventoryRecoveryExecution::new(
+            observed_unix_ms,
+            page_limit,
+            queue_policy,
+            MetadataInventoryWorkerControl::without_progress(cancellation),
+        ),
+        None,
     )
+    .map(|page| page.report)
 }
 
-pub(crate) fn process_leased_metadata_inventory_change_with_progress<Repository>(
+pub(crate) fn process_leased_metadata_inventory_change_with_retained_source<Repository>(
     repository: &mut Repository,
     root: &IncrementalCatalogRoot,
     leased: &LeasedLibraryChange,
-    observed_unix_ms: i64,
-    page_limit: u32,
-    queue_policy: LibraryChangeQueuePolicy,
-    control: MetadataInventoryWorkerControl<'_>,
-) -> Result<MetadataInventoryRecoveryReport, ScanError>
+    execution: MetadataInventoryRecoveryExecution<'_>,
+    retained_source: Option<RetainedMetadataInventorySource>,
+) -> Result<MetadataInventoryRecoveryPage, ScanError>
 where
     Repository: MetadataInventoryRepository + IncrementalCatalogRepository + LibraryChangeQueue,
 {
@@ -229,10 +353,8 @@ where
         repository,
         root,
         leased,
-        observed_unix_ms,
-        page_limit,
-        queue_policy,
-        control,
+        execution,
+        retained_source,
     )
 }
 
@@ -240,14 +362,18 @@ fn process_leased_metadata_inventory_change_internal<Repository>(
     repository: &mut Repository,
     root: &IncrementalCatalogRoot,
     leased: &LeasedLibraryChange,
-    observed_unix_ms: i64,
-    page_limit: u32,
-    queue_policy: LibraryChangeQueuePolicy,
-    control: MetadataInventoryWorkerControl<'_>,
-) -> Result<MetadataInventoryRecoveryReport, ScanError>
+    execution: MetadataInventoryRecoveryExecution<'_>,
+    retained_source: Option<RetainedMetadataInventorySource>,
+) -> Result<MetadataInventoryRecoveryPage, ScanError>
 where
     Repository: MetadataInventoryRepository + IncrementalCatalogRepository + LibraryChangeQueue,
 {
+    let MetadataInventoryRecoveryExecution {
+        observed_unix_ms,
+        page_limit: _,
+        queue_policy,
+        control,
+    } = execution;
     if leased.change.intent.root_id != root.root_id
         || leased.change.intent.root_generation != root.root_generation
     {
@@ -256,24 +382,46 @@ where
             "The metadata inventory lease does not belong to the selected catalog root",
         ));
     }
+    let authority = repository
+        .load_metadata_inventory_recovery_authority(leased.change.id)?
+        .ok_or_else(|| {
+            ScanError::new(
+                "metadata_inventory_recovery_not_authorized",
+                "The P2 worker requires an unretired durable recovery authority",
+            )
+        })?;
+    if authority.root_id != root.root_id
+        || authority.root_generation != root.root_generation
+        || authority.retired_unix_ms.is_some()
+        || authority.run_id.is_empty()
+    {
+        return Err(ScanError::new(
+            "metadata_inventory_recovery_authority_conflict",
+            "The leased recovery no longer owns its durable root authority",
+        ));
+    }
+    let run_id = authority.run_id;
     let request = MetadataInventoryStartRequest {
-        run_id: metadata_inventory_run_id(leased),
+        run_id,
         root_id: root.root_id.clone(),
         root_generation: root.root_generation,
         scope: metadata_inventory_scope(leased)?,
         started_unix_ms: observed_unix_ms,
     };
-    let inventory = match run_next_local_metadata_inventory(
+    let (inventory, retained_source) = match run_next_local_metadata_inventory(
         repository,
         &request,
         leased,
-        observed_unix_ms,
-        page_limit,
-        queue_policy,
-        control,
+        execution,
+        retained_source,
     ) {
         Ok(report) => report,
         Err(error) => {
+            #[cfg(debug_assertions)]
+            eprintln!(
+                "[Ame sync] metadata inventory page failed root={} change={:?} code={}",
+                root.root_id, leased.change.id, error.code
+            );
             let authoritative = super::retry_authoritative_change(
                 repository,
                 leased,
@@ -285,9 +433,12 @@ where
                 observed_unix_ms,
                 queue_policy,
             )?;
-            return Ok(MetadataInventoryRecoveryReport {
-                incremental: authoritative.incremental,
-                ..MetadataInventoryRecoveryReport::default()
+            return Ok(MetadataInventoryRecoveryPage {
+                report: MetadataInventoryRecoveryReport {
+                    incremental: authoritative.incremental,
+                    ..MetadataInventoryRecoveryReport::default()
+                },
+                retained_source: None,
             });
         }
     };
@@ -298,9 +449,12 @@ where
             root.catalog_revision,
             observed_unix_ms,
         )?;
-        return Ok(MetadataInventoryRecoveryReport {
-            incremental: authoritative.incremental,
-            inventory,
+        return Ok(MetadataInventoryRecoveryPage {
+            report: MetadataInventoryRecoveryReport {
+                incremental: authoritative.incremental,
+                inventory,
+            },
+            retained_source: None,
         });
     }
     if !inventory.is_complete {
@@ -310,9 +464,12 @@ where
             root.catalog_revision,
             observed_unix_ms,
         )?;
-        return Ok(MetadataInventoryRecoveryReport {
-            incremental: authoritative.incremental,
-            inventory,
+        return Ok(MetadataInventoryRecoveryPage {
+            report: MetadataInventoryRecoveryReport {
+                incremental: authoritative.incremental,
+                inventory,
+            },
+            retained_source,
         });
     }
     let catalog_revision = repository
@@ -323,33 +480,91 @@ where
         catalog_revision,
         ..IncrementalLibraryChangeReport::default()
     };
-    match repository.complete_library_change(
+    #[cfg(test)]
+    run_before_metadata_inventory_finalization_hook();
+    let completion = match repository.finish_metadata_inventory_recovery(
         leased.change.id,
         leased.lease_generation,
         catalog_revision,
         observed_unix_ms,
     )? {
+        Some(outcome) => outcome,
+        None => {
+            let outcome = repository.defer_library_change(
+                leased.change.id,
+                leased.lease_generation,
+                observed_unix_ms,
+            )?;
+            if outcome != LibraryChangeLeaseUpdateOutcome::Applied {
+                incremental.superseded_count = 1;
+            }
+            return Ok(MetadataInventoryRecoveryPage {
+                report: MetadataInventoryRecoveryReport {
+                    incremental,
+                    inventory,
+                },
+                retained_source: None,
+            });
+        }
+    };
+    match completion {
         LibraryChangeLeaseUpdateOutcome::Applied => incremental.completed_count = 1,
         LibraryChangeLeaseUpdateOutcome::Superseded
         | LibraryChangeLeaseUpdateOutcome::LeaseMismatch
         | LibraryChangeLeaseUpdateOutcome::Missing => incremental.superseded_count = 1,
     }
-    Ok(MetadataInventoryRecoveryReport {
-        incremental,
-        inventory,
+    Ok(MetadataInventoryRecoveryPage {
+        report: MetadataInventoryRecoveryReport {
+            incremental,
+            inventory,
+        },
+        retained_source: None,
     })
 }
 
+fn metadata_inventory_recovery_reason(
+    leased: &LeasedLibraryChange,
+) -> Option<LibraryRecoveryAuthorityReason> {
+    if leased
+        .change
+        .last_failure
+        .as_ref()
+        .is_some_and(|failure| failure.code == "metadata_inventory_required")
+    {
+        return match leased.change.intent.origin {
+            LibraryChangeOrigin::ConsistencyAudit => {
+                Some(LibraryRecoveryAuthorityReason::JournalReconstructionFailure)
+            }
+            LibraryChangeOrigin::MetadataInventory => {
+                Some(LibraryRecoveryAuthorityReason::WatcherUncoveredGap)
+            }
+            LibraryChangeOrigin::LiveNotification
+            | LibraryChangeOrigin::StartupCatchUp
+            | LibraryChangeOrigin::UserRefresh => None,
+        };
+    }
+    let intent = &leased.change.intent;
+    match (intent.origin, intent.kind) {
+        (LibraryChangeOrigin::MetadataInventory, _) if intent.scope != LibraryChangeScope::Path => {
+            Some(LibraryRecoveryAuthorityReason::WatcherUncoveredGap)
+        }
+        (LibraryChangeOrigin::ConsistencyAudit, _) => {
+            Some(LibraryRecoveryAuthorityReason::ContainmentFailure)
+        }
+        _ => None,
+    }
+}
+
+#[cfg(test)]
 fn metadata_inventory_run_id(leased: &LeasedLibraryChange) -> String {
     let intent = &leased.change.intent;
     super::scan_library::stable_id(
-        "metadata-inventory-run-v1",
+        "metadata-inventory-run-v2",
         &format!(
-            "{}:{}:{}:{}:{}:{}:{}:{}",
+            "{}:{}:{}:{}:{}:{}:{}",
             intent.root_id,
             intent.root_generation.value(),
             leased.change.id.value(),
-            leased.change.attempt_count,
             intent.most_recent_observed_unix_ms,
             intent.most_recent_sequence,
             intent.coalesced_observation_count,
@@ -358,6 +573,7 @@ fn metadata_inventory_run_id(leased: &LeasedLibraryChange) -> String {
     )
 }
 
+#[cfg(test)]
 const fn inventory_origin_key(origin: LibraryChangeOrigin) -> &'static str {
     match origin {
         LibraryChangeOrigin::LiveNotification => "live",
@@ -403,6 +619,7 @@ fn common_relative_ancestor(left: &str, right: &str) -> String {
         .join("/")
 }
 
+#[cfg(test)]
 fn run_metadata_inventory<Repository, Source>(
     repository: &mut Repository,
     source: &mut Source,
@@ -421,7 +638,7 @@ where
     repository.begin_metadata_inventory(request)?;
     finish_started_metadata_inventory(
         repository,
-        source,
+        Some(source),
         request,
         InventoryExecution {
             authority: None,
@@ -434,17 +651,17 @@ where
     )
 }
 
-fn finish_started_metadata_inventory<Repository, Source>(
+fn finish_started_metadata_inventory<Repository>(
     repository: &mut Repository,
-    source: &mut Source,
+    source: Option<&mut dyn MetadataInventorySource>,
     request: &MetadataInventoryRunRequest,
     execution: InventoryExecution<'_>,
 ) -> Result<MetadataInventoryReport, ScanError>
 where
     Repository: MetadataInventoryRepository + IncrementalCatalogRepository + LibraryChangeQueue,
-    Source: MetadataInventorySource,
 {
     let observed_unix_ms = execution.observed_unix_ms;
+    let preserves_recovery_frontier = execution.authority.is_some();
     let result = run_started_metadata_inventory(repository, source, request, execution);
     match result {
         Ok(mut report) => {
@@ -454,8 +671,9 @@ where
             Ok(report)
         }
         Err(error) => {
-            if let Err(terminal_error) =
-                terminate_failed(repository, &request.run_id, &error, observed_unix_ms)
+            if !preserves_recovery_frontier
+                && let Err(terminal_error) =
+                    terminate_failed(repository, &request.run_id, &error, observed_unix_ms)
             {
                 return Err(combined_inventory_error(
                     "metadata_inventory_termination_failed",
@@ -477,15 +695,14 @@ where
     }
 }
 
-fn run_started_metadata_inventory<Repository, Source>(
+fn run_started_metadata_inventory<Repository>(
     repository: &mut Repository,
-    source: &mut Source,
+    source: Option<&mut dyn MetadataInventorySource>,
     request: &MetadataInventoryRunRequest,
     execution: InventoryExecution<'_>,
 ) -> Result<MetadataInventoryReport, ScanError>
 where
     Repository: MetadataInventoryRepository + IncrementalCatalogRepository + LibraryChangeQueue,
-    Source: MetadataInventorySource,
 {
     let InventoryExecution {
         authority,
@@ -497,6 +714,9 @@ where
     } = execution;
     let cancellation = control.cancellation;
     let progress = control.progress;
+    let page_yield = control.page_yield;
+    let candidate_page_limit =
+        page_limit.min(queue_policy.lane_capacity(LibraryChangeLane::Recovery));
     let mut report = MetadataInventoryReport::default();
     let persisted = repository
         .load_metadata_inventory_run(&request.run_id)?
@@ -509,17 +729,46 @@ where
     report.staged_entry_count = persisted.staged_entry_count;
     report.candidate_count = persisted.candidate_count;
     if !persisted.enumeration_complete {
+        let source = source.ok_or_else(|| {
+            ScanError::new(
+                "metadata_inventory_source_missing",
+                "The active metadata inventory lost its retained source frontier",
+            )
+        })?;
         report_inventory_progress(progress, MetadataInventoryProgressPhase::Enumeration);
         loop {
             if cancellation.load(Ordering::Relaxed) {
-                terminate_cancelled(repository, &request.run_id, observed_unix_ms)?;
+                if authority.is_none() {
+                    terminate_cancelled(repository, &request.run_id, observed_unix_ms)?;
+                }
                 report.is_cancelled = true;
                 return Ok(report);
+            }
+            match source.prepare_next_page(page_limit, cancellation) {
+                Ok(MetadataInventorySourcePreparation::Ready) => {}
+                Ok(MetadataInventorySourcePreparation::Yielded) => {
+                    report_inventory_progress(
+                        progress,
+                        MetadataInventoryProgressPhase::Enumeration,
+                    );
+                    yield_inventory_page(page_yield, MetadataInventoryProgressPhase::Enumeration);
+                    return Ok(report);
+                }
+                Err(error) if error.code == "metadata_inventory_cancelled" => {
+                    if authority.is_none() {
+                        terminate_cancelled(repository, &request.run_id, observed_unix_ms)?;
+                    }
+                    report.is_cancelled = true;
+                    return Ok(report);
+                }
+                Err(error) => return Err(error),
             }
             let page = match source.next_page(page_limit, cancellation) {
                 Ok(page) => page,
                 Err(error) if error.code == "metadata_inventory_cancelled" => {
-                    terminate_cancelled(repository, &request.run_id, observed_unix_ms)?;
+                    if authority.is_none() {
+                        terminate_cancelled(repository, &request.run_id, observed_unix_ms)?;
+                    }
                     report.is_cancelled = true;
                     return Ok(report);
                 }
@@ -534,28 +783,39 @@ where
             report.staged_entry_count = run.staged_entry_count;
             report_inventory_progress(progress, MetadataInventoryProgressPhase::Enumeration);
             if is_complete {
+                if yield_after_work_page {
+                    yield_inventory_page(page_yield, MetadataInventoryProgressPhase::Enumeration);
+                    return Ok(report);
+                }
                 break;
+            }
+            yield_inventory_page(page_yield, MetadataInventoryProgressPhase::Enumeration);
+            if yield_after_work_page {
+                return Ok(report);
             }
         }
     }
     report_inventory_progress(progress, MetadataInventoryProgressPhase::Comparison);
     if cancellation.load(Ordering::Relaxed) {
-        terminate_cancelled(repository, &request.run_id, observed_unix_ms)?;
+        if authority.is_none() {
+            terminate_cancelled(repository, &request.run_id, observed_unix_ms)?;
+        }
         report.is_cancelled = true;
         return Ok(report);
     }
-    repository.authorize_metadata_inventory_absence(&request.run_id, observed_unix_ms)?;
-
     let mut sequence = 1_u64;
     let mut claimed_identities = BTreeSet::new();
+    let media_inspector = LocalMediaInspector::new();
     loop {
         if cancellation.load(Ordering::Relaxed) {
-            terminate_cancelled(repository, &request.run_id, observed_unix_ms)?;
+            if authority.is_none() {
+                terminate_cancelled(repository, &request.run_id, observed_unix_ms)?;
+            }
             report.is_cancelled = true;
             return Ok(report);
         }
-        let entries =
-            repository.load_pending_metadata_inventory_entries(&request.run_id, page_limit)?;
+        let entries = repository
+            .load_pending_metadata_inventory_entries(&request.run_id, candidate_page_limit)?;
         if entries.is_empty() {
             break;
         }
@@ -568,6 +828,11 @@ where
             .load_incremental_locations_by_relative_paths(&request.root_id, &relative_paths)?
             .into_iter()
             .map(|location| (location.relative_path.clone(), location))
+            .collect::<BTreeMap<_, _>>();
+        let terminal_media_evidence = repository
+            .load_terminal_media_evidence_by_relative_paths(&request.root_id, &relative_paths)?
+            .into_iter()
+            .map(|evidence| (evidence.relative_path.clone(), evidence))
             .collect::<BTreeMap<_, _>>();
         let identities = entries
             .iter()
@@ -599,6 +864,8 @@ where
             let comparison = compare_entry(
                 &entry,
                 path_priors.get(&entry.relative_path),
+                terminal_media_evidence.get(&entry.relative_path),
+                &media_inspector,
                 &previous_paths,
                 &mut claimed_identities,
             );
@@ -639,53 +906,124 @@ where
             }
         }
         report_inventory_progress(progress, MetadataInventoryProgressPhase::QueuePublication);
-        match enqueue_candidates(
-            repository,
-            authority,
-            &intents,
-            observed_unix_ms,
-            queue_policy,
-            &mut report,
-        )? {
-            CandidateEnqueueOutcome::Applied => {}
-            CandidateEnqueueOutcome::Backpressured => {
-                report.is_backpressured = true;
-                return Ok(report);
+        let run = if let Some(authority) = authority {
+            match repository.publish_metadata_inventory_comparison_candidates(
+                authority,
+                &request.run_id,
+                &intents,
+                &updates,
+                observed_unix_ms,
+                queue_policy,
+            ) {
+                Ok(Some((enqueue, run))) => {
+                    apply_enqueue_report(&mut report, enqueue)?;
+                    run
+                }
+                Ok(None) => {
+                    repository.terminate_metadata_inventory(
+                        &request.run_id,
+                        MetadataInventoryRunStatus::Superseded,
+                        None,
+                        observed_unix_ms,
+                    )?;
+                    report.is_cancelled = true;
+                    return Ok(report);
+                }
+                Err(error) if error.code == "metadata_inventory_backpressure" => {
+                    report.is_backpressured = true;
+                    return Ok(report);
+                }
+                Err(error) => return Err(error),
             }
-            CandidateEnqueueOutcome::AuthoritySuperseded => {
-                repository.terminate_metadata_inventory(
-                    &request.run_id,
-                    MetadataInventoryRunStatus::Superseded,
-                    None,
-                    observed_unix_ms,
-                )?;
-                report.is_cancelled = true;
-                return Ok(report);
+        } else {
+            match enqueue_candidates(
+                repository,
+                None,
+                &intents,
+                observed_unix_ms,
+                queue_policy,
+                &mut report,
+            )? {
+                CandidateEnqueueOutcome::Applied => {}
+                CandidateEnqueueOutcome::Backpressured => {
+                    report.is_backpressured = true;
+                    return Ok(report);
+                }
+                CandidateEnqueueOutcome::AuthoritySuperseded => {
+                    return Err(ScanError::new(
+                        "metadata_inventory_authority_state_invalid",
+                        "A manual inventory cannot lose recovery authority",
+                    ));
+                }
             }
-        }
-        let run = repository.record_metadata_inventory_comparisons(
-            &request.run_id,
-            &updates,
-            observed_unix_ms,
-        )?;
+            repository.record_metadata_inventory_comparisons(
+                &request.run_id,
+                &updates,
+                observed_unix_ms,
+            )?
+        };
         report.candidate_count = run.candidate_count;
         report_inventory_progress(progress, MetadataInventoryProgressPhase::Comparison);
         if yield_after_work_page {
+            yield_inventory_page(page_yield, MetadataInventoryProgressPhase::Comparison);
             return Ok(report);
         }
+    }
+
+    let recovery_root_binding = if authority.is_some() {
+        let expected_identity = repository
+            .load_metadata_inventory_root_identity(&request.run_id)?
+            .ok_or_else(|| {
+                ScanError::new(
+                    "metadata_inventory_root_identity_missing",
+                    "Recovery absence authority lacks its durable pinned-root identity",
+                )
+            })?;
+        let root = repository
+            .load_incremental_catalog_root(&request.root_id)?
+            .filter(|root| root.root_generation == request.root_generation)
+            .ok_or_else(|| {
+                ScanError::new(
+                    "metadata_inventory_root_stale",
+                    "The recovery root changed before absence authorization",
+                )
+            })?;
+        Some((root.root_path, expected_identity))
+    } else {
+        None
+    };
+    if let Some(authority) = authority
+        && !repository.metadata_inventory_recovery_allows_absence(authority.change.id)?
+    {
+        report.awaiting_closing_boundary = true;
+        return Ok(report);
+    }
+    {
+        let _publication_guard = recovery_root_binding
+            .as_ref()
+            .map(|(root_path, expected_identity)| {
+                PublicationGuardedFileDiscovery::new_metadata_inventory_publication_guard(
+                    root_path,
+                    expected_identity,
+                )
+            })
+            .transpose()?;
+        repository.authorize_metadata_inventory_absence(&request.run_id, observed_unix_ms)?;
     }
 
     let mut absence_cursor = persisted.absence_cursor;
     loop {
         if cancellation.load(Ordering::Relaxed) {
-            terminate_cancelled(repository, &request.run_id, observed_unix_ms)?;
+            if authority.is_none() {
+                terminate_cancelled(repository, &request.run_id, observed_unix_ms)?;
+            }
             report.is_cancelled = true;
             return Ok(report);
         }
         let paths = repository.load_metadata_inventory_absence_candidates(
             &request.run_id,
             absence_cursor.as_deref(),
-            page_limit,
+            candidate_page_limit,
         )?;
         if paths.is_empty() {
             break;
@@ -707,30 +1045,6 @@ where
             })?;
         }
         report_inventory_progress(progress, MetadataInventoryProgressPhase::QueuePublication);
-        match enqueue_candidates(
-            repository,
-            authority,
-            &intents,
-            observed_unix_ms,
-            queue_policy,
-            &mut report,
-        )? {
-            CandidateEnqueueOutcome::Applied => {}
-            CandidateEnqueueOutcome::Backpressured => {
-                report.is_backpressured = true;
-                return Ok(report);
-            }
-            CandidateEnqueueOutcome::AuthoritySuperseded => {
-                repository.terminate_metadata_inventory(
-                    &request.run_id,
-                    MetadataInventoryRunStatus::Superseded,
-                    None,
-                    observed_unix_ms,
-                )?;
-                report.is_cancelled = true;
-                return Ok(report);
-            }
-        }
         let next_cursor = paths.last().expect("non-empty absence page").clone();
         let count = u64::try_from(paths.len()).map_err(|_| {
             ScanError::new(
@@ -743,22 +1057,97 @@ where
             count,
             "metadata inventory absence count",
         )?;
-        let run = repository.advance_metadata_inventory_absence_cursor(
-            &request.run_id,
-            absence_cursor.as_deref(),
-            &next_cursor,
-            count,
-            observed_unix_ms,
-        )?;
+        let _publication_guard = recovery_root_binding
+            .as_ref()
+            .map(|(root_path, expected_identity)| {
+                PublicationGuardedFileDiscovery::new_metadata_inventory_publication_guard(
+                    root_path,
+                    expected_identity,
+                )
+            })
+            .transpose()?;
+        let run = if let Some(authority) = authority {
+            match repository.publish_metadata_inventory_absence_candidates(
+                authority,
+                MetadataInventoryAbsencePublicationRequest {
+                    run_id: &request.run_id,
+                    expected_cursor: absence_cursor.as_deref(),
+                    next_cursor: &next_cursor,
+                    intents: &intents,
+                    updated_unix_ms: observed_unix_ms,
+                    policy: queue_policy,
+                },
+            ) {
+                Ok(Some((enqueue, run))) => {
+                    apply_enqueue_report(&mut report, enqueue)?;
+                    run
+                }
+                Ok(None) => {
+                    repository.terminate_metadata_inventory(
+                        &request.run_id,
+                        MetadataInventoryRunStatus::Superseded,
+                        None,
+                        observed_unix_ms,
+                    )?;
+                    report.is_cancelled = true;
+                    return Ok(report);
+                }
+                Err(error) if error.code == "metadata_inventory_backpressure" => {
+                    report.is_backpressured = true;
+                    return Ok(report);
+                }
+                Err(error) => return Err(error),
+            }
+        } else {
+            match enqueue_candidates(
+                repository,
+                None,
+                &intents,
+                observed_unix_ms,
+                queue_policy,
+                &mut report,
+            )? {
+                CandidateEnqueueOutcome::Applied => {}
+                CandidateEnqueueOutcome::Backpressured => {
+                    report.is_backpressured = true;
+                    return Ok(report);
+                }
+                CandidateEnqueueOutcome::AuthoritySuperseded => {
+                    return Err(ScanError::new(
+                        "metadata_inventory_authority_state_invalid",
+                        "A manual inventory cannot lose recovery authority",
+                    ));
+                }
+            }
+            repository.advance_metadata_inventory_absence_cursor(
+                &request.run_id,
+                absence_cursor.as_deref(),
+                &next_cursor,
+                count,
+                observed_unix_ms,
+            )?
+        };
         report.candidate_count = run.candidate_count;
         absence_cursor = Some(next_cursor);
         report_inventory_progress(progress, MetadataInventoryProgressPhase::Comparison);
         if yield_after_work_page {
+            yield_inventory_page(page_yield, MetadataInventoryProgressPhase::QueuePublication);
             return Ok(report);
         }
     }
 
-    let run = repository.complete_metadata_inventory(&request.run_id, observed_unix_ms)?;
+    let run = {
+        let _publication_guard = recovery_root_binding
+            .as_ref()
+            .map(|(root_path, expected_identity)| {
+                PublicationGuardedFileDiscovery::new_metadata_inventory_publication_guard(
+                    root_path,
+                    expected_identity,
+                )
+            })
+            .transpose()?;
+        repository.complete_metadata_inventory(&request.run_id, observed_unix_ms)?
+    };
     report.staged_entry_count = run.staged_entry_count;
     report.candidate_count = run.candidate_count;
     report.is_complete = true;
@@ -774,9 +1163,21 @@ fn report_inventory_progress(
     }
 }
 
+fn yield_inventory_page(
+    page_yield: Option<&dyn Fn(MetadataInventoryProgressPhase)>,
+    phase: MetadataInventoryProgressPhase,
+) {
+    if let Some(page_yield) = page_yield {
+        page_yield(phase);
+    }
+    std::thread::yield_now();
+}
+
 fn compare_entry(
     entry: &MetadataInventoryEntry,
     path_prior: Option<&AssetLocationView>,
+    terminal_media_evidence: Option<&TerminalMediaEvidence>,
+    media_inspector: &impl MediaInspector,
     previous_paths: &BTreeMap<(String, String), String>,
     claimed_identities: &mut BTreeSet<(String, String)>,
 ) -> EntryComparison {
@@ -784,6 +1185,11 @@ fn compare_entry(
         return EntryComparison::Unchanged;
     }
     if path_prior.is_some_and(|prior| inventory_matches_location(entry, prior)) {
+        return EntryComparison::Unchanged;
+    }
+    if terminal_media_evidence.is_some_and(|evidence| {
+        inventory_matches_terminal_media_evidence(entry, evidence, media_inspector)
+    }) {
         return EntryComparison::Unchanged;
     }
     if path_prior.is_none()
@@ -802,6 +1208,19 @@ fn compare_entry(
     EntryComparison::Candidate {
         previous_path: None,
     }
+}
+
+fn inventory_matches_terminal_media_evidence(
+    entry: &MetadataInventoryEntry,
+    evidence: &TerminalMediaEvidence,
+    media_inspector: &impl MediaInspector,
+) -> bool {
+    entry.file_size == Some(evidence.file_size)
+        && entry.modified_unix_ms == evidence.modified_unix_ms
+        && entry.placeholder_state == MetadataInventoryPlaceholderState::Available
+        && entry.file_identity == evidence.file_identity
+        && evidence.inspection_engine_id == media_inspector.inspection_engine_id()
+        && evidence.inspection_engine_version == media_inspector.inspection_engine_version()
 }
 
 fn inventory_matches_location(entry: &MetadataInventoryEntry, prior: &AssetLocationView) -> bool {
@@ -884,6 +1303,14 @@ where
     } else {
         repository.enqueue_library_change_intents(intents, observed_unix_ms, queue_policy)?
     };
+    apply_enqueue_report(report, enqueue)?;
+    Ok(CandidateEnqueueOutcome::Applied)
+}
+
+fn apply_enqueue_report(
+    report: &mut MetadataInventoryReport,
+    enqueue: crate::domain::LibraryChangeEnqueueReport,
+) -> Result<(), ScanError> {
     report.enqueued_count = checked_add(
         report.enqueued_count,
         u64::from(enqueue.inserted_count),
@@ -899,7 +1326,7 @@ where
         u64::from(enqueue.superseded_count),
         "metadata inventory superseded count",
     )?;
-    Ok(CandidateEnqueueOutcome::Applied)
+    Ok(())
 }
 
 fn terminate_cancelled<Repository>(

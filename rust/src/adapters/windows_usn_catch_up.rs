@@ -28,12 +28,16 @@ use crate::domain::{
     LibraryChangeScope, ScanError,
 };
 use crate::ports::LibraryChangeCatchUpSource;
+use crate::windows_usn::{
+    FileReference, ParsedUsnRecord, ReferenceHistories, ReferenceResolutionError, UsnParseError,
+    parse_journal_buffer as parse_shared_journal_buffer,
+    reference_histories as shared_reference_histories,
+    resolve_reference_path_with as resolve_shared_reference_path,
+};
 
 const CATCH_UP_SOURCE: &str = "windows_usn_v1";
 const JOURNAL_BUFFER_BYTES: usize = 64 * 1_024;
 const MAX_PATH_UTF16: usize = 32_768;
-const WINDOWS_TO_UNIX_EPOCH_100NS: i64 = 116_444_736_000_000_000;
-const HUNDRED_NS_PER_MILLISECOND: i64 = 10_000;
 
 pub(crate) struct WindowsUsnCatchUpSource<Backend = Win32UsnBackend> {
     backend: Backend,
@@ -288,23 +292,6 @@ struct ResolvedJournalChange {
 enum RenameRole {
     OldName,
     NewName,
-}
-
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
-enum FileReference {
-    V2([u8; 8]),
-    V3([u8; 16]),
-}
-
-#[derive(Clone, Debug)]
-struct ParsedUsnRecord {
-    file_reference: FileReference,
-    parent_reference: FileReference,
-    usn: i64,
-    observed_unix_ms: i64,
-    reason: u32,
-    file_attributes: u32,
-    name: String,
 }
 
 #[derive(Clone, Copy)]
@@ -668,7 +655,7 @@ fn read_journal_records(
             "usn_journal_read_failed",
         )?;
         output.truncate(bytes);
-        let (next_usn, mut batch) = parse_journal_buffer(&output)?;
+        let (next_usn, mut batch) = parse_adapter_journal_buffer(&output)?;
         batch.retain(|record| record.usn < end_usn);
         if records.len().saturating_add(batch.len()) > max_records {
             return Err(ScanError::new(
@@ -707,128 +694,23 @@ struct ParsedJournalRecords {
     retained_bytes: usize,
 }
 
-fn parse_journal_buffer(buffer: &[u8]) -> Result<(i64, Vec<ParsedUsnRecord>), ScanError> {
-    if buffer.len() < size_of::<i64>() {
-        return Err(invalid_record_buffer());
-    }
-    let next_usn = i64::from_le_bytes(
-        buffer[..8]
-            .try_into()
-            .map_err(|_| invalid_record_buffer())?,
-    );
-    let mut offset = 8_usize;
-    let mut records = Vec::new();
-    while offset < buffer.len() {
-        let remaining = buffer.get(offset..).ok_or_else(invalid_record_buffer)?;
-        if remaining.len() < 8 {
-            return Err(invalid_record_buffer());
-        }
-        let record_length =
-            usize::try_from(read_u32(remaining, 0)?).map_err(|_| invalid_record())?;
-        if record_length < 60 || !record_length.is_multiple_of(8) || record_length > remaining.len()
-        {
-            return Err(invalid_record());
-        }
-        let record = remaining.get(..record_length).ok_or_else(invalid_record)?;
-        records.push(parse_usn_record(record)?);
-        offset = offset
-            .checked_add(record_length)
-            .ok_or_else(invalid_record)?;
-    }
-    Ok((next_usn, records))
+fn parse_adapter_journal_buffer(buffer: &[u8]) -> Result<(i64, Vec<ParsedUsnRecord>), ScanError> {
+    parse_shared_journal_buffer(buffer).map_err(map_parse_error)
 }
 
-fn parse_usn_record(record: &[u8]) -> Result<ParsedUsnRecord, ScanError> {
-    let major_version = read_u16(record, 4)?;
-    let (
-        file_reference,
-        parent_reference,
-        usn_offset,
-        timestamp_offset,
-        reason_offset,
-        attributes_offset,
-        filename_length_offset,
-        filename_offset_offset,
-        minimum_length,
-    ) = match major_version {
-        2 => (
-            FileReference::V2(read_array::<8>(record, 8)?),
-            FileReference::V2(read_array::<8>(record, 16)?),
-            24,
-            32,
-            40,
-            52,
-            56,
-            58,
-            60,
+fn map_parse_error(error: UsnParseError) -> ScanError {
+    match error {
+        UsnParseError::BufferMalformed => invalid_record_buffer(),
+        UsnParseError::RecordMalformed => invalid_record(),
+        UsnParseError::VersionUnsupported => ScanError::new(
+            "usn_record_version_unsupported",
+            "The journal returned a record version outside V2 and V3",
         ),
-        3 => (
-            FileReference::V3(read_array::<16>(record, 8)?),
-            FileReference::V3(read_array::<16>(record, 24)?),
-            40,
-            48,
-            56,
-            68,
-            72,
-            74,
-            76,
-        ),
-        _ => {
-            return Err(ScanError::new(
-                "usn_record_version_unsupported",
-                "The journal returned a record version outside V2 and V3",
-            ));
-        }
-    };
-    if record.len() < minimum_length {
-        return Err(invalid_record());
-    }
-    let filename_length = usize::from(read_u16(record, filename_length_offset)?);
-    let filename_offset = usize::from(read_u16(record, filename_offset_offset)?);
-    if !filename_length.is_multiple_of(2)
-        || !filename_offset.is_multiple_of(2)
-        || filename_offset < minimum_length
-    {
-        return Err(invalid_record());
-    }
-    let filename_end = filename_offset
-        .checked_add(filename_length)
-        .ok_or_else(invalid_record)?;
-    let filename_bytes = record
-        .get(filename_offset..filename_end)
-        .ok_or_else(invalid_record)?;
-    let mut filename_utf16 = Vec::with_capacity(filename_length / 2);
-    for bytes in filename_bytes.chunks_exact(2) {
-        filename_utf16.push(u16::from_le_bytes([bytes[0], bytes[1]]));
-    }
-    let name = String::from_utf16(&filename_utf16).map_err(|_| {
-        ScanError::new(
+        UsnParseError::NameInvalid => ScanError::new(
             "usn_filename_invalid",
             "The journal returned an invalid UTF-16 file name",
-        )
-    })?;
-    if name.is_empty()
-        || name == "."
-        || name == ".."
-        || name.contains(['\\', '/'])
-        || name.contains('\0')
-    {
-        return Err(invalid_record());
+        ),
     }
-    let timestamp = read_i64(record, timestamp_offset)?;
-    Ok(ParsedUsnRecord {
-        file_reference,
-        parent_reference,
-        usn: read_i64(record, usn_offset)?,
-        observed_unix_ms: timestamp
-            .saturating_sub(WINDOWS_TO_UNIX_EPOCH_100NS)
-            .checked_div(HUNDRED_NS_PER_MILLISECOND)
-            .unwrap_or(0)
-            .max(0),
-        reason: read_u32(record, reason_offset)?,
-        file_attributes: read_u32(record, attributes_offset)?,
-        name,
-    })
 }
 
 fn resolve_record_paths(
@@ -838,13 +720,7 @@ fn resolve_record_paths(
     max_evidence_bytes: usize,
     cancelled: &AtomicBool,
 ) -> Result<Vec<ResolvedJournalChange>, ScanError> {
-    let mut histories = BTreeMap::<FileReference, Vec<usize>>::new();
-    for (index, record) in records.iter().enumerate() {
-        histories
-            .entry(record.file_reference)
-            .or_default()
-            .push(index);
-    }
+    let histories = shared_reference_histories(records);
     let mut resolved = Vec::with_capacity(records.len());
     for record in records {
         if cancelled.load(Ordering::Acquire) {
@@ -870,7 +746,7 @@ fn resolve_record_paths(
             full_path,
             file_reference: record.file_reference,
             usn: record.usn,
-            observed_unix_ms: record.observed_unix_ms,
+            observed_unix_ms: record.observed_unix_ms(),
             kind: observation_kind(record.reason),
             rename_role,
             is_directory: record.file_attributes & FILE_ATTRIBUTE_DIRECTORY != 0,
@@ -884,10 +760,10 @@ fn resolve_reference_path(
     reference: FileReference,
     before_usn: i64,
     records: &[ParsedUsnRecord],
-    histories: &BTreeMap<FileReference, Vec<usize>>,
+    histories: &ReferenceHistories,
     visiting: &mut BTreeSet<FileReference>,
 ) -> Result<String, ScanError> {
-    resolve_reference_path_with(
+    resolve_adapter_reference_path_with(
         reference,
         before_usn,
         records,
@@ -897,67 +773,33 @@ fn resolve_reference_path(
     )
 }
 
-fn resolve_reference_path_with<OpenReference>(
+fn resolve_adapter_reference_path_with<OpenReference>(
     reference: FileReference,
     before_usn: i64,
     records: &[ParsedUsnRecord],
-    histories: &BTreeMap<FileReference, Vec<usize>>,
+    histories: &ReferenceHistories,
     visiting: &mut BTreeSet<FileReference>,
     open_reference: &OpenReference,
 ) -> Result<String, ScanError>
 where
     OpenReference: Fn(FileReference) -> Result<String, ScanError>,
 {
-    if !visiting.insert(reference) || visiting.len() > 256 {
-        return Err(ScanError::new(
+    resolve_shared_reference_path(
+        reference,
+        before_usn,
+        records,
+        histories,
+        visiting,
+        open_reference,
+        &|parent, name| Ok(format!("{}/{}", normalize_path(&parent), name)),
+    )
+    .map_err(|error| match error {
+        ReferenceResolutionError::CycleOrDepth => ScanError::new(
             "usn_path_reconstruction_cycle",
             "The journal parent chain could not be reconstructed safely",
-        ));
-    }
-    let historical = histories
-        .get(&reference)
-        .and_then(|indices| historical_parent_record(indices, records, before_usn));
-    let result = if let Some(parent_record) = historical {
-        let parent = resolve_reference_path_with(
-            parent_record.parent_reference,
-            parent_record.usn,
-            records,
-            histories,
-            visiting,
-            open_reference,
-        )?;
-        Ok(format!(
-            "{}/{}",
-            normalize_path(&parent),
-            parent_record.name
-        ))
-    } else {
-        open_reference(reference)
-    };
-    visiting.remove(&reference);
-    result
-}
-
-fn historical_parent_record<'a>(
-    indices: &[usize],
-    records: &'a [ParsedUsnRecord],
-    before_usn: i64,
-) -> Option<&'a ParsedUsnRecord> {
-    indices
-        .iter()
-        .rev()
-        .filter_map(|index| records.get(*index))
-        .find(|record| record.usn < before_usn)
-        .or_else(|| {
-            indices
-                .iter()
-                .filter_map(|index| records.get(*index))
-                .find(|record| {
-                    record.usn >= before_usn
-                        && record.reason & (USN_REASON_FILE_DELETE | USN_REASON_RENAME_OLD_NAME)
-                            != 0
-                })
-        })
+        ),
+        ReferenceResolutionError::Callback(error) => error,
+    })
 }
 
 fn open_file_reference_path(
@@ -1278,25 +1120,6 @@ fn rename_role(reason: u32) -> Result<Option<RenameRole>, ScanError> {
     }
 }
 
-fn read_array<const N: usize>(buffer: &[u8], offset: usize) -> Result<[u8; N], ScanError> {
-    buffer
-        .get(offset..offset.saturating_add(N))
-        .and_then(|value| value.try_into().ok())
-        .ok_or_else(invalid_record)
-}
-
-fn read_u16(buffer: &[u8], offset: usize) -> Result<u16, ScanError> {
-    Ok(u16::from_le_bytes(read_array(buffer, offset)?))
-}
-
-fn read_u32(buffer: &[u8], offset: usize) -> Result<u32, ScanError> {
-    Ok(u32::from_le_bytes(read_array(buffer, offset)?))
-}
-
-fn read_i64(buffer: &[u8], offset: usize) -> Result<i64, ScanError> {
-    Ok(i64::from_le_bytes(read_array(buffer, offset)?))
-}
-
 fn invalid_record() -> ScanError {
     ScanError::new(
         "usn_record_invalid",
@@ -1374,7 +1197,7 @@ mod tests {
         buffer.extend(v2_record(40, 8, "旧图.jpg", USN_REASON_FILE_DELETE));
         buffer.extend(v3_record(48, 16, "新图.jpg", USN_REASON_FILE_CREATE));
 
-        let (next, records) = parse_journal_buffer(&buffer).expect("valid mixed records");
+        let (next, records) = parse_adapter_journal_buffer(&buffer).expect("valid mixed records");
 
         assert_eq!(next, 80);
         assert_eq!(records.len(), 2);
@@ -1389,7 +1212,7 @@ mod tests {
         let mut buffer = 50_i64.to_le_bytes().to_vec();
         buffer.extend(record);
 
-        let error = parse_journal_buffer(&buffer).expect_err("invalid filename offset");
+        let error = parse_adapter_journal_buffer(&buffer).expect_err("invalid filename offset");
 
         assert_eq!(error.code, "usn_record_invalid");
     }
@@ -1402,7 +1225,7 @@ mod tests {
         let mut buffer = 50_i64.to_le_bytes().to_vec();
         buffer.extend(record);
 
-        let error = parse_journal_buffer(&buffer).expect_err("invalid UTF-16 filename");
+        let error = parse_adapter_journal_buffer(&buffer).expect_err("invalid UTF-16 filename");
 
         assert_eq!(error.code, "usn_filename_invalid");
     }
@@ -1414,7 +1237,7 @@ mod tests {
         let mut buffer = 50_i64.to_le_bytes().to_vec();
         buffer.extend(record);
 
-        let error = parse_journal_buffer(&buffer).expect_err("unsupported record version");
+        let error = parse_adapter_journal_buffer(&buffer).expect_err("unsupported record version");
 
         assert_eq!(error.code, "usn_record_version_unsupported");
     }
@@ -1426,7 +1249,7 @@ mod tests {
         let mut buffer = 50_i64.to_le_bytes().to_vec();
         buffer.extend(record);
 
-        let error = parse_journal_buffer(&buffer).expect_err("unaligned record length");
+        let error = parse_adapter_journal_buffer(&buffer).expect_err("unaligned record length");
 
         assert_eq!(error.code, "usn_record_invalid");
     }
@@ -1445,7 +1268,7 @@ mod tests {
         )];
         let histories = record_histories(&records);
 
-        let path = resolve_reference_path_with(
+        let path = resolve_adapter_reference_path_with(
             parent_reference,
             30,
             &records,
@@ -1487,7 +1310,7 @@ mod tests {
         ];
         let histories = record_histories(&records);
 
-        let path = resolve_reference_path_with(
+        let path = resolve_adapter_reference_path_with(
             inner_reference,
             30,
             &records,
@@ -1528,7 +1351,7 @@ mod tests {
         ];
         let histories = record_histories(&records);
 
-        let path = resolve_reference_path_with(
+        let path = resolve_adapter_reference_path_with(
             parent_reference,
             30,
             &records,
@@ -2092,7 +1915,7 @@ mod tests {
             file_reference,
             parent_reference,
             usn,
-            observed_unix_ms: 20,
+            timestamp_100ns: 116_444_736_200_000_000,
             reason,
             file_attributes: if is_directory {
                 FILE_ATTRIBUTE_DIRECTORY
@@ -2103,15 +1926,8 @@ mod tests {
         }
     }
 
-    fn record_histories(records: &[ParsedUsnRecord]) -> BTreeMap<FileReference, Vec<usize>> {
-        let mut histories = BTreeMap::new();
-        for (index, record) in records.iter().enumerate() {
-            histories
-                .entry(record.file_reference)
-                .or_insert_with(Vec::new)
-                .push(index);
-        }
-        histories
+    fn record_histories(records: &[ParsedUsnRecord]) -> ReferenceHistories {
+        shared_reference_histories(records)
     }
 
     fn journal_change_with_kind(
@@ -2159,6 +1975,7 @@ mod tests {
             has_running_scan: false,
             catalog_revision: 7,
             last_consistency_audit_unix_ms: None,
+            publication_root_identity: None,
         }
     }
 
@@ -2216,7 +2033,7 @@ mod tests {
         record[parent_offset..parent_offset + parent.len()].copy_from_slice(parent);
         record[usn_offset..usn_offset + 8].copy_from_slice(&usn.to_le_bytes());
         record[timestamp_offset..timestamp_offset + 8]
-            .copy_from_slice(&WINDOWS_TO_UNIX_EPOCH_100NS.to_le_bytes());
+            .copy_from_slice(&116_444_736_000_000_000_i64.to_le_bytes());
         record[reason_offset..reason_offset + 4].copy_from_slice(&reason.to_le_bytes());
         record[attributes_offset..attributes_offset + 4].copy_from_slice(&0_u32.to_le_bytes());
         record[name_length_offset..name_length_offset + 2]

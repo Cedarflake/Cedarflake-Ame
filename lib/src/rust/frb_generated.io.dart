@@ -14,6 +14,7 @@ import 'domain.dart';
 import 'domain/library_change.dart';
 import 'domain/library_change_queue.dart';
 import 'domain/library_synchronization.dart';
+import 'domain/persistent_journal.dart';
 import 'frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
@@ -55,6 +56,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   CatalogCursor dco_decode_box_autoadd_catalog_cursor(dynamic raw);
+
+  @protected
+  CatalogReadRetryDetails dco_decode_box_autoadd_catalog_read_retry_details(
+    dynamic raw,
+  );
 
   @protected
   FileIdentityEvidence dco_decode_box_autoadd_file_identity_evidence(
@@ -121,6 +127,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   CatalogFreshnessState dco_decode_catalog_freshness_state(dynamic raw);
+
+  @protected
+  CatalogReadRetryCause dco_decode_catalog_read_retry_cause(dynamic raw);
+
+  @protected
+  CatalogReadRetryDetails dco_decode_catalog_read_retry_details(dynamic raw);
+
+  @protected
+  CatalogReadRetryOperation dco_decode_catalog_read_retry_operation(
+    dynamic raw,
+  );
 
   @protected
   CatalogSnapshot dco_decode_catalog_snapshot(dynamic raw);
@@ -262,6 +279,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CatalogCursor? dco_decode_opt_box_autoadd_catalog_cursor(dynamic raw);
 
   @protected
+  CatalogReadRetryDetails?
+  dco_decode_opt_box_autoadd_catalog_read_retry_details(dynamic raw);
+
+  @protected
   FileIdentityEvidence? dco_decode_opt_box_autoadd_file_identity_evidence(
     dynamic raw,
   );
@@ -293,6 +314,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BigInt? dco_decode_opt_box_autoadd_u_64(dynamic raw);
+
+  @protected
+  PersistentJournalContinuityState
+  dco_decode_persistent_journal_continuity_state(dynamic raw);
 
   @protected
   PreviewCleanupEvent dco_decode_preview_cleanup_event(dynamic raw);
@@ -386,6 +411,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  CatalogReadRetryDetails sse_decode_box_autoadd_catalog_read_retry_details(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   FileIdentityEvidence sse_decode_box_autoadd_file_identity_evidence(
     SseDeserializer deserializer,
   );
@@ -470,6 +500,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   CatalogFreshnessState sse_decode_catalog_freshness_state(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  CatalogReadRetryCause sse_decode_catalog_read_retry_cause(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  CatalogReadRetryDetails sse_decode_catalog_read_retry_details(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  CatalogReadRetryOperation sse_decode_catalog_read_retry_operation(
     SseDeserializer deserializer,
   );
 
@@ -645,6 +690,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  CatalogReadRetryDetails?
+  sse_decode_opt_box_autoadd_catalog_read_retry_details(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   FileIdentityEvidence? sse_decode_opt_box_autoadd_file_identity_evidence(
     SseDeserializer deserializer,
   );
@@ -682,6 +733,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BigInt? sse_decode_opt_box_autoadd_u_64(SseDeserializer deserializer);
+
+  @protected
+  PersistentJournalContinuityState
+  sse_decode_persistent_journal_continuity_state(SseDeserializer deserializer);
 
   @protected
   PreviewCleanupEvent sse_decode_preview_cleanup_event(
@@ -792,6 +847,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_catalog_read_retry_details(
+    CatalogReadRetryDetails self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_file_identity_evidence(
     FileIdentityEvidence self,
     SseSerializer serializer,
@@ -896,6 +957,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_catalog_freshness_state(
     CatalogFreshnessState self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_catalog_read_retry_cause(
+    CatalogReadRetryCause self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_catalog_read_retry_details(
+    CatalogReadRetryDetails self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_catalog_read_retry_operation(
+    CatalogReadRetryOperation self,
     SseSerializer serializer,
   );
 
@@ -1116,6 +1195,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_catalog_read_retry_details(
+    CatalogReadRetryDetails? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_file_identity_evidence(
     FileIdentityEvidence? self,
     SseSerializer serializer,
@@ -1159,6 +1244,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_opt_box_autoadd_u_64(BigInt? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_persistent_journal_continuity_state(
+    PersistentJournalContinuityState self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_preview_cleanup_event(

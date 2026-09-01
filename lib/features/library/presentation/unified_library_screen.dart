@@ -50,6 +50,8 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   static const _layoutDimensionMaximumDelay = Duration(milliseconds: 600);
   static const _retrySynchronizationNotificationAction =
       "library.retrySynchronization";
+  static const _refreshBlockedRootNotificationAction =
+      "library.refreshBlockedRoot";
   static const _synchronizationRefreshNotificationKey =
       "library.synchronizationRefresh";
 
@@ -328,6 +330,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       final root = roots[rootId];
       final priorKey = _synchronizationNotificationKeys[rootId];
       final currentGenerationKey = _synchronizationNotificationKey(status);
+      final requiresManualLibraryUpdate = _requiresManualLibraryUpdate(status);
       switch (status.freshness) {
         case LibraryCatalogFreshness.needsReconciliation:
           final key = _synchronizationNotificationKey(status);
@@ -347,6 +350,12 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
               elapsedStartedAt: status.phaseStartedAt,
               sourcePath: root?.displayPath,
               technicalCode: status.lastIssueCode,
+              actionId: requiresManualLibraryUpdate
+                  ? _refreshBlockedRootNotificationAction
+                  : null,
+              actionLabel: requiresManualLibraryUpdate
+                  ? LibraryStrings.updateLibrary
+                  : null,
               isPersistent: true,
             ),
           );
@@ -377,6 +386,12 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     LibraryRootSynchronizationStatus status,
   ) {
     return "library.rootReconciliation:${status.rootId}:${status.rootGeneration}";
+  }
+
+  bool _requiresManualLibraryUpdate(LibraryRootSynchronizationStatus status) {
+    return status.lastIssueCode == "legacy_recovery_authority_missing" ||
+        (status.recoveryBlocked &&
+            status.lastIssueCode == "live_gap_v30_explicit_recovery_required");
   }
 
   String _synchronizationNotificationMessage(
@@ -418,6 +433,10 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
         LibraryStrings.synchronizationMonitoringCapacityExceeded,
       "change_source_event_incomplete" || "change_source_rename_incomplete" =>
         LibraryStrings.synchronizationMonitoringEventIncomplete,
+      "legacy_recovery_authority_missing" =>
+        LibraryStrings.synchronizationLegacyRecoveryAuthorityMissing,
+      "live_gap_v30_explicit_recovery_required" =>
+        LibraryStrings.synchronizationExplicitRecoveryRequired,
       "change_source_callback_failed" ||
       "change_source_callback_invalid_configuration" ||
       "change_source_callback_io_failed" ||
@@ -517,6 +536,12 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     switch (notification.actionId) {
       case _retrySynchronizationNotificationAction:
         unawaited(_retrySynchronizationRefresh());
+        break;
+      case _refreshBlockedRootNotificationAction:
+        final rootPath = notification.sourcePath;
+        if (rootPath != null && rootPath.isNotEmpty) {
+          unawaited(_libraryController.scanDirectory(rootPath));
+        }
         break;
       case null:
         break;

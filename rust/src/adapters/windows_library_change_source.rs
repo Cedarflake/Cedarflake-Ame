@@ -1,8 +1,11 @@
+#[cfg(test)]
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
+#[cfg(test)]
+use std::sync::OnceLock;
 use std::sync::atomic::{AtomicBool, AtomicU8, AtomicU64, Ordering};
 use std::sync::mpsc::{Receiver, SyncSender, TryRecvError, TrySendError, sync_channel};
 use std::sync::{Arc, Mutex};
-use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use notify::event::{CreateKind, ModifyKind, RemoveKind, RenameMode};
@@ -19,7 +22,50 @@ use crate::ports::{LibraryChangeSource, LibraryChangeSourceRequest};
 
 const MAX_INGRESS_CAPACITY: usize = 4096;
 const RENAME_PAIR_GRACE: Duration = Duration::from_millis(50);
-const STOP_TIMEOUT: Duration = Duration::from_secs(2);
+
+#[cfg(test)]
+static OBSERVER_ROOT_HANDLE_OPENS: OnceLock<Mutex<BTreeMap<String, u64>>> = OnceLock::new();
+
+#[cfg(test)]
+pub(crate) fn reset_observer_root_handle_open_count(root_path: &str) {
+    observer_root_handle_opens()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .insert(observer_root_instrumentation_key(Path::new(root_path)), 0);
+}
+
+#[cfg(test)]
+pub(crate) fn observer_root_handle_open_count(root_path: &str) -> u64 {
+    observer_root_handle_opens()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .get(&observer_root_instrumentation_key(Path::new(root_path)))
+        .copied()
+        .unwrap_or_default()
+}
+
+#[cfg(test)]
+fn observer_root_handle_opens() -> &'static Mutex<BTreeMap<String, u64>> {
+    OBSERVER_ROOT_HANDLE_OPENS.get_or_init(|| Mutex::new(BTreeMap::new()))
+}
+
+#[cfg(test)]
+fn record_observer_root_handle_open(root_path: &Path) {
+    let root_path = observer_root_instrumentation_key(root_path);
+    let mut counts = observer_root_handle_opens()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    *counts.entry(root_path).or_default() += 1;
+}
+
+#[cfg(test)]
+fn observer_root_instrumentation_key(root_path: &Path) -> String {
+    root_path
+        .canonicalize()
+        .unwrap_or_else(|_| root_path.to_path_buf())
+        .to_string_lossy()
+        .into_owned()
+}
 
 pub struct WindowsLibraryChangeSource {
     watcher: Option<RecommendedWatcher>,
@@ -105,6 +151,8 @@ pub(super) fn start_windows_library_change_source(
                 "The library root could not be observed recursively.",
             )
         })?;
+    #[cfg(test)]
+    record_observer_root_handle_open(&root_path);
     callback_state.compare_health(
         LibraryChangeSourceHealth::Starting,
         LibraryChangeSourceHealth::Healthy,
@@ -115,6 +163,47 @@ pub(super) fn start_windows_library_change_source(
         receiver,
         callback_state,
     })
+}
+
+#[cfg(test)]
+pub(crate) fn native_need_rescan_batch_for_test(
+    request: &LibraryChangeSourceRequest,
+) -> Result<LibraryChangeSourceBatch, LibraryChangeSourceError> {
+    validate_request(request)?;
+    let root_path = std::fs::canonicalize(&request.root_path).map_err(|_| {
+        LibraryChangeSourceError::retryable(
+            "change_source_root_unavailable",
+            "The library root could not be resolved for observation.",
+        )
+    })?;
+    let (sender, receiver) = sync_channel(request.ingress_capacity);
+    let callback_state = Arc::new(CallbackState {
+        root_id: request.root_id.clone(),
+        root_generation: request.root_generation,
+        root_path,
+        sender,
+        delivery_gate: Mutex::new(()),
+        accepting: AtomicBool::new(true),
+        health: AtomicU8::new(health_code(LibraryChangeSourceHealth::Healthy)),
+        evidence_gap: AtomicBool::new(false),
+        dropped_observation_count: AtomicU64::new(0),
+        ignored_callback_count: AtomicU64::new(0),
+        next_sequence: AtomicU64::new(1),
+        pending_rename_from: Mutex::new(None),
+        last_issue: Mutex::new(None),
+    });
+    CallbackProcessor {
+        state: Arc::clone(&callback_state),
+    }
+    .handle(Ok(
+        Event::new(EventKind::Other).set_flag(notify::event::Flag::Rescan)
+    ));
+    let mut source = WindowsLibraryChangeSource {
+        watcher: None,
+        receiver,
+        callback_state,
+    };
+    source.drain(request.ingress_capacity)
 }
 
 impl LibraryChangeSource for WindowsLibraryChangeSource {
@@ -179,30 +268,12 @@ impl LibraryChangeSource for WindowsLibraryChangeSource {
         let Some(mut watcher) = self.watcher.take() else {
             return Ok(stop_report(started, &self.callback_state));
         };
-        let (finished_sender, finished_receiver) = sync_channel(1);
-        thread::Builder::new()
-            .name("ame-notify-stop".to_owned())
-            .spawn(move || {
-                let result = watcher.shutdown().map_err(|_| {
-                    LibraryChangeSourceError::new(
-                        "change_source_native_stop_failed",
-                        "The native Windows library observer did not shut down cleanly.",
-                    )
-                });
-                let _ = finished_sender.send(result);
-            })
-            .map_err(|_| {
-                LibraryChangeSourceError::new(
-                    "change_source_stop_thread_failed",
-                    "The library observer shutdown task could not be started.",
-                )
-            })?;
-        finished_receiver.recv_timeout(STOP_TIMEOUT).map_err(|_| {
+        watcher.shutdown().map_err(|_| {
             LibraryChangeSourceError::new(
-                "change_source_stop_timeout",
-                "The library observer did not stop within the bounded shutdown interval.",
+                "change_source_native_stop_failed",
+                "The native Windows library observer did not shut down cleanly.",
             )
-        })??;
+        })?;
         Ok(stop_report(started, &self.callback_state))
     }
 }

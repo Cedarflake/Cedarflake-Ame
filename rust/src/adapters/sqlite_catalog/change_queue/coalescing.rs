@@ -1,14 +1,15 @@
 use rusqlite::Transaction;
 
 use crate::domain::{
-    LibraryChangeCatchUpEvidence, LibraryChangeEnqueueReport, LibraryChangeFailure,
-    LibraryChangeId, LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeQueuePolicy,
-    LibraryChangeQueueStatus, LibraryChangeScope, ScanError,
+    LibraryChangeCapacityDeferral, LibraryChangeCatchUpEvidence, LibraryChangeEnqueueReport,
+    LibraryChangeFailure, LibraryChangeId, LibraryChangeIntent, LibraryChangeIntentKind,
+    LibraryChangeLane, LibraryChangeOrigin, LibraryChangeQueuePolicy, LibraryChangeQueueStatus,
+    LibraryChangeScope, ScanError, persistent_journal_canonical_intent_entry,
 };
 
 use super::persistence::{
-    ActiveChange, insert_change, load_active_changes, mark_superseded, transfer_catch_up_lineage,
-    update_change,
+    ActiveChange, insert_change, is_typed_capacity_deferred_live_gap, load_active_changes,
+    mark_superseded, transfer_catch_up_lineage, update_change,
 };
 
 const MAX_FAILURE_CODE_BYTES: usize = 128;
@@ -30,7 +31,8 @@ pub(super) struct EnqueueContext<'a> {
     pub(super) catalog_revision: u64,
     pub(super) policy: LibraryChangeQueuePolicy,
     pub(super) evidence: Option<&'a LibraryChangeCatchUpEvidence>,
-    pub(super) protected_change_id: Option<LibraryChangeId>,
+    pub(super) protected_change_ids: &'a [LibraryChangeId],
+    pub(super) allow_scope_degradation: bool,
 }
 
 pub(super) fn enqueue_one(
@@ -38,27 +40,98 @@ pub(super) fn enqueue_one(
     incoming: &LibraryChangeIntent,
     context: EnqueueContext<'_>,
     report: &mut LibraryChangeEnqueueReport,
-) -> Result<(), ScanError> {
+) -> Result<LibraryChangeId, ScanError> {
     let EnqueueContext {
         enqueued_unix_ms,
         catalog_revision,
         policy,
         evidence,
-        protected_change_id,
+        protected_change_ids,
+        allow_scope_degradation,
     } = context;
-    let active = load_active_changes(
+    let all_active = load_active_changes(
         transaction,
         &incoming.root_id,
         incoming.root_generation,
         policy.max_unresolved_changes,
-    )?
-    .into_iter()
-    .filter(|change| Some(change.id) != protected_change_id)
-    .collect::<Vec<_>>();
+    )?;
+    let preserve_inventory_control = preserves_inventory_control(incoming);
+    let mut capacity_deferred_gap_ids = Vec::new();
+    for change in &all_active {
+        if change.last_failure_code.as_deref()
+            == Some(LibraryChangeCapacityDeferral::MetadataInventoryLane.failure_code())
+            && is_typed_capacity_deferred_live_gap(transaction, change.id)?
+        {
+            capacity_deferred_gap_ids.push(change.id);
+        }
+    }
+    let persistent_watermark = evidence
+        .filter(|value| value.source == super::PERSISTENT_JOURNAL_CATCH_UP_SOURCE)
+        .map(|value| value.watermark.as_str());
+    let incoming_lane = incoming.origin.lane();
+    if incoming_lane != LibraryChangeLane::Live && lane_capacity(policy, incoming_lane) == 0 {
+        return Err(queue_backpressure());
+    }
+    if incoming_lane == LibraryChangeLane::Recovery
+        && let Some(higher_priority) = all_active
+            .iter()
+            .filter(|change| {
+                change.intent.origin.lane() != LibraryChangeLane::Recovery
+                    && exact_path_work_identity(&change.intent, incoming)
+            })
+            .min_by_key(|change| (lane_priority(change.intent.origin.lane()), change.id))
+    {
+        report.coalesced_count = report.coalesced_count.saturating_add(1);
+        return Ok(higher_priority.id);
+    }
+    let same_lane = all_active
+        .iter()
+        .filter(|change| {
+            if change.intent.origin.lane() != incoming_lane {
+                return false;
+            }
+            let change_persistent_watermark = change
+                .catch_up_evidence
+                .as_ref()
+                .filter(|value| value.source == super::PERSISTENT_JOURNAL_CATCH_UP_SOURCE)
+                .map(|value| value.watermark.as_str());
+            match persistent_watermark {
+                Some(watermark) => change_persistent_watermark == Some(watermark),
+                None => change_persistent_watermark.is_none(),
+            }
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+    let quota_active = all_active
+        .iter()
+        .filter(|change| {
+            change.intent.origin.lane() != incoming_lane
+                || !protected_change_ids.contains(&change.id)
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+    let lane_counts = active_lane_counts(&quota_active);
+    let active = same_lane
+        .iter()
+        .filter(|change| !preserve_inventory_control || !protected_change_ids.contains(&change.id))
+        .cloned()
+        .collect::<Vec<_>>();
+    let protected_count = all_active
+        .len()
+        .saturating_sub(active.len())
+        .saturating_add(
+            capacity_deferred_gap_ids
+                .iter()
+                .filter(|change_id| !protected_change_ids.contains(change_id))
+                .count(),
+        );
     if has_conflicting_rename(&active, incoming) {
+        if !allow_scope_degradation {
+            return Err(metadata_inventory_backpressure());
+        }
         return degrade_to_root(
             transaction,
-            active,
+            same_lane,
             incoming,
             report,
             DegradationContext {
@@ -71,9 +144,12 @@ pub(super) fn enqueue_one(
         );
     }
     if has_ambiguous_leased_overlap(&active, incoming) {
+        if !allow_scope_degradation {
+            return Err(metadata_inventory_backpressure());
+        }
         return degrade_to_root(
             transaction,
-            active,
+            same_lane,
             incoming,
             report,
             DegradationContext {
@@ -85,9 +161,15 @@ pub(super) fn enqueue_one(
             },
         );
     }
-    let covering = active
-        .iter()
-        .position(|change| is_unleased(change.status) && intent_covers(&change.intent, incoming));
+    let covering = active.iter().position(|change| {
+        is_unleased(change.status)
+            && intent_covers(&change.intent, incoming)
+            && !capacity_deferred_gap_preserves_precise_work(
+                change,
+                incoming,
+                &capacity_deferred_gap_ids,
+            )
+    });
     if let Some(target_index) = covering {
         let target_id = active[target_index].id;
         let mut merged = active[target_index].intent.clone();
@@ -103,6 +185,11 @@ pub(super) fn enqueue_one(
                     && ((is_unleased(change.status) && intent_covers(&merged, &change.intent))
                         || (change.status == LibraryChangeQueueStatus::Leased
                             && stale_overlap(&change.intent, incoming)))
+                    && !capacity_deferred_gap_preserves_precise_work(
+                        change,
+                        incoming,
+                        &capacity_deferred_gap_ids,
+                    )
             })
             .map(|(_, change)| change)
             .collect::<Vec<_>>();
@@ -115,23 +202,6 @@ pub(super) fn enqueue_one(
                 .rev()
                 .find_map(|change| change.catch_up_evidence.as_ref())
         });
-        let retained = active.len().saturating_sub(absorbed.len());
-        if retained > usize::try_from(policy.max_unresolved_changes).unwrap_or(usize::MAX) {
-            drop(absorbed);
-            return degrade_to_root(
-                transaction,
-                active,
-                incoming,
-                report,
-                DegradationContext {
-                    enqueued_unix_ms,
-                    catalog_revision,
-                    policy,
-                    capacity_degraded: true,
-                    evidence,
-                },
-            );
-        }
         update_change(
             transaction,
             target_id,
@@ -155,21 +225,51 @@ pub(super) fn enqueue_one(
         report.superseded_count = report.superseded_count.saturating_add(superseded);
         report.freshness_unknown_enqueued |=
             merged.kind == LibraryChangeIntentKind::FreshnessUnknown;
-        return Ok(());
+        supersede_recovery_candidates_covered_by_higher_lane(
+            transaction,
+            &all_active,
+            incoming_lane,
+            target_id,
+            &merged,
+            enqueued_unix_ms,
+            report,
+        )?;
+        return Ok(target_id);
     }
 
     let absorbed = active
         .iter()
         .filter(|change| {
-            intent_covers(incoming, &change.intent)
+            (intent_covers(incoming, &change.intent)
                 || (change.status == LibraryChangeQueueStatus::Leased
-                    && stale_overlap(&change.intent, incoming))
+                    && stale_overlap(&change.intent, incoming)))
+                && !capacity_deferred_gap_preserves_precise_work(
+                    change,
+                    incoming,
+                    &capacity_deferred_gap_ids,
+                )
         })
         .collect::<Vec<_>>();
-    let remaining = active.len().saturating_sub(absorbed.len());
-    if remaining.saturating_add(1)
-        > usize::try_from(policy.max_unresolved_changes).unwrap_or(usize::MAX)
+    let admitted_counts = lane_counts.replacing(incoming_lane, absorbed.len());
+    let absolute_count = all_active
+        .len()
+        .saturating_sub(absorbed.len())
+        .saturating_add(1);
+    if !lane_admission_allows(policy, incoming_lane, admitted_counts)
+        || absolute_count
+            > usize::try_from(LibraryChangeQueuePolicy::MAX_UNRESOLVED_CHANGES)
+                .unwrap_or(usize::MAX)
     {
+        if protected_count > 0 {
+            return Err(if allow_scope_degradation {
+                queue_backpressure()
+            } else {
+                metadata_inventory_backpressure()
+            });
+        }
+        if !allow_scope_degradation {
+            return Err(metadata_inventory_backpressure());
+        }
         return degrade_to_root(
             transaction,
             active,
@@ -227,7 +327,258 @@ pub(super) fn enqueue_one(
     report.inserted_count = report.inserted_count.saturating_add(1);
     report.superseded_count = report.superseded_count.saturating_add(superseded);
     report.freshness_unknown_enqueued |= merged.kind == LibraryChangeIntentKind::FreshnessUnknown;
+    supersede_recovery_candidates_covered_by_higher_lane(
+        transaction,
+        &all_active,
+        incoming_lane,
+        change_id,
+        &merged,
+        enqueued_unix_ms,
+        report,
+    )?;
+    Ok(change_id)
+}
+
+fn capacity_deferred_gap_preserves_precise_work(
+    change: &ActiveChange,
+    incoming: &LibraryChangeIntent,
+    capacity_deferred_gap_ids: &[LibraryChangeId],
+) -> bool {
+    capacity_deferred_gap_ids.contains(&change.id)
+        && incoming.origin == LibraryChangeOrigin::LiveNotification
+        && incoming.scope == LibraryChangeScope::Path
+        && incoming.kind != LibraryChangeIntentKind::FreshnessUnknown
+}
+
+fn supersede_recovery_candidates_covered_by_higher_lane(
+    transaction: &Transaction<'_>,
+    all_active: &[ActiveChange],
+    incoming_lane: LibraryChangeLane,
+    target_id: LibraryChangeId,
+    target: &LibraryChangeIntent,
+    enqueued_unix_ms: i64,
+    report: &mut LibraryChangeEnqueueReport,
+) -> Result<(), ScanError> {
+    if incoming_lane == LibraryChangeLane::Recovery || target.scope != LibraryChangeScope::Path {
+        return Ok(());
+    }
+    let superseded = mark_superseded(
+        transaction,
+        all_active
+            .iter()
+            .filter(|change| {
+                change.intent.origin.lane() == LibraryChangeLane::Recovery
+                    && exact_path_work_identity(&change.intent, target)
+            })
+            .map(|change| change.id),
+        Some(target_id),
+        enqueued_unix_ms,
+    )?;
+    report.superseded_count = report.superseded_count.saturating_add(superseded);
     Ok(())
+}
+
+fn exact_path_work_identity(left: &LibraryChangeIntent, right: &LibraryChangeIntent) -> bool {
+    left.scope == LibraryChangeScope::Path
+        && right.scope == LibraryChangeScope::Path
+        && left.relative_path == right.relative_path
+        && left.previous_relative_path == right.previous_relative_path
+}
+
+const fn lane_priority(lane: LibraryChangeLane) -> u8 {
+    match lane {
+        LibraryChangeLane::Live => 0,
+        LibraryChangeLane::Journal => 1,
+        LibraryChangeLane::Recovery => 2,
+    }
+}
+
+fn metadata_inventory_backpressure() -> ScanError {
+    ScanError::new(
+        "metadata_inventory_backpressure",
+        "The durable path queue must drain before inventory comparison continues",
+    )
+}
+
+pub(super) fn lane_capacity(policy: LibraryChangeQueuePolicy, lane: LibraryChangeLane) -> usize {
+    usize::try_from(policy.lane_capacity(lane)).unwrap_or(usize::MAX)
+}
+
+#[derive(Clone, Copy)]
+pub(super) struct ActiveLaneCounts {
+    live: usize,
+    journal: usize,
+    recovery: usize,
+}
+
+impl ActiveLaneCounts {
+    fn replacing(self, lane: LibraryChangeLane, absorbed_count: usize) -> Self {
+        let mut result = self;
+        let lane_count = match lane {
+            LibraryChangeLane::Live => &mut result.live,
+            LibraryChangeLane::Journal => &mut result.journal,
+            LibraryChangeLane::Recovery => &mut result.recovery,
+        };
+        *lane_count = lane_count.saturating_sub(absorbed_count).saturating_add(1);
+        result
+    }
+
+    pub(super) fn adding(self, lane: LibraryChangeLane, count: usize) -> Self {
+        let mut result = self;
+        let lane_count = match lane {
+            LibraryChangeLane::Live => &mut result.live,
+            LibraryChangeLane::Journal => &mut result.journal,
+            LibraryChangeLane::Recovery => &mut result.recovery,
+        };
+        *lane_count = lane_count.saturating_add(count);
+        result
+    }
+}
+
+pub(super) fn active_lane_counts(active: &[ActiveChange]) -> ActiveLaneCounts {
+    let mut counts = ActiveLaneCounts {
+        live: 0,
+        journal: 0,
+        recovery: 0,
+    };
+    for change in active {
+        counts = counts.adding(change.intent.origin.lane(), 1);
+    }
+    counts
+}
+
+pub(super) fn lane_admission_allows(
+    policy: LibraryChangeQueuePolicy,
+    incoming_lane: LibraryChangeLane,
+    counts: ActiveLaneCounts,
+) -> bool {
+    let total = counts
+        .live
+        .saturating_add(counts.journal)
+        .saturating_add(counts.recovery);
+    if total > usize::try_from(policy.max_unresolved_changes).unwrap_or(usize::MAX) {
+        return false;
+    }
+    match incoming_lane {
+        LibraryChangeLane::Live => true,
+        LibraryChangeLane::Journal => {
+            counts.journal.saturating_add(counts.recovery)
+                <= lane_capacity(policy, LibraryChangeLane::Journal)
+        }
+        LibraryChangeLane::Recovery => {
+            counts.journal.saturating_add(counts.recovery)
+                <= lane_capacity(policy, LibraryChangeLane::Journal)
+                && counts.recovery <= lane_capacity(policy, LibraryChangeLane::Recovery)
+        }
+    }
+}
+
+pub(in crate::adapters::sqlite_catalog) fn normalize_persistent_journal_intents(
+    intents: &[LibraryChangeIntent],
+) -> Result<Vec<LibraryChangeIntent>, ScanError> {
+    let Some(first) = intents.first() else {
+        return Ok(Vec::new());
+    };
+    validate_intent_batch(intents, first)?;
+    let mut ordered = intents.to_vec();
+    ordered.sort_by_cached_key(persistent_journal_canonical_intent_entry);
+    let mut normalized = Vec::new();
+    for incoming in ordered {
+        normalize_persistent_journal_intent(&mut normalized, incoming);
+    }
+    normalized.sort_by_cached_key(persistent_journal_canonical_intent_entry);
+    Ok(normalized)
+}
+
+fn normalize_persistent_journal_intent(
+    active: &mut Vec<LibraryChangeIntent>,
+    incoming: LibraryChangeIntent,
+) {
+    if active.iter().any(|change| {
+        incoming.kind == LibraryChangeIntentKind::RenameCandidate
+            && change.kind == LibraryChangeIntentKind::RenameCandidate
+            && !same_work_key(change, &incoming)
+            && affected_paths_overlap(change, &incoming)
+    }) {
+        let mut root = incoming;
+        root.kind = LibraryChangeIntentKind::FreshnessUnknown;
+        root.scope = LibraryChangeScope::Root;
+        root.relative_path.clear();
+        root.previous_relative_path = None;
+        for change in active.iter() {
+            merge_older_evidence(&mut root, change);
+        }
+        active.clear();
+        active.push(root);
+        return;
+    }
+
+    if let Some(target_index) = active
+        .iter()
+        .position(|change| intent_covers(change, &incoming))
+    {
+        let mut merged = active[target_index].clone();
+        merge_newer_evidence(&mut merged, &incoming);
+        if incoming.kind == LibraryChangeIntentKind::FreshnessUnknown {
+            merged.kind = LibraryChangeIntentKind::FreshnessUnknown;
+        }
+        for (index, change) in active.iter().enumerate() {
+            if index != target_index && intent_covers(&merged, change) {
+                merge_older_evidence(&mut merged, change);
+            }
+        }
+        let mut retained = Vec::with_capacity(active.len());
+        for (index, change) in active.drain(..).enumerate() {
+            if index == target_index {
+                retained.push(merged.clone());
+            } else if !intent_covers(&merged, &change) {
+                retained.push(change);
+            }
+        }
+        *active = retained;
+        return;
+    }
+
+    let absorbed = active
+        .iter()
+        .enumerate()
+        .filter(|(_, change)| intent_covers(&incoming, change))
+        .map(|(index, _)| index)
+        .collect::<Vec<_>>();
+    let stronger = absorbed
+        .iter()
+        .copied()
+        .max_by_key(|index| intent_strength(&active[*index]));
+    let mut merged = stronger
+        .map(|index| active[index].clone())
+        .unwrap_or_else(|| incoming.clone());
+    if stronger.is_some() {
+        merge_newer_evidence(&mut merged, &incoming);
+    }
+    for index in &absorbed {
+        if Some(*index) != stronger {
+            merge_older_evidence(&mut merged, &active[*index]);
+        }
+    }
+    for index in absorbed.into_iter().rev() {
+        active.remove(index);
+    }
+    active.push(merged);
+}
+
+fn preserves_inventory_control(incoming: &LibraryChangeIntent) -> bool {
+    incoming.kind != LibraryChangeIntentKind::FreshnessUnknown
+        && !matches!(
+            incoming.origin,
+            LibraryChangeOrigin::StartupCatchUp | LibraryChangeOrigin::ConsistencyAudit
+        )
+}
+
+pub(super) fn queue_backpressure() -> ScanError {
+    ScanError::new(
+        "change_queue_backpressure",
+        "The durable path queue must drain before more live observations are retained",
+    )
 }
 
 fn degrade_to_root(
@@ -236,7 +587,7 @@ fn degrade_to_root(
     incoming: &LibraryChangeIntent,
     report: &mut LibraryChangeEnqueueReport,
     context: DegradationContext<'_>,
-) -> Result<(), ScanError> {
+) -> Result<LibraryChangeId, ScanError> {
     let mut root = incoming.clone();
     root.kind = LibraryChangeIntentKind::FreshnessUnknown;
     root.scope = LibraryChangeScope::Root;
@@ -296,7 +647,7 @@ fn degrade_to_root(
     report.superseded_count = report.superseded_count.saturating_add(superseded);
     report.capacity_degraded |= context.capacity_degraded;
     report.freshness_unknown_enqueued = true;
-    Ok(())
+    Ok(target_id)
 }
 
 pub(super) fn validate_policy(policy: LibraryChangeQueuePolicy) -> Result<(), ScanError> {
@@ -403,6 +754,12 @@ fn valid_normalized_path(path: &str) -> bool {
 }
 
 pub(super) fn validate_failure(failure: &LibraryChangeFailure) -> Result<(), ScanError> {
+    if LibraryChangeCapacityDeferral::is_reserved_failure_code(&failure.code) {
+        return Err(ScanError::new(
+            "change_queue_failure_code_reserved",
+            "Capacity-deferral failure codes are reserved for the typed queue operation",
+        ));
+    }
     if failure.code.trim().is_empty()
         || failure.code.len() > MAX_FAILURE_CODE_BYTES
         || failure.code.contains('\0')
@@ -485,7 +842,10 @@ fn has_ambiguous_leased_overlap(active: &[ActiveChange], incoming: &LibraryChang
     })
 }
 
-fn affected_paths_overlap(left: &LibraryChangeIntent, right: &LibraryChangeIntent) -> bool {
+pub(super) fn affected_paths_overlap(
+    left: &LibraryChangeIntent,
+    right: &LibraryChangeIntent,
+) -> bool {
     affected_paths(left).any(|left_path| {
         affected_paths(right).any(|right_path| {
             left_path == right_path
@@ -507,14 +867,20 @@ fn intent_strength(intent: &LibraryChangeIntent) -> u8 {
     }
 }
 
-fn merge_newer_evidence(target: &mut LibraryChangeIntent, evidence: &LibraryChangeIntent) {
+pub(super) fn merge_newer_evidence(
+    target: &mut LibraryChangeIntent,
+    evidence: &LibraryChangeIntent,
+) {
     merge_evidence_range(target, evidence);
     target.most_recent_observed_unix_ms = evidence.most_recent_observed_unix_ms;
     target.most_recent_sequence = evidence.most_recent_sequence;
     target.origin = evidence.origin;
 }
 
-fn merge_older_evidence(target: &mut LibraryChangeIntent, evidence: &LibraryChangeIntent) {
+pub(super) fn merge_older_evidence(
+    target: &mut LibraryChangeIntent,
+    evidence: &LibraryChangeIntent,
+) {
     merge_evidence_range(target, evidence);
 }
 

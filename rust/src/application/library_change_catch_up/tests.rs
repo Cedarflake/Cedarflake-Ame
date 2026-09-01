@@ -170,6 +170,17 @@ impl LibraryChangeQueue for RecordingRepository {
         unreachable!()
     }
 
+    fn promote_live_watcher_gap_to_metadata_inventory(
+        &mut self,
+        _change_id: crate::domain::LibraryChangeId,
+        _lease_generation: u64,
+        _failure: &crate::domain::LibraryChangeFailure,
+        _promoted_unix_ms: i64,
+        _policy: LibraryChangeQueuePolicy,
+    ) -> Result<crate::domain::LibraryChangeLeaseUpdateOutcome, ScanError> {
+        unreachable!()
+    }
+
     fn defer_library_change(
         &mut self,
         _change_id: crate::domain::LibraryChangeId,
@@ -391,6 +402,7 @@ fn root(root_id: &str) -> IncrementalCatalogRoot {
         has_running_scan: false,
         catalog_revision: 7,
         last_consistency_audit_unix_ms: None,
+        publication_root_identity: None,
     }
 }
 

@@ -1,11 +1,13 @@
 use std::sync::{Arc, Mutex, OnceLock};
 
-use crate::adapters::{LocalPreviewStore, SqliteCatalog, revalidate_file_state};
+use crate::adapters::{
+    LocalPreviewStore, SqliteCatalog, canonical_source_root_path, revalidate_file_state,
+};
 use crate::domain::{
     AssetLocationView, DiscoveredFile, ExpectedFileState, PreviewMaterialization, PreviewRequest,
     PreviewStatus, ScanError, ScanIssue,
 };
-use crate::ports::{CatalogRepository, PreviewStore};
+use crate::ports::{CatalogRepository, IncrementalCatalogRepository, PreviewStore};
 
 use super::{StoragePaths, storage_paths};
 
@@ -84,7 +86,27 @@ fn materialize_preview_attempt(
         catalog.update_active_preview(&location, None)?;
         return Ok(location);
     }
+    let stored_source_root_path = catalog
+        .load_incremental_catalog_root(&location.root_id)?
+        .ok_or_else(|| {
+            ScanError::new(
+                "preview_root_not_found",
+                "The requested location no longer belongs to a registered library root",
+            )
+        })?
+        .root_path;
+    let source_root_path =
+        canonical_source_root_path(std::path::Path::new(&stored_source_root_path))
+            .map_err(|error| {
+                ScanError::new(
+                    "preview_root_unavailable",
+                    format!("The preview source root cannot be resolved safely: {error}"),
+                )
+            })?
+            .to_string_lossy()
+            .into_owned();
     let file = DiscoveredFile {
+        source_root_path,
         absolute_path: location.absolute_path.clone(),
         relative_path: location.relative_path.clone(),
         file_size: location.file_size,
@@ -299,6 +321,10 @@ mod tests {
             file_identity: None,
         };
         let file = DiscoveredFile {
+            source_root_path: canonical_source_root_path(directory.path())
+                .expect("canonical root")
+                .to_string_lossy()
+                .into_owned(),
             absolute_path: expected.absolute_path.clone(),
             relative_path: "source.png".to_owned(),
             file_size: expected.file_size,

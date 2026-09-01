@@ -1,4 +1,11 @@
 //! Platform-independent continuous-library synchronization contracts.
+//!
+//! Metadata inventory is an internal, authority-bound recovery operation; the public facade does
+//! not provide a proofless inventory entrypoint.
+//!
+//! ```compile_fail
+//! use rust_lib_cedarflake_ame::synchronization::run_local_metadata_inventory;
+//! ```
 
 #[cfg(windows)]
 use std::path::PathBuf;
@@ -12,7 +19,7 @@ use crate::ports::LibraryChangeSourceRequest;
 
 pub use crate::application::{
     enqueue_library_change_plan, plan_library_changes, process_ready_library_changes,
-    reconcile_path_evidence, run_local_metadata_inventory,
+    reconcile_path_evidence,
 };
 pub use crate::domain::{
     CatalogDeltaBatch, CatalogDeltaMutation, CatalogDeltaPublication,

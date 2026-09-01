@@ -8,6 +8,7 @@ import '../frb_generated.dart';
 import 'library_change.dart';
 import 'library_change_queue.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
+import 'persistent_journal.dart';
 
 class LibraryRootSynchronizationStatus {
   final String rootId;
@@ -15,6 +16,7 @@ class LibraryRootSynchronizationStatus {
   final LibraryRootAvailability availability;
   final CatalogFreshnessState freshness;
   final CatalogFreshnessCause freshnessCause;
+  final PersistentJournalContinuityState continuity;
   final LibrarySynchronizationPhase phase;
   final LibraryChangeSourceHealth sourceHealth;
   final LibraryChangeQueueHealth queueHealth;
@@ -30,6 +32,7 @@ class LibraryRootSynchronizationStatus {
     required this.availability,
     required this.freshness,
     required this.freshnessCause,
+    required this.continuity,
     required this.phase,
     required this.sourceHealth,
     required this.queueHealth,
@@ -47,6 +50,7 @@ class LibraryRootSynchronizationStatus {
       availability.hashCode ^
       freshness.hashCode ^
       freshnessCause.hashCode ^
+      continuity.hashCode ^
       phase.hashCode ^
       sourceHealth.hashCode ^
       queueHealth.hashCode ^
@@ -66,6 +70,7 @@ class LibraryRootSynchronizationStatus {
           availability == other.availability &&
           freshness == other.freshness &&
           freshnessCause == other.freshnessCause &&
+          continuity == other.continuity &&
           phase == other.phase &&
           sourceHealth == other.sourceHealth &&
           queueHealth == other.queueHealth &&

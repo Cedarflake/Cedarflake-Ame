@@ -7,7 +7,6 @@ use std::os::windows::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::AtomicBool;
-use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use image::{Rgb, RgbImage};
@@ -30,6 +29,9 @@ use crate::domain::{
 use crate::ports::{CatalogRepository, IncrementalCatalogRepository, MetadataInventorySource};
 
 use super::production::ProductionSynchronizationTestHarness;
+use super::production_synchronization_cadence::{
+    ProductionSynchronizationCadence, capture_wait_intervals_for_contract,
+};
 
 const CONSENT_TOKEN: &str = "CEDARFLAKE_AME_R2C_REPLACEMENT_ACCEPTANCE_V1";
 const EVENT_CYCLE_COUNT: usize = 5;
@@ -40,13 +42,46 @@ const METADATA_ROOT_LIMIT_MS: u64 = 45_000;
 const CACHED_GALLERY_LIMIT_MS: u64 = 1_000;
 const INITIAL_GALLERY_ITEMS: u32 = 500;
 const INITIAL_MANIFEST_ITEMS: u32 = 4_096;
-const PRODUCTION_POLL_INTERVAL: Duration = Duration::from_millis(250);
 const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x0000_0400;
 const FILE_ATTRIBUTE_OFFLINE: u32 = 0x0000_1000;
 const FILE_ATTRIBUTE_RECALL_ON_OPEN: u32 = 0x0004_0000;
 const FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS: u32 = 0x0040_0000;
 const CONTROLLED_PROCESS_WORKER_TEST: &str = "application::library_synchronization::replacement_reliability_acceptance::r2c_m_controlled_process_worker";
 const TARGET_MEASUREMENT_WORKER_TEST: &str = "application::library_synchronization::replacement_reliability_acceptance::r2c_m_target_measurement_worker";
+
+#[test]
+fn r2c_m_production_wait_path_uses_the_opaque_shared_cadence() {
+    let scratch = tempdir().expect("R2c-M cadence contract scratch");
+    let storage = StoragePaths {
+        catalog_path: scratch.path().join("catalog.sqlite3"),
+        preview_root: scratch.path().join("previews"),
+        preview_budget_bytes: 64 * 1024 * 1024,
+        settings_path: scratch.path().join("settings.json"),
+    };
+    let tracked_synchronization = ProductionSynchronizationTestHarness::new(storage.clone());
+    assert_eq!(
+        tracked_synchronization.production_cadence(),
+        ProductionSynchronizationCadence::from_shared_policy()
+    );
+    let _: fn(ProductionSynchronizationCadence, Duration, fn() -> bool) = wait_for::<fn() -> bool>;
+
+    let synchronization =
+        ProductionSynchronizationTestHarness::from_policy_source_for_contract(storage, "875\n")
+            .expect("R2c-M shared 875 ms cadence policy");
+    let mut attempts = 0;
+    let (_, intervals) = capture_wait_intervals_for_contract(|| {
+        wait_for(
+            synchronization.production_cadence(),
+            Duration::from_secs(1),
+            || {
+                attempts += 1;
+                attempts == 2
+            },
+        );
+    });
+
+    assert_eq!(intervals, [Duration::from_millis(875)]);
+}
 
 #[test]
 #[ignore = "requires the serial Windows R2c-M replacement reliability wrapper"]
@@ -62,9 +97,10 @@ fn r2c_m_controlled_replacement_reliability_acceptance() {
     let scan_rows_before =
         scan_row_count(&fixture.storage.catalog_path).expect("initial scan row count");
     let mut synchronization = ProductionSynchronizationTestHarness::new(fixture.storage.clone());
+    let production_cadence = synchronization.production_cadence();
 
     let startup_started = Instant::now();
-    wait_for(Duration::from_secs(15), PRODUCTION_POLL_INTERVAL, || {
+    wait_for(production_cadence, Duration::from_secs(15), || {
         synchronization
             .poll()
             .is_ok_and(|snapshot| synchronization_is_current(&snapshot))
@@ -158,7 +194,7 @@ fn r2c_m_controlled_replacement_reliability_acceptance() {
     }
     let mut last_queue_delta = (0_u64, 0_u64);
     let mut stable_since = Instant::now();
-    wait_for(Duration::from_secs(30), PRODUCTION_POLL_INTERVAL, || {
+    wait_for(production_cadence, Duration::from_secs(30), || {
         let poll_started = Instant::now();
         let snapshot = synchronization.poll().expect("storm synchronization poll");
         maximum_poll_micros = maximum_poll_micros.max(elapsed_micros(poll_started.elapsed()));
@@ -262,9 +298,10 @@ fn r2c_m_controlled_process_worker() {
     let root_id = required_environment("CEDARFLAKE_AME_R2C_M_CONTROLLED_ROOT_ID")
         .expect("controlled worker root id");
     let mut synchronization = ProductionSynchronizationTestHarness::new(storage.clone());
+    let production_cadence = synchronization.production_cadence();
     match phase.as_str() {
         "interrupt" => {
-            wait_for(Duration::from_secs(15), PRODUCTION_POLL_INTERVAL, || {
+            wait_for(production_cadence, Duration::from_secs(15), || {
                 synchronization
                     .poll()
                     .is_ok_and(|snapshot| synchronization_is_current(&snapshot))
@@ -272,7 +309,7 @@ fn r2c_m_controlled_process_worker() {
             std::mem::forget(synchronization);
         }
         "recover" => {
-            wait_for(Duration::from_secs(60), PRODUCTION_POLL_INTERVAL, || {
+            wait_for(production_cadence, Duration::from_secs(60), || {
                 let snapshot = synchronization.poll().expect("process recovery poll");
                 let catalog = SqliteCatalog::open(storage.catalog_path.clone())
                     .expect("process recovery catalog");
@@ -864,7 +901,8 @@ fn measure_visible_change(
 ) -> u64 {
     let started = Instant::now();
     mutate();
-    wait_for(Duration::from_secs(10), PRODUCTION_POLL_INTERVAL, || {
+    let production_cadence = synchronization.production_cadence();
+    wait_for(production_cadence, Duration::from_secs(10), || {
         let poll_started = Instant::now();
         let snapshot = synchronization.poll().expect("event synchronization poll");
         *maximum_poll_micros = (*maximum_poll_micros).max(elapsed_micros(poll_started.elapsed()));
@@ -1141,15 +1179,11 @@ fn write_png(path: &Path, width: u32, height: u32, seed: u8) {
     .expect("write controlled PNG");
 }
 
-fn wait_for(timeout: Duration, interval: Duration, mut predicate: impl FnMut() -> bool) {
-    let deadline = Instant::now() + timeout;
-    while !predicate() {
-        assert!(
-            Instant::now() < deadline,
-            "bounded reliability wait timed out"
-        );
-        thread::sleep(interval);
-    }
+fn wait_for<P>(cadence: ProductionSynchronizationCadence, timeout: Duration, predicate: P)
+where
+    P: FnMut() -> bool,
+{
+    cadence.wait_until(timeout, predicate);
 }
 
 fn percentile_millis(samples: &mut [u64], percentile: usize) -> u64 {

@@ -6,22 +6,24 @@ mod library_change_catch_up;
 pub(crate) mod library_change_queue;
 mod library_metadata_inventory;
 pub(crate) mod library_synchronization;
+pub(crate) mod persistent_journal;
 
 pub use library_catalog_delta::{
     CatalogDeltaBatch, CatalogDeltaMutation, CatalogDeltaPublication,
     CatalogDeltaPublicationStatus, IncrementalCatalogRoot, IncrementalLibraryChangeReport,
-    LibraryChangeCompletion, RetainedPreviewExpectation,
+    LibraryChangeCompletion, RetainedPreviewExpectation, TerminalMediaEvidence,
+    TerminalMediaEvidenceUpdate,
 };
 pub use library_change::{
     CatalogFreshnessCause, CatalogFreshnessState, DerivedEvidenceDisposition,
     IncrementalReconciliationDecision, IncrementalReconciliationOutcome, LibraryChangeIntent,
-    LibraryChangeIntentKind, LibraryChangeObservation, LibraryChangeObservationKind,
-    LibraryChangeObserverPoll, LibraryChangeOrigin, LibraryChangePlanningContext,
-    LibraryChangePlanningError, LibraryChangePlanningIssue, LibraryChangePlanningLimits,
-    LibraryChangePlanningResult, LibraryChangeRestartPolicy, LibraryChangeScope,
-    LibraryChangeSourceBatch, LibraryChangeSourceError, LibraryChangeSourceHealth,
-    LibraryChangeSourceStopReport, LibraryRootGeneration, ReconciliationFileEvidence,
-    ReconciliationObservedState,
+    LibraryChangeIntentKind, LibraryChangeLane, LibraryChangeObservation,
+    LibraryChangeObservationKind, LibraryChangeObserverPoll, LibraryChangeOrigin,
+    LibraryChangePlanningContext, LibraryChangePlanningError, LibraryChangePlanningIssue,
+    LibraryChangePlanningLimits, LibraryChangePlanningResult, LibraryChangeRestartPolicy,
+    LibraryChangeScope, LibraryChangeSourceBatch, LibraryChangeSourceError,
+    LibraryChangeSourceHealth, LibraryChangeSourceStopReport, LibraryRootGeneration,
+    ReconciliationFileEvidence, ReconciliationObservedState,
 };
 pub use library_change_catch_up::LibraryChangeCatchUpEvidence;
 #[cfg(test)]
@@ -31,19 +33,43 @@ pub use library_change_catch_up::{
     LibraryChangeCatchUpRootResult,
 };
 pub use library_change_queue::{
-    DurableLibraryChange, LeasedLibraryChange, LibraryChangeEnqueueReport, LibraryChangeFailure,
-    LibraryChangeId, LibraryChangeLeaseUpdateOutcome, LibraryChangeQueueHealth,
-    LibraryChangeQueueMetrics, LibraryChangeQueuePolicy, LibraryChangeQueueStatus,
+    DurableLibraryChange, LeasedLibraryChange, LibraryChangeCapacityDeferral,
+    LibraryChangeEnqueueReport, LibraryChangeFailure, LibraryChangeId,
+    LibraryChangeLeaseUpdateOutcome, LibraryChangeQueueHealth, LibraryChangeQueueMetrics,
+    LibraryChangeQueuePolicy, LibraryChangeQueueStatus,
 };
 pub use library_metadata_inventory::{
+    LibraryRecoveryAuthority, LibraryRecoveryAuthorityReason, LibraryRecoveryOpeningBoundary,
     MetadataInventoryCleanupReport, MetadataInventoryComparisonStatus,
     MetadataInventoryComparisonUpdate, MetadataInventoryEntry, MetadataInventoryEntryKind,
-    MetadataInventoryPage, MetadataInventoryPlaceholderState, MetadataInventoryReport,
-    MetadataInventoryRun, MetadataInventoryRunRequest, MetadataInventoryRunStatus,
-    MetadataInventoryScope, MetadataInventoryStartRequest,
+    MetadataInventoryFrontierEntry, MetadataInventoryFrontierState, MetadataInventoryPage,
+    MetadataInventoryPlaceholderState, MetadataInventoryReport, MetadataInventoryRun,
+    MetadataInventoryRunRequest, MetadataInventoryRunStatus, MetadataInventoryScope,
+    MetadataInventoryStartRequest,
 };
 pub use library_synchronization::{
     LibraryRootSynchronizationStatus, LibrarySynchronizationPhase, LibrarySynchronizationSnapshot,
+};
+pub use persistent_journal::{
+    JournalFileReference, JournalIdentifier, JournalUsn, PERSISTENT_JOURNAL_CONTRACT_VERSION,
+    PersistentJournalBaseline, PersistentJournalBaselineClosingBoundary,
+    PersistentJournalBaselinePhase, PersistentJournalBaselineStartRequest,
+    PersistentJournalCapability, PersistentJournalCapabilityState, PersistentJournalCheckpoint,
+    PersistentJournalContinuityState, PersistentJournalCrossRootLineage,
+    PersistentJournalEnrollmentBatch, PersistentJournalEnrollmentReport, PersistentJournalFailure,
+    PersistentJournalLineageState, PersistentJournalPendingRename, PersistentJournalRangeState,
+    PersistentJournalReadFailure, PersistentJournalRootFailure, PersistentJournalRootFailureKind,
+    PersistentJournalRootReadOutcome, PersistentJournalSourceRange, PersistentJournalVolumeBatch,
+    PersistentJournalVolumeIdentity, PersistentJournalVolumePage, persistent_journal_batch_id,
+    persistent_journal_batch_id_from_payload, persistent_journal_batch_payload,
+    persistent_journal_batch_payload_contains_lineage,
+    persistent_journal_batch_payload_contains_pending_lineage_source,
+    persistent_journal_batch_payload_matches_source_range, persistent_journal_pending_rename_id,
+};
+pub(crate) use persistent_journal::{
+    PersistentJournalBatchPayloadChildren, persistent_journal_batch_payload_children,
+    persistent_journal_canonical_intent_entry, persistent_journal_canonical_lineage_entry,
+    persistent_journal_pending_rename_from_payload_entry,
 };
 
 #[derive(Clone, Debug)]
@@ -498,6 +524,37 @@ pub enum PreviewCleanupEvent {
 pub struct ScanError {
     pub code: String,
     pub message: String,
+    pub retry_details: Option<CatalogReadRetryDetails>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CatalogReadRetryDetails {
+    pub operation: CatalogReadRetryOperation,
+    pub attempts: u32,
+    pub elapsed_ms: u64,
+    pub cause: CatalogReadRetryCause,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CatalogReadRetryOperation {
+    SessionValidation,
+    CatalogSnapshot,
+    CatalogSnapshotAroundLocation,
+    CatalogSnapshotAroundAsset,
+    GalleryTimeline,
+    GalleryLayoutManifest,
+    LibraryFolders,
+    CatalogAssetById,
+    WatcherGapAuthorityCount,
+    ActiveInventoryRunCount,
+    ActiveWatcherGapAuthority,
+    IncrementalLocation,
+    CompletedPersistentJournalRange,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CatalogReadRetryCause {
+    FileLockingProtocolFailed,
 }
 
 impl ScanError {
@@ -505,7 +562,13 @@ impl ScanError {
         Self {
             code: code.into(),
             message: message.into(),
+            retry_details: None,
         }
+    }
+
+    pub(crate) fn with_retry_details(mut self, details: CatalogReadRetryDetails) -> Self {
+        self.retry_details = Some(details);
+        self
     }
 }
 
@@ -519,6 +582,7 @@ impl std::error::Error for ScanError {}
 
 #[derive(Clone, Debug)]
 pub struct DiscoveredFile {
+    pub source_root_path: String,
     pub absolute_path: String,
     pub relative_path: String,
     pub file_size: u64,

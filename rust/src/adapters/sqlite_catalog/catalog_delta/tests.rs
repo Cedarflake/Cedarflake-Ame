@@ -3,13 +3,39 @@ use tempfile::tempdir;
 use crate::domain::{
     AssetLocationView, CatalogDeltaBatch, CatalogDeltaMutation, CatalogDeltaPublicationStatus,
     DerivedEvidenceDisposition, FileIdentityEvidence, IncrementalReconciliationOutcome,
-    LibraryChangeCatchUpEvidence, LibraryChangeCompletion, LibraryChangeIntent,
-    LibraryChangeIntentKind, LibraryChangeOrigin, LibraryChangeQueuePolicy, LibraryChangeScope,
-    LibraryRootGeneration, PreviewArtifact, PreviewStatus, RetainedPreviewExpectation, ScanRequest,
+    LibraryChangeCatchUpEvidence, LibraryChangeCompletion, LibraryChangeFailure, LibraryChangeId,
+    LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeOrigin, LibraryChangeQueuePolicy,
+    LibraryChangeScope, LibraryRootGeneration, PreviewArtifact, PreviewStatus,
+    RetainedPreviewExpectation, ScanRequest, TerminalMediaEvidence, TerminalMediaEvidenceUpdate,
 };
 use crate::ports::{CatalogRepository, IncrementalCatalogRepository, LibraryChangeQueue};
 
 use super::super::SqliteCatalog;
+
+#[test]
+fn persistent_journal_range_finalization_is_gated_by_owned_lineage() {
+    let change_id = LibraryChangeId::new(1).expect("change ID");
+    let mut evidence_by_change = std::collections::HashMap::new();
+    assert!(!super::has_persistent_journal_lineage(&evidence_by_change));
+
+    evidence_by_change.insert(
+        change_id,
+        vec![LibraryChangeCatchUpEvidence {
+            source: "windows_usn_v1".to_owned(),
+            watermark: "unrelated-watermark".to_owned(),
+        }],
+    );
+    assert!(!super::has_persistent_journal_lineage(&evidence_by_change));
+
+    evidence_by_change
+        .get_mut(&change_id)
+        .expect("evidence")
+        .push(LibraryChangeCatchUpEvidence {
+            source: super::PERSISTENT_JOURNAL_CATCH_UP_SOURCE.to_owned(),
+            watermark: "persistent-range".to_owned(),
+        });
+    assert!(super::has_persistent_journal_lineage(&evidence_by_change));
+}
 
 #[test]
 fn incremental_path_window_is_bounded_and_root_scoped() {
@@ -119,6 +145,7 @@ fn publishes_a_location_and_completes_its_lease_at_one_revision() {
                     )),
                     retained_preview_expectation: None,
                 }],
+                terminal_media_evidence: Vec::new(),
                 completions: vec![completion(&leased)],
             },
             2_000,
@@ -139,6 +166,71 @@ fn publishes_a_location_and_completes_its_lease_at_one_revision() {
         .expect("queue metrics");
     assert_eq!(metrics.completed_count, 1);
     assert_eq!(metrics.leased_count, 0);
+}
+
+#[test]
+fn terminal_media_evidence_is_committed_with_lease_completion() {
+    let directory = tempdir().expect("temporary directory");
+    let mut catalog =
+        SqliteCatalog::open(directory.path().join("catalog.sqlite3")).expect("open catalog");
+    seed_catalog(&mut catalog, "root-a", "C:/source", &[]);
+    let leased = lease_change(
+        &mut catalog,
+        intent("root-a", LibraryChangeIntentKind::Reconcile, "broken.jpg"),
+    );
+    let root = catalog
+        .load_incremental_catalog_root("root-a")
+        .expect("load root")
+        .expect("root");
+    let failure = LibraryChangeFailure {
+        code: "image_decode_invalid".to_owned(),
+        message: "malformed JPEG".to_owned(),
+    };
+
+    let publication = catalog
+        .publish_catalog_delta(
+            &CatalogDeltaBatch {
+                root_id: "root-a".to_owned(),
+                root_generation: LibraryRootGeneration::initial(),
+                expected_catalog_revision: root.catalog_revision,
+                mutations: Vec::new(),
+                terminal_media_evidence: vec![TerminalMediaEvidenceUpdate {
+                    change_id: leased.change.id,
+                    evidence: TerminalMediaEvidence {
+                        relative_path: "broken.jpg".to_owned(),
+                        file_size: 12,
+                        modified_unix_ms: 1_500,
+                        file_identity: Some(FileIdentityEvidence {
+                            scheme: "windows-file-id-v1".to_owned(),
+                            value: "volume:file".to_owned(),
+                        }),
+                        inspection_engine_id: "ame-image-inspection".to_owned(),
+                        inspection_engine_version: 1,
+                        issue: failure.clone(),
+                    },
+                }],
+                completions: vec![LibraryChangeCompletion {
+                    change_id: leased.change.id,
+                    lease_generation: leased.lease_generation,
+                    issue: Some(failure),
+                }],
+            },
+            2_000,
+        )
+        .expect("publish terminal evidence");
+
+    assert_eq!(publication.status, CatalogDeltaPublicationStatus::Applied);
+    assert_eq!(publication.catalog_revision, root.catalog_revision);
+    let evidence = catalog
+        .load_terminal_media_evidence_by_relative_paths("root-a", &["broken.jpg".to_owned()])
+        .expect("load terminal evidence");
+    assert_eq!(evidence.len(), 1);
+    assert_eq!(evidence[0].issue.code, "image_decode_invalid");
+    let metrics = catalog
+        .load_library_change_queue_metrics(2_000, policy())
+        .expect("queue metrics");
+    assert_eq!(metrics.completed_count, 1);
+    assert_eq!(metrics.retry_wait_count, 0);
 }
 
 #[test]
@@ -176,6 +268,7 @@ fn rejects_a_delta_with_inconsistent_reconciliation_evidence() {
                     )),
                     retained_preview_expectation: None,
                 }],
+                terminal_media_evidence: Vec::new(),
                 completions: vec![completion(&leased)],
             },
             2_000,
@@ -240,6 +333,7 @@ fn a_superseded_lease_cannot_publish_catalog_state() {
                     )),
                     retained_preview_expectation: None,
                 }],
+                terminal_media_evidence: Vec::new(),
                 completions: vec![completion(&leased)],
             },
             2_000,
@@ -295,6 +389,7 @@ fn a_changed_catalog_revision_rejects_the_complete_delta_batch() {
                     )),
                     retained_preview_expectation: None,
                 }],
+                terminal_media_evidence: Vec::new(),
                 completions: vec![completion(&leased)],
             },
             2_000,
@@ -363,6 +458,7 @@ fn a_running_full_scan_blocks_incremental_publication() {
                     )),
                     retained_preview_expectation: None,
                 }],
+                terminal_media_evidence: Vec::new(),
                 completions: vec![completion(&leased)],
             },
             2_000,
@@ -422,6 +518,7 @@ fn a_retired_root_generation_cannot_publish_a_leased_delta() {
                     )),
                     retained_preview_expectation: None,
                 }],
+                terminal_media_evidence: Vec::new(),
                 completions: vec![completion(&leased)],
             },
             2_000,
@@ -482,6 +579,7 @@ fn queue_completion_failure_rolls_back_the_catalog_delta_and_revision() {
                     )),
                     retained_preview_expectation: None,
                 }],
+                terminal_media_evidence: Vec::new(),
                 completions: vec![completion(&leased)],
             },
             2_000,
@@ -581,6 +679,7 @@ fn identity_preserving_rename_moves_preview_ownership_atomically() {
                         preview_issue_message: old_location.preview_issue_message.clone(),
                     }),
                 }],
+                terminal_media_evidence: Vec::new(),
                 completions: vec![completion(&leased)],
             },
             2_000,
@@ -687,6 +786,7 @@ fn preview_cleanup_invalidates_a_prepared_retained_preview_delta() {
                         preview_issue_message: old_location.preview_issue_message.clone(),
                     }),
                 }],
+                terminal_media_evidence: Vec::new(),
                 completions: vec![completion(&leased)],
             },
             2_000,
@@ -769,6 +869,7 @@ fn delta_maintenance_does_not_scan_or_rewrite_unaffected_global_state() {
                     )),
                     retained_preview_expectation: None,
                 }],
+                terminal_media_evidence: Vec::new(),
                 completions: vec![completion(&leased)],
             },
             2_000,

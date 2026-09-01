@@ -1,16 +1,17 @@
 use std::collections::{BTreeSet, VecDeque};
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use crate::adapters::{FileDiscovery, FileVisitOutcome};
+use crate::adapters::{FileVisitOutcome, PublicationGuardedFileDiscovery};
 use crate::domain::{
     IncrementalCatalogRoot, IncrementalLibraryChangeReport, LeasedLibraryChange,
-    LibraryChangeFailure, LibraryChangeIntentKind, LibraryChangeLeaseUpdateOutcome,
-    LibraryChangeQueuePolicy, LibraryChangeScope, LibraryRootGeneration, ScanError, ScanIssue,
+    LibraryChangeCapacityDeferral, LibraryChangeFailure, LibraryChangeIntentKind,
+    LibraryChangeLeaseUpdateOutcome, LibraryChangeOrigin, LibraryChangeQueuePolicy,
+    LibraryChangeScope, LibraryRootGeneration, ScanError, ScanIssue,
 };
 use crate::ports::{IncrementalCatalogRepository, LibraryChangeQueue};
 
 use super::incremental_library_changes::{
-    AuthoritativePathSetRequest, process_authoritative_path_set,
+    AuthoritativePathSetContext, process_authoritative_path_set,
 };
 
 const MAX_AUTHORITATIVE_ENTRIES: u32 = 4_096;
@@ -142,7 +143,39 @@ where
     if cancellation.load(Ordering::Relaxed) {
         return defer_authoritative_change(repository, leased, root.catalog_revision, now_unix_ms);
     }
-    let discovery = match FileDiscovery::new(&root.root_path) {
+    if leased.change.intent.origin == LibraryChangeOrigin::LiveNotification
+        && leased.change.intent.kind == LibraryChangeIntentKind::FreshnessUnknown
+        && leased.change.intent.scope == LibraryChangeScope::Root
+        && leased.change.intent.relative_path.is_empty()
+        && leased.change.intent.previous_relative_path.is_none()
+    {
+        return retry_authoritative_change(
+            repository,
+            leased,
+            root.catalog_revision,
+            metadata_inventory_required(),
+            now_unix_ms,
+            queue_policy,
+        );
+    }
+    let Some(expected_root_identity) = root.publication_root_identity.as_ref() else {
+        return retry_authoritative_change(
+            repository,
+            leased,
+            root.catalog_revision,
+            LibraryChangeFailure {
+                code: "root_publication_namespace_unproven".to_owned(),
+                message: "The configured root has no trustworthy persistent namespace identity"
+                    .to_owned(),
+            },
+            now_unix_ms,
+            queue_policy,
+        );
+    };
+    let discovery = match PublicationGuardedFileDiscovery::new_incremental_publication_guard(
+        &root.root_path,
+        expected_root_identity,
+    ) {
         Ok(discovery) => discovery,
         Err(error) => {
             return retry_authoritative_change(
@@ -233,16 +266,18 @@ where
     let relative_paths = paths.into_iter().collect::<Vec<_>>();
     let incremental = process_authoritative_path_set(
         repository,
-        AuthoritativePathSetRequest {
+        AuthoritativePathSetContext {
             root_id: &root.root_id,
             root_generation: root.root_generation,
             expected_catalog_revision: root.catalog_revision,
+            expected_root_identity,
             leased,
             relative_paths: &relative_paths,
             now_unix_ms,
             queue_policy,
             cancellation,
         },
+        &discovery,
     )?;
     Ok(AuthoritativeLibraryChangeReport { incremental })
 }
@@ -274,7 +309,7 @@ fn recovery_scopes(leased: &LeasedLibraryChange) -> Result<Vec<String>, ScanErro
 }
 
 fn enumerate_scopes(
-    discovery: &FileDiscovery,
+    discovery: &PublicationGuardedFileDiscovery,
     scopes: &[String],
     policy: AuthoritativeRecoveryPolicy,
     cancellation: &AtomicBool,
@@ -298,6 +333,9 @@ fn enumerate_scopes(
             FileVisitOutcome::File(file) => {
                 paths.insert(file.relative_path);
             }
+            FileVisitOutcome::TerminalMedia { file, .. } => {
+                paths.insert(file.relative_path);
+            }
             FileVisitOutcome::Ignored => {}
             FileVisitOutcome::Issue(issue) if issue.code == "file_missing" => {}
             FileVisitOutcome::Issue(issue) => {
@@ -310,27 +348,32 @@ fn enumerate_scopes(
             return Err(EnumerationFailure::Cancelled);
         }
         let entries = discovery
-            .checked_entry_paths_in_directory(&directory)
+            .file_visits_in_directory(&directory)
             .map_err(|issue| EnumerationFailure::Issue(scan_issue_failure(issue)))?;
-        for directory_entry in entries {
+        for visit in entries {
             if cancellation.load(Ordering::Relaxed) {
                 return Err(EnumerationFailure::Cancelled);
             }
-            let directory_entry = directory_entry
-                .map_err(|issue| EnumerationFailure::Issue(scan_issue_failure(issue)))?;
+            let visit =
+                visit.map_err(|issue| EnumerationFailure::Issue(scan_issue_failure(issue)))?;
             visited_entries = visited_entries
                 .checked_add(1)
                 .ok_or(EnumerationFailure::Capacity)?;
             if visited_entries > policy.max_scope_entries {
                 return Err(EnumerationFailure::Capacity);
             }
-            let visit = discovery.visit_directory_entry(directory_entry);
             let relative_path = visit.relative_path;
             match visit.outcome {
                 FileVisitOutcome::Directory => {
                     schedule_directory(&mut directories, &mut scheduled_directories, relative_path)
                 }
                 FileVisitOutcome::File(file) => {
+                    paths.insert(file.relative_path);
+                    if paths.len() > policy.max_scope_paths as usize {
+                        return Err(EnumerationFailure::Capacity);
+                    }
+                }
+                FileVisitOutcome::TerminalMedia { file, .. } => {
                     paths.insert(file.relative_path);
                     if paths.len() > policy.max_scope_paths as usize {
                         return Err(EnumerationFailure::Capacity);
@@ -396,13 +439,37 @@ where
         catalog_revision,
         ..IncrementalLibraryChangeReport::default()
     };
-    match repository.retry_library_change(
-        leased.change.id,
-        leased.lease_generation,
-        &failure,
-        now_unix_ms,
-        policy,
-    )? {
+    let outcome = if failure.code == "metadata_inventory_required"
+        && leased.change.intent.origin == crate::domain::LibraryChangeOrigin::LiveNotification
+    {
+        match repository.promote_live_watcher_gap_to_metadata_inventory(
+            leased.change.id,
+            leased.lease_generation,
+            &failure,
+            now_unix_ms,
+            policy,
+        ) {
+            Ok(outcome) => outcome,
+            Err(error) if error.code == "change_queue_backpressure" => repository
+                .defer_library_change_for_capacity(
+                    leased.change.id,
+                    leased.lease_generation,
+                    LibraryChangeCapacityDeferral::MetadataInventoryLane,
+                    now_unix_ms,
+                    policy,
+                )?,
+            Err(error) => return Err(error),
+        }
+    } else {
+        repository.retry_library_change(
+            leased.change.id,
+            leased.lease_generation,
+            &failure,
+            now_unix_ms,
+            policy,
+        )?
+    };
+    match outcome {
         LibraryChangeLeaseUpdateOutcome::Applied => incremental.retried_count = 1,
         LibraryChangeLeaseUpdateOutcome::Superseded
         | LibraryChangeLeaseUpdateOutcome::LeaseMismatch

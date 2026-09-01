@@ -1,15 +1,19 @@
 use std::collections::{HashMap, HashSet};
+#[cfg(test)]
+use std::sync::{Mutex, OnceLock};
 
-use rusqlite::{OptionalExtension, TransactionBehavior, params, params_from_iter};
+use rusqlite::{OptionalExtension, params, params_from_iter};
 
 use crate::domain::{
     AssetLocationView, CatalogDeltaBatch, CatalogDeltaPublication, CatalogDeltaPublicationStatus,
     DerivedEvidenceDisposition, FileIdentityEvidence, IncrementalCatalogRoot,
-    IncrementalReconciliationOutcome, LibraryChangeCatchUpEvidence, LibraryChangeId,
-    LibraryRootGeneration, PreviewStatus, RetainedPreviewExpectation, ScanError,
+    IncrementalReconciliationOutcome, LibraryChangeCatchUpEvidence, LibraryChangeFailure,
+    LibraryChangeId, LibraryRootGeneration, PreviewStatus, RetainedPreviewExpectation, ScanError,
+    TerminalMediaEvidence,
 };
 use crate::ports::IncrementalCatalogRepository;
 
+use super::change_queue::{PERSISTENT_JOURNAL_CATCH_UP_SOURCE, admission_lane_for_change_ids};
 use super::{
     SqliteCatalog, database_error, load_catalog_revision, persist_location, read_stored_asset,
     sqlite_integer, sqlite_unsigned, stored_asset_view,
@@ -21,6 +25,59 @@ const MAX_DELTA_COMPLETIONS: usize = 128;
 const MAX_CATCH_UP_LINEAGE_PER_CHANGE: usize = 64;
 const MAX_INCREMENTAL_PATH_WINDOW: usize = 4_096;
 
+#[cfg(test)]
+type BeforeCatalogDeltaCommitHook = Box<dyn FnOnce() -> Result<(), ScanError> + Send + 'static>;
+
+#[cfg(test)]
+static BEFORE_CATALOG_DELTA_COMMIT_HOOKS: OnceLock<
+    Mutex<HashMap<String, BeforeCatalogDeltaCommitHook>>,
+> = OnceLock::new();
+
+#[cfg(test)]
+pub(crate) struct BeforeCatalogDeltaCommitHookGuard {
+    root_id: String,
+}
+
+#[cfg(test)]
+impl Drop for BeforeCatalogDeltaCommitHookGuard {
+    fn drop(&mut self) {
+        BEFORE_CATALOG_DELTA_COMMIT_HOOKS
+            .get_or_init(|| Mutex::new(HashMap::new()))
+            .lock()
+            .expect("catalog delta commit hooks")
+            .remove(&self.root_id);
+    }
+}
+
+#[cfg(test)]
+pub(crate) fn set_before_catalog_delta_commit_hook(
+    root_id: &str,
+    hook: impl FnOnce() -> Result<(), ScanError> + Send + 'static,
+) -> BeforeCatalogDeltaCommitHookGuard {
+    let replaced = BEFORE_CATALOG_DELTA_COMMIT_HOOKS
+        .get_or_init(|| Mutex::new(HashMap::new()))
+        .lock()
+        .expect("catalog delta commit hooks")
+        .insert(root_id.to_owned(), Box::new(hook));
+    assert!(
+        replaced.is_none(),
+        "a catalog delta commit hook already exists for this root"
+    );
+    BeforeCatalogDeltaCommitHookGuard {
+        root_id: root_id.to_owned(),
+    }
+}
+
+#[cfg(test)]
+fn run_before_catalog_delta_commit_hook(root_id: &str) -> Result<(), ScanError> {
+    let hook = BEFORE_CATALOG_DELTA_COMMIT_HOOKS
+        .get_or_init(|| Mutex::new(HashMap::new()))
+        .lock()
+        .expect("catalog delta commit hooks")
+        .remove(root_id);
+    hook.map_or(Ok(()), |hook| hook())
+}
+
 impl IncrementalCatalogRepository for SqliteCatalog {
     fn load_incremental_catalog_roots(&self) -> Result<Vec<IncrementalCatalogRoot>, ScanError> {
         let mut statement = self
@@ -31,9 +88,13 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                           SELECT 1 FROM scan_runs AS running
                           WHERE running.root_id = roots.id
                             AND running.status IN ('running', 'paused')
-                        ), catalog.revision, state.last_consistency_audit_unix_ms
+                        ), catalog.revision, state.last_consistency_audit_unix_ms,
+                        namespace.identity_scheme, namespace.identity_value
                  FROM library_roots AS roots
                  JOIN library_change_root_state AS state ON state.root_id = roots.id
+                 LEFT JOIN library_root_publication_namespaces AS namespace
+                   ON namespace.root_id = roots.id
+                  AND namespace.root_generation = state.generation
                  CROSS JOIN catalog_state AS catalog
                  WHERE state.is_active = 1
                  ORDER BY roots.id",
@@ -49,6 +110,8 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                     row.get::<_, bool>(4)?,
                     row.get::<_, i64>(5)?,
                     row.get::<_, Option<i64>>(6)?,
+                    row.get::<_, Option<String>>(7)?,
+                    row.get::<_, Option<String>>(8)?,
                 ))
             })
             .map_err(database_error)?;
@@ -62,6 +125,8 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                 has_running_scan,
                 revision,
                 last_consistency_audit_unix_ms,
+                identity_scheme,
+                identity_value,
             ) = row.map_err(database_error)?;
             let generation = sqlite_unsigned(generation, "root generation")?;
             let root_generation = LibraryRootGeneration::new(generation).ok_or_else(|| {
@@ -78,6 +143,10 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                 has_running_scan,
                 catalog_revision: sqlite_unsigned(revision, "catalog revision")?,
                 last_consistency_audit_unix_ms,
+                publication_root_identity: super::stored_file_identity(
+                    identity_scheme,
+                    identity_value,
+                )?,
             });
         }
         Ok(roots)
@@ -96,9 +165,13 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                           SELECT 1 FROM scan_runs AS running
                           WHERE running.root_id = roots.id
                             AND running.status IN ('running', 'paused')
-                        ), catalog.revision, state.last_consistency_audit_unix_ms
+                        ), catalog.revision, state.last_consistency_audit_unix_ms,
+                        namespace.identity_scheme, namespace.identity_value
                  FROM library_roots AS roots
                  JOIN library_change_root_state AS state ON state.root_id = roots.id
+                 LEFT JOIN library_root_publication_namespaces AS namespace
+                   ON namespace.root_id = roots.id
+                  AND namespace.root_generation = state.generation
                  CROSS JOIN catalog_state AS catalog
                  WHERE roots.id = ?1",
                 [root_id],
@@ -111,6 +184,8 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                         row.get::<_, bool>(4)?,
                         row.get::<_, i64>(5)?,
                         row.get::<_, Option<i64>>(6)?,
+                        row.get::<_, Option<String>>(7)?,
+                        row.get::<_, Option<String>>(8)?,
                     ))
                 },
             )
@@ -124,6 +199,8 @@ impl IncrementalCatalogRepository for SqliteCatalog {
             has_running_scan,
             revision,
             last_consistency_audit_unix_ms,
+            identity_scheme,
+            identity_value,
         )) = stored
         else {
             return Ok(None);
@@ -146,6 +223,10 @@ impl IncrementalCatalogRepository for SqliteCatalog {
             has_running_scan,
             catalog_revision: sqlite_unsigned(revision, "catalog revision")?,
             last_consistency_audit_unix_ms,
+            publication_root_identity: super::stored_file_identity(
+                identity_scheme,
+                identity_value,
+            )?,
         }))
     }
 
@@ -255,6 +336,100 @@ impl IncrementalCatalogRepository for SqliteCatalog {
         Ok(None)
     }
 
+    fn load_terminal_media_evidence_by_relative_paths(
+        &self,
+        root_id: &str,
+        relative_paths: &[String],
+    ) -> Result<Vec<TerminalMediaEvidence>, ScanError> {
+        validate_root_id(root_id)?;
+        if relative_paths.is_empty() {
+            return Ok(Vec::new());
+        }
+        if relative_paths.len() > MAX_INCREMENTAL_PATH_WINDOW
+            || relative_paths
+                .iter()
+                .any(|relative_path| relative_path.is_empty() || relative_path.contains('\0'))
+        {
+            return Err(ScanError::new(
+                "catalog_terminal_media_path_window_invalid",
+                "A terminal media evidence window must contain at most 4096 valid paths",
+            ));
+        }
+        let placeholders = std::iter::repeat_n("?", relative_paths.len())
+            .collect::<Vec<_>>()
+            .join(", ");
+        let query = format!(
+            "SELECT relative_path, file_size, modified_unix_ms,
+                    file_identity_scheme, file_identity_value,
+                    inspection_engine_id, inspection_engine_version,
+                    issue_code, issue_message
+             FROM library_terminal_media_evidence
+             WHERE root_id = ? AND relative_path IN ({placeholders})
+             ORDER BY relative_path"
+        );
+        let parameters = std::iter::once(root_id).chain(relative_paths.iter().map(String::as_str));
+        let mut statement = self.connection.prepare(&query).map_err(database_error)?;
+        let rows = statement
+            .query_map(params_from_iter(parameters), |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, i64>(1)?,
+                    row.get::<_, i64>(2)?,
+                    row.get::<_, Option<String>>(3)?,
+                    row.get::<_, Option<String>>(4)?,
+                    row.get::<_, String>(5)?,
+                    row.get::<_, i64>(6)?,
+                    row.get::<_, String>(7)?,
+                    row.get::<_, String>(8)?,
+                ))
+            })
+            .map_err(database_error)?;
+        let mut evidence = Vec::with_capacity(relative_paths.len());
+        for row in rows {
+            let (
+                relative_path,
+                file_size,
+                modified_unix_ms,
+                file_identity_scheme,
+                file_identity_value,
+                inspection_engine_id,
+                inspection_engine_version,
+                issue_code,
+                issue_message,
+            ) = row.map_err(database_error)?;
+            let file_identity = match (file_identity_scheme, file_identity_value) {
+                (Some(scheme), Some(value)) => Some(FileIdentityEvidence { scheme, value }),
+                (None, None) => None,
+                _ => {
+                    return Err(ScanError::new(
+                        "catalog_terminal_media_identity_invalid",
+                        "Stored terminal media evidence contains incomplete file identity",
+                    ));
+                }
+            };
+            evidence.push(TerminalMediaEvidence {
+                relative_path,
+                file_size: sqlite_unsigned(file_size, "terminal media file size")?,
+                modified_unix_ms,
+                file_identity,
+                inspection_engine_id,
+                inspection_engine_version: u32::try_from(inspection_engine_version).map_err(
+                    |_| {
+                        ScanError::new(
+                            "catalog_terminal_media_engine_version_invalid",
+                            "Stored terminal media evidence has an invalid engine version",
+                        )
+                    },
+                )?,
+                issue: LibraryChangeFailure {
+                    code: issue_code,
+                    message: issue_message,
+                },
+            });
+        }
+        Ok(evidence)
+    }
+
     fn load_incremental_locations_in_subtree(
         &self,
         root_id: &str,
@@ -315,10 +490,14 @@ impl IncrementalCatalogRepository for SqliteCatalog {
     ) -> Result<CatalogDeltaPublication, ScanError> {
         validate_delta_batch(batch)?;
         self.flush_pending_locations()?;
-        let transaction = self
-            .connection
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(database_error)?;
+        let lane = admission_lane_for_change_ids(
+            &self.connection,
+            batch
+                .completions
+                .iter()
+                .map(|completion| completion.change_id),
+        )?;
+        let transaction = self.begin_write_in_lane(lane)?;
         let current_revision = load_catalog_revision(&transaction)?;
         let root_state = transaction
             .query_row(
@@ -394,11 +573,13 @@ impl IncrementalCatalogRepository for SqliteCatalog {
         }
         let mut completed_root_authority = false;
         let mut catch_up_evidence_by_change = HashMap::new();
+        let mut affected_paths_by_change = HashMap::new();
         for completion in &batch.completions {
             let leased = transaction
                 .query_row(
                     "SELECT status, lease_generation, root_id, root_generation, scope,
-                            catch_up_source, catch_up_watermark
+                            catch_up_source, catch_up_watermark,
+                            relative_path, previous_relative_path
                      FROM library_change_queue WHERE id = ?1",
                     [sqlite_integer(completion.change_id.value(), "change ID")?],
                     |row| {
@@ -410,6 +591,8 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                             row.get::<_, String>(4)?,
                             row.get::<_, Option<String>>(5)?,
                             row.get::<_, Option<String>>(6)?,
+                            row.get::<_, String>(7)?,
+                            row.get::<_, Option<String>>(8)?,
                         ))
                     },
                 )
@@ -423,6 +606,8 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                 scope,
                 catch_up_source,
                 catch_up_watermark,
+                relative_path,
+                previous_relative_path,
             )) = leased
             else {
                 return Ok(publication(
@@ -461,6 +646,21 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                 primary_evidence.as_ref(),
             )?;
             catch_up_evidence_by_change.insert(completion.change_id, lineage);
+            affected_paths_by_change.insert(
+                completion.change_id,
+                (relative_path, previous_relative_path),
+            );
+        }
+        for update in &batch.terminal_media_evidence {
+            if affected_paths_by_change
+                .get(&update.change_id)
+                .is_none_or(|(relative_path, _)| relative_path != &update.evidence.relative_path)
+            {
+                return Err(ScanError::new(
+                    "catalog_terminal_media_evidence_path_mismatch",
+                    "Terminal media evidence must describe the current path of its completed lease",
+                ));
+            }
         }
 
         for mutation in &batch.mutations {
@@ -584,6 +784,66 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                 }
             }
         }
+        for (relative_path, previous_relative_path) in affected_paths_by_change.values() {
+            transaction
+                .execute(
+                    "DELETE FROM library_terminal_media_evidence
+                     WHERE root_id = ?1 AND relative_path = ?2",
+                    params![batch.root_id, relative_path],
+                )
+                .map_err(database_error)?;
+            if let Some(previous_relative_path) = previous_relative_path {
+                transaction
+                    .execute(
+                        "DELETE FROM library_terminal_media_evidence
+                         WHERE root_id = ?1 AND relative_path = ?2",
+                        params![batch.root_id, previous_relative_path],
+                    )
+                    .map_err(database_error)?;
+            }
+        }
+        for update in &batch.terminal_media_evidence {
+            let evidence = &update.evidence;
+            transaction
+                .execute(
+                    "INSERT INTO library_terminal_media_evidence(
+                       root_id, relative_path, file_size, modified_unix_ms,
+                       file_identity_scheme, file_identity_value,
+                       inspection_engine_id, inspection_engine_version,
+                       issue_code, issue_message, updated_unix_ms
+                     ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
+                     ON CONFLICT(root_id, relative_path) DO UPDATE SET
+                       file_size = excluded.file_size,
+                       modified_unix_ms = excluded.modified_unix_ms,
+                       file_identity_scheme = excluded.file_identity_scheme,
+                       file_identity_value = excluded.file_identity_value,
+                       inspection_engine_id = excluded.inspection_engine_id,
+                       inspection_engine_version = excluded.inspection_engine_version,
+                       issue_code = excluded.issue_code,
+                       issue_message = excluded.issue_message,
+                       updated_unix_ms = excluded.updated_unix_ms",
+                    params![
+                        batch.root_id,
+                        evidence.relative_path,
+                        sqlite_integer(evidence.file_size, "terminal media file size")?,
+                        evidence.modified_unix_ms,
+                        evidence
+                            .file_identity
+                            .as_ref()
+                            .map(|identity| &identity.scheme),
+                        evidence
+                            .file_identity
+                            .as_ref()
+                            .map(|identity| &identity.value),
+                        evidence.inspection_engine_id,
+                        i64::from(evidence.inspection_engine_version),
+                        evidence.issue.code,
+                        evidence.issue.message,
+                        completed_unix_ms,
+                    ],
+                )
+                .map_err(database_error)?;
+        }
         mark_affected_preview_artifacts_stale(&transaction, &affected_artifact_keys)?;
         delete_affected_orphan_assets(&transaction, &affected_asset_ids)?;
         let locations_after = count_affected_locations(
@@ -628,7 +888,18 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                 )
             })?
         };
+        let mut lower_lane_capacity_released = false;
         for completion in &batch.completions {
+            lower_lane_capacity_released |= transaction
+                .query_row(
+                    "SELECT EXISTS(
+                       SELECT 1 FROM library_change_queue_lanes
+                       WHERE change_id = ?1 AND lane IN ('p1_journal', 'p2_recovery')
+                     )",
+                    [sqlite_integer(completion.change_id.value(), "change ID")?],
+                    |row| row.get::<_, bool>(0),
+                )
+                .map_err(database_error)?;
             let updated = transaction
                 .execute(
                     "UPDATE library_change_queue
@@ -654,6 +925,20 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                 ));
             }
         }
+        if lower_lane_capacity_released {
+            super::change_queue::wake_metadata_inventory_capacity_deferrals(
+                &transaction,
+                &batch.root_id,
+                batch.root_generation,
+                completed_unix_ms,
+            )?;
+        }
+        if has_persistent_journal_lineage(&catch_up_evidence_by_change) {
+            super::persistent_journal::finalize_persistent_journal_ranges(
+                &transaction,
+                completed_unix_ms,
+            )?;
+        }
         let completed_evidence = catch_up_evidence_by_change
             .into_values()
             .flatten()
@@ -676,6 +961,8 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                 )
                 .map_err(database_error)?;
         }
+        #[cfg(test)]
+        run_before_catalog_delta_commit_hook(&batch.root_id)?;
         transaction.commit().map_err(database_error)?;
         Ok(CatalogDeltaPublication {
             status: CatalogDeltaPublicationStatus::Applied,
@@ -694,6 +981,15 @@ impl IncrementalCatalogRepository for SqliteCatalog {
             })?,
         })
     }
+}
+
+fn has_persistent_journal_lineage(
+    evidence_by_change: &HashMap<LibraryChangeId, Vec<LibraryChangeCatchUpEvidence>>,
+) -> bool {
+    evidence_by_change
+        .values()
+        .flatten()
+        .any(|evidence| evidence.source == PERSISTENT_JOURNAL_CATCH_UP_SOURCE)
 }
 
 fn load_incremental_location<P>(
@@ -1179,6 +1475,19 @@ pub(super) fn cleanup_terminal_catch_up_handoffs_batch(
                    JOIN scan_runs AS scans ON scans.id = lineage.scan_id
                    WHERE lineage.catch_up_source = ?1 AND lineage.catch_up_watermark = ?2
                      AND scans.status IN ('running', 'paused')
+                   UNION ALL
+                   SELECT 1
+                   FROM library_persistent_journal_pending_renames AS pending
+                   WHERE ?1 = 'persistent_journal_v1'
+                     AND pending.source_range_id = ?2
+                   UNION ALL
+                   SELECT 1
+                   FROM library_persistent_journal_cross_root_ranges AS owners
+                   JOIN library_persistent_journal_cross_root_lineage AS lineage
+                     ON lineage.id = owners.lineage_id
+                   WHERE ?1 = 'persistent_journal_v1'
+                     AND owners.source_range_id = ?2
+                     AND lineage.status = 'pending'
                  )",
                 params![source, watermark],
                 |row| row.get::<_, bool>(0),
@@ -1472,6 +1781,12 @@ fn validate_delta_batch(batch: &CatalogDeltaBatch) -> Result<(), ScanError> {
             "A catalog delta exceeded the bounded mutation count",
         ));
     }
+    if batch.terminal_media_evidence.len() > batch.completions.len() {
+        return Err(ScanError::new(
+            "catalog_terminal_media_evidence_count_invalid",
+            "Terminal media evidence must remain bounded by the completed lease batch",
+        ));
+    }
     let mut change_ids = HashSet::new();
     for completion in &batch.completions {
         if completion.lease_generation == 0 || !change_ids.insert(completion.change_id) {
@@ -1574,6 +1889,36 @@ fn validate_delta_batch(batch: &CatalogDeltaBatch) -> Result<(), ScanError> {
             return Err(ScanError::new(
                 "catalog_delta_mutation_empty",
                 "A catalog delta mutation must remove or upsert at least one location",
+            ));
+        }
+    }
+    let mut evidence_paths = HashSet::new();
+    for update in &batch.terminal_media_evidence {
+        let evidence = &update.evidence;
+        if !change_ids.contains(&update.change_id)
+            || !evidence_paths.insert(&evidence.relative_path)
+            || evidence.relative_path.trim().is_empty()
+            || evidence.relative_path.contains(['\0', '\\'])
+            || evidence.inspection_engine_id.trim().is_empty()
+            || evidence.inspection_engine_id.len() > 128
+            || evidence.inspection_engine_id.contains('\0')
+            || evidence.inspection_engine_version == 0
+            || evidence.issue.code.trim().is_empty()
+            || evidence.issue.code.len() > 128
+            || evidence.issue.code.contains('\0')
+            || evidence.issue.message.trim().is_empty()
+            || evidence.issue.message.len() > 4_096
+            || evidence.issue.message.contains('\0')
+            || evidence.file_identity.as_ref().is_some_and(|identity| {
+                identity.scheme.trim().is_empty()
+                    || identity.value.trim().is_empty()
+                    || identity.scheme.contains('\0')
+                    || identity.value.contains('\0')
+            })
+        {
+            return Err(ScanError::new(
+                "catalog_terminal_media_evidence_invalid",
+                "Terminal media evidence must be bounded and belong to one completed lease",
             ));
         }
     }

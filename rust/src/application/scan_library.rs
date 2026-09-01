@@ -6,8 +6,8 @@ use std::sync::{Arc, Mutex, OnceLock};
 use blake3::Hasher;
 
 use crate::adapters::{
-    FileDiscovery, FileVisitOutcome, LocalMediaInspector, SqliteCatalog,
-    is_current_preview_artifact, revalidate_file_state, user_visible_path,
+    FileDiscovery, FileVisitOutcome, LocalMediaInspector, PublicationGuardedFileDiscovery,
+    SqliteCatalog, is_current_preview_artifact, revalidate_file_state, user_visible_path,
 };
 use crate::domain::{
     AssetLocationView, DiscoveredFile, LibraryChangeQueuePolicy, PreviewStatus, RecoverableScan,
@@ -34,6 +34,7 @@ const CONTROL_SUSPEND: u8 = 3;
 enum FullScanReason {
     ExplicitUserRequest,
     ResumeForegroundCheckpoint,
+    #[cfg(test)]
     ResumeAuthoritativeCheckpoint,
 }
 
@@ -60,19 +61,6 @@ pub fn resume_scan(
         publish,
         storage,
         FullScanReason::ResumeForegroundCheckpoint,
-    )
-}
-
-pub(crate) fn resume_authoritative_scan_with_storage(
-    request: ScanRequest,
-    publish: impl FnMut(ScanEvent) -> bool,
-    storage: StoragePaths,
-) -> Result<(), ScanError> {
-    run_scan_with_storage_reason(
-        request,
-        publish,
-        storage,
-        FullScanReason::ResumeAuthoritativeCheckpoint,
     )
 }
 
@@ -124,6 +112,15 @@ fn run_scan_with_storage_reason(
     let media_inspector = LocalMediaInspector::new();
     let discovery = FileDiscovery::new(&request.root_path)?;
     let canonical_root = discovery.canonical_root()?;
+    let publication_root_identity =
+        discovery
+            .metadata_inventory_root_identity()?
+            .ok_or_else(|| {
+                ScanError::new(
+                    "root_publication_namespace_unavailable",
+                    "The configured root lacks full Windows identity evidence",
+                )
+            })?;
     validate_source_root_storage_paths(&canonical_root, &storage)?;
     let root_path = canonical_root.to_string_lossy().into_owned();
     let root_id = stable_id("library-root-v1", &root_path);
@@ -131,14 +128,25 @@ fn run_scan_with_storage_reason(
     let had_published_root = catalog
         .load_incremental_catalog_root(&root_id)?
         .is_some_and(|root| root.active_scan_id.is_some());
+    #[cfg(test)]
     let is_authoritative_recovery = reason == FullScanReason::ResumeAuthoritativeCheckpoint;
+    #[cfg(not(test))]
+    let is_authoritative_recovery = false;
     let mut checkpoint = match reason {
-        FullScanReason::ExplicitUserRequest => {
-            catalog.begin_scan(&request, &root_id, &root_path)?
-        }
-        FullScanReason::ResumeForegroundCheckpoint => {
-            catalog.resume_scan(&request, &root_id, &root_path)?
-        }
+        FullScanReason::ExplicitUserRequest => catalog.begin_scan_with_publication_namespace(
+            &request,
+            &root_id,
+            &root_path,
+            &publication_root_identity,
+        )?,
+        FullScanReason::ResumeForegroundCheckpoint => catalog
+            .resume_scan_with_publication_namespace(
+                &request,
+                &root_id,
+                &root_path,
+                &publication_root_identity,
+            )?,
+        #[cfg(test)]
         FullScanReason::ResumeAuthoritativeCheckpoint => {
             catalog.resume_authoritative_scan(&request, &root_id, &root_path)?
         }
@@ -336,6 +344,20 @@ fn run_scan_with_storage_reason(
                         catalog.enqueue_directory(&request.scan_id, &visit.relative_path)?;
                     }
                     FileVisitOutcome::Ignored => {}
+                    FileVisitOutcome::TerminalMedia {
+                        issue,
+                        report_issue,
+                        ..
+                    } => {
+                        if report_issue {
+                            issue_count += 1;
+                            catalog.record_issue(&request.scan_id, &issue)?;
+                            discovered_event = Some(ScanEvent::Issue {
+                                scan_id: request.scan_id.clone(),
+                                issue: user_visible_issue(issue),
+                            });
+                        }
+                    }
                     FileVisitOutcome::Issue(issue) => {
                         issue_count += 1;
                         catalog.record_issue(&request.scan_id, &issue)?;
@@ -530,10 +552,14 @@ fn run_scan_with_storage_reason(
                                     asset: Box::new(asset),
                                 });
                             }
-                            Err(issue) => {
+                            Err(failure) => {
+                                let is_retryable = failure.kind
+                                    == crate::ports::MediaInspectionFailureKind::Retryable;
+                                let issue = failure.issue;
                                 issue_count += 1;
                                 catalog.record_issue(&request.scan_id, &issue)?;
                                 if had_published_root
+                                    && is_retryable
                                     && let Some(prior) = preservation_prior.as_ref()
                                 {
                                     catalog.stage_location(&request.scan_id, &root_id, prior)?;
@@ -545,14 +571,14 @@ fn run_scan_with_storage_reason(
                                                 )
                                             })?;
                                 }
-                                if is_authoritative_recovery {
+                                if is_authoritative_recovery && is_retryable {
                                     if !retain_authoritative_retry_path(
                                         &mut authoritative_retry_paths,
                                         &file.relative_path,
                                     ) {
                                         checkpoint.requires_previous_snapshot = true;
                                     }
-                                } else if had_published_root {
+                                } else if had_published_root && is_retryable {
                                     checkpoint.requires_previous_snapshot = true;
                                 }
                                 checkpoint.accepted_items = accepted_items;
@@ -642,6 +668,21 @@ fn run_scan_with_storage_reason(
     }
 
     let total_items = catalog.count_staged_file_states(&request.scan_id)?;
+    let publication_guard = match PublicationGuardedFileDiscovery::new_incremental_publication_guard(
+        &root_path,
+        &publication_root_identity,
+    ) {
+        Ok(guard) => guard,
+        Err(failure) => {
+            catalog.fail_scan_publication_namespace(
+                &request.scan_id,
+                &root_id,
+                &failure,
+                issue_count,
+            )?;
+            return Err(failure);
+        }
+    };
     if !publish(ScanEvent::Finalizing {
         scan_id: request.scan_id.clone(),
         validated_items: 0,
@@ -742,6 +783,7 @@ fn run_scan_with_storage_reason(
     }
 
     if is_authoritative_recovery {
+        publication_guard.require_metadata_inventory_root_identity(&publication_root_identity)?;
         accepted_items = catalog.preserve_authoritative_retry_evidence(
             &request.scan_id,
             &root_id,
@@ -771,6 +813,7 @@ fn run_scan_with_storage_reason(
             &authoritative_retry_paths.into_iter().collect::<Vec<_>>(),
         )?;
     } else {
+        publication_guard.require_metadata_inventory_root_identity(&publication_root_identity)?;
         catalog.publish_scan(&request.scan_id, &root_id, accepted_items, issue_count)?;
     }
     publish(ScanEvent::Completed {
@@ -796,11 +839,11 @@ fn restore_authoritative_retry_paths(
     evidence_is_complete: bool,
     retry_paths: &mut BTreeSet<String>,
 ) -> bool {
-    let mut has_retryable_authoritative_issue = false;
+    let mut has_convertible_authoritative_issue = false;
     let mut all_evidence_is_compatible = evidence_is_complete;
     for issue in issues {
         if is_retryable_authoritative_path_issue(&issue.code) {
-            has_retryable_authoritative_issue = true;
+            has_convertible_authoritative_issue = true;
             let Some(relative_path) = issue.path.as_deref().and_then(|path| {
                 authoritative_retry_relative_path(path, canonical_root, requested_root)
             }) else {
@@ -810,11 +853,13 @@ fn restore_authoritative_retry_paths(
             if !retain_authoritative_retry_path(retry_paths, &relative_path) {
                 all_evidence_is_compatible = false;
             }
+        } else if is_terminal_media_issue(&issue.code) {
+            has_convertible_authoritative_issue = true;
         } else if !is_nonblocking_scan_issue(&issue.code) {
             all_evidence_is_compatible = false;
         }
     }
-    has_retryable_authoritative_issue && all_evidence_is_compatible
+    has_convertible_authoritative_issue && all_evidence_is_compatible
 }
 
 fn authoritative_retry_relative_path(
@@ -847,10 +892,7 @@ fn retain_authoritative_retry_path(
 }
 
 fn is_retryable_media_issue(code: &str) -> bool {
-    matches!(
-        code,
-        "image_open_failed" | "image_dimensions_failed" | "image_dimensions_exceeded"
-    )
+    matches!(code, "image_open_failed" | "image_header_read_failed")
 }
 
 fn is_retryable_authoritative_path_issue(code: &str) -> bool {
@@ -863,6 +905,19 @@ fn is_retryable_authoritative_path_issue(code: &str) -> bool {
                 | "source_became_unavailable"
                 | "source_identity_unavailable"
         )
+}
+
+fn is_terminal_media_issue(code: &str) -> bool {
+    matches!(
+        code,
+        "image_dimensions_failed"
+            | "image_format_unsupported"
+            | "image_decode_invalid"
+            | "image_limits_exceeded"
+            | "image_decoder_rejected"
+            | "image_dimensions_exceeded"
+            | "media_type_unsupported"
+    )
 }
 
 fn is_nonblocking_scan_issue(code: &str) -> bool {

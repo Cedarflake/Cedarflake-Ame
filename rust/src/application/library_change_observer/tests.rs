@@ -314,7 +314,9 @@ fn delivered_degraded_gap_restarts_the_source_and_can_recover_health() {
     assert_eq!(waiting.restart_attempt, 1);
     assert_eq!(waiting.next_restart_unix_ms, Some(251));
 
-    let starting = observer.poll(251).expect("restart poll");
+    let starting = wait_for_source_state(&mut observer, 251, |poll| {
+        poll.source_health == LibraryChangeSourceHealth::Starting
+    });
     assert_eq!(starting.source_health, LibraryChangeSourceHealth::Starting);
     let recovered = wait_for_source_state(&mut observer, 251, |poll| {
         poll.source_health == LibraryChangeSourceHealth::Healthy
@@ -360,6 +362,40 @@ fn slow_runtime_stop_does_not_block_poll_and_window_close_remains_bounded() {
     observer.stop().expect("bounded window-close stop");
     assert!(close_started.elapsed() < Duration::from_secs(2));
     assert_eq!(*stops.lock().expect("stop state"), 1);
+}
+
+#[test]
+fn timed_out_stop_retries_the_same_owned_task_and_joins_it_once() {
+    let stops = Arc::new(Mutex::new(0));
+    let slow_source = FakeSource {
+        health: LibraryChangeSourceHealth::Healthy,
+        batches: VecDeque::new(),
+        stops: Arc::clone(&stops),
+        stop_delay: Duration::from_millis(150),
+        should_fail_stop: false,
+    };
+    let mut observer = LibraryChangeObserver::start(
+        factory([Ok(slow_source)]),
+        request(),
+        limits(),
+        restart_policy(),
+        0,
+    )
+    .expect("observer");
+
+    observer.request_stop().expect("request stop");
+    let first = observer
+        .finish_stop_until(Instant::now() + Duration::from_millis(10))
+        .expect_err("the first deadline must expire");
+    assert_eq!(first.code, "change_observer_stop_timeout");
+    wait_for_stop_count(&stops, 1);
+    assert_eq!(*stops.lock().expect("stop count"), 1);
+
+    let report = observer
+        .finish_stop_until(Instant::now() + Duration::from_secs(1))
+        .expect("join the original stop task");
+    assert_eq!(report.elapsed_millis, 3);
+    assert_eq!(*stops.lock().expect("stop count"), 1);
 }
 
 #[test]

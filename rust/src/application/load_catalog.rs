@@ -1,6 +1,9 @@
 use std::path::Path;
 
-use crate::adapters::{SqliteCatalog, inspect_root_availability, is_current_preview_artifact};
+use crate::adapters::{
+    SqliteCatalog, SqliteCatalogReadExecutor, SqliteCatalogSession, inspect_root_availability,
+    is_current_preview_artifact,
+};
 use crate::domain::{
     AssetLocationView, CatalogCursor, CatalogSnapshot, GalleryLayoutManifestChunk,
     GalleryLayoutManifestCursor, GalleryQuery, GallerySortDirection, GallerySortKey,
@@ -31,29 +34,29 @@ fn load_catalog_window(
     let query = normalize_gallery_query(query);
     let query_id = gallery_query_identity(&query);
     let storage = storage_paths()?;
-    let mut catalog = SqliteCatalog::open(storage.catalog_path.clone())?;
+    let reader = prepare_catalog_reader(&storage.catalog_path)?;
     let mut snapshot = match anchor_location_id.as_deref() {
         Some(location_id) => {
-            catalog.load_snapshot_around_location(max_items, &query, &query_id, location_id)?
+            reader.load_snapshot_around_location(max_items, &query, &query_id, location_id)
         }
-        None => catalog.load_snapshot(
+        None => reader.load_snapshot(
             max_items,
             &query,
             &query_id,
             after.as_ref(),
             before.as_ref(),
             anchor.as_ref(),
-        )?,
-    };
-    finish_loaded_snapshot(&storage, catalog, &mut snapshot)?;
+        ),
+    }?;
+    finish_loaded_snapshot(&storage, &mut snapshot)?;
     Ok(snapshot)
 }
 
 fn finish_loaded_snapshot(
     storage: &super::StoragePaths,
-    mut catalog: SqliteCatalog,
     snapshot: &mut CatalogSnapshot,
 ) -> Result<(), ScanError> {
+    let mut catalog = SqliteCatalog::open(storage.catalog_path.clone())?;
     reconcile_snapshot_previews(&mut catalog, &storage.preview_root, snapshot)?;
     let visible_preview_artifacts = snapshot
         .assets
@@ -107,8 +110,7 @@ pub fn load_gallery_timeline(query: GalleryQuery) -> Result<GalleryTimeline, Sca
     let query = normalize_gallery_query(query);
     let query_id = gallery_query_identity(&query);
     let storage = storage_paths()?;
-    let mut catalog = SqliteCatalog::open(storage.catalog_path)?;
-    catalog.load_gallery_timeline(&query, &query_id)
+    prepare_catalog_reader(&storage.catalog_path)?.load_gallery_timeline(&query, &query_id)
 }
 
 pub fn load_gallery_layout_manifest_chunk(
@@ -119,8 +121,12 @@ pub fn load_gallery_layout_manifest_chunk(
     let query = normalize_gallery_query(query);
     let query_id = gallery_query_identity(&query);
     let storage = storage_paths()?;
-    let mut catalog = SqliteCatalog::open(storage.catalog_path)?;
-    catalog.load_gallery_layout_manifest_chunk(max_items, &query, &query_id, after.as_ref())
+    prepare_catalog_reader(&storage.catalog_path)?.load_gallery_layout_manifest_chunk(
+        max_items,
+        &query,
+        &query_id,
+        after.as_ref(),
+    )
 }
 
 pub fn load_library_folders(
@@ -130,8 +136,7 @@ pub fn load_library_folders(
     after: Option<LibraryFolderCursor>,
 ) -> Result<LibraryFolderPage, ScanError> {
     let storage = storage_paths()?;
-    let mut catalog = SqliteCatalog::open(storage.catalog_path)?;
-    catalog.load_folder_page(
+    prepare_catalog_reader(&storage.catalog_path)?.load_folder_page(
         &root_id,
         &normalize_relative_folder(&parent_relative_path),
         max_items,
@@ -189,8 +194,7 @@ pub fn load_catalog_around_asset(
     let query = normalize_gallery_query(query);
     let query_id = gallery_query_identity(&query);
     let storage = storage_paths()?;
-    let mut catalog = SqliteCatalog::open(storage.catalog_path.clone())?;
-    let mut snapshot = catalog.load_snapshot_around_asset(
+    let mut snapshot = prepare_catalog_reader(&storage.catalog_path)?.load_snapshot_around_asset(
         max_items,
         &query,
         &query_id,
@@ -198,7 +202,7 @@ pub fn load_catalog_around_asset(
         &anchor_asset_id,
         fallback_ordinal,
     )?;
-    finish_loaded_snapshot(&storage, catalog, &mut snapshot)?;
+    finish_loaded_snapshot(&storage, &mut snapshot)?;
     Ok(snapshot)
 }
 
@@ -217,8 +221,22 @@ pub fn load_catalog_asset_by_id(
         ));
     }
     let storage = storage_paths()?;
-    let catalog = SqliteCatalog::open(storage.catalog_path)?;
-    catalog.load_active_location_by_asset_id(&asset_id, preferred_location_id.as_deref())
+    prepare_catalog_reader(&storage.catalog_path)?
+        .load_active_location_by_asset_id(&asset_id, preferred_location_id.as_deref())
+}
+
+fn prepare_catalog_reader(path: &Path) -> Result<SqliteCatalogReadExecutor, ScanError> {
+    if !path.is_file() {
+        return SqliteCatalogSession::validate(path.to_path_buf())
+            .map(SqliteCatalogReadExecutor::new);
+    }
+    match SqliteCatalogReadExecutor::open_existing(path.to_path_buf()) {
+        Ok(reader) => Ok(reader),
+        Err(error) if error.code == "catalog_read_schema_requires_preparation" => {
+            SqliteCatalogSession::validate(path.to_path_buf()).map(SqliteCatalogReadExecutor::new)
+        }
+        Err(error) => Err(error),
+    }
 }
 
 fn normalize_gallery_query(mut query: GalleryQuery) -> GalleryQuery {
@@ -266,6 +284,12 @@ mod tests {
     use std::collections::HashSet;
     use std::fs;
     use std::path::PathBuf;
+    use std::process::Command;
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+    use std::sync::mpsc;
+    use std::thread;
+    use std::time::Duration;
 
     use tempfile::tempdir;
 
@@ -314,6 +338,103 @@ mod tests {
             gallery_query_identity(&base),
             gallery_query_identity(&direct_children)
         );
+    }
+
+    #[test]
+    fn current_catalog_read_preparation_does_not_run_migrations() {
+        let storage = tempdir().expect("storage");
+        let catalog_path = storage.path().join("catalog").join("ame.sqlite3");
+        drop(SqliteCatalog::open(catalog_path.clone()).expect("initialize catalog"));
+        crate::adapters::reset_full_schema_validation_count(&catalog_path);
+
+        let reader = prepare_catalog_reader(&catalog_path).expect("read executor");
+        let timeline = reader
+            .load_gallery_timeline(&GalleryQuery::default(), "current-schema-query")
+            .expect("current catalog read");
+
+        assert!(timeline.buckets.is_empty());
+        assert_eq!(
+            crate::adapters::full_schema_validation_count(&catalog_path),
+            0,
+            "a current-schema read must not re-enter migration validation",
+        );
+    }
+
+    #[test]
+    fn public_catalog_reads_remain_available_during_a_concurrent_wal_writer() {
+        const CHILD_TEST: &str = "application::load_catalog::tests::public_catalog_read_wal_child";
+        let storage = tempdir().expect("storage");
+        let catalog_path = storage.path().join("catalog").join("ame.sqlite3");
+        drop(SqliteCatalog::open(catalog_path.clone()).expect("initialize catalog"));
+        let stop = Arc::new(AtomicBool::new(false));
+        let writes = Arc::new(AtomicUsize::new(0));
+        let writer_stop = Arc::clone(&stop);
+        let writer_count = Arc::clone(&writes);
+        let (ready_sender, ready_receiver) = mpsc::sync_channel(1);
+        let writer = thread::spawn(move || -> Result<(), String> {
+            let connection = rusqlite::Connection::open(catalog_path)
+                .map_err(|error| format!("WAL writer open: {error}"))?;
+            connection
+                .busy_timeout(Duration::from_secs(5))
+                .map_err(|error| format!("writer busy timeout: {error}"))?;
+            ready_sender
+                .send(())
+                .map_err(|error| format!("writer readiness: {error}"))?;
+            while !writer_stop.load(Ordering::Acquire) {
+                connection
+                    .execute_batch(
+                        "BEGIN IMMEDIATE;
+                         UPDATE catalog_state SET revision = revision + 1;
+                         COMMIT;",
+                    )
+                    .map_err(|error| format!("WAL writer transaction: {error}"))?;
+                writer_count.fetch_add(1, Ordering::Release);
+            }
+            Ok(())
+        });
+        ready_receiver
+            .recv_timeout(Duration::from_secs(5))
+            .expect("WAL writer readiness");
+        while writes.load(Ordering::Acquire) == 0 && !writer.is_finished() {
+            thread::yield_now();
+        }
+
+        let status = Command::new(std::env::current_exe().expect("current test executable"))
+            .args([
+                "--exact",
+                CHILD_TEST,
+                "--ignored",
+                "--nocapture",
+                "--test-threads=1",
+            ])
+            .env("CEDARFLAKE_AME_TEST_STORAGE_ROOT", storage.path())
+            .env("CEDARFLAKE_AME_PUBLIC_WAL_READ_CHILD", "1")
+            .status()
+            .expect("public catalog read child");
+        stop.store(true, Ordering::Release);
+        writer
+            .join()
+            .expect("WAL writer join")
+            .expect("WAL writer completion");
+
+        assert!(
+            status.success(),
+            "public catalog reads failed under WAL writes"
+        );
+        assert!(writes.load(Ordering::Acquire) >= 2);
+    }
+
+    #[test]
+    #[ignore = "subprocess helper for the concurrent public catalog-read regression"]
+    fn public_catalog_read_wal_child() {
+        assert_eq!(
+            std::env::var("CEDARFLAKE_AME_PUBLIC_WAL_READ_CHILD").as_deref(),
+            Ok("1"),
+        );
+        for _ in 0..256 {
+            load_gallery_timeline(GalleryQuery::default())
+                .expect("production public catalog timeline read");
+        }
     }
 
     #[test]

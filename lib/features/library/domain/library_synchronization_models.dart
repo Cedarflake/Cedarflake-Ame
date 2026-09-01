@@ -25,6 +25,15 @@ enum LibraryChangeSourceStatus {
   unsupported,
 }
 
+enum LibraryContinuityState {
+  baselineRequired,
+  catchingUp,
+  current,
+  recoveryRequired,
+  liveOnly,
+  unavailable,
+}
+
 enum LibrarySynchronizationPhase {
   watcherStartup,
   inventoryEnumeration,
@@ -45,12 +54,14 @@ class LibraryRootSynchronizationStatus {
     required this.availability,
     required this.freshness,
     required this.freshnessCause,
+    required this.continuity,
     required this.phase,
     required this.phaseStartedAt,
     required this.sourceStatus,
     required this.pendingChangeCount,
     required this.retryWaitCount,
     required this.freshnessUnknownCount,
+    this.recoveryBlocked = false,
     this.lastIssueCode,
   });
 
@@ -59,12 +70,14 @@ class LibraryRootSynchronizationStatus {
   final LibraryRootAvailability availability;
   final LibraryCatalogFreshness freshness;
   final LibraryCatalogFreshnessCause freshnessCause;
+  final LibraryContinuityState continuity;
   final LibrarySynchronizationPhase phase;
   final DateTime phaseStartedAt;
   final LibraryChangeSourceStatus sourceStatus;
   final BigInt pendingChangeCount;
   final BigInt retryWaitCount;
   final BigInt freshnessUnknownCount;
+  final bool recoveryBlocked;
   final String? lastIssueCode;
 
   LibraryRootSynchronizationStatus degraded({
@@ -84,12 +97,14 @@ class LibraryRootSynchronizationStatus {
       freshnessCause: availability == LibraryRootAvailability.available
           ? LibraryCatalogFreshnessCause.changeSourceUnhealthy
           : LibraryCatalogFreshnessCause.rootUnavailable,
+      continuity: continuity,
       phase: targetPhase,
       phaseStartedAt: phase == targetPhase ? phaseStartedAt : occurredAt,
       sourceStatus: LibraryChangeSourceStatus.failed,
       pendingChangeCount: pendingChangeCount,
       retryWaitCount: retryWaitCount,
       freshnessUnknownCount: freshnessUnknownCount,
+      recoveryBlocked: recoveryBlocked,
       lastIssueCode: issueCode ?? lastIssueCode,
     );
   }
@@ -102,12 +117,14 @@ class LibraryRootSynchronizationStatus {
         availability == other.availability &&
         freshness == other.freshness &&
         freshnessCause == other.freshnessCause &&
+        continuity == other.continuity &&
         phase == other.phase &&
         phaseStartedAt == other.phaseStartedAt &&
         sourceStatus == other.sourceStatus &&
         pendingChangeCount == other.pendingChangeCount &&
         retryWaitCount == other.retryWaitCount &&
         freshnessUnknownCount == other.freshnessUnknownCount &&
+        recoveryBlocked == other.recoveryBlocked &&
         lastIssueCode == other.lastIssueCode;
   }
 
@@ -118,12 +135,14 @@ class LibraryRootSynchronizationStatus {
     availability,
     freshness,
     freshnessCause,
+    continuity,
     phase,
     phaseStartedAt,
     sourceStatus,
     pendingChangeCount,
     retryWaitCount,
     freshnessUnknownCount,
+    recoveryBlocked,
     lastIssueCode,
   );
 }

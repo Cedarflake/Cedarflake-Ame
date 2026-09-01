@@ -1,10 +1,25 @@
 use rusqlite::{Connection, OptionalExtension, Transaction, TransactionBehavior, params};
 
-use crate::domain::ScanError;
+use crate::domain::{
+    JournalFileReference, JournalIdentifier, JournalUsn, LibraryChangeIntent,
+    LibraryChangeIntentKind, LibraryChangeOrigin, LibraryChangeScope, LibraryRootGeneration,
+    PERSISTENT_JOURNAL_CONTRACT_VERSION, PersistentJournalCapability,
+    PersistentJournalCapabilityState, PersistentJournalCheckpoint,
+    PersistentJournalContinuityState, PersistentJournalCrossRootLineage,
+    PersistentJournalEnrollmentBatch, PersistentJournalFailure, PersistentJournalLineageState,
+    PersistentJournalPendingRename, PersistentJournalRangeState, PersistentJournalSourceRange,
+    PersistentJournalVolumeIdentity, ScanError, persistent_journal_batch_id_from_payload,
+    persistent_journal_batch_payload, persistent_journal_batch_payload_children,
+    persistent_journal_batch_payload_contains_lineage,
+    persistent_journal_batch_payload_contains_pending_lineage_source,
+    persistent_journal_batch_payload_matches_source_range,
+    persistent_journal_canonical_intent_entry, persistent_journal_canonical_lineage_entry,
+    persistent_journal_pending_rename_from_payload_entry,
+};
 
 use super::{
-    MAX_SCAN_CATCH_UP_LINEAGE, SCHEMA_VERSION, database_error, natural_name_key,
-    parent_relative_path,
+    MAX_SCAN_CATCH_UP_LINEAGE, SCHEMA_VERSION, SQLITE_APPLICATION_ID, database_error,
+    natural_name_key, parent_relative_path, unix_time_ms,
 };
 
 pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanError> {
@@ -23,6 +38,16 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
         let transaction = connection.transaction().map_err(database_error)?;
         create_schema_v19(&transaction)?;
         migrate_v19_to_v20_transaction(&transaction)?;
+        migrate_v20_to_v21_transaction(&transaction)?;
+        migrate_v21_to_v22_transaction(&transaction)?;
+        migrate_v22_to_v23_transaction(&transaction)?;
+        migrate_v23_to_v24_transaction(&transaction)?;
+        migrate_v24_to_v25_transaction(&transaction)?;
+        migrate_v25_to_v26_transaction(&transaction)?;
+        migrate_v26_to_v27_transaction(&transaction)?;
+        migrate_v27_to_v28_transaction(&transaction)?;
+        migrate_v28_to_v29_transaction(&transaction)?;
+        migrate_v29_to_v30_transaction(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -34,6 +59,10 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             .map_err(database_error)?;
         match version {
             SCHEMA_VERSION => {
+                repair_prerelease_v24_source_range_id_triggers(connection)?;
+                repair_prerelease_v26_recovery_window_schema(connection)?;
+                validate_current_schema_contract(connection)?;
+                recover_interrupted_explicit_foreground_claims(connection)?;
                 validate_current_schema_contract(connection)?;
                 return Ok(());
             }
@@ -70,6 +99,24 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
                 validate_v19_schema_contract(connection)?;
                 migrate_v19_to_v20(connection)?;
             }
+            20 => {
+                validate_metadata_inventory_contract(connection)?;
+                migrate_v20_to_v21(connection)?;
+            }
+            21 => {
+                validate_v19_schema_contract(connection)?;
+                validate_metadata_inventory_contract(connection)?;
+                validate_terminal_media_evidence_contract(connection)?;
+                migrate_v21_to_v22(connection)?;
+            }
+            22 => migrate_v22_to_v23(connection)?,
+            23 => migrate_v23_to_v24(connection)?,
+            24 => migrate_v24_to_v25(connection)?,
+            25 => migrate_v25_to_v26(connection)?,
+            26 => migrate_v26_to_v27(connection)?,
+            27 => migrate_v27_to_v28(connection)?,
+            28 => migrate_v28_to_v29(connection)?,
+            29 => migrate_v29_to_v30(connection)?,
             _ => {
                 return Err(ScanError::new(
                     "catalog_schema_unsupported",
@@ -481,8 +528,2159 @@ fn validate_prerelease_v19_catch_up_authority(connection: &Connection) -> Result
 }
 
 fn validate_current_schema_contract(connection: &Connection) -> Result<(), ScanError> {
+    validate_pre_live_gap_schema_contract(connection, SCHEMA_VERSION)?;
+    validate_live_gap_recovery_contract(connection)
+}
+
+fn recover_interrupted_explicit_foreground_claims(
+    connection: &mut Connection,
+) -> Result<(), ScanError> {
+    let has_interrupted_claim = connection
+        .query_row(
+            "SELECT EXISTS(
+               SELECT 1
+               FROM library_live_gap_recovery_claims AS claim
+               JOIN scan_runs AS scans ON scans.id = claim.foreground_scan_id
+               WHERE claim.consumer_kind = 'foreground_scan'
+                 AND claim.consumed_unix_ms IS NULL
+                 AND scans.scan_owner = 'foreground'
+                 AND scans.status IN ('running', 'paused')
+             )",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    if !has_interrupted_claim {
+        return Ok(());
+    }
+
+    let recovered_unix_ms = unix_time_ms();
+    let transaction = connection
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .map_err(database_error)?;
+    let scan_ids = {
+        let mut statement = transaction
+            .prepare(
+                "SELECT DISTINCT claim.foreground_scan_id
+                 FROM library_live_gap_recovery_claims AS claim
+                 JOIN scan_runs AS scans ON scans.id = claim.foreground_scan_id
+                 WHERE claim.consumer_kind = 'foreground_scan'
+                   AND claim.consumed_unix_ms IS NULL
+                   AND scans.scan_owner = 'foreground'
+                   AND scans.status IN ('running', 'paused')
+                 ORDER BY claim.foreground_scan_id",
+            )
+            .map_err(database_error)?;
+        statement
+            .query_map([], |row| row.get::<_, String>(0))
+            .map_err(database_error)?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(database_error)?
+    };
+    for scan_id in scan_ids {
+        let claim_count = transaction
+            .query_row(
+                "SELECT COUNT(*) FROM library_live_gap_recovery_claims
+                 WHERE consumer_kind = 'foreground_scan'
+                   AND consumed_unix_ms IS NULL AND foreground_scan_id = ?1",
+                [&scan_id],
+                |row| row.get::<_, i64>(0),
+            )
+            .map_err(database_error)?;
+        let restored_gaps = transaction
+            .execute(
+                "UPDATE library_change_queue
+                 SET status = 'retry_wait', next_retry_unix_ms = NULL,
+                     lease_expires_unix_ms = NULL, authoritative_scan_id = NULL,
+                     last_failure_code = 'live_gap_v30_explicit_recovery_required',
+                     last_failure_message =
+                       'The explicit library update was interrupted and must be started again',
+                     updated_unix_ms = ?2
+                 WHERE id IN (
+                   SELECT gap_change_id FROM library_live_gap_recovery_claims
+                   WHERE consumer_kind = 'foreground_scan'
+                     AND consumed_unix_ms IS NULL AND foreground_scan_id = ?1
+                 )
+                   AND status = 'leased' AND authoritative_scan_id = ?1",
+                params![scan_id, recovered_unix_ms],
+            )
+            .map_err(database_error)?;
+        if i64::try_from(restored_gaps).ok() != Some(claim_count) {
+            return Err(ScanError::new(
+                "catalog_live_gap_foreground_recovery_conflict",
+                "The interrupted foreground recovery no longer owns every explicit gap",
+            ));
+        }
+        let restored_claims = transaction
+            .execute(
+                "UPDATE library_live_gap_recovery_claims
+                 SET consumer_kind = 'explicit_recovery_required',
+                     foreground_scan_id = NULL, consumed_unix_ms = NULL
+                 WHERE consumer_kind = 'foreground_scan'
+                   AND consumed_unix_ms IS NULL AND foreground_scan_id = ?1",
+                [&scan_id],
+            )
+            .map_err(database_error)?;
+        if i64::try_from(restored_claims).ok() != Some(claim_count) {
+            return Err(ScanError::new(
+                "catalog_live_gap_foreground_recovery_conflict",
+                "The interrupted foreground consumer changed before recovery",
+            ));
+        }
+        transaction
+            .execute(
+                "UPDATE library_change_queue
+                 SET status = 'pending', ready_unix_ms = ?2,
+                     next_retry_unix_ms = NULL, lease_expires_unix_ms = NULL,
+                     authoritative_scan_id = NULL, updated_unix_ms = ?2
+                 WHERE authoritative_scan_id = ?1 AND status = 'leased'
+                   AND NOT EXISTS(
+                     SELECT 1 FROM library_live_gap_recovery_claims AS claim
+                     WHERE claim.gap_change_id = library_change_queue.id
+                   )",
+                params![scan_id, recovered_unix_ms],
+            )
+            .map_err(database_error)?;
+        transaction
+            .execute(
+                "UPDATE library_change_queue SET authoritative_scan_id = NULL
+                 WHERE authoritative_scan_id = ?1",
+                [&scan_id],
+            )
+            .map_err(database_error)?;
+        let terminalized = transaction
+            .execute(
+                "UPDATE scan_runs
+                 SET status = 'failed', completed_unix_ms = ?2,
+                     current_directory_relative_path = NULL,
+                     current_directory_enumerated = 0,
+                     last_visited_relative_path = NULL
+                 WHERE id = ?1 AND scan_owner = 'foreground'
+                   AND status IN ('running', 'paused')",
+                params![scan_id, recovered_unix_ms],
+            )
+            .map_err(database_error)?;
+        if terminalized != 1 {
+            return Err(ScanError::new(
+                "catalog_live_gap_foreground_recovery_conflict",
+                "The interrupted foreground scan changed before recovery",
+            ));
+        }
+        for sql in [
+            "DELETE FROM scan_run_catch_up_lineage WHERE scan_id = ?1",
+            "DELETE FROM scan_directory_frontier WHERE scan_id = ?1",
+            "DELETE FROM scan_directory_entries WHERE scan_id = ?1",
+            "DELETE FROM library_scan_publication_namespace_bindings WHERE scan_id = ?1",
+            "DELETE FROM asset_locations WHERE scan_id = ?1",
+        ] {
+            transaction
+                .execute(sql, [&scan_id])
+                .map_err(database_error)?;
+        }
+    }
+    super::delete_orphan_assets(&transaction)?;
+    transaction.commit().map_err(database_error)
+}
+
+fn validate_pre_live_gap_schema_contract(
+    connection: &Connection,
+    schema_version: i64,
+) -> Result<(), ScanError> {
     validate_v19_schema_contract(connection)?;
-    validate_metadata_inventory_contract(connection)
+    validate_metadata_inventory_contract(connection)?;
+    validate_terminal_media_evidence_contract(connection)?;
+    validate_persistent_journal_contract(connection)?;
+    validate_change_lane_contract(connection)?;
+    validate_recovery_authority_contract(connection)?;
+    validate_persistent_journal_baseline_contract(connection)?;
+    validate_recovery_execution_contract(connection)?;
+    validate_metadata_inventory_spool_contract_version(connection, schema_version, 2)?;
+    validate_root_publication_namespace_contract(connection)
+}
+
+const CHANGE_LANE_INDEX_DDL: &str = "CREATE INDEX library_change_queue_lanes_eligible
+       ON library_change_queue_lanes(lane, change_id)";
+const CHANGE_LANE_CONTRACT_TABLE_DDL: &str = "CREATE TABLE library_change_lane_contract (
+       singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+       complete INTEGER NOT NULL CHECK(complete = 1)
+     )";
+const CHANGE_LANE_QUEUE_TABLE_DDL: &str = "CREATE TABLE library_change_queue_lanes (
+       change_id INTEGER PRIMARY KEY,
+       lane TEXT NOT NULL CHECK(lane IN ('p0_live', 'p1_journal', 'p2_recovery')),
+       FOREIGN KEY(change_id) REFERENCES library_change_queue(id) ON DELETE CASCADE
+     )";
+const CHANGE_LANE_INSERT_TRIGGER_DDL: &str = "CREATE TRIGGER library_change_queue_lane_insert
+       AFTER INSERT ON library_change_queue
+       BEGIN
+         INSERT INTO library_change_queue_lanes(change_id, lane)
+         VALUES (
+           NEW.id,
+           CASE NEW.origin
+             WHEN 'live_notification' THEN 'p0_live'
+             WHEN 'startup_catch_up' THEN 'p1_journal'
+             ELSE 'p2_recovery'
+           END
+         );
+       END";
+const CHANGE_LANE_ORIGIN_TRIGGER_DDL: &str =
+    "CREATE TRIGGER library_change_queue_lane_origin_update
+       AFTER UPDATE OF origin ON library_change_queue
+       BEGIN
+         UPDATE library_change_queue_lanes
+         SET lane = CASE NEW.origin
+           WHEN 'live_notification' THEN 'p0_live'
+           WHEN 'startup_catch_up' THEN 'p1_journal'
+           ELSE 'p2_recovery'
+         END
+         WHERE change_id = NEW.id;
+       END";
+const CHANGE_LANE_INSERT_GUARD_DDL: &str = "CREATE TRIGGER library_change_queue_lane_insert_guard
+       BEFORE INSERT ON library_change_queue_lanes
+       WHEN NEW.lane <> (
+         SELECT CASE origin
+           WHEN 'live_notification' THEN 'p0_live'
+           WHEN 'startup_catch_up' THEN 'p1_journal'
+           ELSE 'p2_recovery'
+         END
+         FROM library_change_queue WHERE id = NEW.change_id
+       )
+       BEGIN
+         SELECT RAISE(ABORT, 'change queue lane does not match origin');
+       END";
+const CHANGE_LANE_UPDATE_GUARD_DDL: &str = "CREATE TRIGGER library_change_queue_lane_update_guard
+       BEFORE UPDATE OF lane, change_id ON library_change_queue_lanes
+       WHEN NEW.lane <> (
+         SELECT CASE origin
+           WHEN 'live_notification' THEN 'p0_live'
+           WHEN 'startup_catch_up' THEN 'p1_journal'
+           ELSE 'p2_recovery'
+         END
+         FROM library_change_queue WHERE id = NEW.change_id
+       )
+       BEGIN
+         SELECT RAISE(ABORT, 'change queue lane does not match origin');
+       END";
+const RECOVERY_AUTHORITY_CONTRACT_TABLE_DDL: &str =
+    "CREATE TABLE library_recovery_authority_contract (
+       singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+       complete INTEGER NOT NULL CHECK(complete = 1)
+     )";
+const RECOVERY_AUTHORITY_TABLE_DDL: &str = "CREATE TABLE library_recovery_authorities (
+       change_id INTEGER PRIMARY KEY,
+       run_id TEXT NOT NULL UNIQUE CHECK(length(run_id) BETWEEN 1 AND 512),
+       root_id TEXT NOT NULL CHECK(length(root_id) BETWEEN 1 AND 512),
+       root_generation INTEGER NOT NULL CHECK(root_generation > 0),
+       reason TEXT NOT NULL CHECK(reason IN (
+         'existing_root_baseline', 'first_import_boundary', 'journal_gap',
+         'journal_reset', 'journal_trim', 'journal_reconstruction_failure',
+         'containment_failure', 'broker_after_current_failure', 'watcher_uncovered_gap'
+       )),
+       opening_journal_id TEXT,
+       opening_next_usn TEXT,
+       authorized_unix_ms INTEGER NOT NULL,
+       retired_unix_ms INTEGER,
+       CHECK(
+         (reason IN ('existing_root_baseline', 'first_import_boundary')
+           AND opening_journal_id IS NOT NULL AND opening_next_usn IS NOT NULL)
+         OR
+         (reason NOT IN ('existing_root_baseline', 'first_import_boundary')
+           AND opening_journal_id IS NULL AND opening_next_usn IS NULL)
+       ),
+       CHECK(retired_unix_ms IS NULL OR retired_unix_ms >= authorized_unix_ms),
+       FOREIGN KEY(change_id) REFERENCES library_change_queue(id) ON DELETE CASCADE
+     )";
+const RECOVERY_AUTHORITY_ROOT_INDEX_DDL: &str = "CREATE INDEX library_recovery_authorities_root
+       ON library_recovery_authorities(root_id, root_generation, retired_unix_ms, change_id)";
+const RECOVERY_AUTHORITY_INSERT_GUARD_DDL: &str =
+    "CREATE TRIGGER library_recovery_authority_insert_guard
+       BEFORE INSERT ON library_recovery_authorities
+       WHEN NOT EXISTS (
+         SELECT 1
+         FROM library_change_queue AS queue
+         JOIN library_change_queue_lanes AS lanes ON lanes.change_id = queue.id
+         WHERE queue.id = NEW.change_id
+           AND queue.root_id = NEW.root_id
+           AND queue.root_generation = NEW.root_generation
+           AND lanes.lane = 'p2_recovery'
+       )
+       BEGIN
+         SELECT RAISE(ABORT, 'recovery authority does not match P2 queue work');
+       END";
+const RECOVERY_AUTHORITY_UPDATE_GUARD_DDL: &str =
+    "CREATE TRIGGER library_recovery_authority_update_guard
+       BEFORE UPDATE OF change_id, root_id, root_generation, reason,
+                        opening_journal_id, opening_next_usn, authorized_unix_ms
+       ON library_recovery_authorities
+       BEGIN
+         SELECT RAISE(ABORT, 'recovery authority identity is immutable');
+       END";
+const PERSISTENT_JOURNAL_BASELINE_TABLE_DDL: &str =
+    "CREATE TABLE library_persistent_journal_baselines (
+       change_id INTEGER PRIMARY KEY,
+       root_id TEXT NOT NULL CHECK(length(root_id) BETWEEN 1 AND 512),
+       root_generation INTEGER NOT NULL CHECK(root_generation > 0),
+       volume_guid TEXT NOT NULL CHECK(length(volume_guid) BETWEEN 1 AND 512),
+       volume_serial TEXT NOT NULL CHECK(length(volume_serial) BETWEEN 1 AND 20),
+       root_reference_version INTEGER NOT NULL CHECK(root_reference_version IN (2, 3)),
+       root_file_reference BLOB NOT NULL,
+       journal_id TEXT NOT NULL CHECK(length(journal_id) BETWEEN 1 AND 20),
+       opening_next_usn TEXT NOT NULL CHECK(length(opening_next_usn) BETWEEN 1 AND 19),
+       closing_next_usn TEXT CHECK(length(closing_next_usn) BETWEEN 1 AND 19),
+       protocol_version INTEGER NOT NULL CHECK(protocol_version BETWEEN 1 AND 65535),
+       contract_version INTEGER NOT NULL CHECK(contract_version = 1),
+       phase TEXT NOT NULL CHECK(phase IN ('inventory', 'replay', 'absence', 'completed')),
+       authorized_unix_ms INTEGER NOT NULL CHECK(authorized_unix_ms >= 0),
+       updated_unix_ms INTEGER NOT NULL CHECK(updated_unix_ms >= authorized_unix_ms),
+       completed_unix_ms INTEGER CHECK(completed_unix_ms >= updated_unix_ms),
+       CHECK(
+         (root_reference_version = 2 AND length(root_file_reference) = 8)
+         OR
+         (root_reference_version = 3 AND length(root_file_reference) = 16)
+       ),
+       CHECK(journal_id <> '0' AND journal_id NOT GLOB '*[^0-9]*'),
+       CHECK(opening_next_usn NOT GLOB '*[^0-9]*'),
+       CHECK(closing_next_usn IS NULL OR closing_next_usn NOT GLOB '*[^0-9]*'),
+       CHECK(
+         (phase = 'inventory' AND closing_next_usn IS NULL)
+         OR
+         (phase <> 'inventory' AND closing_next_usn IS NOT NULL)
+       ),
+       CHECK(
+         closing_next_usn IS NULL
+         OR CAST(closing_next_usn AS INTEGER) >= CAST(opening_next_usn AS INTEGER)
+       ),
+       CHECK((phase = 'completed') = (completed_unix_ms IS NOT NULL)),
+       FOREIGN KEY(change_id)
+         REFERENCES library_recovery_authorities(change_id) ON DELETE CASCADE,
+       FOREIGN KEY(root_id, root_generation)
+         REFERENCES library_persistent_journal_root_state(root_id, root_generation)
+         ON DELETE CASCADE
+     )";
+const PERSISTENT_JOURNAL_BASELINE_ROOT_INDEX_DDL: &str =
+    "CREATE UNIQUE INDEX library_persistent_journal_baselines_root
+       ON library_persistent_journal_baselines(root_id, root_generation)
+       WHERE phase <> 'completed'";
+const LEGACY_V26_PERSISTENT_JOURNAL_BASELINE_ROOT_INDEX_DDL: &str =
+    "CREATE UNIQUE INDEX library_persistent_journal_baselines_root
+       ON library_persistent_journal_baselines(root_id, root_generation)";
+const PERSISTENT_JOURNAL_BASELINE_INSERT_GUARD_DDL: &str =
+    "CREATE TRIGGER library_persistent_journal_baseline_insert_guard
+       BEFORE INSERT ON library_persistent_journal_baselines
+       WHEN NOT EXISTS (
+         SELECT 1 FROM library_recovery_authorities AS authority
+         WHERE authority.change_id = NEW.change_id
+           AND authority.root_id = NEW.root_id
+           AND authority.root_generation = NEW.root_generation
+           AND (
+             (authority.reason IN ('existing_root_baseline', 'first_import_boundary')
+               AND authority.opening_journal_id = NEW.journal_id
+               AND authority.opening_next_usn = NEW.opening_next_usn)
+             OR
+             (authority.reason IN (
+                'watcher_uncovered_gap', 'journal_gap', 'journal_reset', 'journal_trim',
+                'journal_reconstruction_failure', 'containment_failure',
+                'broker_after_current_failure'
+              )
+               AND authority.opening_journal_id IS NULL
+               AND authority.opening_next_usn IS NULL)
+           )
+           AND authority.retired_unix_ms IS NULL
+       )
+       BEGIN
+         SELECT RAISE(ABORT, 'journal baseline does not match recovery authority');
+       END";
+const LEGACY_V26_PERSISTENT_JOURNAL_BASELINE_INSERT_GUARD_DDL: &str =
+    "CREATE TRIGGER library_persistent_journal_baseline_insert_guard
+       BEFORE INSERT ON library_persistent_journal_baselines
+       WHEN NOT EXISTS (
+         SELECT 1 FROM library_recovery_authorities AS authority
+         WHERE authority.change_id = NEW.change_id
+           AND authority.root_id = NEW.root_id
+           AND authority.root_generation = NEW.root_generation
+           AND authority.reason IN ('existing_root_baseline', 'first_import_boundary')
+           AND authority.opening_journal_id = NEW.journal_id
+           AND authority.opening_next_usn = NEW.opening_next_usn
+           AND authority.retired_unix_ms IS NULL
+       )
+       BEGIN
+         SELECT RAISE(ABORT, 'journal baseline does not match recovery authority');
+       END";
+const PERSISTENT_JOURNAL_BASELINE_UPDATE_GUARD_DDL: &str =
+    "CREATE TRIGGER library_persistent_journal_baseline_update_guard
+       BEFORE UPDATE OF change_id, root_id, root_generation, volume_guid, volume_serial,
+                        root_reference_version, root_file_reference, journal_id,
+                        opening_next_usn, protocol_version, contract_version,
+                        authorized_unix_ms
+       ON library_persistent_journal_baselines
+       BEGIN
+         SELECT RAISE(ABORT, 'journal baseline identity is immutable');
+       END";
+const RECOVERY_EXECUTION_CONTRACT_TABLE_DDL: &str =
+    "CREATE TABLE library_recovery_execution_contract (
+       singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+       contract_version INTEGER NOT NULL CHECK(contract_version = 1),
+       complete INTEGER NOT NULL CHECK(complete = 1)
+     )";
+const METADATA_INVENTORY_CANDIDATE_OWNER_TABLE_DDL: &str =
+    "CREATE TABLE library_metadata_inventory_candidate_owners (
+       run_id TEXT NOT NULL,
+       candidate_key TEXT NOT NULL CHECK(length(candidate_key) BETWEEN 1 AND 1024),
+       change_id INTEGER NOT NULL,
+       candidate_role TEXT NOT NULL CHECK(candidate_role IN ('present', 'absence')),
+       relative_path TEXT NOT NULL CHECK(length(relative_path) BETWEEN 1 AND 32767),
+       previous_relative_path TEXT,
+       owned_unix_ms INTEGER NOT NULL CHECK(owned_unix_ms >= 0),
+       CHECK(instr(relative_path, char(92)) = 0),
+       CHECK(previous_relative_path IS NULL OR (
+         length(previous_relative_path) BETWEEN 1 AND 32767
+         AND instr(previous_relative_path, char(92)) = 0
+       )),
+       PRIMARY KEY(run_id, candidate_key),
+       FOREIGN KEY(run_id) REFERENCES library_metadata_inventory_runs(id) ON DELETE CASCADE,
+       FOREIGN KEY(change_id) REFERENCES library_change_queue(id) ON DELETE RESTRICT
+     )";
+const METADATA_INVENTORY_CANDIDATE_CHANGE_INDEX_DDL: &str =
+    "CREATE INDEX library_metadata_inventory_candidate_owners_change
+       ON library_metadata_inventory_candidate_owners(change_id, run_id, candidate_key)";
+const METADATA_INVENTORY_CANDIDATE_INSERT_GUARD_DDL: &str =
+    "CREATE TRIGGER library_metadata_inventory_candidate_owner_insert_guard
+       BEFORE INSERT ON library_metadata_inventory_candidate_owners
+       WHEN NOT EXISTS (
+         SELECT 1
+         FROM library_metadata_inventory_runs AS run
+         JOIN library_change_queue AS queue ON queue.id = NEW.change_id
+         WHERE run.id = NEW.run_id
+           AND queue.root_id = run.root_id
+           AND queue.root_generation = run.root_generation
+           AND queue.scope = 'path'
+           AND queue.relative_path = NEW.relative_path
+           AND queue.previous_relative_path IS NEW.previous_relative_path
+       )
+       BEGIN
+         SELECT RAISE(ABORT, 'inventory candidate owner does not match path work');
+       END";
+const METADATA_INVENTORY_CANDIDATE_UPDATE_GUARD_DDL: &str =
+    "CREATE TRIGGER library_metadata_inventory_candidate_owner_update_guard
+       BEFORE UPDATE OF run_id, candidate_key, candidate_role, relative_path,
+                        previous_relative_path, owned_unix_ms
+       ON library_metadata_inventory_candidate_owners
+       BEGIN
+         SELECT RAISE(ABORT, 'inventory candidate owner identity is immutable');
+       END";
+const METADATA_INVENTORY_FRONTIER_TABLE_DDL: &str =
+    "CREATE TABLE library_metadata_inventory_frontier (
+       run_id TEXT NOT NULL,
+       ordinal INTEGER NOT NULL CHECK(ordinal >= 0),
+       relative_directory TEXT NOT NULL CHECK(length(relative_directory) <= 32767),
+       state TEXT NOT NULL CHECK(state IN ('pending', 'enumerating', 'completed')),
+       directory_identity_scheme TEXT,
+       directory_identity_value TEXT,
+       resume_after_relative_path TEXT,
+       enumerated_entry_count INTEGER NOT NULL DEFAULT 0 CHECK(enumerated_entry_count >= 0),
+       updated_unix_ms INTEGER NOT NULL CHECK(updated_unix_ms >= 0),
+       CHECK(instr(relative_directory, char(92)) = 0),
+       CHECK(resume_after_relative_path IS NULL OR (
+         length(resume_after_relative_path) BETWEEN 1 AND 32767
+         AND instr(resume_after_relative_path, char(92)) = 0
+       )),
+       CHECK(
+         (directory_identity_scheme IS NULL AND directory_identity_value IS NULL)
+         OR
+         (length(directory_identity_scheme) BETWEEN 1 AND 128
+           AND length(directory_identity_value) BETWEEN 1 AND 512)
+       ),
+       PRIMARY KEY(run_id, ordinal),
+       UNIQUE(run_id, relative_directory),
+       FOREIGN KEY(run_id) REFERENCES library_metadata_inventory_runs(id) ON DELETE CASCADE
+     )";
+const METADATA_INVENTORY_FRONTIER_STATE_INDEX_DDL: &str =
+    "CREATE INDEX library_metadata_inventory_frontier_state
+       ON library_metadata_inventory_frontier(run_id, state, ordinal)";
+const METADATA_INVENTORY_SPOOL_CONTRACT_TABLE_V27_DDL: &str =
+    "CREATE TABLE library_metadata_inventory_spool_contract (
+       singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+       contract_version INTEGER NOT NULL CHECK(contract_version = 1),
+       complete INTEGER NOT NULL CHECK(complete = 1)
+     )";
+const METADATA_INVENTORY_SPOOL_TABLE_V27_DDL: &str =
+    "CREATE TABLE library_metadata_inventory_spools (
+       run_id TEXT PRIMARY KEY,
+       authority_change_id INTEGER NOT NULL UNIQUE,
+       root_id TEXT NOT NULL CHECK(length(root_id) BETWEEN 1 AND 512),
+       root_generation INTEGER NOT NULL CHECK(root_generation > 0),
+       scope_kind TEXT NOT NULL CHECK(scope_kind IN ('root', 'subtree')),
+       scope_relative_path TEXT NOT NULL CHECK(length(scope_relative_path) <= 32767),
+       state TEXT NOT NULL CHECK(state IN ('enumerating', 'ready')),
+       created_unix_ms INTEGER NOT NULL CHECK(created_unix_ms >= 0),
+       updated_unix_ms INTEGER NOT NULL CHECK(updated_unix_ms >= created_unix_ms),
+       CHECK(instr(scope_relative_path, char(92)) = 0),
+       CHECK(scope_kind = 'root' OR length(scope_relative_path) > 0),
+       FOREIGN KEY(run_id) REFERENCES library_metadata_inventory_runs(id) ON DELETE CASCADE,
+       FOREIGN KEY(authority_change_id)
+         REFERENCES library_recovery_authorities(change_id) ON DELETE CASCADE
+     )";
+const METADATA_INVENTORY_SPOOL_CONTRACT_TABLE_DDL: &str =
+    "CREATE TABLE library_metadata_inventory_spool_contract (
+       singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+       contract_version INTEGER NOT NULL CHECK(contract_version = 2),
+       complete INTEGER NOT NULL CHECK(complete = 1)
+     )";
+const METADATA_INVENTORY_SPOOL_TABLE_DDL: &str = "CREATE TABLE library_metadata_inventory_spools (
+       run_id TEXT PRIMARY KEY,
+       authority_change_id INTEGER NOT NULL UNIQUE,
+       root_id TEXT NOT NULL CHECK(length(root_id) BETWEEN 1 AND 512),
+       root_generation INTEGER NOT NULL CHECK(root_generation > 0),
+       root_identity_scheme TEXT NOT NULL
+         CHECK(length(root_identity_scheme) BETWEEN 1 AND 128),
+       root_identity_value TEXT NOT NULL
+         CHECK(length(root_identity_value) BETWEEN 1 AND 512),
+       scope_kind TEXT NOT NULL CHECK(scope_kind IN ('root', 'subtree')),
+       scope_relative_path TEXT NOT NULL CHECK(length(scope_relative_path) <= 32767),
+       state TEXT NOT NULL CHECK(state IN ('enumerating', 'ready')),
+       created_unix_ms INTEGER NOT NULL CHECK(created_unix_ms >= 0),
+       updated_unix_ms INTEGER NOT NULL CHECK(updated_unix_ms >= created_unix_ms),
+       CHECK(instr(scope_relative_path, char(92)) = 0),
+       CHECK(scope_kind = 'root' OR length(scope_relative_path) > 0),
+       FOREIGN KEY(run_id) REFERENCES library_metadata_inventory_runs(id) ON DELETE CASCADE,
+       FOREIGN KEY(authority_change_id)
+         REFERENCES library_recovery_authorities(change_id) ON DELETE CASCADE
+     )";
+const METADATA_INVENTORY_SPOOL_DIRECTORY_TABLE_DDL: &str =
+    "CREATE TABLE library_metadata_inventory_spool_directories (
+       run_id TEXT NOT NULL,
+       ordinal INTEGER NOT NULL CHECK(ordinal >= 0),
+       relative_directory TEXT NOT NULL CHECK(length(relative_directory) <= 32767),
+       state TEXT NOT NULL CHECK(state IN ('pending', 'enumerating', 'completed')),
+       directory_identity_scheme TEXT,
+       directory_identity_value TEXT,
+       source_entry_count INTEGER NOT NULL DEFAULT 0 CHECK(source_entry_count >= 0),
+       created_unix_ms INTEGER NOT NULL CHECK(created_unix_ms >= 0),
+       updated_unix_ms INTEGER NOT NULL CHECK(updated_unix_ms >= created_unix_ms),
+       CHECK(instr(relative_directory, char(92)) = 0),
+       CHECK(
+         (directory_identity_scheme IS NULL AND directory_identity_value IS NULL)
+         OR
+         (length(directory_identity_scheme) BETWEEN 1 AND 128
+           AND length(directory_identity_value) BETWEEN 1 AND 512)
+       ),
+       PRIMARY KEY(run_id, relative_directory),
+       UNIQUE(run_id, ordinal),
+       FOREIGN KEY(run_id) REFERENCES library_metadata_inventory_spools(run_id)
+         ON DELETE CASCADE
+     )";
+const METADATA_INVENTORY_SPOOL_DIRECTORY_STATE_INDEX_DDL: &str =
+    "CREATE INDEX library_metadata_inventory_spool_directories_state
+       ON library_metadata_inventory_spool_directories(run_id, state, ordinal)";
+const METADATA_INVENTORY_SPOOL_ENTRY_TABLE_DDL: &str =
+    "CREATE TABLE library_metadata_inventory_spool_entries (
+       run_id TEXT NOT NULL,
+       directory_relative_path TEXT,
+       relative_path TEXT NOT NULL CHECK(length(relative_path) BETWEEN 1 AND 32767),
+       entry_kind TEXT NOT NULL CHECK(entry_kind IN ('file', 'directory', 'other')),
+       file_size INTEGER CHECK(file_size IS NULL OR file_size >= 0),
+       modified_unix_ms INTEGER NOT NULL,
+       file_identity_scheme TEXT,
+       file_identity_value TEXT,
+       placeholder_state TEXT NOT NULL CHECK(placeholder_state IN (
+         'available', 'offline', 'recall_on_open', 'recall_on_data_access'
+       )),
+       is_reparse_point INTEGER NOT NULL CHECK(is_reparse_point IN (0, 1)),
+       staged_unix_ms INTEGER NOT NULL CHECK(staged_unix_ms >= 0),
+       CHECK(directory_relative_path IS NULL OR instr(directory_relative_path, char(92)) = 0),
+       CHECK(instr(relative_path, char(92)) = 0),
+       CHECK(
+         (entry_kind = 'file' AND file_size IS NOT NULL)
+         OR
+         (entry_kind <> 'file' AND file_size IS NULL)
+       ),
+       CHECK(
+         (file_identity_scheme IS NULL AND file_identity_value IS NULL)
+         OR
+         (length(file_identity_scheme) BETWEEN 1 AND 128
+           AND length(file_identity_value) BETWEEN 1 AND 512)
+       ),
+       PRIMARY KEY(run_id, relative_path),
+       FOREIGN KEY(run_id, directory_relative_path)
+         REFERENCES library_metadata_inventory_spool_directories(run_id, relative_directory)
+         ON DELETE CASCADE
+     )";
+const METADATA_INVENTORY_SPOOL_ENTRY_ORDER_INDEX_DDL: &str =
+    "CREATE INDEX library_metadata_inventory_spool_entries_order
+       ON library_metadata_inventory_spool_entries(run_id, relative_path)";
+const ROOT_PUBLICATION_NAMESPACE_CONTRACT_TABLE_DDL: &str =
+    "CREATE TABLE library_root_publication_namespace_contract (
+       singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+       contract_version INTEGER NOT NULL CHECK(contract_version = 1),
+       complete INTEGER NOT NULL CHECK(complete = 1)
+     )";
+const ROOT_PUBLICATION_NAMESPACE_TABLE_DDL: &str =
+    "CREATE TABLE library_root_publication_namespaces (
+       root_id TEXT PRIMARY KEY,
+       root_generation INTEGER NOT NULL CHECK(root_generation > 0),
+       identity_scheme TEXT NOT NULL CHECK(identity_scheme = 'windows-file-id-128-v1'),
+       identity_value TEXT NOT NULL CHECK(length(identity_value) = 49),
+       authority_kind TEXT NOT NULL CHECK(authority_kind IN (
+         'journal_v3_migration', 'metadata_inventory', 'foreground_scan'
+       )),
+       established_catalog_revision INTEGER NOT NULL
+         CHECK(established_catalog_revision >= 0),
+       established_unix_ms INTEGER NOT NULL CHECK(established_unix_ms >= 0),
+       updated_unix_ms INTEGER NOT NULL CHECK(updated_unix_ms >= established_unix_ms),
+       FOREIGN KEY(root_id) REFERENCES library_roots(id) ON DELETE CASCADE
+     )";
+const SCAN_PUBLICATION_NAMESPACE_BINDING_TABLE_DDL: &str =
+    "CREATE TABLE library_scan_publication_namespace_bindings (
+       scan_id TEXT PRIMARY KEY,
+       root_id TEXT NOT NULL,
+       root_generation INTEGER NOT NULL CHECK(root_generation > 0),
+       identity_scheme TEXT NOT NULL CHECK(identity_scheme = 'windows-file-id-128-v1'),
+       identity_value TEXT NOT NULL CHECK(length(identity_value) = 49),
+       bound_unix_ms INTEGER NOT NULL CHECK(bound_unix_ms >= 0),
+       FOREIGN KEY(scan_id) REFERENCES scan_runs(id) ON DELETE CASCADE,
+       FOREIGN KEY(root_id) REFERENCES library_roots(id) ON DELETE CASCADE
+     )";
+const SCAN_PUBLICATION_NAMESPACE_ROOT_INDEX_DDL: &str =
+    "CREATE UNIQUE INDEX library_scan_publication_namespace_root
+       ON library_scan_publication_namespace_bindings(root_id, root_generation)";
+const LIVE_GAP_RECOVERY_CONTRACT_TABLE_DDL: &str =
+    "CREATE TABLE library_live_gap_recovery_contract (
+       singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+       contract_version INTEGER NOT NULL CHECK(contract_version = 1),
+       complete INTEGER NOT NULL CHECK(complete = 1)
+     )";
+const LIVE_GAP_RECOVERY_CLAIM_TABLE_DDL: &str = "CREATE TABLE library_live_gap_recovery_claims (
+       gap_change_id INTEGER PRIMARY KEY,
+       root_id TEXT NOT NULL CHECK(length(root_id) BETWEEN 1 AND 512),
+       root_generation INTEGER NOT NULL CHECK(root_generation > 0),
+       consumer_kind TEXT NOT NULL CHECK(consumer_kind IN (
+          'pending_journal', 'journal_source_range',
+          'metadata_inventory_control', 'explicit_recovery_required',
+          'foreground_scan'
+        )),
+       opening_volume_guid TEXT,
+       opening_volume_serial TEXT,
+       opening_root_reference_version INTEGER,
+       opening_root_file_reference BLOB,
+       opening_journal_id TEXT,
+       opening_next_usn TEXT,
+       protocol_version INTEGER,
+       contract_version INTEGER,
+       source_range_id TEXT,
+       recovery_change_id INTEGER,
+       foreground_scan_id TEXT,
+       created_unix_ms INTEGER NOT NULL CHECK(created_unix_ms >= 0),
+       consumed_unix_ms INTEGER,
+       CHECK(
+         (consumer_kind IN ('pending_journal', 'journal_source_range')
+           AND opening_volume_guid IS NOT NULL
+           AND opening_volume_serial IS NOT NULL
+           AND opening_root_reference_version IN (2, 3)
+           AND opening_root_file_reference IS NOT NULL
+           AND opening_journal_id IS NOT NULL
+           AND opening_next_usn IS NOT NULL
+           AND protocol_version BETWEEN 1 AND 65535
+           AND contract_version = 1)
+         OR
+         (consumer_kind = 'metadata_inventory_control'
+           AND (
+             (opening_volume_guid IS NULL
+               AND opening_volume_serial IS NULL
+               AND opening_root_reference_version IS NULL
+               AND opening_root_file_reference IS NULL
+               AND opening_journal_id IS NULL
+               AND opening_next_usn IS NULL
+               AND protocol_version IS NULL
+               AND contract_version IS NULL)
+             OR
+             (opening_volume_guid IS NOT NULL
+               AND opening_volume_serial IS NOT NULL
+               AND opening_root_reference_version IN (2, 3)
+               AND opening_root_file_reference IS NOT NULL
+               AND opening_journal_id IS NOT NULL
+               AND opening_next_usn IS NOT NULL
+               AND protocol_version BETWEEN 1 AND 65535
+               AND contract_version = 1)
+           ))
+         OR
+          (consumer_kind IN ('explicit_recovery_required', 'foreground_scan')
+            AND opening_volume_guid IS NULL
+           AND opening_volume_serial IS NULL
+           AND opening_root_reference_version IS NULL
+           AND opening_root_file_reference IS NULL
+           AND opening_journal_id IS NULL
+           AND opening_next_usn IS NULL
+           AND protocol_version IS NULL
+           AND contract_version IS NULL)
+       ),
+       CHECK(
+         opening_root_reference_version IS NULL
+         OR (opening_root_reference_version = 2 AND length(opening_root_file_reference) = 8)
+         OR (opening_root_reference_version = 3 AND length(opening_root_file_reference) = 16)
+       ),
+       CHECK(opening_volume_serial IS NULL OR (
+         length(opening_volume_serial) BETWEEN 1 AND 20
+         AND opening_volume_serial NOT GLOB '*[^0-9]*'
+       )),
+       CHECK(opening_journal_id IS NULL OR (
+         length(opening_journal_id) BETWEEN 1 AND 20
+         AND opening_journal_id <> '0'
+         AND opening_journal_id NOT GLOB '*[^0-9]*'
+       )),
+       CHECK(opening_next_usn IS NULL OR (
+         length(opening_next_usn) BETWEEN 1 AND 19
+         AND opening_next_usn NOT GLOB '*[^0-9]*'
+       )),
+       CHECK(
+          (consumer_kind = 'pending_journal'
+            AND source_range_id IS NULL AND recovery_change_id IS NULL
+            AND foreground_scan_id IS NULL
+            AND consumed_unix_ms IS NULL)
+         OR
+          (consumer_kind = 'journal_source_range'
+            AND source_range_id IS NOT NULL AND recovery_change_id IS NULL
+            AND foreground_scan_id IS NULL
+            AND consumed_unix_ms IS NOT NULL)
+         OR
+          (consumer_kind = 'metadata_inventory_control'
+            AND source_range_id IS NULL AND recovery_change_id IS NOT NULL
+            AND foreground_scan_id IS NULL
+            AND consumed_unix_ms IS NOT NULL)
+         OR
+          (consumer_kind = 'explicit_recovery_required'
+            AND source_range_id IS NULL AND recovery_change_id IS NULL
+            AND foreground_scan_id IS NULL
+            AND consumed_unix_ms IS NULL)
+          OR
+          (consumer_kind = 'foreground_scan'
+            AND source_range_id IS NULL AND recovery_change_id IS NULL
+            AND foreground_scan_id IS NOT NULL)
+       ),
+       CHECK(consumed_unix_ms IS NULL OR consumed_unix_ms >= created_unix_ms),
+       FOREIGN KEY(gap_change_id) REFERENCES library_change_queue(id) ON DELETE CASCADE,
+       FOREIGN KEY(source_range_id)
+         REFERENCES library_persistent_journal_source_ranges(id) ON DELETE RESTRICT,
+       FOREIGN KEY(recovery_change_id) REFERENCES library_change_queue(id) ON DELETE RESTRICT,
+       FOREIGN KEY(foreground_scan_id) REFERENCES scan_runs(id) ON DELETE RESTRICT
+      )";
+const LIVE_GAP_RECOVERY_ROOT_INDEX_DDL: &str = "CREATE INDEX library_live_gap_recovery_claims_root
+       ON library_live_gap_recovery_claims(
+         root_id, root_generation, consumer_kind, gap_change_id
+       )";
+const LIVE_GAP_RECOVERY_INSERT_GUARD_DDL: &str =
+    "CREATE TRIGGER library_live_gap_recovery_claim_insert_guard
+       BEFORE INSERT ON library_live_gap_recovery_claims
+       WHEN NOT EXISTS (
+         SELECT 1
+         FROM library_change_queue AS gap
+         JOIN library_change_queue_lanes AS lane ON lane.change_id = gap.id
+         WHERE gap.id = NEW.gap_change_id
+           AND gap.root_id = NEW.root_id
+           AND gap.root_generation = NEW.root_generation
+           AND gap.intent_kind = 'freshness_unknown'
+           AND gap.scope = 'root' AND gap.relative_path = ''
+           AND gap.previous_relative_path IS NULL
+           AND (
+              (NEW.consumer_kind IN (
+                 'pending_journal', 'journal_source_range', 'metadata_inventory_control'
+               )
+                AND gap.origin = 'live_notification' AND lane.lane = 'p0_live')
+             OR
+             (NEW.consumer_kind = 'explicit_recovery_required'
+               AND gap.origin = 'startup_catch_up' AND lane.lane = 'p1_journal'
+                AND gap.last_failure_code = 'live_gap_v30_explicit_recovery_required')
+            )
+            AND NEW.consumer_kind <> 'foreground_scan'
+        )
+       BEGIN
+         SELECT RAISE(ABORT, 'live gap claim does not match durable gap work');
+       END";
+const LIVE_GAP_RECOVERY_IDENTITY_UPDATE_GUARD_DDL: &str =
+    "CREATE TRIGGER library_live_gap_recovery_claim_identity_update_guard
+       BEFORE UPDATE OF gap_change_id, root_id, root_generation,
+                        opening_volume_guid, opening_volume_serial,
+                        opening_root_reference_version, opening_root_file_reference,
+                        opening_journal_id, opening_next_usn,
+                        protocol_version, contract_version, created_unix_ms
+       ON library_live_gap_recovery_claims
+       BEGIN
+         SELECT RAISE(ABORT, 'live gap claim identity is immutable');
+       END";
+const METADATA_INVENTORY_SPOOL_BINDING_UPDATE_GUARD_DDL: &str =
+    "CREATE TRIGGER library_metadata_inventory_spool_binding_update_guard
+       BEFORE UPDATE OF run_id, authority_change_id, root_id, root_generation,
+                        root_identity_scheme, root_identity_value,
+                        scope_kind, scope_relative_path, created_unix_ms
+       ON library_metadata_inventory_spools
+       BEGIN
+         SELECT RAISE(ABORT, 'inventory spool authority binding is immutable');
+     END";
+const METADATA_INVENTORY_SPOOL_BINDING_UPDATE_GUARD_V27_DDL: &str =
+    "CREATE TRIGGER library_metadata_inventory_spool_binding_update_guard
+       BEFORE UPDATE OF run_id, authority_change_id, root_id, root_generation,
+                        scope_kind, scope_relative_path, created_unix_ms
+       ON library_metadata_inventory_spools
+       BEGIN
+         SELECT RAISE(ABORT, 'inventory spool authority binding is immutable');
+       END";
+const METADATA_INVENTORY_SPOOL_DIRECTORY_COMPLETE_GUARD_DDL: &str =
+    "CREATE TRIGGER library_metadata_inventory_spool_directory_complete_guard
+       BEFORE UPDATE OF directory_identity_scheme, directory_identity_value,
+                        source_entry_count
+       ON library_metadata_inventory_spool_directories
+       WHEN OLD.state = 'completed'
+       BEGIN
+         SELECT RAISE(ABORT, 'completed inventory spool directory is immutable');
+       END";
+
+fn validate_change_lane_contract(connection: &Connection) -> Result<(), ScanError> {
+    let columns_match = table_columns_match(
+        connection,
+        "library_change_lane_contract",
+        &[
+            ("singleton", "INTEGER", false, 1),
+            ("complete", "INTEGER", true, 0),
+        ],
+    )? && table_columns_match(
+        connection,
+        "library_change_queue_lanes",
+        &[
+            ("change_id", "INTEGER", false, 1),
+            ("lane", "TEXT", true, 0),
+        ],
+    )?;
+    let marker_complete = connection
+        .query_row(
+            "SELECT singleton = 1 AND complete = 1
+             FROM library_change_lane_contract",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .optional()
+        .map_err(database_error)?
+        .unwrap_or(false);
+    let schema_matches = schema_object_sql_matches(
+        connection,
+        "table",
+        "library_change_lane_contract",
+        CHANGE_LANE_CONTRACT_TABLE_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "table",
+        "library_change_queue_lanes",
+        CHANGE_LANE_QUEUE_TABLE_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "index",
+        "library_change_queue_lanes_eligible",
+        CHANGE_LANE_INDEX_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "trigger",
+        "library_change_queue_lane_insert",
+        CHANGE_LANE_INSERT_TRIGGER_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "trigger",
+        "library_change_queue_lane_origin_update",
+        CHANGE_LANE_ORIGIN_TRIGGER_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "trigger",
+        "library_change_queue_lane_insert_guard",
+        CHANGE_LANE_INSERT_GUARD_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "trigger",
+        "library_change_queue_lane_update_guard",
+        CHANGE_LANE_UPDATE_GUARD_DDL,
+    )?;
+    let foreign_key_matches = cascade_foreign_key_matches(
+        connection,
+        "library_change_queue_lanes",
+        "change_id",
+        "library_change_queue",
+        "id",
+    )?;
+    let invalid_rows = connection
+        .query_row(
+            "SELECT EXISTS(
+               SELECT 1
+               FROM library_change_queue AS queue
+               LEFT JOIN library_change_queue_lanes AS lanes ON lanes.change_id = queue.id
+               WHERE lanes.change_id IS NULL
+                  OR lanes.lane <> CASE queue.origin
+                    WHEN 'live_notification' THEN 'p0_live'
+                    WHEN 'startup_catch_up' THEN 'p1_journal'
+                    ELSE 'p2_recovery'
+                  END
+             ) OR EXISTS(
+               SELECT 1 FROM pragma_foreign_key_check('library_change_queue_lanes')
+             )",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    if !columns_match || !marker_complete || !schema_matches || !foreign_key_matches || invalid_rows
+    {
+        return Err(unverifiable_change_lane_contract());
+    }
+    Ok(())
+}
+
+fn unverifiable_change_lane_contract() -> ScanError {
+    ScanError::new(
+        "catalog_change_lane_contract_unverifiable",
+        "The catalog cannot prove its durable change-lane authority",
+    )
+}
+
+fn validate_recovery_authority_contract(connection: &Connection) -> Result<(), ScanError> {
+    let columns_match = table_columns_match(
+        connection,
+        "library_recovery_authority_contract",
+        &[
+            ("singleton", "INTEGER", false, 1),
+            ("complete", "INTEGER", true, 0),
+        ],
+    )? && table_columns_match(
+        connection,
+        "library_recovery_authorities",
+        &[
+            ("change_id", "INTEGER", false, 1),
+            ("run_id", "TEXT", true, 0),
+            ("root_id", "TEXT", true, 0),
+            ("root_generation", "INTEGER", true, 0),
+            ("reason", "TEXT", true, 0),
+            ("opening_journal_id", "TEXT", false, 0),
+            ("opening_next_usn", "TEXT", false, 0),
+            ("authorized_unix_ms", "INTEGER", true, 0),
+            ("retired_unix_ms", "INTEGER", false, 0),
+        ],
+    )?;
+    let marker_complete = connection
+        .query_row(
+            "SELECT singleton = 1 AND complete = 1
+             FROM library_recovery_authority_contract",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .optional()
+        .map_err(database_error)?
+        .unwrap_or(false);
+    let schema_matches = schema_object_sql_matches(
+        connection,
+        "table",
+        "library_recovery_authority_contract",
+        RECOVERY_AUTHORITY_CONTRACT_TABLE_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "table",
+        "library_recovery_authorities",
+        RECOVERY_AUTHORITY_TABLE_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "index",
+        "library_recovery_authorities_root",
+        RECOVERY_AUTHORITY_ROOT_INDEX_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "trigger",
+        "library_recovery_authority_insert_guard",
+        RECOVERY_AUTHORITY_INSERT_GUARD_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "trigger",
+        "library_recovery_authority_update_guard",
+        RECOVERY_AUTHORITY_UPDATE_GUARD_DDL,
+    )?;
+    let foreign_key_matches = cascade_foreign_key_matches(
+        connection,
+        "library_recovery_authorities",
+        "change_id",
+        "library_change_queue",
+        "id",
+    )?;
+    let invalid_rows = connection
+        .query_row(
+            "SELECT EXISTS(
+               SELECT 1
+               FROM library_recovery_authorities AS authority
+               LEFT JOIN library_change_queue AS queue ON queue.id = authority.change_id
+               LEFT JOIN library_change_queue_lanes AS lanes
+                 ON lanes.change_id = authority.change_id
+               WHERE queue.id IS NULL
+                  OR queue.root_id <> authority.root_id
+                  OR queue.root_generation <> authority.root_generation
+                  OR lanes.lane <> 'p2_recovery'
+             ) OR EXISTS(
+               SELECT 1 FROM pragma_foreign_key_check('library_recovery_authorities')
+             )",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    let mut boundaries = connection
+        .prepare(
+            "SELECT opening_journal_id, opening_next_usn
+             FROM library_recovery_authorities
+             WHERE opening_journal_id IS NOT NULL OR opening_next_usn IS NOT NULL",
+        )
+        .map_err(database_error)?;
+    let canonical_boundaries = boundaries
+        .query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })
+        .map_err(database_error)?
+        .all(|row| {
+            row.is_ok_and(|(journal_id, next_usn)| {
+                JournalIdentifier::parse_canonical(&journal_id).is_ok()
+                    && JournalUsn::parse_canonical(&next_usn).is_ok()
+            })
+        });
+    if !columns_match
+        || !marker_complete
+        || !schema_matches
+        || !foreign_key_matches
+        || invalid_rows
+        || !canonical_boundaries
+    {
+        return Err(unverifiable_recovery_authority_contract());
+    }
+    Ok(())
+}
+
+fn validate_persistent_journal_baseline_contract(connection: &Connection) -> Result<(), ScanError> {
+    let columns_match = table_columns_match(
+        connection,
+        "library_persistent_journal_baselines",
+        &[
+            ("change_id", "INTEGER", false, 1),
+            ("root_id", "TEXT", true, 0),
+            ("root_generation", "INTEGER", true, 0),
+            ("volume_guid", "TEXT", true, 0),
+            ("volume_serial", "TEXT", true, 0),
+            ("root_reference_version", "INTEGER", true, 0),
+            ("root_file_reference", "BLOB", true, 0),
+            ("journal_id", "TEXT", true, 0),
+            ("opening_next_usn", "TEXT", true, 0),
+            ("closing_next_usn", "TEXT", false, 0),
+            ("protocol_version", "INTEGER", true, 0),
+            ("contract_version", "INTEGER", true, 0),
+            ("phase", "TEXT", true, 0),
+            ("authorized_unix_ms", "INTEGER", true, 0),
+            ("updated_unix_ms", "INTEGER", true, 0),
+            ("completed_unix_ms", "INTEGER", false, 0),
+        ],
+    )?;
+    let schema_matches = schema_object_sql_matches(
+        connection,
+        "table",
+        "library_persistent_journal_baselines",
+        PERSISTENT_JOURNAL_BASELINE_TABLE_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "index",
+        "library_persistent_journal_baselines_root",
+        PERSISTENT_JOURNAL_BASELINE_ROOT_INDEX_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "trigger",
+        "library_persistent_journal_baseline_insert_guard",
+        PERSISTENT_JOURNAL_BASELINE_INSERT_GUARD_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "trigger",
+        "library_persistent_journal_baseline_update_guard",
+        PERSISTENT_JOURNAL_BASELINE_UPDATE_GUARD_DDL,
+    )?;
+    let foreign_keys_match = connection
+        .query_row(
+            "SELECT COUNT(*) = 3
+               AND EXISTS(
+                 SELECT 1 FROM pragma_foreign_key_list('library_persistent_journal_baselines')
+                 WHERE \"table\" = 'library_recovery_authorities'
+                   AND \"from\" = 'change_id' AND \"to\" = 'change_id'
+                   AND on_update = 'NO ACTION' AND on_delete = 'CASCADE'
+                   AND \"match\" = 'NONE'
+               )
+               AND EXISTS(
+                 SELECT 1
+                 FROM pragma_foreign_key_list('library_persistent_journal_baselines') AS root_id
+                 JOIN pragma_foreign_key_list('library_persistent_journal_baselines') AS generation
+                   ON generation.id = root_id.id AND generation.seq = 1
+                 WHERE root_id.seq = 0
+                   AND root_id.\"table\" = 'library_persistent_journal_root_state'
+                   AND generation.\"table\" = 'library_persistent_journal_root_state'
+                   AND root_id.\"from\" = 'root_id' AND root_id.\"to\" = 'root_id'
+                   AND generation.\"from\" = 'root_generation'
+                   AND generation.\"to\" = 'root_generation'
+                   AND root_id.on_update = 'NO ACTION' AND root_id.on_delete = 'CASCADE'
+                   AND generation.on_update = 'NO ACTION'
+                   AND generation.on_delete = 'CASCADE'
+                   AND root_id.\"match\" = 'NONE' AND generation.\"match\" = 'NONE'
+               )
+             FROM pragma_foreign_key_list('library_persistent_journal_baselines')",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    let invalid_rows = connection
+        .query_row(
+            "SELECT EXISTS(
+               SELECT 1 FROM library_persistent_journal_baselines AS baseline
+                LEFT JOIN library_recovery_authorities AS authority
+                  ON authority.change_id = baseline.change_id
+                LEFT JOIN library_change_queue AS queue ON queue.id = baseline.change_id
+                LEFT JOIN library_persistent_journal_root_state AS root
+                 ON root.root_id = baseline.root_id
+                AND root.root_generation = baseline.root_generation
+               LEFT JOIN library_persistent_journal_checkpoints AS checkpoint
+                 ON checkpoint.root_id = baseline.root_id
+                AND checkpoint.root_generation = baseline.root_generation
+               WHERE authority.change_id IS NULL OR root.root_id IS NULL
+                  OR authority.root_id <> baseline.root_id
+                  OR authority.root_generation <> baseline.root_generation
+                  OR authority.reason NOT IN (
+                    'existing_root_baseline', 'first_import_boundary',
+                    'watcher_uncovered_gap', 'journal_gap', 'journal_reset', 'journal_trim',
+                    'journal_reconstruction_failure', 'containment_failure',
+                    'broker_after_current_failure'
+                  )
+                  OR (authority.reason IN (
+                        'existing_root_baseline', 'first_import_boundary'
+                      ) AND (
+                        authority.opening_journal_id <> baseline.journal_id
+                        OR authority.opening_next_usn <> baseline.opening_next_usn
+                      ))
+                  OR (authority.reason IN (
+                        'watcher_uncovered_gap', 'journal_gap', 'journal_reset', 'journal_trim',
+                        'journal_reconstruction_failure', 'containment_failure',
+                        'broker_after_current_failure'
+                      ) AND (
+                        authority.opening_journal_id IS NOT NULL
+                        OR authority.opening_next_usn IS NOT NULL
+                      ))
+                   OR (baseline.phase = 'completed' AND NOT (
+                         (
+                           authority.retired_unix_ms IS NOT NULL
+                           AND root.continuity_state = 'current'
+                           AND checkpoint.root_id IS NOT NULL
+                           AND checkpoint.continuity_state = 'current'
+                           AND checkpoint.volume_guid = baseline.volume_guid
+                           AND checkpoint.volume_serial = baseline.volume_serial
+                           AND checkpoint.root_reference_version = baseline.root_reference_version
+                           AND checkpoint.root_file_reference = baseline.root_file_reference
+                           AND checkpoint.journal_id = baseline.journal_id
+                           AND checkpoint.next_unread_usn = baseline.closing_next_usn
+                           AND checkpoint.captured_exclusive_end = baseline.closing_next_usn
+                         ) OR (
+                           authority.retired_unix_ms IS NOT NULL
+                           AND queue.status IN ('completed', 'superseded')
+                           AND queue.last_failure_code =
+                             'metadata_inventory_v28_recapture_required'
+                           AND root.continuity_state = 'recovery_required'
+                           AND checkpoint.root_id IS NOT NULL
+                           AND checkpoint.continuity_state = 'recovery_required'
+                           AND checkpoint.last_failure_code =
+                             'metadata_inventory_v28_recapture_required'
+                           AND checkpoint.volume_guid = baseline.volume_guid
+                           AND checkpoint.volume_serial = baseline.volume_serial
+                           AND checkpoint.root_reference_version = baseline.root_reference_version
+                           AND checkpoint.root_file_reference = baseline.root_file_reference
+                           AND checkpoint.journal_id = baseline.journal_id
+                           AND checkpoint.next_unread_usn = baseline.closing_next_usn
+                           AND checkpoint.captured_exclusive_end = baseline.closing_next_usn
+                         )
+                       ))
+                  OR (baseline.phase <> 'completed' AND (
+                        authority.retired_unix_ms IS NOT NULL
+                        OR root.continuity_state = 'current'
+                        OR checkpoint.continuity_state = 'current'
+                      ))
+                  OR (baseline.phase = 'inventory'
+                      AND authority.reason IN (
+                        'existing_root_baseline', 'first_import_boundary'
+                      ) AND (
+                        root.continuity_state <> 'baseline_required'
+                        OR checkpoint.root_id IS NOT NULL
+                      ))
+                  OR (baseline.phase = 'inventory'
+                      AND authority.reason IN (
+                        'watcher_uncovered_gap', 'journal_gap', 'journal_reset', 'journal_trim',
+                        'journal_reconstruction_failure', 'containment_failure',
+                        'broker_after_current_failure'
+                      ) AND (
+                        root.continuity_state <> 'recovery_required'
+                        OR checkpoint.root_id IS NULL
+                        OR checkpoint.continuity_state <> 'recovery_required'
+                        OR checkpoint.volume_guid <> baseline.volume_guid
+                        OR checkpoint.volume_serial <> baseline.volume_serial
+                        OR checkpoint.root_reference_version <> baseline.root_reference_version
+                        OR checkpoint.root_file_reference <> baseline.root_file_reference
+                        OR checkpoint.captured_exclusive_end <> checkpoint.next_unread_usn
+                        OR (authority.reason = 'journal_reset'
+                          AND checkpoint.journal_id = baseline.journal_id)
+                        OR (authority.reason <> 'journal_reset' AND (
+                          checkpoint.journal_id <> baseline.journal_id
+                          OR CAST(checkpoint.next_unread_usn AS INTEGER)
+                            > CAST(baseline.opening_next_usn AS INTEGER)
+                        ))
+                      ))
+                  OR (baseline.phase IN ('replay', 'absence') AND (
+                        root.continuity_state <> 'catching_up'
+                        OR checkpoint.root_id IS NULL
+                        OR checkpoint.continuity_state <> 'catching_up'
+                        OR checkpoint.volume_guid <> baseline.volume_guid
+                        OR checkpoint.volume_serial <> baseline.volume_serial
+                        OR checkpoint.root_reference_version <> baseline.root_reference_version
+                        OR checkpoint.root_file_reference <> baseline.root_file_reference
+                        OR checkpoint.journal_id <> baseline.journal_id
+                        OR checkpoint.captured_exclusive_end <> baseline.closing_next_usn
+                        OR CAST(checkpoint.next_unread_usn AS INTEGER)
+                          > CAST(baseline.closing_next_usn AS INTEGER)
+                        OR (baseline.phase = 'absence'
+                          AND checkpoint.next_unread_usn <> baseline.closing_next_usn)
+                      ))
+             ) OR EXISTS(
+               SELECT 1 FROM pragma_foreign_key_check('library_persistent_journal_baselines')
+             )",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    let mut rows = connection
+        .prepare(
+            "SELECT volume_guid, volume_serial, root_reference_version,
+                    root_file_reference, journal_id, opening_next_usn,
+                    closing_next_usn, protocol_version, contract_version,
+                    phase, authorized_unix_ms, updated_unix_ms, completed_unix_ms
+             FROM library_persistent_journal_baselines",
+        )
+        .map_err(database_error)?;
+    let canonical_rows = rows
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, i64>(2)?,
+                row.get::<_, Vec<u8>>(3)?,
+                row.get::<_, String>(4)?,
+                row.get::<_, String>(5)?,
+                row.get::<_, Option<String>>(6)?,
+                row.get::<_, i64>(7)?,
+                row.get::<_, i64>(8)?,
+                row.get::<_, String>(9)?,
+                row.get::<_, i64>(10)?,
+                row.get::<_, i64>(11)?,
+                row.get::<_, Option<i64>>(12)?,
+            ))
+        })
+        .map_err(database_error)?
+        .all(|row| {
+            row.is_ok_and(
+                |(
+                    volume_guid,
+                    volume_serial,
+                    reference_version,
+                    reference,
+                    journal_id,
+                    opening,
+                    closing,
+                    protocol_version,
+                    contract_version,
+                    phase,
+                    authorized,
+                    updated,
+                    completed,
+                )| {
+                    let volume = crate::domain::PersistentJournalVolumeIdentity {
+                        volume_guid,
+                        volume_serial: match volume_serial.parse() {
+                            Ok(value) => value,
+                            Err(_) => return false,
+                        },
+                    };
+                    let reference = match JournalFileReference::from_bytes(&reference) {
+                        Ok(value) => value,
+                        Err(_) => return false,
+                    };
+                    volume.validate().is_ok()
+                        && i64::from(reference.record_version()) == reference_version
+                        && JournalIdentifier::parse_canonical(&journal_id).is_ok()
+                        && JournalUsn::parse_canonical(&opening).is_ok()
+                        && closing
+                            .as_deref()
+                            .is_none_or(|value| JournalUsn::parse_canonical(value).is_ok())
+                        && u16::try_from(protocol_version).is_ok_and(|value| value > 0)
+                        && contract_version
+                            == i64::from(crate::domain::PERSISTENT_JOURNAL_CONTRACT_VERSION)
+                        && matches!(
+                            phase.as_str(),
+                            "inventory" | "replay" | "absence" | "completed"
+                        )
+                        && authorized >= 0
+                        && updated >= authorized
+                        && completed.is_none_or(|value| value >= updated)
+                },
+            )
+        });
+    if !columns_match || !schema_matches || !foreign_keys_match || invalid_rows || !canonical_rows {
+        return Err(ScanError::new(
+            "catalog_persistent_journal_baseline_contract_unverifiable",
+            "The catalog cannot prove its one-time persistent journal baseline authority",
+        ));
+    }
+    Ok(())
+}
+
+fn validate_recovery_execution_contract(connection: &Connection) -> Result<(), ScanError> {
+    let columns_match = table_columns_match(
+        connection,
+        "library_recovery_execution_contract",
+        &[
+            ("singleton", "INTEGER", false, 1),
+            ("contract_version", "INTEGER", true, 0),
+            ("complete", "INTEGER", true, 0),
+        ],
+    )? && table_columns_match(
+        connection,
+        "library_metadata_inventory_candidate_owners",
+        &[
+            ("run_id", "TEXT", true, 1),
+            ("candidate_key", "TEXT", true, 2),
+            ("change_id", "INTEGER", true, 0),
+            ("candidate_role", "TEXT", true, 0),
+            ("relative_path", "TEXT", true, 0),
+            ("previous_relative_path", "TEXT", false, 0),
+            ("owned_unix_ms", "INTEGER", true, 0),
+        ],
+    )? && table_columns_match(
+        connection,
+        "library_metadata_inventory_frontier",
+        &[
+            ("run_id", "TEXT", true, 1),
+            ("ordinal", "INTEGER", true, 2),
+            ("relative_directory", "TEXT", true, 0),
+            ("state", "TEXT", true, 0),
+            ("directory_identity_scheme", "TEXT", false, 0),
+            ("directory_identity_value", "TEXT", false, 0),
+            ("resume_after_relative_path", "TEXT", false, 0),
+            ("enumerated_entry_count", "INTEGER", true, 0),
+            ("updated_unix_ms", "INTEGER", true, 0),
+        ],
+    )?;
+    let marker_complete = connection
+        .query_row(
+            "SELECT singleton = 1 AND contract_version = 1 AND complete = 1
+             FROM library_recovery_execution_contract",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .optional()
+        .map_err(database_error)?
+        .unwrap_or(false);
+    let schema_matches = schema_object_sql_matches(
+        connection,
+        "table",
+        "library_recovery_execution_contract",
+        RECOVERY_EXECUTION_CONTRACT_TABLE_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "table",
+        "library_metadata_inventory_candidate_owners",
+        METADATA_INVENTORY_CANDIDATE_OWNER_TABLE_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "index",
+        "library_metadata_inventory_candidate_owners_change",
+        METADATA_INVENTORY_CANDIDATE_CHANGE_INDEX_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "trigger",
+        "library_metadata_inventory_candidate_owner_insert_guard",
+        METADATA_INVENTORY_CANDIDATE_INSERT_GUARD_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "trigger",
+        "library_metadata_inventory_candidate_owner_update_guard",
+        METADATA_INVENTORY_CANDIDATE_UPDATE_GUARD_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "table",
+        "library_metadata_inventory_frontier",
+        METADATA_INVENTORY_FRONTIER_TABLE_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "index",
+        "library_metadata_inventory_frontier_state",
+        METADATA_INVENTORY_FRONTIER_STATE_INDEX_DDL,
+    )?;
+    let invalid_relations = connection
+        .query_row(
+            "SELECT EXISTS(
+               SELECT 1
+               FROM library_metadata_inventory_candidate_owners AS owner
+               LEFT JOIN library_metadata_inventory_runs AS run ON run.id = owner.run_id
+               LEFT JOIN library_change_queue AS queue ON queue.id = owner.change_id
+               WHERE run.id IS NULL OR queue.id IS NULL
+                  OR queue.root_id <> run.root_id
+                  OR queue.root_generation <> run.root_generation
+                  OR queue.scope <> 'path'
+                  OR queue.relative_path <> owner.relative_path
+                  OR queue.previous_relative_path IS NOT owner.previous_relative_path
+             ) OR EXISTS(
+               SELECT 1
+               FROM library_metadata_inventory_frontier AS frontier
+               LEFT JOIN library_metadata_inventory_runs AS run ON run.id = frontier.run_id
+               WHERE run.id IS NULL
+                  OR (run.status IN ('completed', 'failed', 'cancelled', 'superseded')
+                    AND frontier.state <> 'completed')
+                  OR frontier.ordinal <> (
+                    SELECT COUNT(*)
+                    FROM library_metadata_inventory_frontier AS earlier
+                    WHERE earlier.run_id = frontier.run_id
+                      AND earlier.ordinal < frontier.ordinal
+                  )
+                  OR (frontier.state = 'pending' AND (
+                    frontier.ordinal <> (
+                      SELECT MAX(last.ordinal)
+                      FROM library_metadata_inventory_frontier AS last
+                      WHERE last.run_id = frontier.run_id
+                    )
+                    OR frontier.resume_after_relative_path IS NOT NULL
+                    OR frontier.enumerated_entry_count <> 0
+                    OR NOT EXISTS(
+                      SELECT 1
+                      FROM library_metadata_inventory_entries AS entry
+                      WHERE entry.run_id = frontier.run_id
+                        AND entry.relative_path = frontier.relative_directory
+                        AND entry.entry_kind = 'directory'
+                    )
+                  ))
+                  OR (frontier.state = 'enumerating'
+                    AND frontier.resume_after_relative_path IS NOT NULL
+                    AND NOT EXISTS(
+                      SELECT 1
+                      FROM library_metadata_inventory_entries AS entry
+                      WHERE entry.run_id = frontier.run_id
+                        AND entry.relative_path = frontier.resume_after_relative_path
+                    ))
+             ) OR EXISTS(
+               SELECT 1
+               FROM library_metadata_inventory_runs AS run
+               WHERE (run.status = 'running' AND (
+                 run.enumeration_complete <> 0
+                 OR (run.next_page_index = 1 AND (
+                   run.staged_entry_count <> 0
+                   OR EXISTS(
+                     SELECT 1 FROM library_metadata_inventory_frontier AS frontier
+                     WHERE frontier.run_id = run.id
+                   )
+                 ))
+                 OR (run.next_page_index > 1 AND NOT EXISTS(
+                   SELECT 1 FROM library_metadata_inventory_frontier AS frontier
+                   WHERE frontier.run_id = run.id
+                     AND frontier.state IN ('pending', 'enumerating')
+                 ))
+                 OR EXISTS(
+                   SELECT 1 FROM library_metadata_inventory_frontier AS frontier
+                   WHERE frontier.run_id = run.id AND frontier.state = 'completed'
+                 )
+               ))
+               OR (run.status = 'comparing' AND (
+                 run.enumeration_complete <> 1
+                 OR 1 <> (
+                   SELECT COUNT(*) FROM library_metadata_inventory_frontier AS frontier
+                   WHERE frontier.run_id = run.id AND frontier.state = 'completed'
+                 )
+                 OR 1 <> (
+                   SELECT COUNT(*) FROM library_metadata_inventory_frontier AS frontier
+                   WHERE frontier.run_id = run.id
+                 )
+               ))
+             ) OR EXISTS(
+               SELECT 1
+               FROM library_recovery_authorities AS authority
+               LEFT JOIN library_change_queue AS queue ON queue.id = authority.change_id
+               LEFT JOIN library_metadata_inventory_runs AS run ON run.id = authority.run_id
+               WHERE queue.id IS NULL
+                  OR (authority.retired_unix_ms IS NULL
+                    AND queue.status NOT IN ('pending', 'leased', 'retry_wait'))
+                  OR (authority.retired_unix_ms IS NOT NULL
+                    AND queue.status NOT IN ('completed', 'superseded'))
+                  OR (authority.retired_unix_ms IS NOT NULL
+                    AND run.id IS NOT NULL AND run.status <> 'completed')
+                  OR (run.status = 'completed' AND EXISTS(
+                    SELECT 1
+                    FROM library_metadata_inventory_candidate_owners AS owner
+                    JOIN library_change_queue AS candidate ON candidate.id = owner.change_id
+                    WHERE owner.run_id = run.id
+                      AND candidate.status IN ('pending', 'leased', 'retry_wait')
+                  ))
+             ) OR EXISTS(
+               SELECT 1 FROM pragma_foreign_key_check(
+                 'library_metadata_inventory_candidate_owners'
+               )
+             ) OR EXISTS(
+               SELECT 1 FROM pragma_foreign_key_check('library_metadata_inventory_frontier')
+             )",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    if !columns_match || !marker_complete || !schema_matches || invalid_relations {
+        return Err(ScanError::new(
+            "catalog_recovery_execution_contract_unverifiable",
+            "The catalog cannot prove recovery candidate ownership and frontier lifecycle",
+        ));
+    }
+    Ok(())
+}
+
+fn validate_root_publication_namespace_contract(connection: &Connection) -> Result<(), ScanError> {
+    let columns_match = table_columns_match(
+        connection,
+        "library_root_publication_namespace_contract",
+        &[
+            ("singleton", "INTEGER", false, 1),
+            ("contract_version", "INTEGER", true, 0),
+            ("complete", "INTEGER", true, 0),
+        ],
+    )? && table_columns_match(
+        connection,
+        "library_root_publication_namespaces",
+        &[
+            ("root_id", "TEXT", false, 1),
+            ("root_generation", "INTEGER", true, 0),
+            ("identity_scheme", "TEXT", true, 0),
+            ("identity_value", "TEXT", true, 0),
+            ("authority_kind", "TEXT", true, 0),
+            ("established_catalog_revision", "INTEGER", true, 0),
+            ("established_unix_ms", "INTEGER", true, 0),
+            ("updated_unix_ms", "INTEGER", true, 0),
+        ],
+    )? && table_columns_match(
+        connection,
+        "library_scan_publication_namespace_bindings",
+        &[
+            ("scan_id", "TEXT", false, 1),
+            ("root_id", "TEXT", true, 0),
+            ("root_generation", "INTEGER", true, 0),
+            ("identity_scheme", "TEXT", true, 0),
+            ("identity_value", "TEXT", true, 0),
+            ("bound_unix_ms", "INTEGER", true, 0),
+        ],
+    )?;
+    let schema_matches = schema_object_sql_matches(
+        connection,
+        "table",
+        "library_root_publication_namespace_contract",
+        ROOT_PUBLICATION_NAMESPACE_CONTRACT_TABLE_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "table",
+        "library_root_publication_namespaces",
+        ROOT_PUBLICATION_NAMESPACE_TABLE_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "table",
+        "library_scan_publication_namespace_bindings",
+        SCAN_PUBLICATION_NAMESPACE_BINDING_TABLE_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "index",
+        "library_scan_publication_namespace_root",
+        SCAN_PUBLICATION_NAMESPACE_ROOT_INDEX_DDL,
+    )?;
+    let marker_complete = connection
+        .query_row(
+            "SELECT contract_version = 1 AND complete = 1
+             FROM library_root_publication_namespace_contract WHERE singleton = 1",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .optional()
+        .map_err(database_error)?
+        .unwrap_or(false);
+    let invalid_relations = connection
+        .query_row(
+            "SELECT EXISTS(
+               SELECT 1
+               FROM library_root_publication_namespaces AS proof
+               LEFT JOIN library_change_root_state AS active ON active.root_id = proof.root_id
+               WHERE active.root_id IS NULL OR active.is_active <> 1
+                  OR active.generation <> proof.root_generation
+             ) OR EXISTS(
+               SELECT 1
+               FROM library_scan_publication_namespace_bindings AS binding
+               LEFT JOIN scan_runs AS scan ON scan.id = binding.scan_id
+               LEFT JOIN library_change_root_state AS active
+                 ON active.root_id = binding.root_id
+               WHERE scan.id IS NULL OR scan.root_id <> binding.root_id
+                  OR scan.root_generation_at_start <> binding.root_generation
+                  OR scan.status NOT IN ('running', 'paused')
+                  OR active.is_active <> 1 OR active.generation <> binding.root_generation
+             ) OR EXISTS(
+               SELECT 1 FROM pragma_foreign_key_check(
+                 'library_root_publication_namespaces'
+               )
+             ) OR EXISTS(
+               SELECT 1 FROM pragma_foreign_key_check(
+                 'library_scan_publication_namespace_bindings'
+               )
+             )",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    let mut identities = connection
+        .prepare(
+            "SELECT identity_scheme, identity_value
+             FROM library_root_publication_namespaces
+             UNION ALL
+             SELECT identity_scheme, identity_value
+             FROM library_scan_publication_namespace_bindings",
+        )
+        .map_err(database_error)?;
+    let identities_valid = identities
+        .query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })
+        .map_err(database_error)?
+        .all(|row| {
+            row.is_ok_and(|(scheme, value)| validate_windows_root_identity(&scheme, &value).is_ok())
+        });
+    if !columns_match
+        || !schema_matches
+        || !marker_complete
+        || invalid_relations
+        || !identities_valid
+    {
+        return Err(unverifiable_root_publication_namespace_contract());
+    }
+    Ok(())
+}
+
+fn validate_live_gap_recovery_contract(connection: &Connection) -> Result<(), ScanError> {
+    let columns_match = table_columns_match(
+        connection,
+        "library_live_gap_recovery_contract",
+        &[
+            ("singleton", "INTEGER", false, 1),
+            ("contract_version", "INTEGER", true, 0),
+            ("complete", "INTEGER", true, 0),
+        ],
+    )? && table_columns_match(
+        connection,
+        "library_live_gap_recovery_claims",
+        &[
+            ("gap_change_id", "INTEGER", false, 1),
+            ("root_id", "TEXT", true, 0),
+            ("root_generation", "INTEGER", true, 0),
+            ("consumer_kind", "TEXT", true, 0),
+            ("opening_volume_guid", "TEXT", false, 0),
+            ("opening_volume_serial", "TEXT", false, 0),
+            ("opening_root_reference_version", "INTEGER", false, 0),
+            ("opening_root_file_reference", "BLOB", false, 0),
+            ("opening_journal_id", "TEXT", false, 0),
+            ("opening_next_usn", "TEXT", false, 0),
+            ("protocol_version", "INTEGER", false, 0),
+            ("contract_version", "INTEGER", false, 0),
+            ("source_range_id", "TEXT", false, 0),
+            ("recovery_change_id", "INTEGER", false, 0),
+            ("foreground_scan_id", "TEXT", false, 0),
+            ("created_unix_ms", "INTEGER", true, 0),
+            ("consumed_unix_ms", "INTEGER", false, 0),
+        ],
+    )?;
+    let schema_matches = schema_object_sql_matches(
+        connection,
+        "table",
+        "library_live_gap_recovery_contract",
+        LIVE_GAP_RECOVERY_CONTRACT_TABLE_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "table",
+        "library_live_gap_recovery_claims",
+        LIVE_GAP_RECOVERY_CLAIM_TABLE_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "index",
+        "library_live_gap_recovery_claims_root",
+        LIVE_GAP_RECOVERY_ROOT_INDEX_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "trigger",
+        "library_live_gap_recovery_claim_insert_guard",
+        LIVE_GAP_RECOVERY_INSERT_GUARD_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "trigger",
+        "library_live_gap_recovery_claim_identity_update_guard",
+        LIVE_GAP_RECOVERY_IDENTITY_UPDATE_GUARD_DDL,
+    )?;
+    let marker_complete = connection
+        .query_row(
+            "SELECT contract_version = 1 AND complete = 1
+             FROM library_live_gap_recovery_contract WHERE singleton = 1",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .optional()
+        .map_err(database_error)?
+        .unwrap_or(false);
+    let invalid_relations = connection
+        .query_row(
+            "SELECT EXISTS(
+               SELECT 1
+               FROM library_live_gap_recovery_claims AS claim
+               LEFT JOIN library_change_queue AS gap ON gap.id = claim.gap_change_id
+               LEFT JOIN library_change_queue_lanes AS gap_lane
+                 ON gap_lane.change_id = gap.id
+               LEFT JOIN library_persistent_journal_source_ranges AS ranges
+                 ON ranges.id = claim.source_range_id
+               LEFT JOIN library_persistent_journal_range_lifecycle AS lifecycle
+                 ON lifecycle.source_range_id = ranges.id
+               LEFT JOIN library_change_queue AS recovery
+                 ON recovery.id = claim.recovery_change_id
+               LEFT JOIN library_change_queue_lanes AS recovery_lane
+                 ON recovery_lane.change_id = recovery.id
+                LEFT JOIN library_recovery_authorities AS authority
+                  ON authority.change_id = recovery.id
+                LEFT JOIN scan_runs AS foreground_scan
+                  ON foreground_scan.id = claim.foreground_scan_id
+                WHERE gap.id IS NULL
+                  OR gap.root_id <> claim.root_id
+                  OR gap.root_generation <> claim.root_generation
+                  OR gap.intent_kind <> 'freshness_unknown'
+                  OR gap.scope <> 'root' OR gap.relative_path <> ''
+                  OR gap.previous_relative_path IS NOT NULL
+                  OR (claim.consumer_kind = 'pending_journal' AND (
+                    gap.origin <> 'live_notification' OR gap_lane.lane <> 'p0_live'
+                     OR gap.status <> 'retry_wait'
+                     OR gap.last_failure_code <> 'live_gap_waiting_for_journal_range'
+                     OR gap.authoritative_scan_id IS NOT NULL
+                    OR NOT EXISTS(
+                      SELECT 1
+                      FROM library_persistent_journal_checkpoints AS checkpoint
+                      JOIN library_persistent_journal_root_state AS root
+                        ON root.root_id = checkpoint.root_id
+                       AND root.root_generation = checkpoint.root_generation
+                      WHERE checkpoint.root_id = claim.root_id
+                        AND checkpoint.root_generation = claim.root_generation
+                        AND checkpoint.volume_guid = claim.opening_volume_guid
+                        AND checkpoint.volume_serial = claim.opening_volume_serial
+                        AND checkpoint.root_reference_version =
+                              claim.opening_root_reference_version
+                        AND checkpoint.root_file_reference =
+                              claim.opening_root_file_reference
+                        AND checkpoint.journal_id = claim.opening_journal_id
+                        AND checkpoint.next_unread_usn = claim.opening_next_usn
+                        AND checkpoint.captured_exclusive_end = claim.opening_next_usn
+                        AND checkpoint.protocol_version = claim.protocol_version
+                        AND checkpoint.contract_version = claim.contract_version
+                        AND checkpoint.continuity_state = 'current'
+                        AND checkpoint.last_failure_code IS NULL
+                        AND root.capability_state = 'supported'
+                        AND root.continuity_state = 'current'
+                    )
+                  ))
+                  OR (claim.consumer_kind = 'journal_source_range' AND (
+                    gap.origin <> 'live_notification' OR gap_lane.lane <> 'p0_live'
+                    OR gap.status <> 'superseded'
+                     OR ranges.id IS NULL OR ranges.status <> 'checkpointed'
+                     OR gap.authoritative_scan_id IS NOT NULL
+                    OR lifecycle.lifecycle_state NOT IN ('pending', 'completed')
+                    OR ranges.root_id <> claim.root_id
+                    OR ranges.root_generation <> claim.root_generation
+                    OR ranges.volume_guid <> claim.opening_volume_guid
+                    OR ranges.volume_serial <> claim.opening_volume_serial
+                    OR ranges.journal_id <> claim.opening_journal_id
+                    OR ranges.requested_start_usn <> claim.opening_next_usn
+                    OR ranges.protocol_version <> claim.protocol_version
+                    OR ranges.contract_version <> claim.contract_version
+                    OR CAST(ranges.covered_until_usn AS INTEGER)
+                         < CAST(claim.opening_next_usn AS INTEGER)
+                  ))
+                  OR (claim.consumer_kind = 'metadata_inventory_control' AND (
+                    gap.origin <> 'live_notification' OR gap_lane.lane <> 'p0_live'
+                    OR gap.status <> 'superseded'
+                    OR gap.superseded_by_change_id <> recovery.id
+                    OR recovery.root_id <> claim.root_id
+                     OR recovery.root_generation <> claim.root_generation
+                     OR gap.authoritative_scan_id IS NOT NULL
+                    OR recovery.origin <> 'metadata_inventory'
+                    OR recovery.intent_kind <> 'freshness_unknown'
+                    OR recovery.scope <> 'root' OR recovery.relative_path <> ''
+                    OR recovery_lane.lane <> 'p2_recovery'
+                    OR authority.reason NOT IN (
+                      'journal_gap', 'journal_reset', 'journal_trim',
+                      'journal_reconstruction_failure', 'containment_failure',
+                      'broker_after_current_failure', 'watcher_uncovered_gap'
+                    )
+                    OR authority.root_id <> claim.root_id
+                    OR authority.root_generation <> claim.root_generation
+                  ))
+                  OR (claim.consumer_kind = 'explicit_recovery_required' AND (
+                    gap.origin <> 'startup_catch_up' OR gap_lane.lane <> 'p1_journal'
+                     OR gap.status <> 'retry_wait' OR gap.next_retry_unix_ms IS NOT NULL
+                     OR gap.authoritative_scan_id IS NOT NULL
+                     OR gap.last_failure_code <>
+                          'live_gap_v30_explicit_recovery_required'
+                   ))
+                   OR (claim.consumer_kind = 'foreground_scan' AND (
+                     gap.origin <> 'startup_catch_up' OR gap_lane.lane <> 'p1_journal'
+                     OR foreground_scan.id IS NULL
+                     OR foreground_scan.scan_owner <> 'foreground'
+                     OR foreground_scan.root_id <> claim.root_id
+                     OR foreground_scan.root_generation_at_start <> claim.root_generation
+                     OR (claim.consumed_unix_ms IS NULL AND (
+                       foreground_scan.status NOT IN ('running', 'paused')
+                       OR gap.status <> 'leased'
+                       OR gap.next_retry_unix_ms IS NOT NULL
+                       OR gap.authoritative_scan_id IS NOT claim.foreground_scan_id
+                       OR gap.last_failure_code <>
+                            'live_gap_v30_explicit_recovery_in_progress'
+                       OR gap.catalog_revision_at_success IS NOT NULL
+                     ))
+                     OR (claim.consumed_unix_ms IS NOT NULL AND (
+                       foreground_scan.status <> 'completed'
+                       OR foreground_scan.completed_unix_ms IS NOT claim.consumed_unix_ms
+                       OR gap.status <> 'completed'
+                       OR gap.authoritative_scan_id IS NOT NULL
+                       OR gap.last_failure_code IS NOT NULL
+                       OR gap.last_failure_message IS NOT NULL
+                       OR gap.catalog_revision_at_success IS NULL
+                     ))
+                   ))
+             ) OR EXISTS(
+               SELECT 1 FROM pragma_foreign_key_check(
+                 'library_live_gap_recovery_claims'
+               )
+             )",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    if !columns_match || !schema_matches || !marker_complete || invalid_relations {
+        return Err(ScanError::new(
+            "catalog_live_gap_recovery_contract_unverifiable",
+            "The catalog cannot prove live-gap lineage and consumer ownership",
+        ));
+    }
+    Ok(())
+}
+
+fn validate_windows_root_identity(scheme: &str, value: &str) -> Result<(), ScanError> {
+    let valid = scheme == "windows-file-id-128-v1"
+        && value.len() == 49
+        && value.as_bytes().get(16) == Some(&b':')
+        && value.bytes().enumerate().all(|(index, byte)| {
+            index == 16 || byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)
+        });
+    if valid {
+        Ok(())
+    } else {
+        Err(unverifiable_root_publication_namespace_contract())
+    }
+}
+
+fn unverifiable_root_publication_namespace_contract() -> ScanError {
+    ScanError::new(
+        "catalog_root_publication_namespace_unverifiable",
+        "The catalog cannot prove the configured-root publication namespace contract",
+    )
+}
+
+fn validate_metadata_inventory_spool_contract_version(
+    connection: &Connection,
+    expected_schema_version: i64,
+    expected_contract_version: i64,
+) -> Result<(), ScanError> {
+    let application_id: i64 = connection
+        .query_row("PRAGMA application_id", [], |row| row.get(0))
+        .map_err(database_error)?;
+    let user_version: i64 = connection
+        .query_row("PRAGMA user_version", [], |row| row.get(0))
+        .map_err(database_error)?;
+    let spool_columns = if expected_contract_version == 1 {
+        vec![
+            ("run_id", "TEXT", false, 1),
+            ("authority_change_id", "INTEGER", true, 0),
+            ("root_id", "TEXT", true, 0),
+            ("root_generation", "INTEGER", true, 0),
+            ("scope_kind", "TEXT", true, 0),
+            ("scope_relative_path", "TEXT", true, 0),
+            ("state", "TEXT", true, 0),
+            ("created_unix_ms", "INTEGER", true, 0),
+            ("updated_unix_ms", "INTEGER", true, 0),
+        ]
+    } else {
+        vec![
+            ("run_id", "TEXT", false, 1),
+            ("authority_change_id", "INTEGER", true, 0),
+            ("root_id", "TEXT", true, 0),
+            ("root_generation", "INTEGER", true, 0),
+            ("root_identity_scheme", "TEXT", true, 0),
+            ("root_identity_value", "TEXT", true, 0),
+            ("scope_kind", "TEXT", true, 0),
+            ("scope_relative_path", "TEXT", true, 0),
+            ("state", "TEXT", true, 0),
+            ("created_unix_ms", "INTEGER", true, 0),
+            ("updated_unix_ms", "INTEGER", true, 0),
+        ]
+    };
+    let columns_match = table_columns_match(
+        connection,
+        "library_metadata_inventory_spool_contract",
+        &[
+            ("singleton", "INTEGER", false, 1),
+            ("contract_version", "INTEGER", true, 0),
+            ("complete", "INTEGER", true, 0),
+        ],
+    )? && table_columns_match(
+        connection,
+        "library_metadata_inventory_spools",
+        &spool_columns,
+    )? && table_columns_match(
+        connection,
+        "library_metadata_inventory_spool_directories",
+        &[
+            ("run_id", "TEXT", true, 1),
+            ("ordinal", "INTEGER", true, 0),
+            ("relative_directory", "TEXT", true, 2),
+            ("state", "TEXT", true, 0),
+            ("directory_identity_scheme", "TEXT", false, 0),
+            ("directory_identity_value", "TEXT", false, 0),
+            ("source_entry_count", "INTEGER", true, 0),
+            ("created_unix_ms", "INTEGER", true, 0),
+            ("updated_unix_ms", "INTEGER", true, 0),
+        ],
+    )? && table_columns_match(
+        connection,
+        "library_metadata_inventory_spool_entries",
+        &[
+            ("run_id", "TEXT", true, 1),
+            ("directory_relative_path", "TEXT", false, 0),
+            ("relative_path", "TEXT", true, 2),
+            ("entry_kind", "TEXT", true, 0),
+            ("file_size", "INTEGER", false, 0),
+            ("modified_unix_ms", "INTEGER", true, 0),
+            ("file_identity_scheme", "TEXT", false, 0),
+            ("file_identity_value", "TEXT", false, 0),
+            ("placeholder_state", "TEXT", true, 0),
+            ("is_reparse_point", "INTEGER", true, 0),
+            ("staged_unix_ms", "INTEGER", true, 0),
+        ],
+    )?;
+    let marker_complete = connection
+        .query_row(
+            "SELECT singleton = 1 AND contract_version = ?1 AND complete = 1
+             FROM library_metadata_inventory_spool_contract",
+            [expected_contract_version],
+            |row| row.get::<_, bool>(0),
+        )
+        .optional()
+        .map_err(database_error)?
+        .unwrap_or(false);
+    let contract_ddl = if expected_contract_version == 1 {
+        METADATA_INVENTORY_SPOOL_CONTRACT_TABLE_V27_DDL
+    } else {
+        METADATA_INVENTORY_SPOOL_CONTRACT_TABLE_DDL
+    };
+    let spool_ddl = if expected_contract_version == 1 {
+        METADATA_INVENTORY_SPOOL_TABLE_V27_DDL
+    } else {
+        METADATA_INVENTORY_SPOOL_TABLE_DDL
+    };
+    let binding_guard_ddl = if expected_contract_version == 1 {
+        METADATA_INVENTORY_SPOOL_BINDING_UPDATE_GUARD_V27_DDL
+    } else {
+        METADATA_INVENTORY_SPOOL_BINDING_UPDATE_GUARD_DDL
+    };
+    let schema_matches = schema_object_sql_matches(
+        connection,
+        "table",
+        "library_metadata_inventory_spool_contract",
+        contract_ddl,
+    )? && schema_object_sql_matches(
+        connection,
+        "table",
+        "library_metadata_inventory_spools",
+        spool_ddl,
+    )? && schema_object_sql_matches(
+        connection,
+        "table",
+        "library_metadata_inventory_spool_directories",
+        METADATA_INVENTORY_SPOOL_DIRECTORY_TABLE_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "index",
+        "library_metadata_inventory_spool_directories_state",
+        METADATA_INVENTORY_SPOOL_DIRECTORY_STATE_INDEX_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "table",
+        "library_metadata_inventory_spool_entries",
+        METADATA_INVENTORY_SPOOL_ENTRY_TABLE_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "index",
+        "library_metadata_inventory_spool_entries_order",
+        METADATA_INVENTORY_SPOOL_ENTRY_ORDER_INDEX_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "trigger",
+        "library_metadata_inventory_spool_binding_update_guard",
+        binding_guard_ddl,
+    )? && schema_object_sql_matches(
+        connection,
+        "trigger",
+        "library_metadata_inventory_spool_directory_complete_guard",
+        METADATA_INVENTORY_SPOOL_DIRECTORY_COMPLETE_GUARD_DDL,
+    )?;
+    let invalid_relations = connection
+        .query_row(
+            "SELECT EXISTS(
+               SELECT 1
+               FROM library_metadata_inventory_spools AS spool
+               LEFT JOIN library_metadata_inventory_runs AS run ON run.id = spool.run_id
+               LEFT JOIN library_recovery_authorities AS authority
+                 ON authority.change_id = spool.authority_change_id
+               WHERE run.id IS NULL OR authority.change_id IS NULL
+                  OR (?1 = 1 AND run.status <> 'running')
+                  OR (?1 = 2 AND run.status NOT IN ('running', 'comparing', 'completed'))
+                  OR authority.retired_unix_ms IS NOT NULL
+                  OR authority.run_id <> spool.run_id
+                  OR authority.root_id <> spool.root_id
+                  OR authority.root_generation <> spool.root_generation
+                  OR run.root_id <> spool.root_id
+                  OR run.root_generation <> spool.root_generation
+                  OR run.scope_kind <> spool.scope_kind
+                  OR run.scope_relative_path <> spool.scope_relative_path
+             ) OR EXISTS(
+               SELECT 1
+               FROM library_metadata_inventory_spool_directories AS directory
+               WHERE directory.ordinal <> (
+                 SELECT COUNT(*)
+                 FROM library_metadata_inventory_spool_directories AS earlier
+                 WHERE earlier.run_id = directory.run_id
+                   AND earlier.ordinal < directory.ordinal
+               )
+                  OR (directory.state = 'completed' AND (
+                    directory.directory_identity_scheme IS NULL
+                    OR directory.source_entry_count <> (
+                      SELECT COUNT(*)
+                      FROM library_metadata_inventory_spool_entries AS entry
+                      WHERE entry.run_id = directory.run_id
+                        AND entry.directory_relative_path = directory.relative_directory
+                    )
+                  ))
+             ) OR EXISTS(
+               SELECT 1 FROM library_metadata_inventory_spools AS spool
+               WHERE (spool.state = 'ready' AND EXISTS(
+                 SELECT 1 FROM library_metadata_inventory_spool_directories AS directory
+                 WHERE directory.run_id = spool.run_id AND directory.state <> 'completed'
+               )) OR (spool.state = 'enumerating' AND NOT EXISTS(
+                 SELECT 1 FROM library_metadata_inventory_spool_directories AS directory
+                 WHERE directory.run_id = spool.run_id
+                   AND directory.state IN ('pending', 'enumerating')
+               ))
+             ) OR EXISTS(
+               SELECT 1 FROM pragma_foreign_key_check('library_metadata_inventory_spools')
+             ) OR EXISTS(
+               SELECT 1 FROM pragma_foreign_key_check(
+                 'library_metadata_inventory_spool_directories'
+               )
+             ) OR EXISTS(
+               SELECT 1 FROM pragma_foreign_key_check(
+                 'library_metadata_inventory_spool_entries'
+               )
+             )",
+            [expected_contract_version],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    if application_id != SQLITE_APPLICATION_ID
+        || user_version != expected_schema_version
+        || !columns_match
+        || !marker_complete
+        || !schema_matches
+        || invalid_relations
+    {
+        return Err(ScanError::new(
+            "catalog_metadata_inventory_spool_contract_unverifiable",
+            "The catalog cannot prove its bounded metadata inventory source spool",
+        ));
+    }
+    Ok(())
+}
+
+fn unverifiable_recovery_authority_contract() -> ScanError {
+    ScanError::new(
+        "catalog_recovery_authority_contract_unverifiable",
+        "The catalog cannot prove its bounded recovery authority",
+    )
+}
+
+fn validate_terminal_media_evidence_contract(connection: &Connection) -> Result<(), ScanError> {
+    let structure_matches = table_columns_match(
+        connection,
+        "library_terminal_media_evidence_contract",
+        &[
+            ("singleton", "INTEGER", false, 1),
+            ("complete", "INTEGER", true, 0),
+        ],
+    )? && table_columns_match(
+        connection,
+        "library_terminal_media_evidence",
+        &[
+            ("root_id", "TEXT", true, 1),
+            ("relative_path", "TEXT", true, 2),
+            ("file_size", "INTEGER", true, 0),
+            ("modified_unix_ms", "INTEGER", true, 0),
+            ("file_identity_scheme", "TEXT", false, 0),
+            ("file_identity_value", "TEXT", false, 0),
+            ("inspection_engine_id", "TEXT", true, 0),
+            ("inspection_engine_version", "INTEGER", true, 0),
+            ("issue_code", "TEXT", true, 0),
+            ("issue_message", "TEXT", true, 0),
+            ("updated_unix_ms", "INTEGER", true, 0),
+        ],
+    )?;
+    let marker_complete = connection
+        .query_row(
+            "SELECT singleton = 1 AND complete = 1
+             FROM library_terminal_media_evidence_contract",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .optional()
+        .map_err(database_error)?
+        .unwrap_or(false);
+    let foreign_key_matches = cascade_foreign_key_matches(
+        connection,
+        "library_terminal_media_evidence",
+        "root_id",
+        "library_roots",
+        "id",
+    )?;
+    let invalid_relations = connection
+        .query_row(
+            "SELECT EXISTS(
+               SELECT 1 FROM pragma_foreign_key_check('library_terminal_media_evidence')
+             )",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    if !structure_matches || !marker_complete || !foreign_key_matches || invalid_relations {
+        return Err(ScanError::new(
+            "catalog_terminal_media_evidence_contract_unverifiable",
+            "The catalog cannot prove its terminal media evidence authority",
+        ));
+    }
+    Ok(())
 }
 
 fn validate_metadata_inventory_contract(connection: &Connection) -> Result<(), ScanError> {
@@ -705,6 +2903,2007 @@ fn validate_metadata_inventory_contract(connection: &Connection) -> Result<(), S
         return Err(unverifiable_metadata_inventory_contract());
     }
     Ok(())
+}
+
+fn validate_persistent_journal_contract(connection: &Connection) -> Result<(), ScanError> {
+    let columns_match = table_columns_match(
+        connection,
+        "library_persistent_journal_contract",
+        &[
+            ("singleton", "INTEGER", false, 1),
+            ("contract_version", "INTEGER", true, 0),
+            ("complete", "INTEGER", true, 0),
+        ],
+    )? && table_columns_match(
+        connection,
+        "library_persistent_journal_root_state",
+        &[
+            ("root_id", "TEXT", true, 1),
+            ("root_generation", "INTEGER", true, 2),
+            ("protocol_version", "INTEGER", true, 0),
+            ("contract_version", "INTEGER", true, 0),
+            ("capability_state", "TEXT", true, 0),
+            ("continuity_state", "TEXT", true, 0),
+            ("last_failure_code", "TEXT", false, 0),
+            ("last_failure_message", "TEXT", false, 0),
+            ("updated_unix_ms", "INTEGER", true, 0),
+        ],
+    )? && table_columns_match(
+        connection,
+        "library_persistent_journal_checkpoints",
+        &[
+            ("root_id", "TEXT", false, 1),
+            ("root_generation", "INTEGER", true, 0),
+            ("volume_guid", "TEXT", true, 0),
+            ("volume_serial", "TEXT", true, 0),
+            ("root_reference_version", "INTEGER", true, 0),
+            ("root_file_reference", "BLOB", true, 0),
+            ("journal_id", "TEXT", true, 0),
+            ("next_unread_usn", "TEXT", true, 0),
+            ("captured_exclusive_end", "TEXT", true, 0),
+            ("covered_catalog_revision", "INTEGER", true, 0),
+            ("protocol_version", "INTEGER", true, 0),
+            ("contract_version", "INTEGER", true, 0),
+            ("continuity_state", "TEXT", true, 0),
+            ("last_failure_code", "TEXT", false, 0),
+            ("last_failure_message", "TEXT", false, 0),
+            ("updated_unix_ms", "INTEGER", true, 0),
+        ],
+    )? && table_columns_match(
+        connection,
+        "library_persistent_journal_source_ranges",
+        &[
+            ("id", "TEXT", false, 1),
+            ("root_id", "TEXT", true, 0),
+            ("root_generation", "INTEGER", true, 0),
+            ("volume_guid", "TEXT", true, 0),
+            ("volume_serial", "TEXT", true, 0),
+            ("journal_id", "TEXT", true, 0),
+            ("requested_start_usn", "TEXT", true, 0),
+            ("requested_end_usn", "TEXT", true, 0),
+            ("covered_until_usn", "TEXT", true, 0),
+            ("is_complete", "INTEGER", true, 0),
+            ("protocol_version", "INTEGER", true, 0),
+            ("contract_version", "INTEGER", true, 0),
+            ("status", "TEXT", true, 0),
+            ("enrolled_unix_ms", "INTEGER", true, 0),
+            ("checkpointed_unix_ms", "INTEGER", false, 0),
+            ("canonical_payload", "BLOB", true, 0),
+        ],
+    )? && table_columns_match(
+        connection,
+        "library_persistent_journal_queue_lineage",
+        &[
+            ("source_range_id", "TEXT", true, 1),
+            ("change_id", "INTEGER", true, 2),
+            ("enrolled_unix_ms", "INTEGER", true, 0),
+        ],
+    )? && table_columns_match(
+        connection,
+        "library_persistent_journal_cross_root_lineage",
+        &[
+            ("id", "TEXT", false, 1),
+            ("volume_guid", "TEXT", true, 0),
+            ("volume_serial", "TEXT", true, 0),
+            ("file_reference_version", "INTEGER", true, 0),
+            ("file_reference", "BLOB", true, 0),
+            ("previous_root_id", "TEXT", true, 0),
+            ("previous_root_generation", "INTEGER", true, 0),
+            ("previous_relative_path", "TEXT", true, 0),
+            ("current_root_id", "TEXT", true, 0),
+            ("current_root_generation", "INTEGER", true, 0),
+            ("current_relative_path", "TEXT", true, 0),
+            ("status", "TEXT", true, 0),
+            ("created_unix_ms", "INTEGER", true, 0),
+            ("updated_unix_ms", "INTEGER", true, 0),
+            ("journal_id", "TEXT", false, 0),
+            ("old_usn", "TEXT", false, 0),
+            ("new_usn", "TEXT", false, 0),
+            ("previous_carry_id", "TEXT", false, 0),
+        ],
+    )? && table_columns_match(
+        connection,
+        "library_persistent_journal_cross_root_ranges",
+        &[
+            ("lineage_id", "TEXT", true, 1),
+            ("source_range_id", "TEXT", true, 2),
+            ("participant_role", "TEXT", true, 0),
+            ("enrolled_unix_ms", "INTEGER", true, 0),
+        ],
+    )? && table_columns_match(
+        connection,
+        "library_persistent_journal_range_lifecycle",
+        &[
+            ("source_range_id", "TEXT", false, 1),
+            ("lifecycle_state", "TEXT", true, 0),
+            ("completed_unix_ms", "INTEGER", false, 0),
+            ("updated_unix_ms", "INTEGER", true, 0),
+        ],
+    )? && table_columns_match(
+        connection,
+        "library_persistent_journal_pending_renames",
+        &[
+            ("carry_id", "TEXT", false, 1),
+            ("source_range_id", "TEXT", true, 0),
+            ("volume_guid", "TEXT", true, 0),
+            ("volume_serial", "TEXT", true, 0),
+            ("journal_id", "TEXT", true, 0),
+            ("file_reference_version", "INTEGER", true, 0),
+            ("file_reference", "BLOB", true, 0),
+            ("old_usn", "TEXT", true, 0),
+            ("previous_root_id", "TEXT", true, 0),
+            ("previous_root_generation", "INTEGER", true, 0),
+            ("previous_relative_path", "TEXT", true, 0),
+            ("is_directory", "INTEGER", true, 0),
+            ("enrolled_unix_ms", "INTEGER", true, 0),
+        ],
+    )?;
+    let marker_complete = connection
+        .query_row(
+            "SELECT singleton = 1 AND contract_version = ?1 AND complete = 1
+             FROM library_persistent_journal_contract",
+            [i64::from(PERSISTENT_JOURNAL_CONTRACT_VERSION)],
+            |row| row.get::<_, bool>(0),
+        )
+        .optional()
+        .map_err(database_error)?
+        .unwrap_or(false);
+    let indexes_match = schema_object_sql_matches(
+        connection,
+        "index",
+        "library_change_root_state_generation_identity",
+        "CREATE UNIQUE INDEX library_change_root_state_generation_identity
+           ON library_change_root_state(root_id, generation)",
+    )? && named_index_matches(
+        connection,
+        "library_persistent_journal_root_state",
+        "library_persistent_journal_root_state_continuity",
+        &[
+            "continuity_state",
+            "capability_state",
+            "updated_unix_ms",
+            "root_id",
+        ],
+    )? && named_index_matches(
+        connection,
+        "library_persistent_journal_checkpoints",
+        "library_persistent_journal_checkpoints_volume",
+        &["volume_guid", "journal_id", "continuity_state", "root_id"],
+    )? && named_index_matches(
+        connection,
+        "library_persistent_journal_source_ranges",
+        "library_persistent_journal_source_ranges_root",
+        &[
+            "root_id",
+            "root_generation",
+            "status",
+            "enrolled_unix_ms",
+            "id",
+        ],
+    )? && named_index_matches(
+        connection,
+        "library_persistent_journal_source_ranges",
+        "library_persistent_journal_source_ranges_volume",
+        &["volume_guid", "journal_id", "requested_start_usn", "id"],
+    )? && named_index_matches(
+        connection,
+        "library_persistent_journal_queue_lineage",
+        "library_persistent_journal_queue_lineage_change",
+        &["change_id", "source_range_id"],
+    )? && named_index_matches(
+        connection,
+        "library_persistent_journal_cross_root_lineage",
+        "library_persistent_journal_cross_root_lineage_previous",
+        &[
+            "previous_root_id",
+            "previous_root_generation",
+            "status",
+            "id",
+        ],
+    )? && named_index_matches(
+        connection,
+        "library_persistent_journal_cross_root_lineage",
+        "library_persistent_journal_cross_root_lineage_current",
+        &["current_root_id", "current_root_generation", "status", "id"],
+    )? && named_index_matches(
+        connection,
+        "library_persistent_journal_cross_root_ranges",
+        "library_persistent_journal_cross_root_ranges_source",
+        &["source_range_id", "lineage_id"],
+    )? && named_index_matches(
+        connection,
+        "library_persistent_journal_range_lifecycle",
+        "library_persistent_journal_range_lifecycle_state",
+        &["lifecycle_state", "updated_unix_ms", "source_range_id"],
+    )? && named_index_matches(
+        connection,
+        "library_persistent_journal_pending_renames",
+        "library_persistent_journal_pending_renames_volume",
+        &["volume_guid", "journal_id", "old_usn", "carry_id"],
+    )? && named_index_matches(
+        connection,
+        "library_persistent_journal_pending_renames",
+        "library_persistent_journal_pending_renames_source",
+        &["source_range_id", "carry_id"],
+    )?;
+    let checks_and_foreign_keys_match = persistent_journal_schema_sql_matches(connection)?;
+    if !columns_match || !marker_complete || !indexes_match || !checks_and_foreign_keys_match {
+        return Err(unverifiable_persistent_journal_contract());
+    }
+    validate_persistent_journal_rows(connection)
+}
+
+fn persistent_journal_schema_sql_matches(connection: &Connection) -> Result<bool, ScanError> {
+    for (name, expected) in PERSISTENT_JOURNAL_CANONICAL_TABLE_DDL {
+        let Some(sql) = connection
+            .query_row(
+                "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?1",
+                [name],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()
+            .map_err(database_error)?
+        else {
+            return Ok(false);
+        };
+        if normalize_schema_sql(&sql) != normalize_schema_sql(expected) {
+            return Ok(false);
+        }
+    }
+    for (name, expected) in PERSISTENT_JOURNAL_CANONICAL_TRIGGER_DDL {
+        let Some(sql) = connection
+            .query_row(
+                "SELECT sql FROM sqlite_master WHERE type = 'trigger' AND name = ?1",
+                [name],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()
+            .map_err(database_error)?
+        else {
+            return Ok(false);
+        };
+        if normalize_schema_sql(&sql) != normalize_schema_sql(expected) {
+            return Ok(false);
+        }
+    }
+    Ok(true)
+}
+
+const PERSISTENT_JOURNAL_CANONICAL_TABLE_DDL: &[(&str, &str)] = &[
+    (
+        "library_persistent_journal_contract",
+        r#"CREATE TABLE library_persistent_journal_contract (
+          singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+          contract_version INTEGER NOT NULL CHECK(contract_version = 1),
+          complete INTEGER NOT NULL CHECK(complete = 1)
+        )"#,
+    ),
+    (
+        "library_persistent_journal_root_state",
+        r#"CREATE TABLE library_persistent_journal_root_state (
+          root_id TEXT NOT NULL,
+          root_generation INTEGER NOT NULL CHECK(root_generation > 0),
+          protocol_version INTEGER NOT NULL CHECK(protocol_version BETWEEN 0 AND 65535),
+          contract_version INTEGER NOT NULL CHECK(contract_version = 1),
+          capability_state TEXT NOT NULL CHECK(capability_state IN (
+            'unknown', 'supported', 'live_only'
+          )),
+          continuity_state TEXT NOT NULL CHECK(continuity_state IN (
+            'baseline_required', 'catching_up', 'current', 'recovery_required',
+            'live_only', 'unavailable'
+          )),
+          last_failure_code TEXT,
+          last_failure_message TEXT,
+          updated_unix_ms INTEGER NOT NULL CHECK(updated_unix_ms >= 0),
+          CHECK(
+            (last_failure_code IS NULL AND last_failure_message IS NULL)
+            OR
+            (last_failure_code IS NOT NULL AND last_failure_message IS NOT NULL)
+          ),
+          CHECK(
+            (capability_state = 'unknown' AND protocol_version = 0)
+            OR
+            (capability_state <> 'unknown' AND protocol_version > 0)
+          ),
+          CHECK(capability_state <> 'supported' OR last_failure_code IS NULL),
+          CHECK(
+            continuity_state <> 'current'
+            OR (capability_state = 'supported' AND last_failure_code IS NULL)
+          ),
+          PRIMARY KEY(root_id, root_generation),
+          FOREIGN KEY(root_id) REFERENCES library_roots(id) ON DELETE CASCADE
+        )"#,
+    ),
+    (
+        "library_persistent_journal_checkpoints",
+        r#"CREATE TABLE library_persistent_journal_checkpoints (
+          root_id TEXT PRIMARY KEY,
+          root_generation INTEGER NOT NULL CHECK(root_generation > 0),
+          volume_guid TEXT NOT NULL CHECK(length(volume_guid) BETWEEN 1 AND 512),
+          volume_serial TEXT NOT NULL CHECK(length(volume_serial) BETWEEN 1 AND 20),
+          root_reference_version INTEGER NOT NULL CHECK(root_reference_version IN (2, 3)),
+          root_file_reference BLOB NOT NULL,
+          journal_id TEXT NOT NULL CHECK(length(journal_id) BETWEEN 1 AND 20),
+          next_unread_usn TEXT NOT NULL CHECK(length(next_unread_usn) BETWEEN 1 AND 19),
+          captured_exclusive_end TEXT NOT NULL
+            CHECK(length(captured_exclusive_end) BETWEEN 1 AND 19),
+          covered_catalog_revision INTEGER NOT NULL CHECK(covered_catalog_revision >= 0),
+          protocol_version INTEGER NOT NULL CHECK(protocol_version BETWEEN 1 AND 65535),
+          contract_version INTEGER NOT NULL CHECK(contract_version = 1),
+          continuity_state TEXT NOT NULL CHECK(continuity_state IN (
+            'catching_up', 'current', 'recovery_required', 'live_only', 'unavailable'
+          )),
+          last_failure_code TEXT,
+          last_failure_message TEXT,
+          updated_unix_ms INTEGER NOT NULL CHECK(updated_unix_ms >= 0),
+          CHECK(
+            (root_reference_version = 2 AND length(root_file_reference) = 8)
+            OR
+            (root_reference_version = 3 AND length(root_file_reference) = 16)
+          ),
+          CHECK(journal_id <> '0' AND journal_id NOT GLOB '*[^0-9]*'),
+          CHECK(next_unread_usn NOT GLOB '*[^0-9]*'),
+          CHECK(captured_exclusive_end NOT GLOB '*[^0-9]*'),
+          CHECK(CAST(next_unread_usn AS INTEGER) <= CAST(captured_exclusive_end AS INTEGER)),
+          CHECK(
+            (last_failure_code IS NULL AND last_failure_message IS NULL)
+            OR
+            (last_failure_code IS NOT NULL AND last_failure_message IS NOT NULL)
+          ),
+          CHECK(
+            continuity_state <> 'current'
+            OR (next_unread_usn = captured_exclusive_end AND last_failure_code IS NULL)
+          ),
+          FOREIGN KEY(root_id, root_generation)
+            REFERENCES library_persistent_journal_root_state(root_id, root_generation)
+            ON DELETE CASCADE
+        )"#,
+    ),
+    (
+        "library_persistent_journal_source_ranges",
+        r#"CREATE TABLE library_persistent_journal_source_ranges (
+          id TEXT PRIMARY KEY CHECK(length(id) BETWEEN 1 AND 512),
+          root_id TEXT NOT NULL,
+          root_generation INTEGER NOT NULL CHECK(root_generation > 0),
+          volume_guid TEXT NOT NULL CHECK(length(volume_guid) BETWEEN 1 AND 512),
+          volume_serial TEXT NOT NULL CHECK(length(volume_serial) BETWEEN 1 AND 20),
+          journal_id TEXT NOT NULL CHECK(length(journal_id) BETWEEN 1 AND 20),
+          requested_start_usn TEXT NOT NULL CHECK(length(requested_start_usn) BETWEEN 1 AND 19),
+          requested_end_usn TEXT NOT NULL CHECK(length(requested_end_usn) BETWEEN 1 AND 19),
+          covered_until_usn TEXT NOT NULL CHECK(length(covered_until_usn) BETWEEN 1 AND 19),
+          is_complete INTEGER NOT NULL CHECK(is_complete IN (0, 1)),
+          protocol_version INTEGER NOT NULL CHECK(protocol_version BETWEEN 1 AND 65535),
+          contract_version INTEGER NOT NULL CHECK(contract_version = 1),
+          status TEXT NOT NULL CHECK(status IN ('enrolled', 'checkpointed', 'superseded')),
+          enrolled_unix_ms INTEGER NOT NULL CHECK(enrolled_unix_ms >= 0),
+          checkpointed_unix_ms INTEGER CHECK(checkpointed_unix_ms >= 0),
+          canonical_payload BLOB NOT NULL DEFAULT X'',
+          CHECK(journal_id <> '0' AND journal_id NOT GLOB '*[^0-9]*'),
+          CHECK(requested_start_usn NOT GLOB '*[^0-9]*'),
+          CHECK(requested_end_usn NOT GLOB '*[^0-9]*'),
+          CHECK(covered_until_usn NOT GLOB '*[^0-9]*'),
+          CHECK(
+            CAST(requested_start_usn AS INTEGER) < CAST(requested_end_usn AS INTEGER)
+            AND CAST(requested_start_usn AS INTEGER) < CAST(covered_until_usn AS INTEGER)
+            AND CAST(covered_until_usn AS INTEGER) <= CAST(requested_end_usn AS INTEGER)
+          ),
+          CHECK(
+            is_complete = (
+              CAST(covered_until_usn AS INTEGER) = CAST(requested_end_usn AS INTEGER)
+            )
+          ),
+          CHECK(
+            (status = 'checkpointed' AND checkpointed_unix_ms IS NOT NULL)
+            OR
+            (status <> 'checkpointed' AND checkpointed_unix_ms IS NULL)
+          ),
+          FOREIGN KEY(root_id, root_generation)
+            REFERENCES library_persistent_journal_root_state(root_id, root_generation)
+            ON DELETE CASCADE
+        )"#,
+    ),
+    (
+        "library_persistent_journal_queue_lineage",
+        r#"CREATE TABLE library_persistent_journal_queue_lineage (
+          source_range_id TEXT NOT NULL,
+          change_id INTEGER NOT NULL,
+          enrolled_unix_ms INTEGER NOT NULL CHECK(enrolled_unix_ms >= 0),
+          PRIMARY KEY(source_range_id, change_id),
+          FOREIGN KEY(source_range_id)
+            REFERENCES library_persistent_journal_source_ranges(id) ON DELETE CASCADE,
+          FOREIGN KEY(change_id) REFERENCES library_change_queue(id) ON DELETE CASCADE
+        )"#,
+    ),
+    (
+        "library_persistent_journal_cross_root_lineage",
+        r#"CREATE TABLE library_persistent_journal_cross_root_lineage (
+          id TEXT PRIMARY KEY CHECK(length(id) BETWEEN 1 AND 512),
+          volume_guid TEXT NOT NULL CHECK(length(volume_guid) BETWEEN 1 AND 512),
+          volume_serial TEXT NOT NULL CHECK(length(volume_serial) BETWEEN 1 AND 20),
+          file_reference_version INTEGER NOT NULL CHECK(file_reference_version IN (2, 3)),
+          file_reference BLOB NOT NULL,
+          previous_root_id TEXT NOT NULL,
+          previous_root_generation INTEGER NOT NULL CHECK(previous_root_generation > 0),
+          previous_relative_path TEXT NOT NULL,
+          current_root_id TEXT NOT NULL,
+          current_root_generation INTEGER NOT NULL CHECK(current_root_generation > 0),
+          current_relative_path TEXT NOT NULL,
+          status TEXT NOT NULL CHECK(status IN ('pending', 'completed', 'superseded')),
+          created_unix_ms INTEGER NOT NULL CHECK(created_unix_ms >= 0),
+          updated_unix_ms INTEGER NOT NULL CHECK(updated_unix_ms >= 0),
+          journal_id TEXT,
+          old_usn TEXT,
+          new_usn TEXT,
+          previous_carry_id TEXT,
+          CHECK(previous_root_id <> current_root_id),
+          CHECK(length(previous_relative_path) BETWEEN 1 AND 32767),
+          CHECK(length(current_relative_path) BETWEEN 1 AND 32767),
+          CHECK(instr(previous_relative_path, char(92)) = 0),
+          CHECK(instr(current_relative_path, char(92)) = 0),
+          CHECK(
+            (file_reference_version = 2 AND length(file_reference) = 8)
+            OR
+            (file_reference_version = 3 AND length(file_reference) = 16)
+          ),
+          FOREIGN KEY(previous_root_id, previous_root_generation)
+            REFERENCES library_persistent_journal_root_state(root_id, root_generation),
+          FOREIGN KEY(current_root_id, current_root_generation)
+            REFERENCES library_persistent_journal_root_state(root_id, root_generation)
+        )"#,
+    ),
+    (
+        "library_persistent_journal_cross_root_ranges",
+        r#"CREATE TABLE library_persistent_journal_cross_root_ranges (
+          lineage_id TEXT NOT NULL,
+          source_range_id TEXT NOT NULL,
+          participant_role TEXT NOT NULL CHECK(participant_role IN ('previous', 'current')),
+          enrolled_unix_ms INTEGER NOT NULL CHECK(enrolled_unix_ms >= 0),
+          PRIMARY KEY(lineage_id, source_range_id),
+          FOREIGN KEY(lineage_id)
+            REFERENCES library_persistent_journal_cross_root_lineage(id) ON DELETE CASCADE,
+          FOREIGN KEY(source_range_id)
+            REFERENCES library_persistent_journal_source_ranges(id) ON DELETE CASCADE
+        )"#,
+    ),
+    (
+        "library_persistent_journal_range_lifecycle",
+        r#"CREATE TABLE library_persistent_journal_range_lifecycle (
+          source_range_id TEXT PRIMARY KEY,
+          lifecycle_state TEXT NOT NULL
+            CHECK(lifecycle_state IN ('pending', 'completed', 'superseded')),
+          completed_unix_ms INTEGER CHECK(completed_unix_ms >= 0),
+          updated_unix_ms INTEGER NOT NULL CHECK(updated_unix_ms >= 0),
+          CHECK(
+            (lifecycle_state = 'completed' AND completed_unix_ms IS NOT NULL)
+            OR
+            (lifecycle_state <> 'completed' AND completed_unix_ms IS NULL)
+          ),
+          FOREIGN KEY(source_range_id)
+            REFERENCES library_persistent_journal_source_ranges(id) ON DELETE CASCADE
+        )"#,
+    ),
+    (
+        "library_persistent_journal_pending_renames",
+        r#"CREATE TABLE library_persistent_journal_pending_renames (
+          carry_id TEXT PRIMARY KEY CHECK(length(carry_id) BETWEEN 1 AND 512),
+          source_range_id TEXT NOT NULL,
+          volume_guid TEXT NOT NULL CHECK(length(volume_guid) BETWEEN 1 AND 512),
+          volume_serial TEXT NOT NULL CHECK(length(volume_serial) BETWEEN 1 AND 20),
+          journal_id TEXT NOT NULL CHECK(length(journal_id) BETWEEN 1 AND 20),
+          file_reference_version INTEGER NOT NULL CHECK(file_reference_version IN (2, 3)),
+          file_reference BLOB NOT NULL,
+          old_usn TEXT NOT NULL CHECK(length(old_usn) BETWEEN 1 AND 19),
+          previous_root_id TEXT NOT NULL,
+          previous_root_generation INTEGER NOT NULL CHECK(previous_root_generation > 0),
+          previous_relative_path TEXT NOT NULL,
+          is_directory INTEGER NOT NULL CHECK(is_directory IN (0, 1)),
+          enrolled_unix_ms INTEGER NOT NULL CHECK(enrolled_unix_ms >= 0),
+          CHECK(journal_id <> '0' AND journal_id NOT GLOB '*[^0-9]*'),
+          CHECK(old_usn NOT GLOB '*[^0-9]*'),
+          CHECK(length(previous_relative_path) BETWEEN 1 AND 32767),
+          CHECK(instr(previous_relative_path, char(92)) = 0),
+          CHECK(
+            (file_reference_version = 2 AND length(file_reference) = 8)
+            OR
+            (file_reference_version = 3 AND length(file_reference) = 16)
+          ),
+          FOREIGN KEY(source_range_id)
+            REFERENCES library_persistent_journal_source_ranges(id) ON DELETE CASCADE,
+          FOREIGN KEY(previous_root_id, previous_root_generation)
+            REFERENCES library_persistent_journal_root_state(root_id, root_generation)
+        )"#,
+    ),
+];
+
+const PERSISTENT_JOURNAL_CANONICAL_TRIGGER_DDL: &[(&str, &str)] = &[
+    (
+        "library_persistent_journal_source_range_id_insert",
+        r#"CREATE TRIGGER library_persistent_journal_source_range_id_insert
+          BEFORE INSERT ON library_persistent_journal_source_ranges
+          WHEN NEW.id IS NULL OR typeof(NEW.id) <> 'text'
+            OR length(NEW.id) <> 64 OR NEW.id GLOB '*[^0-9a-f]*'
+          BEGIN
+            SELECT RAISE(ABORT, 'invalid persistent journal source range id');
+          END"#,
+    ),
+    (
+        "library_persistent_journal_source_range_id_update",
+        r#"CREATE TRIGGER library_persistent_journal_source_range_id_update
+          BEFORE UPDATE OF id ON library_persistent_journal_source_ranges
+          WHEN NEW.id IS NULL OR typeof(NEW.id) <> 'text'
+            OR length(NEW.id) <> 64 OR NEW.id GLOB '*[^0-9a-f]*'
+          BEGIN
+            SELECT RAISE(ABORT, 'invalid persistent journal source range id');
+          END"#,
+    ),
+];
+
+const PERSISTENT_JOURNAL_LEGACY_V24_TRIGGER_DDL: &[(&str, &str)] = &[
+    (
+        "library_persistent_journal_source_range_id_insert",
+        r#"CREATE TRIGGER library_persistent_journal_source_range_id_insert
+          BEFORE INSERT ON library_persistent_journal_source_ranges
+          WHEN length(NEW.id) <> 64 OR NEW.id GLOB '*[^0-9a-f]*'
+          BEGIN
+            SELECT RAISE(ABORT, 'invalid persistent journal source range id');
+          END"#,
+    ),
+    (
+        "library_persistent_journal_source_range_id_update",
+        r#"CREATE TRIGGER library_persistent_journal_source_range_id_update
+          BEFORE UPDATE OF id ON library_persistent_journal_source_ranges
+          WHEN length(NEW.id) <> 64 OR NEW.id GLOB '*[^0-9a-f]*'
+          BEGIN
+            SELECT RAISE(ABORT, 'invalid persistent journal source range id');
+          END"#,
+    ),
+];
+
+fn validate_persistent_journal_rows(connection: &Connection) -> Result<(), ScanError> {
+    let invalid_relations = connection
+        .query_row(
+            "SELECT
+               EXISTS(
+                 SELECT 1 FROM library_roots AS roots
+                 JOIN library_change_root_state AS generations ON generations.root_id = roots.id
+                 LEFT JOIN library_persistent_journal_root_state AS journal
+                   ON journal.root_id = roots.id
+                  AND journal.root_generation = generations.generation
+                 WHERE generations.is_active = 1 AND journal.root_id IS NULL
+               )
+               OR EXISTS(
+                 SELECT 1 FROM library_persistent_journal_root_state AS journal
+                 JOIN library_change_root_state AS generations
+                   ON generations.root_id = journal.root_id
+                 WHERE journal.root_generation > generations.generation
+               )
+               OR EXISTS(
+                 SELECT 1 FROM library_persistent_journal_root_state AS journal
+                 LEFT JOIN library_persistent_journal_checkpoints AS checkpoints
+                   ON checkpoints.root_id = journal.root_id
+                  AND checkpoints.root_generation = journal.root_generation
+                 WHERE journal.continuity_state = 'current' AND checkpoints.root_id IS NULL
+               )
+               OR EXISTS(
+                 SELECT 1 FROM library_persistent_journal_source_ranges AS ranges
+                 JOIN library_persistent_journal_checkpoints AS checkpoints
+                   ON checkpoints.root_id = ranges.root_id
+                  AND checkpoints.root_generation = ranges.root_generation
+                 WHERE ranges.status = 'checkpointed'
+                   AND (
+                     checkpoints.volume_guid <> ranges.volume_guid
+                     OR checkpoints.volume_serial <> ranges.volume_serial
+                     OR checkpoints.journal_id <> ranges.journal_id
+                     OR CAST(checkpoints.next_unread_usn AS INTEGER)
+                       < CAST(ranges.covered_until_usn AS INTEGER)
+                   )
+               )
+               OR EXISTS(
+                 SELECT 1 FROM library_persistent_journal_queue_lineage AS lineage
+                 JOIN library_persistent_journal_source_ranges AS ranges
+                   ON ranges.id = lineage.source_range_id
+                 WHERE NOT EXISTS(
+                   SELECT 1 FROM library_change_queue_catch_up_lineage AS legacy_lineage
+                   WHERE legacy_lineage.change_id = lineage.change_id
+                     AND legacy_lineage.catch_up_source = 'persistent_journal_v1'
+                     AND legacy_lineage.catch_up_watermark = ranges.id
+                 )
+               )
+               OR EXISTS(
+                 SELECT 1 FROM library_persistent_journal_queue_lineage
+                 WHERE enrolled_unix_ms < 0
+               )
+               OR EXISTS(
+                 SELECT 1 FROM library_persistent_journal_cross_root_lineage
+                 WHERE created_unix_ms < 0 OR updated_unix_ms < 0
+               )
+               OR EXISTS(
+                 SELECT 1 FROM library_persistent_journal_cross_root_ranges
+                 WHERE enrolled_unix_ms < 0
+               )
+               OR EXISTS(
+                 SELECT 1 FROM library_persistent_journal_cross_root_ranges AS owners
+                 JOIN library_persistent_journal_source_ranges AS ranges
+                   ON ranges.id = owners.source_range_id
+                 JOIN library_persistent_journal_cross_root_lineage AS lineage
+                   ON lineage.id = owners.lineage_id
+                 WHERE ranges.volume_guid <> lineage.volume_guid
+                    OR ranges.volume_serial <> lineage.volume_serial
+                    OR ranges.journal_id <> lineage.journal_id
+                    OR (
+                      owners.participant_role = 'previous'
+                      AND (
+                        ranges.root_id <> lineage.previous_root_id
+                        OR ranges.root_generation <> lineage.previous_root_generation
+                      )
+                    )
+                    OR (
+                      owners.participant_role = 'current'
+                      AND (
+                        ranges.root_id <> lineage.current_root_id
+                        OR ranges.root_generation <> lineage.current_root_generation
+                      )
+                    )
+               )
+               OR EXISTS(
+                 SELECT 1 FROM library_persistent_journal_cross_root_lineage AS lineage
+                 WHERE 2 <> (
+                   SELECT COUNT(*)
+                   FROM library_persistent_journal_cross_root_ranges AS owners
+                   WHERE owners.lineage_id = lineage.id
+                 )
+                    OR 1 <> (
+                      SELECT COUNT(*)
+                      FROM library_persistent_journal_cross_root_ranges AS owners
+                      WHERE owners.lineage_id = lineage.id
+                        AND owners.participant_role = 'previous'
+                    )
+                    OR 1 <> (
+                      SELECT COUNT(*)
+                      FROM library_persistent_journal_cross_root_ranges AS owners
+                      WHERE owners.lineage_id = lineage.id
+                        AND owners.participant_role = 'current'
+                    )
+               )
+               OR EXISTS(
+                 SELECT 1 FROM library_persistent_journal_source_ranges AS ranges
+                 LEFT JOIN library_persistent_journal_range_lifecycle AS lifecycle
+                   ON lifecycle.source_range_id = ranges.id
+                 WHERE lifecycle.source_range_id IS NULL
+                    OR (ranges.status = 'superseded'
+                        AND lifecycle.lifecycle_state <> 'superseded')
+               )
+               OR EXISTS(
+                 SELECT 1 FROM library_persistent_journal_range_lifecycle AS lifecycle
+                 WHERE lifecycle.updated_unix_ms < 0
+                    OR (lifecycle.lifecycle_state = 'completed'
+                        AND EXISTS(
+                          SELECT 1
+                          FROM library_persistent_journal_queue_lineage AS ownership
+                          JOIN library_change_queue AS changes
+                            ON changes.id = ownership.change_id
+                          WHERE ownership.source_range_id = lifecycle.source_range_id
+                            AND changes.status NOT IN ('completed', 'superseded')
+                        ))
+               )
+               OR EXISTS(
+                 SELECT 1 FROM library_persistent_journal_pending_renames AS pending
+                 JOIN library_persistent_journal_source_ranges AS ranges
+                   ON ranges.id = pending.source_range_id
+                 WHERE pending.volume_guid <> ranges.volume_guid
+                    OR pending.volume_serial <> ranges.volume_serial
+                    OR pending.journal_id <> ranges.journal_id
+                    OR pending.previous_root_id <> ranges.root_id
+                    OR pending.previous_root_generation <> ranges.root_generation
+                    OR CAST(pending.old_usn AS INTEGER)
+                       < CAST(ranges.requested_start_usn AS INTEGER)
+                    OR CAST(pending.old_usn AS INTEGER)
+                       >= CAST(ranges.covered_until_usn AS INTEGER)
+               )
+               OR EXISTS(SELECT 1 FROM pragma_foreign_key_check)",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    if invalid_relations {
+        return Err(unverifiable_persistent_journal_contract());
+    }
+    let has_recovery_authority = connection
+        .query_row(
+            "SELECT EXISTS(
+               SELECT 1 FROM sqlite_master
+               WHERE type = 'table' AND name = 'library_recovery_authorities'
+             )",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    let invalid_inventory = if has_recovery_authority {
+        connection
+            .query_row(
+                "SELECT EXISTS(
+                   SELECT 1
+                   FROM library_metadata_inventory_runs AS runs
+                   WHERE (
+                     runs.status IN ('running', 'comparing')
+                     OR (runs.absence_authority <> 0 AND runs.status <> 'completed')
+                   )
+                   AND NOT EXISTS(
+                     SELECT 1
+                     FROM library_recovery_authorities AS authority
+                     WHERE authority.run_id = runs.id
+                       AND authority.root_id = runs.root_id
+                       AND authority.root_generation = runs.root_generation
+                       AND authority.retired_unix_ms IS NULL
+                   )
+                 )",
+                [],
+                |row| row.get::<_, bool>(0),
+            )
+            .map_err(database_error)?
+    } else {
+        connection
+            .query_row(
+                "SELECT EXISTS(
+                   SELECT 1 FROM library_metadata_inventory_runs
+                   WHERE status IN ('running', 'comparing')
+                      OR (absence_authority <> 0 AND status <> 'completed')
+                 )",
+                [],
+                |row| row.get::<_, bool>(0),
+            )
+            .map_err(database_error)?
+    };
+    if invalid_inventory {
+        return Err(unverifiable_persistent_journal_contract());
+    }
+    validate_persistent_journal_root_rows(connection)?;
+    validate_persistent_journal_checkpoint_rows(connection)?;
+    validate_persistent_journal_range_rows(connection)?;
+    validate_persistent_journal_lineage_rows(connection)?;
+    validate_persistent_journal_pending_rename_rows(connection)?;
+    validate_persistent_journal_payload_children(connection)
+}
+
+fn validate_persistent_journal_root_rows(connection: &Connection) -> Result<(), ScanError> {
+    let mut statement = connection
+        .prepare(
+            "SELECT root_id, root_generation, protocol_version, contract_version,
+                    capability_state, continuity_state, last_failure_code,
+                    last_failure_message, updated_unix_ms
+             FROM library_persistent_journal_root_state",
+        )
+        .map_err(database_error)?;
+    let rows = statement
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, i64>(1)?,
+                row.get::<_, i64>(2)?,
+                row.get::<_, i64>(3)?,
+                row.get::<_, String>(4)?,
+                row.get::<_, String>(5)?,
+                row.get::<_, Option<String>>(6)?,
+                row.get::<_, Option<String>>(7)?,
+                row.get::<_, i64>(8)?,
+            ))
+        })
+        .map_err(database_error)?;
+    for row in rows {
+        let (
+            root_id,
+            root_generation,
+            protocol_version,
+            contract_version,
+            capability_state,
+            continuity_state,
+            failure_code,
+            failure_message,
+            updated_unix_ms,
+        ) = row.map_err(database_error)?;
+        PersistentJournalCapability {
+            root_id,
+            root_generation: parse_root_generation(root_generation)?,
+            protocol_version: u16::try_from(protocol_version)
+                .map_err(|_| unverifiable_persistent_journal_contract())?,
+            contract_version: u16::try_from(contract_version)
+                .map_err(|_| unverifiable_persistent_journal_contract())?,
+            state: parse_journal_capability_state(&capability_state)?,
+            continuity: parse_journal_continuity_state(&continuity_state)?,
+            failure: parse_journal_failure(failure_code, failure_message)?,
+            updated_unix_ms,
+        }
+        .validate()
+        .map_err(|_| unverifiable_persistent_journal_contract())?;
+    }
+    Ok(())
+}
+
+fn validate_persistent_journal_checkpoint_rows(connection: &Connection) -> Result<(), ScanError> {
+    let mut statement = connection
+        .prepare(
+            "SELECT root_id, root_generation, volume_guid, volume_serial,
+                    root_reference_version, root_file_reference, journal_id,
+                    next_unread_usn, captured_exclusive_end, covered_catalog_revision,
+                    protocol_version, contract_version, continuity_state,
+                    last_failure_code, last_failure_message, updated_unix_ms
+             FROM library_persistent_journal_checkpoints",
+        )
+        .map_err(database_error)?;
+    let rows = statement
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, i64>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, i64>(4)?,
+                row.get::<_, Vec<u8>>(5)?,
+                row.get::<_, String>(6)?,
+                row.get::<_, String>(7)?,
+                row.get::<_, String>(8)?,
+                row.get::<_, i64>(9)?,
+                row.get::<_, i64>(10)?,
+                row.get::<_, i64>(11)?,
+                row.get::<_, String>(12)?,
+                row.get::<_, Option<String>>(13)?,
+                row.get::<_, Option<String>>(14)?,
+                row.get::<_, i64>(15)?,
+            ))
+        })
+        .map_err(database_error)?;
+    for row in rows {
+        let (
+            root_id,
+            root_generation,
+            volume_guid,
+            volume_serial,
+            reference_version,
+            reference,
+            journal_id,
+            next_unread_usn,
+            captured_exclusive_end,
+            covered_catalog_revision,
+            protocol_version,
+            contract_version,
+            continuity,
+            failure_code,
+            failure_message,
+            updated_unix_ms,
+        ) = row.map_err(database_error)?;
+        let root_file_reference = JournalFileReference::from_bytes(&reference)
+            .map_err(|_| unverifiable_persistent_journal_contract())?;
+        if i64::from(root_file_reference.record_version()) != reference_version {
+            return Err(unverifiable_persistent_journal_contract());
+        }
+        PersistentJournalCheckpoint {
+            root_id,
+            root_generation: parse_root_generation(root_generation)?,
+            volume: PersistentJournalVolumeIdentity {
+                volume_guid,
+                volume_serial: parse_canonical_u64(&volume_serial)?,
+            },
+            root_file_reference,
+            journal_id: JournalIdentifier::parse_canonical(&journal_id)
+                .map_err(|_| unverifiable_persistent_journal_contract())?,
+            next_unread_usn: JournalUsn::parse_canonical(&next_unread_usn)
+                .map_err(|_| unverifiable_persistent_journal_contract())?,
+            captured_exclusive_end: JournalUsn::parse_canonical(&captured_exclusive_end)
+                .map_err(|_| unverifiable_persistent_journal_contract())?,
+            covered_catalog_revision: u64::try_from(covered_catalog_revision)
+                .map_err(|_| unverifiable_persistent_journal_contract())?,
+            protocol_version: u16::try_from(protocol_version)
+                .map_err(|_| unverifiable_persistent_journal_contract())?,
+            contract_version: u16::try_from(contract_version)
+                .map_err(|_| unverifiable_persistent_journal_contract())?,
+            continuity: parse_journal_continuity_state(&continuity)?,
+            failure: parse_journal_failure(failure_code, failure_message)?,
+            updated_unix_ms,
+        }
+        .validate()
+        .map_err(|_| unverifiable_persistent_journal_contract())?;
+    }
+    Ok(())
+}
+
+fn validate_persistent_journal_range_rows(connection: &Connection) -> Result<(), ScanError> {
+    let mut statement = connection
+        .prepare(
+            "SELECT id, root_id, root_generation, volume_guid, volume_serial, journal_id,
+                    requested_start_usn, requested_end_usn, covered_until_usn, is_complete,
+                    protocol_version, contract_version, status, enrolled_unix_ms,
+                    checkpointed_unix_ms, canonical_payload
+             FROM library_persistent_journal_source_ranges",
+        )
+        .map_err(database_error)?;
+    let rows = statement
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, i64>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, String>(4)?,
+                row.get::<_, String>(5)?,
+                row.get::<_, String>(6)?,
+                row.get::<_, String>(7)?,
+                row.get::<_, String>(8)?,
+                row.get::<_, bool>(9)?,
+                row.get::<_, i64>(10)?,
+                row.get::<_, i64>(11)?,
+                row.get::<_, String>(12)?,
+                row.get::<_, i64>(13)?,
+                row.get::<_, Option<i64>>(14)?,
+                row.get::<_, Vec<u8>>(15)?,
+            ))
+        })
+        .map_err(database_error)?;
+    for row in rows {
+        let (
+            batch_id,
+            root_id,
+            root_generation,
+            volume_guid,
+            volume_serial,
+            journal_id,
+            requested_start_usn,
+            requested_end_usn,
+            covered_until_usn,
+            is_complete,
+            protocol_version,
+            contract_version,
+            state,
+            enrolled_unix_ms,
+            checkpointed_unix_ms,
+            canonical_payload,
+        ) = row.map_err(database_error)?;
+        if persistent_journal_batch_id_from_payload(&canonical_payload) != batch_id {
+            return Err(unverifiable_persistent_journal_contract());
+        }
+        let source_range = PersistentJournalSourceRange {
+            batch_id,
+            root_id,
+            root_generation: parse_root_generation(root_generation)?,
+            volume: PersistentJournalVolumeIdentity {
+                volume_guid,
+                volume_serial: parse_canonical_u64(&volume_serial)?,
+            },
+            journal_id: JournalIdentifier::parse_canonical(&journal_id)
+                .map_err(|_| unverifiable_persistent_journal_contract())?,
+            requested_start_usn: JournalUsn::parse_canonical(&requested_start_usn)
+                .map_err(|_| unverifiable_persistent_journal_contract())?,
+            requested_end_usn: JournalUsn::parse_canonical(&requested_end_usn)
+                .map_err(|_| unverifiable_persistent_journal_contract())?,
+            covered_until_usn: JournalUsn::parse_canonical(&covered_until_usn)
+                .map_err(|_| unverifiable_persistent_journal_contract())?,
+            is_complete,
+            protocol_version: u16::try_from(protocol_version)
+                .map_err(|_| unverifiable_persistent_journal_contract())?,
+            contract_version: u16::try_from(contract_version)
+                .map_err(|_| unverifiable_persistent_journal_contract())?,
+            state: parse_journal_range_state(&state)?,
+            enrolled_unix_ms,
+            checkpointed_unix_ms,
+        };
+        source_range
+            .validate()
+            .map_err(|_| unverifiable_persistent_journal_contract())?;
+        if !persistent_journal_batch_payload_matches_source_range(&canonical_payload, &source_range)
+        {
+            return Err(unverifiable_persistent_journal_contract());
+        }
+    }
+    Ok(())
+}
+
+pub(super) fn validate_persistent_journal_lineage_rows(
+    connection: &Connection,
+) -> Result<(), ScanError> {
+    let mut statement = connection
+        .prepare(
+            "SELECT lineage.id, lineage.volume_guid, lineage.volume_serial,
+                    lineage.file_reference_version, lineage.file_reference,
+                    lineage.previous_root_id, lineage.previous_root_generation,
+                    lineage.previous_relative_path, lineage.current_root_id,
+                    lineage.current_root_generation, lineage.current_relative_path,
+                    lineage.status, lineage.journal_id, lineage.old_usn,
+                    lineage.new_usn, lineage.previous_carry_id
+             FROM library_persistent_journal_cross_root_lineage AS lineage
+             ORDER BY lineage.id",
+        )
+        .map_err(database_error)?;
+    let rows = statement
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, i64>(3)?,
+                row.get::<_, Vec<u8>>(4)?,
+                row.get::<_, String>(5)?,
+                row.get::<_, i64>(6)?,
+                row.get::<_, String>(7)?,
+                row.get::<_, String>(8)?,
+                row.get::<_, i64>(9)?,
+                row.get::<_, String>(10)?,
+                row.get::<_, String>(11)?,
+                row.get::<_, Option<String>>(12)?,
+                row.get::<_, Option<String>>(13)?,
+                row.get::<_, Option<String>>(14)?,
+                row.get::<_, Option<String>>(15)?,
+            ))
+        })
+        .map_err(database_error)?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(database_error)?;
+    drop(statement);
+    for row in rows {
+        let (
+            lineage_id,
+            volume_guid,
+            volume_serial,
+            reference_version,
+            reference,
+            previous_root_id,
+            previous_root_generation,
+            previous_relative_path,
+            current_root_id,
+            current_root_generation,
+            current_relative_path,
+            state,
+            journal_id,
+            old_usn,
+            new_usn,
+            previous_carry_id,
+        ) = row;
+        let file_reference = JournalFileReference::from_bytes(&reference)
+            .map_err(|_| unverifiable_persistent_journal_contract())?;
+        if i64::from(file_reference.record_version()) != reference_version {
+            return Err(unverifiable_persistent_journal_contract());
+        }
+        let mut lineage = PersistentJournalCrossRootLineage {
+            lineage_id: lineage_id.clone(),
+            owner_source_range_id: String::new(),
+            volume: PersistentJournalVolumeIdentity {
+                volume_guid,
+                volume_serial: parse_canonical_u64(&volume_serial)?,
+            },
+            journal_id: JournalIdentifier::parse_canonical(
+                journal_id
+                    .as_deref()
+                    .ok_or_else(unverifiable_persistent_journal_contract)?,
+            )
+            .map_err(|_| unverifiable_persistent_journal_contract())?,
+            file_reference,
+            old_usn: old_usn
+                .as_deref()
+                .map(JournalUsn::parse_canonical)
+                .transpose()
+                .map_err(|_| unverifiable_persistent_journal_contract())?,
+            new_usn: new_usn
+                .as_deref()
+                .map(JournalUsn::parse_canonical)
+                .transpose()
+                .map_err(|_| unverifiable_persistent_journal_contract())?,
+            previous_carry_id,
+            previous_root_id,
+            previous_root_generation: parse_root_generation(previous_root_generation)?,
+            previous_relative_path,
+            current_root_id,
+            current_root_generation: parse_root_generation(current_root_generation)?,
+            current_relative_path,
+            state: parse_journal_lineage_state(&state)?,
+        };
+        let mut owner_statement = connection
+            .prepare(
+                "SELECT owners.source_range_id, owners.participant_role,
+                        ranges.root_id, ranges.root_generation, ranges.volume_guid,
+                        ranges.volume_serial, ranges.journal_id, ranges.canonical_payload
+                 FROM library_persistent_journal_cross_root_ranges AS owners
+                 JOIN library_persistent_journal_source_ranges AS ranges
+                   ON ranges.id = owners.source_range_id
+                 WHERE owners.lineage_id = ?1
+                 ORDER BY owners.participant_role, owners.source_range_id",
+            )
+            .map_err(database_error)?;
+        let owner_rows = owner_statement
+            .query_map([&lineage_id], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                    row.get::<_, i64>(3)?,
+                    row.get::<_, String>(4)?,
+                    row.get::<_, String>(5)?,
+                    row.get::<_, String>(6)?,
+                    row.get::<_, Vec<u8>>(7)?,
+                ))
+            })
+            .map_err(database_error)?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(database_error)?;
+        let [current_owner, previous_owner] = owner_rows.as_slice() else {
+            return Err(unverifiable_persistent_journal_contract());
+        };
+        if current_owner.1 != "current" || previous_owner.1 != "previous" {
+            return Err(unverifiable_persistent_journal_contract());
+        }
+        for owner in [previous_owner, current_owner] {
+            let expected = if owner.1 == "previous" {
+                (
+                    lineage.previous_root_id.as_str(),
+                    lineage.previous_root_generation,
+                )
+            } else {
+                (
+                    lineage.current_root_id.as_str(),
+                    lineage.current_root_generation,
+                )
+            };
+            if owner.2 != expected.0
+                || parse_root_generation(owner.3)? != expected.1
+                || owner.4 != lineage.volume.volume_guid
+                || parse_canonical_u64(&owner.5)? != lineage.volume.volume_serial
+                || JournalIdentifier::parse_canonical(&owner.6)
+                    .map_err(|_| unverifiable_persistent_journal_contract())?
+                    != lineage.journal_id
+            {
+                return Err(unverifiable_persistent_journal_contract());
+            }
+        }
+        let owner_lifecycle = {
+            let mut lifecycle_statement = connection
+                .prepare(
+                    "SELECT owners.participant_role, ranges.status,
+                            lifecycle.lifecycle_state, ranges.root_generation,
+                            COALESCE(active.is_active, 0), active.generation,
+                            journal.continuity_state, journal.last_failure_code
+                     FROM library_persistent_journal_cross_root_ranges AS owners
+                     JOIN library_persistent_journal_source_ranges AS ranges
+                       ON ranges.id = owners.source_range_id
+                     JOIN library_persistent_journal_range_lifecycle AS lifecycle
+                       ON lifecycle.source_range_id = ranges.id
+                     LEFT JOIN library_change_root_state AS active
+                       ON active.root_id = ranges.root_id
+                     LEFT JOIN library_persistent_journal_root_state AS journal
+                       ON journal.root_id = ranges.root_id
+                      AND journal.root_generation = ranges.root_generation
+                     WHERE owners.lineage_id = ?1
+                     ORDER BY owners.participant_role",
+                )
+                .map_err(database_error)?;
+            lifecycle_statement
+                .query_map([&lineage_id], |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, String>(2)?,
+                        row.get::<_, i64>(3)?,
+                        row.get::<_, bool>(4)?,
+                        row.get::<_, Option<i64>>(5)?,
+                        row.get::<_, Option<String>>(6)?,
+                        row.get::<_, Option<String>>(7)?,
+                    ))
+                })
+                .map_err(database_error)?
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(database_error)?
+        };
+        let [current_lifecycle, previous_lifecycle] = owner_lifecycle.as_slice() else {
+            return Err(unverifiable_persistent_journal_contract());
+        };
+        if current_lifecycle.0 != "current" || previous_lifecycle.0 != "previous" {
+            return Err(unverifiable_persistent_journal_contract());
+        }
+        let mut completed_count = 0_u8;
+        let mut superseded_count = 0_u8;
+        for owner in [previous_lifecycle, current_lifecycle] {
+            match owner.2.as_str() {
+                "completed" if owner.1 == "checkpointed" => {
+                    completed_count = completed_count.saturating_add(1);
+                }
+                "pending" if owner.1 != "superseded" => {}
+                "superseded"
+                    if owner.1 == "superseded"
+                        && (!owner.4 || owner.5 != Some(owner.3))
+                        && owner.6.as_deref() == Some("unavailable")
+                        && owner.7.as_deref() == Some("root_generation_retired") =>
+                {
+                    superseded_count = superseded_count.saturating_add(1);
+                }
+                _ => return Err(unverifiable_persistent_journal_contract()),
+            }
+        }
+        let expected_state = if superseded_count > 0 {
+            PersistentJournalLineageState::Superseded
+        } else if completed_count == 2 {
+            PersistentJournalLineageState::Completed
+        } else {
+            PersistentJournalLineageState::Pending
+        };
+        if lineage.state != expected_state {
+            return Err(unverifiable_persistent_journal_contract());
+        }
+        lineage.owner_source_range_id = previous_owner.0.clone();
+        lineage
+            .validate()
+            .map_err(|_| unverifiable_persistent_journal_contract())?;
+        if lineage.previous_carry_id.is_some() {
+            if !persistent_journal_batch_payload_contains_pending_lineage_source(
+                &previous_owner.7,
+                &lineage,
+            ) || !persistent_journal_batch_payload_contains_lineage(
+                &current_owner.7,
+                &current_owner.0,
+                &lineage,
+            ) {
+                return Err(unverifiable_persistent_journal_contract());
+            }
+            lineage.owner_source_range_id = current_owner.0.clone();
+            if !persistent_journal_batch_payload_contains_lineage(
+                &current_owner.7,
+                &current_owner.0,
+                &lineage,
+            ) {
+                return Err(unverifiable_persistent_journal_contract());
+            }
+        } else {
+            if !persistent_journal_batch_payload_contains_lineage(
+                &previous_owner.7,
+                &previous_owner.0,
+                &lineage,
+            ) {
+                return Err(unverifiable_persistent_journal_contract());
+            }
+            lineage.owner_source_range_id = current_owner.0.clone();
+            if !persistent_journal_batch_payload_contains_lineage(
+                &current_owner.7,
+                &current_owner.0,
+                &lineage,
+            ) {
+                return Err(unverifiable_persistent_journal_contract());
+            }
+        }
+    }
+    Ok(())
+}
+
+fn validate_persistent_journal_pending_rename_rows(
+    connection: &Connection,
+) -> Result<(), ScanError> {
+    let mut statement = connection
+        .prepare(
+            "SELECT carry_id, source_range_id, volume_guid, volume_serial, journal_id,
+                    file_reference_version, file_reference, old_usn,
+                    previous_root_id, previous_root_generation, previous_relative_path,
+                    is_directory, enrolled_unix_ms
+             FROM library_persistent_journal_pending_renames",
+        )
+        .map_err(database_error)?;
+    let rows = statement
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, String>(4)?,
+                row.get::<_, i64>(5)?,
+                row.get::<_, Vec<u8>>(6)?,
+                row.get::<_, String>(7)?,
+                row.get::<_, String>(8)?,
+                row.get::<_, i64>(9)?,
+                row.get::<_, String>(10)?,
+                row.get::<_, bool>(11)?,
+                row.get::<_, i64>(12)?,
+            ))
+        })
+        .map_err(database_error)?;
+    for row in rows {
+        let row = row.map_err(database_error)?;
+        let file_reference = JournalFileReference::from_bytes(&row.6)
+            .map_err(|_| unverifiable_persistent_journal_contract())?;
+        if i64::from(file_reference.record_version()) != row.5 {
+            return Err(unverifiable_persistent_journal_contract());
+        }
+        PersistentJournalPendingRename {
+            carry_id: row.0,
+            source_range_id: row.1,
+            volume: PersistentJournalVolumeIdentity {
+                volume_guid: row.2,
+                volume_serial: parse_canonical_u64(&row.3)?,
+            },
+            journal_id: JournalIdentifier::parse_canonical(&row.4)
+                .map_err(|_| unverifiable_persistent_journal_contract())?,
+            file_reference,
+            old_usn: JournalUsn::parse_canonical(&row.7)
+                .map_err(|_| unverifiable_persistent_journal_contract())?,
+            previous_root_id: row.8,
+            previous_root_generation: parse_root_generation(row.9)?,
+            previous_relative_path: row.10,
+            is_directory: row.11,
+            enrolled_unix_ms: row.12,
+        }
+        .validate()
+        .map_err(|_| unverifiable_persistent_journal_contract())?;
+    }
+    Ok(())
+}
+
+struct PersistentJournalLineagePayloadProof {
+    lineage: PersistentJournalCrossRootLineage,
+    previous_range_id: String,
+    current_range_id: String,
+}
+
+pub(super) fn validate_persistent_journal_payload_children(
+    connection: &Connection,
+) -> Result<(), ScanError> {
+    let payloads = load_persistent_journal_payload_children(connection)?;
+    validate_persistent_journal_payload_intents(connection, &payloads)?;
+    let lineage_proofs = load_persistent_journal_lineage_payload_proofs(connection)?;
+    let pending_renames = load_persistent_journal_pending_rename_proofs(connection)?;
+    let mut lineage_slots = std::collections::BTreeMap::<String, Vec<Vec<String>>>::new();
+    let mut consumed_by_range = std::collections::BTreeMap::<String, Vec<String>>::new();
+    let mut consumed_proofs =
+        std::collections::BTreeMap::<String, &PersistentJournalLineagePayloadProof>::new();
+    for proof in &lineage_proofs {
+        let lineage = &proof.lineage;
+        if let Some(carry_id) = &lineage.previous_carry_id {
+            if consumed_proofs.insert(carry_id.clone(), proof).is_some() {
+                return Err(unverifiable_persistent_journal_contract());
+            }
+            lineage_slots
+                .entry(proof.current_range_id.clone())
+                .or_default()
+                .push(lineage_payload_candidates(
+                    lineage,
+                    &proof.previous_range_id,
+                    &proof.current_range_id,
+                ));
+            lineage_slots
+                .entry(proof.current_range_id.clone())
+                .or_default()
+                .push(lineage_payload_candidates(
+                    lineage,
+                    &proof.current_range_id,
+                    &proof.current_range_id,
+                ));
+            consumed_by_range
+                .entry(proof.current_range_id.clone())
+                .or_default()
+                .push(carry_id.clone());
+        } else {
+            lineage_slots
+                .entry(proof.previous_range_id.clone())
+                .or_default()
+                .push(lineage_payload_candidates(
+                    lineage,
+                    &proof.previous_range_id,
+                    &proof.previous_range_id,
+                ));
+            lineage_slots
+                .entry(proof.current_range_id.clone())
+                .or_default()
+                .push(lineage_payload_candidates(
+                    lineage,
+                    &proof.current_range_id,
+                    &proof.current_range_id,
+                ));
+        }
+    }
+    for expected in consumed_by_range.values_mut() {
+        expected.sort();
+    }
+
+    let mut durable_pending = std::collections::BTreeMap::new();
+    for pending in pending_renames {
+        if consumed_proofs.contains_key(&pending.carry_id)
+            || durable_pending
+                .insert(pending.carry_id.clone(), pending)
+                .is_some()
+        {
+            return Err(unverifiable_persistent_journal_contract());
+        }
+    }
+    let mut payload_pending = std::collections::BTreeMap::new();
+    for (range_id, children) in &payloads {
+        let slots = lineage_slots
+            .get(range_id)
+            .map(Vec::as_slice)
+            .unwrap_or(&[]);
+        if !lineage_payload_slots_match(&children.lineage, slots) {
+            return Err(unverifiable_persistent_journal_contract());
+        }
+        let expected_consumed = consumed_by_range
+            .get(range_id)
+            .map(Vec::as_slice)
+            .unwrap_or(&[]);
+        if children.consumed_pending_rename_ids != expected_consumed {
+            return Err(unverifiable_persistent_journal_contract());
+        }
+        for entry in &children.pending_renames {
+            let pending = persistent_journal_pending_rename_from_payload_entry(entry, range_id)
+                .ok_or_else(unverifiable_persistent_journal_contract)?;
+            if payload_pending
+                .insert(pending.carry_id.clone(), pending)
+                .is_some()
+            {
+                return Err(unverifiable_persistent_journal_contract());
+            }
+        }
+    }
+
+    for (carry_id, pending) in &payload_pending {
+        if let Some(durable) = durable_pending.get(carry_id) {
+            if pending != durable {
+                return Err(unverifiable_persistent_journal_contract());
+            }
+            continue;
+        }
+        let proof = consumed_proofs
+            .get(carry_id)
+            .ok_or_else(unverifiable_persistent_journal_contract)?;
+        if !pending_rename_matches_consumed_lineage(pending, proof) {
+            return Err(unverifiable_persistent_journal_contract());
+        }
+    }
+    for (carry_id, pending) in &durable_pending {
+        if payload_pending.get(carry_id) != Some(pending) {
+            return Err(unverifiable_persistent_journal_contract());
+        }
+    }
+    for (carry_id, proof) in consumed_proofs {
+        let pending = payload_pending
+            .get(&carry_id)
+            .ok_or_else(unverifiable_persistent_journal_contract)?;
+        if !pending_rename_matches_consumed_lineage(pending, proof) {
+            return Err(unverifiable_persistent_journal_contract());
+        }
+    }
+    Ok(())
+}
+
+fn validate_persistent_journal_payload_intents(
+    connection: &Connection,
+    payloads: &std::collections::BTreeMap<
+        String,
+        crate::domain::PersistentJournalBatchPayloadChildren,
+    >,
+) -> Result<(), ScanError> {
+    let orphaned_evidence = connection
+        .query_row(
+            "SELECT EXISTS(
+               SELECT 1
+               FROM library_change_queue_catch_up_lineage AS lineage
+               LEFT JOIN library_persistent_journal_source_ranges AS ranges
+                 ON ranges.id = lineage.catch_up_watermark
+               WHERE lineage.catch_up_source = 'persistent_journal_v1'
+                 AND (
+                   ranges.id IS NULL
+                   OR NOT EXISTS (
+                     SELECT 1
+                     FROM library_persistent_journal_queue_lineage AS direct
+                     WHERE direct.source_range_id = lineage.catch_up_watermark
+                       AND direct.change_id = lineage.change_id
+                   ) AND NOT EXISTS (
+                     SELECT 1
+                     FROM library_persistent_journal_queue_lineage AS owner
+                     JOIN library_persistent_journal_cross_root_ranges AS owner_lineage
+                       ON owner_lineage.source_range_id = owner.source_range_id
+                     JOIN library_persistent_journal_cross_root_ranges AS peer_lineage
+                       ON peer_lineage.lineage_id = owner_lineage.lineage_id
+                      AND peer_lineage.source_range_id = lineage.catch_up_watermark
+                      AND peer_lineage.enrolled_unix_ms = lineage.enrolled_unix_ms
+                     WHERE owner.change_id = lineage.change_id
+                   ) AND NOT EXISTS (
+                     SELECT 1
+                     FROM library_persistent_journal_queue_lineage AS recovery_owner
+                     JOIN library_persistent_journal_source_ranges AS recovery_range
+                       ON recovery_range.id = recovery_owner.source_range_id
+                     JOIN library_change_queue AS recovery_change
+                       ON recovery_change.id = recovery_owner.change_id
+                     JOIN library_persistent_journal_cross_root_lineage AS recovery_lineage
+                       ON recovery_lineage.previous_carry_id IS NOT NULL
+                      AND recovery_lineage.previous_root_id = recovery_change.root_id
+                      AND recovery_lineage.previous_root_generation = recovery_change.root_generation
+                      AND recovery_lineage.previous_relative_path = recovery_change.relative_path
+                      AND recovery_lineage.new_usn = recovery_change.first_sequence
+                      AND recovery_lineage.new_usn = recovery_change.most_recent_sequence
+                      AND recovery_lineage.volume_guid = recovery_range.volume_guid
+                      AND recovery_lineage.volume_serial = recovery_range.volume_serial
+                      AND recovery_lineage.journal_id = recovery_range.journal_id
+                      AND CAST(recovery_range.requested_start_usn AS INTEGER)
+                            <= CAST(recovery_lineage.new_usn AS INTEGER)
+                      AND CAST(recovery_lineage.new_usn AS INTEGER)
+                            < CAST(recovery_range.covered_until_usn AS INTEGER)
+                     JOIN library_persistent_journal_cross_root_ranges AS recovery_endpoint
+                       ON recovery_endpoint.lineage_id = recovery_lineage.id
+                      AND recovery_endpoint.source_range_id = lineage.catch_up_watermark
+                      AND recovery_endpoint.enrolled_unix_ms = lineage.enrolled_unix_ms
+                     WHERE recovery_owner.change_id = lineage.change_id
+                   )
+                 )
+             )",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    if orphaned_evidence {
+        return Err(unverifiable_persistent_journal_contract());
+    }
+
+    for (range_id, children) in payloads {
+        let mut expected =
+            super::change_queue::normalize_persistent_journal_intents(&children.intents)
+                .map_err(|_| unverifiable_persistent_journal_contract())?
+                .iter()
+                .map(persistent_journal_canonical_intent_entry)
+                .collect::<Vec<_>>();
+        expected.sort();
+
+        let range_enrolled_unix_ms = connection
+            .query_row(
+                "SELECT enrolled_unix_ms
+                 FROM library_persistent_journal_source_ranges WHERE id = ?1",
+                [range_id],
+                |row| row.get::<_, i64>(0),
+            )
+            .map_err(database_error)?;
+        let mut statement = connection
+            .prepare(
+                "SELECT changes.root_id, changes.root_generation, changes.intent_kind,
+                        changes.scope, changes.relative_path, changes.previous_relative_path,
+                        changes.origin, changes.first_observed_unix_ms,
+                        changes.most_recent_observed_unix_ms, changes.first_sequence,
+                        changes.most_recent_sequence, changes.coalesced_observation_count,
+                        changes.status, changes.catch_up_source, changes.catch_up_watermark,
+                        ownership.enrolled_unix_ms,
+                        (SELECT COUNT(*)
+                         FROM library_change_queue_catch_up_lineage AS lineage
+                         WHERE lineage.change_id = changes.id
+                           AND (
+                             lineage.catch_up_source <> 'persistent_journal_v1'
+                             OR NOT (
+                               lineage.catch_up_watermark = ?1
+                               OR EXISTS (
+                                 SELECT 1
+                                 FROM library_persistent_journal_cross_root_ranges AS owner_lineage
+                                 JOIN library_persistent_journal_cross_root_ranges AS peer_lineage
+                                   ON peer_lineage.lineage_id = owner_lineage.lineage_id
+                                  AND peer_lineage.source_range_id = lineage.catch_up_watermark
+                                  AND peer_lineage.enrolled_unix_ms = lineage.enrolled_unix_ms
+                                 WHERE owner_lineage.source_range_id = ?1
+                               ) OR EXISTS (
+                                 SELECT 1
+                                 FROM library_persistent_journal_source_ranges AS recovery_range
+                                 JOIN library_persistent_journal_cross_root_lineage AS recovery_lineage
+                                   ON recovery_lineage.previous_carry_id IS NOT NULL
+                                  AND recovery_lineage.previous_root_id = changes.root_id
+                                  AND recovery_lineage.previous_root_generation = changes.root_generation
+                                  AND recovery_lineage.previous_relative_path = changes.relative_path
+                                  AND recovery_lineage.new_usn = changes.first_sequence
+                                  AND recovery_lineage.new_usn = changes.most_recent_sequence
+                                  AND recovery_lineage.volume_guid = recovery_range.volume_guid
+                                  AND recovery_lineage.volume_serial = recovery_range.volume_serial
+                                  AND recovery_lineage.journal_id = recovery_range.journal_id
+                                  AND CAST(recovery_range.requested_start_usn AS INTEGER)
+                                        <= CAST(recovery_lineage.new_usn AS INTEGER)
+                                  AND CAST(recovery_lineage.new_usn AS INTEGER)
+                                        < CAST(recovery_range.covered_until_usn AS INTEGER)
+                                 JOIN library_persistent_journal_cross_root_ranges AS recovery_endpoint
+                                   ON recovery_endpoint.lineage_id = recovery_lineage.id
+                                  AND recovery_endpoint.source_range_id = lineage.catch_up_watermark
+                                  AND recovery_endpoint.enrolled_unix_ms = lineage.enrolled_unix_ms
+                                 WHERE recovery_range.id = ?1
+                               )
+                             )
+                           )),
+                        (SELECT COUNT(*)
+                         FROM library_change_queue_catch_up_lineage AS lineage
+                         WHERE lineage.change_id = changes.id
+                           AND lineage.catch_up_source = 'persistent_journal_v1'
+                           AND lineage.catch_up_watermark = ?1
+                           AND lineage.enrolled_unix_ms = ?2)
+                 FROM library_persistent_journal_queue_lineage AS ownership
+                 JOIN library_change_queue AS changes ON changes.id = ownership.change_id
+                 WHERE ownership.source_range_id = ?1
+                 ORDER BY changes.id",
+            )
+            .map_err(database_error)?;
+        let rows = statement
+            .query_map(params![range_id, range_enrolled_unix_ms], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, i64>(1)?,
+                    row.get::<_, String>(2)?,
+                    row.get::<_, String>(3)?,
+                    row.get::<_, String>(4)?,
+                    row.get::<_, Option<String>>(5)?,
+                    row.get::<_, String>(6)?,
+                    row.get::<_, i64>(7)?,
+                    row.get::<_, i64>(8)?,
+                    row.get::<_, String>(9)?,
+                    row.get::<_, String>(10)?,
+                    row.get::<_, i64>(11)?,
+                    row.get::<_, String>(12)?,
+                    row.get::<_, Option<String>>(13)?,
+                    row.get::<_, Option<String>>(14)?,
+                    row.get::<_, i64>(15)?,
+                    row.get::<_, i64>(16)?,
+                    row.get::<_, i64>(17)?,
+                ))
+            })
+            .map_err(database_error)?;
+        let mut actual = Vec::new();
+        for row in rows {
+            let row = row.map_err(database_error)?;
+            if !matches!(
+                row.12.as_str(),
+                "pending" | "leased" | "retry_wait" | "completed" | "superseded"
+            ) || row.13.as_deref() != Some("persistent_journal_v1")
+                || row.14.as_deref() != Some(range_id.as_str())
+                || row.15 != range_enrolled_unix_ms
+                || row.16 != 0
+                || row.17 != 1
+            {
+                return Err(unverifiable_persistent_journal_contract());
+            }
+            let intent = LibraryChangeIntent {
+                root_id: row.0,
+                root_generation: parse_root_generation(row.1)?,
+                kind: parse_legacy_intent_kind(&row.2)?,
+                scope: parse_legacy_intent_scope(&row.3)?,
+                relative_path: row.4,
+                previous_relative_path: row.5,
+                origin: parse_legacy_intent_origin(&row.6)?,
+                first_observed_unix_ms: row.7,
+                most_recent_observed_unix_ms: row.8,
+                first_sequence: parse_canonical_u64(&row.9)?,
+                most_recent_sequence: parse_canonical_u64(&row.10)?,
+                coalesced_observation_count: u32::try_from(row.11)
+                    .map_err(|_| unverifiable_persistent_journal_contract())?,
+            };
+            actual.push(persistent_journal_canonical_intent_entry(&intent));
+        }
+        actual.sort();
+        if actual != expected {
+            return Err(unverifiable_persistent_journal_contract());
+        }
+    }
+    Ok(())
+}
+
+fn load_persistent_journal_payload_children(
+    connection: &Connection,
+) -> Result<
+    std::collections::BTreeMap<String, crate::domain::PersistentJournalBatchPayloadChildren>,
+    ScanError,
+> {
+    let mut statement = connection
+        .prepare(
+            "SELECT id, canonical_payload
+             FROM library_persistent_journal_source_ranges ORDER BY id",
+        )
+        .map_err(database_error)?;
+    let rows = statement
+        .query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, Vec<u8>>(1)?))
+        })
+        .map_err(database_error)?;
+    let mut payloads = std::collections::BTreeMap::new();
+    for row in rows {
+        let (range_id, payload) = row.map_err(database_error)?;
+        let children = persistent_journal_batch_payload_children(&payload)
+            .ok_or_else(unverifiable_persistent_journal_contract)?;
+        if payloads.insert(range_id, children).is_some() {
+            return Err(unverifiable_persistent_journal_contract());
+        }
+    }
+    Ok(payloads)
+}
+
+fn load_persistent_journal_lineage_payload_proofs(
+    connection: &Connection,
+) -> Result<Vec<PersistentJournalLineagePayloadProof>, ScanError> {
+    let mut statement = connection
+        .prepare(
+            "SELECT lineage.id, lineage.volume_guid, lineage.volume_serial,
+                    lineage.file_reference_version, lineage.file_reference,
+                    lineage.previous_root_id, lineage.previous_root_generation,
+                    lineage.previous_relative_path, lineage.current_root_id,
+                    lineage.current_root_generation, lineage.current_relative_path,
+                    lineage.status, lineage.journal_id, lineage.old_usn,
+                    lineage.new_usn, lineage.previous_carry_id,
+                    previous_owner.source_range_id, current_owner.source_range_id
+             FROM library_persistent_journal_cross_root_lineage AS lineage
+             JOIN library_persistent_journal_cross_root_ranges AS previous_owner
+               ON previous_owner.lineage_id = lineage.id
+              AND previous_owner.participant_role = 'previous'
+             JOIN library_persistent_journal_cross_root_ranges AS current_owner
+               ON current_owner.lineage_id = lineage.id
+              AND current_owner.participant_role = 'current'
+             ORDER BY lineage.id",
+        )
+        .map_err(database_error)?;
+    let rows = statement
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, i64>(3)?,
+                row.get::<_, Vec<u8>>(4)?,
+                row.get::<_, String>(5)?,
+                row.get::<_, i64>(6)?,
+                row.get::<_, String>(7)?,
+                row.get::<_, String>(8)?,
+                row.get::<_, i64>(9)?,
+                row.get::<_, String>(10)?,
+                row.get::<_, String>(11)?,
+                row.get::<_, Option<String>>(12)?,
+                row.get::<_, Option<String>>(13)?,
+                row.get::<_, Option<String>>(14)?,
+                row.get::<_, Option<String>>(15)?,
+                row.get::<_, String>(16)?,
+                row.get::<_, String>(17)?,
+            ))
+        })
+        .map_err(database_error)?;
+    let mut proofs = Vec::new();
+    for row in rows {
+        let row = row.map_err(database_error)?;
+        let file_reference = JournalFileReference::from_bytes(&row.4)
+            .map_err(|_| unverifiable_persistent_journal_contract())?;
+        if i64::from(file_reference.record_version()) != row.3 {
+            return Err(unverifiable_persistent_journal_contract());
+        }
+        let lineage = PersistentJournalCrossRootLineage {
+            lineage_id: row.0,
+            owner_source_range_id: row.16.clone(),
+            volume: PersistentJournalVolumeIdentity {
+                volume_guid: row.1,
+                volume_serial: parse_canonical_u64(&row.2)?,
+            },
+            journal_id: JournalIdentifier::parse_canonical(
+                row.12
+                    .as_deref()
+                    .ok_or_else(unverifiable_persistent_journal_contract)?,
+            )
+            .map_err(|_| unverifiable_persistent_journal_contract())?,
+            file_reference,
+            old_usn: row
+                .13
+                .as_deref()
+                .map(JournalUsn::parse_canonical)
+                .transpose()
+                .map_err(|_| unverifiable_persistent_journal_contract())?,
+            new_usn: row
+                .14
+                .as_deref()
+                .map(JournalUsn::parse_canonical)
+                .transpose()
+                .map_err(|_| unverifiable_persistent_journal_contract())?,
+            previous_carry_id: row.15,
+            previous_root_id: row.5,
+            previous_root_generation: parse_root_generation(row.6)?,
+            previous_relative_path: row.7,
+            current_root_id: row.8,
+            current_root_generation: parse_root_generation(row.9)?,
+            current_relative_path: row.10,
+            state: parse_journal_lineage_state(&row.11)?,
+        };
+        lineage
+            .validate()
+            .map_err(|_| unverifiable_persistent_journal_contract())?;
+        proofs.push(PersistentJournalLineagePayloadProof {
+            lineage,
+            previous_range_id: row.16,
+            current_range_id: row.17,
+        });
+    }
+    Ok(proofs)
+}
+
+fn load_persistent_journal_pending_rename_proofs(
+    connection: &Connection,
+) -> Result<Vec<PersistentJournalPendingRename>, ScanError> {
+    let mut statement = connection
+        .prepare(
+            "SELECT carry_id, source_range_id, volume_guid, volume_serial, journal_id,
+                    file_reference_version, file_reference, old_usn,
+                    previous_root_id, previous_root_generation, previous_relative_path,
+                    is_directory, enrolled_unix_ms
+             FROM library_persistent_journal_pending_renames ORDER BY carry_id",
+        )
+        .map_err(database_error)?;
+    let rows = statement
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, String>(4)?,
+                row.get::<_, i64>(5)?,
+                row.get::<_, Vec<u8>>(6)?,
+                row.get::<_, String>(7)?,
+                row.get::<_, String>(8)?,
+                row.get::<_, i64>(9)?,
+                row.get::<_, String>(10)?,
+                row.get::<_, bool>(11)?,
+                row.get::<_, i64>(12)?,
+            ))
+        })
+        .map_err(database_error)?;
+    let mut pending_renames = Vec::new();
+    for row in rows {
+        let row = row.map_err(database_error)?;
+        let file_reference = JournalFileReference::from_bytes(&row.6)
+            .map_err(|_| unverifiable_persistent_journal_contract())?;
+        if i64::from(file_reference.record_version()) != row.5 {
+            return Err(unverifiable_persistent_journal_contract());
+        }
+        let pending = PersistentJournalPendingRename {
+            carry_id: row.0,
+            source_range_id: row.1,
+            volume: PersistentJournalVolumeIdentity {
+                volume_guid: row.2,
+                volume_serial: parse_canonical_u64(&row.3)?,
+            },
+            journal_id: JournalIdentifier::parse_canonical(&row.4)
+                .map_err(|_| unverifiable_persistent_journal_contract())?,
+            file_reference,
+            old_usn: JournalUsn::parse_canonical(&row.7)
+                .map_err(|_| unverifiable_persistent_journal_contract())?,
+            previous_root_id: row.8,
+            previous_root_generation: parse_root_generation(row.9)?,
+            previous_relative_path: row.10,
+            is_directory: row.11,
+            enrolled_unix_ms: row.12,
+        };
+        pending
+            .validate()
+            .map_err(|_| unverifiable_persistent_journal_contract())?;
+        pending_renames.push(pending);
+    }
+    Ok(pending_renames)
+}
+
+fn lineage_payload_candidates(
+    lineage: &PersistentJournalCrossRootLineage,
+    owner_source_range_id: &str,
+    payload_range_id: &str,
+) -> Vec<String> {
+    let mut candidate = lineage.clone();
+    candidate.owner_source_range_id = owner_source_range_id.to_owned();
+    let mut candidates = vec![persistent_journal_canonical_lineage_entry(
+        &candidate,
+        payload_range_id,
+    )];
+    if candidate.state != PersistentJournalLineageState::Pending {
+        candidate.state = PersistentJournalLineageState::Pending;
+        candidates.push(persistent_journal_canonical_lineage_entry(
+            &candidate,
+            payload_range_id,
+        ));
+    }
+    candidates.sort();
+    candidates.dedup();
+    candidates
+}
+
+fn lineage_payload_slots_match(actual: &[String], expected: &[Vec<String>]) -> bool {
+    if actual.len() != expected.len() {
+        return false;
+    }
+    let mut matched = vec![false; expected.len()];
+    for entry in actual {
+        let candidates = expected
+            .iter()
+            .enumerate()
+            .filter(|(index, slot)| !matched[*index] && slot.contains(entry))
+            .map(|(index, _)| index)
+            .collect::<Vec<_>>();
+        let [index] = candidates.as_slice() else {
+            return false;
+        };
+        matched[*index] = true;
+    }
+    matched.into_iter().all(|is_matched| is_matched)
+}
+
+fn pending_rename_matches_consumed_lineage(
+    pending: &PersistentJournalPendingRename,
+    proof: &PersistentJournalLineagePayloadProof,
+) -> bool {
+    proof.lineage.previous_carry_id.as_deref() == Some(pending.carry_id.as_str())
+        && proof.previous_range_id == pending.source_range_id
+        && proof.lineage.volume == pending.volume
+        && proof.lineage.journal_id == pending.journal_id
+        && proof.lineage.file_reference == pending.file_reference
+        && proof.lineage.old_usn == Some(pending.old_usn)
+        && proof.lineage.previous_root_id == pending.previous_root_id
+        && proof.lineage.previous_root_generation == pending.previous_root_generation
+        && proof.lineage.previous_relative_path == pending.previous_relative_path
+}
+
+fn parse_root_generation(value: i64) -> Result<LibraryRootGeneration, ScanError> {
+    u64::try_from(value)
+        .ok()
+        .and_then(LibraryRootGeneration::new)
+        .ok_or_else(unverifiable_persistent_journal_contract)
+}
+
+fn parse_canonical_u64(value: &str) -> Result<u64, ScanError> {
+    let parsed = value
+        .parse::<u64>()
+        .map_err(|_| unverifiable_persistent_journal_contract())?;
+    if parsed.to_string() != value {
+        return Err(unverifiable_persistent_journal_contract());
+    }
+    Ok(parsed)
+}
+
+fn parse_journal_capability_state(
+    value: &str,
+) -> Result<PersistentJournalCapabilityState, ScanError> {
+    match value {
+        "unknown" => Ok(PersistentJournalCapabilityState::Unknown),
+        "supported" => Ok(PersistentJournalCapabilityState::Supported),
+        "live_only" => Ok(PersistentJournalCapabilityState::LiveOnly),
+        _ => Err(unverifiable_persistent_journal_contract()),
+    }
+}
+
+fn parse_journal_continuity_state(
+    value: &str,
+) -> Result<PersistentJournalContinuityState, ScanError> {
+    match value {
+        "baseline_required" => Ok(PersistentJournalContinuityState::BaselineRequired),
+        "catching_up" => Ok(PersistentJournalContinuityState::CatchingUp),
+        "current" => Ok(PersistentJournalContinuityState::Current),
+        "recovery_required" => Ok(PersistentJournalContinuityState::RecoveryRequired),
+        "live_only" => Ok(PersistentJournalContinuityState::LiveOnly),
+        "unavailable" => Ok(PersistentJournalContinuityState::Unavailable),
+        _ => Err(unverifiable_persistent_journal_contract()),
+    }
+}
+
+fn parse_journal_range_state(value: &str) -> Result<PersistentJournalRangeState, ScanError> {
+    match value {
+        "enrolled" => Ok(PersistentJournalRangeState::Enrolled),
+        "checkpointed" => Ok(PersistentJournalRangeState::Checkpointed),
+        "superseded" => Ok(PersistentJournalRangeState::Superseded),
+        _ => Err(unverifiable_persistent_journal_contract()),
+    }
+}
+
+fn parse_journal_lineage_state(value: &str) -> Result<PersistentJournalLineageState, ScanError> {
+    match value {
+        "pending" => Ok(PersistentJournalLineageState::Pending),
+        "completed" => Ok(PersistentJournalLineageState::Completed),
+        "superseded" => Ok(PersistentJournalLineageState::Superseded),
+        _ => Err(unverifiable_persistent_journal_contract()),
+    }
+}
+
+fn parse_journal_failure(
+    code: Option<String>,
+    message: Option<String>,
+) -> Result<Option<PersistentJournalFailure>, ScanError> {
+    match (code, message) {
+        (None, None) => Ok(None),
+        (Some(code), Some(message)) => Ok(Some(PersistentJournalFailure { code, message })),
+        _ => Err(unverifiable_persistent_journal_contract()),
+    }
+}
+
+fn unverifiable_persistent_journal_contract() -> ScanError {
+    ScanError::new(
+        "catalog_persistent_journal_contract_unverifiable",
+        "The catalog cannot prove its per-root persistent journal continuity authority",
+    )
 }
 
 fn unverifiable_metadata_inventory_contract() -> ScanError {
@@ -1449,11 +5648,174 @@ fn schema_object_sql_matches(
 }
 
 fn normalize_schema_sql(value: &str) -> String {
-    value
-        .chars()
-        .filter(|character| !character.is_whitespace())
-        .flat_map(char::to_lowercase)
-        .collect()
+    let mut canonical = String::with_capacity(value.len());
+    let mut characters = value.chars().peekable();
+    let mut pending_whitespace = false;
+    while let Some(character) = characters.next() {
+        if character.is_whitespace() {
+            pending_whitespace = true;
+            continue;
+        }
+        if pending_whitespace
+            && canonical
+                .chars()
+                .next_back()
+                .is_some_and(|previous| schema_tokens_require_separator(previous, character))
+        {
+            canonical.push(' ');
+        }
+        pending_whitespace = false;
+        if matches!(character, '\'' | '"' | '`' | '[') {
+            canonical.push(character);
+            let terminator = if character == '[' { ']' } else { character };
+            while let Some(quoted) = characters.next() {
+                canonical.push(quoted);
+                if quoted != terminator {
+                    continue;
+                }
+                if characters.peek() == Some(&terminator) {
+                    canonical.push(terminator);
+                    characters.next();
+                } else {
+                    break;
+                }
+            }
+        } else {
+            canonical.extend(character.to_lowercase());
+        }
+    }
+    canonical
+}
+
+fn schema_tokens_require_separator(previous: char, next: char) -> bool {
+    !is_schema_separator(previous) && !is_schema_separator(next)
+}
+
+fn is_schema_separator(character: char) -> bool {
+    matches!(
+        character,
+        '(' | ')'
+            | ','
+            | ';'
+            | '.'
+            | '='
+            | '<'
+            | '>'
+            | '!'
+            | '+'
+            | '-'
+            | '*'
+            | '/'
+            | '%'
+            | '|'
+            | '&'
+            | '~'
+    )
+}
+
+fn repair_prerelease_v24_source_range_id_triggers(
+    connection: &mut Connection,
+) -> Result<(), ScanError> {
+    let mut current_count = 0;
+    let mut legacy_count = 0;
+    for ((name, current), (legacy_name, legacy)) in PERSISTENT_JOURNAL_CANONICAL_TRIGGER_DDL
+        .iter()
+        .zip(PERSISTENT_JOURNAL_LEGACY_V24_TRIGGER_DDL)
+    {
+        if name != legacy_name {
+            return Err(unverifiable_persistent_journal_contract());
+        }
+        let actual = connection
+            .query_row(
+                "SELECT sql FROM sqlite_master WHERE type = 'trigger' AND name = ?1",
+                [name],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()
+            .map_err(database_error)?;
+        let Some(actual) = actual else {
+            return Ok(());
+        };
+        current_count +=
+            usize::from(normalize_schema_sql(&actual) == normalize_schema_sql(current));
+        legacy_count += usize::from(normalize_schema_sql(&actual) == normalize_schema_sql(legacy));
+    }
+    if current_count == PERSISTENT_JOURNAL_CANONICAL_TRIGGER_DDL.len() {
+        return Ok(());
+    }
+    if legacy_count != PERSISTENT_JOURNAL_LEGACY_V24_TRIGGER_DDL.len() {
+        return Ok(());
+    }
+    let transaction = connection
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .map_err(database_error)?;
+    for (name, sql) in PERSISTENT_JOURNAL_CANONICAL_TRIGGER_DDL {
+        transaction
+            .execute_batch(&format!("DROP TRIGGER {name};"))
+            .map_err(database_error)?;
+        transaction.execute_batch(sql).map_err(database_error)?;
+    }
+    transaction.commit().map_err(database_error)
+}
+
+fn repair_prerelease_v26_recovery_window_schema(
+    connection: &mut Connection,
+) -> Result<(), ScanError> {
+    let index_sql = connection
+        .query_row(
+            "SELECT sql FROM sqlite_master
+             WHERE type = 'index' AND name = 'library_persistent_journal_baselines_root'",
+            [],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()
+        .map_err(database_error)?;
+    let trigger_sql = connection
+        .query_row(
+            "SELECT sql FROM sqlite_master
+             WHERE type = 'trigger'
+               AND name = 'library_persistent_journal_baseline_insert_guard'",
+            [],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()
+        .map_err(database_error)?;
+    let is_current = index_sql.as_deref().is_some_and(|sql| {
+        normalize_schema_sql(sql)
+            == normalize_schema_sql(PERSISTENT_JOURNAL_BASELINE_ROOT_INDEX_DDL)
+    }) && trigger_sql.as_deref().is_some_and(|sql| {
+        normalize_schema_sql(sql)
+            == normalize_schema_sql(PERSISTENT_JOURNAL_BASELINE_INSERT_GUARD_DDL)
+    });
+    if is_current {
+        return Ok(());
+    }
+    let is_legacy = index_sql.as_deref().is_some_and(|sql| {
+        normalize_schema_sql(sql)
+            == normalize_schema_sql(LEGACY_V26_PERSISTENT_JOURNAL_BASELINE_ROOT_INDEX_DDL)
+    }) && trigger_sql.as_deref().is_some_and(|sql| {
+        normalize_schema_sql(sql)
+            == normalize_schema_sql(LEGACY_V26_PERSISTENT_JOURNAL_BASELINE_INSERT_GUARD_DDL)
+    });
+    if !is_legacy {
+        return Ok(());
+    }
+    let transaction = connection
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .map_err(database_error)?;
+    transaction
+        .execute_batch(
+            "DROP INDEX library_persistent_journal_baselines_root;
+             DROP TRIGGER library_persistent_journal_baseline_insert_guard;",
+        )
+        .map_err(database_error)?;
+    transaction
+        .execute_batch(PERSISTENT_JOURNAL_BASELINE_ROOT_INDEX_DDL)
+        .map_err(database_error)?;
+    transaction
+        .execute_batch(PERSISTENT_JOURNAL_BASELINE_INSERT_GUARD_DDL)
+        .map_err(database_error)?;
+    transaction.commit().map_err(database_error)
 }
 
 fn cascade_foreign_key_matches(
@@ -2735,6 +7097,1545 @@ fn migrate_v19_to_v20_transaction(transaction: &Transaction<'_>) -> Result<(), S
     Ok(())
 }
 
+fn migrate_v20_to_v21(connection: &mut Connection) -> Result<(), ScanError> {
+    let transaction = connection
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .map_err(database_error)?;
+    migrate_v20_to_v21_transaction(&transaction)?;
+    transaction.commit().map_err(database_error)
+}
+
+fn migrate_v20_to_v21_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+    transaction
+        .execute_batch(
+            "CREATE TABLE library_terminal_media_evidence_contract (
+               singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+               complete INTEGER NOT NULL CHECK(complete = 1)
+             );
+             INSERT INTO library_terminal_media_evidence_contract(singleton, complete)
+               VALUES (1, 1);
+             CREATE TABLE library_terminal_media_evidence (
+               root_id TEXT NOT NULL,
+               relative_path TEXT NOT NULL,
+               file_size INTEGER NOT NULL CHECK(file_size >= 0),
+               modified_unix_ms INTEGER NOT NULL,
+               file_identity_scheme TEXT,
+               file_identity_value TEXT,
+               inspection_engine_id TEXT NOT NULL,
+               inspection_engine_version INTEGER NOT NULL
+                 CHECK(inspection_engine_version > 0),
+               issue_code TEXT NOT NULL,
+               issue_message TEXT NOT NULL,
+               updated_unix_ms INTEGER NOT NULL,
+               CHECK(length(relative_path) > 0),
+               CHECK(instr(relative_path, char(92)) = 0),
+               CHECK(length(inspection_engine_id) BETWEEN 1 AND 128),
+               CHECK(length(issue_code) BETWEEN 1 AND 128),
+               CHECK(length(issue_message) BETWEEN 1 AND 4096),
+               CHECK(
+                 (file_identity_scheme IS NULL AND file_identity_value IS NULL)
+                 OR
+                 (file_identity_scheme IS NOT NULL AND file_identity_value IS NOT NULL)
+               ),
+               PRIMARY KEY(root_id, relative_path),
+               FOREIGN KEY(root_id) REFERENCES library_roots(id) ON DELETE CASCADE
+             );",
+        )
+        .map_err(database_error)?;
+    transaction
+        .execute("UPDATE schema_info SET version = 21", [])
+        .map_err(database_error)?;
+    Ok(())
+}
+
+fn migrate_v21_to_v22(connection: &mut Connection) -> Result<(), ScanError> {
+    let transaction = connection
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .map_err(database_error)?;
+    migrate_v21_to_v22_transaction(&transaction)?;
+    transaction.commit().map_err(database_error)
+}
+
+fn migrate_v21_to_v22_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+    transaction
+        .execute_batch(
+            "CREATE UNIQUE INDEX library_change_root_state_generation_identity
+               ON library_change_root_state(root_id, generation);
+             CREATE TABLE library_persistent_journal_contract (
+               singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+               contract_version INTEGER NOT NULL CHECK(contract_version = 1),
+               complete INTEGER NOT NULL CHECK(complete = 1)
+             );
+             INSERT INTO library_persistent_journal_contract(
+               singleton, contract_version, complete
+             ) VALUES (1, 1, 1);
+             CREATE TABLE library_persistent_journal_root_state (
+               root_id TEXT NOT NULL,
+               root_generation INTEGER NOT NULL CHECK(root_generation > 0),
+               protocol_version INTEGER NOT NULL
+                 CHECK(protocol_version BETWEEN 0 AND 65535),
+               contract_version INTEGER NOT NULL CHECK(contract_version = 1),
+               capability_state TEXT NOT NULL CHECK(capability_state IN (
+                 'unknown', 'supported', 'live_only'
+               )),
+               continuity_state TEXT NOT NULL CHECK(continuity_state IN (
+                 'baseline_required', 'catching_up', 'current', 'recovery_required',
+                 'live_only', 'unavailable'
+               )),
+               last_failure_code TEXT,
+               last_failure_message TEXT,
+               updated_unix_ms INTEGER NOT NULL CHECK(updated_unix_ms >= 0),
+               CHECK(
+                 (last_failure_code IS NULL AND last_failure_message IS NULL)
+                 OR
+                 (last_failure_code IS NOT NULL AND last_failure_message IS NOT NULL)
+               ),
+               CHECK(
+                 (capability_state = 'unknown' AND protocol_version = 0)
+                 OR
+                 (capability_state <> 'unknown' AND protocol_version > 0)
+               ),
+               CHECK(capability_state <> 'supported' OR last_failure_code IS NULL),
+               CHECK(
+                 continuity_state <> 'current'
+                 OR (capability_state = 'supported' AND last_failure_code IS NULL)
+               ),
+               PRIMARY KEY(root_id, root_generation),
+               FOREIGN KEY(root_id) REFERENCES library_roots(id) ON DELETE CASCADE
+             );
+             CREATE INDEX library_persistent_journal_root_state_continuity
+               ON library_persistent_journal_root_state(
+                 continuity_state, capability_state, updated_unix_ms, root_id
+               );
+             CREATE TABLE library_persistent_journal_checkpoints (
+               root_id TEXT PRIMARY KEY,
+               root_generation INTEGER NOT NULL CHECK(root_generation > 0),
+               volume_guid TEXT NOT NULL CHECK(length(volume_guid) BETWEEN 1 AND 512),
+               volume_serial TEXT NOT NULL CHECK(length(volume_serial) BETWEEN 1 AND 20),
+               root_reference_version INTEGER NOT NULL
+                 CHECK(root_reference_version IN (2, 3)),
+               root_file_reference BLOB NOT NULL,
+               journal_id TEXT NOT NULL CHECK(length(journal_id) BETWEEN 1 AND 20),
+               next_unread_usn TEXT NOT NULL CHECK(length(next_unread_usn) BETWEEN 1 AND 19),
+               captured_exclusive_end TEXT NOT NULL
+                 CHECK(length(captured_exclusive_end) BETWEEN 1 AND 19),
+               covered_catalog_revision INTEGER NOT NULL
+                 CHECK(covered_catalog_revision >= 0),
+               protocol_version INTEGER NOT NULL CHECK(protocol_version BETWEEN 1 AND 65535),
+               contract_version INTEGER NOT NULL CHECK(contract_version = 1),
+               continuity_state TEXT NOT NULL CHECK(continuity_state IN (
+                 'catching_up', 'current', 'recovery_required', 'live_only', 'unavailable'
+               )),
+               last_failure_code TEXT,
+               last_failure_message TEXT,
+               updated_unix_ms INTEGER NOT NULL CHECK(updated_unix_ms >= 0),
+               CHECK(
+                 (root_reference_version = 2 AND length(root_file_reference) = 8)
+                 OR
+                 (root_reference_version = 3 AND length(root_file_reference) = 16)
+               ),
+               CHECK(journal_id <> '0' AND journal_id NOT GLOB '*[^0-9]*'),
+               CHECK(next_unread_usn NOT GLOB '*[^0-9]*'),
+               CHECK(captured_exclusive_end NOT GLOB '*[^0-9]*'),
+               CHECK(CAST(next_unread_usn AS INTEGER) <= CAST(captured_exclusive_end AS INTEGER)),
+               CHECK(
+                 (last_failure_code IS NULL AND last_failure_message IS NULL)
+                 OR
+                 (last_failure_code IS NOT NULL AND last_failure_message IS NOT NULL)
+               ),
+               CHECK(
+                 continuity_state <> 'current'
+                 OR (
+                   next_unread_usn = captured_exclusive_end
+                   AND last_failure_code IS NULL
+                 )
+               ),
+               FOREIGN KEY(root_id, root_generation)
+                 REFERENCES library_persistent_journal_root_state(root_id, root_generation)
+                 ON DELETE CASCADE
+             );
+             CREATE INDEX library_persistent_journal_checkpoints_volume
+               ON library_persistent_journal_checkpoints(
+                 volume_guid, journal_id, continuity_state, root_id
+               );
+             CREATE TABLE library_persistent_journal_source_ranges (
+               id TEXT PRIMARY KEY CHECK(length(id) BETWEEN 1 AND 512),
+               root_id TEXT NOT NULL,
+               root_generation INTEGER NOT NULL CHECK(root_generation > 0),
+               volume_guid TEXT NOT NULL CHECK(length(volume_guid) BETWEEN 1 AND 512),
+               volume_serial TEXT NOT NULL CHECK(length(volume_serial) BETWEEN 1 AND 20),
+               journal_id TEXT NOT NULL CHECK(length(journal_id) BETWEEN 1 AND 20),
+               requested_start_usn TEXT NOT NULL
+                 CHECK(length(requested_start_usn) BETWEEN 1 AND 19),
+               requested_end_usn TEXT NOT NULL
+                 CHECK(length(requested_end_usn) BETWEEN 1 AND 19),
+               covered_until_usn TEXT NOT NULL
+                 CHECK(length(covered_until_usn) BETWEEN 1 AND 19),
+               is_complete INTEGER NOT NULL CHECK(is_complete IN (0, 1)),
+               protocol_version INTEGER NOT NULL CHECK(protocol_version BETWEEN 1 AND 65535),
+               contract_version INTEGER NOT NULL CHECK(contract_version = 1),
+               status TEXT NOT NULL CHECK(status IN (
+                 'enrolled', 'checkpointed', 'superseded'
+               )),
+               enrolled_unix_ms INTEGER NOT NULL CHECK(enrolled_unix_ms >= 0),
+               checkpointed_unix_ms INTEGER CHECK(checkpointed_unix_ms >= 0),
+               CHECK(journal_id <> '0' AND journal_id NOT GLOB '*[^0-9]*'),
+               CHECK(requested_start_usn NOT GLOB '*[^0-9]*'),
+               CHECK(requested_end_usn NOT GLOB '*[^0-9]*'),
+               CHECK(covered_until_usn NOT GLOB '*[^0-9]*'),
+               CHECK(
+                 CAST(requested_start_usn AS INTEGER) < CAST(requested_end_usn AS INTEGER)
+                 AND CAST(requested_start_usn AS INTEGER) < CAST(covered_until_usn AS INTEGER)
+                 AND CAST(covered_until_usn AS INTEGER) <= CAST(requested_end_usn AS INTEGER)
+               ),
+               CHECK(
+                 is_complete = (
+                   CAST(covered_until_usn AS INTEGER) = CAST(requested_end_usn AS INTEGER)
+                 )
+               ),
+               CHECK(
+                 (status = 'checkpointed' AND checkpointed_unix_ms IS NOT NULL)
+                 OR
+                 (status <> 'checkpointed' AND checkpointed_unix_ms IS NULL)
+               ),
+               FOREIGN KEY(root_id, root_generation)
+                 REFERENCES library_persistent_journal_root_state(root_id, root_generation)
+                 ON DELETE CASCADE
+             );
+             CREATE INDEX library_persistent_journal_source_ranges_root
+               ON library_persistent_journal_source_ranges(
+                 root_id, root_generation, status, enrolled_unix_ms, id
+               );
+             CREATE INDEX library_persistent_journal_source_ranges_volume
+               ON library_persistent_journal_source_ranges(
+                 volume_guid, journal_id, requested_start_usn, id
+               );
+             CREATE TABLE library_persistent_journal_queue_lineage (
+               source_range_id TEXT NOT NULL,
+               change_id INTEGER NOT NULL,
+               enrolled_unix_ms INTEGER NOT NULL CHECK(enrolled_unix_ms >= 0),
+               PRIMARY KEY(source_range_id, change_id),
+               FOREIGN KEY(source_range_id)
+                 REFERENCES library_persistent_journal_source_ranges(id) ON DELETE CASCADE,
+               FOREIGN KEY(change_id) REFERENCES library_change_queue(id) ON DELETE CASCADE
+             );
+             CREATE INDEX library_persistent_journal_queue_lineage_change
+               ON library_persistent_journal_queue_lineage(change_id, source_range_id);
+             CREATE TABLE library_persistent_journal_cross_root_lineage (
+               id TEXT PRIMARY KEY CHECK(length(id) BETWEEN 1 AND 512),
+               volume_guid TEXT NOT NULL CHECK(length(volume_guid) BETWEEN 1 AND 512),
+               volume_serial TEXT NOT NULL CHECK(length(volume_serial) BETWEEN 1 AND 20),
+               file_reference_version INTEGER NOT NULL
+                 CHECK(file_reference_version IN (2, 3)),
+               file_reference BLOB NOT NULL,
+               previous_root_id TEXT NOT NULL,
+               previous_root_generation INTEGER NOT NULL
+                 CHECK(previous_root_generation > 0),
+               previous_relative_path TEXT NOT NULL,
+               current_root_id TEXT NOT NULL,
+               current_root_generation INTEGER NOT NULL CHECK(current_root_generation > 0),
+               current_relative_path TEXT NOT NULL,
+               status TEXT NOT NULL CHECK(status IN ('pending', 'completed', 'superseded')),
+               created_unix_ms INTEGER NOT NULL CHECK(created_unix_ms >= 0),
+               updated_unix_ms INTEGER NOT NULL CHECK(updated_unix_ms >= 0),
+               CHECK(previous_root_id <> current_root_id),
+               CHECK(length(previous_relative_path) BETWEEN 1 AND 32767),
+               CHECK(length(current_relative_path) BETWEEN 1 AND 32767),
+               CHECK(instr(previous_relative_path, char(92)) = 0),
+               CHECK(instr(current_relative_path, char(92)) = 0),
+               CHECK(
+                 (file_reference_version = 2 AND length(file_reference) = 8)
+                 OR
+                 (file_reference_version = 3 AND length(file_reference) = 16)
+               ),
+               FOREIGN KEY(previous_root_id, previous_root_generation)
+                 REFERENCES library_persistent_journal_root_state(root_id, root_generation),
+               FOREIGN KEY(current_root_id, current_root_generation)
+                 REFERENCES library_persistent_journal_root_state(root_id, root_generation)
+             );
+             CREATE INDEX library_persistent_journal_cross_root_lineage_previous
+               ON library_persistent_journal_cross_root_lineage(
+                 previous_root_id, previous_root_generation, status, id
+               );
+             CREATE INDEX library_persistent_journal_cross_root_lineage_current
+               ON library_persistent_journal_cross_root_lineage(
+                 current_root_id, current_root_generation, status, id
+               );
+             CREATE TABLE library_persistent_journal_cross_root_ranges (
+               lineage_id TEXT NOT NULL,
+               source_range_id TEXT NOT NULL,
+               participant_role TEXT NOT NULL CHECK(participant_role IN ('previous', 'current')),
+               enrolled_unix_ms INTEGER NOT NULL CHECK(enrolled_unix_ms >= 0),
+               PRIMARY KEY(lineage_id, source_range_id),
+               FOREIGN KEY(lineage_id)
+                 REFERENCES library_persistent_journal_cross_root_lineage(id) ON DELETE CASCADE,
+               FOREIGN KEY(source_range_id)
+                 REFERENCES library_persistent_journal_source_ranges(id) ON DELETE CASCADE
+             );
+             CREATE INDEX library_persistent_journal_cross_root_ranges_source
+               ON library_persistent_journal_cross_root_ranges(source_range_id, lineage_id);",
+        )
+        .map_err(database_error)?;
+    transaction
+        .execute(
+            "UPDATE library_metadata_inventory_runs
+             SET status = 'superseded', absence_authority = 0,
+                 completed_unix_ms = NULL,
+                 last_issue_code = COALESCE(
+                   last_issue_code, 'persistent_journal_migration_baseline_required'
+                 ),
+                 last_issue_message = COALESCE(
+                   last_issue_message,
+                   'The partial inventory was retired without absence authority.'
+                 )
+             WHERE status IN ('running', 'comparing')",
+            [],
+        )
+        .map_err(database_error)?;
+    transaction
+        .execute(
+            "INSERT INTO library_persistent_journal_root_state(
+               root_id, root_generation, protocol_version, contract_version,
+               capability_state, continuity_state, last_failure_code,
+               last_failure_message, updated_unix_ms
+             )
+             SELECT roots.id, state.generation, 0, 1, 'unknown', 'baseline_required',
+                    NULL, NULL, 0
+             FROM library_roots AS roots
+             JOIN library_change_root_state AS state ON state.root_id = roots.id
+             WHERE state.is_active = 1",
+            [],
+        )
+        .map_err(database_error)?;
+    transaction
+        .execute("UPDATE schema_info SET version = 22", [])
+        .map_err(database_error)?;
+    Ok(())
+}
+
+fn migrate_v22_to_v23(connection: &mut Connection) -> Result<(), ScanError> {
+    let transaction = connection
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .map_err(database_error)?;
+    migrate_v22_to_v23_transaction(&transaction)?;
+    transaction.commit().map_err(database_error)
+}
+
+fn migrate_v22_to_v23_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+    transaction
+        .execute_batch(
+            "CREATE TABLE library_persistent_journal_range_lifecycle (
+               source_range_id TEXT PRIMARY KEY,
+               lifecycle_state TEXT NOT NULL
+                 CHECK(lifecycle_state IN ('pending', 'completed', 'superseded')),
+               completed_unix_ms INTEGER CHECK(completed_unix_ms >= 0),
+               updated_unix_ms INTEGER NOT NULL CHECK(updated_unix_ms >= 0),
+               CHECK(
+                 (lifecycle_state = 'completed' AND completed_unix_ms IS NOT NULL)
+                 OR
+                 (lifecycle_state <> 'completed' AND completed_unix_ms IS NULL)
+               ),
+               FOREIGN KEY(source_range_id)
+                 REFERENCES library_persistent_journal_source_ranges(id) ON DELETE CASCADE
+             );
+             CREATE INDEX library_persistent_journal_range_lifecycle_state
+               ON library_persistent_journal_range_lifecycle(
+                 lifecycle_state, updated_unix_ms, source_range_id
+               );
+             INSERT INTO library_persistent_journal_range_lifecycle(
+               source_range_id, lifecycle_state, completed_unix_ms, updated_unix_ms
+             )
+             SELECT id,
+                    CASE status WHEN 'superseded' THEN 'superseded' ELSE 'pending' END,
+                    NULL,
+                    COALESCE(checkpointed_unix_ms, enrolled_unix_ms)
+             FROM library_persistent_journal_source_ranges;
+             CREATE TABLE library_persistent_journal_pending_renames (
+               carry_id TEXT PRIMARY KEY CHECK(length(carry_id) BETWEEN 1 AND 512),
+               source_range_id TEXT NOT NULL,
+               volume_guid TEXT NOT NULL CHECK(length(volume_guid) BETWEEN 1 AND 512),
+               volume_serial TEXT NOT NULL CHECK(length(volume_serial) BETWEEN 1 AND 20),
+               journal_id TEXT NOT NULL CHECK(length(journal_id) BETWEEN 1 AND 20),
+               file_reference_version INTEGER NOT NULL
+                 CHECK(file_reference_version IN (2, 3)),
+               file_reference BLOB NOT NULL,
+               old_usn TEXT NOT NULL CHECK(length(old_usn) BETWEEN 1 AND 19),
+               previous_root_id TEXT NOT NULL,
+               previous_root_generation INTEGER NOT NULL CHECK(previous_root_generation > 0),
+               previous_relative_path TEXT NOT NULL,
+               is_directory INTEGER NOT NULL CHECK(is_directory IN (0, 1)),
+               enrolled_unix_ms INTEGER NOT NULL CHECK(enrolled_unix_ms >= 0),
+               CHECK(journal_id <> '0' AND journal_id NOT GLOB '*[^0-9]*'),
+               CHECK(old_usn NOT GLOB '*[^0-9]*'),
+               CHECK(length(previous_relative_path) BETWEEN 1 AND 32767),
+               CHECK(instr(previous_relative_path, char(92)) = 0),
+               CHECK(
+                 (file_reference_version = 2 AND length(file_reference) = 8)
+                 OR
+                 (file_reference_version = 3 AND length(file_reference) = 16)
+               ),
+               FOREIGN KEY(source_range_id)
+                 REFERENCES library_persistent_journal_source_ranges(id) ON DELETE CASCADE,
+               FOREIGN KEY(previous_root_id, previous_root_generation)
+                 REFERENCES library_persistent_journal_root_state(root_id, root_generation)
+             );
+             CREATE INDEX library_persistent_journal_pending_renames_volume
+               ON library_persistent_journal_pending_renames(
+                 volume_guid, journal_id, old_usn, carry_id
+               );
+             CREATE INDEX library_persistent_journal_pending_renames_source
+               ON library_persistent_journal_pending_renames(source_range_id, carry_id);",
+        )
+        .map_err(database_error)?;
+    transaction
+        .execute("UPDATE schema_info SET version = 23", [])
+        .map_err(database_error)?;
+    Ok(())
+}
+
+fn migrate_v23_to_v24(connection: &mut Connection) -> Result<(), ScanError> {
+    let transaction = connection
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .map_err(database_error)?;
+    migrate_v23_to_v24_transaction(&transaction)?;
+    transaction.commit().map_err(database_error)
+}
+
+fn migrate_v23_to_v24_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+    let has_unprovable_lineage = transaction
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM library_persistent_journal_cross_root_lineage)",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    if has_unprovable_lineage {
+        return Err(ScanError::new(
+            "persistent_journal_v23_lineage_unverifiable",
+            "The v23 catalog cannot prove the consumed-carry identity required by v24",
+        ));
+    }
+    transaction
+        .execute_batch(
+            "ALTER TABLE library_persistent_journal_source_ranges
+               ADD COLUMN canonical_payload BLOB NOT NULL DEFAULT X'';
+             ALTER TABLE library_persistent_journal_cross_root_lineage
+               ADD COLUMN journal_id TEXT;
+             ALTER TABLE library_persistent_journal_cross_root_lineage
+               ADD COLUMN old_usn TEXT;
+             ALTER TABLE library_persistent_journal_cross_root_lineage
+               ADD COLUMN new_usn TEXT;
+             ALTER TABLE library_persistent_journal_cross_root_lineage
+               ADD COLUMN previous_carry_id TEXT;",
+        )
+        .map_err(database_error)?;
+
+    let range_ids = {
+        let mut statement = transaction
+            .prepare("SELECT id FROM library_persistent_journal_source_ranges ORDER BY id")
+            .map_err(database_error)?;
+        let rows = statement
+            .query_map([], |row| row.get::<_, String>(0))
+            .map_err(database_error)?;
+        let mut ids = Vec::new();
+        for row in rows {
+            ids.push(row.map_err(database_error)?);
+        }
+        ids
+    };
+    for old_id in range_ids {
+        let payload = legacy_v23_range_payload(transaction, &old_id)?;
+        let new_id = persistent_journal_batch_id_from_payload(&payload);
+        let collision = transaction
+            .query_row(
+                "SELECT EXISTS(
+                   SELECT 1 FROM library_persistent_journal_source_ranges
+                   WHERE id = ?1 AND id <> ?2
+                 )",
+                params![new_id, old_id],
+                |row| row.get::<_, bool>(0),
+            )
+            .map_err(database_error)?;
+        if collision {
+            return Err(unverifiable_persistent_journal_contract());
+        }
+        if new_id == old_id {
+            transaction
+                .execute(
+                    "UPDATE library_persistent_journal_source_ranges
+                     SET canonical_payload = ?1 WHERE id = ?2",
+                    params![payload, old_id],
+                )
+                .map_err(database_error)?;
+            continue;
+        }
+        transaction
+            .execute(
+                "INSERT INTO library_persistent_journal_source_ranges(
+                   id, root_id, root_generation, volume_guid, volume_serial, journal_id,
+                   requested_start_usn, requested_end_usn, covered_until_usn, is_complete,
+                   protocol_version, contract_version, status, enrolled_unix_ms,
+                   checkpointed_unix_ms, canonical_payload
+                 )
+                 SELECT ?1, root_id, root_generation, volume_guid, volume_serial, journal_id,
+                        requested_start_usn, requested_end_usn, covered_until_usn, is_complete,
+                        protocol_version, contract_version, status, enrolled_unix_ms,
+                        checkpointed_unix_ms, ?2
+                 FROM library_persistent_journal_source_ranges WHERE id = ?3",
+                params![new_id, payload, old_id],
+            )
+            .map_err(database_error)?;
+        for sql in [
+            "UPDATE library_persistent_journal_queue_lineage SET source_range_id = ?1 WHERE source_range_id = ?2",
+            "UPDATE library_persistent_journal_cross_root_ranges SET source_range_id = ?1 WHERE source_range_id = ?2",
+            "UPDATE library_persistent_journal_range_lifecycle SET source_range_id = ?1 WHERE source_range_id = ?2",
+            "UPDATE library_persistent_journal_pending_renames SET source_range_id = ?1 WHERE source_range_id = ?2",
+        ] {
+            transaction
+                .execute(sql, params![new_id, old_id])
+                .map_err(database_error)?;
+        }
+        transaction
+            .execute(
+                "UPDATE library_change_queue_catch_up_lineage
+                 SET catch_up_watermark = ?1
+                 WHERE catch_up_source = 'persistent_journal_v1'
+                   AND catch_up_watermark = ?2",
+                params![new_id, old_id],
+            )
+            .map_err(database_error)?;
+        transaction
+            .execute(
+                "UPDATE library_change_queue
+                 SET catch_up_watermark = ?1
+                 WHERE catch_up_source = 'persistent_journal_v1'
+                   AND catch_up_watermark = ?2",
+                params![new_id, old_id],
+            )
+            .map_err(database_error)?;
+        transaction
+            .execute(
+                "DELETE FROM library_persistent_journal_source_ranges WHERE id = ?1",
+                [&old_id],
+            )
+            .map_err(database_error)?;
+    }
+    for (_, sql) in PERSISTENT_JOURNAL_CANONICAL_TRIGGER_DDL {
+        transaction.execute_batch(sql).map_err(database_error)?;
+    }
+    backfill_persistent_journal_lifecycle(transaction)?;
+    transaction
+        .execute("UPDATE schema_info SET version = 24", [])
+        .map_err(database_error)?;
+    validate_persistent_journal_contract(transaction)
+}
+
+fn migrate_v24_to_v25(connection: &mut Connection) -> Result<(), ScanError> {
+    let transaction = connection
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .map_err(database_error)?;
+    migrate_v24_to_v25_transaction(&transaction)?;
+    transaction.commit().map_err(database_error)
+}
+
+fn migrate_v24_to_v25_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+    validate_persistent_journal_contract(transaction)?;
+    transaction
+        .execute_batch(
+            "CREATE TABLE library_change_lane_contract (
+               singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+               complete INTEGER NOT NULL CHECK(complete = 1)
+             );
+             INSERT INTO library_change_lane_contract(singleton, complete) VALUES (1, 1);
+             CREATE TABLE library_change_queue_lanes (
+               change_id INTEGER PRIMARY KEY,
+               lane TEXT NOT NULL CHECK(lane IN ('p0_live', 'p1_journal', 'p2_recovery')),
+               FOREIGN KEY(change_id) REFERENCES library_change_queue(id) ON DELETE CASCADE
+             );
+             INSERT INTO library_change_queue_lanes(change_id, lane)
+             SELECT id, CASE origin
+               WHEN 'live_notification' THEN 'p0_live'
+               WHEN 'startup_catch_up' THEN 'p1_journal'
+               ELSE 'p2_recovery'
+             END
+             FROM library_change_queue;
+             CREATE INDEX library_change_queue_lanes_eligible
+               ON library_change_queue_lanes(lane, change_id);
+             CREATE TRIGGER library_change_queue_lane_insert_guard
+               BEFORE INSERT ON library_change_queue_lanes
+               WHEN NEW.lane <> (
+                 SELECT CASE origin
+                   WHEN 'live_notification' THEN 'p0_live'
+                   WHEN 'startup_catch_up' THEN 'p1_journal'
+                   ELSE 'p2_recovery'
+                 END
+                 FROM library_change_queue WHERE id = NEW.change_id
+               )
+               BEGIN
+                 SELECT RAISE(ABORT, 'change queue lane does not match origin');
+               END;
+             CREATE TRIGGER library_change_queue_lane_update_guard
+               BEFORE UPDATE OF lane, change_id ON library_change_queue_lanes
+               WHEN NEW.lane <> (
+                 SELECT CASE origin
+                   WHEN 'live_notification' THEN 'p0_live'
+                   WHEN 'startup_catch_up' THEN 'p1_journal'
+                   ELSE 'p2_recovery'
+                 END
+                 FROM library_change_queue WHERE id = NEW.change_id
+               )
+               BEGIN
+                 SELECT RAISE(ABORT, 'change queue lane does not match origin');
+               END;
+             CREATE TRIGGER library_change_queue_lane_insert
+               AFTER INSERT ON library_change_queue
+               BEGIN
+                 INSERT INTO library_change_queue_lanes(change_id, lane)
+                 VALUES (
+                   NEW.id,
+                   CASE NEW.origin
+                     WHEN 'live_notification' THEN 'p0_live'
+                     WHEN 'startup_catch_up' THEN 'p1_journal'
+                     ELSE 'p2_recovery'
+                   END
+                 );
+               END;
+             CREATE TRIGGER library_change_queue_lane_origin_update
+               AFTER UPDATE OF origin ON library_change_queue
+               BEGIN
+                 UPDATE library_change_queue_lanes
+                 SET lane = CASE NEW.origin
+                   WHEN 'live_notification' THEN 'p0_live'
+                   WHEN 'startup_catch_up' THEN 'p1_journal'
+                   ELSE 'p2_recovery'
+                 END
+                 WHERE change_id = NEW.id;
+               END;
+             CREATE TABLE library_recovery_authority_contract (
+               singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+               complete INTEGER NOT NULL CHECK(complete = 1)
+             );
+             INSERT INTO library_recovery_authority_contract(singleton, complete)
+             VALUES (1, 1);
+             CREATE TABLE library_recovery_authorities (
+               change_id INTEGER PRIMARY KEY,
+               run_id TEXT NOT NULL UNIQUE CHECK(length(run_id) BETWEEN 1 AND 512),
+               root_id TEXT NOT NULL CHECK(length(root_id) BETWEEN 1 AND 512),
+               root_generation INTEGER NOT NULL CHECK(root_generation > 0),
+               reason TEXT NOT NULL CHECK(reason IN (
+                 'existing_root_baseline', 'first_import_boundary', 'journal_gap',
+                 'journal_reset', 'journal_trim', 'journal_reconstruction_failure',
+                 'containment_failure', 'broker_after_current_failure', 'watcher_uncovered_gap'
+               )),
+               opening_journal_id TEXT,
+               opening_next_usn TEXT,
+               authorized_unix_ms INTEGER NOT NULL,
+               retired_unix_ms INTEGER,
+               CHECK(
+                 (reason IN ('existing_root_baseline', 'first_import_boundary')
+                   AND opening_journal_id IS NOT NULL AND opening_next_usn IS NOT NULL)
+                 OR
+                 (reason NOT IN ('existing_root_baseline', 'first_import_boundary')
+                   AND opening_journal_id IS NULL AND opening_next_usn IS NULL)
+               ),
+               CHECK(retired_unix_ms IS NULL OR retired_unix_ms >= authorized_unix_ms),
+               FOREIGN KEY(change_id) REFERENCES library_change_queue(id) ON DELETE CASCADE
+             );
+             CREATE INDEX library_recovery_authorities_root
+               ON library_recovery_authorities(
+                 root_id, root_generation, retired_unix_ms, change_id
+               );
+             CREATE TRIGGER library_recovery_authority_insert_guard
+               BEFORE INSERT ON library_recovery_authorities
+               WHEN NOT EXISTS (
+                 SELECT 1
+                 FROM library_change_queue AS queue
+                 JOIN library_change_queue_lanes AS lanes ON lanes.change_id = queue.id
+                 WHERE queue.id = NEW.change_id
+                   AND queue.root_id = NEW.root_id
+                   AND queue.root_generation = NEW.root_generation
+                   AND lanes.lane = 'p2_recovery'
+               )
+               BEGIN
+                 SELECT RAISE(ABORT, 'recovery authority does not match P2 queue work');
+               END;
+             CREATE TRIGGER library_recovery_authority_update_guard
+               BEFORE UPDATE OF change_id, root_id, root_generation, reason,
+                                opening_journal_id, opening_next_usn, authorized_unix_ms
+               ON library_recovery_authorities
+               BEGIN
+                 SELECT RAISE(ABORT, 'recovery authority identity is immutable');
+               END;
+             UPDATE schema_info SET version = 25;",
+        )
+        .map_err(database_error)?;
+    for sql in [
+        PERSISTENT_JOURNAL_BASELINE_TABLE_DDL,
+        PERSISTENT_JOURNAL_BASELINE_ROOT_INDEX_DDL,
+        PERSISTENT_JOURNAL_BASELINE_INSERT_GUARD_DDL,
+        PERSISTENT_JOURNAL_BASELINE_UPDATE_GUARD_DDL,
+    ] {
+        transaction.execute_batch(sql).map_err(database_error)?;
+    }
+    validate_change_lane_contract(transaction)?;
+    validate_recovery_authority_contract(transaction)?;
+    validate_persistent_journal_baseline_contract(transaction)
+}
+
+fn migrate_v25_to_v26(connection: &mut Connection) -> Result<(), ScanError> {
+    let transaction = connection
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .map_err(database_error)?;
+    migrate_v25_to_v26_transaction(&transaction)?;
+    transaction.commit().map_err(database_error)
+}
+
+fn migrate_v25_to_v26_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+    validate_change_lane_contract(transaction)?;
+    validate_recovery_authority_contract(transaction)?;
+    validate_persistent_journal_baseline_contract(transaction)?;
+    for sql in [
+        RECOVERY_EXECUTION_CONTRACT_TABLE_DDL,
+        METADATA_INVENTORY_CANDIDATE_OWNER_TABLE_DDL,
+        METADATA_INVENTORY_CANDIDATE_CHANGE_INDEX_DDL,
+        METADATA_INVENTORY_CANDIDATE_INSERT_GUARD_DDL,
+        METADATA_INVENTORY_CANDIDATE_UPDATE_GUARD_DDL,
+        METADATA_INVENTORY_FRONTIER_TABLE_DDL,
+        METADATA_INVENTORY_FRONTIER_STATE_INDEX_DDL,
+    ] {
+        transaction.execute_batch(sql).map_err(database_error)?;
+    }
+    transaction
+        .execute(
+            "INSERT INTO library_recovery_execution_contract(
+               singleton, contract_version, complete
+             ) VALUES (1, 1, 1)",
+            [],
+        )
+        .map_err(database_error)?;
+    transaction
+        .execute("UPDATE schema_info SET version = 26", [])
+        .map_err(database_error)?;
+    validate_recovery_execution_contract(transaction)
+}
+
+fn migrate_v26_to_v27(connection: &mut Connection) -> Result<(), ScanError> {
+    let transaction = connection
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .map_err(database_error)?;
+    migrate_v26_to_v27_transaction(&transaction)?;
+    transaction.commit().map_err(database_error)
+}
+
+fn migrate_v26_to_v27_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+    validate_recovery_execution_contract(transaction)?;
+    for sql in [
+        METADATA_INVENTORY_SPOOL_CONTRACT_TABLE_V27_DDL,
+        METADATA_INVENTORY_SPOOL_TABLE_V27_DDL,
+        METADATA_INVENTORY_SPOOL_DIRECTORY_TABLE_DDL,
+        METADATA_INVENTORY_SPOOL_DIRECTORY_STATE_INDEX_DDL,
+        METADATA_INVENTORY_SPOOL_ENTRY_TABLE_DDL,
+        METADATA_INVENTORY_SPOOL_ENTRY_ORDER_INDEX_DDL,
+        METADATA_INVENTORY_SPOOL_BINDING_UPDATE_GUARD_V27_DDL,
+        METADATA_INVENTORY_SPOOL_DIRECTORY_COMPLETE_GUARD_DDL,
+    ] {
+        transaction.execute_batch(sql).map_err(database_error)?;
+    }
+    transaction
+        .execute(
+            "INSERT INTO library_metadata_inventory_spool_contract(
+               singleton, contract_version, complete
+             ) VALUES (1, 1, 1)",
+            [],
+        )
+        .map_err(database_error)?;
+    transaction
+        .execute_batch(
+            "PRAGMA application_id = 1095583025;
+             PRAGMA user_version = 27;
+             UPDATE schema_info SET version = 27;",
+        )
+        .map_err(database_error)?;
+    debug_assert_eq!(SQLITE_APPLICATION_ID, 1_095_583_025);
+    validate_metadata_inventory_spool_contract_version(transaction, 27, 1)
+}
+
+fn migrate_v27_to_v28(connection: &mut Connection) -> Result<(), ScanError> {
+    let transaction = connection
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .map_err(database_error)?;
+    migrate_v27_to_v28_transaction(&transaction)?;
+    transaction.commit().map_err(database_error)
+}
+
+fn migrate_v27_to_v28_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+    validate_metadata_inventory_spool_contract_version(transaction, 27, 1)?;
+    transaction
+        .execute_batch(
+            "UPDATE library_change_queue
+             SET status = 'pending', next_retry_unix_ms = NULL,
+                 lease_expires_unix_ms = NULL, catalog_revision_at_success = NULL,
+                 last_failure_code = 'metadata_inventory_v28_recapture_required',
+                 last_failure_message =
+                   'The v27 recovery must recapture its pinned-root identity proof'
+             WHERE id IN (
+               SELECT change_id FROM library_recovery_authorities
+               WHERE retired_unix_ms IS NULL
+             );
+             UPDATE library_change_queue
+             SET status = 'superseded', next_retry_unix_ms = NULL,
+                 lease_expires_unix_ms = NULL, catalog_revision_at_success = NULL,
+                 last_failure_code = 'metadata_inventory_v28_recapture_required',
+                 last_failure_message =
+                   'The v27 candidate lacked a durable pinned-root identity proof'
+             WHERE id IN (
+               SELECT owner.change_id
+               FROM library_metadata_inventory_candidate_owners AS owner
+               JOIN library_recovery_authorities AS authority
+                 ON authority.run_id = owner.run_id
+               WHERE authority.retired_unix_ms IS NULL
+             ) AND status IN ('pending', 'leased', 'retry_wait');
+             DELETE FROM library_metadata_inventory_candidate_owners
+             WHERE run_id IN (
+               SELECT run_id FROM library_recovery_authorities
+               WHERE retired_unix_ms IS NULL
+             );
+             DELETE FROM library_metadata_inventory_entries
+             WHERE run_id IN (
+               SELECT run_id FROM library_recovery_authorities
+               WHERE retired_unix_ms IS NULL
+             );
+             DELETE FROM library_metadata_inventory_frontier
+             WHERE run_id IN (
+               SELECT run_id FROM library_recovery_authorities
+               WHERE retired_unix_ms IS NULL
+             );
+             UPDATE library_metadata_inventory_runs
+             SET status = 'running', next_page_index = 1, enumeration_cursor = NULL,
+                 comparison_cursor = NULL, absence_cursor = NULL, staged_entry_count = 0,
+                 candidate_count = 0, enumeration_complete = 0, absence_authority = 0,
+                 completed_unix_ms = NULL, last_issue_code = NULL, last_issue_message = NULL
+             WHERE id IN (
+               SELECT run_id FROM library_recovery_authorities
+               WHERE retired_unix_ms IS NULL
+             );
+             UPDATE library_persistent_journal_baselines
+             SET phase = 'inventory', closing_next_usn = NULL, completed_unix_ms = NULL
+             WHERE change_id IN (
+               SELECT change_id FROM library_recovery_authorities
+               WHERE retired_unix_ms IS NULL
+             ) AND phase <> 'inventory';
+             DELETE FROM library_persistent_journal_checkpoints
+             WHERE (root_id, root_generation) IN (
+               SELECT baseline.root_id, baseline.root_generation
+               FROM library_persistent_journal_baselines AS baseline
+               JOIN library_recovery_authorities AS authority
+                 ON authority.change_id = baseline.change_id
+               WHERE authority.retired_unix_ms IS NULL
+                 AND authority.reason IN ('existing_root_baseline', 'first_import_boundary')
+             );
+             UPDATE library_persistent_journal_checkpoints
+             SET continuity_state = 'recovery_required',
+                 last_failure_code = 'metadata_inventory_v28_recapture_required',
+                 last_failure_message =
+                   'The v27 recovery did not retain a pinned-root identity proof'
+             WHERE root_id IN (
+               SELECT baseline.root_id
+               FROM library_persistent_journal_baselines AS baseline
+               JOIN library_recovery_authorities AS authority
+                 ON authority.change_id = baseline.change_id
+               WHERE authority.retired_unix_ms IS NULL
+                 AND authority.reason NOT IN (
+                   'existing_root_baseline', 'first_import_boundary'
+                 )
+               UNION
+               SELECT baseline.root_id
+               FROM library_persistent_journal_baselines AS baseline
+               JOIN library_recovery_authorities AS authority
+                 ON authority.change_id = baseline.change_id
+               WHERE baseline.phase = 'completed' OR authority.retired_unix_ms IS NOT NULL
+             ) AND continuity_state IN ('current', 'catching_up', 'recovery_required');
+             UPDATE library_persistent_journal_root_state
+             SET continuity_state = 'baseline_required'
+             WHERE root_id IN (
+               SELECT baseline.root_id
+               FROM library_persistent_journal_baselines AS baseline
+               JOIN library_recovery_authorities AS authority
+                 ON authority.change_id = baseline.change_id
+               WHERE authority.retired_unix_ms IS NULL
+                 AND authority.reason IN ('existing_root_baseline', 'first_import_boundary')
+             ) AND capability_state = 'supported';
+             UPDATE library_persistent_journal_root_state
+             SET continuity_state = 'recovery_required'
+             WHERE root_id IN (
+               SELECT baseline.root_id
+               FROM library_persistent_journal_baselines AS baseline
+               JOIN library_recovery_authorities AS authority
+                 ON authority.change_id = baseline.change_id
+               WHERE authority.retired_unix_ms IS NULL
+                 AND authority.reason NOT IN (
+                   'existing_root_baseline', 'first_import_boundary'
+                 )
+               UNION
+               SELECT baseline.root_id
+               FROM library_persistent_journal_baselines AS baseline
+               JOIN library_recovery_authorities AS authority
+                 ON authority.change_id = baseline.change_id
+               WHERE baseline.phase = 'completed' OR authority.retired_unix_ms IS NOT NULL
+              ) AND capability_state = 'supported'
+                AND continuity_state IN ('current', 'catching_up', 'recovery_required');
+             UPDATE library_change_queue
+             SET last_failure_code = 'metadata_inventory_v28_recapture_required',
+                 last_failure_message =
+                   'The completed v27 recovery lacked a durable pinned-root identity proof'
+             WHERE id IN (
+               SELECT baseline.change_id
+               FROM library_persistent_journal_baselines AS baseline
+               JOIN library_recovery_authorities AS authority
+                 ON authority.change_id = baseline.change_id
+               WHERE baseline.phase = 'completed' OR authority.retired_unix_ms IS NOT NULL
+             );
+             DELETE FROM library_metadata_inventory_spools;
+             DROP TRIGGER library_metadata_inventory_spool_directory_complete_guard;
+             DROP TRIGGER library_metadata_inventory_spool_binding_update_guard;
+             DROP INDEX library_metadata_inventory_spool_entries_order;
+             DROP INDEX library_metadata_inventory_spool_directories_state;
+             DROP TABLE library_metadata_inventory_spool_entries;
+             DROP TABLE library_metadata_inventory_spool_directories;
+             DROP TABLE library_metadata_inventory_spools;
+             DROP TABLE library_metadata_inventory_spool_contract;",
+        )
+        .map_err(database_error)?;
+    for sql in [
+        METADATA_INVENTORY_SPOOL_CONTRACT_TABLE_DDL,
+        METADATA_INVENTORY_SPOOL_TABLE_DDL,
+        METADATA_INVENTORY_SPOOL_DIRECTORY_TABLE_DDL,
+        METADATA_INVENTORY_SPOOL_DIRECTORY_STATE_INDEX_DDL,
+        METADATA_INVENTORY_SPOOL_ENTRY_TABLE_DDL,
+        METADATA_INVENTORY_SPOOL_ENTRY_ORDER_INDEX_DDL,
+        METADATA_INVENTORY_SPOOL_BINDING_UPDATE_GUARD_DDL,
+        METADATA_INVENTORY_SPOOL_DIRECTORY_COMPLETE_GUARD_DDL,
+    ] {
+        transaction.execute_batch(sql).map_err(database_error)?;
+    }
+    transaction
+        .execute(
+            "INSERT INTO library_metadata_inventory_spool_contract(
+               singleton, contract_version, complete
+             ) VALUES (1, 2, 1)",
+            [],
+        )
+        .map_err(database_error)?;
+    transaction
+        .execute_batch(
+            "PRAGMA application_id = 1095583025;
+             PRAGMA user_version = 28;
+             UPDATE schema_info SET version = 28;",
+        )
+        .map_err(database_error)?;
+    validate_metadata_inventory_spool_contract_version(transaction, 28, 2)
+}
+
+fn migrate_v28_to_v29(connection: &mut Connection) -> Result<(), ScanError> {
+    let transaction = connection
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .map_err(database_error)?;
+    migrate_v28_to_v29_transaction(&transaction)?;
+    transaction.commit().map_err(database_error)
+}
+
+fn migrate_v28_to_v29_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+    validate_metadata_inventory_spool_contract_version(transaction, 28, 2)?;
+    for sql in [
+        ROOT_PUBLICATION_NAMESPACE_CONTRACT_TABLE_DDL,
+        ROOT_PUBLICATION_NAMESPACE_TABLE_DDL,
+        SCAN_PUBLICATION_NAMESPACE_BINDING_TABLE_DDL,
+        SCAN_PUBLICATION_NAMESPACE_ROOT_INDEX_DDL,
+    ] {
+        transaction.execute_batch(sql).map_err(database_error)?;
+    }
+    transaction
+        .execute(
+            "INSERT INTO library_root_publication_namespace_contract(
+               singleton, contract_version, complete
+             ) VALUES (1, 1, 1)",
+            [],
+        )
+        .map_err(database_error)?;
+
+    let mut proofs =
+        std::collections::BTreeMap::<(String, i64), (String, String, String, i64)>::new();
+    {
+        let mut statement = transaction
+            .prepare(
+                "SELECT spool.root_id, spool.root_generation,
+                        spool.root_identity_scheme, spool.root_identity_value,
+                        run.updated_unix_ms
+                 FROM library_metadata_inventory_spools AS spool
+                 JOIN library_metadata_inventory_runs AS run ON run.id = spool.run_id
+                 JOIN library_change_root_state AS active ON active.root_id = spool.root_id
+                 WHERE active.is_active = 1
+                   AND active.generation = spool.root_generation
+                 ORDER BY spool.root_id, spool.root_generation, spool.run_id",
+            )
+            .map_err(database_error)?;
+        let rows = statement
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, i64>(1)?,
+                    row.get::<_, String>(2)?,
+                    row.get::<_, String>(3)?,
+                    row.get::<_, i64>(4)?,
+                ))
+            })
+            .map_err(database_error)?;
+        for row in rows {
+            let (root_id, generation, scheme, value, updated_unix_ms) =
+                row.map_err(database_error)?;
+            validate_windows_root_identity(&scheme, &value)?;
+            insert_migrated_publication_proof(
+                &mut proofs,
+                root_id,
+                generation,
+                scheme,
+                value,
+                "metadata_inventory",
+                updated_unix_ms,
+            )?;
+        }
+    }
+    {
+        let mut statement = transaction
+            .prepare(
+                "SELECT checkpoint.root_id, checkpoint.root_generation,
+                        checkpoint.volume_serial, checkpoint.root_file_reference,
+                        checkpoint.updated_unix_ms
+                 FROM library_persistent_journal_checkpoints AS checkpoint
+                 JOIN library_change_root_state AS active ON active.root_id = checkpoint.root_id
+                 WHERE active.is_active = 1
+                   AND active.generation = checkpoint.root_generation
+                   AND checkpoint.root_reference_version = 3
+                 ORDER BY checkpoint.root_id",
+            )
+            .map_err(database_error)?;
+        let rows = statement
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, i64>(1)?,
+                    row.get::<_, String>(2)?,
+                    row.get::<_, Vec<u8>>(3)?,
+                    row.get::<_, i64>(4)?,
+                ))
+            })
+            .map_err(database_error)?;
+        for row in rows {
+            let (root_id, generation, volume_serial, reference, updated_unix_ms) =
+                row.map_err(database_error)?;
+            if reference.len() != 16 {
+                return Err(unverifiable_root_publication_namespace_contract());
+            }
+            let serial = volume_serial
+                .parse::<u64>()
+                .map_err(|_| unverifiable_root_publication_namespace_contract())?;
+            if serial.to_string() != volume_serial {
+                return Err(unverifiable_root_publication_namespace_contract());
+            }
+            let mut identifier = [0_u8; 16];
+            identifier.copy_from_slice(&reference);
+            let value = format!("{serial:016x}:{:032x}", u128::from_le_bytes(identifier));
+            insert_migrated_publication_proof(
+                &mut proofs,
+                root_id,
+                generation,
+                "windows-file-id-128-v1".to_owned(),
+                value,
+                "journal_v3_migration",
+                updated_unix_ms,
+            )?;
+        }
+    }
+    let catalog_revision = transaction
+        .query_row("SELECT revision FROM catalog_state", [], |row| {
+            row.get::<_, i64>(0)
+        })
+        .map_err(database_error)?;
+    for ((root_id, generation), (scheme, value, authority_kind, updated_unix_ms)) in proofs {
+        transaction
+            .execute(
+                "INSERT INTO library_root_publication_namespaces(
+                   root_id, root_generation, identity_scheme, identity_value,
+                   authority_kind, established_catalog_revision,
+                   established_unix_ms, updated_unix_ms
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?7)",
+                params![
+                    root_id,
+                    generation,
+                    scheme,
+                    value,
+                    authority_kind,
+                    catalog_revision,
+                    updated_unix_ms,
+                ],
+            )
+            .map_err(database_error)?;
+    }
+    transaction
+        .execute_batch(
+            "UPDATE library_persistent_journal_checkpoints
+             SET continuity_state = 'recovery_required',
+                 last_failure_code = 'root_publication_namespace_unproven',
+                 last_failure_message =
+                   'The migrated root has no durable configured namespace identity'
+             WHERE root_id NOT IN (
+               SELECT root_id FROM library_root_publication_namespaces
+             ) AND continuity_state = 'current';
+             UPDATE library_persistent_journal_root_state
+             SET capability_state = CASE
+                   WHEN capability_state = 'supported' THEN 'live_only'
+                   ELSE capability_state END,
+                 continuity_state = 'recovery_required',
+                 last_failure_code = 'root_publication_namespace_unproven',
+                 last_failure_message =
+                   'The migrated root has no durable configured namespace identity'
+             WHERE root_id NOT IN (
+               SELECT root_id FROM library_root_publication_namespaces
+             ) AND continuity_state = 'current';
+             PRAGMA application_id = 1095583025;
+             PRAGMA user_version = 29;
+             UPDATE schema_info SET version = 29;",
+        )
+        .map_err(database_error)?;
+    validate_root_publication_namespace_contract(transaction)
+}
+
+fn migrate_v29_to_v30(connection: &mut Connection) -> Result<(), ScanError> {
+    let transaction = connection
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .map_err(database_error)?;
+    migrate_v29_to_v30_transaction(&transaction)?;
+    transaction.commit().map_err(database_error)
+}
+
+fn migrate_v29_to_v30_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+    validate_pre_live_gap_schema_contract(transaction, 29)?;
+    for sql in [
+        LIVE_GAP_RECOVERY_CONTRACT_TABLE_DDL,
+        LIVE_GAP_RECOVERY_CLAIM_TABLE_DDL,
+        LIVE_GAP_RECOVERY_ROOT_INDEX_DDL,
+        LIVE_GAP_RECOVERY_INSERT_GUARD_DDL,
+        LIVE_GAP_RECOVERY_IDENTITY_UPDATE_GUARD_DDL,
+    ] {
+        transaction.execute_batch(sql).map_err(database_error)?;
+    }
+    transaction
+        .execute(
+            "INSERT INTO library_live_gap_recovery_contract(
+               singleton, contract_version, complete
+             ) VALUES (1, 1, 1)",
+            [],
+        )
+        .map_err(database_error)?;
+
+    let orphaned_gap_rows = {
+        let mut statement = transaction
+            .prepare(
+                "SELECT gap.id, gap.root_id, gap.root_generation, gap.updated_unix_ms
+                 FROM library_change_queue AS gap
+                 JOIN library_change_queue_lanes AS lane ON lane.change_id = gap.id
+                 WHERE gap.origin = 'startup_catch_up'
+                   AND lane.lane = 'p1_journal'
+                   AND gap.intent_kind = 'freshness_unknown'
+                   AND gap.scope = 'root' AND gap.relative_path = ''
+                   AND gap.previous_relative_path IS NULL
+                   AND gap.status IN ('pending', 'leased', 'retry_wait')
+                   AND gap.authoritative_scan_id IS NULL
+                   AND gap.catch_up_source IS NULL AND gap.catch_up_watermark IS NULL
+                   AND gap.superseded_by_change_id IS NULL
+                   AND NOT EXISTS(
+                     SELECT 1 FROM library_change_queue_catch_up_lineage AS lineage
+                     WHERE lineage.change_id = gap.id
+                   )
+                   AND NOT EXISTS(
+                     SELECT 1 FROM library_persistent_journal_queue_lineage AS lineage
+                     WHERE lineage.change_id = gap.id
+                   )
+                   AND NOT EXISTS(
+                     SELECT 1 FROM library_recovery_authorities AS authority
+                     WHERE authority.change_id = gap.id
+                   )
+                   AND NOT EXISTS(
+                     SELECT 1 FROM library_persistent_journal_baselines AS baseline
+                     WHERE baseline.change_id = gap.id
+                   )
+                   AND NOT EXISTS(
+                     SELECT 1 FROM library_metadata_inventory_candidate_owners AS owner
+                     WHERE owner.change_id = gap.id
+                   )
+                 ORDER BY gap.id",
+            )
+            .map_err(database_error)?;
+        statement
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, i64>(2)?,
+                    row.get::<_, i64>(3)?,
+                ))
+            })
+            .map_err(database_error)?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(database_error)?
+    };
+    for (gap_change_id, root_id, root_generation, updated_unix_ms) in orphaned_gap_rows {
+        transaction
+            .execute(
+                "UPDATE library_change_queue
+                 SET status = 'retry_wait', next_retry_unix_ms = NULL,
+                     lease_expires_unix_ms = NULL, authoritative_scan_id = NULL,
+                     last_failure_code =
+                       'live_gap_v30_explicit_recovery_required',
+                     last_failure_message =
+                       'The v29 gap has no event-specific provenance and requires an explicit library update'
+                 WHERE id = ?1",
+                [gap_change_id],
+            )
+            .map_err(database_error)?;
+        transaction
+            .execute(
+                "INSERT INTO library_live_gap_recovery_claims(
+                   gap_change_id, root_id, root_generation, consumer_kind,
+                   created_unix_ms
+                 ) VALUES (?1, ?2, ?3, 'explicit_recovery_required', ?4)",
+                params![gap_change_id, root_id, root_generation, updated_unix_ms],
+            )
+            .map_err(database_error)?;
+    }
+
+    transaction
+        .execute_batch(
+            "PRAGMA application_id = 1095583025;
+             PRAGMA user_version = 30;
+             UPDATE schema_info SET version = 30;",
+        )
+        .map_err(database_error)?;
+    validate_live_gap_recovery_contract(transaction)
+}
+
+fn insert_migrated_publication_proof(
+    proofs: &mut std::collections::BTreeMap<(String, i64), (String, String, String, i64)>,
+    root_id: String,
+    generation: i64,
+    scheme: String,
+    value: String,
+    authority_kind: &str,
+    updated_unix_ms: i64,
+) -> Result<(), ScanError> {
+    if generation <= 0 || updated_unix_ms < 0 {
+        return Err(unverifiable_root_publication_namespace_contract());
+    }
+    validate_windows_root_identity(&scheme, &value)?;
+    match proofs.entry((root_id, generation)) {
+        std::collections::btree_map::Entry::Vacant(entry) => {
+            entry.insert((scheme, value, authority_kind.to_owned(), updated_unix_ms));
+        }
+        std::collections::btree_map::Entry::Occupied(mut entry) => {
+            if entry.get().0 != scheme || entry.get().1 != value {
+                return Err(unverifiable_root_publication_namespace_contract());
+            }
+            let proof = entry.get_mut();
+            if authority_kind == "metadata_inventory" {
+                proof.2 = authority_kind.to_owned();
+            }
+            proof.3 = proof.3.max(updated_unix_ms);
+        }
+    }
+    Ok(())
+}
+
+fn legacy_v23_range_payload(
+    transaction: &Transaction<'_>,
+    source_range_id: &str,
+) -> Result<Vec<u8>, ScanError> {
+    let range = transaction
+        .query_row(
+            "SELECT root_id, root_generation, volume_guid, volume_serial, journal_id,
+                    requested_start_usn, requested_end_usn, covered_until_usn, is_complete,
+                    protocol_version, contract_version, enrolled_unix_ms
+             FROM library_persistent_journal_source_ranges WHERE id = ?1",
+            [source_range_id],
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, i64>(1)?,
+                    row.get::<_, String>(2)?,
+                    row.get::<_, String>(3)?,
+                    row.get::<_, String>(4)?,
+                    row.get::<_, String>(5)?,
+                    row.get::<_, String>(6)?,
+                    row.get::<_, String>(7)?,
+                    row.get::<_, i64>(8)?,
+                    row.get::<_, i64>(9)?,
+                    row.get::<_, i64>(10)?,
+                    row.get::<_, i64>(11)?,
+                ))
+            },
+        )
+        .map_err(database_error)?;
+    let (
+        root_id,
+        root_generation,
+        volume_guid,
+        volume_serial,
+        journal_id,
+        requested_start_usn,
+        requested_end_usn,
+        covered_until_usn,
+        is_complete,
+        protocol_version,
+        contract_version,
+        enrolled_unix_ms,
+    ) = range;
+    let source_range = PersistentJournalSourceRange {
+        batch_id: "0".repeat(64),
+        root_id,
+        root_generation: parse_root_generation(root_generation)?,
+        volume: PersistentJournalVolumeIdentity {
+            volume_guid,
+            volume_serial: parse_canonical_u64(&volume_serial)?,
+        },
+        journal_id: JournalIdentifier::parse_canonical(&journal_id)
+            .map_err(|_| unverifiable_persistent_journal_contract())?,
+        requested_start_usn: JournalUsn::parse_canonical(&requested_start_usn)
+            .map_err(|_| unverifiable_persistent_journal_contract())?,
+        requested_end_usn: JournalUsn::parse_canonical(&requested_end_usn)
+            .map_err(|_| unverifiable_persistent_journal_contract())?,
+        covered_until_usn: JournalUsn::parse_canonical(&covered_until_usn)
+            .map_err(|_| unverifiable_persistent_journal_contract())?,
+        is_complete: is_complete != 0,
+        protocol_version: u16::try_from(protocol_version)
+            .map_err(|_| unverifiable_persistent_journal_contract())?,
+        contract_version: u16::try_from(contract_version)
+            .map_err(|_| unverifiable_persistent_journal_contract())?,
+        state: PersistentJournalRangeState::Enrolled,
+        enrolled_unix_ms,
+        checkpointed_unix_ms: None,
+    };
+    source_range
+        .validate()
+        .map_err(|_| unverifiable_persistent_journal_contract())?;
+    let ambiguous_queue = transaction
+        .query_row(
+            "SELECT EXISTS(
+               SELECT 1
+               FROM library_persistent_journal_queue_lineage AS ownership
+               JOIN library_change_queue AS changes ON changes.id = ownership.change_id
+               WHERE ownership.source_range_id = ?1
+                 AND (changes.coalesced_observation_count <> 1
+                   OR changes.first_observed_unix_ms <> changes.most_recent_observed_unix_ms
+                   OR changes.first_sequence <> changes.most_recent_sequence)
+             )",
+            [source_range_id],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    if ambiguous_queue {
+        return Err(ScanError::new(
+            "persistent_journal_v23_batch_unverifiable",
+            "The v23 queue row no longer proves its original normalized batch content",
+        ));
+    }
+    let mut statement = transaction
+        .prepare(
+            "SELECT changes.root_id, changes.root_generation, changes.intent_kind,
+                    changes.scope, changes.relative_path, changes.previous_relative_path,
+                    changes.origin, changes.first_observed_unix_ms,
+                    changes.most_recent_observed_unix_ms, changes.first_sequence,
+                    changes.most_recent_sequence, changes.coalesced_observation_count
+             FROM library_persistent_journal_queue_lineage AS ownership
+             JOIN library_change_queue AS changes ON changes.id = ownership.change_id
+             WHERE ownership.source_range_id = ?1 ORDER BY changes.id",
+        )
+        .map_err(database_error)?;
+    let rows = statement
+        .query_map([source_range_id], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, i64>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, String>(4)?,
+                row.get::<_, Option<String>>(5)?,
+                row.get::<_, String>(6)?,
+                row.get::<_, i64>(7)?,
+                row.get::<_, i64>(8)?,
+                row.get::<_, String>(9)?,
+                row.get::<_, String>(10)?,
+                row.get::<_, i64>(11)?,
+            ))
+        })
+        .map_err(database_error)?;
+    let mut intents = Vec::new();
+    for row in rows {
+        let row = row.map_err(database_error)?;
+        intents.push(LibraryChangeIntent {
+            root_id: row.0,
+            root_generation: parse_root_generation(row.1)?,
+            kind: parse_legacy_intent_kind(&row.2)?,
+            scope: parse_legacy_intent_scope(&row.3)?,
+            relative_path: row.4,
+            previous_relative_path: row.5,
+            origin: parse_legacy_intent_origin(&row.6)?,
+            first_observed_unix_ms: row.7,
+            most_recent_observed_unix_ms: row.8,
+            first_sequence: parse_canonical_u64(&row.9)?,
+            most_recent_sequence: parse_canonical_u64(&row.10)?,
+            coalesced_observation_count: u32::try_from(row.11)
+                .map_err(|_| unverifiable_persistent_journal_contract())?,
+        });
+    }
+    let mut statement = transaction
+        .prepare(
+            "SELECT carry_id, volume_guid, volume_serial, journal_id,
+                    file_reference_version, file_reference, old_usn,
+                    previous_root_id, previous_root_generation, previous_relative_path,
+                    is_directory, enrolled_unix_ms
+             FROM library_persistent_journal_pending_renames
+             WHERE source_range_id = ?1 ORDER BY carry_id",
+        )
+        .map_err(database_error)?;
+    let rows = statement
+        .query_map([source_range_id], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, i64>(4)?,
+                row.get::<_, Vec<u8>>(5)?,
+                row.get::<_, String>(6)?,
+                row.get::<_, String>(7)?,
+                row.get::<_, i64>(8)?,
+                row.get::<_, String>(9)?,
+                row.get::<_, bool>(10)?,
+                row.get::<_, i64>(11)?,
+            ))
+        })
+        .map_err(database_error)?;
+    let mut pending_renames = Vec::new();
+    for row in rows {
+        let row = row.map_err(database_error)?;
+        let file_reference = JournalFileReference::from_bytes(&row.5)
+            .map_err(|_| unverifiable_persistent_journal_contract())?;
+        if i64::from(file_reference.record_version()) != row.4 {
+            return Err(unverifiable_persistent_journal_contract());
+        }
+        pending_renames.push(PersistentJournalPendingRename {
+            carry_id: row.0,
+            source_range_id: "0".repeat(64),
+            volume: PersistentJournalVolumeIdentity {
+                volume_guid: row.1,
+                volume_serial: parse_canonical_u64(&row.2)?,
+            },
+            journal_id: JournalIdentifier::parse_canonical(&row.3)
+                .map_err(|_| unverifiable_persistent_journal_contract())?,
+            file_reference,
+            old_usn: JournalUsn::parse_canonical(&row.6)
+                .map_err(|_| unverifiable_persistent_journal_contract())?,
+            previous_root_id: row.7,
+            previous_root_generation: parse_root_generation(row.8)?,
+            previous_relative_path: row.9,
+            is_directory: row.10,
+            enrolled_unix_ms: row.11,
+        });
+    }
+    let batch = PersistentJournalEnrollmentBatch {
+        range: source_range,
+        intents,
+        cross_root_lineage: Vec::new(),
+        carried_cross_root_lineage: Vec::new(),
+        pending_renames,
+        consumed_pending_rename_ids: Vec::new(),
+    };
+    batch
+        .validate()
+        .map_err(|_| unverifiable_persistent_journal_contract())?;
+    Ok(persistent_journal_batch_payload(&batch))
+}
+
+fn parse_legacy_intent_kind(value: &str) -> Result<LibraryChangeIntentKind, ScanError> {
+    match value {
+        "reconcile" => Ok(LibraryChangeIntentKind::Reconcile),
+        "rename_candidate" => Ok(LibraryChangeIntentKind::RenameCandidate),
+        "freshness_unknown" => Ok(LibraryChangeIntentKind::FreshnessUnknown),
+        _ => Err(unverifiable_persistent_journal_contract()),
+    }
+}
+
+fn parse_legacy_intent_scope(value: &str) -> Result<LibraryChangeScope, ScanError> {
+    match value {
+        "path" => Ok(LibraryChangeScope::Path),
+        "subtree" => Ok(LibraryChangeScope::Subtree),
+        "root" => Ok(LibraryChangeScope::Root),
+        _ => Err(unverifiable_persistent_journal_contract()),
+    }
+}
+
+fn parse_legacy_intent_origin(value: &str) -> Result<LibraryChangeOrigin, ScanError> {
+    match value {
+        "live_notification" => Ok(LibraryChangeOrigin::LiveNotification),
+        "metadata_inventory" => Ok(LibraryChangeOrigin::MetadataInventory),
+        "startup_catch_up" => Ok(LibraryChangeOrigin::StartupCatchUp),
+        "user_refresh" => Ok(LibraryChangeOrigin::UserRefresh),
+        "consistency_audit" => Ok(LibraryChangeOrigin::ConsistencyAudit),
+        _ => Err(unverifiable_persistent_journal_contract()),
+    }
+}
+
+fn backfill_persistent_journal_lifecycle(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+    transaction
+        .execute(
+            "UPDATE library_persistent_journal_range_lifecycle AS lifecycle
+             SET lifecycle_state = 'completed',
+                 completed_unix_ms = COALESCE(
+                   (SELECT ranges.checkpointed_unix_ms
+                    FROM library_persistent_journal_source_ranges AS ranges
+                    WHERE ranges.id = lifecycle.source_range_id),
+                   updated_unix_ms
+                 )
+             WHERE lifecycle_state = 'pending'
+               AND EXISTS(
+                 SELECT 1 FROM library_persistent_journal_source_ranges AS ranges
+                 WHERE ranges.id = lifecycle.source_range_id
+                   AND ranges.status = 'checkpointed'
+               )
+               AND NOT EXISTS(
+                 SELECT 1
+                 FROM library_persistent_journal_queue_lineage AS ownership
+                 JOIN library_change_queue AS changes ON changes.id = ownership.change_id
+                 WHERE ownership.source_range_id = lifecycle.source_range_id
+                   AND changes.status NOT IN ('completed', 'superseded')
+               )
+               AND NOT EXISTS(
+                 SELECT 1 FROM library_persistent_journal_pending_renames AS pending
+                 WHERE pending.source_range_id = lifecycle.source_range_id
+               )
+               AND NOT EXISTS(
+                 SELECT 1
+                 FROM library_persistent_journal_cross_root_ranges AS owners
+                 JOIN library_persistent_journal_cross_root_lineage AS lineage
+                   ON lineage.id = owners.lineage_id
+                 WHERE owners.source_range_id = lifecycle.source_range_id
+                   AND lineage.status <> 'completed'
+               )",
+            [],
+        )
+        .map_err(database_error)?;
+    Ok(())
+}
+
 fn rebuild_library_change_queue_for_metadata_inventory(
     transaction: &Transaction<'_>,
 ) -> Result<(), ScanError> {
@@ -3249,10 +9150,155 @@ mod tests {
     use tempfile::NamedTempFile;
 
     use super::{
-        create_metadata_inventory_contract, create_schema_v19, migrate_schema, migrate_v16_to_v17,
-        migrate_v17_to_v18, migrate_v18_to_v19, preview_repair_marker_is_complete,
-        repair_missing_v19_preview_expectation_marker, repair_prerelease_v18_scan_owner_index,
+        PERSISTENT_JOURNAL_CANONICAL_TRIGGER_DDL, PERSISTENT_JOURNAL_LEGACY_V24_TRIGGER_DDL,
+        SCHEMA_VERSION, create_metadata_inventory_contract, create_schema_v19, migrate_schema,
+        migrate_v16_to_v17, migrate_v17_to_v18, migrate_v18_to_v19, normalize_schema_sql,
+        preview_repair_marker_is_complete, repair_missing_v19_preview_expectation_marker,
+        repair_prerelease_v18_scan_owner_index,
     };
+    use crate::adapters::sqlite_catalog::remove_persistent_journal_v22_contract_for_test;
+
+    fn remove_root_publication_namespace_v29_contract_for_test(connection: &Connection) {
+        connection
+            .execute_batch(
+                "DROP TRIGGER IF EXISTS library_live_gap_recovery_claim_identity_update_guard;
+                 DROP TRIGGER IF EXISTS library_live_gap_recovery_claim_insert_guard;
+                 DROP INDEX IF EXISTS library_live_gap_recovery_claims_root;
+                 DROP TABLE IF EXISTS library_live_gap_recovery_claims;
+                 DROP TABLE IF EXISTS library_live_gap_recovery_contract;
+                 DROP INDEX IF EXISTS library_scan_publication_namespace_root;
+                 DROP TABLE IF EXISTS library_scan_publication_namespace_bindings;
+                 DROP TABLE IF EXISTS library_root_publication_namespaces;
+                 DROP TABLE IF EXISTS library_root_publication_namespace_contract;",
+            )
+            .expect("remove v29 configured-root publication fixture");
+    }
+
+    fn downgrade_current_catalog_to_v29(connection: &Connection) {
+        connection
+            .execute_batch(
+                "DROP TRIGGER IF EXISTS library_live_gap_recovery_claim_identity_update_guard;
+                 DROP TRIGGER IF EXISTS library_live_gap_recovery_claim_insert_guard;
+                 DROP INDEX IF EXISTS library_live_gap_recovery_claims_root;
+                 DROP TABLE IF EXISTS library_live_gap_recovery_claims;
+                 DROP TABLE IF EXISTS library_live_gap_recovery_contract;
+                 PRAGMA user_version = 29;
+                 UPDATE schema_info SET version = 29;",
+            )
+            .expect("remove v30 live-gap recovery fixture");
+        super::validate_pre_live_gap_schema_contract(connection, 29)
+            .expect("validate exact v29 fixture");
+    }
+
+    fn downgrade_current_catalog_to_v28(connection: &Connection) {
+        remove_root_publication_namespace_v29_contract_for_test(connection);
+        connection
+            .execute_batch(
+                "PRAGMA user_version = 28;
+                 UPDATE schema_info SET version = 28;",
+            )
+            .expect("publish exact v28 fixture version");
+        super::validate_metadata_inventory_spool_contract_version(connection, 28, 2)
+            .expect("validate exact v28 fixture");
+    }
+
+    fn remove_change_lane_v25_contract_for_test(connection: &Connection) {
+        remove_root_publication_namespace_v29_contract_for_test(connection);
+        connection
+            .execute_batch(
+                "DROP TRIGGER IF EXISTS library_metadata_inventory_spool_directory_complete_guard;
+                 DROP TRIGGER IF EXISTS library_metadata_inventory_spool_binding_update_guard;
+                 DROP INDEX IF EXISTS library_metadata_inventory_spool_entries_order;
+                 DROP TABLE IF EXISTS library_metadata_inventory_spool_entries;
+                 DROP INDEX IF EXISTS library_metadata_inventory_spool_directories_state;
+                 DROP TABLE IF EXISTS library_metadata_inventory_spool_directories;
+                 DROP TABLE IF EXISTS library_metadata_inventory_spools;
+                 DROP TABLE IF EXISTS library_metadata_inventory_spool_contract;
+                 DROP TRIGGER IF EXISTS library_metadata_inventory_candidate_owner_update_guard;
+                 DROP TRIGGER IF EXISTS library_metadata_inventory_candidate_owner_insert_guard;
+                 DROP INDEX IF EXISTS library_metadata_inventory_candidate_owners_change;
+                 DROP TABLE IF EXISTS library_metadata_inventory_candidate_owners;
+                 DROP INDEX IF EXISTS library_metadata_inventory_frontier_state;
+                 DROP TABLE IF EXISTS library_metadata_inventory_frontier;
+                 DROP TABLE IF EXISTS library_recovery_execution_contract;
+                 DROP TRIGGER IF EXISTS library_persistent_journal_baseline_update_guard;
+                 DROP TRIGGER IF EXISTS library_persistent_journal_baseline_insert_guard;
+                 DROP INDEX IF EXISTS library_persistent_journal_baselines_root;
+                 DROP TABLE IF EXISTS library_persistent_journal_baselines;
+                 DROP TRIGGER IF EXISTS library_recovery_authority_update_guard;
+                 DROP TRIGGER IF EXISTS library_recovery_authority_insert_guard;
+                 DROP INDEX IF EXISTS library_recovery_authorities_root;
+                 DROP TABLE IF EXISTS library_recovery_authorities;
+                 DROP TABLE IF EXISTS library_recovery_authority_contract;
+                 DROP TRIGGER IF EXISTS library_change_queue_lane_origin_update;
+                 DROP TRIGGER IF EXISTS library_change_queue_lane_insert;
+                 DROP TRIGGER IF EXISTS library_change_queue_lane_update_guard;
+                 DROP TRIGGER IF EXISTS library_change_queue_lane_insert_guard;
+                 DROP INDEX IF EXISTS library_change_queue_lanes_eligible;
+                 DROP TABLE IF EXISTS library_change_queue_lanes;
+                 DROP TABLE IF EXISTS library_change_lane_contract;",
+            )
+            .expect("remove v25 change-lane fixture");
+    }
+
+    fn remove_metadata_inventory_spool_v27_contract_for_test(connection: &Connection) {
+        remove_root_publication_namespace_v29_contract_for_test(connection);
+        connection
+            .execute_batch(
+                "DROP TRIGGER IF EXISTS library_metadata_inventory_spool_directory_complete_guard;
+                 DROP TRIGGER IF EXISTS library_metadata_inventory_spool_binding_update_guard;
+                 DROP INDEX IF EXISTS library_metadata_inventory_spool_entries_order;
+                 DROP TABLE IF EXISTS library_metadata_inventory_spool_entries;
+                 DROP INDEX IF EXISTS library_metadata_inventory_spool_directories_state;
+                 DROP TABLE IF EXISTS library_metadata_inventory_spool_directories;
+                 DROP TABLE IF EXISTS library_metadata_inventory_spools;
+                 DROP TABLE IF EXISTS library_metadata_inventory_spool_contract;",
+            )
+            .expect("remove v27 inventory spool fixture");
+    }
+
+    fn replace_current_spool_contract_with_v27_for_test(connection: &Connection) {
+        remove_metadata_inventory_spool_v27_contract_for_test(connection);
+        for sql in [
+            super::METADATA_INVENTORY_SPOOL_CONTRACT_TABLE_V27_DDL,
+            super::METADATA_INVENTORY_SPOOL_TABLE_V27_DDL,
+            super::METADATA_INVENTORY_SPOOL_DIRECTORY_TABLE_DDL,
+            super::METADATA_INVENTORY_SPOOL_DIRECTORY_STATE_INDEX_DDL,
+            super::METADATA_INVENTORY_SPOOL_ENTRY_TABLE_DDL,
+            super::METADATA_INVENTORY_SPOOL_ENTRY_ORDER_INDEX_DDL,
+            super::METADATA_INVENTORY_SPOOL_BINDING_UPDATE_GUARD_V27_DDL,
+            super::METADATA_INVENTORY_SPOOL_DIRECTORY_COMPLETE_GUARD_DDL,
+        ] {
+            connection
+                .execute_batch(sql)
+                .expect("create exact v27 spool shape");
+        }
+        connection
+            .execute_batch(
+                "INSERT INTO library_metadata_inventory_spool_contract(
+                   singleton, contract_version, complete
+                 ) VALUES (1, 1, 1);
+                 PRAGMA user_version = 27;
+                 UPDATE schema_info SET version = 27;",
+            )
+            .expect("publish v27 spool fixture");
+        super::validate_metadata_inventory_spool_contract_version(connection, 27, 1)
+            .expect("validate exact v27 spool fixture");
+    }
+
+    fn remove_recovery_execution_v26_contract_for_test(connection: &Connection) {
+        connection
+            .execute_batch(
+                "DROP TRIGGER IF EXISTS library_metadata_inventory_candidate_owner_update_guard;
+                 DROP TRIGGER IF EXISTS library_metadata_inventory_candidate_owner_insert_guard;
+                 DROP INDEX IF EXISTS library_metadata_inventory_candidate_owners_change;
+                 DROP TABLE IF EXISTS library_metadata_inventory_candidate_owners;
+                 DROP INDEX IF EXISTS library_metadata_inventory_frontier_state;
+                 DROP TABLE IF EXISTS library_metadata_inventory_frontier;
+                 DROP TABLE IF EXISTS library_recovery_execution_contract;",
+            )
+            .expect("remove v26 recovery execution fixture");
+    }
 
     fn fresh_v19_catalog() -> Connection {
         let mut connection = Connection::open_in_memory().expect("catalog");
@@ -3260,6 +9306,776 @@ mod tests {
         create_schema_v19(&transaction).expect("fresh v19 schema");
         transaction.commit().expect("commit fresh v19 schema");
         connection
+    }
+
+    fn recovery_lifecycle_catalog(is_completed: bool) -> NamedTempFile {
+        let catalog = NamedTempFile::new().expect("temporary recovery lifecycle catalog");
+        let mut connection = Connection::open(catalog.path()).expect("recovery lifecycle catalog");
+        migrate_schema(&mut connection).expect("fresh current catalog");
+        connection
+            .execute_batch(
+                "INSERT INTO library_roots(id, path, created_unix_ms)
+                   VALUES ('lifecycle-root', 'C:/lifecycle-source', 1);
+                 INSERT INTO library_change_root_state(
+                   root_id, generation, is_active, updated_unix_ms
+                 ) VALUES ('lifecycle-root', 1, 1, 1);
+                 INSERT INTO library_persistent_journal_root_state(
+                   root_id, root_generation, protocol_version, contract_version,
+                   capability_state, continuity_state, updated_unix_ms
+                 ) VALUES (
+                   'lifecycle-root', 1, 5, 1, 'supported', 'baseline_required', 1
+                 );
+                 INSERT INTO library_change_queue(
+                   id, root_id, root_generation, intent_kind, scope, relative_path,
+                   origin, first_observed_unix_ms, most_recent_observed_unix_ms,
+                   first_sequence, most_recent_sequence, coalesced_observation_count,
+                   status, ready_unix_ms, catalog_revision_at_enqueue,
+                   created_unix_ms, updated_unix_ms
+                 ) VALUES (
+                   901, 'lifecycle-root', 1, 'freshness_unknown', 'root', '',
+                   'consistency_audit', 1, 1, '1', '1', 1,
+                   'pending', 1, 0, 1, 1
+                 );
+                 INSERT INTO library_recovery_authorities(
+                   change_id, run_id, root_id, root_generation, reason,
+                   opening_journal_id, opening_next_usn, authorized_unix_ms
+                 ) VALUES (
+                   901, 'lifecycle-run', 'lifecycle-root', 1,
+                   'existing_root_baseline', '44', '10', 1
+                 );
+                 INSERT INTO library_persistent_journal_baselines(
+                   change_id, root_id, root_generation, volume_guid, volume_serial,
+                   root_reference_version, root_file_reference, journal_id,
+                   opening_next_usn, protocol_version, contract_version,
+                   phase, authorized_unix_ms, updated_unix_ms
+                 ) VALUES (
+                   901, 'lifecycle-root', 1, 'lifecycle-volume', '77',
+                   3, X'01010101010101010101010101010101', '44',
+                   '10', 5, 1, 'inventory', 1, 1
+                 );",
+            )
+            .expect("valid active recovery lifecycle");
+        migrate_schema(&mut connection).expect("validate active recovery lifecycle");
+        if is_completed {
+            connection
+                .execute_batch(
+                    "INSERT INTO library_persistent_journal_checkpoints(
+                       root_id, root_generation, volume_guid, volume_serial,
+                       root_reference_version, root_file_reference, journal_id,
+                       next_unread_usn, captured_exclusive_end, covered_catalog_revision,
+                       protocol_version, contract_version, continuity_state,
+                       updated_unix_ms
+                     ) VALUES (
+                       'lifecycle-root', 1, 'lifecycle-volume', '77',
+                       3, X'01010101010101010101010101010101', '44',
+                       '20', '20', 0, 5, 1, 'current', 3
+                     );
+                     UPDATE library_persistent_journal_root_state
+                     SET continuity_state = 'current', updated_unix_ms = 3
+                     WHERE root_id = 'lifecycle-root';
+                     UPDATE library_persistent_journal_baselines
+                     SET closing_next_usn = '20', phase = 'completed',
+                         updated_unix_ms = 3, completed_unix_ms = 3
+                     WHERE change_id = 901;
+                     UPDATE library_change_queue
+                     SET status = 'completed', catalog_revision_at_success = 0,
+                         updated_unix_ms = 3
+                     WHERE id = 901;
+                     UPDATE library_recovery_authorities
+                     SET retired_unix_ms = 3 WHERE change_id = 901;",
+                )
+                .expect("valid completed recovery lifecycle");
+            migrate_schema(&mut connection).expect("validate completed recovery lifecycle");
+        }
+        drop(connection);
+        catalog
+    }
+
+    fn v27_root_proof_phase_catalog(phase: &str) -> NamedTempFile {
+        let catalog = recovery_lifecycle_catalog(phase == "completed");
+        let connection = Connection::open(catalog.path()).expect("v27 root-proof phase catalog");
+        connection
+            .execute_batch("PRAGMA foreign_keys = ON")
+            .expect("enable v27 fixture foreign keys");
+        connection
+            .execute_batch(
+                "INSERT INTO scan_runs(
+                   id, root_id, status, started_unix_ms, completed_unix_ms, preview_edge
+                 ) VALUES ('lifecycle-scan', 'lifecycle-root', 'completed', 1, 1, 128);
+                 UPDATE library_roots
+                 SET active_scan_id = 'lifecycle-scan' WHERE id = 'lifecycle-root';",
+            )
+            .expect("last trustworthy catalog fixture");
+        match phase {
+            "opening" => {
+                connection
+                    .execute(
+                        "DELETE FROM library_persistent_journal_baselines
+                         WHERE change_id = 901",
+                        [],
+                    )
+                    .expect("opening phase has not captured a baseline");
+            }
+            "inventory" => {
+                connection
+                    .execute_batch(
+                        "INSERT INTO library_metadata_inventory_runs(
+                           id, root_id, root_generation, epoch, scope_kind, scope_relative_path,
+                           status, next_page_index, started_unix_ms, updated_unix_ms
+                         ) VALUES (
+                           'lifecycle-run', 'lifecycle-root', 1, 1, 'root', '',
+                           'running', 1, 1, 1
+                         );",
+                    )
+                    .expect("v27 inventory run");
+            }
+            "replay" | "absence" => {
+                let (next_unread, absence_authority) = if phase == "absence" {
+                    ("20", 1)
+                } else {
+                    ("15", 0)
+                };
+                connection
+                    .execute(
+                        "UPDATE library_persistent_journal_root_state
+                         SET continuity_state = 'catching_up'
+                         WHERE root_id = 'lifecycle-root'",
+                        [],
+                    )
+                    .expect("v27 catch-up root state");
+                connection
+                    .execute(
+                        "UPDATE library_persistent_journal_baselines
+                         SET phase = ?1, closing_next_usn = '20', updated_unix_ms = 2
+                         WHERE change_id = 901",
+                        [phase],
+                    )
+                    .expect("v27 replay or absence baseline");
+                connection
+                    .execute(
+                        "INSERT INTO library_persistent_journal_checkpoints(
+                           root_id, root_generation, volume_guid, volume_serial,
+                           root_reference_version, root_file_reference, journal_id,
+                           next_unread_usn, captured_exclusive_end, covered_catalog_revision,
+                           protocol_version, contract_version, continuity_state,
+                           updated_unix_ms
+                         ) VALUES (
+                           'lifecycle-root', 1, 'lifecycle-volume', '77',
+                           3, X'01010101010101010101010101010101', '44',
+                           ?1, '20', 0, 5, 1, 'catching_up', 2
+                         )",
+                        [next_unread],
+                    )
+                    .expect("v27 catch-up checkpoint");
+                connection
+                    .execute(
+                        "INSERT INTO library_metadata_inventory_runs(
+                           id, root_id, root_generation, epoch, scope_kind, scope_relative_path,
+                           status, next_page_index, comparison_cursor, staged_entry_count,
+                           candidate_count, enumeration_complete, absence_authority,
+                           started_unix_ms, updated_unix_ms
+                         ) VALUES (
+                           'lifecycle-run', 'lifecycle-root', 1, 1, 'root', '',
+                           'comparing', 2, 'photo.jpg', 1, 1, 1, ?1, 1, 2
+                         )",
+                        [absence_authority],
+                    )
+                    .expect("v27 comparing run");
+                connection
+                    .execute_batch(
+                        "INSERT INTO library_metadata_inventory_entries(
+                           run_id, relative_path, entry_kind, file_size, modified_unix_ms,
+                           placeholder_state, is_reparse_point, staged_page_index,
+                           comparison_status, staged_unix_ms
+                         ) VALUES (
+                           'lifecycle-run', 'photo.jpg', 'file', 1, 1,
+                           'available', 0, 1, 'enqueued', 1
+                         );
+                         INSERT INTO library_metadata_inventory_frontier(
+                           run_id, ordinal, relative_directory, state,
+                           directory_identity_scheme, directory_identity_value,
+                           enumerated_entry_count, updated_unix_ms
+                         ) VALUES (
+                           'lifecycle-run', 0, '', 'completed',
+                           'windows-file-id-128-v1', '77:root', 1, 2
+                         );
+                         INSERT INTO library_change_queue(
+                           id, root_id, root_generation, intent_kind, scope, relative_path,
+                           origin, first_observed_unix_ms, most_recent_observed_unix_ms,
+                           first_sequence, most_recent_sequence, coalesced_observation_count,
+                           status, ready_unix_ms, catalog_revision_at_enqueue,
+                           created_unix_ms, updated_unix_ms
+                         ) VALUES (
+                           902, 'lifecycle-root', 1, 'reconcile', 'path', 'photo.jpg',
+                           'consistency_audit', 2, 2, '2', '2', 1,
+                           'pending', 2, 0, 2, 2
+                         );
+                         INSERT INTO library_metadata_inventory_candidate_owners(
+                           run_id, candidate_key, change_id, candidate_role,
+                           relative_path, owned_unix_ms
+                         ) VALUES (
+                           'lifecycle-run', 'photo.jpg', 902, 'present', 'photo.jpg', 2
+                         );",
+                    )
+                    .expect("v27 derived candidate work");
+            }
+            "completed" => {}
+            other => panic!("unsupported v27 phase fixture: {other}"),
+        }
+        replace_current_spool_contract_with_v27_for_test(&connection);
+        if phase == "inventory" {
+            connection
+                .execute_batch(
+                    "INSERT INTO library_metadata_inventory_spools(
+                       run_id, authority_change_id, root_id, root_generation,
+                       scope_kind, scope_relative_path, state,
+                       created_unix_ms, updated_unix_ms
+                     ) VALUES (
+                       'lifecycle-run', 901, 'lifecycle-root', 1,
+                       'root', '', 'enumerating', 1, 1
+                     );
+                     INSERT INTO library_metadata_inventory_spool_directories(
+                       run_id, ordinal, relative_directory, state,
+                       created_unix_ms, updated_unix_ms
+                     ) VALUES ('lifecycle-run', 0, '', 'pending', 1, 1);",
+                )
+                .expect("v27 active source spool");
+        }
+        super::validate_recovery_authority_contract(&connection)
+            .expect("valid v27 recovery authority");
+        super::validate_persistent_journal_baseline_contract(&connection)
+            .expect("valid v27 baseline phase");
+        super::validate_recovery_execution_contract(&connection)
+            .expect("valid v27 recovery execution");
+        super::validate_metadata_inventory_spool_contract_version(&connection, 27, 1)
+            .expect("valid v27 source spool");
+        drop(connection);
+        catalog
+    }
+
+    #[test]
+    fn v28_to_v29_migrates_only_full_v3_root_identity_and_fails_v2_closed() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh current catalog");
+        connection
+            .execute_batch(
+                "INSERT INTO library_roots(id, path, created_unix_ms) VALUES
+                   ('root-v3', 'C:/v3', 1), ('root-v2', 'C:/v2', 1);
+                 INSERT INTO library_change_root_state(root_id, generation, is_active, updated_unix_ms)
+                   VALUES ('root-v3', 3, 1, 1), ('root-v2', 2, 1, 1);
+                 INSERT INTO library_persistent_journal_root_state(
+                   root_id, root_generation, protocol_version, contract_version,
+                   capability_state, continuity_state, updated_unix_ms
+                 ) VALUES
+                   ('root-v3', 3, 5, 1, 'supported', 'current', 10),
+                   ('root-v2', 2, 5, 1, 'supported', 'current', 10);
+                 INSERT INTO library_persistent_journal_checkpoints(
+                   root_id, root_generation, volume_guid, volume_serial,
+                   root_reference_version, root_file_reference, journal_id,
+                   next_unread_usn, captured_exclusive_end, covered_catalog_revision,
+                   protocol_version, contract_version, continuity_state, updated_unix_ms
+                 ) VALUES
+                   ('root-v3', 3, 'volume-v3', '77', 3,
+                    X'01010101010101010101010101010101', '10', '20', '20', 0, 5, 1,
+                    'current', 10),
+                   ('root-v2', 2, 'volume-v2', '88', 2,
+                    X'0202020202020202', '11', '20', '20', 0, 5, 1,
+                    'current', 10);",
+            )
+            .expect("v28 journal proof fixtures");
+        downgrade_current_catalog_to_v28(&connection);
+
+        super::migrate_v28_to_v29(&mut connection).expect("migrate v28 root proofs");
+
+        let proofs = connection
+            .prepare(
+                "SELECT root_id, root_generation, identity_value, authority_kind
+                 FROM library_root_publication_namespaces ORDER BY root_id",
+            )
+            .expect("proof query")
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, i64>(1)?,
+                    row.get::<_, String>(2)?,
+                    row.get::<_, String>(3)?,
+                ))
+            })
+            .expect("proof rows")
+            .collect::<rusqlite::Result<Vec<_>>>()
+            .expect("proof evidence");
+        assert_eq!(
+            proofs,
+            vec![(
+                "root-v3".to_owned(),
+                3,
+                "000000000000004d:01010101010101010101010101010101".to_owned(),
+                "journal_v3_migration".to_owned(),
+            )]
+        );
+        let v2_state: (String, String, String) = connection
+            .query_row(
+                "SELECT checkpoint.continuity_state, root.continuity_state,
+                        checkpoint.last_failure_code
+                 FROM library_persistent_journal_checkpoints AS checkpoint
+                 JOIN library_persistent_journal_root_state AS root
+                   ON root.root_id = checkpoint.root_id
+                  AND root.root_generation = checkpoint.root_generation
+                 WHERE checkpoint.root_id = 'root-v2'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .expect("v2 fail-closed projection");
+        assert_eq!(
+            v2_state,
+            (
+                "recovery_required".to_owned(),
+                "recovery_required".to_owned(),
+                "root_publication_namespace_unproven".to_owned(),
+            )
+        );
+    }
+
+    #[test]
+    fn malformed_partial_v29_schema_rolls_back_without_advancing_v28() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh current catalog");
+        downgrade_current_catalog_to_v28(&connection);
+        connection
+            .execute_batch(
+                "CREATE TABLE library_root_publication_namespaces(root_id TEXT PRIMARY KEY);",
+            )
+            .expect("partial v29 object");
+
+        super::migrate_v28_to_v29(&mut connection).expect_err("partial v29 must fail closed");
+
+        let state: (i64, i64, i64, i64) = connection
+            .query_row(
+                "SELECT
+                   (SELECT version FROM schema_info),
+                   (SELECT user_version FROM pragma_user_version),
+                   (SELECT COUNT(*) FROM sqlite_master
+                    WHERE type = 'table' AND name = 'library_root_publication_namespace_contract'),
+                   (SELECT COUNT(*) FROM pragma_table_info(
+                     'library_root_publication_namespaces'))",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+            )
+            .expect("partial rollback evidence");
+        assert_eq!(state, (28, 28, 0, 1));
+    }
+
+    #[test]
+    fn v28_to_v29_rejects_conflicting_spool_and_v3_proofs_without_partial_publish() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh current catalog");
+        connection
+            .execute_batch(
+                "INSERT INTO library_roots(id, path, created_unix_ms)
+                   VALUES ('proof-conflict-root', 'C:/proof-conflict', 1);
+                 INSERT INTO library_change_root_state(
+                   root_id, generation, is_active, updated_unix_ms
+                 ) VALUES ('proof-conflict-root', 1, 1, 1);
+                 INSERT INTO library_persistent_journal_root_state(
+                   root_id, root_generation, protocol_version, contract_version,
+                   capability_state, continuity_state, updated_unix_ms
+                 ) VALUES (
+                   'proof-conflict-root', 1, 5, 1, 'supported', 'current', 10
+                 );
+                 INSERT INTO library_persistent_journal_checkpoints(
+                   root_id, root_generation, volume_guid, volume_serial,
+                   root_reference_version, root_file_reference, journal_id,
+                   next_unread_usn, captured_exclusive_end, covered_catalog_revision,
+                   protocol_version, contract_version, continuity_state, updated_unix_ms
+                 ) VALUES (
+                   'proof-conflict-root', 1, 'volume-conflict', '77', 3,
+                   X'01010101010101010101010101010101', '44', '20', '20', 0,
+                   5, 1, 'current', 10
+                 );
+                 INSERT INTO library_change_queue(
+                   id, root_id, root_generation, intent_kind, scope, relative_path,
+                   origin, first_observed_unix_ms, most_recent_observed_unix_ms,
+                   first_sequence, most_recent_sequence, coalesced_observation_count,
+                   status, ready_unix_ms, lease_expires_unix_ms,
+                   catalog_revision_at_enqueue,
+                   created_unix_ms, updated_unix_ms
+                 ) VALUES (
+                   991, 'proof-conflict-root', 1, 'freshness_unknown', 'root', '',
+                   'consistency_audit', 1, 1, '1', '1', 1,
+                   'leased', 1, 100, 0, 1, 1
+                 );
+                 INSERT INTO library_recovery_authorities(
+                   change_id, run_id, root_id, root_generation, reason, authorized_unix_ms
+                 ) VALUES (
+                   991, 'proof-conflict-run', 'proof-conflict-root', 1,
+                   'containment_failure', 1
+                 );
+                 INSERT INTO library_metadata_inventory_runs(
+                   id, root_id, root_generation, epoch, scope_kind, scope_relative_path,
+                   status, next_page_index, started_unix_ms, updated_unix_ms
+                 ) VALUES (
+                   'proof-conflict-run', 'proof-conflict-root', 1, 1, 'root', '',
+                   'running', 1, 1, 11
+                 );
+                 INSERT INTO library_metadata_inventory_spools(
+                   run_id, authority_change_id, root_id, root_generation,
+                   root_identity_scheme, root_identity_value,
+                   scope_kind, scope_relative_path, state,
+                   created_unix_ms, updated_unix_ms
+                 ) VALUES (
+                   'proof-conflict-run', 991, 'proof-conflict-root', 1,
+                   'windows-file-id-128-v1',
+                   '000000000000004d:ffffffffffffffffffffffffffffffff',
+                   'root', '', 'enumerating', 1, 11
+                 );
+                 INSERT INTO library_metadata_inventory_spool_directories(
+                   run_id, ordinal, relative_directory, state,
+                   created_unix_ms, updated_unix_ms
+                 ) VALUES (
+                   'proof-conflict-run', 0, '', 'pending', 1, 11
+                 );",
+            )
+            .expect("conflicting v28 proof fixture");
+        downgrade_current_catalog_to_v28(&connection);
+
+        let error = super::migrate_v28_to_v29(&mut connection)
+            .expect_err("conflicting durable identities must fail migration closed");
+        assert_eq!(
+            error.code,
+            "catalog_root_publication_namespace_unverifiable"
+        );
+        let rollback: (i64, i64, i64, i64, i64) = connection
+            .query_row(
+                "SELECT
+                   (SELECT version FROM schema_info),
+                   (SELECT user_version FROM pragma_user_version),
+                   (SELECT COUNT(*) FROM library_metadata_inventory_spools
+                    WHERE run_id = 'proof-conflict-run'),
+                   (SELECT COUNT(*) FROM library_persistent_journal_checkpoints
+                    WHERE root_id = 'proof-conflict-root'),
+                   (SELECT COUNT(*) FROM sqlite_master
+                    WHERE type = 'table'
+                      AND name = 'library_root_publication_namespace_contract')",
+                [],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                    ))
+                },
+            )
+            .expect("conflict rollback evidence");
+        assert_eq!(rollback, (28, 28, 1, 1, 0));
+    }
+
+    #[test]
+    fn v29_to_v30_keeps_historical_fallback_with_root_identity_explicitly_blocked() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh current catalog");
+        connection
+            .execute_batch(
+                "INSERT INTO library_roots(id, path, created_unix_ms)
+                   VALUES ('historical-fallback-root', 'C:/historical-fallback', 1);
+                 INSERT INTO library_change_root_state(
+                   root_id, generation, is_active, updated_unix_ms
+                 ) VALUES ('historical-fallback-root', 7, 1, 1);
+                 INSERT INTO library_persistent_journal_root_state(
+                   root_id, root_generation, protocol_version, contract_version,
+                   capability_state, continuity_state, updated_unix_ms
+                 ) VALUES (
+                   'historical-fallback-root', 7, 0, 1, 'unknown', 'baseline_required', 1
+                 );
+                 INSERT INTO library_root_publication_namespaces(
+                   root_id, root_generation, identity_scheme, identity_value,
+                   authority_kind, established_catalog_revision,
+                   established_unix_ms, updated_unix_ms
+                 ) VALUES (
+                   'historical-fallback-root', 7, 'windows-file-id-128-v1',
+                   '000000000000004d:01010101010101010101010101010101',
+                   'foreground_scan', 0, 1, 1
+                 );
+                 INSERT INTO library_change_queue(
+                   id, root_id, root_generation, intent_kind, scope, relative_path,
+                   origin, first_observed_unix_ms, most_recent_observed_unix_ms,
+                   first_sequence, most_recent_sequence, coalesced_observation_count,
+                   status, ready_unix_ms, attempt_count,
+                   catalog_revision_at_enqueue, created_unix_ms, updated_unix_ms
+                 ) VALUES (
+                   3001, 'historical-fallback-root', 7, 'freshness_unknown', 'root', '',
+                   'startup_catch_up', 41, 41, '41', '41', 1,
+                   'pending', 41, 0, 0, 41, 41
+                 );",
+            )
+            .expect("historical pending v29 fallback fixture");
+        downgrade_current_catalog_to_v29(&connection);
+
+        super::migrate_v29_to_v30(&mut connection).expect("migrate ambiguous historical gap");
+        type MigratedLiveGapEvidence = (
+            i64,
+            String,
+            String,
+            String,
+            String,
+            String,
+            i64,
+            Option<i64>,
+            Option<i64>,
+            String,
+            i64,
+            i64,
+        );
+        let migrated: MigratedLiveGapEvidence = connection
+            .query_row(
+                "SELECT
+                   (SELECT version FROM schema_info),
+                   gap.origin, lane.lane, gap.intent_kind, gap.scope, gap.status,
+                   gap.attempt_count, gap.next_retry_unix_ms, gap.lease_expires_unix_ms,
+                   gap.last_failure_code,
+                   (SELECT COUNT(*) FROM library_live_gap_recovery_claims
+                    WHERE gap_change_id = gap.id),
+                   (SELECT COUNT(*) FROM library_root_publication_namespaces
+                    WHERE root_id = gap.root_id AND root_generation = gap.root_generation)
+                 FROM library_change_queue AS gap
+                 JOIN library_change_queue_lanes AS lane ON lane.change_id = gap.id
+                 WHERE gap.id = 3001",
+                [],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                        row.get(5)?,
+                        row.get(6)?,
+                        row.get(7)?,
+                        row.get(8)?,
+                        row.get(9)?,
+                        row.get(10)?,
+                        row.get(11)?,
+                    ))
+                },
+            )
+            .expect("migrated historical fallback evidence");
+        assert_eq!(
+            migrated,
+            (
+                30,
+                "startup_catch_up".to_owned(),
+                "p1_journal".to_owned(),
+                "freshness_unknown".to_owned(),
+                "root".to_owned(),
+                "retry_wait".to_owned(),
+                0,
+                None,
+                None,
+                "live_gap_v30_explicit_recovery_required".to_owned(),
+                1,
+                1,
+            )
+        );
+        let user_version = connection
+            .query_row("SELECT user_version FROM pragma_user_version", [], |row| {
+                row.get::<_, i64>(0)
+            })
+            .expect("migrated user version");
+        assert_eq!(user_version, 30);
+
+        migrate_schema(&mut connection).expect("idempotent current-schema reopen");
+        let stable: (String, String, String, i64) = connection
+            .query_row(
+                "SELECT gap.origin, lane.lane, gap.last_failure_code,
+                        (SELECT COUNT(*) FROM library_live_gap_recovery_contract)
+                 FROM library_change_queue AS gap
+                 JOIN library_change_queue_lanes AS lane ON lane.change_id = gap.id
+                 WHERE gap.id = 3001",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+            )
+            .expect("stable live gap migration");
+        assert_eq!(
+            stable,
+            (
+                "startup_catch_up".to_owned(),
+                "p1_journal".to_owned(),
+                "live_gap_v30_explicit_recovery_required".to_owned(),
+                1,
+            )
+        );
+    }
+
+    #[test]
+    fn v29_to_v30_keeps_naked_gap_without_root_identity_explicitly_blocked() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh current catalog");
+        connection
+            .execute_batch(
+                "INSERT INTO library_roots(id, path, created_unix_ms)
+                   VALUES ('unproven-live-gap-root', 'C:/unproven-live-gap', 1);
+                 INSERT INTO library_change_root_state(
+                   root_id, generation, is_active, updated_unix_ms
+                 ) VALUES ('unproven-live-gap-root', 3, 1, 1);
+                 INSERT INTO library_persistent_journal_root_state(
+                   root_id, root_generation, protocol_version, contract_version,
+                   capability_state, continuity_state, updated_unix_ms
+                 ) VALUES (
+                   'unproven-live-gap-root', 3, 0, 1, 'unknown', 'baseline_required', 1
+                 );
+                 INSERT INTO library_change_queue(
+                   id, root_id, root_generation, intent_kind, scope, relative_path,
+                   origin, first_observed_unix_ms, most_recent_observed_unix_ms,
+                   first_sequence, most_recent_sequence, coalesced_observation_count,
+                   status, ready_unix_ms, catalog_revision_at_enqueue,
+                   created_unix_ms, updated_unix_ms
+                 ) VALUES (
+                   3002, 'unproven-live-gap-root', 3, 'freshness_unknown', 'root', '',
+                   'startup_catch_up', 51, 51, '51', '51', 1,
+                   'pending', 51, 0, 51, 51
+                 );",
+            )
+            .expect("unproven naked v29 gap fixture");
+        downgrade_current_catalog_to_v29(&connection);
+
+        super::migrate_v29_to_v30(&mut connection).expect("migrate unproven live gap");
+        let migrated: (
+            String,
+            String,
+            String,
+            Option<i64>,
+            String,
+            String,
+            String,
+            i64,
+            i64,
+        ) = connection
+            .query_row(
+                "SELECT gap.origin, lane.lane, gap.status, gap.next_retry_unix_ms,
+                        gap.last_failure_code, claim.consumer_kind, claim.root_id,
+                        claim.root_generation,
+                        (SELECT COUNT(*) FROM library_root_publication_namespaces
+                         WHERE root_id = gap.root_id)
+                 FROM library_change_queue AS gap
+                 JOIN library_change_queue_lanes AS lane ON lane.change_id = gap.id
+                 JOIN library_live_gap_recovery_claims AS claim
+                   ON claim.gap_change_id = gap.id
+                 WHERE gap.id = 3002",
+                [],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                        row.get(5)?,
+                        row.get(6)?,
+                        row.get(7)?,
+                        row.get(8)?,
+                    ))
+                },
+            )
+            .expect("unproven fail-closed evidence");
+        assert_eq!(
+            migrated,
+            (
+                "startup_catch_up".to_owned(),
+                "p1_journal".to_owned(),
+                "retry_wait".to_owned(),
+                None,
+                "live_gap_v30_explicit_recovery_required".to_owned(),
+                "explicit_recovery_required".to_owned(),
+                "unproven-live-gap-root".to_owned(),
+                3,
+                0,
+            )
+        );
+        migrate_schema(&mut connection).expect("validate fail-closed current catalog");
+    }
+
+    #[test]
+    fn malformed_partial_v30_schema_rolls_back_without_advancing_v29() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh current catalog");
+        downgrade_current_catalog_to_v29(&connection);
+        connection
+            .execute_batch(
+                "CREATE TABLE library_live_gap_recovery_contract(
+                   singleton INTEGER PRIMARY KEY
+                 );",
+            )
+            .expect("partial v30 object");
+
+        super::migrate_v29_to_v30(&mut connection).expect_err("partial v30 must fail closed");
+
+        let rollback: (i64, i64, i64, i64) = connection
+            .query_row(
+                "SELECT
+                   (SELECT version FROM schema_info),
+                   (SELECT user_version FROM pragma_user_version),
+                   (SELECT COUNT(*) FROM pragma_table_info(
+                    'library_live_gap_recovery_contract')),
+                   (SELECT COUNT(*) FROM sqlite_master
+                    WHERE type = 'table' AND name = 'library_live_gap_recovery_claims')",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+            )
+            .expect("partial v30 rollback evidence");
+        assert_eq!(rollback, (29, 29, 1, 0));
+    }
+
+    fn reopen_recovery_lifecycle_catalog(
+        catalog: &NamedTempFile,
+    ) -> Result<(), crate::domain::ScanError> {
+        let mut connection = Connection::open(catalog.path()).expect("reopen lifecycle catalog");
+        connection
+            .execute_batch("PRAGMA foreign_keys = ON")
+            .expect("enable lifecycle foreign keys");
+        migrate_schema(&mut connection)
+    }
+
+    fn active_frontier_catalog() -> NamedTempFile {
+        let catalog = recovery_lifecycle_catalog(false);
+        let mut connection = Connection::open(catalog.path()).expect("active frontier catalog");
+        connection
+            .execute_batch(
+                "PRAGMA foreign_keys = ON;
+                 INSERT INTO scan_runs(
+                   id, root_id, status, started_unix_ms, completed_unix_ms, preview_edge
+                 ) VALUES ('lifecycle-scan', 'lifecycle-root', 'completed', 1, 1, 128);
+                 UPDATE library_roots
+                 SET active_scan_id = 'lifecycle-scan' WHERE id = 'lifecycle-root';
+                 INSERT INTO library_metadata_inventory_runs(
+                   id, root_id, root_generation, epoch, scope_kind, scope_relative_path,
+                   status, next_page_index, enumeration_cursor, staged_entry_count,
+                   started_unix_ms, updated_unix_ms
+                 ) VALUES (
+                   'lifecycle-run', 'lifecycle-root', 1, 1, 'root', '',
+                   'running', 2, 'album', 1, 1, 2
+                 );
+                 INSERT INTO library_metadata_inventory_entries(
+                   run_id, relative_path, entry_kind, file_size, modified_unix_ms,
+                   placeholder_state, is_reparse_point, staged_page_index, staged_unix_ms
+                 ) VALUES (
+                   'lifecycle-run', 'album', 'directory', NULL, 1,
+                   'available', 0, 1, 2
+                 );
+                 INSERT INTO library_metadata_inventory_frontier(
+                   run_id, ordinal, relative_directory, state,
+                   directory_identity_scheme, directory_identity_value,
+                   resume_after_relative_path, enumerated_entry_count, updated_unix_ms
+                 ) VALUES
+                   ('lifecycle-run', 0, '', 'enumerating',
+                    'windows-file-id-128-v1', 'volume:root', 'album', 1, 2),
+                   ('lifecycle-run', 1, 'album', 'pending',
+                    'windows-file-id-128-v1', 'volume:album', NULL, 0, 2);",
+            )
+            .expect("valid active frontier lifecycle");
+        migrate_schema(&mut connection).expect("validate active frontier lifecycle");
+        drop(connection);
+        catalog
     }
 
     #[test]
@@ -3285,7 +10101,7 @@ mod tests {
             )
             .expect("v19 queue fixture");
 
-        migrate_schema(&mut connection).expect("migrate v19 to v20");
+        migrate_schema(&mut connection).expect("migrate v19 to current schema");
         let (version, origin, lineage_count): (i64, String, i64) = connection
             .query_row(
                 "SELECT
@@ -3297,7 +10113,7 @@ mod tests {
                 |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
             )
             .expect("migrated queue evidence");
-        assert_eq!(version, 20);
+        assert_eq!(version, SCHEMA_VERSION);
         assert_eq!(origin, "startup_catch_up");
         assert_eq!(lineage_count, 1);
 
@@ -3322,6 +10138,1329 @@ mod tests {
     }
 
     #[test]
+    fn v22_migration_terminalizes_partial_inventory_and_seeds_baseline_authority() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh current catalog");
+        connection
+            .execute_batch(
+                "INSERT INTO library_roots(id, path, active_scan_id, created_unix_ms)
+                   VALUES ('root-a', 'C:/source', 'published-scan', 1);
+                 INSERT INTO scan_runs(
+                   id, root_id, status, started_unix_ms, completed_unix_ms, preview_edge
+                 ) VALUES ('published-scan', 'root-a', 'completed', 1, 1, 128);
+                 INSERT INTO library_change_root_state(
+                   root_id, generation, is_active, updated_unix_ms
+                 ) VALUES ('root-a', 7, 1, 1);
+                 INSERT INTO library_metadata_inventory_runs(
+                   id, root_id, root_generation, epoch, scope_kind, scope_relative_path,
+                   status, next_page_index, enumeration_complete, absence_authority,
+                   started_unix_ms, updated_unix_ms
+                 ) VALUES (
+                   'partial-inventory', 'root-a', 7, 1, 'root', '', 'comparing', 1,
+                   1, 1, 1, 1
+                 );
+                 INSERT INTO library_change_queue(
+                   id, root_id, root_generation, intent_kind, scope, relative_path,
+                   origin, first_observed_unix_ms, most_recent_observed_unix_ms,
+                   first_sequence, most_recent_sequence, coalesced_observation_count,
+                   status, ready_unix_ms, catalog_revision_at_enqueue,
+                   created_unix_ms, updated_unix_ms
+                 ) VALUES (
+                   71, 'root-a', 7, 'reconcile', 'path', 'retained.jpg',
+                   'user_refresh', 1, 1, '1', '1', 1, 'pending', 1, 0, 1, 1
+                 );",
+            )
+            .expect("v21 durable fixture");
+        remove_persistent_journal_v22_contract_for_test(&connection);
+        remove_change_lane_v25_contract_for_test(&connection);
+        connection
+            .execute("UPDATE schema_info SET version = 21", [])
+            .expect("v21 fixture version");
+
+        migrate_schema(&mut connection).expect("migrate v21 through v23");
+
+        let migrated: (i64, String, i64, Option<i64>, String, String, i64, i64) = connection
+            .query_row(
+                "SELECT
+                   (SELECT version FROM schema_info),
+                   (SELECT status FROM library_metadata_inventory_runs
+                    WHERE id = 'partial-inventory'),
+                   (SELECT absence_authority FROM library_metadata_inventory_runs
+                    WHERE id = 'partial-inventory'),
+                   (SELECT completed_unix_ms FROM library_metadata_inventory_runs
+                    WHERE id = 'partial-inventory'),
+                   (SELECT capability_state FROM library_persistent_journal_root_state
+                    WHERE root_id = 'root-a'),
+                   (SELECT continuity_state FROM library_persistent_journal_root_state
+                    WHERE root_id = 'root-a'),
+                   (SELECT COUNT(*) FROM library_persistent_journal_checkpoints),
+                   (SELECT COUNT(*) FROM library_change_queue WHERE id = 71)",
+                [],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                        row.get(5)?,
+                        row.get(6)?,
+                        row.get(7)?,
+                    ))
+                },
+            )
+            .expect("migrated persistent journal authority");
+        assert_eq!(
+            migrated,
+            (
+                SCHEMA_VERSION,
+                "superseded".to_owned(),
+                0,
+                None,
+                "unknown".to_owned(),
+                "baseline_required".to_owned(),
+                0,
+                1,
+            )
+        );
+        migrate_schema(&mut connection).expect("validate current schema");
+    }
+
+    #[test]
+    fn malformed_partial_v22_rolls_back_without_retiring_inventory() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh current catalog");
+        connection
+            .execute_batch(
+                "INSERT INTO library_roots(id, path, active_scan_id, created_unix_ms)
+                   VALUES ('root-a', 'C:/source', 'published-scan', 1);
+                 INSERT INTO scan_runs(
+                   id, root_id, status, started_unix_ms, completed_unix_ms, preview_edge
+                 ) VALUES ('published-scan', 'root-a', 'completed', 1, 1, 128);
+                 INSERT INTO library_change_root_state(
+                   root_id, generation, is_active, updated_unix_ms
+                 ) VALUES ('root-a', 1, 1, 1);
+                 INSERT INTO library_metadata_inventory_runs(
+                   id, root_id, root_generation, epoch, scope_kind, scope_relative_path,
+                   status, next_page_index, enumeration_complete, absence_authority,
+                   started_unix_ms, updated_unix_ms
+                 ) VALUES (
+                   'partial-inventory', 'root-a', 1, 1, 'root', '', 'comparing', 1,
+                   1, 1, 1, 1
+                 );",
+            )
+            .expect("partial inventory fixture");
+        remove_persistent_journal_v22_contract_for_test(&connection);
+        remove_change_lane_v25_contract_for_test(&connection);
+        connection
+            .execute_batch(
+                "UPDATE schema_info SET version = 21;
+                 CREATE TABLE library_persistent_journal_contract (
+                   singleton INTEGER PRIMARY KEY,
+                   contract_version INTEGER NOT NULL,
+                   complete INTEGER NOT NULL
+                 );
+                 INSERT INTO library_persistent_journal_contract(
+                   singleton, contract_version, complete
+                 ) VALUES (1, 1, 0);",
+            )
+            .expect("malformed partial v22 fixture");
+
+        let error = migrate_schema(&mut connection).expect_err("partial v22 must fail closed");
+        let retained: (i64, String, i64, bool) = connection
+            .query_row(
+                "SELECT
+                   (SELECT version FROM schema_info),
+                   (SELECT status FROM library_metadata_inventory_runs
+                    WHERE id = 'partial-inventory'),
+                   (SELECT absence_authority FROM library_metadata_inventory_runs
+                    WHERE id = 'partial-inventory'),
+                   EXISTS(
+                     SELECT 1 FROM sqlite_master
+                     WHERE type = 'index'
+                       AND name = 'library_change_root_state_generation_identity'
+                   )",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+            )
+            .expect("rolled back migration state");
+
+        assert_eq!(error.code, "catalog_database_error");
+        assert_eq!(retained, (21, "comparing".to_owned(), 1, false));
+    }
+
+    #[test]
+    fn current_v22_malformed_source_range_shape_fails_closed() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh current catalog");
+        connection
+            .execute_batch(
+                "DROP INDEX library_persistent_journal_source_ranges_volume;
+                 CREATE INDEX library_persistent_journal_source_ranges_volume
+                   ON library_persistent_journal_source_ranges(
+                     volume_guid, requested_start_usn, id
+                   );",
+            )
+            .expect("malformed v22 index fixture");
+
+        let error = migrate_schema(&mut connection).expect_err("malformed v22 shape");
+
+        assert_eq!(
+            error.code,
+            "catalog_persistent_journal_contract_unverifiable"
+        );
+    }
+
+    #[test]
+    fn current_v22_rejects_replaced_check_with_the_same_check_count() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh current catalog");
+        let original = connection
+            .query_row(
+                "SELECT sql FROM sqlite_master
+                 WHERE type = 'table' AND name = 'library_persistent_journal_root_state'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .expect("canonical root-state DDL");
+        let modified = original.replacen("CHECK(updated_unix_ms >= 0)", "CHECK(1)", 1);
+        assert_ne!(modified, original);
+        assert_eq!(
+            normalize_schema_sql(&modified).matches("check(").count(),
+            normalize_schema_sql(&original).matches("check(").count()
+        );
+        connection
+            .execute_batch("PRAGMA writable_schema = ON")
+            .expect("enable controlled schema mutation");
+        connection
+            .execute(
+                "UPDATE sqlite_master SET sql = ?1
+                 WHERE type = 'table' AND name = 'library_persistent_journal_root_state'",
+                [modified],
+            )
+            .expect("replace one CHECK");
+        connection
+            .execute_batch("PRAGMA writable_schema = OFF; PRAGMA schema_version = 999")
+            .expect("publish controlled schema mutation");
+
+        let error = migrate_schema(&mut connection).expect_err("weakened CHECK must fail closed");
+        assert_eq!(
+            error.code,
+            "catalog_persistent_journal_contract_unverifiable"
+        );
+    }
+
+    #[test]
+    fn schema_sql_canonicalization_preserves_quoted_tokens_and_escapes() {
+        let formatted = "CREATE  TABLE [Range Name] (kind TEXT CHECK(kind = 'a  b'),\n\
+                         note TEXT CHECK(note = 'it''s'), value BLOB DEFAULT X'0A')";
+        let compact = "create table [Range Name](kind text check(kind='a  b'),\
+                       note text check(note='it''s'),value blob default x'0A')";
+        assert_eq!(
+            normalize_schema_sql(formatted),
+            normalize_schema_sql(compact)
+        );
+        for changed in [
+            compact.replace("[Range Name]", "[range name]"),
+            compact.replace("'a  b'", "'a b'"),
+            compact.replace("'it''s'", "'IT''S'"),
+            compact.replace("x'0A'", "x'0a'"),
+        ] {
+            assert_ne!(
+                normalize_schema_sql(compact),
+                normalize_schema_sql(&changed)
+            );
+        }
+        assert_ne!(
+            normalize_schema_sql("CREATE TABLE `Range` (`Value` TEXT)"),
+            normalize_schema_sql("CREATE TABLE `range` (`Value` TEXT)")
+        );
+        assert_ne!(
+            normalize_schema_sql("CREATE TABLE \"Range\" (\"Value\" TEXT)"),
+            normalize_schema_sql("CREATE TABLE \"range\" (\"Value\" TEXT)")
+        );
+    }
+
+    #[test]
+    fn current_v24_rejects_quoted_schema_literal_mutations() {
+        let mutations = [
+            (
+                "trigger",
+                "library_persistent_journal_source_range_id_insert",
+                "'*[^0-9a-f]*'",
+                "'*[^0-9A-F]*'",
+            ),
+            (
+                "trigger",
+                "library_persistent_journal_source_range_id_insert",
+                "'text'",
+                "'TEXT'",
+            ),
+            (
+                "trigger",
+                "library_persistent_journal_source_range_id_insert",
+                "'invalid persistent journal source range id'",
+                "'invalid  persistent journal source range id'",
+            ),
+            (
+                "trigger",
+                "library_persistent_journal_source_range_id_insert",
+                "'invalid persistent journal source range id'",
+                "'invalid persistent journal source range ''id'''",
+            ),
+            (
+                "table",
+                "library_persistent_journal_source_ranges",
+                "'enrolled'",
+                "'ENROLLED'",
+            ),
+        ];
+        for (index, (object_type, name, original, replacement)) in mutations.into_iter().enumerate()
+        {
+            let mut connection = Connection::open_in_memory().expect("catalog");
+            migrate_schema(&mut connection).expect("fresh current catalog");
+            let sql = connection
+                .query_row(
+                    "SELECT sql FROM sqlite_master WHERE type = ?1 AND name = ?2",
+                    [object_type, name],
+                    |row| row.get::<_, String>(0),
+                )
+                .expect("canonical schema object");
+            let modified = sql.replacen(original, replacement, 1);
+            assert_ne!(modified, sql, "mutation {index} must change schema SQL");
+            connection
+                .execute_batch("PRAGMA writable_schema = ON")
+                .expect("enable controlled schema mutation");
+            connection
+                .execute(
+                    "UPDATE sqlite_master SET sql = ?1 WHERE type = ?2 AND name = ?3",
+                    rusqlite::params![modified, object_type, name],
+                )
+                .expect("mutate quoted schema token");
+            connection
+                .execute_batch("PRAGMA writable_schema = OFF; PRAGMA schema_version = 1001")
+                .expect("publish controlled schema mutation");
+
+            let error = migrate_schema(&mut connection)
+                .expect_err("quoted schema token mutation must fail closed");
+            assert_eq!(
+                error.code, "catalog_persistent_journal_contract_unverifiable",
+                "unexpected mutation {index} error"
+            );
+        }
+    }
+
+    #[test]
+    fn v24_forward_migration_and_pending_carry_ddl_are_exact() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh current catalog");
+        remove_change_lane_v25_contract_for_test(&connection);
+        connection
+            .execute_batch(
+                "DROP TRIGGER library_persistent_journal_source_range_id_insert;
+                 DROP TRIGGER library_persistent_journal_source_range_id_update;
+                 ALTER TABLE library_persistent_journal_source_ranges
+                   DROP COLUMN canonical_payload;
+                 ALTER TABLE library_persistent_journal_cross_root_lineage DROP COLUMN journal_id;
+                 ALTER TABLE library_persistent_journal_cross_root_lineage DROP COLUMN old_usn;
+                 ALTER TABLE library_persistent_journal_cross_root_lineage DROP COLUMN new_usn;
+                 ALTER TABLE library_persistent_journal_cross_root_lineage
+                   DROP COLUMN previous_carry_id;
+                 UPDATE schema_info SET version = 23;",
+            )
+            .expect("v23 fixture");
+
+        migrate_schema(&mut connection).expect("forward migrate v23 to v24");
+        let migrated: (i64, i64, i64) = connection
+            .query_row(
+                "SELECT
+                   (SELECT version FROM schema_info),
+                   (SELECT COUNT(*) FROM pragma_table_info(
+                     'library_persistent_journal_range_lifecycle'
+                   )),
+                   (SELECT COUNT(*) FROM pragma_table_info(
+                     'library_persistent_journal_pending_renames'
+                   ))",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .expect("v23 schema shape");
+        assert_eq!(migrated, (SCHEMA_VERSION, 4, 13));
+
+        let original = connection
+            .query_row(
+                "SELECT sql FROM sqlite_master
+                 WHERE type = 'table'
+                   AND name = 'library_persistent_journal_pending_renames'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .expect("canonical pending-carry DDL");
+        let modified = original.replacen("CHECK(is_directory IN (0, 1))", "CHECK(1)", 1);
+        assert_ne!(modified, original);
+        assert_eq!(
+            normalize_schema_sql(&modified).matches("check(").count(),
+            normalize_schema_sql(&original).matches("check(").count()
+        );
+        connection
+            .execute_batch("PRAGMA writable_schema = ON")
+            .expect("enable controlled schema mutation");
+        connection
+            .execute(
+                "UPDATE sqlite_master SET sql = ?1
+                 WHERE type = 'table'
+                   AND name = 'library_persistent_journal_pending_renames'",
+                [modified],
+            )
+            .expect("replace pending carry CHECK");
+        connection
+            .execute_batch("PRAGMA writable_schema = OFF; PRAGMA schema_version = 1000")
+            .expect("publish controlled schema mutation");
+        let error = migrate_schema(&mut connection).expect_err("weakened v24 CHECK must fail");
+        assert_eq!(
+            error.code,
+            "catalog_persistent_journal_contract_unverifiable"
+        );
+    }
+
+    #[test]
+    fn v25_migration_classifies_existing_queue_rows_and_tracks_new_origins() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh current catalog");
+        remove_change_lane_v25_contract_for_test(&connection);
+        connection
+            .execute_batch(
+                "UPDATE schema_info SET version = 24;
+                 INSERT INTO library_change_queue(
+                   id, root_id, root_generation, intent_kind, scope, relative_path,
+                   previous_relative_path, origin, first_observed_unix_ms,
+                   most_recent_observed_unix_ms, first_sequence, most_recent_sequence,
+                   coalesced_observation_count, status, ready_unix_ms,
+                   catalog_revision_at_enqueue, created_unix_ms, updated_unix_ms
+                 ) VALUES
+                   (101, 'root-a', 1, 'reconcile', 'path', 'live.jpg', NULL,
+                    'live_notification', 1, 1, '1', '1', 1, 'pending', 1, 0, 1, 1),
+                   (102, 'root-a', 1, 'reconcile', 'path', 'journal.jpg', NULL,
+                    'startup_catch_up', 1, 1, '2', '2', 1, 'pending', 1, 0, 1, 1),
+                   (103, 'root-a', 1, 'reconcile', 'path', 'inventory.jpg', NULL,
+                    'metadata_inventory', 1, 1, '3', '3', 1, 'pending', 1, 0, 1, 1),
+                   (104, 'root-a', 1, 'reconcile', 'path', 'audit.jpg', NULL,
+                    'consistency_audit', 1, 1, '4', '4', 1, 'pending', 1, 0, 1, 1),
+                   (105, 'root-a', 1, 'reconcile', 'path', 'refresh.jpg', NULL,
+                    'user_refresh', 1, 1, '5', '5', 1, 'pending', 1, 0, 1, 1);",
+            )
+            .expect("v24 queue fixture");
+
+        migrate_schema(&mut connection).expect("migrate v24 to v25");
+        let lanes = connection
+            .prepare(
+                "SELECT queue.origin, lanes.lane
+                 FROM library_change_queue AS queue
+                 JOIN library_change_queue_lanes AS lanes ON lanes.change_id = queue.id
+                 WHERE queue.id BETWEEN 101 AND 105
+                 ORDER BY queue.id",
+            )
+            .expect("lane query")
+            .query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            })
+            .expect("lane rows")
+            .collect::<rusqlite::Result<Vec<_>>>()
+            .expect("lane evidence");
+        assert_eq!(
+            lanes,
+            vec![
+                ("live_notification".to_owned(), "p0_live".to_owned()),
+                ("startup_catch_up".to_owned(), "p1_journal".to_owned()),
+                ("metadata_inventory".to_owned(), "p2_recovery".to_owned()),
+                ("consistency_audit".to_owned(), "p2_recovery".to_owned()),
+                ("user_refresh".to_owned(), "p2_recovery".to_owned()),
+            ]
+        );
+        let implicit_authority_count: i64 = connection
+            .query_row(
+                "SELECT COUNT(*) FROM library_recovery_authorities",
+                [],
+                |row| row.get(0),
+            )
+            .expect("no implicit recovery authority");
+        assert_eq!(implicit_authority_count, 0);
+
+        connection
+            .execute(
+                "UPDATE library_change_queue SET origin = 'live_notification' WHERE id = 102",
+                [],
+            )
+            .expect("origin update");
+        let updated_lane: String = connection
+            .query_row(
+                "SELECT lane FROM library_change_queue_lanes WHERE change_id = 102",
+                [],
+                |row| row.get(0),
+            )
+            .expect("updated lane");
+        assert_eq!(updated_lane, "p0_live");
+
+        let tampering = connection
+            .execute(
+                "UPDATE library_change_queue_lanes SET lane = 'p2_recovery' WHERE change_id = 102",
+                [],
+            )
+            .expect_err("lane guard rejects origin mismatch");
+        assert!(tampering.to_string().contains("lane does not match origin"));
+        migrate_schema(&mut connection).expect("validate current v25");
+    }
+
+    #[test]
+    fn v25_and_v26_zero_owner_p2_capacity_debt_migrates_exactly_and_reopens() {
+        const LEGACY_UNOWNED_P2: i64 = 3_584;
+
+        for starting_version in [25_i64, 26_i64] {
+            let catalog_file = NamedTempFile::new().expect("catalog file");
+            let catalog_path = catalog_file.path().to_path_buf();
+            let mut connection = Connection::open(&catalog_path).expect("catalog");
+            migrate_schema(&mut connection).expect("fresh current catalog");
+            remove_metadata_inventory_spool_v27_contract_for_test(&connection);
+            if starting_version == 25 {
+                remove_recovery_execution_v26_contract_for_test(&connection);
+            }
+            connection
+                .execute_batch(&format!(
+                    "UPDATE schema_info SET version = {starting_version};
+                     PRAGMA application_id = 0;
+                     PRAGMA user_version = 0;"
+                ))
+                .expect("publish valid legacy schema version");
+            let transaction = connection.transaction().expect("legacy debt transaction");
+            {
+                let mut insert = transaction
+                    .prepare(
+                        "INSERT INTO library_change_queue(
+                           root_id, root_generation, intent_kind, scope, relative_path,
+                           previous_relative_path, origin, first_observed_unix_ms,
+                           most_recent_observed_unix_ms, first_sequence,
+                           most_recent_sequence, coalesced_observation_count, status,
+                           ready_unix_ms, catalog_revision_at_enqueue,
+                           created_unix_ms, updated_unix_ms
+                         ) VALUES (
+                           'root-a', 1, 'reconcile', 'path', ?1, NULL,
+                           'metadata_inventory', ?2, ?2, ?3, ?3, 1, 'pending', ?2, 0,
+                           ?2, ?2
+                         )",
+                    )
+                    .expect("legacy queue insert");
+                for ordinal in 1..=LEGACY_UNOWNED_P2 {
+                    insert
+                        .execute(rusqlite::params![
+                            format!("legacy-{ordinal:04}.jpg"),
+                            1_000 + ordinal,
+                            ordinal.to_string(),
+                        ])
+                        .expect("insert legacy P2 row");
+                }
+            }
+            transaction.commit().expect("commit exact legacy debt");
+
+            migrate_schema(&mut connection).expect("migrate legacy debt to current schema");
+            let evidence: (i64, i64, i64, i64, i64) = connection
+                .query_row(
+                    "SELECT
+                       (SELECT version FROM schema_info),
+                       (SELECT COUNT(*) FROM library_change_queue AS queue
+                        JOIN library_change_queue_lanes AS lane ON lane.change_id = queue.id
+                        WHERE lane.lane = 'p2_recovery'
+                          AND queue.status IN ('pending', 'leased', 'retry_wait')),
+                       (SELECT COUNT(*) FROM library_metadata_inventory_candidate_owners),
+                       (SELECT COUNT(*) FROM library_recovery_authorities),
+                       (SELECT COUNT(*) FROM library_change_queue)",
+                    [],
+                    |row| {
+                        Ok((
+                            row.get(0)?,
+                            row.get(1)?,
+                            row.get(2)?,
+                            row.get(3)?,
+                            row.get(4)?,
+                        ))
+                    },
+                )
+                .expect("migrated debt evidence");
+            assert_eq!(
+                evidence,
+                (SCHEMA_VERSION, LEGACY_UNOWNED_P2, 0, 0, LEGACY_UNOWNED_P2),
+                "starting schema v{starting_version}"
+            );
+            migrate_schema(&mut connection).expect("idempotent current migration");
+            drop(connection);
+
+            let mut reopened = Connection::open(&catalog_path).expect("reopen migrated catalog");
+            migrate_schema(&mut reopened).expect("validate reopened migrated catalog");
+            let reopened_evidence: (i64, i64) = reopened
+                .query_row(
+                    "SELECT
+                       (SELECT COUNT(*) FROM library_change_queue),
+                       (SELECT COUNT(*) FROM library_metadata_inventory_candidate_owners)",
+                    [],
+                    |row| Ok((row.get(0)?, row.get(1)?)),
+                )
+                .expect("reopened debt evidence");
+            assert_eq!(reopened_evidence, (LEGACY_UNOWNED_P2, 0));
+        }
+    }
+
+    #[test]
+    fn current_v25_rejects_weakened_lane_constraint_and_missing_lane_rows() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh current catalog");
+        let original = connection
+            .query_row(
+                "SELECT sql FROM sqlite_master
+                 WHERE type = 'table' AND name = 'library_change_queue_lanes'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .expect("canonical lane DDL");
+        let modified = original.replacen(
+            "CHECK(lane IN ('p0_live', 'p1_journal', 'p2_recovery'))",
+            "CHECK(1)",
+            1,
+        );
+        assert_ne!(modified, original);
+        connection
+            .execute_batch("PRAGMA writable_schema = ON")
+            .expect("enable controlled schema mutation");
+        connection
+            .execute(
+                "UPDATE sqlite_master SET sql = ?1
+                 WHERE type = 'table' AND name = 'library_change_queue_lanes'",
+                [modified],
+            )
+            .expect("weaken lane CHECK");
+        connection
+            .execute_batch("PRAGMA writable_schema = OFF; PRAGMA schema_version = 1002")
+            .expect("publish controlled schema mutation");
+
+        let error = migrate_schema(&mut connection).expect_err("weakened v25 CHECK must fail");
+        assert_eq!(error.code, "catalog_change_lane_contract_unverifiable");
+
+        let mut connection = Connection::open_in_memory().expect("second catalog");
+        migrate_schema(&mut connection).expect("fresh current catalog");
+        connection
+            .execute_batch(
+                "INSERT INTO library_change_queue(
+                   id, root_id, root_generation, intent_kind, scope, relative_path,
+                   origin, first_observed_unix_ms, most_recent_observed_unix_ms,
+                   first_sequence, most_recent_sequence, coalesced_observation_count,
+                   status, ready_unix_ms, catalog_revision_at_enqueue,
+                   created_unix_ms, updated_unix_ms
+                 ) VALUES (
+                   201, 'root-a', 1, 'reconcile', 'path', 'photo.jpg',
+                   'live_notification', 1, 1, '1', '1', 1, 'pending', 1, 0, 1, 1
+                 );
+                 DELETE FROM library_change_queue_lanes WHERE change_id = 201;",
+            )
+            .expect("missing lane fixture");
+        let error = migrate_schema(&mut connection).expect_err("missing lane row must fail");
+        assert_eq!(error.code, "catalog_change_lane_contract_unverifiable");
+    }
+
+    #[test]
+    fn current_v25_recovery_authority_is_allowlisted_and_bound_to_p2_work() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh current catalog");
+        connection
+            .execute_batch(
+                "INSERT INTO library_change_queue(
+                   id, root_id, root_generation, intent_kind, scope, relative_path,
+                   origin, first_observed_unix_ms, most_recent_observed_unix_ms,
+                   first_sequence, most_recent_sequence, coalesced_observation_count,
+                   status, ready_unix_ms, catalog_revision_at_enqueue,
+                   created_unix_ms, updated_unix_ms
+                 ) VALUES
+                   (301, 'root-a', 1, 'freshness_unknown', 'root', '',
+                    'consistency_audit', 1, 1, '1', '1', 1, 'pending', 1, 0, 1, 1),
+                   (302, 'root-a', 1, 'reconcile', 'path', 'live.jpg',
+                    'live_notification', 1, 1, '2', '2', 1, 'pending', 1, 0, 1, 1);",
+            )
+            .expect("queue fixtures");
+
+        let invalid_reason = connection
+            .execute(
+                "INSERT INTO library_recovery_authorities(
+                   change_id, run_id, root_id, root_generation, reason, authorized_unix_ms
+                 ) VALUES (301, 'run-invalid', 'root-a', 1, 'slow_queue', 1)",
+                [],
+            )
+            .expect_err("non-allowlisted reason");
+        assert!(
+            invalid_reason
+                .to_string()
+                .contains("CHECK constraint failed")
+        );
+        let missing_boundary = connection
+            .execute(
+                "INSERT INTO library_recovery_authorities(
+                   change_id, run_id, root_id, root_generation, reason, authorized_unix_ms
+                 ) VALUES (301, 'run-baseline', 'root-a', 1,
+                           'existing_root_baseline', 1)",
+                [],
+            )
+            .expect_err("baseline requires opening boundary");
+        assert!(
+            missing_boundary
+                .to_string()
+                .contains("CHECK constraint failed")
+        );
+        let wrong_lane = connection
+            .execute(
+                "INSERT INTO library_recovery_authorities(
+                   change_id, run_id, root_id, root_generation, reason, authorized_unix_ms
+                 ) VALUES (302, 'run-live', 'root-a', 1, 'containment_failure', 1)",
+                [],
+            )
+            .expect_err("P0 cannot own P2 authority");
+        assert!(wrong_lane.to_string().contains("does not match P2"));
+        connection
+            .execute(
+                "INSERT INTO library_recovery_authorities(
+                   change_id, run_id, root_id, root_generation, reason, authorized_unix_ms
+                 ) VALUES (301, 'run-valid', 'root-a', 1, 'containment_failure', 1)",
+                [],
+            )
+            .expect("allowlisted P2 authority");
+        let immutable = connection
+            .execute(
+                "UPDATE library_recovery_authorities
+                 SET reason = 'journal_gap' WHERE change_id = 301",
+                [],
+            )
+            .expect_err("authority identity is immutable");
+        assert!(immutable.to_string().contains("identity is immutable"));
+        migrate_schema(&mut connection).expect("validate recovery authority contract");
+    }
+
+    #[test]
+    fn current_v25_rejects_weakened_recovery_authority_shape() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh current catalog");
+        let original = connection
+            .query_row(
+                "SELECT sql FROM sqlite_master
+                 WHERE type = 'table' AND name = 'library_recovery_authorities'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .expect("canonical recovery authority DDL");
+        let modified = original.replacen(
+            "CHECK(retired_unix_ms IS NULL OR retired_unix_ms >= authorized_unix_ms)",
+            "CHECK(1)",
+            1,
+        );
+        assert_ne!(modified, original);
+        connection
+            .execute_batch("PRAGMA writable_schema = ON")
+            .expect("enable controlled schema mutation");
+        connection
+            .execute(
+                "UPDATE sqlite_master SET sql = ?1
+                 WHERE type = 'table' AND name = 'library_recovery_authorities'",
+                [modified],
+            )
+            .expect("weaken recovery authority CHECK");
+        connection
+            .execute_batch("PRAGMA writable_schema = OFF; PRAGMA schema_version = 1003")
+            .expect("publish controlled schema mutation");
+
+        let error = migrate_schema(&mut connection).expect_err("weakened authority must fail");
+        assert_eq!(
+            error.code,
+            "catalog_recovery_authority_contract_unverifiable"
+        );
+    }
+
+    #[test]
+    fn current_v25_rejects_weakened_baseline_lifecycle_shape() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh current catalog");
+        let original = connection
+            .query_row(
+                "SELECT sql FROM sqlite_master
+                 WHERE type = 'table'
+                   AND name = 'library_persistent_journal_baselines'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .expect("canonical baseline DDL");
+        let modified = original.replacen(
+            "CHECK((phase = 'completed') = (completed_unix_ms IS NOT NULL))",
+            "CHECK(1)",
+            1,
+        );
+        assert_ne!(modified, original);
+        connection
+            .execute_batch("PRAGMA writable_schema = ON")
+            .expect("enable controlled schema mutation");
+        connection
+            .execute(
+                "UPDATE sqlite_master SET sql = ?1
+                 WHERE type = 'table'
+                   AND name = 'library_persistent_journal_baselines'",
+                [modified],
+            )
+            .expect("weaken baseline lifecycle CHECK");
+        connection
+            .execute_batch("PRAGMA writable_schema = OFF; PRAGMA schema_version = 1004")
+            .expect("publish controlled schema mutation");
+
+        let error = migrate_schema(&mut connection).expect_err("weakened baseline must fail");
+        assert_eq!(
+            error.code,
+            "catalog_persistent_journal_baseline_contract_unverifiable"
+        );
+    }
+
+    #[test]
+    fn v27_root_proof_migration_fails_closed_across_every_recovery_phase() {
+        for phase in ["opening", "inventory", "replay", "absence", "completed"] {
+            let catalog = v27_root_proof_phase_catalog(phase);
+            let mut connection = Connection::open(catalog.path()).expect("open v27 phase catalog");
+            connection
+                .execute_batch("PRAGMA foreign_keys = ON")
+                .expect("enable migrated fixture foreign keys");
+
+            migrate_schema(&mut connection)
+                .unwrap_or_else(|error| panic!("migrate exact v27 phase {phase}: {error:?}"));
+
+            let schema: (i64, i64, i64, i64) = connection
+                .query_row(
+                    "SELECT
+                       (SELECT version FROM schema_info),
+                       (SELECT contract_version
+                        FROM library_metadata_inventory_spool_contract WHERE singleton = 1),
+                       (SELECT COUNT(*) FROM pragma_table_info(
+                          'library_metadata_inventory_spools'
+                        ) WHERE name IN ('root_identity_scheme', 'root_identity_value')),
+                       (SELECT COUNT(*) FROM library_roots
+                        WHERE id = 'lifecycle-root' AND active_scan_id = 'lifecycle-scan')",
+                    [],
+                    |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+                )
+                .expect("current exact shape evidence");
+            assert_eq!(schema, (SCHEMA_VERSION, 2, 2, 1), "phase {phase}");
+
+            let projection: (String, i64, i64) = connection
+                .query_row(
+                    "SELECT
+                       continuity_state,
+                       (SELECT COUNT(*) FROM library_persistent_journal_root_state
+                        WHERE root_id = 'lifecycle-root' AND continuity_state = 'current'),
+                       (SELECT COUNT(*) FROM library_persistent_journal_checkpoints
+                        WHERE root_id = 'lifecycle-root' AND continuity_state = 'current')
+                     FROM library_persistent_journal_root_state
+                     WHERE root_id = 'lifecycle-root'",
+                    [],
+                    |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+                )
+                .expect("v28 authority projection");
+            assert_eq!(
+                projection.1, 0,
+                "phase {phase} must not retain root Current"
+            );
+            assert_eq!(
+                projection.2, 0,
+                "phase {phase} must not retain checkpoint Current"
+            );
+
+            let control: (String, Option<String>, bool) = connection
+                .query_row(
+                    "SELECT queue.status, queue.last_failure_code,
+                            authority.retired_unix_ms IS NULL
+                     FROM library_change_queue AS queue
+                     JOIN library_recovery_authorities AS authority
+                       ON authority.change_id = queue.id
+                     WHERE queue.id = 901",
+                    [],
+                    |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+                )
+                .expect("v28 recovery control state");
+            assert_eq!(
+                control.1.as_deref(),
+                Some("metadata_inventory_v28_recapture_required"),
+                "phase {phase}"
+            );
+
+            match phase {
+                "opening" => {
+                    assert_eq!(projection.0, "baseline_required");
+                    assert_eq!(control.0, "pending");
+                    assert!(control.2);
+                    let derived: (i64, i64) = connection
+                        .query_row(
+                            "SELECT
+                               (SELECT COUNT(*) FROM library_persistent_journal_baselines
+                                WHERE change_id = 901),
+                               (SELECT COUNT(*) FROM library_metadata_inventory_runs
+                                WHERE id = 'lifecycle-run')",
+                            [],
+                            |row| Ok((row.get(0)?, row.get(1)?)),
+                        )
+                        .expect("opening phase state");
+                    assert_eq!(derived, (0, 0));
+                }
+                "inventory" | "replay" | "absence" => {
+                    assert_eq!(projection.0, "baseline_required");
+                    assert_eq!(control.0, "pending");
+                    assert!(control.2);
+                    let reset: (String, i64, i64, i64, i64, String, i64, i64, i64) = connection
+                        .query_row(
+                            "SELECT
+                               run.status, run.next_page_index, run.staged_entry_count,
+                               run.candidate_count, run.enumeration_complete, baseline.phase,
+                               (SELECT COUNT(*) FROM library_metadata_inventory_entries
+                                WHERE run_id = 'lifecycle-run'),
+                               (SELECT COUNT(*) FROM library_metadata_inventory_frontier
+                                WHERE run_id = 'lifecycle-run'),
+                               (SELECT COUNT(*) FROM library_metadata_inventory_spools
+                                WHERE run_id = 'lifecycle-run')
+                             FROM library_metadata_inventory_runs AS run
+                             JOIN library_persistent_journal_baselines AS baseline
+                               ON baseline.change_id = 901
+                             WHERE run.id = 'lifecycle-run'",
+                            [],
+                            |row| {
+                                Ok((
+                                    row.get(0)?,
+                                    row.get(1)?,
+                                    row.get(2)?,
+                                    row.get(3)?,
+                                    row.get(4)?,
+                                    row.get(5)?,
+                                    row.get(6)?,
+                                    row.get(7)?,
+                                    row.get(8)?,
+                                ))
+                            },
+                        )
+                        .expect("v28 active recovery reset");
+                    assert_eq!(
+                        reset,
+                        (
+                            "running".to_owned(),
+                            1,
+                            0,
+                            0,
+                            0,
+                            "inventory".to_owned(),
+                            0,
+                            0,
+                            0
+                        ),
+                        "phase {phase}"
+                    );
+                    if matches!(phase, "replay" | "absence") {
+                        let candidate: (String, Option<String>, i64) = connection
+                            .query_row(
+                                "SELECT status, last_failure_code,
+                                        (SELECT COUNT(*)
+                                         FROM library_metadata_inventory_candidate_owners
+                                         WHERE change_id = 902)
+                                 FROM library_change_queue WHERE id = 902",
+                                [],
+                                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+                            )
+                            .expect("v27 derived candidate retirement");
+                        assert_eq!(candidate.0, "superseded", "phase {phase}");
+                        assert_eq!(
+                            candidate.1.as_deref(),
+                            Some("metadata_inventory_v28_recapture_required"),
+                            "phase {phase}"
+                        );
+                        assert_eq!(candidate.2, 0, "phase {phase}");
+                    }
+                }
+                "completed" => {
+                    assert_eq!(projection.0, "recovery_required");
+                    assert_eq!(control.0, "completed");
+                    assert!(!control.2);
+                    let terminal: (String, String, String, Option<String>) = connection
+                        .query_row(
+                            "SELECT baseline.phase, root.continuity_state,
+                                    checkpoint.continuity_state,
+                                    checkpoint.last_failure_code
+                             FROM library_persistent_journal_baselines AS baseline
+                             JOIN library_persistent_journal_root_state AS root
+                               ON root.root_id = baseline.root_id
+                              AND root.root_generation = baseline.root_generation
+                             JOIN library_persistent_journal_checkpoints AS checkpoint
+                               ON checkpoint.root_id = baseline.root_id
+                              AND checkpoint.root_generation = baseline.root_generation
+                             WHERE baseline.change_id = 901",
+                            [],
+                            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+                        )
+                        .expect("v28 invalidated terminal history");
+                    assert_eq!(terminal.0, "completed");
+                    assert_eq!(terminal.1, "recovery_required");
+                    assert_eq!(terminal.2, "recovery_required");
+                    assert_eq!(
+                        terminal.3.as_deref(),
+                        Some("metadata_inventory_v28_recapture_required")
+                    );
+                }
+                _ => unreachable!(),
+            }
+
+            migrate_schema(&mut connection).expect("v28 migration is idempotent");
+            drop(connection);
+            reopen_recovery_lifecycle_catalog(&catalog).expect("reopen migrated v28 phase");
+        }
+    }
+
+    #[test]
+    fn malformed_v27_spool_shape_rolls_back_root_proof_migration() {
+        let catalog = v27_root_proof_phase_catalog("inventory");
+        let mut connection = Connection::open(catalog.path()).expect("open malformed v27 catalog");
+        connection
+            .execute_batch(
+                "PRAGMA foreign_keys = ON;
+                 DROP INDEX library_metadata_inventory_spool_entries_order;",
+            )
+            .expect("corrupt v27 spool order index");
+
+        let error = migrate_schema(&mut connection).expect_err("malformed v27 must fail closed");
+        let retained: (i64, String, Option<String>, String, i64) = connection
+            .query_row(
+                "SELECT
+                   (SELECT version FROM schema_info),
+                   (SELECT status FROM library_change_queue WHERE id = 901),
+                   (SELECT last_failure_code FROM library_change_queue WHERE id = 901),
+                   (SELECT status FROM library_metadata_inventory_runs
+                    WHERE id = 'lifecycle-run'),
+                   (SELECT COUNT(*) FROM library_metadata_inventory_spools
+                    WHERE run_id = 'lifecycle-run')",
+                [],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                    ))
+                },
+            )
+            .expect("rolled-back v27 state");
+
+        assert_eq!(
+            error.code,
+            "catalog_metadata_inventory_spool_contract_unverifiable"
+        );
+        assert_eq!(
+            retained,
+            (27, "pending".to_owned(), None, "running".to_owned(), 1)
+        );
+    }
+
+    #[test]
+    fn current_v27_reopens_legal_active_and_completed_recovery_lifecycles() {
+        let active = recovery_lifecycle_catalog(false);
+        reopen_recovery_lifecycle_catalog(&active).expect("reopen legal active lifecycle");
+        let completed = recovery_lifecycle_catalog(true);
+        reopen_recovery_lifecycle_catalog(&completed).expect("reopen legal completed lifecycle");
+    }
+
+    #[test]
+    fn current_v27_reopens_a_legal_restart_safe_inventory_frontier() {
+        let catalog = active_frontier_catalog();
+
+        reopen_recovery_lifecycle_catalog(&catalog).expect("reopen legal active frontier");
+    }
+
+    #[test]
+    fn current_v27_rejects_an_active_run_that_lost_its_frontier_on_reopen() {
+        let catalog = active_frontier_catalog();
+        let connection = Connection::open(catalog.path()).expect("mutate active frontier");
+        connection
+            .execute("DELETE FROM library_metadata_inventory_frontier", [])
+            .expect("remove durable frontier");
+        drop(connection);
+
+        let error = reopen_recovery_lifecycle_catalog(&catalog)
+            .expect_err("advanced active run requires a frontier");
+        assert_eq!(
+            error.code,
+            "catalog_recovery_execution_contract_unverifiable"
+        );
+    }
+
+    #[test]
+    fn current_v27_rejects_a_frontier_ordinal_gap_on_reopen() {
+        let catalog = active_frontier_catalog();
+        let connection = Connection::open(catalog.path()).expect("mutate frontier ordinal");
+        connection
+            .execute(
+                "UPDATE library_metadata_inventory_frontier
+                 SET ordinal = 3 WHERE relative_directory = 'album'",
+                [],
+            )
+            .expect("create frontier ordinal gap");
+        drop(connection);
+
+        let error = reopen_recovery_lifecycle_catalog(&catalog)
+            .expect_err("frontier ordinals must remain contiguous");
+        assert_eq!(
+            error.code,
+            "catalog_recovery_execution_contract_unverifiable"
+        );
+    }
+
+    #[test]
+    fn current_v27_rejects_a_pending_frontier_without_its_staged_directory() {
+        let catalog = active_frontier_catalog();
+        let connection = Connection::open(catalog.path()).expect("mutate pending frontier");
+        connection
+            .execute_batch(
+                "DELETE FROM library_metadata_inventory_entries
+                 WHERE relative_path = 'album';
+                 INSERT INTO library_metadata_inventory_entries(
+                   run_id, relative_path, entry_kind, file_size, modified_unix_ms,
+                   placeholder_state, is_reparse_point, staged_page_index, staged_unix_ms
+                 ) VALUES (
+                   'lifecycle-run', 'replacement.txt', 'file', 1, 1,
+                   'available', 0, 1, 2
+                 );",
+            )
+            .expect("remove pending directory evidence");
+        drop(connection);
+
+        let error = reopen_recovery_lifecycle_catalog(&catalog)
+            .expect_err("pending frontier requires staged directory evidence");
+        assert_eq!(
+            error.code,
+            "catalog_recovery_execution_contract_unverifiable"
+        );
+    }
+
+    #[test]
+    fn current_v27_rejects_a_running_frontier_marked_completed_on_reopen() {
+        let catalog = active_frontier_catalog();
+        let connection = Connection::open(catalog.path()).expect("mutate frontier state");
+        connection
+            .execute(
+                "UPDATE library_metadata_inventory_frontier
+                 SET state = 'completed', resume_after_relative_path = NULL,
+                     enumerated_entry_count = 0",
+                [],
+            )
+            .expect("prematurely complete frontier");
+        drop(connection);
+
+        let error = reopen_recovery_lifecycle_catalog(&catalog)
+            .expect_err("running inventory cannot own completed frontier");
+        assert_eq!(
+            error.code,
+            "catalog_recovery_execution_contract_unverifiable"
+        );
+    }
+
+    #[test]
+    fn current_v27_rejects_completed_baseline_with_active_authority_on_reopen() {
+        let catalog = recovery_lifecycle_catalog(true);
+        let connection = Connection::open(catalog.path()).expect("mutate completed lifecycle");
+        connection
+            .execute_batch(
+                "UPDATE library_change_queue
+                 SET status = 'pending', catalog_revision_at_success = NULL
+                 WHERE id = 901;
+                 UPDATE library_recovery_authorities
+                 SET retired_unix_ms = NULL WHERE change_id = 901;",
+            )
+            .expect("reactivate completed authority");
+        drop(connection);
+
+        let error = reopen_recovery_lifecycle_catalog(&catalog)
+            .expect_err("completed baseline cannot retain active authority");
+        assert_eq!(
+            error.code,
+            "catalog_persistent_journal_baseline_contract_unverifiable"
+        );
+    }
+
+    #[test]
+    fn current_v27_rejects_completed_baseline_with_noncurrent_root_on_reopen() {
+        let catalog = recovery_lifecycle_catalog(true);
+        let connection = Connection::open(catalog.path()).expect("mutate completed lifecycle");
+        connection
+            .execute(
+                "UPDATE library_persistent_journal_root_state
+                 SET continuity_state = 'catching_up'
+                 WHERE root_id = 'lifecycle-root'",
+                [],
+            )
+            .expect("regress completed root continuity");
+        drop(connection);
+
+        let error = reopen_recovery_lifecycle_catalog(&catalog)
+            .expect_err("completed baseline requires Current root");
+        assert_eq!(
+            error.code,
+            "catalog_persistent_journal_baseline_contract_unverifiable"
+        );
+    }
+
+    #[test]
+    fn current_v27_rejects_completed_baseline_with_noncurrent_checkpoint_on_reopen() {
+        let catalog = recovery_lifecycle_catalog(true);
+        let connection = Connection::open(catalog.path()).expect("mutate completed lifecycle");
+        connection
+            .execute(
+                "UPDATE library_persistent_journal_checkpoints
+                 SET continuity_state = 'catching_up'
+                 WHERE root_id = 'lifecycle-root'",
+                [],
+            )
+            .expect("regress completed checkpoint continuity");
+        drop(connection);
+
+        let error = reopen_recovery_lifecycle_catalog(&catalog)
+            .expect_err("completed baseline requires Current checkpoint");
+        assert_eq!(
+            error.code,
+            "catalog_persistent_journal_baseline_contract_unverifiable"
+        );
+    }
+
+    #[test]
+    fn current_v27_rejects_active_baseline_with_retired_authority_on_reopen() {
+        let catalog = recovery_lifecycle_catalog(false);
+        let connection = Connection::open(catalog.path()).expect("mutate active lifecycle");
+        connection
+            .execute_batch(
+                "UPDATE library_change_queue
+                 SET status = 'completed', catalog_revision_at_success = 0
+                 WHERE id = 901;
+                 UPDATE library_recovery_authorities
+                 SET retired_unix_ms = 2 WHERE change_id = 901;",
+            )
+            .expect("retire active authority");
+        drop(connection);
+
+        let error = reopen_recovery_lifecycle_catalog(&catalog)
+            .expect_err("active baseline cannot lose its authority");
+        assert_eq!(
+            error.code,
+            "catalog_persistent_journal_baseline_contract_unverifiable"
+        );
+    }
+
+    #[test]
+    fn current_v27_rejects_active_baseline_with_current_projection_on_reopen() {
+        let catalog = recovery_lifecycle_catalog(false);
+        let connection = Connection::open(catalog.path()).expect("mutate active lifecycle");
+        connection
+            .execute_batch(
+                "INSERT INTO library_persistent_journal_checkpoints(
+                   root_id, root_generation, volume_guid, volume_serial,
+                   root_reference_version, root_file_reference, journal_id,
+                   next_unread_usn, captured_exclusive_end, covered_catalog_revision,
+                   protocol_version, contract_version, continuity_state,
+                   updated_unix_ms
+                 ) VALUES (
+                   'lifecycle-root', 1, 'lifecycle-volume', '77',
+                   3, X'01010101010101010101010101010101', '44',
+                   '10', '10', 0, 5, 1, 'current', 2
+                 );
+                 UPDATE library_persistent_journal_root_state
+                 SET continuity_state = 'current', updated_unix_ms = 2
+                 WHERE root_id = 'lifecycle-root';",
+            )
+            .expect("premature Current projection");
+        drop(connection);
+
+        let error = reopen_recovery_lifecycle_catalog(&catalog)
+            .expect_err("active baseline cannot project Current");
+        assert_eq!(
+            error.code,
+            "catalog_persistent_journal_baseline_contract_unverifiable"
+        );
+    }
+
+    #[test]
+    fn malformed_v24_rolls_back_before_creating_change_lane_authority() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh current catalog");
+        remove_change_lane_v25_contract_for_test(&connection);
+        connection
+            .execute_batch(
+                "UPDATE schema_info SET version = 24;
+                 DROP INDEX library_persistent_journal_source_ranges_volume;",
+            )
+            .expect("malformed v24 fixture");
+
+        let error = migrate_schema(&mut connection).expect_err("malformed v24 must fail closed");
+        let retained: (i64, bool) = connection
+            .query_row(
+                "SELECT
+                   (SELECT version FROM schema_info),
+                   EXISTS(SELECT 1 FROM sqlite_master
+                     WHERE type = 'table' AND name = 'library_change_queue_lanes')",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .expect("rolled back v25 state");
+        assert_eq!(
+            error.code,
+            "catalog_persistent_journal_contract_unverifiable"
+        );
+        assert_eq!(retained, (24, false));
+    }
+
+    #[test]
+    fn prerelease_v24_id_triggers_upgrade_atomically_to_typed_guards() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh v24 catalog");
+        for (name, sql) in PERSISTENT_JOURNAL_LEGACY_V24_TRIGGER_DDL {
+            connection
+                .execute_batch(&format!("DROP TRIGGER {name};"))
+                .expect("drop typed trigger");
+            connection
+                .execute_batch(sql)
+                .expect("install legacy trigger");
+        }
+
+        migrate_schema(&mut connection).expect("upgrade exact legacy v24 triggers");
+        for (name, expected) in PERSISTENT_JOURNAL_CANONICAL_TRIGGER_DDL {
+            let actual = connection
+                .query_row(
+                    "SELECT sql FROM sqlite_master WHERE type = 'trigger' AND name = ?1",
+                    [name],
+                    |row| row.get::<_, String>(0),
+                )
+                .expect("upgraded trigger DDL");
+            assert_eq!(
+                normalize_schema_sql(&actual),
+                normalize_schema_sql(expected)
+            );
+        }
+        for invalid in [
+            rusqlite::types::Value::Null,
+            rusqlite::types::Value::Integer(7),
+        ] {
+            let error = connection
+                .execute(
+                    "INSERT INTO library_persistent_journal_source_ranges(id) VALUES (?1)",
+                    [invalid],
+                )
+                .expect_err("typed ID guard must run before row constraints");
+            assert!(
+                error
+                    .to_string()
+                    .contains("invalid persistent journal source range id")
+            );
+        }
+    }
+
+    #[test]
     fn current_v20_malformed_inventory_contract_fails_closed() {
         let mut connection = Connection::open_in_memory().expect("catalog");
         migrate_schema(&mut connection).expect("fresh v20 catalog");
@@ -3338,6 +11477,30 @@ mod tests {
         assert_eq!(
             error.code,
             "catalog_metadata_inventory_contract_unverifiable"
+        );
+    }
+
+    #[test]
+    fn current_v21_incomplete_terminal_media_contract_fails_closed() {
+        let mut connection = Connection::open_in_memory().expect("catalog");
+        migrate_schema(&mut connection).expect("fresh v21 catalog");
+        connection
+            .execute_batch(
+                "DROP TABLE library_terminal_media_evidence_contract;
+                 CREATE TABLE library_terminal_media_evidence_contract (
+                   singleton INTEGER PRIMARY KEY,
+                   complete INTEGER NOT NULL
+                 );
+                 INSERT INTO library_terminal_media_evidence_contract(singleton, complete)
+                   VALUES (1, 0);",
+            )
+            .expect("incomplete terminal evidence contract fixture");
+
+        let error = migrate_schema(&mut connection).expect_err("incomplete evidence contract");
+
+        assert_eq!(
+            error.code,
+            "catalog_terminal_media_evidence_contract_unverifiable"
         );
     }
 

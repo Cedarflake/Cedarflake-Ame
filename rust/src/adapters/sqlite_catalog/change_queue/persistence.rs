@@ -3,11 +3,11 @@ use std::collections::HashSet;
 use rusqlite::{Connection, OptionalExtension, Row, Transaction, params};
 
 use crate::domain::{
-    DurableLibraryChange, LibraryChangeCatchUpEvidence, LibraryChangeFailure, LibraryChangeId,
-    LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeLeaseUpdateOutcome,
-    LibraryChangeOrigin, LibraryChangeQueueHealth, LibraryChangeQueueMetrics,
-    LibraryChangeQueuePolicy, LibraryChangeQueueStatus, LibraryChangeScope, LibraryRootGeneration,
-    ScanError,
+    DurableLibraryChange, LibraryChangeCapacityDeferral, LibraryChangeCatchUpEvidence,
+    LibraryChangeFailure, LibraryChangeId, LibraryChangeIntent, LibraryChangeIntentKind,
+    LibraryChangeLeaseUpdateOutcome, LibraryChangeOrigin, LibraryChangeQueueHealth,
+    LibraryChangeQueueMetrics, LibraryChangeQueuePolicy, LibraryChangeQueueStatus,
+    LibraryChangeScope, LibraryRootGeneration, ScanError,
 };
 
 use super::super::{database_error, sqlite_integer, sqlite_u32, sqlite_unsigned};
@@ -21,6 +21,7 @@ pub(super) struct ActiveChange {
     pub(super) status: LibraryChangeQueueStatus,
     pub(super) catalog_revision_at_enqueue: u64,
     pub(super) catch_up_evidence: Option<LibraryChangeCatchUpEvidence>,
+    pub(super) last_failure_code: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -57,6 +58,7 @@ pub(in crate::adapters::sqlite_catalog) fn activate_root_change_queue(
                 ],
             )
             .map_err(database_error)?;
+        seed_persistent_journal_authority(transaction, root_id, generation, now_unix_ms)?;
         return Ok(generation);
     };
     let generation =
@@ -68,6 +70,7 @@ pub(in crate::adapters::sqlite_catalog) fn activate_root_change_queue(
                 )
             })?;
     if is_active {
+        seed_persistent_journal_authority(transaction, root_id, generation, now_unix_ms)?;
         return Ok(generation);
     }
     let next_generation = generation.next().ok_or_else(|| {
@@ -76,6 +79,8 @@ pub(in crate::adapters::sqlite_catalog) fn activate_root_change_queue(
             "The root generation cannot advance beyond its supported range",
         )
     })?;
+    retire_persistent_journal_authority(transaction, root_id, generation, now_unix_ms)?;
+    retire_root_publication_namespace(transaction, root_id, stored_generation)?;
     transaction
         .execute(
             "UPDATE library_change_root_state
@@ -89,7 +94,32 @@ pub(in crate::adapters::sqlite_catalog) fn activate_root_change_queue(
             ],
         )
         .map_err(database_error)?;
+    seed_persistent_journal_authority(transaction, root_id, next_generation, now_unix_ms)?;
     Ok(next_generation)
+}
+
+fn seed_persistent_journal_authority(
+    transaction: &Transaction<'_>,
+    root_id: &str,
+    generation: LibraryRootGeneration,
+    updated_unix_ms: i64,
+) -> Result<(), ScanError> {
+    transaction
+        .execute(
+            "INSERT INTO library_persistent_journal_root_state(
+               root_id, root_generation, protocol_version, contract_version,
+               capability_state, continuity_state, last_failure_code,
+               last_failure_message, updated_unix_ms
+             ) VALUES (?1, ?2, 0, 1, 'unknown', 'baseline_required', NULL, NULL, ?3)
+             ON CONFLICT(root_id, root_generation) DO NOTHING",
+            params![
+                root_id,
+                sqlite_integer(generation.value(), "root generation")?,
+                updated_unix_ms,
+            ],
+        )
+        .map_err(database_error)?;
+    Ok(())
 }
 
 pub(super) fn establish_root_generation(
@@ -132,6 +162,14 @@ pub(super) fn establish_root_generation(
             superseded_count: 0,
         });
     }
+    let previous_generation =
+        LibraryRootGeneration::new(sqlite_unsigned(stored_generation, "root generation")?)
+            .ok_or_else(|| {
+                ScanError::new(
+                    "change_queue_generation_invalid",
+                    "The stored root generation must be nonzero",
+                )
+            })?;
     let superseded = transaction
         .execute(
             "UPDATE library_change_queue
@@ -142,6 +180,8 @@ pub(super) fn establish_root_generation(
             params![now_unix_ms, root_id],
         )
         .map_err(database_error)?;
+    retire_persistent_journal_authority(transaction, root_id, previous_generation, now_unix_ms)?;
+    retire_root_publication_namespace(transaction, root_id, stored_generation)?;
     transaction
         .execute(
             "UPDATE library_change_root_state
@@ -150,9 +190,103 @@ pub(super) fn establish_root_generation(
             params![generation_value, now_unix_ms, root_id],
         )
         .map_err(database_error)?;
+    seed_persistent_journal_authority(transaction, root_id, generation, now_unix_ms)?;
     Ok(GenerationDisposition::Current {
         superseded_count: u32::try_from(superseded).unwrap_or(u32::MAX),
     })
+}
+
+fn retire_persistent_journal_authority(
+    transaction: &Transaction<'_>,
+    root_id: &str,
+    generation: LibraryRootGeneration,
+    updated_unix_ms: i64,
+) -> Result<(), ScanError> {
+    transaction
+        .execute(
+            "UPDATE library_persistent_journal_root_state
+             SET capability_state = CASE
+                   WHEN protocol_version = 0 THEN 'unknown' ELSE 'live_only' END,
+                 continuity_state = 'unavailable',
+                 last_failure_code = 'root_generation_retired',
+                 last_failure_message = 'The root generation was retired',
+                 updated_unix_ms = ?1
+             WHERE root_id = ?2 AND root_generation = ?3",
+            params![
+                updated_unix_ms,
+                root_id,
+                sqlite_integer(generation.value(), "root generation")?,
+            ],
+        )
+        .map_err(database_error)?;
+    transaction
+        .execute(
+            "UPDATE library_persistent_journal_source_ranges
+             SET status = 'superseded', checkpointed_unix_ms = NULL
+             WHERE root_id = ?1 AND root_generation = ?2",
+            params![
+                root_id,
+                sqlite_integer(generation.value(), "root generation")?,
+            ],
+        )
+        .map_err(database_error)?;
+    transaction
+        .execute(
+            "UPDATE library_persistent_journal_range_lifecycle
+             SET lifecycle_state = 'superseded', completed_unix_ms = NULL,
+                 updated_unix_ms = ?1
+             WHERE source_range_id IN (
+               SELECT id FROM library_persistent_journal_source_ranges
+               WHERE root_id = ?2 AND root_generation = ?3
+             )",
+            params![
+                updated_unix_ms,
+                root_id,
+                sqlite_integer(generation.value(), "root generation")?,
+            ],
+        )
+        .map_err(database_error)?;
+    transaction
+        .execute(
+            "UPDATE library_persistent_journal_cross_root_lineage
+             SET status = 'superseded', updated_unix_ms = ?1
+             WHERE id IN (
+               SELECT owners.lineage_id
+               FROM library_persistent_journal_cross_root_ranges AS owners
+               JOIN library_persistent_journal_source_ranges AS ranges
+                 ON ranges.id = owners.source_range_id
+               WHERE ranges.root_id = ?2 AND ranges.root_generation = ?3
+             )",
+            params![
+                updated_unix_ms,
+                root_id,
+                sqlite_integer(generation.value(), "root generation")?,
+            ],
+        )
+        .map_err(database_error)?;
+    Ok(())
+}
+
+fn retire_root_publication_namespace(
+    transaction: &Transaction<'_>,
+    root_id: &str,
+    generation: i64,
+) -> Result<(), ScanError> {
+    transaction
+        .execute(
+            "DELETE FROM library_scan_publication_namespace_bindings
+             WHERE root_id = ?1 AND root_generation = ?2",
+            params![root_id, generation],
+        )
+        .map_err(database_error)?;
+    transaction
+        .execute(
+            "DELETE FROM library_root_publication_namespaces
+             WHERE root_id = ?1 AND root_generation = ?2",
+            params![root_id, generation],
+        )
+        .map_err(database_error)?;
+    Ok(())
 }
 
 pub(super) fn root_generation_is_current(
@@ -186,13 +320,85 @@ pub(super) fn recover_expired_leases(
     let expired = {
         let mut statement = transaction
             .prepare(
-                "SELECT id, attempt_count FROM library_change_queue
+                "SELECT id, attempt_count, last_failure_code FROM library_change_queue
                  WHERE root_id = ?1 AND root_generation = ?2
                    AND status = 'leased' AND lease_expires_unix_ms <= ?3
                    AND (
                      ?4 = 0
                      OR (?4 = 1 AND scope = 'path' AND intent_kind <> 'freshness_unknown')
                      OR (?4 = 2 AND (scope <> 'path' OR intent_kind = 'freshness_unknown'))
+                     OR (?4 BETWEEN 3 AND 5 AND scope = 'path'
+                       AND intent_kind <> 'freshness_unknown'
+                       AND EXISTS(
+                         SELECT 1 FROM library_change_queue_lanes AS lanes
+                         WHERE lanes.change_id = library_change_queue.id
+                           AND lanes.lane = CASE ?4
+                             WHEN 3 THEN 'p0_live'
+                             WHEN 4 THEN 'p1_journal'
+                             ELSE 'p2_recovery'
+                           END
+                       ))
+                     OR (?4 = 6
+                       AND (scope <> 'path' OR intent_kind = 'freshness_unknown')
+                       AND EXISTS(
+                         SELECT 1
+                         FROM library_change_queue_lanes AS lanes
+                         JOIN library_recovery_authorities AS authority
+                           ON authority.change_id = lanes.change_id
+                         WHERE lanes.change_id = library_change_queue.id
+                           AND lanes.lane = 'p2_recovery'
+                           AND authority.root_id = library_change_queue.root_id
+                           AND authority.root_generation = library_change_queue.root_generation
+                           AND authority.retired_unix_ms IS NULL
+                           AND authority.run_id <> ''
+                       ))
+                     OR (?4 = 7
+                       AND scope = 'path'
+                       AND intent_kind <> 'freshness_unknown'
+                       AND EXISTS(
+                         SELECT 1
+                         FROM library_change_queue_lanes AS lanes
+                         JOIN library_metadata_inventory_candidate_owners AS owner
+                           ON owner.change_id = lanes.change_id
+                         JOIN library_recovery_authorities AS authority
+                           ON authority.run_id = owner.run_id
+                         WHERE lanes.change_id = library_change_queue.id
+                           AND lanes.lane = 'p2_recovery'
+                           AND authority.root_id = library_change_queue.root_id
+                           AND authority.root_generation = library_change_queue.root_generation
+                           AND authority.retired_unix_ms IS NULL
+                       ))
+                     OR (?4 = 8
+                       AND (scope <> 'path' OR intent_kind = 'freshness_unknown')
+                       AND EXISTS(
+                         SELECT 1 FROM library_change_queue_lanes AS lanes
+                         WHERE lanes.change_id = library_change_queue.id
+                           AND lanes.lane = 'p0_live'
+                       )
+                       AND NOT EXISTS(
+                         SELECT 1
+                         FROM library_live_gap_recovery_claims AS claim
+                         WHERE claim.gap_change_id = library_change_queue.id
+                           AND claim.consumer_kind = 'pending_journal'
+                       ))
+                     OR (?4 = 9
+                       AND scope = 'path'
+                       AND intent_kind <> 'freshness_unknown'
+                       AND EXISTS(
+                         SELECT 1 FROM library_change_queue_lanes AS lanes
+                         WHERE lanes.change_id = library_change_queue.id
+                           AND lanes.lane = 'p2_recovery'
+                       )
+                       AND NOT EXISTS(
+                         SELECT 1
+                         FROM library_metadata_inventory_candidate_owners AS owner
+                         WHERE owner.change_id = library_change_queue.id
+                       )
+                       AND NOT EXISTS(
+                         SELECT 1 FROM library_recovery_authorities AS authority
+                         WHERE authority.change_id = library_change_queue.id
+                           AND authority.retired_unix_ms IS NULL
+                       ))
                    )
                  ORDER BY lease_expires_unix_ms, id
                  LIMIT ?5",
@@ -207,7 +413,13 @@ pub(super) fn recover_expired_leases(
                     selection,
                     i64::from(LibraryChangeQueuePolicy::MAX_UNRESOLVED_CHANGES),
                 ],
-                |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)),
+                |row| {
+                    Ok((
+                        row.get::<_, i64>(0)?,
+                        row.get::<_, i64>(1)?,
+                        row.get::<_, Option<String>>(2)?,
+                    ))
+                },
             )
             .map_err(database_error)?;
         let mut values = Vec::new();
@@ -216,7 +428,32 @@ pub(super) fn recover_expired_leases(
         }
         values
     };
-    for (change_id, attempt_count) in expired {
+    for (change_id, attempt_count, last_failure_code) in expired {
+        let change_id = change_id_from_sqlite(change_id)?;
+        if last_failure_code.as_deref()
+            == Some(LibraryChangeCapacityDeferral::MetadataInventoryLane.failure_code())
+            && is_typed_capacity_deferred_live_gap(transaction, change_id)?
+        {
+            transaction
+                .execute(
+                    "UPDATE library_change_queue
+                     SET status = 'retry_wait', attempt_count = CASE
+                           WHEN attempt_count > 0 THEN attempt_count - 1 ELSE 0 END,
+                         next_retry_unix_ms = ?1, lease_expires_unix_ms = NULL,
+                         last_failure_code = ?2, last_failure_message = ?3,
+                         updated_unix_ms = ?4
+                     WHERE id = ?5 AND status = 'leased' AND lease_expires_unix_ms <= ?4",
+                    params![
+                        capacity_deferral_deadline(now_unix_ms, policy),
+                        LibraryChangeCapacityDeferral::MetadataInventoryLane.failure_code(),
+                        LibraryChangeCapacityDeferral::MetadataInventoryLane.failure_message(),
+                        now_unix_ms,
+                        sqlite_integer(change_id.value(), "change ID")?,
+                    ],
+                )
+                .map_err(database_error)?;
+            continue;
+        }
         let next_retry_unix_ms = next_retry_deadline(
             now_unix_ms,
             sqlite_u32(attempt_count, "change attempt count")?,
@@ -231,7 +468,11 @@ pub(super) fn recover_expired_leases(
                      last_failure_message = 'The prior worker did not finish before its lease expired.',
                      updated_unix_ms = ?2
                  WHERE id = ?3 AND status = 'leased' AND lease_expires_unix_ms <= ?2",
-                params![next_retry_unix_ms, now_unix_ms, change_id],
+                params![
+                    next_retry_unix_ms,
+                    now_unix_ms,
+                    sqlite_integer(change_id.value(), "change ID")?,
+                ],
             )
             .map_err(database_error)?;
     }
@@ -245,25 +486,88 @@ pub(super) fn enforce_retry_attempt_limit(
     now_unix_ms: i64,
     policy: LibraryChangeQueuePolicy,
 ) -> Result<(), ScanError> {
-    transaction
-        .execute(
-            "UPDATE library_change_queue
-             SET next_retry_unix_ms = NULL, updated_unix_ms = ?1
-             WHERE root_id = ?2 AND root_generation = ?3
-               AND status = 'retry_wait' AND attempt_count >= ?4
-               AND next_retry_unix_ms IS NOT NULL",
-            params![
-                now_unix_ms,
-                root_id,
-                sqlite_integer(root_generation.value(), "root generation")?,
-                i64::from(policy.max_attempts),
-            ],
-        )
-        .map_err(database_error)?;
+    let candidates = {
+        let mut statement = transaction
+            .prepare(
+                "SELECT id
+                 FROM library_change_queue
+                 WHERE root_id = ?1 AND root_generation = ?2
+                   AND status = 'retry_wait' AND attempt_count >= ?3
+                   AND next_retry_unix_ms IS NOT NULL
+                 ORDER BY id",
+            )
+            .map_err(database_error)?;
+        let rows = statement
+            .query_map(
+                params![
+                    root_id,
+                    sqlite_integer(root_generation.value(), "root generation")?,
+                    i64::from(policy.max_attempts),
+                ],
+                |row| row.get::<_, i64>(0),
+            )
+            .map_err(database_error)?;
+        let mut candidates = Vec::new();
+        for row in rows {
+            candidates.push(change_id_from_sqlite(row.map_err(database_error)?)?);
+        }
+        candidates
+    };
+    for change_id in candidates {
+        if is_typed_capacity_deferred_live_gap(transaction, change_id)? {
+            continue;
+        }
+        transaction
+            .execute(
+                "UPDATE library_change_queue
+                 SET next_retry_unix_ms = NULL, updated_unix_ms = ?1
+                 WHERE id = ?2 AND status = 'retry_wait' AND attempt_count >= ?3
+                   AND next_retry_unix_ms IS NOT NULL",
+                params![
+                    now_unix_ms,
+                    sqlite_integer(change_id.value(), "change ID")?,
+                    i64::from(policy.max_attempts),
+                ],
+            )
+            .map_err(database_error)?;
+    }
     Ok(())
 }
 
-pub(super) fn classify_lease_update(
+pub(super) fn is_typed_capacity_deferred_live_gap(
+    connection: &Connection,
+    change_id: LibraryChangeId,
+) -> Result<bool, ScanError> {
+    connection
+        .query_row(
+            "SELECT EXISTS(
+               SELECT 1
+               FROM library_change_queue AS queue
+               JOIN library_change_queue_lanes AS lane ON lane.change_id = queue.id
+               WHERE queue.id = ?1
+                 AND queue.status IN ('leased', 'retry_wait')
+                 AND queue.origin = 'live_notification'
+                 AND queue.intent_kind = 'freshness_unknown'
+                 AND queue.scope = 'root'
+                 AND queue.relative_path = ''
+                 AND queue.previous_relative_path IS NULL
+                 AND queue.last_failure_code = ?2
+                 AND lane.lane = 'p0_live'
+                 AND NOT EXISTS(
+                   SELECT 1 FROM library_live_gap_recovery_claims AS claim
+                   WHERE claim.gap_change_id = queue.id
+                 )
+             )",
+            params![
+                sqlite_integer(change_id.value(), "change ID")?,
+                LibraryChangeCapacityDeferral::MetadataInventoryLane.failure_code(),
+            ],
+            |row| row.get(0),
+        )
+        .map_err(database_error)
+}
+
+pub(in crate::adapters::sqlite_catalog) fn classify_lease_update(
     transaction: &Transaction<'_>,
     change_id: LibraryChangeId,
     lease_generation: u64,
@@ -323,6 +627,14 @@ pub(super) fn next_retry_deadline(
     Some(failed_unix_ms.saturating_add(i64::try_from(delay).unwrap_or(i64::MAX)))
 }
 
+pub(super) fn capacity_deferral_deadline(
+    deferred_unix_ms: i64,
+    policy: LibraryChangeQueuePolicy,
+) -> i64 {
+    deferred_unix_ms
+        .saturating_add(i64::try_from(policy.retry_initial_delay_millis).unwrap_or(i64::MAX))
+}
+
 pub(super) fn load_active_changes(
     transaction: &Transaction<'_>,
     root_id: &str,
@@ -334,7 +646,8 @@ pub(super) fn load_active_changes(
             "SELECT id, intent_kind, scope, relative_path, previous_relative_path, origin,
                     first_observed_unix_ms, most_recent_observed_unix_ms,
                     first_sequence, most_recent_sequence, coalesced_observation_count,
-                    status, catalog_revision_at_enqueue, catch_up_source, catch_up_watermark
+                    status, catalog_revision_at_enqueue, catch_up_source, catch_up_watermark,
+                    last_failure_code
              FROM library_change_queue
              WHERE root_id = ?1 AND root_generation = ?2
                AND status IN ('pending', 'leased', 'retry_wait')
@@ -371,6 +684,41 @@ pub(super) fn load_active_changes(
     Ok(changes)
 }
 
+pub(super) fn load_leased_inventory_control_ids(
+    transaction: &Transaction<'_>,
+    root_id: &str,
+    root_generation: LibraryRootGeneration,
+) -> Result<Vec<LibraryChangeId>, ScanError> {
+    let mut statement = transaction
+        .prepare_cached(
+            "SELECT id
+             FROM library_change_queue
+             WHERE root_id = ?1 AND root_generation = ?2
+               AND status = 'leased' AND authoritative_scan_id IS NULL
+               AND (
+                 intent_kind = 'freshness_unknown'
+                 OR origin IN ('startup_catch_up', 'consistency_audit')
+                 OR last_failure_code = 'metadata_inventory_required'
+               )
+             ORDER BY id",
+        )
+        .map_err(database_error)?;
+    let rows = statement
+        .query_map(
+            params![
+                root_id,
+                sqlite_integer(root_generation.value(), "root generation")?,
+            ],
+            |row| row.get::<_, i64>(0),
+        )
+        .map_err(database_error)?;
+    let mut ids = Vec::new();
+    for row in rows {
+        ids.push(change_id_from_sqlite(row.map_err(database_error)?)?);
+    }
+    Ok(ids)
+}
+
 struct RawActiveChange {
     id: i64,
     kind: String,
@@ -387,6 +735,7 @@ struct RawActiveChange {
     catalog_revision_at_enqueue: i64,
     catch_up_source: Option<String>,
     catch_up_watermark: Option<String>,
+    last_failure_code: Option<String>,
 }
 
 fn read_active_change_row(row: &Row<'_>) -> rusqlite::Result<RawActiveChange> {
@@ -406,6 +755,7 @@ fn read_active_change_row(row: &Row<'_>) -> rusqlite::Result<RawActiveChange> {
         catalog_revision_at_enqueue: row.get(12)?,
         catch_up_source: row.get(13)?,
         catch_up_watermark: row.get(14)?,
+        last_failure_code: row.get(15)?,
     })
 }
 
@@ -449,6 +799,7 @@ fn active_change_from_raw(
             "enqueue catalog revision",
         )?,
         catch_up_evidence,
+        last_failure_code: raw.last_failure_code,
     })
 }
 
@@ -571,6 +922,44 @@ pub(super) fn transfer_catch_up_lineage(
                 ],
             )
             .map_err(database_error)?;
+        transaction
+            .execute(
+                "INSERT INTO library_persistent_journal_queue_lineage(
+                   source_range_id, change_id, enrolled_unix_ms
+                 )
+                 SELECT source_range_id, ?1, enrolled_unix_ms
+                 FROM library_persistent_journal_queue_lineage WHERE change_id = ?2
+                 ON CONFLICT(source_range_id, change_id) DO UPDATE SET
+                   enrolled_unix_ms = MIN(
+                     library_persistent_journal_queue_lineage.enrolled_unix_ms,
+                     excluded.enrolled_unix_ms
+                   )",
+                params![
+                    sqlite_integer(target_id.value(), "target change ID")?,
+                    sqlite_integer(source_id.value(), "source change ID")?,
+                ],
+            )
+            .map_err(database_error)?;
+        transaction
+            .execute(
+                "DELETE FROM library_persistent_journal_queue_lineage WHERE change_id = ?1",
+                [sqlite_integer(source_id.value(), "source change ID")?],
+            )
+            .map_err(database_error)?;
+        transaction
+            .execute(
+                "DELETE FROM library_change_queue_catch_up_lineage WHERE change_id = ?1",
+                [sqlite_integer(source_id.value(), "source change ID")?],
+            )
+            .map_err(database_error)?;
+        transaction
+            .execute(
+                "UPDATE library_change_queue
+                 SET catch_up_source = NULL, catch_up_watermark = NULL
+                 WHERE id = ?1",
+                [sqlite_integer(source_id.value(), "source change ID")?],
+            )
+            .map_err(database_error)?;
     }
     validate_catch_up_lineage_bound(transaction, target_id)
 }
@@ -645,6 +1034,27 @@ pub(super) fn mark_superseded(
                 ],
             )
             .map_err(database_error)?;
+        if updated != 0
+            && let Some(target_id) = superseded_by
+        {
+            transaction
+                .execute(
+                    "UPDATE library_metadata_inventory_candidate_owners AS owner
+                     SET change_id = ?1
+                     WHERE owner.change_id = ?2
+                       AND EXISTS(
+                         SELECT 1 FROM library_change_queue AS target
+                         WHERE target.id = ?1 AND target.scope = 'path'
+                           AND target.relative_path = owner.relative_path
+                           AND target.previous_relative_path IS owner.previous_relative_path
+                       )",
+                    params![
+                        sqlite_integer(target_id.value(), "superseding change ID")?,
+                        sqlite_integer(change_id.value(), "change ID")?,
+                    ],
+                )
+                .map_err(database_error)?;
+        }
         superseded_count = superseded_count.saturating_add(u32::try_from(updated).unwrap_or(0));
     }
     Ok(superseded_count)
@@ -758,6 +1168,7 @@ fn read_durable_change_row(row: &Row<'_>) -> rusqlite::Result<RawDurableChange> 
             catalog_revision_at_enqueue: row.get(12)?,
             catch_up_source: row.get(21)?,
             catch_up_watermark: row.get(22)?,
+            last_failure_code: row.get(18)?,
         },
         ready_unix_ms: row.get(13)?,
         attempt_count: row.get(14)?,
@@ -887,6 +1298,7 @@ fn load_filtered_metrics(
         expired,
         exhausted,
         freshness_unknown,
+        explicit_recovery_required,
         oldest_due,
         latest_exhausted_failure_code,
     ) = connection
@@ -906,9 +1318,34 @@ fn load_filtered_metrics(
                COALESCE(SUM(CASE WHEN status = 'leased' AND lease_expires_unix_ms <= ?1
                  THEN 1 ELSE 0 END), 0),
                COALESCE(SUM(CASE WHEN status = 'retry_wait' AND attempt_count >= ?2
-                 THEN 1 ELSE 0 END), 0),
+                 AND NOT (
+                   COALESCE(last_failure_code = ?5, 0)
+                   AND origin = 'live_notification'
+                   AND intent_kind = 'freshness_unknown'
+                   AND scope = 'root'
+                   AND relative_path = ''
+                   AND previous_relative_path IS NULL
+                   AND EXISTS(
+                     SELECT 1 FROM library_change_queue_lanes AS capacity_lane
+                     WHERE capacity_lane.change_id = library_change_queue.id
+                       AND capacity_lane.lane = 'p0_live'
+                   )
+                   AND NOT EXISTS(
+                     SELECT 1 FROM library_live_gap_recovery_claims AS capacity_claim
+                     WHERE capacity_claim.gap_change_id = library_change_queue.id
+                   )
+                 ) THEN 1 ELSE 0 END), 0),
                COALESCE(SUM(CASE WHEN intent_kind = 'freshness_unknown'
-                 AND status IN ('pending', 'leased', 'retry_wait') THEN 1 ELSE 0 END), 0),
+                  AND status IN ('pending', 'leased', 'retry_wait') THEN 1 ELSE 0 END), 0),
+               (SELECT COUNT(*)
+                FROM library_live_gap_recovery_claims AS claim
+                JOIN library_change_queue AS claimed_gap
+                  ON claimed_gap.id = claim.gap_change_id
+                WHERE claim.consumer_kind = 'explicit_recovery_required'
+                  AND (?3 IS NULL OR (
+                    claimed_gap.root_id = ?3
+                    AND claimed_gap.root_generation = ?4
+                  ))),
                MIN(CASE
                  WHEN status = 'pending' AND ready_unix_ms <= ?1 AND attempt_count < ?2
                    THEN ready_unix_ms
@@ -926,6 +1363,23 @@ fn load_filtered_metrics(
                 ))
                   AND exhausted_change.status = 'retry_wait'
                   AND exhausted_change.attempt_count >= ?2
+                  AND NOT (
+                    exhausted_change.last_failure_code = ?5
+                    AND exhausted_change.origin = 'live_notification'
+                    AND exhausted_change.intent_kind = 'freshness_unknown'
+                    AND exhausted_change.scope = 'root'
+                    AND exhausted_change.relative_path = ''
+                    AND exhausted_change.previous_relative_path IS NULL
+                    AND EXISTS(
+                      SELECT 1 FROM library_change_queue_lanes AS capacity_lane
+                      WHERE capacity_lane.change_id = exhausted_change.id
+                        AND capacity_lane.lane = 'p0_live'
+                    )
+                    AND NOT EXISTS(
+                      SELECT 1 FROM library_live_gap_recovery_claims AS capacity_claim
+                      WHERE capacity_claim.gap_change_id = exhausted_change.id
+                    )
+                  )
                   AND exhausted_change.last_failure_code IS NOT NULL
                 ORDER BY exhausted_change.id DESC
                 LIMIT 1)
@@ -938,6 +1392,7 @@ fn load_filtered_metrics(
                 root_generation
                     .map(|generation| sqlite_integer(generation.value(), "root generation"))
                     .transpose()?,
+                LibraryChangeCapacityDeferral::MetadataInventoryLane.failure_code(),
             ],
             |row| {
                 Ok((
@@ -950,8 +1405,9 @@ fn load_filtered_metrics(
                     row.get::<_, i64>(6)?,
                     row.get::<_, i64>(7)?,
                     row.get::<_, i64>(8)?,
-                    row.get::<_, Option<i64>>(9)?,
-                    row.get::<_, Option<String>>(10)?,
+                    row.get::<_, i64>(9)?,
+                    row.get::<_, Option<i64>>(10)?,
+                    row.get::<_, Option<String>>(11)?,
                 ))
             },
         )
@@ -962,6 +1418,8 @@ fn load_filtered_metrics(
     let ready_count = sqlite_unsigned(ready, "ready change count")?;
     let expired_lease_count = sqlite_unsigned(expired, "expired lease count")?;
     let exhausted_retry_count = sqlite_unsigned(exhausted, "exhausted retry count")?;
+    let explicit_recovery_required_count =
+        sqlite_unsigned(explicit_recovery_required, "explicit recovery claim count")?;
     let unresolved_count = pending_count
         .saturating_add(leased_count)
         .saturating_add(retry_wait_count);
@@ -971,7 +1429,10 @@ fn load_filtered_metrics(
         .unwrap_or(0);
     let health = if unresolved_count == 0 {
         LibraryChangeQueueHealth::Idle
-    } else if expired_lease_count > 0 || exhausted_retry_count > 0 {
+    } else if expired_lease_count > 0
+        || exhausted_retry_count > 0
+        || explicit_recovery_required_count > 0
+    {
         LibraryChangeQueueHealth::Degraded
     } else if ready_count > 0 && oldest_ready_delay_millis > 0 {
         LibraryChangeQueueHealth::Delayed
@@ -993,6 +1454,7 @@ fn load_filtered_metrics(
             freshness_unknown,
             "freshness-unknown change count",
         )?,
+        explicit_recovery_required_count,
         oldest_ready_delay_millis,
     })
 }
@@ -1107,6 +1569,17 @@ pub(super) fn cleanup_terminal_records(
                    AND changes.updated_unix_ms <= ?1
                    AND NOT EXISTS (
                      SELECT 1
+                     FROM library_persistent_journal_queue_lineage AS ownership
+                     WHERE ownership.change_id = changes.id
+                   )
+                   AND NOT EXISTS (
+                     SELECT 1
+                     FROM library_change_queue AS survivor
+                     WHERE survivor.id = changes.superseded_by_change_id
+                       AND survivor.status IN ('pending', 'leased', 'retry_wait')
+                   )
+                   AND NOT EXISTS (
+                     SELECT 1
                      FROM library_change_queue_catch_up_lineage AS lineage
                      JOIN scan_run_catch_up_lineage AS frozen
                        ON frozen.catch_up_source = lineage.catch_up_source
@@ -1183,6 +1656,7 @@ pub(in crate::adapters::sqlite_catalog) fn retire_root_change_queue(
         .optional()
         .map_err(database_error)?;
     if let Some(current_generation) = current_generation {
+        retire_root_publication_namespace(transaction, root_id, current_generation)?;
         transaction
             .execute(
                 "UPDATE library_change_root_state

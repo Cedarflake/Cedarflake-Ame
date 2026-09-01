@@ -9,6 +9,9 @@ use image::{ExtendedColorType, ImageEncoder, ImageFormat, Rgb, RgbImage, Rgba, R
 use rusqlite::Connection;
 use tempfile::tempdir;
 
+#[cfg(windows)]
+use crate::adapters::force_publication_namespace_guard_failure_for_test;
+use crate::adapters::remove_persistent_journal_v22_contract_for_test;
 use crate::domain::{
     GalleryQuery, LibraryChangeCatchUpEvidence, LibraryChangeCatchUpQueueBatch,
     LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeOrigin, LibraryChangeQueuePolicy,
@@ -386,6 +389,149 @@ fn completed_scan_publishes_metadata_then_materializes_an_external_preview() {
     assert_eq!(PathBuf::from(artifact.5), preview_path);
 }
 
+#[cfg(windows)]
+#[test]
+fn publication_guard_capability_failure_preserves_catalog_and_requires_recovery() {
+    let source = tempdir().expect("source directory");
+    let storage = tempdir().expect("storage directory");
+    let source_path = source.path().join("source.png");
+    RgbaImage::from_pixel(4, 4, Rgba([1, 2, 3, 255]))
+        .save_with_format(&source_path, ImageFormat::Png)
+        .expect("fixture image");
+    let storage_paths = StoragePaths {
+        catalog_path: storage.path().join("catalog.sqlite3"),
+        preview_root: storage.path().join("previews"),
+        preview_budget_bytes: 64 * 1024 * 1024,
+        settings_path: storage.path().join("settings.sqlite3"),
+    };
+    let root_path = source.path().to_string_lossy().into_owned();
+    run_scan_with_storage(
+        ScanRequest {
+            scan_id: "publication-guard-baseline".to_owned(),
+            root_path: root_path.clone(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+        |_| true,
+        storage_paths.clone(),
+    )
+    .expect("baseline scan");
+    let canonical_root = FileDiscovery::new(&root_path)
+        .expect("root discovery")
+        .canonical_root()
+        .expect("canonical root")
+        .to_string_lossy()
+        .into_owned();
+    let root_id = stable_id("library-root-v1", &canonical_root);
+    let connection = Connection::open(&storage_paths.catalog_path).expect("catalog database");
+    connection
+        .execute_batch(&format!(
+            "UPDATE library_persistent_journal_root_state
+             SET protocol_version = 5, contract_version = 1,
+                 capability_state = 'supported', continuity_state = 'current',
+                 last_failure_code = NULL, last_failure_message = NULL,
+                 updated_unix_ms = 1
+             WHERE root_id = '{root_id}' AND root_generation = 1;
+             INSERT INTO library_persistent_journal_checkpoints(
+               root_id, root_generation, volume_guid, volume_serial,
+               root_reference_version, root_file_reference, journal_id,
+               next_unread_usn, captured_exclusive_end, covered_catalog_revision,
+               protocol_version, contract_version, continuity_state, updated_unix_ms
+             ) VALUES (
+               '{root_id}', 1, 'controlled-volume', '1',
+               3, X'01010101010101010101010101010101', '7',
+               '10', '10', 0, 5, 1, 'current', 1
+             )
+             ON CONFLICT(root_id) DO UPDATE SET
+               root_generation = excluded.root_generation,
+               volume_guid = excluded.volume_guid,
+               volume_serial = excluded.volume_serial,
+               root_reference_version = excluded.root_reference_version,
+               root_file_reference = excluded.root_file_reference,
+               journal_id = excluded.journal_id,
+               next_unread_usn = excluded.next_unread_usn,
+               captured_exclusive_end = excluded.captured_exclusive_end,
+               covered_catalog_revision = excluded.covered_catalog_revision,
+               protocol_version = excluded.protocol_version,
+               contract_version = excluded.contract_version,
+               continuity_state = excluded.continuity_state,
+               last_failure_code = NULL,
+               last_failure_message = NULL,
+               updated_unix_ms = excluded.updated_unix_ms;"
+        ))
+        .expect("current journal projection");
+    let revision_before = connection
+        .query_row("SELECT revision FROM catalog_state", [], |row| {
+            row.get::<_, i64>(0)
+        })
+        .expect("catalog revision");
+    drop(connection);
+
+    let _forced_failure = force_publication_namespace_guard_failure_for_test();
+    let error = run_scan_with_storage(
+        ScanRequest {
+            scan_id: "publication-guard-failure".to_owned(),
+            root_path,
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+        |_| true,
+        storage_paths.clone(),
+    )
+    .expect_err("publication guard capability must fail closed");
+    assert_eq!(error.code, "root_publication_namespace_guard_unsupported");
+
+    let connection = Connection::open(&storage_paths.catalog_path).expect("catalog database");
+    let projection = connection
+        .query_row(
+            "SELECT roots.active_scan_id, failed.status,
+                    journal.continuity_state, checkpoint.continuity_state,
+                    checkpoint.last_failure_code,
+                    (SELECT revision FROM catalog_state),
+                    (SELECT COUNT(*) FROM asset_locations WHERE scan_id = roots.active_scan_id),
+                    (SELECT COUNT(*) FROM library_scan_publication_namespace_bindings
+                     WHERE scan_id = 'publication-guard-failure'),
+                    (SELECT COUNT(*) FROM library_recovery_authorities)
+             FROM library_roots AS roots
+             JOIN scan_runs AS failed ON failed.root_id = roots.id
+               AND failed.id = 'publication-guard-failure'
+             JOIN library_persistent_journal_root_state AS journal
+               ON journal.root_id = roots.id AND journal.root_generation = 1
+             JOIN library_persistent_journal_checkpoints AS checkpoint
+               ON checkpoint.root_id = roots.id AND checkpoint.root_generation = 1
+             WHERE roots.id = ?1",
+            [&root_id],
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                    row.get::<_, String>(3)?,
+                    row.get::<_, Option<String>>(4)?,
+                    row.get::<_, i64>(5)?,
+                    row.get::<_, i64>(6)?,
+                    row.get::<_, i64>(7)?,
+                    row.get::<_, i64>(8)?,
+                ))
+            },
+        )
+        .expect("failed publication projection");
+    assert_eq!(projection.0, "publication-guard-baseline");
+    assert_eq!(projection.1, "failed");
+    assert_eq!(projection.2, "recovery_required");
+    assert_eq!(projection.3, "recovery_required");
+    assert_eq!(
+        projection.4.as_deref(),
+        Some("root_publication_namespace_guard_unsupported")
+    );
+    assert_eq!(projection.5, revision_before);
+    assert_eq!(projection.6, 1);
+    assert_eq!(projection.7, 0);
+    assert_eq!(projection.8, 0);
+}
+
 #[test]
 fn bidirectional_full_scan_catch_up_preserves_cross_root_assets_and_previews() {
     assert_bidirectional_full_scan_catch_up("full-handoff", false, false);
@@ -671,12 +817,15 @@ fn assert_bidirectional_full_scan_catch_up(
                 .expect("restore prerelease missing handoff preview"),
             1
         );
+        remove_persistent_journal_v22_contract_for_test(&connection);
         connection
             .execute_batch(
                 "DROP TABLE library_change_preview_repair_contract;
                  DROP TABLE library_metadata_inventory_entries;
                  DROP TABLE library_metadata_inventory_runs;
                  DROP TABLE library_metadata_inventory_contract;
+                 DROP TABLE library_terminal_media_evidence;
+                 DROP TABLE library_terminal_media_evidence_contract;
                  UPDATE schema_info SET version = 19;",
             )
             .expect("restore prerelease preview repair marker");
@@ -1612,7 +1761,7 @@ fn corrupt_image_is_isolated_and_scan_completes() {
         ScanEvent::Issue {
             issue: ScanIssue { code, .. },
             ..
-        } if code == "image_dimensions_failed"
+        } if code == "image_format_unsupported"
     )));
     assert!(matches!(
         events.last(),
@@ -1891,7 +2040,7 @@ fn disconnected_scan_consumer_leaves_a_running_scan_for_next_start() {
 }
 
 #[test]
-fn shutdown_suspend_keeps_full_scan_running_for_automatic_resume() {
+fn shutdown_suspend_keeps_foreground_full_scan_recoverable() {
     let source = tempdir().expect("source directory");
     let storage = tempdir().expect("storage directory");
     RgbaImage::from_pixel(4, 4, Rgba([10, 20, 30, 255]))
@@ -2676,11 +2825,20 @@ fn missing_checkpoint_position_marks_recovery_stale() {
     };
     let discovery = FileDiscovery::new(&request.root_path).expect("discovery");
     let canonical_root = discovery.canonical_root().expect("canonical root");
+    let publication_root_identity = discovery
+        .metadata_inventory_root_identity()
+        .expect("publication root identity")
+        .expect("Windows publication root identity");
     let root_path = canonical_root.to_string_lossy().into_owned();
     let root_id = stable_id("library-root-v1", &root_path);
     let mut catalog = SqliteCatalog::open(catalog_path.clone()).expect("catalog");
     catalog
-        .begin_scan(&request, &root_id, &root_path)
+        .begin_scan_with_publication_namespace(
+            &request,
+            &root_id,
+            &root_path,
+            &publication_root_identity,
+        )
         .expect("begin scan");
     catalog
         .checkpoint_scan(
@@ -2851,7 +3009,7 @@ fn missing_source_marks_scan_stale_instead_of_publishing() {
 }
 
 #[test]
-fn corrupt_rescan_preserves_the_last_trustworthy_published_location() {
+fn corrupt_rescan_completes_and_removes_deterministically_invalid_media() {
     let source = tempdir().expect("source directory");
     let storage = tempdir().expect("storage directory");
     let source_path = source.path().join("retained.png");
@@ -2877,7 +3035,7 @@ fn corrupt_rescan_preserves_the_last_trustworthy_published_location() {
     )
     .expect("initial scan");
     let before = load_test_snapshot(&storage_paths);
-    let before_asset = before.assets.first().expect("published asset").clone();
+    assert_eq!(before.assets.len(), 1);
     let corrupt_bytes = b"not a decodable image";
     fs::write(&source_path, corrupt_bytes).expect("controlled corruption");
     let mut events = Vec::new();
@@ -2899,13 +3057,9 @@ fn corrupt_rescan_preserves_the_last_trustworthy_published_location() {
     .expect("corrupt rescan remains recoverable");
 
     let after = load_test_snapshot(&storage_paths);
-    let after_asset = after.assets.first().expect("retained asset");
-    assert!(matches!(events.last(), Some(ScanEvent::Stale { .. })));
-    assert_eq!(after.revision, before.revision);
-    assert_eq!(after.assets.len(), 1);
-    assert_eq!(after_asset.asset_id, before_asset.asset_id);
-    assert_eq!(after_asset.width, before_asset.width);
-    assert_eq!(after_asset.height, before_asset.height);
+    assert!(matches!(events.last(), Some(ScanEvent::Completed { .. })));
+    assert_eq!(after.revision, before.revision + 1);
+    assert!(after.assets.is_empty());
     assert_eq!(
         fs::read(&source_path).expect("corrupt source bytes"),
         corrupt_bytes
@@ -2913,7 +3067,7 @@ fn corrupt_rescan_preserves_the_last_trustworthy_published_location() {
 }
 
 #[test]
-fn authoritative_media_failures_publish_good_evidence_and_enqueue_exact_path_retries() {
+fn authoritative_terminal_media_failures_publish_good_evidence_without_retries() {
     let source = tempdir().expect("source directory");
     let storage = tempdir().expect("storage directory");
     let retained_path = source.path().join("retained.png");
@@ -2985,22 +3139,20 @@ fn authoritative_media_failures_publish_good_evidence_and_enqueue_exact_path_ret
     .expect("authoritative media recovery");
 
     let after = load_test_snapshot(&storage_paths);
-    let retained_after = after
-        .assets
-        .iter()
-        .find(|asset| asset.relative_path == "retained.png")
-        .expect("retained trustworthy asset");
     assert!(matches!(events.last(), Some(ScanEvent::Completed { .. })));
     assert_eq!(after.revision, before.revision + 1);
-    assert_eq!(after.assets.len(), 2);
-    assert_eq!(retained_after.asset_id, retained_before.asset_id);
-    assert_eq!(retained_after.width, retained_before.width);
-    assert_eq!(retained_after.height, retained_before.height);
+    assert_eq!(after.assets.len(), 1);
     assert!(
         after
             .assets
             .iter()
-            .all(|asset| asset.relative_path != "new.png")
+            .any(|asset| asset.relative_path == "good.png")
+    );
+    assert!(
+        after
+            .assets
+            .iter()
+            .all(|asset| !matches!(asset.relative_path.as_str(), "new.png" | "retained.png"))
     );
     assert_eq!(
         fs::read(&retained_path).expect("retained bytes"),
@@ -3027,13 +3179,7 @@ fn authoritative_media_failures_publish_good_evidence_and_enqueue_exact_path_ret
         .expect("retry rows")
         .collect::<Result<Vec<_>, _>>()
         .expect("retry evidence");
-    assert_eq!(
-        retries,
-        vec![
-            ("new.png".to_owned(), "pending".to_owned()),
-            ("retained.png".to_owned(), "pending".to_owned()),
-        ]
-    );
+    assert!(retries.is_empty());
     let completed_root_gap = connection
         .query_row(
             "SELECT COUNT(*) FROM library_change_queue
@@ -3192,7 +3338,7 @@ fn authoritative_finalization_races_publish_stable_evidence_and_retry_exact_path
 }
 
 #[test]
-fn authoritative_resume_converts_legacy_media_staleness_into_a_path_retry() {
+fn authoritative_resume_converts_legacy_terminal_media_staleness_without_retry() {
     let source = tempdir().expect("source directory");
     let storage = tempdir().expect("storage directory");
     let source_path = source.path().join("retained.png");
@@ -3288,7 +3434,7 @@ fn authoritative_resume_converts_legacy_media_staleness_into_a_path_retry() {
         .expect("legacy recovery evidence");
     assert_eq!(status, "completed");
     assert!(!requires_previous_snapshot);
-    assert_eq!(retry_count, 1);
+    assert_eq!(retry_count, 0);
 }
 
 #[cfg(windows)]
@@ -3416,6 +3562,7 @@ fn migrated_v17_placeholder_preserves_the_normalized_legacy_location() {
     let old_location_id = before_asset.location_id.clone();
     let old_asset_id = before_asset.asset_id.clone();
     let connection = Connection::open(&storage_paths.catalog_path).expect("catalog database");
+    remove_persistent_journal_v22_contract_for_test(&connection);
     connection
         .execute_batch(
             "PRAGMA foreign_keys = OFF;
@@ -3428,6 +3575,8 @@ fn migrated_v17_placeholder_preserves_the_normalized_legacy_location() {
              DROP TABLE library_metadata_inventory_entries;
              DROP TABLE library_metadata_inventory_runs;
              DROP TABLE library_metadata_inventory_contract;
+             DROP TABLE library_terminal_media_evidence;
+             DROP TABLE library_terminal_media_evidence_contract;
              DROP TABLE scan_run_catch_up_lineage;
              DROP TABLE library_change_catch_up_handoffs;
              DROP INDEX scan_runs_one_active_root;
@@ -3500,7 +3649,7 @@ fn migrated_v17_placeholder_preserves_the_normalized_legacy_location() {
         .query_row("SELECT version FROM schema_info", [], |row| row.get(0))
         .expect("schema version");
     assert!(matches!(events.last(), Some(ScanEvent::Stale { .. })));
-    assert_eq!(version, 20);
+    assert_eq!(version, 30);
     assert_eq!(after.revision, before.revision);
     assert_eq!(after.assets.len(), 1);
     assert_eq!(retained.location_id, "legacy-v17-location");
@@ -3542,6 +3691,7 @@ fn migrated_v17_healthy_file_preserves_legacy_location_without_identity_evidence
     let old_location_id = before_asset.location_id.clone();
     let old_asset_id = before_asset.asset_id.clone();
     let connection = Connection::open(&storage_paths.catalog_path).expect("catalog database");
+    remove_persistent_journal_v22_contract_for_test(&connection);
     connection
         .execute_batch(
             "PRAGMA foreign_keys = OFF;
@@ -3554,6 +3704,8 @@ fn migrated_v17_healthy_file_preserves_legacy_location_without_identity_evidence
              DROP TABLE library_metadata_inventory_entries;
              DROP TABLE library_metadata_inventory_runs;
              DROP TABLE library_metadata_inventory_contract;
+             DROP TABLE library_terminal_media_evidence;
+             DROP TABLE library_terminal_media_evidence_contract;
              DROP TABLE scan_run_catch_up_lineage;
              DROP TABLE library_change_catch_up_handoffs;
              DROP INDEX scan_runs_one_active_root;

@@ -3,6 +3,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "app/ame_app.dart";
 import "app/bootstrap/ame_bootstrap_failure.dart";
+import "app/bootstrap/library_synchronization_lifecycle_owner.dart";
 import "app/bootstrap/rust_library_loader.dart";
 import "app/window/ame_window_actions.dart";
 import "app/window/ame_shutdown_coordinator.dart";
@@ -40,11 +41,13 @@ Future<void> main() async {
       query: query,
     );
     final initialState = LibraryState.fromSnapshot(snapshot, query: query);
-    final synchronization = RustLibrarySynchronization();
+    final synchronization = RustLibrarySynchronization.production();
+    final synchronizationLifecycle = LibrarySynchronizationLifecycleOwner(
+      synchronization,
+    );
     final scanShutdownCoordinator = LibraryScanShutdownCoordinator();
-    shutdownCoordinator.register(synchronization.stop);
+    shutdownCoordinator.register(synchronizationLifecycle.close);
     shutdownCoordinator.register(scanShutdownCoordinator.suspend);
-    await synchronization.start();
     runApp(
       ProviderScope(
         overrides: [
@@ -65,6 +68,7 @@ Future<void> main() async {
         child: const AmeApp(),
       ),
     );
+    synchronizationLifecycle.startInBackground();
   } on Object catch (error) {
     runApp(
       ProviderScope(

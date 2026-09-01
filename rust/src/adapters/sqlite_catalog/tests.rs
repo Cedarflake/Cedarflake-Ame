@@ -1,17 +1,55 @@
 use std::collections::HashSet;
-use std::sync::mpsc;
+use std::sync::{Arc, mpsc};
 use std::thread;
 use std::time::{Duration, Instant};
 
 use tempfile::tempdir;
 
-use crate::domain::GallerySortDirection;
+use crate::domain::{GallerySortDirection, LibraryChangeQueueHealth};
 use crate::ports::LibraryChangeQueue;
 
 use super::*;
 
 const TEST_QUERY_ID: &str = "test-default-query";
 type GalleryQueryFixture<'a> = (&'a str, &'a str, Option<&'a str>, Option<i64>, i64);
+
+fn remove_v27_spool_contract_for_test(connection: &Connection) {
+    connection
+        .execute_batch(
+            "DROP TRIGGER IF EXISTS library_live_gap_recovery_claim_identity_update_guard;
+             DROP TRIGGER IF EXISTS library_live_gap_recovery_claim_insert_guard;
+             DROP INDEX IF EXISTS library_live_gap_recovery_claims_root;
+             DROP TABLE IF EXISTS library_live_gap_recovery_claims;
+             DROP TABLE IF EXISTS library_live_gap_recovery_contract;
+             DROP INDEX IF EXISTS library_scan_publication_namespace_root;
+             DROP TABLE IF EXISTS library_scan_publication_namespace_bindings;
+             DROP TABLE IF EXISTS library_root_publication_namespaces;
+             DROP TABLE IF EXISTS library_root_publication_namespace_contract;
+             DROP TRIGGER library_metadata_inventory_spool_directory_complete_guard;
+             DROP TRIGGER library_metadata_inventory_spool_binding_update_guard;
+             DROP INDEX library_metadata_inventory_spool_entries_order;
+             DROP TABLE library_metadata_inventory_spool_entries;
+             DROP INDEX library_metadata_inventory_spool_directories_state;
+             DROP TABLE library_metadata_inventory_spool_directories;
+             DROP TABLE library_metadata_inventory_spools;
+             DROP TABLE library_metadata_inventory_spool_contract;
+             PRAGMA user_version = 26;
+             UPDATE schema_info SET version = 26;",
+        )
+        .expect("restore v26 spool-free schema");
+}
+
+fn add_catalog_state_to_legacy_fixture(connection: &Connection) {
+    connection
+        .execute_batch(
+            "CREATE TABLE catalog_state (
+               revision INTEGER NOT NULL CHECK(revision >= 0)
+             );
+             INSERT INTO catalog_state(revision)
+               SELECT COUNT(*) FROM scan_runs WHERE status = 'completed';",
+        )
+        .expect("add canonical catalog state to legacy fixture");
+}
 
 fn load_default_snapshot(
     catalog: &mut SqliteCatalog,
@@ -71,6 +109,578 @@ fn catalog_reads_open_without_waiting_for_an_active_writer() {
         .expect("release catalog writer lock");
     assert!(snapshot.roots.is_empty());
     assert!(elapsed < Duration::from_secs(1));
+}
+
+#[test]
+fn sqlite_write_admission_serves_waiting_live_work_before_new_recovery_work() {
+    let admission = Arc::new(SqliteWriteAdmission::new());
+    let active_recovery = admission.acquire(LibraryChangeLane::Recovery);
+    let (acquired_sender, acquired_receiver) = mpsc::channel();
+
+    let recovery_admission = Arc::clone(&admission);
+    let recovery_sender = acquired_sender.clone();
+    let recovery = thread::spawn(move || {
+        let _permit = recovery_admission.acquire(LibraryChangeLane::Recovery);
+        recovery_sender.send(LibraryChangeLane::Recovery).unwrap();
+    });
+    wait_for_admission_waiter(&admission, LibraryChangeLane::Recovery);
+
+    let live_admission = Arc::clone(&admission);
+    let live = thread::spawn(move || {
+        let _permit = live_admission.acquire(LibraryChangeLane::Live);
+        acquired_sender.send(LibraryChangeLane::Live).unwrap();
+    });
+    wait_for_admission_waiter(&admission, LibraryChangeLane::Live);
+
+    drop(active_recovery);
+    assert_eq!(
+        acquired_receiver
+            .recv_timeout(Duration::from_secs(1))
+            .expect("first admitted writer"),
+        LibraryChangeLane::Live
+    );
+    assert_eq!(
+        acquired_receiver
+            .recv_timeout(Duration::from_secs(1))
+            .expect("second admitted writer"),
+        LibraryChangeLane::Recovery
+    );
+    live.join().expect("live writer");
+    recovery.join().expect("recovery writer");
+}
+
+#[test]
+fn low_lane_schema_validation_does_not_block_a_live_transaction() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let session = SqliteCatalogSession::validate(path.clone()).expect("initialize catalog");
+    let initializer = sqlite_schema_initializer(&catalog_admission_path(&path));
+    let initialization_guard = initializer.lock().expect("hold schema initializer");
+    let (completed_sender, completed_receiver) = mpsc::channel();
+    let validator_path = path.clone();
+    let validator = thread::spawn(move || {
+        let result = SqliteCatalogSession::validate(validator_path);
+        completed_sender.send(result).expect("validation result");
+    });
+    assert!(
+        completed_receiver
+            .recv_timeout(Duration::from_millis(50))
+            .is_err(),
+        "the recovery validator must be waiting on its independent initializer"
+    );
+
+    let started = Instant::now();
+    let mut live = session
+        .open_in_lane(LibraryChangeLane::Live)
+        .expect("open validated live connection");
+    let transaction = live
+        .begin_write_in_lane(LibraryChangeLane::Live)
+        .expect("begin live transaction");
+    transaction.commit().expect("commit live transaction");
+    assert!(started.elapsed() < Duration::from_secs(1));
+
+    drop(initialization_guard);
+    completed_receiver
+        .recv_timeout(Duration::from_secs(5))
+        .expect("validator completion")
+        .expect("validate catalog");
+    validator.join().expect("schema validator");
+}
+
+#[test]
+fn validated_session_reopens_one_hundred_times_without_full_validation() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    reset_full_schema_validation_count(&path);
+    let session = SqliteCatalogSession::validate(path.clone()).expect("validate runtime catalog");
+    assert_eq!(full_schema_validation_count(&path), 1);
+
+    for _ in 0..100 {
+        session
+            .open_in_lane(LibraryChangeLane::Live)
+            .expect("O(1) validated reopen");
+    }
+
+    assert_eq!(full_schema_validation_count(&path), 1);
+}
+
+#[test]
+fn validated_session_fails_closed_after_schema_cookie_changes() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let session = SqliteCatalogSession::validate(path.clone()).expect("validate runtime catalog");
+    let connection = Connection::open(path).expect("tamper connection");
+    connection
+        .execute_batch("CREATE TABLE unexpected_runtime_table(value INTEGER)")
+        .expect("change schema cookie");
+
+    let error = match session.open_in_lane(LibraryChangeLane::Live) {
+        Ok(_) => panic!("a changed schema cookie must stale the runtime session"),
+        Err(error) => error,
+    };
+    assert_eq!(error.code, "catalog_validated_session_stale");
+}
+
+#[test]
+fn validated_session_fails_closed_after_header_identity_changes() {
+    for pragma in ["PRAGMA application_id = 0", "PRAGMA user_version = 26"] {
+        let directory = tempdir().expect("temporary directory");
+        let path = directory.path().join("catalog.sqlite3");
+        let session =
+            SqliteCatalogSession::validate(path.clone()).expect("validate runtime catalog");
+        let connection = Connection::open(path).expect("tamper connection");
+        connection
+            .execute_batch(pragma)
+            .expect("change header identity");
+
+        let error = match session.open_in_lane(LibraryChangeLane::Live) {
+            Ok(_) => panic!("a changed catalog header must stale the runtime session"),
+            Err(error) => error,
+        };
+        assert_eq!(error.code, "catalog_validated_session_stale");
+    }
+}
+
+#[test]
+fn validated_session_fails_closed_after_same_path_file_replacement() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let displaced_path = directory.path().join("displaced.sqlite3");
+    let session = SqliteCatalogSession::validate(path.clone()).expect("validate runtime catalog");
+    fs::rename(&path, &displaced_path).expect("displace validated catalog");
+    SqliteCatalogSession::validate(path.clone()).expect("create replacement catalog");
+
+    let error = match session.open_in_lane(LibraryChangeLane::Live) {
+        Ok(_) => panic!("a same-path file replacement must stale the runtime session"),
+        Err(error) => error,
+    };
+    assert_eq!(error.code, "catalog_validated_session_stale");
+}
+
+#[test]
+fn validated_session_ignores_normal_data_version_changes() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    reset_full_schema_validation_count(&path);
+    let session = SqliteCatalogSession::validate(path.clone()).expect("validate runtime catalog");
+    let connection = Connection::open(path.clone()).expect("data writer");
+    connection
+        .execute("UPDATE catalog_state SET revision = revision + 1", [])
+        .expect("change ordinary catalog data");
+    drop(connection);
+
+    session
+        .open_in_lane(LibraryChangeLane::Live)
+        .expect("ordinary data changes keep the validated session current");
+    assert_eq!(full_schema_validation_count(&path), 1);
+}
+
+#[test]
+fn large_v26_catalog_validates_once_then_reopens_in_constant_time() {
+    const ROW_COUNT: i64 = 1_024;
+
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let catalog = SqliteCatalog::open(path.clone()).expect("current catalog");
+    catalog
+        .connection
+        .execute_batch(
+            "INSERT INTO library_roots(id, path, created_unix_ms)
+               VALUES ('runtime-load-root', 'C:/runtime-load-root', 1);
+             INSERT INTO library_change_root_state(
+               root_id, generation, is_active, updated_unix_ms
+             ) VALUES ('runtime-load-root', 1, 1, 1);
+             INSERT INTO library_persistent_journal_root_state(
+               root_id, root_generation, protocol_version, contract_version,
+               capability_state, continuity_state, updated_unix_ms
+             ) VALUES (
+               'runtime-load-root', 1, 0, 1, 'unknown', 'baseline_required', 1
+             );
+             INSERT INTO library_metadata_inventory_runs(
+               id, root_id, root_generation, epoch, scope_kind, scope_relative_path,
+               status, next_page_index, staged_entry_count, started_unix_ms, updated_unix_ms,
+               last_issue_code, last_issue_message
+             ) VALUES (
+               'runtime-load-run', 'runtime-load-root', 1, 1, 'root', '',
+               'failed', 1025, 1024, 1, 1, 'fixture_terminal', 'fixture terminal run'
+             );
+             WITH RECURSIVE sequence(value) AS (
+               VALUES(1) UNION ALL SELECT value + 1 FROM sequence WHERE value < 1024
+             )
+             INSERT INTO library_change_queue(
+               id, root_id, root_generation, intent_kind, scope, relative_path,
+               origin, first_observed_unix_ms, most_recent_observed_unix_ms,
+               first_sequence, most_recent_sequence, coalesced_observation_count,
+               status, ready_unix_ms, catalog_revision_at_enqueue,
+               catalog_revision_at_success, catch_up_source, catch_up_watermark,
+               created_unix_ms, updated_unix_ms
+             )
+             SELECT
+               10000 + value, 'runtime-load-root', 1, 'reconcile', 'path',
+               printf('entry-%04d.jpg', value), 'startup_catch_up', 1, 1,
+               printf('%d', value), printf('%d', value), 1,
+               'completed', 1, 0, 0, 'runtime_load_v1',
+               printf('watermark-%04d', value), 1, 1
+             FROM sequence;
+             INSERT INTO library_change_queue_catch_up_lineage(
+               change_id, catch_up_source, catch_up_watermark, enrolled_unix_ms
+             )
+             SELECT id, catch_up_source, catch_up_watermark, 1
+             FROM library_change_queue WHERE root_id = 'runtime-load-root';
+             INSERT INTO library_metadata_inventory_candidate_owners(
+               run_id, candidate_key, change_id, candidate_role,
+               relative_path, owned_unix_ms
+             )
+             SELECT 'runtime-load-run', printf('candidate-%04d', id - 10000), id,
+                    'present', relative_path, 1
+             FROM library_change_queue WHERE root_id = 'runtime-load-root';
+             WITH RECURSIVE sequence(value) AS (
+               VALUES(0) UNION ALL SELECT value + 1 FROM sequence WHERE value < 1023
+             )
+             INSERT INTO library_metadata_inventory_frontier(
+               run_id, ordinal, relative_directory, state,
+               enumerated_entry_count, updated_unix_ms
+             )
+             SELECT 'runtime-load-run', value, printf('directory-%04d', value),
+                    'completed', 1, 1
+             FROM sequence;",
+        )
+        .expect("seed large current catalog");
+    let counts: (i64, i64, i64, i64) = catalog
+        .connection
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM library_change_queue
+                WHERE root_id = 'runtime-load-root'),
+               (SELECT COUNT(*) FROM library_change_queue_catch_up_lineage),
+               (SELECT COUNT(*) FROM library_metadata_inventory_candidate_owners),
+               (SELECT COUNT(*) FROM library_metadata_inventory_frontier)",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        )
+        .expect("large fixture counts");
+    assert_eq!(counts, (ROW_COUNT, ROW_COUNT, ROW_COUNT, ROW_COUNT));
+    remove_v27_spool_contract_for_test(&catalog.connection);
+    drop(catalog);
+
+    reset_full_schema_validation_count(&path);
+    let validation_started = Instant::now();
+    let session = SqliteCatalogSession::validate(path.clone()).expect("migrate and validate v26");
+    let validation_elapsed = validation_started.elapsed();
+    assert_eq!(full_schema_validation_count(&path), 1);
+
+    let reopen_started = Instant::now();
+    let mut maximum_reopen_elapsed = Duration::ZERO;
+    for _ in 0..100 {
+        let single_reopen_started = Instant::now();
+        session
+            .open_in_lane(LibraryChangeLane::Live)
+            .expect("constant-time validated reopen");
+        maximum_reopen_elapsed = maximum_reopen_elapsed.max(single_reopen_started.elapsed());
+    }
+    let reopen_elapsed = reopen_started.elapsed();
+    assert_eq!(full_schema_validation_count(&path), 1);
+    assert!(
+        validation_elapsed < Duration::from_secs(10),
+        "large v26 migration and validation took {validation_elapsed:?}"
+    );
+    assert!(
+        maximum_reopen_elapsed < Duration::from_secs(1),
+        "one validated reopen took {maximum_reopen_elapsed:?}"
+    );
+    eprintln!(
+        "large-v26-validation rows={ROW_COUNT} validation={validation_elapsed:?} reopens100={reopen_elapsed:?} max_reopen={maximum_reopen_elapsed:?} full_validations={}",
+        full_schema_validation_count(&path)
+    );
+}
+
+#[test]
+fn migrates_v25_through_v27_recovery_execution_and_spool_contracts() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let catalog = SqliteCatalog::open(path.clone()).expect("current catalog");
+    remove_v27_spool_contract_for_test(&catalog.connection);
+    catalog
+        .connection
+        .execute_batch(
+            "DROP TRIGGER library_metadata_inventory_candidate_owner_update_guard;
+             DROP TRIGGER library_metadata_inventory_candidate_owner_insert_guard;
+             DROP INDEX library_metadata_inventory_candidate_owners_change;
+             DROP INDEX library_metadata_inventory_frontier_state;
+             DROP TABLE library_metadata_inventory_candidate_owners;
+             DROP TABLE library_metadata_inventory_frontier;
+             DROP TABLE library_recovery_execution_contract;
+             UPDATE schema_info SET version = 25;",
+        )
+        .expect("restore v25 recovery execution shape");
+    drop(catalog);
+
+    let migrated = SqliteCatalog::open(path.clone()).expect("migrate v25 catalog");
+    let evidence: (i64, i64, i64, i64) = migrated
+        .connection
+        .query_row(
+            "SELECT
+               (SELECT version FROM schema_info),
+               (SELECT complete FROM library_recovery_execution_contract),
+               (SELECT COUNT(*) FROM library_metadata_inventory_candidate_owners),
+               (SELECT COUNT(*) FROM library_metadata_inventory_frontier)",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        )
+        .expect("current recovery execution evidence");
+    assert_eq!(evidence, (SCHEMA_VERSION, 1, 0, 0));
+    drop(migrated);
+    SqliteCatalog::open(path).expect("reopen migrated current catalog");
+}
+
+#[test]
+fn migrates_v26_through_v28_spool_contract_and_reopens() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let catalog = SqliteCatalog::open(path.clone()).expect("current catalog");
+    remove_v27_spool_contract_for_test(&catalog.connection);
+    drop(catalog);
+
+    let migrated = SqliteCatalog::open(path.clone()).expect("migrate v26 catalog");
+    let evidence: (i64, i64, i64, i64, i64) = migrated
+        .connection
+        .query_row(
+            "SELECT
+               (SELECT version FROM schema_info),
+               (SELECT user_version FROM pragma_user_version),
+               (SELECT contract_version
+                FROM library_metadata_inventory_spool_contract WHERE singleton = 1),
+               (SELECT complete
+                FROM library_metadata_inventory_spool_contract WHERE singleton = 1),
+               (SELECT COUNT(*) FROM library_metadata_inventory_spools)",
+            [],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                ))
+            },
+        )
+        .expect("v28 spool contract evidence");
+    assert_eq!(evidence, (SCHEMA_VERSION, SCHEMA_VERSION, 2, 1, 0));
+    drop(migrated);
+    SqliteCatalog::open(path).expect("reopen migrated v28 catalog");
+}
+
+#[test]
+fn current_v27_rejects_missing_spool_order_index_on_reopen() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let catalog = SqliteCatalog::open(path.clone()).expect("current catalog");
+    catalog
+        .connection
+        .execute_batch("DROP INDEX library_metadata_inventory_spool_entries_order")
+        .expect("corrupt spool order contract");
+    drop(catalog);
+
+    let error = match SqliteCatalog::open(path) {
+        Ok(_) => panic!("corrupt v27 spool contract must fail closed"),
+        Err(error) => error,
+    };
+    assert_eq!(
+        error.code,
+        "catalog_metadata_inventory_spool_contract_unverifiable"
+    );
+}
+
+#[test]
+fn current_v28_rejects_orphaned_spool_binding_on_reopen() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let catalog = SqliteCatalog::open(path.clone()).expect("current catalog");
+    catalog
+        .connection
+        .execute_batch(
+            "INSERT INTO library_roots(id, path, created_unix_ms)
+               VALUES ('bound-root', 'C:/bound-root', 1);
+             INSERT INTO scan_runs(
+               id, root_id, status, started_unix_ms, completed_unix_ms, preview_edge
+             ) VALUES ('bound-scan', 'bound-root', 'completed', 1, 1, 128);
+             UPDATE library_roots SET active_scan_id = 'bound-scan' WHERE id = 'bound-root';
+             INSERT INTO library_change_root_state(
+               root_id, generation, is_active, updated_unix_ms
+             ) VALUES ('bound-root', 1, 1, 1);
+             INSERT INTO library_persistent_journal_root_state(
+               root_id, root_generation, protocol_version, contract_version,
+               capability_state, continuity_state, updated_unix_ms
+             ) VALUES (
+               'bound-root', 1, 5, 1, 'supported', 'recovery_required', 1
+             );
+             INSERT INTO library_persistent_journal_checkpoints(
+               root_id, root_generation, volume_guid, volume_serial,
+               root_reference_version, root_file_reference, journal_id,
+               next_unread_usn, captured_exclusive_end, covered_catalog_revision,
+               protocol_version, contract_version, continuity_state, updated_unix_ms
+             ) VALUES (
+               'bound-root', 1, 'bound-volume', '1',
+               3, X'01010101010101010101010101010101', '44',
+               '20', '20', 0, 5, 1, 'recovery_required', 1
+             );
+             INSERT INTO library_change_queue(
+               id, root_id, root_generation, intent_kind, scope, relative_path,
+               origin, first_observed_unix_ms, most_recent_observed_unix_ms,
+               first_sequence, most_recent_sequence, coalesced_observation_count,
+               status, ready_unix_ms, catalog_revision_at_enqueue,
+               created_unix_ms, updated_unix_ms
+             ) VALUES (
+               999, 'bound-root', 1, 'freshness_unknown', 'root', '',
+               'consistency_audit', 1, 1, '1', '1', 1,
+               'pending', 1, 0, 1, 1
+             );
+             INSERT INTO library_recovery_authorities(
+               change_id, run_id, root_id, root_generation, reason, authorized_unix_ms
+             ) VALUES (999, 'bound-run', 'bound-root', 1, 'containment_failure', 1);
+             INSERT INTO library_persistent_journal_baselines(
+               change_id, root_id, root_generation, volume_guid, volume_serial,
+               root_reference_version, root_file_reference, journal_id,
+               opening_next_usn, protocol_version, contract_version,
+               phase, authorized_unix_ms, updated_unix_ms
+             ) VALUES (
+               999, 'bound-root', 1, 'bound-volume', '1',
+               3, X'01010101010101010101010101010101', '44',
+               '20', 5, 1, 'inventory', 1, 1
+             );
+             INSERT INTO library_metadata_inventory_runs(
+               id, root_id, root_generation, epoch, scope_kind, scope_relative_path,
+               status, next_page_index, started_unix_ms, updated_unix_ms
+             ) VALUES (
+               'bound-run', 'bound-root', 1, 1, 'root', '',
+               'running', 1, 1, 1
+             );",
+        )
+        .expect("insert valid recovery binding fixture");
+    drop(catalog);
+    let catalog = SqliteCatalog::open(path.clone()).expect("reopen valid recovery binding fixture");
+    catalog
+        .connection
+        .execute_batch(
+            "INSERT INTO library_metadata_inventory_spools(
+               run_id, authority_change_id, root_id, root_generation,
+               root_identity_scheme, root_identity_value,
+               scope_kind, scope_relative_path, state,
+               created_unix_ms, updated_unix_ms
+             ) VALUES (
+               'bound-run', 999, 'mismatched-root', 1,
+               'windows-file-id-128-v1', 'test-volume:test-root',
+               'root', '', 'enumerating', 1, 1
+             );",
+        )
+        .expect("insert mismatched spool binding with valid foreign keys");
+    drop(catalog);
+
+    let error = match SqliteCatalog::open(path) {
+        Ok(_) => panic!("orphaned v28 spool binding must fail closed"),
+        Err(error) => error,
+    };
+    assert_eq!(
+        error.code,
+        "catalog_metadata_inventory_spool_contract_unverifiable"
+    );
+}
+
+#[test]
+fn current_v27_rejects_missing_candidate_ownership_index_on_reopen() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let catalog = SqliteCatalog::open(path.clone()).expect("current catalog");
+    catalog
+        .connection
+        .execute_batch("DROP INDEX library_metadata_inventory_candidate_owners_change")
+        .expect("corrupt candidate ownership contract");
+    drop(catalog);
+
+    let error = match SqliteCatalog::open(path) {
+        Ok(_) => panic!("corrupt v27 catalog must fail closed"),
+        Err(error) => error,
+    };
+    assert_eq!(
+        error.code,
+        "catalog_recovery_execution_contract_unverifiable"
+    );
+}
+
+fn wait_for_admission_waiter(admission: &SqliteWriteAdmission, lane: LibraryChangeLane) {
+    wait_for_admission_waiter_count(admission, lane, 1);
+}
+
+fn wait_for_admission_waiter_count(
+    admission: &SqliteWriteAdmission,
+    lane: LibraryChangeLane,
+    expected: u64,
+) {
+    let deadline = Instant::now() + Duration::from_secs(1);
+    let priority = sqlite_write_priority(lane);
+    loop {
+        let waiting = admission
+            .state
+            .lock()
+            .unwrap_or_else(|error| error.into_inner())
+            .waiting[priority];
+        if waiting >= expected {
+            return;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "writer did not enter admission wait"
+        );
+        thread::yield_now();
+    }
+}
+
+#[test]
+fn migrates_v20_terminal_media_evidence_without_rebuilding_the_catalog() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let mut catalog = SqliteCatalog::open(path.clone()).expect("catalog");
+    publish_fixture(
+        &mut catalog,
+        "v20-evidence-scan",
+        "v20-evidence-root",
+        "C:\\V20EvidenceSource",
+        "v20-evidence-location",
+    );
+    remove_persistent_journal_v22_contract_for_test(&catalog.connection);
+    catalog
+        .connection
+        .execute_batch(
+            "DROP TABLE library_terminal_media_evidence;
+             DROP TABLE library_terminal_media_evidence_contract;
+             UPDATE schema_info SET version = 20;",
+        )
+        .expect("restore v20 schema");
+    drop(catalog);
+
+    let reopened = SqliteCatalog::open(path).expect("migrate v20 catalog");
+    let version: i64 = reopened
+        .connection
+        .query_row("SELECT version FROM schema_info", [], |row| row.get(0))
+        .expect("schema version");
+    let marker: i64 = reopened
+        .connection
+        .query_row(
+            "SELECT complete FROM library_terminal_media_evidence_contract
+             WHERE singleton = 1",
+            [],
+            |row| row.get(0),
+        )
+        .expect("terminal evidence contract marker");
+
+    assert_eq!(version, SCHEMA_VERSION);
+    assert_eq!(marker, 1);
+    assert!(
+        reopened
+            .load_active_location("v20-evidence-location")
+            .expect("preserved active location")
+            .is_some()
+    );
 }
 
 #[test]
@@ -143,6 +753,7 @@ fn prerelease_missing_active_preview_is_downgraded_on_reopen() {
         )
         .expect("terminal handoff count");
     assert_eq!(handoff_count, 0);
+    remove_persistent_journal_v22_contract_for_test(&catalog.connection);
     catalog
         .connection
         .execute_batch(
@@ -150,6 +761,8 @@ fn prerelease_missing_active_preview_is_downgraded_on_reopen() {
              DROP TABLE library_metadata_inventory_entries;
              DROP TABLE library_metadata_inventory_runs;
              DROP TABLE library_metadata_inventory_contract;
+             DROP TABLE library_terminal_media_evidence;
+             DROP TABLE library_terminal_media_evidence_contract;
              UPDATE schema_info SET version = 19;",
         )
         .expect("restore prerelease preview repair marker");
@@ -193,6 +806,7 @@ fn prerelease_stale_active_preview_and_owner_are_downgraded_on_reopen() {
             [&artifact.artifact_key],
         )
         .expect("restore prerelease stale artifact");
+    remove_persistent_journal_v22_contract_for_test(&catalog.connection);
     catalog
         .connection
         .execute_batch(
@@ -200,6 +814,8 @@ fn prerelease_stale_active_preview_and_owner_are_downgraded_on_reopen() {
              DROP TABLE library_metadata_inventory_entries;
              DROP TABLE library_metadata_inventory_runs;
              DROP TABLE library_metadata_inventory_contract;
+             DROP TABLE library_terminal_media_evidence;
+             DROP TABLE library_terminal_media_evidence_contract;
              UPDATE schema_info SET version = 19;",
         )
         .expect("restore prerelease preview repair marker");
@@ -1178,6 +1794,7 @@ fn migrates_v3_without_treating_an_uncheckpointed_scan_as_recoverable() {
                    ('root-2', 'C:\\Photos', 'scan-complete', 2);",
         )
         .expect("v3 schema");
+    add_catalog_state_to_legacy_fixture(&connection);
     drop(connection);
 
     let catalog = SqliteCatalog::open(path).expect("migrated catalog");
@@ -1241,6 +1858,7 @@ fn migrates_v4_tasks_without_inventing_a_missing_directory_frontier() {
                     NULL, 30, 4);",
         )
         .expect("v4 schema");
+    add_catalog_state_to_legacy_fixture(&connection);
     drop(connection);
 
     let catalog = SqliteCatalog::open(path).expect("migrated catalog");
@@ -1319,6 +1937,7 @@ fn migrates_v5_tasks_without_inventing_a_missing_entry_snapshot() {
                    ('running', 'pending'), ('paused', 'pending');",
         )
         .expect("v5 schema");
+    add_catalog_state_to_legacy_fixture(&connection);
     drop(connection);
 
     let catalog = SqliteCatalog::open(path).expect("migrated catalog");
@@ -3593,7 +4212,13 @@ fn ensure_legacy_scan_runs_contract(connection: &Connection) {
                last_visited_relative_path TEXT,
                visited_entries INTEGER NOT NULL DEFAULT 0,
                accepted_items INTEGER NOT NULL DEFAULT 0
-             );",
+             );
+             CREATE TABLE IF NOT EXISTS catalog_state (
+               revision INTEGER NOT NULL CHECK(revision >= 0)
+             );
+             INSERT INTO catalog_state(revision)
+               SELECT (SELECT COUNT(*) FROM scan_runs WHERE status = 'completed')
+               WHERE NOT EXISTS (SELECT 1 FROM catalog_state);",
         )
         .expect("legacy scan run contract");
 }
@@ -3758,6 +4383,1259 @@ fn fixture_request(scan_id: &str, root_path: &str) -> ScanRequest {
     }
 }
 
+fn publication_identity(hex_digit: char) -> FileIdentityEvidence {
+    FileIdentityEvidence {
+        scheme: "windows-file-id-128-v1".to_owned(),
+        value: format!("000000000000004d:{}", hex_digit.to_string().repeat(32)),
+    }
+}
+
+fn downgrade_live_gap_contract_to_v29(connection: &Connection) {
+    connection
+        .execute_batch(
+            "DROP TRIGGER library_live_gap_recovery_claim_identity_update_guard;
+             DROP TRIGGER library_live_gap_recovery_claim_insert_guard;
+             DROP INDEX library_live_gap_recovery_claims_root;
+             DROP TABLE library_live_gap_recovery_claims;
+             DROP TABLE library_live_gap_recovery_contract;
+             PRAGMA user_version = 29;
+             UPDATE schema_info SET version = 29;",
+        )
+        .expect("downgrade fixture to v29");
+}
+
+fn migrate_v29_ambiguous_gap_fixture(
+    catalog_path: &Path,
+    root_id: &str,
+    root_path: &str,
+    with_publication_namespace: bool,
+) {
+    let mut connection = Connection::open(catalog_path).expect("open ambiguous v29 fixture");
+    super::migrations::migrate_schema(&mut connection).expect("create current fixture schema");
+    connection
+        .execute(
+            "INSERT INTO library_roots(id, path, created_unix_ms) VALUES (?1, ?2, 1)",
+            params![root_id, root_path],
+        )
+        .expect("insert ambiguous fixture root");
+    connection
+        .execute(
+            "INSERT INTO library_change_root_state(
+               root_id, generation, is_active, updated_unix_ms
+             ) VALUES (?1, 1, 1, 1)",
+            [root_id],
+        )
+        .expect("insert ambiguous fixture generation");
+    connection
+        .execute(
+            "INSERT INTO library_persistent_journal_root_state(
+               root_id, root_generation, protocol_version, contract_version,
+               capability_state, continuity_state, updated_unix_ms
+             ) VALUES (?1, 1, 0, 1, 'unknown', 'baseline_required', 1)",
+            [root_id],
+        )
+        .expect("insert ambiguous fixture journal state");
+    if with_publication_namespace {
+        connection
+            .execute(
+                "INSERT INTO library_root_publication_namespaces(
+                   root_id, root_generation, identity_scheme, identity_value,
+                   authority_kind, established_catalog_revision,
+                   established_unix_ms, updated_unix_ms
+                 ) VALUES (
+                   ?1, 1, 'windows-file-id-128-v1',
+                   '000000000000004d:01010101010101010101010101010101',
+                   'foreground_scan', 0, 1, 1
+                 )",
+                [root_id],
+            )
+            .expect("insert ambiguous fixture publication namespace");
+    }
+    connection
+        .execute(
+            "INSERT INTO library_change_queue(
+               root_id, root_generation, intent_kind, scope, relative_path,
+               origin, first_observed_unix_ms, most_recent_observed_unix_ms,
+               first_sequence, most_recent_sequence, coalesced_observation_count,
+               status, ready_unix_ms, lease_expires_unix_ms, attempt_count,
+               catalog_revision_at_enqueue, created_unix_ms, updated_unix_ms
+             ) VALUES (
+               ?1, 1, 'freshness_unknown', 'root', '', 'startup_catch_up',
+               41, 41, '1', '1', 1, 'leased', 41, 99, 3, 0, 41, 41
+             )",
+            [root_id],
+        )
+        .expect("insert ambiguous v29 gap");
+    downgrade_live_gap_contract_to_v29(&connection);
+}
+
+fn migrate_v29_foreground_owned_gap_fixture(
+    catalog_path: &Path,
+    root_id: &str,
+    root_path: &str,
+    scan_id: &str,
+    is_paused: bool,
+) -> ScanRequest {
+    let mut catalog = SqliteCatalog::open(catalog_path.to_path_buf()).expect("catalog");
+    let identity = publication_identity('f');
+    let initial = fixture_request(&format!("{scan_id}-initial"), root_path);
+    catalog
+        .begin_scan_with_publication_namespace(&initial, root_id, root_path, &identity)
+        .expect("begin initial publication");
+    catalog
+        .publish_scan(&initial.scan_id, root_id, 0, 0)
+        .expect("publish initial catalog");
+    catalog
+        .connection
+        .execute(
+            "INSERT INTO library_change_queue(
+               root_id, root_generation, intent_kind, scope, relative_path,
+               origin, first_observed_unix_ms, most_recent_observed_unix_ms,
+               first_sequence, most_recent_sequence, coalesced_observation_count,
+               status, ready_unix_ms, catalog_revision_at_enqueue,
+               created_unix_ms, updated_unix_ms
+             ) VALUES (
+               ?1, 1, 'freshness_unknown', 'root', '', 'startup_catch_up',
+               41, 41, '41', '41', 1, 'pending', 41, 1, 41, 41
+             )",
+            [root_id],
+        )
+        .expect("insert v29 foreground-owned gap");
+    let request = fixture_request(scan_id, root_path);
+    catalog
+        .begin_scan_with_publication_namespace(&request, root_id, root_path, &identity)
+        .expect("begin foreground owner");
+    if is_paused {
+        catalog
+            .pause_scan(&request.scan_id, &ScanCheckpoint::default())
+            .expect("pause foreground owner");
+    }
+    let owned: (String, String, String, i64) = catalog
+        .connection
+        .query_row(
+            "SELECT scans.status, scans.scan_owner, gap.authoritative_scan_id,
+                    (SELECT COUNT(*) FROM library_live_gap_recovery_claims
+                     WHERE gap_change_id = gap.id)
+             FROM scan_runs AS scans
+             JOIN library_change_queue AS gap
+               ON gap.authoritative_scan_id = scans.id
+             WHERE scans.id = ?1",
+            [&request.scan_id],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        )
+        .expect("v29 foreground ownership evidence");
+    assert_eq!(owned.0, if is_paused { "paused" } else { "running" });
+    assert_eq!(owned.1, "foreground");
+    assert_eq!(owned.2, request.scan_id);
+    assert_eq!(owned.3, 0);
+    downgrade_live_gap_contract_to_v29(&catalog.connection);
+    drop(catalog);
+    request
+}
+
+fn assert_v29_foreground_owned_gap_resumes_after_migration(is_paused: bool) {
+    let directory = tempdir().expect("catalog directory");
+    let catalog_path = directory.path().join("catalog.sqlite3");
+    let root_id = if is_paused {
+        "v29-paused-foreground-root"
+    } else {
+        "v29-running-foreground-root"
+    };
+    let root_path = if is_paused {
+        "C:\\V29PausedForeground"
+    } else {
+        "C:\\V29RunningForeground"
+    };
+    let scan_id = if is_paused {
+        "v29-paused-foreground-scan"
+    } else {
+        "v29-running-foreground-scan"
+    };
+    let request = migrate_v29_foreground_owned_gap_fixture(
+        &catalog_path,
+        root_id,
+        root_path,
+        scan_id,
+        is_paused,
+    );
+
+    let mut catalog = SqliteCatalog::open(catalog_path.clone()).expect("migrate owned v29 gap");
+    let migrated: (String, String, String, i64, Option<String>) = catalog
+        .connection
+        .query_row(
+            "SELECT scans.status, scans.scan_owner, gap.status,
+                    (SELECT COUNT(*) FROM library_live_gap_recovery_claims
+                     WHERE gap_change_id = gap.id),
+                    gap.authoritative_scan_id
+             FROM scan_runs AS scans
+             JOIN library_change_queue AS gap
+               ON gap.authoritative_scan_id = scans.id
+             WHERE scans.id = ?1",
+            [&request.scan_id],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                ))
+            },
+        )
+        .expect("migrated foreground ownership evidence");
+    assert_eq!(
+        migrated,
+        (
+            if is_paused { "paused" } else { "running" }.to_owned(),
+            "foreground".to_owned(),
+            "leased".to_owned(),
+            0,
+            Some(request.scan_id.clone()),
+        )
+    );
+    catalog
+        .resume_scan(&request, root_id, root_path)
+        .expect("resume migrated foreground scan");
+    catalog
+        .publish_scan(&request.scan_id, root_id, 0, 0)
+        .expect("publish migrated foreground scan");
+    drop(catalog);
+
+    let reopened = SqliteCatalog::open(catalog_path).expect("reopen published v30 catalog");
+    let published: (String, String, String, i64, String) = reopened
+        .connection
+        .query_row(
+            "SELECT scans.status, scans.scan_owner, gap.status,
+                    (SELECT COUNT(*) FROM library_live_gap_recovery_claims
+                     WHERE gap_change_id = gap.id),
+                    roots.active_scan_id
+             FROM scan_runs AS scans
+             JOIN library_change_queue AS gap
+               ON gap.root_id = scans.root_id
+              AND gap.root_generation = scans.root_generation_at_start
+              AND gap.id <= scans.change_queue_high_watermark
+             JOIN library_roots AS roots ON roots.id = scans.root_id
+             WHERE scans.id = ?1",
+            [&request.scan_id],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                ))
+            },
+        )
+        .expect("published migrated foreground evidence");
+    assert_eq!(
+        published,
+        (
+            "completed".to_owned(),
+            "foreground".to_owned(),
+            "completed".to_owned(),
+            0,
+            request.scan_id,
+        )
+    );
+    let metrics = reopened
+        .load_library_change_root_queue_metrics(
+            root_id,
+            LibraryRootGeneration::initial(),
+            unix_time_ms(),
+            LibraryChangeQueuePolicy::default(),
+        )
+        .expect("load synchronized queue metrics");
+    assert_eq!(metrics.pending_count, 0);
+    assert_eq!(metrics.leased_count, 0);
+    assert_eq!(metrics.retry_wait_count, 0);
+    assert_eq!(metrics.explicit_recovery_required_count, 0);
+    assert_eq!(metrics.health, LibraryChangeQueueHealth::Idle);
+}
+
+#[test]
+fn v29_running_foreground_scan_retains_owned_gap_through_resume_and_publication() {
+    assert_v29_foreground_owned_gap_resumes_after_migration(false);
+}
+
+#[test]
+fn v29_paused_foreground_scan_retains_owned_gap_through_resume_and_publication() {
+    assert_v29_foreground_owned_gap_resumes_after_migration(true);
+}
+
+fn seed_pending_journal_claim(catalog: &SqliteCatalog, root_id: &str) {
+    catalog
+        .connection
+        .execute(
+            "UPDATE library_persistent_journal_root_state
+             SET protocol_version = 5, capability_state = 'supported',
+                 continuity_state = 'current', last_failure_code = NULL,
+                 last_failure_message = NULL, updated_unix_ms = 50
+             WHERE root_id = ?1 AND root_generation = 1",
+            [root_id],
+        )
+        .expect("make pending-journal root current");
+    catalog
+        .connection
+        .execute(
+            "INSERT INTO library_persistent_journal_checkpoints(
+               root_id, root_generation, volume_guid, volume_serial,
+               root_reference_version, root_file_reference, journal_id,
+               next_unread_usn, captured_exclusive_end, covered_catalog_revision,
+               protocol_version, contract_version, continuity_state,
+               updated_unix_ms
+             ) VALUES (
+               ?1, 1, 'volume-guid', '77', 3, ?2, '44', '55', '55', 1,
+               5, 1, 'current', 50
+             )",
+            params![root_id, vec![1_u8; 16]],
+        )
+        .expect("insert pending-journal checkpoint");
+    catalog
+        .connection
+        .execute(
+            "INSERT INTO library_change_queue(
+               root_id, root_generation, intent_kind, scope, relative_path,
+               origin, first_observed_unix_ms, most_recent_observed_unix_ms,
+               first_sequence, most_recent_sequence, coalesced_observation_count,
+               status, ready_unix_ms, attempt_count, next_retry_unix_ms,
+               last_failure_code, last_failure_message,
+               catalog_revision_at_enqueue, created_unix_ms, updated_unix_ms
+             ) VALUES (
+               ?1, 1, 'freshness_unknown', 'root', '', 'live_notification',
+               50, 50, '2', '2', 1, 'retry_wait', 50, 0, 60,
+               'live_gap_waiting_for_journal_range',
+               'The P0 live gap is waiting for its durable journal range',
+               1, 50, 50
+             )",
+            [root_id],
+        )
+        .expect("insert pending-journal gap");
+    let gap_change_id = catalog.connection.last_insert_rowid();
+    catalog
+        .connection
+        .execute(
+            "INSERT INTO library_live_gap_recovery_claims(
+               gap_change_id, root_id, root_generation, consumer_kind,
+               opening_volume_guid, opening_volume_serial,
+               opening_root_reference_version, opening_root_file_reference,
+               opening_journal_id, opening_next_usn, protocol_version,
+               contract_version, created_unix_ms
+             ) VALUES (
+               ?1, ?2, 1, 'pending_journal', 'volume-guid', '77', 3, ?3,
+               '44', '55', 5, 1, 50
+             )",
+            params![gap_change_id, root_id, vec![1_u8; 16]],
+        )
+        .expect("insert pending-journal claim");
+}
+
+fn interrupted_explicit_foreground_with_handoff_assets(
+    catalog_path: &Path,
+) -> (String, String, ScanRequest) {
+    let root_id = "crash-cleanup-root".to_owned();
+    let root_path = "C:\\CrashCleanupRoot".to_owned();
+    migrate_v29_ambiguous_gap_fixture(catalog_path, &root_id, &root_path, false);
+    let mut catalog =
+        SqliteCatalog::open(catalog_path.to_path_buf()).expect("migrate explicit crash fixture");
+    let request = fixture_request("crash-cleanup-scan", &root_path);
+    catalog
+        .begin_scan_with_publication_namespace(
+            &request,
+            &root_id,
+            &root_path,
+            &publication_identity('9'),
+        )
+        .expect("begin interrupted explicit foreground scan");
+    catalog
+        .connection
+        .execute_batch(
+            "INSERT INTO library_change_queue(
+               id, root_id, root_generation, intent_kind, scope, relative_path,
+               origin, first_observed_unix_ms, most_recent_observed_unix_ms,
+               first_sequence, most_recent_sequence, coalesced_observation_count,
+               status, ready_unix_ms, catalog_revision_at_enqueue,
+               catch_up_source, catch_up_watermark, created_unix_ms, updated_unix_ms
+             ) VALUES (
+               8100, 'crash-cleanup-root', 1, 'reconcile', 'path',
+               'handoff-owner.jpg', 'startup_catch_up', 50, 50, '50', '50', 1,
+               'pending', 50, 0, 'crash-cleanup-source',
+               'crash-cleanup-watermark', 50, 50
+             );
+             INSERT INTO library_change_queue_catch_up_lineage(
+               change_id, catch_up_source, catch_up_watermark, enrolled_unix_ms
+             ) VALUES (
+               8100, 'crash-cleanup-source', 'crash-cleanup-watermark', 50
+             );
+             INSERT INTO assets(id, created_unix_ms) VALUES
+               ('crash-catch-up-asset', 50),
+               ('crash-scan-handoff-asset', 50),
+               ('crash-true-orphan', 50);
+             INSERT INTO library_change_catch_up_handoffs(
+               catch_up_source, catch_up_watermark,
+               file_identity_scheme, file_identity_value,
+               asset_id, source_location_id, root_id, absolute_path, relative_path,
+               preview_path, file_size, created_unix_ms, modified_unix_ms,
+               width, height, preview_status, metadata_engine_id,
+               metadata_engine_version, updated_unix_ms
+             ) VALUES (
+               'crash-cleanup-source', 'crash-cleanup-watermark',
+               'windows-file-id-128-v1', 'crash-catch-up-identity',
+               'crash-catch-up-asset', 'crash-catch-up-location',
+               'crash-cleanup-root', 'C:/CrashCleanupRoot/catch-up.jpg',
+               'catch-up.jpg', '', 1, 50, 50, 1, 1, 'pending',
+               'fixture-metadata', '1', 50
+             );
+             INSERT INTO library_change_scan_handoff_batches(
+               id, source_root_id, updated_unix_ms
+             ) VALUES ('crash-cleanup-batch', 'crash-cleanup-root', 50);
+             INSERT INTO library_change_scan_handoff_lineage(
+               batch_id, catch_up_source, catch_up_watermark, enrolled_unix_ms
+             ) VALUES (
+               'crash-cleanup-batch', 'crash-cleanup-source',
+               'crash-cleanup-watermark', 50
+             );
+             INSERT INTO library_change_scan_handoff_items(
+               batch_id, file_identity_scheme, file_identity_value,
+               asset_id, source_location_id, root_id, absolute_path, relative_path,
+               preview_path, file_size, created_unix_ms, modified_unix_ms,
+               width, height, preview_status, metadata_engine_id,
+               metadata_engine_version
+             ) VALUES (
+               'crash-cleanup-batch', 'windows-file-id-128-v1',
+               'crash-scan-handoff-identity', 'crash-scan-handoff-asset',
+               'crash-scan-handoff-location', 'crash-cleanup-root',
+               'C:/CrashCleanupRoot/scan-handoff.jpg', 'scan-handoff.jpg',
+               '', 1, 50, 50, 1, 1, 'pending', 'fixture-metadata', '1'
+             );",
+        )
+        .expect("seed handoff-owned and orphan assets");
+    drop(catalog);
+    (root_id, root_path, request)
+}
+
+fn crash_cleanup_asset_projection(connection: &Connection) -> (i64, i64, i64, i64) {
+    connection
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM assets WHERE id = 'crash-catch-up-asset'),
+               (SELECT COUNT(*) FROM assets WHERE id = 'crash-scan-handoff-asset'),
+               (SELECT COUNT(*) FROM assets WHERE id = 'crash-true-orphan'),
+               (SELECT COUNT(*)
+                FROM library_change_catch_up_handoffs AS handoffs
+                LEFT JOIN assets ON assets.id = handoffs.asset_id
+                WHERE assets.id IS NULL)
+               + (SELECT COUNT(*)
+                  FROM library_change_scan_handoff_items AS handoffs
+                  LEFT JOIN assets ON assets.id = handoffs.asset_id
+                  WHERE assets.id IS NULL)",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        )
+        .expect("crash cleanup asset projection")
+}
+
+#[test]
+fn explicit_recovery_claim_is_consumed_only_by_its_foreground_scan_publication() {
+    let directory = tempdir().expect("catalog directory");
+    let catalog_path = directory.path().join("catalog.sqlite3");
+    let root_id = "explicit-publication-root";
+    let root_path = "C:\\ExplicitPublication";
+    migrate_v29_ambiguous_gap_fixture(&catalog_path, root_id, root_path, false);
+    let mut catalog = SqliteCatalog::open(catalog_path.clone()).expect("migrate ambiguous v29 gap");
+    let request = fixture_request("explicit-publication-scan", root_path);
+    catalog
+        .begin_scan_with_publication_namespace(
+            &request,
+            root_id,
+            root_path,
+            &publication_identity('a'),
+        )
+        .expect("begin explicit foreground recovery");
+    let active: (String, String, String, Option<i64>) = catalog
+        .connection
+        .query_row(
+            "SELECT claim.consumer_kind, claim.foreground_scan_id, gap.status,
+                    gap.next_retry_unix_ms
+             FROM library_live_gap_recovery_claims AS claim
+             JOIN library_change_queue AS gap ON gap.id = claim.gap_change_id
+             WHERE claim.root_id = ?1",
+            [root_id],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        )
+        .expect("active explicit foreground claim");
+    assert_eq!(
+        active,
+        (
+            "foreground_scan".to_owned(),
+            request.scan_id.clone(),
+            "leased".to_owned(),
+            None,
+        )
+    );
+
+    catalog
+        .publish_scan(&request.scan_id, root_id, 0, 0)
+        .expect("publish explicit foreground recovery");
+    drop(catalog);
+    let reopened = SqliteCatalog::open(catalog_path).expect("reopen published explicit recovery");
+    let consumed: (String, String, i64, String, Option<String>, i64) = reopened
+        .connection
+        .query_row(
+            "SELECT claim.consumer_kind, claim.foreground_scan_id,
+                    claim.consumed_unix_ms IS NOT NULL, gap.status,
+                    gap.last_failure_code, gap.catalog_revision_at_success
+             FROM library_live_gap_recovery_claims AS claim
+             JOIN library_change_queue AS gap ON gap.id = claim.gap_change_id
+             WHERE claim.root_id = ?1",
+            [root_id],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                    row.get(5)?,
+                ))
+            },
+        )
+        .expect("consumed explicit foreground claim");
+    assert_eq!(
+        consumed,
+        (
+            "foreground_scan".to_owned(),
+            request.scan_id,
+            1,
+            "completed".to_owned(),
+            None,
+            1,
+        )
+    );
+    let metrics = reopened
+        .load_library_change_root_queue_metrics(
+            root_id,
+            LibraryRootGeneration::initial(),
+            unix_time_ms(),
+            LibraryChangeQueuePolicy::default(),
+        )
+        .expect("load consumed explicit recovery claim metrics");
+    assert_eq!(metrics.explicit_recovery_required_count, 0);
+    assert_eq!(metrics.health, LibraryChangeQueueHealth::Idle);
+}
+
+#[test]
+fn abandoned_explicit_recovery_scan_restores_the_original_typed_claim() {
+    let directory = tempdir().expect("catalog directory");
+    let catalog_path = directory.path().join("catalog.sqlite3");
+    let root_id = "explicit-abandon-root";
+    let root_path = "C:\\ExplicitAbandon";
+    migrate_v29_ambiguous_gap_fixture(&catalog_path, root_id, root_path, false);
+    let mut catalog = SqliteCatalog::open(catalog_path.clone()).expect("migrate ambiguous v29 gap");
+    let request = fixture_request("explicit-abandon-scan", root_path);
+    catalog
+        .begin_scan_with_publication_namespace(
+            &request,
+            root_id,
+            root_path,
+            &publication_identity('b'),
+        )
+        .expect("begin explicit foreground recovery");
+    catalog
+        .abandon_scan(&request.scan_id, "cancelled", 0)
+        .expect("abandon explicit foreground recovery");
+    drop(catalog);
+
+    let reopened = SqliteCatalog::open(catalog_path).expect("reopen abandoned explicit recovery");
+    let restored: (
+        String,
+        Option<String>,
+        String,
+        Option<i64>,
+        String,
+        Option<String>,
+    ) = reopened
+        .connection
+        .query_row(
+            "SELECT claim.consumer_kind, claim.foreground_scan_id, gap.status,
+                    gap.next_retry_unix_ms, gap.last_failure_code,
+                    gap.authoritative_scan_id
+             FROM library_live_gap_recovery_claims AS claim
+             JOIN library_change_queue AS gap ON gap.id = claim.gap_change_id
+             WHERE claim.root_id = ?1",
+            [root_id],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                    row.get(5)?,
+                ))
+            },
+        )
+        .expect("restored explicit claim");
+    assert_eq!(
+        restored,
+        (
+            "explicit_recovery_required".to_owned(),
+            None,
+            "retry_wait".to_owned(),
+            None,
+            "live_gap_v30_explicit_recovery_required".to_owned(),
+            None,
+        )
+    );
+    let metrics = reopened
+        .load_library_change_root_queue_metrics(
+            root_id,
+            LibraryRootGeneration::initial(),
+            unix_time_ms(),
+            LibraryChangeQueuePolicy::default(),
+        )
+        .expect("load explicit recovery claim metrics");
+    assert_eq!(metrics.explicit_recovery_required_count, 1);
+    assert_eq!(metrics.health, LibraryChangeQueueHealth::Degraded);
+}
+
+#[test]
+fn reopening_an_interrupted_explicit_recovery_scan_restores_the_claim_atomically() {
+    let directory = tempdir().expect("catalog directory");
+    let catalog_path = directory.path().join("catalog.sqlite3");
+    let root_id = "explicit-crash-root";
+    let root_path = "C:\\ExplicitCrash";
+    migrate_v29_ambiguous_gap_fixture(&catalog_path, root_id, root_path, false);
+    let mut catalog = SqliteCatalog::open(catalog_path.clone()).expect("migrate ambiguous v29 gap");
+    let request = fixture_request("explicit-crash-scan", root_path);
+    catalog
+        .begin_scan_with_publication_namespace(
+            &request,
+            root_id,
+            root_path,
+            &publication_identity('c'),
+        )
+        .expect("begin explicit foreground recovery");
+    drop(catalog);
+
+    let reopened = SqliteCatalog::open(catalog_path).expect("recover interrupted explicit scan");
+    let restored: (String, Option<String>, String, String) = reopened
+        .connection
+        .query_row(
+            "SELECT claim.consumer_kind, claim.foreground_scan_id, gap.status, scans.status
+             FROM library_live_gap_recovery_claims AS claim
+             JOIN library_change_queue AS gap ON gap.id = claim.gap_change_id
+             JOIN scan_runs AS scans ON scans.id = ?2
+             WHERE claim.root_id = ?1",
+            params![root_id, request.scan_id],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        )
+        .expect("recovered interrupted explicit claim");
+    assert_eq!(
+        restored,
+        (
+            "explicit_recovery_required".to_owned(),
+            None,
+            "retry_wait".to_owned(),
+            "failed".to_owned(),
+        )
+    );
+}
+
+#[test]
+fn foreground_scan_does_not_capture_a_pending_journal_claim() {
+    let directory = tempdir().expect("catalog directory");
+    let catalog_path = directory.path().join("catalog.sqlite3");
+    let root_id = "pending-journal-scan-root";
+    let root_path = "C:\\PendingJournalScan";
+    let mut catalog = SqliteCatalog::open(catalog_path.clone()).expect("catalog");
+    let initial = fixture_request("pending-journal-initial", root_path);
+    catalog
+        .begin_scan(&initial, root_id, root_path)
+        .expect("begin initial scan");
+    catalog
+        .publish_scan(&initial.scan_id, root_id, 0, 0)
+        .expect("publish initial scan");
+    seed_pending_journal_claim(&catalog, root_id);
+
+    let foreground = fixture_request("pending-journal-foreground", root_path);
+    catalog
+        .begin_scan(&foreground, root_id, root_path)
+        .expect("begin unrelated foreground scan");
+    drop(catalog);
+    let mut reopened = SqliteCatalog::open(catalog_path).expect("reopen pending-journal scan");
+    let retained: (String, String, Option<String>, Option<i64>) = reopened
+        .connection
+        .query_row(
+            "SELECT claim.consumer_kind, gap.status, gap.authoritative_scan_id,
+                    scans.change_queue_high_watermark
+             FROM library_live_gap_recovery_claims AS claim
+             JOIN library_change_queue AS gap ON gap.id = claim.gap_change_id
+             JOIN scan_runs AS scans ON scans.id = ?2
+             WHERE claim.root_id = ?1",
+            params![root_id, foreground.scan_id],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        )
+        .expect("retained pending-journal owner");
+    assert_eq!(
+        retained,
+        (
+            "pending_journal".to_owned(),
+            "retry_wait".to_owned(),
+            None,
+            None,
+        )
+    );
+    reopened
+        .abandon_scan(&foreground.scan_id, "cancelled", 0)
+        .expect("clean up foreground scan");
+}
+
+#[test]
+fn current_v30_rejects_an_inexact_explicit_recovery_claim_on_reopen() {
+    let directory = tempdir().expect("catalog directory");
+    let catalog_path = directory.path().join("catalog.sqlite3");
+    let root_id = "invalid-explicit-claim-root";
+    migrate_v29_ambiguous_gap_fixture(&catalog_path, root_id, "C:\\InvalidExplicitClaim", false);
+    let catalog = SqliteCatalog::open(catalog_path.clone()).expect("migrate ambiguous v29 gap");
+    catalog
+        .connection
+        .execute(
+            "UPDATE library_change_queue
+             SET status = 'pending'
+             WHERE id = (
+               SELECT gap_change_id FROM library_live_gap_recovery_claims
+               WHERE root_id = ?1
+             )",
+            [root_id],
+        )
+        .expect("corrupt explicit claim state");
+    drop(catalog);
+
+    let error = match SqliteCatalog::open(catalog_path) {
+        Ok(_) => panic!("inexact explicit claim must fail closed"),
+        Err(error) => error,
+    };
+    assert_eq!(
+        error.code,
+        "catalog_live_gap_recovery_contract_unverifiable"
+    );
+}
+
+#[test]
+fn current_v30_rejects_an_inexact_active_foreground_claim_on_reopen() {
+    let directory = tempdir().expect("catalog directory");
+    let catalog_path = directory.path().join("catalog.sqlite3");
+    let root_id = "invalid-active-claim-root";
+    let root_path = "C:\\InvalidActiveClaim";
+    migrate_v29_ambiguous_gap_fixture(&catalog_path, root_id, root_path, false);
+    let mut catalog = SqliteCatalog::open(catalog_path.clone()).expect("migrate ambiguous v29 gap");
+    let request = fixture_request("invalid-active-claim-scan", root_path);
+    catalog
+        .begin_scan_with_publication_namespace(
+            &request,
+            root_id,
+            root_path,
+            &publication_identity('d'),
+        )
+        .expect("begin foreground recovery");
+    catalog
+        .connection
+        .execute(
+            "UPDATE library_change_queue
+             SET last_failure_code = 'wrong_foreground_state',
+                 last_failure_message = 'wrong foreground state'
+             WHERE id = (
+               SELECT gap_change_id FROM library_live_gap_recovery_claims
+               WHERE root_id = ?1
+             )",
+            [root_id],
+        )
+        .expect("corrupt active foreground claim state");
+    drop(catalog);
+
+    let error = match SqliteCatalog::open(catalog_path) {
+        Ok(_) => panic!("inexact active foreground claim must fail closed"),
+        Err(error) => error,
+    };
+    assert_eq!(
+        error.code,
+        "catalog_live_gap_recovery_contract_unverifiable"
+    );
+}
+
+#[test]
+fn current_v30_rejects_an_active_foreground_claim_bound_to_authoritative_recovery() {
+    let directory = tempdir().expect("catalog directory");
+    let catalog_path = directory.path().join("catalog.sqlite3");
+    let root_id = "invalid-active-owner-root";
+    let root_path = "C:\\Private\\InvalidActiveOwner";
+    migrate_v29_ambiguous_gap_fixture(&catalog_path, root_id, root_path, false);
+    let mut catalog = SqliteCatalog::open(catalog_path.clone()).expect("explicit recovery catalog");
+    let request = fixture_request("invalid-active-owner-scan", root_path);
+    catalog
+        .begin_scan_with_publication_namespace(
+            &request,
+            root_id,
+            root_path,
+            &publication_identity('6'),
+        )
+        .expect("begin foreground recovery");
+    catalog
+        .connection
+        .execute(
+            "UPDATE scan_runs SET scan_owner = 'authoritative_recovery' WHERE id = ?1",
+            [&request.scan_id],
+        )
+        .expect("bind claim to wrong active owner");
+    drop(catalog);
+
+    let error = match SqliteCatalog::open(catalog_path.clone()) {
+        Ok(opened) => {
+            drop(opened);
+            None
+        }
+        Err(error) => Some(error),
+    };
+    let connection = Connection::open(catalog_path).expect("inspect rejected active owner");
+    let retained: (
+        String,
+        Option<String>,
+        String,
+        Option<String>,
+        String,
+        String,
+    ) = connection
+        .query_row(
+            "SELECT claim.consumer_kind, claim.foreground_scan_id, gap.status,
+                    gap.authoritative_scan_id, scans.status, scans.scan_owner
+             FROM library_live_gap_recovery_claims AS claim
+             JOIN library_change_queue AS gap ON gap.id = claim.gap_change_id
+             JOIN scan_runs AS scans ON scans.id = claim.foreground_scan_id
+             WHERE claim.root_id = ?1",
+            [root_id],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                    row.get(5)?,
+                ))
+            },
+        )
+        .expect("retained malformed active owner");
+    assert_eq!(
+        retained,
+        (
+            "foreground_scan".to_owned(),
+            Some(request.scan_id.clone()),
+            "leased".to_owned(),
+            Some(request.scan_id),
+            "running".to_owned(),
+            "authoritative_recovery".to_owned(),
+        ),
+        "validation must not terminate the foreign-owned scan or unblock its gap"
+    );
+    let error = error.expect("foreign-owned active claim must fail closed");
+    assert_eq!(
+        error.code,
+        "catalog_live_gap_recovery_contract_unverifiable"
+    );
+    assert!(!error.message.contains(root_path));
+}
+
+#[test]
+fn current_v30_rejects_an_inexact_consumed_foreground_claim_on_reopen() {
+    let directory = tempdir().expect("catalog directory");
+    let catalog_path = directory.path().join("catalog.sqlite3");
+    let root_id = "invalid-consumed-claim-root";
+    let root_path = "C:\\InvalidConsumedClaim";
+    migrate_v29_ambiguous_gap_fixture(&catalog_path, root_id, root_path, false);
+    let mut catalog = SqliteCatalog::open(catalog_path.clone()).expect("migrate ambiguous v29 gap");
+    let request = fixture_request("invalid-consumed-claim-scan", root_path);
+    catalog
+        .begin_scan_with_publication_namespace(
+            &request,
+            root_id,
+            root_path,
+            &publication_identity('e'),
+        )
+        .expect("begin foreground recovery");
+    catalog
+        .publish_scan(&request.scan_id, root_id, 0, 0)
+        .expect("publish foreground recovery");
+    catalog
+        .connection
+        .execute(
+            "UPDATE library_change_queue
+             SET last_failure_code = 'wrong_consumed_state',
+                 last_failure_message = 'wrong consumed state'
+             WHERE id = (
+               SELECT gap_change_id FROM library_live_gap_recovery_claims
+               WHERE root_id = ?1
+             )",
+            [root_id],
+        )
+        .expect("corrupt consumed foreground claim state");
+    drop(catalog);
+
+    let error = match SqliteCatalog::open(catalog_path) {
+        Ok(_) => panic!("inexact consumed foreground claim must fail closed"),
+        Err(error) => error,
+    };
+    assert_eq!(
+        error.code,
+        "catalog_live_gap_recovery_contract_unverifiable"
+    );
+}
+
+#[test]
+fn current_v30_rejects_a_consumed_foreground_claim_bound_to_authoritative_recovery() {
+    let directory = tempdir().expect("catalog directory");
+    let catalog_path = directory.path().join("catalog.sqlite3");
+    let root_id = "invalid-consumed-owner-root";
+    let root_path = "C:\\Private\\InvalidConsumedOwner";
+    migrate_v29_ambiguous_gap_fixture(&catalog_path, root_id, root_path, false);
+    let mut catalog = SqliteCatalog::open(catalog_path.clone()).expect("explicit recovery catalog");
+    let request = fixture_request("invalid-consumed-owner-scan", root_path);
+    catalog
+        .begin_scan_with_publication_namespace(
+            &request,
+            root_id,
+            root_path,
+            &publication_identity('7'),
+        )
+        .expect("begin foreground recovery");
+    catalog
+        .publish_scan(&request.scan_id, root_id, 0, 0)
+        .expect("consume foreground claim");
+    catalog
+        .connection
+        .execute(
+            "UPDATE scan_runs SET scan_owner = 'authoritative_recovery' WHERE id = ?1",
+            [&request.scan_id],
+        )
+        .expect("bind consumed claim to wrong owner");
+    drop(catalog);
+
+    let error = match SqliteCatalog::open(catalog_path.clone()) {
+        Ok(opened) => {
+            drop(opened);
+            None
+        }
+        Err(error) => Some(error),
+    };
+    let connection = Connection::open(catalog_path).expect("inspect rejected consumed owner");
+    let retained: (String, String, i64, String, String, String) = connection
+        .query_row(
+            "SELECT claim.consumer_kind, claim.foreground_scan_id,
+                    claim.consumed_unix_ms IS NOT NULL, gap.status,
+                    scans.status, scans.scan_owner
+             FROM library_live_gap_recovery_claims AS claim
+             JOIN library_change_queue AS gap ON gap.id = claim.gap_change_id
+             JOIN scan_runs AS scans ON scans.id = claim.foreground_scan_id
+             WHERE claim.root_id = ?1",
+            [root_id],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                    row.get(5)?,
+                ))
+            },
+        )
+        .expect("retained malformed consumed owner");
+    assert_eq!(
+        retained,
+        (
+            "foreground_scan".to_owned(),
+            request.scan_id,
+            1,
+            "completed".to_owned(),
+            "completed".to_owned(),
+            "authoritative_recovery".to_owned(),
+        )
+    );
+    let error = error.expect("foreign-owned consumed claim must fail closed");
+    assert_eq!(
+        error.code,
+        "catalog_live_gap_recovery_contract_unverifiable"
+    );
+    assert!(!error.message.contains(root_path));
+}
+
+#[test]
+fn interrupted_explicit_recovery_cleanup_preserves_handoff_owned_assets() {
+    let directory = tempdir().expect("catalog directory");
+    let catalog_path = directory.path().join("catalog.sqlite3");
+    let (root_id, _, request) = interrupted_explicit_foreground_with_handoff_assets(&catalog_path);
+
+    let reopened = SqliteCatalog::open(catalog_path.clone()).expect("recover interrupted scan");
+    assert_eq!(
+        crash_cleanup_asset_projection(&reopened.connection),
+        (1, 1, 0, 0),
+        "only the truly unreferenced asset may be removed"
+    );
+    let recovered: (String, Option<String>, String, String) = reopened
+        .connection
+        .query_row(
+            "SELECT claim.consumer_kind, claim.foreground_scan_id, gap.status, scans.status
+             FROM library_live_gap_recovery_claims AS claim
+             JOIN library_change_queue AS gap ON gap.id = claim.gap_change_id
+             JOIN scan_runs AS scans ON scans.id = ?2
+             WHERE claim.root_id = ?1",
+            params![root_id, request.scan_id],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        )
+        .expect("recovered crash state");
+    assert_eq!(
+        recovered,
+        (
+            "explicit_recovery_required".to_owned(),
+            None,
+            "retry_wait".to_owned(),
+            "failed".to_owned(),
+        )
+    );
+    drop(reopened);
+
+    let reopened_again = SqliteCatalog::open(catalog_path).expect("idempotent crash reopen");
+    assert_eq!(
+        crash_cleanup_asset_projection(&reopened_again.connection),
+        (1, 1, 0, 0)
+    );
+}
+
+#[test]
+fn interrupted_explicit_recovery_cleanup_failure_rolls_back_before_retry() {
+    let directory = tempdir().expect("catalog directory");
+    let catalog_path = directory.path().join("catalog.sqlite3");
+    let (root_id, _, request) = interrupted_explicit_foreground_with_handoff_assets(&catalog_path);
+    let connection = Connection::open(&catalog_path).expect("install cleanup failure");
+    connection
+        .execute_batch(
+            "CREATE TRIGGER crash_cleanup_failure
+             BEFORE DELETE ON assets
+             WHEN OLD.id = 'crash-true-orphan'
+             BEGIN
+               SELECT RAISE(ABORT, 'injected crash cleanup failure');
+             END;",
+        )
+        .expect("install cleanup failure trigger");
+    drop(connection);
+
+    let error = match SqliteCatalog::open(catalog_path.clone()) {
+        Ok(_) => panic!("injected cleanup failure must abort reopen"),
+        Err(error) => error,
+    };
+    assert_eq!(error.code, "catalog_database_error");
+    let connection = Connection::open(&catalog_path).expect("inspect cleanup rollback");
+    let rolled_back: (String, String, String, Option<String>, i64) = connection
+        .query_row(
+            "SELECT claim.consumer_kind, gap.status, scans.status,
+                    gap.authoritative_scan_id,
+                    (SELECT COUNT(*) FROM assets WHERE id LIKE 'crash-%-asset'
+                       OR id = 'crash-true-orphan')
+             FROM library_live_gap_recovery_claims AS claim
+             JOIN library_change_queue AS gap ON gap.id = claim.gap_change_id
+             JOIN scan_runs AS scans ON scans.id = claim.foreground_scan_id
+             WHERE claim.root_id = ?1",
+            [&root_id],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                ))
+            },
+        )
+        .expect("rolled-back crash state");
+    assert_eq!(
+        rolled_back,
+        (
+            "foreground_scan".to_owned(),
+            "leased".to_owned(),
+            "running".to_owned(),
+            Some(request.scan_id),
+            3,
+        )
+    );
+    assert_eq!(crash_cleanup_asset_projection(&connection), (1, 1, 1, 0));
+    connection
+        .execute_batch("DROP TRIGGER crash_cleanup_failure")
+        .expect("remove cleanup failure trigger");
+    drop(connection);
+
+    let reopened = SqliteCatalog::open(catalog_path.clone()).expect("retry crash cleanup");
+    assert_eq!(
+        crash_cleanup_asset_projection(&reopened.connection),
+        (1, 1, 0, 0)
+    );
+    drop(reopened);
+    let reopened_again = SqliteCatalog::open(catalog_path).expect("idempotent cleanup retry");
+    assert_eq!(
+        crash_cleanup_asset_projection(&reopened_again.connection),
+        (1, 1, 0, 0)
+    );
+}
+
+#[test]
+fn foreground_publication_binding_is_atomic_and_replacement_retires_the_generation() {
+    let directory = tempdir().expect("catalog directory");
+    let mut catalog =
+        SqliteCatalog::open(directory.path().join("catalog.sqlite3")).expect("catalog");
+    let root_id = "publication-root";
+    let root_path = "C:\\PublicationRoot";
+    let first = fixture_request("publication-first", root_path);
+    let first_identity = publication_identity('1');
+    catalog
+        .begin_scan_with_publication_namespace(&first, root_id, root_path, &first_identity)
+        .expect("bind first foreground scan");
+    let before_publish: (i64, i64, i64) = catalog
+        .connection
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM library_scan_publication_namespace_bindings
+                WHERE scan_id = ?1 AND root_generation = 1),
+               (SELECT COUNT(*) FROM library_root_publication_namespaces WHERE root_id = ?2),
+               (SELECT generation FROM library_change_root_state WHERE root_id = ?2)",
+            rusqlite::params![first.scan_id, root_id],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .expect("pre-publication binding");
+    assert_eq!(before_publish, (1, 0, 1));
+
+    catalog
+        .publish_scan(&first.scan_id, root_id, 0, 0)
+        .expect("publish first foreground scan");
+    let first_publication: (i64, String, String, i64, String) = catalog
+        .connection
+        .query_row(
+            "SELECT proof.root_generation, proof.identity_value, proof.authority_kind,
+                    (SELECT COUNT(*) FROM library_scan_publication_namespace_bindings
+                     WHERE scan_id = ?1), roots.active_scan_id
+             FROM library_root_publication_namespaces AS proof
+             JOIN library_roots AS roots ON roots.id = proof.root_id
+             WHERE proof.root_id = ?2",
+            rusqlite::params![first.scan_id, root_id],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                ))
+            },
+        )
+        .expect("atomic foreground proof");
+    assert_eq!(
+        first_publication,
+        (
+            1,
+            first_identity.value.clone(),
+            "foreground_scan".to_owned(),
+            0,
+            first.scan_id.clone(),
+        )
+    );
+
+    let replacement = fixture_request("publication-replacement", root_path);
+    let replacement_identity = publication_identity('2');
+    catalog
+        .begin_scan_with_publication_namespace(
+            &replacement,
+            root_id,
+            root_path,
+            &replacement_identity,
+        )
+        .expect("bind replacement generation");
+    let replacement_binding: (i64, i64, i64, String) = catalog
+        .connection
+        .query_row(
+            "SELECT state.generation,
+                    (SELECT COUNT(*) FROM library_root_publication_namespaces
+                     WHERE root_id = state.root_id),
+                    (SELECT COUNT(*) FROM library_scan_publication_namespace_bindings
+                     WHERE scan_id = ?2 AND root_generation = state.generation),
+                    roots.active_scan_id
+             FROM library_change_root_state AS state
+             JOIN library_roots AS roots ON roots.id = state.root_id
+             WHERE state.root_id = ?1",
+            rusqlite::params![root_id, replacement.scan_id],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        )
+        .expect("replacement retirement evidence");
+    assert_eq!(
+        replacement_binding,
+        (2, 0, 1, first.scan_id.clone()),
+        "replacement must retire generation-one proof without changing the last trusted catalog"
+    );
+
+    catalog
+        .abandon_scan(&replacement.scan_id, "failed", 1)
+        .expect("cancel replacement scan");
+    let after_cancel: (i64, i64, String) = catalog
+        .connection
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM library_scan_publication_namespace_bindings
+                WHERE scan_id = ?1),
+               (SELECT COUNT(*) FROM library_root_publication_namespaces WHERE root_id = ?2),
+               (SELECT active_scan_id FROM library_roots WHERE id = ?2)",
+            rusqlite::params![replacement.scan_id, root_id],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .expect("cancelled publication evidence");
+    assert_eq!(after_cancel, (0, 0, first.scan_id));
+}
+
+#[test]
+fn foreground_resume_rejects_a_different_namespace_identity_without_mutation() {
+    let directory = tempdir().expect("catalog directory");
+    let mut catalog =
+        SqliteCatalog::open(directory.path().join("catalog.sqlite3")).expect("catalog");
+    let request = fixture_request("publication-resume", "C:\\PublicationResume");
+    let expected = publication_identity('a');
+    catalog
+        .begin_scan_with_publication_namespace(
+            &request,
+            "resume-root",
+            &request.root_path,
+            &expected,
+        )
+        .expect("begin bound scan");
+
+    let error = catalog
+        .resume_scan_with_publication_namespace(
+            &request,
+            "resume-root",
+            &request.root_path,
+            &publication_identity('b'),
+        )
+        .expect_err("resume cannot replace its original namespace identity");
+    assert_eq!(error.code, "catalog_scan_publication_namespace_mismatch");
+    let binding: (String, String) = catalog
+        .connection
+        .query_row(
+            "SELECT identity_value, scans.status
+             FROM library_scan_publication_namespace_bindings AS binding
+             JOIN scan_runs AS scans ON scans.id = binding.scan_id
+             WHERE binding.scan_id = ?1",
+            [&request.scan_id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .expect("retained resume binding");
+    assert_eq!(binding, (expected.value, "running".to_owned()));
+}
+
 #[test]
 fn one_root_cannot_have_overlapping_authoritative_scans() {
     let directory = tempdir().expect("catalog directory");
@@ -3784,7 +5662,7 @@ fn one_root_cannot_have_overlapping_authoritative_scans() {
 }
 
 #[test]
-fn recoverable_scan_queries_keep_foreground_and_authoritative_owners_separate() {
+fn legacy_automatic_scans_are_retired_while_foreground_checkpoint_remains_recoverable() {
     let directory = tempdir().expect("catalog directory");
     let path = directory.path().join("catalog.sqlite3");
     let mut catalog = SqliteCatalog::open(path).expect("catalog");
@@ -3808,11 +5686,6 @@ fn recoverable_scan_queries_keep_foreground_and_authoritative_owners_separate() 
     catalog
         .begin_scan(&foreground, "root-foreground-c", &foreground.root_path)
         .expect("foreground scan");
-
-    let foreground_recovery = catalog
-        .load_recoverable_scan()
-        .expect("foreground recovery")
-        .expect("foreground scan is recoverable");
     let first_recovery = catalog
         .load_authoritative_recoverable_scan_after(None)
         .expect("first authoritative recovery")
@@ -3831,12 +5704,46 @@ fn recoverable_scan_queries_keep_foreground_and_authoritative_owners_separate() 
             &first_authoritative.root_path,
         )
         .expect_err("foreground lifecycle cannot claim authoritative scan");
+    catalog
+        .connection
+        .execute(
+            "UPDATE scan_runs SET status = 'paused' WHERE id = ?1",
+            [&second_authoritative.scan_id],
+        )
+        .expect("pause second authoritative scan");
+    let retired = catalog
+        .retire_legacy_automatic_full_scans(2_000)
+        .expect("retire legacy automatic scans");
+    let foreground_recovery = catalog
+        .load_recoverable_scan()
+        .expect("foreground recovery")
+        .expect("foreground scan is recoverable");
+    let remaining_authoritative = catalog
+        .load_authoritative_recoverable_scan_after(None)
+        .expect("remaining authoritative recovery");
+    let retired_statuses: Vec<String> = catalog
+        .connection
+        .prepare("SELECT status FROM scan_runs WHERE id IN (?1, ?2) ORDER BY id")
+        .expect("retired status statement")
+        .query_map(
+            rusqlite::params![first_authoritative.scan_id, second_authoritative.scan_id],
+            |row| row.get(0),
+        )
+        .expect("retired status rows")
+        .collect::<Result<_, _>>()
+        .expect("retired statuses");
 
-    assert_eq!(foreground_recovery.scan_id, foreground.scan_id);
     assert_eq!(first_recovery.scan_id, first_authoritative.scan_id);
     assert_eq!(second_recovery.scan_id, second_authoritative.scan_id);
     assert!(end_of_page.is_none());
     assert_eq!(ownership_error.code, "catalog_scan_resume_mismatch");
+    assert_eq!(retired, 2);
+    assert_eq!(foreground_recovery.scan_id, foreground.scan_id);
+    assert!(remaining_authoritative.is_none());
+    assert_eq!(
+        retired_statuses,
+        vec!["superseded".to_owned(), "superseded".to_owned()]
+    );
 }
 
 #[test]
@@ -3921,7 +5828,7 @@ fn legacy_root_audit_and_its_exclusive_recovery_scan_are_retired() {
         .expect("begin legacy audit recovery scan");
 
     let retired = catalog
-        .retire_legacy_consistency_audits(2_000)
+        .retire_legacy_automatic_full_scans(2_000)
         .expect("retire legacy audit");
     let scan_status: String = catalog
         .connection
@@ -3971,7 +5878,7 @@ fn legacy_root_audit_and_its_exclusive_recovery_scan_are_retired() {
 
     assert_eq!(
         catalog
-            .retire_legacy_consistency_audits(4_000)
+            .retire_legacy_automatic_full_scans(4_000)
             .expect("preserve historical path retry"),
         0
     );
@@ -3979,4 +5886,90 @@ fn legacy_root_audit_and_its_exclusive_recovery_scan_are_retired() {
         .load_library_change_root_queue_metrics(root_id, generation, 4_000, policy)
         .expect("retained path metrics");
     assert_eq!(retained.pending_count, 1);
+}
+
+#[test]
+fn legacy_automatic_full_scan_releases_live_gap_to_metadata_inventory() {
+    let directory = tempdir().expect("catalog directory");
+    let mut catalog =
+        SqliteCatalog::open(directory.path().join("catalog.sqlite3")).expect("catalog");
+    let root_id = "legacy-live-gap-root";
+    let root_path = "C:\\LegacyLiveGap";
+    let initial = fixture_request("legacy-live-gap-initial", root_path);
+    catalog
+        .begin_scan(&initial, root_id, root_path)
+        .expect("begin initial scan");
+    catalog
+        .publish_scan(&initial.scan_id, root_id, 0, 0)
+        .expect("publish initial scan");
+    let generation = LibraryRootGeneration::initial();
+    let policy = LibraryChangeQueuePolicy {
+        debounce_millis: 0,
+        ..LibraryChangeQueuePolicy::default()
+    };
+    catalog
+        .enqueue_library_change_intents(
+            &[LibraryChangeIntent {
+                root_id: root_id.to_owned(),
+                root_generation: generation,
+                kind: LibraryChangeIntentKind::FreshnessUnknown,
+                scope: LibraryChangeScope::Root,
+                relative_path: String::new(),
+                previous_relative_path: None,
+                origin: LibraryChangeOrigin::StartupCatchUp,
+                first_observed_unix_ms: 1_000,
+                most_recent_observed_unix_ms: 1_000,
+                first_sequence: 1,
+                most_recent_sequence: 1,
+                coalesced_observation_count: 1,
+            }],
+            1_000,
+            policy,
+        )
+        .expect("enqueue live evidence gap");
+    let recovery = fixture_request("legacy-live-gap-recovery", root_path);
+    catalog
+        .begin_authoritative_scan(&recovery, root_id, root_path)
+        .expect("begin legacy automatic full scan");
+    let leased_metrics = catalog
+        .load_library_change_root_queue_metrics(root_id, generation, 1_000, policy)
+        .expect("leased queue metrics");
+
+    let retired = catalog
+        .retire_legacy_automatic_full_scans(2_000)
+        .expect("retire legacy automatic full scan");
+    let released_unix_ms = unix_time_ms();
+    let released_metrics = catalog
+        .load_library_change_root_queue_metrics(root_id, generation, released_unix_ms, policy)
+        .expect("released queue metrics");
+    let active_scan_id: String = catalog
+        .connection
+        .query_row(
+            "SELECT active_scan_id FROM library_roots WHERE id = ?1",
+            [root_id],
+            |row| row.get(0),
+        )
+        .expect("active published scan");
+    let leased = catalog
+        .lease_authoritative_library_change(root_id, generation, released_unix_ms, policy)
+        .expect("lease released inventory authority")
+        .expect("inventory authority remains queued");
+
+    assert_eq!(leased_metrics.leased_count, 1);
+    assert_eq!(retired, 1);
+    assert_eq!(released_metrics.pending_count, 1);
+    assert_eq!(released_metrics.leased_count, 0);
+    assert_eq!(released_metrics.freshness_unknown_count, 1);
+    assert_eq!(active_scan_id, initial.scan_id);
+    assert_eq!(
+        leased.change.intent.kind,
+        LibraryChangeIntentKind::FreshnessUnknown
+    );
+    assert_eq!(leased.change.intent.scope, LibraryChangeScope::Root);
+    assert!(
+        catalog
+            .load_authoritative_recoverable_scan_after(None)
+            .expect("legacy recoverable scans")
+            .is_none()
+    );
 }

@@ -8,17 +8,23 @@ use crate::domain::{
     GalleryLayoutManifestCursor, GalleryQuery, GalleryTimeAnchor, GalleryTimeline,
     IncrementalCatalogRoot, LibraryChangeCatchUpEvidence, LibraryChangeSourceBatch,
     LibraryChangeSourceError, LibraryChangeSourceHealth, LibraryChangeSourceStopReport,
-    LibraryFolderCursor, LibraryFolderPage, LibraryRootGeneration, MediaInspection,
-    MetadataInspection, MetadataInventoryCleanupReport, MetadataInventoryComparisonUpdate,
-    MetadataInventoryEntry, MetadataInventoryPage, MetadataInventoryRun,
-    MetadataInventoryRunRequest, MetadataInventoryRunStatus, MetadataInventoryStartRequest,
-    PreviewArtifact, PreviewMaterialization, PreviewReclamationCandidate, RecoverableScan,
-    ScanCheckpoint, ScanError, ScanIssue, ScanRequest, StorageConfiguration,
+    LibraryFolderCursor, LibraryFolderPage, LibraryRecoveryAuthority, LibraryRootGeneration,
+    MediaInspection, MetadataInspection, MetadataInventoryCleanupReport,
+    MetadataInventoryComparisonUpdate, MetadataInventoryEntry, MetadataInventoryPage,
+    MetadataInventoryRun, MetadataInventoryRunRequest, MetadataInventoryRunStatus,
+    MetadataInventoryScope, MetadataInventoryStartRequest, PersistentJournalBaseline,
+    PersistentJournalBaselineClosingBoundary, PersistentJournalBaselineStartRequest,
+    PersistentJournalCapability, PersistentJournalCheckpoint, PersistentJournalEnrollmentReport,
+    PersistentJournalPendingRename, PersistentJournalReadFailure, PersistentJournalRootFailure,
+    PersistentJournalRootReadOutcome, PersistentJournalVolumeBatch,
+    PersistentJournalVolumeIdentity, PreviewArtifact, PreviewMaterialization,
+    PreviewReclamationCandidate, RecoverableScan, ScanCheckpoint, ScanError, ScanIssue,
+    ScanRequest, StorageConfiguration, TerminalMediaEvidence,
 };
 use crate::domain::{
-    LeasedLibraryChange, LibraryChangeEnqueueReport, LibraryChangeFailure, LibraryChangeId,
-    LibraryChangeIntent, LibraryChangeLeaseUpdateOutcome, LibraryChangeQueueMetrics,
-    LibraryChangeQueuePolicy,
+    LeasedLibraryChange, LibraryChangeCapacityDeferral, LibraryChangeEnqueueReport,
+    LibraryChangeFailure, LibraryChangeId, LibraryChangeIntent, LibraryChangeLane,
+    LibraryChangeLeaseUpdateOutcome, LibraryChangeQueueMetrics, LibraryChangeQueuePolicy,
 };
 #[cfg(test)]
 use crate::domain::{
@@ -125,6 +131,53 @@ pub trait LibraryChangeQueue {
         now_unix_ms: i64,
         policy: LibraryChangeQueuePolicy,
     ) -> Result<Vec<LeasedLibraryChange>, ScanError>;
+    fn lease_path_library_changes_in_lane(
+        &mut self,
+        root_id: &str,
+        root_generation: LibraryRootGeneration,
+        lane: LibraryChangeLane,
+        now_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<Vec<LeasedLibraryChange>, ScanError> {
+        let _ = lane;
+        self.lease_path_library_changes(root_id, root_generation, now_unix_ms, policy)
+    }
+    fn lease_metadata_inventory_recovery_candidates(
+        &mut self,
+        root_id: &str,
+        root_generation: LibraryRootGeneration,
+        now_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<Vec<LeasedLibraryChange>, ScanError> {
+        self.lease_path_library_changes_in_lane(
+            root_id,
+            root_generation,
+            LibraryChangeLane::Recovery,
+            now_unix_ms,
+            policy,
+        )
+    }
+    fn load_metadata_inventory_candidate_root_identity(
+        &self,
+        root_id: &str,
+        root_generation: LibraryRootGeneration,
+    ) -> Result<Option<FileIdentityEvidence>, ScanError> {
+        let _ = (root_id, root_generation);
+        Ok(None)
+    }
+    fn lease_unowned_recovery_path_library_changes(
+        &mut self,
+        root_id: &str,
+        root_generation: LibraryRootGeneration,
+        now_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<Vec<LeasedLibraryChange>, ScanError> {
+        let _ = (root_id, root_generation, now_unix_ms, policy);
+        Err(ScanError::new(
+            "unowned_recovery_path_lease_unsupported",
+            "This change queue does not support legacy unowned recovery debt",
+        ))
+    }
     fn lease_authoritative_library_change(
         &mut self,
         root_id: &str,
@@ -147,6 +200,34 @@ pub trait LibraryChangeQueue {
         failed_unix_ms: i64,
         policy: LibraryChangeQueuePolicy,
     ) -> Result<LibraryChangeLeaseUpdateOutcome, ScanError>;
+    fn promote_live_watcher_gap_to_metadata_inventory(
+        &mut self,
+        change_id: LibraryChangeId,
+        lease_generation: u64,
+        failure: &LibraryChangeFailure,
+        promoted_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<LibraryChangeLeaseUpdateOutcome, ScanError>;
+    fn defer_library_change_for_capacity(
+        &mut self,
+        change_id: LibraryChangeId,
+        lease_generation: u64,
+        deferral: LibraryChangeCapacityDeferral,
+        deferred_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<LibraryChangeLeaseUpdateOutcome, ScanError> {
+        let _ = (
+            change_id,
+            lease_generation,
+            deferral,
+            deferred_unix_ms,
+            policy,
+        );
+        Err(ScanError::new(
+            "change_queue_capacity_deferral_unsupported",
+            "This change queue does not support durable capacity deferral",
+        ))
+    }
     fn defer_library_change(
         &mut self,
         change_id: LibraryChangeId,
@@ -170,6 +251,117 @@ pub trait LibraryChangeQueue {
         terminal_before_unix_ms: i64,
         limit: u32,
     ) -> Result<u32, ScanError>;
+}
+
+#[cfg_attr(
+    not(test),
+    expect(
+        dead_code,
+        reason = "R2c-P admits repository methods before R2c-Q schedules production replay"
+    )
+)]
+pub trait PersistentJournalRepository {
+    fn begin_persistent_journal_baseline(
+        &mut self,
+        request: &PersistentJournalBaselineStartRequest,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<PersistentJournalBaseline, ScanError> {
+        let _ = (request, policy);
+        Err(ScanError::new(
+            "persistent_journal_baseline_unsupported",
+            "This repository does not support one-time journal baselines",
+        ))
+    }
+    fn load_persistent_journal_baselines(
+        &self,
+    ) -> Result<Vec<PersistentJournalBaseline>, ScanError> {
+        Ok(Vec::new())
+    }
+    fn capture_persistent_journal_baseline_closing_boundary(
+        &mut self,
+        boundary: &PersistentJournalBaselineClosingBoundary,
+    ) -> Result<PersistentJournalBaseline, ScanError> {
+        let _ = boundary;
+        Err(ScanError::new(
+            "persistent_journal_baseline_unsupported",
+            "This repository does not support one-time journal baselines",
+        ))
+    }
+    fn persistent_journal_baseline_closing_is_covered(
+        &self,
+        change_id: LibraryChangeId,
+    ) -> Result<bool, ScanError> {
+        let _ = change_id;
+        Ok(false)
+    }
+    fn load_persistent_journal_capabilities(
+        &self,
+    ) -> Result<Vec<PersistentJournalCapability>, ScanError>;
+    fn load_persistent_journal_checkpoint(
+        &self,
+        root_id: &str,
+        root_generation: LibraryRootGeneration,
+    ) -> Result<Option<PersistentJournalCheckpoint>, ScanError>;
+    fn save_persistent_journal_capability(
+        &mut self,
+        capability: &PersistentJournalCapability,
+    ) -> Result<(), ScanError>;
+    fn persist_persistent_journal_root_failure(
+        &mut self,
+        failure: &PersistentJournalRootFailure,
+        failed_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<Option<LibraryChangeId>, ScanError> {
+        let _ = (failure, failed_unix_ms, policy);
+        Err(ScanError::new(
+            "persistent_journal_failure_persistence_unsupported",
+            "This repository does not support persistent journal root failures",
+        ))
+    }
+    fn attach_persistent_journal_recovery_opening_boundary(
+        &mut self,
+        root_id: &str,
+        root_generation: LibraryRootGeneration,
+        boundary: &crate::domain::LibraryRecoveryOpeningBoundary,
+        captured_unix_ms: i64,
+    ) -> Result<Option<LibraryChangeId>, ScanError> {
+        let _ = (root_id, root_generation, boundary, captured_unix_ms);
+        Ok(None)
+    }
+    fn load_persistent_journal_pending_renames(
+        &self,
+        volume: &PersistentJournalVolumeIdentity,
+        journal_id: crate::domain::JournalIdentifier,
+    ) -> Result<Vec<PersistentJournalPendingRename>, ScanError>;
+    fn publish_persistent_journal_volume_batch(
+        &mut self,
+        batch: &PersistentJournalVolumeBatch,
+        enqueued_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<PersistentJournalEnrollmentReport, ScanError>;
+    #[cfg(test)]
+    fn enroll_persistent_journal_batch(
+        &mut self,
+        batch: &crate::domain::PersistentJournalEnrollmentBatch,
+        enqueued_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<PersistentJournalEnrollmentReport, ScanError>;
+    #[cfg(test)]
+    fn advance_persistent_journal_checkpoint(
+        &mut self,
+        source_range_id: &str,
+        checkpoint: &PersistentJournalCheckpoint,
+    ) -> Result<bool, ScanError>;
+}
+
+pub trait PersistentJournalVolumeReader: Send + Sync + 'static {
+    fn read_volume(
+        &self,
+        checkpoints: &[PersistentJournalCheckpoint],
+        pending_renames: &[PersistentJournalPendingRename],
+        observed_unix_ms: i64,
+        cancelled: &AtomicBool,
+    ) -> Result<Vec<PersistentJournalRootReadOutcome>, PersistentJournalReadFailure>;
 }
 
 #[cfg(test)]
@@ -238,6 +430,11 @@ pub trait IncrementalCatalogRepository {
         relative_subtree: &str,
         limit: u32,
     ) -> Result<Vec<AssetLocationView>, ScanError>;
+    fn load_terminal_media_evidence_by_relative_paths(
+        &self,
+        root_id: &str,
+        relative_paths: &[String],
+    ) -> Result<Vec<TerminalMediaEvidence>, ScanError>;
     fn publish_catalog_delta(
         &mut self,
         batch: &CatalogDeltaBatch,
@@ -245,7 +442,21 @@ pub trait IncrementalCatalogRepository {
     ) -> Result<CatalogDeltaPublication, ScanError>;
 }
 
-pub trait MetadataInventorySource {
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MetadataInventorySourcePreparation {
+    Ready,
+    Yielded,
+}
+
+pub trait MetadataInventorySource: Send {
+    fn prepare_next_page(
+        &mut self,
+        _max_source_entries: u32,
+        _cancelled: &AtomicBool,
+    ) -> Result<MetadataInventorySourcePreparation, ScanError> {
+        Ok(MetadataInventorySourcePreparation::Ready)
+    }
+
     fn next_page(
         &mut self,
         max_entries: u32,
@@ -253,7 +464,76 @@ pub trait MetadataInventorySource {
     ) -> Result<MetadataInventoryPage, ScanError>;
 }
 
+pub struct MetadataInventoryAbsencePublicationRequest<'a> {
+    pub run_id: &'a str,
+    pub expected_cursor: Option<&'a str>,
+    pub next_cursor: &'a str,
+    pub intents: &'a [LibraryChangeIntent],
+    pub updated_unix_ms: i64,
+    pub policy: LibraryChangeQueuePolicy,
+}
+
 pub trait MetadataInventoryRepository {
+    fn open_metadata_inventory_source(
+        &self,
+        root_path: &str,
+        scope: &MetadataInventoryScope,
+        run: &MetadataInventoryRun,
+        authority: &LeasedLibraryChange,
+        expected_publication_identity: Option<&FileIdentityEvidence>,
+        expected_source_identity: &FileIdentityEvidence,
+    ) -> Result<Box<dyn MetadataInventorySource>, ScanError>;
+
+    fn load_metadata_inventory_root_identity(
+        &self,
+        run_id: &str,
+    ) -> Result<Option<FileIdentityEvidence>, ScanError> {
+        let _ = run_id;
+        Ok(None)
+    }
+
+    fn authorize_metadata_inventory_recovery(
+        &mut self,
+        authority: &LibraryRecoveryAuthority,
+    ) -> Result<LibraryRecoveryAuthority, ScanError>;
+    fn load_metadata_inventory_recovery_authority(
+        &self,
+        change_id: LibraryChangeId,
+    ) -> Result<Option<LibraryRecoveryAuthority>, ScanError>;
+    fn retire_metadata_inventory_recovery_authority(
+        &mut self,
+        change_id: LibraryChangeId,
+        retired_unix_ms: i64,
+    ) -> Result<LibraryRecoveryAuthority, ScanError>;
+    fn metadata_inventory_is_waiting_for_closing_boundary(
+        &self,
+        run_id: &str,
+    ) -> Result<bool, ScanError> {
+        let _ = run_id;
+        Ok(false)
+    }
+    fn metadata_inventory_recovery_allows_absence(
+        &self,
+        change_id: LibraryChangeId,
+    ) -> Result<bool, ScanError> {
+        let _ = change_id;
+        Ok(true)
+    }
+    fn finish_metadata_inventory_recovery(
+        &mut self,
+        change_id: LibraryChangeId,
+        lease_generation: u64,
+        catalog_revision_at_success: u64,
+        completed_unix_ms: i64,
+    ) -> Result<Option<LibraryChangeLeaseUpdateOutcome>, ScanError> {
+        let _ = (
+            change_id,
+            lease_generation,
+            catalog_revision_at_success,
+            completed_unix_ms,
+        );
+        Ok(None)
+    }
     fn begin_next_metadata_inventory(
         &mut self,
         request: &MetadataInventoryStartRequest,
@@ -304,6 +584,15 @@ pub trait MetadataInventoryRepository {
         updates: &[MetadataInventoryComparisonUpdate],
         updated_unix_ms: i64,
     ) -> Result<MetadataInventoryRun, ScanError>;
+    fn publish_metadata_inventory_comparison_candidates(
+        &mut self,
+        authority: &LeasedLibraryChange,
+        run_id: &str,
+        intents: &[LibraryChangeIntent],
+        updates: &[MetadataInventoryComparisonUpdate],
+        updated_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<Option<(LibraryChangeEnqueueReport, MetadataInventoryRun)>, ScanError>;
     fn load_metadata_inventory_absence_candidates(
         &self,
         run_id: &str,
@@ -318,6 +607,11 @@ pub trait MetadataInventoryRepository {
         candidate_count: u64,
         updated_unix_ms: i64,
     ) -> Result<MetadataInventoryRun, ScanError>;
+    fn publish_metadata_inventory_absence_candidates(
+        &mut self,
+        authority: &LeasedLibraryChange,
+        request: MetadataInventoryAbsencePublicationRequest<'_>,
+    ) -> Result<Option<(LibraryChangeEnqueueReport, MetadataInventoryRun)>, ScanError>;
     fn complete_metadata_inventory(
         &mut self,
         run_id: &str,
@@ -344,12 +638,26 @@ pub trait MetadataInventoryRepository {
 
 pub trait CatalogRepository {
     fn catalog_path(&self) -> &Path;
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "production foreground scans use the Windows namespace-bound catalog entrypoint"
+        )
+    )]
     fn begin_scan(
         &mut self,
         request: &ScanRequest,
         root_id: &str,
         root_path: &str,
     ) -> Result<ScanCheckpoint, ScanError>;
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "production foreground resumes use the Windows namespace-bound catalog entrypoint"
+        )
+    )]
     fn resume_scan(
         &mut self,
         request: &ScanRequest,
@@ -363,6 +671,7 @@ pub trait CatalogRepository {
         root_id: &str,
         root_path: &str,
     ) -> Result<ScanCheckpoint, ScanError>;
+    #[cfg(test)]
     fn resume_authoritative_scan(
         &mut self,
         request: &ScanRequest,
@@ -440,6 +749,7 @@ pub trait CatalogRepository {
     ) -> Result<(), ScanError>;
     fn load_recoverable_scan(&self) -> Result<Option<RecoverableScan>, ScanError>;
     fn load_paused_scan(&self) -> Result<Option<RecoverableScan>, ScanError>;
+    #[cfg(test)]
     fn load_authoritative_recoverable_scan_after(
         &self,
         after_scan_id: Option<&str>,
@@ -578,7 +888,21 @@ pub trait PreviewStore {
 pub(crate) trait MediaInspector {
     fn metadata_engine_id(&self) -> &'static str;
     fn metadata_engine_version(&self) -> &'static str;
-    fn inspect(&self, file: &DiscoveredFile) -> Result<MediaInspection, ScanIssue>;
+    fn inspection_engine_id(&self) -> &'static str;
+    fn inspection_engine_version(&self) -> u32;
+    fn inspect(&self, file: &DiscoveredFile) -> Result<MediaInspection, MediaInspectionFailure>;
+}
+
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+pub(crate) enum MediaInspectionFailureKind {
+    Retryable,
+    Terminal,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct MediaInspectionFailure {
+    pub kind: MediaInspectionFailureKind,
+    pub issue: ScanIssue,
 }
 
 pub(crate) trait MetadataExtractor {

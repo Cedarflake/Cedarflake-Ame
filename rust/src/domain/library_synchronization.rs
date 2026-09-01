@@ -1,6 +1,6 @@
 use super::{
     CatalogFreshnessCause, CatalogFreshnessState, LibraryChangeQueueHealth,
-    LibraryChangeSourceHealth, LibraryRootAvailability,
+    LibraryChangeSourceHealth, LibraryRootAvailability, PersistentJournalContinuityState,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -32,6 +32,7 @@ pub struct LibraryRootSynchronizationStatus {
     pub availability: LibraryRootAvailability,
     pub freshness: CatalogFreshnessState,
     pub freshness_cause: CatalogFreshnessCause,
+    pub continuity: PersistentJournalContinuityState,
     pub phase: LibrarySynchronizationPhase,
     pub source_health: LibraryChangeSourceHealth,
     pub queue_health: LibraryChangeQueueHealth,

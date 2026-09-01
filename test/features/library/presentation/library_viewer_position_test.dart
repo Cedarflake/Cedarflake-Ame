@@ -370,6 +370,99 @@ void main() {
     },
   );
 
+  testWidgets("legacy survivor exposes durable recovery guidance", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final scanner = _HeldLibraryScanner();
+    final synchronization = _TestLibrarySynchronization(
+      _legacyRecoveryAuthorityMissingSnapshot(),
+    );
+    addTearDown(synchronization.dispose);
+    addTearDown(scanner.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(
+            _libraryState(assetCount: 1),
+          ),
+          libraryScannerProvider.overrideWithValue(scanner),
+          librarySynchronizationProvider.overrideWithValue(synchronization),
+        ],
+        child: const AmeApp(),
+      ),
+    );
+    await tester.pump();
+
+    expect(
+      find.text(LibraryStrings.synchronizationLegacyRecoveryAuthorityMissing),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key("notification-primary-action")),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+    "explicit recovery claim announces and starts a manual library update",
+    (tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final scanner = _HeldLibraryScanner();
+      final synchronization = _TestLibrarySynchronization(
+        _explicitRecoveryRequiredSnapshot(),
+      );
+      addTearDown(synchronization.dispose);
+      addTearDown(scanner.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            initialLibraryStateProvider.overrideWithValue(
+              _libraryState(assetCount: 1),
+            ),
+            libraryScannerProvider.overrideWithValue(scanner),
+            librarySynchronizationProvider.overrideWithValue(synchronization),
+          ],
+          child: const AmeApp(),
+        ),
+      );
+      await tester.pump();
+
+      expect(
+        find.text(LibraryStrings.synchronizationExplicitRecoveryRequired),
+        findsOneWidget,
+      );
+      final updateAction = find.byKey(const Key("notification-primary-action"));
+      expect(updateAction, findsOneWidget);
+      expect(find.text(LibraryStrings.updateLibrary), findsOneWidget);
+      expect(
+        tester.getSemantics(updateAction),
+        matchesSemantics(
+          label: LibraryStrings.updateLibrary,
+          isButton: true,
+          hasEnabledState: true,
+          hasTapAction: true,
+          hasFocusAction: true,
+          isEnabled: true,
+          isFocusable: true,
+        ),
+      );
+
+      await tester.tap(updateAction);
+      await tester.pump();
+
+      expect(scanner.scanCount, 1);
+    },
+  );
+
   testWidgets(
     "catalog persistence failure is reported without starting a manual scan",
     (tester) async {
@@ -1178,6 +1271,7 @@ LibrarySynchronizationSnapshot _needsReconciliationSnapshot() {
         availability: LibraryRootAvailability.available,
         freshness: LibraryCatalogFreshness.needsReconciliation,
         freshnessCause: LibraryCatalogFreshnessCause.changeSourceUnhealthy,
+        continuity: LibraryContinuityState.recoveryRequired,
         phase: LibrarySynchronizationPhase.blocked,
         phaseStartedAt: DateTime.utc(2026, 8, 21),
         sourceStatus: LibraryChangeSourceStatus.failed,
@@ -1204,6 +1298,7 @@ LibrarySynchronizationSnapshot _automaticRecoverySnapshot({
         availability: LibraryRootAvailability.available,
         freshness: LibraryCatalogFreshness.updating,
         freshnessCause: LibraryCatalogFreshnessCause.evidenceGap,
+        continuity: LibraryContinuityState.recoveryRequired,
         phase: LibrarySynchronizationPhase.inventoryEnumeration,
         phaseStartedAt: DateTime.utc(2026, 8, 21),
         sourceStatus: LibraryChangeSourceStatus.healthy,
@@ -1211,6 +1306,57 @@ LibrarySynchronizationSnapshot _automaticRecoverySnapshot({
         retryWaitCount: BigInt.zero,
         freshnessUnknownCount: BigInt.one,
         lastIssueCode: "change_source_rescan_required",
+      ),
+    },
+  );
+}
+
+LibrarySynchronizationSnapshot _legacyRecoveryAuthorityMissingSnapshot() {
+  return LibrarySynchronizationSnapshot(
+    isRunning: true,
+    catalogRevision: BigInt.one,
+    appliedMutationCount: 0,
+    roots: {
+      "root-1": LibraryRootSynchronizationStatus(
+        rootId: "root-1",
+        rootGeneration: BigInt.one,
+        availability: LibraryRootAvailability.available,
+        freshness: LibraryCatalogFreshness.needsReconciliation,
+        freshnessCause: LibraryCatalogFreshnessCause.pendingChanges,
+        continuity: LibraryContinuityState.recoveryRequired,
+        phase: LibrarySynchronizationPhase.blocked,
+        phaseStartedAt: DateTime.utc(2026, 8, 21),
+        sourceStatus: LibraryChangeSourceStatus.healthy,
+        pendingChangeCount: BigInt.zero,
+        retryWaitCount: BigInt.one,
+        freshnessUnknownCount: BigInt.one,
+        lastIssueCode: "legacy_recovery_authority_missing",
+      ),
+    },
+  );
+}
+
+LibrarySynchronizationSnapshot _explicitRecoveryRequiredSnapshot() {
+  return LibrarySynchronizationSnapshot(
+    isRunning: true,
+    catalogRevision: BigInt.one,
+    appliedMutationCount: 0,
+    roots: {
+      "root-1": LibraryRootSynchronizationStatus(
+        rootId: "root-1",
+        rootGeneration: BigInt.one,
+        availability: LibraryRootAvailability.available,
+        freshness: LibraryCatalogFreshness.needsReconciliation,
+        freshnessCause: LibraryCatalogFreshnessCause.evidenceGap,
+        continuity: LibraryContinuityState.recoveryRequired,
+        phase: LibrarySynchronizationPhase.blocked,
+        phaseStartedAt: DateTime.utc(2026, 9, 2),
+        sourceStatus: LibraryChangeSourceStatus.healthy,
+        pendingChangeCount: BigInt.zero,
+        retryWaitCount: BigInt.one,
+        freshnessUnknownCount: BigInt.one,
+        recoveryBlocked: true,
+        lastIssueCode: "live_gap_v30_explicit_recovery_required",
       ),
     },
   );
@@ -1228,6 +1374,7 @@ LibrarySynchronizationSnapshot _persistenceFailureSnapshot() {
         availability: LibraryRootAvailability.available,
         freshness: LibraryCatalogFreshness.needsReconciliation,
         freshnessCause: LibraryCatalogFreshnessCause.pendingChanges,
+        continuity: LibraryContinuityState.recoveryRequired,
         phase: LibrarySynchronizationPhase.blocked,
         phaseStartedAt: DateTime.utc(2026, 8, 21),
         sourceStatus: LibraryChangeSourceStatus.healthy,
@@ -1252,6 +1399,7 @@ LibrarySynchronizationSnapshot _synchronizedRootSnapshot() {
         availability: LibraryRootAvailability.available,
         freshness: LibraryCatalogFreshness.synchronized,
         freshnessCause: LibraryCatalogFreshnessCause.noPendingChanges,
+        continuity: LibraryContinuityState.current,
         phase: LibrarySynchronizationPhase.synchronized,
         phaseStartedAt: DateTime.utc(2026, 8, 21),
         sourceStatus: LibraryChangeSourceStatus.healthy,
@@ -1284,7 +1432,8 @@ class _TestLibrarySynchronization implements LibrarySynchronization {
   LibrarySynchronizationSnapshot get current => _current;
 
   @override
-  Future<void> start() async {}
+  Future<LibrarySynchronizationStartResult> start() async =>
+      LibrarySynchronizationStartResult.started;
 
   @override
   Future<void> stop() async {}
@@ -1297,6 +1446,7 @@ class _TestLibrarySynchronization implements LibrarySynchronization {
     _updates.add(snapshot);
   }
 
+  @override
   Future<void> dispose() => _updates.close();
 }
 

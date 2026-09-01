@@ -36,6 +36,25 @@ pub enum LibraryChangeOrigin {
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+pub enum LibraryChangeLane {
+    Live,
+    Journal,
+    Recovery,
+}
+
+impl LibraryChangeOrigin {
+    pub const fn lane(self) -> LibraryChangeLane {
+        match self {
+            Self::LiveNotification => LibraryChangeLane::Live,
+            Self::StartupCatchUp => LibraryChangeLane::Journal,
+            Self::MetadataInventory | Self::ConsistencyAudit | Self::UserRefresh => {
+                LibraryChangeLane::Recovery
+            }
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LibraryChangeScope {
     Path,
     Subtree,

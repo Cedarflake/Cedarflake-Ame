@@ -89,6 +89,17 @@ impl LibraryChangeQueue for RejectingQueue {
         panic!("retry is not used by this test")
     }
 
+    fn promote_live_watcher_gap_to_metadata_inventory(
+        &mut self,
+        _change_id: crate::domain::LibraryChangeId,
+        _lease_generation: u64,
+        _failure: &crate::domain::LibraryChangeFailure,
+        _promoted_unix_ms: i64,
+        _policy: LibraryChangeQueuePolicy,
+    ) -> Result<crate::domain::LibraryChangeLeaseUpdateOutcome, crate::domain::ScanError> {
+        panic!("recovery promotion is not used by this test")
+    }
+
     fn defer_library_change(
         &mut self,
         _change_id: crate::domain::LibraryChangeId,

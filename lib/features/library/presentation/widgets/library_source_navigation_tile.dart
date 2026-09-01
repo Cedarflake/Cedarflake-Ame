@@ -81,9 +81,18 @@ class _LibrarySourceNavigationTileState
       widget.synchronizationStatus,
       widget.hasSynchronizationFailure,
     );
+    final statusDetail =
+        widget.synchronizationStatus?.continuity ==
+            LibraryContinuityState.liveOnly
+        ? LibraryStrings.continuityLiveOnlyDetail
+        : null;
     final tile = widget.isCompact
         ? AmeTooltip(
-            message: "${widget.root.displayPath}\n$statusLabel",
+            message: [
+              widget.root.displayPath,
+              statusLabel,
+              ?statusDetail,
+            ].join("\n"),
             child: IconButton(
               focusNode: _focusNode,
               isSelected: widget.isSelected,
@@ -283,12 +292,24 @@ class _LibrarySourceNavigationTileState
         LibraryRootAvailability.unknown => LibraryStrings.sourceUnknown,
       };
     }
-    return switch (synchronizationStatus?.freshness) {
-      LibraryCatalogFreshness.synchronized => LibraryStrings.synchronized,
-      LibraryCatalogFreshness.updating => LibraryStrings.synchronizing,
-      LibraryCatalogFreshness.needsReconciliation =>
-        LibraryStrings.needsReconciliation,
-      LibraryCatalogFreshness.unavailable => LibraryStrings.sourceUnavailable,
+    return switch (synchronizationStatus?.continuity) {
+      LibraryContinuityState.baselineRequired =>
+        LibraryStrings.continuityBaselineRequired,
+      LibraryContinuityState.catchingUp => LibraryStrings.continuityCatchingUp,
+      LibraryContinuityState.recoveryRequired =>
+        LibraryStrings.continuityRecoveryRequired,
+      LibraryContinuityState.liveOnly => LibraryStrings.continuityLiveOnly,
+      LibraryContinuityState.unavailable =>
+        LibraryStrings.continuityUnavailable,
+      LibraryContinuityState.current => switch (synchronizationStatus
+          ?.freshness) {
+        LibraryCatalogFreshness.synchronized => LibraryStrings.synchronized,
+        LibraryCatalogFreshness.updating => LibraryStrings.synchronizing,
+        LibraryCatalogFreshness.needsReconciliation =>
+          LibraryStrings.needsReconciliation,
+        LibraryCatalogFreshness.unavailable => LibraryStrings.sourceUnavailable,
+        null => LibraryStrings.synchronizing,
+      },
       null =>
         hasSynchronizationFailure
             ? LibraryStrings.needsReconciliation

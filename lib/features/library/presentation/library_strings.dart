@@ -3,6 +3,12 @@ abstract final class LibraryStrings {
   static const synchronized = "已同步";
   static const synchronizing = "正在更新图库";
   static const needsReconciliation = "更新受阻";
+  static const continuityBaselineRequired = "正在建立连续更新";
+  static const continuityCatchingUp = "正在补齐近期变化";
+  static const continuityRecoveryRequired = "需要重新核对";
+  static const continuityLiveOnly = "仅在 Ame 打开时自动更新";
+  static const continuityUnavailable = "连续更新暂不可用";
+  static const continuityLiveOnlyDetail = "关闭 Ame 期间发生的变化需要手动更新图库。";
   static const sourceUnavailable = "目录不可用";
   static const sourceAvailable = "可用";
   static const sourceMissing = "文件夹不存在";
@@ -69,6 +75,10 @@ abstract final class LibraryStrings {
   static const synchronizationRecoveryFailed = "图库重新核对未能完成，Ame 将自动重试。";
   static const synchronizationPersistenceFailed = "图库更新记录保存失败，Ame 将自动重试。";
   static const synchronizationNeedsReconciliation = "Ame 无法证明当前图库与目录完全一致。";
+  static const synchronizationLegacyRecoveryAuthorityMissing =
+      "旧版本留下的核对记录缺少可信授权。请手动更新图库以重新建立连续更新。";
+  static const synchronizationExplicitRecoveryRequired =
+      "此图库包含无法自动确认的历史变化，需要手动更新图库后才能恢复连续更新。";
   static const synchronizationPhaseWatcherStartup = "启动目录监控";
   static const synchronizationPhaseInventoryEnumeration = "枚举目录元数据";
   static const synchronizationPhaseInventoryComparison = "比较目录元数据";

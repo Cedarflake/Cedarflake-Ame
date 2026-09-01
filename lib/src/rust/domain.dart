@@ -175,6 +175,55 @@ class CatalogCursor {
           locationId == other.locationId;
 }
 
+enum CatalogReadRetryCause { fileLockingProtocolFailed }
+
+class CatalogReadRetryDetails {
+  final CatalogReadRetryOperation operation;
+  final int attempts;
+  final BigInt elapsedMs;
+  final CatalogReadRetryCause cause;
+
+  const CatalogReadRetryDetails({
+    required this.operation,
+    required this.attempts,
+    required this.elapsedMs,
+    required this.cause,
+  });
+
+  @override
+  int get hashCode =>
+      operation.hashCode ^
+      attempts.hashCode ^
+      elapsedMs.hashCode ^
+      cause.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CatalogReadRetryDetails &&
+          runtimeType == other.runtimeType &&
+          operation == other.operation &&
+          attempts == other.attempts &&
+          elapsedMs == other.elapsedMs &&
+          cause == other.cause;
+}
+
+enum CatalogReadRetryOperation {
+  sessionValidation,
+  catalogSnapshot,
+  catalogSnapshotAroundLocation,
+  catalogSnapshotAroundAsset,
+  galleryTimeline,
+  galleryLayoutManifest,
+  libraryFolders,
+  catalogAssetById,
+  watcherGapAuthorityCount,
+  activeInventoryRunCount,
+  activeWatcherGapAuthority,
+  incrementalLocation,
+  completedPersistentJournalRange,
+}
+
 class CatalogSnapshot {
   final String catalogPath;
   final BigInt revision;
@@ -816,11 +865,16 @@ class RetiredPreviewRootView {
 class ScanError implements FrbException {
   final String code;
   final String message;
+  final CatalogReadRetryDetails? retryDetails;
 
-  const ScanError({required this.code, required this.message});
+  const ScanError({
+    required this.code,
+    required this.message,
+    this.retryDetails,
+  });
 
   @override
-  int get hashCode => code.hashCode ^ message.hashCode;
+  int get hashCode => code.hashCode ^ message.hashCode ^ retryDetails.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -828,7 +882,8 @@ class ScanError implements FrbException {
       other is ScanError &&
           runtimeType == other.runtimeType &&
           code == other.code &&
-          message == other.message;
+          message == other.message &&
+          retryDetails == other.retryDetails;
 }
 
 @freezed

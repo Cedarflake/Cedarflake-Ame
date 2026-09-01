@@ -88,7 +88,7 @@ impl LocalPreviewStore {
         let Some(encoded_dimensions) = cached_artifact_dimensions(&legacy_path, edge) else {
             return Ok(None);
         };
-        if !source_uses_default_orientation(Path::new(&file.absolute_path)) {
+        if !source_uses_default_orientation(file) {
             return Ok(None);
         }
         if fs::rename(&legacy_path, artifact_path).is_ok() {
@@ -263,13 +263,18 @@ impl PreviewStore for LocalPreviewStore {
             .map(existing_materialization);
         }
 
-        let source = open_source_file(source_path)
+        let source = open_source_file(source_path, Path::new(&file.source_root_path))
             .map_err(|error| preview_issue(file, "image_open_failed", error))?;
         let mut reader = ImageReader::new(BufReader::new(source))
             .with_guessed_format()
             .map_err(|error| preview_issue(file, "image_open_failed", error))?;
         if reader.format() == Some(ImageFormat::Jpeg)
-            && let Some(decoded) = decode_scaled_jpeg(source_path, edge, MAX_DECODER_ALLOCATION)
+            && let Some(decoded) = decode_scaled_jpeg(
+                source_path,
+                Path::new(&file.source_root_path),
+                edge,
+                MAX_DECODER_ALLOCATION,
+            )
         {
             return publish_preview(
                 self,
@@ -533,8 +538,9 @@ fn cached_artifact_dimensions(path: &Path, edge: u32) -> Option<(u32, u32)> {
     (width > 0 && height > 0 && width <= edge && height <= edge).then_some((width, height))
 }
 
-fn source_uses_default_orientation(path: &Path) -> bool {
-    let Ok(source) = open_source_file(path) else {
+fn source_uses_default_orientation(file: &DiscoveredFile) -> bool {
+    let path = Path::new(&file.absolute_path);
+    let Ok(source) = open_source_file(path, Path::new(&file.source_root_path)) else {
         return false;
     };
     let Ok(mut reader) = ImageReader::new(BufReader::new(source)).with_guessed_format() else {
@@ -625,7 +631,7 @@ fn inspect_source_display_dimensions(
     file: &DiscoveredFile,
     source_path: &Path,
 ) -> Result<(u32, u32), ScanIssue> {
-    let source = open_source_file(source_path)
+    let source = open_source_file(source_path, Path::new(&file.source_root_path))
         .map_err(|error| preview_issue(file, "image_open_failed", error))?;
     let mut reader = ImageReader::new(BufReader::new(source))
         .with_guessed_format()
@@ -665,7 +671,15 @@ mod tests {
     use image::{ExtendedColorType, GenericImageView, ImageEncoder, Rgb, RgbImage, Rgba};
     use tempfile::tempdir;
 
+    use super::super::local_files::canonical_source_root_path;
     use super::*;
+
+    fn fixture_source_root(source_path: &Path) -> String {
+        canonical_source_root_path(source_path.parent().expect("source root"))
+            .expect("canonical source root")
+            .to_string_lossy()
+            .into_owned()
+    }
 
     fn materialize_and_commit(
         store: &LocalPreviewStore,
@@ -690,6 +704,7 @@ mod tests {
         let source_before = fs::read(&source_path).expect("source before");
         let metadata = source_path.metadata().expect("source metadata");
         let file = DiscoveredFile {
+            source_root_path: fixture_source_root(&source_path),
             absolute_path: source_path.to_string_lossy().into_owned(),
             relative_path: "source.png".to_owned(),
             file_size: metadata.len(),
@@ -720,6 +735,7 @@ mod tests {
         let source_bytes = b"not a decodable image";
         fs::write(&source_path, source_bytes).expect("write source");
         let file = DiscoveredFile {
+            source_root_path: fixture_source_root(&source_path),
             absolute_path: source_path.to_string_lossy().into_owned(),
             relative_path: "source.jpg".to_owned(),
             file_size: u64::try_from(source_bytes.len()).expect("source size"),
@@ -751,6 +767,7 @@ mod tests {
         let source_bytes = orientation_jpeg(6);
         fs::write(&source_path, &source_bytes).expect("write source");
         let file = DiscoveredFile {
+            source_root_path: fixture_source_root(&source_path),
             absolute_path: source_path.to_string_lossy().into_owned(),
             relative_path: "oriented.jpg".to_owned(),
             file_size: u64::try_from(source_bytes.len()).expect("source size"),
@@ -789,6 +806,7 @@ mod tests {
             .expect("source image");
         let metadata = source_path.metadata().expect("source metadata");
         let file = DiscoveredFile {
+            source_root_path: fixture_source_root(&source_path),
             absolute_path: source_path.to_string_lossy().into_owned(),
             relative_path: "source.png".to_owned(),
             file_size: metadata.len(),
@@ -841,6 +859,7 @@ mod tests {
         let source_before = fs::read(&source_path).expect("source before");
         let metadata = source_path.metadata().expect("source metadata");
         let file = DiscoveredFile {
+            source_root_path: fixture_source_root(&source_path),
             absolute_path: source_path.to_string_lossy().into_owned(),
             relative_path: "source.jpg".to_owned(),
             file_size: metadata.len(),
@@ -881,6 +900,7 @@ mod tests {
         let source_bytes = orientation_jpeg(6);
         fs::write(&source_path, &source_bytes).expect("oriented source");
         let file = DiscoveredFile {
+            source_root_path: fixture_source_root(&source_path),
             absolute_path: source_path.to_string_lossy().into_owned(),
             relative_path: "oriented.jpg".to_owned(),
             file_size: u64::try_from(source_bytes.len()).expect("source size"),
@@ -919,6 +939,7 @@ mod tests {
         let source_before = fs::read(&source_path).expect("source before");
         let metadata = source_path.metadata().expect("source metadata");
         let file = DiscoveredFile {
+            source_root_path: fixture_source_root(&source_path),
             absolute_path: source_path.to_string_lossy().into_owned(),
             relative_path: "source.jpg".to_owned(),
             file_size: metadata.len(),
@@ -960,6 +981,7 @@ mod tests {
         let source_before = fs::read(&source_path).expect("source before");
         let metadata = source_path.metadata().expect("source metadata");
         let file = DiscoveredFile {
+            source_root_path: fixture_source_root(&source_path),
             absolute_path: source_path.to_string_lossy().into_owned(),
             relative_path: "source.png".to_owned(),
             file_size: metadata.len(),
@@ -989,6 +1011,7 @@ mod tests {
         let source_bytes = b"\xFF\xD8\xFF\xE0not-a-complete-jpeg";
         fs::write(&source_path, source_bytes).expect("malformed jpeg fixture");
         let file = DiscoveredFile {
+            source_root_path: fixture_source_root(&source_path),
             absolute_path: source_path.to_string_lossy().into_owned(),
             relative_path: "malformed.data".to_owned(),
             file_size: u64::try_from(source_bytes.len()).expect("source size"),
@@ -1022,6 +1045,7 @@ mod tests {
         let source_before = fs::read(&source_path).expect("source before");
         let metadata = source_path.metadata().expect("source metadata");
         let file = DiscoveredFile {
+            source_root_path: fixture_source_root(&source_path),
             absolute_path: source_path.to_string_lossy().into_owned(),
             relative_path: "source.png".to_owned(),
             file_size: metadata.len(),
@@ -1127,6 +1151,7 @@ mod tests {
             let source_bytes = orientation_jpeg(orientation);
             fs::write(&source_path, &source_bytes).expect("write orientation fixture");
             let file = DiscoveredFile {
+                source_root_path: fixture_source_root(&source_path),
                 absolute_path: source_path.to_string_lossy().into_owned(),
                 relative_path: format!("orientation-{orientation}.jpg"),
                 file_size: u64::try_from(source_bytes.len()).expect("source size"),

@@ -1,11 +1,14 @@
 use std::collections::{HashMap, HashSet};
 use std::fs;
+use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Condvar, Mutex, OnceLock, Weak};
 use std::time::Duration;
 
 use rusqlite::types::Value;
 use rusqlite::{
-    Connection, OptionalExtension, Row, Transaction, TransactionBehavior, params, params_from_iter,
+    Connection, OpenFlags, OptionalExtension, Row, Transaction, TransactionBehavior, params,
+    params_from_iter,
 };
 
 use crate::domain::{
@@ -13,19 +16,28 @@ use crate::domain::{
     ExpectedFileState, FileIdentityEvidence, GalleryLayoutDateGroup, GalleryLayoutManifestChunk,
     GalleryLayoutManifestCursor, GalleryQuery, GallerySortKey, GalleryTimeAnchor,
     GalleryTimeBucket, GalleryTimeline, LibraryChangeIntent, LibraryChangeIntentKind,
-    LibraryChangeOrigin, LibraryChangeQueuePolicy, LibraryChangeScope, LibraryFolderCursor,
-    LibraryFolderPage, LibraryRootAvailability, LibraryRootGeneration, LibraryRootView,
-    PreviewArtifact, PreviewReclamationCandidate, PreviewStatus, RecoverableScan, ScanCheckpoint,
-    ScanError, ScanIssue, ScanRequest,
+    LibraryChangeLane, LibraryChangeOrigin, LibraryChangeQueuePolicy, LibraryChangeScope,
+    LibraryFolderCursor, LibraryFolderPage, LibraryRootAvailability, LibraryRootGeneration,
+    LibraryRootView, PreviewArtifact, PreviewReclamationCandidate, PreviewStatus, RecoverableScan,
+    ScanCheckpoint, ScanError, ScanIssue, ScanRequest,
 };
 use crate::ports::CatalogRepository;
 
-use super::user_visible_path;
+use super::{file_identity_evidence, open_catalog_identity_guard, user_visible_path};
 
 mod folders;
 mod gallery;
 mod metadata_inventory;
 mod migrations;
+#[cfg_attr(
+    not(test),
+    expect(
+        dead_code,
+        reason = "R2c-P admits durable journal persistence before R2c-Q schedules production replay"
+    )
+)]
+mod persistent_journal;
+mod read_retry;
 
 use change_queue::{activate_root_change_queue, retire_root_change_queue};
 use gallery::{
@@ -35,12 +47,19 @@ use gallery::{
     validate_gallery_query,
 };
 use migrations::migrate_schema;
+pub(crate) use read_retry::SqliteCatalogReadExecutor;
 
 mod catalog_delta;
 #[cfg(test)]
 mod catch_up;
 mod change_queue;
-const SCHEMA_VERSION: i64 = 20;
+
+#[cfg(test)]
+pub(crate) use catalog_delta::set_before_catalog_delta_commit_hook;
+#[cfg(test)]
+pub(crate) use metadata_inventory::set_before_metadata_inventory_spool_commit_hook;
+const SCHEMA_VERSION: i64 = 30;
+const SQLITE_APPLICATION_ID: i64 = 0x414D_4531;
 const SCAN_QUEUE_LEASE_MILLIS: i64 = 15 * 60 * 1_000;
 const MAX_SCAN_CATCH_UP_LINEAGE: i64 = 4_096;
 const LOCATION_STAGE_BATCH: usize = 128;
@@ -49,11 +68,240 @@ const MAX_CATALOG_PAGE_ITEMS: u32 = 4_096;
 const LAYOUT_FLAG_DIMENSIONS_KNOWN: u8 = 1;
 const SQLITE_BUSY_TIMEOUT: Duration = Duration::from_secs(5);
 
+static SQLITE_WRITE_ADMISSIONS: OnceLock<Mutex<HashMap<PathBuf, Weak<SqliteWriteAdmission>>>> =
+    OnceLock::new();
+static SQLITE_SCHEMA_INITIALIZERS: OnceLock<Mutex<HashMap<PathBuf, Weak<Mutex<()>>>>> =
+    OnceLock::new();
+
+#[cfg(test)]
+static SQLITE_FULL_SCHEMA_VALIDATION_COUNTS: OnceLock<Mutex<HashMap<PathBuf, usize>>> =
+    OnceLock::new();
+
+#[derive(Default)]
+struct SqliteWriteAdmissionState {
+    is_active: bool,
+    waiting: [u64; 3],
+}
+
+struct SqliteWriteAdmission {
+    state: Mutex<SqliteWriteAdmissionState>,
+    ready: Condvar,
+}
+
+impl SqliteWriteAdmission {
+    fn new() -> Self {
+        Self {
+            state: Mutex::new(SqliteWriteAdmissionState::default()),
+            ready: Condvar::new(),
+        }
+    }
+
+    fn acquire(self: &Arc<Self>, lane: LibraryChangeLane) -> SqliteWritePermit {
+        let priority = sqlite_write_priority(lane);
+        let mut state = self.state.lock().unwrap_or_else(|error| error.into_inner());
+        state.waiting[priority] = state.waiting[priority].saturating_add(1);
+        while state.is_active || state.waiting[..priority].iter().any(|count| *count > 0) {
+            state = self
+                .ready
+                .wait(state)
+                .unwrap_or_else(|error| error.into_inner());
+        }
+        state.waiting[priority] = state.waiting[priority].saturating_sub(1);
+        state.is_active = true;
+        drop(state);
+        SqliteWritePermit {
+            admission: Arc::clone(self),
+        }
+    }
+}
+
+struct SqliteWritePermit {
+    admission: Arc<SqliteWriteAdmission>,
+}
+
+impl Drop for SqliteWritePermit {
+    fn drop(&mut self) {
+        let mut state = self
+            .admission
+            .state
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        state.is_active = false;
+        self.admission.ready.notify_all();
+    }
+}
+
+struct PriorityTransaction<'connection> {
+    transaction: Option<Transaction<'connection>>,
+    _permit: SqliteWritePermit,
+}
+
+impl PriorityTransaction<'_> {
+    fn commit(mut self) -> rusqlite::Result<()> {
+        self.transaction
+            .take()
+            .expect("priority transaction is present until commit")
+            .commit()
+    }
+}
+
+impl<'connection> Deref for PriorityTransaction<'connection> {
+    type Target = Transaction<'connection>;
+
+    fn deref(&self) -> &Self::Target {
+        self.transaction
+            .as_ref()
+            .expect("priority transaction is present while borrowed")
+    }
+}
+
+impl DerefMut for PriorityTransaction<'_> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.transaction
+            .as_mut()
+            .expect("priority transaction is present while mutably borrowed")
+    }
+}
+
+fn sqlite_write_priority(lane: LibraryChangeLane) -> usize {
+    match lane {
+        LibraryChangeLane::Live => 0,
+        LibraryChangeLane::Journal => 1,
+        LibraryChangeLane::Recovery => 2,
+    }
+}
+
+fn sqlite_write_admission(path: &Path) -> Arc<SqliteWriteAdmission> {
+    let registry = SQLITE_WRITE_ADMISSIONS.get_or_init(|| Mutex::new(HashMap::new()));
+    let mut admissions = registry.lock().unwrap_or_else(|error| error.into_inner());
+    if let Some(admission) = admissions.get(path).and_then(Weak::upgrade) {
+        return admission;
+    }
+    admissions.retain(|_, admission| admission.strong_count() > 0);
+    let admission = Arc::new(SqliteWriteAdmission::new());
+    admissions.insert(path.to_path_buf(), Arc::downgrade(&admission));
+    admission
+}
+
+fn sqlite_schema_initializer(path: &Path) -> Arc<Mutex<()>> {
+    let registry = SQLITE_SCHEMA_INITIALIZERS.get_or_init(|| Mutex::new(HashMap::new()));
+    let mut initializers = registry.lock().unwrap_or_else(|error| error.into_inner());
+    if let Some(initializer) = initializers.get(path).and_then(Weak::upgrade) {
+        return initializer;
+    }
+    initializers.retain(|_, initializer| initializer.strong_count() > 0);
+    let initializer = Arc::new(Mutex::new(()));
+    initializers.insert(path.to_path_buf(), Arc::downgrade(&initializer));
+    initializer
+}
+
+#[cfg(test)]
+pub(crate) fn reset_full_schema_validation_count(path: &Path) {
+    SQLITE_FULL_SCHEMA_VALIDATION_COUNTS
+        .get_or_init(|| Mutex::new(HashMap::new()))
+        .lock()
+        .unwrap_or_else(|error| error.into_inner())
+        .insert(catalog_admission_path(path), 0);
+}
+
+#[cfg(test)]
+pub(crate) fn full_schema_validation_count(path: &Path) -> usize {
+    SQLITE_FULL_SCHEMA_VALIDATION_COUNTS
+        .get_or_init(|| Mutex::new(HashMap::new()))
+        .lock()
+        .unwrap_or_else(|error| error.into_inner())
+        .get(&catalog_admission_path(path))
+        .copied()
+        .unwrap_or(0)
+}
+
+#[cfg(test)]
+pub(crate) fn remove_persistent_journal_v22_contract_for_test(connection: &Connection) {
+    connection
+        .execute_batch(
+            "DROP TRIGGER IF EXISTS library_live_gap_recovery_claim_identity_update_guard;
+             DROP TRIGGER IF EXISTS library_live_gap_recovery_claim_insert_guard;
+             DROP INDEX IF EXISTS library_live_gap_recovery_claims_root;
+             DROP TABLE IF EXISTS library_live_gap_recovery_claims;
+             DROP TABLE IF EXISTS library_live_gap_recovery_contract;
+             DROP INDEX IF EXISTS library_scan_publication_namespace_root;
+             DROP TABLE IF EXISTS library_scan_publication_namespace_bindings;
+             DROP TABLE IF EXISTS library_root_publication_namespaces;
+             DROP TABLE IF EXISTS library_root_publication_namespace_contract;
+             DROP TRIGGER IF EXISTS library_metadata_inventory_spool_directory_complete_guard;
+             DROP TRIGGER IF EXISTS library_metadata_inventory_spool_binding_update_guard;
+             DROP INDEX IF EXISTS library_metadata_inventory_spool_entries_order;
+             DROP TABLE IF EXISTS library_metadata_inventory_spool_entries;
+             DROP INDEX IF EXISTS library_metadata_inventory_spool_directories_state;
+             DROP TABLE IF EXISTS library_metadata_inventory_spool_directories;
+             DROP TABLE IF EXISTS library_metadata_inventory_spools;
+             DROP TABLE IF EXISTS library_metadata_inventory_spool_contract;
+             DROP TRIGGER IF EXISTS library_metadata_inventory_candidate_owner_update_guard;
+             DROP TRIGGER IF EXISTS library_metadata_inventory_candidate_owner_insert_guard;
+             DROP INDEX IF EXISTS library_metadata_inventory_candidate_owners_change;
+             DROP TABLE IF EXISTS library_metadata_inventory_candidate_owners;
+             DROP INDEX IF EXISTS library_metadata_inventory_frontier_state;
+             DROP TABLE IF EXISTS library_metadata_inventory_frontier;
+             DROP TABLE IF EXISTS library_recovery_execution_contract;
+             DROP TRIGGER IF EXISTS library_persistent_journal_baseline_update_guard;
+             DROP TRIGGER IF EXISTS library_persistent_journal_baseline_insert_guard;
+             DROP INDEX IF EXISTS library_persistent_journal_baselines_root;
+             DROP TABLE IF EXISTS library_persistent_journal_baselines;
+             DROP TRIGGER IF EXISTS library_recovery_authority_update_guard;
+             DROP TRIGGER IF EXISTS library_recovery_authority_insert_guard;
+             DROP INDEX IF EXISTS library_recovery_authorities_root;
+             DROP TABLE IF EXISTS library_recovery_authorities;
+             DROP TABLE IF EXISTS library_recovery_authority_contract;
+             DROP TRIGGER IF EXISTS library_change_queue_lane_origin_update;
+             DROP TRIGGER IF EXISTS library_change_queue_lane_insert;
+             DROP TRIGGER IF EXISTS library_change_queue_lane_update_guard;
+             DROP TRIGGER IF EXISTS library_change_queue_lane_insert_guard;
+             DROP INDEX IF EXISTS library_change_queue_lanes_eligible;
+             DROP TABLE IF EXISTS library_change_queue_lanes;
+             DROP TABLE IF EXISTS library_change_lane_contract;
+             DROP TABLE library_persistent_journal_pending_renames;
+             DROP TABLE library_persistent_journal_range_lifecycle;
+             DROP TABLE library_persistent_journal_cross_root_ranges;
+             DROP TABLE library_persistent_journal_cross_root_lineage;
+             DROP TABLE library_persistent_journal_queue_lineage;
+             DROP TABLE library_persistent_journal_source_ranges;
+             DROP TABLE library_persistent_journal_checkpoints;
+             DROP TABLE library_persistent_journal_root_state;
+             DROP TABLE library_persistent_journal_contract;
+             DROP INDEX library_change_root_state_generation_identity;",
+        )
+        .expect("remove v22 persistent journal contract from migration fixture");
+}
+
 pub struct SqliteCatalog {
     path: PathBuf,
     connection: Connection,
+    _identity_guard: Option<SqliteCatalogIdentityGuard>,
+    session: SqliteCatalogSession,
+    write_admission: Arc<SqliteWriteAdmission>,
     pending_locations: Vec<PendingLocation>,
     pending_authoritative_retry_paths: Vec<String>,
+}
+
+#[derive(Clone)]
+pub(crate) struct SqliteCatalogSession {
+    path: PathBuf,
+    database_identity: SqliteDatabaseIdentity,
+    application_id: i64,
+    user_version: i64,
+    schema_cookie: i64,
+    write_admission: Arc<SqliteWriteAdmission>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct SqliteDatabaseIdentity {
+    canonical_path: PathBuf,
+    file_identity: FileIdentityEvidence,
+}
+
+struct SqliteCatalogIdentityGuard {
+    _file: fs::File,
+    identity: SqliteDatabaseIdentity,
 }
 
 #[derive(Clone)]
@@ -74,23 +322,31 @@ struct StoredLayoutManifestItem {
     primary_number: i64,
 }
 
-impl SqliteCatalog {
-    pub fn open(path: PathBuf) -> Result<Self, ScanError> {
-        if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent).map_err(|error| {
-                ScanError::new(
-                    "catalog_directory_unavailable",
-                    format!("Could not create the catalog directory: {error}"),
-                )
-            })?;
-        }
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum SqliteCatalogReadStage {
+    Open,
+    Validation,
+    Query,
+}
+
+#[cfg(test)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct WatcherRecoveryObservation {
+    pub(crate) authority_count: u64,
+    pub(crate) active_inventory_run_count: u64,
+    pub(crate) active_authority_change_id: Option<u64>,
+}
+
+impl SqliteCatalogSession {
+    pub(crate) fn validate(path: PathBuf) -> Result<Self, ScanError> {
+        prepare_catalog_directory(&path)?;
+        let admission_path = catalog_admission_path(&path);
+        let initializer = sqlite_schema_initializer(&admission_path);
+        let _initialization = initializer
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
         let mut connection = Connection::open(&path).map_err(database_error)?;
-        connection
-            .busy_timeout(SQLITE_BUSY_TIMEOUT)
-            .map_err(database_error)?;
-        connection
-            .execute_batch("PRAGMA foreign_keys = ON;")
-            .map_err(database_error)?;
+        configure_catalog_connection(&connection)?;
         let journal_mode = connection
             .query_row("PRAGMA journal_mode", [], |row| row.get::<_, String>(0))
             .map_err(database_error)?;
@@ -99,13 +355,388 @@ impl SqliteCatalog {
                 .execute_batch("PRAGMA journal_mode = WAL;")
                 .map_err(database_error)?;
         }
+        #[cfg(test)]
+        {
+            let mut counts = SQLITE_FULL_SCHEMA_VALIDATION_COUNTS
+                .get_or_init(|| Mutex::new(HashMap::new()))
+                .lock()
+                .unwrap_or_else(|error| error.into_inner());
+            let count = counts.entry(admission_path.clone()).or_default();
+            *count = count.saturating_add(1);
+        }
         migrate_schema(&mut connection)?;
-
+        let application_id = catalog_pragma_integer(&connection, "application_id")?;
+        let user_version = catalog_pragma_integer(&connection, "user_version")?;
+        let schema_cookie = catalog_schema_cookie(&connection)?;
+        let database_identity = open_catalog_database_identity_guard(&path)?.identity;
         Ok(Self {
             path,
+            database_identity,
+            application_id,
+            user_version,
+            schema_cookie,
+            write_admission: sqlite_write_admission(&admission_path),
+        })
+    }
+
+    pub(crate) fn open_in_lane(&self, lane: LibraryChangeLane) -> Result<SqliteCatalog, ScanError> {
+        self.open_in_lane_with_read_stage(lane, |_| Ok(()))
+    }
+
+    pub(super) fn validate_existing_for_read(
+        path: PathBuf,
+        mut before_stage: impl FnMut(SqliteCatalogReadStage) -> Result<(), ScanError>,
+    ) -> Result<Self, ScanError> {
+        let identity_guard = open_catalog_database_identity_guard(&path)?;
+        before_stage(SqliteCatalogReadStage::Open)?;
+        let connection = Connection::open_with_flags(
+            &path,
+            OpenFlags::SQLITE_OPEN_READ_ONLY
+                | OpenFlags::SQLITE_OPEN_URI
+                | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )
+        .map_err(database_error)?;
+        configure_catalog_read_connection(&connection)?;
+        before_stage(SqliteCatalogReadStage::Validation)?;
+        let journal_mode = connection
+            .query_row("PRAGMA journal_mode", [], |row| row.get::<_, String>(0))
+            .map_err(database_error)?;
+        let application_id = catalog_pragma_integer(&connection, "application_id")?;
+        let user_version = catalog_pragma_integer(&connection, "user_version")?;
+        if !journal_mode.eq_ignore_ascii_case("wal")
+            || application_id != SQLITE_APPLICATION_ID
+            || user_version != SCHEMA_VERSION
+        {
+            return Err(ScanError::new(
+                "catalog_read_schema_requires_preparation",
+                "The catalog schema must be prepared before it can serve application reads",
+            ));
+        }
+        let version = connection
+            .query_row("SELECT version FROM schema_info LIMIT 1", [], |row| {
+                row.get::<_, i64>(0)
+            })
+            .map_err(database_error)?;
+        let schema_cookie = catalog_schema_cookie(&connection)?;
+        if version != SCHEMA_VERSION {
+            return Err(ScanError::new(
+                "catalog_read_schema_requires_preparation",
+                "The catalog schema must be prepared before it can serve application reads",
+            ));
+        }
+        let admission_path = catalog_admission_path(&path);
+        Ok(Self {
+            path,
+            database_identity: identity_guard.identity.clone(),
+            application_id,
+            user_version,
+            schema_cookie,
+            write_admission: sqlite_write_admission(&admission_path),
+        })
+    }
+
+    pub(super) fn open_in_lane_with_read_stage(
+        &self,
+        _lane: LibraryChangeLane,
+        mut before_stage: impl FnMut(SqliteCatalogReadStage) -> Result<(), ScanError>,
+    ) -> Result<SqliteCatalog, ScanError> {
+        let before_identity = catalog_database_identity(&self.path)?;
+        if before_identity != self.database_identity {
+            return Err(stale_catalog_session_error());
+        }
+        before_stage(SqliteCatalogReadStage::Open)?;
+        let connection = Connection::open(&self.path).map_err(database_error)?;
+        configure_catalog_connection(&connection)?;
+        before_stage(SqliteCatalogReadStage::Validation)?;
+        let journal_mode = connection
+            .query_row("PRAGMA journal_mode", [], |row| row.get::<_, String>(0))
+            .map_err(database_error)?;
+        let version = connection
+            .query_row("SELECT version FROM schema_info LIMIT 1", [], |row| {
+                row.get::<_, i64>(0)
+            })
+            .map_err(database_error)?;
+        let application_id = catalog_pragma_integer(&connection, "application_id")?;
+        let user_version = catalog_pragma_integer(&connection, "user_version")?;
+        let schema_cookie = catalog_schema_cookie(&connection)?;
+        let after_identity = catalog_database_identity(&self.path)?;
+        if !journal_mode.eq_ignore_ascii_case("wal")
+            || version != SCHEMA_VERSION
+            || application_id != self.application_id
+            || application_id != SQLITE_APPLICATION_ID
+            || user_version != self.user_version
+            || user_version != SCHEMA_VERSION
+            || schema_cookie != self.schema_cookie
+            || before_identity != after_identity
+        {
+            return Err(stale_catalog_session_error());
+        }
+        Ok(SqliteCatalog {
+            path: self.path.clone(),
             connection,
+            _identity_guard: None,
+            session: self.clone(),
+            write_admission: Arc::clone(&self.write_admission),
             pending_locations: Vec::with_capacity(LOCATION_STAGE_BATCH),
             pending_authoritative_retry_paths: Vec::new(),
+        })
+    }
+
+    pub(super) fn open_read_only_with_read_stage(
+        &self,
+        mut before_stage: impl FnMut(SqliteCatalogReadStage) -> Result<(), ScanError>,
+    ) -> Result<SqliteCatalog, ScanError> {
+        let identity_guard = open_catalog_database_identity_guard(&self.path)?;
+        if identity_guard.identity != self.database_identity {
+            return Err(stale_catalog_session_error());
+        }
+        before_stage(SqliteCatalogReadStage::Open)?;
+        let connection = Connection::open_with_flags(
+            &self.path,
+            OpenFlags::SQLITE_OPEN_READ_ONLY
+                | OpenFlags::SQLITE_OPEN_URI
+                | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )
+        .map_err(database_error)?;
+        configure_catalog_read_connection(&connection)?;
+        before_stage(SqliteCatalogReadStage::Validation)?;
+        let journal_mode = connection
+            .query_row("PRAGMA journal_mode", [], |row| row.get::<_, String>(0))
+            .map_err(database_error)?;
+        let version = connection
+            .query_row("SELECT version FROM schema_info LIMIT 1", [], |row| {
+                row.get::<_, i64>(0)
+            })
+            .map_err(database_error)?;
+        let application_id = catalog_pragma_integer(&connection, "application_id")?;
+        let user_version = catalog_pragma_integer(&connection, "user_version")?;
+        let schema_cookie = catalog_schema_cookie(&connection)?;
+        if !journal_mode.eq_ignore_ascii_case("wal")
+            || version != SCHEMA_VERSION
+            || application_id != self.application_id
+            || application_id != SQLITE_APPLICATION_ID
+            || user_version != self.user_version
+            || user_version != SCHEMA_VERSION
+            || schema_cookie != self.schema_cookie
+        {
+            return Err(stale_catalog_session_error());
+        }
+        Ok(SqliteCatalog {
+            path: self.path.clone(),
+            connection,
+            _identity_guard: Some(identity_guard),
+            session: self.clone(),
+            write_admission: Arc::clone(&self.write_admission),
+            pending_locations: Vec::with_capacity(LOCATION_STAGE_BATCH),
+            pending_authoritative_retry_paths: Vec::new(),
+        })
+    }
+
+    pub(crate) fn path(&self) -> &Path {
+        &self.path
+    }
+}
+
+fn prepare_catalog_directory(path: &Path) -> Result<(), ScanError> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|error| {
+            ScanError::new(
+                "catalog_directory_unavailable",
+                format!("Could not create the catalog directory: {error}"),
+            )
+        })?;
+    }
+    Ok(())
+}
+
+fn catalog_admission_path(path: &Path) -> PathBuf {
+    fs::canonicalize(path).unwrap_or_else(|_| {
+        path.parent()
+            .and_then(|parent| fs::canonicalize(parent).ok())
+            .and_then(|parent| path.file_name().map(|file_name| parent.join(file_name)))
+            .unwrap_or_else(|| path.to_path_buf())
+    })
+}
+
+fn configure_catalog_connection(connection: &Connection) -> Result<(), ScanError> {
+    connection
+        .busy_timeout(SQLITE_BUSY_TIMEOUT)
+        .map_err(database_error)?;
+    connection
+        .execute_batch("PRAGMA foreign_keys = ON;")
+        .map_err(database_error)
+}
+
+fn configure_catalog_read_connection(connection: &Connection) -> Result<(), ScanError> {
+    connection
+        .busy_timeout(read_retry::PROTOCOL_READ_DEADLINE)
+        .map_err(database_error)?;
+    connection
+        .execute_batch("PRAGMA foreign_keys = ON; PRAGMA query_only = ON;")
+        .map_err(database_error)
+}
+
+fn catalog_schema_cookie(connection: &Connection) -> Result<i64, ScanError> {
+    catalog_pragma_integer(connection, "schema_version")
+}
+
+fn catalog_pragma_integer(connection: &Connection, name: &str) -> Result<i64, ScanError> {
+    connection
+        .query_row(&format!("PRAGMA {name}"), [], |row| row.get(0))
+        .map_err(database_error)
+}
+
+fn catalog_database_identity(path: &Path) -> Result<SqliteDatabaseIdentity, ScanError> {
+    let canonical_path = fs::canonicalize(path).map_err(|error| {
+        ScanError::new(
+            "catalog_identity_unavailable",
+            format!("Could not canonicalize the catalog identity: {error}"),
+        )
+    })?;
+    let file_identity = file_identity_evidence(path)
+        .map_err(|error| {
+            ScanError::new(
+                "catalog_identity_unavailable",
+                format!("Could not inspect the catalog identity: {error}"),
+            )
+        })?
+        .ok_or_else(|| {
+            ScanError::new(
+                "catalog_identity_unavailable",
+                "The catalog file identity is unavailable",
+            )
+        })?;
+    Ok(SqliteDatabaseIdentity {
+        canonical_path,
+        file_identity,
+    })
+}
+
+fn open_catalog_database_identity_guard(
+    path: &Path,
+) -> Result<SqliteCatalogIdentityGuard, ScanError> {
+    let (file, file_identity) = open_catalog_identity_guard(path).map_err(|error| {
+        ScanError::new(
+            "catalog_identity_unavailable",
+            format!("Could not hold the catalog identity: {error}"),
+        )
+    })?;
+    let canonical_path = fs::canonicalize(path).map_err(|error| {
+        ScanError::new(
+            "catalog_identity_unavailable",
+            format!("Could not canonicalize the held catalog identity: {error}"),
+        )
+    })?;
+    let file_identity = file_identity.ok_or_else(|| {
+        ScanError::new(
+            "catalog_identity_unsupported",
+            "The current platform cannot provide stable catalog file identity evidence",
+        )
+    })?;
+    Ok(SqliteCatalogIdentityGuard {
+        _file: file,
+        identity: SqliteDatabaseIdentity {
+            canonical_path,
+            file_identity,
+        },
+    })
+}
+
+fn stale_catalog_session_error() -> ScanError {
+    ScanError::new(
+        "catalog_validated_session_stale",
+        "The catalog identity or schema changed after runtime validation",
+    )
+}
+
+impl SqliteCatalog {
+    pub fn open(path: PathBuf) -> Result<Self, ScanError> {
+        Self::open_in_lane(path, LibraryChangeLane::Recovery)
+    }
+
+    pub(crate) fn open_in_lane(path: PathBuf, lane: LibraryChangeLane) -> Result<Self, ScanError> {
+        SqliteCatalogSession::validate(path)?.open_in_lane(lane)
+    }
+
+    pub(crate) fn validated_session(&self) -> SqliteCatalogSession {
+        self.session.clone()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn load_watcher_recovery_observation_for_test(
+        &self,
+        root_id: &str,
+    ) -> Result<WatcherRecoveryObservation, ScanError> {
+        let (authority_count, active_inventory_run_count, change_id, active_authority_count) = self
+            .connection
+            .query_row(
+                "SELECT
+                   (SELECT COUNT(*) FROM library_recovery_authorities
+                    WHERE root_id = ?1 AND reason = 'watcher_uncovered_gap'),
+                   (SELECT COUNT(*) FROM library_metadata_inventory_runs
+                    WHERE root_id = ?1 AND status IN ('running', 'comparing')),
+                   COALESCE(MIN(authority.change_id), 0),
+                   COUNT(authority.change_id)
+                 FROM library_recovery_authorities AS authority
+                 JOIN library_change_queue_lanes AS lane ON lane.change_id = authority.change_id
+                 JOIN library_metadata_inventory_runs AS run ON run.id = authority.run_id
+                 WHERE authority.root_id = ?1
+                   AND authority.reason = 'watcher_uncovered_gap'
+                   AND authority.retired_unix_ms IS NULL
+                   AND lane.lane = 'p2_recovery'
+                   AND run.status IN ('running', 'comparing')",
+                [root_id],
+                |row| {
+                    Ok((
+                        row.get::<_, i64>(0)?,
+                        row.get::<_, i64>(1)?,
+                        row.get::<_, i64>(2)?,
+                        row.get::<_, i64>(3)?,
+                    ))
+                },
+            )
+            .map_err(database_error)?;
+        let active_authority_count =
+            sqlite_unsigned(active_authority_count, "active watcher-gap authority count")?;
+        if active_authority_count > 1 {
+            return Err(ScanError::new(
+                "catalog_watcher_gap_authority_ambiguous",
+                "More than one active watcher-gap recovery authority exists for a library root",
+            ));
+        }
+        Ok(WatcherRecoveryObservation {
+            authority_count: sqlite_unsigned(
+                authority_count,
+                "watcher-gap recovery authority count",
+            )?,
+            active_inventory_run_count: sqlite_unsigned(
+                active_inventory_run_count,
+                "active metadata inventory run count",
+            )?,
+            active_authority_change_id: (active_authority_count == 1)
+                .then(|| {
+                    sqlite_unsigned(change_id, "active watcher-gap authority change identifier")
+                })
+                .transpose()?,
+        })
+    }
+
+    fn begin_write(&mut self) -> Result<PriorityTransaction<'_>, ScanError> {
+        self.begin_write_in_lane(LibraryChangeLane::Recovery)
+    }
+
+    fn begin_write_in_lane(
+        &mut self,
+        lane: LibraryChangeLane,
+    ) -> Result<PriorityTransaction<'_>, ScanError> {
+        let permit = self.write_admission.acquire(lane);
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(database_error)?;
+        Ok(PriorityTransaction {
+            transaction: Some(transaction),
+            _permit: permit,
         })
     }
 
@@ -114,10 +745,7 @@ impl SqliteCatalog {
             return Ok(());
         }
         let pending = self.pending_locations.clone();
-        let transaction = self
-            .connection
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(database_error)?;
+        let transaction = self.begin_write()?;
         for item in &pending {
             persist_location(&transaction, &item.scan_id, &item.root_id, &item.location)?;
         }
@@ -212,10 +840,7 @@ impl SqliteCatalog {
             ));
         }
         self.flush_pending_locations()?;
-        let transaction = self
-            .connection
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(database_error)?;
+        let transaction = self.begin_write()?;
         let previous_active_scan = transaction
             .query_row(
                 "SELECT roots.active_scan_id
@@ -340,6 +965,254 @@ enum ScanOwner {
     AuthoritativeRecovery,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum LiveGapRecoveryConsumer {
+    ExplicitRecoveryRequired,
+    ForegroundScan,
+}
+
+impl LiveGapRecoveryConsumer {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::ExplicitRecoveryRequired => "explicit_recovery_required",
+            Self::ForegroundScan => "foreground_scan",
+        }
+    }
+}
+
+fn bind_explicit_recovery_claims_to_foreground_scan(
+    transaction: &Transaction<'_>,
+    scan_id: &str,
+    root_id: &str,
+    root_generation: i64,
+    bound_unix_ms: i64,
+) -> Result<(), ScanError> {
+    let claim_count = transaction
+        .query_row(
+            "SELECT COUNT(*) FROM library_live_gap_recovery_claims
+             WHERE root_id = ?1 AND root_generation = ?2
+               AND consumer_kind = ?3",
+            params![
+                root_id,
+                root_generation,
+                LiveGapRecoveryConsumer::ExplicitRecoveryRequired.as_str(),
+            ],
+            |row| row.get::<_, i64>(0),
+        )
+        .map_err(database_error)?;
+    if claim_count == 0 {
+        return Ok(());
+    }
+    let leased = transaction
+        .execute(
+            "UPDATE library_change_queue
+             SET status = 'leased', next_retry_unix_ms = NULL,
+                 lease_generation = lease_generation + 1,
+                 lease_expires_unix_ms = ?1, authoritative_scan_id = ?2,
+                 last_failure_code = 'live_gap_v30_explicit_recovery_in_progress',
+                 last_failure_message =
+                   'The explicit recovery claim is owned by the foreground library update',
+                 updated_unix_ms = ?3
+             WHERE root_id = ?4 AND root_generation = ?5
+               AND status = 'retry_wait' AND next_retry_unix_ms IS NULL
+               AND last_failure_code = 'live_gap_v30_explicit_recovery_required'
+               AND id IN (
+                 SELECT gap_change_id FROM library_live_gap_recovery_claims
+                 WHERE root_id = ?4 AND root_generation = ?5
+                   AND consumer_kind = ?6
+               )",
+            params![
+                bound_unix_ms.saturating_add(SCAN_QUEUE_LEASE_MILLIS),
+                scan_id,
+                bound_unix_ms,
+                root_id,
+                root_generation,
+                LiveGapRecoveryConsumer::ExplicitRecoveryRequired.as_str(),
+            ],
+        )
+        .map_err(database_error)?;
+    if i64::try_from(leased).ok() != Some(claim_count) {
+        return Err(ScanError::new(
+            "catalog_live_gap_foreground_claim_conflict",
+            "The explicit recovery claim changed before the foreground scan could own it",
+        ));
+    }
+    let bound = transaction
+        .execute(
+            "UPDATE library_live_gap_recovery_claims
+             SET consumer_kind = ?1, foreground_scan_id = ?2
+             WHERE root_id = ?3 AND root_generation = ?4
+               AND consumer_kind = ?5 AND foreground_scan_id IS NULL
+               AND consumed_unix_ms IS NULL",
+            params![
+                LiveGapRecoveryConsumer::ForegroundScan.as_str(),
+                scan_id,
+                root_id,
+                root_generation,
+                LiveGapRecoveryConsumer::ExplicitRecoveryRequired.as_str(),
+            ],
+        )
+        .map_err(database_error)?;
+    if i64::try_from(bound).ok() != Some(claim_count) {
+        return Err(ScanError::new(
+            "catalog_live_gap_foreground_claim_conflict",
+            "The explicit recovery consumer changed before its scan linkage became durable",
+        ));
+    }
+    Ok(())
+}
+
+fn consume_foreground_recovery_claims(
+    transaction: &Transaction<'_>,
+    scan_id: &str,
+    root_id: &str,
+    root_generation: i64,
+    published_revision: u64,
+    consumed_unix_ms: i64,
+) -> Result<(), ScanError> {
+    let claim_count = transaction
+        .query_row(
+            "SELECT COUNT(*) FROM library_live_gap_recovery_claims
+             WHERE root_id = ?1 AND root_generation = ?2
+               AND consumer_kind = ?3 AND foreground_scan_id = ?4
+               AND consumed_unix_ms IS NULL",
+            params![
+                root_id,
+                root_generation,
+                LiveGapRecoveryConsumer::ForegroundScan.as_str(),
+                scan_id,
+            ],
+            |row| row.get::<_, i64>(0),
+        )
+        .map_err(database_error)?;
+    if claim_count == 0 {
+        return Ok(());
+    }
+    let completed = transaction
+        .execute(
+            "UPDATE library_change_queue
+             SET status = 'completed', next_retry_unix_ms = NULL,
+                 lease_expires_unix_ms = NULL, authoritative_scan_id = NULL,
+                 catalog_revision_at_success = ?1,
+                 last_failure_code = NULL, last_failure_message = NULL,
+                 updated_unix_ms = ?2
+             WHERE root_id = ?3 AND root_generation = ?4
+               AND status = 'leased' AND authoritative_scan_id = ?5
+               AND last_failure_code = 'live_gap_v30_explicit_recovery_in_progress'
+               AND id IN (
+                 SELECT gap_change_id FROM library_live_gap_recovery_claims
+                 WHERE consumer_kind = ?6 AND foreground_scan_id = ?5
+                   AND consumed_unix_ms IS NULL
+               )",
+            params![
+                sqlite_integer(published_revision, "catalog revision")?,
+                consumed_unix_ms,
+                root_id,
+                root_generation,
+                scan_id,
+                LiveGapRecoveryConsumer::ForegroundScan.as_str(),
+            ],
+        )
+        .map_err(database_error)?;
+    if i64::try_from(completed).ok() != Some(claim_count) {
+        return Err(ScanError::new(
+            "catalog_live_gap_foreground_claim_conflict",
+            "The foreground scan no longer owns every explicit recovery gap",
+        ));
+    }
+    let consumed = transaction
+        .execute(
+            "UPDATE library_live_gap_recovery_claims
+             SET consumed_unix_ms = ?1
+             WHERE root_id = ?2 AND root_generation = ?3
+               AND consumer_kind = ?4 AND foreground_scan_id = ?5
+               AND consumed_unix_ms IS NULL",
+            params![
+                consumed_unix_ms,
+                root_id,
+                root_generation,
+                LiveGapRecoveryConsumer::ForegroundScan.as_str(),
+                scan_id,
+            ],
+        )
+        .map_err(database_error)?;
+    if i64::try_from(consumed).ok() != Some(claim_count) {
+        return Err(ScanError::new(
+            "catalog_live_gap_foreground_claim_conflict",
+            "The foreground recovery claim changed before consumption was recorded",
+        ));
+    }
+    Ok(())
+}
+
+fn restore_explicit_recovery_claims_from_foreground_scan(
+    transaction: &Transaction<'_>,
+    scan_id: &str,
+    restored_unix_ms: i64,
+) -> Result<(), ScanError> {
+    let claim_count = transaction
+        .query_row(
+            "SELECT COUNT(*) FROM library_live_gap_recovery_claims
+             WHERE consumer_kind = ?1 AND foreground_scan_id = ?2
+               AND consumed_unix_ms IS NULL",
+            params![LiveGapRecoveryConsumer::ForegroundScan.as_str(), scan_id],
+            |row| row.get::<_, i64>(0),
+        )
+        .map_err(database_error)?;
+    if claim_count == 0 {
+        return Ok(());
+    }
+    let restored_gaps = transaction
+        .execute(
+            "UPDATE library_change_queue
+             SET status = 'retry_wait', next_retry_unix_ms = NULL,
+                 lease_expires_unix_ms = NULL, authoritative_scan_id = NULL,
+                 last_failure_code = 'live_gap_v30_explicit_recovery_required',
+                 last_failure_message =
+                   'The explicit library update did not finish and must be started again',
+                 updated_unix_ms = ?1
+             WHERE status = 'leased' AND authoritative_scan_id = ?2
+               AND id IN (
+                 SELECT gap_change_id FROM library_live_gap_recovery_claims
+                 WHERE consumer_kind = ?3 AND foreground_scan_id = ?2
+                   AND consumed_unix_ms IS NULL
+               )",
+            params![
+                restored_unix_ms,
+                scan_id,
+                LiveGapRecoveryConsumer::ForegroundScan.as_str(),
+            ],
+        )
+        .map_err(database_error)?;
+    if i64::try_from(restored_gaps).ok() != Some(claim_count) {
+        return Err(ScanError::new(
+            "catalog_live_gap_foreground_claim_conflict",
+            "The foreground scan no longer owns every explicit recovery gap",
+        ));
+    }
+    let restored_claims = transaction
+        .execute(
+            "UPDATE library_live_gap_recovery_claims
+             SET consumer_kind = ?1, foreground_scan_id = NULL,
+                 consumed_unix_ms = NULL
+             WHERE consumer_kind = ?2 AND foreground_scan_id = ?3
+               AND consumed_unix_ms IS NULL",
+            params![
+                LiveGapRecoveryConsumer::ExplicitRecoveryRequired.as_str(),
+                LiveGapRecoveryConsumer::ForegroundScan.as_str(),
+                scan_id,
+            ],
+        )
+        .map_err(database_error)?;
+    if i64::try_from(restored_claims).ok() != Some(claim_count) {
+        return Err(ScanError::new(
+            "catalog_live_gap_foreground_claim_conflict",
+            "The foreground recovery consumer changed before it could be restored",
+        ));
+    }
+    Ok(())
+}
+
 impl ScanOwner {
     const fn as_str(self) -> &'static str {
         match self {
@@ -350,18 +1223,91 @@ impl ScanOwner {
 }
 
 impl SqliteCatalog {
+    pub(crate) fn begin_scan_with_publication_namespace(
+        &mut self,
+        request: &ScanRequest,
+        root_id: &str,
+        root_path: &str,
+        root_identity: &FileIdentityEvidence,
+    ) -> Result<ScanCheckpoint, ScanError> {
+        self.begin_scan_owned(
+            request,
+            root_id,
+            root_path,
+            ScanOwner::Foreground,
+            Some(root_identity),
+        )
+    }
+
+    pub(crate) fn resume_scan_with_publication_namespace(
+        &mut self,
+        request: &ScanRequest,
+        root_id: &str,
+        root_path: &str,
+        root_identity: &FileIdentityEvidence,
+    ) -> Result<ScanCheckpoint, ScanError> {
+        self.resume_scan_owned(
+            request,
+            root_id,
+            root_path,
+            ScanOwner::Foreground,
+            Some(root_identity),
+        )
+    }
+
+    pub(crate) fn fail_scan_publication_namespace(
+        &mut self,
+        scan_id: &str,
+        root_id: &str,
+        failure: &ScanError,
+        issue_count: u64,
+    ) -> Result<(), ScanError> {
+        let now = unix_time_ms();
+        let transaction = self.begin_write()?;
+        let root_generation = transaction
+            .query_row(
+                "SELECT root_generation FROM library_scan_publication_namespace_bindings
+                 WHERE scan_id = ?1 AND root_id = ?2",
+                params![scan_id, root_id],
+                |row| row.get::<_, i64>(0),
+            )
+            .optional()
+            .map_err(database_error)?;
+        if let Some(root_generation) = root_generation {
+            let root_generation =
+                LibraryRootGeneration::new(sqlite_unsigned(root_generation, "root generation")?)
+                    .ok_or_else(|| {
+                        ScanError::new(
+                            "catalog_scan_generation_invalid",
+                            "The failed publication guard captured an invalid root generation",
+                        )
+                    })?;
+            persistent_journal::mark_persistent_journal_recovery_required(
+                &transaction,
+                root_id,
+                root_generation,
+                &failure.code,
+                &failure.message,
+                now,
+            )?;
+        }
+        transaction.commit().map_err(database_error)?;
+        self.abandon_scan(scan_id, "failed", issue_count)
+    }
+
     fn begin_scan_owned(
         &mut self,
         request: &ScanRequest,
         root_id: &str,
         root_path: &str,
         owner: ScanOwner,
+        publication_identity: Option<&FileIdentityEvidence>,
     ) -> Result<ScanCheckpoint, ScanError> {
+        if let Some(identity) = publication_identity {
+            validate_root_publication_identity(identity)?;
+        }
         let now = unix_time_ms();
-        let transaction = self
-            .connection
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(database_error)?;
+        let transaction = self.begin_write()?;
         let scan_exists = transaction
             .query_row(
                 "SELECT EXISTS(SELECT 1 FROM scan_runs WHERE id = ?1)",
@@ -400,6 +1346,23 @@ impl SqliteCatalog {
                 "Another authoritative scan already owns this library root",
             ));
         }
+        if let Some(identity) = publication_identity {
+            let established = transaction
+                .query_row(
+                    "SELECT identity_scheme, identity_value
+                     FROM library_root_publication_namespaces WHERE root_id = ?1",
+                    [root_id],
+                    |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+                )
+                .optional()
+                .map_err(database_error)?;
+            if established.as_ref().is_some_and(|(scheme, value)| {
+                scheme != &identity.scheme || value != &identity.value
+            }) {
+                retire_root_change_queue(&transaction, root_id, now)?;
+                activate_root_change_queue(&transaction, root_id, now)?;
+            }
+        }
         let (root_generation_at_start, change_queue_high_watermark) = transaction
             .query_row(
                 "SELECT state.generation,
@@ -409,7 +1372,11 @@ impl SqliteCatalog {
                  LEFT JOIN library_change_queue AS queue
                    ON queue.root_id = state.root_id
                   AND queue.root_generation = state.generation
-                 WHERE state.root_id = ?1 AND state.is_active = 1
+                  AND NOT EXISTS(
+                    SELECT 1 FROM library_live_gap_recovery_claims AS claim
+                    WHERE claim.gap_change_id = queue.id
+                  )
+                  WHERE state.root_id = ?1 AND state.is_active = 1
                  GROUP BY state.generation",
                 [root_id],
                 |row| Ok((row.get::<_, i64>(0)?, row.get::<_, Option<i64>>(1)?)),
@@ -434,6 +1401,33 @@ impl SqliteCatalog {
                 ],
             )
             .map_err(database_error)?;
+        if let Some(identity) = publication_identity {
+            transaction
+                .execute(
+                    "INSERT INTO library_scan_publication_namespace_bindings(
+                       scan_id, root_id, root_generation, identity_scheme,
+                       identity_value, bound_unix_ms
+                     ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                    params![
+                        request.scan_id,
+                        root_id,
+                        root_generation_at_start,
+                        identity.scheme,
+                        identity.value,
+                        now,
+                    ],
+                )
+                .map_err(database_error)?;
+        }
+        if owner == ScanOwner::Foreground {
+            bind_explicit_recovery_claims_to_foreground_scan(
+                &transaction,
+                &request.scan_id,
+                root_id,
+                root_generation_at_start,
+                now,
+            )?;
+        }
         if let Some(high_watermark) = change_queue_high_watermark {
             transaction
                 .execute(
@@ -442,8 +1436,12 @@ impl SqliteCatalog {
                          lease_generation = lease_generation + 1,
                          lease_expires_unix_ms = ?1, updated_unix_ms = ?2,
                          authoritative_scan_id = ?3
-                     WHERE root_id = ?4 AND root_generation = ?5 AND id <= ?6
-                       AND status IN ('pending', 'retry_wait')",
+                      WHERE root_id = ?4 AND root_generation = ?5 AND id <= ?6
+                        AND status IN ('pending', 'retry_wait')
+                        AND NOT EXISTS(
+                          SELECT 1 FROM library_live_gap_recovery_claims AS claim
+                          WHERE claim.gap_change_id = library_change_queue.id
+                        )",
                     params![
                         now.saturating_add(SCAN_QUEUE_LEASE_MILLIS),
                         now,
@@ -467,8 +1465,12 @@ impl SqliteCatalog {
                            ON lineage.change_id = changes.id
                          WHERE changes.root_id = ?2
                            AND changes.root_generation = ?3
-                           AND changes.id <= ?4
-                           AND changes.status IN ('pending', 'leased', 'retry_wait')
+                            AND changes.id <= ?4
+                            AND changes.status IN ('pending', 'leased', 'retry_wait')
+                            AND NOT EXISTS(
+                              SELECT 1 FROM library_live_gap_recovery_claims AS claim
+                              WHERE claim.gap_change_id = changes.id
+                            )
                          GROUP BY lineage.catch_up_source, lineage.catch_up_watermark",
                     params![
                         request.scan_id,
@@ -509,11 +1511,12 @@ impl SqliteCatalog {
         root_id: &str,
         root_path: &str,
         owner: ScanOwner,
+        publication_identity: Option<&FileIdentityEvidence>,
     ) -> Result<ScanCheckpoint, ScanError> {
-        let transaction = self
-            .connection
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(database_error)?;
+        if let Some(identity) = publication_identity {
+            validate_root_publication_identity(identity)?;
+        }
+        let transaction = self.begin_write()?;
         let stored = transaction
             .query_row(
                 "SELECT scans.root_id, roots.path, scans.status,
@@ -592,6 +1595,38 @@ impl SqliteCatalog {
                 "The stored scan cannot be resumed with different identity, ownership, or parameters",
             ));
         }
+        if let Some(identity) = publication_identity {
+            let binding = transaction
+                .query_row(
+                    "SELECT root_id, root_generation, identity_scheme, identity_value
+                     FROM library_scan_publication_namespace_bindings WHERE scan_id = ?1",
+                    [&request.scan_id],
+                    |row| {
+                        Ok((
+                            row.get::<_, String>(0)?,
+                            row.get::<_, i64>(1)?,
+                            row.get::<_, String>(2)?,
+                            row.get::<_, String>(3)?,
+                        ))
+                    },
+                )
+                .optional()
+                .map_err(database_error)?;
+            if binding
+                .as_ref()
+                .is_none_or(|(binding_root, generation, scheme, value)| {
+                    binding_root != root_id
+                        || Some(*generation) != stored_root_generation
+                        || scheme != &identity.scheme
+                        || value != &identity.value
+                })
+            {
+                return Err(ScanError::new(
+                    "catalog_scan_publication_namespace_mismatch",
+                    "The stored scan lacks its original configured-root namespace binding",
+                ));
+            }
+        }
         let checkpoint = ScanCheckpoint {
             last_visited_relative_path,
             visited_entries: sqlite_unsigned(visited_entries, "visited entry count")?,
@@ -634,7 +1669,7 @@ impl SqliteCatalog {
         Ok(checkpoint)
     }
 
-    pub(crate) fn retire_legacy_consistency_audits(
+    pub(crate) fn retire_legacy_automatic_full_scans(
         &mut self,
         retired_unix_ms: i64,
     ) -> Result<u32, ScanError> {
@@ -646,20 +1681,6 @@ impl SqliteCatalog {
                      FROM scan_runs AS scans
                      WHERE scans.status IN ('running', 'paused')
                        AND scans.scan_owner = 'authoritative_recovery'
-                       AND EXISTS (
-                         SELECT 1 FROM library_change_queue AS changes
-                         WHERE changes.authoritative_scan_id = scans.id
-                           AND changes.status IN ('pending', 'leased', 'retry_wait')
-                           AND changes.origin = 'consistency_audit'
-                           AND changes.intent_kind = 'reconcile'
-                           AND changes.scope = 'root'
-                       )
-                       AND NOT EXISTS (
-                         SELECT 1 FROM library_change_queue AS changes
-                         WHERE changes.authoritative_scan_id = scans.id
-                           AND changes.status IN ('pending', 'leased', 'retry_wait')
-                           AND changes.origin <> 'consistency_audit'
-                       )
                      ORDER BY scans.id",
                 )
                 .map_err(database_error)?;
@@ -675,14 +1696,12 @@ impl SqliteCatalog {
             }
             scans
         };
+        let retired_scan_count = u32::try_from(scans.len()).unwrap_or(u32::MAX);
         for (scan_id, issue_count) in scans {
             self.abandon_scan(&scan_id, "superseded", issue_count)?;
         }
-        let transaction = self
-            .connection
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(database_error)?;
-        let retired = transaction
+        let transaction = self.begin_write()?;
+        transaction
             .execute(
                 "UPDATE library_change_queue
                  SET status = 'superseded', next_retry_unix_ms = NULL,
@@ -696,7 +1715,7 @@ impl SqliteCatalog {
             )
             .map_err(database_error)?;
         transaction.commit().map_err(database_error)?;
-        Ok(u32::try_from(retired).unwrap_or(u32::MAX))
+        Ok(retired_scan_count)
     }
 }
 
@@ -711,7 +1730,7 @@ impl CatalogRepository for SqliteCatalog {
         root_id: &str,
         root_path: &str,
     ) -> Result<ScanCheckpoint, ScanError> {
-        self.begin_scan_owned(request, root_id, root_path, ScanOwner::Foreground)
+        self.begin_scan_owned(request, root_id, root_path, ScanOwner::Foreground, None)
     }
 
     fn resume_scan(
@@ -720,7 +1739,7 @@ impl CatalogRepository for SqliteCatalog {
         root_id: &str,
         root_path: &str,
     ) -> Result<ScanCheckpoint, ScanError> {
-        self.resume_scan_owned(request, root_id, root_path, ScanOwner::Foreground)
+        self.resume_scan_owned(request, root_id, root_path, ScanOwner::Foreground, None)
     }
 
     #[cfg(test)]
@@ -735,9 +1754,11 @@ impl CatalogRepository for SqliteCatalog {
             root_id,
             root_path,
             ScanOwner::AuthoritativeRecovery,
+            None,
         )
     }
 
+    #[cfg(test)]
     fn resume_authoritative_scan(
         &mut self,
         request: &ScanRequest,
@@ -749,6 +1770,7 @@ impl CatalogRepository for SqliteCatalog {
             root_id,
             root_path,
             ScanOwner::AuthoritativeRecovery,
+            None,
         )
     }
 
@@ -886,10 +1908,7 @@ impl CatalogRepository for SqliteCatalog {
         artifact: Option<&PreviewArtifact>,
     ) -> Result<(), ScanError> {
         let file_size = sqlite_integer(location.file_size, "file size")?;
-        let transaction = self
-            .connection
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(database_error)?;
+        let transaction = self.begin_write()?;
         if let Some(artifact) = artifact {
             let artifact_bytes = sqlite_integer(artifact.byte_size, "preview artifact size")?;
             transaction
@@ -1057,10 +2076,7 @@ impl CatalogRepository for SqliteCatalog {
 
     fn reset_all_previews_for_cleanup(&mut self) -> Result<u64, ScanError> {
         self.flush_pending_locations()?;
-        let transaction = self
-            .connection
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(database_error)?;
+        let transaction = self.begin_write()?;
         let updated = transaction
             .execute(
                 "UPDATE asset_locations
@@ -1111,10 +2127,7 @@ impl CatalogRepository for SqliteCatalog {
             ));
         }
         self.flush_pending_locations()?;
-        let transaction = self
-            .connection
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(database_error)?;
+        let transaction = self.begin_write()?;
         let updated = transaction
             .execute(
                 "UPDATE asset_locations
@@ -1229,8 +2242,8 @@ impl CatalogRepository for SqliteCatalog {
                 "The preview artifact size exceeds the catalog range",
             )
         })?;
-        let updated = self
-            .connection
+        let transaction = self.begin_write()?;
+        let updated = transaction
             .execute(
                 "UPDATE preview_artifacts
                  SET byte_size = ?3
@@ -1239,6 +2252,7 @@ impl CatalogRepository for SqliteCatalog {
                 params![candidate.artifact_key, candidate.path, actual_bytes,],
             )
             .map_err(database_error)?;
+        transaction.commit().map_err(database_error)?;
         Ok(updated != 0)
     }
 
@@ -1246,10 +2260,7 @@ impl CatalogRepository for SqliteCatalog {
         &mut self,
         candidate: &PreviewReclamationCandidate,
     ) -> Result<bool, ScanError> {
-        let transaction = self
-            .connection
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(database_error)?;
+        let transaction = self.begin_write()?;
         transaction
             .execute(
                 "UPDATE asset_locations
@@ -1310,10 +2321,7 @@ impl CatalogRepository for SqliteCatalog {
         }
         let now = unix_time_ms();
         let oldest_retained = now.saturating_sub(60_000);
-        let transaction = self
-            .connection
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(database_error)?;
+        let transaction = self.begin_write()?;
         let mut statement = transaction
             .prepare_cached(
                 "UPDATE preview_artifacts
@@ -1431,10 +2439,7 @@ impl CatalogRepository for SqliteCatalog {
         &mut self,
         candidate: &PreviewReclamationCandidate,
     ) -> Result<bool, ScanError> {
-        let transaction = self
-            .connection
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(database_error)?;
+        let transaction = self.begin_write()?;
         transaction
             .execute(
                 "UPDATE asset_locations
@@ -1473,13 +2478,15 @@ impl CatalogRepository for SqliteCatalog {
     }
 
     fn record_issue(&mut self, scan_id: &str, issue: &ScanIssue) -> Result<(), ScanError> {
-        self.connection
+        let transaction = self.begin_write()?;
+        transaction
             .execute(
                 "INSERT OR IGNORE INTO scan_issues(scan_id, path, code, message)
                  VALUES (?1, ?2, ?3, ?4)",
                 params![scan_id, issue.path, issue.code, issue.message],
             )
             .map_err(database_error)?;
+        transaction.commit().map_err(database_error)?;
         Ok(())
     }
 
@@ -1492,8 +2499,8 @@ impl CatalogRepository for SqliteCatalog {
         let visited_entries = sqlite_integer(checkpoint.visited_entries, "visited entry count")?;
         let accepted_items = sqlite_integer(checkpoint.accepted_items, "accepted item count")?;
         let issue_count = sqlite_integer(checkpoint.issue_count, "issue count")?;
-        let updated = self
-            .connection
+        let transaction = self.begin_write()?;
+        let updated = transaction
             .execute(
                 "UPDATE scan_runs
                  SET last_visited_relative_path = ?2, visited_entries = ?3,
@@ -1516,6 +2523,7 @@ impl CatalogRepository for SqliteCatalog {
                 "The scan is no longer in a checkpointable running state",
             ));
         }
+        transaction.commit().map_err(database_error)?;
         Ok(())
     }
 
@@ -1527,6 +2535,7 @@ impl CatalogRepository for SqliteCatalog {
         load_scan_with_status(&self.connection, "paused", ScanOwner::Foreground)
     }
 
+    #[cfg(test)]
     fn load_authoritative_recoverable_scan_after(
         &self,
         after_scan_id: Option<&str>,
@@ -1542,10 +2551,7 @@ impl CatalogRepository for SqliteCatalog {
     }
 
     fn claim_next_directory(&mut self, scan_id: &str) -> Result<Option<String>, ScanError> {
-        let transaction = self
-            .connection
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(database_error)?;
+        let transaction = self.begin_write()?;
         let current = transaction
             .query_row(
                 "SELECT current_directory_relative_path
@@ -1631,10 +2637,7 @@ impl CatalogRepository for SqliteCatalog {
         if relative_paths.is_empty() {
             return Ok(());
         }
-        let transaction = self
-            .connection
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(database_error)?;
+        let transaction = self.begin_write()?;
         let is_enumerating: bool = transaction
             .query_row(
                 "SELECT EXISTS(
@@ -1675,8 +2678,8 @@ impl CatalogRepository for SqliteCatalog {
         scan_id: &str,
         relative_directory: &str,
     ) -> Result<(), ScanError> {
-        let updated = self
-            .connection
+        let transaction = self.begin_write()?;
+        let updated = transaction
             .execute(
                 "UPDATE scan_runs SET current_directory_enumerated = 1
                  WHERE id = ?1 AND status = 'running'
@@ -1691,6 +2694,7 @@ impl CatalogRepository for SqliteCatalog {
                 "The current directory enumeration could not be completed",
             ));
         }
+        transaction.commit().map_err(database_error)?;
         Ok(())
     }
 
@@ -1769,10 +2773,7 @@ impl CatalogRepository for SqliteCatalog {
     }
 
     fn enqueue_directory(&mut self, scan_id: &str, relative_path: &str) -> Result<(), ScanError> {
-        let transaction = self
-            .connection
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(database_error)?;
+        let transaction = self.begin_write()?;
         let is_running: bool = transaction
             .query_row(
                 "SELECT EXISTS(
@@ -1807,10 +2808,7 @@ impl CatalogRepository for SqliteCatalog {
         let visited_entries = sqlite_integer(checkpoint.visited_entries, "visited entry count")?;
         let accepted_items = sqlite_integer(checkpoint.accepted_items, "accepted item count")?;
         let issue_count = sqlite_integer(checkpoint.issue_count, "issue count")?;
-        let transaction = self
-            .connection
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(database_error)?;
+        let transaction = self.begin_write()?;
         let current_directory = transaction
             .query_row(
                 "SELECT current_directory_relative_path FROM scan_runs
@@ -1866,8 +2864,8 @@ impl CatalogRepository for SqliteCatalog {
         let visited_entries = sqlite_integer(checkpoint.visited_entries, "visited entry count")?;
         let accepted_items = sqlite_integer(checkpoint.accepted_items, "accepted item count")?;
         let issue_count = sqlite_integer(checkpoint.issue_count, "issue count")?;
-        let updated = self
-            .connection
+        let transaction = self.begin_write()?;
+        let updated = transaction
             .execute(
                 "UPDATE scan_runs
                  SET status = 'paused', last_visited_relative_path = ?2,
@@ -1890,6 +2888,7 @@ impl CatalogRepository for SqliteCatalog {
                 "The scan is no longer in a pausable running state",
             ));
         }
+        transaction.commit().map_err(database_error)?;
         Ok(())
     }
 
@@ -1980,10 +2979,7 @@ impl CatalogRepository for SqliteCatalog {
         self.flush_pending_locations()?;
         let asset_count = sqlite_integer(asset_count, "asset count")?;
         let issue_count = sqlite_integer(issue_count, "issue count")?;
-        let transaction = self
-            .connection
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(database_error)?;
+        let transaction = self.begin_write()?;
         let (
             previous_active_scan,
             root_generation_at_start,
@@ -2044,6 +3040,33 @@ impl CatalogRepository for SqliteCatalog {
             return Err(ScanError::new(
                 "catalog_scan_root_generation_changed",
                 "The library root changed while the authoritative scan was running",
+            ));
+        }
+        let publication_binding = transaction
+            .query_row(
+                "SELECT root_generation, identity_scheme, identity_value
+                 FROM library_scan_publication_namespace_bindings
+                 WHERE scan_id = ?1 AND root_id = ?2",
+                params![scan_id, root_id],
+                |row| {
+                    Ok((
+                        row.get::<_, i64>(0)?,
+                        FileIdentityEvidence {
+                            scheme: row.get(1)?,
+                            value: row.get(2)?,
+                        },
+                    ))
+                },
+            )
+            .optional()
+            .map_err(database_error)?;
+        if publication_binding
+            .as_ref()
+            .is_some_and(|(generation, _)| *generation != root_generation_at_start)
+        {
+            return Err(ScanError::new(
+                "catalog_scan_publication_namespace_mismatch",
+                "The scan namespace binding no longer belongs to its root generation",
             ));
         }
         let completed_unix_ms = unix_time_ms();
@@ -2130,6 +3153,40 @@ impl CatalogRepository for SqliteCatalog {
             ));
         }
         let published_revision = load_catalog_revision(&transaction)?;
+        if let Some((_, identity)) = publication_binding.as_ref() {
+            establish_root_publication_namespace(
+                &transaction,
+                root_id,
+                root_generation_at_start,
+                identity,
+                "foreground_scan",
+                published_revision,
+                completed_unix_ms,
+            )?;
+            let deleted = transaction
+                .execute(
+                    "DELETE FROM library_scan_publication_namespace_bindings
+                     WHERE scan_id = ?1 AND root_id = ?2 AND root_generation = ?3",
+                    params![scan_id, root_id, root_generation_at_start],
+                )
+                .map_err(database_error)?;
+            if deleted != 1 {
+                return Err(ScanError::new(
+                    "catalog_scan_publication_namespace_raced",
+                    "The scan namespace binding changed during catalog publication",
+                ));
+            }
+        }
+        if scan_owner == ScanOwner::Foreground.as_str() {
+            consume_foreground_recovery_claims(
+                &transaction,
+                scan_id,
+                root_id,
+                root_generation_at_start,
+                published_revision,
+                completed_unix_ms,
+            )?;
+        }
         if let Some(high_watermark) = change_queue_high_watermark {
             transaction
                 .execute(
@@ -2138,8 +3195,12 @@ impl CatalogRepository for SqliteCatalog {
                          lease_expires_unix_ms = NULL,
                          catalog_revision_at_success = ?1, updated_unix_ms = ?2,
                          authoritative_scan_id = NULL
-                     WHERE root_id = ?3 AND root_generation = ?4 AND id <= ?5
-                       AND status IN ('pending', 'leased', 'retry_wait')",
+                      WHERE root_id = ?3 AND root_generation = ?4 AND id <= ?5
+                        AND status IN ('pending', 'leased', 'retry_wait')
+                        AND NOT EXISTS(
+                          SELECT 1 FROM library_live_gap_recovery_claims AS claim
+                          WHERE claim.gap_change_id = library_change_queue.id
+                        )",
                     params![
                         sqlite_integer(published_revision, "catalog revision")?,
                         completed_unix_ms,
@@ -2213,6 +3274,12 @@ impl CatalogRepository for SqliteCatalog {
             .map_err(database_error)?;
         transaction
             .execute(
+                "DELETE FROM library_scan_publication_namespace_bindings WHERE scan_id = ?1",
+                [scan_id],
+            )
+            .map_err(database_error)?;
+        transaction
+            .execute(
                 "UPDATE library_change_root_state
                  SET last_consistency_audit_unix_ms = ?2, updated_unix_ms = ?2
                  WHERE root_id = ?1 AND generation = ?3 AND is_active = 1",
@@ -2232,10 +3299,7 @@ impl CatalogRepository for SqliteCatalog {
             .retain(|pending| pending.scan_id != scan_id);
         let issue_count = sqlite_integer(issue_count, "issue count")?;
         let now = unix_time_ms();
-        let transaction = self
-            .connection
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(database_error)?;
+        let transaction = self.begin_write()?;
         let abandoned = transaction
             .execute(
                 "UPDATE scan_runs
@@ -2243,18 +3307,23 @@ impl CatalogRepository for SqliteCatalog {
                      current_directory_relative_path = NULL,
                      current_directory_enumerated = 0,
                      last_visited_relative_path = NULL
-                 WHERE id = ?1 AND status = 'running'",
+                 WHERE id = ?1 AND status IN ('running', 'paused')",
                 params![scan_id, status, now, issue_count],
             )
             .map_err(database_error)?;
         if abandoned == 1 {
+            restore_explicit_recovery_claims_from_foreground_scan(&transaction, scan_id, now)?;
             transaction
                 .execute(
                     "UPDATE library_change_queue
                      SET status = 'pending', ready_unix_ms = ?2,
                          next_retry_unix_ms = NULL, lease_expires_unix_ms = NULL,
                          authoritative_scan_id = NULL, updated_unix_ms = ?2
-                     WHERE authoritative_scan_id = ?1 AND status = 'leased'",
+                      WHERE authoritative_scan_id = ?1 AND status = 'leased'
+                        AND NOT EXISTS(
+                          SELECT 1 FROM library_live_gap_recovery_claims AS claim
+                          WHERE claim.gap_change_id = library_change_queue.id
+                        )",
                     params![scan_id, now],
                 )
                 .map_err(database_error)?;
@@ -2282,6 +3351,12 @@ impl CatalogRepository for SqliteCatalog {
         transaction
             .execute(
                 "DELETE FROM scan_directory_entries WHERE scan_id = ?1",
+                [scan_id],
+            )
+            .map_err(database_error)?;
+        transaction
+            .execute(
+                "DELETE FROM library_scan_publication_namespace_bindings WHERE scan_id = ?1",
                 [scan_id],
             )
             .map_err(database_error)?;
@@ -2777,10 +3852,7 @@ impl CatalogRepository for SqliteCatalog {
 
     fn unregister_root(&mut self, root_id: &str) -> Result<bool, ScanError> {
         self.flush_pending_locations()?;
-        let transaction = self
-            .connection
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(database_error)?;
+        let transaction = self.begin_write()?;
         let root_exists = transaction
             .query_row(
                 "SELECT EXISTS(SELECT 1 FROM library_roots WHERE id = ?1)",
@@ -2849,6 +3921,132 @@ fn load_catalog_revision(transaction: &Transaction<'_>) -> Result<u64, ScanError
         })
         .map_err(database_error)?;
     sqlite_unsigned(revision, "catalog revision")
+}
+
+fn validate_root_publication_identity(identity: &FileIdentityEvidence) -> Result<(), ScanError> {
+    let value = identity.value.as_bytes();
+    let valid = identity.scheme == "windows-file-id-128-v1"
+        && value.len() == 49
+        && value.get(16) == Some(&b':')
+        && value.iter().enumerate().all(|(index, byte)| {
+            index == 16 || byte.is_ascii_digit() || (b'a'..=b'f').contains(byte)
+        });
+    if valid {
+        Ok(())
+    } else {
+        Err(ScanError::new(
+            "catalog_root_publication_namespace_identity_invalid",
+            "Configured-root publication requires canonical full Windows file identity evidence",
+        ))
+    }
+}
+
+pub(super) fn establish_root_publication_namespace(
+    transaction: &Transaction<'_>,
+    root_id: &str,
+    root_generation: i64,
+    identity: &FileIdentityEvidence,
+    authority_kind: &str,
+    catalog_revision: u64,
+    established_unix_ms: i64,
+) -> Result<(), ScanError> {
+    validate_root_publication_identity(identity)?;
+    if root_generation <= 0
+        || established_unix_ms < 0
+        || !matches!(authority_kind, "metadata_inventory" | "foreground_scan")
+    {
+        return Err(ScanError::new(
+            "catalog_root_publication_namespace_invalid",
+            "Configured-root publication authority is outside the supported contract",
+        ));
+    }
+    let is_current = transaction
+        .query_row(
+            "SELECT EXISTS(
+               SELECT 1 FROM library_change_root_state
+               WHERE root_id = ?1 AND generation = ?2 AND is_active = 1
+             )",
+            params![root_id, root_generation],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    if !is_current {
+        return Err(ScanError::new(
+            "catalog_root_publication_namespace_generation_stale",
+            "Configured-root publication authority no longer belongs to the active generation",
+        ));
+    }
+    let existing = transaction
+        .query_row(
+            "SELECT root_generation, identity_scheme, identity_value
+             FROM library_root_publication_namespaces WHERE root_id = ?1",
+            [root_id],
+            |row| {
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            },
+        )
+        .optional()
+        .map_err(database_error)?;
+    if existing
+        .as_ref()
+        .is_some_and(|(generation, scheme, value)| {
+            *generation != root_generation || scheme != &identity.scheme || value != &identity.value
+        })
+    {
+        return Err(ScanError::new(
+            "catalog_root_publication_namespace_conflict",
+            "Configured-root publication evidence conflicts with the active authority",
+        ));
+    }
+    let catalog_revision = sqlite_integer(catalog_revision, "catalog revision")?;
+    if existing.is_some() {
+        let updated = transaction
+            .execute(
+                "UPDATE library_root_publication_namespaces
+                 SET authority_kind = ?2, updated_unix_ms = MAX(updated_unix_ms, ?3)
+                 WHERE root_id = ?1 AND root_generation = ?4
+                   AND identity_scheme = ?5 AND identity_value = ?6",
+                params![
+                    root_id,
+                    authority_kind,
+                    established_unix_ms,
+                    root_generation,
+                    identity.scheme,
+                    identity.value,
+                ],
+            )
+            .map_err(database_error)?;
+        if updated != 1 {
+            return Err(ScanError::new(
+                "catalog_root_publication_namespace_raced",
+                "Configured-root publication authority changed during atomic publication",
+            ));
+        }
+    } else {
+        transaction
+            .execute(
+                "INSERT INTO library_root_publication_namespaces(
+                   root_id, root_generation, identity_scheme, identity_value,
+                   authority_kind, established_catalog_revision,
+                   established_unix_ms, updated_unix_ms
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?7)",
+                params![
+                    root_id,
+                    root_generation,
+                    identity.scheme,
+                    identity.value,
+                    authority_kind,
+                    catalog_revision,
+                    established_unix_ms,
+                ],
+            )
+            .map_err(database_error)?;
+    }
+    Ok(())
 }
 
 fn load_root_views(transaction: &Transaction<'_>) -> Result<Vec<LibraryRootView>, ScanError> {
@@ -3266,6 +4464,7 @@ fn load_scan_with_status(
         .transpose()
 }
 
+#[cfg(test)]
 fn load_scans_with_status(
     connection: &Connection,
     status: &str,
@@ -3338,6 +4537,7 @@ fn load_scans_with_status(
 
 fn database_error(error: rusqlite::Error) -> ScanError {
     if let rusqlite::Error::SqliteFailure(failure, _) = &error {
+        read_retry::record_database_error_code(failure.code);
         match failure.code {
             rusqlite::ErrorCode::DatabaseBusy => {
                 return ScanError::new(
@@ -3349,6 +4549,14 @@ fn database_error(error: rusqlite::Error) -> ScanError {
                 return ScanError::new(
                     "catalog_database_locked",
                     format!("The catalog database is locked: {error}"),
+                );
+            }
+            rusqlite::ErrorCode::FileLockingProtocolFailed => {
+                return ScanError::new(
+                    "catalog_database_protocol",
+                    format!(
+                        "The catalog database read protocol could not acquire WAL state: {error}"
+                    ),
                 );
             }
             _ => {}

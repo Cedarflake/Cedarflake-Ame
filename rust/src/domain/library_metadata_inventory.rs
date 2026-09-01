@@ -1,4 +1,76 @@
-use super::{FileIdentityEvidence, LibraryRootGeneration};
+use super::{
+    FileIdentityEvidence, JournalFileReference, JournalIdentifier, JournalUsn, LibraryChangeId,
+    LibraryRootGeneration, PERSISTENT_JOURNAL_CONTRACT_VERSION, PersistentJournalVolumeIdentity,
+    ScanError,
+};
+
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+pub enum LibraryRecoveryAuthorityReason {
+    ExistingRootBaseline,
+    FirstImportBoundary,
+    JournalGap,
+    JournalReset,
+    JournalTrim,
+    JournalReconstructionFailure,
+    ContainmentFailure,
+    BrokerAfterCurrentFailure,
+    WatcherUncoveredGap,
+}
+
+impl LibraryRecoveryAuthorityReason {
+    pub const fn requires_opening_boundary(self) -> bool {
+        matches!(self, Self::ExistingRootBaseline | Self::FirstImportBoundary)
+    }
+
+    pub const fn is_journal_continuity_failure(self) -> bool {
+        matches!(
+            self,
+            Self::JournalGap
+                | Self::JournalReset
+                | Self::JournalTrim
+                | Self::JournalReconstructionFailure
+                | Self::ContainmentFailure
+                | Self::BrokerAfterCurrentFailure
+        )
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LibraryRecoveryOpeningBoundary {
+    pub volume: PersistentJournalVolumeIdentity,
+    pub root_file_reference: JournalFileReference,
+    pub journal_id: JournalIdentifier,
+    pub next_usn: JournalUsn,
+    pub protocol_version: u16,
+    pub contract_version: u16,
+}
+
+impl LibraryRecoveryOpeningBoundary {
+    pub fn validate(&self) -> Result<(), ScanError> {
+        self.volume.validate()?;
+        if self.protocol_version == 0
+            || self.contract_version != PERSISTENT_JOURNAL_CONTRACT_VERSION
+        {
+            return Err(ScanError::new(
+                "metadata_inventory_recovery_opening_boundary_invalid",
+                "The recovery opening boundary identity is invalid",
+            ));
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LibraryRecoveryAuthority {
+    pub change_id: LibraryChangeId,
+    pub run_id: String,
+    pub root_id: String,
+    pub root_generation: LibraryRootGeneration,
+    pub reason: LibraryRecoveryAuthorityReason,
+    pub opening_boundary: Option<LibraryRecoveryOpeningBoundary>,
+    pub authorized_unix_ms: i64,
+    pub retired_unix_ms: Option<i64>,
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum MetadataInventoryScope {
@@ -41,12 +113,63 @@ pub struct MetadataInventoryEntry {
     pub is_reparse_point: bool,
 }
 
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+pub enum MetadataInventoryFrontierState {
+    Pending,
+    Enumerating,
+    Completed,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MetadataInventoryFrontierEntry {
+    pub ordinal: u64,
+    pub relative_directory: String,
+    pub state: MetadataInventoryFrontierState,
+    pub directory_identity: Option<FileIdentityEvidence>,
+    pub resume_after_relative_path: Option<String>,
+    pub enumerated_entry_count: u64,
+}
+
+impl MetadataInventoryFrontierEntry {
+    pub fn enumerating(
+        ordinal: u64,
+        relative_directory: impl Into<String>,
+        directory_identity: Option<FileIdentityEvidence>,
+        resume_after_relative_path: Option<String>,
+        enumerated_entry_count: u64,
+    ) -> Self {
+        Self {
+            ordinal,
+            relative_directory: relative_directory.into(),
+            state: MetadataInventoryFrontierState::Enumerating,
+            directory_identity,
+            resume_after_relative_path,
+            enumerated_entry_count,
+        }
+    }
+
+    pub fn completed(
+        relative_directory: impl Into<String>,
+        directory_identity: Option<FileIdentityEvidence>,
+    ) -> Self {
+        Self {
+            ordinal: 0,
+            relative_directory: relative_directory.into(),
+            state: MetadataInventoryFrontierState::Completed,
+            directory_identity,
+            resume_after_relative_path: None,
+            enumerated_entry_count: 0,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MetadataInventoryPage {
     pub page_index: u64,
     pub entries: Vec<MetadataInventoryEntry>,
     pub cursor: Option<String>,
     pub is_complete: bool,
+    pub frontier: Vec<MetadataInventoryFrontierEntry>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -94,6 +217,7 @@ pub struct MetadataInventoryRun {
     pub completed_unix_ms: Option<i64>,
     pub last_issue_code: Option<String>,
     pub last_issue_message: Option<String>,
+    pub frontier: Vec<MetadataInventoryFrontierEntry>,
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -126,6 +250,7 @@ pub struct MetadataInventoryReport {
     pub coalesced_count: u64,
     pub superseded_count: u64,
     pub cleanup_pending: bool,
+    pub awaiting_closing_boundary: bool,
     pub is_complete: bool,
     pub is_cancelled: bool,
     pub is_backpressured: bool,

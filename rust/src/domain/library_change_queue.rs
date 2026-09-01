@@ -1,4 +1,4 @@
-use super::{LibraryChangeCatchUpEvidence, LibraryChangeIntent};
+use super::{LibraryChangeCatchUpEvidence, LibraryChangeIntent, LibraryChangeLane};
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct LibraryChangeId(u64);
@@ -26,6 +26,33 @@ pub enum LibraryChangeQueueStatus {
 pub struct LibraryChangeFailure {
     pub code: String,
     pub message: String,
+}
+
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+pub enum LibraryChangeCapacityDeferral {
+    MetadataInventoryLane,
+}
+
+impl LibraryChangeCapacityDeferral {
+    pub const RESERVED_FAILURE_CODE_PREFIX: &'static str = "live_gap_p2_capacity_";
+
+    pub const fn failure_code(self) -> &'static str {
+        match self {
+            Self::MetadataInventoryLane => "live_gap_p2_capacity_deferred",
+        }
+    }
+
+    pub const fn failure_message(self) -> &'static str {
+        match self {
+            Self::MetadataInventoryLane => {
+                "The P0 live gap is durably waiting for P2 metadata-inventory capacity"
+            }
+        }
+    }
+
+    pub fn is_reserved_failure_code(code: &str) -> bool {
+        code.starts_with(Self::RESERVED_FAILURE_CODE_PREFIX)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -96,6 +123,33 @@ impl LibraryChangeQueuePolicy {
             && self.cleanup_batch > 0
             && self.cleanup_batch <= Self::MAX_CLEANUP_BATCH
     }
+
+    pub const fn lane_capacity(self, lane: LibraryChangeLane) -> u32 {
+        let proportional_reserve = self.max_unresolved_changes / 8;
+        let priority_reserve = if proportional_reserve == 0 {
+            1
+        } else {
+            proportional_reserve
+        };
+        let journal_capacity = self.max_unresolved_changes.saturating_sub(priority_reserve);
+        match lane {
+            LibraryChangeLane::Live => self.max_unresolved_changes,
+            LibraryChangeLane::Journal => journal_capacity,
+            LibraryChangeLane::Recovery => {
+                let journal_reserve = if journal_capacity > 1 {
+                    let available = journal_capacity - 1;
+                    if priority_reserve < available {
+                        priority_reserve
+                    } else {
+                        available
+                    }
+                } else {
+                    0
+                };
+                journal_capacity.saturating_sub(journal_reserve)
+            }
+        }
+    }
 }
 
 impl Default for LibraryChangeQueuePolicy {
@@ -153,5 +207,6 @@ pub struct LibraryChangeQueueMetrics {
     pub exhausted_retry_count: u64,
     pub latest_exhausted_failure_code: Option<String>,
     pub freshness_unknown_count: u64,
+    pub explicit_recovery_required_count: u64,
     pub oldest_ready_delay_millis: u64,
 }

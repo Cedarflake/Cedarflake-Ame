@@ -2,19 +2,24 @@ use std::fs;
 use std::path::Path;
 
 use image::{ImageFormat, Rgba, RgbaImage};
+use rusqlite::Connection;
 use tempfile::{TempDir, tempdir};
 
 use crate::adapters::SqliteCatalog;
 use crate::application::StoragePaths;
 use crate::application::metadata_inventory::{
-    leased_change_requires_metadata_inventory, process_leased_metadata_inventory_change,
+    MetadataInventoryRecoveryExecution, leased_change_requires_metadata_inventory,
+    process_leased_metadata_inventory_change_with_retained_source,
 };
 use crate::application::scan_library::run_scan_with_storage;
 use crate::domain::{
-    IncrementalCatalogRoot, LibraryChangeIntent, LibraryChangeOrigin, LibraryChangeQueuePolicy,
-    ScanRequest,
+    IncrementalCatalogRoot, JournalFileReference, JournalIdentifier, JournalUsn,
+    LibraryChangeIntent, LibraryChangeOrigin, LibraryChangeQueuePolicy,
+    PersistentJournalBaselineClosingBoundary, PersistentJournalCapability,
+    PersistentJournalCapabilityState, PersistentJournalCheckpoint,
+    PersistentJournalContinuityState, PersistentJournalVolumeIdentity, ScanRequest,
 };
-use crate::ports::{IncrementalCatalogRepository, LibraryChangeQueue};
+use crate::ports::{IncrementalCatalogRepository, LibraryChangeQueue, PersistentJournalRepository};
 
 use super::*;
 
@@ -34,6 +39,131 @@ fn recovery_policy_rejects_unbounded_or_zero_limits() {
             ..AuthoritativeRecoveryPolicy::default()
         }
         .is_valid()
+    );
+}
+
+#[cfg(windows)]
+#[test]
+fn bounded_root_recovery_without_v29_publication_proof_reads_nothing_and_retries() {
+    let source = tempdir().expect("source directory");
+    let storage = tempdir().expect("storage directory");
+    write_png(&source.path().join("existing.png"), [10, 20, 30, 255]);
+    let paths = fixture_storage(&storage);
+    publish_initial_scan(&source, paths.clone(), "root-proof-baseline");
+    let mut catalog = SqliteCatalog::open(paths.catalog_path.clone()).expect("catalog");
+    let root = only_root(&catalog);
+    remove_publication_namespace_proof(&paths.catalog_path, &root.root_id);
+    write_png(
+        &source.path().join("must-not-publish.png"),
+        [40, 50, 60, 255],
+    );
+    enqueue_intent(&mut catalog, root_gap_intent(&root), 1_500);
+
+    let report = process_ready_authoritative_library_change(
+        &mut catalog,
+        &root.root_id,
+        root.root_generation,
+        1_500,
+        immediate_queue_policy(),
+        fixture_recovery_policy(),
+    )
+    .expect("missing proof remains retryable");
+
+    assert_eq!(report.incremental.completed_count, 0);
+    assert_eq!(report.incremental.applied_mutation_count, 0);
+    assert_eq!(report.incremental.retried_count, 1);
+    assert_eq!(only_root(&catalog).catalog_revision, root.catalog_revision);
+    assert!(
+        catalog
+            .load_incremental_location_by_relative_path(&root.root_id, "must-not-publish.png")
+            .expect("new location query")
+            .is_none()
+    );
+}
+
+#[cfg(windows)]
+#[test]
+fn bounded_subtree_recovery_without_v29_publication_proof_publishes_nothing() {
+    let source = tempdir().expect("source directory");
+    let storage = tempdir().expect("storage directory");
+    let album = source.path().join("album");
+    fs::create_dir(&album).expect("album directory");
+    write_png(&album.join("existing.png"), [10, 20, 30, 255]);
+    let paths = fixture_storage(&storage);
+    publish_initial_scan(&source, paths.clone(), "subtree-proof-baseline");
+    let mut catalog = SqliteCatalog::open(paths.catalog_path.clone()).expect("catalog");
+    let root = only_root(&catalog);
+    remove_publication_namespace_proof(&paths.catalog_path, &root.root_id);
+    write_png(&album.join("must-not-publish.png"), [40, 50, 60, 255]);
+    enqueue_intent(
+        &mut catalog,
+        subtree_intent(&root, LibraryChangeIntentKind::Reconcile, "album", None),
+        1_600,
+    );
+
+    let report = process_ready_authoritative_library_change(
+        &mut catalog,
+        &root.root_id,
+        root.root_generation,
+        1_600,
+        immediate_queue_policy(),
+        fixture_recovery_policy(),
+    )
+    .expect("missing subtree proof remains retryable");
+
+    assert_eq!(report.incremental.completed_count, 0);
+    assert_eq!(report.incremental.applied_mutation_count, 0);
+    assert_eq!(report.incremental.retried_count, 1);
+    assert_eq!(only_root(&catalog).catalog_revision, root.catalog_revision);
+    assert!(
+        catalog
+            .load_incremental_location_by_relative_path(
+                &root.root_id,
+                "album/must-not-publish.png",
+            )
+            .expect("new subtree location query")
+            .is_none()
+    );
+}
+
+#[cfg(windows)]
+#[test]
+fn bounded_p2_authoritative_recovery_without_v29_proof_publishes_nothing() {
+    let source = tempdir().expect("source directory");
+    let storage = tempdir().expect("storage directory");
+    write_png(&source.path().join("existing.png"), [10, 20, 30, 255]);
+    let paths = fixture_storage(&storage);
+    publish_initial_scan(&source, paths.clone(), "p2-proof-baseline");
+    let mut catalog = SqliteCatalog::open(paths.catalog_path.clone()).expect("catalog");
+    let root = only_root(&catalog);
+    remove_publication_namespace_proof(&paths.catalog_path, &root.root_id);
+    write_png(
+        &source.path().join("must-not-publish.png"),
+        [40, 50, 60, 255],
+    );
+    let mut p2 = root_gap_intent(&root);
+    p2.origin = LibraryChangeOrigin::ConsistencyAudit;
+    enqueue_intent(&mut catalog, p2, 1_700);
+
+    let report = process_ready_authoritative_library_change(
+        &mut catalog,
+        &root.root_id,
+        root.root_generation,
+        1_700,
+        immediate_queue_policy(),
+        fixture_recovery_policy(),
+    )
+    .expect("missing P2 proof remains retryable");
+
+    assert_eq!(report.incremental.completed_count, 0);
+    assert_eq!(report.incremental.applied_mutation_count, 0);
+    assert_eq!(report.incremental.retried_count, 1);
+    assert_eq!(only_root(&catalog).catalog_revision, root.catalog_revision);
+    assert!(
+        catalog
+            .load_incremental_location_by_relative_path(&root.root_id, "must-not-publish.png")
+            .expect("new P2 location query")
+            .is_none()
     );
 }
 
@@ -100,7 +230,7 @@ fn bounded_subtree_reconciles_addition_and_removal_at_one_revision() {
 }
 
 #[test]
-fn oversized_authoritative_scope_retries_for_metadata_inventory_without_publishing() {
+fn root_live_gap_waits_for_durable_journal_range_without_publishing() {
     let source = tempdir().expect("source directory");
     let storage = tempdir().expect("storage directory");
     write_png(&source.path().join("one.png"), [10, 20, 30, 255]);
@@ -109,6 +239,7 @@ fn oversized_authoritative_scope_retries_for_metadata_inventory_without_publishi
     publish_initial_scan(&source, paths.clone(), "initial-overflow-scan");
     let mut catalog = SqliteCatalog::open(paths.catalog_path.clone()).expect("catalog");
     let root = only_root(&catalog);
+    seed_current_journal_authority(&mut catalog, &root, 2_900);
     enqueue_intent(&mut catalog, root_gap_intent(&root), 3_000);
 
     let report = process_ready_authoritative_library_change(
@@ -117,12 +248,9 @@ fn oversized_authoritative_scope_retries_for_metadata_inventory_without_publishi
         root.root_generation,
         3_000,
         immediate_queue_policy(),
-        AuthoritativeRecoveryPolicy {
-            max_scope_entries: 1,
-            max_scope_paths: 1,
-        },
+        fixture_recovery_policy(),
     )
-    .expect("bounded metadata retry");
+    .expect("durable journal ownership retry");
     let metrics = catalog
         .load_library_change_root_queue_metrics(
             &root.root_id,
@@ -136,7 +264,347 @@ fn oversized_authoritative_scope_retries_for_metadata_inventory_without_publishi
     assert_eq!(report.incremental.applied_mutation_count, 0);
     assert_eq!(report.incremental.catalog_revision, root.catalog_revision);
     assert_eq!(metrics.retry_wait_count, 1);
+    assert_eq!(metrics.pending_count, 0);
     assert_eq!(only_root(&catalog).catalog_revision, root.catalog_revision);
+    let connection = Connection::open(&paths.catalog_path).expect("live-gap evidence catalog");
+    let evidence: (
+        String,
+        String,
+        String,
+        String,
+        String,
+        String,
+        i64,
+        i64,
+        i64,
+    ) = connection
+        .query_row(
+            "SELECT gap.origin, lane.lane, gap.intent_kind, gap.scope, gap.status,
+                    claim.consumer_kind,
+                    (SELECT COUNT(*) FROM library_change_queue_lanes
+                     WHERE lane = 'p2_recovery'),
+                    (SELECT COUNT(*) FROM library_recovery_authorities
+                     WHERE reason = 'watcher_uncovered_gap'),
+                    (SELECT COUNT(*) FROM scan_runs)
+             FROM library_change_queue AS gap
+             JOIN library_change_queue_lanes AS lane ON lane.change_id = gap.id
+             JOIN library_live_gap_recovery_claims AS claim
+               ON claim.gap_change_id = gap.id
+             WHERE gap.root_id = ?1 AND gap.origin = 'live_notification'
+               AND gap.intent_kind = 'freshness_unknown'
+               AND gap.scope = 'root' AND gap.relative_path = ''",
+            [&root.root_id],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                    row.get(5)?,
+                    row.get(6)?,
+                    row.get(7)?,
+                    row.get(8)?,
+                ))
+            },
+        )
+        .expect("durable pending journal claim");
+    assert_eq!(
+        evidence,
+        (
+            "live_notification".to_owned(),
+            "p0_live".to_owned(),
+            "freshness_unknown".to_owned(),
+            "root".to_owned(),
+            "retry_wait".to_owned(),
+            "pending_journal".to_owned(),
+            0,
+            0,
+            1,
+        )
+    );
+}
+
+#[cfg(windows)]
+#[test]
+fn root_live_gap_capacity_deferral_survives_the_terminal_retry_budget() {
+    let public_root = std::env::var_os("PUBLIC").expect("Windows public profile path");
+    let public_documents = std::path::PathBuf::from(public_root).join("Documents");
+    let source = tempfile::tempdir_in(public_documents).expect("public disposable source");
+    let storage = tempdir().expect("storage directory");
+    write_png(&source.path().join("existing.png"), [10, 20, 30, 255]);
+    let paths = fixture_storage(&storage);
+    publish_initial_scan(&source, paths.clone(), "live-gap-capacity-baseline");
+    let mut catalog = SqliteCatalog::open(paths.catalog_path.clone()).expect("catalog");
+    let root = only_root(&catalog);
+    let active_scan_id = root.active_scan_id.clone();
+    catalog
+        .save_persistent_journal_capability(&PersistentJournalCapability {
+            root_id: root.root_id.clone(),
+            root_generation: root.root_generation,
+            protocol_version: 5,
+            contract_version: 1,
+            state: PersistentJournalCapabilityState::LiveOnly,
+            continuity: PersistentJournalContinuityState::LiveOnly,
+            failure: None,
+            updated_unix_ms: 3_900,
+        })
+        .expect("live-only journal capability");
+    let capacity_policy = LibraryChangeQueuePolicy {
+        max_unresolved_changes: 2,
+        max_lease_batch: 1,
+        ..immediate_queue_policy()
+    };
+    let mut journal = subtree_intent(
+        &root,
+        LibraryChangeIntentKind::Reconcile,
+        "journal-owned.jpg",
+        None,
+    );
+    journal.origin = LibraryChangeOrigin::StartupCatchUp;
+    journal.scope = LibraryChangeScope::Path;
+    catalog
+        .enqueue_library_change_intents(&[journal], 4_000, capacity_policy)
+        .expect("fill P1 allowance");
+    catalog
+        .enqueue_library_change_intents(&[root_gap_intent(&root)], 4_001, capacity_policy)
+        .expect("use reserved P0 admission");
+
+    for capacity_attempt in 0..=capacity_policy.max_attempts {
+        let observed_unix_ms = 4_001 + i64::from(capacity_attempt) * 100;
+        let leased = catalog
+            .lease_live_authoritative_library_change(
+                &root.root_id,
+                root.root_generation,
+                observed_unix_ms,
+                capacity_policy,
+            )
+            .expect("lease P0 capacity gap")
+            .expect("capacity deferral must not exhaust the P0 gap");
+        let report = process_leased_authoritative_library_change_cancellable(
+            &mut catalog,
+            &root,
+            &leased,
+            observed_unix_ms,
+            capacity_policy,
+            fixture_recovery_policy(),
+            &AtomicBool::new(false),
+        )
+        .expect("capacity backpressure remains retryable");
+        assert_eq!(
+            report.incremental.retried_count, 1,
+            "capacity authoritative report: {report:?}"
+        );
+        assert_eq!(report.incremental.applied_mutation_count, 0);
+    }
+    assert_eq!(only_root(&catalog).active_scan_id, active_scan_id);
+
+    let connection = Connection::open(&paths.catalog_path).expect("capacity evidence catalog");
+    type CapacityRollbackEvidence = (
+        String,
+        String,
+        String,
+        String,
+        String,
+        String,
+        Option<i64>,
+        Option<i64>,
+        i64,
+        i64,
+        i64,
+        i64,
+    );
+    let evidence: CapacityRollbackEvidence = connection
+        .query_row(
+            "SELECT gap.status, gap.origin, lane.lane, gap.intent_kind, gap.scope,
+                    gap.last_failure_code, gap.superseded_by_change_id,
+                    gap.next_retry_unix_ms,
+                    (SELECT COUNT(*) FROM library_change_queue_lanes
+                     WHERE lane = 'p2_recovery'),
+                    (SELECT COUNT(*) FROM library_live_gap_recovery_claims),
+                    (SELECT COUNT(*) FROM library_recovery_authorities
+                     WHERE reason = 'watcher_uncovered_gap'),
+                    (SELECT COUNT(*) FROM scan_runs)
+             FROM library_change_queue AS gap
+             JOIN library_change_queue_lanes AS lane ON lane.change_id = gap.id
+             WHERE gap.root_id = ?1 AND gap.origin = 'live_notification'
+               AND gap.intent_kind = 'freshness_unknown'
+               AND gap.scope = 'root' AND gap.relative_path = ''",
+            [&root.root_id],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                    row.get(5)?,
+                    row.get(6)?,
+                    row.get(7)?,
+                    row.get(8)?,
+                    row.get(9)?,
+                    row.get(10)?,
+                    row.get(11)?,
+                ))
+            },
+        )
+        .expect("capacity rollback evidence");
+    assert_eq!(
+        evidence,
+        (
+            "retry_wait".to_owned(),
+            "live_notification".to_owned(),
+            "p0_live".to_owned(),
+            "freshness_unknown".to_owned(),
+            "root".to_owned(),
+            "live_gap_p2_capacity_deferred".to_owned(),
+            None,
+            Some(4_411),
+            0,
+            0,
+            0,
+            1,
+        )
+    );
+    let gap_state: (i64, i64) = connection
+        .query_row(
+            "SELECT attempt_count, lease_generation
+             FROM library_change_queue
+             WHERE root_id = ?1 AND last_failure_code = 'live_gap_p2_capacity_deferred'",
+            [&root.root_id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .expect("capacity deferral budget evidence");
+    assert_eq!(gap_state, (0, i64::from(capacity_policy.max_attempts + 1)));
+    drop(connection);
+
+    let crashed_lease = catalog
+        .lease_live_authoritative_library_change(
+            &root.root_id,
+            root.root_generation,
+            4_501,
+            capacity_policy,
+        )
+        .expect("lease capacity gap before simulated crash")
+        .expect("capacity gap before simulated crash");
+    drop(catalog);
+
+    let mut catalog = SqliteCatalog::open(paths.catalog_path.clone()).expect("reopen catalog");
+    assert!(
+        catalog
+            .lease_live_authoritative_library_change(
+                &root.root_id,
+                root.root_generation,
+                crashed_lease.lease_expires_unix_ms,
+                capacity_policy,
+            )
+            .expect("recover expired capacity lease")
+            .is_none(),
+        "expired capacity work must re-enter bounded deferral before leasing"
+    );
+    let resumed_unix_ms = crashed_lease.lease_expires_unix_ms + 10;
+    let resumed = catalog
+        .lease_live_authoritative_library_change(
+            &root.root_id,
+            root.root_generation,
+            resumed_unix_ms,
+            capacity_policy,
+        )
+        .expect("lease recovered capacity gap")
+        .expect("recovered capacity gap");
+    process_leased_authoritative_library_change_cancellable(
+        &mut catalog,
+        &root,
+        &resumed,
+        resumed_unix_ms,
+        capacity_policy,
+        fixture_recovery_policy(),
+        &AtomicBool::new(false),
+    )
+    .expect("recovered capacity gap remains deferred");
+
+    let released_unix_ms = resumed_unix_ms + 1;
+    let journal = catalog
+        .lease_path_library_changes_in_lane(
+            &root.root_id,
+            root.root_generation,
+            crate::domain::LibraryChangeLane::Journal,
+            released_unix_ms,
+            capacity_policy,
+        )
+        .expect("lease capacity owner")
+        .pop()
+        .expect("capacity owner");
+    assert_eq!(
+        catalog
+            .complete_library_change(
+                journal.change.id,
+                journal.lease_generation,
+                root.catalog_revision,
+                released_unix_ms,
+            )
+            .expect("release P1 capacity"),
+        crate::domain::LibraryChangeLeaseUpdateOutcome::Applied,
+    );
+    let promoted = catalog
+        .lease_live_authoritative_library_change(
+            &root.root_id,
+            root.root_generation,
+            released_unix_ms,
+            capacity_policy,
+        )
+        .expect("lease capacity-woken gap")
+        .expect("capacity-woken gap");
+    process_leased_authoritative_library_change_cancellable(
+        &mut catalog,
+        &root,
+        &promoted,
+        released_unix_ms,
+        capacity_policy,
+        fixture_recovery_policy(),
+        &AtomicBool::new(false),
+    )
+    .expect("promote capacity-woken gap");
+
+    let ownership: (String, String, String, String, i64, i64) =
+        Connection::open(&paths.catalog_path)
+            .expect("open capacity release evidence")
+            .query_row(
+                "SELECT gap.status, claim.consumer_kind, recovery.status, lane.lane,
+                        (SELECT COUNT(*) FROM library_recovery_authorities AS authority
+                         WHERE authority.change_id = recovery.id
+                           AND authority.reason = 'watcher_uncovered_gap'
+                           AND authority.retired_unix_ms IS NULL),
+                        (SELECT COUNT(*) FROM scan_runs)
+                 FROM library_live_gap_recovery_claims AS claim
+                 JOIN library_change_queue AS gap ON gap.id = claim.gap_change_id
+                 JOIN library_change_queue AS recovery ON recovery.id = claim.recovery_change_id
+                 JOIN library_change_queue_lanes AS lane ON lane.change_id = recovery.id
+                 WHERE gap.root_id = ?1",
+                [&root.root_id],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                        row.get(5)?,
+                    ))
+                },
+            )
+            .expect("capacity release ownership evidence");
+    assert_eq!(
+        ownership,
+        (
+            "superseded".to_owned(),
+            "metadata_inventory_control".to_owned(),
+            "pending".to_owned(),
+            "p2_recovery".to_owned(),
+            1,
+            1,
+        )
+    );
 }
 
 #[test]
@@ -151,6 +619,7 @@ fn oversized_subtree_continues_with_pageable_inventory_without_starting_a_scan()
     publish_initial_scan(&source, paths.clone(), "initial-pageable-scan");
     let mut catalog = SqliteCatalog::open(paths.catalog_path.clone()).expect("catalog");
     let root = only_root(&catalog);
+    seed_current_journal_authority(&mut catalog, &root, 2_900);
     let active_scan_id = root.active_scan_id.clone();
     fs::remove_file(album.join("removed.png")).expect("remove fixture");
     write_png(&album.join("added.png"), [70, 80, 90, 255]);
@@ -194,6 +663,7 @@ fn oversized_subtree_continues_with_pageable_inventory_without_starting_a_scan()
 
     let mut current_lease = Some(leased);
     let mut inventory = None;
+    let mut retained_source = None;
     let mut completed_candidates = 0_u32;
     for _ in 0..12 {
         let leased = current_lease.take().unwrap_or_else(|| {
@@ -207,16 +677,42 @@ fn oversized_subtree_continues_with_pageable_inventory_without_starting_a_scan()
                 .expect("lease inventory continuation")
                 .expect("inventory continuation")
         });
-        let current = process_leased_metadata_inventory_change(
+        let page = process_leased_metadata_inventory_change_with_retained_source(
             &mut catalog,
             &root,
             &leased,
-            3_010,
-            1,
-            immediate_queue_policy(),
-            &AtomicBool::new(false),
+            MetadataInventoryRecoveryExecution::without_progress(
+                3_010,
+                1,
+                immediate_queue_policy(),
+                &AtomicBool::new(false),
+            ),
+            retained_source.take(),
         )
         .expect("pageable subtree inventory");
+        retained_source = page.retained_source;
+        let current = page.report;
+        if current.inventory.awaiting_closing_boundary {
+            let baseline = catalog
+                .load_persistent_journal_baselines()
+                .expect("load pageable recovery baseline")
+                .into_iter()
+                .find(|baseline| baseline.root_id == root.root_id)
+                .expect("pageable recovery baseline");
+            catalog
+                .capture_persistent_journal_baseline_closing_boundary(
+                    &PersistentJournalBaselineClosingBoundary {
+                        change_id: baseline.change_id,
+                        volume: baseline.volume,
+                        root_file_reference: baseline.root_file_reference,
+                        journal_id: baseline.journal_id,
+                        closing_next_usn: baseline.opening_next_usn,
+                        protocol_version: baseline.protocol_version,
+                        captured_unix_ms: 3_010,
+                    },
+                )
+                .expect("close pageable recovery baseline");
+        }
         completed_candidates = completed_candidates.saturating_add(
             crate::application::process_ready_library_changes(
                 &mut catalog,
@@ -346,7 +842,7 @@ fn directory_rename_preserves_asset_identity_across_the_authoritative_batch() {
 
 #[cfg(windows)]
 #[test]
-fn new_cloud_placeholder_retries_authoritative_recovery_without_recording_an_audit() {
+fn new_cloud_placeholder_root_gap_uses_p2_without_hydrating_or_recording_an_audit() {
     let source = tempdir().expect("source directory");
     let storage = tempdir().expect("storage directory");
     let paths = fixture_storage(&storage);
@@ -381,7 +877,48 @@ fn new_cloud_placeholder_retries_authoritative_recovery_without_recording_an_aud
     assert_eq!(report.incremental.retried_count, 1);
     assert_eq!(report.incremental.completed_count, 0);
     assert_eq!(report.incremental.applied_mutation_count, 0);
-    assert_eq!(metrics.retry_wait_count, 1);
+    assert_eq!(metrics.retry_wait_count, 0);
+    assert_eq!(metrics.pending_count, 1);
+    let connection = Connection::open(&paths.catalog_path).expect("placeholder evidence catalog");
+    let recovery: (String, String, String, String, String, i64) = connection
+        .query_row(
+            "SELECT gap.status, gap.origin, claim.consumer_kind,
+                    recovery.origin, recovery_lane.lane,
+                    (SELECT COUNT(*) FROM scan_runs)
+             FROM library_change_queue AS gap
+             JOIN library_live_gap_recovery_claims AS claim
+               ON claim.gap_change_id = gap.id
+             JOIN library_change_queue AS recovery
+               ON recovery.id = claim.recovery_change_id
+             JOIN library_change_queue_lanes AS recovery_lane
+               ON recovery_lane.change_id = recovery.id
+             WHERE gap.root_id = ?1 AND gap.origin = 'live_notification'
+               AND gap.intent_kind = 'freshness_unknown'
+               AND gap.scope = 'root' AND gap.relative_path = ''",
+            [&root.root_id],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                    row.get(5)?,
+                ))
+            },
+        )
+        .expect("placeholder P2 ownership");
+    assert_eq!(
+        recovery,
+        (
+            "superseded".to_owned(),
+            "live_notification".to_owned(),
+            "metadata_inventory_control".to_owned(),
+            "metadata_inventory".to_owned(),
+            "p2_recovery".to_owned(),
+            1,
+        )
+    );
     assert_eq!(
         only_root(&catalog).last_consistency_audit_unix_ms,
         prior_audit
@@ -450,6 +987,18 @@ fn publish_initial_scan(source: &TempDir, storage: StoragePaths, scan_id: &str) 
         storage,
     )
     .expect("initial scan");
+}
+
+#[cfg(windows)]
+fn remove_publication_namespace_proof(catalog_path: &Path, root_id: &str) {
+    let connection = Connection::open(catalog_path).expect("open proof fixture catalog");
+    let removed = connection
+        .execute(
+            "DELETE FROM library_root_publication_namespaces WHERE root_id = ?1",
+            [root_id],
+        )
+        .expect("remove publication namespace proof");
+    assert_eq!(removed, 1);
 }
 
 fn only_root(catalog: &SqliteCatalog) -> IncrementalCatalogRoot {
@@ -525,6 +1074,46 @@ fn immediate_queue_policy() -> LibraryChangeQueuePolicy {
         terminal_retention_millis: 60_000,
         cleanup_batch: 16,
     }
+}
+
+fn seed_current_journal_authority(
+    catalog: &mut SqliteCatalog,
+    root: &IncrementalCatalogRoot,
+    updated_unix_ms: i64,
+) {
+    let checkpoint = PersistentJournalCheckpoint {
+        root_id: root.root_id.clone(),
+        root_generation: root.root_generation,
+        volume: PersistentJournalVolumeIdentity {
+            volume_guid: "authoritative-test-volume".to_owned(),
+            volume_serial: 41,
+        },
+        root_file_reference: JournalFileReference::V3([7; 16]),
+        journal_id: JournalIdentifier::new(83).expect("journal ID"),
+        next_unread_usn: JournalUsn::new(1_024).expect("opening USN"),
+        captured_exclusive_end: JournalUsn::new(1_024).expect("opening end"),
+        covered_catalog_revision: root.catalog_revision,
+        protocol_version: 5,
+        contract_version: 1,
+        continuity: PersistentJournalContinuityState::Current,
+        failure: None,
+        updated_unix_ms,
+    };
+    catalog
+        .save_persistent_journal_capability(&PersistentJournalCapability {
+            root_id: checkpoint.root_id.clone(),
+            root_generation: checkpoint.root_generation,
+            protocol_version: checkpoint.protocol_version,
+            contract_version: checkpoint.contract_version,
+            state: PersistentJournalCapabilityState::Supported,
+            continuity: PersistentJournalContinuityState::Current,
+            failure: None,
+            updated_unix_ms,
+        })
+        .expect("current journal authority");
+    catalog
+        .seed_persistent_journal_checkpoint_for_test(&checkpoint)
+        .expect("current journal checkpoint");
 }
 
 fn fixture_recovery_policy() -> AuthoritativeRecoveryPolicy {

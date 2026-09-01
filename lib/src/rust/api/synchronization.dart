@@ -7,14 +7,29 @@ import '../domain.dart';
 import '../domain/library_change.dart';
 import '../domain/library_change_queue.dart';
 import '../domain/library_synchronization.dart';
+import '../domain/persistent_journal.dart';
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-Future<LibrarySynchronizationSnapshot> startLibrarySynchronization() =>
-    RustLib.instance.api.crateApiSynchronizationStartLibrarySynchronization();
+BigInt reserveLibrarySynchronizationStartTicket() => RustLib.instance.api
+    .crateApiSynchronizationReserveLibrarySynchronizationStartTicket();
 
-Future<LibrarySynchronizationSnapshot> pollLibrarySynchronization() =>
-    RustLib.instance.api.crateApiSynchronizationPollLibrarySynchronization();
+BigInt reserveLibrarySynchronizationStopFence() => RustLib.instance.api
+    .crateApiSynchronizationReserveLibrarySynchronizationStopFence();
 
-Future<void> stopLibrarySynchronization() =>
-    RustLib.instance.api.crateApiSynchronizationStopLibrarySynchronization();
+Future<LibrarySynchronizationSnapshot> startLibrarySynchronization({
+  required BigInt ownerTicket,
+}) => RustLib.instance.api.crateApiSynchronizationStartLibrarySynchronization(
+  ownerTicket: ownerTicket,
+);
+
+Future<LibrarySynchronizationSnapshot> pollLibrarySynchronization({
+  required BigInt ownerTicket,
+}) => RustLib.instance.api.crateApiSynchronizationPollLibrarySynchronization(
+  ownerTicket: ownerTicket,
+);
+
+Future<void> stopLibrarySynchronization({required BigInt cancellationFence}) =>
+    RustLib.instance.api.crateApiSynchronizationStopLibrarySynchronization(
+      cancellationFence: cancellationFence,
+    );

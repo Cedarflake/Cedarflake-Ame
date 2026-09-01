@@ -1,23 +1,32 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use crate::adapters::{FileDiscovery, FileVisitOutcome, LocalMediaInspector, user_visible_path};
+use crate::adapters::{
+    FileVisitOutcome, LocalMediaInspector, PublicationGuardedFileDiscovery, user_visible_path,
+};
 use crate::domain::{
     AssetLocationView, CatalogDeltaBatch, CatalogDeltaMutation, CatalogDeltaPublicationStatus,
-    DerivedEvidenceDisposition, DiscoveredFile, ExpectedFileState, IncrementalLibraryChangeReport,
-    IncrementalReconciliationDecision, IncrementalReconciliationOutcome, LeasedLibraryChange,
-    LibraryChangeCatchUpEvidence, LibraryChangeCompletion, LibraryChangeFailure,
-    LibraryChangeIntentKind, LibraryChangeLeaseUpdateOutcome, LibraryChangeQueuePolicy,
-    LibraryChangeScope, LibraryRootGeneration, PreviewStatus, ReconciliationFileEvidence,
-    ReconciliationObservedState, RetainedPreviewExpectation, ScanError, ScanIssue,
+    DerivedEvidenceDisposition, DiscoveredFile, ExpectedFileState, FileIdentityEvidence,
+    IncrementalLibraryChangeReport, IncrementalReconciliationDecision,
+    IncrementalReconciliationOutcome, LeasedLibraryChange, LibraryChangeCatchUpEvidence,
+    LibraryChangeCompletion, LibraryChangeFailure, LibraryChangeIntentKind, LibraryChangeLane,
+    LibraryChangeLeaseUpdateOutcome, LibraryChangeQueuePolicy, LibraryChangeScope,
+    LibraryRootGeneration, PreviewStatus, ReconciliationFileEvidence, ReconciliationObservedState,
+    RetainedPreviewExpectation, ScanError, ScanIssue, TerminalMediaEvidence,
+    TerminalMediaEvidenceUpdate,
 };
-use crate::ports::{IncrementalCatalogRepository, LibraryChangeQueue, MediaInspector};
+use crate::ports::{
+    IncrementalCatalogRepository, LibraryChangeQueue, MediaInspectionFailureKind, MediaInspector,
+};
 
 use super::directory_synchronization::reconcile_path_evidence;
 use super::scan_library::{stable_id, stable_location_id};
 
+const MAX_CATALOG_REVISION_REBASE_ATTEMPTS: usize = 2;
+
 struct PreparedChange {
     completion: LibraryChangeCompletion,
     mutations: Vec<CatalogDeltaMutation>,
+    terminal_media_evidence: Vec<TerminalMediaEvidenceUpdate>,
     revalidation: Vec<RevalidationTarget>,
 }
 
@@ -39,6 +48,11 @@ enum RevalidationTarget {
 
 enum InspectedPath {
     File(DiscoveredFile),
+    TerminalMedia {
+        file: DiscoveredFile,
+        issue: LibraryChangeFailure,
+        report_issue: bool,
+    },
     CatalogAbsent,
     PreservedIssue(LibraryChangeFailure),
     Retry(LibraryChangeFailure),
@@ -54,8 +68,131 @@ pub fn process_ready_library_changes<Repository>(
 where
     Repository: IncrementalCatalogRepository + LibraryChangeQueue,
 {
+    process_ready_library_changes_internal(
+        repository,
+        root_id,
+        root_generation,
+        PathLeaseSelection::Any,
+        now_unix_ms,
+        policy,
+        None,
+    )
+}
+
+pub(crate) fn process_ready_library_changes_in_lane<Repository>(
+    repository: &mut Repository,
+    root_id: &str,
+    root_generation: LibraryRootGeneration,
+    lane: LibraryChangeLane,
+    now_unix_ms: i64,
+    policy: LibraryChangeQueuePolicy,
+) -> Result<IncrementalLibraryChangeReport, ScanError>
+where
+    Repository: IncrementalCatalogRepository + LibraryChangeQueue,
+{
+    process_ready_library_changes_internal(
+        repository,
+        root_id,
+        root_generation,
+        PathLeaseSelection::Lane(lane),
+        now_unix_ms,
+        policy,
+        None,
+    )
+}
+
+pub(crate) fn process_ready_library_changes_in_lane_cancellable<Repository>(
+    repository: &mut Repository,
+    root_id: &str,
+    root_generation: LibraryRootGeneration,
+    lane: LibraryChangeLane,
+    now_unix_ms: i64,
+    policy: LibraryChangeQueuePolicy,
+    cancelled: &AtomicBool,
+) -> Result<IncrementalLibraryChangeReport, ScanError>
+where
+    Repository: IncrementalCatalogRepository + LibraryChangeQueue,
+{
+    process_ready_library_changes_internal(
+        repository,
+        root_id,
+        root_generation,
+        PathLeaseSelection::Lane(lane),
+        now_unix_ms,
+        policy,
+        Some(cancelled),
+    )
+}
+
+pub(crate) fn process_ready_metadata_inventory_recovery_candidates_cancellable<Repository>(
+    repository: &mut Repository,
+    root_id: &str,
+    root_generation: LibraryRootGeneration,
+    now_unix_ms: i64,
+    policy: LibraryChangeQueuePolicy,
+    cancelled: &AtomicBool,
+) -> Result<IncrementalLibraryChangeReport, ScanError>
+where
+    Repository: IncrementalCatalogRepository + LibraryChangeQueue,
+{
+    process_ready_library_changes_internal(
+        repository,
+        root_id,
+        root_generation,
+        PathLeaseSelection::OwnedRecovery,
+        now_unix_ms,
+        policy,
+        Some(cancelled),
+    )
+}
+
+pub(crate) fn process_ready_unowned_recovery_paths_cancellable<Repository>(
+    repository: &mut Repository,
+    root_id: &str,
+    root_generation: LibraryRootGeneration,
+    now_unix_ms: i64,
+    policy: LibraryChangeQueuePolicy,
+    cancelled: &AtomicBool,
+) -> Result<IncrementalLibraryChangeReport, ScanError>
+where
+    Repository: IncrementalCatalogRepository + LibraryChangeQueue,
+{
+    process_ready_library_changes_internal(
+        repository,
+        root_id,
+        root_generation,
+        PathLeaseSelection::UnownedRecovery,
+        now_unix_ms,
+        policy,
+        Some(cancelled),
+    )
+}
+
+#[derive(Clone, Copy)]
+enum PathLeaseSelection {
+    Any,
+    Lane(LibraryChangeLane),
+    OwnedRecovery,
+    UnownedRecovery,
+}
+
+fn process_ready_library_changes_internal<Repository>(
+    repository: &mut Repository,
+    root_id: &str,
+    root_generation: LibraryRootGeneration,
+    lease_selection: PathLeaseSelection,
+    now_unix_ms: i64,
+    policy: LibraryChangeQueuePolicy,
+    cancelled: Option<&AtomicBool>,
+) -> Result<IncrementalLibraryChangeReport, ScanError>
+where
+    Repository: IncrementalCatalogRepository + LibraryChangeQueue,
+{
     validate_request(root_id, policy)?;
     let mut report = IncrementalLibraryChangeReport::default();
+    if cancellation_requested(cancelled) {
+        return Ok(report);
+    }
     let Some(root) = repository.load_incremental_catalog_root(root_id)? else {
         return Ok(report);
     };
@@ -69,28 +206,126 @@ where
     if root.has_running_scan {
         return Ok(report);
     }
-    let discovery = match FileDiscovery::new(&root.root_path) {
-        Ok(discovery) => discovery,
-        Err(_) => return Ok(report),
+    if cancellation_requested(cancelled) {
+        return Ok(report);
+    }
+    let leased = match lease_selection {
+        PathLeaseSelection::Lane(lane) => repository.lease_path_library_changes_in_lane(
+            root_id,
+            root_generation,
+            lane,
+            now_unix_ms,
+            policy,
+        )?,
+        PathLeaseSelection::OwnedRecovery => repository
+            .lease_metadata_inventory_recovery_candidates(
+                root_id,
+                root_generation,
+                now_unix_ms,
+                policy,
+            )?,
+        PathLeaseSelection::UnownedRecovery => repository
+            .lease_unowned_recovery_path_library_changes(
+                root_id,
+                root_generation,
+                now_unix_ms,
+                policy,
+            )?,
+        PathLeaseSelection::Any => {
+            repository.lease_path_library_changes(root_id, root_generation, now_unix_ms, policy)?
+        }
     };
-    let leased =
-        repository.lease_path_library_changes(root_id, root_generation, now_unix_ms, policy)?;
     report.leased_count = bounded_count(leased.len(), "leased change count")?;
     if leased.is_empty() {
+        return Ok(report);
+    }
+    let expected_root_identity = if matches!(lease_selection, PathLeaseSelection::OwnedRecovery) {
+        let identity = repository
+            .load_metadata_inventory_candidate_root_identity(root_id, root_generation)?
+            .ok_or_else(|| {
+                ScanError::new(
+                    "metadata_inventory_candidate_root_identity_missing",
+                    "Owned recovery candidates lack their durable pinned-root identity",
+                )
+            })?;
+        if root
+            .publication_root_identity
+            .as_ref()
+            .is_some_and(|established| established != &identity)
+        {
+            let issue = failure(
+                "root_publication_namespace_conflict",
+                "Recovery evidence disagrees with the established configured-root namespace",
+            );
+            retry_changes(
+                repository,
+                &leased,
+                &issue,
+                now_unix_ms,
+                policy,
+                &mut report,
+            )?;
+            return Ok(report);
+        }
+        identity
+    } else if let Some(identity) = root.publication_root_identity.clone() {
+        identity
+    } else {
+        let issue = failure(
+            "root_publication_namespace_unproven",
+            "The configured root has no trustworthy persistent namespace identity",
+        );
+        retry_changes(
+            repository,
+            &leased,
+            &issue,
+            now_unix_ms,
+            policy,
+            &mut report,
+        )?;
+        return Ok(report);
+    };
+    let discovery = match PublicationGuardedFileDiscovery::new_incremental_publication_guard(
+        &root.root_path,
+        &expected_root_identity,
+    ) {
+        Ok(discovery) => discovery,
+        Err(error) => {
+            let issue = scan_failure(error);
+            retry_changes(
+                repository,
+                &leased,
+                &issue,
+                now_unix_ms,
+                policy,
+                &mut report,
+            )?;
+            return Ok(report);
+        }
+    };
+    if cancellation_requested(cancelled) {
+        defer_cancelled_leases(repository, &leased, now_unix_ms, &mut report)?;
         return Ok(report);
     }
     let inspector = LocalMediaInspector::new();
     let mut prepared = Vec::new();
     let mut retries = Vec::new();
     for change in &leased {
+        if cancellation_requested(cancelled) {
+            defer_cancelled_leases(repository, &leased, now_unix_ms, &mut report)?;
+            return Ok(report);
+        }
         match prepare_change(repository, &discovery, &inspector, change) {
             Ok(change) => prepared.push(change),
             Err(issue) => retries.push((change.clone(), issue)),
         }
     }
-
     let mut ready = Vec::new();
     for change in prepared {
+        if cancellation_requested(cancelled) {
+            defer_cancelled_leases(repository, &leased, now_unix_ms, &mut report)?;
+            return Ok(report);
+        }
         match revalidate_change(&discovery, &change) {
             Ok(()) => ready.push(change),
             Err(issue) => {
@@ -103,15 +338,25 @@ where
             }
         }
     }
-
-    if !ready.is_empty() {
+    let mut expected_catalog_revision = root.catalog_revision;
+    let mut catalog_revision_rebase_attempts = 0_usize;
+    while !ready.is_empty() {
+        if cancellation_requested(cancelled) {
+            defer_cancelled_leases(repository, &leased, now_unix_ms, &mut report)?;
+            return Ok(report);
+        }
+        discovery.require_metadata_inventory_root_identity(&expected_root_identity)?;
         let batch = CatalogDeltaBatch {
             root_id: root_id.to_owned(),
             root_generation,
-            expected_catalog_revision: root.catalog_revision,
+            expected_catalog_revision,
             mutations: ready
                 .iter()
                 .flat_map(|change| change.mutations.clone())
+                .collect(),
+            terminal_media_evidence: ready
+                .iter()
+                .flat_map(|change| change.terminal_media_evidence.clone())
                 .collect(),
             completions: ready
                 .iter()
@@ -130,10 +375,78 @@ where
                     .applied_mutation_count
                     .checked_add(publication.applied_mutation_count)
                     .ok_or_else(|| count_overflow("applied mutation count"))?;
+                break;
             }
             CatalogDeltaPublicationStatus::RootScanInProgress
             | CatalogDeltaPublicationStatus::NoPublishedCatalog => {
                 defer_changes(repository, &ready, now_unix_ms, &mut report)?;
+                break;
+            }
+            CatalogDeltaPublicationStatus::StaleCatalogRevision
+                if catalog_revision_rebase_attempts < MAX_CATALOG_REVISION_REBASE_ATTEMPTS =>
+            {
+                catalog_revision_rebase_attempts += 1;
+                let Some(latest_root) = repository.load_incremental_catalog_root(root_id)? else {
+                    let issue =
+                        publication_failure(CatalogDeltaPublicationStatus::RootGenerationChanged);
+                    for change in &ready {
+                        let leased = leased
+                            .iter()
+                            .find(|leased| leased.change.id == change.completion.change_id)
+                            .expect("prepared changes originate from the leased batch")
+                            .clone();
+                        retries.push((leased, issue.clone()));
+                    }
+                    break;
+                };
+                if latest_root.root_generation != root_generation
+                    || latest_root.root_path != root.root_path
+                    || latest_root.active_scan_id.is_none()
+                    || latest_root.has_running_scan
+                {
+                    let status = if latest_root.root_generation != root_generation
+                        || latest_root.root_path != root.root_path
+                    {
+                        CatalogDeltaPublicationStatus::RootGenerationChanged
+                    } else if latest_root.has_running_scan {
+                        CatalogDeltaPublicationStatus::RootScanInProgress
+                    } else {
+                        CatalogDeltaPublicationStatus::NoPublishedCatalog
+                    };
+                    let issue = publication_failure(status);
+                    for change in &ready {
+                        let leased = leased
+                            .iter()
+                            .find(|leased| leased.change.id == change.completion.change_id)
+                            .expect("prepared changes originate from the leased batch")
+                            .clone();
+                        retries.push((leased, issue.clone()));
+                    }
+                    break;
+                }
+                expected_catalog_revision = latest_root.catalog_revision;
+                let mut refreshed_ready = Vec::with_capacity(ready.len());
+                for change in &ready {
+                    if cancellation_requested(cancelled) {
+                        defer_cancelled_leases(repository, &leased, now_unix_ms, &mut report)?;
+                        return Ok(report);
+                    }
+                    let leased = leased
+                        .iter()
+                        .find(|leased| leased.change.id == change.completion.change_id)
+                        .expect("prepared changes originate from the leased batch")
+                        .clone();
+                    match prepare_change(repository, &discovery, &inspector, &leased).and_then(
+                        |prepared| {
+                            revalidate_change(&discovery, &prepared)?;
+                            Ok(prepared)
+                        },
+                    ) {
+                        Ok(prepared) => refreshed_ready.push(prepared),
+                        Err(issue) => retries.push((leased, issue)),
+                    }
+                }
+                ready = refreshed_ready;
             }
             status => {
                 let issue = publication_failure(status);
@@ -145,6 +458,7 @@ where
                         .clone();
                     retries.push((leased, issue.clone()));
                 }
+                break;
             }
         }
     }
@@ -161,18 +475,76 @@ where
     Ok(report)
 }
 
-pub(super) struct AuthoritativePathSetRequest<'a> {
-    pub root_id: &'a str,
-    pub root_generation: LibraryRootGeneration,
-    pub expected_catalog_revision: u64,
-    pub leased: &'a LeasedLibraryChange,
-    pub relative_paths: &'a [String],
-    pub now_unix_ms: i64,
-    pub queue_policy: LibraryChangeQueuePolicy,
-    pub cancellation: &'a AtomicBool,
+fn cancellation_requested(cancelled: Option<&AtomicBool>) -> bool {
+    cancelled.is_some_and(|cancelled| cancelled.load(Ordering::Acquire))
+}
+
+fn defer_cancelled_leases<Repository>(
+    repository: &mut Repository,
+    leased: &[LeasedLibraryChange],
+    now_unix_ms: i64,
+    report: &mut IncrementalLibraryChangeReport,
+) -> Result<(), ScanError>
+where
+    Repository: LibraryChangeQueue,
+{
+    for change in leased {
+        defer_leased_change(repository, change, now_unix_ms, report)?;
+    }
+    Ok(())
+}
+
+pub(super) struct AuthoritativePathSetContext<'a> {
+    pub(super) root_id: &'a str,
+    pub(super) root_generation: LibraryRootGeneration,
+    pub(super) expected_catalog_revision: u64,
+    pub(super) expected_root_identity: &'a FileIdentityEvidence,
+    pub(super) leased: &'a LeasedLibraryChange,
+    pub(super) relative_paths: &'a [String],
+    pub(super) now_unix_ms: i64,
+    pub(super) queue_policy: LibraryChangeQueuePolicy,
+    pub(super) cancellation: &'a AtomicBool,
 }
 
 pub(super) fn process_authoritative_path_set<Repository>(
+    repository: &mut Repository,
+    context: AuthoritativePathSetContext<'_>,
+    discovery: &PublicationGuardedFileDiscovery,
+) -> Result<IncrementalLibraryChangeReport, ScanError>
+where
+    Repository: IncrementalCatalogRepository + LibraryChangeQueue,
+{
+    process_authoritative_path_set_guarded(
+        repository,
+        AuthoritativePathSetRequest {
+            root_id: context.root_id,
+            root_generation: context.root_generation,
+            expected_catalog_revision: context.expected_catalog_revision,
+            expected_root_identity: context.expected_root_identity,
+            discovery,
+            leased: context.leased,
+            relative_paths: context.relative_paths,
+            now_unix_ms: context.now_unix_ms,
+            queue_policy: context.queue_policy,
+            cancellation: context.cancellation,
+        },
+    )
+}
+
+struct AuthoritativePathSetRequest<'a> {
+    root_id: &'a str,
+    root_generation: LibraryRootGeneration,
+    expected_catalog_revision: u64,
+    expected_root_identity: &'a FileIdentityEvidence,
+    discovery: &'a PublicationGuardedFileDiscovery,
+    leased: &'a LeasedLibraryChange,
+    relative_paths: &'a [String],
+    now_unix_ms: i64,
+    queue_policy: LibraryChangeQueuePolicy,
+    cancellation: &'a AtomicBool,
+}
+
+fn process_authoritative_path_set_guarded<Repository>(
     repository: &mut Repository,
     request: AuthoritativePathSetRequest<'_>,
 ) -> Result<IncrementalLibraryChangeReport, ScanError>
@@ -183,24 +555,43 @@ where
     if request.cancellation.load(Ordering::Relaxed) {
         return defer_authoritative_path_set(repository, &request);
     }
-    let discovery = match repository.load_incremental_catalog_root(request.root_id)? {
+    let root_is_current = matches!(
+        repository.load_incremental_catalog_root(request.root_id)?,
         Some(root)
             if root.root_generation == request.root_generation
                 && root.active_scan_id.is_some()
-                && !root.has_running_scan =>
-        {
-            FileDiscovery::new(&root.root_path)?
-        }
-        _ => {
-            let mut report = IncrementalLibraryChangeReport {
-                leased_count: 1,
-                catalog_revision: request.expected_catalog_revision,
-                ..IncrementalLibraryChangeReport::default()
-            };
-            defer_leased_change(repository, request.leased, request.now_unix_ms, &mut report)?;
-            return Ok(report);
-        }
-    };
+                && !root.has_running_scan
+                && root.publication_root_identity.as_ref()
+                    == Some(request.expected_root_identity)
+    );
+    if !root_is_current {
+        let mut report = IncrementalLibraryChangeReport {
+            leased_count: 1,
+            catalog_revision: request.expected_catalog_revision,
+            ..IncrementalLibraryChangeReport::default()
+        };
+        defer_leased_change(repository, request.leased, request.now_unix_ms, &mut report)?;
+        return Ok(report);
+    }
+    if let Err(error) = request
+        .discovery
+        .require_metadata_inventory_root_identity(request.expected_root_identity)
+    {
+        let mut report = IncrementalLibraryChangeReport {
+            leased_count: 1,
+            catalog_revision: request.expected_catalog_revision,
+            ..IncrementalLibraryChangeReport::default()
+        };
+        retry_changes(
+            repository,
+            std::slice::from_ref(request.leased),
+            &failure(error.code, error.message),
+            request.now_unix_ms,
+            request.queue_policy,
+            &mut report,
+        )?;
+        return Ok(report);
+    }
     let inspector = LocalMediaInspector::new();
     let mut combined = PreparedChange {
         completion: LibraryChangeCompletion {
@@ -209,6 +600,7 @@ where
             issue: None,
         },
         mutations: Vec::new(),
+        terminal_media_evidence: Vec::new(),
         revalidation: Vec::new(),
     };
     for relative_path in request.relative_paths {
@@ -217,7 +609,7 @@ where
         }
         let prepared = match prepare_path_change(
             repository,
-            &discovery,
+            request.discovery,
             &inspector,
             request.leased,
             PathChangeContext {
@@ -250,6 +642,9 @@ where
             combined.completion.issue = prepared.completion.issue;
         }
         combined.mutations.extend(prepared.mutations);
+        combined
+            .terminal_media_evidence
+            .extend(prepared.terminal_media_evidence);
         combined.revalidation.extend(prepared.revalidation);
     }
     let mut report = IncrementalLibraryChangeReport {
@@ -261,7 +656,7 @@ where
         defer_leased_change(repository, request.leased, request.now_unix_ms, &mut report)?;
         return Ok(report);
     }
-    if let Err(issue) = revalidate_change(&discovery, &combined) {
+    if let Err(issue) = revalidate_change(request.discovery, &combined) {
         retry_changes(
             repository,
             std::slice::from_ref(request.leased),
@@ -276,14 +671,43 @@ where
         defer_leased_change(repository, request.leased, request.now_unix_ms, &mut report)?;
         return Ok(report);
     }
+    if let Err(error) = request
+        .discovery
+        .require_metadata_inventory_root_identity(request.expected_root_identity)
+    {
+        retry_changes(
+            repository,
+            std::slice::from_ref(request.leased),
+            &failure(error.code, error.message),
+            request.now_unix_ms,
+            request.queue_policy,
+            &mut report,
+        )?;
+        return Ok(report);
+    }
     let batch = CatalogDeltaBatch {
         root_id: request.root_id.to_owned(),
         root_generation: request.root_generation,
         expected_catalog_revision: request.expected_catalog_revision,
         mutations: combined.mutations.clone(),
+        terminal_media_evidence: combined.terminal_media_evidence.clone(),
         completions: vec![combined.completion.clone()],
     };
-    let publication = repository.publish_catalog_delta(&batch, request.now_unix_ms)?;
+    let publication = match repository.publish_catalog_delta(&batch, request.now_unix_ms) {
+        Ok(publication) => publication,
+        Err(error) if is_publication_namespace_failure(&error) => {
+            retry_changes(
+                repository,
+                std::slice::from_ref(request.leased),
+                &failure(error.code, error.message),
+                request.now_unix_ms,
+                request.queue_policy,
+                &mut report,
+            )?;
+            return Ok(report);
+        }
+        Err(error) => return Err(error),
+    };
     report.catalog_revision = publication.catalog_revision;
     match publication.status {
         CatalogDeltaPublicationStatus::Applied => {
@@ -334,17 +758,27 @@ where
     Repository: LibraryChangeQueue,
 {
     match repository.defer_library_change(leased.change.id, leased.lease_generation, now_unix_ms)? {
-        LibraryChangeLeaseUpdateOutcome::Applied => report.deferred_count = 1,
+        LibraryChangeLeaseUpdateOutcome::Applied => {
+            report.deferred_count = report
+                .deferred_count
+                .checked_add(1)
+                .ok_or_else(|| count_overflow("deferred change count"))?;
+        }
         LibraryChangeLeaseUpdateOutcome::Superseded
         | LibraryChangeLeaseUpdateOutcome::LeaseMismatch
-        | LibraryChangeLeaseUpdateOutcome::Missing => report.superseded_count = 1,
+        | LibraryChangeLeaseUpdateOutcome::Missing => {
+            report.superseded_count = report
+                .superseded_count
+                .checked_add(1)
+                .ok_or_else(|| count_overflow("superseded change count"))?;
+        }
     }
     Ok(())
 }
 
 fn prepare_change<Repository>(
     repository: &Repository,
-    discovery: &FileDiscovery,
+    discovery: &PublicationGuardedFileDiscovery,
     inspector: &LocalMediaInspector,
     leased: &LeasedLibraryChange,
 ) -> Result<PreparedChange, LibraryChangeFailure>
@@ -387,11 +821,12 @@ where
             let previous_observed = inspect_path(discovery, previous_path);
             let previous_identity = match &previous_observed {
                 InspectedPath::File(file) => file.file_identity.clone(),
+                InspectedPath::TerminalMedia { file, .. } => file.file_identity.clone(),
                 _ => None,
             };
             let previous_is_absent = match &previous_observed {
                 InspectedPath::CatalogAbsent => true,
-                InspectedPath::File(_) => false,
+                InspectedPath::File(_) | InspectedPath::TerminalMedia { .. } => false,
                 InspectedPath::PreservedIssue(issue) | InspectedPath::Retry(issue) => {
                     return Err(issue.clone());
                 }
@@ -464,7 +899,7 @@ where
 
 fn prepare_path_change<Repository>(
     repository: &Repository,
-    discovery: &FileDiscovery,
+    discovery: &PublicationGuardedFileDiscovery,
     inspector: &LocalMediaInspector,
     leased: &LeasedLibraryChange,
     context: PathChangeContext<'_>,
@@ -485,6 +920,27 @@ where
         .load_incremental_location_by_relative_path(&intent.root_id, relative_path)
         .map_err(scan_failure)?;
     let observed = observed.unwrap_or_else(|| inspect_path(discovery, relative_path));
+    if let InspectedPath::TerminalMedia {
+        file,
+        issue,
+        report_issue,
+    } = observed
+    {
+        if let Some(prior) = path_prior.as_ref() {
+            push_unique(&mut removals, prior.location_id.clone());
+        }
+        if may_remove_candidate_prior && let Some(prior) = candidate_prior.as_ref() {
+            push_unique(&mut removals, prior.location_id.clone());
+        }
+        return Ok(terminal_media_change(
+            inspector,
+            leased,
+            file,
+            issue,
+            report_issue,
+            removals,
+        ));
+    }
     let mut completion_issue = None;
     let mut revalidation = Vec::new();
     let (decision, current_file, selected_prior) = match observed {
@@ -551,6 +1007,7 @@ where
             revalidation.push(RevalidationTarget::CatalogAbsent(relative_path.to_owned()));
             (decision, None, path_prior.clone())
         }
+        InspectedPath::TerminalMedia { .. } => unreachable!("handled above"),
         InspectedPath::PreservedIssue(issue) => return Err(issue),
         InspectedPath::Retry(issue) => return Err(issue),
     };
@@ -597,7 +1054,27 @@ where
                         "Identity backfill requires the prior catalog location",
                     )
                 })?;
-                let mut built = build_location(inspector, leased, file, &decision, Some(prior))?;
+                let mut built = match build_location(
+                    discovery,
+                    inspector,
+                    leased,
+                    file,
+                    &decision,
+                    Some(prior),
+                ) {
+                    Ok(built) => built,
+                    Err(BuildLocationFailure::Retry(issue)) => return Err(issue),
+                    Err(BuildLocationFailure::Terminal(issue)) => {
+                        return Ok(terminal_media_change(
+                            inspector,
+                            leased,
+                            file.clone(),
+                            issue,
+                            true,
+                            removals,
+                        ));
+                    }
+                };
                 built.location.location_id.clone_from(&prior.location_id);
                 revalidation.push(RevalidationTarget::Present {
                     relative_path: relative_path.to_owned(),
@@ -656,8 +1133,27 @@ where
             if may_remove_candidate_prior && let Some(candidate) = &candidate_prior {
                 push_unique(&mut removals, candidate.location_id.clone());
             }
-            let built =
-                build_location(inspector, leased, file, &decision, selected_prior.as_ref())?;
+            let built = match build_location(
+                discovery,
+                inspector,
+                leased,
+                file,
+                &decision,
+                selected_prior.as_ref(),
+            ) {
+                Ok(built) => built,
+                Err(BuildLocationFailure::Retry(issue)) => return Err(issue),
+                Err(BuildLocationFailure::Terminal(issue)) => {
+                    return Ok(terminal_media_change(
+                        inspector,
+                        leased,
+                        file.clone(),
+                        issue,
+                        true,
+                        removals,
+                    ));
+                }
+            };
             if completion_issue.is_none() {
                 completion_issue = built.issue;
             }
@@ -685,8 +1181,53 @@ where
             issue: completion_issue,
         },
         mutations: mutation.into_iter().collect(),
+        terminal_media_evidence: Vec::new(),
         revalidation,
     })
+}
+
+fn terminal_media_change(
+    inspector: &LocalMediaInspector,
+    leased: &LeasedLibraryChange,
+    file: DiscoveredFile,
+    issue: LibraryChangeFailure,
+    report_issue: bool,
+    removals: Vec<String>,
+) -> PreparedChange {
+    let relative_path = file.relative_path.clone();
+    let expected = expected_state(&file);
+    let mutation = (!removals.is_empty()).then_some(CatalogDeltaMutation {
+        change_id: leased.change.id,
+        outcome: IncrementalReconciliationOutcome::Removed,
+        evidence_disposition: DerivedEvidenceDisposition::RemoveFromCurrentProjection,
+        remove_location_ids: removals,
+        upsert_location: None,
+        retained_preview_expectation: None,
+    });
+    PreparedChange {
+        completion: LibraryChangeCompletion {
+            change_id: leased.change.id,
+            lease_generation: leased.lease_generation,
+            issue: report_issue.then(|| issue.clone()),
+        },
+        mutations: mutation.into_iter().collect(),
+        terminal_media_evidence: vec![TerminalMediaEvidenceUpdate {
+            change_id: leased.change.id,
+            evidence: TerminalMediaEvidence {
+                relative_path: file.relative_path.clone(),
+                file_size: file.file_size,
+                modified_unix_ms: file.modified_unix_ms,
+                file_identity: file.file_identity.clone(),
+                inspection_engine_id: inspector.inspection_engine_id().to_owned(),
+                inspection_engine_version: inspector.inspection_engine_version(),
+                issue,
+            },
+        }],
+        revalidation: vec![RevalidationTarget::Present {
+            relative_path,
+            expected,
+        }],
+    }
 }
 
 struct BuiltLocation {
@@ -694,13 +1235,19 @@ struct BuiltLocation {
     issue: Option<LibraryChangeFailure>,
 }
 
+enum BuildLocationFailure {
+    Retry(LibraryChangeFailure),
+    Terminal(LibraryChangeFailure),
+}
+
 fn build_location(
+    discovery: &PublicationGuardedFileDiscovery,
     inspector: &LocalMediaInspector,
     leased: &LeasedLibraryChange,
     file: &DiscoveredFile,
     decision: &IncrementalReconciliationDecision,
     prior: Option<&AssetLocationView>,
-) -> Result<BuiltLocation, LibraryChangeFailure> {
+) -> Result<BuiltLocation, BuildLocationFailure> {
     let retains_compatible = decision.evidence_disposition
         == DerivedEvidenceDisposition::RetainCompatible
         && prior.is_some_and(|prior| {
@@ -719,9 +1266,16 @@ fn build_location(
                 file.issues.first().map(issue_failure),
             )
         } else {
-            let inspection = inspector
-                .inspect(file)
-                .map_err(|issue| issue_failure(&issue))?;
+            let inspection = discovery
+                .inspect_media(inspector, file)
+                .map_err(|failure| match failure.kind {
+                    MediaInspectionFailureKind::Retryable => {
+                        BuildLocationFailure::Retry(issue_failure(&failure.issue))
+                    }
+                    MediaInspectionFailureKind::Terminal => {
+                        BuildLocationFailure::Terminal(issue_failure(&failure.issue))
+                    }
+                })?;
             let issue = file
                 .issues
                 .first()
@@ -741,20 +1295,20 @@ fn build_location(
         | IncrementalReconciliationOutcome::Modified
         | IncrementalReconciliationOutcome::RenamedOrMoved => {
             prior.map(|prior| prior.asset_id.clone()).ok_or_else(|| {
-                failure(
+                BuildLocationFailure::Retry(failure(
                     "incremental_prior_asset_missing",
                     "Identity-preserving reconciliation requires a prior asset",
-                )
+                ))
             })?
         }
         IncrementalReconciliationOutcome::Added | IncrementalReconciliationOutcome::Replaced => {
             incremental_asset_id(leased, file)
         }
         _ => {
-            return Err(failure(
+            return Err(BuildLocationFailure::Retry(failure(
                 "incremental_upsert_outcome_invalid",
                 "The reconciliation outcome cannot create a catalog location",
-            ));
+            )));
         }
     };
     let (preview_path, preview_status, preview_issue_code, preview_issue_message) =
@@ -795,9 +1349,18 @@ fn build_location(
     })
 }
 
-fn inspect_path(discovery: &FileDiscovery, relative_path: &str) -> InspectedPath {
+fn inspect_path(discovery: &PublicationGuardedFileDiscovery, relative_path: &str) -> InspectedPath {
     match discovery.visit_relative_path(relative_path).outcome {
         FileVisitOutcome::File(file) => InspectedPath::File(file),
+        FileVisitOutcome::TerminalMedia {
+            file,
+            issue,
+            report_issue,
+        } => InspectedPath::TerminalMedia {
+            file,
+            issue: issue_failure(&issue),
+            report_issue,
+        },
         FileVisitOutcome::Directory | FileVisitOutcome::Ignored => InspectedPath::CatalogAbsent,
         FileVisitOutcome::Issue(issue) if issue.code == "file_missing" => {
             InspectedPath::CatalogAbsent
@@ -827,7 +1390,7 @@ fn select_prior<'a>(
 }
 
 fn revalidate_change(
-    discovery: &FileDiscovery,
+    discovery: &PublicationGuardedFileDiscovery,
     change: &PreparedChange,
 ) -> Result<(), LibraryChangeFailure> {
     for target in &change.revalidation {
@@ -842,7 +1405,7 @@ fn revalidate_change(
             }
             RevalidationTarget::CatalogAbsent(relative_path) => {
                 match inspect_path(discovery, relative_path) {
-                    InspectedPath::CatalogAbsent => {}
+                    InspectedPath::CatalogAbsent | InspectedPath::TerminalMedia { .. } => {}
                     InspectedPath::File(_) => {
                         return Err(failure(
                             "incremental_source_changed_before_publication",
@@ -977,6 +1540,16 @@ fn publication_failure(status: CatalogDeltaPublicationStatus) -> LibraryChangeFa
             unreachable!("applied publication is not a failure")
         }
     }
+}
+
+fn is_publication_namespace_failure(error: &ScanError) -> bool {
+    error.code.starts_with("root_publication_namespace_")
+        || matches!(
+            error.code.as_str(),
+            "root_identity_unavailable"
+                | "root_identity_changed"
+                | "metadata_inventory_root_identity_changed"
+        )
 }
 
 fn incremental_asset_id(leased: &LeasedLibraryChange, file: &DiscoveredFile) -> String {

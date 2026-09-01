@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 
-use rusqlite::{TransactionBehavior, params};
+use rusqlite::params;
 
-use crate::domain::{LibraryChangeCatchUpCheckpoint, ScanError};
+use crate::domain::{LibraryChangeCatchUpCheckpoint, LibraryChangeLane, ScanError};
 use crate::ports::LibraryChangeCatchUpRepository;
 
 use super::{SqliteCatalog, database_error, sqlite_integer, sqlite_unsigned};
@@ -52,7 +52,8 @@ impl LibraryChangeCatchUpRepository for SqliteCatalog {
         checkpoint: &LibraryChangeCatchUpCheckpoint,
     ) -> Result<(), ScanError> {
         validate_checkpoint(checkpoint)?;
-        self.connection
+        let transaction = self.begin_write_in_lane(LibraryChangeLane::Journal)?;
+        transaction
             .execute(
                 "INSERT INTO library_change_catch_up_state(
                    volume_id, journal_id, next_usn, root_set_fingerprint,
@@ -74,7 +75,7 @@ impl LibraryChangeCatchUpRepository for SqliteCatalog {
                 ],
             )
             .map_err(database_error)?;
-        Ok(())
+        transaction.commit().map_err(database_error)
     }
 
     fn cleanup_obsolete_library_change_catch_up_checkpoints(
@@ -101,10 +102,7 @@ impl LibraryChangeCatchUpRepository for SqliteCatalog {
                     "The catch-up cleanup selection bound overflowed",
                 )
             })?;
-        let transaction = self
-            .connection
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(database_error)?;
+        let transaction = self.begin_write_in_lane(LibraryChangeLane::Journal)?;
         let unresolved_gap = transaction
             .query_row(
                 "SELECT EXISTS(
