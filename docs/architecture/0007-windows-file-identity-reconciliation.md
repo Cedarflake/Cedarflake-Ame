@@ -83,7 +83,40 @@ The adapter calls `GetFileInformationByHandleEx` with `FileIdInfo`. This require
 - the output value is read only after the operating-system call reports success;
 - no borrowed Windows pointer or structure crosses the adapter.
 
-No other `unsafe` use is admitted by this decision.
+No other `unsafe` use is admitted by this decision itself. ADR 0024 later admits a separate,
+adapter-only Windows 11 x64 root-relative open and directory-enumeration boundary. That boundary
+uses `NtCreateFile` with an already pinned root handle, consumes `FILE_ID_INFO` as part of the root
+and directory proof, and opens a second root-relative terminal-file handle only after the
+attribute-only handle proves the complete volume-plus-128-bit object identity and local,
+non-reparse state. It owns the native `NTSTATUS`, `OBJECT_ATTRIBUTES`, `UNICODE_STRING`, and handle
+conversion entirely inside the local-filesystem adapter. Metadata and directory calls keep
+`EaBuffer = null` and `EaLength = 0`, request no content-read right, and reject offline or recall
+evidence. The second `NtCreateFile` call is issued from a freshly rebound configured-root handle,
+uses `FILE_NON_DIRECTORY_FILE | FILE_OPEN_NO_RECALL`, omits delete sharing, and requests content
+access only for the terminal file. Before any read it must still match the metadata handle's full
+ID and volume, remain locally available and non-reparse, and resolve under that rebound root
+identity. Raw volume and device namespaces are rejected before an operating-system open. Each
+root-relative component query reads the actual parent directory's case-sensitivity flag and
+applies `OBJ_CASE_INSENSITIVE` only for a case-insensitive parent; final containment compares live
+root identity rather than lowercased path text. It does not broaden file identity into domain or
+application code and must retain this record's fixed-width identity representation and one-owner
+handle invariants.
+
+ADR 0024 publication adds a distinct configured-namespace guard. It normalizes the configured path
+to canonical long DOS names, never a raw-volume path, NT device path, short-name alias, or a
+final-path string returned by a handle. The Win32 adapter opens the actual local DOS volume root
+(`C:\` for a C-drive root) with `FILE_TRAVERSE | FILE_READ_ATTRIBUTES | SYNCHRONIZE`; it does not
+open a long-DOS volume spelling. Each descendant prefix is then opened by name relative to the
+already pinned parent through the ADR 0024 `NtCreateFile` adapter with pure `FILE_TRAVERSE`.
+Volume and descendant guards use read/write sharing but no delete sharing plus backup/open-reparse
+semantics. Directory guard opens deliberately do not request no-recall. A separate root-relative
+`FILE_READ_ATTRIBUTES | SYNCHRONIZE` handle validates the child's final canonical path,
+volume, complete 128-bit identity, directory and reparse attributes, local availability, NTFS
+volume, and the parent directory's real case semantics before the next prefix is admitted. The
+entire RAII chain remains owned until the catalog transaction commits or rolls back. Failure to
+expand a configured path to its long DOS form, open any prefix with those minimal rights, or
+reproduce a persisted root-generation identity is a capability failure and closes publication;
+path expansion is never accepted as identity or authority.
 
 ## Validation gates
 
@@ -122,8 +155,34 @@ No other `unsafe` use is admitted by this decision.
   sampled source bytes and the source entry count remain unchanged.
 - Generated bridge hashes match. Flutter mapping and Windows integration tests preserve the
   Ame-owned identity scheme without exposing Windows structures.
-- Rust formatting, Clippy with warnings denied, 49 non-ignored Rust tests, Flutter analysis, 17 Flutter tests,
-  two Windows integration scenarios, and the Windows Release build pass.
+- Controlled Windows 11 x64 fixtures exercise the production namespace wrapper with exact desired
+  access, sharing, and flags. An ordinary-user disposable root below Public Documents proves the
+  complete volume-to-root chain: the `C:\` volume handle uses
+  `FILE_TRAVERSE | FILE_READ_ATTRIBUTES | SYNCHRONIZE`, each root-relative descendant guard uses
+  pure `FILE_TRAVERSE`, and all open no-follow without delete sharing; a held root
+  rename fails with Win32 32, and rename succeeds after the guard drops. Temporary owned ancestors
+  separately prevent rename and deletion while held. The workspace sandbox denies access to one
+  otherwise valid profile ancestor with Win32 5; this is retained as environment-specific negative
+  capability evidence, not represented as a Windows or positive profile-chain result. A controlled
+  guard-capability failure fixture proves preservation of catalog, `Current`, checkpoint, and
+  authority state and projects `RecoveryRequired`.
+- Publication-capable discovery is a separate private-field, non-cloneable
+  `PublicationGuardedFileDiscovery`; there is no `From`, `Default`, public constructor, or ordinary
+  `FileDiscovery` upgrade. It implements neither `Deref` nor `DerefMut` and exposes no raw file,
+  directory iterator, underlying discovery reference, or detachable handle. Directory traversal is
+  available only as opaque cursors whose borrow or owned guard keeps the namespace capability live;
+  the durable inventory cursor privately duplicates the pinned handles and drops its directory
+  iterator before that duplicate guard. An expected v29 identity is compared against the pinned
+  root-relative metadata handle before the enumeration-root handle opens, so a configured-path
+  replacement performs zero source enumeration and cannot reach authoritative catalog publication.
+- Rust formatting, development/release check, and Clippy with warnings denied pass. The seventh-
+  remediation focused reruns pass 34/34 local-file, 41/41 incremental, 11/11 authoritative, and
+  35/35 metadata-inventory tests. The seventh-remediation historical snapshot recorded 831 passed,
+  zero failed, and 11 intentional ignores in 243.79 seconds, followed by 3/3 binary integration
+  tests in 2.09 seconds. That snapshot also recorded passing Flutter analysis and all 297
+  unit/widget tests, controlled Windows scan and accessibility integrations at 2/2 each, and an
+  internal Windows x64 Release build in 89.84 seconds. It is not final or current R2c-Q evidence;
+  ADR 0024 and the R2c-Q implementation checkpoint own the later replacement evidence.
 
 ## Consequences and risks
 

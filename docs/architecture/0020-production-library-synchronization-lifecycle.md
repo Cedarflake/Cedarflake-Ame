@@ -2,7 +2,14 @@
 
 - Status: Accepted
 - Date: 2026-08-18
-- Last amended: 2026-08-22
+- Last amended: 2026-09-02
+
+ADR 0024 supersedes this record only where it makes every cold start or availability transition
+create a metadata-inventory epoch, cancels all journal continuity at shutdown, or permits older
+authoritative work to delay live publication. The process mutex, Rust-owned lifecycle, bounded
+snapshot, revision-driven Flutter refresh, presentation, and close behavior remain accepted. Under
+ADR 0024 the watcher starts first, persistent journal catch-up is P1, live work has reserved P0
+capacity, and metadata inventory is P2 for a one-time baseline or proven continuity gap.
 
 ## Context
 
@@ -74,8 +81,9 @@ synchronized freshness until the continuity epoch and its retained queue work ar
 
 The runtime publishes a bounded `LibrarySynchronizationSnapshot` containing the running flag, catalog
 revision, applied-mutation count, and one status per configured root. Each root status contains the
-durable root generation, availability, freshness and cause, observer health, bounded queue counts, and
-an optional issue code. The bridge exposes only start, poll, and stop application calls. Adapter,
+durable root generation, availability, freshness and cause, continuity, observer health, bounded
+queue counts, a typed recovery-blocked flag, and an optional issue code. The bridge exposes only
+bounded application lifecycle calls. Adapter,
 watcher, SQLite, absolute-path inspection, and queue-row types do not cross it.
 The runtime retains the last observer issue code while the root still has unresolved authoritative
 work. A successful watcher restart does not clear that diagnostic; only a root snapshot that is
@@ -139,9 +147,14 @@ or issue-code changes instead of producing alternating history records. Starting
 does not resolve that active error or change the row back to `正在更新图库`; only a synchronized root
 snapshot proves convergence and resolves it. Notification details retain
 the bounded affected-work counts, source display path, stable technical code, and a connected retry
-action only when the failed application operation can actually be replayed. Root recovery remains
-automatic and never exposes an action that starts a manual full scan. Successful automatic recovery resolves the active error
-without adding a success notice, and acknowledgement never changes the Rust-owned freshness state.
+action only when the failed application operation can actually be replayed. Ordinary recovery
+remains automatic and never exposes a full-scan action. The exception is a typed
+`explicit_recovery_required` claim whose historical event provenance cannot be reconstructed: its
+`recoveryBlocked` snapshot presents `更新图库`, and activating that control is the user's explicit
+authorization for the application-owned foreground full scan. A persistence, bridge, watcher, or
+generic retry error never gains that authorization merely because it is blocked. Successful
+automatic or explicitly authorized recovery resolves the active error only after a synchronized
+snapshot; acknowledgement never changes the Rust-owned freshness state.
 Scan-task state remains separate and retains presentation priority.
 
 SQLite busy or locked results caused by another bounded Ame publication are treated as transient
@@ -187,8 +200,9 @@ resumes its prior checkpoint. Source media is never modified by this lifecycle.
   failure, scan-task priority, bounded failure handling, rename continuity, and authoritative-removal
   closure;
 - notification fixtures prove bounded history and queue state, active-condition deduplication,
-  unread icon switching without a numeric badge, detailed reconciliation evidence, application-use-
-  case action routing, task-surface priority, and transient dismissal;
+  unread icon switching without a numeric badge, detailed reconciliation evidence, typed explicit-
+  recovery action routing, no full-scan action for generic persistence failures, keyboard/screen-
+  reader button semantics, task-surface priority, and transient dismissal;
 - window fixtures prove immediate hide, reverse-order idempotent coordinated shutdown, continuation
   through an individual teardown failure, and destruction after the configured timeout;
 - scan lifecycle fixtures prove the desktop shutdown action reaches the active foreground scanner,

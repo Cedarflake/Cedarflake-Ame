@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-11
+- Last amended: 2026-08-23
 
 ## Context
 
@@ -70,16 +71,110 @@ separate job with repository-content write permission build the bundle, verify t
 or update the corresponding GitHub Release. No GitHub environment or human approval is required.
 The published-release workflow downloads the exact attachment and verifies it independently.
 
+### ADR 0024 amendment: service-enabled distribution
+
+The portable ZIP remains a valid Windows x64 artifact, but it cannot establish the protected
+installed-client identity or install/update the constrained journal broker required for complete
+closed-process continuity. Under ADR 0024 it therefore always exposes only an explicit `LiveOnly`
+capability, including on a machine where a broker is installed. It must not claim the complete
+synchronization contract or use a signed executable in a user-writable directory as code identity.
+
+ADR 0024 moves the minimum signed installer work required to install, repair, upgrade, and remove
+that broker into R2c. This is a narrow amendment to the stage boundary below, not a replacement of
+the portable identity, archive layout, candidate gate, or publication rules in this ADR. General
+automatic update, downgrade, catalog rollback, and broader supply-chain maturity remain deferred.
+
+The verified Release directory and portable archive include
+`cedarflake_ame_journal_broker.exe`, but extracting or running the portable application never
+installs, starts, repairs, upgrades, or removes the service. The desktop negotiates the installed
+service protocol only from the protected Program Files Application identity. The portable desktop
+remains explicitly `LiveOnly`. The bundled executable is installer input, not authority to mutate
+SCM state.
+
+Broker lifecycle entrypoints are fixed to Windows 11 client x64 and the Ame-owned
+`FOLDERID_ProgramFilesX64\Cedarflake Ame\Journal Broker` directory. The lifecycle runs only in a
+native 64-bit process and resolves that known folder through `SHGetKnownFolderPath`; the
+`ProgramFiles` environment value and a WOW64 redirected path have no authority. Install, repair,
+and upgrade reject a non-x64 PE, an invalid or missing Authenticode signature, an empty expected
+publisher, or a valid
+signature whose exact signer subject differs from that expected publisher. Upgrade stages the
+validated replacement on the destination volume only after the installed binary's exact ACL,
+publisher, executable `--protocol-info`, hash, signer-certificate hash, client identity, and
+SCM-protected manifest all agree. The transaction stops the service with a bounded wait, records
+only paths and service objects created or moved by this invocation in a protected, write-through
+persistent marker, renames the old binary to a
+rollback name when one exists, and revalidates service and binary ACL state. Every rollback action
+runs independently in reverse order and failures are aggregated, including failures after the new
+service starts or while deleting the owned backup. A repair with a missing binary creates no fake
+backup ownership and never deletes a pre-existing path. Uninstall first performs the same available
+binary identity checks, removes only the fixed service through a bounded stop/delete/disappearance
+wait, then removes the fixed binary and an empty broker directory; it has no catalog, cache,
+source-root, or USN-journal operation.
+
+Every lifecycle entry first validates and recovers a prior marker. It refuses a live owner identified
+by both PID and process start time, treats PID reuse or a dead owner as interrupted work, and executes
+every recovery action independently. The marker preserves whether the Ame parent existed and its
+exact descriptor so rollback restores that state or removes a parent created by this invocation.
+Owned-tree deletion uses a bounded no-follow walker and rejects any descendant reparse point. A
+markerless broker directory may be adopted only when it is empty, has the exact protected descriptor,
+and neither the service nor binary exists; a nonempty or differently protected orphan fails closed.
+
+These repository scripts are the lifecycle foundation consumed by a future signed installer
+container; they are not themselves evidence that a production signing identity or installer UI has
+been provisioned. Release-candidate verification requires an already signed broker path and the
+exact expected publisher. The repository currently owns neither signing credentials nor a signed
+candidate, so an unsigned candidate fails closed and cannot be published.
+
+Before any lifecycle mutation, every existing component from the local volume root through the
+fixed install directory is opened and its normalized final handle path is compared with the
+expected path. A reparse directory, a path redirection, an owner other than SYSTEM, Administrators,
+or TrustedInstaller, or an applicable untrusted allow ACE granting object replacement, directory
+write, `DELETE`, `WRITE_DAC`, `WRITE_OWNER`, or parent `FILE_DELETE_CHILD` fails closed. Inherited-
+only ACEs do not authorize the current object, and a newly required Ame directory is created with a
+protected SYSTEM/Administrators security descriptor in the same `CreateDirectoryW` operation so no
+user-writable intermediate directory exists before ACL hardening. The installed directory and
+binary then require exact protected SYSTEM/Administrators full-control and BUILTIN Users
+read/execute rules without write, delete, `WRITE_DAC`, or `WRITE_OWNER`; the service process remains
+restricted by its SCM service SID and required-privilege contract. The SCM object requires the exact
+admitted owner, group, and DACL rather than a required-SID substring check.
+
+The narrow native installer helper owns three resource invariants: the known-folder allocation is
+freed with the matching COM allocator, every final-path handle has one `SafeFileHandle` owner, and
+the converted security descriptor remains live through synchronous directory creation and is then
+released with `LocalFree`. Failure to prove any of these path or ACL facts aborts before an
+installer-owned write or delete.
+
+The same installer boundary creates or validates the complete fixed
+`FOLDERID_ProgramFilesX64\Cedarflake Ame\Application` bundle. The source bundle is bounded to 4,096
+entries and 2 GiB and contains no reparse point. Every installed entry is reopened to prove its
+final physical path and receives an exact protected ACL: SYSTEM and Administrators have full
+control and BUILTIN Users have read/execute only. The signed installed client and broker are then
+bound together by the SCM-protected `AMEJBID2` manifest using protocol/max-frame, canonical client
+path, both binary SHA-256 values, both signer-certificate SHA-256 values, and the exact publisher
+validated by the installer.
+
+Hosted release verification consumes one immutable signed Application bundle rather than rebuilding
+or copying over it after admission. The release job requires an externally provisioned production
+PFX, password, and exact publisher; absence of any input fails closed. It builds the application and
+broker once, signs both, revalidates Authenticode, publisher, x64 machine, and broker protocol, then
+removes the temporary runner credential and uploads the exact Release tree as a short-lived pinned-
+action artifact. The publication job downloads and reverifies that same artifact before packaging;
+it does not run another Flutter or Cargo build. Post-publication verification first enforces safe ZIP
+paths and bounded expansion, then extracts to fresh repository scratch storage, revalidates both
+embedded signatures and the broker protocol, and removes the scratch directory. A structural ZIP
+check alone is not release identity evidence.
+
 ## Deferred decisions
 
-R9 owns the following work:
+Later release-maturity work outside ADR 0024 owns the following work:
 
-- a per-user MSI alongside the portable ZIP;
-- installer technology, package identifiers, and stable MSI upgrade codes;
-- manual and in-application update workflows;
+- the general installed-product and update experience beyond ADR 0024's required broker lifecycle;
+- stable package and upgrade identities not already required by that broker installer;
+- manual and in-application application-update workflows;
 - database migration and compatibility policy;
 - application and database rollback behavior;
-- code signing, provenance, checksums, and broader supply-chain hardening.
+- signing infrastructure and credential custody beyond the required broker Authenticode gate,
+  provenance, checksums, and broader supply-chain hardening.
 
 The future uninstaller must remove Ame-owned cache, thumbnail, and temporary files. It must never
 delete or alter original media. Durable catalogs, user decisions, and operation history require a
@@ -92,6 +187,8 @@ them as disposable cache.
 - Moving the directory is supported; removing it does not clean application data.
 - The ZIP is larger than the executable because it intentionally includes all runtime dependencies.
 - The current artifact has no signature, installer registration, automatic update, or rollback.
+- The portable payload may contain the broker executable but never grants service lifecycle
+  authority or protected client identity, so the portable application remains `LiveOnly`.
 - GitHub Release publication has write permission only after the read-only candidate gate succeeds.
 - A workflow rerun may replace the named attachment on a mutable release; immutable-release policy
   and signed provenance remain R9 work.
@@ -101,10 +198,31 @@ them as disposable cache.
 - `tool/release_package_portable_windows.ps1` copies and archives the complete Release directory.
 - `tool/release_verify_portable_archive.ps1` validates identity, structure, and required runtime
   entries without extracting the archive.
+- `tool/release_verify_portable_signatures.ps1` safely extracts a structurally valid archive into
+  fresh bounded scratch storage and revalidates the application and broker signature, publisher,
+  x64 machine, and broker protocol before confirmed cleanup.
 - `tool/release_test_portable_archive.ps1` proves a valid fixture passes and incomplete or
-  traversal-bearing archives fail.
+  traversal-bearing archives fail, including a broker-missing archive.
+- `tool/release_test_journal_broker_installer_guardrails.ps1` proves the Windows/x64, publisher,
+  service account, service SID, privilege, DACL, fixed-destination, interrupted-transaction,
+  rollback isolation, no-follow cleanup, source/catalog isolation, and no-journal-mutation
+  constraints without changing SCM state.
+- `tool/release_install_journal_broker.ps1`, `release_repair_journal_broker.ps1`,
+  `release_upgrade_journal_broker.ps1`, `release_stop_journal_broker.ps1`, and
+  `release_uninstall_journal_broker.ps1` own the explicit elevated lifecycle. Their existence does
+  not satisfy the pending signed-candidate or real-SCM acceptance gate.
 - `.github/workflows/release_candidate_windows.yml` gates publication behind release verification.
 - `.github/workflows/release_verify_published.yml` downloads and validates the published attachment.
+
+## References
+
+- [Microsoft: KNOWNFOLDERID](https://learn.microsoft.com/en-us/windows/win32/shell/knownfolderid)
+- [Microsoft: SHGetKnownFolderPath](https://learn.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-shgetknownfolderpath)
+- [Microsoft: GetFinalPathNameByHandleW](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfinalpathnamebyhandlew)
+- [Microsoft: File security and access rights](https://learn.microsoft.com/en-us/windows/win32/fileio/file-security-and-access-rights)
+- [Microsoft: File access rights constants](https://learn.microsoft.com/en-us/windows/win32/fileio/file-access-rights-constants)
+- [Microsoft: ConvertStringSecurityDescriptorToSecurityDescriptorW](https://learn.microsoft.com/en-us/windows/win32/api/sddl/nf-sddl-convertstringsecuritydescriptortosecuritydescriptorw)
+- [Microsoft: CreateDirectoryW](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createdirectoryw)
 
 ## Replacement and rollback strategy
 

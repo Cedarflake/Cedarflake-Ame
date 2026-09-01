@@ -1,8 +1,15 @@
 # ADR 0023: Reconcile library continuity without the USN journal
 
-- Status: Accepted
+- Status: Superseded by ADR 0024
 - Date: 2026-08-21
 - Supersedes: ADR 0022
+
+ADR 0024 replaces this production decision with a Windows 11 x64 change-driven model: the live
+watcher owns low-latency delivery, a constrained service brokers persistent USN catch-up, and
+metadata inventory runs only for a one-time baseline or a proven continuity gap. This record
+remains historical implementation and migration evidence for schemas v20 and v21. It no longer
+authorizes starting a complete metadata inventory for every available root on ordinary process
+startup, and its O(N) startup consequence is not an accepted steady-state product behavior.
 
 ## Context
 
@@ -126,12 +133,15 @@ migrated contract fails closed.
 The local adapter enumerates every filesystem entry kind without extension or media-signature
 filtering. It obtains file identity only for locally available files; offline, recall-on-open, and
 recall-on-data-access entries never receive an identity-handle open. A missing requested subtree is
-an empty complete scope. Unreadable, reparse, placeholder, escaped, over-depth, cancelled, or
-otherwise incomplete directories fail the run and cannot authorize descendant absence. Within one
+an empty complete scope. Unreadable, escaped, over-depth, cancelled, or otherwise incomplete
+ordinary directories fail the run and cannot authorize descendant absence. Within one
 root, one prior path cannot be claimed by multiple rename candidates carrying the same file
 identity; additional hard-link paths remain ordinary final-state reconciliation candidates.
-Terminal symlinks, junctions, and unrecognized reparse points fail closed from no-follow reparse
-evidence; the inventory never opens or traverses their targets.
+Terminal symlinks, junctions, and unrecognized reparse directories are staged as opaque leaf
+boundaries from no-follow reparse evidence; they do not fail unrelated siblings and the inventory
+never opens or traverses their targets. If a formerly ordinary directory becomes such a boundary,
+a complete owning inventory may remove its former descendants from Ame's current projection because
+they are no longer inside the selected root under the accepted no-follow policy.
 
 On Windows, entry classification retains directory-enumeration attributes and queries
 `FileAttributeTagInfo` through a no-follow, no-recall handle. `FILE_ATTRIBUTE_RECALL_ON_OPEN` is an
@@ -149,14 +159,17 @@ siblings. Before any signature, identity, metadata, or preview read, the adapter
 handle with `FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_OPEN_NO_RECALL` and without delete sharing,
 validates the merged attributes and tag, then opens the content with
 `FILE_FLAG_OPEN_NO_RECALL`. It rechecks the opened content handle and compares its file identity
-with the still-live validation handle before returning the reader. This rejects dehydration and
-replacement races before source bytes can be consumed even on filesystems that permit the pathname
-to be unlinked concurrently.
+with the still-live validation handle before returning the reader. The same content handle must
+resolve through `GetFinalPathNameByHandleW` beneath the canonical selected root, so replacing an
+ancestor directory with a junction cannot redirect a metadata or preview read outside the root.
+This rejects dehydration, replacement, and ancestor-reparse races before source bytes can be
+consumed even on filesystems that permit the pathname to be unlinked concurrently.
 
-The Windows adapter contains three narrow `unsafe` contracts for this boundary:
+The Windows adapter contains four narrow `unsafe` contracts for this boundary:
 `GetFileInformationByHandleEx(FileAttributeTagInfo)` writes one initialized, exactly sized
 `FILE_ATTRIBUTE_TAG_INFO`; `FindFirstFileW` writes one initialized `WIN32_FIND_DATAW` for an exact,
-terminated extended path and its search handle is closed exactly once with `FindClose`; and
+terminated extended path and its search handle is closed exactly once with `FindClose`;
+`GetFinalPathNameByHandleW` writes into one live, bounded UTF-16 buffer for the opened handle; and
 `CfGetPlaceholderStateFromAttributeTag` consumes only the returned integer attributes and tag. All
 calls remain inside the adapter; no raw handle, pointer, Win32 structure, or Cloud Files state
 crosses into application, domain, persistence, or presentation.
@@ -195,16 +208,33 @@ then coalesces the page without allowing that authority row to absorb its own ou
 row is a control reservation rather than retained candidate work; the absolute 4,096-row bound is
 still enforced, so production pages contain at most 4,095 candidates. If existing path work leaves
 less capacity, the inventory cursor does not advance, the lease is deferred without consuming an
-attempt, and another root may run while the path queue drains. A newer live gap supersedes the
-protected lease, invalidates further output from the older worker, and atomically starts the next
-inventory epoch instead of trusting staged evidence from the interrupted boundary.
+attempt, and another root may run while the path queue drains. Ordinary watcher work likewise does
+not absorb this control reservation or count it against normalized path-work capacity. A retained
+watcher plan publishes bounded prefixes while the path queue drains instead of degrading capacity
+into a replacement root. A conflicting rename, newer live gap, or replacement startup epoch still
+supersedes the protected lease, invalidates further output from the older worker, and atomically
+starts the next inventory epoch instead of trusting staged evidence from the interrupted boundary.
 
 Repeated transport, filesystem, catalog, or inventory failure preserves the last trustworthy
 catalog and durable work. It becomes a blocked root condition with a structured issue code. It does
 not silently claim freshness and does not start a full scan.
-Final-state reconciliation treats an unknown-extension signature probe as three states: supported,
-unsupported, or unreadable. Only a successfully read unsupported signature is ignored; an open or
-read failure retries while preserving the last trustworthy location.
+Final-state reconciliation treats media eligibility and inspection as three outcomes: supported,
+deterministically terminal, or temporarily unreadable. Only formats enabled in the pinned decoder
+are admitted by extension or exact image signature; a generic ISO-BMFF `ftyp` box is not image
+evidence and therefore does not admit MP4 or MOV files. Unsupported formats, malformed images, and
+decoder-limit violations complete once with durable terminal evidence. An ordinary non-image file
+remains silent; malformed eligible media and decoder-limit failures retain a bounded reportable
+issue. Open, lock, read, and source-race failures retry while preserving the last trustworthy
+location.
+
+Schema v21 stores deterministic terminal media evidence by root and normalized path together with
+file size, modification time, optional file identity, inspection-engine identity and version, and
+the bounded issue. Queue completion, current-path and previous-path invalidation, catalog mutation,
+and terminal-evidence publication share one immediate transaction. A later inventory reuses the
+terminal result only when the complete source state and inspection-engine version still match;
+source change, rename, removal, successful publication, or engine-version change invalidates it.
+This evidence is derived and root-cascaded, but it is not terminal queue history and is not removed
+by queue retention while its source state remains current.
 
 ### Full-scan authority
 
@@ -212,7 +242,8 @@ Only these authorities may start or continue a complete media scan:
 
 - first import of a newly configured root;
 - an explicit user `更新图库` request for that root; or
-- resumption of a full scan that already has a durable checkpoint.
+- resumption of a durable `foreground` checkpoint created by first import or an explicit user
+  request.
 
 Ordinary process start, elapsed time, live file events, watcher evidence loss, watcher restart,
 queue overflow, retry exhaustion, metadata-inventory size, source availability recovery, database
@@ -223,18 +254,21 @@ decision to the user.
 Every full-scan request carries a typed reason. Production rejects any reason outside the allowlist,
 and deterministic tests prove that all automatic synchronization paths are unable to create one.
 
-Create-new and resume-existing scans use separate application, persistence, and desktop-bridge
-entrypoints. Resume is a fail-closed transaction: it requires the exact existing scan, active root,
-root generation, owner, parameters, and running or paused state. It never inserts a root, scan,
-frontier, or queue lease. A checkpoint removed by root unregistration or another terminal lifecycle
-transition cannot be recreated by a stale recovery coordinator.
+Create-new and resume-existing foreground scans use separate application, persistence, and
+desktop-bridge entrypoints. Resume is a fail-closed transaction: it requires the exact existing
+scan, active root, root generation, foreground owner, parameters, and running or paused state. It
+never inserts a root, scan, frontier, or queue lease. A checkpoint removed by root unregistration or
+another terminal lifecycle transition cannot be recreated by a stale recovery coordinator.
+Prerelease `authoritative_recovery` full-scan checkpoints are migration input only: startup retires
+them, preserves the last published catalog, and releases their unresolved evidence to the current
+metadata-inventory path. Production has no entrypoint that resumes them.
 
 ### Shutdown and restart
 
-Closing the application hides the desktop window immediately. A running explicit or first-import
-full scan persists its checkpoint and may resume in the next process. Watchers, metadata inventories,
-path work, subtree work, and bounded root reconciliation are cancelled and must not carry in-memory
-authority across the process boundary.
+Closing the application hides the desktop window immediately. A running foreground explicit or
+first-import full scan persists its checkpoint and may resume in the next process. Watchers,
+metadata inventories, path work, subtree work, bounded root reconciliation, and historical
+automatic full scans must not carry authority across the process boundary.
 
 On the next start, Ame creates a new continuity epoch after the watcher is healthy. Old unresolved
 non-scan rows are coalesced or superseded into that new authority rather than trusting work captured
@@ -289,6 +323,10 @@ user decisions, and any unresolved handoff evidence until replacement authority 
 `StartupCatchUp` and USN gap rows become inventory-required work without pretending that a journal
 range was consumed. Malformed existing authority continues to fail closed.
 
+The forward schema v21 migration adds the exact-shape terminal-media evidence table and contract
+marker without rebuilding active catalog or queue rows. Catalog open validates its columns,
+root-cascading foreign key, marker, and relational integrity and fails closed on a partial contract.
+
 ## Validation gates
 
 - controlled live create, modify, delete, rename, move, and same-path replacement reach the visible
@@ -298,17 +336,28 @@ range was consumed. Malformed existing authority continues to fail closed.
   unavailable entries, and placeholders;
 - inventory race fixtures cover live changes during enumeration, event supersession, overflow,
   cancellation, process interruption, root-generation change, and final absence authority;
+- Windows source-open fixtures replace an already-checked ancestor with a junction and prove the
+  final content handle cannot escape the selected root;
 - positive candidates may publish early, while removals never publish from an incomplete scope;
 - an oversized root or subtree continues in bounded pages and never requests a full scan;
-- typed-reason fixtures prove that only first import, explicit user refresh, and checkpoint resume
-  can start a full scan;
-- restart fixtures prove non-scan work starts a new epoch while a full scan alone resumes;
+- typed-reason fixtures prove that only first import, explicit user refresh, and their foreground
+  checkpoint resume can start a full scan;
+- restart fixtures prove non-scan work starts a new epoch while only a foreground full-scan
+  checkpoint resumes;
+- migration fixtures prove running and paused `authoritative_recovery` checkpoints are retired,
+  their queue evidence is released to metadata inventory, and foreground checkpoints remain
+  recoverable;
 - state fixtures prove no `需要核对` presentation and no `正在更新图库` / `更新受阻` oscillation;
 - notification fixtures prove normal update, retry, and success remain silent and blocked errors
   deduplicate by root;
 - development diagnostics expose phase, elapsed time, counts, and issue code without affecting the
   release UI;
 - migration fixtures preserve v19 catalogs and reject malformed inventory or legacy authority;
+- deterministic media fixtures prove MP4/MOV are not admitted as images, malformed media completes
+  without retry exhaustion, unchanged terminal evidence survives catalog reopen, and a changed file
+  invalidates that evidence and can publish normally;
+- reparse-directory fixtures prove an opaque boundary does not abort sibling enumeration and its
+  target is never traversed;
 - controlled Windows event-to-visible P95 is no greater than one second;
 - the retained approximately 79,000-location workload displays the cached gallery immediately,
   performs metadata-only continuity work without reading media bytes or hydrating placeholders,

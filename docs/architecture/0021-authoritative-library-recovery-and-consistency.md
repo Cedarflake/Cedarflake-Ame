@@ -2,7 +2,15 @@
 
 - Status: Accepted
 - Date: 2026-08-18
-- Last amended: 2026-08-21
+- Last amended: 2026-08-22
+
+ADR 0024 supersedes this record only where cold start, watcher restart, or ordinary evidence loss
+automatically creates root inventory work, where one global recovery worker can delay newer live
+work, and where a future journal service is required to work without an installer-time elevation.
+Bounded final-state reconciliation, complete-scope removal authority, previous-snapshot
+preservation, foreground full-scan allowlisting, and failure safety remain accepted. Metadata
+inventory is now the P2 baseline or proven-gap recovery path beneath reserved P0 live work and P1
+journal catch-up.
 
 ## Context
 

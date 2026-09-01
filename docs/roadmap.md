@@ -2,9 +2,9 @@
 
 Status: active delivery plan
 
-Last confirmed with the user: 2026-08-21
+Last confirmed with the user: 2026-08-22
 
-Last implementation-status synchronization: 2026-08-21
+Last implementation-status synchronization: 2026-09-02
 
 Repository: this repository root
 
@@ -944,23 +944,32 @@ R2c does not authorize a gallery hot-path, manifest, or navigation rewrite. It p
 identity and catalog-revision changes through bounded application contracts; the accepted R2b
 gallery decides how to preserve its logical anchor and visible interaction. Delivery slices R2c-A
 through R2c-F established the first running-time synchronization and recovery workflow. Historical
-R2c-G implemented USN catch-up, and R2c-H measured it honestly, but the target workstation's normal
-desktop token could not open either journal. ADR 0023 therefore supersedes that production design.
+R2c-G implemented direct-desktop USN catch-up, and R2c-H measured it honestly, but the target
+workstation's normal desktop token could not open either journal. R2c-I through R2c-M then
+implemented ADR 0023's non-privileged watcher-plus-startup-inventory replacement. That replacement
+preserved source safety and eliminated automatic media scans, but live diagnostics proved that its
+normal continuity path still enumerates every root after every process start and gives new changes
+no reserved execution path. Its O(N) startup model is therefore historical implementation evidence,
+not the accepted product direction.
 
-R2c is reopened for R2c-I through R2c-M. These slices replace USN and automatic full-scan fallback
-with one non-privileged live-watcher and metadata-inventory continuity model, preserve the accepted
-incremental publication and UI contracts, and repeat target-scale reliability evidence. R3 remains
-blocked until the replacement proves trustworthy freshness without elevation or hidden full scans.
+ADR 0024 reopens R2c for R2c-N through R2c-R. These slices replace scan-driven continuity with one
+Windows 11 x64 change-driven model: the live watcher owns reserved P0 low-latency delivery, an
+installer-managed constrained USN journal broker owns P1 closed-process catch-up, and metadata
+inventory is P2 only for one-time baseline establishment or a proven continuity gap. R3 remains
+blocked until this replacement passes security, migration, source-safety, latency, installer, and
+independent-audit gates.
 
 User outcome:
 
 After a folder has been added to Ame, images created, edited, deleted, renamed, or moved inside that
-folder appear in the same unified gallery without requiring an ordinary full-root rescan. If Ame was
-closed, it starts live observation and performs a metadata-only inventory that discovers downtime
-changes without decoding media or hydrating placeholders. If change evidence is missing, overflowed,
-or no longer trustworthy, Ame retains the last trustworthy catalog and continues the smallest
-pageable inventory scope needed to become current again. While that automatic path can converge, the
-root reports `正在更新图库`; it reports `更新受阻` only when the path has failed or exhausted.
+folder appear in the same unified gallery without waiting for old-library verification. If Ame was
+closed, a supported local NTFS root replays only its missing persistent journal range after the live
+watcher starts. A no-change normal startup enumerates zero source-root entries and opens no media.
+If journal continuity is missing or no longer trustworthy, Ame retains the last trustworthy catalog
+and runs one bounded metadata-only recovery while P0 live changes continue to publish. While an
+automatic path can converge, the root reports `正在更新图库`; it reports `更新受阻` only when that
+path has failed or exhausted. A permanently unsupported root is explicitly `LiveOnly` or manually
+refreshed rather than being silently scanned on every startup.
 
 The user continues to see one library rather than a separate synchronization application. Ordinary
 wording is limited to concepts such as `已同步`, `正在更新图库`, `更新受阻`, `目录不可用`, and
@@ -969,8 +978,10 @@ inventory epoch, and cursor belong only in diagnostic details.
 
 #### R2c.1 Safety and authority rules
 
-- Filesystem notifications and staged inventory rows are hints that identify what must be checked.
-  They are never accepted as the final file state.
+- Filesystem notifications, brokered journal records, and staged recovery inventory rows are hints
+  that identify what must be checked. They are never accepted as the final file state.
+- P0 live work has reserved execution capacity and may publish while P1 catch-up or P2 recovery is
+  incomplete. Historical continuity is not a precondition for presenting a newly revalidated change.
 - The filesystem plus Ame's already accepted identity and source-state revalidation remain the
   evidence used to reconcile the catalog.
 - R2c observes and reconciles source state without changing it. It does not delete, move, copy,
@@ -984,10 +995,15 @@ inventory epoch, and cursor belong only in diagnostic details.
 - A batch of related changes is visible at one catalog revision. The UI sees either the prior
   revision or the complete new revision, never a half-applied rename or replacement.
 - Full-root scanning is permitted only for first import, the explicit `更新图库` action, or resumption
-  of an already-started full scan. Every request carries one of these typed reasons.
+  of a foreground checkpoint created by either action. Every request carries one of these typed
+  reasons.
 - Normal create, modify, delete, rename, move, process start, watcher restart, evidence loss,
   overflow, retry, inventory size, availability recovery, and automatic reconciliation failure must
   not trigger a complete root scan.
+- Ordinary startup with a continuous checkpoint must not enumerate source-root entries, create a
+  metadata-inventory run, read media content, or hydrate a placeholder.
+- The broker may read only journal metadata for caller-authorized roots. It must not read media,
+  mutate source files, configure the journal, open the catalog, or disclose root-external records.
 
 #### R2c.2 Ownership and boundaries
 
@@ -996,9 +1012,10 @@ The Rust domain defines Ame-owned, platform-independent values for:
 - library-root identity and configuration generation;
 - normalized change intent, such as path reconciliation, rename candidate, subtree reconciliation,
   and root freshness unknown;
-- change origin, such as live notification, startup metadata inventory, or user refresh; retired
-  `StartupCatchUp` and `consistency_audit` values remain readable only for forward compatibility
-  with prerelease R2c catalogs and never schedule USN or periodic-audit work;
+- change origin and priority lane, including P0 live notification, P1 brokered journal catch-up,
+  P2 baseline or continuity-gap recovery, and user refresh; historical direct-desktop
+  `StartupCatchUp`, `consistency_audit`, and ADR 0023 startup-inventory values remain readable only
+  for forward migration and do not regain production authority;
 - reconciliation outcomes: unchanged, added, modified, renamed or moved, replaced, removed,
   skipped, retryable failure, and terminal issue;
 - watcher health and catalog-freshness states without exposing a Windows or third-party type.
@@ -1006,8 +1023,11 @@ The Rust domain defines Ame-owned, platform-independent values for:
 The Rust application layer owns:
 
 - starting and stopping change observation for configured, available roots;
+- negotiating broker capability, validating per-root journal continuity, and scheduling shared
+  per-volume reads without coupling root progress;
 - converting raw signals into Ame change intents;
-- durable enqueueing, debounce, coalescing, retry, backoff, pause, cancellation, and recovery;
+- durable enqueueing, enqueue-before-checkpoint, debounce, coalescing, priority isolation, retry,
+  backoff, pause, cancellation, and recovery;
 - deciding whether the minimum safe scope is one path, a subtree, root metadata reconciliation, or
   a complete scan;
 - invoking the existing source-state, file-identity, metadata, and preview ports;
@@ -1020,11 +1040,13 @@ Ports must remain narrow and should extend an existing natural boundary instead 
 second synonym for it. The implementation must at least evaluate these responsibilities:
 
 - `LibraryChangeSource`: streams normalized hints and health transitions;
+- `PersistentChangeJournal`: queries and streams bounded caller-authorized root changes without
+  exposing Win32, service, volume, or raw USN types;
 - `ChangeQueue`: durably records, leases, acknowledges, retries, and supersedes pending intents;
 - `IncrementalReconciler`: checks a path or bounded subtree and returns Ame reconciliation results;
 - `CatalogDeltaPublisher`: applies one batch at an atomic revision boundary;
-- `MetadataInventory`: enumerates and pages current metadata evidence for a continuity epoch without
-  reading media content.
+- `MetadataInventory`: enumerates and pages current metadata evidence for an explicit P2 baseline or
+  proven continuity gap without reading media content.
 
 Names are illustrative, not mandatory APIs. Before adding a port, inspect whether an existing scan,
 catalog, or filesystem contract already owns that responsibility.
@@ -1035,14 +1057,16 @@ Adapters own all platform and dependency details:
   its selected version, license, maintenance, cancellation behavior, overflow semantics, packaging,
   and replacement strategy before admission;
 - keep `notify` event kinds, paths, errors, threads, and global state behind the adapter;
+- keep service control, named-pipe, caller-token, volume-handle, journal-buffer, file-reference, and
+  root-containment details inside the Windows broker adapter;
 - continue using ADR 0007's Ame-owned Windows `FILE_ID_INFO` evidence for reconciliation instead of
   inventing another asset-identity rule;
-- persist the durable queue, retry state, inventory epoch and staging state, and delta publication
-  through the Rust SQLite adapter;
-- do not initialize the historical USN adapter, request elevation, show a UAC prompt, or maintain
-  separate privileged and unprivileged synchronization paths;
+- persist the durable queue, retry state, per-root journal checkpoint, covered range, cross-root
+  lineage, inventory epoch and staging state, and delta publication through the Rust SQLite adapter;
+- never reopen a volume from the desktop process or request UAC during ordinary startup. Service
+  install and update belong to the signed installer and use explicit one-time administrative consent;
 - keep Flutter presentation-only. Flutter does not watch directories, enumerate roots, write SQL,
-  or infer catalog policy from platform events.
+  call the broker, interpret USN, or infer catalog policy from platform events.
 
 #### R2c.3 Durable change intent
 
@@ -1053,12 +1077,23 @@ shape:
 - the root configuration generation so work for an unregistered or replaced root cannot publish;
 - one affected relative path and an optional old path or rename-correlation identity;
 - normalized intent kind and origin;
+- P0, P1, or P2 lane and the source batch or journal range that owns the evidence;
 - first-observed and most-recent-observed time;
 - coalesced event count;
 - pending, leased/in-progress, retry-wait, completed, and superseded states;
 - attempt count, next retry time, and structured last failure;
 - the catalog revision at enqueue and successful publication;
-- the owning metadata-inventory epoch, scope, page cursor, and completion authority where applicable.
+- the owning per-root journal checkpoint and covered boundary, or metadata-inventory epoch, scope,
+  page cursor, and completion authority where applicable;
+- deterministic terminal media evidence keyed by root, normalized path, complete source state, and
+  inspection-engine identity so unchanged unsupported or malformed files are not decoded or retried
+  again on every startup.
+
+Per-root continuity state also binds root generation, volume identity, root file identity, journal
+ID, next unread USN, covered catalog revision, broker protocol, and last structured failure. Roots
+on one volume may share one bounded physical read, but a root advances only after its own work is
+durably enrolled. No all-roots transaction may let one unavailable root block another root's P1
+checkpoint.
 
 This state is durable task data, not disposable thumbnail cache. Its schema changes require forward
 migrations from every committed schema version and migration tests. Completed rows and obsolete
@@ -1071,6 +1106,11 @@ Raw filesystem events may be duplicated, reordered, incomplete, or delivered aft
 again. The inbound callback must remain lightweight: it normalizes and enqueues a hint without
 running image decoding, a long SQLite transaction, a directory walk, or Flutter work on the callback
 thread.
+
+Live observations enter P0. P0 owns reserved admission, leasing, revalidation, and publication
+capacity that P1 journal replay and P2 inventory cannot consume. P1 and P2 check for higher-priority
+work at every bounded page and yield before beginning another page. Persisting `priority` without
+that execution isolation is insufficient.
 
 After a short, testable stabilization window, apply at least these rules:
 
@@ -1110,6 +1150,9 @@ For every stable path or subtree intent:
 7. Revalidate required identity and state immediately before publication. If the file changed again,
    return the intent to the queue instead of publishing stale evidence.
 8. Publish the complete bounded batch and one new catalog revision in a single transaction.
+9. Admit only formats supported by the pinned decoder. Unsupported formats, malformed content, and
+   decoder-limit violations complete once as terminal per-file evidence; only open, lock, read, and
+   source-race failures consume retry attempts.
 
 Required semantics:
 
@@ -1165,24 +1208,30 @@ work does not replace trustworthy state.
 - Synchronization remains part of the existing library and source workflow. It does not create a
   sidebar Task entry or a second gallery.
 - `更新图库` explicitly requests an application-owned full scan for the selected root. Automatic
-  watcher and metadata-inventory reconciliation remain the incremental path; Flutter does not
-  enumerate files.
+  watcher and journal reconciliation remain the normal incremental path; exceptional metadata
+  inventory remains application-owned P2 recovery. Flutter does not enumerate files.
 
 #### R2c.7 Lifecycle and race handling
 
 Startup order:
 
 1. Load the last trustworthy catalog, root configuration, unresolved change queue, and any
-   recoverable explicit full-scan checkpoint.
+   recoverable foreground explicit full-scan checkpoint. Retire prerelease
+   `authoritative_recovery` full-scan checkpoints without resuming them.
 2. Check each root's availability using metadata only.
 3. Establish live observation before continuity work so new events do not open another avoidable
    gap.
-4. Start a new metadata-inventory epoch for every available root; do not resume pre-shutdown
-   in-memory non-scan authority.
-5. Reconcile positive candidates through the path worker while inventory pages continue; publish
-   removals only after the owning scope is completely enumerated and revalidated.
-6. Coalesce or supersede old unresolved non-scan work into the new epoch. Report `已同步` only after
-   the epoch and its retained queue boundary are complete.
+4. For each broker-capable local NTFS root, query the current journal identity and exclusive end
+   boundary. If its checkpoint is continuous, enqueue only the missing P1 range and perform no root
+   enumeration when that range is empty.
+5. Process P0 immediately while P1 catches up. Advance a root checkpoint only after its bounded
+   range is durably enrolled; report `已同步` only after that checkpoint covers the declared boundary
+   and required queue lineage is terminal.
+6. Start P2 metadata inventory only for a one-time migration or first-authority baseline, or after a
+   specific continuity failure. Keep P0 live during recovery, replay the closing journal interval,
+   and require complete scope authority before publishing absence.
+7. Project an unsupported persistent-change source as `LiveOnly` or an explicit blocked capability;
+   never compensate with an automatic complete inventory on every process start.
 
 Root changes:
 
@@ -1198,25 +1247,36 @@ Shutdown:
 
 - stop accepting new live callbacks;
 - immediately hide the desktop window so background teardown cannot present as an application hang;
-- suspend a running full scan at a durable checkpoint so the next process can resume it;
+- suspend a running foreground full scan at a durable checkpoint so the next process can resume it;
 - cancel watcher, metadata inventory, path, subtree, and bounded root work; on the next start
-  establish a new live watcher boundary and create a new inventory epoch;
+  establish a new live watcher boundary and continue from the last durably advanced per-root journal
+  checkpoint;
 - safely return any currently leased non-scan batch instead of treating its old in-memory state as
   evidence for changes that may occur while Ame is closed;
-- persist the full-scan checkpoint and durable catalog/queue state, but discard superseded inventory
-  staging after replacement authority exists;
+- persist foreground full-scan checkpoints and durable catalog/queue state, but discard superseded
+  inventory staging after replacement authority exists; preserve journal checkpoints only through
+  their last durably enrolled boundaries;
 - use bounded graceful shutdown so a watcher or queue cannot hang the window close path;
-- leave full scans and durable queue work recoverable on the next startup without keeping the window
-  visible.
+- leave foreground full scans and durable queue work recoverable on the next startup without keeping
+  the window visible.
 
 #### R2c.8 Failure and degradation matrix
 
-- Single unreadable or malformed file: record a structured issue and continue the remaining batch.
+- Unsupported, malformed, or decoder-limit media: record one structured terminal issue, persist its
+  source-state and engine-version evidence atomically with completion, and continue the batch without
+  consuming retry attempts.
+- Temporarily unreadable or locked file: preserve the last trustworthy location and retry with
+  bounded backoff; a later successful or terminal result closes the row.
 - File changes again during processing: fail final revalidation, coalesce the newer event, and retry.
-- Notification buffer overflow or known event loss: mark the root dirty/degraded, stop presenting it
-  as synchronized, and start or extend metadata inventory for the narrowest known scope.
-- Watcher failure: restart with bounded exponential backoff and cover the missing interval through
-  a new metadata-inventory continuity epoch; do not start a full scan.
+- Notification buffer overflow or known event loss: mark live observation degraded and replay the
+  continuous P1 journal interval. Start P2 only if journal evidence cannot cover the gap.
+- Watcher failure: restart with bounded exponential backoff while P1 preserves continuity; do not
+  start inventory merely because the watcher restarted.
+- Broker protocol, permission, or service failure: retain the checkpoint and cached catalog, keep
+  P0 live when possible, and retry within a bounded policy. A root whose automatic persistent path
+  is unavailable becomes `LiveOnly` or `更新受阻`; it is not silently scanned on every startup.
+- Journal ID change, trimmed checkpoint, unsupported record, root/volume identity mismatch, or
+  unprovable containment: start one explicit P2 baseline or recovery epoch while keeping P0 live.
 - Root offline, disconnected, or inaccessible: retain its catalog and display availability status;
   do not reinterpret failure as deletion.
 - Database transaction failure: roll back the entire delta, keep the intent retryable, and do not
@@ -1229,19 +1289,40 @@ Shutdown:
 Escalation order is:
 
 ```text
-single path reconciliation
--> dirty subtree reconciliation
--> pageable metadata-inventory reconciliation
--> blocked state when automatic continuity cannot converge
+P0 live path or subtree reconciliation
+-> P1 persistent journal catch-up
+-> P2 pageable metadata-inventory recovery for a proven gap
+-> blocked or LiveOnly state when complete automatic continuity cannot converge
 ```
 
 The application must expose which level is in progress and why without leaking implementation
 jargon into normal UI copy.
 
-#### R2c.9 Startup and evidence-loss metadata inventory
+#### R2c.9 Persistent catch-up and exceptional metadata recovery
 
-ADR 0023 replaces the historical USN path with one non-privileged continuity model. Every available
-root establishes the live watcher first, then starts a new metadata-inventory epoch. The inventory:
+ADR 0024 replaces ADR 0023's routine startup inventory. Every supported local NTFS root establishes
+the live watcher first, then uses the constrained journal broker to validate and replay its missing
+per-root USN range. Roots on one volume share a bounded physical read, but each root enrolls work and
+advances independently. A failed or unavailable root cannot hold another root's P1 progress.
+
+Checkpoint advancement follows durable enqueue. The application captures an exclusive journal end
+boundary, validates volume, journal, root generation, broker protocol, root-set containment, and
+catalog authority, durably enrolls the bounded normalized plans, then advances only that root's
+checkpoint. A crash before advancement rereads an idempotent range. A raw journal reason never
+authorizes catalog removal; every candidate passes the existing final-state reconciler.
+
+The broker is installed and updated with explicit administrative consent, but Ame remains an
+ordinary-user process and shows no UAC during normal startup. The broker reads existing journal
+metadata only. It never reads media, opens the catalog, changes the journal, modifies source files,
+hydrates placeholders, accepts arbitrary volume access, or returns records outside a caller-
+authorized configured root. Versioned bounded IPC, caller-token and root verification, pipe DACL,
+service SID, minimum proven privileges, cancellation, and root-external disclosure tests are release
+gates.
+
+P2 metadata inventory is authorized only for a one-time migration or first-authority baseline, or a
+proven gap such as journal recreation or trimming, root/volume identity mismatch, reconstruction or
+containment ambiguity, incompatible protocol or record version, or simultaneous watcher and journal
+coverage loss. The inventory:
 
 - records normalized path, entry kind, size, modification evidence, Windows file identity when
   available, and placeholder attributes;
@@ -1249,34 +1330,37 @@ root establishes the live watcher first, then starts a new metadata-inventory ep
   outside the root, or hydrates a cloud placeholder;
 - stages derived evidence in application storage and compares it with the published catalog in
   bounded pages;
+- yields to P0 and P1 at every page boundary;
 - may publish additions and modifications early only after path final-state revalidation;
-- publishes an absence only after the complete owning scope succeeds;
-- accepts live watcher observations throughout the run and rechecks overlapping paths;
-- starts a newer epoch after an evidence gap rather than trusting partial staging;
-- may prioritize directory or retained metadata differences, but still performs the complete file-
-  metadata comparison required to detect in-place changes made while Ame was closed.
+- publishes an absence only after the complete owning scope and closing journal boundary succeed;
+- accepts and immediately publishes independent P0 live work throughout the run; and
+- fails closed without mass removal when partial, cancelled, raced, unavailable, or incomplete.
 
-Without USN, another persistent journal, or an always-running service, this O(N) startup metadata
-cost is required for strict downtime correctness. It remains metadata reconciliation rather than a
-full media scan.
+A continuous no-change checkpoint creates no inventory run and enumerates exactly zero source-root
+entries. A permanently unsupported root becomes `LiveOnly` or is refreshed explicitly; routine O(N)
+startup inventory is not a compatibility fallback.
 
 #### R2c.10 Explicit refresh and recovery triggers
 
 Ame does not schedule a periodic full-root consistency audit. A fixed seven-day interval adds
 unbounded work without supplying evidence that anything changed. Continuous freshness instead uses
-the live watcher, durable queue, and metadata-inventory epochs.
+the P0 live watcher, P1 persistent journal, durable queue, and P2 inventory only when a specific
+baseline or continuity-gap authority exists.
 
 A complete root scan may start only when one of these authorities exists:
 
 - a root is imported for the first time;
 - the user explicitly selects `更新图库` for that root;
-- an already-started full scan is resumed from its durable checkpoint.
+- a foreground full scan created by first import or explicit refresh is resumed from its durable
+  checkpoint.
 
 Normal file events, normal process restart, elapsed time, retry, watcher interruption, overflow,
-metadata-inventory size, and automatic recovery failure do not authorize a complete scan. Work that
-exceeds the 4,096-entry or 128-path batch ceiling continues through inventory pages. Legacy
-`StartupCatchUp` and `consistency_audit` rows are migration input only and never schedule USN or a
-periodic scan. The last trustworthy catalog remains visible while automatic continuity runs.
+an empty journal range, metadata-inventory size, and automatic recovery failure do not authorize a
+complete scan. Work that exceeds the 4,096-entry or 128-path batch ceiling continues through bounded
+P1 or P2 pages. Legacy direct-desktop `StartupCatchUp`, `consistency_audit`, prerelease
+`authoritative_recovery` full-scan checkpoints, and ADR 0023 startup epochs are migration input only;
+they cannot bypass the ADR 0024 broker, checkpoint, lane, or baseline contract. The last trustworthy
+catalog remains visible while automatic continuity runs.
 
 #### R2c.11 Delivery slices
 
@@ -1495,7 +1579,8 @@ R2c-L - lifecycle, presentation, and diagnostics:
 - map product status to `已同步`, `正在更新图库`, `更新受阻`, or `目录不可用` and remove `需要核对`;
 - keep normal update, retry, and success out of notifications while deduplicating blocked errors;
 - expose phase, elapsed time, bounded counts, and issue code in development diagnostics;
-- hide the window immediately, resume only full scans, and restart every non-scan continuity epoch.
+- hide the window immediately, resume only foreground full scans, and restart every non-scan
+  continuity epoch.
 
 R2c-L is complete only when status cannot oscillate during automatic retries, blocked detail is
 actionable, normal synchronization is silent, and shutdown never leaves a visible stalled window.
@@ -1510,7 +1595,7 @@ treating a protected live worker's nominal lease expiry as a product failure.
 Normal update, retry, and convergence remain silent; blocked cause changes update one
 root-and-generation-keyed notification in place with phase, current elapsed time, source path,
 counts, and technical code. Existing shutdown ownership hides the window before waiting, cancels
-non-scan work, and preserves only full-scan checkpoints. Focused tests, repository lint, complete
+non-scan work, and preserves only foreground full-scan checkpoints. Focused tests, repository lint, complete
 Daily with 454 Rust tests and all Flutter/Windows integration partitions, and Windows Release pass
 on the audit-fix head. Final independent audit reported no Critical, High, Medium, or Low findings.
 R2c-L is accepted.
@@ -1525,12 +1610,1200 @@ R2c-M - replacement reliability and closeout:
   greater than 45 seconds on the recorded workstation;
 - run migration, complete Daily, Windows Release, final independent audit, and final PR review.
 
-R2c status: **reopened on 2026-08-21 under ADR 0023**. R2c-A through R2c-F remain accepted
+Historical ADR 0023 status: **reopened on 2026-08-21 under ADR 0023**. R2c-A through R2c-F remain accepted
 foundations. R2c-G and its USN-specific acceptance remain historical implementation and migration
 evidence. R2c-H remains a valid source-safety and baseline measurement record but does not validate
-the replacement continuity model. R2c-I through R2c-M are complete with target-scale replacement
-evidence, complete gates, and final independent audits with no remaining findings. The R2c
-integration branch is ready for final review against `main`; R3 remains paused.
+the replacement continuity model. R2c-I through R2c-M retain their recorded implementation and
+target-scale replacement evidence. The 2026-08-22 integration review identified two remaining
+correctness gaps: ordinary watcher work could replace an active metadata-inventory control
+authority, and a Windows source handle was not rechecked against the canonical root after an
+ancestor-junction change. Both remediations are implemented and pass the complete local Daily and
+Windows Release gates. Subsequent live diagnostics exposed a separate startup migration gap:
+prerelease `authoritative_recovery` full-scan checkpoints could still be resumed before metadata
+inventory. The production resume path is now removed, running and paused historical automatic
+checkpoints are retired while preserving the active catalog, and only foreground checkpoints remain
+resumable. Runtime diagnosis then identified two deterministic convergence defects: generic
+ISO-BMFF signatures admitted MP4 and MOV files into image inspection, and an unrecognized reparse
+directory aborted otherwise complete sibling inventory. Image admission now follows only the
+pinned decoder's real formats and exact signatures; deterministic non-media, malformed-media, and
+decoder-limit results complete once, persist atomically in schema v21, and are reused across restart
+only while complete source and engine evidence still match. Transient open, lock, read, and race
+failures remain retryable. Reparse directories are no-follow opaque leaves and no longer discard
+sibling progress. Focused migration, restart-reuse, source-change invalidation, reparse, and mixed
+96-video/32-malformed-image convergence fixtures pass. The complete Daily gate passes with 475 Rust
+tests total, 464 passed and 11 explicitly ignored, all Flutter tests, Windows Scan 2/2, and Windows
+Accessibility 2/2; Windows Release and packaged bridge smoke pass 2/2. A new independent audit has
+not yet been run for this remediation. The changes remain local until an authorized commit and PR
+update; the R2c branch remains unmerged and R3 remains paused.
+
+ADR 0024 supersedes this closeout as the current production direction. The results above remain
+valid implementation, migration, and source-safety evidence but do not prove a change-driven normal
+startup, persistent closed-process catch-up, P0 isolation, broker security, or installer lifecycle.
+
+R2c-N - change-driven decision and broker security feasibility:
+
+- accept ADR 0024, mark ADR 0023 superseded, and reconcile ADR 0015, ADR 0017, ADR 0020, and ADR
+  0021 with the new service, lifecycle, and recovery boundaries;
+- map the retained direct-USN implementation into reusable parser, identity, checkpoint, handoff,
+  and migration components without restoring direct desktop volume access or its global worker;
+- build a minimal Windows 11 x64 broker PoC against disposable local NTFS roots;
+- prove ordinary Ame can query an existing journal through bounded versioned IPC without per-start
+  UAC, media reads, source writes, journal configuration, placeholder hydration, or root-external
+  record disclosure;
+- record the exact service account, required privileges, service SID, pipe DACL, caller-token/root
+  validation, service binary ACL, cancellation, logging, and no-network security contract;
+- stop before product integration if the required access cannot be achieved without an
+  unacceptably broad service interface.
+
+R2c-N is complete only when the disposable-root PoC and independent security review admit a
+specific minimal boundary. An ADR, compilable stub, or broad `LocalSystem` proof is insufficient.
+
+Status: **completed on 2026-08-23**. The bounded protocol, caller/root proof chain, fail-closed
+service seam, cancellation and terminal delivery model, single-owner client dispatcher, lifecycle
+linearization, bounded maintenance, and pending backoff passed focused verification and an
+independent eleven-round security review. The admitted seam may now support R2c-O; it is not itself
+a service, installer, product integration, or release acceptance result.
+
+R2c-O - constrained broker and installer foundation:
+
+- implement the x64 demand-start Windows service and Ame-owned `PersistentChangeJournal` adapter;
+- implement versioned length-delimited named-pipe framing, bounded streaming, timeouts,
+  cancellation, structured codes, protocol negotiation, and safe service stop;
+- validate caller identity, configured-root access, volume/root identity, path containment, and
+  root-scoped output inside the broker before returning any record;
+- confine and test every token, service, pipe, handle, buffer, parser, and `unsafe` invariant from
+  ADR 0024;
+- add the signed installer lifecycle required to install, repair, atomically update, version-check,
+  stop, and remove the broker; keep the user-writable portable ZIP explicitly `LiveOnly` even when
+  an installed broker exists;
+- prove protocol mismatch or broker absence leaves the cached catalog usable and cannot trigger a
+  hidden startup inventory or source mutation.
+
+R2c-O is complete only when service security, installer upgrade/uninstall, portable degradation,
+package loading, Daily, Windows Release, and independent security audit gates pass.
+
+Implementation checkpoint on 2026-08-23: the production boundary now retains an object-safe,
+Ame-owned persistent-journal session with root registration, query, bounded read, cancellation, and
+close, or an exact `LiveOnly` reason. Production startup no longer manufactures metadata-inventory
+authority merely because a root entered the runtime; deterministic BrokerAbsent and
+ProtocolMismatch product fixtures keep the watcher active while proving zero queued recovery and
+zero metadata-inventory runs. At that checkpoint no R2c-P schema had been introduced. R2c-O remains
+active until the complete non-elevated gates, disposable elevated acceptance, and the required
+independent security re-review pass.
+
+Security-remediation checkpoint on 2026-08-23: production admission now uses a protected fixed
+Application/broker identity, bounded kill-on-close identity probe, caller-token/root-handle
+capability, parent-specific path semantics, live-handle revalidation, two listeners, global worker
+and root bounds, crash-recoverable installer ownership markers, and handle-anchored no-follow cleanup.
+Acceptance accepts only an externally pre-signed protected V1/V2 bundle pair with a distinct broker
+hash and has no repository path for certificate creation or trust-store mutation. Deterministic
+non-elevated gates cover repair, real-version upgrade, rollback,
+limited-client replacement, listener/worker bounds, stop, case semantics, root replacement,
+reparse rejection, and protocol degradation. Real SCM/FSCTL acceptance and the independent security
+re-review remain required; this checkpoint does not declare R2c-O complete.
+
+Independent-review remediation checkpoint on 2026-08-23: the production client now decides broker
+eligibility from its protected fixed `ProgramFilesX64` Application identity before constructing or
+connecting the factory, and the transport repeats that check before any SCM demand-start or pipe
+operation. Deterministic portable and installed-mode fixtures prove zero and one factory connection
+respectively, including the boundary where a broker may already be installed. Uninstall now writes
+its protected marker before the first tree or ACL mutation and retains it through service, binary,
+Application, tree, transaction-created ancestor, and parent-prestate cleanup; the original eight
+install/repair/upgrade fault cases remain. A transaction-level matrix now crashes the complete
+uninstall and resumes it through dead-owner recovery before and after each of seven mutations and
+after each completion write, from both present-tree and initially missing-tree states. It also
+covers committed and final marker-removal boundaries, exact parent prestate, and fail-closed
+contradictory markers. Persisted phase, pending-operation, and prefix flags permit only the
+protected-tree postcondition to be superseded by a proven later install-tree deletion; the other six
+operations retain their own postcondition verification. Volume-wide unrelated USN storms return bounded,
+strictly advancing incomplete pages at whole-record boundaries without exposing root-external names
+or paths; repeated calls cover the captured end. The focused Rust modules, exactly counted broker
+integration matrix, installer and portable release guardrails, and non-accessing acceptance
+guardrails pass locally. Full Daily and Windows Release gates, real elevated SCM/FSCTL acceptance
+with externally pre-signed bundles, and independent security re-review remain outstanding; R2c-O
+remains active.
+
+R2c-P - persistent per-root journal continuity:
+
+- add a forward migration for versioned broker capability, per-root volume/root/journal checkpoint,
+  covered range, source batch, and bounded cross-root handoff authority;
+- validate exact schema shape, generation authority, checkpoint bounds, journal ID, volume identity,
+  protocol version, relational ownership, and lossless USN/file-reference storage on catalog open;
+- share one physical read for roots on a volume while enrolling and advancing each root independently;
+- enforce enqueue-before-checkpoint and idempotent replay across every injected crash boundary;
+- reconstruct and filter root-scoped V2/V3 records conservatively, pair supported renames and
+  cross-root moves, and send every candidate through final-state reconciliation;
+- migrate historical v19 journal and v20/v21 inventory authority without losing catalog, preview,
+  foreground-scan, terminal-media, queue, user-decision, or handoff evidence.
+
+R2c-P is complete only when controlled closed-process create, modify, rename, move, replacement, and
+delete converge without source-root enumeration, and one failed root cannot block another root on
+the same volume.
+
+Implementation checkpoint on 2026-08-23, subsequently superseded by the 2026-08-25 remediation:
+schema v24 now owns the exact persistent-journal marker, per-root capability, V2/V3 checkpoint,
+source-range lifecycle, canonical batch payload, queue-lineage, pending-rename carry, and exact
+cross-root ownership tables. It supersedes v23 through an explicit forward migration.
+Catalog open validates canonical unsigned journal and volume identifiers, signed nonnegative USNs,
+generation authority, bounds, indexes, foreign keys, and relational ownership. Migration preserves
+the catalog and durable queue, terminalizes partial v20/v21 inventory without absence authority,
+and seeds active roots as `Unknown` plus `BaselineRequired`; it does not execute the R2c-Q baseline.
+Root-generation replacement retires the prior journal authority without deleting its durable source
+ranges or lineage, and only the active generation may be read or advanced by the repository.
+The production repository publishes all successful pages from one shared response in a single
+`IMMEDIATE` volume-batch transaction, rejects capacity degradation without advancement, and replays
+only an exact normalized batch digest idempotently. Broker protocol v5 now admits at most eight
+registered roots on one volume, performs one raw journal read from the minimum start to a shared
+exclusive end, isolates per-root authorization and
+continuity failures, and returns only root-relative candidates and cross-root handoffs. The
+session-backed adapter registers and queries live capabilities, validates the shared boundary, and
+translates each response into independently owned source ranges and lineage. Controlled fixtures
+cover final-state candidates for create, modify, delete, rename, replacement, and cross-root move
+without enumeration, media reads, or source mutation. Focused domain, migration, repository,
+coordinator, broker, and session tests pass locally. Complete Daily and Windows Release gates,
+controlled closed-process process-level acceptance, and independent audit remain outstanding, so
+R2c-P is not complete and the active-slice declaration below remains unchanged.
+
+Five independent-audit remediation passes reached an implementation checkpoint on 2026-08-25
+without expanding into R2c-Q. Schema v23 adds durable range lifecycle and pending OLD carry;
+schema v24 adds canonical 64-hex source-range identity, complete payload evidence, deterministic
+provable v23 rekey, and exact carried-lineage/carry coordinates;
+protocol v5 rejects v2/v3/v4 and binds carried and same-page handoffs through codec, client,
+service, native backend, and session. Every successful query participates in the common boundary,
+per-root starts filter before evidence budgeting, semantic OLD/NEW events remain whole across raw,
+evidence, and native-buffer boundaries, and every page still performs one physical journal read.
+All publishable pages from a shared response enter one atomic volume transaction with queue evidence,
+both handoff owners, carry mutation, strict checkpoint compare-and-swap, and root state. The durable
+batch digest binds complete normalized intents, timing, pending carry, lineage endpoints, owners,
+and handoff state. Raw coverage leaves roots `CatchingUp`; only the production final-state terminal
+transaction publishes `Current`. Bounded cleanup retains unresolved work, active authority,
+cross-root owners, pending carries, recent active-generation history, and the newest necessary
+retired-generation proof.
+
+The third remediation adds a post-admission rename proof barrier shared by native endpoint
+resolution and service revalidation. It uses the earliest rename at or after the failed root's own
+start, permits only the proven non-rename prefix, retains a known OLD before an uncertain NEW, and
+keeps no-rename sibling progress root-local. Complete empty pages can terminalize and publish
+`Current` in their volume transaction; partial empty pages remain `CatchingUp`. Migration backfill
+derives terminal state from durable queue, carry, and lineage evidence. Carry consumption requires
+exactly two owners bound to the durable source range, both root generations, volume, journal,
+reference, path, OLD/NEW USNs, and previous carry ID.
+
+The fourth remediation makes target-side post-admission failure preserve a fully authorized source
+OLD as durable carry before allowing the source checkpoint to advance to the NEW boundary. Source-
+side failure or incomplete source evidence instead holds the proof boundary at OLD. Multiple
+handoffs use the earliest safe barrier, while no-rename sibling work retains its proven progress.
+Catalog reopen now requires every pending or completed cross-root lineage to have exactly two
+payload-bound owners, one previous and one current, and the production terminalizer runs the same
+validation before publishing `Current`. Schema-v24 source-range triggers explicitly reject null,
+non-text, and noncanonical IDs on insert and update; the known prerelease-v24 trigger pair upgrades
+transactionally, while mixed or weakened definitions still fail closed.
+
+The fifth remediation makes every retained canonical source-range payload and its durable children
+bidirectionally equivalent. Pending carry content must retain either its exact pending row or one
+exact consumed-lineage proof through `previous_carry_id`; lineage content must retain its parent and
+exactly two matching owners, and every durable child must appear in the owning payload. Missing,
+duplicate, extra, or payload-only children fail catalog reopen and block `Current`. Bounded cleanup
+deletes only complete terminal lineage/range proof clusters in one transaction. Schema-v24 DDL
+comparison is quote-aware: it normalizes formatting only outside quoted tokens while preserving
+literal, quoted-identifier, BLOB, GLOB, `RAISE`, and escaped-quote content exactly.
+
+The sixth remediation binds every retained payload intent to one exact normalized persistent queue
+row and source-range ownership proof in both directions. Production coalescing and validation share
+one normalization path; terminal queue evidence remains until the complete closed range cluster is
+cleaned atomically. Cross-root peer evidence requires exact lineage and enrollment provenance, and
+consumed-carry recovery additionally binds the previous root, generation, path, NEW USN, volume,
+journal, and covering range. Durable lineage is `Completed` only when both exact endpoint range
+lifecycles are completed; `Superseded` requires proven root-generation retirement and cannot grant
+`Current`. Missing, extra, or altered queue/ownership/payload evidence, premature or single-ended
+completion, and forged supersession all fail catalog open and the production terminalizer closed.
+
+Runtime tests at this checkpoint include v24 canonical-DDL and source-ID negative mutation,
+v23 deterministic rekey/rollback/backfill, dynamic query growth,
+single-FSCTL counting, unequal starts and root-order reversal, a pending OLD separated from NEW by
+960 unrelated records and a native buffer, long-path/evidence overflow, SQLite reopen and atomic
+crash/capacity rollback, full-content replay conflicts, historical-generation cleanup, and real
+SQLite plus production final reconciliation in both source-first and target-first order. The final
+intent/queue matrix also covers deletion, extra ownership, row and payload tampering, coalesced
+retry-to-terminal cleanup, strict peer provenance, and both lineage endpoint completion orders. The
+serial Rust, lint, broker integration, installer, and non-accessing guardrail counts are recorded in
+the owning acceptance document. No real library, elevated SCM operation, real FSCTL acceptance,
+Daily, Windows Release, or independent re-audit is claimed. R2c-P remains not complete, and R2c-O's
+external elevated acceptance gap remains open.
+
+R2c-Q - priority runtime, one-time baseline, and product state:
+
+- persist and schedule P0 live, P1 journal, and P2 recovery lanes with actual reserved P0 admission,
+  worker, filesystem-revalidation, and publication capacity;
+- start the watcher first, then replay a continuous checkpoint without creating inventory; process
+  P0 immediately while P1 or P2 remains active;
+- make P1 and P2 yield at every bounded page, remove the single global recovery bottleneck, and
+  preserve per-root fairness within each lane;
+- perform exactly one baseline for an existing migrated root without current checkpoint, bracket it
+  with journal boundaries, and keep live publication available throughout;
+- trigger P2 only for the ADR 0024 baseline and proven-gap allowlist; terminalize partial ADR 0023
+  startup epochs without granting absence authority;
+- expose independent live and continuity state through the existing compact Chinese presentation,
+  including truthful `LiveOnly`, catch-up, recovery, blocked, and unavailable behavior;
+- keep preview generation asynchronous so a revalidated new location becomes visible before its
+  derived preview is ready.
+
+R2c-Q is complete only when a P0 change remains at event-to-visible P95 no greater than one second
+during target-scale P1 backlog and P2 recovery, and a continuous no-change startup enumerates zero
+source-root entries.
+
+Implementation checkpoint on 2026-08-29: schema v25 adds durable P0 live, P1 journal, and P2
+recovery lane identity, exact lane and recovery-authority shape validation, deterministic v24 queue
+classification, and a persisted baseline lifecycle. Schema v26 adds persistent P2 candidate
+ownership and the first metadata-inventory frontier. Schema v27 adds the application-storage durable
+source spool with exact run/root/generation/authority binding, complete-directory type, no-follow/
+reparse and identity evidence, and provisional incomplete-directory rows. Its forward migration
+preserves all v26 durable state and validates the exact current marker, DDL, indexes, triggers,
+foreign keys, and cross-table lifecycle. Schema v28 adds the immutable canonical-root identity to
+each spool and requires that same proof at candidate drain, absence, completion, and finalization.
+Its v27 migration does not trust or fabricate proof: active derived v27 candidates, owners,
+inventory, and spools are retired and recaptured under the retained allowlisted authority, while
+terminal v27 history is marked `RecoveryRequired` rather than accepted as `Current`.
+Schema v29 promotes a complete root proof to a durable active-generation publication namespace.
+Foreground scan and P2 completion establish or verify it atomically with freshness, generation
+retirement removes it, and P0/P1 cannot publish without it. The v28 migration admits only consistent
+full spool or V3 checkpoint proof, never V2 or a current path identity, and rolls back conflicts or a
+partial schema.
+
+The sixth R2c-Q implementation checkpoint removes the public proofless metadata-inventory API and
+its production adapter surface. Metadata inventory can now start only from an unretired durable P2
+authority (or the already defined first-baseline authority) and the guarded v29 path. P0/P1 path
+workers lease real work before touching the source, then load the active proof and construct one
+`PublicationGuardedFileDiscovery`; an empty queue and a missing proof open no source handle, while
+an A-to-B configured-root replacement is rejected from the pinned descendant metadata identity
+before the enumeration-root handle opens. Authoritative publication accepts only that non-forgeable,
+non-cloneable capability, never an ordinary `FileDiscovery`.
+
+The seventh R2c-Q remediation closes the remaining capability escape hatch: the guarded wrapper no
+longer implements `Deref` or exposes raw handles, discovery references, or detachable iterators.
+Authoritative traversal uses a lifetime-bound opaque cursor; the durable inventory cursor privately
+owns a duplicated full namespace guard until its raw directory cursor has dropped. The application-
+only authoritative entry requires that guard separately from ordinary context and constructs the
+publication request inside a private coordinator, so enumeration, final revalidation, and the real
+repository commit or rollback share one capability lifetime.
+
+P0 has reserved admission, lane-specific leasing, a dedicated bounded worker, final-state
+revalidation, and catalog publication ahead of lower lanes. A priority-aware SQLite admission
+coordinator gives a waiting P0 transaction the next writer turn after the current transaction and
+never holds its permit across filesystem, broker, hashing, signature, or pipe I/O. The runtime
+registry uses short epoch and ownership transitions, so blocked I/O does not hold the global mutex,
+stop retains cancel/join ownership, and late results cannot install into a replacement epoch.
+Each production runtime epoch performs full schema, migration, and cross-table validation once;
+later poll and worker connections use constant-size catalog path, Windows file-identity, WAL,
+application-ID, user-version, and schema-cookie checks. Identity or schema-cookie drift fails closed
+and revalidates outside the runtime mutex and every priority permit. Writer admission covers only
+`BEGIN IMMEDIATE` through commit or rollback.
+
+A successful public stop now means every P0, P1, and P2 worker was cancelled and joined, the core
+observer stopped, the journal session closed exactly once, and the registry epoch was removed. The
+bounded wait does not hold the runtime mutex. The first stop stores one absolute two-second deadline
+with the registry epoch; concurrent stop and late Starting/Polling owners reuse it across all lanes,
+roots, native watchers, core observer work, and journal close. A runtime returned after expiry first
+becomes complete `Draining` ownership rather than an epoch-only stopping marker. Timeout retains the
+same receiver, join-handle, watcher, and journal-close task ownership, including observers retired
+during root changes, and cannot be projected to Flutter as stopped. Retry/reaper joins the one close
+task rather than invoking close again or refreshing the deadline. Flutter invalidates the active
+poll generation and invokes native stop immediately instead of awaiting that poll. A never-ending
+poll cannot extend the public call beyond its absolute deadline: the registry immediately changes
+the Polling entry to `Draining` with the same complete runtime `Arc` and first deadline, even while
+the operation mutex is held. The late result is discarded and cleanup resumes on that exact owner
+under the unchanged, possibly exhausted deadline. It cannot publish into or clear a restarted epoch.
+Concurrent callers share only the in-flight stop future; settlement permits failure retry or
+immediate successful restart, while dispose shares stop and permanently rejects a subsequent start.
+
+The eighth R2c-Q remediation makes that registry ownership survive panics rather than depending on
+the desktop bridge's outer panic containment. Constructor panic recovery clears and notifies only a
+matching runtime-less Starting/Stopping epoch. Poll or operation panic retains the same complete
+runtime in `Draining`, reuses a public deadline or creates one fault-stop deadline once, and returns
+the stable `library_synchronization_owner_panicked` error without exposing its payload. Drain locks
+are acquired outside `catch_unwind`; after acquiring the runtime mutex, each caller rechecks the
+exact epoch, `Arc`, and deadline. Cleanup keeps P0/P1/P2, observer, journal-close receiver/outcome,
+and every join handle in their owner slots until an idempotent step completes. One-shot panic can
+retry the same owner, persistent panic remains fail closed, and neither path refreshes the deadline,
+re-requests stop, closes or joins twice, detaches work, publishes `Empty`, or admits an ABA epoch.
+
+The ninth R2c-Q remediation makes Flutter startup explicit and recoverable. One generation owns one
+in-flight start; native failure retries the real start call only through a finite 100 ms, 500 ms,
+and 2 s backoff, and no poll timer exists before success. Stop or dispose cancels retries and still
+calls native stop when startup may have entered native ownership. Native not-started converges;
+other stop failures retain ownership for retry. Old-generation completion cannot publish or start a
+timer in a replacement epoch. Native panic reconciliation now accepts an epoch mismatch only when a
+monotonic retirement watermark proves that old epoch already drained. A deterministic test barrier
+forces stop, `Empty`, and replacement Polling between the old panic and reconciliation; the old
+caller retains its sanitized stable error without touching the replacement. Same-epoch impossible
+state and runtime-less `Stopping` remain fail closed.
+
+The tenth R2c-Q remediation moves request admission ahead of asynchronous bridge scheduling. Short
+synchronous bridge calls allocate checked monotonic owner tickets and cancellation fences. A stop
+advances a cancel-through watermark even for `Empty`, stores the first absolute two-second deadline
+at the public Dart stop boundary, and immediately changes a covered `Starting`, `Ready`, or `Polling`
+owner to `Stopping` or `Draining` while retaining its cancellation flag and complete runtime `Arc`.
+The later asynchronous stop task only drains that admitted owner under the stored deadline; it does
+not perform a second admission or create a new timeout. A start ticket at or below the watermark is
+rejected before epoch allocation and construction, an old poll ticket cannot attach to a replacement
+epoch, a same-ticket bounded retry can recover, and ticket overflow or poisoned ownership remains
+fail closed.
+
+Flutter now reserves one owner ticket per shared start operation, reuses it only for the explicit
+`catalog_database_busy` and `catalog_database_locked` 100 ms, 500 ms, and 2 s retry allowlist, and
+attempts every non-transient failure once. Trusted cached catalog state reaches `runApp` before the
+process-lifetime synchronization owner schedules background start with both synchronous and
+asynchronous failure handling attached. Shutdown shares owner disposal and issues the synchronous
+stop fence immediately without awaiting a hung start; late completion remains generation-stale and
+cannot publish into the stopped or replacement UI.
+
+The eleventh R2c-Q remediation closes the remaining Dart-side gap between process-global admission
+and local controller state. Every successfully reserved cancellation fence now unconditionally
+reaches the matching asynchronous native stop, so an unstarted second controller, hot-restart
+replacement, or close-before-start cannot leave another owner in `Stopping` or `Draining`. Native
+not-started remains idempotent convergence. The process-lifetime owner shares only an in-flight or
+successful close; a failed dispose clears its cached future for same-owner retry while its permanent
+closing state continues to reject restart. Deterministic Rust tests pin invalid tickets and fences,
+epoch exhaustion without construction, and old-fence isolation from a newer epoch.
+
+The twelfth R2c-Q remediation makes the native lifecycle representation kind-distinct. Lifecycle
+values remain `u64`/Dart `BigInt` only at the bridge, and Rust decodes the low-bit kind into
+`RuntimeStartTicket` or `RuntimeStopFence` before admission validation. A shared, checked, strictly
+increasing `LifecycleOrdinal` owns ordering and cancel-through comparisons. The tag rejects an
+unchanged start raw value at the stop boundary, but it does not prove issuance: flipping the low bit
+produces a stop-shaped value with the same ordinal. The maximum process-local ordinal remains
+`u64::MAX >> 1`.
+
+The thirteenth R2c-Q remediation adds exact bounded provenance. Runtime state retains at most 64
+exact admitted stop fences, each with its covered owner and pending or consumed state. Reservation
+guarantees capacity, records the pending fence, advances the watermark, and transitions its owner at
+one registry-lock linearization point. Pending entries are never evicted. If capacity contains no
+reclaimable consumed history, reservation returns a stable structured capacity error without
+allocating an ordinal, cancelling work, or changing owner state. Consumed history is reclaimed only
+under later reservation pressure and never while it still covers the active owner; a call that has
+already proved membership is independent of later reclamation. Same-fence concurrent/repeated stop,
+timeout and panic retry, takeover by a later real fence without deadline refresh, Empty-delayed
+no-op, and old-fence/new-owner isolation remain deterministic. The ledger is process-local, bounded,
+not persisted, and requires no migration.
+
+Production establishes the watcher before it opens the retained journal session. P1 requests at
+most 64 broker records per page, checks cancellation between roots and broker calls, persists typed
+per-root gap failures without checkpoint advancement, and does not let one failed root discard a
+healthy sibling. P2 readiness and leasing require matching persisted unretired authority; each run
+persistently owns its candidates, drains them in bounded batches after final filesystem
+revalidation, and cannot retire through retry exhaustion. Its default inventory enumeration page
+remains 4,095 entries while the real source iterator consumes at most 128 entries before yielding
+and rotating the P2 root slot. Completed directories are retained in the durable spool and are not
+re-read on output-page or process reopen; an incomplete directory is provisional and, after one
+process loss, can be recaptured for at most twice that directory's entry consumption. Repeated
+same-point crashes are not claimed as a persistent Windows cursor, but provisional rows cannot
+publish false freshness or partial absence. Ordinary startup, elapsed time, an empty journal, queue
+pressure, slow work, `LiveOnly`, and consistency audit do not authorize P2.
+
+On Windows 11 x64 the source iterator walks descendant components relative to one pinned canonical-
+root handle and never follows a junction. Each name uses its live parent's real case-sensitivity
+semantics and containment matches root identity instead of lowercased strings. After rebinding the
+configured root with a no-delete guard, a second root-relative terminal-file `NtCreateFile` alone
+requests content access with native no-recall and no delete sharing. Its complete 128-bit identity,
+volume, attributes, non-reparse state, and live root containment must match the attribute-only
+handle before reading; both native calls keep a null EA buffer and zero EA length, and raw
+volume/device roots never reach an OS open. Every P0/P1/P2 publication boundary is required to bind
+the generation to its persisted v29 proof and hold a configured-namespace chain from the local DOS
+volume root through every ancestor and root. The Win32 volume handle opens `C:\` with
+`FILE_TRAVERSE | FILE_READ_ATTRIBUTES | SYNCHRONIZE`; descendant guards alone open relative to
+their pinned parent with pure `FILE_TRAVERSE`. Both use backup/open-reparse semantics and
+read/write sharing without delete sharing. Directory guards never use no-recall, and each already
+pinned parent supplies a separate relative `FILE_READ_ATTRIBUTES | SYNCHRONIZE` metadata proof of
+the next component. The long-DOS configured path supplies normalized descendant names, not the
+volume-handle path or authority. The
+complete chain remains held through the real SQLite commit or rollback. New production-poll
+regressions exercise P0 root, P0 subtree, and bounded authoritative P2 with an existing proof: a
+pre-commit root or ancestor rename returns Win32 32, the real delta transaction rolls back to a
+structured retry, and catalog revision, completion/current state, proof, and authority retirement
+remain unchanged. Renamed, replaced, missing, short-path-only, or inaccessible namespaces therefore
+preserve the last trustworthy catalog. The durable output query uses one indexed
+`LIMIT page_size + 1` sentinel instead of scanning all unstaged rows for every page.
+
+The 4,096-row unresolved ceiling has a steady P2 cap of 3,072, 512 rows reserved for P1, and 512
+reserved for P0. P1 yields before a next page when P0 is ready or active; P2 yields to both P0 and
+P1. A migrated v26 catalog may carry the former 3,584-row P2 occupancy as capacity debt. In that
+state exactly one bounded P2 debt page may release capacity while all new P2 enumeration, refill,
+control, and finalizer pages remain blocked. Path-scoped rows that predate owners drain in bounded
+pages; repeated non-path rows compact to one blocked root control with merged evidence, while each
+superseded source retains its bounded lineage and cleanup protection until the survivor terminates.
+No authority or freshness is fabricated. P0 still owns its reserve; the next admission is P1,
+after which P2 resumes per-root rotation without lost work.
+
+Legacy readiness selects zero-owner non-path work only while an unblocked survivor exists or more
+than one row still needs compaction. The last survivor, including an input of exactly one row, runs
+once and becomes an exhausted durable `legacy_recovery_authority_missing` condition, projected as
+blocked `RecoveryRequired` with an explicit update-library action. It cannot enumerate or publish
+authority, absence, checkpoint, or `Current`; reopening does not start another worker, and explicit
+refresh or later legitimate authority can supersede it without losing lineage.
+
+The existing-root baseline and watcher-gap path record complete opening root/volume/journal identity
+and `NextUsn` before bounded metadata-only pages, keep P0 publication active, capture the closing
+`NextUsn`, and replay exactly `[opening, closing)` through P1. Candidate terminal state, closing
+replay, complete absence, replacement checkpoint, `Current`, and authority retirement share the
+final completion barrier. Partial, failed, cancelled, crashed, retry-exhausted, or identity-drifted
+work preserves the last trustworthy catalog and remains `RecoveryRequired` or `CatchingUp`. Rust
+bridge and Flutter state project live health independently from `BaselineRequired`, `CatchingUp`,
+`Current`, `RecoveryRequired`, `LiveOnly`, and `Unavailable`; new locations publish with preview
+pending rather than waiting for derived preview work.
+
+When bounded P0 reconciliation proves an uncovered watcher gap, one transaction creates an
+independent P2 control and allowlisted authority, transfers lineage, and supersedes the P0 lease.
+Injected failure rolls back every record, replay creates no duplicate, lower-lane reserve rejection
+leaves P0 retryable, and ordinary P1 backlog creates no recovery authority.
+
+The final controlled production run records 25 disposable-root P0 samples while 2,048 real PNG P1
+candidates, a cold 10,000-entry P2 recovery, and a competing low-lane writer all use production
+paths. The first P0 sample occurs after 128 real P2 source reads and before its first output page.
+P1 and P2 are both active and make real progress in all 25 samples; P1 completes all 2,048 candidates,
+P2 reads 128 to 3,200 to 10,000 source entries and publishes the production 4,095-entry page, and
+the low-lane writer advances from 1 to 391,335 transactions. Queue P95 is 31 ms, worker-start P95 is
+30 ms, visible-query P95 is 0 ms, and the current third-round end-to-end timing is P50 136 ms, P95
+179 ms, maximum 251 ms, with zero samples above one second. The current focused rerun passes in
+98.16 seconds. The earlier P50 61 ms, P95 70 ms, maximum 78 ms, 70.19-second run remains a clearly
+historical pre-remediation snapshot.
+
+A separate production coordinator run enumerates 4,096 real controlled files through
+the same poll/open/worker chain, crosses the default 4,095-entry page and steady 3,072-row P2
+backpressure boundary, terminalizes every owner, and reaches completed control/run, `Current`, and
+retired authority only after closing replay, absence, and finalization. The separate 100-startup
+focused rerun passes in 5.07 seconds with 100 journal queries, 100 session closes, zero physical
+journal reads, zero inventory runs, and zero source-root entry enumerations. The current ordinary-
+user 4,096-file rerun passes in 73.61 seconds; the earlier 33.63-second result remains historical.
+
+The isolated release-profile large-v26 session fixture populates 1,024 queue, lineage, owner, and
+frontier rows, performs the one migration and complete validation in 55.447 ms, and then completes
+100 production-session reopens in 1.1784592 seconds with a 13.2528 ms maximum individual reopen and
+exactly one recorded complete validation.
+
+Focused remediation evidence covers proof-first P0 root/subtree and bounded authoritative P2
+production scheduling with a guard held through real catalog-delta rollback; first-open P2 root and
+ancestor replacement before enumeration; guarded spool-init commit/rollback; a legitimate no-proof
+baseline; exact-one blocked legacy readiness and explicit-refresh supersession; atomic candidate
+publication and rollback, ownership,
+supersession, retry exhaustion, more than 4,095 candidates, multi-root rotation, watcher-gap
+bracketing and crash boundaries, typed P1 failure isolation, blocked-I/O stop, cancellation,
+v27-to-v28 phase-table migration and rollback, exact 3,584 zero-owner legacy debt, non-path blocked
+compaction and explicit-refresh recovery, retained 64-owner debt, real per-directory case semantics,
+handle-anchored junction/offline/move-out rejection, configured-root absence/finalizer rebinding,
+shared-deadline retiring-observer joins, late Starting/Polling deadline retention, non-`Deref`
+publication capability and guard-owned cursor lifetime, indexed sentinel paging, v28 exact-shape
+reopen validation, bounded durable-spool resume, constructor and poll panic containment, same-owner
+drain retry at every cleanup boundary, persistent-panic fail-closed behavior, and stale-drainer ABA
+rejection. The P1
+revision-rebase suite passes 3/3, the local registration isolation fixture passes, the 25-sample
+production fixture passes, and development- and release-profile check and warnings-denied Clippy
+pass. Seventh-remediation focused reruns pass 34/34 local-file, 41/41 incremental, 11/11
+authoritative, 35/35 metadata-inventory, 47/47 production, 274/274 catalog, 62/62 migration,
+23/23 legacy, and 36/36 scan-library tests with two intentional scan ignores; the compile-fail
+doctest passes 1/1. The eighth-remediation production panic matrix adds eight tests, and its complete
+serial production module passes 55/55 in 203.65 seconds. The exact ordinary-user 3,584-row legacy
+and 4,096-file regressions pass in 0.89 and 73.61 seconds. Ninth-remediation red evidence records
+Flutter 20 passed and 2 failed plus the forced Rust interleaving failing 1/1 before the fixes. The
+green lifecycle file passes 26/26, the panic/stop filter 5/5, and the complete ordinary-user serial
+production module 57/57 in 147.66 seconds. Tenth-remediation red evidence records Flutter 26 passed
+and 1 failed because a non-transient start was attempted four times, plus the delayed-start Rust
+interleaving failing 1/1 because stop at `Empty` did not prevent construction. The fixed controller
+and lifecycle-owner files pass 28/28 and 2/2, and the complete ordinary-user serial production
+module passes 62/62 in 241.94 seconds. Its non-sandbox Daily records 846 passed, zero failed, and 11
+ignored library tests, followed by 3/3 broker integration tests and all 307 Flutter unit and widget
+tests.
+
+Eleventh-remediation red evidence records the controller at 28 passed and 1 failed because an
+unstarted controller admitted a fence but did not drain, and the lifecycle owner at 2 passed and 1
+failed because it permanently shared a failed close. The fixed files pass 29/29 and 3/3. Four new
+Rust lifecycle boundary tests were direct green against the existing native implementation; the
+focused filter passes 4/4 and the complete ordinary-user serial production module passes 66/66 in
+281.70 seconds. Development/release check, warnings-denied Clippy, and `quality_lint.ps1` pass. After
+one measured Windows OS 1455 commit-limit failure, the unchanged Daily gate passes under one Cargo
+build job and one Rust test thread with 850 passed, zero failed, and 11 ignored Rust library tests,
+3/3 broker integrations, all 309 Flutter unit and widget tests, controlled Windows scan 2/2, native
+Windows accessibility 2/2, generated bridge compatibility, and tracked-diff whitespace validation.
+The current internal Windows x64 Release application builds in 241.0 seconds; the earlier 60.3-,
+77.5-, and 125.2-second results remain historical. Explicit absent external bundle input fails closed
+at signed-bundle admission. R2c-Q remains an implementation checkpoint and is not accepted. R2c-O
+remains the active acceptance slice; its elevated installed-service, real FSCTL, signed-bundle, and
+separately authorized retained-library gates remain open. At this eleventh-remediation checkpoint,
+R2c-R had not started.
+
+Twelfth-remediation evidence presented the earlier start raw value unchanged after a real stop. It
+proved tag decoding but did not test the same ordinal with its low bit changed, so its historical
+5/5 lifecycle-boundary and 67/67 production results are not issuance-provenance evidence.
+
+Thirteenth-remediation red evidence instead presents `start_ticket.raw() | 1` after the later real
+fence has advanced the watermark and published `Draining`. The tagged implementation accepted the
+forgery, returned success, and closed the owner; the focused run failed 1 test with 861 filtered.
+The exact admitted-fence ledger returns
+`library_synchronization_lifecycle_fence_invalid`, performs zero closes, preserves the real
+`Draining` owner, and lets the real fence drain exactly once. The production lifecycle-boundary
+filter passes 6/6, the stop-fence filter passes 8/8, and the active-owner capacity-pressure retry
+fixture passes 1/1. The complete ordinary-user serial production module passes 72/72 in 74.32
+seconds. Explicit formatting, development- and release-profile check and warnings-denied Clippy,
+and `quality_lint.ps1` pass. The resource-bounded Daily passes 856 Rust library tests with zero
+failures and 11 ignored, broker integration 3/3, every Flutter test file, controlled Windows scan
+2/2, native Windows accessibility 2/2, generated bridge compatibility, and tracked-diff whitespace
+validation. The internal Windows x64 Release application builds in 89.9 seconds; explicit absent
+external bundle inputs fail closed before SCM or process startup. R2c-Q remains an implementation
+checkpoint and is not accepted; R2c-O remains the active acceptance slice with its external gates
+open. The fourteenth independent read-only R2c-Q re-audit reports zero Critical, High, Medium, or
+Low findings after fresh 6/6 lifecycle, 8/8 stop-fence, 1/1 active-owner capacity/retry, 29/29
+Flutter controller, 3/3 process-lifetime owner, and whitespace checks. The R2c-Q implementation/
+audit checkpoint is therefore closed, but R2c-Q, R2c-P, R2c-O, and R2c remain not accepted. R2c-R
+has begun only as the non-external controlled local reliability checkpoint below.
+
+R2c-R - change-driven reliability and closeout:
+
+- repeat controlled live and closed-process operations, event storm, journal backlog, journal reset
+  and trimming, watcher overflow, broker crash/restart, application crash, cancellation, root
+  replacement, OneDrive placeholder, Chinese path, long path, and multi-root isolation scenarios;
+- prove running-time P95 no greater than one second, closed-process single-change visibility P95 no
+  greater than two seconds after normal runtime readiness, and zero root enumeration across 100
+  no-change restarts;
+- record bounded queue, journal read, IPC, memory, SQLite transaction, retry, shutdown, service,
+  installer, and storage evidence without turning a million-record unrelated interval into unbounded
+  retained state;
+- run migration, source immutability, no-hydration, journal-no-mutation, complete Daily, Windows
+  Release, installer, upgrade, uninstall, and package compatibility gates;
+- use the two real roots only through a separately current-authorized, serial, read-only workflow
+  with isolated derived storage;
+- finish with independent architecture, code, security, migration, performance, source-safety, and
+  full-range audits, then close every finding before R2c can be accepted.
+
+R2c-R is complete only when the change-driven production path, not an isolated parser or PoC,
+passes the complete user scenarios. R3 remains paused until this closeout is accepted.
+
+Non-external controlled local checkpoint on 2026-08-31: the repository-owned R2c-R gate now runs
+19 fully qualified, exactly counted Windows x64 tests through the production coordinator and its
+existing adapter contracts. Controlled live, closed-process durable P1, watcher-overflow/P2,
+million-record parser stream, 100-startup no-change, P0-with-P1/P2, reset/trim, reconnect,
+shutdown/cancellation, replacement, same-volume multi-root, placeholder, and Chinese/long-path
+evidence pass. The fresh acceptance record owns the exact measurements and red/green history. This
+is not R2c-R acceptance: externally signed release, elevated SCM/service lifecycle, real broker
+FSCTL, and separately authorized retained-root source-immutability/no-hydration evidence remain
+open, as does the final accumulated audit.
+
+The checkpoint's final local gates also pass: the resource-bounded complete Daily run reports 859
+Rust library tests passed, zero failed, and 16 expected ignored; broker binary integration passes
+3/3; Flutter unit/widget tests pass 309/309, controlled Windows scan passes 2/2, and native Windows
+accessibility passes 2/2. The internal unsigned Windows x64 Release application builds in 70.1
+seconds, both the application and Rust DLL are PE machine `0x8664`, all 81 Cargokit Release
+dependency files are current, and the packaged DLL hash matches. Dependency and binary scans find
+zero R2c-R fixture, `test_support`, harness, environment, or counter-name matches. Formal Release
+verification with explicitly absent signed-bundle and broker paths fails closed before SCM, FSCTL,
+or packaged-process execution. These local results do not close any external acceptance gap.
+
+The subsequent independent R2c-R audit reported zero Critical, four High, three Medium, and two Low
+findings in the controlled checkpoint. The remediation keeps the change-driven architecture and
+closes the local evidence gaps: an OS-known physically verified nonce root replaces public/temp
+trust; native Windows 11 workstation/SKU/build admission replaces the generic Windows/x64 check;
+Cargo and descendants are owned by a parent-deadline Job Object; worker reports bind nonce,
+runner/parent/child PID, and phase; ValidationOnly proves the current 19/15/4 exact matrix; 100
+no-change starts traverse and harvest the real production observer/coordinator path; the live storm
+is bounded against 4,096 unrelated entries with scan rows unchanged; same-volume evidence now uses
+the retained session-reader/production coordinator; and the one-million case exercises the 256 KiB
+production buffer, real reference histories, and conservative capacity accounting. These repairs
+remain a non-external local checkpoint. They do not accept R2c-R or replace the still-open signed,
+SCM, named-pipe/FSCTL, retained-root, and final accumulated audit gates.
+
+The second independent R2c-R review reported zero Critical, two High, one Medium, and one Low
+finding. The follow-up remediation makes common-module loading definition-only and moves `Add-Type`
+behind a verified repository-owned bootstrap, replaces `LocalAppData\Temp` and its predictable owner
+with an exclusive native create relative to a held physical LocalApplicationData KnownFolder anchor,
+and holds every verified OS filter-redirection component and the root until cleanup begins. Cleanup
+then releases the runtime root blocker, reopens the unpredictable child relative to the still-held
+physical parent, and verifies its exact identity and path before deletion. This is a bounded
+cleanup-only namespace race, not an atomic transition: a same-user racer can force fail-closed residue but
+cannot redirect deletion to a replacement identity. Internal junction attacks prove rejection with
+zero sentinel writes or residue. The no-change gate
+now reports the real constant work: 200 actual production polls produce exactly 200 metadata-only
+availability probes while enumeration, inventory, full scans, media opens, discovery handles, and
+publication guards remain zero. An executable metadata-only adapter contract protects that O(1)
+boundary, and the worker-report binding tamper test is now the nineteenth exact public case. These
+closures remain non-external implementation evidence; R2c-R and accumulated R2c are still not
+accepted while the signed-bundle, SCM/service, named-pipe/FSCTL, retained-root, Cloud Files, and final
+accumulated audit boundaries remain open.
+
+The third independent R2c-R review reported zero Critical, two High, one Medium, and two Low
+findings. Its local remediation replaces the compiler bootstrap's managed precheck/create gap with
+an in-memory `Reflection.Emit` identity surface followed by a held-parent `NtCreateFile`; no CodeDOM
+write is admitted before the repository tool parent and bootstrap child are held and physically
+verified. Active replacement, pre-created junction, and forced compiler-failure guardrails are now
+executable. Runtime cleanup has no string-recursive catch fallback: any reopen, identity, path,
+reparse, or non-empty failure retains the owned nonce root, and internal ordinary/junction
+replacement races prove replacements and sentinel targets remain untouched; the failure records the
+owned leaf and expected file-identity token even when an attacker moved the original. Root
+availability is split into a metadata-only filesystem probe and an opaque-evidence classifier, with
+an executable source guard that rejects representative enumeration insertion. The 100-start
+contract remains 200 polls, 200 metadata probes, and zero enumeration/full-scan/media work. The
+owned-leaf contract is
+limited to the fixed prefix and two 32-character lowercase-hex fields, plus one exact moved-fixture
+shape used only by the internal race test; it rejects NT path and ADS syntax. The lint-reachable
+guardrail now executes the exact report-tamper Rust behavior test rather than checking only its
+matrix entry. These close only the third review's local guardrail findings; R2c-R and accumulated
+R2c remain not accepted while the
+signed-bundle, SCM/service, named-pipe/FSCTL, retained-root, Cloud Files, and final accumulated
+audit
+boundaries remain open.
+
+The fourth independent R2c-R review reported zero Critical, two High, and one Medium finding. Its
+remediation moves both writable anchors to a read-only, two-stage binding before any root or
+bootstrap create: every existing component of the logical requested path is opened relative to a
+held parent with reparse-point semantics, every component of the handle-resolved physical path is
+bound the same way, and the two terminal volume/file identities must agree. This preserves supported
+OS filter/container redirection while rejecting an intermediate junction before it can redirect a
+write. Parent-relative opens use each live directory's Windows case-sensitivity flag, and identity
+is never inferred from case-folded path text. A production KnownFolder intermediate-junction attack
+now proves pre-write rejection, zero sentinel change, and no created disposable root.
+
+Guardrail teardown is also entirely identity-bound. Sentinel and process-output files are held with
+delete-on-close handles; every fixture directory is created or captured with a volume/file identity;
+and cleanup reopens it relative to a held parent, rejects reparse or identity drift, and deletes only
+that exact empty handle. Ordinary and junction fixtures are swapped a second time after validation;
+stale tokens leave the unknown object in place, and cleanup proceeds only after the replacement's
+new identity has been explicitly captured. A PowerShell AST audit rejects path-addressed deletion
+primitives in the guardrail and runner. The Rust availability source guard now uses `syn` 2.0.119's
+real parser and visitor instead of a handwritten brace scanner. The exact dev-only dependency is
+MIT OR Apache-2.0, already existed transitively in the lockfile, and adds no production/release
+dependency edge. Its red/green fixtures cover ordinary strings, raw strings, comments, and a real
+post-brace `read_dir` call without false positives.
+
+The fresh fourth-remediation ordinary-user controlled runner passes all 19 exact cases and safely
+removes its final root. Live-change P50/P95/maximum is 390/435/435 ms against 4,096 unrelated
+entries; closed-process recovery is 359/1,058/1,058 ms; overflow P0 P95 is 346 ms with 23.570-second
+overall convergence; and the one-million-record stream completes 245 pages in 12.798 seconds. One
+hundred no-change starts still perform exactly 200 polls and 200 metadata probes with every
+enumeration, inventory, full-scan, media, discovery, and publication count at zero. Under 2,048 P1
+and 10,000 P2 entries, 25 P0 samples measure 79/946/1,027 ms P50/P95/maximum, so the contractual P95
+remains below one second.
+
+The fourth-remediation `quality_lint.ps1` and complete resource-bounded Daily gate also pass.
+Daily reports 861 Rust library tests passed, zero failed, and 16 ignored; broker integration is 3/3;
+all 309 Flutter unit/widget tests pass; Windows scan and native accessibility are 2/2 each; and bridge
+plus whitespace checks complete. Release-profile check and warnings-denied Clippy pass. The unsigned
+Windows x64 application builds in 181.82 seconds; the application and both Rust DLL copies are PE
+`0x8664`; all 81 Cargokit dependencies are current; hashes match; and dependency plus ASCII/UTF-16
+scans find zero R2c-R test seams. Explicit absent signed inputs fail formal Release admission closed
+in 0.51 seconds before packaged-process, SCM, or FSCTL entry. This is fresh non-external
+implementation evidence only; it does not close the unchanged signed-bundle, SCM/service, named-
+pipe/real-FSCTL, retained-root, Cloud Files, or final accumulated-audit boundaries.
+
+The fifth independent R2c-R review reported zero Critical, two Medium, and one Low finding. Its
+remediation replaces the remaining callable-name source blacklist with an owner-specific,
+default-deny Rust AST structural allowlist, so aliases, macros, helpers, indirect calls, unknown
+methods, and unknown expression shapes fail through one predicate rather than an enumeration-name
+list. The common module now owns one recursive PowerShell AST audit applied to itself, the runner,
+the guardrail, and every actual child command; module qualification, aliases, dynamic invocation,
+reflection, unknown cleanup calls, and encoded deletion all fail closed. Native anchor binding and
+failed-root cleanup take immediate local ownership of every newly opened handle before any fallible
+identity, reparse, filter-path, or injected-fault query. Executable tool-only faults prove both
+handles close before return and allow same-process rename plus identity-bound deletion. These are
+guardrail and ownership corrections; they do not alter the accepted watcher, journal, queue, or
+source-safety architecture.
+
+Fresh fifth-remediation evidence passes the exact structural Rust test, all three PowerShell parses,
+the recursive deletion-audit fixtures, native post-open fault fixtures, the 19-case lightweight
+guardrail, exact 19/15/4 ValidationOnly matrix, 100-start zero-enumeration contract, exact report
+tamper, formatting, development/release all-target checks, warnings-denied Clippy, `quality_lint`,
+the complete 19-case ordinary-user runner, and the complete serial Daily gate. Daily reports 861
+Rust tests passed, zero failed, and 16 ignored; broker integration 3/3; Flutter 309/309; and Windows
+scan plus native accessibility 2/2 each. The unsigned Windows x64 application and broker build in
+38.5 and 75 seconds; all five inspected PE images are `0x8664`; current 81-file DLL and 82-file
+broker graphs have no newer dependency; the packaged DLL hash matches; and boundary-qualified
+ASCII/UTF-16 scans contain zero fifth-remediation seam. Missing signing inputs and absent signed
+artifacts fail formal Release admission closed without starting a process. This remains fresh non-
+external implementation evidence only. R2c-R is not accepted, R2c-O remains active, and the signed-
+bundle, SCM/service, real named-pipe/FSCTL, retained-root, Cloud Files, and final accumulated audit
+boundaries remain open.
+
+The sixth independent R2c-R review reported zero Critical, zero High, two Medium, and one Low
+finding. The Rust correction replaces the still-general structural categories with an exact,
+owner-specific call-closure contract: 17 named function items and 16 named support items each carry
+a readable purpose, normalized-token digest, exact local-callee closure, and receiver/call shape in
+failure evidence. The complete availability path, its cfg-specific helpers, imports, evidence
+types, and reachable static state therefore change only through an explicit reviewed contract
+update. Full-crate checks additionally reject `Drop` or overloaded-operator behavior for the six
+availability-path types without rejecting unrelated module implementations. Local callee or
+receiver shadowing, an unchanged owner whose helper gains `read_dir`, a reachable `Drop`, an
+overloaded operator, and referenced lazy/static side effects all fail; the current production AST
+remains green. This is an exact item-and-closure proof rather than another filesystem-name
+blacklist, and the production availability operation remains O(1).
+
+The PowerShell correction now audits the complete common, runner, guardrail, recursively resolved
+helper, and exact dot-source closure under one default-deny policy. Every unresolved command, call
+operator, variable dot-source, unknown helper, external executable, dynamic script construction,
+reflection invocation, path-addressed deletion/move, or unapproved module qualification fails in
+every scope. A single digest-locked process wrapper is the only execution boundary. It verifies its
+own implementation and native Job Object suffix, resolves exact Cargo test arguments, and audits
+the final actual PowerShell `Command`, canonical `EncodedCommand`, or held `File` source before the
+child starts; payloads that cannot be recovered statically are rejected. Forty-five adversarial
+fixtures cover the original seven bypasses plus aliases, module qualification, nested payloads,
+`Start-Process`, `cmd`, `robocopy /MIR`, `System.IO`, reflection, unknown helpers, `Add-Type`, and
+move/create boundaries while every real legal payload remains green. Native initialization now
+keeps the volume handle in a nullable local `try/finally` until transfer and encloses bootstrap
+creation, environment access, and all later initialization in a nullable-owner `try/finally`.
+Tool-only post-open/pre-transfer and post-bootstrap/pre-initialization faults prove both owners are
+closed in the same process before controlled native types are initialized.
+
+Fresh sixth-remediation evidence passes the adversarial Rust exact test, all three PowerShell
+parses and source closures, both native ownership faults, all 45 source/runtime audit fixtures, the
+19-case lightweight guardrail, exact 19/15/4 `ValidationOnly` matrix, 100-start no-change contract,
+exact tamper, root-replacement, and Cloud Files cases, formatting, all-target/all-feature check,
+warnings-denied Clippy, `quality_lint.ps1`, the complete ordinary-user 19-case runner, and the
+complete serial Daily gate. The no-change case records exactly 200 production polls and 200
+metadata probes with every enumeration, inventory, full-scan, media, discovery, and publication
+counter at zero. Daily records 861 Rust library tests passed, zero failed, and 16 ignored; broker
+integration 3/3; Flutter 309/309; and Windows scan plus native accessibility 2/2 each. Because the
+sixth correction is limited to acceptance tooling, `#[cfg(test)]` structural evidence, and exact
+dev dependencies, no new Release build is claimed: the fifth-remediation fresh unsigned Release
+remains the applicable product artifact. A new ASCII/UTF-16 scan finds both sixth-remediation fault
+tokens absent from the application, packaged and Cargokit Rust DLLs, and independent broker. This
+is still non-external implementation evidence. R2c-R is not accepted, R2c-O remains active, and
+external signing/publisher admission, SCM/service lifecycle, real named-pipe/FSCTL, retained roots,
+Cloud Files no-hydration, and the final accumulated independent audit remain open.
+
+The seventh independent R2c-R review reported zero Critical, zero High, two Medium, and one Low
+finding. The Rust correction removes the unqualified `vec!` from `windows_extended_path` and makes
+environment-rebindable macro expressions illegal throughout the protected 17-function call closure.
+Its exact contract now also validates the allowed attributes and built-in derives of all 16 support
+items and scans the local, domain, metadata-domain, adapters-parent, and crate-parent macro
+environments. Real synthetic same-module `macro_rules! vec`, parent-module `macro_rules! vec`, and
+renamed `use ... as vec` fixtures fail with an exact item/source key while the production O(1)
+availability closure remains green.
+
+The PowerShell correction replaces the followed-path `FileStream` authority at every audited file
+source with a separately digest-locked native snapshot. The preferred anonymous
+`Command`/`EncodedCommand` form was rejected only after a real child proved that it clears
+`$PSScriptRoot` and `$PSCommandPath`; preserving the runner's three-source semantics would otherwise
+require source rewriting and a second general loader. The retained `-File` fallback now binds the
+tool root, every parent, and the terminal with parent-relative, no-follow, same-volume, identity-held
+handles; it rejects terminal reparse/directory state, denies terminal write/delete sharing, and
+revalidates every wrapper/payload source by volume/file ID immediately before native Job transfer.
+Ordinary identity, terminal junction, terminal swap, parent swap, and exceptional handle-close
+fixtures are all internal and executable. No unaudited `-File` boundary remains.
+
+The closure audit now fails closed under fixed limits of 8 sources, depth 8, 256 KiB per source,
+512 KiB total, 32,768 AST nodes, 128 functions, 512 scopes, and queue high-water 512. Checked-add
+errors report the exact budget key, limit, and actual or overflow; checks occur before their
+corresponding read, parse publication, or enqueue, and deduplication is not a budget substitute.
+The final measured maximum is 3 sources, depth 1, 158,839 bytes per source, 239,967 total bytes,
+17,943 nodes, 60 functions, 54 scopes, and queue high-water 47. Every limit-minus-one/limit/limit-
+plus-one arithmetic boundary, concrete byte/source/depth/node/function/scope/queue path, multi-source
+closure, and overflow control is retained by the lightweight guardrail. These repairs remain non-
+external implementation evidence: R2c-R is not accepted, R2c-O remains active, and the unchanged
+signed-bundle, SCM/service, real named-pipe/FSCTL, retained-root, Cloud Files, and final accumulated-
+audit gaps remain open.
+
+Fresh seventh-remediation verification passes the three PowerShell parses, measured real closures,
+four Rust availability-contract tests, exact no-change, report-tamper, root-replacement, and both
+Cloud Files tests, the lightweight 19-case guardrail, exact 19/15/4 `ValidationOnly` matrix, format,
+development and Release all-target/all-feature checks, warnings-denied Clippy, `quality_lint.ps1`,
+and the complete ordinary-user 19-case runner. The serial Daily gate reports 862 Rust library tests
+passed, zero failed, and 16 expected ignored; broker integration 3/3; Flutter 309/309; Windows scan
+and native accessibility 2/2 each; bridge compatibility; and whitespace validation. The production
+Rust edit is an O(1)-equivalent `Vec` construction with no ABI, bridge, packaging, or runtime-policy
+change, so no fresh Windows Release is claimed. The retained fifth-remediation images remain prior
+packaging evidence, not a current-tree build or new signature; seven new macro, identity, fault, and
+budget tokens are absent from all four images under ASCII and UTF-16LE scans.
+
+The ninth R2c-R reliability review reported zero Critical, zero High, one Medium, and zero Low
+findings after the eighth remediation's first complete runner had already failed closed in watcher
+overflow on SQLite `FileLockingProtocolFailed` (result code 15). Five additional independent exact
+roots reproduced the exposure as four passes and one code-15 failure in the 10 ms raw SQLite
+observer. This history remains failure evidence; later passing samples do not erase it. The bundled
+`rusqlite` 0.40.1 / `libsqlite3-sys` 0.38.1 path uses SQLite 3.53.2 and WAL. The previous public
+catalog path performed full session validation and a fresh query connection for each request, while
+the acceptance observer repeatedly used raw, unconfigured connections. Code 15 could therefore
+surface during open, fast schema validation, or the query and was flattened to the generic catalog
+database error under a concurrent writer.
+
+The adapter now owns one narrow `SqliteCatalogReadExecutor` for idempotent read operations. It
+recognizes only rusqlite `FileLockingProtocolFailed`, drops the complete failed connection, opens a
+fresh connection, reruns pure read-only schema/identity validation, and then reruns the query.
+Application-owned preparation remains the only place that can create or migrate a catalog; writes,
+migrations, transactions, preview-touch publication, and root removal never enter the retry owner.
+All six public read categories--snapshot/window, timeline, layout manifest, folders, around-asset,
+and asset-by-ID--use one application routing helper. Busy and Locked retain the existing five-second
+SQLite busy-handler semantics and all other errors return immediately.
+
+The production protocol policy is five total attempts, a 100 ms monotonic retry-admission window,
+and 1/2/4/8 ms backoff capped at 8 ms. The window is evaluated after a completed SQLite call and
+before another retry; it is not an interruptible hard wall-clock cap on an active call. Exhaustion
+returns `catalog_read_protocol_retry_exhausted` with operation, attempts, actual elapsed time, and
+the final structured cause without exposing a catalog root. Uncontended reads do not sleep. The
+watcher-overflow case now retains one production-equivalent observer for gap, inventory, recovery-
+authority, and location reads and propagates a final structured failure instead of reopening raw SQL
+every 10 ms or panicking.
+
+Deterministic red/green tests cover code 15 at open, read-only validation, and query; exact fresh
+connection counts; no retry for non-protocol, Busy, or Locked errors; attempt/deadline exhaustion;
+diagnostic preservation; no transaction or write-admission hold across backoff; and no implicit
+migration. The final group passes 13/13, and a real concurrent WAL writer plus the public production
+timeline path completes 256 child-process reads. The first full Daily kept its four parallel-load
+failures: individual fresh opens took 101-212 ms and expired attempt-count fixtures that had copied
+the 100 ms production window. Only those deterministic fixtures now use a 30-second attempt budget;
+the dedicated 1 ms deadline test and every public/acceptance path keep the production policy.
+
+Changing only the first raw gap-count helper produced four exact passes and one unpreserved nonzero
+fifth diagnostic, so it was not accepted as complete. After the remaining raw inventory, authority,
+and location reads were moved behind the same owner, twenty consecutive fresh-nonce, held-root exact
+watcher-overflow runs pass. Their P95 range is 307-327 ms, convergence range 11.463-11.872 seconds,
+maximum individual P0 is 420 ms, and every run reports attempts equal operations, zero protocol
+retries, and maximum attempt one. The per-run `P95/convergence/attempts` sequence is
+`307/11701/801`, `308/11610/798`, `308/11854/805`, `308/11772/800`,
+`311/11690/797`, `310/11762/800`, `307/11463/787`, `308/11692/800`,
+`325/11784/799`, `311/11600/794`, `308/11579/786`, `308/11776/802`,
+`309/11872/808`, `325/11850/806`, `309/11825/803`, `327/11800/802`,
+`308/11649/801`, `326/11805/800`, `307/11695/801`, and `308/11846/798`.
+The following complete ordinary-user 19-case runner passes with watcher P95 308 ms, 11.631-second
+convergence, 795 operations/attempts, no retry, and maximum attempt one; no-change, tamper, root
+replacement, Cloud Files, backlog, and priority cases remain green.
+
+Fresh verification passes the topology, macro, 17-function/16-support, case-sensitive, 19-case
+guardrail, 19/15/4 ValidationOnly, three PowerShell parse, formatting, development/Release check,
+warnings-denied Clippy, and quality-lint gates. Daily exits zero with 878 Rust tests passed, zero
+failed, and 17 ignored; broker integration 3/3; Flutter, Windows scan 2/2, native accessibility 2/2,
+bridge, and whitespace green. A fresh unsigned x64 app builds in 37.6 seconds and the independent
+broker in 20.65 seconds. All four binaries are PE `0x8664`; 82 Cargokit dependencies are current,
+packaged/built DLL hashes match, and ASCII/UTF-16 test-seam scans are empty. Formal Release and
+portable gates fail closed on absent external signed inputs without process, SCM, pipe, or FSCTL
+work. This remains non-external implementation evidence: R2c-R is not accepted, R2c-O remains
+active, and the signed-bundle/publisher, service, real journal, retained-root, Cloud Files, and final
+accumulated-audit boundaries remain open.
+
+The tenth independent R2c-R boundary review reported zero Critical, zero High, two Medium, and one
+Low finding. Executable red controls showed that the crate-visible generic read callback admitted
+arbitrary repeated mutation or side effects, a forged public error code could request retry,
+exhaustion could echo an absolute path, identity-check-then-default-open could recreate or replace a
+catalog, and the production deadline had no deterministic clock proof. The corrected crate-visible
+surface contains only named reads; its generic loop is private and a `syn` signature contract rejects
+callbacks, mutable catalogs, connections, and transactions. The retry owner classifies only the
+original rusqlite `FileLockingProtocolFailed` from an active attempt and returns fixed path-free
+exhaustion text plus optional typed operation/attempt/elapsed/cause details through Rust, FRB, and
+Dart. Ordinary `ScanError` construction remains compatible with absent details.
+
+On Windows, every attempt holds a no-follow/no-recall regular-file handle with read-data,
+read-attributes, and synchronize access, read/write sharing without delete sharing, and volume/file
+identity taken from that handle. It matches the validated session before SQLite opens
+`READ_ONLY | URI | NO_MUTEX`; the connection drops before the held identity guard and both release
+before sleep. Delete, replacement, ABA, mismatch, reparse, success, terminal failure, and backoff
+ownership controls pass without new `unsafe`. Production remains five attempts, 100 ms, and
+1/2/4/8 ms, while a test-only manual clock proves recovery at attempts two through five for open,
+validation, and query, refusal after the deadline, one over-deadline call with one attempt, and zero
+sleep without contention. The production clock remains `Instant` plus thread sleep and release
+builds contain no fault or manual-clock seam.
+
+The dedicated observer boundary now includes completed P1 evidence as well as gap, inventory,
+authority, and location, eliminating the last high-frequency raw reopen. Current focused evidence
+passes 32/32 retry tests, 62/62 migration tests, all application catalog tests and the 256-read WAL
+child, canonical bridge generation and structured SSE serialization, three PowerShell parses,
+guardrail 19, ValidationOnly 19/15/4, topology/macro/source closure, no-change, tamper, root
+replacement, and both disposable Cloud fixtures. This is non-external implementation evidence only:
+R2c-R remains not accepted, R2c-O remains active, and repeated production watcher, full runner,
+Daily, packaging, signed/service/real-journal, retained-root, and real Cloud evidence remain open.
+
+The eleventh R2c-R remediation completes the second boundary review without widening the retry
+policy. Locked SQLite 3.53.2 source ties the observed 10.941-second read to the 100-step
+`walTryBeginRead` protocol loop. The bundled Windows build now enables
+`SQLITE_ENABLE_SETLK_TIMEOUT`; every read connection uses a 100 ms busy timeout and `query_only`,
+while writers retain five seconds. Compile-option and separate read/write timeout tests are green,
+and the read-retry group is 33/33.
+
+The watcher observer combines gap, inventory, authority, and bounded location evidence into one
+named typed snapshot. Its pre-aggregation control failed at 789 operations. Twenty independent
+fresh-nonce runs now pass with 474-527 operations/attempts, zero retries, maximum attempt one,
+sample-P95 P95 374 ms, and convergence P95 12.128 seconds. A second red control found 78 availability
+probes in the complete closed-process case, reproduced at 75/75/77: the fast observer exposed a
+10 ms test wait loop below the then-current production 250 ms synchronization cadence. Five
+corrected exact runs and the complete runner each use 24 probes. Every actual poll remains one
+fresh O(1) availability probe, and the 200-poll no-change contract remains 200 probes with no
+enumeration, inventory, or media access.
+
+The final ordinary-user runner passes 19/19; formatting, development/Release checks, both Clippy
+modes, quality lint, and complete Daily pass. Daily reports 898 Rust tests passed, zero failed, and
+17 ignored, broker integration 3/3, all Flutter tests, and both Windows integrations 2/2. Current
+unsigned Windows x64 builds pass PE `0x8664`, 82/83/83 dependency, packaged/Cargokit DLL hash,
+`NotSigned`, and 18-token ASCII/UTF-16 seam checks. Missing formal and portable signed inputs fail
+closed before process, SCM, named-pipe, or FSCTL work. The two failed disposable roots remain
+retained. This is non-external evidence only: R2c-R is not accepted, R2c-O remains active, and all
+external signed/service/real-journal/retained-root/real-Cloud/final-audit boundaries remain open.
+
+The cadence-binding independent review then reported zero Critical, zero High, zero Medium, and one
+Low finding: the closed-process Rust fixture still owned a separate 250 ms constant even though
+`RustLibrarySynchronization` owns the production default, `Timer.periodic` consumes it, and
+`main.dart` does not override it. The executable red mutation changed only the embedded Dart owner
+from 250 ms to 875 ms; the old acceptance still returned 250 ms and failed with `left: 250ms` and
+`right: 875ms`. A future Dart-only cadence change could therefore have left the old gate falsely
+green.
+
+The corrected test-only support compiles both authoritative Dart sources with `include_str!`, then
+uses a closed tokenizer and strict local syntax contract to require one owner class, one constructor
+default, one `final Duration pollInterval` field, one `Timer.periodic` call whose first argument is
+that field, and one production construction in `main.dart` without a named cadence override. Missing,
+duplicate, ambiguous, unconsumed, or overridden bindings fail closed. The parsed duration now drives
+all closed-worker waits and the independent Rust constant is absent. No parser, Dart source payload,
+or runtime dependency enters non-test Rust.
+
+Fresh green evidence covers six source-contract tests plus the independent-literal control,
+warnings-denied test Clippy, a locked Release library build, zero ASCII/UTF-16 matches for five
+cadence-parser/source seams across the Release DLL, static library, and rlib, the ordinary-user
+19-case guardrail, the exact 19/15/4 `ValidationOnly` matrix, and one complete ordinary-user 19-case
+runner. The runner's bound
+closed-process case reports six samples at 567/581/581 ms P50/P95/maximum, 24 availability probes,
+zero enumeration or inventory reads, and three bounded content opens. The earlier independent
+review's three fresh exact samples remain audit evidence; no temporary harness or public runner
+selector was added merely to repeat them. This remains non-external implementation evidence:
+R2c-R is not accepted, R2c-O remains active, and signed publisher/bundle, elevated service, real
+journal, authorized retained-root/Cloud Files, and final accumulated acceptance remain open.
+
+The phase-19 independent follow-up audit found two Low proof gaps in that cadence gate. First, the
+Dart token contract searched whole files: moving the only `RustLibrarySynchronization()` call to an
+unused helper, or moving the only `Timer.periodic(pollInterval, ...)` call from `_start` to an unused
+method, still passed. Second, the Rust no-regression check used raw text containment: a comment or
+string containing `Duration::from_millis(250)` failed falsely, while replacing any wait cadence with
+`Duration::from_millis(250_u64)` or another independent expression escaped the check. Executable red
+fixtures reproduced all four behaviors before correction without opening a real library.
+
+The phase-20 remediation makes both contracts structural and default-deny. The Dart tokenizer now
+locates one top-level `Future<void> main() async` body and its direct success `try`, then binds one
+zero-argument synchronization construction through the same lifecycle owner, shutdown registration,
+`ProviderScope` override, and ordered `startInBackground` call. It separately locates one real async
+`_start(int generation, BigInt ownerTicket)` method and requires the class's sole periodic timer to
+exist inside that body and consume `pollInterval`. Missing, duplicate, ambiguous, disconnected, or
+dead bindings fail. The Rust side parses the controlled worker with the existing test-only `syn`
+dependency, requires one direct immutable cadence local initialized by the zero-argument production
+cadence function, exactly one owner call, and exactly three waits whose interval AST is that same
+identifier. Comments and strings are not expressions, an alias/arithmetic/literal interval fails,
+and a second cadence owner fails. The raw containment check is removed.
+
+Fresh focused evidence is 14/14 cadence tests plus the production worker AST contract, warnings-
+denied all-target/all-feature Clippy, and one ordinary-user controlled runner with all 19 internal-
+disposable cases. Its closed-process case reports six samples at 577/592/592 ms
+P50/P95/maximum, 24 availability probes, zero source or inventory reads, and three bounded content
+opens; the no-change case remains 100 starts, 200 polls, 200 probes, and zero enumeration, inventory,
+or media access. A read-only scan of the retained Release DLL, static library, rlib, and packaged DLL
+finds zero ASCII or UTF-16LE match for six new parser/AST seam tokens; no new Release build is claimed.
+All parser, embedded-source, and `syn` code remains below `cfg(test)`. This closes the two Low local
+proof findings only: R2c-R remains non-external and not accepted, R2c-O remains active, and signed
+publisher/bundle, elevated service, real journal, separately authorized retained-root and real Cloud
+Files, and final accumulated acceptance remain open.
+
+The phase-21 independent re-review reported zero Critical, zero High, zero Medium, and two Low
+findings in that phase-20 proof. The Dart delimiter-depth model still treated an unbraced
+`if (false) try` as direct, admitted a `holder.synchronizationLifecycle` receiver suffix, and counted
+the timer inside a constant-false branch or uncalled local function. The recursive Rust visitor still
+counted a wait under `if false`, a closure, or a nested item as if it occupied the production worker
+slot, while its unqualified helper matcher missed `self::production_synchronization_poll_interval()`
+and a `use ... as cadence_alias` owner. Eight independently executable mutation controls reproduced
+those admissions against the previous implementation before correction.
+
+The phase-21 remediation deliberately proves the current fixed source shape rather than claiming
+general program reachability. A minimal Dart statement-owner cursor requires the unique top-level
+`main` to own one direct `try`; its success block must directly own the exact construction,
+lifecycle, shutdown, `runApp(ProviderScope(...))`, and full-receiver start statements in order, with
+no intervening control owner, local executable, `return`, or `throw`. The unique `_start` must directly
+own its retry loop; that loop must directly own the succeeded-status branch; and that branch must
+directly assign `_timer = Timer.periodic(pollInterval, ...)` before its direct `started` return. The
+Rust `syn` proof admits one direct owner, two waits in the worker's exact anchored statement slots,
+and one first statement wait in the direct `crash-ready` branch. A whole-worker visitor separately
+requires exactly three wait-call paths, exactly one path whose final segment is the production
+cadence helper, and no `UseTree` reference or alias for that helper. Qualified, aliased, nested-item,
+closure, and constant-false mutations therefore fail without a numeric-spelling blacklist.
+
+Fresh phase-21 evidence is 25/25 focused cadence tests and warnings-denied all-target/all-feature
+Clippy. The sandbox runner failed before fixture creation at the existing ancestor-pin Win32 5
+boundary and is not counted; the identical ordinary-user runner passed all 19 internal-disposable
+cases. Its closed-process case reports six samples at 560/580/580 ms P50/P95/maximum, 24 availability
+probes, zero source or inventory reads, and three bounded content opens. Its no-change case remains
+100 starts, 200 polls, 200 probes, and zero enumeration, inventory, full-scan, or media access. A
+read-only scan of four retained Release artifacts finds zero ASCII or UTF-16LE matches across eight
+new statement/visitor seam tokens; no Release artifact was rebuilt or relabelled. No real library,
+retained catalog, external broker, elevation, SCM, named-pipe, or real FSCTL path was used. This
+remediates the two phase-21 local proof findings only: R2c-R remains non-external and not accepted,
+R2c-O remains active, and every external and final accumulated acceptance boundary remains open.
+
+The phase-23 shared-policy correction supersedes the phase-19 through phase-21 cadence proof
+implementation without rewriting their historical findings. Repeatedly extending a handwritten Dart
+tokenizer/statement cursor and a Rust `syn` control-flow visitor attempted to infer cross-language
+reachability from two source files; each audit found another syntactically valid dead-code, alias, or
+ownership form. That proof surface was larger and less authoritative than the 250 ms policy it was
+trying to protect.
+
+The canonical cadence is now the exact UTF-8/LF bytes in
+`tool/library_synchronization_poll_interval_ms.txt`. The quality generator rejects non-canonical,
+zero, signed, unit-bearing, multiline, BOM, whitespace, and overflowing input. It also rejects values
+above 9,223,372,036,854,775 milliseconds before output changes because Dart `Duration` stores signed
+64-bit microseconds. The generator deterministically writes the Dart constant; its `-Check` mode never
+writes and runs before format inside `quality_lint.ps1`. Dart production exposes only zero-argument
+`RustLibrarySynchronization.production()`; every injected dependency and alternate cadence is
+confined to the analyzer-enforced `@visibleForTesting .testing(...)` constructor. A successful-start
+Zone timer test observes the actual `Timer.periodic` duration rather than source spelling.
+
+The cfg(test) `production_synchronization_cadence` module includes the same text once, strictly parses
+one positive non-zero millisecond value within that Dart-safe maximum, and owns it through
+`ProductionSynchronizationCadence`. R2c-R composes that value with its counted readiness,
+crash-ready, and recovery wrapper; the worker methods accept no interval argument and the parent
+requires `1/1/0` for `crash-ready` or `1/0/1` for `recover`. R2c-M's still-runnable historical harness
+stores the same value and exposes its interval to every foreground wait. The Dart/main embeds,
+tokenizer, statement cursor, Rust cadence visitor, and their 25-plus mutation controls are deleted.
+The existing `syn` dependency remains because separate filesystem source-topology tests still use it.
+
+Executable red evidence first changed policy to 875 while generated Dart remained at 250, then
+mutated the actual timer to 875, used `.testing()` from `main.dart`, and misrecorded a recovery wait.
+The generation check, timer behavior assertions, fatal analyzer rule, and Rust count assertion each
+failed at the intended boundary. Restored focused tests, warnings-denied Clippy, `quality_lint.ps1`,
+and the ordinary-user 19-case lightweight R2c-R guardrail pass. The complete ordinary-user runner
+also passes all 19 internal-disposable cases; its closed-process P50/P95/maximum is 566/703/703 ms
+with 24 availability probes, zero source or inventory reads, and three bounded content opens. The
+no-change case reports 100 starts, 200 polls, 200 probes, and zero enumeration, inventory, full-scan,
+media, discovery, or publication work.
+
+The serial Daily gate passes 900 Rust tests with zero failed and 17 expected ignored, broker binary
+integration 3/3, all Flutter tests, controlled Windows scan 2/2, native Windows accessibility 2/2,
+generated bridge compatibility, and whitespace validation. A fresh local unsigned Windows x64
+Release build completes in 35.8 seconds; the application, packaged Rust DLL, and broker are PE x64,
+the packaged and Cargokit DLL hashes match, the policy text and generated Dart source are absent from
+assets and dependency manifests, and five Rust Release artifacts contain zero matches across eight
+deleted parser/source-seam tokens. The sandbox variants fail only at the known held-parent reopen
+boundary (`NTSTATUS=0xC0000022`, Win32 5); the identical commands pass as an ordinary user without
+weakening the gates. This evidence cannot provide signed publisher/bundle, elevated service, real
+journal, authorized retained-root, real Cloud Files, or final accumulated audit evidence. R2c-R
+remains non-external and not accepted; R2c-O remains active.
+
+The phase-24 independent review reported zero Critical, zero High, two Medium, and zero Low findings.
+The first Medium finding showed that the phase-23 upper bound was expressed in milliseconds as an
+i64/u64 limit even though Dart multiplies `Duration(milliseconds:)` by 1,000 into signed 64-bit
+microseconds. Executable red accepted and generated `9223372036854776`, and the Rust parser reported
+that same first unsafe value as accepted. The corrected common maximum is
+`floor(9223372036854775807 / 1000) = 9223372036854775`; PowerShell generation and `-Check` reject any
+larger value before output changes, while Rust uses the identical boundary. Exact maximum passes;
+maximum plus one, u64 maximum, and u64 overflow fail. The current policy remains `250\n`.
+
+The second Medium finding showed that a temporary tracked policy of 875 left R2c-M's independent
+`PRODUCTION_POLL_INTERVAL` at 250 ms. Red failed with `left: 250ms` and `right: 875ms`. The single
+shared Rust test-support module now owns the policy include, parser, safe bound, and value object.
+`ProductionSynchronizationTestHarness` initializes from that value; R2c-M has no second production
+cadence literal or parser; and R2c-R's counted wrapper composes the harness value. Synthetic and
+actual tracked 875 mutations prove both consumers follow 875 before the policy is restored to 250.
+
+The phase-24 follow-up review reported zero Critical, zero High, zero Medium, and one Low finding.
+The first repair still returned a naked `Duration` from the harness and the R2c-M `wait_for` helper
+still accepted that primitive. Executable red replaced one real startup-wait argument with
+`Duration::from_millis(250_u64)`; both the raw source containment contract and the 875 accessor test
+remained green, proving neither reached the production wait call. The containment contract and naked
+getter are now deleted. `ProductionSynchronizationCadence` keeps its `Duration` field private and
+owns the wait loop. Every R2c-M production wait passes the opaque cadence obtained from its harness,
+and the R2c-R counted wrapper invokes the same method before recording its phase count. A compile-time
+function-signature contract requires the opaque type; replaying the `250_u64` mutation now fails with
+Rust `E0308`, expected `ProductionSynchronizationCadence`, found `Duration`. A thread-local sleeper
+capture owned only by the cfg(test) shared module drives the actual R2c-M helper through an 875 ms
+cadence without wall-clock sleep and records exactly one 875 ms request; Release contains no seam.
+
+Focused policy and Rust contracts, the non-accessing R2c-M guardrail, warnings-denied Clippy, and the
+ordinary-user complete lint gate pass. The complete ordinary-user R2c-R runner passes 19/19 with
+initial closed-process P50/P95/maximum 565/578/578 ms and follow-up opaque-API rerun
+565/585/585 ms, 24 availability probes, zero source or inventory reads, and three bounded content
+opens; no-change remains exactly 100 starts, 200 polls, and 200 probes.
+Sandbox execution still stops only at the known held-parent `C0000022`/Win32 5 boundary. Phase 24
+does not change production Dart or a Release payload, so Daily and Release were not rebuilt; read-only
+scans find no policy/test-support source in assets or dependency files, and the fresh eight-token
+opaque-cadence scan finds zero matches in five retained Release Rust artifacts. No authorized R2c-M
+retained-root phase ran. R2c-R remains non-external and not accepted;
+R2c-O remains active, and external plus final accumulated audit evidence remains open.
+
+The eighth independent R2c-R review reported zero Critical, zero High, two Medium, and one Low
+finding. The Rust availability proof now closes the source-loading environment as well as the
+17-function/16-support call closure. A `syn` AST contract locks the exact module declarations in the
+crate, adapters, local source, domain, and metadata-domain chain, including visibility, cfg
+attributes, inline/external shape, and the one digest-locked test-only `thread_local!` item. File
+attributes, `cfg_attr(path)`, direct `path`, arbitrary or procedural attributes, `include!` item
+macros, extern-crate aliases, and unexpected nested/generated modules fail by protected source key.
+The unconditional private crate-to-adapters-to-local and crate-to-domain-to-metadata declarations
+therefore load the same implementation under test and non-test production cfg. Executable fixtures
+cover every reported loader mechanism while the same-module macro, parent macro, renamed import,
+17-function, and 16-support controls remain green. No production availability code changed; the
+operation remains one O(1) metadata probe with no enumeration, scan, or media open.
+
+The PowerShell source audit no longer folds paths or treats path text as identity. Its path index is
+ordinal and non-authoritative. Every requested file is first opened through the digest-locked
+no-follow snapshot, whose held parent chain and terminal provide the volume/file ID; only that
+identity may deduplicate a source. A duplicate open is closed before return, while a unique snapshot
+has exactly one state owner and every pre-transfer exception closes the untransferred owner. Source-
+count admission remains before the native open, and per-source bytes remain checked before text is
+parsed. The guardrail opens an ordinary duplicate twice, proves one retained owner, exercises the
+exceptional-close path, and verifies the case-disabled spelling control. It also successfully enables
+a real case-sensitive NTFS directory below an identity-held high-entropy fixture: `Safe.ps1` and
+`safe.ps1` bind as distinct identities, and the forbidden lower-case source makes the closure fail
+closed. A platform that cannot enable the directory flag reports an explicit controlled `skipped`
+result rather than a pass.
+
+The AST-node budget now performs a bounded traversal whose predicate retains no node collection.
+The root is counted once, each visit updates a separate high-water value, and the limit-plus-one
+node throws immediately with `budget`, `limit`, and `actual`. Independent known shapes fix an empty
+script at two nodes and a one-literal script at five; limit-minus-one, limit, and limit-plus-one
+controls do not call the production counter. The other seven source/depth/byte/function/scope/queue
+budgets retain their checked-add behavior. Current common, runner, and guardrail closure measurements
+peak at 3 sources, depth 1, 162,853 bytes for one source, 251,983 total bytes, 18,901 AST nodes, 62
+functions, 56 scopes, and queue high-water 49.
+
+Fresh eighth-remediation evidence passes all three PowerShell parses, the real case-sensitive and
+duplicate-ownership controls, the lightweight 19-case guardrail, exact 19/15/4 `ValidationOnly`
+matrix, the Rust topology/macro/exact availability controls, exact no-change, report-tamper, root-
+replacement and both Cloud Files tests, format, development and Release all-target/all-feature
+checks, warnings-denied Clippy, and `quality_lint.ps1`. The first sandboxed Cloud fixture correctly
+failed on ancestor pinning with Win32 5 and passed only after the identical ordinary-user command was
+rerun outside that workspace sandbox. The first complete ordinary-user runner failed closed in the
+watcher-overflow case on one SQLite `FileLockingProtocolFailed` result and cleaned its owned root and
+processes; two immediately following complete runners each passed the exact 19-case report, including
+that same case. The complete serial Daily then exited zero with 863 Rust library tests passed, zero
+failed, and 16 ignored; broker binary integration 3/3; Flutter unit/widget tests 309/309; and Windows
+scan plus native accessibility 2/2 each. Final read-only inspection still finds only the five empty
+compiler bootstraps and one three-entry failed-run root created on 2026-08-31; no eighth-remediation
+run added residue, and no historical object was deleted. This remediation changes acceptance tooling
+and test-only Rust proof, not product ABI, bridge, package, or runtime code, so it does not require or
+claim a new Release build. R2c-R remains a non-external checkpoint, R2c-O remains active, and the
+signed-bundle, SCM/service, real named-pipe/FSCTL, retained-root, real Cloud Files, and final
+accumulated-audit boundaries remain open.
+
+Phase-26 closes the final phase-25 High in the production live-gap path. Native `need_rescan`,
+observer-ingress loss, and offline-to-available evidence now remain durable `LiveNotification` P0
+root gaps instead of becoming unowned `StartupCatchUp` P1 markers. A covering journal range first
+acquires exact P1 source-range ownership before P0 supersession; an uncovered gap instead receives
+an independent P2 control, allowlisted `watcher_uncovered_gap` authority, and lineage transfer in
+one transaction. P2 capacity failure rolls back that transaction and leaves the P0 retryable. The
+production five-case matrix reaches `Synchronized`, drains the queues, retains the exact lane,
+origin, scope, intent, lineage, and consumer, and starts zero automatic full scans. Schema v30
+records ambiguous naked v29 fallback rows under explicit recovery ownership without inventing event
+provenance, journal coverage, or authority. This remains non-external implementation evidence:
+R2c-R is not accepted, R2c-O remains active, and signed, SCM/service, real FSCTL, retained-root,
+real Cloud Files, and final accumulated-audit evidence remain open.
+
+Phase-27 closes the phase-26 follow-up High and Medium findings around manual recovery,
+provenance, and presentation. Root/publication identity is no longer accepted as event provenance;
+both historical v29 naked fallback shapes migrate conservatively to
+`explicit_recovery_required`. An explicit foreground update transaction binds only that claim to a
+scan ID/root/generation; generic scan high-watermark and terminalization exclude all claim-owned
+gaps. Publish consumes the claim with the scan revision, while abandon or interrupted reopen
+restores the exact typed block with no retry deadline. Rust metrics and snapshots, the existing
+bridge field, Dart mapping, and the accessible notification now expose a clear manual `更新图库`
+path; ordinary persistence failures do not acquire it. Focused migration, validator, scan lifecycle,
+production snapshot, Dart, and widget tests pass. Complete Daily, Release, and the 19-case runner are
+deferred to the next accumulated closeout; this phase does not access retained roots, Cloud Files,
+SCM, real FSCTL, or signing. R2c-R remains non-external and not accepted; R2c-O remains active.
+
+The earlier complete second-remediation local gate set was green. The three PowerShell scripts parse; the
+fresh hostile-temporary/internal-junction guardrail and exact 19/15/4 ValidationOnly matrix pass;
+format, development/release check and warnings-denied Clippy, `quality_lint.ps1`, and the serial Daily
+gate pass. Daily reports 860 Rust library tests passed, zero failed, and 16 ignored; broker binary
+integration is 3/3, all 309 Flutter unit/widget tests pass, Windows scan and native accessibility are
+2/2 each, and bridge/whitespace checks pass. The unsigned x64 Release build completes in 67.3 seconds;
+both packaged PE files are `0x8664`, its 81-file Cargokit dependency graph is current, hashes match,
+and dependency plus ASCII/UTF-16 scans find zero R2c-R test seams. Formal Release admission with
+explicitly absent signed inputs fails closed before packaged-process startup. These facts do not
+change the non-external, not-accepted status.
 
 #### R2c.12 Acceptance evidence
 
@@ -1545,12 +2818,14 @@ manual cleanup, storage relocation, and restart reconciliation remain R2b-owned 
 - normal single-file changes do not trigger a complete root scan;
 - process start, watcher restart, overflow, retry, oversized inventory, and automatic recovery
   failure do not trigger a complete root scan;
+- prerelease automatic full-scan checkpoints are retired into the one-time ADR 0024 migration
+  baseline when required and cannot re-enter the production scanner;
 - duplicate, reordered, incomplete, and late events converge on correct final filesystem state;
 - related changes publish atomically at one catalog revision;
 - a database failure or cancellation preserves the last trustworthy catalog;
 - queued work survives a controlled process interruption without duplicate publication;
-- a watcher overflow or failure marks the root updating or blocked and recovers through a new
-  metadata-inventory epoch;
+- a watcher overflow or failure marks live observation degraded and recovers from the continuous
+  journal range; P2 starts only when that range cannot prove coverage;
 - an offline or disconnected root retains its last catalog and does not publish mass removals;
 - controlled content edits, same-path replacement, identity-proven rename or move, temporary
   unavailability, and authoritative removal produce the documented retain, atomic dimensions
@@ -1565,7 +2840,16 @@ manual cleanup, storage relocation, and restart reconciliation remain R2b-owned 
 - Rust format, Clippy with warnings denied, Rust tests, generated bridge checks, Flutter analysis,
   Flutter tests, Windows Debug/Release build, and `git diff --check` pass serially;
 - controlled fixtures and authorized real-root samples prove source bytes and entries are unchanged;
-- closed-app create, modify, delete, rename, and move changes are covered by metadata inventory;
+- closed-app create, modify, delete, rename, and move changes are covered by brokered journal replay
+  without source-root enumeration on the continuous path;
+- a no-change normal startup creates no inventory and enumerates exactly zero source-root entries;
+- a P0 live change reaches the visible catalog at P95 no greater than one second even while P1 or P2
+  is active, and a closed-process single change reaches it at P95 no greater than two seconds after
+  normal runtime readiness;
+- journal reset, trimming, broker failure, root replacement, and migration baseline use explicit P2
+  recovery without gating independent P0 publication or publishing partial absence;
+- broker caller identity, root containment, pipe access, protocol compatibility, installer lifecycle,
+  portable `LiveOnly` degradation, root-external nondisclosure, and no-journal-mutation gates pass;
 - cached catalog content remains immediately usable while startup continuity runs;
 - development diagnostics expose active phase, elapsed time, bounded counts, and issue code;
 - remaining filesystem limitations and measured performance are recorded honestly.
@@ -1580,8 +2864,14 @@ manual cleanup, storage relocation, and restart reconciliation remain R2b-owned 
 - Do not accept platform notifications as authoritative state or assume they are ordered and unique.
 - Do not full-scan the approximately 259 GB library in response to every change.
 - Do not place the watcher, queue, inventory, or SQLite policy in Flutter.
-- Do not initialize USN, request elevation, show a UAC prompt, or branch synchronization behavior on
-  administrative privileges.
+- Do not open a volume or request elevation from the desktop process. UAC is limited to explicit
+  broker installer, repair, update, or removal operations.
+- Do not let the broker read media, mutate source files, configure the journal, open the catalog,
+  accept arbitrary volumes or roots, or return root-external records.
+- Do not create metadata inventory on an ordinary startup with a continuous journal checkpoint.
+- Do not treat a persisted priority value as sufficient; P0 must retain real reserved execution
+  capacity and must preempt P1/P2 at bounded boundaries.
+- Do not let one root's P1 or P2 failure block another root on the same volume.
 - Do not let an automatic synchronization or recovery path create a full-scan request.
 - Do not add a synchronization, task, timeline, or duplicate sidebar destination.
 - Do not mutate, normalize, hydrate, move, or delete source files.
@@ -1808,7 +3098,8 @@ Scope:
 - remaining condition-triggered million-item manifest adaptation and extended synchronization
   catch-up evidence that was not required for earlier target-library value, including target-root
   authoritative recovery and publication timing;
-- installer, signing strategy, diagnostics export, and recovery documentation;
+- general installed-product updates, signing maturity beyond the R2c broker installer, diagnostics
+  export, and recovery documentation;
 - formal i18n infrastructure and additional locale catalogs only after product copy is stable and
   the supported locales are separately confirmed;
 - controlled read-only combined scan of both real roots;
@@ -1847,7 +3138,8 @@ Large testing starts during R1 rather than waiting for R10:
 6. controlled read-only combined scan;
 7. warm incremental scan after known additions, removals, and modifications;
 8. live create, modify, rename, replacement, removal, and event-storm reconciliation during R2c;
-9. closed-application metadata inventory and forced notification-loss recovery during R2c;
+9. closed-application journal catch-up, no-change zero-enumeration startup, live-change preemption
+   during P2 recovery, and forced journal-gap recovery during R2c;
 10. exact-fingerprint reuse, regrouping, cancellation, and target-library duplicate coverage during
     R3;
 11. resumable review, override durability, and confidence-band sampling during R4 and R5;
@@ -1916,20 +3208,28 @@ may serve as benchmarks or fallbacks but are not automatically preferred over ma
 
 ## 10. Current active stage
 
-Active stage: **R2c - non-USN continuity replacement**
+Active stage: **R2c - Windows 11 x64 change-driven continuity replacement**
 
-Active slice: **R2c integration review against `main` complete**. R2c-I through R2c-M completed
-their implementation, target evidence, complete gates, and stage audits. The foreground full-scan
-shutdown lifecycle correction passed complete local and hosted gates; final independent full-range
-re-audit reported no Critical, High, Medium, or Low findings. R3 is paused; no R3 implementation is
-included in the R2c integration branch.
+Active delivery and acceptance slice: **R2c-O constrained broker and installer foundation**. R2c-N
+has admitted the exact fail-closed protocol, authorization-proof, lifecycle, capacity, cancellation,
+and terminal-delivery seam after focused verification and independent security review. R2c-O owns
+the real Windows service, named-pipe transport, caller token and root-handle verification, bounded
+USN FSCTL backend, installer lifecycle, package compatibility, and portable `LiveOnly` degradation.
+Its external elevated installed-service evidence remains outstanding, so the active slice does not
+advance. The live implementation foundation has separately reached schema v30 and broker protocol
+v5 plus R2c-P and R2c-Q implementation checkpoints. Those checkpoints are not R2c-P or R2c-Q
+acceptance.
+R3 is paused; no R3 implementation belongs in this work.
 
-Current work: keep the final `codex/r2c` PR to `main` unmerged until explicit authorization. No
-additional R2c implementation or R3 work is scheduled on this branch.
+Current work: preserve the open authorization-bound R2c-O, R2c-P, and R2c-Q external evidence while
+continuing the non-external controlled R2c-R reliability checkpoint. No local result promotes those
+slices to accepted. Each implementation slice receives focused tests, applicable complete gates,
+and an independent read-only audit before the next slice can claim its foundation. The final R2c-R
+audit covers the complete accumulated range.
 
-Each R2c-I through R2c-M slice uses a dedicated branch and PR into `codex/r2c`, receives an
-independent read-only audit, and merges only after its findings close. The final `codex/r2c` PR
-targets `main` for one last audit and remains unmerged until explicitly authorized.
+R2c-I through R2c-M and their audits remain historical evidence for the superseded ADR 0023 model.
+Do not rewrite their recorded results as if they validated ADR 0024, and do not merge the integration
+branch into `main` or start R3 until the new replacement reaches its own closeout.
 
 R2b implementation, deterministic preview-lifecycle correctness, retained-catalog interaction
 Profile, real-library catalog parity, Daily, Windows Release, and bounded source-readable preview
@@ -1971,16 +3271,53 @@ or later analysis workflows.
 
 ### 10.1 Verified implementation snapshot
 
-This snapshot was synchronized on 2026-08-22 against the live working tree and current planning
-decision. Historical gate claims retain their recorded dates; R2c-I through R2c-M have current
-replacement evidence and accepted stage audits.
+This snapshot was synchronized on 2026-09-02 against the live working tree and current planning
+decision. Historical gate claims retain their recorded dates. R2c-I through R2c-M have recorded ADR
+0023 implementation evidence. Under the accepted ADR 0024 replacement, R2c-O has deterministic
+broker and installer evidence but still lacks its external elevated installed-service evidence;
+schema v24 and protocol v5 provide an R2c-P sixth-remediation implementation checkpoint that
+remains not accepted. Schema v30 provides the current R2c-Q priority runtime, candidate ownership,
+durable bounded source spool, one-time baseline, and independent product-state implementation
+checkpoint described above, including the ninth-remediation start lifecycle, stable retired-epoch
+panic reconciliation, and the eleventh-remediation fenced-stop and retryable-close corrections.
+Current Rust, quality, non-sandbox Daily, controlled Windows integration, bridge, and internal x64
+Release build evidence pass. The fourteenth independent R2c-Q re-audit reports zero findings, so
+its implementation/audit checkpoint is closed; R2c-Q remains not accepted pending external signed
+release evidence. R2c-O remains the active acceptance slice. R2c-R has a remediated non-external
+controlled local reliability checkpoint but remains unaccepted with all external evidence and the
+final accumulated audit open. Its phase-23 cadence correction replaces the former fixed-shape
+cross-language parser/visitor with one tracked policy, deterministic Dart generation, a real timer
+behavior test, and a typed Rust worker cadence with counted phase invocations. Phase 24 closes the
+Dart microsecond upper bound and removes R2c-M's second 250 ms production cadence through one shared
+Rust cfg(test) policy value. Its follow-up replaces the remaining naked `Duration` wait boundary with
+an opaque private-field cadence whose owned wait method is required by both R2c-M and R2c-R. Focused
+tests, the ordinary-user 19-case lightweight guardrail, complete lint, the prior complete Daily and
+fresh local unsigned x64 Release, the current complete ordinary-user 19-case runner, and the retained
+Release seam scan pass. Phase 27 adds the explicit-claim/manual-update/provenance correction plus
+typed capacity deferral and a non-empty real-P2 visibility matrix. Capacity waits refund leased
+attempts, survive restart, yield to precise P0 work, wake when matching P1/P2 capacity is released,
+and do not relax genuine failure exhaustion. The native `need_rescan` matrix proves exact add/delete
+publication from a controlled PNG baseline without a new automatic full scan or source mutation.
+Retained P2 source frontiers are now owned by immutable change ID, so overlapping containment and
+watcher-gap authorities for one root cannot steal or reopen each other's source. Catalog validation
+precedes transfer, worker-spawn failure restores the exact owner, and current-authority pruning keeps
+the in-memory set bounded. The current schema-v30 fields are sufficient, so no v31 DDL is introduced.
+The accumulated ordinary-user closeout now passes the complete 83-test production module,
+`quality_lint.ps1`, the 19/19 internal-disposable runner, serial Daily with 927 Rust tests and both
+Windows integrations, exact bridge hash, Release-profile Clippy, and a fresh unsigned x64 Release
+with PE, `NotSigned`, dependency freshness, DLL hash, asset, and test-seam checks. The first Daily
+red selected a newer valid P2 row instead of its retained P0 lineage owner; the exact-origin/lane
+test query correction passes both focused and concurrent full-suite verification. Final independent
+audit and all external signed, SCM/service, real named-pipe/FSCTL, retained-root, and real Cloud Files
+acceptance evidence remain open; R2c-R remains not accepted and R2c-O remains active.
 The live working tree, current schema, accepted ADRs, and fresh verification remain authoritative;
 this roadmap does not preserve drifting commit hashes or duplicate complete test transcripts.
 
 - R0 and R1 are accepted. The Rust-owned SQLite catalog, Flutter/Rust bridge, external preview
   storage, resumable multi-root scanning, atomic publication, per-file issue isolation, file
   identity, and revision-safe bounded queries are connected end to end.
-- The catalog schema is v20 and the storage-settings schema is v2. Schema v17 introduced the
+- The live working tree advances the catalog schema to v30 and retains storage-settings schema v2.
+  Schema v17 introduced the
   durable normalized change queue, root-generation tombstones, lease/retry state, catalog-revision
   evidence, bounded terminal-row retention, and permanent highest-generation authority. Schema v18
   adds authoritative scan ownership, generation and queue-watermark capture, previous-snapshot
@@ -1991,7 +3328,30 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   earlier root, scan, asset, location, frontier, capture-evidence, identity, and query evidence.
   Schema v20 adds durable metadata-inventory runs, fixed-bound staging and cleanup, completion and
   absence authority, and the `metadata_inventory` change origin while preserving the v19 queue and
-  lineage contract.
+  lineage contract. Schema v21 adds deterministic terminal-media evidence keyed by complete source
+  state and inspection-engine identity. Schema v22 introduces ADR 0024 broker capability, per-root
+  checkpoint, source range, and lineage authority; v23 adds range lifecycle and durable pending OLD
+  carry; v24 adds the canonical complete batch payload, deterministic provable rekey, exact cross-
+  root owner validation, and typed 64-hex source-range ID guards. Schema v25 adds exact durable
+  lane rows and guards, recovery authority constrained to the ADR 0024 allowlist and matching P2
+  work, and the persisted opening/inventory/replay/absence/completed baseline lifecycle. Existing
+  queue rows are classified deterministically without fabricating recovery authority. Schema v26
+  adds exact candidate ownership, the first inventory frontier, and cross-table recovery execution
+  validation. Schema v27 adds the application-storage durable source spool, complete-directory
+  identity and ordering evidence, provisional incomplete-directory recovery, exact run/root/
+  generation/authority binding, and current-shape validation. It does not place sidecars in source
+  trees or let provisional entries publish candidates or absence. Schema v28 adds immutable pinned-
+  root identity to the spool, indexed sentinel paging, proof revalidation through candidate,
+  absence, and finalization, and fail-closed v27 recapture migration semantics. Schema v29 promotes
+  only mutually consistent full spool or V3 checkpoint evidence into the active root-generation
+  publication namespace, binds foreground scans before work, establishes foreground/P2 proof with
+  freshness in one transaction, and retires proof with the root generation. V2, conflicting,
+  partial, or absent proof remains fail closed rather than inheriting authority from a current path.
+  Schema v30 adds immutable live-gap recovery claims and validates an exact consumer for each
+  superseded P0 gap. Root/publication identity is not event provenance, so its v29 forward migration
+  conservatively retains every ambiguous naked fallback under explicit recovery ownership. A typed
+  foreground-scan consumer may temporarily own only that claim after an explicit user update;
+  publication consumes it atomically, while abandon or interrupted reopen restores it exactly.
 - The authorized read-only target-library acceptance published 30,629 locations for
   `local-primary` and 48,384 for `cloud-primary`, for 79,013 active locations in one retained
   catalog. Sampled source bytes and source entries remained unchanged, and cloud-only placeholders
@@ -2231,6 +3591,57 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   The target-tested head passes the complete Daily gate with 461 Rust tests total, 450 passed and
   11 ignored, all Flutter and Windows integration partitions, and Windows Release verification.
   The final independent read-only stage audit reports no Critical, High, Medium, or Low findings.
+- The 2026-08-22 R2c integration remediation protects leased metadata-inventory control authority
+  from ordinary watcher work, retains bounded live-work prefixes under queue backpressure, and
+  validates each opened Windows source handle against the canonical selected root. Startup also
+  retires prerelease automatic full-scan checkpoints without replacing the active catalog and hands
+  their unresolved evidence to metadata inventory. The complete local Daily gate passes with 468
+  Rust tests total, 457 passed and 11 ignored, all Flutter tests, Windows scan 2/2, and Windows
+  accessibility 2/2. Windows Release and packaged bridge smoke pass 2/2. The final incremental
+  read-only audit reports no remaining findings. Real UNC/SMB platform coverage and
+  positive-candidate early publication remain separate validation and contract work.
+- ADR 0024 and R2c-N through R2c-R now own the active replacement. The accepted target is Windows 11
+  x64 with complete automatic continuity limited to local NTFS roots whose constrained broker is
+  installed and whose journal remains continuous. The current working tree now contains schema v30
+  priority lanes, candidate ownership, the bounded durable source spool, watcher-first brokered
+  catch-up, bounded recovery, the one-time baseline, and independent live and continuity projection.
+  Controlled fixtures provide implementation evidence for reserved P0 publication, atomic
+  P0-to-P2 gap promotion, and zero-enumeration no-change startup. The complete local Daily gate and
+  internal Windows x64 Release build pass; service security, installed-service lifecycle, real
+  brokered FSCTL, retained-library, externally signed Windows Release, and independent-audit
+  acceptance remain active work rather than inferred completion from implementation existence.
+- The phase-31 migration-integrity slice closes three phase-30 audit findings without changing the
+  schema version or acceptance state. A v29 running or paused foreground scan now retains its exact
+  queue ownership, scan identifier, and publication provenance through the v30 migration instead of
+  being relabeled as explicit recovery; only a truly ownerless historical fallback is converted to
+  `explicit_recovery_required`. Current-v30 validation and interrupted-scan repair require the linked
+  scan to be owned by `foreground`, and crash cleanup uses the same handoff-aware orphan predicate as
+  normal scan cleanup. Focused evidence passes 65 migration tests, 88 SQLite catalog tests, 36 scan
+  tests with two expected authorization-bound ignores, 56 Flutter tests, warnings-denied Clippy,
+  repository lint, bridge hash `941711727`, and absent-signed-bundle fail-closed admission. Daily,
+  Release, the 19-case runner, retained roots, Cloud Files, SCM, real named-pipe/FSCTL journal, and
+  signing remain the phase-32 or external closeout boundary; R2c-R remains not accepted and R2c-O
+  remains active.
+- The phase-32 queue-integrity slice closes the remaining phase-30 leased-capacity race and reserved
+  failure-code findings without changing schema v30 or acceptance state. An exact capacity-deferred
+  P0 live root gap is protected while either waiting or leased only when its lane, origin, intent,
+  scope, path shape, failure code, status, and absent recovery claim all match. A concurrent precise
+  live path therefore receives an independent P0 row and can publish while the gap remains deferred;
+  repeated evidence for that path still coalesces normally and the gap retains its lease and owner.
+  The `live_gap_p2_capacity_` namespace is now rejected by generic retry entrypoints and can be
+  minted only by the typed capacity-deferral transaction. Lease-attempt refunds, terminal-budget
+  exemption, metrics, and capacity wake-up use the same exact typed shape, so a forged code with the
+  wrong lane, scope, status, or claim receives ordinary expiry and terminal handling.
+  Focused evidence passes 82 queue tests, 84 production synchronization tests, retained-owner and
+  native `need_rescan` regressions, 42 persistent-journal tests, 65 migrations, 36 runnable scan
+  tests with two expected ignores, 56 Flutter tests, warnings-denied development and Release
+  Clippy, repository lint, bridge hash `941711727`, and the ordinary-user 19/19 runner. The canonical
+  Daily rerun passes 940 runnable Rust tests with 17 expected ignores, broker integration 3/3, all
+  Flutter tests, and both Windows integrations 2/2. A fresh unsigned x64 Release is `0x8664` and
+  `NotSigned`, has current 83/82/82 dependency graphs and matching packaged/Cargokit DLL hashes,
+  and contains no executable test seam in six Release artifacts or ten Flutter assets. Retained
+  roots, real Cloud Files, SCM, named-pipe/FSCTL, signing, and the final external audit remain open;
+  R2c-R remains not accepted and R2c-O remains active.
 - The current R2b closeout working tree passed the complete local Daily gate and Windows Release
   gate on 2026-08-12, including packaged Rust-library loading and the release bridge smoke test.
   This is current-stage evidence, not a release candidate or completion of R10.

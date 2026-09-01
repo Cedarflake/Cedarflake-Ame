@@ -7,8 +7,9 @@ Status: accepted on 2026-08-22
 This gate closes the ADR 0023 replacement continuity model rather than reusing the historical
 R2c-H USN catch-up evidence. It has two serial phases:
 
-- a disposable Windows source root exercises the production watcher, 250 ms foreground cadence,
-  background recovery coordinator, and durable queue across independent processes;
+- a disposable Windows source root exercises the production watcher, the tracked foreground cadence
+  currently set to 250 ms, background recovery coordinator, and durable queue across independent
+  processes;
 - an isolated online backup of the retained catalog exercises production metadata inventory against
   the two explicitly authorized roots.
 
@@ -73,6 +74,24 @@ passed and 11 authorization-bound or manual performance tests ignored. All Flutt
 Windows Scan 2/2, Windows Accessibility 2/2, bridge compatibility, formatting, lint, and whitespace
 checks pass. Windows Release and its packaged bridge and same-user process checks pass. The final
 independent read-only stage audit reported no Critical, High, Medium, or Low findings.
+
+Phase 24 preserves this historical accepted evidence and keeps the R2c-M entrypoint runnable while
+removing its independent `250 ms` cadence constant. The test-only
+`ProductionSynchronizationTestHarness` now stores the single shared
+`ProductionSynchronizationCadence` parsed from
+`tool/library_synchronization_poll_interval_ms.txt`; every R2c-M foreground wait obtains its interval
+from that harness. Behavior tests prove both the normal harness and an exact `875\n` policy use the
+shared value, and a controlled tracked-policy 875 mutation passes before restoration to 250.
+
+The phase-24 follow-up review found that the first correction still exposed the value as a naked
+`Duration` to R2c-M's actual wait helper. A real-path `Duration::from_millis(250_u64)` mutation left
+the former semantic source scan and accessor-only test green. The harness no longer exposes an
+interval getter: the private-field cadence value owns waiting, and `wait_for` requires that opaque
+type as its first parameter. A compile-time signature contract rejects a naked `Duration` with Rust
+`E0308`. The cfg(test)-only shared sleeper capture executes the actual R2c-M helper with the controlled
+875 ms value and records one exact 875 ms request without sleeping. The non-accessing R2c-M guardrail
+passes. No retained catalog, `local-primary`, or `cloud-primary` phase was rerun or accessed for this
+maintenance correction.
 
 ## Acceptance boundary
 

@@ -1,13 +1,19 @@
 # ADR 0022: Catch up Windows downtime through the USN change journal
 
-- Status: Superseded by ADR 0023
+- Status: Superseded; current decision is ADR 0024
 - Date: 2026-08-18
-- Last amended: 2026-08-21
+- Last amended: 2026-08-22
 
 ADR 0023 replaces the production USN decision with one non-privileged live-watcher and metadata-
 inventory continuity model. This record remains historical evidence for schema v19 migration and
 the implementation that preceded that decision. It no longer authorizes production journal access,
 UAC, or USN fallback scheduling.
+
+ADR 0024 later accepts a separately installed, constrained broker as the journal boundary. It does
+not reactivate this record's direct desktop volume access, global catch-up worker, all-roots
+enrollment transaction, fixed record-ceiling fallback, or automatic inventory scheduling. The
+checkpoint, enqueue-before-advance, bounded parsing, final-state reconciliation, and handoff ideas
+below are reusable historical evidence only through ADR 0024's new per-root and security contracts.
 
 ## Context
 

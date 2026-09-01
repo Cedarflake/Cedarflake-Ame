@@ -3,7 +3,7 @@
 - Status: Accepted
 - Date: 2026-08-13
 - Corrected: 2026-08-14
-- Last amended: 2026-08-21
+- Last amended: 2026-08-22
 
 ## Context
 
@@ -137,8 +137,14 @@ failed health plus a root evidence gap, stops the watcher, and makes unavailable
 retryable without interpreting the root contents as removed catalog state. Sequence numbers
 saturate instead of wrapping.
 
-Dependency default features must be reviewed when the Cargo entry is added. Windows packaging must
-not gain an external service or source-tree artifact.
+Dependency default features must be reviewed when the Cargo entry is added. The `notify` adapter
+and its vendored source must not install a service or place an artifact in a source tree.
+
+ADR 0024 adds a separately owned, installer-managed journal broker for persistent downtime
+continuity. That broker does not belong to `notify`, does not change this live observer's callback
+or replacement contract, and cannot read media or perform reconciliation. The earlier prohibition
+against letting R2c-B itself add an external service remains binding; it no longer prohibits the
+independently reviewed ADR 0024 broker and installer boundary.
 
 ## Validation gates
 
