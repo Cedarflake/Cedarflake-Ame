@@ -10,6 +10,10 @@ on:
         description: Published v-prefixed tag to verify
         required: true
         type: string
+      expected_broker_publisher:
+        description: Exact Authenticode publisher for the published Windows binaries
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -26,6 +30,7 @@ jobs:
     permissions:
       contents: read
     env:
+      AME_EXPECTED_PUBLISHER: ${{ github.event.inputs.expected_broker_publisher || vars.AME_WINDOWS_EXPECTED_PUBLISHER }}
       AME_RELEASE_TAG: ${{ github.event.release.tag_name || github.event.inputs.release_tag }}
     steps:
       - name: Check out published tag
@@ -37,7 +42,11 @@ jobs:
 
       - name: Validate release version
         shell: pwsh
-        run: ./tool/release_validate_version.ps1 -Tag $env:AME_RELEASE_TAG
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AME_EXPECTED_PUBLISHER)) {
+            throw "Published verification requires the exact Authenticode publisher"
+          }
+          ./tool/release_validate_version.ps1 -Tag $env:AME_RELEASE_TAG
 
       - name: Download published portable ZIP
         shell: pwsh
@@ -62,6 +71,7 @@ jobs:
       - name: Verify published portable ZIP
         shell: pwsh
         run: |
-          ./tool/release_verify_portable_archive.ps1 `
+          ./tool/release_verify_portable_signatures.ps1 `
             -ArchivePath $env:AME_PORTABLE_ARCHIVE `
-            -Tag $env:AME_RELEASE_TAG
+            -Tag $env:AME_RELEASE_TAG `
+            -ExpectedBrokerPublisher $env:AME_EXPECTED_PUBLISHER

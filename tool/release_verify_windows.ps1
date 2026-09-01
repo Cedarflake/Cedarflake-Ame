@@ -1,12 +1,24 @@
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory = $true)]
+    [string]$ExpectedBrokerPublisher,
+    [Parameter(Mandatory = $true)]
+    [string]$SignedBrokerBinaryPath,
+    [Parameter(Mandatory = $true)]
+    [string]$SignedApplicationBundlePath
+)
+
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "quality_common.ps1")
+. (Join-Path $PSScriptRoot "release_journal_broker_common.ps1")
 
 $repositoryRoot = Get-AmeRepositoryRoot
 $toolchain = Get-AmeToolchain
 $buildRoot = Join-Path $repositoryRoot "build"
-$releaseRoot = Join-Path $buildRoot "windows\x64\runner\Release"
+$releaseRoot = [System.IO.Path]::GetFullPath($SignedApplicationBundlePath)
 $releaseExecutable = Join-Path $releaseRoot "cedarflake_ame.exe"
 $releaseLibrary = Join-Path $releaseRoot "rust_lib_cedarflake_ame.dll"
+$releaseBroker = Join-Path $releaseRoot (Get-AmeBrokerServicePlan).BinaryName
 $scratchRoot = Join-Path $buildRoot "release-bridge-smoke-$PID"
 $resolvedBuildRoot = [System.IO.Path]::GetFullPath($buildRoot)
 $resolvedScratchRoot = [System.IO.Path]::GetFullPath($scratchRoot)
@@ -35,10 +47,40 @@ $toolLock = Enter-AmeRepositoryToolLock
 
 Push-Location $repositoryRoot
 try {
-    & $flutterExecutable build windows --release
-    if ($LASTEXITCODE -ne 0) {
-        throw "Windows release build failed with exit code $LASTEXITCODE"
+    if ([string]::IsNullOrWhiteSpace($ExpectedBrokerPublisher) -or
+        [string]::IsNullOrWhiteSpace($SignedBrokerBinaryPath) -or
+        [string]::IsNullOrWhiteSpace($SignedApplicationBundlePath)) {
+        throw "Windows release verification requires signed application, broker, and publisher inputs"
     }
+    $bundleFacts = Assert-AmeApplicationBundleSource `
+        -BundlePath $releaseRoot `
+        -ExpectedPublisher $ExpectedBrokerPublisher
+    if (-not $bundleFacts.ClientBinaryPath.Equals(
+        $releaseExecutable,
+        [System.StringComparison]::OrdinalIgnoreCase
+    )) {
+        throw "Signed application bundle resolved an unexpected client binary"
+    }
+
+    $builtBroker = [System.IO.Path]::GetFullPath($SignedBrokerBinaryPath)
+    if (-not (Test-Path -LiteralPath $builtBroker -PathType Leaf)) {
+        throw "The signed Windows x64 journal broker was not found"
+    }
+    Assert-AmeBrokerReleaseBinaryName -Path $builtBroker
+    Assert-AmeBrokerBinary `
+        -Path $builtBroker `
+        -ExpectedPublisher $ExpectedBrokerPublisher | Out-Null
+    if (-not (Test-Path -LiteralPath $releaseBroker -PathType Leaf)) {
+        throw "The signed application bundle does not contain the journal broker"
+    }
+    $builtBrokerHash = (Get-FileHash -LiteralPath $builtBroker -Algorithm SHA256).Hash
+    $releaseBrokerHash = (Get-FileHash -LiteralPath $releaseBroker -Algorithm SHA256).Hash
+    if ($builtBrokerHash -cne $releaseBrokerHash) {
+        throw "Packaged journal broker does not match the admitted x64 release binary"
+    }
+    Assert-AmeBrokerBinary `
+        -Path $releaseBroker `
+        -ExpectedPublisher $ExpectedBrokerPublisher | Out-Null
 
     if (-not (Test-Path -LiteralPath $releaseLibrary -PathType Leaf)) {
         throw "Windows release Rust library was not packaged"

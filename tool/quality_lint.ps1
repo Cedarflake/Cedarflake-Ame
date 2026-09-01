@@ -23,16 +23,21 @@ try {
     Invoke-AmePowerShellSyntaxCheck $powerShellPaths
     & (Join-Path $PSScriptRoot "quality_test_naming_contract.ps1")
     & (Join-Path $PSScriptRoot "quality_test_hosted_parallel_contract.ps1")
+    & (Join-Path $PSScriptRoot "quality_test_library_synchronization_policy.ps1")
     & (Join-Path $PSScriptRoot "acceptance_test_preview_performance_guardrails.ps1")
     & (Join-Path $PSScriptRoot "acceptance_test_r2c_reliability_guardrails.ps1")
     & (Join-Path $PSScriptRoot "acceptance_test_r2c_replacement_guardrails.ps1")
+    & (Join-Path $PSScriptRoot "acceptance_test_r2c_change_driven_reliability_guardrails.ps1")
     & (Join-Path $PSScriptRoot "integration_test_windows_accessibility_guardrails.ps1")
     & (Join-Path $PSScriptRoot "release_test_version_validation.ps1")
     & (Join-Path $PSScriptRoot "release_test_portable_archive.ps1")
+    & (Join-Path $PSScriptRoot "release_test_journal_broker_installer_guardrails.ps1")
+    & (Join-Path $PSScriptRoot "acceptance_test_windows_journal_broker_guardrails.ps1")
     Invoke-AmeJsonSyntaxCheck @(
         (Join-Path $repositoryRoot ".vscode\extensions.json"),
         (Join-Path $repositoryRoot ".vscode\settings.json")
     )
+    & (Join-Path $PSScriptRoot "quality_generate_library_synchronization_policy.ps1") -Check
     & (Join-Path $PSScriptRoot "quality_format.ps1") -Check
     Invoke-AmeChecked $toolchain.Cargo @(
         "clippy",

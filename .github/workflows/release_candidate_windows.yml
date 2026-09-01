@@ -10,6 +10,10 @@ on:
         description: Existing v-prefixed tag to verify and publish
         required: true
         type: string
+      expected_broker_publisher:
+        description: Exact Authenticode publisher for the Windows binaries
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -28,6 +32,10 @@ jobs:
       gate_mode: release
       checkout_ref: ${{ github.event.inputs.release_tag || github.sha }}
       release_tag: ${{ github.event.inputs.release_tag || github.ref_name }}
+      expected_broker_publisher: ${{ github.event.inputs.expected_broker_publisher || vars.AME_WINDOWS_EXPECTED_PUBLISHER }}
+    secrets:
+      windows_signing_pfx_base64: ${{ secrets.AME_WINDOWS_SIGNING_PFX_BASE64 }}
+      windows_signing_pfx_password: ${{ secrets.AME_WINDOWS_SIGNING_PFX_PASSWORD }}
 
   publish_portable:
     name: Windows Portable ZIP
@@ -38,6 +46,7 @@ jobs:
       contents: write
     env:
       CI: "true"
+      AME_EXPECTED_PUBLISHER: ${{ github.event.inputs.expected_broker_publisher || vars.AME_WINDOWS_EXPECTED_PUBLISHER }}
       AME_RELEASE_TAG: ${{ github.event.inputs.release_tag || github.ref_name }}
     steps:
       - name: Check out release tag
@@ -47,27 +56,39 @@ jobs:
           persist-credentials: false
           ref: ${{ github.event.inputs.release_tag || github.sha }}
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+      - name: Validate publication identity
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AME_EXPECTED_PUBLISHER)) {
+            throw "Portable publication requires the exact Authenticode publisher"
+          }
+
+      - name: Download immutable signed Windows bundle
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          channel: stable
-          flutter-version: 3.44.9
-          cache: true
-          pub-cache: true
+          name: ${{ needs.release_windows.outputs.signed_bundle_artifact }}
+          path: build/signed-windows
 
-      - name: Restore locked Dart dependencies
+      - name: Reverify downloaded signed Windows bundle
         shell: pwsh
-        run: flutter pub get --enforce-lockfile
-
-      - name: Build Windows Release bundle
-        shell: pwsh
-        run: flutter build windows --release
+        run: |
+          . ./tool/release_journal_broker_common.ps1
+          $releaseRoot = [System.IO.Path]::GetFullPath("build\signed-windows")
+          Assert-AmeApplicationBundleSource `
+            -BundlePath $releaseRoot `
+            -ExpectedPublisher $env:AME_EXPECTED_PUBLISHER | Out-Null
+          Assert-AmeBrokerBinary `
+            -Path (Join-Path $releaseRoot "cedarflake_ame_journal_broker.exe") `
+            -ExpectedPublisher $env:AME_EXPECTED_PUBLISHER | Out-Null
 
       - name: Package portable ZIP
         shell: pwsh
         run: |
           $archivePath = (
-            ./tool/release_package_portable_windows.ps1 -Tag $env:AME_RELEASE_TAG |
+            ./tool/release_package_portable_windows.ps1 `
+              -Tag $env:AME_RELEASE_TAG `
+              -ReleaseRoot ([System.IO.Path]::GetFullPath("build\signed-windows")) `
+              -ExpectedBrokerPublisher $env:AME_EXPECTED_PUBLISHER |
               Select-Object -Last 1
           )
           "AME_PORTABLE_ARCHIVE=$archivePath" >> $env:GITHUB_ENV

@@ -423,9 +423,17 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
 
 - `./tool/quality_format.ps1` applies `rustfmt` and `dart format` to repository-owned Rust and Dart trees.
 - `./tool/quality_format.ps1 -Check` is the non-mutating formatting gate.
-- `./tool/quality_lint.ps1` validates repository PowerShell and JSON configuration, runs the formatting
-  gate, runs Clippy for all targets and features with warnings denied, and runs the pinned Dart
-  analyzer with warnings and informational lints treated as failures.
+- `./tool/quality_generate_library_synchronization_policy.ps1` reads the canonical positive-decimal
+  poll interval from `tool/library_synchronization_poll_interval_ms.txt` and deterministically writes
+  the Dart policy source. Values above `9223372036854775` milliseconds fail before output changes so
+  Dart's signed 64-bit microsecond `Duration` representation cannot overflow. Its `-Check` mode
+  compares exact UTF-8/LF bytes without writing.
+- `./tool/quality_test_library_synchronization_policy.ps1` proves policy drift and malformed input
+  plus the exact Dart microsecond boundary fail closed without changing generated output.
+- `./tool/quality_lint.ps1` validates repository PowerShell and JSON configuration, runs the policy
+  generator guardrail and non-mutating generation check before the formatting gate, runs Clippy for
+  all targets and features with warnings denied, and runs the pinned Dart analyzer with warnings and
+  informational lints treated as failures.
 - `./tool/quality_lint_workflows.ps1 -ActionlintPath <path>` validates all hosted workflows with a
   caller-provided `actionlint` executable. Hosted CI supplies a fixed version with a verified
   checksum; the daily workstation gate does not silently download tools.
@@ -462,10 +470,41 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
 - `./tool/acceptance_test_r2c_replacement_guardrails.ps1` verifies the R2c-M authorization token,
   cloud acknowledgement, physical path separation, and fresh-storage boundary without accessing a
   real library.
-- `./tool/release_verify_windows.ps1` is the Windows packaging and release-bridge gate. It also
-  proves that a packaged process rejects a same-user duplicate before runtime initialization and
-  that a replacement starts after the original process exits. Run it when desktop integration,
-  native packaging, generated bridge loading, or release behavior changes.
+- `./tool/acceptance_run_r2c_change_driven_reliability.ps1` is the R2c-R non-external controlled
+  local reliability gate for Windows 11 x64 client workstations. Its common module performs no
+  dynamic compilation while being loaded; explicit initialization uses an in-memory native identity
+  surface to bind and retain every existing logical and physical repository-tool path component,
+  rejecting reparse or volume transitions before it creates the compiler bootstrap relative to the
+  final physical handle. It cleans only an empty identity-matching bootstrap and retains unknown or
+  replaced state without traversal. The runner executes
+  exactly counted production-path tests as an ordinary user inside one fixed-NTFS KnownFolder tree.
+  Before any root write, both the logical `SHGetKnownFolderPath` result and its physical filter-
+  redirected path are bound component by component through no-follow, same-volume, identity-held
+  handles. A high-entropy root is then created relative to the final physical LocalApplicationData
+  handle, verified as its non-reparse same-volume direct child, and kept replacement-blocked for the
+  complete runner lifecycle until cleanup begins. Parent-relative opens honor the live per-directory
+  Windows case-sensitivity flag; object identity is never inferred from case-folded path text. The
+  gate refuses caller-supplied source paths, catalogs, worker environment aliases, elevation,
+  reparse/volume escape, and filtered-only results, and applies parent wall-clock deadlines through
+  an owned process-tree Job Object.
+- `./tool/acceptance_test_r2c_change_driven_reliability_guardrails.ps1` verifies the R2c-R platform,
+  privilege, fresh-process hostile-temporary bootstrap, compiler failure, active bootstrap and
+  two-stage cleanup replacement races, held physical storage, intermediate and terminal internal
+  junction/sentinel rejection, identity-bound teardown, process-timeout, malicious NT leaves,
+  cleanup retention, path/environment-alias, exact-matrix, an actually executed exact report-tamper
+  test, default-deny source/call-closure coverage of every common/runner/guardrail scope and exact
+  dot-source under fixed source/depth/byte/AST/function/scope/queue budgets with bounded non-
+  materializing AST-node traversal, one digest-locked process boundary that audits each final
+  Command/EncodedCommand/File payload before launch, no-follow same-volume parent/terminal identity
+  retention, post-open volume/file-ID source deduplication, immediate pre-transfer revalidation for
+  every file source, immediate pre-initialization native handle ownership, and the macro- and module-
+  topology-closed exact item/call-closure Rust availability source contract without running the manual
+  reliability scenarios or accessing a real library. The lint and Daily paths run only this
+  lightweight guardrail, not the R2c-R acceptance runner.
+- `./tool/release_verify_windows.ps1` is the immutable signed Windows bundle and release-bridge
+  gate. It also proves that a packaged process rejects a same-user duplicate before runtime
+  initialization and that a replacement starts after the original process exits. Run it when
+  desktop integration, native packaging, generated bridge loading, or release behavior changes.
 - `./tool/release_verify_candidate.ps1` is the release-candidate orchestrator. It runs the daily, Windows
   release, and synthetic performance gates in order, and adds retained real-library validation only
   when explicitly requested with all authorization-bound paths.
@@ -475,6 +514,9 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   as a versioned portable ZIP after release verification.
 - `./tool/release_verify_portable_archive.ps1` verifies the portable ZIP filename, single-root
   layout, safe entry paths, and required Flutter and Rust runtime payload without extracting it.
+- `./tool/release_verify_portable_signatures.ps1` performs that structural gate, extracts into
+  fresh bounded scratch storage, revalidates the application and broker signature, exact publisher,
+  x64 machine, and broker protocol, then confirms scratch cleanup.
 
 Hosted workflow ownership is:
 
