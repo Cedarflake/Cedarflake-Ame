@@ -1539,7 +1539,7 @@ try { `$child.WaitForExit() } finally { `$child.Dispose() }
         -Arguments @("-NoProfile", "-NonInteractive", "-Command", $blockingCommand) `
         -WorkingDirectory $repositoryRoot `
         -OutputPath $timeoutOutputPath `
-        -TimeoutMilliseconds 3000
+        -TimeoutMilliseconds 15000
     if (-not $timeoutResult.TimedOut) {
         throw (
             "R2c-R blocking fixture unexpectedly completed before the parent timeout; " +

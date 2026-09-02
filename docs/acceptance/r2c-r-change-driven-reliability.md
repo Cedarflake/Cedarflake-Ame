@@ -270,9 +270,12 @@ The following failures are retained as evidence rather than omitted:
     real per-USN reference histories, and one million root-scope decisions. Its documented memory
     statement is deliberately limited to the fixed-record allocator model it actually proves.
 16. The first process-tree guardrail used a 500 ms deadline and sometimes terminated its fixture
-    before the child PID could be reported. A three-second guardrail-only deadline lets the blocked
-    parent prove it created a child; Job Object disposal then removes both while an unrelated side
-    process remains alive. Production per-case and total deadlines were not relaxed.
+    before the child PID could be reported. A three-second guardrail-only deadline fixed that on the
+    original workstation but still included fresh child module loading and native-helper compilation;
+    the hosted Windows Server 2025 child did not report readiness before that deadline. The current
+    15-second fixture-only deadline remains below the child's 30-second block, then requires Job
+    Object disposal to remove both within five seconds while an unrelated side process remains alive.
+    Production per-case, total, and default process deadlines were not relaxed.
 17. The second independent review found that dot-sourcing the common module invoked `Add-Type`
     before the runner rebound hostile temporary variables. The replacement defers compilation to an
     explicit initializer. A fresh PowerShell child now proves the types are absent before and after

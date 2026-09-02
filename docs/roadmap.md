@@ -3682,9 +3682,13 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   correctly failed closed when Windows PowerShell 5.1 left compiler output in the held R2c-R
   `Add-Type` bootstrap. CI therefore runs a compiler-free exact platform-binding probe under Windows
   PowerShell 5.1 and keeps the complete R2c-R and broker guardrails in the PowerShell 7 Daily job;
-  no cleanup or source-audit rule was broadened. Repository lint passes, including the 19-case
-  R2c-R guardrail, broker installer guardrail, warnings-denied Clippy, and Dart analysis. Eighteen
-  focused owner-affinity regressions pass. The complete serial evidence has 954 passing Rust tests with
+  no cleanup or source-audit rule was broadened. The next hosted run exposed a separate three-second
+  test-fixture deadline that included fresh child `Add-Type` initialization before the child could
+  report its blocked descendant. That fixture-only parent budget is now 15 seconds against the same
+  30-second block and five-second termination requirement; production deadlines and cleanup are
+  unchanged. Repository lint passes, including the 19-case R2c-R guardrail, broker installer
+  guardrail, warnings-denied Clippy, and Dart analysis. Eighteen focused owner-affinity regressions
+  pass. The complete serial evidence has 954 passing Rust tests with
   17 expected ignores, broker integration 3/3, all Flutter tests, Windows scan 2/2, Windows native
   accessibility 2/2, bridge/whitespace checks, and a current Debug application. Two post-guard
   disposable-directory rename/restore fixtures each pass 200 repeated cycles without relaxing the

@@ -2279,6 +2279,16 @@ probe under Windows PowerShell 5.1, while the existing PowerShell 7 Daily job co
 the complete R2c-R and broker guardrails. No residue allowlist, deletion rule, compiler bootstrap,
 or destructive-fixture source audit was weakened.
 
+The next hosted run passed that Windows PowerShell 5.1 boundary and exposed a separate cold-start
+assumption in the PowerShell 7 process-tree fixture. Its three-second parent deadline included a
+fresh child loading the complete common module and compiling its native Job Object helper before it
+could spawn and report the intentionally blocked descendant. The hosted child was terminated before
+that readiness marker; this was not evidence of a leaked descendant. The fixture-only parent budget
+is now 15 seconds while the descendant remains blocked for 30 seconds and must still terminate
+within five seconds after the owned Job Object is stopped. Production process deadlines, the
+wrapper's 300-second default, cleanup behavior, and source audit are unchanged. The whole-file
+guardrail digest was relocked after this exact reviewed edit.
+
 Red regressions first reproduced the exact v23, direct-v24, newer-epoch, terminalization,
 superseded-spool reopen, and polluted-current-schema failures. The complete migration module then
 passes 73 tests and the metadata-inventory application module passes 37 tests. The new controls
