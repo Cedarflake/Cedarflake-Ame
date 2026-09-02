@@ -430,6 +430,9 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   compares exact UTF-8/LF bytes without writing.
 - `./tool/quality_test_library_synchronization_policy.ps1` proves policy drift and malformed input
   plus the exact Dart microsecond boundary fail closed without changing generated output.
+- `./tool/quality_test_windows_powershell_compatibility.ps1` loads the compiler-free R2c-R common
+  surface and proves exact boolean platform binding under Windows PowerShell 5.1 and PowerShell 7.
+  It does not replace the complete R2c-R guardrail or initialize its native compiler bootstrap.
 - `./tool/quality_lint.ps1` validates repository PowerShell and JSON configuration, runs the policy
   generator guardrail and non-mutating generation check before the formatting gate, runs Clippy for
   all targets and features with warnings denied, and runs the pinned Dart analyzer with warnings and

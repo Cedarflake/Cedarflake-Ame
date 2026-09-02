@@ -2271,9 +2271,13 @@ Hosted PowerShell 7 also exposed a platform-probe defect before the Rust CI test
 boolean parameter with that name could not reliably receive the guardrail's false-platform probe.
 The R2c-R and broker scripts now use `IsWindowsPlatform`, their guardrails assert the exact false-
 platform diagnostic, and the digest-locked R2c-R source hash was updated for those reviewed edits.
-The hosted workflow runs both guardrails once under Windows PowerShell 5.1 after Flutter setup and
-again through the existing PowerShell 7 Daily job, preserving the same default-deny and destructive-
-fixture source audit in both shells.
+The first dual-shell workflow attempt then demonstrated why the complete guardrail must not be used
+as a shell-compatibility probe: Windows PowerShell 5.1 on the hosted Windows Server 2025 image left
+compiler output in the held `Add-Type` bootstrap, so the default-deny cleanup correctly retained the
+non-empty directory and failed. The workflow now invokes a compiler-free exact platform-binding
+probe under Windows PowerShell 5.1, while the existing PowerShell 7 Daily job continues to execute
+the complete R2c-R and broker guardrails. No residue allowlist, deletion rule, compiler bootstrap,
+or destructive-fixture source audit was weakened.
 
 Red regressions first reproduced the exact v23, direct-v24, newer-epoch, terminalization,
 superseded-spool reopen, and polluted-current-schema failures. The complete migration module then

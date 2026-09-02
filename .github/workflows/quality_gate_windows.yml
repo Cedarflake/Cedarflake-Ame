@@ -123,11 +123,11 @@ jobs:
         shell: pwsh
         run: flutter pub get --enforce-lockfile
 
-      - name: Run Windows PowerShell compatibility guardrails
+      - name: Run Windows PowerShell platform compatibility probes
         if: matrix.component == 'static'
         shell: powershell
         run: |
-          ./tool/acceptance_test_r2c_change_driven_reliability_guardrails.ps1
+          ./tool/quality_test_windows_powershell_compatibility.ps1
           ./tool/release_test_journal_broker_installer_guardrails.ps1
 
       - name: Run daily component

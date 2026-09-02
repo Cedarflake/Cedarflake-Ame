@@ -3678,10 +3678,13 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   validator rejects a mismatched or terminal baseline owner. Hosted PowerShell 7 separately exposed
   that the case-insensitive `$IsWindows` parameter collided with its automatic read-only platform
   variable. R2c-R and broker probes now use `IsWindowsPlatform`, assert the exact false-platform
-  result, retain the digest-locked destructive-fixture audit, and run in CI under both Windows
-  PowerShell 5.1 and PowerShell 7. Repository lint passes, including the 19-case R2c-R guardrail,
-  broker installer guardrail, warnings-denied Clippy, and Dart analysis. Eighteen focused owner-
-  affinity regressions pass. The complete serial evidence has 954 passing Rust library tests with
+  result, and retain the digest-locked destructive-fixture audit. A first hosted dual-shell attempt
+  correctly failed closed when Windows PowerShell 5.1 left compiler output in the held R2c-R
+  `Add-Type` bootstrap. CI therefore runs a compiler-free exact platform-binding probe under Windows
+  PowerShell 5.1 and keeps the complete R2c-R and broker guardrails in the PowerShell 7 Daily job;
+  no cleanup or source-audit rule was broadened. Repository lint passes, including the 19-case
+  R2c-R guardrail, broker installer guardrail, warnings-denied Clippy, and Dart analysis. Eighteen
+  focused owner-affinity regressions pass. The complete serial evidence has 954 passing Rust tests with
   17 expected ignores, broker integration 3/3, all Flutter tests, Windows scan 2/2, Windows native
   accessibility 2/2, bridge/whitespace checks, and a current Debug application. Two post-guard
   disposable-directory rename/restore fixtures each pass 200 repeated cycles without relaxing the
