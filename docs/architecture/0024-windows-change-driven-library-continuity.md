@@ -2316,6 +2316,19 @@ match their captured state before returning. The runner continues to treat even 
 name as caller input, so this correction changes environment ownership rather than weakening the
 production refusal policy.
 
+That environment correction allowed the hosted Static lane to pass the complete 19-case R2c-R
+guardrail and truthfully report the Windows Server host as rejected. The next failure was therefore
+outside R2c-R: the installed-broker guardrail used the .NET Framework-only nine-argument secure
+`NamedPipeServerStream` constructor under PowerShell 7/.NET 9. The acceptance adapter now makes the
+runtime boundary explicit. Windows PowerShell 5.1 uses that security-bearing constructor;
+PowerShell 7 uses `NamedPipeServerStreamAcl.Create` with the same one-instance, asynchronous,
+non-inheritable, buffer, and `PipeSecurity` arguments. ACL reading likewise selects the Framework
+instance API or `PipesAclExtensions.GetAccessControl`. No unsecured construction or catch-and-
+downgrade path exists. The guardrail rejects inherited, duplicate, deny, unknown-SID, or imprecise-
+rights rules and requires exactly SYSTEM/Administrators `FullControl` plus current-user
+`ReadWrite|Synchronize`. Hosted CI executes the same broker guardrail once under Windows PowerShell
+5.1 and again in the PowerShell 7 Static Daily component, preserving both runtime contracts.
+
 Red regressions first reproduced the exact v23, direct-v24, newer-epoch, terminalization,
 superseded-spool reopen, and polluted-current-schema failures. The complete migration module then
 passes 73 tests and the metadata-inventory application module passes 37 tests. The new controls

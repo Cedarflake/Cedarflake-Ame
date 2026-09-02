@@ -470,6 +470,24 @@ function New-AmeBrokerLimitedResultServer {
     )) {
         $security.AddAccessRule($rule)
     }
+    $aclFactoryType = [System.IO.Pipes.PipeSecurity].Assembly.GetType(
+        "System.IO.Pipes.NamedPipeServerStreamAcl",
+        $false
+    )
+    if ($null -ne $aclFactoryType) {
+        return $aclFactoryType::Create(
+            $PipeName,
+            [System.IO.Pipes.PipeDirection]::InOut,
+            1,
+            [System.IO.Pipes.PipeTransmissionMode]::Byte,
+            [System.IO.Pipes.PipeOptions]::Asynchronous,
+            4096,
+            65536,
+            $security,
+            [System.IO.HandleInheritability]::None,
+            [System.IO.Pipes.PipeAccessRights]0
+        )
+    }
     return [System.IO.Pipes.NamedPipeServerStream]::new(
         $PipeName,
         [System.IO.Pipes.PipeDirection]::InOut,
@@ -481,6 +499,26 @@ function New-AmeBrokerLimitedResultServer {
         $security,
         [System.IO.HandleInheritability]::None
     )
+}
+
+function Get-AmeBrokerPipeSecurity {
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.IO.Pipes.NamedPipeServerStream]$Pipe
+    )
+
+    $instanceMethod = $Pipe.GetType().GetMethod("GetAccessControl", [Type]::EmptyTypes)
+    if ($null -ne $instanceMethod) {
+        return $instanceMethod.Invoke($Pipe, @())
+    }
+    $aclExtensionsType = [System.IO.Pipes.PipeSecurity].Assembly.GetType(
+        "System.IO.Pipes.PipesAclExtensions",
+        $false
+    )
+    if ($null -eq $aclExtensionsType) {
+        throw "The current runtime cannot read protected named-pipe access control"
+    }
+    return $aclExtensionsType::GetAccessControl($Pipe)
 }
 
 function Read-AmeBrokerPipeExact {

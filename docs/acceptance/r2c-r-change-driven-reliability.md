@@ -391,6 +391,19 @@ The following failures are retained as evidence rather than omitted:
     environment snapshot. The tamper fixture and successful runner both assert post-restore
     nullness and value equality before returning. Empty and absent values remain distinct; the
     runner's default-deny environment policy was not weakened.
+34. The following hosted run passed all 19 R2c-R guardrails with the truthful unsupported-host
+    result, then exposed a separate named-pipe ACL API split in the broker guardrail. Windows
+    PowerShell 5.1/.NET Framework provides the secure nine-argument `NamedPipeServerStream`
+    constructor, while PowerShell 7/.NET 9 provides the equivalent ten-argument
+    `NamedPipeServerStreamAcl.Create` factory. The shared acceptance module now selects only those
+    two security-bearing APIs by runtime capability and fails closed if its selected API fails;
+    there is no unsecured constructor or post-create ACL fallback. DACL inspection similarly uses
+    the Framework instance method or `PipesAclExtensions.GetAccessControl`. The guardrail now proves
+    inheritance is disabled and matches exactly three explicit allow rules: SYSTEM and
+    Administrators receive `FullControl`, while the current user receives
+    `ReadWrite|Synchronize`. The hosted Windows PowerShell compatibility step executes this broker
+    guardrail as well, while the normal PowerShell 7 Static lane retains its existing execution, so
+    every pull request exercises both runtime branches.
 
 Two later read-only PowerShell 5 evidence commands also failed before producing a result: the first
 used a newer two-argument `String.Contains` overload, and the second treated a null pipeline result

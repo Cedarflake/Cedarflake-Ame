@@ -129,6 +129,7 @@ jobs:
         run: |
           ./tool/quality_test_windows_powershell_compatibility.ps1
           ./tool/release_test_journal_broker_installer_guardrails.ps1
+          ./tool/acceptance_test_windows_journal_broker_guardrails.ps1
 
       - name: Run daily component
         shell: pwsh

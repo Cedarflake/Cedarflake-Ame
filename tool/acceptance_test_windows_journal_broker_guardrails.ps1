@@ -410,14 +410,36 @@ $pipeServer = New-AmeBrokerLimitedResultServer `
     -PipeName "CedarflakeAme.Acceptance.$pipeInstance" `
     -UserSid ([Security.Principal.WindowsIdentity]::GetCurrent().User)
 try {
-    $pipeRules = @($pipeServer.GetAccessControl().GetAccessRules(
+    $pipeSecurity = Get-AmeBrokerPipeSecurity -Pipe $pipeServer
+    $pipeRules = @($pipeSecurity.GetAccessRules(
         $true,
         $false,
         [Security.Principal.SecurityIdentifier]
     ))
-    if ($pipeRules.Count -ne 3 -or @($pipeRules | Where-Object {
-        $_.AccessControlType -ne [Security.AccessControl.AccessControlType]::Allow
-    }).Count -ne 0) {
+    if (-not $pipeSecurity.AreAccessRulesProtected) {
+        throw "The protected result pipe DACL still permits inherited access rules"
+    }
+    $expectedPipeRules = @{
+        "S-1-5-18" = [System.IO.Pipes.PipeAccessRights]::FullControl
+        "S-1-5-32-544" = [System.IO.Pipes.PipeAccessRights]::FullControl
+        $([Security.Principal.WindowsIdentity]::GetCurrent().User.Value) = `
+            [System.IO.Pipes.PipeAccessRights]::ReadWrite -bor `
+            [System.IO.Pipes.PipeAccessRights]::Synchronize
+    }
+    $observedPipeRules = @{}
+    foreach ($rule in $pipeRules) {
+        $sid = ([Security.Principal.SecurityIdentifier]$rule.IdentityReference).Value
+        if ($rule.IsInherited -or
+            $rule.AccessControlType -ne [Security.AccessControl.AccessControlType]::Allow -or
+            -not $expectedPipeRules.ContainsKey($sid) -or
+            $rule.PipeAccessRights -ne $expectedPipeRules[$sid] -or
+            $observedPipeRules.ContainsKey($sid)) {
+            throw "The protected result pipe DACL contains an unexpected access rule"
+        }
+        $observedPipeRules[$sid] = $true
+    }
+    if ($pipeRules.Count -ne $expectedPipeRules.Count -or
+        $observedPipeRules.Count -ne $expectedPipeRules.Count) {
         throw "The protected result pipe DACL is not the exact three-principal allowlist"
     }
 } finally {

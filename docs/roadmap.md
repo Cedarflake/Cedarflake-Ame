@@ -3700,7 +3700,14 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   absent before runner creation, and restores originally absent values without conflating absence
   with an empty value. Compiler temporary paths, tamper-fixture Cargo/Rust settings, and the runner's
   complete environment snapshot use the same null-aware restore and exact post-restore assertion.
-  The production default-deny environment policy is unchanged. Repository lint passes,
+  The production default-deny environment policy is unchanged. That correction let the next hosted
+  Static lane pass all 19 R2c-R guardrails before a separate broker guardrail exposed the runtime
+  ACL API split: .NET Framework owns the secure nine-argument `NamedPipeServerStream` constructor,
+  while .NET 9 owns `NamedPipeServerStreamAcl.Create`. The acceptance adapter now selects the exact
+  security-bearing API and ACL reader for each runtime, with no unsecured or catch-and-downgrade
+  fallback. Its guardrail requires a protected DACL containing only SYSTEM and Administrators
+  `FullControl` plus current-user `ReadWrite|Synchronize`, and CI runs it under both Windows
+  PowerShell 5.1 and PowerShell 7. Repository lint passes,
   including the 19-case R2c-R guardrail, broker installer
   guardrail, warnings-denied Clippy, and Dart analysis. Eighteen focused owner-affinity regressions
   pass. The complete serial evidence has 954 passing Rust tests with

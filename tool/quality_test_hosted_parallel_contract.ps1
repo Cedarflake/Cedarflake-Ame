@@ -55,6 +55,12 @@ if ($compatibilityStep.Value.IndexOf(
     ) -ge 0) {
     throw "Hosted Windows PowerShell must not initialize the complete R2c-R compiler guardrail"
 }
+if ($compatibilityStep.Value.IndexOf(
+        "./tool/acceptance_test_windows_journal_broker_guardrails.ps1",
+        [StringComparison]::Ordinal
+    ) -lt 0) {
+    throw "Hosted Windows PowerShell must exercise the .NET Framework secure-pipe fallback"
+}
 
 $lintPath = Join-Path $PSScriptRoot "quality_lint.ps1"
 $lintSource = Get-Content -LiteralPath $lintPath -Raw -Encoding UTF8

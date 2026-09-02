@@ -717,6 +717,10 @@ then restores the original workspace descriptor in `finally`.
 `./tool/acceptance_test_windows_journal_broker_guardrails.ps1` exercises `-ValidationOnly` without
 invoking Task Scheduler or SCM mutation. Without an externally pre-signed protected bundle,
 production admission remains unexecuted and the guardrail is the only permitted local path.
+The guardrail runs under both hosted Windows PowerShell 5.1 and PowerShell 7. It proves the
+runtime-specific secure pipe constructor or ACL factory and ACL reader yield one protected DACL
+with exactly SYSTEM/Administrators `FullControl` and current-user `ReadWrite|Synchronize`; it never
+falls back to an unsecured pipe or repairs access control after creation.
 
 The deterministic prerequisite matrix proves that a portable production identity returns explicit
 `LiveOnly` before constructing or connecting the broker factory, while the fixed installed identity
