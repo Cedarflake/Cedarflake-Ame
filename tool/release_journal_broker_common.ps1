@@ -1956,7 +1956,7 @@ function Complete-AmeBrokerUninstallTransaction {
 function Assert-AmeBrokerPlatformFacts {
     param(
         [Parameter(Mandatory = $true)]
-        [bool]$IsWindows,
+        [bool]$IsWindowsPlatform,
         [Parameter(Mandatory = $true)]
         [bool]$Is64BitOperatingSystem,
         [Parameter(Mandatory = $true)]
@@ -1967,7 +1967,7 @@ function Assert-AmeBrokerPlatformFacts {
         [int]$ProductType
     )
 
-    if (-not $IsWindows -or -not $Is64BitOperatingSystem -or -not $Is64BitProcess) {
+    if (-not $IsWindowsPlatform -or -not $Is64BitOperatingSystem -or -not $Is64BitProcess) {
         throw "The journal broker supports only Windows 11 x64"
     }
     if ($BuildNumber -lt 22000 -or $ProductType -ne 1) {
@@ -1976,12 +1976,12 @@ function Assert-AmeBrokerPlatformFacts {
 }
 
 function Assert-AmeBrokerPlatform {
-    $isWindows = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
+    $isWindowsPlatform = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
         [System.Runtime.InteropServices.OSPlatform]::Windows
     )
     $operatingSystem = Get-CimInstance -ClassName Win32_OperatingSystem
     Assert-AmeBrokerPlatformFacts `
-        -IsWindows $isWindows `
+        -IsWindowsPlatform $isWindowsPlatform `
         -Is64BitOperatingSystem ([Environment]::Is64BitOperatingSystem) `
         -Is64BitProcess ([Environment]::Is64BitProcess) `
         -BuildNumber ([int]$operatingSystem.BuildNumber) `

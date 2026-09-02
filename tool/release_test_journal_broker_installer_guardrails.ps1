@@ -7,13 +7,19 @@ function Assert-Rejected {
         [Parameter(Mandatory = $true)]
         [scriptblock]$Action,
         [Parameter(Mandatory = $true)]
-        [string]$Message
+        [string]$Message,
+        [AllowNull()]
+        [string]$Expected = $null
     )
 
     $rejected = $false
     try {
         & $Action
     } catch {
+        if ($null -ne $Expected -and
+            $_.Exception.Message.IndexOf($Expected, [StringComparison]::Ordinal) -lt 0) {
+            throw "Expected broker guardrail rejection to contain: $Expected"
+        }
         $rejected = $true
     }
     if (-not $rejected) {
@@ -22,7 +28,7 @@ function Assert-Rejected {
 }
 
 Assert-AmeBrokerPlatformFacts `
-    -IsWindows $true `
+    -IsWindowsPlatform $true `
     -Is64BitOperatingSystem $true `
     -Is64BitProcess $true `
     -BuildNumber 22621 `
@@ -30,7 +36,18 @@ Assert-AmeBrokerPlatformFacts `
 Assert-Rejected `
     -Action {
         Assert-AmeBrokerPlatformFacts `
-            -IsWindows $true `
+            -IsWindowsPlatform $false `
+            -Is64BitOperatingSystem $true `
+            -Is64BitProcess $true `
+            -BuildNumber 22621 `
+            -ProductType 1
+    } `
+    -Message "The broker platform guard accepted a non-Windows platform" `
+    -Expected "The journal broker supports only Windows 11 x64"
+Assert-Rejected `
+    -Action {
+        Assert-AmeBrokerPlatformFacts `
+            -IsWindowsPlatform $true `
             -Is64BitOperatingSystem $false `
             -Is64BitProcess $true `
             -BuildNumber 22621 `
@@ -40,7 +57,7 @@ Assert-Rejected `
 Assert-Rejected `
     -Action {
         Assert-AmeBrokerPlatformFacts `
-            -IsWindows $true `
+            -IsWindowsPlatform $true `
             -Is64BitOperatingSystem $true `
             -Is64BitProcess $false `
             -BuildNumber 22621 `
@@ -50,7 +67,7 @@ Assert-Rejected `
 Assert-Rejected `
     -Action {
         Assert-AmeBrokerPlatformFacts `
-            -IsWindows $true `
+            -IsWindowsPlatform $true `
             -Is64BitOperatingSystem $true `
             -Is64BitProcess $true `
             -BuildNumber 19045 `
@@ -60,7 +77,7 @@ Assert-Rejected `
 Assert-Rejected `
     -Action {
         Assert-AmeBrokerPlatformFacts `
-            -IsWindows $true `
+            -IsWindowsPlatform $true `
             -Is64BitOperatingSystem $true `
             -Is64BitProcess $true `
             -BuildNumber 26100 `

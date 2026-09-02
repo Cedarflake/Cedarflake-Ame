@@ -47,7 +47,7 @@ $script:AmeR2cRVerifiedProcessBoundaryDigest = "c4702c1005217d99cb2d0558c7de0c34
 $script:AmeR2cRNativeProcessBoundaryDigest = "4e58cf525fd2f628a38bfefb4b1728fbf6e66632b3c03220d67a2249c3e55860"
 $script:AmeR2cRAuditedScriptSnapshotDigest = "165355dcd5dedbf01a73953547f1b71a7f9503ff3b02ed0d8c9eb15e7e54a0cf"
 $script:AmeR2cRNativeDefinitionDigest = "2da77861b8b5fb1a65ab474d8e9f22406fa3c049ec771d88288587bb7e579259"
-$script:AmeR2cRGuardrailMoveSourceDigest = "336af77477dfd5c1cdb019e6769c7b569c2cf9c9f576987d26e16571770ac3f4"
+$script:AmeR2cRGuardrailMoveSourceDigest = "4b82ce54b5a1ffe151ae39158fab9a44b2030ac7d127806a9dabc3142ce9d11f"
 $script:AmeR2cRDeletionAuditBudgetLimits = [ordered]@{
     "source-count" = [uint64]8
     "dot-source-depth" = [uint64]8
@@ -2086,7 +2086,7 @@ function Get-AmeR2cRWindowsVersionEvidence {
 
 function Assert-AmeR2cRExecutionContext {
     param(
-        [Parameter(Mandatory = $true)][bool]$IsWindows,
+        [Parameter(Mandatory = $true)][bool]$IsWindowsPlatform,
         [Parameter(Mandatory = $true)][System.Runtime.InteropServices.Architecture]$OperatingSystemArchitecture,
         [Parameter(Mandatory = $true)][System.Runtime.InteropServices.Architecture]$ProcessArchitecture,
         [Parameter(Mandatory = $true)][int]$BuildNumber,
@@ -2096,7 +2096,7 @@ function Assert-AmeR2cRExecutionContext {
         [Parameter(Mandatory = $true)][uint32]$ProductSku,
         [Parameter(Mandatory = $true)][bool]$IsAdministrator
     )
-    if (-not $IsWindows) { throw "R2c-R change-driven reliability requires Windows" }
+    if (-not $IsWindowsPlatform) { throw "R2c-R change-driven reliability requires Windows" }
     if ($OperatingSystemArchitecture -ne [Runtime.InteropServices.Architecture]::X64 -or $ProcessArchitecture -ne [Runtime.InteropServices.Architecture]::X64) { throw "R2c-R change-driven reliability requires an x64 process on Windows x64" }
     if ($BuildNumber -lt 22000 -or $ApiBuildNumber -lt 22000) { throw "R2c-R change-driven reliability requires Windows 11 build 22000 or later" }
     if ($BuildNumber -ne $ApiBuildNumber) { throw "R2c-R Windows build evidence disagrees between registry and version API" }

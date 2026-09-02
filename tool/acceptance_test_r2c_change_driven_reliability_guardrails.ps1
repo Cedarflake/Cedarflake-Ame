@@ -1131,7 +1131,7 @@ foreach ($leaf in $maliciousLeaves) {
     }
 }
 $validContext = @{
-    IsWindows = $true
+    IsWindowsPlatform = $true
     OperatingSystemArchitecture = [Runtime.InteropServices.Architecture]::X64
     ProcessArchitecture = [Runtime.InteropServices.Architecture]::X64
     BuildNumber = 22621
@@ -1142,7 +1142,7 @@ $validContext = @{
     IsAdministrator = $false
 }
 $executionContextProbes = @(
-    [pscustomobject]@{ Label = "non-windows"; Change = @{ IsWindows = $false }; Expected = "requires Windows" },
+    [pscustomobject]@{ Label = "non-windows"; Change = @{ IsWindowsPlatform = $false }; Expected = "requires Windows" },
     [pscustomobject]@{ Label = "non-x64-windows"; Change = @{ OperatingSystemArchitecture = [Runtime.InteropServices.Architecture]::Arm64 }; Expected = "requires an x64 process" },
     [pscustomobject]@{ Label = "non-x64-process"; Change = @{ ProcessArchitecture = [Runtime.InteropServices.Architecture]::X86 }; Expected = "requires an x64 process" },
     [pscustomobject]@{ Label = "windows-10"; Change = @{ BuildNumber = 19045; ApiBuildNumber = 19045 }; Expected = "requires Windows 11" },

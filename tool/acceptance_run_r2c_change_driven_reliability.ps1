@@ -48,7 +48,7 @@ Initialize-AmeR2cRNativeTypes -RepositoryRoot $repositoryRoot
 $version = Get-AmeR2cRWindowsVersionEvidence
 $isAdministrator = Test-AmeR2cRCurrentProcessIsAdministrator
 Assert-AmeR2cRExecutionContext `
-    -IsWindows ([bool]$version.IsWindows) `
+    -IsWindowsPlatform ([bool]$version.IsWindows) `
     -OperatingSystemArchitecture (
         [Runtime.InteropServices.RuntimeInformation]::OSArchitecture
     ) `
