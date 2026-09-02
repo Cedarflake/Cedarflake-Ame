@@ -3686,7 +3686,15 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   test-fixture deadline that included fresh child `Add-Type` initialization before the child could
   report its blocked descendant. That fixture-only parent budget is now 15 seconds against the same
   30-second block and five-second termination requirement; production deadlines and cleanup are
-  unchanged. Repository lint passes, including the 19-case R2c-R guardrail, broker installer
+  unchanged. The following hosted attempt then proved that negative runner fixtures were treating
+  PowerShell's rendered exception prose as a machine protocol and that a Windows Server 2025 host
+  could never truthfully satisfy an unconditional Windows 11 ValidationOnly success assertion.
+  Expected refusals now emit and flush exact ASCII reason tokens. Supported Windows 11 x64 ordinary-
+  user hosts must still complete the 19/15/4 ValidationOnly report; unsupported hosts must fail the
+  unchanged execution-context check, emit its token, and produce no success report. The summary
+  records the Windows 11 contract separately from the actual host validation outcome; no CI bypass,
+  simulated platform evidence, Cargo entry, or external path was added. Repository lint passes,
+  including the 19-case R2c-R guardrail, broker installer
   guardrail, warnings-denied Clippy, and Dart analysis. Eighteen focused owner-affinity regressions
   pass. The complete serial evidence has 954 passing Rust tests with
   17 expected ignores, broker integration 3/3, all Flutter tests, Windows scan 2/2, Windows native

@@ -368,6 +368,17 @@ The following failures are retained as evidence rather than omitted:
     passed inside a fresh identity-held root, and the next ordinary-user 19-case runner passed and
     removed its root. The failed run's unknown root remains deliberately retained because its child
     identity tokens were not captured; no path cleanup was used as a fallback.
+32. Hosted PowerShell 7 exposed that the guardrail parsed human-formatted `throw` text as a machine
+    protocol. The negative runner process exited nonzero without timing out, but its rendered error
+    did not retain one contiguous expected phrase. The runner now writes and flushes one stable ASCII
+    reason token before each expected caller-path, environment, workspace-mode, or execution-context
+    refusal, while retaining the original exception. The guardrail requires exactly one matching
+    token and reports exit, timeout, and captured lines on mismatch. The same run exposed a second
+    contract error: Windows Server 2025 cannot truthfully complete a runner that requires a Windows
+    11 client workstation and ordinary-user token. A supported workstation must still complete the
+    exact 19/15/4 ValidationOnly path; an unsupported host must instead produce the execution-context
+    token, exit nonzero, and produce no success report. No CI variable, simulated client evidence,
+    platform bypass, Cargo execution, external root, or source-library access was introduced.
 
 Two later read-only PowerShell 5 evidence commands also failed before producing a result: the first
 used a newer two-argument `String.Contains` overload, and the second treated a null pipeline result
@@ -387,7 +398,12 @@ entered for:
   build mismatch, non-x64 Windows, non-x64 process, or administrator execution contexts;
 - a zero-test or filtered-only Rust result.
 
-The valid path additionally proves the exact 19/15/4 matrix and attributed functions. A fresh child
+The synthetic platform probes always prove the exact Windows 11 client contract. On a supported
+Windows 11 x64 ordinary-user host, the child additionally proves the exact 19/15/4 ValidationOnly
+success report and attributed functions. On another Windows host, the same child must fail before
+fixture creation with exactly one stable execution-context reason token and no success report. The
+guardrail summary therefore reports `platform_contract=windows11-x64` and an honest
+`host_validation=passed|rejected`; rejection is not presented as Windows 11 acceptance. A fresh child
 proves common-module load performs no compilation, hostile temporary sentinels receive zero writes,
 active bootstrap replacement is blocked, a pre-created junction is rejected, forced compiler failure
 leaves zero safely deletable residue, and sentinels remain unchanged. The production KnownFolder
@@ -406,8 +422,8 @@ ASCII/hex owned-leaf contract rejects NT path, ADS, arbitrary suffix, and upperc
 The exact report-binding
 tamper Rust test actually runs and produces one pass; a blocked owned child tree is terminated while
 an unrelated process survives, and its timeout fixture is removed. It reports internal disposable
-roots, refusal of external source paths, native Windows 11 workstation evidence, and ordinary-user
-execution without accessing a real library or external sentinel root.
+roots, refusal of external source paths, and the strict native Windows 11 workstation contract
+without accessing a real library or external sentinel root.
 
 ## Final local verification
 

@@ -2289,6 +2289,20 @@ within five seconds after the owned Job Object is stopped. Production process de
 wrapper's 300-second default, cleanup behavior, and source audit are unchanged. The whole-file
 guardrail digest was relocked after this exact reviewed edit.
 
+The following hosted run reached the runner-boundary fixtures and exposed two more test-contract
+defects. First, a negative subprocess was nonzero and not timed out, but the guardrail searched
+PowerShell's human-formatted exception stream for one contiguous phrase. Expected runner refusals
+now write and flush one exact ASCII reason token before retaining the original exception; the
+guardrail requires exactly one token and includes exit, timeout, and captured-line evidence on a
+mismatch. Second, the guardrail unconditionally required its ValidationOnly child to succeed and
+claim `platform=windows11-x64`, even on the hosted Windows Server 2025 image that the unchanged
+production execution-context policy must reject. The guardrail now evaluates the same real host
+evidence: supported Windows 11 x64 ordinary-user hosts must produce the complete 19/15/4 validation
+report, while unsupported hosts must exit nonzero with the execution-context token and no success
+report. Its summary separates `platform_contract=windows11-x64` from the honest
+`host_validation=passed|rejected` result. There is no CI-variable bypass, simulated client evidence,
+Cargo entry, external path, or relaxation of the production platform and privilege policy.
+
 Red regressions first reproduced the exact v23, direct-v24, newer-epoch, terminalization,
 superseded-spool reopen, and polluted-current-schema failures. The complete migration module then
 passes 73 tests and the metadata-inventory application module passes 37 tests. The new controls

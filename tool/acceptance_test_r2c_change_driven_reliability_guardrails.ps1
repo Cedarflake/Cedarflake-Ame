@@ -1141,6 +1141,27 @@ $validContext = @{
     ProductSku = [uint32]48
     IsAdministrator = $false
 }
+$currentVersion = Get-AmeR2cRWindowsVersionEvidence
+$isCurrentAdministrator = Test-AmeR2cRCurrentProcessIsAdministrator
+$isCurrentExecutionContextSupported = $true
+try {
+    Assert-AmeR2cRExecutionContext `
+        -IsWindowsPlatform ([bool]$currentVersion.IsWindows) `
+        -OperatingSystemArchitecture (
+            [Runtime.InteropServices.RuntimeInformation]::OSArchitecture
+        ) `
+        -ProcessArchitecture (
+            [Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture
+        ) `
+        -BuildNumber ([int]$currentVersion.BuildNumber) `
+        -ApiBuildNumber ([int]$currentVersion.ApiBuildNumber) `
+        -InstallationType ([string]$currentVersion.InstallationType) `
+        -ProductType ([string]$currentVersion.ProductType) `
+        -ProductSku ([uint32]$currentVersion.ProductSku) `
+        -IsAdministrator $isCurrentAdministrator
+} catch {
+    $isCurrentExecutionContextSupported = $false
+}
 $executionContextProbes = @(
     [pscustomobject]@{ Label = "non-windows"; Change = @{ IsWindowsPlatform = $false }; Expected = "requires Windows" },
     [pscustomobject]@{ Label = "non-x64-windows"; Change = @{ OperatingSystemArchitecture = [Runtime.InteropServices.Architecture]::Arm64 }; Expected = "requires an x64 process" },
@@ -1634,9 +1655,22 @@ try {
     if ($invalidStorage.TimedOut -or $invalidStorage.ExitCode -eq 0) {
         throw "R2c-R unexpectedly admitted workspace guardrail storage to a full run"
     }
-    Assert-Contains `
-        ($invalidStorage.Lines | Out-String) `
-        "available only to ValidationOnly"
+    $invalidStorageTokens = @(
+        $invalidStorage.Lines |
+            Where-Object {
+                $_ -ceq (
+                    "AME_R2C_R_REJECTION " +
+                    "reason=workspace-requires-validation-only"
+                )
+            }
+    )
+    if ($invalidStorageTokens.Count -ne 1) {
+        throw (
+            "R2c-R workspace rejection did not report one stable reason token; " +
+            "exit=$($invalidStorage.ExitCode) timeout=$($invalidStorage.TimedOut) " +
+            "lines=$($invalidStorage.Lines -join ' | ')"
+        )
+    }
     foreach ($parameter in @("SourceRoot", "LocalRoot", "CloudRoot", "SourceCatalogPath")) {
         $invalidAlias = Invoke-R2cRGuardrailRunnerProcess `
             -RunnerPath $runner `
@@ -1648,9 +1682,19 @@ try {
         if ($invalidAlias.TimedOut -or $invalidAlias.ExitCode -eq 0) {
             throw "R2c-R unexpectedly accepted the caller-supplied $parameter"
         }
-        Assert-Contains `
-            ($invalidAlias.Lines | Out-String) `
-            "does not accept caller-supplied source roots"
+        $invalidAliasTokens = @(
+            $invalidAlias.Lines |
+                Where-Object {
+                    $_ -ceq "AME_R2C_R_REJECTION reason=caller-supplied-source"
+                }
+        )
+        if ($invalidAliasTokens.Count -ne 1) {
+            throw (
+                "R2c-R $parameter rejection did not report one stable reason token; " +
+                "exit=$($invalidAlias.ExitCode) timeout=$($invalidAlias.TimedOut) " +
+                "lines=$($invalidAlias.Lines -join ' | ')"
+            )
+        }
     }
     foreach ($name in $environmentNames) {
         [Environment]::SetEnvironmentVariable($name, "C:\external-environment-alias", "Process")
@@ -1663,9 +1707,23 @@ try {
             if ($invalidEnvironment.TimedOut -or $invalidEnvironment.ExitCode -eq 0) {
                 throw "R2c-R unexpectedly accepted environment alias $name"
             }
-            Assert-Contains `
-                ($invalidEnvironment.Lines | Out-String) `
-                "refuses caller-supplied environment aliases"
+            $invalidEnvironmentTokens = @(
+                $invalidEnvironment.Lines |
+                    Where-Object {
+                        $_ -ceq (
+                            "AME_R2C_R_REJECTION " +
+                            "reason=caller-supplied-environment"
+                        )
+                    }
+            )
+            if ($invalidEnvironmentTokens.Count -ne 1) {
+                throw (
+                    "R2c-R $name rejection did not report one stable reason token; " +
+                    "exit=$($invalidEnvironment.ExitCode) " +
+                    "timeout=$($invalidEnvironment.TimedOut) " +
+                    "lines=$($invalidEnvironment.Lines -join ' | ')"
+                )
+            }
         }
         finally { [Environment]::SetEnvironmentVariable($name, $null, "Process") }
     }
@@ -1678,16 +1736,46 @@ try {
         -RunnerArguments @("-ValidationOnly", "-GuardrailWorkspaceAnchor") `
         -RepositoryRoot $repositoryRoot `
         -OutputRoot ([string]$runnerFixture.Path)
-    if ($valid.TimedOut -or $valid.ExitCode -ne 0) {
-        throw "R2c-R valid runner process failed"
-    }
     $validText = $valid.Lines | Out-String
-    Assert-Contains $validText "AME_R2C_R_VALIDATION status=passed"
-    Assert-Contains $validText "cases=19 normal=15 ignored=4"
-    Assert-Contains $validText "selectors=exact"
-    Assert-Contains $validText "root_physical=held-handle"
-    Assert-Contains $validText "platform=windows11-x64"
-    Assert-Contains $validText "phase=validation"
+    if ($isCurrentExecutionContextSupported) {
+        if ($valid.TimedOut -or $valid.ExitCode -ne 0) {
+            throw (
+                "R2c-R valid runner process failed; exit=$($valid.ExitCode) " +
+                "timeout=$($valid.TimedOut) lines=$($valid.Lines -join ' | ')"
+            )
+        }
+        Assert-Contains $validText "AME_R2C_R_VALIDATION status=passed"
+        Assert-Contains $validText "cases=19 normal=15 ignored=4"
+        Assert-Contains $validText "selectors=exact"
+        Assert-Contains $validText "root_physical=held-handle"
+        Assert-Contains $validText "platform=windows11-x64"
+        Assert-Contains $validText "phase=validation"
+    } else {
+        if ($valid.TimedOut -or $valid.ExitCode -eq 0) {
+            throw (
+                "R2c-R unsupported host did not reject the validation runner; " +
+                "exit=$($valid.ExitCode) timeout=$($valid.TimedOut) " +
+                "lines=$($valid.Lines -join ' | ')"
+            )
+        }
+        $executionContextTokens = @(
+            $valid.Lines |
+                Where-Object {
+                    $_ -ceq "AME_R2C_R_REJECTION reason=execution-context"
+                }
+        )
+        if ($executionContextTokens.Count -ne 1 -or
+            $validText.IndexOf(
+                "AME_R2C_R_VALIDATION status=passed",
+                [StringComparison]::Ordinal
+            ) -ge 0) {
+            throw (
+                "R2c-R unsupported host rejection was not fail-closed; " +
+                "exit=$($valid.ExitCode) timeout=$($valid.TimedOut) " +
+                "lines=$($valid.Lines -join ' | ')"
+            )
+        }
+    }
     if ([Environment]::GetEnvironmentVariable("TEMP", "Process") -cne "C:\hostile-temp-alias") {
         throw "R2c-R ValidationOnly did not restore the caller TEMP value"
     }
@@ -1940,6 +2028,7 @@ if ($runnerText.IndexOf("Assert-AmeR2cRStrictDescendant", [StringComparison]::Or
     throw "R2c-R runner must prove its root relationship by held identity, not path casing"
 }
 
+$hostValidation = if ($isCurrentExecutionContextSupported) { "passed" } else { "rejected" }
 Write-Output (
     "AME_R2C_R_GUARDRAILS status=passed cases=19 " +
     "bootstrap=reflection-emit-held-active-race compiler_failure=fail-closed " +
@@ -1947,5 +2036,6 @@ Write-Output (
     "tamper=executed-exact " +
     "anchor=workspace-held-handle production_anchor=known-folder-boundary " +
     "junction=internal-rejected script_identity=no-follow-held-revalidated " +
-    "audit_budget=bounded-checked timeout=process-tree platform=windows11-x64"
+    "audit_budget=bounded-checked timeout=process-tree " +
+    "platform_contract=windows11-x64 host_validation=$hostValidation"
 )

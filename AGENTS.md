@@ -502,8 +502,11 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   retention, post-open volume/file-ID source deduplication, immediate pre-transfer revalidation for
   every file source, immediate pre-initialization native handle ownership, and the macro- and module-
   topology-closed exact item/call-closure Rust availability source contract without running the manual
-  reliability scenarios or accessing a real library. The lint and Daily paths run only this
-  lightweight guardrail, not the R2c-R acceptance runner.
+  reliability scenarios or accessing a real library. Expected runner refusals use flushed stable
+  reason tokens rather than PowerShell's formatted exception text. On a supported Windows 11 x64
+  ordinary-user host, the guardrail requires the exact ValidationOnly success report; on another
+  Windows host, it requires the unchanged production execution-context gate to reject that report.
+  The lint and Daily paths run only this lightweight guardrail, not the R2c-R acceptance runner.
 - `./tool/release_verify_windows.ps1` is the immutable signed Windows bundle and release-bridge
   gate. It also proves that a packaged process rejects a same-user duplicate before runtime
   initialization and that a replacement starts after the original process exits. Run it when

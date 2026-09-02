@@ -19,6 +19,10 @@ $ErrorActionPreference = "Stop"
 $forbiddenParameters = @("SourceRoot", "LocalRoot", "CloudRoot", "SourceCatalogPath")
 foreach ($name in $forbiddenParameters) {
     if ($PSBoundParameters.ContainsKey($name)) {
+        [Console]::Out.WriteLine(
+            "AME_R2C_R_REJECTION reason=caller-supplied-source"
+        )
+        [Console]::Out.Flush()
         throw (
             "R2c-R local reliability does not accept caller-supplied source roots, " +
             "catalogs, or external path aliases"
@@ -35,32 +39,48 @@ $forbiddenEnvironment = @(
     }
 )
 if ($forbiddenEnvironment.Count -gt 0) {
+    [Console]::Out.WriteLine(
+        "AME_R2C_R_REJECTION reason=caller-supplied-environment"
+    )
+    [Console]::Out.Flush()
     throw (
         "R2c-R local reliability refuses caller-supplied environment aliases: " +
         ($forbiddenEnvironment -join ", ")
     )
 }
 if ($GuardrailWorkspaceAnchor -and -not $ValidationOnly) {
+    [Console]::Out.WriteLine(
+        "AME_R2C_R_REJECTION reason=workspace-requires-validation-only"
+    )
+    [Console]::Out.Flush()
     throw "R2c-R workspace guardrail storage is available only to ValidationOnly"
 }
 $repositoryRoot = Get-AmeRepositoryRoot
 Initialize-AmeR2cRNativeTypes -RepositoryRoot $repositoryRoot
 $version = Get-AmeR2cRWindowsVersionEvidence
 $isAdministrator = Test-AmeR2cRCurrentProcessIsAdministrator
-Assert-AmeR2cRExecutionContext `
-    -IsWindowsPlatform ([bool]$version.IsWindows) `
-    -OperatingSystemArchitecture (
-        [Runtime.InteropServices.RuntimeInformation]::OSArchitecture
-    ) `
-    -ProcessArchitecture (
-        [Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture
-    ) `
-    -BuildNumber ([int]$version.BuildNumber) `
-    -ApiBuildNumber ([int]$version.ApiBuildNumber) `
-    -InstallationType ([string]$version.InstallationType) `
-    -ProductType ([string]$version.ProductType) `
-    -ProductSku ([uint32]$version.ProductSku) `
-    -IsAdministrator $isAdministrator
+try {
+    Assert-AmeR2cRExecutionContext `
+        -IsWindowsPlatform ([bool]$version.IsWindows) `
+        -OperatingSystemArchitecture (
+            [Runtime.InteropServices.RuntimeInformation]::OSArchitecture
+        ) `
+        -ProcessArchitecture (
+            [Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture
+        ) `
+        -BuildNumber ([int]$version.BuildNumber) `
+        -ApiBuildNumber ([int]$version.ApiBuildNumber) `
+        -InstallationType ([string]$version.InstallationType) `
+        -ProductType ([string]$version.ProductType) `
+        -ProductSku ([uint32]$version.ProductSku) `
+        -IsAdministrator $isAdministrator
+} catch {
+    [Console]::Out.WriteLine(
+        "AME_R2C_R_REJECTION reason=execution-context"
+    )
+    [Console]::Out.Flush()
+    throw
+}
 
 Assert-AmeR2cRCaseMatrix -RepositoryRoot $repositoryRoot
 $cargo = (Get-AmeToolchain).Cargo
