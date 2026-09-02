@@ -47,7 +47,7 @@ $script:AmeR2cRVerifiedProcessBoundaryDigest = "c4702c1005217d99cb2d0558c7de0c34
 $script:AmeR2cRNativeProcessBoundaryDigest = "4e58cf525fd2f628a38bfefb4b1728fbf6e66632b3c03220d67a2249c3e55860"
 $script:AmeR2cRAuditedScriptSnapshotDigest = "165355dcd5dedbf01a73953547f1b71a7f9503ff3b02ed0d8c9eb15e7e54a0cf"
 $script:AmeR2cRNativeDefinitionDigest = "2da77861b8b5fb1a65ab474d8e9f22406fa3c049ec771d88288587bb7e579259"
-$script:AmeR2cRGuardrailMoveSourceDigest = "8fcd38c1bca59fe967223fc4059145e8aed4aabb1342464db96aaec6c3dbf3ce"
+$script:AmeR2cRGuardrailMoveSourceDigest = "4486062d0836e96dcbfd400c2616b60cd8e63897ac8c4f86c3f597d4692d2889"
 $script:AmeR2cRDeletionAuditBudgetLimits = [ordered]@{
     "source-count" = [uint64]8
     "dot-source-depth" = [uint64]8
@@ -2027,9 +2027,33 @@ public sealed class AmeR2cRProcessJob : IDisposable
         try {
             if ($environmentCaptured -and $environmentMutated) {
                 try {
-                    [Environment]::SetEnvironmentVariable("TEMP", $previousTemp, "Process")
+                    if ($null -eq $previousTemp) {
+                        [Environment]::SetEnvironmentVariable(
+                            "TEMP",
+                            [Management.Automation.Language.NullString]::Value,
+                            [EnvironmentVariableTarget]::Process
+                        )
+                    } else {
+                        [Environment]::SetEnvironmentVariable(
+                            "TEMP",
+                            $previousTemp,
+                            [EnvironmentVariableTarget]::Process
+                        )
+                    }
                 } finally {
-                    [Environment]::SetEnvironmentVariable("TMP", $previousTmp, "Process")
+                    if ($null -eq $previousTmp) {
+                        [Environment]::SetEnvironmentVariable(
+                            "TMP",
+                            [Management.Automation.Language.NullString]::Value,
+                            [EnvironmentVariableTarget]::Process
+                        )
+                    } else {
+                        [Environment]::SetEnvironmentVariable(
+                            "TMP",
+                            $previousTmp,
+                            [EnvironmentVariableTarget]::Process
+                        )
+                    }
                 }
             }
         } finally {

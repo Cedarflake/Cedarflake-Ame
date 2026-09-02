@@ -2303,6 +2303,19 @@ report. Its summary separates `platform_contract=windows11-x64` from the honest
 `host_validation=passed|rejected` result. There is no CI-variable bypass, simulated client evidence,
 Cargo entry, external path, or relaxation of the production platform and privilege policy.
 
+The next hosted result confirmed the stable token path and identified why it selected the wrong
+reason. PowerShell 7.5 on .NET 9 preserves an empty environment value; binding ordinary `$null` to
+the .NET string parameter therefore left all protected names present as empty strings. Windows
+PowerShell 5.1 on .NET Framework removed them, which had hidden the contract difference locally.
+The guardrail now passes `NullString.Value` when deletion is required, proves all protected runner
+names are actually absent before `CreateProcess`, applies the same deletion after every hostile-
+alias probe, and restores originally absent values with the same real-null representation. Compiler
+`TEMP`/`TMP`, tamper-fixture Cargo/Rust settings, and every runner environment snapshot use the same
+null-aware rule. Both the tamper fixture and a successful runner assert that absence and exact values
+match their captured state before returning. The runner continues to treat even an empty protected
+name as caller input, so this correction changes environment ownership rather than weakening the
+production refusal policy.
+
 Red regressions first reproduced the exact v23, direct-v24, newer-epoch, terminalization,
 superseded-spool reopen, and polluted-current-schema failures. The complete migration module then
 passes 73 tests and the metadata-inventory application module passes 37 tests. The new controls

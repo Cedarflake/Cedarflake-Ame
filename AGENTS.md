@@ -506,6 +506,8 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   reason tokens rather than PowerShell's formatted exception text. On a supported Windows 11 x64
   ordinary-user host, the guardrail requires the exact ValidationOnly success report; on another
   Windows host, it requires the unchanged production execution-context gate to reject that report.
+  Cross-version environment deletion uses PowerShell `NullString.Value` and proves every protected
+  name is absent before creating a runner process; an empty value is not treated as deletion.
   The lint and Daily paths run only this lightweight guardrail, not the R2c-R acceptance runner.
 - `./tool/release_verify_windows.ps1` is the immutable signed Windows bundle and release-bridge
   gate. It also proves that a packaged process rejects a same-user duplicate before runtime

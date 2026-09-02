@@ -74,6 +74,7 @@ function Assert-R2cRVerifiedPayloadRejected {
 $repositoryRoot = Get-AmeRepositoryRoot
 $commonPath = Join-Path $PSScriptRoot "acceptance_r2c_change_driven_reliability_common.ps1"
 $toolPath = Join-Path $repositoryRoot "tool"
+$nullEnvironmentValue = [Management.Automation.Language.NullString]::Value
 Assert-AmeR2cRManagedNoReparseAncestors -Path $repositoryRoot
 Initialize-AmeR2cRBootstrapNativeTypes
 $compilerVolumeFaultObserved = $false
@@ -1012,8 +1013,32 @@ try {
         throw "R2c-R fresh bootstrap left a repository-owned temporary directory"
     }
 } finally {
-    [Environment]::SetEnvironmentVariable("TEMP", $freshPreviousTemp, "Process")
-    [Environment]::SetEnvironmentVariable("TMP", $freshPreviousTmp, "Process")
+    if ($null -eq $freshPreviousTemp) {
+        [Environment]::SetEnvironmentVariable(
+            "TEMP",
+            $nullEnvironmentValue,
+            [EnvironmentVariableTarget]::Process
+        )
+    } else {
+        [Environment]::SetEnvironmentVariable(
+            "TEMP",
+            $freshPreviousTemp,
+            [EnvironmentVariableTarget]::Process
+        )
+    }
+    if ($null -eq $freshPreviousTmp) {
+        [Environment]::SetEnvironmentVariable(
+            "TMP",
+            $nullEnvironmentValue,
+            [EnvironmentVariableTarget]::Process
+        )
+    } else {
+        [Environment]::SetEnvironmentVariable(
+            "TMP",
+            $freshPreviousTmp,
+            [EnvironmentVariableTarget]::Process
+        )
+    }
     if ($null -ne $activeBootstrap) {
         try {
             Remove-AmeR2cRCompilerBootstrap -Bootstrap $activeBootstrap
@@ -1629,9 +1654,41 @@ try {
         -ExitCode $tamperResult.ExitCode
 } finally {
     if ($null -ne $tamperToolLock) { Exit-AmeRepositoryToolLock $tamperToolLock }
-    [Environment]::SetEnvironmentVariable("CARGO_BUILD_JOBS", $previousCargoJobs, "Process")
-    [Environment]::SetEnvironmentVariable("RUST_TEST_THREADS", $previousRustThreads, "Process")
+    if ($null -eq $previousCargoJobs) {
+        [Environment]::SetEnvironmentVariable(
+            "CARGO_BUILD_JOBS",
+            $nullEnvironmentValue,
+            [EnvironmentVariableTarget]::Process
+        )
+    } else {
+        [Environment]::SetEnvironmentVariable(
+            "CARGO_BUILD_JOBS",
+            $previousCargoJobs,
+            [EnvironmentVariableTarget]::Process
+        )
+    }
+    if ($null -eq $previousRustThreads) {
+        [Environment]::SetEnvironmentVariable(
+            "RUST_TEST_THREADS",
+            $nullEnvironmentValue,
+            [EnvironmentVariableTarget]::Process
+        )
+    } else {
+        [Environment]::SetEnvironmentVariable(
+            "RUST_TEST_THREADS",
+            $previousRustThreads,
+            [EnvironmentVariableTarget]::Process
+        )
+    }
     if ($null -ne $tamperFixture) { Remove-AmeR2cRDisposableRoot -Fixture $tamperFixture }
+}
+$restoredCargoJobs = [Environment]::GetEnvironmentVariable("CARGO_BUILD_JOBS", "Process")
+$restoredRustThreads = [Environment]::GetEnvironmentVariable("RUST_TEST_THREADS", "Process")
+if (($null -eq $previousCargoJobs) -ne ($null -eq $restoredCargoJobs) -or
+    ($null -ne $previousCargoJobs -and $previousCargoJobs -cne $restoredCargoJobs) -or
+    ($null -eq $previousRustThreads) -ne ($null -eq $restoredRustThreads) -or
+    ($null -ne $previousRustThreads -and $previousRustThreads -cne $restoredRustThreads)) {
+    throw "R2c-R tamper fixture did not restore the Cargo and Rust process environment"
 }
 
 $runner = Join-Path $PSScriptRoot "acceptance_run_r2c_change_driven_reliability.ps1"
@@ -1641,9 +1698,27 @@ $previousEnvironment = @{}
 $runnerFixture = $null
 foreach ($name in $preservedNames) {
     $previousEnvironment[$name] = [Environment]::GetEnvironmentVariable($name, "Process")
-    [Environment]::SetEnvironmentVariable($name, $null, "Process")
 }
 try {
+    foreach ($name in $preservedNames) {
+        [Environment]::SetEnvironmentVariable(
+            $name,
+            $nullEnvironmentValue,
+            [EnvironmentVariableTarget]::Process
+        )
+    }
+    $unclearedEnvironment = @(
+        $preservedNames |
+            Where-Object {
+                $null -ne [Environment]::GetEnvironmentVariable($_, "Process")
+            }
+    )
+    if ($unclearedEnvironment.Count -ne 0) {
+        throw (
+            "R2c-R guardrail could not delete inherited runner environment values: " +
+            ($unclearedEnvironment -join ", ")
+        )
+    }
     $runnerFixture = New-AmeR2cRGuardrailDisposableRoot `
         -AnchorPath $toolPath `
         -Nonce ([Guid]::NewGuid().ToString("N"))
@@ -1725,7 +1800,13 @@ try {
                 )
             }
         }
-        finally { [Environment]::SetEnvironmentVariable($name, $null, "Process") }
+        finally {
+            [Environment]::SetEnvironmentVariable(
+                $name,
+                $nullEnvironmentValue,
+                [EnvironmentVariableTarget]::Process
+            )
+        }
     }
 
     [Environment]::SetEnvironmentVariable("PUBLIC", "C:\hostile-public-alias", "Process")
@@ -1784,7 +1865,19 @@ try {
     }
 } finally {
     foreach ($name in $preservedNames) {
-        [Environment]::SetEnvironmentVariable($name, $previousEnvironment[$name], "Process")
+        if ($null -eq $previousEnvironment[$name]) {
+            [Environment]::SetEnvironmentVariable(
+                $name,
+                $nullEnvironmentValue,
+                [EnvironmentVariableTarget]::Process
+            )
+        } else {
+            [Environment]::SetEnvironmentVariable(
+                $name,
+                $previousEnvironment[$name],
+                [EnvironmentVariableTarget]::Process
+            )
+        }
     }
     if ($null -ne $runnerFixture) {
         Remove-AmeR2cRDisposableRoot -Fixture $runnerFixture

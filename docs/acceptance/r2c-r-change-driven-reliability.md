@@ -379,6 +379,18 @@ The following failures are retained as evidence rather than omitted:
     exact 19/15/4 ValidationOnly path; an unsupported host must instead produce the execution-context
     token, exit nonzero, and produce no success report. No CI variable, simulated client evidence,
     platform bypass, Cargo execution, external root, or source-library access was introduced.
+33. The next hosted run proved the stable token worked and exposed a PowerShell 7.5/.NET 9
+    environment-semantic difference. Passing ordinary `$null` to the .NET string overload left each
+    protected name present with an empty value, whereas the Windows PowerShell 5.1/.NET Framework
+    workstation had removed it. The first child therefore correctly rejected all inherited empty
+    R2c-R aliases before reaching the workspace-mode check. The guardrail now uses PowerShell's
+    `NullString.Value` specifically to pass a real null to .NET, verifies every protected runner name
+    is absent before process creation, clears each hostile alias the same way, and restores an
+    originally absent value as a real null. The same null-aware restoration covers compiler
+    `TEMP`/`TMP`, the exact tamper fixture's `CARGO_BUILD_JOBS`/`RUST_TEST_THREADS`, and every runner
+    environment snapshot. The tamper fixture and successful runner both assert post-restore
+    nullness and value equality before returning. Empty and absent values remain distinct; the
+    runner's default-deny environment policy was not weakened.
 
 Two later read-only PowerShell 5 evidence commands also failed before producing a result: the first
 used a newer two-argument `String.Contains` overload, and the second treated a null pipeline result

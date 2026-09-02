@@ -211,14 +211,30 @@ try {
         Exit-AmeRepositoryToolLock $toolLock
     }
     foreach ($name in $environmentNames) {
-        [Environment]::SetEnvironmentVariable(
-            $name,
-            $previousEnvironment[$name],
-            "Process"
-        )
+        if ($null -eq $previousEnvironment[$name]) {
+            [Environment]::SetEnvironmentVariable(
+                $name,
+                [Management.Automation.Language.NullString]::Value,
+                [EnvironmentVariableTarget]::Process
+            )
+        } else {
+            [Environment]::SetEnvironmentVariable(
+                $name,
+                $previousEnvironment[$name],
+                [EnvironmentVariableTarget]::Process
+            )
+        }
     }
     if ($null -ne $fixture) {
         Remove-AmeR2cRDisposableRoot -Fixture $fixture
+    }
+}
+foreach ($name in $environmentNames) {
+    $restoredEnvironment = [Environment]::GetEnvironmentVariable($name, "Process")
+    if (($null -eq $previousEnvironment[$name]) -ne ($null -eq $restoredEnvironment) -or
+        ($null -ne $previousEnvironment[$name] -and
+            $previousEnvironment[$name] -cne $restoredEnvironment)) {
+        throw "R2c-R runner did not restore process environment value $name"
     }
 }
 

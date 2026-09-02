@@ -3693,7 +3693,14 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   user hosts must still complete the 19/15/4 ValidationOnly report; unsupported hosts must fail the
   unchanged execution-context check, emit its token, and produce no success report. The summary
   records the Windows 11 contract separately from the actual host validation outcome; no CI bypass,
-  simulated platform evidence, Cargo entry, or external path was added. Repository lint passes,
+  simulated platform evidence, Cargo entry, or external path was added. The next hosted attempt
+  confirmed those tokens and exposed that PowerShell 7.5/.NET 9 retained protected names as empty
+  strings when ordinary `$null` was bound to the .NET string overload; Windows PowerShell 5.1 had
+  removed them. The guardrail now uses `NullString.Value` for real deletion, verifies every name is
+  absent before runner creation, and restores originally absent values without conflating absence
+  with an empty value. Compiler temporary paths, tamper-fixture Cargo/Rust settings, and the runner's
+  complete environment snapshot use the same null-aware restore and exact post-restore assertion.
+  The production default-deny environment policy is unchanged. Repository lint passes,
   including the 19-case R2c-R guardrail, broker installer
   guardrail, warnings-denied Clippy, and Dart analysis. Eighteen focused owner-affinity regressions
   pass. The complete serial evidence has 954 passing Rust tests with
