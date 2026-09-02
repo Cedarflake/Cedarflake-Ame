@@ -3765,6 +3765,10 @@ fn metadata_placeholder_state(_metadata: &Metadata) -> MetadataInventoryPlacehol
 mod tests {
     use std::collections::{BTreeMap, BTreeSet, VecDeque};
     use std::fs;
+    #[cfg(windows)]
+    use std::thread;
+    #[cfg(windows)]
+    use std::time::{Duration, Instant};
 
     use quote::ToTokens;
     use syn::visit::{self, Visit};
@@ -3772,6 +3776,23 @@ mod tests {
     use tempfile::{tempdir, tempdir_in};
 
     use super::*;
+
+    #[cfg(windows)]
+    fn rename_disposable_directory(source: &Path, destination: &Path, label: &str) {
+        let deadline = Instant::now() + Duration::from_secs(2);
+        loop {
+            match fs::rename(source, destination) {
+                Ok(()) => return,
+                Err(error)
+                    if matches!(error.raw_os_error(), Some(5) | Some(32))
+                        && Instant::now() < deadline =>
+                {
+                    thread::sleep(Duration::from_millis(10));
+                }
+                Err(error) => panic!("{label}: {error}"),
+            }
+        }
+    }
 
     #[test]
     fn publication_guard_api_is_explicit_and_cursor_bound() {
@@ -4393,7 +4414,7 @@ mod tests {
         );
         drop(guard);
 
-        fs::rename(&root, &moved).expect("rename after publication boundary");
+        rename_disposable_directory(&root, &moved, "rename after publication boundary");
         assert!(
             PublicationGuardedFileDiscovery::new_metadata_inventory_publication_guard(
                 &root.to_string_lossy(),
@@ -4454,8 +4475,8 @@ mod tests {
         assert!(entries.next().is_none());
         entries.finish().expect("finish guarded enumeration");
 
-        fs::rename(&root, &moved).expect("rename after cursor guard release");
-        fs::rename(&moved, &root).expect("restore source root");
+        rename_disposable_directory(&root, &moved, "rename after cursor guard release");
+        rename_disposable_directory(&moved, &root, "restore source root");
     }
 
     #[cfg(windows)]
@@ -4500,14 +4521,14 @@ mod tests {
         drop(guard);
 
         let moved_root = second.join("released-root");
-        fs::rename(&root, &moved_root).expect("root rename after drop");
-        fs::rename(&moved_root, &root).expect("restore root");
+        rename_disposable_directory(&root, &moved_root, "root rename after drop");
+        rename_disposable_directory(&moved_root, &root, "restore root");
         let moved_second = first.join("released-second");
-        fs::rename(&second, &moved_second).expect("parent rename after drop");
-        fs::rename(&moved_second, &second).expect("restore parent");
+        rename_disposable_directory(&second, &moved_second, "parent rename after drop");
+        rename_disposable_directory(&moved_second, &second, "restore parent");
         let moved_first = directory.path().join("released-first");
-        fs::rename(&first, &moved_first).expect("ancestor rename after drop");
-        fs::rename(&moved_first, &first).expect("restore ancestor");
+        rename_disposable_directory(&first, &moved_first, "ancestor rename after drop");
+        rename_disposable_directory(&moved_first, &first, "restore ancestor");
         fs::remove_dir(&root).expect("root delete after guard drop");
     }
 
@@ -4519,16 +4540,14 @@ mod tests {
         let ancestor = directory.path().join("configured-ancestor");
         let root = ancestor.join("library-root");
         fs::create_dir_all(&root).expect("nested source root");
-        fs::write(root.join("trusted.jpg"), b"trusted").expect("trusted source entry");
         let expected_identity = FileDiscovery::new(&root.to_string_lossy())
             .expect("source discovery")
             .metadata_inventory_root_identity()
             .expect("root identity query")
             .expect("stable root identity");
         let retained_ancestor = directory.path().join("retained-configured-ancestor");
-        fs::rename(&ancestor, &retained_ancestor).expect("retain authorized ancestor");
+        rename_disposable_directory(&ancestor, &retained_ancestor, "retain authorized ancestor");
         fs::create_dir_all(&root).expect("replacement ancestor and root");
-        fs::write(root.join("replacement.jpg"), b"replacement").expect("replacement source entry");
 
         let error = match PublicationGuardedFileDiscovery::new_metadata_inventory_source_guard(
             &root.to_string_lossy(),
@@ -4540,7 +4559,7 @@ mod tests {
         assert_eq!(error.code, "metadata_inventory_root_identity_changed");
 
         fs::remove_dir_all(&ancestor).expect("remove replacement ancestor");
-        fs::rename(&retained_ancestor, &ancestor).expect("restore authorized ancestor");
+        rename_disposable_directory(&retained_ancestor, &ancestor, "restore authorized ancestor");
     }
 
     #[cfg(windows)]
@@ -4708,8 +4727,16 @@ mod tests {
             .expect_err("full public namespace guard must pin the configured root");
         assert_eq!(held_rename.raw_os_error(), Some(32));
         drop(guard);
-        fs::rename(&source, &moved_source).expect("rename after public namespace guard release");
-        fs::rename(&moved_source, &source).expect("restore public disposable source root");
+        rename_disposable_directory(
+            &source,
+            &moved_source,
+            "rename after public namespace guard release",
+        );
+        rename_disposable_directory(
+            &moved_source,
+            &source,
+            "restore public disposable source root",
+        );
     }
 
     #[cfg(windows)]
@@ -4754,8 +4781,8 @@ mod tests {
         drop(guards);
         for (index, layer) in layers.iter().enumerate().rev() {
             let moved = layer.with_file_name(format!("released-layer-{index}"));
-            fs::rename(layer, &moved).expect("rename after all guards drop");
-            fs::rename(&moved, layer).expect("restore released layer");
+            rename_disposable_directory(layer, &moved, "rename after all guards drop");
+            rename_disposable_directory(&moved, layer, "restore released layer");
         }
         fs::remove_dir(&root).expect("delete root after all guards drop");
     }

@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use rusqlite::{Connection, Transaction, params};
+use rusqlite::{Connection, OptionalExtension, Transaction, params};
 
 #[cfg(test)]
 use crate::domain::LibraryChangeCatchUpQueueBatch;
@@ -15,7 +15,10 @@ use crate::domain::{
 };
 use crate::ports::LibraryChangeQueue;
 
-use super::{SqliteCatalog, database_error, load_catalog_revision, sqlite_integer, sqlite_u32};
+use super::{
+    SqliteCatalog, database_error, load_catalog_revision, sqlite_integer, sqlite_u32,
+    sqlite_unsigned,
+};
 
 mod coalescing;
 mod persistence;
@@ -38,6 +41,199 @@ use persistence::{
 pub(super) use persistence::{activate_root_change_queue, retire_root_change_queue};
 
 pub(super) const PERSISTENT_JOURNAL_CATCH_UP_SOURCE: &str = "persistent_journal_v1";
+
+fn metadata_inventory_recovery_affinity_change_id(
+    connection: &Connection,
+    root_id: &str,
+    root_generation: LibraryRootGeneration,
+) -> Result<Option<i64>, ScanError> {
+    let root_generation = sqlite_integer(root_generation.value(), "root generation")?;
+    let baseline_change_ids = {
+        let mut statement = connection
+            .prepare(
+                "SELECT change_id
+                 FROM library_persistent_journal_baselines
+                 WHERE root_id = ?1 AND root_generation = ?2
+                   AND phase <> 'completed'
+                 ORDER BY change_id",
+            )
+            .map_err(database_error)?;
+        let rows = statement
+            .query_map(params![root_id, root_generation], |row| {
+                row.get::<_, i64>(0)
+            })
+            .map_err(database_error)?;
+        let mut change_ids = Vec::new();
+        for row in rows {
+            change_ids.push(row.map_err(database_error)?);
+        }
+        change_ids
+    };
+    if baseline_change_ids.len() > 1 {
+        return Err(metadata_inventory_recovery_affinity_corrupt());
+    }
+    let baseline_change_id = baseline_change_ids
+        .first()
+        .copied()
+        .map(|change_id| {
+            validate_metadata_inventory_recovery_affinity_owner(
+                connection,
+                root_id,
+                root_generation,
+                change_id,
+                None,
+            )
+        })
+        .transpose()?;
+
+    let active_run_ids = {
+        let mut statement = connection
+            .prepare(
+                "SELECT id
+                 FROM library_metadata_inventory_runs
+                 WHERE root_id = ?1 AND root_generation = ?2
+                   AND status IN ('running', 'comparing')
+                 ORDER BY id",
+            )
+            .map_err(database_error)?;
+        let rows = statement
+            .query_map(params![root_id, root_generation], |row| {
+                row.get::<_, String>(0)
+            })
+            .map_err(database_error)?;
+        let mut run_ids = Vec::new();
+        for row in rows {
+            run_ids.push(row.map_err(database_error)?);
+        }
+        run_ids
+    };
+    if active_run_ids.len() > 1 {
+        return Err(metadata_inventory_recovery_affinity_corrupt());
+    }
+    let active_change_id = active_run_ids
+        .first()
+        .map(|run_id| {
+            let authority_change_ids = {
+                let mut statement = connection
+                    .prepare(
+                        "SELECT change_id
+                         FROM library_recovery_authorities
+                         WHERE run_id = ?1
+                         ORDER BY change_id",
+                    )
+                    .map_err(database_error)?;
+                let rows = statement
+                    .query_map([run_id], |row| row.get::<_, i64>(0))
+                    .map_err(database_error)?;
+                let mut change_ids = Vec::new();
+                for row in rows {
+                    change_ids.push(row.map_err(database_error)?);
+                }
+                change_ids
+            };
+            if authority_change_ids.len() != 1 {
+                return Err(metadata_inventory_recovery_affinity_corrupt());
+            }
+            validate_metadata_inventory_recovery_affinity_owner(
+                connection,
+                root_id,
+                root_generation,
+                authority_change_ids[0],
+                Some(run_id.as_str()),
+            )
+        })
+        .transpose()?;
+
+    if baseline_change_id.is_some()
+        && active_change_id.is_some()
+        && baseline_change_id != active_change_id
+    {
+        return Err(metadata_inventory_recovery_affinity_corrupt());
+    }
+    Ok(baseline_change_id.or(active_change_id))
+}
+
+fn validate_metadata_inventory_recovery_affinity_owner(
+    connection: &Connection,
+    root_id: &str,
+    root_generation: i64,
+    change_id: i64,
+    expected_run_id: Option<&str>,
+) -> Result<i64, ScanError> {
+    sqlite_unsigned(change_id, "metadata inventory affinity change ID")?;
+    let owner = connection
+        .query_row(
+            "SELECT authority.run_id, authority.root_id, authority.root_generation,
+                    authority.retired_unix_ms,
+                    queue.root_id, queue.root_generation, queue.status,
+                    (SELECT COUNT(*) FROM library_change_queue_lanes AS lanes
+                     WHERE lanes.change_id = authority.change_id),
+                    (SELECT COUNT(*) FROM library_change_queue_lanes AS lanes
+                     WHERE lanes.change_id = authority.change_id
+                       AND lanes.lane = 'p2_recovery'),
+                    (SELECT run.status FROM library_metadata_inventory_runs AS run
+                     WHERE run.id = authority.run_id)
+             FROM library_recovery_authorities AS authority
+             LEFT JOIN library_change_queue AS queue ON queue.id = authority.change_id
+             WHERE authority.change_id = ?1",
+            [change_id],
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, i64>(2)?,
+                    row.get::<_, Option<i64>>(3)?,
+                    row.get::<_, Option<String>>(4)?,
+                    row.get::<_, Option<i64>>(5)?,
+                    row.get::<_, Option<String>>(6)?,
+                    row.get::<_, i64>(7)?,
+                    row.get::<_, i64>(8)?,
+                    row.get::<_, Option<String>>(9)?,
+                ))
+            },
+        )
+        .optional()
+        .map_err(database_error)?
+        .ok_or_else(metadata_inventory_recovery_affinity_corrupt)?;
+    let (
+        authority_run_id,
+        authority_root_id,
+        authority_root_generation,
+        retired_unix_ms,
+        queue_root_id,
+        queue_root_generation,
+        queue_status,
+        lane_count,
+        recovery_lane_count,
+        run_status,
+    ) = owner;
+    if expected_run_id.is_some_and(|expected| expected != authority_run_id)
+        || authority_root_id != root_id
+        || authority_root_generation != root_generation
+        || retired_unix_ms.is_some()
+        || queue_root_id.as_deref() != Some(root_id)
+        || queue_root_generation != Some(root_generation)
+        || !matches!(
+            queue_status.as_deref(),
+            Some("pending" | "leased" | "retry_wait")
+        )
+        || lane_count != 1
+        || recovery_lane_count != 1
+        || run_status
+            .as_deref()
+            .is_some_and(|status| !matches!(status, "running" | "comparing"))
+    {
+        return Err(metadata_inventory_recovery_affinity_corrupt());
+    }
+    Ok(change_id)
+}
+
+fn metadata_inventory_recovery_affinity_corrupt() -> ScanError {
+    ScanError::new(
+        "metadata_inventory_recovery_affinity_corrupt",
+        "The catalog cannot prove the exact metadata recovery authority owner",
+    )
+}
 
 pub(super) fn wake_metadata_inventory_capacity_deferrals(
     transaction: &Transaction<'_>,
@@ -1934,6 +2130,11 @@ impl SqliteCatalog {
     ) -> Result<bool, ScanError> {
         validate_policy(policy)?;
         validate_root_id(root_id)?;
+        let affinity_change_id = metadata_inventory_recovery_affinity_change_id(
+            &self.connection,
+            root_id,
+            root_generation,
+        )?;
         self.connection
             .query_row(
                 "SELECT EXISTS(
@@ -1948,6 +2149,7 @@ impl SqliteCatalog {
                      ON window.change_id = authority.change_id
                     AND window.phase <> 'completed'
                    WHERE queue.root_id = ?1 AND queue.root_generation = ?2
+                     AND (?5 IS NULL OR queue.id = ?5)
                      AND lanes.lane = 'p2_recovery'
                      AND authority.retired_unix_ms IS NULL
                      AND authority.run_id <> ''
@@ -1971,6 +2173,7 @@ impl SqliteCatalog {
                     sqlite_integer(root_generation.value(), "root generation")?,
                     i64::from(policy.max_attempts),
                     now_unix_ms,
+                    affinity_change_id,
                 ],
                 |row| row.get::<_, bool>(0),
             )
@@ -2103,6 +2306,16 @@ impl SqliteCatalog {
         validate_policy(policy)?;
         validate_root_id(root_id)?;
         let selection_sql = selection.sql_value();
+        let pretransaction_recovery_affinity_change_id =
+            if matches!(selection, LeaseSelection::RecoveryAuthoritative) {
+                metadata_inventory_recovery_affinity_change_id(
+                    &self.connection,
+                    root_id,
+                    root_generation,
+                )?
+            } else {
+                None
+            };
         let pass_is_needed = self
             .connection
             .query_row(
@@ -2122,10 +2335,11 @@ impl SqliteCatalog {
                              AND queue.intent_kind <> 'freshness_unknown')
                            OR (?5 = 2 AND (queue.scope <> 'path'
                              OR queue.intent_kind = 'freshness_unknown'))
-                           OR (?5 = 6
-                             AND (queue.scope <> 'path'
-                               OR queue.intent_kind = 'freshness_unknown')
-                             AND EXISTS(
+                            OR (?5 = 6
+                              AND (queue.scope <> 'path'
+                                OR queue.intent_kind = 'freshness_unknown')
+                              AND (?6 IS NULL OR queue.id = ?6)
+                              AND EXISTS(
                                SELECT 1
                                FROM library_change_queue_lanes AS lanes
                                JOIN library_recovery_authorities AS authority
@@ -2225,6 +2439,7 @@ impl SqliteCatalog {
                     i64::from(policy.max_attempts),
                     now_unix_ms,
                     selection_sql,
+                    pretransaction_recovery_affinity_change_id,
                 ],
                 |row| row.get::<_, bool>(0),
             )
@@ -2254,6 +2469,16 @@ impl SqliteCatalog {
             selection_sql,
         )?;
         enforce_retry_attempt_limit(&transaction, root_id, root_generation, now_unix_ms, policy)?;
+        let recovery_affinity_change_id =
+            if matches!(selection, LeaseSelection::RecoveryAuthoritative) {
+                metadata_inventory_recovery_affinity_change_id(
+                    &transaction,
+                    root_id,
+                    root_generation,
+                )?
+            } else {
+                None
+            };
         let limit = match selection {
             LeaseSelection::Authoritative
             | LeaseSelection::RecoveryAuthoritative
@@ -2269,9 +2494,10 @@ impl SqliteCatalog {
                 .prepare(
                     "SELECT id
                  FROM library_change_queue
-                 WHERE root_id = ?1 AND root_generation = ?2
-                   AND attempt_count < ?3
-                   AND (
+                  WHERE root_id = ?1 AND root_generation = ?2
+                    AND attempt_count < ?3
+                    AND (?6 <> 6 OR ?7 IS NULL OR id = ?7)
+                    AND (
                      ?6 = 0
                      OR (?6 = 1 AND scope = 'path' AND intent_kind <> 'freshness_unknown')
                      OR (?6 = 2 AND (scope <> 'path' OR intent_kind = 'freshness_unknown'))
@@ -2379,6 +2605,7 @@ impl SqliteCatalog {
                         now_unix_ms,
                         limit,
                         selection_sql,
+                        recovery_affinity_change_id,
                     ],
                     |row| row.get::<_, i64>(0),
                 )

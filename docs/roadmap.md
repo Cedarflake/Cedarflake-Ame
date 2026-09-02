@@ -3227,6 +3227,14 @@ slices to accepted. Each implementation slice receives focused tests, applicable
 and an independent read-only audit before the next slice can claim its foundation. The final R2c-R
 audit covers the complete accumulated range.
 
+Phase 33 is a retained-catalog startup remediation inside that active checkpoint. It must restore
+schema-v23/v24 startup without weakening persistent-journal validation, preserve catalog and
+completed inventory authority, prevent runtime recreation of terminal inventory authority, bind
+recovery-authoritative P2 work to one exact per-root owner without blocking P0/P1 or other roots,
+and keep both supported repository PowerShell hosts fail closed. It must pass the applicable
+complete gates and receive an accumulated independent audit. It does not authorize a source-root
+scan or advance R2c-O/R2c-R acceptance.
+
 R2c-I through R2c-M and their audits remain historical evidence for the superseded ADR 0023 model.
 Do not rewrite their recorded results as if they validated ADR 0024, and do not merge the integration
 branch into `main` or start R3 until the new replacement reaches its own closeout.
@@ -3642,6 +3650,43 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   and contains no executable test seam in six Release artifacts or ten Flutter assets. Retained
   roots, real Cloud Files, SCM, named-pipe/FSCTL, signing, and the final external audit remain open;
   R2c-R remains not accepted and R2c-O remains active.
+- The phase-33 retained-catalog startup slice repairs a pre-recovery-authority lifecycle state
+  without changing schema v30 or weakening fail-closed journal validation. A schema-v23 inventory
+  that was already `superseded` could retain `absence_authority = 1`, so v23-to-v24 validation
+  rejected the catalog and rolled back every startup. The migration now terminalizes interrupted
+  legacy runs and clears authority from every non-completed run before v23 or direct-v24 contract
+  validation, while preserving completed authority, issue evidence, staged entries, roots, assets,
+  locations, and queued work. Runtime terminalization and newer-epoch supersession revoke authority
+  atomically. The first independent audit found that newer-epoch supersession also had to delete its
+  retired durable spool and that old runtime pollution could already exist in schema v25-v30. The
+  remediation deletes that spool in the supersession transaction and adds one exact-DDL-gated,
+  shrink-only v25-v30 repair before each owning validator. It touches only terminal
+  `failed/cancelled/superseded` spools and unowned terminal authority; healthy catalogs stay on the
+  read-only path, and malformed DDL, unowned active work, or any other contract failure rolls the
+  repair back. Exact red regressions cover v23, v24, newer epoch, terminalization, superseded-spool
+  reopen, and polluted current schema; 73 migration tests and 37 metadata-inventory application
+  tests pass, including repair idempotence, malformed-DDL non-mutation, active-owner preservation,
+  and rollback controls. A read-only online backup of the retained
+  1.18 GB catalog migrated and reopened through production `SqliteCatalog::open` in disposable
+  storage with zero foreign-key violations and unchanged root, asset, location, queue, run, entry,
+  and completed-authority counts; only the one illegal superseded authority changed from one to
+  zero. The original catalog and source libraries were untouched. Recovery-authoritative P2 work is
+  now exact-owner-affine per root: an unfinished baseline selects its recorded run; otherwise an
+  active run selects its own unretired recovery authority. If that owner is unavailable or not due,
+  unrelated same-root P2 waits while P0/P1 and other roots continue. Selection is re-resolved inside
+  the `IMMEDIATE` lease transaction, conflicting distinct-run begin fails before writes, and the
+  validator rejects a mismatched or terminal baseline owner. Hosted PowerShell 7 separately exposed
+  that the case-insensitive `$IsWindows` parameter collided with its automatic read-only platform
+  variable. R2c-R and broker probes now use `IsWindowsPlatform`, assert the exact false-platform
+  result, retain the digest-locked destructive-fixture audit, and run in CI under both Windows
+  PowerShell 5.1 and PowerShell 7. Repository lint passes, including the 19-case R2c-R guardrail,
+  broker installer guardrail, warnings-denied Clippy, and Dart analysis. Eighteen focused owner-
+  affinity regressions pass. The complete serial evidence has 954 passing Rust library tests with
+  17 expected ignores, broker integration 3/3, all Flutter tests, Windows scan 2/2, Windows native
+  accessibility 2/2, bridge/whitespace checks, and a current Debug application. Two post-guard
+  disposable-directory rename/restore fixtures each pass 200 repeated cycles without relaxing the
+  immediate active-guard assertions. The accumulated independent audit and hosted PR gate remain
+  required before this phase closes; R2c-R remains not accepted and R2c-O remains active.
 - The current R2b closeout working tree passed the complete local Daily gate and Windows Release
   gate on 2026-08-12, including packaged Rust-library loading and the release bridge smoke test.
   This is current-stage evidence, not a release candidate or completion of R10.

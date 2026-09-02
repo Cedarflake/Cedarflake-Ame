@@ -853,6 +853,15 @@ input; they are not accepted as current checkpoints without exact contract valid
 publishing their partial absence evidence. Historical `authoritative_recovery` scan checkpoints
 remain retired and cannot return to the full scanner.
 
+Before persistent-journal contract validation, an upgrade from a catalog that predates recovery-
+authority ownership normalizes metadata-inventory lifecycle state transactionally. Every unfinished
+`running` or `comparing` run becomes `superseded`, and every non-`completed` run loses
+`absence_authority`; completed authority, inventory entries, issue evidence, roots, assets,
+locations, and queued work remain intact. Runtime terminalization and newer-epoch supersession must
+revoke the same authority in the transaction that changes status. The journal validator remains
+fail closed after this bounded normalization; migration must not manufacture recovery authority or
+enumerate a source root.
+
 The migration adds versioned broker capability, per-root journal checkpoint, covered-range, lane,
 and recovery-baseline authority. It may rebuild derived queue indexes or origins transactionally,
 but it must preserve row identity, retry, lease generation, root generation, catalog revision,
@@ -2218,6 +2227,75 @@ artifacts and ten Flutter assets.
 All production evidence uses disposable source and catalog storage. It does not access retained
 roots, real Cloud Files, SCM, a real named-pipe/FSCTL journal, signing, or source-media mutation, and
 it does not authorize an automatic full scan. R2c-R remains not accepted and R2c-O remains active.
+
+### Phase-33 retained-catalog startup authority remediation
+
+A retained schema-v23 catalog exposed one lifecycle state created before the persistent-journal
+recovery-authority tables existed: a metadata inventory had already been superseded by a newer
+epoch but still retained `absence_authority = 1`. The original v21-to-v22 transition retired only
+runs that were still `running` or `comparing` at that migration instant. Because the retained run
+was already terminal, the v23-to-v24 journal validator correctly rejected the unowned authority as
+`catalog_persistent_journal_contract_unverifiable`, rolled back the upgrade, and made every later
+startup repeat the same failure.
+
+The forward migration now applies the persistence rule above both before v23 journal validation and
+before a direct v24 lane/recovery upgrade. It preserves terminal issue evidence and staged inventory
+entries, terminalizes genuinely interrupted legacy work, clears authority only from non-completed
+runs, and leaves completed authority unchanged. The runtime repository also clears authority
+atomically whenever a run is terminalized or superseded by a newer epoch, preventing a current
+catalog from recreating the invalid state. No validation predicate is weakened and no schema version
+is added.
+
+The first independent Phase-33 audit found two adjacent legacy-state gaps. Newer-epoch supersession
+now deletes the retired run's durable source spool in the same transaction as authority revocation
+and frontier retirement. Schema v25 through v30 also share an exact-DDL-gated shrink-only repair
+before their owning validators: it deletes spools only for `failed`, `cancelled`, or `superseded`
+runs and clears authority only from those terminal runs when no matching unretired recovery owner
+exists. Healthy current catalogs remain on the read-only validation path. A malformed schema, an
+unowned active run, or any other unresolved contract failure rolls the complete repair transaction
+back; completed authority, valid active authority, issues, entries, roots, assets, locations, and
+queued work are not changed.
+
+Recovery-authoritative P2 leasing is now exact-owner-affine per root. An unfinished persistent-
+journal baseline makes its recorded inventory run the only eligible P2 owner. Without an unfinished
+baseline, an active inventory run must lease through its own unretired recovery authority. If that
+owner is not currently due or cannot be leased, unrelated P2 rows for the same root wait; P0/P1 work
+and work for other roots continue. The scheduler selects with this rule and re-resolves the exact
+owner inside the `IMMEDIATE` transaction before mutation. Starting a distinct unretired recovery
+run for the same root fails before writes, and validation rejects an unfinished baseline that points
+to a mismatched or terminal inventory run. Old-library recovery therefore cannot become a mutable
+root-wide prerequisite for live publication.
+
+Hosted PowerShell 7 also exposed a platform-probe defect before the Rust CI tests began:
+`$IsWindows` is an automatic read-only variable and PowerShell names are case-insensitive, so a
+boolean parameter with that name could not reliably receive the guardrail's false-platform probe.
+The R2c-R and broker scripts now use `IsWindowsPlatform`, their guardrails assert the exact false-
+platform diagnostic, and the digest-locked R2c-R source hash was updated for those reviewed edits.
+The hosted workflow runs both guardrails once under Windows PowerShell 5.1 after Flutter setup and
+again through the existing PowerShell 7 Daily job, preserving the same default-deny and destructive-
+fixture source audit in both shells.
+
+Red regressions first reproduced the exact v23, direct-v24, newer-epoch, terminalization,
+superseded-spool reopen, and polluted-current-schema failures. The complete migration module then
+passes 73 tests and the metadata-inventory application module passes 37 tests. The new controls
+prove current repair idempotence, malformed-DDL non-mutation, rollback when an active run lacks its
+owner, valid-owner preservation, and v27 spool retirement before validation. A consistent online
+backup of the retained 1.18 GB catalog was opened read-only,
+migrated only in disposable storage through production `SqliteCatalog::open`, and reopened. Root,
+asset, location, queue, inventory-run, inventory-entry, and completed-authority counts were
+unchanged; foreign-key checking returned zero rows; only the one illegal superseded authority was
+revoked. The original catalog and both source libraries were not changed. Repository lint passes,
+including the 19-case R2c-R guardrail, warnings-denied Clippy, and Dart analysis. The complete Daily
+component evidence was collected serially with one non-incremental Cargo job after the workstation's
+default parallel compile exhausted its commit limit: the Rust library suite passes 954 tests with
+17 expected ignores, broker integration passes 3/3, all Flutter tests pass, Windows scan and native
+accessibility pass 2/2 each, bridge/whitespace checks pass, and both integrations build the current
+Debug application. Eighteen focused owner-affinity regressions pass. Two disposable-directory test
+fixtures also pass 200 repeated post-guard rename/restore cycles each with bounded Windows sharing-
+violation handling while their active-guard failure assertions remain immediate and exact.
+This is migration and startup-recovery evidence, not retained-root synchronization acceptance;
+the final accumulated independent audit and hosted PR gate remain the closeout evidence. R2c-R
+remains not accepted and R2c-O remains active.
 
 ## References
 

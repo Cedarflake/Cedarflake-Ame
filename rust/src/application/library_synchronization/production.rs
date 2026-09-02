@@ -11005,6 +11005,7 @@ mod tests {
             debounce_millis: 0,
             ..crate::domain::LibraryChangeQueuePolicy::default()
         };
+        let mut baseline_change_ids = BTreeMap::new();
         for (index, (root_id, root_path)) in [("root-a", "C:\\RootA"), ("root-b", "C:\\RootB")]
             .into_iter()
             .enumerate()
@@ -11039,7 +11040,7 @@ mod tests {
                 })
                 .expect("persist supported baseline capability");
             let identity_byte = u8::try_from(index + 1).expect("fixture identity byte");
-            catalog
+            let baseline = catalog
                 .begin_persistent_journal_baseline(
                     &PersistentJournalBaselineStartRequest {
                         run_id: format!("round-robin-{root_id}"),
@@ -11059,7 +11060,52 @@ mod tests {
                     policy,
                 )
                 .expect("begin ready baseline recovery fixture");
+            baseline_change_ids.insert(root_id, baseline.change_id);
         }
+        catalog
+            .enqueue_library_change_intents(
+                &[crate::domain::LibraryChangeIntent {
+                    root_id: "root-a".to_owned(),
+                    root_generation: generation,
+                    kind: crate::domain::LibraryChangeIntentKind::FreshnessUnknown,
+                    scope: crate::domain::LibraryChangeScope::Root,
+                    relative_path: String::new(),
+                    previous_relative_path: None,
+                    origin: crate::domain::LibraryChangeOrigin::LiveNotification,
+                    first_observed_unix_ms: 1_500,
+                    most_recent_observed_unix_ms: 1_500,
+                    first_sequence: 2,
+                    most_recent_sequence: 2,
+                    coalesced_observation_count: 1,
+                }],
+                1_500,
+                policy,
+            )
+            .expect("enqueue competing root-a P0 gap");
+        let competing = catalog
+            .lease_live_authoritative_library_change("root-a", generation, 1_500, policy)
+            .expect("lease competing root-a P0 gap")
+            .expect("competing root-a P0 gap");
+        catalog
+            .promote_live_watcher_gap_to_metadata_inventory(
+                competing.change.id,
+                competing.lease_generation,
+                &crate::domain::LibraryChangeFailure {
+                    code: "metadata_inventory_required".to_owned(),
+                    message: "Fixture gap requires a distinct P2 owner".to_owned(),
+                },
+                1_500,
+                policy,
+            )
+            .expect("promote competing root-a P2 owner");
+        let root_a_baseline = baseline_change_ids["root-a"];
+        rusqlite::Connection::open(catalog.catalog_path())
+            .expect("open root-a affinity evidence")
+            .execute(
+                "UPDATE library_change_queue SET ready_unix_ms = 3000 WHERE id = ?1",
+                [i64::try_from(root_a_baseline.value()).expect("root-a baseline ID")],
+            )
+            .expect("delay exact root-a baseline owner");
         let snapshot = LibrarySynchronizationSnapshot {
             is_running: true,
             catalog_revision: 0,
@@ -11113,18 +11159,30 @@ mod tests {
         };
 
         let first = ready_recovery_work(&mut production, &catalog, &snapshot, 2_000)
-            .expect("first ready root")
-            .expect("first root");
+            .expect("skip unavailable exact root-a owner")
+            .expect("root-b remains ready");
+        assert_eq!(first.root_id(), "root-b");
+        rusqlite::Connection::open(catalog.catalog_path())
+            .expect("open root-a affinity release")
+            .execute(
+                "UPDATE library_change_queue SET ready_unix_ms = 2000 WHERE id = ?1",
+                [i64::try_from(root_a_baseline.value()).expect("root-a baseline ID")],
+            )
+            .expect("release exact root-a baseline owner");
         let second = ready_recovery_work(&mut production, &catalog, &snapshot, 2_000)
-            .expect("second ready root")
-            .expect("second root");
+            .expect("select released exact root-a owner")
+            .expect("root-a becomes ready");
+        assert_eq!(second.root_id(), "root-a");
+        let leased_root_a = catalog
+            .lease_metadata_inventory_recovery("root-a", generation, 2_000, policy)
+            .expect("lease exact root-a baseline owner")
+            .expect("exact root-a baseline owner");
+        assert_eq!(leased_root_a.change.id, root_a_baseline);
         let wrapped = ready_recovery_work(&mut production, &catalog, &snapshot, 2_000)
             .expect("wrapped ready root")
             .expect("wrapped root");
 
-        assert_eq!(first.root_id(), "root-a");
-        assert_eq!(second.root_id(), "root-b");
-        assert_eq!(wrapped.root_id(), "root-a");
+        assert_eq!(wrapped.root_id(), "root-b");
     }
 
     #[cfg(windows)]
@@ -14187,6 +14245,15 @@ mod tests {
             .expect("first recovery task")
             .root_id
             .clone();
+        let first_active_change_id = match &production
+            .recovery
+            .as_ref()
+            .expect("first recovery task")
+            .kind
+        {
+            RecoveryTaskKind::MetadataInventory { change_id, .. } => *change_id,
+            _ => panic!("first root must own metadata inventory recovery"),
+        };
         let first_gate = if first_root == "root-a" {
             &root_a_gate
         } else {
@@ -14215,12 +14282,22 @@ mod tests {
         }
         let second_root = second_root.expect("second root receives the next P2 page");
         assert_ne!(first_root, second_root);
+        let second_active_change_id = match &production
+            .recovery
+            .as_ref()
+            .expect("second recovery task")
+            .kind
+        {
+            RecoveryTaskKind::MetadataInventory { change_id, .. } => *change_id,
+            _ => panic!("second root must own metadata inventory recovery"),
+        };
         assert_eq!(production.recovery_inventory_sources.len(), 1);
         let first_retained_change_id = *production
             .recovery_inventory_sources
             .keys()
             .next()
             .expect("first root retained change owner");
+        assert_eq!(first_retained_change_id, first_active_change_id);
         let first_retained_run_id = production
             .recovery_inventory_sources
             .get(&first_retained_change_id)
@@ -14262,12 +14339,23 @@ mod tests {
             std::thread::yield_now();
         }
         assert_eq!(third_root.as_deref(), Some(first_root.as_str()));
+        let third_active_change_id = match &production
+            .recovery
+            .as_ref()
+            .expect("returned first-root recovery")
+            .kind
+        {
+            RecoveryTaskKind::MetadataInventory { change_id, .. } => *change_id,
+            _ => panic!("returned first root must own metadata inventory recovery"),
+        };
+        assert_eq!(third_active_change_id, first_retained_change_id);
         assert_eq!(production.recovery_inventory_sources.len(), 1);
         let second_retained_change_id = *production
             .recovery_inventory_sources
             .keys()
             .next()
             .expect("second root retained change owner");
+        assert_eq!(second_retained_change_id, second_active_change_id);
         let second_retained_open_count = crate::adapters::source_spool_open_count(second_path);
         assert!(
             second_retained_open_count >= 1,
@@ -14301,6 +14389,7 @@ mod tests {
                 )
                 .expect("load retained recovery identity")
         };
+        let first_retained_identity = recovery_identity(first_retained_change_id);
         let second_retained_identity = recovery_identity(second_retained_change_id);
         let second_retained_run_id = production
             .recovery_inventory_sources
@@ -14308,6 +14397,8 @@ mod tests {
             .expect("second root retained source")
             .run_id()
             .to_owned();
+        assert_eq!(first_retained_identity.1, first_root);
+        assert_eq!(first_retained_run_id, first_retained_identity.5);
         assert_eq!(second_retained_identity.1, second_root);
         assert_eq!(second_retained_run_id, second_retained_identity.5);
         assert!(
@@ -14353,6 +14444,9 @@ mod tests {
             RecoveryTaskKind::MetadataInventory { change_id, .. } => *change_id,
             _ => panic!("second root must own metadata inventory recovery"),
         };
+        assert_eq!(active_second_change_id, second_retained_change_id);
+        let active_second_identity = recovery_identity(active_second_change_id);
+        assert_eq!(active_second_identity.5, second_retained_run_id);
         let second_released_identity = recovery_identity(second_retained_change_id);
         assert_eq!(second_released_identity.0, second_retained_identity.0);
         assert_eq!(second_released_identity.5, second_retained_identity.5);
@@ -14361,19 +14455,11 @@ mod tests {
                 .recovery_inventory_sources
                 .contains_key(&first_retained_change_id)
         );
-        if active_second_change_id == second_retained_change_id {
-            assert!(
-                !production
-                    .recovery_inventory_sources
-                    .contains_key(&second_retained_change_id)
-            );
-        } else {
-            assert!(
-                production
-                    .recovery_inventory_sources
-                    .contains_key(&second_retained_change_id)
-            );
-        }
+        assert!(
+            !production
+                .recovery_inventory_sources
+                .contains_key(&second_retained_change_id)
+        );
         let second_recovery_authorities = {
             let mut statement = evidence_connection
                 .prepare(
@@ -14424,12 +14510,8 @@ mod tests {
         );
         assert_eq!(
             crate::adapters::source_spool_open_count(second_path),
-            if active_second_change_id == second_retained_change_id {
-                second_retained_open_count
-            } else {
-                second_retained_open_count.saturating_add(1)
-            },
-            "each immutable authority must either resume its own source or open one independent source"
+            second_retained_open_count,
+            "rotation reopened the retained second-authority source"
         );
         assert!(crate::adapters::source_peak_staged_window(first_path) <= 128);
         assert!(crate::adapters::source_peak_staged_window(second_path) <= 128);

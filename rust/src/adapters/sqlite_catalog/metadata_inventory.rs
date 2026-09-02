@@ -1558,7 +1558,7 @@ impl MetadataInventoryRepository for SqliteCatalog {
             .execute(
                 "UPDATE library_metadata_inventory_runs
                  SET status = ?2, last_issue_code = ?3, last_issue_message = ?4,
-                     updated_unix_ms = ?5
+                     absence_authority = 0, updated_unix_ms = ?5
                  WHERE id = ?1 AND status IN ('running', 'comparing')",
                 params![run_id, status, issue_code, issue_message, updated_unix_ms],
             )
@@ -2848,6 +2848,41 @@ fn begin_metadata_inventory_transaction(
             "The metadata inventory run already exists",
         ));
     }
+    let request_authority_change_id = load_metadata_inventory_authority_owner_for_run(
+        transaction,
+        &request.run_id,
+        &request.root_id,
+        request.root_generation,
+    )?;
+    let unfinished_baseline_change_id = transaction
+        .query_row(
+            "SELECT change_id
+             FROM library_persistent_journal_baselines
+             WHERE root_id = ?1 AND root_generation = ?2
+               AND phase <> 'completed'",
+            params![
+                request.root_id,
+                sqlite_integer(
+                    request.root_generation.value(),
+                    "metadata inventory root generation",
+                )?,
+            ],
+            |row| row.get::<_, i64>(0),
+        )
+        .optional()
+        .map_err(database_error)?
+        .map(|change_id| {
+            sqlite_unsigned(change_id, "metadata inventory baseline change ID").map(|_| change_id)
+        })
+        .transpose()?;
+    if unfinished_baseline_change_id.is_some()
+        && unfinished_baseline_change_id != request_authority_change_id
+    {
+        return Err(ScanError::new(
+            "metadata_inventory_baseline_authority_conflict",
+            "The unfinished journal baseline belongs to a different recovery authority",
+        ));
+    }
     let active_run = transaction
         .query_row(
             "SELECT id, root_generation, epoch
@@ -2879,10 +2914,42 @@ fn begin_metadata_inventory_transaction(
                 "A current or newer metadata inventory already owns this root",
             ));
         }
+        if active_generation == request_generation {
+            let active_authority_change_id = load_metadata_inventory_authority_owner_for_run(
+                transaction,
+                &active_id,
+                &request.root_id,
+                request.root_generation,
+            )?;
+            if active_authority_change_id.is_some()
+                && active_authority_change_id != request_authority_change_id
+            {
+                return Err(ScanError::new(
+                    "metadata_inventory_active_authority_conflict",
+                    "A different recovery authority still owns the active metadata inventory",
+                ));
+            }
+            if unfinished_baseline_change_id.is_some()
+                && active_authority_change_id.is_some()
+                && unfinished_baseline_change_id != active_authority_change_id
+            {
+                return Err(ScanError::new(
+                    "metadata_inventory_baseline_authority_conflict",
+                    "The active metadata inventory does not own the unfinished journal baseline",
+                ));
+            }
+        }
+        transaction
+            .execute(
+                "DELETE FROM library_metadata_inventory_spools WHERE run_id = ?1",
+                [&active_id],
+            )
+            .map_err(database_error)?;
         transaction
             .execute(
                 "UPDATE library_metadata_inventory_runs
                  SET status = 'superseded',
+                     absence_authority = 0,
                      last_issue_code = 'metadata_inventory_newer_epoch',
                      last_issue_message = 'A newer metadata inventory superseded this run',
                      updated_unix_ms = ?2
@@ -2927,6 +2994,81 @@ fn begin_metadata_inventory_transaction(
             "The metadata inventory run was not persisted",
         )
     })
+}
+
+fn load_metadata_inventory_authority_owner_for_run(
+    transaction: &Transaction<'_>,
+    run_id: &str,
+    root_id: &str,
+    root_generation: LibraryRootGeneration,
+) -> Result<Option<i64>, ScanError> {
+    let root_generation = sqlite_integer(
+        root_generation.value(),
+        "metadata inventory authority root generation",
+    )?;
+    let authority = transaction
+        .query_row(
+            "SELECT authority.change_id, authority.root_id, authority.root_generation,
+                    authority.retired_unix_ms, queue.root_id, queue.root_generation,
+                    queue.status,
+                    (SELECT COUNT(*) FROM library_change_queue_lanes AS lanes
+                     WHERE lanes.change_id = authority.change_id),
+                    (SELECT COUNT(*) FROM library_change_queue_lanes AS lanes
+                     WHERE lanes.change_id = authority.change_id
+                       AND lanes.lane = 'p2_recovery')
+             FROM library_recovery_authorities AS authority
+             LEFT JOIN library_change_queue AS queue ON queue.id = authority.change_id
+             WHERE authority.run_id = ?1",
+            [run_id],
+            |row| {
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, i64>(2)?,
+                    row.get::<_, Option<i64>>(3)?,
+                    row.get::<_, Option<String>>(4)?,
+                    row.get::<_, Option<i64>>(5)?,
+                    row.get::<_, Option<String>>(6)?,
+                    row.get::<_, i64>(7)?,
+                    row.get::<_, i64>(8)?,
+                ))
+            },
+        )
+        .optional()
+        .map_err(database_error)?;
+    let Some((
+        change_id,
+        authority_root_id,
+        authority_root_generation,
+        retired_unix_ms,
+        queue_root_id,
+        queue_root_generation,
+        queue_status,
+        lane_count,
+        recovery_lane_count,
+    )) = authority
+    else {
+        return Ok(None);
+    };
+    sqlite_unsigned(change_id, "metadata inventory authority change ID")?;
+    if authority_root_id != root_id
+        || authority_root_generation != root_generation
+        || retired_unix_ms.is_some()
+        || queue_root_id.as_deref() != Some(root_id)
+        || queue_root_generation != Some(root_generation)
+        || !matches!(
+            queue_status.as_deref(),
+            Some("pending" | "leased" | "retry_wait")
+        )
+        || lane_count != 1
+        || recovery_lane_count != 1
+    {
+        return Err(ScanError::new(
+            "metadata_inventory_recovery_authority_corrupt",
+            "The metadata recovery authority does not own valid unresolved P2 work",
+        ));
+    }
+    Ok(Some(change_id))
 }
 
 fn validate_active_root(

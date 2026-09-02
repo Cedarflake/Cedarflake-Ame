@@ -3827,6 +3827,64 @@ fn p2_authoritative_lease_requires_matching_unretired_persisted_authority() {
         )
         .expect("persist matching recovery authority and baseline");
     let change_id = baseline.change_id;
+    let mut competing_recovery = intent(
+        "root-a",
+        generation,
+        99,
+        900,
+        LibraryChangeIntentKind::FreshnessUnknown,
+        LibraryChangeScope::Root,
+        "",
+    );
+    competing_recovery.origin = LibraryChangeOrigin::MetadataInventory;
+    let transaction = catalog
+        .connection
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .expect("begin competing P2 owner transaction");
+    let competing_change_id =
+        insert_persistent_journal_recovery_control(&transaction, &competing_recovery, 900, policy)
+            .expect("insert competing P2 owner");
+    transaction
+        .commit()
+        .expect("commit competing P2 owner transaction");
+    catalog
+        .authorize_metadata_inventory_recovery(&LibraryRecoveryAuthority {
+            change_id: competing_change_id,
+            run_id: "competing-ready-owner".to_owned(),
+            root_id: "root-a".to_owned(),
+            root_generation: generation,
+            reason: LibraryRecoveryAuthorityReason::WatcherUncoveredGap,
+            opening_boundary: None,
+            authorized_unix_ms: 900,
+            retired_unix_ms: None,
+        })
+        .expect("authorize competing P2 owner");
+    catalog
+        .connection
+        .execute(
+            "UPDATE library_change_queue SET ready_unix_ms = 2000 WHERE id = ?1",
+            [sqlite_integer(change_id.value(), "baseline change ID").expect("change ID")],
+        )
+        .expect("delay exact baseline owner");
+
+    assert!(
+        !catalog
+            .has_ready_metadata_inventory_recovery("root-a", generation, 1_000, policy)
+            .expect("exact unavailable baseline owner blocks competing P2 readiness")
+    );
+    assert!(
+        catalog
+            .lease_metadata_inventory_recovery("root-a", generation, 1_000, policy)
+            .expect("exact unavailable baseline owner blocks competing P2 lease")
+            .is_none()
+    );
+    catalog
+        .connection
+        .execute(
+            "UPDATE library_change_queue SET ready_unix_ms = 1000 WHERE id = ?1",
+            [sqlite_integer(change_id.value(), "baseline change ID").expect("change ID")],
+        )
+        .expect("release exact baseline owner");
 
     assert!(
         catalog
@@ -3842,6 +3900,36 @@ fn p2_authoritative_lease_requires_matching_unretired_persisted_authority() {
             .id,
         change_id
     );
+    let competing_status: String = catalog
+        .connection
+        .query_row(
+            "SELECT status FROM library_change_queue WHERE id = ?1",
+            [
+                sqlite_integer(competing_change_id.value(), "competing change ID")
+                    .expect("change ID"),
+            ],
+            |row| row.get(0),
+        )
+        .expect("load competing P2 status");
+    assert_eq!(competing_status, "pending");
+    catalog
+        .connection
+        .execute(
+            "UPDATE library_change_queue
+             SET status = 'completed', lease_expires_unix_ms = NULL,
+                 catalog_revision_at_success = 0
+             WHERE id = ?1",
+            [sqlite_integer(change_id.value(), "baseline change ID").expect("change ID")],
+        )
+        .expect("corrupt exact baseline queue state");
+    let error = catalog
+        .has_ready_metadata_inventory_recovery("root-a", generation, 1_000, policy)
+        .expect_err("terminal exact owner must fail closed instead of appearing not ready");
+    assert_eq!(error.code, "metadata_inventory_recovery_affinity_corrupt");
+    let error = catalog
+        .lease_metadata_inventory_recovery("root-a", generation, 1_000, policy)
+        .expect_err("terminal exact owner must fail closed before lease selection");
+    assert_eq!(error.code, "metadata_inventory_recovery_affinity_corrupt");
 }
 
 #[test]

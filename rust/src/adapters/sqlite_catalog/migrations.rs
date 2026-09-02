@@ -61,9 +61,8 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             SCHEMA_VERSION => {
                 repair_prerelease_v24_source_range_id_triggers(connection)?;
                 repair_prerelease_v26_recovery_window_schema(connection)?;
-                validate_current_schema_contract(connection)?;
+                repair_and_validate_current_terminal_metadata_inventory_state(connection)?;
                 recover_interrupted_explicit_foreground_claims(connection)?;
-                validate_current_schema_contract(connection)?;
                 return Ok(());
             }
             1 => migrate_v1_to_v2(connection)?,
@@ -527,9 +526,153 @@ fn validate_prerelease_v19_catch_up_authority(connection: &Connection) -> Result
     Ok(())
 }
 
+#[cfg(test)]
+std::thread_local! {
+    static CURRENT_SCHEMA_VALIDATION_COUNT: std::cell::Cell<usize> =
+        const { std::cell::Cell::new(0) };
+}
+
+#[cfg(test)]
+fn reset_current_schema_validation_count() {
+    CURRENT_SCHEMA_VALIDATION_COUNT.with(|count| count.set(0));
+}
+
+#[cfg(test)]
+fn current_schema_validation_count() -> usize {
+    CURRENT_SCHEMA_VALIDATION_COUNT.with(std::cell::Cell::get)
+}
+
 fn validate_current_schema_contract(connection: &Connection) -> Result<(), ScanError> {
+    #[cfg(test)]
+    CURRENT_SCHEMA_VALIDATION_COUNT.with(|count| count.set(count.get() + 1));
     validate_pre_live_gap_schema_contract(connection, SCHEMA_VERSION)?;
     validate_live_gap_recovery_contract(connection)
+}
+
+fn legacy_terminal_metadata_inventory_repair_shape_matches(
+    connection: &Connection,
+    schema_version: i64,
+) -> Result<bool, ScanError> {
+    let spool_contract_version = match schema_version {
+        25 | 26 => None,
+        27 => Some(1),
+        28..=SCHEMA_VERSION => Some(2),
+        _ => return Ok(false),
+    };
+    let core_matches = schema_object_sql_matches(
+        connection,
+        "table",
+        "library_metadata_inventory_runs",
+        METADATA_INVENTORY_RUN_TABLE_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "table",
+        "library_recovery_authorities",
+        RECOVERY_AUTHORITY_TABLE_DDL,
+    )?;
+    if !core_matches {
+        return Ok(false);
+    }
+    if let Some(version) = spool_contract_version {
+        metadata_inventory_spool_schema_matches(connection, version)
+    } else {
+        Ok(true)
+    }
+}
+
+fn legacy_terminal_metadata_inventory_repair_needed(
+    connection: &Connection,
+    schema_version: i64,
+) -> Result<bool, ScanError> {
+    if !legacy_terminal_metadata_inventory_repair_shape_matches(connection, schema_version)? {
+        return Ok(false);
+    }
+    let terminal_authority = connection
+        .query_row(
+            "SELECT EXISTS(
+               SELECT 1 FROM library_metadata_inventory_runs AS run
+               WHERE run.status IN ('failed', 'cancelled', 'superseded')
+                 AND run.absence_authority <> 0
+                 AND NOT EXISTS(
+                   SELECT 1 FROM library_recovery_authorities AS authority
+                   WHERE authority.run_id = run.id
+                     AND authority.root_id = run.root_id
+                     AND authority.root_generation = run.root_generation
+                     AND authority.retired_unix_ms IS NULL
+                 )
+             )",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    let terminal_spool = if schema_version >= 27 {
+        connection
+            .query_row(
+                "SELECT EXISTS(
+                   SELECT 1 FROM library_metadata_inventory_spools AS spool
+                   JOIN library_metadata_inventory_runs AS run ON run.id = spool.run_id
+                   WHERE run.status IN ('failed', 'cancelled', 'superseded')
+                 )",
+                [],
+                |row| row.get::<_, bool>(0),
+            )
+            .map_err(database_error)?
+    } else {
+        false
+    };
+    Ok(terminal_authority || terminal_spool)
+}
+
+fn repair_legacy_terminal_metadata_inventory_state_transaction(
+    transaction: &Transaction<'_>,
+    schema_version: i64,
+) -> Result<(), ScanError> {
+    if !legacy_terminal_metadata_inventory_repair_shape_matches(transaction, schema_version)? {
+        return Ok(());
+    }
+    if schema_version >= 27 {
+        transaction
+            .execute(
+                "DELETE FROM library_metadata_inventory_spools
+                 WHERE run_id IN (
+                   SELECT id FROM library_metadata_inventory_runs
+                   WHERE status IN ('failed', 'cancelled', 'superseded')
+                 )",
+                [],
+            )
+            .map_err(database_error)?;
+    }
+    transaction
+        .execute(
+            "UPDATE library_metadata_inventory_runs AS run
+             SET absence_authority = 0
+             WHERE run.status IN ('failed', 'cancelled', 'superseded')
+               AND run.absence_authority <> 0
+               AND NOT EXISTS(
+                 SELECT 1 FROM library_recovery_authorities AS authority
+                 WHERE authority.run_id = run.id
+                   AND authority.root_id = run.root_id
+                   AND authority.root_generation = run.root_generation
+                   AND authority.retired_unix_ms IS NULL
+               )",
+            [],
+        )
+        .map_err(database_error)?;
+    Ok(())
+}
+
+fn repair_and_validate_current_terminal_metadata_inventory_state(
+    connection: &mut Connection,
+) -> Result<(), ScanError> {
+    if !legacy_terminal_metadata_inventory_repair_needed(connection, SCHEMA_VERSION)? {
+        return validate_current_schema_contract(connection);
+    }
+    let transaction = connection
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .map_err(database_error)?;
+    repair_legacy_terminal_metadata_inventory_state_transaction(&transaction, SCHEMA_VERSION)?;
+    validate_current_schema_contract(&transaction)?;
+    transaction.commit().map_err(database_error)
 }
 
 fn recover_interrupted_explicit_foreground_claims(
@@ -679,6 +822,7 @@ fn recover_interrupted_explicit_foreground_claims(
         }
     }
     super::delete_orphan_assets(&transaction)?;
+    validate_current_schema_contract(&transaction)?;
     transaction.commit().map_err(database_error)
 }
 
@@ -915,6 +1059,52 @@ const PERSISTENT_JOURNAL_BASELINE_UPDATE_GUARD_DDL: &str =
        BEGIN
          SELECT RAISE(ABORT, 'journal baseline identity is immutable');
        END";
+const METADATA_INVENTORY_RUN_TABLE_DDL: &str = "CREATE TABLE library_metadata_inventory_runs (
+       id TEXT NOT NULL PRIMARY KEY CHECK(length(id) BETWEEN 1 AND 256),
+       root_id TEXT NOT NULL,
+       root_generation INTEGER NOT NULL CHECK(root_generation > 0),
+       epoch INTEGER NOT NULL CHECK(epoch > 0),
+       scope_kind TEXT NOT NULL CHECK(scope_kind IN ('root', 'subtree')),
+       scope_relative_path TEXT NOT NULL,
+       status TEXT NOT NULL CHECK(status IN (
+         'running', 'comparing', 'completed', 'failed', 'cancelled', 'superseded'
+       )),
+       next_page_index INTEGER NOT NULL CHECK(next_page_index > 0),
+       enumeration_cursor TEXT,
+       comparison_cursor TEXT,
+       absence_cursor TEXT,
+       staged_entry_count INTEGER NOT NULL DEFAULT 0 CHECK(staged_entry_count >= 0),
+       candidate_count INTEGER NOT NULL DEFAULT 0 CHECK(candidate_count >= 0),
+       enumeration_complete INTEGER NOT NULL DEFAULT 0
+         CHECK(enumeration_complete IN (0, 1)),
+       absence_authority INTEGER NOT NULL DEFAULT 0
+         CHECK(absence_authority IN (0, 1)),
+       started_unix_ms INTEGER NOT NULL,
+       updated_unix_ms INTEGER NOT NULL,
+       completed_unix_ms INTEGER,
+       last_issue_code TEXT,
+       last_issue_message TEXT,
+       CHECK(
+         (scope_kind = 'root' AND scope_relative_path = '')
+         OR
+         (scope_kind = 'subtree' AND length(scope_relative_path) > 0)
+       ),
+       CHECK(instr(scope_relative_path, char(92)) = 0),
+       CHECK(
+         (last_issue_code IS NULL AND last_issue_message IS NULL)
+         OR
+         (last_issue_code IS NOT NULL AND last_issue_message IS NOT NULL)
+       ),
+       CHECK(enumeration_complete = 1 OR absence_authority = 0),
+       CHECK(
+         (status = 'completed' AND completed_unix_ms IS NOT NULL
+           AND enumeration_complete = 1 AND absence_authority = 1)
+         OR
+         (status <> 'completed' AND completed_unix_ms IS NULL)
+       ),
+       UNIQUE(root_id, root_generation, epoch),
+       FOREIGN KEY(root_id) REFERENCES library_roots(id) ON DELETE CASCADE
+     )";
 const RECOVERY_EXECUTION_CONTRACT_TABLE_DDL: &str =
     "CREATE TABLE library_recovery_execution_contract (
        singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
@@ -1743,6 +1933,28 @@ fn validate_persistent_journal_baseline_contract(connection: &Connection) -> Res
                       ))
              ) OR EXISTS(
                SELECT 1 FROM pragma_foreign_key_check('library_persistent_journal_baselines')
+             ) OR EXISTS(
+               SELECT 1
+               FROM library_persistent_journal_baselines AS baseline
+               JOIN library_metadata_inventory_runs AS run
+                 ON run.root_id = baseline.root_id
+                AND run.root_generation = baseline.root_generation
+                AND run.status IN ('running', 'comparing')
+               LEFT JOIN library_recovery_authorities AS authority
+                 ON authority.run_id = run.id
+                AND authority.retired_unix_ms IS NULL
+               WHERE baseline.phase <> 'completed'
+                 AND (authority.change_id IS NULL
+                   OR authority.change_id <> baseline.change_id)
+             ) OR EXISTS(
+               SELECT 1
+               FROM library_persistent_journal_baselines AS baseline
+               JOIN library_recovery_authorities AS authority
+                 ON authority.change_id = baseline.change_id
+               JOIN library_metadata_inventory_runs AS run
+                 ON run.id = authority.run_id
+               WHERE baseline.phase <> 'completed'
+                 AND run.status NOT IN ('running', 'comparing')
              )",
             [],
             |row| row.get::<_, bool>(0),
@@ -2392,6 +2604,68 @@ fn unverifiable_root_publication_namespace_contract() -> ScanError {
     )
 }
 
+fn metadata_inventory_spool_schema_matches(
+    connection: &Connection,
+    expected_contract_version: i64,
+) -> Result<bool, ScanError> {
+    let contract_ddl = if expected_contract_version == 1 {
+        METADATA_INVENTORY_SPOOL_CONTRACT_TABLE_V27_DDL
+    } else {
+        METADATA_INVENTORY_SPOOL_CONTRACT_TABLE_DDL
+    };
+    let spool_ddl = if expected_contract_version == 1 {
+        METADATA_INVENTORY_SPOOL_TABLE_V27_DDL
+    } else {
+        METADATA_INVENTORY_SPOOL_TABLE_DDL
+    };
+    let binding_guard_ddl = if expected_contract_version == 1 {
+        METADATA_INVENTORY_SPOOL_BINDING_UPDATE_GUARD_V27_DDL
+    } else {
+        METADATA_INVENTORY_SPOOL_BINDING_UPDATE_GUARD_DDL
+    };
+    Ok(schema_object_sql_matches(
+        connection,
+        "table",
+        "library_metadata_inventory_spool_contract",
+        contract_ddl,
+    )? && schema_object_sql_matches(
+        connection,
+        "table",
+        "library_metadata_inventory_spools",
+        spool_ddl,
+    )? && schema_object_sql_matches(
+        connection,
+        "table",
+        "library_metadata_inventory_spool_directories",
+        METADATA_INVENTORY_SPOOL_DIRECTORY_TABLE_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "index",
+        "library_metadata_inventory_spool_directories_state",
+        METADATA_INVENTORY_SPOOL_DIRECTORY_STATE_INDEX_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "table",
+        "library_metadata_inventory_spool_entries",
+        METADATA_INVENTORY_SPOOL_ENTRY_TABLE_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "index",
+        "library_metadata_inventory_spool_entries_order",
+        METADATA_INVENTORY_SPOOL_ENTRY_ORDER_INDEX_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "trigger",
+        "library_metadata_inventory_spool_binding_update_guard",
+        binding_guard_ddl,
+    )? && schema_object_sql_matches(
+        connection,
+        "trigger",
+        "library_metadata_inventory_spool_directory_complete_guard",
+        METADATA_INVENTORY_SPOOL_DIRECTORY_COMPLETE_GUARD_DDL,
+    )?)
+}
+
 fn validate_metadata_inventory_spool_contract_version(
     connection: &Connection,
     expected_schema_version: i64,
@@ -2483,62 +2757,8 @@ fn validate_metadata_inventory_spool_contract_version(
         .optional()
         .map_err(database_error)?
         .unwrap_or(false);
-    let contract_ddl = if expected_contract_version == 1 {
-        METADATA_INVENTORY_SPOOL_CONTRACT_TABLE_V27_DDL
-    } else {
-        METADATA_INVENTORY_SPOOL_CONTRACT_TABLE_DDL
-    };
-    let spool_ddl = if expected_contract_version == 1 {
-        METADATA_INVENTORY_SPOOL_TABLE_V27_DDL
-    } else {
-        METADATA_INVENTORY_SPOOL_TABLE_DDL
-    };
-    let binding_guard_ddl = if expected_contract_version == 1 {
-        METADATA_INVENTORY_SPOOL_BINDING_UPDATE_GUARD_V27_DDL
-    } else {
-        METADATA_INVENTORY_SPOOL_BINDING_UPDATE_GUARD_DDL
-    };
-    let schema_matches = schema_object_sql_matches(
-        connection,
-        "table",
-        "library_metadata_inventory_spool_contract",
-        contract_ddl,
-    )? && schema_object_sql_matches(
-        connection,
-        "table",
-        "library_metadata_inventory_spools",
-        spool_ddl,
-    )? && schema_object_sql_matches(
-        connection,
-        "table",
-        "library_metadata_inventory_spool_directories",
-        METADATA_INVENTORY_SPOOL_DIRECTORY_TABLE_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "index",
-        "library_metadata_inventory_spool_directories_state",
-        METADATA_INVENTORY_SPOOL_DIRECTORY_STATE_INDEX_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "table",
-        "library_metadata_inventory_spool_entries",
-        METADATA_INVENTORY_SPOOL_ENTRY_TABLE_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "index",
-        "library_metadata_inventory_spool_entries_order",
-        METADATA_INVENTORY_SPOOL_ENTRY_ORDER_INDEX_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "trigger",
-        "library_metadata_inventory_spool_binding_update_guard",
-        binding_guard_ddl,
-    )? && schema_object_sql_matches(
-        connection,
-        "trigger",
-        "library_metadata_inventory_spool_directory_complete_guard",
-        METADATA_INVENTORY_SPOOL_DIRECTORY_COMPLETE_GUARD_DDL,
-    )?;
+    let schema_matches =
+        metadata_inventory_spool_schema_matches(connection, expected_contract_version)?;
     let invalid_relations = connection
         .query_row(
             "SELECT EXISTS(
@@ -7376,22 +7596,7 @@ fn migrate_v21_to_v22_transaction(transaction: &Transaction<'_>) -> Result<(), S
                ON library_persistent_journal_cross_root_ranges(source_range_id, lineage_id);",
         )
         .map_err(database_error)?;
-    transaction
-        .execute(
-            "UPDATE library_metadata_inventory_runs
-             SET status = 'superseded', absence_authority = 0,
-                 completed_unix_ms = NULL,
-                 last_issue_code = COALESCE(
-                   last_issue_code, 'persistent_journal_migration_baseline_required'
-                 ),
-                 last_issue_message = COALESCE(
-                   last_issue_message,
-                   'The partial inventory was retired without absence authority.'
-                 )
-             WHERE status IN ('running', 'comparing')",
-            [],
-        )
-        .map_err(database_error)?;
+    normalize_legacy_metadata_inventory_runs(transaction)?;
     transaction
         .execute(
             "INSERT INTO library_persistent_journal_root_state(
@@ -7627,6 +7832,7 @@ fn migrate_v23_to_v24_transaction(transaction: &Transaction<'_>) -> Result<(), S
     transaction
         .execute("UPDATE schema_info SET version = 24", [])
         .map_err(database_error)?;
+    normalize_legacy_metadata_inventory_runs(transaction)?;
     validate_persistent_journal_contract(transaction)
 }
 
@@ -7639,6 +7845,7 @@ fn migrate_v24_to_v25(connection: &mut Connection) -> Result<(), ScanError> {
 }
 
 fn migrate_v24_to_v25_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+    normalize_legacy_metadata_inventory_runs(transaction)?;
     validate_persistent_journal_contract(transaction)?;
     transaction
         .execute_batch(
@@ -7782,6 +7989,36 @@ fn migrate_v24_to_v25_transaction(transaction: &Transaction<'_>) -> Result<(), S
     validate_persistent_journal_baseline_contract(transaction)
 }
 
+fn normalize_legacy_metadata_inventory_runs(
+    transaction: &Transaction<'_>,
+) -> Result<(), ScanError> {
+    transaction
+        .execute(
+            "UPDATE library_metadata_inventory_runs
+             SET status = 'superseded', absence_authority = 0,
+                 completed_unix_ms = NULL,
+                 last_issue_code = COALESCE(
+                   last_issue_code, 'persistent_journal_migration_baseline_required'
+                 ),
+                 last_issue_message = COALESCE(
+                   last_issue_message,
+                   'The partial inventory was retired without absence authority.'
+                 )
+             WHERE status IN ('running', 'comparing')",
+            [],
+        )
+        .map_err(database_error)?;
+    transaction
+        .execute(
+            "UPDATE library_metadata_inventory_runs
+             SET absence_authority = 0
+             WHERE status <> 'completed' AND absence_authority <> 0",
+            [],
+        )
+        .map_err(database_error)?;
+    Ok(())
+}
+
 fn migrate_v25_to_v26(connection: &mut Connection) -> Result<(), ScanError> {
     let transaction = connection
         .transaction_with_behavior(TransactionBehavior::Immediate)
@@ -7791,6 +8028,7 @@ fn migrate_v25_to_v26(connection: &mut Connection) -> Result<(), ScanError> {
 }
 
 fn migrate_v25_to_v26_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+    repair_legacy_terminal_metadata_inventory_state_transaction(transaction, 25)?;
     validate_change_lane_contract(transaction)?;
     validate_recovery_authority_contract(transaction)?;
     validate_persistent_journal_baseline_contract(transaction)?;
@@ -7828,6 +8066,7 @@ fn migrate_v26_to_v27(connection: &mut Connection) -> Result<(), ScanError> {
 }
 
 fn migrate_v26_to_v27_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+    repair_legacy_terminal_metadata_inventory_state_transaction(transaction, 26)?;
     validate_recovery_execution_contract(transaction)?;
     for sql in [
         METADATA_INVENTORY_SPOOL_CONTRACT_TABLE_V27_DDL,
@@ -7869,6 +8108,7 @@ fn migrate_v27_to_v28(connection: &mut Connection) -> Result<(), ScanError> {
 }
 
 fn migrate_v27_to_v28_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+    repair_legacy_terminal_metadata_inventory_state_transaction(transaction, 27)?;
     validate_metadata_inventory_spool_contract_version(transaction, 27, 1)?;
     transaction
         .execute_batch(
@@ -8045,6 +8285,7 @@ fn migrate_v28_to_v29(connection: &mut Connection) -> Result<(), ScanError> {
 }
 
 fn migrate_v28_to_v29_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+    repair_legacy_terminal_metadata_inventory_state_transaction(transaction, 28)?;
     validate_metadata_inventory_spool_contract_version(transaction, 28, 2)?;
     for sql in [
         ROOT_PUBLICATION_NAMESPACE_CONTRACT_TABLE_DDL,
@@ -8219,6 +8460,7 @@ fn migrate_v29_to_v30(connection: &mut Connection) -> Result<(), ScanError> {
 }
 
 fn migrate_v29_to_v30_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+    repair_legacy_terminal_metadata_inventory_state_transaction(transaction, 29)?;
     validate_pre_live_gap_schema_contract(transaction, 29)?;
     for sql in [
         LIVE_GAP_RECOVERY_CONTRACT_TABLE_DDL,
@@ -9156,6 +9398,7 @@ mod tests {
         preview_repair_marker_is_complete, repair_missing_v19_preview_expectation_marker,
         repair_prerelease_v18_scan_owner_index,
     };
+    use crate::adapters::SqliteCatalog;
     use crate::adapters::sqlite_catalog::remove_persistent_journal_v22_contract_for_test;
 
     fn remove_root_publication_namespace_v29_contract_for_test(connection: &Connection) {
@@ -9239,6 +9482,456 @@ mod tests {
                  DROP TABLE IF EXISTS library_change_lane_contract;",
             )
             .expect("remove v25 change-lane fixture");
+    }
+
+    fn legacy_superseded_inventory_authority_catalog(starting_version: i64) -> NamedTempFile {
+        let catalog = NamedTempFile::new().expect("legacy inventory catalog");
+        let mut connection =
+            Connection::open(catalog.path()).expect("open legacy inventory catalog");
+        migrate_schema(&mut connection).expect("fresh current catalog");
+        connection
+            .execute_batch(
+                "INSERT INTO library_roots(id, path, active_scan_id, created_unix_ms)
+                   VALUES ('root-a', 'C:/source', 'published-scan', 1);
+                 INSERT INTO scan_runs(
+                   id, root_id, status, started_unix_ms, completed_unix_ms, preview_edge
+                 ) VALUES ('published-scan', 'root-a', 'completed', 1, 2, 128);
+                 INSERT INTO library_change_root_state(
+                   root_id, generation, is_active, updated_unix_ms
+                 ) VALUES ('root-a', 1, 1, 2);
+                 INSERT INTO library_persistent_journal_root_state(
+                   root_id, root_generation, protocol_version, contract_version,
+                   capability_state, continuity_state, updated_unix_ms
+                 ) VALUES (
+                   'root-a', 1, 0, 1, 'unknown', 'baseline_required', 2
+                 );
+                 INSERT INTO library_metadata_inventory_runs(
+                   id, root_id, root_generation, epoch, scope_kind, scope_relative_path,
+                   status, next_page_index, staged_entry_count, enumeration_complete,
+                   absence_authority, started_unix_ms, updated_unix_ms, completed_unix_ms
+                 ) VALUES (
+                   'completed-inventory', 'root-a', 1, 1, 'root', '', 'completed', 2,
+                   0, 1, 1, 1, 2, 2
+                 );
+                 INSERT INTO library_metadata_inventory_runs(
+                   id, root_id, root_generation, epoch, scope_kind, scope_relative_path,
+                   status, next_page_index, staged_entry_count, enumeration_complete,
+                   absence_authority, started_unix_ms, updated_unix_ms,
+                   last_issue_code, last_issue_message
+                 ) VALUES (
+                   'superseded-inventory', 'root-a', 1, 2, 'root', '', 'superseded', 2,
+                   1, 1, 1, 3, 4, 'metadata_inventory_newer_epoch',
+                   'A newer metadata inventory superseded this run'
+                 );
+                 INSERT INTO library_metadata_inventory_entries(
+                   run_id, relative_path, entry_kind, file_size, modified_unix_ms,
+                   placeholder_state, is_reparse_point, staged_page_index, staged_unix_ms
+                 ) VALUES (
+                   'superseded-inventory', 'retained.jpg', 'file', 123, 3,
+                   'available', 0, 1, 3
+                 );",
+            )
+            .expect("legacy superseded inventory authority fixture");
+        remove_change_lane_v25_contract_for_test(&connection);
+        match starting_version {
+            23 => connection
+                .execute_batch(
+                    "DROP TRIGGER library_persistent_journal_source_range_id_insert;
+                     DROP TRIGGER library_persistent_journal_source_range_id_update;
+                     ALTER TABLE library_persistent_journal_source_ranges
+                       DROP COLUMN canonical_payload;
+                     ALTER TABLE library_persistent_journal_cross_root_lineage
+                       DROP COLUMN journal_id;
+                     ALTER TABLE library_persistent_journal_cross_root_lineage
+                       DROP COLUMN old_usn;
+                     ALTER TABLE library_persistent_journal_cross_root_lineage
+                       DROP COLUMN new_usn;
+                     ALTER TABLE library_persistent_journal_cross_root_lineage
+                       DROP COLUMN previous_carry_id;
+                     UPDATE schema_info SET version = 23;",
+                )
+                .expect("exact v23 inventory authority fixture"),
+            24 => {
+                connection
+                    .execute("UPDATE schema_info SET version = 24", [])
+                    .expect("exact v24 inventory authority fixture");
+            }
+            _ => panic!("unsupported legacy inventory fixture version {starting_version}"),
+        }
+        drop(connection);
+        catalog
+    }
+
+    fn legacy_unfinished_inventory_catalog(starting_version: i64) -> NamedTempFile {
+        let catalog = legacy_superseded_inventory_authority_catalog(starting_version);
+        let connection =
+            Connection::open(catalog.path()).expect("open unfinished inventory catalog");
+        connection
+            .execute_batch(
+                "INSERT INTO library_metadata_inventory_runs(
+                   id, root_id, root_generation, epoch, scope_kind, scope_relative_path,
+                   status, next_page_index, staged_entry_count, enumeration_complete,
+                   absence_authority, started_unix_ms, updated_unix_ms,
+                   last_issue_code, last_issue_message
+                 ) VALUES (
+                   'unfinished-inventory', 'root-a', 1, 3, 'root', '', 'comparing', 2,
+                   1, 1, 0, 5, 6, 'legacy_inventory_interrupted',
+                   'Legacy inventory was interrupted before migration'
+                 );
+                 INSERT INTO library_metadata_inventory_entries(
+                   run_id, relative_path, entry_kind, file_size, modified_unix_ms,
+                   placeholder_state, is_reparse_point, staged_page_index, staged_unix_ms
+                 ) VALUES (
+                   'unfinished-inventory', 'unfinished.jpg', 'file', 456, 5,
+                   'available', 0, 1, 5
+                 );",
+            )
+            .expect("legacy unfinished inventory fixture");
+        drop(connection);
+        catalog
+    }
+
+    fn current_terminal_inventory_authority_catalog() -> NamedTempFile {
+        let catalog = NamedTempFile::new().expect("current terminal inventory catalog");
+        let mut connection =
+            Connection::open(catalog.path()).expect("open current terminal inventory catalog");
+        migrate_schema(&mut connection).expect("fresh current catalog");
+        connection
+            .execute_batch(
+                "INSERT INTO library_roots(id, path, active_scan_id, created_unix_ms)
+                   VALUES ('root-a', 'C:/source', 'published-scan', 1);
+                 INSERT INTO scan_runs(
+                   id, root_id, status, started_unix_ms, completed_unix_ms, preview_edge
+                 ) VALUES ('published-scan', 'root-a', 'completed', 1, 2, 128);
+                 INSERT INTO library_change_root_state(
+                   root_id, generation, is_active, updated_unix_ms
+                 ) VALUES ('root-a', 1, 1, 2);
+                 INSERT INTO library_persistent_journal_root_state(
+                   root_id, root_generation, protocol_version, contract_version,
+                   capability_state, continuity_state, updated_unix_ms
+                 ) VALUES (
+                   'root-a', 1, 0, 1, 'unknown', 'baseline_required', 2
+                 );
+                 INSERT INTO library_metadata_inventory_runs(
+                   id, root_id, root_generation, epoch, scope_kind, scope_relative_path,
+                   status, next_page_index, staged_entry_count, enumeration_complete,
+                   absence_authority, started_unix_ms, updated_unix_ms, completed_unix_ms,
+                   last_issue_code, last_issue_message
+                 ) VALUES (
+                   'completed-inventory', 'root-a', 1, 1, 'root', '', 'completed', 2,
+                   1, 1, 1, 1, 2, 2, 'completed_inventory_note',
+                   'Completed inventory evidence must remain intact'
+                 );
+                 INSERT INTO library_metadata_inventory_entries(
+                   run_id, relative_path, entry_kind, file_size, modified_unix_ms,
+                   placeholder_state, is_reparse_point, staged_page_index, staged_unix_ms
+                 ) VALUES (
+                   'completed-inventory', 'completed.jpg', 'file', 123, 1,
+                   'available', 0, 1, 1
+                 );
+                 INSERT INTO library_metadata_inventory_runs(
+                   id, root_id, root_generation, epoch, scope_kind, scope_relative_path,
+                   status, next_page_index, staged_entry_count, enumeration_complete,
+                   absence_authority, started_unix_ms, updated_unix_ms,
+                   last_issue_code, last_issue_message
+                 ) VALUES (
+                   'terminal-inventory', 'root-a', 1, 2, 'root', '', 'superseded', 2,
+                   1, 1, 1, 3, 4, 'metadata_inventory_newer_epoch',
+                   'A newer metadata inventory superseded this run'
+                 );
+                 INSERT INTO library_metadata_inventory_entries(
+                   run_id, relative_path, entry_kind, file_size, modified_unix_ms,
+                   placeholder_state, is_reparse_point, staged_page_index, staged_unix_ms
+                 ) VALUES (
+                   'terminal-inventory', 'retained.jpg', 'file', 456, 3,
+                   'available', 0, 1, 3
+                 );
+                 INSERT INTO library_metadata_inventory_runs(
+                   id, root_id, root_generation, epoch, scope_kind, scope_relative_path,
+                   status, next_page_index, staged_entry_count, enumeration_complete,
+                   absence_authority, started_unix_ms, updated_unix_ms
+                 ) VALUES (
+                   'active-inventory', 'root-a', 1, 3, 'root', '', 'running', 1,
+                   0, 0, 0, 5, 5
+                 );
+                 INSERT INTO library_change_queue(
+                   id, root_id, root_generation, intent_kind, scope, relative_path,
+                   origin, first_observed_unix_ms, most_recent_observed_unix_ms,
+                   first_sequence, most_recent_sequence, coalesced_observation_count,
+                   status, ready_unix_ms, catalog_revision_at_enqueue,
+                   created_unix_ms, updated_unix_ms
+                 ) VALUES (
+                   301, 'root-a', 1, 'freshness_unknown', 'root', '',
+                   'consistency_audit', 5, 5, '3', '3', 1, 'pending', 5, 0, 5, 5
+                 );
+                 INSERT INTO library_recovery_authorities(
+                   change_id, run_id, root_id, root_generation, reason, authorized_unix_ms
+                 ) VALUES (
+                   301, 'active-inventory', 'root-a', 1, 'containment_failure', 5
+                 );
+                 INSERT INTO library_metadata_inventory_runs(
+                   id, root_id, root_generation, epoch, scope_kind, scope_relative_path,
+                   status, next_page_index, staged_entry_count, enumeration_complete,
+                   absence_authority, started_unix_ms, updated_unix_ms,
+                   last_issue_code, last_issue_message
+                 ) VALUES (
+                   'terminal-spool-inventory', 'root-a', 1, 4, 'root', '', 'failed', 2,
+                   0, 1, 1, 6, 7, 'legacy_terminal_spool',
+                   'Legacy terminal inventory retained a derived source spool'
+                 );
+                 INSERT INTO library_change_queue(
+                   id, root_id, root_generation, intent_kind, scope, relative_path,
+                   origin, first_observed_unix_ms, most_recent_observed_unix_ms,
+                   first_sequence, most_recent_sequence, coalesced_observation_count,
+                   status, ready_unix_ms, catalog_revision_at_enqueue,
+                   created_unix_ms, updated_unix_ms
+                 ) VALUES (
+                   302, 'root-a', 1, 'freshness_unknown', 'root', '',
+                   'consistency_audit', 6, 6, '4', '4', 1, 'pending', 6, 0, 6, 6
+                 );
+                 INSERT INTO library_recovery_authorities(
+                   change_id, run_id, root_id, root_generation, reason, authorized_unix_ms
+                 ) VALUES (
+                   302, 'terminal-spool-inventory', 'root-a', 1, 'containment_failure', 6
+                 );
+                 INSERT INTO library_metadata_inventory_spools(
+                   run_id, authority_change_id, root_id, root_generation,
+                   root_identity_scheme, root_identity_value,
+                   scope_kind, scope_relative_path, state,
+                   created_unix_ms, updated_unix_ms
+                 ) VALUES (
+                   'terminal-spool-inventory', 302, 'root-a', 1,
+                   'windows-file-id-128-v1',
+                   '000000000000004d:ffffffffffffffffffffffffffffffff',
+                   'root', '', 'enumerating', 6, 6
+                 );
+                 INSERT INTO library_metadata_inventory_spool_directories(
+                   run_id, ordinal, relative_directory, state,
+                   created_unix_ms, updated_unix_ms
+                 ) VALUES (
+                   'terminal-spool-inventory', 0, '', 'pending', 6, 6
+                 );",
+            )
+            .expect("polluted current terminal inventory fixture");
+        drop(connection);
+        catalog
+    }
+
+    fn assert_superseded_inventory_authority_retired(connection: &Connection) {
+        let retained: (i64, String, i64, Option<String>, i64, i64) = connection
+            .query_row(
+                "SELECT
+                   (SELECT version FROM schema_info),
+                   (SELECT status FROM library_metadata_inventory_runs
+                    WHERE id = 'superseded-inventory'),
+                   (SELECT absence_authority FROM library_metadata_inventory_runs
+                    WHERE id = 'superseded-inventory'),
+                   (SELECT last_issue_code FROM library_metadata_inventory_runs
+                    WHERE id = 'superseded-inventory'),
+                   (SELECT COUNT(*) FROM library_metadata_inventory_entries
+                    WHERE run_id = 'superseded-inventory' AND relative_path = 'retained.jpg'),
+                   (SELECT absence_authority FROM library_metadata_inventory_runs
+                    WHERE id = 'completed-inventory')",
+                [],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                        row.get(5)?,
+                    ))
+                },
+            )
+            .expect("retained inventory authority evidence");
+        assert_eq!(
+            retained,
+            (
+                SCHEMA_VERSION,
+                "superseded".to_owned(),
+                0,
+                Some("metadata_inventory_newer_epoch".to_owned()),
+                1,
+                1,
+            )
+        );
+    }
+
+    fn assert_unfinished_inventory_retired(connection: &Connection) {
+        let retained: (
+            i64,
+            String,
+            i64,
+            Option<String>,
+            Option<String>,
+            i64,
+            String,
+            i64,
+        ) = connection
+            .query_row(
+                "SELECT
+                       (SELECT version FROM schema_info),
+                       (SELECT status FROM library_metadata_inventory_runs
+                        WHERE id = 'unfinished-inventory'),
+                       (SELECT absence_authority FROM library_metadata_inventory_runs
+                        WHERE id = 'unfinished-inventory'),
+                       (SELECT last_issue_code FROM library_metadata_inventory_runs
+                        WHERE id = 'unfinished-inventory'),
+                       (SELECT last_issue_message FROM library_metadata_inventory_runs
+                        WHERE id = 'unfinished-inventory'),
+                       (SELECT COUNT(*) FROM library_metadata_inventory_entries
+                        WHERE run_id = 'unfinished-inventory'
+                          AND relative_path = 'unfinished.jpg'),
+                       (SELECT status FROM library_metadata_inventory_runs
+                        WHERE id = 'completed-inventory'),
+                       (SELECT absence_authority FROM library_metadata_inventory_runs
+                        WHERE id = 'completed-inventory')",
+                [],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                        row.get(5)?,
+                        row.get(6)?,
+                        row.get(7)?,
+                    ))
+                },
+            )
+            .expect("retained unfinished inventory evidence");
+        assert_eq!(
+            retained,
+            (
+                SCHEMA_VERSION,
+                "superseded".to_owned(),
+                0,
+                Some("legacy_inventory_interrupted".to_owned()),
+                Some("Legacy inventory was interrupted before migration".to_owned()),
+                1,
+                "completed".to_owned(),
+                1,
+            )
+        );
+    }
+
+    fn assert_current_terminal_inventory_repaired(connection: &Connection) {
+        let terminal: (String, i64, Option<String>, Option<String>, i64) = connection
+            .query_row(
+                "SELECT
+                   (SELECT status FROM library_metadata_inventory_runs
+                    WHERE id = 'terminal-inventory'),
+                   (SELECT absence_authority FROM library_metadata_inventory_runs
+                    WHERE id = 'terminal-inventory'),
+                   (SELECT last_issue_code FROM library_metadata_inventory_runs
+                    WHERE id = 'terminal-inventory'),
+                   (SELECT last_issue_message FROM library_metadata_inventory_runs
+                    WHERE id = 'terminal-inventory'),
+                   (SELECT COUNT(*) FROM library_metadata_inventory_entries
+                    WHERE run_id = 'terminal-inventory' AND relative_path = 'retained.jpg')",
+                [],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                    ))
+                },
+            )
+            .expect("retained terminal inventory evidence");
+        assert_eq!(
+            terminal,
+            (
+                "superseded".to_owned(),
+                0,
+                Some("metadata_inventory_newer_epoch".to_owned()),
+                Some("A newer metadata inventory superseded this run".to_owned()),
+                1,
+            )
+        );
+
+        let completed: (String, i64, Option<String>, i64) = connection
+            .query_row(
+                "SELECT
+                   (SELECT status FROM library_metadata_inventory_runs
+                    WHERE id = 'completed-inventory'),
+                   (SELECT absence_authority FROM library_metadata_inventory_runs
+                    WHERE id = 'completed-inventory'),
+                   (SELECT last_issue_code FROM library_metadata_inventory_runs
+                    WHERE id = 'completed-inventory'),
+                   (SELECT COUNT(*) FROM library_metadata_inventory_entries
+                    WHERE run_id = 'completed-inventory' AND relative_path = 'completed.jpg')",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+            )
+            .expect("retained completed inventory evidence");
+        assert_eq!(
+            completed,
+            (
+                "completed".to_owned(),
+                1,
+                Some("completed_inventory_note".to_owned()),
+                1,
+            )
+        );
+
+        let active: (String, i64, i64) = connection
+            .query_row(
+                "SELECT
+                   (SELECT status FROM library_metadata_inventory_runs
+                    WHERE id = 'active-inventory'),
+                   (SELECT absence_authority FROM library_metadata_inventory_runs
+                    WHERE id = 'active-inventory'),
+                   (SELECT COUNT(*) FROM library_recovery_authorities
+                    WHERE run_id = 'active-inventory' AND retired_unix_ms IS NULL)",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .expect("retained active inventory evidence");
+        assert_eq!(active, ("running".to_owned(), 0, 1));
+        let terminal_spool: (String, i64, Option<String>, i64, i64, i64) = connection
+            .query_row(
+                "SELECT
+                   (SELECT status FROM library_metadata_inventory_runs
+                    WHERE id = 'terminal-spool-inventory'),
+                   (SELECT absence_authority FROM library_metadata_inventory_runs
+                    WHERE id = 'terminal-spool-inventory'),
+                   (SELECT last_issue_code FROM library_metadata_inventory_runs
+                    WHERE id = 'terminal-spool-inventory'),
+                   (SELECT COUNT(*) FROM library_metadata_inventory_spools
+                    WHERE run_id = 'terminal-spool-inventory'),
+                   (SELECT COUNT(*) FROM library_metadata_inventory_spool_directories
+                    WHERE run_id = 'terminal-spool-inventory'),
+                   (SELECT COUNT(*) FROM library_recovery_authorities
+                    WHERE run_id = 'terminal-spool-inventory' AND retired_unix_ms IS NULL)",
+                [],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                        row.get(5)?,
+                    ))
+                },
+            )
+            .expect("retained terminal spool evidence");
+        assert_eq!(
+            terminal_spool,
+            (
+                "failed".to_owned(),
+                1,
+                Some("legacy_terminal_spool".to_owned()),
+                0,
+                0,
+                1,
+            )
+        );
     }
 
     fn remove_metadata_inventory_spool_v27_contract_for_test(connection: &Connection) {
@@ -10451,6 +11144,227 @@ mod tests {
     }
 
     #[test]
+    fn v23_migration_retires_superseded_inventory_absence_authority() {
+        let catalog = legacy_superseded_inventory_authority_catalog(23);
+        let mut connection = Connection::open(catalog.path()).expect("open v23 inventory catalog");
+
+        migrate_schema(&mut connection).expect("migrate retained v23 inventory authority");
+        assert_superseded_inventory_authority_retired(&connection);
+        drop(connection);
+
+        let mut reopened = Connection::open(catalog.path()).expect("reopen migrated v23 catalog");
+        migrate_schema(&mut reopened).expect("validate reopened v23 migration");
+        assert_superseded_inventory_authority_retired(&reopened);
+    }
+
+    #[test]
+    fn v24_migration_retires_superseded_inventory_absence_authority_before_lane_validation() {
+        let catalog = legacy_superseded_inventory_authority_catalog(24);
+        let mut connection = Connection::open(catalog.path()).expect("open v24 inventory catalog");
+
+        migrate_schema(&mut connection).expect("migrate retained v24 inventory authority");
+        assert_superseded_inventory_authority_retired(&connection);
+        drop(connection);
+
+        let mut reopened = Connection::open(catalog.path()).expect("reopen migrated v24 catalog");
+        migrate_schema(&mut reopened).expect("validate reopened v24 migration");
+        assert_superseded_inventory_authority_retired(&reopened);
+    }
+
+    #[test]
+    fn v23_migration_retires_unfinished_inventory_before_journal_validation() {
+        let catalog = legacy_unfinished_inventory_catalog(23);
+        let mut connection = Connection::open(catalog.path()).expect("open v23 inventory catalog");
+
+        migrate_schema(&mut connection).expect("migrate unfinished v23 inventory");
+        assert_unfinished_inventory_retired(&connection);
+        assert_superseded_inventory_authority_retired(&connection);
+        drop(connection);
+
+        let mut reopened = Connection::open(catalog.path()).expect("reopen migrated v23 catalog");
+        migrate_schema(&mut reopened).expect("validate reopened unfinished v23 migration");
+        assert_unfinished_inventory_retired(&reopened);
+        assert_superseded_inventory_authority_retired(&reopened);
+    }
+
+    #[test]
+    fn v24_migration_retires_unfinished_inventory_before_lane_validation() {
+        let catalog = legacy_unfinished_inventory_catalog(24);
+        let mut connection = Connection::open(catalog.path()).expect("open v24 inventory catalog");
+
+        migrate_schema(&mut connection).expect("migrate unfinished v24 inventory");
+        assert_unfinished_inventory_retired(&connection);
+        assert_superseded_inventory_authority_retired(&connection);
+        drop(connection);
+
+        let mut reopened = Connection::open(catalog.path()).expect("reopen migrated v24 catalog");
+        migrate_schema(&mut reopened).expect("validate reopened unfinished v24 migration");
+        assert_unfinished_inventory_retired(&reopened);
+        assert_superseded_inventory_authority_retired(&reopened);
+    }
+
+    #[test]
+    fn clean_current_schema_validates_once_without_write_admission() {
+        let mut connection = Connection::open_in_memory().expect("clean catalog");
+        migrate_schema(&mut connection).expect("create current catalog");
+        connection
+            .execute_batch("PRAGMA query_only = ON")
+            .expect("make clean current catalog read only");
+
+        super::reset_current_schema_validation_count();
+        migrate_schema(&mut connection).expect("validate clean current catalog");
+
+        assert_eq!(super::current_schema_validation_count(), 1);
+    }
+
+    #[test]
+    fn current_schema_repairs_orphaned_terminal_inventory_authority_before_validation() {
+        let catalog = current_terminal_inventory_authority_catalog();
+        let catalog_path = catalog.path().to_path_buf();
+
+        let reopened = SqliteCatalog::open(catalog_path.clone())
+            .expect("reopen current terminal inventory catalog");
+        drop(reopened);
+        let evidence = Connection::open(&catalog_path).expect("open repaired current evidence");
+        assert_current_terminal_inventory_repaired(&evidence);
+        drop(evidence);
+
+        let reopened = SqliteCatalog::open(catalog_path.clone())
+            .expect("idempotently reopen current terminal inventory catalog");
+        drop(reopened);
+        let evidence = Connection::open(catalog_path).expect("reopen repaired current evidence");
+        assert_current_terminal_inventory_repaired(&evidence);
+    }
+
+    #[test]
+    fn current_schema_repair_rolls_back_when_active_inventory_has_no_authority() {
+        let catalog = current_terminal_inventory_authority_catalog();
+        let catalog_path = catalog.path().to_path_buf();
+        let connection = Connection::open(&catalog_path).expect("open invalid active fixture");
+        connection
+            .execute(
+                "DELETE FROM library_recovery_authorities WHERE change_id = 301",
+                [],
+            )
+            .expect("remove active inventory authority");
+        drop(connection);
+
+        let error = match SqliteCatalog::open(catalog_path.clone()) {
+            Ok(_) => panic!("unowned active inventory must fail closed"),
+            Err(error) => error,
+        };
+        assert_eq!(
+            error.code,
+            "catalog_persistent_journal_contract_unverifiable"
+        );
+        let evidence = Connection::open(catalog_path).expect("open rolled-back repair evidence");
+        let retained: (i64, i64, i64) = evidence
+            .query_row(
+                "SELECT
+                   (SELECT absence_authority FROM library_metadata_inventory_runs
+                    WHERE id = 'terminal-inventory'),
+                   (SELECT COUNT(*) FROM library_metadata_inventory_spools
+                    WHERE run_id = 'terminal-spool-inventory'),
+                   (SELECT COUNT(*) FROM library_recovery_authorities
+                    WHERE run_id = 'active-inventory' AND retired_unix_ms IS NULL)",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .expect("load rolled-back repair evidence");
+        assert_eq!(retained, (1, 1, 0));
+    }
+
+    #[test]
+    fn current_schema_repair_does_not_write_through_malformed_inventory_ddl() {
+        let catalog = current_terminal_inventory_authority_catalog();
+        let catalog_path = catalog.path().to_path_buf();
+        let connection = Connection::open(&catalog_path).expect("open malformed inventory fixture");
+        let original = connection
+            .query_row(
+                "SELECT sql FROM sqlite_master
+                 WHERE type = 'table' AND name = 'library_metadata_inventory_runs'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .expect("canonical inventory run DDL");
+        let modified = original.replacen(
+            "CHECK(enumeration_complete = 1 OR absence_authority = 0)",
+            "CHECK(1)",
+            1,
+        );
+        assert_ne!(modified, original);
+        connection
+            .execute_batch("PRAGMA writable_schema = ON")
+            .expect("enable controlled inventory DDL mutation");
+        connection
+            .execute(
+                "UPDATE sqlite_master SET sql = ?1
+                 WHERE type = 'table' AND name = 'library_metadata_inventory_runs'",
+                [modified],
+            )
+            .expect("weaken inventory run DDL");
+        connection
+            .execute_batch("PRAGMA writable_schema = OFF; PRAGMA schema_version = 1300")
+            .expect("publish controlled inventory DDL mutation");
+        drop(connection);
+
+        let error = match SqliteCatalog::open(catalog_path.clone()) {
+            Ok(_) => panic!("malformed inventory DDL must not be normalized through"),
+            Err(error) => error,
+        };
+        assert_eq!(
+            error.code,
+            "catalog_persistent_journal_contract_unverifiable"
+        );
+        let evidence = Connection::open(catalog_path).expect("open malformed repair evidence");
+        let retained: (i64, i64) = evidence
+            .query_row(
+                "SELECT
+                   (SELECT absence_authority FROM library_metadata_inventory_runs
+                    WHERE id = 'terminal-inventory'),
+                   (SELECT COUNT(*) FROM library_metadata_inventory_spools
+                    WHERE run_id = 'terminal-spool-inventory')",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .expect("load malformed repair evidence");
+        assert_eq!(retained, (1, 1));
+    }
+
+    #[test]
+    fn v27_terminal_spool_is_retired_before_spool_validation() {
+        let catalog = v27_root_proof_phase_catalog("inventory");
+        let mut connection = Connection::open(catalog.path()).expect("open v27 terminal spool");
+        connection
+            .execute(
+                "UPDATE library_metadata_inventory_runs
+                 SET status = 'superseded',
+                     last_issue_code = 'metadata_inventory_newer_epoch',
+                     last_issue_message = 'A newer metadata inventory superseded this run'
+                 WHERE id = 'lifecycle-run'",
+                [],
+            )
+            .expect("pollute v27 terminal spool");
+
+        migrate_schema(&mut connection).expect("migrate v27 terminal spool catalog");
+        let migrated: (i64, String, i64, i64) = connection
+            .query_row(
+                "SELECT
+                   (SELECT version FROM schema_info),
+                   (SELECT status FROM library_metadata_inventory_runs
+                    WHERE id = 'lifecycle-run'),
+                   (SELECT COUNT(*) FROM library_metadata_inventory_spools
+                    WHERE run_id = 'lifecycle-run'),
+                   (SELECT COUNT(*) FROM library_recovery_authorities
+                    WHERE run_id = 'lifecycle-run' AND retired_unix_ms IS NULL)",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+            )
+            .expect("load migrated v27 terminal spool evidence");
+        assert_eq!(migrated, (SCHEMA_VERSION, "running".to_owned(), 0, 1));
+    }
+
+    #[test]
     fn v24_forward_migration_and_pending_carry_ddl_are_exact() {
         let mut connection = Connection::open_in_memory().expect("catalog");
         migrate_schema(&mut connection).expect("fresh current catalog");
@@ -11347,6 +12261,69 @@ mod tests {
 
         let error = reopen_recovery_lifecycle_catalog(&catalog)
             .expect_err("active baseline cannot lose its authority");
+        assert_eq!(
+            error.code,
+            "catalog_persistent_journal_baseline_contract_unverifiable"
+        );
+    }
+
+    #[test]
+    fn current_schema_rejects_active_run_owned_by_a_different_baseline_authority() {
+        let catalog = active_frontier_catalog();
+        let connection = Connection::open(catalog.path()).expect("mutate active lifecycle");
+        connection
+            .execute_batch(
+                "INSERT INTO library_change_queue(
+                   id, root_id, root_generation, intent_kind, scope, relative_path,
+                   origin, first_observed_unix_ms, most_recent_observed_unix_ms,
+                   first_sequence, most_recent_sequence, coalesced_observation_count,
+                   status, ready_unix_ms, catalog_revision_at_enqueue,
+                   created_unix_ms, updated_unix_ms
+                 ) VALUES (
+                   902, 'lifecycle-root', 1, 'freshness_unknown', 'root', '',
+                   'metadata_inventory', 2, 2, '2', '2', 1,
+                   'pending', 2, 0, 2, 2
+                 );
+                 UPDATE library_recovery_authorities
+                 SET run_id = 'baseline-waiting-run' WHERE change_id = 901;
+                 INSERT INTO library_recovery_authorities(
+                   change_id, run_id, root_id, root_generation, reason,
+                   authorized_unix_ms
+                 ) VALUES (
+                   902, 'lifecycle-run', 'lifecycle-root', 1,
+                   'watcher_uncovered_gap', 2
+                 );",
+            )
+            .expect("insert mismatched active authority");
+        drop(connection);
+
+        let error = reopen_recovery_lifecycle_catalog(&catalog)
+            .expect_err("active run must own the unfinished baseline authority");
+        assert_eq!(
+            error.code,
+            "catalog_persistent_journal_baseline_contract_unverifiable"
+        );
+    }
+
+    #[test]
+    fn current_schema_rejects_terminal_run_still_referenced_by_unfinished_baseline() {
+        let catalog = recovery_lifecycle_catalog(false);
+        let connection = Connection::open(catalog.path()).expect("mutate active lifecycle");
+        connection
+            .execute_batch(
+                "INSERT INTO library_metadata_inventory_runs(
+                   id, root_id, root_generation, epoch, scope_kind, scope_relative_path,
+                   status, next_page_index, started_unix_ms, updated_unix_ms
+                 ) VALUES (
+                   'lifecycle-run', 'lifecycle-root', 1, 1, 'root', '',
+                   'failed', 1, 1, 2
+                 );",
+            )
+            .expect("insert terminal run referenced by unfinished baseline");
+        drop(connection);
+
+        let error = reopen_recovery_lifecycle_catalog(&catalog)
+            .expect_err("unfinished baseline cannot retain a terminal run owner");
         assert_eq!(
             error.code,
             "catalog_persistent_journal_baseline_contract_unverifiable"

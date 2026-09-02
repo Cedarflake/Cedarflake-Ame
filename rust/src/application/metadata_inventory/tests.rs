@@ -21,15 +21,16 @@ use crate::application::{
 };
 use crate::domain::{
     FileIdentityEvidence, IncrementalCatalogRoot, JournalFileReference, JournalIdentifier,
-    JournalUsn, LeasedLibraryChange, LibraryChangeId, LibraryChangeIntent, LibraryChangeIntentKind,
-    LibraryChangeOrigin, LibraryChangeQueuePolicy, LibraryChangeScope, LibraryRecoveryAuthority,
-    LibraryRecoveryAuthorityReason, LibraryRootGeneration, MetadataInventoryEntry,
-    MetadataInventoryEntryKind, MetadataInventoryFrontierEntry, MetadataInventoryPage,
-    MetadataInventoryPlaceholderState, MetadataInventoryRun, MetadataInventoryRunRequest,
-    MetadataInventoryRunStatus, MetadataInventoryScope, MetadataInventoryStartRequest,
-    PersistentJournalBaselineClosingBoundary, PersistentJournalBaselineStartRequest,
-    PersistentJournalCapability, PersistentJournalCapabilityState,
-    PersistentJournalContinuityState, PersistentJournalVolumeIdentity, ScanError, ScanRequest,
+    JournalUsn, LeasedLibraryChange, LibraryChangeFailure, LibraryChangeId, LibraryChangeIntent,
+    LibraryChangeIntentKind, LibraryChangeOrigin, LibraryChangeQueuePolicy, LibraryChangeScope,
+    LibraryRecoveryAuthority, LibraryRecoveryAuthorityReason, LibraryRootGeneration,
+    MetadataInventoryEntry, MetadataInventoryEntryKind, MetadataInventoryFrontierEntry,
+    MetadataInventoryPage, MetadataInventoryPlaceholderState, MetadataInventoryRun,
+    MetadataInventoryRunRequest, MetadataInventoryRunStatus, MetadataInventoryScope,
+    MetadataInventoryStartRequest, PersistentJournalBaselineClosingBoundary,
+    PersistentJournalBaselineStartRequest, PersistentJournalCapability,
+    PersistentJournalCapabilityState, PersistentJournalContinuityState,
+    PersistentJournalVolumeIdentity, ScanError, ScanRequest,
 };
 use crate::ports::{
     CatalogRepository, IncrementalCatalogRepository, LibraryChangeQueue,
@@ -1259,6 +1260,125 @@ fn newer_epoch_supersedes_an_orphaned_active_run_and_cleanup_stays_bounded() {
 }
 
 #[test]
+fn newer_epoch_revokes_superseded_absence_authority_and_catalog_reopens() {
+    let mut fixture = InventoryFixture::new(&[]);
+    let first = fixture.request();
+    fixture
+        .catalog
+        .begin_metadata_inventory(&first)
+        .expect("begin first inventory");
+    fixture
+        .catalog
+        .stage_metadata_inventory_page(
+            &first.run_id,
+            &MetadataInventoryPage {
+                page_index: 1,
+                entries: vec![metadata_entry("retained-authority.txt")],
+                cursor: Some("retained-authority.txt".to_owned()),
+                is_complete: true,
+                frontier: vec![MetadataInventoryFrontierEntry::completed("", None)],
+            },
+            2_100,
+        )
+        .expect("complete first enumeration");
+    let authorized = fixture
+        .catalog
+        .authorize_metadata_inventory_absence(&first.run_id, 2_200)
+        .expect("authorize first inventory absence");
+    assert_eq!(authorized.status, MetadataInventoryRunStatus::Comparing);
+    assert!(authorized.absence_authority);
+
+    let second = MetadataInventoryRunRequest {
+        run_id: "inventory-2".to_owned(),
+        epoch: 2,
+        started_unix_ms: 3_000,
+        ..first.clone()
+    };
+    let _second_authority =
+        enqueue_authorized_recovery_control(&mut fixture, &second.run_id, 3_000);
+    fixture
+        .catalog
+        .begin_metadata_inventory(&second)
+        .expect("begin newer inventory epoch");
+
+    let superseded = fixture
+        .catalog
+        .load_metadata_inventory_run(&first.run_id)
+        .expect("load first run")
+        .expect("superseded run");
+    assert_eq!(superseded.status, MetadataInventoryRunStatus::Superseded);
+    let catalog_path = fixture.catalog.catalog_path().to_path_buf();
+    drop(fixture.catalog);
+    let reopened = SqliteCatalog::open(catalog_path);
+    let reopen_error = reopened
+        .as_ref()
+        .err()
+        .map(|error| format!("{}: {}", error.code, error.message));
+    assert!(
+        !superseded.absence_authority && reopened.is_ok(),
+        "newer epoch retained absence_authority={} and reopen_error={reopen_error:?}",
+        superseded.absence_authority,
+    );
+}
+
+#[test]
+fn terminalization_revokes_absence_authority_and_catalog_reopens() {
+    let mut fixture = InventoryFixture::new(&[]);
+    let request = fixture.request();
+    fixture
+        .catalog
+        .begin_metadata_inventory(&request)
+        .expect("begin inventory");
+    fixture
+        .catalog
+        .stage_metadata_inventory_page(
+            &request.run_id,
+            &MetadataInventoryPage {
+                page_index: 1,
+                entries: vec![metadata_entry("retained-terminal.txt")],
+                cursor: Some("retained-terminal.txt".to_owned()),
+                is_complete: true,
+                frontier: vec![MetadataInventoryFrontierEntry::completed("", None)],
+            },
+            2_100,
+        )
+        .expect("complete inventory enumeration");
+    fixture
+        .catalog
+        .authorize_metadata_inventory_absence(&request.run_id, 2_200)
+        .expect("authorize inventory absence");
+    fixture
+        .catalog
+        .terminate_metadata_inventory(
+            &request.run_id,
+            MetadataInventoryRunStatus::Failed,
+            Some(("fixture_failure", "fixture failure")),
+            2_300,
+        )
+        .expect("terminate authoritative inventory");
+
+    let terminal = fixture
+        .catalog
+        .load_metadata_inventory_run(&request.run_id)
+        .expect("load terminal inventory")
+        .expect("terminal inventory");
+    assert_eq!(terminal.status, MetadataInventoryRunStatus::Failed);
+    assert_eq!(terminal.last_issue_code.as_deref(), Some("fixture_failure"));
+    let catalog_path = fixture.catalog.catalog_path().to_path_buf();
+    drop(fixture.catalog);
+    let reopened = SqliteCatalog::open(catalog_path);
+    let reopen_error = reopened
+        .as_ref()
+        .err()
+        .map(|error| format!("{}: {}", error.code, error.message));
+    assert!(
+        !terminal.absence_authority && reopened.is_ok(),
+        "terminal inventory retained absence_authority={} and reopen_error={reopen_error:?}",
+        terminal.absence_authority,
+    );
+}
+
+#[test]
 fn next_epoch_is_allocated_atomically_and_does_not_depend_on_wall_clock_order() {
     let mut fixture = InventoryFixture::new(&[]);
     let first = fixture
@@ -2330,19 +2450,22 @@ fn newer_gap_supersedes_an_incomplete_inventory_epoch_and_its_staged_candidates(
     )
     .expect("start first epoch");
     assert!(!first_report.inventory.is_complete);
+    let first_spool = rusqlite::Connection::open(fixture.catalog.catalog_path())
+        .expect("open first epoch spool evidence");
+    let first_spool_state: (i64, i64) = first_spool
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM library_metadata_inventory_spools WHERE run_id = ?1),
+               (SELECT COUNT(*) FROM library_metadata_inventory_spool_directories
+                WHERE run_id = ?1)",
+            [&first_run_id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .expect("load first epoch spool evidence");
+    assert_eq!(first_spool_state.0, 1);
+    assert!(first_spool_state.1 > 0);
+    drop(first_spool);
 
-    let newer_intent = LibraryChangeIntent {
-        origin: LibraryChangeOrigin::ConsistencyAudit,
-        first_observed_unix_ms: 3_000,
-        most_recent_observed_unix_ms: 3_000,
-        first_sequence: 2,
-        most_recent_sequence: 2,
-        ..first_intent
-    };
-    fixture
-        .catalog
-        .enqueue_library_change_intents(&[newer_intent], 3_000, policy)
-        .expect("enqueue newer gap");
     let second_lease = fixture
         .catalog
         .lease_authoritative_library_change(
@@ -2353,7 +2476,9 @@ fn newer_gap_supersedes_an_incomplete_inventory_epoch_and_its_staged_candidates(
         )
         .expect("lease newer epoch")
         .expect("newer epoch");
-    let second_run_id = metadata_inventory_run_id(&second_lease);
+    assert_eq!(second_lease.change.id, first_lease.change.id);
+    assert!(second_lease.lease_generation > first_lease.lease_generation);
+    let second_run_id = "same-authority-newer-inventory-run".to_owned();
     authorize_leased_containment_recovery(&mut fixture, &second_lease, &second_run_id, 3_000);
     process_leased_metadata_inventory_change(
         &mut fixture.catalog,
@@ -2378,8 +2503,356 @@ fn newer_gap_supersedes_an_incomplete_inventory_epoch_and_its_staged_candidates(
         .expect("second run");
     assert_eq!(first_run.status, MetadataInventoryRunStatus::Superseded);
     assert_eq!(second_run.request.epoch, first_run.request.epoch + 1);
+    assert!(first_run.frontier.iter().all(|entry| {
+        entry.state == crate::domain::MetadataInventoryFrontierState::Completed
+            && entry.resume_after_relative_path.is_none()
+            && entry.enumerated_entry_count == 0
+    }));
+
+    let catalog_path = fixture.catalog.catalog_path().to_path_buf();
+    drop(fixture.catalog);
+    let reopened =
+        SqliteCatalog::open(catalog_path.clone()).expect("reopen superseded spool catalog");
+    drop(reopened);
+    let evidence =
+        rusqlite::Connection::open(catalog_path).expect("open superseded spool evidence");
+    let old_spool_state: (i64, i64, i64, i64) = evidence
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM library_metadata_inventory_spools WHERE run_id = ?1),
+               (SELECT COUNT(*) FROM library_metadata_inventory_spool_directories
+                WHERE run_id = ?1),
+               (SELECT COUNT(*) FROM library_metadata_inventory_spool_entries
+                WHERE run_id = ?1),
+               (SELECT COUNT(*) FROM library_metadata_inventory_frontier
+                WHERE run_id = ?1 AND (
+                  state <> 'completed' OR resume_after_relative_path IS NOT NULL
+                  OR enumerated_entry_count <> 0
+                ))",
+            [&first_run_id],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        )
+        .expect("load superseded spool evidence");
+    assert_eq!(old_spool_state, (0, 0, 0, 0));
 }
 
+#[test]
+fn active_p2_owner_keeps_exact_lease_affinity_until_completion() {
+    let mut fixture =
+        InventoryFixture::new(&["first.png", "second.png", "third.png", "fourth.png"]);
+    let policy = queue_policy();
+    let old_run_id = "active-affinity-old-run";
+    let old_lease = enqueue_authorized_recovery_control_with_reason(
+        &mut fixture,
+        old_run_id,
+        1_000,
+        LibraryRecoveryAuthorityReason::WatcherUncoveredGap,
+    );
+    let root = fixture
+        .catalog
+        .load_incremental_catalog_root(&fixture.root_id)
+        .expect("load root")
+        .expect("root");
+    let first_page = process_leased_metadata_inventory_change(
+        &mut fixture.catalog,
+        &root,
+        &old_lease,
+        1_000,
+        1,
+        policy,
+        &AtomicBool::new(false),
+    )
+    .expect("start exact older P2 owner");
+    assert!(!first_page.inventory.is_complete);
+
+    fixture
+        .catalog
+        .enqueue_library_change_intents(
+            &[LibraryChangeIntent {
+                root_id: fixture.root_id.clone(),
+                root_generation: LibraryRootGeneration::initial(),
+                kind: LibraryChangeIntentKind::FreshnessUnknown,
+                scope: LibraryChangeScope::Root,
+                relative_path: String::new(),
+                previous_relative_path: None,
+                origin: LibraryChangeOrigin::LiveNotification,
+                first_observed_unix_ms: 3_000,
+                most_recent_observed_unix_ms: 3_000,
+                first_sequence: 2,
+                most_recent_sequence: 2,
+                coalesced_observation_count: 1,
+            }],
+            3_000,
+            policy,
+        )
+        .expect("enqueue distinct newer live gap");
+    let live_gap = fixture
+        .catalog
+        .lease_live_authoritative_library_change(
+            &fixture.root_id,
+            LibraryRootGeneration::initial(),
+            3_000,
+            policy,
+        )
+        .expect("lease distinct newer live gap")
+        .expect("distinct newer live gap");
+    assert_ne!(live_gap.change.id, old_lease.change.id);
+    fixture
+        .catalog
+        .promote_live_watcher_gap_to_metadata_inventory(
+            live_gap.change.id,
+            live_gap.lease_generation,
+            &LibraryChangeFailure {
+                code: "metadata_inventory_required".to_owned(),
+                message: "Fixture watcher gap requires metadata inventory".to_owned(),
+            },
+            3_000,
+            policy,
+        )
+        .expect("promote distinct newer live gap");
+
+    let (new_change_id, new_run_id): (i64, String) =
+        rusqlite::Connection::open(fixture.catalog.catalog_path())
+            .expect("open distinct authority evidence")
+            .query_row(
+                "SELECT change_id, run_id
+                 FROM library_recovery_authorities
+                 WHERE root_id = ?1 AND root_generation = 1
+                   AND reason = 'watcher_uncovered_gap'
+                   AND retired_unix_ms IS NULL AND change_id <> ?2",
+                rusqlite::params![
+                    &fixture.root_id,
+                    i64::try_from(old_lease.change.id.value()).expect("old change ID"),
+                ],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .expect("load distinct newer authority");
+    let new_change_id =
+        LibraryChangeId::new(u64::try_from(new_change_id).expect("positive newer change ID"))
+            .expect("nonzero newer change ID");
+    let old_run = fixture
+        .catalog
+        .load_metadata_inventory_run(old_run_id)
+        .expect("load active old run")
+        .expect("active old run");
+    let rejected_request = MetadataInventoryRunRequest {
+        run_id: new_run_id.clone(),
+        root_id: fixture.root_id.clone(),
+        root_generation: LibraryRootGeneration::initial(),
+        epoch: old_run.request.epoch + 1,
+        scope: MetadataInventoryScope::Root,
+        started_unix_ms: 3_000,
+    };
+    let state = |path: &Path| {
+        rusqlite::Connection::open(path)
+            .expect("open owner state")
+            .query_row(
+                "SELECT old_queue.status, old_queue.lease_generation,
+                        old_authority.retired_unix_ms, old_run.status,
+                        (SELECT COUNT(*) FROM library_metadata_inventory_spools
+                         WHERE run_id = old_run.id),
+                        (SELECT COUNT(*) FROM library_metadata_inventory_frontier
+                         WHERE run_id = old_run.id AND state <> 'completed'),
+                        new_queue.status, new_queue.lease_generation,
+                        new_authority.retired_unix_ms,
+                        (SELECT COUNT(*) FROM library_metadata_inventory_runs
+                         WHERE id = new_authority.run_id)
+                 FROM library_change_queue AS old_queue
+                 JOIN library_recovery_authorities AS old_authority
+                   ON old_authority.change_id = old_queue.id
+                 JOIN library_metadata_inventory_runs AS old_run
+                   ON old_run.id = old_authority.run_id
+                 JOIN library_change_queue AS new_queue ON new_queue.id = ?2
+                 JOIN library_recovery_authorities AS new_authority
+                   ON new_authority.change_id = new_queue.id
+                 WHERE old_queue.id = ?1",
+                rusqlite::params![
+                    i64::try_from(old_lease.change.id.value()).expect("old change ID"),
+                    i64::try_from(new_change_id.value()).expect("new change ID"),
+                ],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, i64>(1)?,
+                        row.get::<_, Option<i64>>(2)?,
+                        row.get::<_, String>(3)?,
+                        row.get::<_, i64>(4)?,
+                        row.get::<_, i64>(5)?,
+                        row.get::<_, String>(6)?,
+                        row.get::<_, i64>(7)?,
+                        row.get::<_, Option<i64>>(8)?,
+                        row.get::<_, i64>(9)?,
+                    ))
+                },
+            )
+            .expect("load owner state")
+    };
+    let before_rejection = state(fixture.catalog.catalog_path());
+    let error = fixture
+        .catalog
+        .begin_metadata_inventory(&rejected_request)
+        .expect_err("distinct P2 authority must not supersede the active owner");
+    assert_eq!(error.code, "metadata_inventory_active_authority_conflict");
+    assert_eq!(state(fixture.catalog.catalog_path()), before_rejection);
+
+    let mut old_completed = false;
+    for now_unix_ms in 3_200..3_240 {
+        let lease = fixture
+            .catalog
+            .lease_metadata_inventory_recovery(
+                &fixture.root_id,
+                LibraryRootGeneration::initial(),
+                now_unix_ms,
+                policy,
+            )
+            .expect("lease exact active P2 owner")
+            .expect("exact active P2 owner remains leaseable");
+        assert_eq!(lease.change.id, old_lease.change.id);
+        let new_state: (String, Option<i64>, i64) =
+            rusqlite::Connection::open(fixture.catalog.catalog_path())
+                .expect("open deferred newer owner evidence")
+                .query_row(
+                    "SELECT queue.status, authority.retired_unix_ms,
+                            (SELECT COUNT(*) FROM library_metadata_inventory_runs
+                             WHERE id = authority.run_id)
+                     FROM library_change_queue AS queue
+                     JOIN library_recovery_authorities AS authority
+                       ON authority.change_id = queue.id
+                     WHERE queue.id = ?1",
+                    [i64::try_from(new_change_id.value()).expect("new change ID")],
+                    |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+                )
+                .expect("load deferred newer owner evidence");
+        assert_eq!(new_state, ("pending".to_owned(), None, 0));
+        let report = process_leased_metadata_inventory_change(
+            &mut fixture.catalog,
+            &root,
+            &lease,
+            now_unix_ms,
+            128,
+            policy,
+            &AtomicBool::new(false),
+        )
+        .expect("continue exact active P2 owner");
+        if report.inventory.is_complete {
+            old_completed = true;
+            break;
+        }
+    }
+    assert!(old_completed, "the exact old P2 owner did not complete");
+
+    let new_lease = fixture
+        .catalog
+        .lease_metadata_inventory_recovery(
+            &fixture.root_id,
+            LibraryRootGeneration::initial(),
+            4_000,
+            policy,
+        )
+        .expect("lease newer owner after exact owner completion")
+        .expect("newer owner becomes leaseable after exact owner completion");
+    assert_eq!(new_lease.change.id, new_change_id);
+    let mut next_lease = Some(new_lease);
+    let mut new_completed = false;
+    for now_unix_ms in 4_000..4_040 {
+        let lease = next_lease.take().unwrap_or_else(|| {
+            fixture
+                .catalog
+                .lease_metadata_inventory_recovery(
+                    &fixture.root_id,
+                    LibraryRootGeneration::initial(),
+                    now_unix_ms,
+                    policy,
+                )
+                .expect("lease newer owner continuation")
+                .expect("newer owner remains leaseable")
+        });
+        assert_eq!(lease.change.id, new_change_id);
+        let report = process_leased_metadata_inventory_change(
+            &mut fixture.catalog,
+            &root,
+            &lease,
+            now_unix_ms,
+            128,
+            policy,
+            &AtomicBool::new(false),
+        )
+        .expect("process newer P2 owner");
+        if report.inventory.is_complete {
+            new_completed = true;
+            break;
+        }
+    }
+    assert!(new_completed, "the newer P2 owner did not converge");
+    assert!(
+        fixture
+            .catalog
+            .lease_metadata_inventory_recovery(
+                &fixture.root_id,
+                LibraryRootGeneration::initial(),
+                5_000,
+                policy,
+            )
+            .expect("verify no terminal recovery lease")
+            .is_none()
+    );
+
+    let catalog_path = fixture.catalog.catalog_path().to_path_buf();
+    drop(fixture.catalog);
+    drop(
+        SqliteCatalog::open(catalog_path.clone()).expect("reopen converged owner-affinity catalog"),
+    );
+    let terminal: (
+        String,
+        Option<i64>,
+        String,
+        i64,
+        String,
+        Option<i64>,
+        String,
+    ) = rusqlite::Connection::open(catalog_path)
+        .expect("open terminal owner evidence")
+        .query_row(
+            "SELECT old_queue.status, old_authority.retired_unix_ms, old_run.status,
+                        (SELECT COUNT(*) FROM library_metadata_inventory_spools
+                         WHERE run_id = old_run.id),
+                        new_queue.status, new_authority.retired_unix_ms, new_run.status
+                 FROM library_change_queue AS old_queue
+                 JOIN library_recovery_authorities AS old_authority
+                   ON old_authority.change_id = old_queue.id
+                 JOIN library_metadata_inventory_runs AS old_run
+                   ON old_run.id = old_authority.run_id
+                 JOIN library_change_queue AS new_queue ON new_queue.id = ?2
+                 JOIN library_recovery_authorities AS new_authority
+                   ON new_authority.change_id = new_queue.id
+                 JOIN library_metadata_inventory_runs AS new_run
+                   ON new_run.id = new_authority.run_id
+                 WHERE old_queue.id = ?1",
+            rusqlite::params![
+                i64::try_from(old_lease.change.id.value()).expect("old change ID"),
+                i64::try_from(new_change_id.value()).expect("new change ID"),
+            ],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                    row.get(5)?,
+                    row.get(6)?,
+                ))
+            },
+        )
+        .expect("load terminal owner evidence");
+    assert_eq!(terminal.0, "completed");
+    assert!(terminal.1.is_some());
+    assert_eq!(terminal.2, "completed");
+    assert_eq!(terminal.3, 0);
+    assert_eq!(terminal.4, "completed");
+    assert!(terminal.5.is_some());
+    assert_eq!(terminal.6, "completed");
+}
 #[test]
 fn inventory_failure_exhausts_durable_retry_without_starting_a_full_scan() {
     let mut fixture = InventoryFixture::new(&[]);
@@ -3326,6 +3799,20 @@ fn enqueue_authorized_recovery_control(
     run_id: &str,
     observed_unix_ms: i64,
 ) -> LeasedLibraryChange {
+    enqueue_authorized_recovery_control_with_reason(
+        fixture,
+        run_id,
+        observed_unix_ms,
+        LibraryRecoveryAuthorityReason::ContainmentFailure,
+    )
+}
+
+fn enqueue_authorized_recovery_control_with_reason(
+    fixture: &mut InventoryFixture,
+    run_id: &str,
+    observed_unix_ms: i64,
+    reason: LibraryRecoveryAuthorityReason,
+) -> LeasedLibraryChange {
     fixture
         .catalog
         .enqueue_library_change_intents(
@@ -3357,7 +3844,19 @@ fn enqueue_authorized_recovery_control(
         )
         .expect("lease authorized recovery control")
         .expect("authorized recovery control");
-    authorize_leased_containment_recovery(fixture, &leased, run_id, observed_unix_ms);
+    fixture
+        .catalog
+        .authorize_metadata_inventory_recovery(&LibraryRecoveryAuthority {
+            change_id: leased.change.id,
+            run_id: run_id.to_owned(),
+            root_id: fixture.root_id.clone(),
+            root_generation: LibraryRootGeneration::initial(),
+            reason,
+            opening_boundary: None,
+            authorized_unix_ms: observed_unix_ms,
+            retired_unix_ms: None,
+        })
+        .expect("persist recovery authority");
     leased
 }
 
