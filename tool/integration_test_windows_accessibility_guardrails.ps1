@@ -87,6 +87,30 @@ function Assert-AmeAccessibilityFailureEvidence {
 
 try {
     New-Item -ItemType Directory -Path $scratchRoot -Force | Out-Null
+    $activationTypeBeforeImport = "AmeWindowsAccessibilityActivation" -as [type]
+    . (Join-Path $PSScriptRoot "integration_windows_accessibility_activation.ps1")
+    if (("AmeWindowsAccessibilityActivation" -as [type]) -ne $activationTypeBeforeImport) {
+        throw "Importing accessibility activation compiled native interop eagerly"
+    }
+    Initialize-AmeWindowsAccessibilityActivation
+    $invalidProcessRejected = $false
+    try {
+        Get-AmeWindowsAccessibilityActivationTargets -TargetProcessId 0 | Out-Null
+    } catch {
+        $invalidProcessRejected = $_.Exception.ToString().Contains("targetProcessId")
+    }
+    if (-not $invalidProcessRejected) {
+        throw "Accessibility activation accepted an invalid process identity"
+    }
+    $invalidWindowRejected = $false
+    try {
+        Enable-AmeWindowsAccessibilityNativeView -TargetProcessId $PID -NativeViewHandle ([IntPtr]::Zero)
+    } catch {
+        $invalidWindowRejected = $_.Exception.ToString().Contains("target no longer belongs")
+    }
+    if (-not $invalidWindowRejected) {
+        throw "Accessibility activation accepted an unowned window handle"
+    }
     $runnerProcessIdsBefore = @(
         Get-Process -Name "cedarflake_ame" -ErrorAction SilentlyContinue |
             Where-Object {
@@ -100,6 +124,7 @@ try {
     )
     [System.IO.File]::WriteAllText($cleanOutput, "All tests passed.`n", $utf8)
     $probePhases = @(
+        "native-semantics-ready"
         "application-ready"
         "source-menu-open"
         "source-menu-closed"
@@ -126,8 +151,8 @@ try {
         $utf8
     )
     $outOfOrderPhases = @($probePhases)
-    $outOfOrderPhases[1] = "source-menu-closed"
-    $outOfOrderPhases[2] = "source-menu-open"
+    $outOfOrderPhases[2] = "source-menu-closed"
+    $outOfOrderPhases[3] = "source-menu-open"
     $outOfOrderTranscript = @(
         foreach ($phase in $outOfOrderPhases) {
             "AME_WINDOWS_UIA_PHASE phase=$phase result=ok"
@@ -182,6 +207,28 @@ try {
     }
     if (-not $incompleteProbeRejected) {
         throw "Windows accessibility canary accepted an incomplete native UIA sequence"
+    }
+
+    $missingActivationTranscript = @(
+        foreach ($phase in $probePhases | Select-Object -Skip 1) {
+            "AME_WINDOWS_UIA_PHASE phase=$phase result=ok"
+        }
+    ) -join "`n"
+    [System.IO.File]::WriteAllText(
+        $incompleteProbeTranscript, "$missingActivationTranscript`n", $utf8
+    )
+    $missingActivationRejected = $false
+    try {
+        & $canary `
+            -CapturedOutputPath $cleanOutput `
+            -CapturedProbeTranscriptPath $incompleteProbeTranscript `
+            -OutputPath $canaryOutput
+    } catch {
+        $missingActivationRejected = $_.Exception.Message -match `
+            "probe transcript is incomplete"
+    }
+    if (-not $missingActivationRejected) {
+        throw "Windows accessibility canary accepted tree phases without native activation"
     }
 
     $outOfOrderProbeRejected = $false

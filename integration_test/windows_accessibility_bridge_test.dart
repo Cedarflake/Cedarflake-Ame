@@ -1,6 +1,7 @@
 import "dart:async";
 import "dart:io";
 import "dart:typed_data";
+import "dart:ui" as ui;
 
 import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
@@ -30,6 +31,21 @@ import "package:integration_test/integration_test.dart";
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  final nativeUiaProbe = _WindowsUiaProbe.fromEnvironment();
+  setUpAll(() async {
+    if (!nativeUiaProbe.isEnabled) {
+      return;
+    }
+    // Activate before testWidgets records the platform-owned semantics handle.
+    await nativeUiaProbe.checkpoint(null, "native-semantics-ready");
+    for (var attempt = 0; attempt < 40; attempt++) {
+      if (ui.PlatformDispatcher.instance.semanticsEnabled) {
+        return;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    }
+    throw StateError("Windows did not enable the native semantics bridge");
+  });
 
   testWidgets("keeps the native Windows accessibility tree synchronized", (
     tester,
@@ -170,7 +186,6 @@ void main() {
     (tester) async {
       const itemCount = 1200;
       const initialLoadedCount = 160;
-      final nativeUiaProbe = _WindowsUiaProbe.fromEnvironment();
       final allAssets = [
         for (var index = 0; index < itemCount; index++) _asset(index),
       ];
@@ -541,8 +556,9 @@ class _WindowsUiaProbe {
   final Directory? directory;
   final String? token;
   var _sequence = 0;
+  bool get isEnabled => directory != null && token != null;
 
-  Future<void> checkpoint(WidgetTester tester, String phase) async {
+  Future<void> checkpoint(WidgetTester? tester, String phase) async {
     final probeDirectory = directory;
     final probeToken = token;
     if (probeDirectory == null || probeToken == null) {
@@ -567,7 +583,11 @@ class _WindowsUiaProbe {
 
     final deadline = DateTime.now().add(_checkpointTimeout);
     while (DateTime.now().isBefore(deadline)) {
-      await tester.pump(_pollInterval);
+      if (tester == null) {
+        await Future<void>.delayed(_pollInterval);
+      } else {
+        await tester.pump(_pollInterval);
+      }
       if (!await acknowledgement.exists()) {
         continue;
       }

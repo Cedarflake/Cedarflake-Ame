@@ -16,6 +16,7 @@ $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "integration_windows_accessibility_evidence.ps1")
 
 $expectedProbePhases = @(
+    "native-semantics-ready"
     "application-ready"
     "source-menu-open"
     "source-menu-closed"

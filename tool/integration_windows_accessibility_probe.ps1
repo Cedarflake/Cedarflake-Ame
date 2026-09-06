@@ -12,6 +12,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "integration_windows_accessibility_evidence.ps1")
+. (Join-Path $PSScriptRoot "integration_windows_accessibility_activation.ps1")
 $probeElapsed = [System.Diagnostics.Stopwatch]::StartNew()
 
 $script:probeRecord = @{
@@ -264,6 +265,28 @@ function Get-AmeWindowsUiaPhaseFailure {
         [string]$Phase
     )
 
+    if ($Phase -ceq "native-semantics-ready") {
+        Publish-AmeWindowsUiaProbeProgress -Stage "locating-window"
+        $targets = Get-AmeWindowsAccessibilityActivationTargets `
+            -TargetProcessId $TargetProcessId
+        $script:probeRecord.WindowCount = $targets.WindowCount
+        $script:probeRecord.ElementCount = $targets.ViewHandles.Length
+        Publish-AmeWindowsUiaProbeProgress -Stage "finding-elements"
+        if ($targets.ViewHandles.Length -eq 0) {
+            return (
+                "Windows accessibility activation found no PID-bound " +
+                "FLUTTERVIEW child; window_count=$($targets.WindowCount)"
+            )
+        }
+        Publish-AmeWindowsUiaProbeProgress -Stage "reading-properties"
+        foreach ($viewHandle in $targets.ViewHandles) {
+            Enable-AmeWindowsAccessibilityNativeView `
+                -TargetProcessId $TargetProcessId `
+                -NativeViewHandle $viewHandle
+        }
+        return $null
+    }
+
     $contract = switch ($Phase) {
         "application-ready" {
             @{
@@ -502,8 +525,12 @@ try {
     if ([System.Threading.Thread]::CurrentThread.GetApartmentState() -ne 'MTA') {
         throw "Windows UIA probing requires an MTA thread without an application window"
     }
-    Add-Type -AssemblyName UIAutomationClient
-    Add-Type -AssemblyName UIAutomationTypes
+    if ($Phase -ceq "native-semantics-ready") {
+        Initialize-AmeWindowsAccessibilityActivation
+    } else {
+        Add-Type -AssemblyName UIAutomationClient
+        Add-Type -AssemblyName UIAutomationTypes
+    }
     Assert-AmeWindowsUiaPhase -TargetProcessId $TargetProcessId -Phase $Phase
 } catch {
     $failure = $_.Exception.Message

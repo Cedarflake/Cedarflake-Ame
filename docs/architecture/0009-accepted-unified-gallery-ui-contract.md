@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-07
-- Last amended: 2026-09-05
+- Last amended: 2026-09-06
 - Supersedes: ADR 0003
 
 ## Context
@@ -396,6 +396,17 @@ theme type crossing into widgets or application contracts.
   and source menus, menu dismissal during movement, deep final-geometry unloaded-slot replacement,
   real pointer-driven timeline and viewer Sliders, viewer menus, repeated viewer return, and a
   settings choice opened through the shared popup route. A test-only, nonce-bound checkpoint
+  first activates the target process's `FLUTTERVIEW` through the documented
+  [AccessibleObjectFromWindow](https://learn.microsoft.com/en-us/windows/win32/api/oleacc/nf-oleacc-accessibleobjectfromwindow)
+  `OBJID_CLIENT` request. The isolated MTA probe finds windows without caching an empty UIA provider,
+  revalidates process and class immediately before the request, and releases the returned interface.
+  This happens in suite setup before `testWidgets` records its semantics-handle baseline; the suite
+  also requires the real platform dispatcher to report enabled semantics. Flutter 3.44.9's Windows
+  embedding creates its native bridge on the OS accessibility request, not on a test-only
+  `ensureSemantics` handle, and drops updates sent before that bridge exists. Activation alone is
+  not evidence of a valid tree: all nine subsequent UIA phases and engine stderr checks remain
+  mandatory. No production runner setting, global screen-reader setting, or SDK patch is involved.
+  The same nonce-bound checkpoint
   protocol holds the application at deterministic open and dismissed states while an independent
   PowerShell UI Automation client locates the runner's direct desktop child window by process ID
   and traverses its native descendant tree. The gate requires phase-specific exact accessible names

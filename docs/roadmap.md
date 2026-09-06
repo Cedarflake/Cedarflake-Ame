@@ -3402,9 +3402,10 @@ The live working tree now adds schema v31 and the v3 preview contract. Its P0-th
 scan slice has focused adapter, queue, application, hardlink, cancellation, and production namespace
 evidence, including pending/leased/exhausted-retry boundaries and first-import separation. The
 v31 migration, preview, removal, reclamation, and Flutter suites now have refreshed local evidence.
-Native Windows UI Automation now passes all nine phases under its original eight-second probe
-deadline. Refreshed hosted PR checks remain pending for the final head; local partition and focused
-evidence does not claim one uninterrupted complete Daily invocation.
+Native Windows UI Automation now passes an explicit OS activation checkpoint and all nine tree
+phases under its original eight-second probe deadline. Refreshed hosted PR checks remain pending
+for the final head; local partition and focused evidence does not claim one uninterrupted complete
+Daily invocation.
 These results are not inherited from v30.
 The recorded v30 checkpoint's Rust, quality, non-sandbox Daily, controlled Windows integration,
 bridge, and internal x64 Release build evidence pass. The fourteenth independent R2c-Q re-audit
@@ -3877,12 +3878,16 @@ rolls back.
   external installed-service or retained-root acceptance remain unavailable and unclaimed.
 - Independent Rust, Flutter, and delivery boundary audits cover the current source-publication,
   storage coordination, and native-probe fixes. Native Windows accessibility integration passes
-  2/2 with all nine exact UIA phases and no rejected `ui::AXTree` update under the unchanged
-  eight-second parent probe deadline. Each probe uses an explicitly checked MTA thread, fresh
+  2/2 with explicit native activation, all nine exact UIA tree phases, and no rejected `ui::AXTree`
+  update under the unchanged eight-second parent probe deadline. Each probe uses an explicitly checked MTA thread, fresh
   bulk property snapshots, and identity-bound atomic progress/failure evidence; incomplete or
   timed-out progress cannot acknowledge a checkpoint. A separate longer diagnostic established
-  traversal correctness but is not acceptance evidence. Refreshed hosted PR checks remain required
-  before Phase 34 closes.
+  traversal correctness but is not acceptance evidence. A clean hosted runner exposed missing native
+  bridge activation before the first Flutter semantics batch. Suite setup now requests the exact
+  PID-bound Flutter view through MSAA before test-handle accounting, verifies the real platform's
+  enabled state, then runs the unchanged tree assertions. The local production-path canary passes;
+  no OS-wide screen-reader setting or production UI switch was introduced. Refreshed hosted PR checks
+  remain required before Phase 34 closes.
 - The current R2b closeout working tree passed the complete local Daily gate and Windows Release
   gate on 2026-08-12, including packaged Rust-library loading and the release bridge smoke test.
   This is current-stage evidence, not a release candidate or completion of R10.
