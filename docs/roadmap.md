@@ -3858,9 +3858,10 @@ rolls back.
   conversion and bounded incremental batches. The original catalog and source media remain
   untouched by this remediation's verification; no cloud hydration or real-library acceptance was
   performed.
-- Rust verification ran the complete 1,159-test library suite: 1,140 passed, 17 authorization-bound
-  tests were ignored, and two scan-handoff regressions required correction. Exact retry handoff now
-  records P0 Live origin transactionally; the locked-media fixture first changes the source so it
+- Rust verification ran the complete 1,159-test library suite: 1,140 passed, 17 specialized
+  acceptance, performance, and subprocess-entry tests were ignored, and two scan-handoff regressions
+  required correction. Exact retry handoff now records P0 Live origin transactionally; the
+  locked-media fixture first changes the source so it
   actually exercises content inspection rather than valid metadata reuse. The refreshed complete
   scan module passes 62 tests with two explicit ignores, the publication module passes three tests
   including the new transactional P0 regression, and broker-binary integration passes three tests.
@@ -3875,7 +3876,10 @@ rolls back.
   each fixture's internal concurrency; its contract rejects parallel or incomplete argument lists.
   The refreshed incremental application module passes 54 tests, the SQLite change-queue module
   passes 99 tests, and all-target/all-feature Clippy passes with warnings denied.
-  A fresh complete hosted run for the final head remains required.
+  Complete hosted run `34003693343` on `39374a4` subsequently passed the library suite with
+  1,150 passed, zero failed, 17 explicit ignores, and zero filtered tests, plus broker integration
+  3/3. The original cancellation and P95 cases pass within that complete run. The same run passes
+  all four Daily partitions and the aggregate Windows gate; later heads must retain those checks.
 - Current formatting, all-target/all-feature Clippy with warnings denied, Dart analysis with fatal
   warnings and infos, 52 Flutter test files containing 437 tests, controlled native Windows scan
   integration 2/2, bridge compatibility checks, and tracked-diff whitespace checks pass. The
@@ -3897,9 +3901,10 @@ rolls back.
   PID-bound Flutter view through MSAA before test-handle accounting, verifies the real platform's
   enabled state, then runs the unchanged tree assertions. Both the local production-path canary and
   a fresh clean-hosted native integration pass all ten checkpoints, including activation. The same
-  hosted head passes Windows scan and Flutter partitions; Rust still requires the subsequent batch
-  deferral and case-isolation fixes. No OS-wide screen-reader setting or production UI switch was
-  introduced. Complete final-head hosted PR checks remain required before Phase 34 closes.
+  hosted head passes Windows scan and Flutter partitions. Subsequent run `34003693343` also passes
+  the complete Rust partition with batch deferral and case isolation. No OS-wide screen-reader
+  setting or production UI switch was introduced. Hosted correctness evidence does not close the
+  separately required R2c-R or external installed-service and retained-root acceptance boundaries.
 - The current R2b closeout working tree passed the complete local Daily gate and Windows Release
   gate on 2026-08-12, including packaged Rust-library loading and the release bridge smoke test.
   This is current-stage evidence, not a release candidate or completion of R10.
