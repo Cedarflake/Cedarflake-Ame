@@ -15,7 +15,7 @@ function Test-AmeSyntheticPlatform {
 function Get-AmeSyntheticCases {
     @(
         [pscustomobject]@{ Name = "jpeg"; Test = "adapters::jpeg_preview::tests::benchmark_high_resolution_jpeg_preview_conversion"; Seconds = 180; Bytes = 536870912; Evidence = '(?m)^full_decode_resize_ms=[0-9.]+ scaled_decode_resize_ms=[0-9.]+ speedup=[0-9.]+\r?$' }
-        [pscustomobject]@{ Name = "scan"; Test = "application::scan_library::tests::synthetic_ten_thousand_file_scan_records_bounded_acceptance_evidence"; Seconds = 360; Bytes = 536870912; Evidence = '(?m)^AME_SYNTHETIC_BENCHMARK files=10000 fixture_ms=\d+ cold_ms=\d+ warm_ms=\d+ pause_ms=\d+ resume_ms=\d+ cancel_ms=\d+ catalog_bytes=\d+\r?$' }
+        [pscustomobject]@{ Name = "scan"; Test = "application::scan_library::tests::synthetic_ten_thousand_file_scan_records_bounded_acceptance_evidence"; Seconds = 360; Bytes = 536870912; Evidence = '(?m)^AME_SYNTHETIC_BENCHMARK files=10000 fixture_ms=\d+ cold_ms=\d+ warm_ms=\d+ pause_ms=\d+ resume_ms=\d+ cancel_ms=\d+ catalog_bytes=[0-9]+ resumed_catalog_bytes=[0-9]+\r?$' }
         [pscustomobject]@{ Name = "usn"; Test = "journal_broker::windows::usn::tests::million_unrelated_records_stream_through_bounded_production_parser_pages"; Seconds = 180; Bytes = 536870912; Evidence = '(?m)^R2c-R million-backlog records=1000000 covered_records=1000000 pages=245 production_records_per_native_buffer=4095 .* root_scope_checks=1000000 emitted_candidates=0 elapsed_ms=\d+\r?$' }
     )
 }
