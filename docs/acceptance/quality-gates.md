@@ -139,6 +139,13 @@ The daily gate expands `test` and executes every widget-test file separately wit
 `--concurrency=1`, preventing suite-level state leakage and avoiding Flutter's processor-count-based
 default concurrency.
 
+Rust's complete all-target/all-feature suite likewise uses `--test-threads=1`. Its controlled
+latency and shutdown cases already create concurrent P0, P1, P2, observer, and competing-writer
+work inside each fixture. Running unrelated synthetic catalogs alongside those cases measures
+test-runner resource contention as well as Ame scheduling. Case-level serialization isolates that
+measurement without filtering tests, disabling fixture concurrency, or changing any runtime
+deadline or latency assertion. Hosted Daily partitions remain isolated from one another.
+
 The static bridge gate does not treat the generated content-hash constant as sufficient freshness
 evidence. In addition to matching the Rust and Dart hashes, it checks timeline load, root removal,
 and catalog-reclamation start, snapshot, and cancellation end to end: the Rust API source must not

@@ -3864,8 +3864,18 @@ rolls back.
   actually exercises content inspection rather than valid metadata reuse. The refreshed complete
   scan module passes 62 tests with two explicit ignores, the publication module passes three tests
   including the new transactional P0 regression, and broker-binary integration passes three tests.
-  All current normal library cases therefore have passing execution evidence across the full and
-  focused runs; a single fresh full-suite run for the final head remains a hosted closeout gate.
+  Subsequent hosted full runs exposed cancellation-tail and latency failures that were not proved
+  by those focused runs. A deterministic cancellation regression measured 65 write transactions for
+  leasing and returning 64 P2 items. The bounded lease-deferral owner now returns that batch in one
+  atomic transaction, reducing the same fixture to two transactions including leasing. Ordered
+  exact-generation outcomes, lane admission, attempt refunds, rollback, batch limits, supersession,
+  and root-retirement/re-lease safety have focused passing coverage. The original 3,584-item
+  shutdown fixture and concurrent P0/P1/P2 latency fixture pass without changing their two-second
+  stop deadline or one-second P95 assertion. Daily now runs all Rust cases serially while retaining
+  each fixture's internal concurrency; its contract rejects parallel or incomplete argument lists.
+  The refreshed incremental application module passes 54 tests, the SQLite change-queue module
+  passes 99 tests, and all-target/all-feature Clippy passes with warnings denied.
+  A fresh complete hosted run for the final head remains required.
 - Current formatting, all-target/all-feature Clippy with warnings denied, Dart analysis with fatal
   warnings and infos, 52 Flutter test files containing 437 tests, controlled native Windows scan
   integration 2/2, bridge compatibility checks, and tracked-diff whitespace checks pass. The
@@ -3885,9 +3895,11 @@ rolls back.
   traversal correctness but is not acceptance evidence. A clean hosted runner exposed missing native
   bridge activation before the first Flutter semantics batch. Suite setup now requests the exact
   PID-bound Flutter view through MSAA before test-handle accounting, verifies the real platform's
-  enabled state, then runs the unchanged tree assertions. The local production-path canary passes;
-  no OS-wide screen-reader setting or production UI switch was introduced. Refreshed hosted PR checks
-  remain required before Phase 34 closes.
+  enabled state, then runs the unchanged tree assertions. Both the local production-path canary and
+  a fresh clean-hosted native integration pass all ten checkpoints, including activation. The same
+  hosted head passes Windows scan and Flutter partitions; Rust still requires the subsequent batch
+  deferral and case-isolation fixes. No OS-wide screen-reader setting or production UI switch was
+  introduced. Complete final-head hosted PR checks remain required before Phase 34 closes.
 - The current R2b closeout working tree passed the complete local Daily gate and Windows Release
   gate on 2026-08-12, including packaged Rust-library loading and the release bridge smoke test.
   This is current-stage evidence, not a release candidate or completion of R10.

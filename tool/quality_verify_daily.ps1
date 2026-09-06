@@ -27,7 +27,9 @@ try {
             "--manifest-path",
             "rust\Cargo.toml",
             "--all-targets",
-            "--all-features"
+            "--all-features",
+            "--",
+            "--test-threads=1"
         )
     }
     if ($Component -in @("all", "flutter")) {

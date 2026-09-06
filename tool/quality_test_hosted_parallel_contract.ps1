@@ -34,6 +34,33 @@ if (-not $invalidComponentRejected) {
     throw "Daily gate accepted an unsupported hosted component"
 }
 
+$dailyTokens = $null
+$dailyErrors = $null
+$dailyAst = [System.Management.Automation.Language.Parser]::ParseFile(
+    $dailyScriptPath, [ref]$dailyTokens, [ref]$dailyErrors
+)
+$cargoCalls = @($dailyAst.FindAll({
+    param($node)
+    $node -is [System.Management.Automation.Language.CommandAst] -and
+        $node.GetCommandName() -ceq "Invoke-AmeChecked" -and
+        $node.CommandElements.Count -eq 3 -and
+        $node.CommandElements[1].Extent.Text -ceq '$toolchain.Cargo'
+}, $true))
+if ($dailyErrors.Count -ne 0 -or $cargoCalls.Count -ne 1) {
+    throw "Daily must own exactly one complete Rust test invocation"
+}
+$rustArguments = @($cargoCalls[0].CommandElements[2].SafeGetValue())
+$expectedRustArguments = @(
+    "test", "--locked", "--manifest-path", 'rust\Cargo.toml',
+    "--all-targets", "--all-features", "--", "--test-threads=1"
+)
+if (
+    $rustArguments.Count -ne $expectedRustArguments.Count -or
+    ($rustArguments -join "`n") -cne ($expectedRustArguments -join "`n")
+) {
+    throw "Daily Rust tests must remain complete and case-serial with unchanged fixture concurrency"
+}
+
 $workflowPath = Join-Path $repositoryRoot ".github\workflows\quality_gate_windows.yml"
 $workflow = Get-Content -LiteralPath $workflowPath -Raw -Encoding UTF8
 $compatibilityStep = [regex]::Match(
