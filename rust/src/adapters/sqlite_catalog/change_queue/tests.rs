@@ -6485,7 +6485,7 @@ fn ordinary_pending_root_does_not_absorb_precise_dirty_work() {
     assert_eq!(shape, (2, "path".to_owned(), "pending".to_owned(), 2));
 }
 
-fn queue_catalog(path: PathBuf) -> SqliteCatalog {
+pub(super) fn queue_catalog(path: PathBuf) -> SqliteCatalog {
     let mut catalog = SqliteCatalog::open(path).expect("catalog");
     let generation = register_root(&mut catalog, 1);
     assert_eq!(generation, LibraryRootGeneration::initial());
@@ -6838,7 +6838,7 @@ fn observation(
     }
 }
 
-fn path_intent(
+pub(super) fn path_intent(
     root_id: &str,
     generation: LibraryRootGeneration,
     sequence: u64,

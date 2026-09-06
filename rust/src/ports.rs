@@ -337,7 +337,28 @@ pub trait LibraryChangeQueue {
         change_id: LibraryChangeId,
         lease_generation: u64,
         deferred_unix_ms: i64,
-    ) -> Result<LibraryChangeLeaseUpdateOutcome, ScanError>;
+    ) -> Result<LibraryChangeLeaseUpdateOutcome, ScanError> {
+        let outcomes = self.defer_library_changes(
+            &[crate::domain::LibraryChangeLeaseIdentity {
+                change_id,
+                lease_generation,
+            }],
+            deferred_unix_ms,
+        )?;
+        match outcomes.as_slice() {
+            [outcome] => Ok(*outcome),
+            _ => Err(ScanError::new(
+                "change_queue_deferral_outcome_invalid",
+                "The queue must return exactly one outcome for each deferred lease",
+            )),
+        }
+    }
+    /// Atomically returns a bounded batch, with exactly one outcome per input in input order.
+    fn defer_library_changes(
+        &mut self,
+        leases: &[crate::domain::LibraryChangeLeaseIdentity],
+        deferred_unix_ms: i64,
+    ) -> Result<Vec<LibraryChangeLeaseUpdateOutcome>, ScanError>;
     fn load_library_change_queue_metrics(
         &self,
         now_unix_ms: i64,

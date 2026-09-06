@@ -109,6 +109,14 @@ impl LibraryChangeQueue for RejectingQueue {
         panic!("deferral is not used by this test")
     }
 
+    fn defer_library_changes(
+        &mut self,
+        _leases: &[crate::domain::LibraryChangeLeaseIdentity],
+        _deferred_unix_ms: i64,
+    ) -> Result<Vec<crate::domain::LibraryChangeLeaseUpdateOutcome>, crate::domain::ScanError> {
+        panic!("batch deferral is not used by this test")
+    }
+
     fn load_library_change_queue_metrics(
         &self,
         _now_unix_ms: i64,

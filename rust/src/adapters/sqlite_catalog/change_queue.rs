@@ -21,6 +21,7 @@ use super::{
 };
 
 mod coalescing;
+mod lease_deferral;
 mod persistence;
 
 use super::metadata_inventory::insert_metadata_inventory_recovery_authority;
@@ -1248,35 +1249,12 @@ impl LibraryChangeQueue for SqliteCatalog {
         Ok(LibraryChangeLeaseUpdateOutcome::Applied)
     }
 
-    fn defer_library_change(
+    fn defer_library_changes(
         &mut self,
-        change_id: LibraryChangeId,
-        lease_generation: u64,
+        leases: &[crate::domain::LibraryChangeLeaseIdentity],
         deferred_unix_ms: i64,
-    ) -> Result<LibraryChangeLeaseUpdateOutcome, ScanError> {
-        let lane = admission_lane_for_change_ids(&self.connection, [change_id])?;
-        let transaction = self.begin_write_in_lane(lane)?;
-        let outcome = classify_lease_update(&transaction, change_id, lease_generation, None)?;
-        if outcome == LibraryChangeLeaseUpdateOutcome::Applied {
-            transaction
-                .execute(
-                    "UPDATE library_change_queue
-                     SET status = 'pending', ready_unix_ms = ?1,
-                         attempt_count = CASE
-                           WHEN attempt_count > 0 THEN attempt_count - 1 ELSE 0 END,
-                         next_retry_unix_ms = NULL, lease_expires_unix_ms = NULL,
-                         updated_unix_ms = ?1
-                     WHERE id = ?2 AND status = 'leased' AND lease_generation = ?3",
-                    params![
-                        deferred_unix_ms,
-                        sqlite_integer(change_id.value(), "change ID")?,
-                        sqlite_integer(lease_generation, "lease generation")?,
-                    ],
-                )
-                .map_err(database_error)?;
-        }
-        transaction.commit().map_err(database_error)?;
-        Ok(outcome)
+    ) -> Result<Vec<LibraryChangeLeaseUpdateOutcome>, ScanError> {
+        lease_deferral::defer(self, leases, deferred_unix_ms)
     }
 
     fn load_library_change_queue_metrics(

@@ -515,8 +515,19 @@ fn defer_cancelled_leases<Repository>(
 where
     Repository: LibraryChangeQueue,
 {
-    for change in leased {
-        defer_leased_change(repository, change, now_unix_ms, report)?;
+    let identities = leased
+        .iter()
+        .map(crate::domain::LibraryChangeLeaseIdentity::from)
+        .collect::<Vec<_>>();
+    let outcomes = repository.defer_library_changes(&identities, now_unix_ms)?;
+    if outcomes.len() != identities.len() {
+        return Err(ScanError::new(
+            "change_queue_deferral_outcome_invalid",
+            "The queue must return exactly one outcome for each deferred lease",
+        ));
+    }
+    for outcome in outcomes {
+        record_lease_deferral(outcome, report)?;
     }
     Ok(())
 }
@@ -786,7 +797,17 @@ fn defer_leased_change<Repository>(
 where
     Repository: LibraryChangeQueue,
 {
-    match repository.defer_library_change(leased.change.id, leased.lease_generation, now_unix_ms)? {
+    record_lease_deferral(
+        repository.defer_library_change(leased.change.id, leased.lease_generation, now_unix_ms)?,
+        report,
+    )
+}
+
+fn record_lease_deferral(
+    outcome: LibraryChangeLeaseUpdateOutcome,
+    report: &mut IncrementalLibraryChangeReport,
+) -> Result<(), ScanError> {
+    match outcome {
         LibraryChangeLeaseUpdateOutcome::Applied => {
             report.deferred_count = report
                 .deferred_count

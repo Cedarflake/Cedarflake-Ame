@@ -82,6 +82,21 @@ pub struct LeasedLibraryChange {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct LibraryChangeLeaseIdentity {
+    pub change_id: LibraryChangeId,
+    pub lease_generation: u64,
+}
+
+impl From<&LeasedLibraryChange> for LibraryChangeLeaseIdentity {
+    fn from(leased: &LeasedLibraryChange) -> Self {
+        Self {
+            change_id: leased.change.id,
+            lease_generation: leased.lease_generation,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct LibraryChangeQueuePolicy {
     pub debounce_millis: u64,
     pub max_unresolved_changes: u32,

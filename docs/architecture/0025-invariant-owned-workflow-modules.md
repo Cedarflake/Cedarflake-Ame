@@ -52,6 +52,9 @@ persistence layers.
 - `sqlite_catalog/persistent_journal.rs` remains the journal facade. Root-unregistration lineage and
   cleanup live in `persistent_journal/root_unregister.rs` so removal cannot accidentally discard a
   surviving root's cross-root rename evidence.
+- Cancelled lease return belongs to `sqlite_catalog/change_queue/lease_deferral.rs`. It owns bounded
+  batch admission, exact lease-generation classification, attempt refunds, and atomic rollback;
+  incremental workers submit one typed batch rather than orchestrating per-lease transactions.
 - Database page reclamation remains a separate application operation and persistence adapter. It
   is lower priority than foreground and ordinary recovery publication, is preemptible at SQLite
   progress boundaries, and carries a generation-specific request so cancellation cannot consume a

@@ -34,7 +34,7 @@ pub use library_change_catch_up::{
 };
 pub use library_change_queue::{
     DurableLibraryChange, LeasedLibraryChange, LibraryChangeCapacityDeferral,
-    LibraryChangeEnqueueReport, LibraryChangeFailure, LibraryChangeId,
+    LibraryChangeEnqueueReport, LibraryChangeFailure, LibraryChangeId, LibraryChangeLeaseIdentity,
     LibraryChangeLeaseUpdateOutcome, LibraryChangeQueueHealth, LibraryChangeQueueMetrics,
     LibraryChangeQueuePolicy, LibraryChangeQueueStatus,
 };

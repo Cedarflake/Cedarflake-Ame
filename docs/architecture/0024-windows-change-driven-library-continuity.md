@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-22
-- Last amended: 2026-09-05
+- Last amended: 2026-09-06
 - Supersedes: ADR 0023
 - Historical predecessor: ADR 0022
 
@@ -1269,6 +1269,14 @@ one retained owned worker with its exact receiver and join handle. A timeout kee
 task and session in `Draining`; retry or the reaper can only join the original task, never call close
 again, refresh the deadline, clear the registry, or start a replacement epoch first. Panic and
 disconnect remain terminal fail-closed outcomes of that same task.
+
+Cancelled incremental workers return their remaining leases as one typed batch, bounded by
+`MAX_LEASE_BATCH`, rather than performing one durable commit per lease during shutdown. The queue
+adapter owns one priority-admitted transaction, exact change-ID/lease-generation classification,
+attempt refunds, and one ordered outcome per input. Stale or absent leases cannot mutate another
+owner, and any persistence failure rolls back the complete batch. Single-lease deferral reuses this
+same boundary. This reduces the cancellation tail without extending the absolute stop deadline or
+changing lane priority and publication authority.
 
 Flutter invalidates the current poll generation and calls native stop as soon as stop begins; it
 does not await an active poll. A never-completing poll therefore cannot make the public call exceed

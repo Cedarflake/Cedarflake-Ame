@@ -315,6 +315,81 @@ fn p1_revision_rebase_cancellation_returns_the_owned_lease() {
     drop(_storage);
     drop(_source);
 }
+
+#[test]
+fn cancelled_p2_batch_returns_all_leases_in_one_write_transaction() {
+    let fixture = seed_catalog(tempdir().expect("source directory"), &[]);
+    let CatalogFixture {
+        source: _source,
+        _storage,
+        mut catalog,
+        root_id,
+        ..
+    } = fixture;
+    let queue_policy = LibraryChangeQueuePolicy {
+        max_lease_batch: 64,
+        ..LibraryChangeQueuePolicy::default()
+    };
+    let changes = (0..64)
+        .map(|index| {
+            let mut change = intent(&root_id, &format!("cancelled-{index}.png"), None, index + 1);
+            change.origin = LibraryChangeOrigin::MetadataInventory;
+            change
+        })
+        .collect::<Vec<_>>();
+    catalog
+        .enqueue_library_change_intents(&changes, 1_000, queue_policy)
+        .expect("enqueue P2 batch");
+    let cancelled = Arc::new(AtomicBool::new(false));
+    let mut repository = RevisionRacingCatalog::new(catalog, Vec::new());
+    repository.cancel_after_leasing = Some(Arc::clone(&cancelled));
+    let epoch = repository.catalog.completed_write_epoch();
+    let report = process_ready_library_changes_in_lane_cancellable(
+        &mut repository,
+        &root_id,
+        LibraryRootGeneration::initial(),
+        LibraryChangeLane::Recovery,
+        2_000,
+        queue_policy,
+        &cancelled,
+    )
+    .expect("cancel the leased recovery batch");
+    assert_eq!(report.leased_count, 64);
+    assert_eq!(report.deferred_count, 64);
+    assert_eq!(report.completed_count, 0);
+    assert_eq!(
+        repository.catalog.completed_write_epoch() - epoch,
+        2,
+        "one lease transaction and one atomic return, independent of batch cardinality"
+    );
+    let metrics = repository
+        .catalog
+        .load_library_change_root_queue_metrics(
+            &root_id,
+            LibraryRootGeneration::initial(),
+            2_000,
+            queue_policy,
+        )
+        .expect("returned queue metrics");
+    assert_eq!(metrics.pending_count, 64);
+    assert_eq!(metrics.leased_count, 0);
+    cancelled.store(false, Ordering::Release);
+    repository.cancel_after_leasing = None;
+    let resumed = process_ready_library_changes_in_lane_cancellable(
+        &mut repository,
+        &root_id,
+        LibraryRootGeneration::initial(),
+        LibraryChangeLane::Recovery,
+        2_000,
+        queue_policy,
+        &cancelled,
+    )
+    .expect("resume the same recovery batch");
+    assert_eq!(resumed.completed_count, 64);
+    drop(repository);
+    drop(_storage);
+    drop(_source);
+}
 use crate::journal_broker::target_translation_recovery_fixture;
 use crate::ports::{
     CatalogRepository, IncrementalCatalogRepository, LibraryChangeQueue, MediaInspector,
@@ -3189,6 +3264,7 @@ struct RevisionRacingCatalog {
     publication_attempts: usize,
     rewrite_on_first_publication: Option<PathBuf>,
     cancel_after_first_publication: Option<Arc<AtomicBool>>,
+    cancel_after_leasing: Option<Arc<AtomicBool>>,
     guarded_rename_during_publication: Option<(PathBuf, PathBuf)>,
 }
 
@@ -3201,6 +3277,7 @@ impl RevisionRacingCatalog {
             publication_attempts: 0,
             rewrite_on_first_publication: None,
             cancel_after_first_publication: None,
+            cancel_after_leasing: None,
             guarded_rename_during_publication: None,
         }
     }
@@ -3382,13 +3459,17 @@ impl LibraryChangeQueue for RevisionRacingCatalog {
         now_unix_ms: i64,
         policy: LibraryChangeQueuePolicy,
     ) -> Result<Vec<crate::domain::LeasedLibraryChange>, ScanError> {
-        self.catalog.lease_path_library_changes_in_lane(
+        let leased = self.catalog.lease_path_library_changes_in_lane(
             root_id,
             root_generation,
             lane,
             now_unix_ms,
             policy,
-        )
+        )?;
+        if let Some(cancelled) = &self.cancel_after_leasing {
+            cancelled.store(true, Ordering::Release);
+        }
+        Ok(leased)
     }
 
     fn lease_metadata_inventory_recovery_candidates(
@@ -3478,6 +3559,14 @@ impl LibraryChangeQueue for RevisionRacingCatalog {
     ) -> Result<LibraryChangeLeaseUpdateOutcome, ScanError> {
         self.catalog
             .defer_library_change(change_id, lease_generation, deferred_unix_ms)
+    }
+
+    fn defer_library_changes(
+        &mut self,
+        leases: &[crate::domain::LibraryChangeLeaseIdentity],
+        deferred_unix_ms: i64,
+    ) -> Result<Vec<LibraryChangeLeaseUpdateOutcome>, ScanError> {
+        self.catalog.defer_library_changes(leases, deferred_unix_ms)
     }
 
     fn load_library_change_queue_metrics(
