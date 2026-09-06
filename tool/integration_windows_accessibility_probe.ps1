@@ -13,6 +13,7 @@ param(
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "integration_windows_accessibility_evidence.ps1")
 . (Join-Path $PSScriptRoot "integration_windows_accessibility_activation.ps1")
+. (Join-Path $PSScriptRoot "integration_windows_accessibility_assemblies.ps1")
 $probeElapsed = [System.Diagnostics.Stopwatch]::StartNew()
 
 $script:probeRecord = @{
@@ -528,8 +529,10 @@ try {
     if ($Phase -ceq "native-semantics-ready") {
         Initialize-AmeWindowsAccessibilityActivation
     } else {
-        Add-Type -AssemblyName UIAutomationClient
-        Add-Type -AssemblyName UIAutomationTypes
+        Publish-AmeWindowsUiaProbeProgress -Stage "loading-uia-types"
+        Import-AmeWindowsUiaAssembly -Name "UIAutomationTypes"
+        Publish-AmeWindowsUiaProbeProgress -Stage "loading-uia-client"
+        Import-AmeWindowsUiaAssembly -Name "UIAutomationClient"
     }
     Assert-AmeWindowsUiaPhase -TargetProcessId $TargetProcessId -Phase $Phase
 } catch {

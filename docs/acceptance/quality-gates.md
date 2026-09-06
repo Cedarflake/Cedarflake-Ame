@@ -207,6 +207,14 @@ Dart assertions pass, and therefore exercises the platform `AccessibilityBridge`
 widget-test semantics models cannot reproduce. Flutter 3.44.9 exposes Windows device integration
 tests through its supported Debug test path; this canary does not claim Profile-mode coverage.
 
+The native probe loads only the fixed, strong-named Windows UI Automation assemblies through
+`integration_windows_accessibility_assemblies.ps1`, validates their identity and required types,
+and reports type/client loading separately from native traversal. It does not initialize the
+`Add-Type` command or fall back to a same-named DLL in the working directory. The assembly guard is
+part of `integration_test_windows_accessibility_guardrails.ps1`. The existing eight-second parent
+deadline, MTA client, owned process tree, and native positive/negative assertions remain unchanged;
+workstation PowerShell evidence does not replace execution in the hosted PowerShell runtime.
+
 ## Performance gate
 
 ```powershell

@@ -34,6 +34,11 @@ Measurements retain their original assertions: JPEG speedup output does not inve
 threshold, while the 10,000-image case retains its duration and storage limits. Each hosted case
 preserves diagnostic output and structured evidence even on failure.
 
+The pause/resume workload uses an unpublished first import in isolated fixture storage. A scan
+updating a completed baseline has cancellation semantics and cannot substitute for that checkpoint
+test. Explicit continuation must publish the complete fixture inventory and leave no unfinished
+scan, independently of the cold/warm replacement measurements.
+
 The unsigned gate builds the application and broker from the checked-out revision, verifies x64
 payload, dependency freshness, and packaged Rust DLL identity, then tests only the isolated Rust
 bridge and native accent channel. It never loads a retained catalog. Its evidence is not a signed

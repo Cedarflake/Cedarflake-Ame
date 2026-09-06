@@ -3259,11 +3259,20 @@ fn synthetic_ten_thousand_file_scan_records_bounded_acceptance_evidence() {
         .expect("warm scan");
     let warm_elapsed = warm_started.elapsed();
 
+    // Only an unpublished first import retains a foreground pause checkpoint.
+    let resumable_storage = StoragePaths {
+        catalog_path: storage.path().join("resumable").join("ame.sqlite3"),
+        preview_root: storage.path().join("resumable-previews"),
+        preview_budget_bytes: storage_paths.preview_budget_bytes,
+        settings_path: storage.path().join("resumable-settings.sqlite3"),
+    };
     let mut pause_accepted = 0_u64;
     let mut pause_requested = None;
+    let mut did_pause = false;
     run_scan_with_storage(
         request("benchmark-resumed"),
         |event| {
+            did_pause |= matches!(event, ScanEvent::Paused { .. });
             if matches!(event, ScanEvent::AssetDiscovered { .. }) {
                 pause_accepted += 1;
                 if pause_accepted == CANCEL_AFTER {
@@ -3273,31 +3282,53 @@ fn synthetic_ten_thousand_file_scan_records_bounded_acceptance_evidence() {
             }
             true
         },
-        storage_paths.clone(),
+        resumable_storage.clone(),
     )
     .expect("paused benchmark scan");
     let pause_elapsed = pause_requested.expect("pause request").elapsed();
-    let paused_scan = SqliteCatalog::open(storage_paths.catalog_path.clone())
+    assert!(did_pause);
+    let paused_scan = SqliteCatalog::open(resumable_storage.catalog_path.clone())
         .expect("paused benchmark catalog")
         .load_paused_scan()
         .expect("paused benchmark state")
         .expect("paused benchmark scan");
     assert_eq!(paused_scan.scan_id, "benchmark-resumed");
     assert_eq!(paused_scan.accepted_items, CANCEL_AFTER);
+    let paused_snapshot = load_test_snapshot(&resumable_storage);
+    assert_eq!(paused_snapshot.roots.len(), 1);
+    assert!(paused_snapshot.roots[0].active_scan_id.is_none());
 
     let resume_started = Instant::now();
     let mut did_complete_resume = false;
-    run_scan_with_storage(
+    resume_scan_with_storage(
         request("benchmark-resumed"),
         |event| {
             did_complete_resume |= matches!(event, ScanEvent::Completed { .. });
             true
         },
-        storage_paths.clone(),
+        resumable_storage.clone(),
     )
     .expect("resumed benchmark scan");
     let resume_elapsed = resume_started.elapsed();
     assert!(did_complete_resume);
+    let resumed_connection =
+        Connection::open(&resumable_storage.catalog_path).expect("resumed benchmark catalog");
+    let (resumed_locations, unfinished_runs): (i64, i64) = resumed_connection
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM library_roots AS roots
+                JOIN asset_locations AS locations ON locations.scan_id = roots.active_scan_id
+                WHERE roots.active_scan_id = 'benchmark-resumed'),
+               (SELECT COUNT(*) FROM scan_runs WHERE status IN ('running', 'paused'))",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .expect("resumed benchmark publication");
+    assert_eq!(resumed_locations, FILE_COUNT as i64);
+    assert_eq!(unfinished_runs, 0);
+    let resumed_catalog_bytes = fs::metadata(&resumable_storage.catalog_path)
+        .expect("resumed catalog metadata")
+        .len();
 
     let mut accepted = 0_u64;
     let mut cancellation_requested = None;
@@ -3342,7 +3373,8 @@ fn synthetic_ten_thousand_file_scan_records_bounded_acceptance_evidence() {
 
     println!(
         "AME_SYNTHETIC_BENCHMARK files={FILE_COUNT} fixture_ms={} cold_ms={} warm_ms={} \
-             pause_ms={} resume_ms={} cancel_ms={} catalog_bytes={catalog_bytes}",
+             pause_ms={} resume_ms={} cancel_ms={} catalog_bytes={catalog_bytes} \
+             resumed_catalog_bytes={resumed_catalog_bytes}",
         fixture_elapsed.as_millis(),
         cold_elapsed.as_millis(),
         warm_elapsed.as_millis(),
@@ -3361,6 +3393,7 @@ fn synthetic_ten_thousand_file_scan_records_bounded_acceptance_evidence() {
     assert!(resume_elapsed < Duration::from_secs(60));
     assert!(cancellation_elapsed < Duration::from_secs(5));
     assert!(catalog_bytes < 64 * 1024 * 1024);
+    assert!(resumed_catalog_bytes < 64 * 1024 * 1024);
     assert_eq!(
         fs::read(source.path().join("image-00000.png")).expect("first source bytes"),
         template_bytes,

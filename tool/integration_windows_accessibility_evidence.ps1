@@ -6,7 +6,7 @@ function Write-AmeWindowsUiaProbeRecord {
         [Parameter(Mandatory = $true)] [int]$TargetProcessId,
         [Parameter(Mandatory = $true)] [int]$ProbeProcessId,
         [ValidateSet("progress", "complete")] [string]$Status = "progress",
-        [ValidateSet("loading-assemblies", "locating-window", "finding-elements", "reading-properties", "asserting-contract", "complete")]
+        [ValidateSet("loading-assemblies", "loading-uia-types", "loading-uia-client", "locating-window", "finding-elements", "reading-properties", "asserting-contract", "complete")]
         [string]$Stage,
         [ValidateRange(0, 2147483647)] [int]$Attempt = 0,
         [ValidateRange(0, 2147483647)] [int]$WindowCount = 0,
@@ -73,7 +73,7 @@ function Read-AmeWindowsUiaProbeRecord {
     if (
         $record.status -cnotin @("progress", "complete") -or
         $record.stage -cnotin @(
-            "loading-assemblies", "locating-window", "finding-elements",
+            "loading-assemblies", "loading-uia-types", "loading-uia-client", "locating-window", "finding-elements",
             "reading-properties", "asserting-contract", "complete"
         ) -or
         (($record.status -ceq "complete") -ne ($record.stage -ceq "complete"))

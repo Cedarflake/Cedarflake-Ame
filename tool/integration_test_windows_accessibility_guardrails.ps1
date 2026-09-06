@@ -86,6 +86,7 @@ function Assert-AmeAccessibilityFailureEvidence {
 }
 
 try {
+    & (Join-Path $PSScriptRoot "integration_test_windows_accessibility_assemblies.ps1")
     New-Item -ItemType Directory -Path $scratchRoot -Force | Out-Null
     $activationTypeBeforeImport = "AmeWindowsAccessibilityActivation" -as [type]
     . (Join-Path $PSScriptRoot "integration_windows_accessibility_activation.ps1")
@@ -314,7 +315,7 @@ try {
     $blockedProbeResult = Join-Path $scratchRoot "probe-blocked.json"
     $progressFixture = Join-Path $scratchRoot "progress.json"
     foreach ($stage in @(
-        "loading-assemblies", "locating-window", "finding-elements",
+        "loading-assemblies", "loading-uia-types", "loading-uia-client", "locating-window", "finding-elements",
         "reading-properties", "asserting-contract"
     )) {
         Write-AmeWindowsUiaProbeRecord `
@@ -451,7 +452,11 @@ if ($Phase -ceq "blocked-fixture") {
         $blockedProgress.elementCount -ne 7 -or
         $blockedProgress.lastMismatch -cne "controlled expected native button is missing"
     ) {
-        throw "The parent deadline lost the last complete progress record or accepted a partial draft"
+        $diagnostic = @{
+            evidenceStatus = $blockedProbeFailure.Data["ameWindowsUiaProbeEvidenceStatus"]
+            progress = $blockedProgress
+        } | ConvertTo-Json -Compress
+        throw "The parent deadline lost the last complete progress record or accepted a partial draft: $diagnostic"
     }
     if (-not (Test-Path -LiteralPath $blockedProbeResult -PathType Leaf)) {
         throw "The blocking probe fixture never established its owned descendant"
