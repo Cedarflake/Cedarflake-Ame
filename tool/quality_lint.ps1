@@ -23,6 +23,9 @@ try {
     Invoke-AmePowerShellSyntaxCheck $powerShellPaths
     & (Join-Path $PSScriptRoot "quality_test_naming_contract.ps1")
     & (Join-Path $PSScriptRoot "quality_test_hosted_parallel_contract.ps1")
+    & (Join-Path $PSScriptRoot "quality_test_hosted_extended_contract.ps1")
+    & (Join-Path $PSScriptRoot "performance_test_synthetic_guardrails.ps1")
+    & (Join-Path $PSScriptRoot "quality_test_unsigned_windows_payload.ps1")
     & (Join-Path $PSScriptRoot "quality_test_library_synchronization_policy.ps1")
     & (Join-Path $PSScriptRoot "acceptance_test_preview_performance_guardrails.ps1")
     & (Join-Path $PSScriptRoot "acceptance_test_r2c_reliability_guardrails.ps1")

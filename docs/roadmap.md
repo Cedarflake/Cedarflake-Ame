@@ -3349,6 +3349,16 @@ R2c-I through R2c-M and their audits remain historical evidence for the supersed
 Do not rewrite their recorded results as if they validated ADR 0024, and do not merge the integration
 branch into `main` or start R3 until the new replacement reaches its own closeout.
 
+The hosted-coverage follow-up under ADR 0026 makes generated high-resolution JPEG, 10,000-image scan,
+million-record parser, and credential-free unsigned x64 Release verification mandatory alongside
+Daily for ordinary PRs. These run on separate hosted workers instead of consuming workstation
+resources. Exact workload counts, failure propagation, bounded diagnostics, and payload identity
+require focused guardrails and independent audit. New hosted execution evidence remains pending
+until the changed jobs finish successfully. Historical H/M controlled scenarios need adaptation to
+the accepted continuity model; the R2c-R Windows 11 ordinary-user runner and external acceptance
+boundaries are not replaced by Server CI. This is verification infrastructure within R2c, not a new
+product stage or acceptance of any open slice.
+
 R2b implementation, deterministic preview-lifecycle correctness, retained-catalog interaction
 Profile, real-library catalog parity, Daily, Windows Release, and bounded source-readable preview
 performance gates are complete. R2b was accepted on 2026-08-13. The former USN-based R2c reached its

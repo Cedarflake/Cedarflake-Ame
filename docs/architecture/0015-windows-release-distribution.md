@@ -82,6 +82,10 @@ separate no-checkout job with repository-content write permission publish or upd
 corresponding GitHub Release. The published-release workflow downloads the exact attachment and
 verifies it independently.
 
+ADR 0026 adds a separate credential-free unsigned build check to ordinary quality CI. It verifies
+the application and broker payload plus an isolated bridge smoke, but does not feed artifacts to
+this protected candidate chain or claim signing, installation, publication, or client acceptance.
+
 ### ADR 0024 amendment: service-enabled distribution
 
 The portable ZIP remains a valid Windows x64 artifact, but it cannot establish the protected

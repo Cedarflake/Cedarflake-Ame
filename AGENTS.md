@@ -466,6 +466,13 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   range so a clean hosted checkout does not turn `git diff HEAD --check` into an empty gate.
 - `./tool/performance_benchmark_synthetic_library.ps1` is the explicit performance gate. It creates 10,000
   temporary images and records cold, warm, pause, resume, memory, and storage evidence.
+- `./tool/performance_run_synthetic.ps1` runs the fixed JPEG, 10,000-image scan, and million-record
+  parser catalog with exact execution and bounded resource evidence. Hosted CI runs its cases on
+  isolated workers; workstation use remains explicit and serial. Its focused guardrail runs in lint.
+- `./tool/quality_verify_unsigned_windows.ps1` builds and verifies the credential-free x64 application
+  and broker plus an isolated Release-DLL/native-channel smoke. It never loads a retained catalog or
+  replaces signed candidate, installation, or Windows 11 client acceptance. Payload guardrails run
+  in lint; hosted CI requires the complete unsigned job.
 - `./tool/acceptance_run_read_only_library.ps1` and `./tool/acceptance_verify_read_only_catalog.ps1` are the
   real-library gate. They require current authorization, explicit roots, and storage outside source
   trees; they never become part of unattended daily verification.
@@ -546,6 +553,9 @@ Hosted workflow ownership is:
 - `.github/workflows/quality_ci.yml` for pushes to `main`, pull requests, merge queues, and manual
   daily-gate runs;
 - `.github/workflows/quality_gate_windows.yml` for the shared Windows daily or release gate;
+- `.github/workflows/quality_gate_synthetic_windows.yml` and
+  `.github/workflows/quality_gate_unsigned_windows.yml` for mandatory isolated workload and unsigned
+  build evidence in ordinary quality CI, without publication or signing authority;
 - `.github/workflows/release_candidate_windows.yml` for version-tag and manual release candidates,
   followed by portable ZIP publication;
 - `.github/workflows/release_verify_published.yml` for post-publication attachment verification.

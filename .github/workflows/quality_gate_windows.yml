@@ -145,6 +145,20 @@ jobs:
           AME_BASE_REVISION: ${{ inputs.base_revision }}
         run: ./tool/quality_verify_git_range.ps1 -BaseRevision $env:AME_BASE_REVISION
 
+  quality_synthetic_windows:
+    name: Synthetic Workloads
+    if: inputs.gate_mode == 'daily'
+    uses: ./.github/workflows/quality_gate_synthetic_windows.yml
+    with:
+      checkout_ref: ${{ inputs.checkout_ref || github.sha }}
+
+  quality_unsigned_windows:
+    name: Unsigned Release
+    if: inputs.gate_mode == 'daily'
+    uses: ./.github/workflows/quality_gate_unsigned_windows.yml
+    with:
+      checkout_ref: ${{ inputs.checkout_ref || github.sha }}
+
   release_unsigned_windows:
     name: Release / Unsigned Build
     if: >-
@@ -1071,11 +1085,15 @@ jobs:
     if: always()
     needs:
       - daily_components
+      - quality_synthetic_windows
+      - quality_unsigned_windows
       - release_verify_windows
     runs-on: windows-2025
     timeout-minutes: 5
     env:
       AME_DAILY_RESULT: ${{ needs.daily_components.result }}
+      AME_SYNTHETIC_RESULT: ${{ needs.quality_synthetic_windows.result }}
+      AME_UNSIGNED_RESULT: ${{ needs.quality_unsigned_windows.result }}
       AME_GATE_MODE: ${{ inputs.gate_mode }}
       AME_RELEASE_RESULT: ${{ needs.release_verify_windows.result }}
     steps:
@@ -1083,15 +1101,17 @@ jobs:
         shell: pwsh
         run: |
           if ($env:AME_GATE_MODE -eq "daily") {
-            if ($env:AME_DAILY_RESULT -ne "success") {
-              throw "One or more hosted daily components failed"
+            if ($env:AME_DAILY_RESULT -ne "success" -or
+                $env:AME_SYNTHETIC_RESULT -ne "success" -or
+                $env:AME_UNSIGNED_RESULT -ne "success") {
+              throw "Daily, synthetic workloads, and unsigned Release must all succeed"
             }
-            exit 0
+            return
           }
           if ($env:AME_GATE_MODE -eq "release") {
             if ($env:AME_RELEASE_RESULT -ne "success") {
               throw "The release candidate gate failed"
             }
-            exit 0
+            return
           }
           throw "Unsupported gate mode: $env:AME_GATE_MODE"

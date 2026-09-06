@@ -7,7 +7,9 @@ acceptance work. A passing lower gate never claims that a higher gate ran.
 
 | Gate | Entry point | Included evidence | When to run |
 | --- | --- | --- | --- |
-| Hosted CI | `.github/workflows/quality_ci.yml` | Parallel isolated Daily components plus committed revision-range whitespace validation on pinned Windows toolchains | Push to `main`, pull request, merge queue, or manual run |
+| Hosted CI | `.github/workflows/quality_ci.yml` | Parallel isolated Daily components, three synthetic workloads, unsigned x64 Release build, and committed revision-range whitespace validation | Push to `main`, pull request, merge queue, or manual run |
+| Hosted synthetic workloads | `./tool/performance_run_synthetic.ps1` | Exact JPEG, 10,000-image scan, and million-record parser cases, bounded execution and diagnostic evidence | Mandatory hosted CI; explicit serial workstation invocation |
+| Unsigned Release build | `./tool/quality_verify_unsigned_windows.ps1` | Fresh x64 application/broker, payload and dependency identity, isolated Release bridge smoke; no catalog or signing | Mandatory hosted CI; explicit local packaging verification |
 | Daily | `./tool/quality_verify_daily.ps1` | Format, lint, Rust and Flutter tests, controlled Windows scan and native accessibility integrations, bridge hash plus asynchronous API/wire-mode contracts, tracked diff whitespace | Every material change |
 | Performance | `./tool/performance_benchmark_synthetic_library.ps1` | 10,000 temporary images, cold and warm scans, pause and resume, bounded memory | Scan pipeline, persistence, concurrency, or performance changes |
 | Retained Profile | `./tool/performance_profile_retained_gallery.ps1` | Frozen-interaction Profile frame, memory, garbage-collection, query, publication, and retained-detail evidence; no source preview materialization | Guarded R2b gallery adaptations on the retained catalog |
@@ -28,8 +30,8 @@ acceptance work. A passing lower gate never claims that a higher gate ran.
 The hosted Windows gate is implemented once in
 `.github/workflows/quality_gate_windows.yml` and called by category-owned trigger workflows:
 
-- `quality_ci.yml` runs the daily gate for pushes to `main`, pull requests targeting `main`, merge
-  queue checks, and manual dispatches;
+- `quality_ci.yml` runs Daily plus the synthetic and unsigned-build gates for pushes to `main`, pull
+  requests targeting `main`, merge queue checks, and manual dispatches;
 - `release_candidate_windows.yml` is manually dispatched from protected `main` for one existing
   strict-SemVer tag, then publishes the verified portable ZIP;
 - `release_verify_published.yml` downloads the exact published ZIP and independently verifies its
@@ -90,8 +92,11 @@ deletion of admitted version tags; no workflow can make a tag lookup and release
 
 For hosted Daily runs, the shared gate fans out four isolated `windows-2025` jobs: static and Rust
 verification, Flutter widget tests, the controlled Windows scan integration, and the native Windows
-accessibility integration. A stable `Windows Gate` aggregation job succeeds only when every
-component succeeds. Once repository branch protection is provisioned, its required status context
+accessibility integration. It also calls `quality_gate_synthetic_windows.yml` for three separately
+isolated workload jobs and `quality_gate_unsigned_windows.yml` for optimized application/broker
+verification. A stable `Windows Gate` aggregation job succeeds only when every Daily, synthetic,
+and unsigned-build job succeeds; skipped or cancelled requirements fail. Once repository branch
+protection is provisioned, its required status context
 must be the exact GitHub check name `Windows Gate / Windows Gate`. Matrix fail-fast is disabled so
 one failure does not hide results from the other components. Jobs do not exchange
 compiled artifacts or build directories; only dependency caches may be reused. This reduces
@@ -118,8 +123,32 @@ Provenance and independent checksums remain deferred supply-chain work rather th
 current gate.
 
 GitHub-hosted workflows never receive real-library paths or authorization tokens and never run the
-real-library gate. A version-tag gate may run the synthetic performance benchmark, but retained real
-library verification remains a separately authorized workstation action.
+real-library gate. Ordinary PR CI runs the three synthetic cases without release permission; retained
+real-library verification remains a separately authorized workstation action. Protected release jobs
+may still show as skipped in a PR: the independent unsigned quality job supplies compilation evidence
+without relaxing their protected-main admission.
+
+### Hosted coverage boundary
+
+`performance_run_synthetic.ps1 -Case jpeg|scan|usn|all` accepts only the fixed workload catalog.
+It builds the locked optimized Rust test artifact, discovers and executes one exact test per case,
+and rejects missing tests, ignored results, nonzero exits, malformed evidence, and exceeded deadlines
+or workload working-set ceilings. JPEG output does not impose a speedup threshold. Scan timing/storage
+and parser boundedness assertions remain unchanged. Fresh logs and JSON under
+`.dart_tool/performance_synthetic/` are retained as short-lived CI artifacts, including on failure.
+Build primary-process memory is not complete compiler-tree memory evidence.
+
+The USN case uses generated bytes and an injected backend; it does not access a volume journal or
+stand in for the complete Windows 11 R2c-R runner. Old H/M controlled scenarios remain historical and
+need ADR 0024 adaptation, not a blanket ignored-test switch. The three R2c-R production scenarios
+retain their ordinary-user Windows 11 x64 entrypoint. No matching runner is assumed to exist, and
+Server jobs never report client acceptance. Real-root and signed/installed-service gates remain
+separate. Ordinary parent-owned WAL and small M metadata child tests remain part of Daily.
+
+The unsigned gate has no credential-bearing Environment or publication path. It verifies a fresh
+application, broker, and Rust payload and runs only the isolated native-channel/Release-DLL smoke;
+it never starts the existing retained-catalog smoke. See
+[ADR 0026](../architecture/0026-hosted-synthetic-and-unsigned-build-gates.md) for these boundaries.
 
 ## Daily gate
 
