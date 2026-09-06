@@ -126,6 +126,10 @@ decision. Never fill missing context with a convenient assumption merely to keep
   File length alone does not justify churn, but repeated growth across unrelated responsibilities
   is a stop signal: preserve a narrow facade, record any larger physical split in the roadmap, and
   do not add further behavior to that debt area until its boundary is established.
+- Review physical size as well as responsibility count. Record production, inline-test, and
+  dedicated-test line counts for large affected owners; cohesive logic or a large test proportion
+  does not by itself make an oversized file easy to review. Prefer meaningful module and test-suite
+  boundaries, not arbitrary line caps, forwarding fragments, or moving the same monolith unchanged.
 - Fixes must remove the cause at its owning layer and add a focused regression at that boundary.
   Presentation-only guards, retry loops, status text, or broad catch-and-continue behavior must not
   compensate for an unresolved application, persistence, or platform invariant.
@@ -462,8 +466,16 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   stress sequence in the native Windows runner and fails when engine stderr reports an invalid
   `ui::AXTree` update. Run and cleanup failures persist current Flutter output, verified native
   phases, and failure metadata before returning the original run error, replacing prior evidence.
+- `./tool/integration_test_windows.ps1` runs controlled scan interactions in an owned process tree
+  with a parent deadline. GUID-isolated logs and completion evidence survive failures; nonempty
+  fixture storage is retained rather than recursively deleted without cleanup authority.
+  `./tool/integration_test_windows_scan_guardrails.ps1` verifies its compiler-free lifecycle protocol
+  in lint, including original-failure precedence and independent environment restoration.
 - `./tool/quality_verify_git_range.ps1` checks committed whitespace over an explicit Git revision
   range so a clean hosted checkout does not turn `git diff HEAD --check` into an empty gate.
+- `./tool/quality_verify_bridge_contracts.ps1` checks generated bridge hash identity and exact
+  asynchronous API and wire method bodies without building. `./tool/quality_test_bridge_contracts.ps1`
+  runs compiler-free negative fixtures against that boundary, including cross-method false matches.
 - `./tool/performance_benchmark_synthetic_library.ps1` is the explicit performance gate. It creates 10,000
   temporary images and records cold, warm, pause, resume, memory, and storage evidence.
 - `./tool/performance_run_synthetic.ps1` runs the fixed JPEG, 10,000-image scan, and million-record

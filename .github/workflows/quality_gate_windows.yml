@@ -145,6 +145,18 @@ jobs:
           AME_BASE_REVISION: ${{ inputs.base_revision }}
         run: ./tool/quality_verify_git_range.ps1 -BaseRevision $env:AME_BASE_REVISION
 
+      - name: Retain controlled scan diagnostics
+        if: always() && matrix.component == 'windows_scan'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: windows-scan-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            build/integration-storage-*/flutter.stdout.log
+            build/integration-storage-*/flutter.stderr.log
+            build/integration-storage-*/completion.json
+          if-no-files-found: warn
+          retention-days: 7
+
   quality_synthetic_windows:
     name: Synthetic Workloads
     if: inputs.gate_mode == 'daily'

@@ -496,7 +496,7 @@ fn replacement_scan_rejects_path_shaped_retry_with_root_freshness_authority() {
 }
 
 #[test]
-fn abandoning_authoritative_scan_preserves_live_work_and_releases_only_frozen_work() {
+fn abandoning_replacement_scan_preserves_live_work_and_releases_only_frozen_work() {
     let directory = tempdir().expect("temporary directory");
     let path = directory.path().join("catalog.sqlite3");
     let generation = LibraryRootGeneration::initial();
@@ -505,6 +505,16 @@ fn abandoning_authoritative_scan_preserves_live_work_and_releases_only_frozen_wo
         ..immediate_policy()
     };
     let mut catalog = queue_catalog(path);
+    let initial = scan_request("initial-published-scan");
+    catalog
+        .begin_scan(&initial, "root-a", &initial.root_path)
+        .expect("begin initial scan");
+    catalog
+        .prove_live_only_first_import_handoff_for_test(&initial.scan_id)
+        .expect("prove initial first-import handoff");
+    catalog
+        .publish_scan(&initial.scan_id, "root-a", 0, 0)
+        .expect("publish baseline before replacement work");
     catalog
         .enqueue_library_change_intents(
             &[path_intent(

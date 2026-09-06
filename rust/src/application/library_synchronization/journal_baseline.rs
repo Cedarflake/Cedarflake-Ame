@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::adapters::{SqliteCatalog, SqliteCatalogSession};
+use crate::application::scan_library::{FirstImportCaptureLease, first_import_capture_lease};
 use crate::domain::{
     JournalFileReference, JournalIdentifier, JournalUsn, LibraryChangeLane,
     LibraryChangeQueuePolicy, LibraryRecoveryAuthorityReason, LibraryRootGeneration,
@@ -18,7 +19,8 @@ use crate::journal_broker::{
     RegisterRootRequest, describe_production_persistent_journal_root,
 };
 use crate::ports::{
-    IncrementalCatalogRepository, MetadataInventoryRepository, PersistentJournalRepository,
+    CatalogRepository, IncrementalCatalogRepository, MetadataInventoryRepository,
+    PersistentJournalRepository,
 };
 
 const JOURNAL_BOUNDARY_TIMEOUT_MILLIS: u32 = 10_000;
@@ -26,7 +28,7 @@ const JOURNAL_BOUNDARY_TIMEOUT_MILLIS: u32 = 10_000;
 enum JournalBaselineOpeningAuthority {
     ExistingRoot,
     FirstImport {
-        scan_id: String,
+        capture: FirstImportCaptureLease,
         started_unix_ms: i64,
     },
 }
@@ -56,7 +58,7 @@ impl JournalBaselineOpeningWork {
         root_id: String,
         root_generation: LibraryRootGeneration,
         root_path: PathBuf,
-        scan_id: String,
+        capture: FirstImportCaptureLease,
         started_unix_ms: i64,
     ) -> Self {
         Self {
@@ -64,7 +66,7 @@ impl JournalBaselineOpeningWork {
             root_generation,
             root_path,
             authority: JournalBaselineOpeningAuthority::FirstImport {
-                scan_id,
+                capture,
                 started_unix_ms,
             },
         }
@@ -193,11 +195,19 @@ pub(super) fn select_opening_work(
             let Some((scan_id, started_unix_ms)) = first_import else {
                 continue;
             };
+            let Some(capture) =
+                first_import_capture_lease(catalog.catalog_path(), &root.root_id, root_generation)?
+            else {
+                continue;
+            };
+            if capture.scan_id() != scan_id {
+                continue;
+            }
             JournalBaselineOpeningWork::first_import(
                 root.root_id.clone(),
                 root_generation,
                 PathBuf::from(&root.root_path),
-                scan_id,
+                capture,
                 started_unix_ms,
             )
         } else {
@@ -217,11 +227,21 @@ pub(super) fn persist_unavailable_session(
     work: &JournalBaselineOpeningWork,
     observed_unix_ms: i64,
 ) -> Result<(), ScanError> {
-    catalog.save_persistent_journal_capability(&live_only_capability(
+    work.ensure_current()?;
+    let capability = live_only_capability(
         &work.root_id,
         work.root_generation,
-        observed_unix_ms,
-    ))
+        work.authorized_unix_ms(observed_unix_ms),
+    );
+    match &work.authority {
+        JournalBaselineOpeningAuthority::ExistingRoot => {
+            catalog.save_persistent_journal_capability(&capability)
+        }
+        JournalBaselineOpeningAuthority::FirstImport { capture, .. } => catalog
+            .save_first_import_journal_capability(&capability, capture.scan_id(), || {
+                capture.acquire_publication()
+            }),
+    }
 }
 
 pub(super) fn capture_opening_boundary(
@@ -234,6 +254,7 @@ pub(super) fn capture_opening_boundary(
     cancelled: &AtomicBool,
 ) -> Result<(), ScanError> {
     ensure_boundary_not_cancelled(cancelled, "opening")?;
+    work.ensure_current()?;
     let registration = describe_production_persistent_journal_root(
         &work.root_id,
         work.root_generation.value(),
@@ -241,21 +262,30 @@ pub(super) fn capture_opening_boundary(
     )
     .map_err(map_journal_operation_error)?;
     let boundary = probe_journal_boundary(session, caller, &registration)?;
+    ensure_boundary_not_cancelled(cancelled, "opening")?;
+    work.ensure_current()?;
     let mut catalog = catalog_session.open_in_lane(LibraryChangeLane::Journal)?;
     match boundary {
         JournalBoundaryProbe::Supported(supported) => {
-            catalog.begin_persistent_journal_baseline(
+            let capture = match &work.authority {
+                JournalBaselineOpeningAuthority::ExistingRoot => None,
+                JournalBaselineOpeningAuthority::FirstImport { capture, .. } => {
+                    Some(capture.clone())
+                }
+            };
+            catalog.begin_journal_baseline_with_admission(
                 &opening_request(work, supported, observed_unix_ms),
                 queue_policy,
+                || {
+                    capture
+                        .as_ref()
+                        .map(FirstImportCaptureLease::acquire_publication)
+                        .transpose()
+                },
             )?;
         }
         JournalBoundaryProbe::LiveOnly => {
-            let observed_unix_ms = work.authorized_unix_ms(observed_unix_ms);
-            catalog.save_persistent_journal_capability(&live_only_capability(
-                &work.root_id,
-                work.root_generation,
-                observed_unix_ms,
-            ))?;
+            persist_unavailable_session(&mut catalog, &work, observed_unix_ms)?;
         }
     }
     drop(registration);
@@ -286,6 +316,18 @@ pub(super) fn capture_closing_boundary(
 }
 
 impl JournalBaselineOpeningWork {
+    fn ensure_current(&self) -> Result<(), ScanError> {
+        if let JournalBaselineOpeningAuthority::FirstImport { capture, .. } = &self.authority
+            && !capture.is_current()
+        {
+            return Err(ScanError::new(
+                "persistent_journal_first_import_inactive",
+                "The first-import journal probe lost its executing scan owner",
+            ));
+        }
+        Ok(())
+    }
+
     fn authorized_unix_ms(&self, observed_unix_ms: i64) -> i64 {
         match &self.authority {
             JournalBaselineOpeningAuthority::ExistingRoot => observed_unix_ms,
@@ -324,9 +366,10 @@ fn opening_request(
             ),
             LibraryRecoveryAuthorityReason::ExistingRootBaseline,
         ),
-        JournalBaselineOpeningAuthority::FirstImport { scan_id, .. } => {
-            (scan_id, LibraryRecoveryAuthorityReason::FirstImportBoundary)
-        }
+        JournalBaselineOpeningAuthority::FirstImport { capture, .. } => (
+            capture.scan_id().to_owned(),
+            LibraryRecoveryAuthorityReason::FirstImportBoundary,
+        ),
     };
     PersistentJournalBaselineStartRequest {
         run_id,
@@ -591,6 +634,22 @@ mod tests {
         }
     }
 
+    fn test_capture(scan_id: &str) -> (impl Drop, FirstImportCaptureLease) {
+        let catalog_path = PathBuf::from(format!("unused-{scan_id}"));
+        let registration = crate::application::scan_library::hold_first_import_capture(
+            scan_id,
+            &catalog_path,
+            "root-a",
+            LibraryRootGeneration::initial(),
+        )
+        .expect("capture registration");
+        let capture =
+            first_import_capture_lease(&catalog_path, "root-a", LibraryRootGeneration::initial())
+                .expect("registry")
+                .expect("capture");
+        (registration, capture)
+    }
+
     fn inventory_baseline() -> PersistentJournalBaseline {
         PersistentJournalBaseline {
             change_id: LibraryChangeId::new(41).expect("change ID"),
@@ -620,9 +679,9 @@ mod tests {
             match authority {
                 JournalBaselineOpeningAuthority::ExistingRoot => "existing".to_owned(),
                 JournalBaselineOpeningAuthority::FirstImport {
-                    scan_id,
+                    capture,
                     started_unix_ms,
-                } => format!("first-import:{scan_id}:{started_unix_ms}"),
+                } => format!("first-import:{}:{started_unix_ms}", capture.scan_id()),
             }
         }
 
@@ -630,12 +689,13 @@ mod tests {
             assert_total(JournalBaselineOpeningAuthority::ExistingRoot),
             "existing"
         );
+        let (_registration, capture) = test_capture("authority-api-scan");
         assert_eq!(
             assert_total(JournalBaselineOpeningAuthority::FirstImport {
-                scan_id: "scan-a".to_owned(),
+                capture,
                 started_unix_ms: 100,
             }),
-            "first-import:scan-a:100"
+            "first-import:authority-api-scan:100"
         );
     }
 
@@ -665,11 +725,12 @@ mod tests {
 
     #[test]
     fn first_import_opening_maps_to_scan_authority_and_start_time() {
+        let (_registration, capture) = test_capture("first-import-scan");
         let work = JournalBaselineOpeningWork::first_import(
             "root-a".to_owned(),
             LibraryRootGeneration::initial(),
             PathBuf::from("unused"),
-            "first-import-scan".to_owned(),
+            capture,
             150,
         );
         let request = opening_request(work, supported_opening_boundary(), 100);

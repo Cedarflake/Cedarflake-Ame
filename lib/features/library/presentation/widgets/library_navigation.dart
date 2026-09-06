@@ -30,6 +30,8 @@ class LibraryNavigation extends StatefulWidget {
     required this.isBusy,
     this.updatingRootIds = const {},
     this.isAddingSourceDisabled = false,
+    this.addingSourceDisabledReason,
+    this.retainedScanRootId,
     required this.onSelectLibrary,
     required this.onSelectRoot,
     required this.onSelectFolder,
@@ -58,6 +60,8 @@ class LibraryNavigation extends StatefulWidget {
   final bool isBusy;
   final Set<String> updatingRootIds;
   final bool isAddingSourceDisabled;
+  final String? addingSourceDisabledReason;
+  final String? retainedScanRootId;
   final VoidCallback onSelectLibrary;
   final ValueChanged<LibraryRoot> onSelectRoot;
   final void Function(LibraryRoot root, LibraryFolder folder) onSelectFolder;
@@ -177,7 +181,9 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                       ),
                     ),
                     AmeTooltip(
-                      message: LibraryStrings.addFolder,
+                      message:
+                          widget.addingSourceDisabledReason ??
+                          LibraryStrings.addFolder,
                       child: IconButton(
                         key: const Key("library-sidebar-import"),
                         onPressed:
@@ -218,7 +224,9 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                       trailing: SizedBox(
                         width: 48,
                         child: AmeTooltip(
-                          message: LibraryStrings.addFolder,
+                          message:
+                              widget.addingSourceDisabledReason ??
+                              LibraryStrings.addFolder,
                           child: IconButton(
                             key: const Key("library-sidebar-import"),
                             onPressed:
@@ -259,10 +267,9 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                           widget.selectedRootId == root.id &&
                           widget.selectedFolderRelativePath == null,
                       isExpanded: _isExpanded(root.id, ""),
-                      isBusy:
-                          widget.isBusy ||
-                          widget.updatingRootIds.contains(root.id),
+                      isBrowseDisabled: widget.isBusy,
                       isUpdating: widget.updatingRootIds.contains(root.id),
+                      isUpdateDisabled: widget.retainedScanRootId == root.id,
                       focusNode: _focusNodeForRoot(root.id),
                       onSelect: () => widget.onSelectRoot(root),
                       onToggleExpansion: () => _toggleBranch(root.id, ""),

@@ -552,6 +552,11 @@ class _FakeCatalog implements LibraryCatalog {
 }
 
 class _FakeScanner implements LibraryScanner {
+  @override
+  Future<void> cancelRetainedScan(String scanId) async {
+    throw StateError("This fixture has no retained cancellation command");
+  }
+
   const _FakeScanner();
 
   @override

@@ -2,6 +2,8 @@ import "dart:io";
 import "dart:typed_data";
 import "dart:ui" as ui;
 
+import "package:cedarflake_ame/features/library/application/library_source_read_scheduler.dart";
+import "package:cedarflake_ame/features/library/application/library_source_reader.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_source_image.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_image.dart";
@@ -27,6 +29,10 @@ void main() {
         key,
       );
       expect(LibrarySourceImage(_asset("same.png", generation: 2)), isNot(key));
+      expect(
+        LibrarySourceImage(_asset("same.png", scanId: "scan-2")),
+        isNot(key),
+      );
       expect(
         LibrarySourceImage(_asset("same.png", revision: "revision-2")),
         isNot(key),
@@ -121,9 +127,36 @@ void main() {
   });
 }
 
-Widget _viewer(LibraryAsset asset) => MaterialApp(
-  home: Scaffold(body: LibraryViewerImage(asset: asset)),
+final _sourceScheduler = LibrarySourceReadScheduler(
+  reader: const _SourceReader(),
 );
+
+Widget _viewer(LibraryAsset asset) => MaterialApp(
+  home: Scaffold(
+    body: LibraryViewerImage(
+      asset: asset,
+      sourceReadScheduler: _sourceScheduler,
+    ),
+  ),
+);
+
+class _SourceReader implements LibrarySourceReader {
+  const _SourceReader();
+
+  @override
+  Future<LibrarySourceReadLease> acquire(LibraryAsset asset) async =>
+      _SourceLease(asset.sourcePath);
+}
+
+class _SourceLease implements LibrarySourceReadLease {
+  _SourceLease(this.sourcePath);
+
+  @override
+  final String sourcePath;
+
+  @override
+  Future<void> close() async {}
+}
 
 Future<Uint8List> _png(Color color) async {
   final recorder = ui.PictureRecorder();
@@ -167,11 +200,12 @@ LibraryAsset _asset(
   String path, {
   int generation = 1,
   String revision = "r1",
+  String scanId = "scan-1",
 }) => LibraryAsset(
   assetId: "asset-1",
   locationId: "location-1",
   rootId: "root-1",
-  activeScanId: "scan-1",
+  activeScanId: scanId,
   sourcePath: path,
   displayPath: path,
   relativePath: "source.png",

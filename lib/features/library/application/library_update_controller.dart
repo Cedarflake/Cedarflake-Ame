@@ -178,6 +178,12 @@ final libraryUpdatePrimaryBusyProvider = Provider<bool>((ref) {
   );
 });
 
+final libraryUpdateRetainedRootProvider = Provider<String?>((ref) {
+  return ref.watch(
+    libraryControllerProvider.select((library) => library.retainedScanRootId),
+  );
+});
+
 class _ActiveRootUpdate {
   _ActiveRootUpdate({required this.root, required this.scanId});
 
@@ -263,6 +269,9 @@ class LibraryUpdateController extends Notifier<LibraryUpdateState> {
     };
     var next = state;
     for (final rootId in rootIds) {
+      if (rootId == ref.read(libraryUpdateRetainedRootProvider)) {
+        continue;
+      }
       final root = configuredRoots[rootId];
       if (root == null) {
         continue;

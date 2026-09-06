@@ -848,6 +848,11 @@ class _StaticManifestLoader implements LibraryGalleryLayoutManifestLoader {
 }
 
 class _NoopScanner implements LibraryScanner {
+  @override
+  Future<void> cancelRetainedScan(String scanId) async {
+    throw StateError("This fixture has no retained cancellation command");
+  }
+
   const _NoopScanner();
 
   @override

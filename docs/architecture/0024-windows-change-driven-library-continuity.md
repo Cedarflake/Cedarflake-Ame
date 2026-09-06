@@ -240,6 +240,47 @@ persistent journal continuity. A missing opening proof, changed root or volume i
 journal continuity, or generation mismatch fails into explicit recovery and cannot publish
 `Current`.
 
+Root registration alone does not grant synchronization admission. A published baseline admits
+ordinary synchronization; an unpublished first import admits only observer-first capture while
+this process holds that exact scan's live execution ownership. A persisted `running` checkpoint is
+not that ownership. Paused, cancelled, failed, or interrupted unpublished roots cannot start
+watchers, publication lanes, recovery, or scans merely because they remain configured, and an empty
+queue without a baseline is not `QueuePublication`. Losing execution ownership invalidates late
+first-import opening work without manufacturing journal authority. Restart exposes a retained
+unfinished import for explicit Continue, including after window closure or a crash; it never resumes
+that task automatically. A cancelled task is terminal and cannot be selected for Continue. An
+already published root retains its usable catalog and ordinary synchronization when a later update
+is cancelled.
+
+Pause, cancel, and suspend requests are non-blocking intent admission, not terminal receipts.
+First-import journal publication obtains its revocable execution permit only after acquiring the
+SQLite write transaction. Control accepted before that permit refuses publication; publication
+admitted first may commit before the worker's terminal transaction, which then settles or withdraws
+the owned boundary. No synchronous UI control waits for database commit. Retiring an execution
+invalidates its token before the same scan identity can be registered again.
+
+Cancelling a retained checkpoint is a separate asynchronous application command, not a request to
+an absent execution token. A short registry operation reserves the exact scan identity against
+concurrent execution registration, without holding its mutex across catalog I/O. The catalog write
+transaction revalidates the foreground checkpoint, current root generation, unpublished baseline,
+and recoverable state before atomic abandonment. An already cancelled matching task is idempotent;
+an active execution, published scan, changed ownership, or incompatible terminal state is refused.
+Failure retains the checkpoint. This command never enumerates a source directory or resumes a
+scanner, and only committed cancellation authorizes presentation to clear the retained task.
+Checkpoint and folder-page reads use asynchronous bridge dispatch as well: an `async` Dart wrapper
+around synchronous FFI does not move SQLite work off the UI isolate. Only bounded in-memory control
+admission remains synchronous; catalog opening, validation, and queries run on the worker path.
+
+Explicit Continue may retain its directory checkpoint only when persistent change coverage also
+proves the observation gap. The current resume adapter does not acquire that fresh proof, so it
+rebuilds every unfinished first inventory on explicit continuation. A live-only observer cannot
+provide that proof after pause or process
+exit: a previously visited directory could have gained files. In that case the explicit continuation
+re-establishes the first inventory from its root behind the same observer-first boundary. Rebuildable
+preview data may be reused, but an old frontier or validation of known files cannot stand in for
+missing namespace coverage. This cost belongs to the explicitly resumed first import, never to an
+automatic startup scan or ordinary synchronization.
+
 ### Journal broker boundary
 
 The broker is an x64 Windows service installed and updated by the signed Ame installer after one
@@ -2618,7 +2659,8 @@ claims and removes staging before another update is admitted; a paused unpublish
 silently replaced by a running candidate. Recovery projection shares the per-catalog session lock
 and is deferred while this process owns any foreground scan, so a retry or terminal reconciliation
 query cannot classify live work as crash residue. This is the narrow consequence of retaining the
-singular bridge contract: at most one unfinished first import resumes, while every interrupted update
+singular bridge contract: at most one unfinished first import is offered for explicit continuation,
+while every interrupted update
 restarts
 from the last atomically published catalog after fresh user authorization. The last published catalog
 remains trustworthy and the user may explicitly retry any root; shutdown and recovery never combine

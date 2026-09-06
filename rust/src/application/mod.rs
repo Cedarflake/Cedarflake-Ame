@@ -14,12 +14,14 @@ mod metadata_inventory;
 mod persistent_journal_continuity;
 mod preview;
 mod preview_cleanup;
+mod preview_health;
 #[cfg(test)]
 mod preview_performance_acceptance;
 mod preview_reclamation;
 mod preview_recovery;
 mod scan_library;
 mod storage;
+pub(crate) mod viewer_source;
 
 #[cfg(test)]
 pub(crate) use authoritative_library_changes::process_ready_authoritative_library_change_cancellable;
@@ -67,11 +69,13 @@ pub use preview_recovery::{
     PreviewRecoveryPhase, PreviewRecoverySnapshot, preview_recovery_snapshot,
 };
 pub use scan_library::{
-    cancel_scan, load_paused_scan, load_recoverable_scan, pause_scan, resume_scan, run_scan,
-    suspend_scan,
+    cancel_retained_scan, cancel_scan, load_paused_scan, load_recoverable_scan, pause_scan,
+    resume_scan, run_scan, suspend_scan,
 };
 pub(crate) use storage::{StoragePaths, storage_paths};
 pub use storage::{load_storage_status, update_storage_settings};
+pub(crate) use viewer_source::acquire_viewer_source;
+pub use viewer_source::{ViewerSourceLease, ViewerSourceRequest};
 
 pub(crate) fn reserve_production_library_synchronization_start_ticket()
 -> Result<u64, crate::domain::ScanError> {

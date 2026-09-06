@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-07
-- Last updated: 2026-09-05
+- Last updated: 2026-09-06
 - Related: ADR 0006, ADR 0014
 
 ## Context
@@ -35,6 +35,14 @@ must never erase dimensions or move the viewport.
 - Catalog relocation remains rejected after the active catalog contains a library root. A future
   catalog-migration workflow must copy, verify, switch, roll back, report progress, support
   cancellation, and recover from interruption before removing that restriction.
+- Before any first-root registration, configured and process-active catalog paths must still
+  identify the same location. A pending catalog switch requires restart before another import;
+  otherwise the import would be committed to the database that the next process stops opening.
+  Configuration save and scan registration share one bounded process-local admission. The internal
+  registry mutex is released before filesystem or SQLite work, and the permit ends at registration
+  or settings commit rather than spanning a scan. Whichever command commits first determines the
+  other command's existing restart-required or migration-required rejection. Preview-only and
+  budget-only changes do not create this catalog conflict, nor do physically equivalent paths.
 - The supported preview budget is 64 MiB through 1 TiB. The initial default is 4 GiB.
 
 ### Durable image geometry
@@ -242,6 +250,17 @@ ready files, and unreferenced managed artifacts. It does not scan source roots, 
 or block opening the last trustworthy catalog on a complete cache walk. Work beyond the startup
 allowance continues as observable bounded background maintenance.
 
+Startup artifact recovery and ordinary catalog-window reads share the application-owned
+`preview_health` boundary. A missing-file or byte-size observation is only a candidate hint, not
+permission to invalidate an artifact. The final filesystem observation and conditional catalog
+update hold the same exclusion used by preview publication. Otherwise a same-key forced
+regeneration could publish between an old negative observation and its database write. The
+SQLite adapter attempts both write admission and its short transaction without waiting; contention
+returns typed deferred work and releases preview exclusion. It must not hold that exclusion while
+waiting for another database writer. Location updates still require the exact active source lease;
+artifact updates require current key/path ownership. Neither path clears dimensions, interprets
+access denial as a missing file, nor turns deferred work into a successful repair.
+
 ### Catalog database page reclamation
 
 Configured-root removal owns logical catalog cleanup; SQLite page reclamation is a separate derived-
@@ -287,6 +306,13 @@ successive `page_count`, `freelist_count`, and `page_size` evidence. Reclamation
 freelist reaches 8 MiB or five percent, avoiding cleanup thrash while retaining reusable pages.
 Interrupted conversion leaves the pre-conversion database transactionally usable; interrupted
 incremental work retains already committed batches. Startup may reschedule remaining eligible work.
+The reclamation operation registry owns scheduling, the current execution token, coalesced next
+request, attempt control, and terminal publication under one per-catalog transition boundary.
+Accepting a new request and retiring a worker cannot leave queued work without an executor.
+Every execution has independent cancellation identity. A late cancel, preempt, or completion cannot
+write into a later execution or turn a terminal snapshot back into active work. Preemption targets
+only the captured attempt; the interrupted worker publishes waiting status. Registry locks are
+released before filesystem work, SQLite operations, thread creation, or interrupt callbacks.
 Before publishing `Completed`, a separate zero-busy-timeout maintenance attempt runs
 `wal_checkpoint(TRUNCATE)` under the same preemptible admission. Ame parses all three SQLite result
 columns; a busy result or SQLite busy error returns to capped waiting, while a catalog without a WAL
@@ -306,13 +332,19 @@ Preview relocation uses a switch-and-regenerate workflow because previews are re
 
 1. validate and persist a pending target outside every source root;
 2. keep the old root active until restart and successful target initialization;
-3. activate the target and atomically reset old-root preview entries to pending without changing
-   durable dimensions;
-4. regenerate in the target only through normal demand;
-5. retain explicit ownership of the old root until the user starts verified cleanup.
+3. atomically reset old-root locations, retained handoffs, and artifact ownership in the catalog
+   without changing durable dimensions;
+4. only after that commit, retire pending ownership in the settings database and activate the target;
+5. regenerate in the target only through normal demand and retain explicit ownership of the old
+   root until the user starts verified cleanup.
 
-Activation failure leaves the old root authoritative. Ame never silently deletes it or calls its
-space reclaimed. A future copy-based preview migration is optional and requires integrity
+The settings and catalog databases do not share one transaction. Pending ownership is the durable
+restart obligation: interruption before or after catalog reset leaves that obligation available,
+and the next activation repeats the idempotent reset before consuming it. Activation failure can
+fall back only to a previous root freshly verified outside all current source roots. A former
+cache path that now overlaps a source is not initialized. A reset already committed before a
+settings failure is harmless because the old cache remains rebuildable through normal demand.
+Ame never silently deletes the old root or calls its space reclaimed. A future copy-based preview migration is optional and requires integrity
 verification, atomic activation, cancellation, progress, interrupted-run recovery, and rollback.
 
 ## Consequences and risks

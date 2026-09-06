@@ -21,7 +21,8 @@ class LibrarySourceNavigationTile extends StatefulWidget {
     required this.isCompact,
     required this.isSelected,
     required this.isExpanded,
-    required this.isBusy,
+    required this.isBrowseDisabled,
+    this.isUpdateDisabled = false,
     this.isUpdating = false,
     required this.onSelect,
     required this.onToggleExpansion,
@@ -38,7 +39,8 @@ class LibrarySourceNavigationTile extends StatefulWidget {
   final bool isCompact;
   final bool isSelected;
   final bool isExpanded;
-  final bool isBusy;
+  final bool isBrowseDisabled;
+  final bool isUpdateDisabled;
   final bool isUpdating;
   final VoidCallback onSelect;
   final VoidCallback onToggleExpansion;
@@ -118,7 +120,7 @@ class _LibrarySourceNavigationTileState
             child: IconButton(
               focusNode: _focusNode,
               isSelected: widget.isSelected,
-              onPressed: widget.isBusy ? null : widget.onSelect,
+              onPressed: widget.isBrowseDisabled ? null : widget.onSelect,
               icon: Icon(icon),
             ),
           )
@@ -170,7 +172,7 @@ class _LibrarySourceNavigationTileState
                 ],
               ),
             ),
-            onTap: widget.isBusy ? null : widget.onSelect,
+            onTap: widget.isBrowseDisabled ? null : widget.onSelect,
           );
     return CallbackShortcuts(
       bindings: {
@@ -231,7 +233,10 @@ class _LibrarySourceNavigationTileState
       items: [
         PopupMenuItem(
           value: _LibrarySourceMenuAction.update,
-          enabled: !widget.isBusy,
+          enabled:
+              !widget.isBrowseDisabled &&
+              !widget.isUpdating &&
+              !widget.isUpdateDisabled,
           child: const AmeMenuItemContent(
             icon: Symbols.refresh_rounded,
             label: LibraryStrings.updateLibrary,
@@ -247,7 +252,7 @@ class _LibrarySourceNavigationTileState
         const PopupMenuDivider(height: AmeMenuMetrics.dividerHeight),
         PopupMenuItem(
           value: _LibrarySourceMenuAction.remove,
-          enabled: !widget.isBusy,
+          enabled: !widget.isBrowseDisabled && !widget.isUpdating,
           child: const AmeMenuItemContent(
             icon: Symbols.remove_circle_rounded,
             label: LibraryStrings.removeFromAme,
@@ -274,6 +279,9 @@ class _LibrarySourceNavigationTileState
     bool hasSynchronizationFailure,
     bool isUpdating,
   ) {
+    if (synchronizationStatus?.isAwaitingFirstImport == true) {
+      return LibraryStrings.firstImportIncomplete;
+    }
     if (root.availability != LibraryRootAvailability.available) {
       return switch (root.availability) {
         LibraryRootAvailability.available => LibraryStrings.sourceAvailable,

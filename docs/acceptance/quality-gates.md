@@ -5,6 +5,23 @@ Status: active repository workflow
 Cedarflake Ame separates deterministic development feedback from expensive or authorization-bound
 acceptance work. A passing lower gate never claims that a higher gate ran.
 
+`./tool/quality_verify_bridge_contracts.ps1` is the read-only bridge contract entrypoint used by
+Daily's static component. It checks matching content hashes and exact Rust, Dart API, generated
+Dart, and Rust-wire method boundaries for catalog reads, retained cancellation, storage commands,
+and original-image source acquisition and lease methods. Comments, literals, and another method's
+normal execution cannot satisfy a contract. `./tool/quality_test_bridge_contracts.ps1` runs the
+compiler-free in-memory rejection fixtures in lint. Neither command generates bridge files or
+replaces the native DLL integration and Release smoke.
+
+`./tool/integration_test_windows.ps1` runs the controlled scan workflow inside an owned Windows
+Job Object with a 900-second parent deadline by default. Each invocation uses fresh GUID-named
+storage under `build`; stdout, stderr, and `completion.json` retain the original run failure and
+separate cleanup failures. The runner restores its environment and releases its tool lock without
+killing another same-path application instance. Nonempty fixture storage is retained as evidence,
+not recursively deleted without identity-held cleanup authority. Hosted scan jobs upload only the
+three diagnostic files, never catalogs or media. `./tool/integration_test_windows_scan_guardrails.ps1`
+checks the run, deadline, failure-precedence, and environment-restoration protocol without Flutter.
+
 | Gate | Entry point | Included evidence | When to run |
 | --- | --- | --- | --- |
 | Hosted CI | `.github/workflows/quality_ci.yml` | Parallel isolated Daily components, three synthetic workloads, unsigned x64 Release build, and committed revision-range whitespace validation | Push to `main`, pull request, merge queue, or manual run |

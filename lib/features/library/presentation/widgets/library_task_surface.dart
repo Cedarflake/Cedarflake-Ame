@@ -29,6 +29,9 @@ class LibraryTaskSurface extends StatelessWidget {
   Widget build(BuildContext context) {
     final isLibraryUpdate = state.taskKind == LibraryTaskKind.update;
     final isRootRemoval = state.taskKind == LibraryTaskKind.remove;
+    final isPublishedReload =
+        state.primaryScanSnapshot.publication ==
+        LibraryScanPublication.reloadPending;
     final title = switch (state.status) {
       LibraryStatus.choosingDirectory => "正在选择文件夹…",
       LibraryStatus.scanning =>
@@ -40,7 +43,7 @@ class LibraryTaskSurface extends StatelessWidget {
             ? "正在核对文件夹“${_rootName(state.displayRootPath)}”…"
             : "正在添加文件夹“${_rootName(state.displayRootPath)}”…",
       LibraryStatus.pausing => "正在暂停…",
-      LibraryStatus.cancelling => "正在取消…",
+      LibraryStatus.cancelling || LibraryStatus.discarding => "正在取消…",
       LibraryStatus.removing =>
         state.isRemovalCommitted
             ? LibraryStrings.refreshingAfterRemoval(
@@ -49,7 +52,7 @@ class LibraryTaskSurface extends StatelessWidget {
             : LibraryStrings.removingFromAme(
                 _rootName(state.removingRootDisplayPath),
               ),
-      LibraryStatus.refreshing => "正在更新图库…",
+      LibraryStatus.refreshing => isPublishedReload ? "正在刷新图库显示…" : "正在更新图库…",
       LibraryStatus.cancelled => isLibraryUpdate ? "已取消更新图库" : "已取消添加文件夹",
       LibraryStatus.paused => isLibraryUpdate ? "已暂停更新图库" : "已暂停添加文件夹",
       LibraryStatus.stale => "源文件发生变化，需要重新更新",
@@ -58,6 +61,8 @@ class LibraryTaskSurface extends StatelessWidget {
             ? state.isRemovalCommitted
                   ? LibraryStrings.removedFolderRefreshFailed
                   : LibraryStrings.removeFolderFailed
+            : isPublishedReload
+            ? "图库已更新，刷新显示失败"
             : isLibraryUpdate
             ? "更新图库失败"
             : "添加文件夹失败",
@@ -102,23 +107,32 @@ class LibraryTaskSurface extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(child: Text(title)),
                   if (state.status == LibraryStatus.scanning) ...[
+                    if (!isLibraryUpdate)
+                      TextButton(
+                        key: const Key("library-pause-button"),
+                        onPressed: onPause,
+                        child: const Text("暂停"),
+                      ),
                     TextButton(
-                      key: const Key("library-pause-button"),
-                      onPressed: onPause,
-                      child: const Text("暂停"),
+                      key: const Key("library-cancel-button"),
+                      onPressed: onCancel,
+                      child: const Text("取消"),
+                    ),
+                  ] else if (state.status == LibraryStatus.paused) ...[
+                    TextButton(
+                      key: const Key("library-resume-button"),
+                      onPressed: onResume,
+                      child: const Text("继续"),
                     ),
                     TextButton(
                       key: const Key("library-cancel-button"),
                       onPressed: onCancel,
                       child: const Text("取消"),
                     ),
-                  ] else if (state.status == LibraryStatus.paused)
-                    TextButton(
-                      key: const Key("library-resume-button"),
-                      onPressed: onResume,
-                      child: const Text("继续"),
-                    )
-                  else if (state.status == LibraryStatus.failed ||
+                  ] else if (state.status == LibraryStatus.discarding) ...[
+                    const TextButton(onPressed: null, child: Text("继续")),
+                    const TextButton(onPressed: null, child: Text("取消")),
+                  ] else if (state.status == LibraryStatus.failed ||
                       state.status == LibraryStatus.cancelled) ...[
                     TextButton(
                       key: const Key("library-retry-button"),
@@ -152,7 +166,7 @@ class LibraryTaskSurface extends StatelessWidget {
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
-              if (state.isProcessing) ...[
+              if (state.isTaskProcessing) ...[
                 const SizedBox(height: 10),
                 LinearProgressIndicator(
                   value:

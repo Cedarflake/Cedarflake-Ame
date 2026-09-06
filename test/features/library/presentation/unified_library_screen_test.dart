@@ -3771,6 +3771,11 @@ class _FixedLibraryUpdateController extends LibraryUpdateController {
 }
 
 class _NoopLibraryScanner implements LibraryScanner {
+  @override
+  Future<void> cancelRetainedScan(String scanId) async {
+    throw StateError("This fixture has no retained cancellation command");
+  }
+
   const _NoopLibraryScanner();
 
   @override
@@ -3812,6 +3817,11 @@ class _NoopLibraryScanner implements LibraryScanner {
 }
 
 class _RecordingUpdateScanner implements LibraryScanner {
+  @override
+  Future<void> cancelRetainedScan(String scanId) async {
+    throw StateError("This fixture has no retained cancellation command");
+  }
+
   final List<String> startedRootPaths = [];
   final Map<String, StreamController<LibraryScanUpdate>> _controllers = {};
 

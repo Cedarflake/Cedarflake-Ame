@@ -2,9 +2,9 @@
 
 Status: active delivery plan
 
-Last confirmed with the user: 2026-09-05
+Last confirmed with the user: 2026-09-06
 
-Last implementation-status synchronization: 2026-09-05
+Last implementation-status synchronization: 2026-09-06
 
 Repository: this repository root
 
@@ -1243,9 +1243,11 @@ second metadata inventory. Its opening journal boundary and healthy observer are
 enumeration, its first snapshot may publish while scan-window P0 work remains queued, and its
 closing journal interval plus P0/P1 queues must converge before the per-root finalizer can publish
 `Current`. Ordinary changes during that scan, including a same-path content replacement, never
-invalidate the whole first import or turn into a user-visible retry request. Crash recovery resumes
-the same durable scan/baseline after opening admission, first publication, or replay without
-authorizing another complete root enumeration.
+invalidate the whole first import or turn into a user-visible retry request. After an unfinished
+first import loses its execution owner, startup restores only its paused task. Explicit Continue
+re-establishes observer-first capture and rebuilds that unpublished inventory unless persistent
+coverage proves the observation gap; the current resume adapter does not supply that proof. A
+published baseline instead retains ordinary bounded replay without another complete enumeration.
 
 Root changes:
 
@@ -3329,10 +3331,12 @@ latest-wins generation/revision owner; a committed removal retry may refresh pre
 not call database unregistration again; and Flutter `build()` must not mutate retained controller or
 selection state.
 
-The follow-up split order is deliberately bounded. P1 first moves primary Dart scan start,
-subscription, pause, resume, cancellation, and shutdown out of `LibraryController`; until then,
-`library_scan_execution.dart` owns admission only and neither file may acquire new scan-lifecycle
-behavior. Current-schema proof order and its consistent read snapshot now live in
+The follow-up split order is deliberately bounded. The current primary Dart scan extraction moves
+start, subscription, pause, resume, cancellation, and shutdown into `library_primary_scan_lifecycle.dart`,
+with run delivery and immutable task state in separate cohesive modules. `LibraryController` remains
+the composition facade and `library_scan_execution.dart` owns admission only; neither may acquire
+another scan state machine. This extraction still requires the current complete gates and independent
+audit. Current-schema proof order and its consistent read snapshot now live in
 `migrations/current_schema.rs`; P1 next moves the shared historical SQL validators and exact
 shrink-only compatibility repair out of `migrations.rs`, then separates production synchronization
 runtime ownership and Live, Journal, and Recovery lane state machines. Native accessibility
@@ -3358,6 +3362,62 @@ until the changed jobs finish successfully. Historical H/M controlled scenarios 
 the accepted continuity model; the R2c-R Windows 11 ordinary-user runner and external acceptance
 boundaries are not replaced by Server CI. This is verification infrastructure within R2c, not a new
 product stage or acceptance of any open slice.
+
+The first-import follow-up requires explicit continuation after window close or abnormal exit.
+Cancelled scans remain terminal. A configured root without a published baseline must neither enter
+ordinary synchronization nor show zero-queue `QueuePublication`; only a live, revocable first-import
+execution may capture changes before enumeration. A cancelled replacement scan does not invalidate
+an earlier completed baseline, including an empty one. Execution registration, synchronization
+admission, and read-only Dart checkpoint restoration have separate invariant owners under ADR 0025.
+The same follow-up repairs visible tooltip invalidation during parent rebuild without changing its
+appearance or motion. Focused cancellation, stale-callback, restart, task-surface, and tooltip
+regressions plus independent audit and the complete hosted gates are required before closeout.
+Call-path review additionally found that restoring `paused` locked folder navigation, paging,
+updates, and removal while exposing only Continue. The primary-scan lifecycle split is therefore
+part of this repair, not deferred cleanup: separate its retained task snapshot from gallery state,
+add asynchronous durable cancellation without source enumeration, and preserve task ownership
+through query refresh and other-root work. Same-root removal clears the task only after commit;
+new primary imports cannot replace it silently. Cross-path interaction and stale-completion tests
+must pass before this extraction is counted as delivered.
+The same review found reclamation worker-retirement/request-admission races and synchronous
+checkpoint/folder queries hidden behind asynchronous Dart signatures. Closeout includes a single
+reclamation operation owner, deterministic pending-request/terminal/preemption interleavings, and
+truly asynchronous database read dispatch. Neither more polling nor UI-only waiting labels close
+these lifecycle defects.
+After this repair, accumulated closeout review must trace import, scan, pause/cancel/exit, explicit
+continuation, root removal, database/cache cleanup, and preview invalidation through their actual
+owners and user controls. Passing existing tests is only one input: missing transitions, stale
+callbacks, source-identity races, and interactive feedback need independent negative cases. Review
+must record physical production/test line counts as well as responsibilities and naming/format
+compliance, and identify cohesive splits instead of using small new modules to hide large owners.
+The accumulated audit additionally found stale negative preview observations in startup recovery
+and ordinary catalog loading, a cross-database crash window during preview-root activation, and
+viewer reads that bypass the native no-recall source boundary. Closeout must reconcile final
+preview-file evidence and catalog mutations under one bounded lifecycle owner without holding
+generation exclusion across a blocked database writer; retain durable activation intent until the
+idempotent catalog reset and settings finalization complete; and admit original-image reads through
+a bounded, identity-held source lease. Fast viewer changes, disposal, missing or cloud-only sources,
+and read failure must release the exact lease without allowing a stale read to publish. These are
+correctness and source-safety repairs within Phase 34, not permission for real-library or Cloud Files
+acceptance. Their new focused regressions, native path, complete gates, and independent re-review
+remain required; an earlier green head does not validate them.
+
+Catalog relocation is part of the same storage lifecycle: configuration persistence and new import
+registration share short bounded admission, so an import cannot enter the old catalog after a
+pending switch has been saved. Preview-only or budget-only settings do not reserve the scanner.
+Committed multi-root display refresh now has a separate query-admission owner: passive reads defer,
+user navigation remains authoritative, and committed obligations wait for that latest query without
+repeating a scan or treating genuine catalog failure as success. Terminal scan cleanup requires the
+transaction to retire a live scan before discarding staging; late calls cannot clean a published
+projection. The controlled native scan runner now owns its process tree, deadline, failure logs,
+and independent environment restoration. The mixed-load scenario and its unwind-safe fixture have
+their own test module, while the larger runtime/lane split remains in the order above. Fresh native
+interaction and accessibility passes are recorded with the remaining full-suite and hosted gates;
+they do not close Phase 34 or any external acceptance boundary by themselves.
+The accumulated findings, real-control negative cases, physical size measurements, and current
+verification ledger are recorded in
+[the runtime lifecycle audit](acceptance/r2c-runtime-lifecycle-audit.md). That record is evidence,
+not a second roadmap or a substitute for the remaining gates.
 
 R2b implementation, deterministic preview-lifecycle correctness, retained-catalog interaction
 Profile, real-library catalog parity, Daily, Windows Release, and bounded source-readable preview

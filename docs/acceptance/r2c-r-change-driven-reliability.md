@@ -91,7 +91,7 @@ The fresh public gate passed all 19 cases, each as one exact test:
 | 4 | Watcher overflow with measured P0 while P2 remains active | `application::library_synchronization::change_driven_reliability_acceptance::r2c_r_watcher_overflow_recovers_while_twenty_five_real_p0_changes_remain_fast` |
 | 5 | One million unrelated records through production parser pages | `journal_broker::windows::usn::tests::million_unrelated_records_stream_through_bounded_production_parser_pages` |
 | 6 | One hundred no-change production observer startups | `application::library_synchronization::production::tests::one_hundred_no_change_startups_complete_the_production_observer_path_without_scanning` |
-| 7 | Reserved P0 while target-scale P1 and P2 are active | `application::library_synchronization::production::tests::p0_event_to_visible_p95_stays_below_one_second_with_p1_and_p2_active` |
+| 7 | Reserved P0 while target-scale P1 and P2 are active | `application::library_synchronization::production::tests::priority::p0_event_to_visible_p95_stays_below_one_second_with_p1_and_p2_active` |
 | 8 | Typed journal reset and trim classification | `application::persistent_journal_continuity::session_reader::tests::session_reader_classifies_reset_and_trim_from_structured_query_fields` |
 | 9 | Reset/trim race fails closed in the broker service contract | `journal_broker::service::tests::reset_and_trimming_during_read_fail_closed` |
 | 10 | Broker session reconnect | `application::library_synchronization::production::tests::production_journal_factory_reconnects_after_closing_the_previous_session` |

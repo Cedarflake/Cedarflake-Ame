@@ -101,10 +101,16 @@ class EmptyLibrary extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               FilledButton.icon(
-                onPressed: state.isBusy ? null : onImport,
+                onPressed: state.isBusy || state.hasRetainedScan
+                    ? null
+                    : onImport,
                 icon: const Icon(Symbols.create_new_folder_rounded),
                 label: const Text(LibraryStrings.import),
               ),
+              if (state.hasRetainedScan) ...[
+                const SizedBox(height: 8),
+                const Text("请先继续或取消已暂停的任务"),
+              ],
             ],
           ),
         ),

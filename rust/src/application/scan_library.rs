@@ -1,7 +1,5 @@
-use std::collections::HashMap;
-use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU8, Ordering};
-use std::sync::{Arc, Mutex, OnceLock};
+use std::path::Path;
+use std::sync::atomic::Ordering;
 #[cfg(not(test))]
 use std::thread;
 #[cfg(not(test))]
@@ -27,25 +25,40 @@ use crate::domain::{
 use crate::ports::PersistentJournalRepository;
 use crate::ports::{CatalogRepository, IncrementalCatalogRepository, MediaInspector};
 
-use super::storage::validate_source_root_storage_paths;
+use super::storage::catalog_admission::with_scan_start;
 use super::{StoragePaths, storage_paths};
 
+#[cfg(test)]
+mod admission_tests;
+mod execution_registry;
 mod finalization;
 mod publication;
+#[cfg(test)]
+mod resumption_tests;
+mod retained_cancellation;
+
+#[cfg(test)]
+pub(crate) use execution_registry::hold_first_import_capture;
+
+use execution_registry::{
+    CONTROL_CANCEL, CONTROL_PAUSE, CONTROL_SUSPEND, ScanRegistration, bind_first_import_capture,
+    bind_scan_catalog, register_scan,
+};
+pub(super) use execution_registry::{
+    FirstImportCaptureLease, catalog_has_active_scan, first_import_capture_lease,
+    protect_scan_catalog_session,
+};
+pub use execution_registry::{cancel_scan, pause_scan, suspend_scan};
+pub use retained_cancellation::cancel_retained_scan;
 
 use finalization::{FinalizationContext, FinalizationMode, FinalizationPlan};
 use publication::{
     ForegroundPublicationContext, ForegroundPublicationOutcome, publish_foreground_scan,
 };
 
-static ACTIVE_SCANS: OnceLock<Mutex<HashMap<String, ActiveScanEntry>>> = OnceLock::new();
 const CHECKPOINT_INTERVAL: u64 = 128;
 const DIRECTORY_ENTRY_BATCH: usize = 256;
 const DIRECTORY_ENTRY_WINDOW: u32 = 256;
-const CONTROL_RUNNING: u8 = 0;
-const CONTROL_PAUSE: u8 = 1;
-const CONTROL_CANCEL: u8 = 2;
-const CONTROL_SUSPEND: u8 = 3;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum FullScanReason {
@@ -53,12 +66,6 @@ enum FullScanReason {
     ResumeForegroundCheckpoint,
     #[cfg(test)]
     ResumeAuthoritativeCheckpoint,
-}
-
-struct ActiveScanEntry {
-    control: Arc<AtomicU8>,
-    catalog_path: Option<PathBuf>,
-    protects_catalog_session: bool,
 }
 
 pub fn run_scan(
@@ -162,51 +169,63 @@ fn run_scan_with_storage_reason(
                     "The configured root lacks full Windows identity evidence",
                 )
             })?;
-    validate_source_root_storage_paths(&canonical_root, &storage)?;
     let root_path = canonical_root.to_string_lossy().into_owned();
     let root_id = stable_id("library-root-v1", &root_path);
-    let mut catalog = super::catalog_session::open_catalog_for_foreground_scan(
-        &storage.catalog_path,
-        LibraryChangeLane::Recovery,
-        &request.scan_id,
-    )?;
-    let had_published_root = catalog
-        .load_incremental_catalog_root(&root_id)?
-        .is_some_and(|root| root.active_scan_id.is_some());
     #[cfg(test)]
     let is_authoritative_recovery = reason == FullScanReason::ResumeAuthoritativeCheckpoint;
     #[cfg(not(test))]
     let is_authoritative_recovery = false;
-    let mut checkpoint = match reason {
-        FullScanReason::ExplicitUserRequest => catalog.begin_scan_with_publication_namespace(
-            &request,
-            &root_id,
-            &root_path,
-            &publication_root_identity,
-        )?,
-        FullScanReason::ResumeForegroundCheckpoint => catalog
-            .resume_scan_with_publication_namespace(
-                &request,
-                &root_id,
-                &root_path,
-                &publication_root_identity,
-            )?,
-        #[cfg(test)]
-        FullScanReason::ResumeAuthoritativeCheckpoint => {
-            catalog.resume_authoritative_scan(&request, &root_id, &root_path)?
-        }
-    };
-    let root_generation = catalog
-        .load_incremental_catalog_root(&root_id)?
-        .map(|root| root.root_generation)
-        .ok_or_else(|| {
-            ScanError::new(
-                "catalog_first_import_root_missing",
-                "The scan root was not registered before change-capture admission",
-            )
+    let (mut catalog, mut checkpoint, had_published_root) =
+        with_scan_start(&storage, &canonical_root, || {
+            let mut catalog = super::catalog_session::open_catalog_for_foreground_scan(
+                &storage.catalog_path,
+                LibraryChangeLane::Recovery,
+                &request.scan_id,
+            )?;
+            let had_published_root = catalog
+                .load_incremental_catalog_root(&root_id)?
+                .is_some_and(|root| root.active_scan_id.is_some());
+            let checkpoint = match reason {
+                FullScanReason::ExplicitUserRequest => catalog
+                    .begin_scan_with_publication_namespace(
+                        &request,
+                        &root_id,
+                        &root_path,
+                        &publication_root_identity,
+                    )?,
+                FullScanReason::ResumeForegroundCheckpoint => catalog
+                    .resume_scan_with_publication_namespace(
+                        &request,
+                        &root_id,
+                        &root_path,
+                        &publication_root_identity,
+                    )?,
+                #[cfg(test)]
+                FullScanReason::ResumeAuthoritativeCheckpoint => {
+                    catalog.resume_authoritative_scan(&request, &root_id, &root_path)?
+                }
+            };
+            Ok((catalog, checkpoint, had_published_root))
         })?;
     let mut issue_count = checkpoint.issue_count;
     let result = (|| -> Result<(), ScanError> {
+        let root_generation = catalog
+            .load_incremental_catalog_root(&root_id)?
+            .map(|root| root.root_generation)
+            .ok_or_else(|| {
+                ScanError::new(
+                    "catalog_first_import_root_missing",
+                    "The scan root was not registered before change-capture admission",
+                )
+            })?;
+        if !had_published_root {
+            bind_first_import_capture(
+                &request.scan_id,
+                &storage.catalog_path,
+                &root_id,
+                root_generation,
+            )?;
+        }
         if finish_if_controlled(
             control.load(Ordering::Relaxed),
             &mut catalog,
@@ -249,6 +268,25 @@ fn run_scan_with_storage_reason(
                 &request,
                 &checkpoint,
                 0,
+                had_published_root,
+            )?;
+            return Ok(());
+        }
+
+        if (checkpoint.visited_entries > 0 || reason == FullScanReason::ResumeForegroundCheckpoint)
+            && !publish(ScanEvent::Progress {
+                scan_id: request.scan_id.clone(),
+                visited_entries: checkpoint.visited_entries,
+                accepted_items: checkpoint.accepted_items,
+                issue_count: checkpoint.issue_count,
+            })
+        {
+            retain_detached_scan(
+                &mut catalog,
+                control.load(Ordering::Relaxed),
+                &request,
+                &checkpoint,
+                checkpoint.issue_count,
                 had_published_root,
             )?;
             return Ok(());
@@ -321,25 +359,6 @@ fn run_scan_with_storage_reason(
                         .min(CHANGE_CAPTURE_MAX_RETRY_DELAY);
                 }
             }
-        }
-
-        if checkpoint.visited_entries > 0
-            && !publish(ScanEvent::Progress {
-                scan_id: request.scan_id.clone(),
-                visited_entries: checkpoint.visited_entries,
-                accepted_items: checkpoint.accepted_items,
-                issue_count: checkpoint.issue_count,
-            })
-        {
-            retain_detached_scan(
-                &mut catalog,
-                control.load(Ordering::Relaxed),
-                &request,
-                &checkpoint,
-                checkpoint.issue_count,
-                had_published_root,
-            )?;
-            return Ok(());
         }
 
         let mut visited_entries = checkpoint.visited_entries;
@@ -1030,46 +1049,6 @@ fn current_unix_ms() -> Result<i64, ScanError> {
     })
 }
 
-pub fn cancel_scan(scan_id: &str) -> bool {
-    let Ok(scans) = active_scans().lock() else {
-        return false;
-    };
-    let Some(token) = scans.get(scan_id) else {
-        return false;
-    };
-    token.control.store(CONTROL_CANCEL, Ordering::Relaxed);
-    true
-}
-
-pub fn pause_scan(scan_id: &str) -> bool {
-    let Ok(scans) = active_scans().lock() else {
-        return false;
-    };
-    let Some(token) = scans.get(scan_id) else {
-        return false;
-    };
-    token.control.store(CONTROL_PAUSE, Ordering::Relaxed);
-    true
-}
-
-pub fn suspend_scan(scan_id: &str) -> bool {
-    let Ok(scans) = active_scans().lock() else {
-        return false;
-    };
-    let Some(token) = scans.get(scan_id) else {
-        return false;
-    };
-    match token.control.compare_exchange(
-        CONTROL_RUNNING,
-        CONTROL_SUSPEND,
-        Ordering::Relaxed,
-        Ordering::Relaxed,
-    ) {
-        Ok(_) | Err(CONTROL_SUSPEND) => true,
-        Err(_) => false,
-    }
-}
-
 fn finish_if_controlled(
     control: u8,
     catalog: &mut SqliteCatalog,
@@ -1082,15 +1061,20 @@ fn finish_if_controlled(
         CONTROL_PAUSE => {
             if had_published_root {
                 catalog.abandon_scan(&request.scan_id, "cancelled", checkpoint.issue_count)?;
+                publish(ScanEvent::Cancelled {
+                    scan_id: request.scan_id.clone(),
+                    accepted_items: checkpoint.accepted_items,
+                    issue_count: checkpoint.issue_count,
+                });
             } else {
                 catalog.pause_scan(&request.scan_id, checkpoint)?;
+                publish(ScanEvent::Paused {
+                    scan_id: request.scan_id.clone(),
+                    visited_entries: checkpoint.visited_entries,
+                    accepted_items: checkpoint.accepted_items,
+                    issue_count: checkpoint.issue_count,
+                });
             }
-            publish(ScanEvent::Paused {
-                scan_id: request.scan_id.clone(),
-                visited_entries: checkpoint.visited_entries,
-                accepted_items: checkpoint.accepted_items,
-                issue_count: checkpoint.issue_count,
-            });
             Ok(true)
         }
         CONTROL_CANCEL => {
@@ -1164,95 +1148,6 @@ fn validate_request(request: &ScanRequest) -> Result<(), ScanError> {
         ));
     }
     Ok(())
-}
-
-fn active_scans() -> &'static Mutex<HashMap<String, ActiveScanEntry>> {
-    ACTIVE_SCANS.get_or_init(|| Mutex::new(HashMap::new()))
-}
-
-fn register_scan(scan_id: &str) -> Result<Arc<AtomicU8>, ScanError> {
-    let mut scans = active_scans()
-        .lock()
-        .map_err(|_| ScanError::new("scan_registry_unavailable", "Scan registry is poisoned"))?;
-    if scans.contains_key(scan_id) {
-        return Err(ScanError::new(
-            "scan_already_active",
-            "A scan with this identifier is already active",
-        ));
-    }
-    let token = Arc::new(AtomicU8::new(CONTROL_RUNNING));
-    scans.insert(
-        scan_id.to_owned(),
-        ActiveScanEntry {
-            control: Arc::clone(&token),
-            catalog_path: None,
-            protects_catalog_session: false,
-        },
-    );
-    Ok(token)
-}
-
-fn bind_scan_catalog(scan_id: &str, catalog_path: &Path) -> Result<(), ScanError> {
-    let mut scans = active_scans()
-        .lock()
-        .map_err(|_| ScanError::new("scan_registry_unavailable", "Scan registry is poisoned"))?;
-    let scan = scans.get_mut(scan_id).ok_or_else(|| {
-        ScanError::new(
-            "scan_registration_missing",
-            "The active scan registration disappeared before catalog binding",
-        )
-    })?;
-    scan.catalog_path = Some(catalog_path.to_path_buf());
-    Ok(())
-}
-
-pub(super) fn protect_scan_catalog_session(
-    scan_id: &str,
-    catalog_path: &Path,
-) -> Result<(), ScanError> {
-    let mut scans = active_scans()
-        .lock()
-        .map_err(|_| ScanError::new("scan_registry_unavailable", "Scan registry is poisoned"))?;
-    let scan = scans.get_mut(scan_id).ok_or_else(|| {
-        ScanError::new(
-            "scan_registration_missing",
-            "The active scan registration disappeared before catalog protection",
-        )
-    })?;
-    if scan.catalog_path.as_deref() != Some(catalog_path) {
-        return Err(ScanError::new(
-            "scan_catalog_binding_mismatch",
-            "The active scan catalog changed before session protection",
-        ));
-    }
-    scan.protects_catalog_session = true;
-    Ok(())
-}
-
-pub(super) fn catalog_has_active_scan(
-    catalog_path: &Path,
-    exempt_scan_id: Option<&str>,
-) -> Result<bool, ScanError> {
-    let scans = active_scans()
-        .lock()
-        .map_err(|_| ScanError::new("scan_registry_unavailable", "Scan registry is poisoned"))?;
-    Ok(scans.iter().any(|(scan_id, scan)| {
-        exempt_scan_id != Some(scan_id.as_str())
-            && scan.protects_catalog_session
-            && scan.catalog_path.as_deref() == Some(catalog_path)
-    }))
-}
-
-struct ScanRegistration {
-    scan_id: String,
-}
-
-impl Drop for ScanRegistration {
-    fn drop(&mut self) {
-        if let Ok(mut scans) = active_scans().lock() {
-            scans.remove(&self.scan_id);
-        }
-    }
 }
 
 pub(super) fn stable_id(namespace: &str, value: &str) -> String {

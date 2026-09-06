@@ -24,6 +24,8 @@ use super::{
 };
 
 #[cfg(windows)]
+mod admission;
+#[cfg(windows)]
 mod journal_baseline;
 mod production;
 
@@ -143,9 +145,18 @@ impl LibrarySynchronizationRuntime {
     where
         Repository: IncrementalCatalogRepository + LibraryChangeQueue,
     {
-        self.poll_internal(repository, now_unix_ms, inspect_availability, true, true)
+        let catalog_roots = repository.load_incremental_catalog_roots()?;
+        self.poll_internal(
+            repository,
+            catalog_roots,
+            now_unix_ms,
+            inspect_availability,
+            true,
+            true,
+        )
     }
 
+    #[cfg(test)]
     pub(crate) fn poll_without_authoritative_recovery<Repository>(
         &mut self,
         repository: &mut Repository,
@@ -155,12 +166,21 @@ impl LibrarySynchronizationRuntime {
     where
         Repository: IncrementalCatalogRepository + LibraryChangeQueue,
     {
-        self.poll_internal(repository, now_unix_ms, inspect_availability, false, false)
+        let catalog_roots = repository.load_incremental_catalog_roots()?;
+        self.poll_internal(
+            repository,
+            catalog_roots,
+            now_unix_ms,
+            inspect_availability,
+            false,
+            false,
+        )
     }
 
     fn poll_internal<Repository>(
         &mut self,
         repository: &mut Repository,
+        catalog_roots: Vec<IncrementalCatalogRoot>,
         now_unix_ms: i64,
         mut inspect_availability: impl FnMut(&str) -> LibraryRootAvailability,
         process_authoritative_recovery: bool,
@@ -176,7 +196,6 @@ impl LibrarySynchronizationRuntime {
             ));
         }
         self.reap_retiring_observers()?;
-        let catalog_roots = repository.load_incremental_catalog_roots()?;
         self.reconcile_roots(&catalog_roots)?;
 
         let mut statuses = Vec::with_capacity(catalog_roots.len());

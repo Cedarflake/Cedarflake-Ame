@@ -78,6 +78,11 @@ use crate::domain::{
     SourceRevisionEvidence,
 };
 
+#[cfg(windows)]
+mod viewer_source_guard;
+#[cfg(windows)]
+pub(crate) use viewer_source_guard::open_viewer_source_guard;
+
 const IMAGE_EXTENSIONS: &[&str] = &[
     "bmp", "gif", "ico", "jpeg", "jpg", "png", "tif", "tiff", "webp",
 ];
@@ -6525,12 +6530,20 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
         },
     ];
 
-    const LOCAL_MODULE_CONTRACTS: &[AvailabilityModuleContract] = &[AvailabilityModuleContract {
-        name: "tests",
-        visibility: "",
-        attributes: &["cfg(test)"],
-        is_inline: true,
-    }];
+    const LOCAL_MODULE_CONTRACTS: &[AvailabilityModuleContract] = &[
+        AvailabilityModuleContract {
+            name: "tests",
+            visibility: "",
+            attributes: &["cfg(test)"],
+            is_inline: true,
+        },
+        AvailabilityModuleContract {
+            name: "viewer_source_guard",
+            visibility: "",
+            attributes: &["cfg(windows)"],
+            is_inline: false,
+        },
+    ];
 
     const AVAILABILITY_FUNCTION_CONTRACTS: &[AvailabilityFunctionContract] = &[
         AvailabilityFunctionContract {

@@ -24,6 +24,7 @@ import "../domain/library_state.dart";
 import "../domain/library_synchronization_models.dart";
 import "gallery_selection.dart";
 import "library_strings.dart";
+import "library_task_surface_selection.dart";
 import "widgets/library_asset_information_sheet.dart";
 import "widgets/library_gallery_header.dart";
 import "widgets/library_gallery_layout.dart";
@@ -34,6 +35,7 @@ import "widgets/library_image_viewer.dart";
 import "widgets/library_main_surface.dart";
 import "widgets/library_navigation.dart";
 import "widgets/library_navigation_resize_handle.dart";
+import "widgets/library_query_failure_banner.dart";
 import "widgets/library_task_surface.dart";
 import "widgets/library_time_navigation.dart";
 import "widgets/library_update_dialog.dart";
@@ -346,9 +348,13 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
           _synchronizationNotificationKeys[rootId] = key;
           _notificationController.publish(
             AmeNotificationDraft(
-              title: LibraryStrings.synchronizationReconciliationTitle(
-                _notificationRootName(root, rootId),
-              ),
+              title: status.isAwaitingFirstImport
+                  ? LibraryStrings.firstImportRequiredTitle(
+                      _notificationRootName(root, rootId),
+                    )
+                  : LibraryStrings.synchronizationReconciliationTitle(
+                      _notificationRootName(root, rootId),
+                    ),
               message: _synchronizationNotificationMessage(status),
               severity: _synchronizationNotificationSeverity(status),
               dedupeKey: key,
@@ -438,6 +444,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   String _synchronizationNotificationMessage(
     LibraryRootSynchronizationStatus status,
   ) {
+    if (status.isAwaitingFirstImport) {
+      return LibraryStrings.firstImportRequiredDetail;
+    }
     final issueMessage = _synchronizationIssueMessage(status.lastIssueCode);
     if (issueMessage != null) {
       return issueMessage;
@@ -509,6 +518,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   String? _synchronizationNotificationDetail(
     LibraryRootSynchronizationStatus status,
   ) {
+    if (status.isAwaitingFirstImport) {
+      return LibraryStrings.firstImportAwaitingUser;
+    }
     final details = <String>["阶段：${_synchronizationPhaseLabel(status.phase)}"];
     if (status.pendingChangeCount > BigInt.zero) {
       details.add("${status.pendingChangeCount} 项等待处理");
@@ -550,6 +562,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   AmeNotificationSeverity _synchronizationNotificationSeverity(
     LibraryRootSynchronizationStatus status,
   ) {
+    if (status.isAwaitingFirstImport) {
+      return AmeNotificationSeverity.info;
+    }
     final issueCode = status.lastIssueCode;
     if (status.sourceStatus == LibraryChangeSourceStatus.failed ||
         issueCode?.startsWith("catalog_") == true ||
@@ -605,7 +620,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     final updateState = ref.read(libraryUpdateControllerProvider);
     final selectedRoots = await showLibraryUpdateDialog(
       context: context,
-      roots: libraryState.roots,
+      roots: libraryState.roots
+          .where((root) => root.id != libraryState.retainedScanRootId)
+          .toList(),
       activeRootIds: updateState.activeRootIds,
       initialRootId: initialRoot.id,
     );
@@ -714,15 +731,10 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     _synchronizeLayoutDimensionContext(state.catalogRevision, state.queryId);
     final amePreferences = ref.watch(amePreferencesControllerProvider);
     final controller = _libraryController;
-    final hasLibraryTaskSurface = _showsTaskSurface(state);
-    final hasActiveLibraryTaskSurface = _showsActiveTaskSurface(state);
-    final showsLibraryTaskSurface =
-        hasLibraryTaskSurface &&
-        (!updateState.hasFeedback || hasActiveLibraryTaskSurface);
-    final showsUpdateTaskSurface =
-        updateState.hasFeedback &&
-        (!hasActiveLibraryTaskSurface ||
-            (state.status == LibraryStatus.removing && updateState.hasActive));
+    final taskSurfaces = LibraryTaskSurfaceSelection(state, updateState);
+    final hasLibraryTaskSurface = taskSurfaces.hasPrimary;
+    final showsLibraryTaskSurface = taskSurfaces.showPrimary;
+    final showsUpdateTaskSurface = taskSurfaces.showUpdates;
     final currentNotification = notifications.current;
     final catalogRevision = state.catalogRevision;
     final manifestRequest = catalogRevision != null && state.queryId.isNotEmpty
@@ -869,13 +881,15 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         if (showsUpdateTaskSurface)
-                          LibraryUpdateTaskSurface(
-                            state: updateState,
-                            onCancel: updateController.cancel,
-                            onRetry: updateController.retry,
-                            onDismiss: updateController.dismiss,
-                            onDismissTerminalTasks:
-                                updateController.dismissTerminalTasks,
+                          Flexible(
+                            child: LibraryUpdateTaskSurface(
+                              state: updateState,
+                              onCancel: updateController.cancel,
+                              onRetry: updateController.retry,
+                              onDismiss: updateController.dismiss,
+                              onDismissTerminalTasks:
+                                  updateController.dismissTerminalTasks,
+                            ),
                           ),
                         if (showsUpdateTaskSurface && showsLibraryTaskSurface)
                           const SizedBox(height: 12),
@@ -1173,7 +1187,12 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
               folderTree: folderTree,
               isBusy: state.isBusy,
               updatingRootIds: updateState.activeRootIds,
-              isAddingSourceDisabled: updateState.hasActive,
+              isAddingSourceDisabled:
+                  updateState.hasActive || state.hasRetainedScan,
+              addingSourceDisabledReason: state.hasRetainedScan
+                  ? "请先继续或取消已暂停的任务"
+                  : null,
+              retainedScanRootId: state.retainedScanRootId,
               onSelectLibrary: () => _selectLibrary(state),
               onSelectRoot: (root) => _selectRoot(state, root),
               onSelectFolder: (root, folder) =>
@@ -1237,7 +1256,21 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                             onSortDirectionChanged: (value) =>
                                 _changeSortDirection(state, value),
                           ),
-                          if (state.isLoadingPage ||
+                          if (state.queryActivity
+                              case final LibraryQueryFailed failure)
+                            LibraryQueryFailureBanner(
+                              failure: failure,
+                              onRetry: state.isBusy
+                                  ? null
+                                  : () => unawaited(
+                                      _applyQuery(
+                                        failure.requestedQuery,
+                                        forceRefresh: true,
+                                      ),
+                                    ),
+                            ),
+                          if (state.isRefreshingQuery ||
+                              state.isLoadingPage ||
                               state.isLoadingPreviousPage ||
                               state.isLoadingTimeAnchor ||
                               state.isLoadingVisibleRange)
@@ -1503,6 +1536,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     LibraryGalleryQuery query, {
     BigInt? synchronizationRevision,
     bool preserveGalleryPosition = true,
+    bool forceRefresh = false,
   }) async {
     final requestGeneration = ++_queryTransitionGeneration;
     final currentState = ref.read(libraryControllerProvider);
@@ -1551,6 +1585,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                 anchorLocationId: requestedAnchorLocationId,
                 anchorAssetId: anchorAssetId,
                 fallbackGlobalItemIndex: fallbackGlobalItemIndex,
+                forceRefresh: forceRefresh,
               )
               ? LibraryQueryUpdateOutcome.applied
               : LibraryQueryUpdateOutcome.failed)
@@ -2361,34 +2396,6 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       return null;
     }
     return rootPath;
-  }
-
-  static bool _showsTaskSurface(LibraryState state) {
-    return switch (state.status) {
-      LibraryStatus.empty => false,
-      LibraryStatus.completed => state.scanId != null,
-      _ => true,
-    };
-  }
-
-  static bool _showsActiveTaskSurface(LibraryState state) {
-    if (state.isCommittedRemovalReloadPending) {
-      return true;
-    }
-    return switch (state.status) {
-      LibraryStatus.choosingDirectory ||
-      LibraryStatus.scanning ||
-      LibraryStatus.pausing ||
-      LibraryStatus.cancelling ||
-      LibraryStatus.removing ||
-      LibraryStatus.refreshing ||
-      LibraryStatus.paused => true,
-      LibraryStatus.empty ||
-      LibraryStatus.completed ||
-      LibraryStatus.cancelled ||
-      LibraryStatus.stale ||
-      LibraryStatus.failed => false,
-    };
   }
 }
 

@@ -43,7 +43,7 @@ Future<GalleryLayoutManifestChunk> loadLibraryGalleryLayoutManifestChunk({
   after: after,
 );
 
-LibraryFolderPage loadLibraryFolderPage({
+Future<LibraryFolderPage> loadLibraryFolderPage({
   required String rootId,
   required String parentRelativePath,
   required int maxItems,
@@ -100,14 +100,19 @@ Future<AssetLocationView?> loadLibraryAssetById({
 Future<bool> removeLibraryRoot({required String rootId}) =>
     RustLib.instance.api.crateApiCatalogRemoveLibraryRoot(rootId: rootId);
 
-RecoverableScan? loadRecoverableLibraryScan() =>
+Future<RecoverableScan?> loadRecoverableLibraryScan() =>
     RustLib.instance.api.crateApiCatalogLoadRecoverableLibraryScan();
 
-RecoverableScan? loadPausedLibraryScan() =>
+Future<RecoverableScan?> loadPausedLibraryScan() =>
     RustLib.instance.api.crateApiCatalogLoadPausedLibraryScan();
 
 bool cancelLibraryScan({required String scanId}) =>
     RustLib.instance.api.crateApiCatalogCancelLibraryScan(scanId: scanId);
+
+Future<void> cancelRetainedLibraryScan({required String scanId}) => RustLib
+    .instance
+    .api
+    .crateApiCatalogCancelRetainedLibraryScan(scanId: scanId);
 
 bool pauseLibraryScan({required String scanId}) =>
     RustLib.instance.api.crateApiCatalogPauseLibraryScan(scanId: scanId);

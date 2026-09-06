@@ -22,6 +22,7 @@ try {
         Select-Object -ExpandProperty FullName
     Invoke-AmePowerShellSyntaxCheck $powerShellPaths
     & (Join-Path $PSScriptRoot "quality_test_naming_contract.ps1")
+    & (Join-Path $PSScriptRoot "quality_test_bridge_contracts.ps1")
     & (Join-Path $PSScriptRoot "quality_test_hosted_parallel_contract.ps1")
     & (Join-Path $PSScriptRoot "quality_test_hosted_extended_contract.ps1")
     & (Join-Path $PSScriptRoot "performance_test_synthetic_guardrails.ps1")
@@ -33,6 +34,7 @@ try {
     & (Join-Path $PSScriptRoot "quality_test_windows_powershell_compatibility.ps1")
     & (Join-Path $PSScriptRoot "acceptance_test_r2c_change_driven_reliability_guardrails.ps1")
     & (Join-Path $PSScriptRoot "integration_test_windows_accessibility_guardrails.ps1")
+    & (Join-Path $PSScriptRoot "integration_test_windows_scan_guardrails.ps1")
     & (Join-Path $PSScriptRoot "release_test_version_validation.ps1")
     & (Join-Path $PSScriptRoot "release_test_portable_archive.ps1")
     & (Join-Path $PSScriptRoot "release_test_portable_publication.ps1")

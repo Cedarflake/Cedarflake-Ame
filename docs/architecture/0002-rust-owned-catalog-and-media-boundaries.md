@@ -48,6 +48,10 @@ per-batch issue, and the task resumes according to an explicit retry policy.
 - A running scan writes staged derived state associated with a task identity.
 - Completed state is published atomically.
 - Cancellation or failure does not replace the last trustworthy published state.
+- Scan abandonment obtains cleanup authority only by atomically retiring a running or paused
+  scan. A late or duplicate terminal request cannot delete published locations, retained preview
+  ownership, or cross-root handoff evidence. Historical residue belongs to explicit cleanup and
+  migration owners, not a second abandonment of a terminal scan.
 - Source identity and state are revalidated before derived results are published.
 - Schema changes use forward migrations with migration tests.
 - Queries use bounded keyset windows rather than loading the whole library or relying on deep
@@ -59,11 +63,14 @@ per-batch issue, and the task resumes according to an explicit retry policy.
   entries.
 - Staged locations and issues are idempotent under checkpoint replay. After recovery, every staged
   source is revalidated before the same atomic publication boundary is used.
-- Only a persisted `running` task is eligible for automatic startup recovery. A `paused` task keeps
-  its checkpoint private and requires an explicit resume action. Cancellation, detachment, stale
-  input, and completed tasks are terminal.
-- If the saved traversal position no longer exists, recovery becomes stale rather than restarting
-  from an ambiguous point or publishing a partial catalog.
+- ADR 0024 supersedes the original automatic-startup recovery policy. A retained unfinished first
+  import, whether persisted as `running` or `paused`, requires explicit Continue. Detachment before
+  first publication retains that checkpoint; detachment of a replacement scan cancels its staging
+  while preserving the completed baseline. Explicit cancellation, stale input, and completed tasks
+  are terminal. Registration is not a published baseline or live execution authority.
+- Retaining a traversal checkpoint requires proof that changes during the observation gap are
+  covered. Without that proof, explicit continuation rebuilds the first inventory behind the
+  observer-first boundary; it cannot publish partial membership from the old frontier.
 
 ## Validation gates
 
@@ -95,8 +102,9 @@ per-batch issue, and the task resumes according to an explicit retry policy.
   picker, reconstructs Flutter state from SQLite twice, and verifies both roots and source files.
 - Schema v4 persists scan parameters and checkpoints. Migration tests cover v1, v2, and v3; an old
   uncheckpointed running task is explicitly made unrecoverable rather than guessed.
-- A 130-image interruption fixture resumes from a persisted checkpoint and publishes every location
-  exactly once. Flutter tests verify automatic startup recovery with restored progress.
+- Historical schema-v4 evidence includes a 130-image interruption fixture that resumed a persisted
+  checkpoint and published every location once. Its automatic-startup Flutter behavior is
+  superseded by ADR 0024's explicit-continuation contract, not current startup acceptance evidence.
 - A pause/resume fixture proves that pausing does not publish or enter the automatic recovery query,
   and explicit resume completes the same task without duplicate locations. Flutter restores paused
   state without starting it and exposes pause/resume in the upper action area.

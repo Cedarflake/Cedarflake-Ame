@@ -191,7 +191,7 @@ void main() {
                 isCompact: false,
                 isSelected: true,
                 isExpanded: false,
-                isBusy: true,
+                isBrowseDisabled: true,
                 onSelect: _noop,
                 onToggleExpansion: _noop,
                 onUpdate: () => updateCount += 1,
@@ -417,6 +417,37 @@ void main() {
 
     expect(find.text(LibraryStrings.needsReconciliation), findsOneWidget);
     expect(find.text(LibraryStrings.synchronizing), findsNothing);
+  });
+
+  testWidgets("shows an unfinished import without claiming source failure", (
+    tester,
+  ) async {
+    final status = LibraryRootSynchronizationStatus(
+      rootId: "root-1",
+      rootGeneration: BigInt.one,
+      availability: LibraryRootAvailability.unknown,
+      freshness: LibraryCatalogFreshness.needsReconciliation,
+      freshnessCause: LibraryCatalogFreshnessCause.pendingChanges,
+      continuity: LibraryContinuityState.baselineRequired,
+      phase: LibrarySynchronizationPhase.blocked,
+      phaseStartedAt: DateTime.utc(2026, 9, 6),
+      sourceStatus: LibraryChangeSourceStatus.stopped,
+      pendingChangeCount: BigInt.zero,
+      retryWaitCount: BigInt.zero,
+      freshnessUnknownCount: BigInt.zero,
+      lastIssueCode: "library_first_import_required",
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: _buildNavigation(statusOverride: status)),
+      ),
+    );
+
+    expect(find.text(LibraryStrings.firstImportIncomplete), findsOneWidget);
+    expect(find.text(LibraryStrings.sourceUnknown), findsNothing);
+    expect(find.text(LibraryStrings.needsReconciliation), findsNothing);
+    expect(find.text(LibraryStrings.synchronizing), findsNothing);
+    expect(find.text(LibraryStrings.continuityBaselineRequired), findsNothing);
   });
 
   testWidgets("keeps healthy live-only capability out of expanded rows", (
@@ -733,6 +764,7 @@ LibraryState _populatedLibraryState() {
 }
 
 Widget _buildNavigation({
+  LibraryRootSynchronizationStatus? statusOverride,
   bool hasSynchronizationFailure = false,
   bool includeRootStatus = true,
   LibraryContinuityState continuity = LibraryContinuityState.current,
@@ -762,21 +794,24 @@ Widget _buildNavigation({
       ],
       rootSynchronizationStatuses: includeRootStatus
           ? {
-              "root-1": LibraryRootSynchronizationStatus(
-                rootId: "root-1",
-                rootGeneration: BigInt.one,
-                availability: LibraryRootAvailability.available,
-                freshness: freshness,
-                freshnessCause: LibraryCatalogFreshnessCause.noPendingChanges,
-                continuity: continuity,
-                phase: phase,
-                phaseStartedAt: DateTime.utc(2026, 8, 21),
-                sourceStatus: LibraryChangeSourceStatus.healthy,
-                pendingChangeCount: BigInt.zero,
-                retryWaitCount: BigInt.zero,
-                freshnessUnknownCount: BigInt.zero,
-                recoveryBlocked: recoveryBlocked,
-              ),
+              "root-1":
+                  statusOverride ??
+                  LibraryRootSynchronizationStatus(
+                    rootId: "root-1",
+                    rootGeneration: BigInt.one,
+                    availability: LibraryRootAvailability.available,
+                    freshness: freshness,
+                    freshnessCause:
+                        LibraryCatalogFreshnessCause.noPendingChanges,
+                    continuity: continuity,
+                    phase: phase,
+                    phaseStartedAt: DateTime.utc(2026, 8, 21),
+                    sourceStatus: LibraryChangeSourceStatus.healthy,
+                    pendingChangeCount: BigInt.zero,
+                    retryWaitCount: BigInt.zero,
+                    freshnessUnknownCount: BigInt.zero,
+                    recoveryBlocked: recoveryBlocked,
+                  ),
             }
           : const {},
       hasSynchronizationFailure: hasSynchronizationFailure,

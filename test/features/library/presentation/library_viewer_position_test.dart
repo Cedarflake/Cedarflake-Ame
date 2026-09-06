@@ -371,6 +371,85 @@ void main() {
     },
   );
 
+  testWidgets(
+    "unfinished first import reports manual intent without recovery claims",
+    (tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      const initialState = LibraryState(
+        status: LibraryStatus.completed,
+        roots: [
+          LibraryRoot(
+            id: "root-1",
+            path: "C:\\Pictures",
+            displayPath: "C:\\Pictures",
+            createdUnixMs: 1,
+            assetCount: 0,
+            issueCount: 0,
+            availability: LibraryRootAvailability.unknown,
+          ),
+        ],
+      );
+      final scanner = _HeldLibraryScanner();
+      final synchronization = _TestLibrarySynchronization(
+        _firstImportRequiredSnapshot(),
+      );
+      addTearDown(synchronization.dispose);
+      addTearDown(scanner.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            initialLibraryStateProvider.overrideWithValue(initialState),
+            libraryCatalogProvider.overrideWithValue(
+              _SynchronizationViewerCatalog(_snapshotFromState(initialState)),
+            ),
+            libraryScannerProvider.overrideWithValue(scanner),
+            librarySynchronizationProvider.overrideWithValue(synchronization),
+          ],
+          child: const AmeApp(),
+        ),
+      );
+      await tester.pump();
+
+      expect(
+        find.text(LibraryStrings.firstImportRequiredTitle("Pictures")),
+        findsOneWidget,
+      );
+      expect(
+        find.text(LibraryStrings.firstImportRequiredDetail),
+        findsOneWidget,
+      );
+      expect(find.text(LibraryStrings.firstImportAwaitingUser), findsOneWidget);
+      expect(find.text("“Pictures”更新受阻"), findsNothing);
+      expect(find.textContaining("阶段：等待故障恢复"), findsNothing);
+      expect(
+        find.text(LibraryStrings.synchronizationEvidenceGap),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const Key("notification-primary-action")),
+        findsNothing,
+      );
+      expect(scanner.scanCount, 0);
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(AmeApp)),
+      );
+      final notice = container
+          .read(ameNotificationControllerProvider)
+          .history
+          .single;
+      expect(notice.severity, AmeNotificationSeverity.info);
+      expect(notice.technicalCode, "library_first_import_required");
+      expect(
+        container.read(libraryControllerProvider).roots.single.activeScanId,
+        isNull,
+      );
+    },
+  );
+
   testWidgets("legacy survivor exposes durable recovery guidance", (
     tester,
   ) async {
@@ -1449,6 +1528,31 @@ LibrarySynchronizationSnapshot _automaticRecoverySnapshot({
   );
 }
 
+LibrarySynchronizationSnapshot _firstImportRequiredSnapshot() {
+  return LibrarySynchronizationSnapshot(
+    isRunning: true,
+    catalogRevision: BigInt.one,
+    appliedMutationCount: 0,
+    roots: {
+      "root-1": LibraryRootSynchronizationStatus(
+        rootId: "root-1",
+        rootGeneration: BigInt.one,
+        availability: LibraryRootAvailability.unknown,
+        freshness: LibraryCatalogFreshness.needsReconciliation,
+        freshnessCause: LibraryCatalogFreshnessCause.pendingChanges,
+        continuity: LibraryContinuityState.baselineRequired,
+        phase: LibrarySynchronizationPhase.blocked,
+        phaseStartedAt: DateTime.utc(2026, 9, 6),
+        sourceStatus: LibraryChangeSourceStatus.stopped,
+        pendingChangeCount: BigInt.zero,
+        retryWaitCount: BigInt.zero,
+        freshnessUnknownCount: BigInt.zero,
+        lastIssueCode: "library_first_import_required",
+      ),
+    },
+  );
+}
+
 LibrarySynchronizationSnapshot _legacyRecoveryAuthorityMissingSnapshot() {
   return LibrarySynchronizationSnapshot(
     isRunning: true,
@@ -1817,6 +1921,11 @@ class _FailOnceSynchronizationCatalog implements LibraryCatalog {
 }
 
 class _HeldLibraryScanner implements LibraryScanner {
+  @override
+  Future<void> cancelRetainedScan(String scanId) async {
+    throw StateError("This fixture has no retained cancellation command");
+  }
+
   final StreamController<LibraryScanUpdate> _updates =
       StreamController.broadcast(sync: true);
   String? scanId;

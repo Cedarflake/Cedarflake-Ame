@@ -38,9 +38,15 @@ mod migrations;
     )
 )]
 mod persistent_journal;
+mod preview_recovery;
 mod read_retry;
 mod reclamation;
+mod retained_scan;
+mod scan_lifecycle;
 mod scan_publication;
+mod scan_resumption;
+
+use scan_lifecycle::abandon_scan_transaction;
 
 use change_queue::{activate_root_change_queue, retire_root_change_queue};
 use gallery::{
@@ -222,7 +228,6 @@ impl SqliteWriteAdmission {
         state.completed_write_epoch
     }
 
-    #[cfg(test)]
     fn try_acquire(self: &Arc<Self>, lane: LibraryChangeLane) -> Option<SqliteWritePermit> {
         self.try_acquire_priority(sqlite_write_priority(lane), None)
     }
@@ -1019,7 +1024,7 @@ impl SqliteCatalog {
             .ok_or_else(|| {
                 ScanError::new(
                     "catalog_user_interactive_write_timeout",
-                    "The catalog did not release the current writer in time; retry the removal",
+                    "The catalog did not release the current writer in time; retry the operation",
                 )
             })?;
         let transaction = self
@@ -1619,67 +1624,6 @@ fn restore_explicit_recovery_claims_from_foreground_scan(
     Ok(())
 }
 
-fn abandon_scan_transaction(
-    transaction: &Transaction<'_>,
-    scan_id: &str,
-    status: &str,
-    issue_count: i64,
-    completed_unix_ms: i64,
-) -> Result<(), ScanError> {
-    let abandoned = transaction
-        .execute(
-            "UPDATE scan_runs
-             SET status = ?2, completed_unix_ms = ?3, issue_count = ?4,
-                 current_directory_relative_path = NULL,
-                 current_directory_enumerated = 0,
-                 last_visited_relative_path = NULL
-             WHERE id = ?1 AND status IN ('running', 'paused')",
-            params![scan_id, status, completed_unix_ms, issue_count],
-        )
-        .map_err(database_error)?;
-    if abandoned == 1 {
-        restore_explicit_recovery_claims_from_foreground_scan(
-            transaction,
-            scan_id,
-            completed_unix_ms,
-        )?;
-        transaction
-            .execute(
-                "UPDATE library_change_queue
-                 SET status = 'pending', ready_unix_ms = ?2,
-                     next_retry_unix_ms = NULL, lease_expires_unix_ms = NULL,
-                     authoritative_scan_id = NULL, updated_unix_ms = ?2
-                  WHERE authoritative_scan_id = ?1 AND status = 'leased'
-                    AND NOT EXISTS(
-                      SELECT 1 FROM library_live_gap_recovery_claims AS claim
-                      WHERE claim.gap_change_id = library_change_queue.id
-                    )",
-                params![scan_id, completed_unix_ms],
-            )
-            .map_err(database_error)?;
-        transaction
-            .execute(
-                "UPDATE library_change_queue
-                 SET authoritative_scan_id = NULL
-                 WHERE authoritative_scan_id = ?1",
-                [scan_id],
-            )
-            .map_err(database_error)?;
-    }
-    for sql in [
-        "DELETE FROM scan_run_catch_up_lineage WHERE scan_id = ?1",
-        "DELETE FROM scan_directory_frontier WHERE scan_id = ?1",
-        "DELETE FROM scan_directory_entries WHERE scan_id = ?1",
-        "DELETE FROM library_scan_publication_namespace_bindings WHERE scan_id = ?1",
-        "DELETE FROM asset_locations WHERE scan_id = ?1",
-    ] {
-        transaction
-            .execute(sql, [scan_id])
-            .map_err(database_error)?;
-    }
-    Ok(())
-}
-
 impl ScanOwner {
     const fn as_str(self) -> &'static str {
         match self {
@@ -2215,6 +2159,8 @@ impl SqliteCatalog {
                 ));
             }
         }
+        let checkpoint =
+            scan_resumption::resume_checkpoint(&transaction, &request.scan_id, owner, checkpoint)?;
         transaction.commit().map_err(database_error)?;
         Ok(checkpoint)
     }
@@ -2486,6 +2432,7 @@ impl CatalogRepository for SqliteCatalog {
         Ok(())
     }
 
+    #[cfg(test)]
     fn update_active_preview(
         &mut self,
         location: &AssetLocationView,
@@ -3025,79 +2972,12 @@ impl CatalogRepository for SqliteCatalog {
         Ok(rows)
     }
 
-    fn reconcile_preview_artifact_bytes(
+    fn try_reconcile_preview_health(
         &mut self,
-        candidate: &PreviewReclamationCandidate,
-        actual_bytes: u64,
-    ) -> Result<bool, ScanError> {
-        let actual_bytes = i64::try_from(actual_bytes).map_err(|_| {
-            ScanError::new(
-                "preview_artifact_size_invalid",
-                "The preview artifact size exceeds the catalog range",
-            )
-        })?;
-        let transaction = self.begin_write()?;
-        let updated = transaction
-            .execute(
-                "UPDATE preview_artifacts
-                 SET byte_size = ?3
-                 WHERE artifact_key = ?1 AND artifact_path = ?2
-                   AND byte_size <> ?3",
-                params![candidate.artifact_key, candidate.path, actual_bytes,],
-            )
-            .map_err(database_error)?;
-        transaction.commit().map_err(database_error)?;
-        Ok(updated != 0)
-    }
-
-    fn invalidate_preview_recovery_artifact(
-        &mut self,
-        candidate: &PreviewReclamationCandidate,
-    ) -> Result<bool, ScanError> {
-        let transaction = self.begin_write()?;
-        transaction
-            .execute(
-                "UPDATE asset_locations
-                 SET preview_path = '', preview_status = 'pending',
-                     preview_issue_code = NULL, preview_issue_message = NULL
-                 WHERE preview_path = ?1
-                   AND location_id IN (
-                     SELECT location_id FROM preview_artifact_locations
-                     WHERE artifact_key = ?2
-                   )",
-                params![candidate.path, candidate.artifact_key],
-            )
-            .map_err(database_error)?;
-        transaction
-            .execute(
-                "UPDATE library_change_catch_up_handoffs
-                 SET preview_path = '', preview_status = 'pending',
-                     preview_issue_code = NULL, preview_issue_message = NULL
-                 WHERE preview_status = 'ready' AND preview_path = ?1",
-                [&candidate.path],
-            )
-            .map_err(database_error)?;
-        transaction
-            .execute(
-                "UPDATE library_change_scan_handoff_items
-                 SET preview_path = '', preview_status = 'pending',
-                     preview_issue_code = NULL, preview_issue_message = NULL
-                 WHERE preview_status = 'ready' AND preview_path = ?1",
-                [&candidate.path],
-            )
-            .map_err(database_error)?;
-        let deleted = transaction
-            .execute(
-                "DELETE FROM preview_artifacts
-                 WHERE artifact_key = ?1 AND artifact_path = ?2",
-                params![candidate.artifact_key, candidate.path],
-            )
-            .map_err(database_error)?;
-        if deleted != 1 {
-            return Ok(false);
-        }
-        transaction.commit().map_err(database_error)?;
-        Ok(true)
+        target: crate::ports::PreviewHealthTarget<'_>,
+        observation: crate::ports::PreviewHealthObservation,
+    ) -> Result<crate::ports::PreviewHealthOutcome, ScanError> {
+        self.try_reconcile_preview_health_owned(target, observation)
     }
 
     fn touch_preview_artifacts(

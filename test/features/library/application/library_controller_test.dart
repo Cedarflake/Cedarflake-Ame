@@ -10,7 +10,9 @@ import "package:cedarflake_ame/features/library/application/library_scanner.dart
 import "package:cedarflake_ame/features/library/domain/gallery_layout_manifest.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_task_surface.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
+import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
@@ -73,6 +75,8 @@ void main() {
   test(
     "keeps the old query visible until an anchored query publishes",
     () async {
+      final scanner = _FakeLibraryScanner();
+      addTearDown(scanner.dispose);
       final pending = Completer<LibrarySnapshot>();
       final initial = _snapshot(assets: [_asset(suffix: "old")]);
       final catalog = _QueryAnchorLibraryCatalog(
@@ -81,6 +85,7 @@ void main() {
       );
       final container = ProviderContainer(
         overrides: [
+          libraryScannerProvider.overrideWithValue(scanner),
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(initial),
           ),
@@ -490,40 +495,46 @@ void main() {
     expect(dismissedState.assets.single.relativePath, "1.png");
   });
 
-  test("classifies any configured root scan as a library update", () async {
-    final scanner = _FakeLibraryScanner();
-    final initialSnapshot = _snapshot(
-      roots: const [
-        LibraryRoot(
-          id: "root-1",
-          path: r"\\?\C:\Pictures",
-          displayPath: r"C:\Pictures",
-          createdUnixMs: 1,
-          assetCount: 1,
-          issueCount: 0,
-        ),
-      ],
-    );
-    final container = ProviderContainer(
-      overrides: [
-        initialLibraryStateProvider.overrideWithValue(
-          LibraryState.fromSnapshot(initialSnapshot),
-        ),
-        libraryScannerProvider.overrideWithValue(scanner),
-      ],
-    );
-    addTearDown(container.dispose);
-    addTearDown(scanner.dispose);
+  for (final published in [false, true]) {
+    test(
+      "classifies a configured empty root by its published baseline ($published)",
+      () async {
+        final scanner = _FakeLibraryScanner();
+        final initialSnapshot = _snapshot(
+          roots: [
+            LibraryRoot(
+              id: "root-1",
+              path: r"\\?\C:\Pictures",
+              displayPath: r"C:\Pictures",
+              activeScanId: published ? "completed-empty-baseline" : null,
+              createdUnixMs: 1,
+              assetCount: 0,
+              issueCount: 0,
+            ),
+          ],
+        );
+        final container = ProviderContainer(
+          overrides: [
+            initialLibraryStateProvider.overrideWithValue(
+              LibraryState.fromSnapshot(initialSnapshot),
+            ),
+            libraryScannerProvider.overrideWithValue(scanner),
+          ],
+        );
+        addTearDown(container.dispose);
+        addTearDown(scanner.dispose);
 
-    await container
-        .read(libraryControllerProvider.notifier)
-        .scanDirectory(r"C:\Pictures");
+        await container
+            .read(libraryControllerProvider.notifier)
+            .scanDirectory(r"C:\Pictures");
 
-    expect(
-      container.read(libraryControllerProvider).taskKind,
-      LibraryTaskKind.update,
+        expect(
+          container.read(libraryControllerProvider).taskKind,
+          published ? LibraryTaskKind.update : LibraryTaskKind.import,
+        );
+      },
     );
-  });
+  }
 
   test("forwards cancellation to the active Rust scan", () async {
     final scanner = _FakeLibraryScanner();
@@ -543,7 +554,7 @@ void main() {
 
     final controller = container.read(libraryControllerProvider.notifier);
     await controller.chooseDirectoryAndScan();
-    controller.cancelScan();
+    await controller.cancelScan();
 
     expect(scanner.cancelledScanId, isNotNull);
     expect(
@@ -848,46 +859,84 @@ void main() {
     },
   );
 
-  test("automatically resumes a persisted interrupted scan", () async {
-    final scanner = _FakeLibraryScanner(
-      recoverableScan: const RecoverableLibraryScan(
-        scanId: "scan-recover",
-        rootPath: r"\\?\C:\Pictures",
-        displayRootPath: "C:\\Pictures",
-        itemLimit: 500,
-        entryLimit: 2000,
-        previewEdge: 512,
-        visitedEntries: 128,
-        acceptedItems: 40,
-        issueCount: 3,
-      ),
-    );
-    final container = ProviderContainer(
-      overrides: [
-        libraryScannerProvider.overrideWithValue(scanner),
-        libraryCatalogProvider.overrideWithValue(
-          _FakeLibraryCatalog(_snapshot()),
+  testWidgets(
+    "restores an interrupted import and waits for explicit continue",
+    (tester) async {
+      final scanner = _FakeLibraryScanner(
+        recoverableScan: const RecoverableLibraryScan(
+          scanId: "scan-recover",
+          rootPath: r"\\?\C:\Pictures",
+          displayRootPath: "C:\\Pictures",
+          itemLimit: 500,
+          entryLimit: 2000,
+          previewEdge: 512,
+          visitedEntries: 128,
+          acceptedItems: 40,
+          issueCount: 3,
         ),
-      ],
-    );
-    addTearDown(container.dispose);
-    addTearDown(scanner.dispose);
+      );
+      final container = ProviderContainer(
+        overrides: [
+          libraryScannerProvider.overrideWithValue(scanner),
+          libraryCatalogProvider.overrideWithValue(
+            _FakeLibraryCatalog(_snapshot()),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      addTearDown(scanner.dispose);
 
-    container.read(libraryControllerProvider);
-    await Future<void>.delayed(Duration.zero);
-    await Future<void>.delayed(Duration.zero);
+      final controller = container.read(libraryControllerProvider.notifier);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: Scaffold(
+              body: Consumer(
+                builder: (context, ref, child) => LibraryTaskSurface(
+                  state: ref.watch(libraryControllerProvider),
+                  onPause: controller.pauseScan,
+                  onCancel: controller.cancelScan,
+                  onResume: controller.resumePausedScan,
+                  onRetry: controller.retry,
+                  onDismiss: controller.dismissTaskFeedback,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
 
-    final state = container.read(libraryControllerProvider);
-    expect(state.status, LibraryStatus.scanning);
-    expect(state.isResumingScan, isTrue);
-    expect(state.scanId, "scan-recover");
-    expect(state.visitedEntries, 128);
-    expect(state.stagedAssetCount, 40);
-    expect(state.issueCount, 3);
-    expect(scanner.startedScanId, "scan-recover");
-    expect(scanner.scanCallCount, 0);
-    expect(scanner.resumeCallCount, 1);
-  });
+      var state = container.read(libraryControllerProvider);
+      expect(state.status, LibraryStatus.paused);
+      expect(state.taskKind, LibraryTaskKind.import);
+      expect(state.isResumingScan, isFalse);
+      expect(state.scanId, "scan-recover");
+      expect(state.visitedEntries, 128);
+      expect(state.stagedAssetCount, 40);
+      expect(state.issueCount, 3);
+      expect(scanner.startedScanId, isNull);
+      expect(scanner.scanCallCount, 0);
+      expect(scanner.resumeCallCount, 0);
+      expect(find.text("已暂停添加文件夹"), findsOneWidget);
+      expect(find.byKey(const Key("library-resume-button")), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key("library-resume-button")));
+      await tester.pump();
+      state = container.read(libraryControllerProvider);
+      expect(state.status, LibraryStatus.scanning);
+      expect(state.isResumingScan, isTrue);
+      expect(state.taskKind, LibraryTaskKind.import);
+      expect(scanner.startedScanId, "scan-recover");
+      expect(scanner.startedItemLimit, 500);
+      expect(scanner.startedEntryLimit, 2000);
+      expect(scanner.resumeCallCount, 1);
+
+      await controller.resumePausedScan();
+      expect(scanner.resumeCallCount, 1);
+    },
+  );
 
   test("restores a paused scan without starting it until resume", () async {
     final scanner = _FakeLibraryScanner(
@@ -2092,6 +2141,8 @@ void main() {
   });
 
   test("treats an already absent root as committed and reloads", () async {
+    final scanner = _FakeLibraryScanner();
+    addTearDown(scanner.dispose);
     const removedRoot = LibraryRoot(
       id: "root-already-absent",
       path: "C:\\AlreadyAbsent",
@@ -2118,6 +2169,7 @@ void main() {
     final catalog = _DeferredUnregisterLibraryCatalog(refreshedSnapshot);
     final container = ProviderContainer(
       overrides: [
+        libraryScannerProvider.overrideWithValue(scanner),
         initialLibraryStateProvider.overrideWithValue(
           LibraryState.fromSnapshot(
             _snapshot(
@@ -2506,17 +2558,16 @@ void main() {
     addTearDown(scanner.dispose);
     addTearDown(() => execution.releaseUpdate("root-update"));
 
-    await expectLater(
-      container
-          .read(libraryControllerProvider.notifier)
-          .scanDirectory("C:\\Incoming"),
-      throwsA(
-        isA<LibraryScanFailure>().having(
-          (failure) => failure.code,
-          "code",
-          "foreground_scan_busy",
-        ),
-      ),
+    await container
+        .read(libraryControllerProvider.notifier)
+        .scanDirectory("C:\\Incoming");
+    expect(
+      container.read(libraryControllerProvider).status,
+      LibraryStatus.failed,
+    );
+    expect(
+      container.read(libraryControllerProvider).errorMessage,
+      contains("其他图库更新正在运行"),
     );
 
     expect(scanner.startedScanId, isNull);
@@ -3130,6 +3181,11 @@ class _FakeDirectoryPicker implements DirectoryPicker {
 }
 
 class _FakeLibraryScanner implements LibraryScanner {
+  @override
+  Future<void> cancelRetainedScan(String scanId) async {
+    throw StateError("This fixture has no retained cancellation command");
+  }
+
   _FakeLibraryScanner({
     this.recoverableScan,
     this.pausedScan,
@@ -3465,6 +3521,11 @@ class _FailThenSucceedUnregisterLibraryCatalog extends _FakeLibraryCatalog {
 }
 
 class _DelayedDoneLibraryScanner implements LibraryScanner {
+  @override
+  Future<void> cancelRetainedScan(String scanId) async {
+    throw StateError("This fixture has no retained cancellation command");
+  }
+
   final List<StreamController<LibraryScanUpdate>> _controllers = [];
   final List<String> startedScanIds = [];
 

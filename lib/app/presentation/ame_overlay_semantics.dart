@@ -101,7 +101,15 @@ class _AmeWindowsTooltipState extends State<_AmeWindowsTooltip>
   void didUpdateWidget(covariant _AmeWindowsTooltip oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.message != widget.message) {
-      _entry?.markNeedsBuild();
+      final entry = _entry;
+      if (entry != null) {
+        // The entry is a sibling in the root overlay, not a build descendant.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && identical(_entry, entry)) {
+            entry.markNeedsBuild();
+          }
+        });
+      }
     }
   }
 
@@ -267,6 +275,7 @@ class _AmeWindowsTooltipState extends State<_AmeWindowsTooltip>
         return;
       }
       entry.remove();
+      entry.dispose();
       _entry = null;
     });
   }
@@ -277,6 +286,7 @@ class _AmeWindowsTooltipState extends State<_AmeWindowsTooltip>
     _showTimer = null;
     _hideTimer = null;
     _entry?.remove();
+    _entry?.dispose();
     _entry = null;
     _animationController.stop();
   }

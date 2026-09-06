@@ -1,8 +1,9 @@
 use crate::application::{
-    cancel_scan, load_catalog, load_catalog_around_asset, load_catalog_around_location,
-    load_catalog_asset_by_id, load_catalog_at_time, load_gallery_layout_manifest_chunk,
-    load_gallery_timeline, load_library_folders, load_paused_scan, load_recoverable_scan,
-    pause_scan, resume_scan, run_scan, suspend_scan, unregister_library_root,
+    cancel_retained_scan, cancel_scan, load_catalog, load_catalog_around_asset,
+    load_catalog_around_location, load_catalog_asset_by_id, load_catalog_at_time,
+    load_gallery_layout_manifest_chunk, load_gallery_timeline, load_library_folders,
+    load_paused_scan, load_recoverable_scan, pause_scan, resume_scan, run_scan, suspend_scan,
+    unregister_library_root,
 };
 use crate::domain::{
     CatalogCursor, CatalogSnapshot, GalleryLayoutManifestChunk, GalleryLayoutManifestCursor,
@@ -76,7 +77,6 @@ pub fn load_library_gallery_layout_manifest_chunk(
     load_gallery_layout_manifest_chunk(max_items, query, after)
 }
 
-#[flutter_rust_bridge::frb(sync)]
 pub fn load_library_folder_page(
     root_id: String,
     parent_relative_path: String,
@@ -129,12 +129,10 @@ pub fn remove_library_root(root_id: String) -> Result<bool, ScanError> {
     unregister_library_root(root_id)
 }
 
-#[flutter_rust_bridge::frb(sync)]
 pub fn load_recoverable_library_scan() -> Result<Option<RecoverableScan>, ScanError> {
     load_recoverable_scan()
 }
 
-#[flutter_rust_bridge::frb(sync)]
 pub fn load_paused_library_scan() -> Result<Option<RecoverableScan>, ScanError> {
     load_paused_scan()
 }
@@ -142,6 +140,10 @@ pub fn load_paused_library_scan() -> Result<Option<RecoverableScan>, ScanError> 
 #[flutter_rust_bridge::frb(sync)]
 pub fn cancel_library_scan(scan_id: String) -> bool {
     cancel_scan(&scan_id)
+}
+
+pub fn cancel_retained_library_scan(scan_id: String) -> Result<(), ScanError> {
+    cancel_retained_scan(&scan_id)
 }
 
 #[flutter_rust_bridge::frb(sync)]

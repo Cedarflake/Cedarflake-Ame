@@ -4,14 +4,22 @@ import "dart:io";
 import "package:flutter/material.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../application/library_source_read_scheduler.dart";
 import "../../domain/library_models.dart";
 import "library_loading_indicator.dart";
 import "library_source_image.dart";
 
 class LibraryViewerImage extends StatefulWidget {
-  const LibraryViewerImage({required this.asset, super.key});
+  const LibraryViewerImage({
+    required this.asset,
+    this.sourceReadScheduler,
+    this.sourceBufferLoader,
+    super.key,
+  });
 
   final LibraryAsset asset;
+  final LibrarySourceReadScheduler? sourceReadScheduler;
+  final LibrarySourceBufferLoader? sourceBufferLoader;
 
   @override
   State<LibraryViewerImage> createState() => _LibraryViewerImageState();
@@ -32,6 +40,7 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
     super.didUpdateWidget(oldWidget);
     final nextImage = _createSourceImage();
     if (_sourceImage != nextImage) {
+      _sourceImage.cancel();
       unawaited(_sourceImage.evict());
       _sourceImage = nextImage;
     }
@@ -39,6 +48,7 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
 
   @override
   void dispose() {
+    _sourceImage.cancel();
     unawaited(_sourceImage.evict());
     super.dispose();
   }
@@ -130,10 +140,15 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
     );
   }
 
-  LibrarySourceImage _createSourceImage() =>
-      LibrarySourceImage(widget.asset, retryGeneration: _retryGeneration);
+  LibrarySourceImage _createSourceImage() => LibrarySourceImage(
+    widget.asset,
+    retryGeneration: _retryGeneration,
+    scheduler: widget.sourceReadScheduler,
+    bufferLoader: widget.sourceBufferLoader,
+  );
 
   void _retry() {
+    _sourceImage.cancel();
     unawaited(_sourceImage.evict());
     setState(() {
       _retryGeneration += 1;

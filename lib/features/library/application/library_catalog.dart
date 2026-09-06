@@ -146,19 +146,21 @@ class RustLibraryCatalog
     LibraryFolderCursor? after,
   }) async {
     try {
-      final page = rust_api.loadLibraryFolderPage(
-        rootId: rootId,
-        parentRelativePath: parentRelativePath,
-        maxItems: maxItems,
-        after: after == null
-            ? null
-            : rust_domain.LibraryFolderCursor(
-                revision: after.revision,
-                rootId: after.rootId,
-                parentRelativePath: after.parentRelativePath,
-                relativePath: after.relativePath,
-              ),
-      );
+      final Future<rust_domain.LibraryFolderPage> pendingPage = rust_api
+          .loadLibraryFolderPage(
+            rootId: rootId,
+            parentRelativePath: parentRelativePath,
+            maxItems: maxItems,
+            after: after == null
+                ? null
+                : rust_domain.LibraryFolderCursor(
+                    revision: after.revision,
+                    rootId: after.rootId,
+                    parentRelativePath: after.parentRelativePath,
+                    relativePath: after.relativePath,
+                  ),
+          );
+      final page = await pendingPage;
       final nextCursor = page.nextCursor;
       return LibraryFolderPage(
         revision: page.revision,

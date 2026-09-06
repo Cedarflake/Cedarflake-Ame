@@ -908,6 +908,11 @@ class _RemovingUpdateCatalog implements LibraryCatalog {
 }
 
 class _ConcurrentLibraryScanner implements LibraryScanner {
+  @override
+  Future<void> cancelRetainedScan(String scanId) async {
+    throw StateError("This fixture has no retained cancellation command");
+  }
+
   _ConcurrentLibraryScanner({
     this.completeCancellation = false,
     this.delayedRegistration = false,

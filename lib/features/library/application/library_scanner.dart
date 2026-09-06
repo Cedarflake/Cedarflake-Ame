@@ -28,6 +28,8 @@ abstract interface class LibraryScanner {
 
   bool cancel(String scanId);
 
+  Future<void> cancelRetainedScan(String scanId);
+
   bool pause(String scanId);
 
   bool suspend(String scanId);
@@ -53,11 +55,11 @@ class RustLibraryScanner implements LibraryScanner {
   }
 
   Future<RecoverableLibraryScan?> _loadStoredScan(
-    rust_domain.RecoverableScan? Function() load,
+    Future<rust_domain.RecoverableScan?> Function() load,
     String fallbackCode,
   ) async {
     try {
-      final scan = load();
+      final scan = await load();
       if (scan == null) {
         return null;
       }
@@ -149,6 +151,21 @@ class RustLibraryScanner implements LibraryScanner {
   @override
   bool cancel(String scanId) {
     return rust_api.cancelLibraryScan(scanId: scanId);
+  }
+
+  @override
+  Future<void> cancelRetainedScan(String scanId) async {
+    try {
+      await rust_api.cancelRetainedLibraryScan(scanId: scanId);
+    } on Object catch (error) {
+      if (error case rust_domain.ScanError(:final code, :final message)) {
+        throw LibraryScanFailure(code: code, message: message);
+      }
+      throw LibraryScanFailure(
+        code: "bridge_retained_scan_cancel_failed",
+        message: error.toString(),
+      );
+    }
   }
 
   @override

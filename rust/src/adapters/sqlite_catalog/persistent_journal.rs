@@ -27,22 +27,35 @@ use super::change_queue::{
 use super::metadata_inventory::insert_metadata_inventory_recovery_authority;
 use super::{SqliteCatalog, database_error, sqlite_integer, sqlite_unsigned};
 
+mod capability;
 mod root_unregister;
 
 pub(super) use root_unregister::remove_root_persistent_journal_state;
 
-impl PersistentJournalRepository for SqliteCatalog {
-    fn begin_persistent_journal_baseline(
+impl SqliteCatalog {
+    pub(crate) fn begin_journal_baseline_with_admission<Permit>(
         &mut self,
         request: &PersistentJournalBaselineStartRequest,
         policy: LibraryChangeQueuePolicy,
+        acquire: impl FnOnce() -> Result<Permit, ScanError>,
     ) -> Result<PersistentJournalBaseline, ScanError> {
         request.validate()?;
         if !policy.is_valid() {
             return Err(invalid_batch("The baseline queue policy is invalid"));
         }
         let transaction = self.begin_write()?;
+        let _permit = acquire()?;
         require_active_root_generation(&transaction, &request.root_id, request.root_generation)?;
+        if request.authority_reason
+            == crate::domain::LibraryRecoveryAuthorityReason::FirstImportBoundary
+        {
+            capability::require_running_first_import(
+                &transaction,
+                &request.root_id,
+                request.root_generation,
+                &request.run_id,
+            )?;
+        }
         if let Some(existing) =
             load_baseline_for_root(&transaction, &request.root_id, request.root_generation)?
         {
@@ -335,6 +348,16 @@ impl PersistentJournalRepository for SqliteCatalog {
             .ok_or_else(|| invalid_batch("The durable one-time baseline was not stored"))?;
         transaction.commit().map_err(database_error)?;
         Ok(baseline)
+    }
+}
+
+impl PersistentJournalRepository for SqliteCatalog {
+    fn begin_persistent_journal_baseline(
+        &mut self,
+        request: &PersistentJournalBaselineStartRequest,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<PersistentJournalBaseline, ScanError> {
+        self.begin_journal_baseline_with_admission(request, policy, || Ok(()))
     }
 
     fn load_persistent_journal_baselines(
@@ -801,43 +824,7 @@ impl PersistentJournalRepository for SqliteCatalog {
         &mut self,
         capability: &PersistentJournalCapability,
     ) -> Result<(), ScanError> {
-        capability.validate()?;
-        let (failure_code, failure_message) = failure_columns(capability.failure.as_ref());
-        let transaction = self.begin_write_in_lane(crate::domain::LibraryChangeLane::Journal)?;
-        let updated = transaction
-            .execute(
-                "UPDATE library_persistent_journal_root_state
-                 SET protocol_version = ?1, contract_version = ?2,
-                     capability_state = ?3, continuity_state = ?4,
-                     last_failure_code = ?5, last_failure_message = ?6,
-                     updated_unix_ms = ?7
-                 WHERE root_id = ?8 AND root_generation = ?9
-                   AND EXISTS(
-                     SELECT 1 FROM library_change_root_state AS active
-                     WHERE active.root_id = ?8 AND active.generation = ?9
-                       AND active.is_active = 1
-                   )",
-                params![
-                    i64::from(capability.protocol_version),
-                    i64::from(capability.contract_version),
-                    capability_state_text(capability.state),
-                    continuity_state_text(capability.continuity),
-                    failure_code,
-                    failure_message,
-                    capability.updated_unix_ms,
-                    capability.root_id,
-                    sqlite_integer(capability.root_generation.value(), "root generation")?,
-                ],
-            )
-            .map_err(database_error)?;
-        if updated != 1 {
-            return Err(ScanError::new(
-                "persistent_journal_root_authority_stale",
-                "The persistent journal capability no longer owns the active root generation",
-            ));
-        }
-        transaction.commit().map_err(database_error)?;
-        Ok(())
+        self.save_journal_capability(capability, None, || Ok(()))
     }
 
     fn persist_persistent_journal_root_failure(

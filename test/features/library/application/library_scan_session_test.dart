@@ -9,7 +9,7 @@ void main() {
     session.begin(_scan());
 
     final progress = session.apply(
-      const LibraryState(status: LibraryStatus.scanning),
+      const LibraryPrimaryScanSnapshot(status: LibraryStatus.scanning),
       const LibraryScanProgress(
         visitedEntries: 30,
         acceptedItems: 12,
@@ -36,7 +36,9 @@ void main() {
 
   test("bounds recent issues without losing the total issue count", () {
     final session = LibraryScanSession();
-    var state = const LibraryState(status: LibraryStatus.scanning);
+    var state = const LibraryPrimaryScanSnapshot(
+      status: LibraryStatus.scanning,
+    );
 
     for (var index = 0; index < 24; index += 1) {
       state = session
@@ -60,7 +62,10 @@ void main() {
     session.begin(_scan());
 
     final transition = session.apply(
-      const LibraryState(status: LibraryStatus.scanning, isResumingScan: true),
+      const LibraryPrimaryScanSnapshot(
+        status: LibraryStatus.scanning,
+        isResumingScan: true,
+      ),
       const LibraryScanCompleted(
         assetCount: 10,
         issueCount: 1,
@@ -71,7 +76,7 @@ void main() {
 
     expect(transition.shouldReloadCatalog, isTrue);
     expect(transition.state.status, LibraryStatus.refreshing);
-    expect(transition.state.catalogPath, "C:\\Ame\\catalog.sqlite3");
+    expect(transition.state.issueCount, 1);
     expect(transition.state.isResumingScan, isFalse);
     expect(session.activeScanId, isNull);
   });
@@ -81,7 +86,7 @@ void main() {
     session.begin(_scan());
 
     final transition = session.apply(
-      const LibraryState(
+      const LibraryPrimaryScanSnapshot(
         status: LibraryStatus.scanning,
         visitedEntries: 50304,
         stagedAssetCount: 48384,
@@ -107,7 +112,7 @@ void main() {
     session.begin(_scan());
 
     final transition = session.apply(
-      const LibraryState(status: LibraryStatus.scanning),
+      const LibraryPrimaryScanSnapshot(status: LibraryStatus.scanning),
       const LibraryScanFailed(
         code: "catalog_database_busy",
         message: "The catalog database remained busy after waiting",
@@ -127,7 +132,7 @@ void main() {
     session.begin(_scan());
 
     final state = session.finish(
-      const LibraryState(status: LibraryStatus.scanning),
+      const LibraryPrimaryScanSnapshot(status: LibraryStatus.scanning),
     );
 
     expect(state.status, LibraryStatus.failed);

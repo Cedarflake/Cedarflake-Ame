@@ -2,6 +2,9 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
+mod preview_health;
+pub use preview_health::{PreviewHealthObservation, PreviewHealthOutcome, PreviewHealthTarget};
+
 use crate::domain::{
     AssetLocationView, CatalogCursor, CatalogDeltaBatch, CatalogDeltaPublication, CatalogSnapshot,
     CatalogSpaceUsage, DiscoveredFile, ExpectedFileState, FileIdentityEvidence,
@@ -99,6 +102,10 @@ pub(crate) enum CatalogMaintenanceAttempt<T> {
     Completed(T),
     Busy,
     Interrupted,
+}
+
+pub(crate) trait RetainedScanRepository {
+    fn cancel_retained_scan(&mut self, scan_id: &str) -> Result<(), ScanError>;
 }
 
 pub(crate) trait CatalogSpaceRepository {
@@ -831,6 +838,7 @@ pub trait CatalogRepository {
         root_id: &str,
         location: &AssetLocationView,
     ) -> Result<(), ScanError>;
+    #[cfg(test)]
     fn update_active_preview(
         &mut self,
         location: &AssetLocationView,
@@ -857,15 +865,11 @@ pub trait CatalogRepository {
         after_artifact_key: Option<&str>,
         limit: u32,
     ) -> Result<Vec<PreviewReclamationCandidate>, ScanError>;
-    fn reconcile_preview_artifact_bytes(
+    fn try_reconcile_preview_health(
         &mut self,
-        candidate: &PreviewReclamationCandidate,
-        actual_bytes: u64,
-    ) -> Result<bool, ScanError>;
-    fn invalidate_preview_recovery_artifact(
-        &mut self,
-        candidate: &PreviewReclamationCandidate,
-    ) -> Result<bool, ScanError>;
+        target: PreviewHealthTarget<'_>,
+        observation: PreviewHealthObservation,
+    ) -> Result<PreviewHealthOutcome, ScanError>;
     fn touch_preview_artifacts(&mut self, artifacts: &[(String, String)])
     -> Result<u64, ScanError>;
     fn load_preview_reclamation_candidates(
@@ -1012,7 +1016,6 @@ pub trait StorageSettingsRepository {
     ) -> Result<(), ScanError>;
     fn load_pending_preview_roots(&mut self) -> Result<Vec<String>, ScanError>;
     fn activate_preview_root(&mut self, preview_root: &str) -> Result<(), ScanError>;
-    fn restore_pending_preview_roots(&mut self, preview_roots: &[String]) -> Result<(), ScanError>;
     fn load_retired_preview_roots(&mut self) -> Result<Vec<String>, ScanError>;
     fn forget_retired_preview_root(&mut self, preview_root: &str) -> Result<bool, ScanError>;
 }

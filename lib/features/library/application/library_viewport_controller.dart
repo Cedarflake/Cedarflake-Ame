@@ -1,16 +1,19 @@
 import "dart:async";
 
+import "package:flutter/foundation.dart";
+
 import "../domain/library_models.dart";
 import "../domain/library_state.dart";
 import "library_catalog.dart";
 import "library_catalog_publication.dart";
+import "library_query_refresh.dart";
+
+export "library_query_refresh.dart" show LibraryQueryUpdateOutcome;
 
 const _timeNavigationRetryDelay = Duration(milliseconds: 120);
 const _maxVisibleRangePageLoads = 2;
 const _retainedDetailHighWatermark = 5000;
 const _retainedDetailLowWatermark = 3500;
-
-enum LibraryQueryUpdateOutcome { applied, busy, superseded, failed }
 
 class _RetainedCatalogPage {
   const _RetainedCatalogPage({
@@ -66,6 +69,7 @@ class LibraryViewportController {
   final bool Function() _isHostDisposed;
   final void Function(Iterable<String>) _retainPreviewPending;
   final _publications = LibraryCatalogPublicationCoordinator();
+  late final _queryRefresh = LibraryQueryRefreshCoordinator(_publications);
 
   _PendingTimeNavigation? _pendingTimeNavigation;
   _PendingTimeNavigation? _activeTimeNavigation;
@@ -106,6 +110,7 @@ class LibraryViewportController {
       return;
     }
     _isDisposed = true;
+    _queryRefresh.dispose();
     _publications.dispose();
     _timeNavigationRetryTimer?.cancel();
     _timeNavigationRetryTimer = null;
@@ -125,10 +130,17 @@ class LibraryViewportController {
   }
 
   void supersedeExternalRequests() {
+    _queryRefresh.invalidate();
     _queryTransitionBaseState = null;
     _queryTransitionGeneration = null;
     _publicationGeneration += 1;
     _supersedeQueryWindowRequests();
+    if (!_cannotPublish && _state.isRefreshingQuery) {
+      _state = _state.copyWith(
+        queryActivity: const LibraryQueryIdle(),
+        isLoadingTimeline: false,
+      );
+    }
   }
 
   LibraryCatalogPublicationLease? reserveCatalogPublication() {
@@ -143,29 +155,13 @@ class LibraryViewportController {
     _publications.release(lease);
   }
 
-  Future<bool> refreshCurrentQuery() async {
-    while (await _publications.waitUntilAvailable()) {
-      if (_cannotPublish) {
-        return false;
-      }
-      if (_publications.isReserved) {
-        continue;
-      }
-      final generation = _publications.generation;
-      final outcome = await updateQueryWithOutcome(
-        _state.query,
-        forceRefresh: true,
-        showRefreshingStatus: false,
-      );
-      if ((outcome == LibraryQueryUpdateOutcome.busy ||
-              outcome == LibraryQueryUpdateOutcome.superseded) &&
-          generation != _publications.generation) {
-        continue;
-      }
-      return outcome == LibraryQueryUpdateOutcome.applied;
-    }
-    return false;
-  }
+  Future<bool> refreshCurrentQuery() => _queryRefresh.refreshCommitted(
+    () => _updateQueryWithOutcome(
+      _state.query,
+      forceRefresh: true,
+      showRefreshingStatus: false,
+    ),
+  );
 
   Future<bool> updateQuery(
     LibraryGalleryQuery query, {
@@ -176,19 +172,21 @@ class LibraryViewportController {
     BigInt? minimumCatalogRevision,
     bool showRefreshingStatus = true,
   }) async {
-    final outcome = await updateQueryWithOutcome(
-      query,
-      anchorLocationId: anchorLocationId,
-      anchorAssetId: anchorAssetId,
-      fallbackGlobalItemIndex: fallbackGlobalItemIndex,
-      forceRefresh: forceRefresh,
-      minimumCatalogRevision: minimumCatalogRevision,
-      showRefreshingStatus: showRefreshingStatus,
+    final outcome = await _queryRefresh.runUser(
+      () => _updateQueryWithOutcome(
+        query,
+        anchorLocationId: anchorLocationId,
+        anchorAssetId: anchorAssetId,
+        fallbackGlobalItemIndex: fallbackGlobalItemIndex,
+        forceRefresh: forceRefresh,
+        minimumCatalogRevision: minimumCatalogRevision,
+        showRefreshingStatus: showRefreshingStatus,
+      ),
     );
     return outcome == LibraryQueryUpdateOutcome.applied;
   }
 
-  Future<LibraryQueryUpdateOutcome> updateQueryWithOutcome(
+  Future<LibraryQueryUpdateOutcome> _updateQueryWithOutcome(
     LibraryGalleryQuery query, {
     String? anchorLocationId,
     String? anchorAssetId,
@@ -236,7 +234,6 @@ class LibraryViewportController {
         _pendingVisibleRange != null || _activeVisibleRange != null;
     if (_state.status == LibraryStatus.choosingDirectory ||
         _state.isScanning ||
-        _state.status == LibraryStatus.paused ||
         (_state.isLoadingTimeAnchor && !hasVisibleRangeRequest)) {
       return LibraryQueryUpdateOutcome.busy;
     }
@@ -251,7 +248,9 @@ class LibraryViewportController {
     }
     _queryTransitionGeneration = requestGeneration;
     _state = _state.copyWith(
-      status: showRefreshingStatus ? LibraryStatus.refreshing : _state.status,
+      queryActivity: showRefreshingStatus
+          ? LibraryQueryLoading(normalized)
+          : _state.queryActivity,
       isLoadingTimeline: true,
       pageErrorMessage: null,
       previousPageErrorMessage: null,
@@ -324,27 +323,20 @@ class LibraryViewportController {
         nextCursor: snapshot.nextCursor,
       );
       _state = LibraryState.fromSnapshot(snapshot, query: normalized).copyWith(
+        queryActivity: showRefreshingStatus
+            ? const LibraryQueryIdle()
+            : baseState.queryActivity,
         status: baseState.taskKind == LibraryTaskKind.remove
             ? baseState.status
             : null,
-        rootPath: baseState.rootPath,
-        displayRootPath: baseState.displayRootPath,
-        scanId: baseState.scanId,
-        taskKind: baseState.taskKind,
+        taskKind: baseState.taskKind == LibraryTaskKind.remove
+            ? LibraryTaskKind.remove
+            : null,
         removingRootId: baseState.removingRootId,
         removingRootDisplayPath: baseState.removingRootDisplayPath,
         isRemovalCommitted: baseState.isRemovalCommitted,
         completedRemovalRootId: baseState.completedRemovalRootId,
         rootRemovalCompletionSequence: baseState.rootRemovalCompletionSequence,
-        visitedEntries: baseState.visitedEntries,
-        stagedAssetCount: baseState.stagedAssetCount,
-        scanPhase: baseState.scanPhase,
-        validatedAssetCount: baseState.validatedAssetCount,
-        validationAssetCount: baseState.validationAssetCount,
-        itemLimit: baseState.itemLimit,
-        entryLimit: baseState.entryLimit,
-        recentIssues: baseState.recentIssues,
-        isScanLimited: baseState.isScanLimited,
         windowStartItemOffset: windowStart,
         timeline: timeline,
         activeTimeAnchor: null,
@@ -361,17 +353,30 @@ class LibraryViewportController {
       _queryTransitionGeneration = null;
       return LibraryQueryUpdateOutcome.applied;
     } on Object catch (error) {
-      if (_cannotPublish || requestGeneration != _publicationGeneration) {
+      final wasSuperseded =
+          _cannotPublish || requestGeneration != _publicationGeneration;
+      if (kDebugMode) {
+        final code = error is LibraryCatalogFailure
+            ? error.code
+            : error.runtimeType.toString();
+        debugPrint(
+          "[Ame query] outcome=${wasSuperseded ? 'superseded' : 'failed'} code=$code",
+        );
+      }
+      if (wasSuperseded) {
         return LibraryQueryUpdateOutcome.superseded;
       }
       final baseState = _queryTransitionBaseState ?? _state;
       _queryTransitionBaseState = null;
       _queryTransitionGeneration = null;
       _state = baseState.copyWith(
+        queryActivity: showRefreshingStatus
+            ? LibraryQueryFailed(
+                requestedQuery: normalized,
+                message: error.toString(),
+              )
+            : baseState.queryActivity,
         isLoadingTimeline: false,
-        errorMessage: showRefreshingStatus
-            ? error.toString()
-            : baseState.errorMessage,
       );
       return LibraryQueryUpdateOutcome.failed;
     }
@@ -383,14 +388,16 @@ class LibraryViewportController {
     String? anchorAssetId,
     int? fallbackGlobalItemIndex,
   }) {
-    return updateQueryWithOutcome(
-      _state.query,
-      anchorLocationId: anchorLocationId,
-      anchorAssetId: anchorAssetId,
-      fallbackGlobalItemIndex: fallbackGlobalItemIndex,
-      forceRefresh: true,
-      minimumCatalogRevision: catalogRevision,
-      showRefreshingStatus: false,
+    return _queryRefresh.runPassive(
+      () => _updateQueryWithOutcome(
+        _state.query,
+        anchorLocationId: anchorLocationId,
+        anchorAssetId: anchorAssetId,
+        fallbackGlobalItemIndex: fallbackGlobalItemIndex,
+        forceRefresh: true,
+        minimumCatalogRevision: catalogRevision,
+        showRefreshingStatus: false,
+      ),
     );
   }
 
@@ -780,7 +787,6 @@ class LibraryViewportController {
 
   bool get _isTimeNavigationBlocked =>
       _state.isProcessing ||
-      _state.status == LibraryStatus.paused ||
       _state.isLoadingPage ||
       _state.isLoadingPreviousPage ||
       _state.isLoadingTimeAnchor;
@@ -1427,10 +1433,9 @@ class LibraryViewportController {
       nextCursor: snapshot.nextCursor,
     );
     _state = LibraryState.fromSnapshot(snapshot, query: query).copyWith(
-      rootPath: previousState.rootPath,
-      displayRootPath: previousState.displayRootPath,
-      scanId: previousState.scanId,
-      taskKind: previousState.taskKind,
+      taskKind: previousState.taskKind == LibraryTaskKind.remove
+          ? LibraryTaskKind.remove
+          : null,
       removingRootId: previousState.removingRootId,
       removingRootDisplayPath: previousState.removingRootDisplayPath,
       isRemovalCommitted: previousState.isRemovalCommitted,
@@ -1438,15 +1443,6 @@ class LibraryViewportController {
       rootRemovalCompletionSequence:
           previousState.rootRemovalCompletionSequence,
       status: wasRemoving ? LibraryStatus.removing : null,
-      visitedEntries: previousState.visitedEntries,
-      stagedAssetCount: previousState.stagedAssetCount,
-      scanPhase: previousState.scanPhase,
-      validatedAssetCount: previousState.validatedAssetCount,
-      validationAssetCount: previousState.validationAssetCount,
-      itemLimit: previousState.itemLimit,
-      entryLimit: previousState.entryLimit,
-      recentIssues: previousState.recentIssues,
-      isScanLimited: previousState.isScanLimited,
       timeline: timeline,
       activeTimeAnchor: null,
       isLoadingTimeline: isLoadingTimeline,

@@ -968,6 +968,7 @@ fn published_root_updates_do_not_leave_recoverable_state_when_detached_paused_or
     assert_explicit_recovery_claim(&storage_paths, &root_id);
 
     let mut pause_requested = false;
+    let mut pause_events = Vec::new();
     run_scan_with_storage(
         ScanRequest {
             scan_id: "paused-published-root-update".to_owned(),
@@ -981,11 +982,21 @@ fn published_root_updates_do_not_leave_recoverable_state_when_detached_paused_or
                 assert!(pause_scan("paused-published-root-update"));
                 pause_requested = true;
             }
+            pause_events.push(event);
             true
         },
         storage_paths.clone(),
     )
     .expect("paused update converges");
+    assert!(matches!(
+        pause_events.last(),
+        Some(ScanEvent::Cancelled { .. })
+    ));
+    assert!(
+        !pause_events
+            .iter()
+            .any(|event| matches!(event, ScanEvent::Paused { .. }))
+    );
     assert_eq!(
         scan_status_and_staging_counts(&storage_paths, "paused-published-root-update"),
         ("cancelled".to_owned(), 0, 0, 0, 0, 0),
@@ -3850,7 +3861,7 @@ fn acceptance_record(path: &Path, line: &str) {
 }
 
 #[test]
-fn missing_checkpoint_position_marks_recovery_stale() {
+fn missing_first_import_checkpoint_position_rebuilds_on_explicit_resume() {
     let source = tempdir().expect("source directory");
     let storage = tempdir().expect("storage directory");
     RgbaImage::from_pixel(2, 2, Rgba([30, 60, 90, 255]))
@@ -3909,16 +3920,24 @@ fn missing_checkpoint_position_marks_recovery_stale() {
             settings_path: storage.path().join("settings.sqlite3"),
         },
     )
-    .expect("stale recovery");
+    .expect("explicit first-import rebuild");
 
-    assert!(events.iter().any(|event| matches!(
+    assert!(!events.iter().any(|event| matches!(
         event,
         ScanEvent::Issue {
             issue: ScanIssue { code, .. },
             ..
         } if code == "scan_checkpoint_unavailable"
     )));
-    assert!(matches!(events.last(), Some(ScanEvent::Stale { .. })));
+    assert!(matches!(events.last(), Some(ScanEvent::Completed { .. })));
+    assert!(matches!(
+        events.get(1),
+        Some(ScanEvent::Progress {
+            visited_entries: 0,
+            accepted_items: 0,
+            ..
+        })
+    ));
     let status: String = Connection::open(catalog_path)
         .expect("catalog database")
         .query_row(
@@ -3927,7 +3946,7 @@ fn missing_checkpoint_position_marks_recovery_stale() {
             |row| row.get(0),
         )
         .expect("scan status");
-    assert_eq!(status, "stale");
+    assert_eq!(status, "completed");
 }
 
 #[test]

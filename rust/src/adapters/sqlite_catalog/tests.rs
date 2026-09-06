@@ -4039,12 +4039,22 @@ fn directory_entry_frontier_is_idempotent_sorted_and_windowed() {
 }
 
 #[test]
-fn persists_and_validates_a_recoverable_scan_checkpoint() {
+fn persists_and_validates_a_published_root_replacement_checkpoint() {
     let directory = tempdir().expect("temporary directory");
     let path = directory.path().join("catalog.sqlite3");
     let raw_root_path = r"\\?\C:\Pictures";
     let request = fixture_request("scan-resume", raw_root_path);
     let mut catalog = SqliteCatalog::open(path.clone()).expect("catalog");
+    let published = fixture_request("published-before-resume", raw_root_path);
+    catalog
+        .begin_scan(&published, "root-resume", raw_root_path)
+        .expect("initial import");
+    catalog
+        .prove_live_only_first_import_handoff_for_test(&published.scan_id)
+        .expect("initial capture");
+    catalog
+        .publish_scan(&published.scan_id, "root-resume", 0, 0)
+        .expect("trustworthy prior baseline");
     let initial = catalog
         .begin_scan(&request, "root-resume", raw_root_path)
         .expect("begin scan");
@@ -6183,7 +6193,7 @@ fn downgrade_live_gap_contract_to_v29(connection: &Connection) {
         .expect("downgrade fixture to v29");
 }
 
-fn migrate_v29_ambiguous_gap_fixture(
+pub(super) fn migrate_v29_ambiguous_gap_fixture(
     catalog_path: &Path,
     root_id: &str,
     root_path: &str,
@@ -6715,8 +6725,55 @@ fn abandoned_explicit_recovery_scan_restores_the_original_typed_claim() {
     let catalog_path = directory.path().join("catalog.sqlite3");
     let root_id = "explicit-abandon-root";
     let root_path = "C:\\ExplicitAbandon";
-    migrate_v29_ambiguous_gap_fixture(&catalog_path, root_id, root_path, false);
-    let mut catalog = SqliteCatalog::open(catalog_path.clone()).expect("migrate ambiguous v29 gap");
+    let mut catalog =
+        SqliteCatalog::open(catalog_path.clone()).expect("published recovery catalog");
+    let baseline_request = fixture_request("explicit-abandon-baseline", root_path);
+    catalog
+        .begin_scan(&baseline_request, root_id, root_path)
+        .expect("begin published recovery baseline");
+    catalog
+        .prove_live_only_first_import_handoff_for_test(&baseline_request.scan_id)
+        .expect("prove recovery baseline handoff");
+    catalog
+        .stage_location(
+            &baseline_request.scan_id,
+            root_id,
+            &AssetLocationView {
+                asset_id: "explicit-abandon-asset".to_owned(),
+                location_id: "explicit-abandon-location".to_owned(),
+                root_id: root_id.to_owned(),
+                scan_id: baseline_request.scan_id.clone(),
+                absolute_path: format!("{root_path}\\one.png"),
+                display_path: format!("{root_path}\\one.png"),
+                relative_path: "one.png".to_owned(),
+                preview_path: String::new(),
+                file_size: 20,
+                created_unix_ms: Some(25),
+                modified_unix_ms: 30,
+                file_identity: None,
+                source_revision: Some(SourceRevisionEvidence {
+                    scheme: "windows-file-change-time-100ns-v1".to_owned(),
+                    value: "0000000000000001".to_owned(),
+                }),
+                source_generation: 0,
+                width: 40,
+                height: 50,
+                preview_status: PreviewStatus::Pending,
+                preview_issue_code: None,
+                preview_issue_message: None,
+                metadata_engine_id: "fixture-metadata".to_owned(),
+                metadata_engine_version: "1".to_owned(),
+                capture_time: None,
+            },
+        )
+        .expect("stage recovery baseline with allocated source generation");
+    catalog
+        .publish_scan(&baseline_request.scan_id, root_id, 1, 0)
+        .expect("publish recovery baseline");
+    drop(catalog);
+    let mut catalog =
+        SqliteCatalog::open(catalog_path.clone()).expect("reopen valid v31 recovery baseline");
+    seed_current_explicit_recovery_claim(&catalog, root_id, 41);
     let request = fixture_request("explicit-abandon-scan", root_path);
     catalog
         .begin_scan_with_publication_namespace(
@@ -6732,6 +6789,20 @@ fn abandoned_explicit_recovery_scan_restores_the_original_typed_claim() {
     drop(catalog);
 
     let reopened = SqliteCatalog::open(catalog_path).expect("reopen abandoned explicit recovery");
+    let baseline: (String, i64, i64, i64) = reopened
+        .connection
+        .query_row(
+            "SELECT root.active_scan_id, state.is_active, catalog.revision,
+                (SELECT COUNT(*) FROM asset_locations AS location
+                 WHERE location.root_id = root.id AND location.scan_id = root.active_scan_id)
+         FROM library_roots AS root
+         JOIN library_change_root_state AS state ON state.root_id = root.id
+         CROSS JOIN catalog_state AS catalog WHERE root.id = ?1",
+            [root_id],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        )
+        .expect("published baseline survives abandoned replacement");
+    assert_eq!(baseline, ("explicit-abandon-baseline".to_owned(), 1, 1, 1));
     let restored: (
         String,
         Option<String>,

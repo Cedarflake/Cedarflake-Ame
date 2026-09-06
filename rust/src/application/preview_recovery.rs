@@ -9,7 +9,7 @@ use crate::adapters::{
     SqliteCatalog, current_preview_artifact_key, is_managed_preview_cleanup_entry,
 };
 use crate::domain::{LibraryChangeLane, ScanError};
-use crate::ports::CatalogRepository;
+use crate::ports::{CatalogRepository, PreviewHealthOutcome, PreviewHealthTarget};
 
 use super::{StoragePaths, acquire_preview_reclamation};
 
@@ -187,7 +187,7 @@ fn reconcile_index(storage: &StoragePaths, catalog: &mut SqliteCatalog) -> Resul
             return Ok(());
         }
         let batch_started = Instant::now();
-        let mut next_cursor = None;
+        let mut next_cursor = after_artifact_key.clone();
         for (processed, candidate) in candidates.into_iter().enumerate() {
             if should_yield_recovery_batch(
                 processed,
@@ -196,52 +196,35 @@ fn reconcile_index(storage: &StoragePaths, catalog: &mut SqliteCatalog) -> Resul
             ) {
                 break;
             }
-            next_cursor = Some(candidate.artifact_key.clone());
             update_snapshot(|snapshot| {
                 snapshot.inspected_artifacts = snapshot.inspected_artifacts.saturating_add(1);
             });
-            let path = Path::new(&candidate.path);
-            if path.parent() != Some(storage.preview_root.as_path())
-                || !is_managed_preview_cleanup_entry(path)
-            {
-                if catalog.invalidate_preview_recovery_artifact(&candidate)? {
+            match super::preview_health::reconcile(
+                catalog,
+                &storage.preview_root,
+                PreviewHealthTarget::Artifact(&candidate),
+            )? {
+                PreviewHealthOutcome::Deferred => break,
+                PreviewHealthOutcome::Invalidated => {
                     update_snapshot(|snapshot| {
                         snapshot.missing_artifacts = snapshot.missing_artifacts.saturating_add(1);
                     });
-                    invalidate_recovered_preview_store()?;
                 }
-                continue;
-            }
-            match path.metadata() {
-                Ok(metadata) if metadata.is_file() => {
-                    if catalog.reconcile_preview_artifact_bytes(&candidate, metadata.len())? {
-                        update_snapshot(|snapshot| {
-                            snapshot.corrected_sizes = snapshot.corrected_sizes.saturating_add(1);
-                        });
-                    }
+                PreviewHealthOutcome::CorrectedSize => {
+                    update_snapshot(|snapshot| {
+                        snapshot.corrected_sizes = snapshot.corrected_sizes.saturating_add(1);
+                    });
                 }
-                Err(error) if error.kind() == ErrorKind::NotFound => {
-                    if catalog.invalidate_preview_recovery_artifact(&candidate)? {
-                        update_snapshot(|snapshot| {
-                            snapshot.missing_artifacts =
-                                snapshot.missing_artifacts.saturating_add(1);
-                        });
-                        invalidate_recovered_preview_store()?;
-                    }
-                }
-                Ok(_) | Err(_) => update_snapshot(|snapshot| {
+                PreviewHealthOutcome::Unavailable => update_snapshot(|snapshot| {
                     snapshot.issue_count = snapshot.issue_count.saturating_add(1);
                 }),
+                PreviewHealthOutcome::Unchanged => {}
             }
+            next_cursor = Some(candidate.artifact_key);
         }
         after_artifact_key = next_cursor;
         thread::sleep(BATCH_YIELD);
     }
-}
-
-fn invalidate_recovered_preview_store() -> Result<(), ScanError> {
-    let _exclusive_access = acquire_recovery_access()?;
-    super::preview::invalidate_active_preview_store()
 }
 
 fn acquire_recovery_access() -> Result<super::preview_cleanup::PreviewReclamationGuard, ScanError> {

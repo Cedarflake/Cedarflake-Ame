@@ -124,6 +124,15 @@ Use one unified gallery with these presentation rules.
   and Retry repeats only the reload rather than scanning the source again. Terminal actions become
   interactive only after the owning scan stream has closed and left the active-run table, so an
   immediate retry or next update cannot be silently rejected by the previous run.
+- A retained first-import task does not hide independent update rows or reserve browsing. Existing
+  published roots remain navigable while they update; only conflicting update/removal commands are
+  disabled. Continue rejected by another active scan keeps the retained checkpoint and reports the
+  conflict on that task. Replacement updates do not expose Pause because they have no durable
+  continuation contract. Their stop action is Cancel; the prior published baseline remains usable.
+- Query activity is independent of import activity. A failed explicit query retains the previous
+  gallery and shows an inline, non-modal Material banner with a retry of that exact query. Its
+  failure cannot replace or disappear behind a paused import. A scan that has committed but failed
+  to refresh the view also retries only publication of the current view, never source enumeration.
 - Menu placement, focus, dismissal, keyboard navigation, and semantics use Flutter Material menu
   primitives. Source-file edit, print, share, move, copy, rename, and delete actions remain absent
   until separately accepted workflows own them.
@@ -147,6 +156,44 @@ Use one unified gallery with these presentation rules.
 - The source image is loaded for viewing. A derived preview may be shown while it loads or as an
   explicitly labelled fallback when the source is unavailable; a preview is never presented as the
   original without that state being visible.
+- Original-image access uses a typed application source-reader port, not an unchecked path-based
+  `FileImage`. Rust validates the exact active root, scan, location, source generation, revision,
+  identity, and metadata before and after acquiring a held native source lease. The Windows adapter
+  pins the complete namespace with metadata-only no-follow directory opens and a no-follow/no-recall
+  final file open, with source data-write/delete sharing denied. Windows share modes do not prohibit
+  attribute-only access and are not proof that every metadata bit is immutable, per
+  [CreateFileW sharing semantics](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew).
+  The configured-root
+  contract remains unchanged. Below it, only ordinary directories and
+  official Cloud-family directory objects whose own content is locally available are admitted;
+  partial, unverified, unknown-reparse, junction, and volume-transition states are rejected. An
+  available parent never implies that the selected file is available, and offline sibling files
+  are neither enumerated nor opened by this read. This policy does not claim live Cloud Files
+  acceptance for every provider or partially populated directory state.
+- The bridge transfers an opaque read lease and its approved path, never full-resolution image
+  bytes. Admission bounds encoded source size to 256 MiB, path length to 32,767 UTF-16 units and
+  256 components, and process-held source leases to two. Exceeding a bound is an explicit source
+  failure with the existing labelled preview fallback, not an unprotected read retry. The Dart
+  scheduler retains one active read and only the latest pending selection. Cancellation discards
+  stale intent without closing a lease still needed by the native buffer copy. The lease is closed
+  on success, failure, supersession, and disposal after that copy settles. Source image-cache
+  identity includes the active scan and source lease plus explicit retry generation; a preview
+  update alone does not invalidate it.
+- Flutter still owns codec creation, image streams, painting, panning, and zoom. The pinned SDK's
+  `ImmutableBuffer.fromFilePath` implementation copies mapped bytes into owned `SkData` before
+  completing its Dart future (`immutable_buffer.cc`, `initFromFile`), establishing the lease-release
+  boundary. Windows read-sharing semantics are checked against Microsoft's
+  [Cloud Files open flags](https://learn.microsoft.com/en-us/windows/win32/api/cfapi/ne-cfapi-cf_open_file_flags)
+  and [placeholder state definitions](https://learn.microsoft.com/en-us/windows/win32/api/cfapi/ne-cfapi-cf_placeholder_state).
+  Reusing unchecked `FileImage` was rejected because its ordinary pathname open can follow replaced
+  state or recall a placeholder; transferring original bytes through the desktop bridge was rejected
+  because it duplicates large buffers and bypasses the existing decoder boundary.
+- A small source-stream resource owner composes `MultiFrameImageStreamCompleter`: errors from an
+  actually retired intent have no presentation authority, while current decode errors still reach
+  Flutter's error handling. Its codec proxy only releases frames arriving after retirement before
+  handing them to Flutter, and releases its inner codec exactly once. Neither error suppression nor
+  file-lease release is inferred merely from codec creation completing; late first-frame success and
+  failure are separate regression cases.
 - Thumbnail and viewer loading indicators remain square and shrink against the shortest available
   edge instead of accepting non-square constraints. Viewer zoom actions remain first-party Material
   Slider, IconButton, TextButton, and Divider components, with explicit padding between the zoom and
@@ -233,6 +280,17 @@ Use one unified gallery with these presentation rules.
   one synthetic cross-root task. Closing Ame cancels every admitted update and waits for each scan
   stream to finish; queued roots are cancelled before they start. Batch progress is not presented as
   resumable after restart, while the last trustworthy published catalog remains available.
+- A retained unfinished first import is restored as a paused task awaiting explicit Continue after
+  window closure or an abnormal exit. Startup must not execute its checkpoint automatically.
+  Cancelled tasks remain terminal. Source registration without a completed baseline is not displayed
+  as active synchronization; an existing completed catalog remains usable during later updates.
+- A retained task is not a gallery-wide busy state. Folder navigation, paging, synchronization
+  refresh, Settings return, and work on other roots remain available while it awaits Continue.
+  Its task identity, progress, and actions survive gallery-query changes. Continue and Cancel are
+  both explicit actions; cancelling a retained task persists its terminal state without starting
+  enumeration, and a failed cancellation keeps the checkpoint and retry feedback. Removing its
+  root clears the retained task only after catalog unregistration commits. A new primary import
+  cannot silently replace the retained one; this does not introduce multiple primary imports.
 - Non-task status changes and failures use one bounded bottom notification queue. Source rows retain
   only their compact availability or freshness label; reconciliation cause, affected counts, source
   path, stable technical code, and retry or reconcile action belong to the notification detail
@@ -308,6 +366,14 @@ selection. The repository-pinned Flutter 3.44.9 SDK provides `showDialog`, `Aler
 route. Ame adds only configured-root availability and active-task eligibility plus the selected-root
 set; it does not implement a parallel custom selection control.
 
+For explicit query failures, the [official Material component catalog](https://m3.material.io/components)
+was evaluated alongside the pinned SDK's
+[MaterialBanner](https://api.flutter.dev/flutter/material/MaterialBanner-class.html).
+Flutter 3.44.9 `material/banner.dart` provides static non-modal content and framework action buttons;
+Ame composes it with `TextButton` rather than adding an overlay, snackbar timer, or custom focus
+control. The product-specific layer supplies the failed query and its read-only retry. Existing
+linear loading feedback and menu motion are unchanged.
+
 The official Material 3 Icon button, Menu, and Badge catalogs were evaluated for notification
 history and unread state. Flutter 3.44.9 provides `IconButton`, `MenuAnchor`, constrained
 `MenuStyle`, root-navigator `showMenu`, configurable `AnimationStyle`, and small `Badge`; the pinned
@@ -327,7 +393,10 @@ the target and creates a visual `OverlayEntry` only after pointer hover. The vis
 `IgnorePointer`, excluded from semantics, bounded to the screen, fades through a lazily allocated
 framework `AnimationController`, and is removed after exit or target disposal. It neither retains
 an idle route nor replaces focus, keyboard, activation, or screen-reader ownership. Other platforms
-retain the first-party tooltip. The pinned SDK's animated
+retain the first-party tooltip. Updating a visible tooltip from a target rebuild schedules its
+overlay invalidation after that frame: the root entry is a sibling, not a build descendant. The
+callback must still own the same live entry, and removal must dispose it. Target replacement or
+disposal cannot update a retired overlay. The pinned SDK's animated
 `MenuAnchor` can also paint a follower menu at its final visual position while its pointer hit-test
 geometry still resolves to content behind that menu. Ame therefore does not retain `MenuAnchor`
 portals for application dropdown or command menus: settings choices, preview-cache budget, source,

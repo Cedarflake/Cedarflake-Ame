@@ -80,6 +80,14 @@ class LibraryRootSynchronizationStatus {
   final bool recoveryBlocked;
   final String? lastIssueCode;
 
+  bool get isAwaitingFirstImport =>
+      lastIssueCode == "library_first_import_required" &&
+      continuity == LibraryContinuityState.baselineRequired &&
+      freshness == LibraryCatalogFreshness.needsReconciliation &&
+      phase == LibrarySynchronizationPhase.blocked &&
+      sourceStatus == LibraryChangeSourceStatus.stopped &&
+      !recoveryBlocked;
+
   LibraryRootSynchronizationStatus degraded({
     String? issueCode,
     required DateTime occurredAt,

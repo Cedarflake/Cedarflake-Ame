@@ -21,6 +21,7 @@ class LibraryRootRemovalController {
     this._isHostDisposed,
     this._hasUpdateForRoot,
     this._supersedeHostOperations,
+    this._onUnregistered,
   );
 
   final LibraryCatalog _catalog;
@@ -30,6 +31,7 @@ class LibraryRootRemovalController {
   final bool Function() _isHostDisposed;
   final bool Function(String) _hasUpdateForRoot;
   final void Function() _supersedeHostOperations;
+  final void Function(LibraryRoot) _onUnregistered;
 
   int _generation = 0;
   PreparedLibraryRootRemoval? _preparedRemoval;
@@ -92,6 +94,7 @@ class LibraryRootRemovalController {
       if (!_owns(generation)) {
         return false;
       }
+      _onUnregistered(root);
       _viewport.publishCommittedRootRemovalProjection(root);
       final didReload = await _viewport.reloadCommittedRootRemovalFirstPage(
         removedRootId: root.id,
@@ -142,6 +145,25 @@ class LibraryRootRemovalController {
     if (publication != null) {
       _releasePublication(publication);
     }
+  }
+
+  void dismissTaskFeedback() {
+    if (_state.isCommittedRemovalReloadPending ||
+        (_state.status != LibraryStatus.completed &&
+            _state.status != LibraryStatus.failed &&
+            _state.status != LibraryStatus.cancelled)) {
+      return;
+    }
+    _state = _state.copyWith(
+      status: _state.roots.isEmpty
+          ? LibraryStatus.empty
+          : LibraryStatus.completed,
+      taskKind: null,
+      removingRootId: null,
+      removingRootDisplayPath: null,
+      isRemovalCommitted: false,
+      errorMessage: null,
+    );
   }
 
   Future<void> retryCommittedReload() async {

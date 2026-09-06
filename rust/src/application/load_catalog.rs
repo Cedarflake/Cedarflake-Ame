@@ -1,9 +1,8 @@
 use std::path::Path;
 
-use crate::adapters::{
-    SqliteCatalog, SqliteCatalogReadExecutor, inspect_root_availability,
-    is_current_preview_artifact,
-};
+#[cfg(test)]
+use crate::adapters::SqliteCatalog;
+use crate::adapters::{SqliteCatalogReadExecutor, inspect_root_availability};
 use crate::domain::{
     AssetLocationView, CatalogCursor, CatalogSnapshot, GalleryLayoutManifestChunk,
     GalleryLayoutManifestCursor, GalleryQuery, GallerySortDirection, GallerySortKey,
@@ -12,7 +11,8 @@ use crate::domain::{
 };
 use crate::ports::CatalogRepository;
 
-use super::{storage::resolved_path_is_within, storage_paths};
+use super::preview_health::reconcile_snapshot_previews;
+use super::storage_paths;
 
 pub fn load_catalog(
     max_items: u32,
@@ -83,35 +83,6 @@ fn finish_loaded_preview_state(
         .collect::<Vec<_>>();
     catalog.touch_preview_artifacts(&visible_preview_artifacts)?;
     Ok(())
-}
-
-fn reconcile_snapshot_previews(
-    catalog: &mut SqliteCatalog,
-    active_preview_root: &Path,
-    snapshot: &mut CatalogSnapshot,
-) -> Result<(), ScanError> {
-    for asset in &mut snapshot.assets {
-        let is_active = is_active_preview_artifact(&asset.preview_path, active_preview_root)?;
-        if matches!(asset.preview_status, PreviewStatus::Ready) && !is_active {
-            asset.preview_path.clear();
-            asset.preview_status = PreviewStatus::Pending;
-            asset.preview_issue_code = None;
-            asset.preview_issue_message = None;
-            catalog.update_active_preview(asset, None, None)?;
-        }
-    }
-    Ok(())
-}
-
-fn is_active_preview_artifact(path: &str, active_preview_root: &Path) -> Result<bool, ScanError> {
-    let path = Path::new(path);
-    if path.as_os_str().is_empty()
-        || !path.is_file()
-        || !is_current_preview_artifact(&path.to_string_lossy())
-    {
-        return Ok(false);
-    }
-    resolved_path_is_within(path, active_preview_root)
 }
 
 pub fn load_gallery_timeline(query: GalleryQuery) -> Result<GalleryTimeline, ScanError> {

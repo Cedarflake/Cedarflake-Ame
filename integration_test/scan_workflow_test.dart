@@ -20,6 +20,10 @@ import "package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:integration_test/integration_test.dart";
 
+import "support/library_management_workflow.dart";
+import "support/retained_import_workflow.dart";
+import "support/viewer_source_workflow.dart";
+
 const _fixturePng =
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
 
@@ -72,6 +76,8 @@ void main() {
   });
 
   tearDownAll(() => synchronizationLifecycle.close());
+
+  registerRetainedImportWorkflowTests(() => synchronization);
 
   testWidgets("opens and cancels the production Windows directory picker", (
     tester,
@@ -134,8 +140,11 @@ void main() {
       "${Platform.pathSeparator}integration-fixture-"
       "${DateTime.now().microsecondsSinceEpoch}",
     ).create(recursive: true);
+    final nestedSourceDirectory = await Directory(
+      "${sourceDirectory.path}${Platform.pathSeparator}本地图片",
+    ).create();
     final validSource = File(
-      "${sourceDirectory.path}${Platform.pathSeparator}像素.data",
+      "${nestedSourceDirectory.path}${Platform.pathSeparator}像素.data",
     );
     final corruptSource = File(
       "${sourceDirectory.path}${Platform.pathSeparator}损坏.jpg",
@@ -261,6 +270,7 @@ void main() {
     expect(await validSource.readAsBytes(), validBytes);
     expect(await corruptSource.readAsBytes(), corruptBytes);
     expect(await sourceDirectory.list().length, 2);
+    expect(await nestedSourceDirectory.list().length, 1);
 
     final storageStatus = await const RustStorageSettingsGateway().load();
     expect(storageStatus.activeCatalogPath, catalogPath);
@@ -386,6 +396,31 @@ void main() {
     );
     expect(secondRestoredState.roots, hasLength(2));
     expect(secondRestoredState.assets, hasLength(2));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(secondRestoredState),
+          librarySynchronizationProvider.overrideWithValue(synchronization),
+        ],
+        child: const AmeApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await verifyViewerSourceWorkflow(tester);
+    await verifyLibraryManagementWorkflow(
+      tester,
+      ProviderScope.containerOf(
+        tester.element(find.byType(UnifiedLibraryScreen)),
+      ),
+    );
+    expect(await validSource.readAsBytes(), validBytes);
+    expect(await corruptSource.readAsBytes(), corruptBytes);
+    expect(await secondValidSource.readAsBytes(), validBytes);
+    expect(await sourceDirectory.list().length, 2);
+    expect(await nestedSourceDirectory.list().length, 1);
+    expect(await secondSourceDirectory.list().length, 1);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
   });
 }
 
@@ -406,6 +441,7 @@ Future<void> _pumpUntil(
     }
     await tester.pump(const Duration(milliseconds: 50));
   }
+  await tester.pump();
 }
 
 bool _isWithin(String rootPath, String candidatePath) {
