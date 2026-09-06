@@ -1,11 +1,16 @@
 use std::fs;
 use std::path::Path;
 
-use image::{ImageFormat, Rgba, RgbaImage};
+use image::{ImageFormat, Rgb, RgbImage, Rgba, RgbaImage};
 use rusqlite::Connection;
 use tempfile::{TempDir, tempdir};
 
-use crate::adapters::SqliteCatalog;
+use crate::adapters::{
+    FileDiscovery, FileVisitOutcome, PREVIEW_ALGORITHM_ID, PREVIEW_ALGORITHM_VERSION,
+    PREVIEW_ORIENTATION_CONTRACT, SqliteCatalog,
+};
+#[cfg(windows)]
+use crate::adapters::{reset_source_content_open_instrumentation, source_content_open_count};
 use crate::application::StoragePaths;
 use crate::application::metadata_inventory::{
     MetadataInventoryRecoveryExecution, leased_change_requires_metadata_inventory,
@@ -17,9 +22,13 @@ use crate::domain::{
     LibraryChangeIntent, LibraryChangeOrigin, LibraryChangeQueuePolicy,
     PersistentJournalBaselineClosingBoundary, PersistentJournalCapability,
     PersistentJournalCapabilityState, PersistentJournalCheckpoint,
-    PersistentJournalContinuityState, PersistentJournalVolumeIdentity, ScanRequest,
+    PersistentJournalContinuityState, PersistentJournalVolumeIdentity, PreviewArtifact,
+    PreviewRequest, PreviewStatus, ScanRequest,
 };
-use crate::ports::{IncrementalCatalogRepository, LibraryChangeQueue, PersistentJournalRepository};
+use crate::ports::{
+    CatalogRepository, IncrementalCatalogRepository, LibraryChangeQueue,
+    PersistentJournalRepository,
+};
 
 use super::*;
 
@@ -327,10 +336,209 @@ fn root_live_gap_waits_for_durable_journal_range_without_publishing() {
 
 #[cfg(windows)]
 #[test]
+fn capacity_degraded_gap_after_restart_invalidates_an_equal_metadata_preview() {
+    let source = tempdir().expect("source directory");
+    let storage = tempdir().expect("storage directory");
+    let source_path = source.path().join("same.bmp");
+    write_bmp(&source_path, [10, 20, 30]);
+    let original_modified = fs::metadata(&source_path)
+        .expect("original source metadata")
+        .modified()
+        .expect("original modified time");
+    let original_bytes = fs::read(&source_path).expect("original source bytes");
+    let paths = fixture_storage(&storage);
+    publish_initial_scan(&source, paths.clone(), "capacity-dirty-baseline");
+    let mut catalog = SqliteCatalog::open(paths.catalog_path.clone()).expect("catalog");
+    let root = only_root(&catalog);
+    publish_ready_preview(&mut catalog, &storage, &root.root_id, "same.bmp");
+    let prior = catalog
+        .load_incremental_location_by_relative_path(&root.root_id, "same.bmp")
+        .expect("prior location")
+        .expect("published prior location");
+    assert!(matches!(prior.preview_status, PreviewStatus::Ready));
+    assert!(!prior.preview_path.is_empty());
+
+    write_bmp(&source_path, [30, 20, 10]);
+    fs::OpenOptions::new()
+        .write(true)
+        .open(&source_path)
+        .expect("open replacement for timestamp restore")
+        .set_times(fs::FileTimes::new().set_modified(original_modified))
+        .expect("restore replacement modified time");
+    let replacement_bytes = fs::read(&source_path).expect("replacement source bytes");
+    assert_ne!(replacement_bytes, original_bytes);
+    assert_eq!(replacement_bytes.len(), original_bytes.len());
+    let replacement = match FileDiscovery::new(&root.root_path)
+        .expect("replacement discovery")
+        .visit_relative_path("same.bmp")
+        .outcome
+    {
+        FileVisitOutcome::File(file) => file,
+        _ => panic!("replacement must remain a supported local image"),
+    };
+    assert_eq!(replacement.file_size, prior.file_size);
+    assert_eq!(replacement.modified_unix_ms, prior.modified_unix_ms);
+    assert_eq!(replacement.file_identity, prior.file_identity);
+    assert_ne!(replacement.source_revision, prior.source_revision);
+
+    let replacement_revision = replacement
+        .source_revision
+        .as_ref()
+        .expect("replacement ChangeTime evidence");
+    let replacement_revision_token = format!(
+        "{}:{}",
+        replacement_revision.scheme, replacement_revision.value
+    );
+    assert_eq!(
+        Connection::open(&paths.catalog_path)
+            .expect("open adversarial evidence fixture")
+            .execute(
+                "UPDATE asset_locations
+                 SET source_revision_token = ?1
+                 WHERE root_id = ?2 AND relative_path = 'same.bmp'",
+                rusqlite::params![replacement_revision_token, &root.root_id],
+            )
+            .expect("align catalog evidence with the replacement"),
+        1
+    );
+    let apparently_unchanged = catalog
+        .load_incremental_location_by_relative_path(&root.root_id, "same.bmp")
+        .expect("apparently unchanged location")
+        .expect("apparently unchanged location remains published");
+    assert_eq!(apparently_unchanged.file_size, replacement.file_size);
+    assert_eq!(
+        apparently_unchanged.modified_unix_ms,
+        replacement.modified_unix_ms
+    );
+    assert_eq!(
+        apparently_unchanged.file_identity,
+        replacement.file_identity
+    );
+    assert_eq!(
+        apparently_unchanged.source_revision,
+        replacement.source_revision
+    );
+    assert_eq!(
+        apparently_unchanged.source_generation,
+        prior.source_generation
+    );
+    assert_eq!(apparently_unchanged.preview_path, prior.preview_path);
+    reset_source_content_open_instrumentation(&root.root_path);
+
+    let capacity_policy = LibraryChangeQueuePolicy {
+        max_unresolved_changes: 1,
+        max_lease_batch: 1,
+        ..immediate_queue_policy()
+    };
+    let mut first = subtree_intent(&root, LibraryChangeIntentKind::Reconcile, "same.bmp", None);
+    first.scope = LibraryChangeScope::Path;
+    let mut second = subtree_intent(
+        &root,
+        LibraryChangeIntentKind::Reconcile,
+        "overflow.bmp",
+        None,
+    );
+    second.scope = LibraryChangeScope::Path;
+    second.first_sequence = 2;
+    second.most_recent_sequence = 2;
+    let enqueue = catalog
+        .enqueue_library_change_intents(&[first, second], 3_000, capacity_policy)
+        .expect("degrade precise dirty paths to one bounded root gap");
+    assert!(enqueue.capacity_degraded);
+    assert!(enqueue.freshness_unknown_enqueued);
+    drop(catalog);
+
+    let mut catalog = SqliteCatalog::open(paths.catalog_path.clone()).expect("reopen catalog");
+    let promoted = process_ready_authoritative_library_change(
+        &mut catalog,
+        &root.root_id,
+        root.root_generation,
+        3_010,
+        immediate_queue_policy(),
+        fixture_recovery_policy(),
+    )
+    .expect("promote the recovered live gap to metadata inventory");
+    assert_eq!(promoted.incremental.retried_count, 1);
+
+    let mut retained_source = None;
+    let mut completed_candidates = 0_u32;
+    let mut inventory_complete = false;
+    for now_unix_ms in 3_020..3_032 {
+        let leased = catalog
+            .lease_authoritative_library_change(
+                &root.root_id,
+                root.root_generation,
+                now_unix_ms,
+                immediate_queue_policy(),
+            )
+            .expect("lease recovery continuation")
+            .expect("metadata inventory recovery continuation");
+        assert!(leased_change_requires_metadata_inventory(&leased));
+        let page = process_leased_metadata_inventory_change_with_retained_source(
+            &mut catalog,
+            &root,
+            &leased,
+            MetadataInventoryRecoveryExecution::without_progress(
+                now_unix_ms,
+                32,
+                immediate_queue_policy(),
+                &AtomicBool::new(false),
+            ),
+            retained_source.take(),
+        )
+        .expect("process bounded metadata inventory page");
+        retained_source = page.retained_source;
+        completed_candidates = completed_candidates.saturating_add(
+            crate::application::process_ready_library_changes(
+                &mut catalog,
+                &root.root_id,
+                root.root_generation,
+                now_unix_ms,
+                immediate_queue_policy(),
+            )
+            .expect("publish conservative dirty candidate")
+            .completed_count,
+        );
+        if page.report.inventory.is_complete {
+            inventory_complete = true;
+            break;
+        }
+    }
+    assert!(inventory_complete);
+    assert_eq!(completed_candidates, 1);
+    let refreshed = catalog
+        .load_incremental_location_by_relative_path(&root.root_id, "same.bmp")
+        .expect("refreshed location")
+        .expect("refreshed location remains published");
+    assert_eq!(refreshed.asset_id, prior.asset_id);
+    assert_eq!(refreshed.source_revision, replacement.source_revision);
+    assert!(refreshed.source_generation > prior.source_generation);
+    assert!(matches!(refreshed.preview_status, PreviewStatus::Pending));
+    assert!(refreshed.preview_path.is_empty());
+    assert_eq!(source_content_open_count(&root.root_path), 0);
+    let preview_evidence: (i64, String) = Connection::open(&paths.catalog_path)
+        .expect("open preview invalidation evidence")
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM preview_artifact_locations
+                WHERE artifact_key = 'capacity-dirty-ready-preview'),
+               (SELECT lifecycle_state FROM preview_artifacts
+                WHERE artifact_key = 'capacity-dirty-ready-preview')",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .expect("load preview invalidation evidence");
+    assert_eq!(preview_evidence, (0, "stale".to_owned()));
+    assert_eq!(
+        fs::read(&source_path).expect("replacement source after recovery"),
+        replacement_bytes
+    );
+}
+
+#[cfg(windows)]
+#[test]
 fn root_live_gap_capacity_deferral_survives_the_terminal_retry_budget() {
-    let public_root = std::env::var_os("PUBLIC").expect("Windows public profile path");
-    let public_documents = std::path::PathBuf::from(public_root).join("Documents");
-    let source = tempfile::tempdir_in(public_documents).expect("public disposable source");
+    let source = tempdir().expect("disposable source");
     let storage = tempdir().expect("storage directory");
     write_png(&source.path().join("existing.png"), [10, 20, 30, 255]);
     let paths = fixture_storage(&storage);
@@ -621,6 +829,10 @@ fn oversized_subtree_continues_with_pageable_inventory_without_starting_a_scan()
     let root = only_root(&catalog);
     seed_current_journal_authority(&mut catalog, &root, 2_900);
     let active_scan_id = root.active_scan_id.clone();
+    let kept_before = catalog
+        .load_incremental_location_by_relative_path(&root.root_id, "album/kept.png")
+        .expect("load kept location before recovery")
+        .expect("kept location before recovery");
     fs::remove_file(album.join("removed.png")).expect("remove fixture");
     write_png(&album.join("added.png"), [70, 80, 90, 255]);
     enqueue_intent(
@@ -734,7 +946,7 @@ fn oversized_subtree_continues_with_pageable_inventory_without_starting_a_scan()
     let refreshed = only_root(&catalog);
 
     assert!(inventory.inventory.is_complete);
-    assert_eq!(completed_candidates, 2);
+    assert_eq!(completed_candidates, 3);
     assert_eq!(refreshed.active_scan_id, active_scan_id);
     assert!(
         catalog
@@ -748,6 +960,14 @@ fn oversized_subtree_continues_with_pageable_inventory_without_starting_a_scan()
             .expect("added path")
             .is_some()
     );
+    let kept_after = catalog
+        .load_incremental_location_by_relative_path(&root.root_id, "album/kept.png")
+        .expect("load kept location after recovery")
+        .expect("kept location after recovery");
+    assert_eq!(kept_after.asset_id, kept_before.asset_id);
+    assert_eq!(kept_after.file_identity, kept_before.file_identity);
+    assert_eq!(kept_after.source_revision, kept_before.source_revision);
+    assert!(kept_after.source_generation > kept_before.source_generation);
 }
 
 #[test]
@@ -1013,6 +1233,64 @@ fn write_png(path: &Path, color: [u8; 4]) {
     RgbaImage::from_pixel(8, 6, Rgba(color))
         .save_with_format(path, ImageFormat::Png)
         .expect("fixture image");
+}
+
+#[cfg(windows)]
+fn write_bmp(path: &Path, color: [u8; 3]) {
+    RgbaImage::from_pixel(8, 6, Rgba([color[0], color[1], color[2], 255]))
+        .save_with_format(path, ImageFormat::Bmp)
+        .expect("fixture BMP");
+}
+
+#[cfg(windows)]
+fn publish_ready_preview(
+    catalog: &mut SqliteCatalog,
+    storage: &TempDir,
+    root_id: &str,
+    relative_path: &str,
+) {
+    let mut location = catalog
+        .load_incremental_location_by_relative_path(root_id, relative_path)
+        .expect("preview location")
+        .expect("published preview location");
+    let request = PreviewRequest {
+        location_id: location.location_id.clone(),
+        expected_root_id: location.root_id.clone(),
+        expected_scan_id: location.scan_id.clone(),
+        expected_source_revision: location.source_revision.clone(),
+        expected_source_generation: location.source_generation,
+        preview_edge: 256,
+        retry_failed: false,
+        protected_location_ids: Vec::new(),
+    };
+    let artifact_path = storage.path().join("capacity-dirty-ready-preview.jpg");
+    RgbImage::from_pixel(
+        location.width.max(1),
+        location.height.max(1),
+        Rgb([4, 8, 15]),
+    )
+    .save_with_format(&artifact_path, ImageFormat::Jpeg)
+    .expect("write ready preview artifact");
+    location.preview_path = artifact_path.to_string_lossy().into_owned();
+    location.preview_status = PreviewStatus::Ready;
+    let artifact = PreviewArtifact {
+        artifact_key: "capacity-dirty-ready-preview".to_owned(),
+        algorithm_id: PREVIEW_ALGORITHM_ID.to_owned(),
+        algorithm_version: PREVIEW_ALGORITHM_VERSION,
+        orientation_contract: PREVIEW_ORIENTATION_CONTRACT.to_owned(),
+        size_bucket: 256,
+        path: location.preview_path.clone(),
+        byte_size: fs::metadata(&artifact_path)
+            .expect("ready preview metadata")
+            .len(),
+        encoded_width: location.width.max(1),
+        encoded_height: location.height.max(1),
+        width: location.width,
+        height: location.height,
+    };
+    catalog
+        .update_active_preview(&location, Some(&artifact), Some(&request))
+        .expect("publish ready preview");
 }
 
 #[cfg(windows)]

@@ -2,12 +2,15 @@ import "library_models.dart";
 
 enum LibraryScanPhase { discovering, finalizing }
 
+enum LibraryTaskKind { import, update, remove }
+
 enum LibraryStatus {
   empty,
   choosingDirectory,
   scanning,
   pausing,
   cancelling,
+  removing,
   refreshing,
   completed,
   cancelled,
@@ -22,6 +25,12 @@ class LibraryState {
     this.scanId,
     this.rootPath,
     this.displayRootPath,
+    this.taskKind,
+    this.removingRootId,
+    this.removingRootDisplayPath,
+    this.isRemovalCommitted = false,
+    this.completedRemovalRootId,
+    this.rootRemovalCompletionSequence = 0,
     this.roots = const [],
     this.assets = const [],
     this.recentIssues = const [],
@@ -49,6 +58,7 @@ class LibraryState {
     this.isLoadingPreviousPage = false,
     this.isLoadingTimeline = false,
     this.isLoadingTimeAnchor = false,
+    this.isLoadingVisibleRange = false,
     this.pageErrorMessage,
     this.previousPageErrorMessage,
     this.timeNavigationErrorMessage,
@@ -61,6 +71,12 @@ class LibraryState {
   final String? scanId;
   final String? rootPath;
   final String? displayRootPath;
+  final LibraryTaskKind? taskKind;
+  final String? removingRootId;
+  final String? removingRootDisplayPath;
+  final bool isRemovalCommitted;
+  final String? completedRemovalRootId;
+  final int rootRemovalCompletionSequence;
   final List<LibraryRoot> roots;
   final List<LibraryAsset> assets;
   final List<LibraryIssue> recentIssues;
@@ -88,6 +104,7 @@ class LibraryState {
   final bool isLoadingPreviousPage;
   final bool isLoadingTimeline;
   final bool isLoadingTimeAnchor;
+  final bool isLoadingVisibleRange;
   final String? pageErrorMessage;
   final String? previousPageErrorMessage;
   final String? timeNavigationErrorMessage;
@@ -101,10 +118,17 @@ class LibraryState {
   bool get isProcessing =>
       status == LibraryStatus.choosingDirectory ||
       isScanning ||
+      status == LibraryStatus.removing ||
       status == LibraryStatus.refreshing;
 
+  bool get isCommittedRemovalReloadPending =>
+      taskKind == LibraryTaskKind.remove && isRemovalCommitted;
+
   bool get isBusy =>
-      isProcessing || status == LibraryStatus.paused || isLoadingTimeAnchor;
+      isProcessing ||
+      status == LibraryStatus.paused ||
+      isLoadingTimeAnchor ||
+      isCommittedRemovalReloadPending;
 
   bool get hasMoreAssets => nextCursor != null;
 
@@ -140,6 +164,12 @@ class LibraryState {
     Object? scanId = _unchanged,
     Object? rootPath = _unchanged,
     Object? displayRootPath = _unchanged,
+    Object? taskKind = _unchanged,
+    Object? removingRootId = _unchanged,
+    Object? removingRootDisplayPath = _unchanged,
+    bool? isRemovalCommitted,
+    Object? completedRemovalRootId = _unchanged,
+    int? rootRemovalCompletionSequence,
     List<LibraryRoot>? roots,
     List<LibraryAsset>? assets,
     List<LibraryIssue>? recentIssues,
@@ -167,6 +197,7 @@ class LibraryState {
     bool? isLoadingPreviousPage,
     bool? isLoadingTimeline,
     bool? isLoadingTimeAnchor,
+    bool? isLoadingVisibleRange,
     Object? pageErrorMessage = _unchanged,
     Object? previousPageErrorMessage = _unchanged,
     Object? timeNavigationErrorMessage = _unchanged,
@@ -179,6 +210,21 @@ class LibraryState {
       displayRootPath: displayRootPath == _unchanged
           ? this.displayRootPath
           : displayRootPath as String?,
+      taskKind: taskKind == _unchanged
+          ? this.taskKind
+          : taskKind as LibraryTaskKind?,
+      removingRootId: removingRootId == _unchanged
+          ? this.removingRootId
+          : removingRootId as String?,
+      removingRootDisplayPath: removingRootDisplayPath == _unchanged
+          ? this.removingRootDisplayPath
+          : removingRootDisplayPath as String?,
+      isRemovalCommitted: isRemovalCommitted ?? this.isRemovalCommitted,
+      completedRemovalRootId: completedRemovalRootId == _unchanged
+          ? this.completedRemovalRootId
+          : completedRemovalRootId as String?,
+      rootRemovalCompletionSequence:
+          rootRemovalCompletionSequence ?? this.rootRemovalCompletionSequence,
       roots: roots ?? this.roots,
       assets: assets ?? this.assets,
       recentIssues: recentIssues ?? this.recentIssues,
@@ -224,6 +270,8 @@ class LibraryState {
           isLoadingPreviousPage ?? this.isLoadingPreviousPage,
       isLoadingTimeline: isLoadingTimeline ?? this.isLoadingTimeline,
       isLoadingTimeAnchor: isLoadingTimeAnchor ?? this.isLoadingTimeAnchor,
+      isLoadingVisibleRange:
+          isLoadingVisibleRange ?? this.isLoadingVisibleRange,
       pageErrorMessage: pageErrorMessage == _unchanged
           ? this.pageErrorMessage
           : pageErrorMessage as String?,

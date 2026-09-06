@@ -21,12 +21,13 @@ pub use local_files::{
     FileDiscovery, FileVisitOutcome, inspect_root_availability, revalidate_file_state,
 };
 pub(crate) use local_files::{
-    PublicationGuardedFileDiscovery, canonical_source_root_path, file_identity_evidence,
-    open_catalog_identity_guard, user_visible_path,
+    PublicationGuardedFileDiscovery, file_identity_evidence, open_catalog_identity_guard,
+    open_preview_publication_guard, open_preview_source, revalidate_open_preview_source,
+    user_visible_path,
 };
 #[cfg(test)]
 pub(crate) use local_files::{
-    configured_root_open_count, gate_source_enumeration,
+    canonical_source_root_path, configured_root_open_count, gate_source_enumeration,
     reset_configured_root_open_instrumentation,
     reset_root_availability_metadata_probe_instrumentation,
     reset_source_content_open_instrumentation, reset_source_enumeration_instrumentation,
@@ -46,8 +47,15 @@ pub(crate) use preview_cache::{
     PREVIEW_ORIENTATION_CONTRACT, current_preview_artifact_key, is_ame_preview_cache_entry,
     is_current_preview_artifact, is_managed_preview_cleanup_entry,
 };
+#[cfg(test)]
+pub(crate) use preview_cache::{
+    fail_next_atomic_replace_for_test, replace_file_atomically_for_test,
+};
 pub use sqlite_catalog::SqliteCatalog;
-pub(crate) use sqlite_catalog::{SqliteCatalogReadExecutor, SqliteCatalogSession};
+pub(crate) use sqlite_catalog::{
+    SqliteCatalogReadExecutor, SqliteCatalogSession, SqliteCatalogSpaceMaintenance,
+    StagedValidationOutcome, StagedValidationRoster, ValidatedStagingProof,
+};
 #[cfg(test)]
 pub(crate) use sqlite_catalog::{
     WatcherRecoveryObservation, full_schema_validation_count,

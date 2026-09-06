@@ -1,26 +1,124 @@
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 
 use crate::domain::{
     AssetLocationView, CatalogCursor, CatalogDeltaBatch, CatalogDeltaPublication, CatalogSnapshot,
-    DiscoveredFile, ExpectedFileState, FileIdentityEvidence, GalleryLayoutManifestChunk,
-    GalleryLayoutManifestCursor, GalleryQuery, GalleryTimeAnchor, GalleryTimeline,
-    IncrementalCatalogRoot, LibraryChangeCatchUpEvidence, LibraryChangeSourceBatch,
-    LibraryChangeSourceError, LibraryChangeSourceHealth, LibraryChangeSourceStopReport,
-    LibraryFolderCursor, LibraryFolderPage, LibraryRecoveryAuthority, LibraryRootGeneration,
-    MediaInspection, MetadataInspection, MetadataInventoryCleanupReport,
-    MetadataInventoryComparisonUpdate, MetadataInventoryEntry, MetadataInventoryPage,
-    MetadataInventoryRun, MetadataInventoryRunRequest, MetadataInventoryRunStatus,
-    MetadataInventoryScope, MetadataInventoryStartRequest, PersistentJournalBaseline,
-    PersistentJournalBaselineClosingBoundary, PersistentJournalBaselineStartRequest,
-    PersistentJournalCapability, PersistentJournalCheckpoint, PersistentJournalEnrollmentReport,
-    PersistentJournalPendingRename, PersistentJournalReadFailure, PersistentJournalRootFailure,
-    PersistentJournalRootReadOutcome, PersistentJournalVolumeBatch,
-    PersistentJournalVolumeIdentity, PreviewArtifact, PreviewMaterialization,
-    PreviewReclamationCandidate, RecoverableScan, ScanCheckpoint, ScanError, ScanIssue,
-    ScanRequest, StorageConfiguration, TerminalMediaEvidence,
+    CatalogSpaceUsage, DiscoveredFile, ExpectedFileState, FileIdentityEvidence,
+    GalleryLayoutManifestChunk, GalleryLayoutManifestCursor, GalleryQuery, GalleryTimeAnchor,
+    GalleryTimeline, IncrementalCatalogRoot, LibraryChangeCatchUpEvidence,
+    LibraryChangeSourceBatch, LibraryChangeSourceError, LibraryChangeSourceHealth,
+    LibraryChangeSourceStopReport, LibraryFolderCursor, LibraryFolderPage,
+    LibraryRecoveryAuthority, LibraryRootGeneration, MediaInspection, MetadataInspection,
+    MetadataInventoryCleanupReport, MetadataInventoryComparisonUpdate, MetadataInventoryEntry,
+    MetadataInventoryPage, MetadataInventoryRun, MetadataInventoryRunRequest,
+    MetadataInventoryRunStatus, MetadataInventoryScope, MetadataInventoryStartRequest,
+    PersistentJournalBaseline, PersistentJournalBaselineClosingBoundary,
+    PersistentJournalBaselineStartRequest, PersistentJournalCapability,
+    PersistentJournalCheckpoint, PersistentJournalEnrollmentReport, PersistentJournalPendingRename,
+    PersistentJournalReadFailure, PersistentJournalRootFailure, PersistentJournalRootReadOutcome,
+    PersistentJournalVolumeBatch, PersistentJournalVolumeIdentity, PreviewArtifact,
+    PreviewMaterialization, PreviewReclamationCandidate, PreviewRequest, ScanCheckpoint, ScanError,
+    ScanIssue, ScanRequest, StorageConfiguration, TerminalMediaEvidence,
 };
+
+type CatalogMaintenanceInterrupt = Arc<dyn Fn() + Send + Sync>;
+
+#[derive(Clone)]
+pub(crate) struct CatalogMaintenanceControl {
+    user_cancelled: Arc<AtomicBool>,
+    preempted: Arc<AtomicBool>,
+    interrupt: Arc<Mutex<Option<CatalogMaintenanceInterrupt>>>,
+}
+
+impl CatalogMaintenanceControl {
+    pub(crate) fn new(user_cancelled: Arc<AtomicBool>) -> Self {
+        Self {
+            user_cancelled,
+            preempted: Arc::new(AtomicBool::new(false)),
+            interrupt: Arc::new(Mutex::new(None)),
+        }
+    }
+
+    pub(crate) fn is_interrupted(&self) -> bool {
+        self.user_cancelled.load(Ordering::Acquire) || self.preempted.load(Ordering::Acquire)
+    }
+
+    pub(crate) fn is_user_cancelled(&self) -> bool {
+        self.user_cancelled.load(Ordering::Acquire)
+    }
+
+    pub(crate) fn cancel(&self) {
+        self.user_cancelled.store(true, Ordering::Release);
+        self.interrupt();
+    }
+
+    pub(crate) fn preempt(&self) {
+        self.preempted.store(true, Ordering::Release);
+        self.interrupt();
+    }
+
+    pub(crate) fn install_interrupt(
+        &self,
+        interrupt: CatalogMaintenanceInterrupt,
+    ) -> Result<(), crate::domain::ScanError> {
+        let mut installed = self.interrupt.lock().map_err(|_| {
+            crate::domain::ScanError::new(
+                "catalog_reclamation_control_unavailable",
+                "The catalog reclamation cancellation control is unavailable",
+            )
+        })?;
+        *installed = Some(interrupt);
+        if self.is_interrupted()
+            && let Some(interrupt) = installed.as_ref()
+        {
+            interrupt();
+        }
+        Ok(())
+    }
+
+    pub(crate) fn clear_interrupt(&self) {
+        if let Ok(mut interrupt) = self.interrupt.lock() {
+            *interrupt = None;
+        }
+    }
+
+    fn interrupt(&self) {
+        let interrupt = self
+            .interrupt
+            .lock()
+            .ok()
+            .and_then(|installed| installed.clone());
+        if let Some(interrupt) = interrupt {
+            interrupt();
+        }
+    }
+}
+
+pub(crate) enum CatalogMaintenanceAttempt<T> {
+    Completed(T),
+    Busy,
+    Interrupted,
+}
+
+pub(crate) trait CatalogSpaceRepository {
+    fn inspect_catalog_space(
+        &self,
+    ) -> Result<CatalogMaintenanceAttempt<CatalogSpaceUsage>, ScanError>;
+    fn try_convert_to_incremental(
+        &self,
+        control: &CatalogMaintenanceControl,
+    ) -> Result<CatalogMaintenanceAttempt<CatalogSpaceUsage>, ScanError>;
+    fn try_reclaim_incremental(
+        &self,
+        max_pages: u32,
+        control: &CatalogMaintenanceControl,
+    ) -> Result<CatalogMaintenanceAttempt<CatalogSpaceUsage>, ScanError>;
+    fn try_checkpoint_wal(
+        &self,
+        control: &CatalogMaintenanceControl,
+    ) -> Result<CatalogMaintenanceAttempt<()>, ScanError>;
+}
 use crate::domain::{
     LeasedLibraryChange, LibraryChangeCapacityDeferral, LibraryChangeEnqueueReport,
     LibraryChangeFailure, LibraryChangeId, LibraryChangeIntent, LibraryChangeLane,
@@ -29,7 +127,7 @@ use crate::domain::{
 #[cfg(test)]
 use crate::domain::{
     LibraryChangeCatchUpBatch, LibraryChangeCatchUpCheckpoint, LibraryChangeCatchUpLimits,
-    LibraryChangeCatchUpQueueBatch,
+    LibraryChangeCatchUpQueueBatch, RecoverableScan,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -38,6 +136,12 @@ pub struct LibraryChangeSourceRequest {
     pub root_generation: LibraryRootGeneration,
     pub root_path: PathBuf,
     pub ingress_capacity: usize,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PreviewPublicationAuthority {
+    pub root_generation: LibraryRootGeneration,
+    pub root_identity: Option<FileIdentityEvidence>,
 }
 
 pub trait LibraryChangeSource: Send + 'static {
@@ -292,6 +396,13 @@ pub trait PersistentJournalRepository {
         change_id: LibraryChangeId,
     ) -> Result<bool, ScanError> {
         let _ = change_id;
+        Ok(false)
+    }
+    fn finalize_ready_first_import_journal_baseline(
+        &mut self,
+        completed_unix_ms: i64,
+    ) -> Result<bool, ScanError> {
+        let _ = completed_unix_ms;
         Ok(false)
     }
     fn load_persistent_journal_capabilities(
@@ -703,6 +814,14 @@ pub trait CatalogRepository {
         &mut self,
         location: &AssetLocationView,
         artifact: Option<&PreviewArtifact>,
+        request: Option<&PreviewRequest>,
+    ) -> Result<(), ScanError>;
+    fn update_active_preview_with_authority(
+        &mut self,
+        location: &AssetLocationView,
+        artifact: Option<&PreviewArtifact>,
+        request: Option<&PreviewRequest>,
+        publication_authority: Option<&PreviewPublicationAuthority>,
     ) -> Result<(), ScanError>;
     fn reset_all_previews_for_cleanup(&mut self) -> Result<u64, ScanError>;
     fn reset_previews_outside_root(&mut self, preview_root_prefix: &str) -> Result<u64, ScanError>;
@@ -747,7 +866,9 @@ pub trait CatalogRepository {
         scan_id: &str,
         checkpoint: &ScanCheckpoint,
     ) -> Result<(), ScanError>;
+    #[cfg(test)]
     fn load_recoverable_scan(&self) -> Result<Option<RecoverableScan>, ScanError>;
+    #[cfg(test)]
     fn load_paused_scan(&self) -> Result<Option<RecoverableScan>, ScanError>;
     #[cfg(test)]
     fn load_authoritative_recoverable_scan_after(
@@ -879,9 +1000,11 @@ pub trait PreviewStore {
     fn materialize(
         &self,
         file: &DiscoveredFile,
+        source: &std::fs::File,
         preview_edge: u32,
         source_width: u32,
         source_height: u32,
+        force_regenerate: bool,
     ) -> Result<PreviewMaterialization, ScanIssue>;
 }
 

@@ -1,6 +1,7 @@
 use super::{
     AssetLocationView, DerivedEvidenceDisposition, FileIdentityEvidence,
     IncrementalReconciliationOutcome, LibraryChangeFailure, LibraryChangeId, LibraryRootGeneration,
+    SourceRevisionEvidence,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -47,6 +48,8 @@ pub struct TerminalMediaEvidence {
     pub file_size: u64,
     pub modified_unix_ms: i64,
     pub file_identity: Option<FileIdentityEvidence>,
+    pub source_revision: Option<SourceRevisionEvidence>,
+    pub source_generation: u64,
     pub inspection_engine_id: String,
     pub inspection_engine_version: u32,
     pub issue: LibraryChangeFailure,

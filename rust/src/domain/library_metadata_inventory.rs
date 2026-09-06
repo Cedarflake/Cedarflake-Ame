@@ -1,7 +1,7 @@
 use super::{
     FileIdentityEvidence, JournalFileReference, JournalIdentifier, JournalUsn, LibraryChangeId,
     LibraryRootGeneration, PERSISTENT_JOURNAL_CONTRACT_VERSION, PersistentJournalVolumeIdentity,
-    ScanError,
+    ScanError, SourceRevisionEvidence,
 };
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -109,6 +109,7 @@ pub struct MetadataInventoryEntry {
     pub file_size: Option<u64>,
     pub modified_unix_ms: i64,
     pub file_identity: Option<FileIdentityEvidence>,
+    pub source_revision: Option<SourceRevisionEvidence>,
     pub placeholder_state: MetadataInventoryPlaceholderState,
     pub is_reparse_point: bool,
 }

@@ -1,19 +1,133 @@
 use std::collections::HashSet;
-use std::sync::{Arc, mpsc};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex, mpsc};
 use std::thread;
 use std::time::{Duration, Instant};
 
 use tempfile::tempdir;
 
-use crate::domain::{GallerySortDirection, LibraryChangeQueueHealth};
-use crate::ports::LibraryChangeQueue;
+use crate::domain::{
+    GallerySortDirection, LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeOrigin,
+    LibraryChangeQueueHealth, LibraryChangeScope,
+};
+use crate::ports::{
+    CatalogMaintenanceAttempt, CatalogMaintenanceControl, CatalogSpaceRepository,
+    LibraryChangeQueue,
+};
 
 use super::*;
 
 const TEST_QUERY_ID: &str = "test-default-query";
 type GalleryQueryFixture<'a> = (&'a str, &'a str, Option<&'a str>, Option<i64>, i64);
 
+#[test]
+fn user_interactive_timeout_releases_its_priority_waiter() {
+    let admission = Arc::new(SqliteWriteAdmission::new());
+    let held_maintenance = admission
+        .try_acquire(LibraryChangeLane::Recovery)
+        .expect("hold maintenance writer permit");
+    let waiting_admission = Arc::clone(&admission);
+    let started = Instant::now();
+    let waiter = thread::spawn(move || {
+        waiting_admission.acquire_user_interactive_for(Duration::from_millis(25))
+    });
+
+    assert!(
+        waiter
+            .join()
+            .expect("join timed user-interactive waiter")
+            .is_none()
+    );
+    assert!(started.elapsed() < Duration::from_secs(1));
+    drop(held_maintenance);
+
+    assert!(
+        admission.try_acquire(LibraryChangeLane::Recovery).is_some(),
+        "a timed-out user-interactive waiter must not permanently block background writers",
+    );
+}
+
+fn downgrade_source_revision_contract_to_v30_for_test(connection: &Connection) {
+    let version = connection
+        .query_row("SELECT version FROM schema_info LIMIT 1", [], |row| {
+            row.get::<_, i64>(0)
+        })
+        .expect("source revision fixture schema version");
+    if version != 31 {
+        return;
+    }
+
+    connection
+        .execute_batch(
+            "DROP TRIGGER asset_locations_source_generation_update_guard;
+             DROP TRIGGER asset_locations_source_generation_insert_guard;
+             DROP TABLE library_source_revision_metadata_contract;
+             DELETE FROM library_metadata_inventory_spools;
+             DROP INDEX library_metadata_inventory_spool_entries_order;
+             DROP TABLE library_metadata_inventory_spool_entries;
+             DROP TABLE library_metadata_inventory_spool_contract;
+             CREATE TABLE library_metadata_inventory_spool_contract (
+               singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+               contract_version INTEGER NOT NULL CHECK(contract_version = 2),
+               complete INTEGER NOT NULL CHECK(complete = 1)
+             );
+             INSERT INTO library_metadata_inventory_spool_contract(
+               singleton, contract_version, complete
+             ) VALUES (1, 2, 1);
+             CREATE TABLE library_metadata_inventory_spool_entries (
+               run_id TEXT NOT NULL,
+               directory_relative_path TEXT,
+               relative_path TEXT NOT NULL CHECK(length(relative_path) BETWEEN 1 AND 32767),
+               entry_kind TEXT NOT NULL CHECK(entry_kind IN ('file', 'directory', 'other')),
+               file_size INTEGER CHECK(file_size IS NULL OR file_size >= 0),
+               modified_unix_ms INTEGER NOT NULL,
+               file_identity_scheme TEXT,
+               file_identity_value TEXT,
+               placeholder_state TEXT NOT NULL CHECK(placeholder_state IN (
+                 'available', 'offline', 'recall_on_open', 'recall_on_data_access'
+               )),
+               is_reparse_point INTEGER NOT NULL CHECK(is_reparse_point IN (0, 1)),
+               staged_unix_ms INTEGER NOT NULL CHECK(staged_unix_ms >= 0),
+               CHECK(directory_relative_path IS NULL OR instr(directory_relative_path, char(92)) = 0),
+               CHECK(instr(relative_path, char(92)) = 0),
+               CHECK(
+                 (entry_kind = 'file' AND file_size IS NOT NULL)
+                 OR
+                 (entry_kind <> 'file' AND file_size IS NULL)
+               ),
+               CHECK(
+                 (file_identity_scheme IS NULL AND file_identity_value IS NULL)
+                 OR
+                 (length(file_identity_scheme) BETWEEN 1 AND 128
+                   AND length(file_identity_value) BETWEEN 1 AND 512)
+               ),
+               PRIMARY KEY(run_id, relative_path),
+               FOREIGN KEY(run_id, directory_relative_path)
+                 REFERENCES library_metadata_inventory_spool_directories(run_id, relative_directory)
+                 ON DELETE CASCADE
+             );
+             CREATE INDEX library_metadata_inventory_spool_entries_order
+               ON library_metadata_inventory_spool_entries(run_id, relative_path);
+             ALTER TABLE catalog_state DROP COLUMN next_source_generation;
+             ALTER TABLE asset_locations DROP COLUMN source_revision_token;
+             ALTER TABLE asset_locations DROP COLUMN source_generation;
+             ALTER TABLE preview_artifacts DROP COLUMN source_revision_token;
+             ALTER TABLE preview_artifacts DROP COLUMN source_generation;
+             ALTER TABLE library_terminal_media_evidence DROP COLUMN source_revision_token;
+             ALTER TABLE library_terminal_media_evidence DROP COLUMN source_generation;
+             ALTER TABLE library_change_catch_up_handoffs DROP COLUMN source_revision_token;
+             ALTER TABLE library_change_catch_up_handoffs DROP COLUMN source_generation;
+             ALTER TABLE library_change_scan_handoff_items DROP COLUMN source_revision_token;
+             ALTER TABLE library_change_scan_handoff_items DROP COLUMN source_generation;
+             ALTER TABLE library_metadata_inventory_entries DROP COLUMN source_revision_token;
+             PRAGMA user_version = 30;
+             UPDATE schema_info SET version = 30;",
+        )
+        .expect("restore v30 source revision shape");
+}
+
 fn remove_v27_spool_contract_for_test(connection: &Connection) {
+    downgrade_source_revision_contract_to_v30_for_test(connection);
     connection
         .execute_batch(
             "DROP TRIGGER IF EXISTS library_live_gap_recovery_claim_identity_update_guard;
@@ -147,6 +261,213 @@ fn sqlite_write_admission_serves_waiting_live_work_before_new_recovery_work() {
     );
     live.join().expect("live writer");
     recovery.join().expect("recovery writer");
+}
+
+#[test]
+fn sqlite_write_admission_priority_order_keeps_maintenance_last() {
+    assert_eq!(SQLITE_USER_INTERACTIVE_PRIORITY, 0);
+    assert_eq!(sqlite_write_priority(LibraryChangeLane::Live), 1);
+    assert_eq!(sqlite_write_priority(LibraryChangeLane::Journal), 2);
+    assert_eq!(sqlite_write_priority(LibraryChangeLane::Recovery), 3);
+    assert_eq!(SQLITE_MAINTENANCE_PRIORITY, 4);
+}
+
+#[test]
+fn sqlite_write_admission_preempts_blocking_recovery_publication_and_wakes_epoch_waiters() {
+    let admission = Arc::new(SqliteWriteAdmission::new());
+    let (preempt_sender, preempt_receiver) = mpsc::channel();
+    let active_publication = admission.acquire_preemptible(
+        LibraryChangeLane::Recovery,
+        Arc::new(move || {
+            preempt_sender
+                .send(())
+                .expect("report publication preemption");
+        }),
+    );
+    let observed_epoch = admission.completed_write_epoch();
+    let waiting_admission = Arc::clone(&admission);
+    let waiter = thread::spawn(move || {
+        let _permit = waiting_admission.acquire(LibraryChangeLane::Live);
+    });
+
+    preempt_receiver
+        .recv_timeout(Duration::from_secs(1))
+        .expect("live writer preempts recovery publication");
+    drop(active_publication);
+    assert_ne!(
+        admission.wait_for_completed_write_after(observed_epoch, Duration::from_secs(1)),
+        observed_epoch,
+    );
+    waiter.join().expect("live writer");
+    assert_admission_is_idle(&admission);
+}
+
+#[test]
+fn sqlite_write_admission_live_waiter_preempts_maintenance_outside_the_lock_before_interrupt_install()
+ {
+    let admission = Arc::new(SqliteWriteAdmission::new());
+    let control = CatalogMaintenanceControl::new(Arc::new(AtomicBool::new(false)));
+    let callback_count = Arc::new(AtomicUsize::new(0));
+    let callback_observed_unlocked = Arc::new(AtomicBool::new(false));
+    let callback_admission = Arc::downgrade(&admission);
+    let callback_control = control.clone();
+    let callback_count_for_preempt = Arc::clone(&callback_count);
+    let callback_observed_unlocked_for_preempt = Arc::clone(&callback_observed_unlocked);
+    let active_maintenance = admission
+        .try_acquire_preemptible_maintenance(Arc::new(move || {
+            let was_unlocked = callback_admission
+                .upgrade()
+                .is_some_and(|admission| admission.state.try_lock().is_ok());
+            callback_observed_unlocked_for_preempt.store(was_unlocked, Ordering::Release);
+            callback_count_for_preempt.fetch_add(1, Ordering::AcqRel);
+            callback_control.preempt();
+        }))
+        .expect("acquire preemptible maintenance writer");
+    let (acquired_sender, acquired_receiver) = mpsc::channel();
+    let waiting_admission = Arc::clone(&admission);
+    let waiter = thread::spawn(move || {
+        let _permit = waiting_admission.acquire(LibraryChangeLane::Live);
+        acquired_sender.send(()).expect("report live admission");
+    });
+
+    wait_for_atomic_count(&callback_count, 1, "maintenance preemption callback");
+    assert!(callback_observed_unlocked.load(Ordering::Acquire));
+    assert!(control.is_interrupted());
+    let interrupt_count = Arc::new(AtomicUsize::new(0));
+    let interrupt_count_for_callback = Arc::clone(&interrupt_count);
+    control
+        .install_interrupt(Arc::new(move || {
+            interrupt_count_for_callback.fetch_add(1, Ordering::AcqRel);
+        }))
+        .expect("install late SQLite interrupt");
+    assert_eq!(interrupt_count.load(Ordering::Acquire), 1);
+    assert!(
+        acquired_receiver
+            .recv_timeout(Duration::from_millis(50))
+            .is_err(),
+        "preemption requests release; it does not revoke a live permit unsafely",
+    );
+
+    control.clear_interrupt();
+    drop(active_maintenance);
+    acquired_receiver
+        .recv_timeout(Duration::from_secs(1))
+        .expect("live writer eventually acquires the permit");
+    waiter.join().expect("live waiter");
+    assert_admission_is_idle(&admission);
+}
+
+#[test]
+fn sqlite_write_admission_journal_and_user_waiters_preempt_recovery_maintenance() {
+    for waiting_lane in [Some(LibraryChangeLane::Journal), None] {
+        let admission = Arc::new(SqliteWriteAdmission::new());
+        let (preempt_sender, preempt_receiver) = mpsc::channel();
+        let active_maintenance = admission
+            .try_acquire_preemptible_maintenance(Arc::new(move || {
+                preempt_sender
+                    .send(())
+                    .expect("report maintenance preemption");
+            }))
+            .expect("acquire preemptible maintenance writer");
+        let (acquired_sender, acquired_receiver) = mpsc::channel();
+        let waiting_admission = Arc::clone(&admission);
+        let waiter = thread::spawn(move || {
+            let _permit = match waiting_lane {
+                Some(lane) => Some(waiting_admission.acquire(lane)),
+                None => waiting_admission.acquire_user_interactive(),
+            };
+            acquired_sender.send(()).expect("report priority admission");
+        });
+
+        preempt_receiver
+            .recv_timeout(Duration::from_secs(1))
+            .expect("higher-priority waiter preempts maintenance");
+        drop(active_maintenance);
+        acquired_receiver
+            .recv_timeout(Duration::from_secs(1))
+            .expect("higher-priority waiter eventually acquires the permit");
+        waiter.join().expect("priority waiter");
+        assert_admission_is_idle(&admission);
+    }
+}
+
+#[test]
+fn sqlite_write_admission_recovery_waiter_preempts_lower_priority_maintenance() {
+    let admission = Arc::new(SqliteWriteAdmission::new());
+    let (preempt_sender, preempt_receiver) = mpsc::channel();
+    let active_maintenance = admission
+        .try_acquire_preemptible_maintenance(Arc::new(move || {
+            preempt_sender
+                .send(())
+                .expect("report maintenance preemption");
+        }))
+        .expect("acquire preemptible maintenance writer");
+    let (acquired_sender, acquired_receiver) = mpsc::channel();
+    let waiting_admission = Arc::clone(&admission);
+    let waiter = thread::spawn(move || {
+        let _permit = waiting_admission.acquire(LibraryChangeLane::Recovery);
+        acquired_sender.send(()).expect("report recovery admission");
+    });
+
+    preempt_receiver
+        .recv_timeout(Duration::from_secs(1))
+        .expect("ordinary recovery preempts lowest-priority maintenance");
+    assert!(
+        acquired_receiver
+            .recv_timeout(Duration::from_millis(50))
+            .is_err(),
+        "the maintenance permit remains owned until its callback unwinds the operation",
+    );
+    drop(active_maintenance);
+    acquired_receiver
+        .recv_timeout(Duration::from_secs(1))
+        .expect("recovery waiter eventually acquires the permit");
+    waiter.join().expect("recovery waiter");
+    assert_admission_is_idle(&admission);
+}
+
+#[test]
+fn user_interactive_write_waits_for_active_live_then_precedes_queued_live_work() {
+    let admission = Arc::new(SqliteWriteAdmission::new());
+    let active_live = admission.acquire(LibraryChangeLane::Live);
+    let (acquired_sender, acquired_receiver) = mpsc::channel();
+
+    let queued_live_admission = Arc::clone(&admission);
+    let queued_live_sender = acquired_sender.clone();
+    let queued_live = thread::spawn(move || {
+        let _permit = queued_live_admission.acquire(LibraryChangeLane::Live);
+        queued_live_sender.send("live").unwrap();
+    });
+    wait_for_admission_waiter(&admission, LibraryChangeLane::Live);
+
+    let interactive_admission = Arc::clone(&admission);
+    let interactive = thread::spawn(move || {
+        let _permit = interactive_admission.acquire_user_interactive();
+        acquired_sender.send("interactive").unwrap();
+    });
+    wait_for_user_interactive_admission_waiter(&admission);
+
+    assert!(
+        acquired_receiver
+            .recv_timeout(Duration::from_millis(50))
+            .is_err(),
+        "interactive work must not preempt the active live transaction"
+    );
+    drop(active_live);
+    assert_eq!(
+        acquired_receiver
+            .recv_timeout(Duration::from_secs(1))
+            .expect("first admitted writer"),
+        "interactive"
+    );
+    assert_eq!(
+        acquired_receiver
+            .recv_timeout(Duration::from_secs(1))
+            .expect("second admitted writer"),
+        "live"
+    );
+    interactive.join().expect("interactive writer");
+    queued_live.join().expect("queued live writer");
 }
 
 #[test]
@@ -434,7 +755,7 @@ fn migrates_v25_through_v27_recovery_execution_and_spool_contracts() {
 }
 
 #[test]
-fn migrates_v26_through_v28_spool_contract_and_reopens() {
+fn migrates_v26_through_the_current_spool_contract_and_reopens() {
     let directory = tempdir().expect("temporary directory");
     let path = directory.path().join("catalog.sqlite3");
     let catalog = SqliteCatalog::open(path.clone()).expect("current catalog");
@@ -464,10 +785,10 @@ fn migrates_v26_through_v28_spool_contract_and_reopens() {
                 ))
             },
         )
-        .expect("v28 spool contract evidence");
-    assert_eq!(evidence, (SCHEMA_VERSION, SCHEMA_VERSION, 2, 1, 0));
+        .expect("current spool contract evidence");
+    assert_eq!(evidence, (SCHEMA_VERSION, SCHEMA_VERSION, 3, 1, 0));
     drop(migrated);
-    SqliteCatalog::open(path).expect("reopen migrated v28 catalog");
+    SqliteCatalog::open(path).expect("reopen migrated current catalog");
 }
 
 #[test]
@@ -607,6 +928,34 @@ fn current_v27_rejects_missing_candidate_ownership_index_on_reopen() {
     );
 }
 
+fn wait_for_atomic_count(value: &AtomicUsize, expected: usize, description: &str) {
+    let deadline = Instant::now() + Duration::from_secs(1);
+    while value.load(Ordering::Acquire) < expected {
+        assert!(
+            Instant::now() < deadline,
+            "timed out waiting for {description}"
+        );
+        thread::yield_now();
+    }
+}
+
+fn assert_admission_is_idle(admission: &Arc<SqliteWriteAdmission>) {
+    {
+        let state = admission
+            .state
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        assert!(!state.is_active);
+        assert!(state.waiting.iter().all(|count| *count == 0));
+        assert!(state.active_preempt.is_none());
+    }
+    drop(
+        admission
+            .try_acquire(LibraryChangeLane::Recovery)
+            .expect("idle admission accepts the next writer"),
+    );
+}
+
 fn wait_for_admission_waiter(admission: &SqliteWriteAdmission, lane: LibraryChangeLane) {
     wait_for_admission_waiter_count(admission, lane, 1);
 }
@@ -635,6 +984,25 @@ fn wait_for_admission_waiter_count(
     }
 }
 
+fn wait_for_user_interactive_admission_waiter(admission: &SqliteWriteAdmission) {
+    let deadline = Instant::now() + Duration::from_secs(1);
+    loop {
+        let waiting = admission
+            .state
+            .lock()
+            .unwrap_or_else(|error| error.into_inner())
+            .waiting[SQLITE_USER_INTERACTIVE_PRIORITY];
+        if waiting > 0 {
+            return;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "interactive writer did not enter admission wait"
+        );
+        thread::yield_now();
+    }
+}
+
 #[test]
 fn migrates_v20_terminal_media_evidence_without_rebuilding_the_catalog() {
     let directory = tempdir().expect("temporary directory");
@@ -647,6 +1015,7 @@ fn migrates_v20_terminal_media_evidence_without_rebuilding_the_catalog() {
         "C:\\V20EvidenceSource",
         "v20-evidence-location",
     );
+    downgrade_source_revision_contract_to_v30_for_test(&catalog.connection);
     remove_persistent_journal_v22_contract_for_test(&catalog.connection);
     catalog
         .connection
@@ -717,7 +1086,7 @@ fn preview_artifact_index_rolls_back_when_active_location_is_stale() {
     };
 
     let error = catalog
-        .update_active_preview(&location, Some(&artifact))
+        .update_active_preview(&location, Some(&artifact), None)
         .expect_err("stale preview publication");
     let artifact_count: i64 = catalog
         .connection
@@ -728,6 +1097,458 @@ fn preview_artifact_index_rolls_back_when_active_location_is_stale() {
 
     assert_eq!(error.code, "active_preview_location_stale");
     assert_eq!(artifact_count, 0);
+}
+
+#[test]
+fn preview_publication_adopts_a_null_revision_once_under_the_exact_lease() {
+    let directory = tempdir().expect("temporary directory");
+    let mut catalog =
+        SqliteCatalog::open(directory.path().join("catalog.sqlite3")).expect("catalog");
+    publish_fixture(
+        &mut catalog,
+        "preview-adoption-scan",
+        "preview-adoption-root",
+        "C:\\PreviewAdoptionSource",
+        "preview-adoption-location",
+    );
+    catalog
+        .connection
+        .execute(
+            "UPDATE asset_locations SET source_revision_token = NULL
+             WHERE location_id = 'preview-adoption-location'",
+            [],
+        )
+        .expect("clear legacy revision");
+    let mut location = catalog
+        .load_active_location("preview-adoption-location")
+        .expect("active location query")
+        .expect("active location");
+    let request = exact_preview_request(&location);
+    location.source_revision = Some(SourceRevisionEvidence {
+        scheme: "windows-file-change-time-100ns-v1".to_owned(),
+        value: "0000000000000002".to_owned(),
+    });
+
+    catalog
+        .update_active_preview(&location, None, Some(&request))
+        .expect("adopt source revision");
+
+    let adopted: Option<String> = catalog
+        .connection
+        .query_row(
+            "SELECT source_revision_token FROM asset_locations
+             WHERE location_id = 'preview-adoption-location'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("adopted revision");
+    assert_eq!(
+        adopted.as_deref(),
+        Some("windows-file-change-time-100ns-v1:0000000000000002")
+    );
+}
+
+#[test]
+fn hardlink_preview_revision_adoption_is_idempotent_for_matching_observations() {
+    let directory = tempdir().expect("temporary directory");
+    let mut catalog =
+        SqliteCatalog::open(directory.path().join("catalog.sqlite3")).expect("catalog");
+    publish_fixture(
+        &mut catalog,
+        "matching-adoption-scan",
+        "matching-adoption-root",
+        "C:\\MatchingAdoptionSource",
+        "matching-adoption-a",
+    );
+    insert_active_identity_alias(&mut catalog, "matching-adoption-a", "matching-adoption-b");
+    let mut first = catalog
+        .load_active_location("matching-adoption-a")
+        .expect("first location query")
+        .expect("first location");
+    let mut second = catalog
+        .load_active_location("matching-adoption-b")
+        .expect("second location query")
+        .expect("second location");
+    let first_request = exact_preview_request(&first);
+    let second_request = exact_preview_request(&second);
+    let revision = SourceRevisionEvidence {
+        scheme: "windows-file-change-time-100ns-v1".to_owned(),
+        value: "0000000000000011".to_owned(),
+    };
+    first.source_revision = Some(revision.clone());
+    second.source_revision = Some(revision);
+
+    catalog
+        .update_active_preview(&first, None, Some(&first_request))
+        .expect("first hardlink revision adoption");
+    catalog
+        .update_active_preview(&second, None, Some(&second_request))
+        .expect("matching stale-null adoption is idempotent");
+
+    let state = catalog
+        .connection
+        .query_row(
+            "SELECT COUNT(source_revision_token), COUNT(DISTINCT source_revision_token)
+             FROM asset_locations
+             WHERE file_identity_scheme = 'windows-file-id-128-v1'
+               AND file_identity_value = '0000000000000001:00000000000000000000000000000001'",
+            [],
+            |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)),
+        )
+        .expect("matching hardlink revision state");
+    assert_eq!(state, (2, 1));
+}
+
+#[test]
+fn hardlink_preview_revision_adoption_rejects_a_conflicting_observation() {
+    let directory = tempdir().expect("temporary directory");
+    let mut catalog =
+        SqliteCatalog::open(directory.path().join("catalog.sqlite3")).expect("catalog");
+    publish_fixture(
+        &mut catalog,
+        "conflicting-adoption-scan",
+        "conflicting-adoption-root",
+        "C:\\ConflictingAdoptionSource",
+        "conflicting-adoption-a",
+    );
+    insert_active_identity_alias(
+        &mut catalog,
+        "conflicting-adoption-a",
+        "conflicting-adoption-b",
+    );
+    let mut first = catalog
+        .load_active_location("conflicting-adoption-a")
+        .expect("first location query")
+        .expect("first location");
+    let mut second = catalog
+        .load_active_location("conflicting-adoption-b")
+        .expect("second location query")
+        .expect("second location");
+    let first_request = exact_preview_request(&first);
+    let second_request = exact_preview_request(&second);
+    first.source_revision = Some(SourceRevisionEvidence {
+        scheme: "windows-file-change-time-100ns-v1".to_owned(),
+        value: "0000000000000011".to_owned(),
+    });
+    second.source_revision = Some(SourceRevisionEvidence {
+        scheme: "windows-file-change-time-100ns-v1".to_owned(),
+        value: "0000000000000022".to_owned(),
+    });
+
+    catalog
+        .update_active_preview(&first, None, Some(&first_request))
+        .expect("first hardlink revision adoption");
+    let error = catalog
+        .update_active_preview(&second, None, Some(&second_request))
+        .expect_err("conflicting hardlink revision must be rejected");
+
+    assert_eq!(error.code, "active_preview_location_stale");
+    let revisions = catalog
+        .connection
+        .prepare(
+            "SELECT DISTINCT source_revision_token
+             FROM asset_locations
+             WHERE file_identity_scheme = 'windows-file-id-128-v1'
+               AND file_identity_value = '0000000000000001:00000000000000000000000000000001'",
+        )
+        .expect("prepare hardlink revisions")
+        .query_map([], |row| row.get::<_, Option<String>>(0))
+        .expect("query hardlink revisions")
+        .collect::<Result<Vec<_>, _>>()
+        .expect("collect hardlink revisions");
+    assert_eq!(
+        revisions,
+        vec![Some(
+            "windows-file-change-time-100ns-v1:0000000000000011".to_owned()
+        )]
+    );
+}
+
+#[cfg(windows)]
+#[test]
+fn staged_source_change_never_mutates_the_active_projection_before_publication() {
+    let directory = tempdir().expect("temporary directory");
+    let catalog_path = directory.path().join("catalog.sqlite3");
+    let source = tempdir().expect("source directory");
+    let source_path = source.path().join("same.jpg");
+    fs::write(&source_path, b"source-version-one").expect("initial source");
+    let root_path = source.path().to_string_lossy().into_owned();
+    let discovery = crate::adapters::FileDiscovery::new(&root_path).expect("source discovery");
+    let first_file = match discovery.visit_relative_path("same.jpg").outcome {
+        crate::adapters::FileVisitOutcome::File(file) => file,
+        _ => panic!("initial source file"),
+    };
+    let mut catalog = SqliteCatalog::open(catalog_path.clone()).expect("catalog");
+    let first_scan = fixture_request("source-v1-scan", &root_path);
+    catalog
+        .begin_scan(&first_scan, "source-root", &root_path)
+        .expect("begin initial scan");
+    catalog
+        .prove_live_only_first_import_handoff_for_test(&first_scan.scan_id)
+        .expect("prove initial source first-import handoff");
+    let first_location = AssetLocationView {
+        asset_id: "source-asset".to_owned(),
+        location_id: "source-location".to_owned(),
+        root_id: "source-root".to_owned(),
+        scan_id: first_scan.scan_id.clone(),
+        absolute_path: first_file.absolute_path.clone(),
+        display_path: first_file.absolute_path.clone(),
+        relative_path: first_file.relative_path.clone(),
+        preview_path: "C:\\Cache\\source-v1.jpg".to_owned(),
+        file_size: first_file.file_size,
+        created_unix_ms: first_file.created_unix_ms,
+        modified_unix_ms: first_file.modified_unix_ms,
+        file_identity: first_file.file_identity.clone(),
+        source_revision: first_file.source_revision.clone(),
+        source_generation: 0,
+        width: 10,
+        height: 10,
+        preview_status: PreviewStatus::Ready,
+        preview_issue_code: None,
+        preview_issue_message: None,
+        metadata_engine_id: "fixture".to_owned(),
+        metadata_engine_version: "1".to_owned(),
+        capture_time: None,
+    };
+    catalog
+        .stage_location(&first_scan.scan_id, "source-root", &first_location)
+        .expect("stage initial source");
+    catalog
+        .publish_scan(&first_scan.scan_id, "source-root", 1, 0)
+        .expect("publish initial source");
+    let active_before = catalog
+        .load_active_location("source-location")
+        .expect("load initial source")
+        .expect("initial source location");
+    let assert_active_unchanged = |actual: &AssetLocationView| {
+        assert_eq!(actual.asset_id, active_before.asset_id);
+        assert_eq!(actual.scan_id, active_before.scan_id);
+        assert_eq!(actual.file_size, active_before.file_size);
+        assert_eq!(actual.modified_unix_ms, active_before.modified_unix_ms);
+        assert_eq!(actual.file_identity, active_before.file_identity);
+        assert_eq!(actual.source_revision, active_before.source_revision);
+        assert_eq!(actual.source_generation, active_before.source_generation);
+        assert_eq!(actual.preview_path, active_before.preview_path);
+        assert_eq!(
+            std::mem::discriminant(&actual.preview_status),
+            std::mem::discriminant(&active_before.preview_status),
+        );
+    };
+
+    fs::write(&source_path, b"source-version-two").expect("change source before staging");
+    let second_file = match discovery.visit_relative_path("same.jpg").outcome {
+        crate::adapters::FileVisitOutcome::File(file) => file,
+        _ => panic!("changed source file"),
+    };
+    assert_eq!(second_file.file_identity, first_file.file_identity);
+    assert_ne!(second_file.source_revision, first_file.source_revision);
+    let second_scan = fixture_request("source-v2-scan", &root_path);
+    catalog
+        .begin_scan(&second_scan, "source-root", &root_path)
+        .expect("begin replacement scan");
+    let mut second_location = first_location;
+    second_location.scan_id = second_scan.scan_id.clone();
+    second_location.preview_path.clear();
+    second_location.file_size = second_file.file_size;
+    second_location.created_unix_ms = second_file.created_unix_ms;
+    second_location.modified_unix_ms = second_file.modified_unix_ms;
+    second_location.file_identity = second_file.file_identity.clone();
+    second_location.source_revision = second_file.source_revision.clone();
+    second_location.source_generation = 0;
+    second_location.preview_status = PreviewStatus::Pending;
+    catalog
+        .stage_location(&second_scan.scan_id, "source-root", &second_location)
+        .expect("stage changed source");
+    assert_eq!(
+        catalog
+            .count_staged_file_states(&second_scan.scan_id)
+            .expect("flush staged source"),
+        1
+    );
+    let active_after_flush = catalog
+        .load_active_location("source-location")
+        .expect("load active source after staging")
+        .expect("active source after staging");
+    assert_active_unchanged(&active_after_flush);
+
+    fs::write(&source_path, b"source-version-three").expect("change source after staged flush");
+    catalog
+        .abandon_scan(&second_scan.scan_id, "stale", 1)
+        .expect("abandon stale replacement scan");
+    let active_after_abandon = catalog
+        .load_active_location("source-location")
+        .expect("load active source after abandon")
+        .expect("active source after abandon");
+    assert_active_unchanged(&active_after_abandon);
+    drop(catalog);
+    let reopened = SqliteCatalog::open(catalog_path).expect("reopen coherent catalog");
+    let active_after_reopen = reopened
+        .load_active_location("source-location")
+        .expect("load active source after reopen")
+        .expect("active source after reopen");
+    assert_active_unchanged(&active_after_reopen);
+}
+
+#[test]
+fn scan_publication_atomically_advances_active_hardlink_aliases() {
+    let directory = tempdir().expect("temporary directory");
+    let mut catalog =
+        SqliteCatalog::open(directory.path().join("catalog.sqlite3")).expect("catalog");
+    publish_fixture(
+        &mut catalog,
+        "hardlink-root-a-v1",
+        "hardlink-root-a",
+        "C:\\HardlinkRootA",
+        "hardlink-location-a",
+    );
+    publish_fixture(
+        &mut catalog,
+        "hardlink-root-b-v1",
+        "hardlink-root-b",
+        "C:\\HardlinkRootB",
+        "hardlink-location-b",
+    );
+    catalog
+        .connection
+        .execute_batch(
+            "UPDATE asset_locations
+             SET file_identity_scheme = 'windows-file-id-128-v1',
+                 file_identity_value =
+                   '0000000000000001:00000000000000000000000000000044',
+                 source_revision_token =
+                   'windows-file-change-time-100ns-v1:0000000000000044',
+                 source_generation = 1, preview_path = '', preview_status = 'pending';
+             UPDATE catalog_state SET next_source_generation = 2;",
+        )
+        .expect("establish shared active identity");
+    let replacement = fixture_request("hardlink-root-a-v2", "C:\\HardlinkRootA");
+    catalog
+        .begin_scan(&replacement, "hardlink-root-a", "C:\\HardlinkRootA")
+        .expect("begin hardlink replacement scan");
+    catalog
+        .connection
+        .execute(
+            "INSERT INTO asset_locations(
+               scan_id, asset_id, location_id, root_id, absolute_path, relative_path,
+               preview_path, file_size, created_unix_ms, modified_unix_ms,
+               file_local_time, parent_relative_path, natural_name_key, width, height,
+               preview_status, preview_issue_code, preview_issue_message,
+               metadata_engine_id, metadata_engine_version, capture_local_time,
+               capture_offset_minutes, capture_time_source, capture_raw_value,
+               file_identity_scheme, file_identity_value, source_revision_token,
+               source_generation
+             )
+             SELECT ?1, asset_id, location_id, root_id, absolute_path, relative_path,
+                    '', 44, created_unix_ms, 55, file_local_time,
+                    parent_relative_path, natural_name_key, 88, 66, 'pending', NULL, NULL,
+                    'metadata-v2', '2', NULL, NULL, NULL, NULL,
+                    file_identity_scheme, file_identity_value,
+                    'windows-file-change-time-100ns-v1:0000000000000055', 2
+             FROM asset_locations
+             WHERE scan_id = 'hardlink-root-a-v1'
+               AND location_id = 'hardlink-location-a'",
+            [&replacement.scan_id],
+        )
+        .expect("stage replacement identity observation");
+    catalog
+        .connection
+        .execute("UPDATE catalog_state SET next_source_generation = 3", [])
+        .expect("advance provisional source allocator");
+    let sibling_before = catalog
+        .load_active_location("hardlink-location-b")
+        .expect("load sibling before publication")
+        .expect("sibling before publication");
+    assert_eq!(sibling_before.file_size, 20);
+    assert_eq!(sibling_before.source_generation, 1);
+
+    catalog
+        .publish_scan(&replacement.scan_id, "hardlink-root-a", 1, 0)
+        .expect("publish replacement identity observation");
+
+    let first = catalog
+        .load_active_location("hardlink-location-a")
+        .expect("load published first alias")
+        .expect("published first alias");
+    let second = catalog
+        .load_active_location("hardlink-location-b")
+        .expect("load published second alias")
+        .expect("published second alias");
+    for location in [first, second] {
+        assert_eq!(location.file_size, 44);
+        assert_eq!(location.modified_unix_ms, 55);
+        assert_eq!((location.width, location.height), (88, 66));
+        assert_eq!(location.metadata_engine_id, "metadata-v2");
+        assert_eq!(location.metadata_engine_version, "2");
+        assert_eq!(
+            location.source_revision,
+            Some(SourceRevisionEvidence {
+                scheme: "windows-file-change-time-100ns-v1".to_owned(),
+                value: "0000000000000055".to_owned(),
+            })
+        );
+        assert_eq!(location.source_generation, 3);
+        assert!(matches!(location.preview_status, PreviewStatus::Pending));
+    }
+}
+
+#[test]
+fn preview_publication_rejects_a_stale_source_generation() {
+    let directory = tempdir().expect("temporary directory");
+    let mut catalog =
+        SqliteCatalog::open(directory.path().join("catalog.sqlite3")).expect("catalog");
+    publish_fixture(
+        &mut catalog,
+        "preview-generation-scan",
+        "preview-generation-root",
+        "C:\\PreviewGenerationSource",
+        "preview-generation-location",
+    );
+    let location = catalog
+        .load_active_location("preview-generation-location")
+        .expect("active location query")
+        .expect("active location");
+    let request = exact_preview_request(&location);
+    catalog
+        .connection
+        .execute(
+            "UPDATE asset_locations SET source_generation = source_generation + 1
+             WHERE location_id = 'preview-generation-location'",
+            [],
+        )
+        .expect("advance source generation");
+
+    let error = catalog
+        .update_active_preview(&location, None, Some(&request))
+        .expect_err("stale source generation");
+
+    assert_eq!(error.code, "active_preview_location_stale");
+}
+
+#[test]
+fn unrelated_catalog_revision_does_not_invalidate_an_exact_preview_lease() {
+    let directory = tempdir().expect("temporary directory");
+    let mut catalog =
+        SqliteCatalog::open(directory.path().join("catalog.sqlite3")).expect("catalog");
+    publish_fixture(
+        &mut catalog,
+        "preview-unrelated-scan",
+        "preview-unrelated-root",
+        "C:\\PreviewUnrelatedSource",
+        "preview-unrelated-location",
+    );
+    let location = catalog
+        .load_active_location("preview-unrelated-location")
+        .expect("active location query")
+        .expect("active location");
+    let request = exact_preview_request(&location);
+    catalog
+        .connection
+        .execute("UPDATE catalog_state SET revision = revision + 1", [])
+        .expect("advance unrelated catalog revision");
+
+    catalog
+        .update_active_preview(&location, None, Some(&request))
+        .expect("exact lease remains valid");
 }
 
 #[test]
@@ -753,6 +1574,7 @@ fn prerelease_missing_active_preview_is_downgraded_on_reopen() {
         )
         .expect("terminal handoff count");
     assert_eq!(handoff_count, 0);
+    downgrade_source_revision_contract_to_v30_for_test(&catalog.connection);
     remove_persistent_journal_v22_contract_for_test(&catalog.connection);
     catalog
         .connection
@@ -806,6 +1628,7 @@ fn prerelease_stale_active_preview_and_owner_are_downgraded_on_reopen() {
             [&artifact.artifact_key],
         )
         .expect("restore prerelease stale artifact");
+    downgrade_source_revision_contract_to_v30_for_test(&catalog.connection);
     remove_persistent_journal_v22_contract_for_test(&catalog.connection);
     catalog
         .connection
@@ -836,7 +1659,7 @@ fn prerelease_stale_active_preview_and_owner_are_downgraded_on_reopen() {
     );
     assert_eq!(
         preview_lifecycle_state(&reopened, &artifact.artifact_key),
-        "stale"
+        "evictable"
     );
 }
 
@@ -901,7 +1724,7 @@ fn preview_publication_rejects_same_timestamp_file_identity_replacement() {
     };
 
     let error = catalog
-        .update_active_preview(&original, Some(&artifact))
+        .update_active_preview(&original, Some(&artifact), None)
         .expect_err("stale identity publication");
     let artifact_count: i64 = catalog
         .connection
@@ -951,7 +1774,7 @@ fn preview_usage_touches_are_coarsened_to_page_publication_intervals() {
         height: location.height,
     };
     catalog
-        .update_active_preview(&location, Some(&artifact))
+        .update_active_preview(&location, Some(&artifact), None)
         .expect("publish preview artifact");
     catalog
         .connection
@@ -1015,7 +1838,7 @@ fn preview_root_activation_resets_only_artifacts_outside_the_new_root() {
             height: location.height,
         };
         catalog
-            .update_active_preview(&location, Some(&artifact))
+            .update_active_preview(&location, Some(&artifact), None)
             .expect("publish preview artifact");
     }
 
@@ -1089,7 +1912,7 @@ fn preview_reclamation_orders_stale_before_lru_and_preserves_protected_locations
             height: location.height,
         };
         catalog
-            .update_active_preview(&location, Some(&artifact))
+            .update_active_preview(&location, Some(&artifact), None)
             .expect("publish preview artifact");
         catalog
             .connection
@@ -1171,7 +1994,7 @@ fn handoff_preview_owners_survive_staling_and_reclamation_until_explicit_cleanup
         height: location.height,
     };
     catalog
-        .update_active_preview(&location, Some(&artifact))
+        .update_active_preview(&location, Some(&artifact), None)
         .expect("publish handoff-owned preview");
     let identity = FileIdentityEvidence {
         scheme: "windows-file-id-128-v1".to_owned(),
@@ -1233,7 +2056,7 @@ fn handoff_preview_owners_survive_staling_and_reclamation_until_explicit_cleanup
     location.preview_path.clear();
     location.preview_status = PreviewStatus::Pending;
     catalog
-        .update_active_preview(&location, None)
+        .update_active_preview(&location, None, None)
         .expect("detach active preview owner");
     assert_eq!(
         preview_lifecycle_state(&catalog, &artifact.artifact_key),
@@ -1335,7 +2158,7 @@ fn shared_preview_is_protected_and_reset_through_every_active_location() {
         location.preview_path = artifact.path.clone();
         location.preview_status = PreviewStatus::Ready;
         catalog
-            .update_active_preview(&location, Some(&artifact))
+            .update_active_preview(&location, Some(&artifact), None)
             .expect("share preview artifact");
     }
     let reference_count: i64 = catalog
@@ -1439,6 +2262,396 @@ fn unregistering_root_detaches_preview_references_before_location_identity_can_r
             .map(|candidate| candidate.artifact_key.as_str())
             .collect::<Vec<_>>(),
         [artifact.artifact_key.as_str()]
+    );
+}
+
+#[test]
+fn unregistering_root_preserves_shared_assets_and_preview_owners() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let mut catalog = SqliteCatalog::open(path.clone()).expect("catalog");
+    publish_gallery_fixture(
+        &mut catalog,
+        "shared-remove-scan",
+        "shared-remove-root",
+        "C:\\SharedRemove",
+        &[("shared-remove-location", None, 30)],
+    );
+    publish_gallery_fixture(
+        &mut catalog,
+        "shared-keep-scan",
+        "shared-keep-root",
+        "C:\\SharedKeep",
+        &[("shared-keep-location", None, 30)],
+    );
+    let shared_asset_id = catalog
+        .load_active_location("shared-remove-location")
+        .expect("removed location query")
+        .expect("removed location")
+        .asset_id;
+    let replaced_asset_id = catalog
+        .load_active_location("shared-keep-location")
+        .expect("kept location query")
+        .expect("kept location")
+        .asset_id;
+    catalog
+        .connection
+        .execute(
+            "UPDATE asset_locations SET asset_id = ?1 WHERE location_id = ?2",
+            params![shared_asset_id, "shared-keep-location"],
+        )
+        .expect("share logical asset across roots");
+    catalog
+        .connection
+        .execute("DELETE FROM assets WHERE id = ?1", [replaced_asset_id])
+        .expect("remove replaced fixture asset");
+
+    let artifact = publish_preview_artifact(
+        &mut catalog,
+        "shared-remove-location",
+        "shared-remove-artifact",
+        "C:\\AmeCache\\shared-remove.jpg",
+    );
+    publish_preview_artifact(
+        &mut catalog,
+        "shared-keep-location",
+        "shared-remove-artifact",
+        "C:\\AmeCache\\shared-remove.jpg",
+    );
+    assert_eq!(preview_reference_count(&catalog, &artifact.artifact_key), 2);
+
+    assert!(
+        catalog
+            .unregister_root("shared-remove-root")
+            .expect("unregister one shared root")
+    );
+
+    let kept = catalog
+        .load_active_location("shared-keep-location")
+        .expect("kept location query")
+        .expect("kept shared location");
+    assert_eq!(kept.asset_id, shared_asset_id);
+    assert_eq!(preview_reference_count(&catalog, &artifact.artifact_key), 1);
+    assert_eq!(
+        preview_lifecycle_state(&catalog, &artifact.artifact_key),
+        "ready"
+    );
+    let shared_asset_count: i64 = catalog
+        .connection
+        .query_row(
+            "SELECT COUNT(*) FROM assets WHERE id = ?1",
+            [shared_asset_id.clone()],
+            |row| row.get(0),
+        )
+        .expect("shared asset count");
+    assert_eq!(shared_asset_count, 1);
+
+    drop(catalog);
+    let cancelled = Arc::new(AtomicBool::new(true));
+    let control = CatalogMaintenanceControl::new(cancelled);
+    let maintenance = SqliteCatalogSpaceMaintenance::new(path.clone());
+    assert!(matches!(
+        maintenance
+            .try_reclaim_incremental(256, &control)
+            .expect("cancelled post-removal maintenance result"),
+        CatalogMaintenanceAttempt::Interrupted
+    ));
+
+    let catalog = SqliteCatalog::open(path).expect("reopen after interrupted maintenance");
+    let removed_root_count: i64 = catalog
+        .connection
+        .query_row(
+            "SELECT COUNT(*) FROM library_roots WHERE id = 'shared-remove-root'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("removed root count after maintenance interruption");
+    assert_eq!(removed_root_count, 0);
+    let kept = catalog
+        .load_active_location("shared-keep-location")
+        .expect("kept location query after maintenance interruption")
+        .expect("kept shared location after maintenance interruption");
+    assert_eq!(kept.asset_id, shared_asset_id);
+    assert_eq!(preview_reference_count(&catalog, &artifact.artifact_key), 1);
+    assert_eq!(
+        preview_lifecycle_state(&catalog, &artifact.artifact_key),
+        "ready"
+    );
+}
+
+#[test]
+fn unregistering_root_does_not_rewrite_unrelated_orphan_state() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let mut catalog = SqliteCatalog::open(path).expect("catalog");
+    publish_gallery_fixture(
+        &mut catalog,
+        "bounded-remove-scan",
+        "bounded-remove-root",
+        "C:\\BoundedRemove",
+        &[("bounded-remove-location", None, 30)],
+    );
+    publish_gallery_fixture(
+        &mut catalog,
+        "bounded-keep-scan",
+        "bounded-keep-root",
+        "C:\\BoundedKeep",
+        &[("bounded-keep-location", None, 40)],
+    );
+    let removed_artifact = publish_preview_artifact(
+        &mut catalog,
+        "bounded-remove-location",
+        "bounded-remove-artifact",
+        "C:\\AmeCache\\bounded-remove.jpg",
+    );
+    let unrelated_artifact = publish_preview_artifact(
+        &mut catalog,
+        "bounded-keep-location",
+        "bounded-unrelated-artifact",
+        "C:\\AmeCache\\bounded-unrelated.jpg",
+    );
+    catalog
+        .connection
+        .execute(
+            "DELETE FROM preview_artifact_locations WHERE artifact_key = ?1",
+            [&unrelated_artifact.artifact_key],
+        )
+        .expect("make unrelated preview artifact unreferenced");
+    catalog
+        .connection
+        .execute(
+            "INSERT INTO assets(id, created_unix_ms) VALUES ('unrelated-orphan-asset', 1)",
+            [],
+        )
+        .expect("insert unrelated orphan asset");
+
+    assert!(
+        catalog
+            .unregister_root("bounded-remove-root")
+            .expect("unregister bounded root")
+    );
+
+    assert_eq!(
+        preview_lifecycle_state(&catalog, &removed_artifact.artifact_key),
+        "stale"
+    );
+    assert_eq!(
+        preview_lifecycle_state(&catalog, &unrelated_artifact.artifact_key),
+        "ready"
+    );
+    let unrelated_orphan_count: i64 = catalog
+        .connection
+        .query_row(
+            "SELECT COUNT(*) FROM assets WHERE id = 'unrelated-orphan-asset'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("unrelated orphan count");
+    assert_eq!(unrelated_orphan_count, 1);
+    assert!(
+        catalog
+            .load_active_location("bounded-keep-location")
+            .expect("unrelated location query")
+            .is_some()
+    );
+}
+
+#[test]
+fn unregistering_root_reclaims_only_its_terminal_handoff_owners() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let mut catalog = SqliteCatalog::open(path).expect("catalog");
+    publish_gallery_fixture(
+        &mut catalog,
+        "handoff-scope-remove-scan",
+        "handoff-scope-remove-root",
+        "C:\\HandoffScopeRemove",
+        &[("handoff-scope-remove-location", None, 30)],
+    );
+    publish_gallery_fixture(
+        &mut catalog,
+        "handoff-scope-keep-scan",
+        "handoff-scope-keep-root",
+        "C:\\HandoffScopeKeep",
+        &[
+            ("handoff-scope-owned-preview-location", None, 40),
+            ("handoff-scope-unrelated-preview-location", None, 41),
+        ],
+    );
+    let owned_artifact = publish_preview_artifact(
+        &mut catalog,
+        "handoff-scope-owned-preview-location",
+        "handoff-scope-owned-artifact",
+        "C:\\AmeCache\\handoff-scope-owned.jpg",
+    );
+    let unrelated_artifact = publish_preview_artifact(
+        &mut catalog,
+        "handoff-scope-unrelated-preview-location",
+        "handoff-scope-unrelated-artifact",
+        "C:\\AmeCache\\handoff-scope-unrelated.jpg",
+    );
+    catalog
+        .connection
+        .execute_batch(
+            "DELETE FROM preview_artifact_locations
+               WHERE artifact_key IN (
+                 'handoff-scope-owned-artifact',
+                 'handoff-scope-unrelated-artifact'
+               );
+             UPDATE asset_locations
+               SET preview_path = '', preview_status = 'pending'
+               WHERE location_id IN (
+                 'handoff-scope-owned-preview-location',
+                 'handoff-scope-unrelated-preview-location'
+               );
+             INSERT INTO assets(id, created_unix_ms) VALUES
+               ('handoff-scope-owned-asset', 50),
+               ('handoff-scope-unrelated-orphan', 50);
+             INSERT INTO scan_run_catch_up_lineage(
+               scan_id, catch_up_source, catch_up_watermark, enrolled_unix_ms
+             ) VALUES (
+               'handoff-scope-remove-scan',
+               'handoff-scope-source', 'handoff-scope-watermark', 50
+             );
+             INSERT INTO library_change_catch_up_handoffs(
+               catch_up_source, catch_up_watermark,
+               file_identity_scheme, file_identity_value,
+               asset_id, source_location_id, root_id, absolute_path, relative_path,
+               preview_path, file_size, created_unix_ms, modified_unix_ms,
+               width, height, preview_status, metadata_engine_id,
+               metadata_engine_version, updated_unix_ms
+             ) VALUES (
+               'handoff-scope-source', 'handoff-scope-watermark',
+               'windows-file-id-128-v1', 'handoff-scope-identity',
+               'handoff-scope-owned-asset', 'handoff-scope-source-location',
+               'handoff-scope-remove-root',
+               'C:/HandoffScopeRemove/owned.jpg', 'owned.jpg',
+               'C:\\AmeCache\\handoff-scope-owned.jpg',
+               1, 50, 50, 1, 1, 'ready', 'fixture-metadata', '1', 50
+             );",
+        )
+        .expect("seed terminal handoff and unrelated orphan state");
+    catalog
+        .connection
+        .execute_batch(
+            "CREATE TEMP TRIGGER fail_scoped_handoff_root_unregister
+             BEFORE DELETE ON library_roots
+             BEGIN
+               SELECT RAISE(ABORT, 'injected scoped handoff unregister failure');
+             END;",
+        )
+        .expect("install scoped handoff unregister failure fixture");
+
+    let error = catalog
+        .unregister_root("handoff-scope-remove-root")
+        .expect_err("scoped handoff cleanup must roll back atomically");
+    assert_eq!(error.code, "catalog_database_error");
+    assert_eq!(
+        preview_lifecycle_state(&catalog, &owned_artifact.artifact_key),
+        "ready"
+    );
+    let rolled_back: (i64, i64) = catalog
+        .connection
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM assets
+                WHERE id = 'handoff-scope-owned-asset'),
+               (SELECT COUNT(*) FROM library_change_catch_up_handoffs
+                WHERE catch_up_source = 'handoff-scope-source'
+                  AND catch_up_watermark = 'handoff-scope-watermark')",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .expect("rolled-back scoped handoff projection");
+    assert_eq!(rolled_back, (1, 1));
+    catalog
+        .connection
+        .execute_batch("DROP TRIGGER fail_scoped_handoff_root_unregister;")
+        .expect("remove scoped handoff unregister failure fixture");
+
+    assert!(
+        catalog
+            .unregister_root("handoff-scope-remove-root")
+            .expect("unregister handoff owner root")
+    );
+
+    assert_eq!(
+        preview_lifecycle_state(&catalog, &owned_artifact.artifact_key),
+        "stale"
+    );
+    assert_eq!(
+        preview_lifecycle_state(&catalog, &unrelated_artifact.artifact_key),
+        "ready"
+    );
+    let projection: (i64, i64, i64) = catalog
+        .connection
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM assets
+                WHERE id = 'handoff-scope-owned-asset'),
+               (SELECT COUNT(*) FROM assets
+                WHERE id = 'handoff-scope-unrelated-orphan'),
+               (SELECT COUNT(*) FROM library_change_catch_up_handoffs
+                WHERE catch_up_source = 'handoff-scope-source'
+                  AND catch_up_watermark = 'handoff-scope-watermark')",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .expect("post-unregister handoff cleanup projection");
+    assert_eq!(projection, (0, 1, 0));
+}
+
+#[test]
+fn unregistering_root_rolls_back_its_complete_catalog_cleanup() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let mut catalog = SqliteCatalog::open(path).expect("catalog");
+    publish_gallery_fixture(
+        &mut catalog,
+        "rollback-remove-scan",
+        "rollback-remove-root",
+        "C:\\RollbackRemove",
+        &[("rollback-remove-location", None, 30)],
+    );
+    let artifact = publish_preview_artifact(
+        &mut catalog,
+        "rollback-remove-location",
+        "rollback-remove-artifact",
+        "C:\\AmeCache\\rollback-remove.jpg",
+    );
+    let revision_before = load_default_snapshot(&mut catalog, 10, None)
+        .expect("snapshot before rollback fixture")
+        .revision;
+    catalog
+        .connection
+        .execute_batch(
+            "CREATE TEMP TRIGGER fail_root_unregister
+             BEFORE DELETE ON library_roots
+             BEGIN
+               SELECT RAISE(ABORT, 'injected root unregister failure');
+             END;",
+        )
+        .expect("install unregister failure fixture");
+
+    let error = catalog
+        .unregister_root("rollback-remove-root")
+        .expect_err("injected unregister failure must roll back");
+    assert_eq!(error.code, "catalog_database_error");
+
+    let snapshot =
+        load_default_snapshot(&mut catalog, 10, None).expect("snapshot after rollback fixture");
+    assert_eq!(snapshot.revision, revision_before);
+    assert_eq!(snapshot.roots.len(), 1);
+    assert!(
+        catalog
+            .load_active_location("rollback-remove-location")
+            .expect("rolled back location query")
+            .is_some()
+    );
+    assert_eq!(preview_reference_count(&catalog, &artifact.artifact_key), 1);
+    assert_eq!(
+        preview_lifecycle_state(&catalog, &artifact.artifact_key),
+        "ready"
     );
 }
 
@@ -1975,7 +3188,7 @@ fn migrates_v5_tasks_without_inventing_a_missing_entry_snapshot() {
 }
 
 #[test]
-fn migrates_v6_previews_as_ready_without_losing_the_artifact_path() {
+fn migrates_v6_previews_as_pending_when_source_revision_is_unknown() {
     let directory = tempdir().expect("temporary directory");
     let path = directory.path().join("catalog.sqlite3");
     let connection = Connection::open(&path).expect("v6 catalog");
@@ -2017,9 +3230,9 @@ fn migrates_v6_previews_as_ready_without_losing_the_artifact_path() {
         .expect("migrated preview");
 
     assert_eq!(version, SCHEMA_VERSION);
-    assert_eq!(preview_path, "C:\\Cache\\one.jpg");
-    assert_eq!(preview_status, "ready");
-    assert_eq!(engine_id, "unknown");
+    assert!(preview_path.is_empty());
+    assert_eq!(preview_status, "pending");
+    assert_eq!(engine_id, "ame-invalidated-media-metadata");
 }
 
 #[test]
@@ -2071,7 +3284,7 @@ fn migrates_v7_locations_as_unanalyzed_metadata() {
             .expect("migrated metadata state");
 
     assert_eq!(version, SCHEMA_VERSION);
-    assert_eq!(engine_id, "unknown");
+    assert_eq!(engine_id, "ame-invalidated-media-metadata");
     assert_eq!(engine_version, "0");
     assert!(capture_time.is_none());
 }
@@ -2240,17 +3453,18 @@ fn migrates_v10_by_adding_the_gallery_time_index_without_rewriting_rows() {
     drop(connection);
 
     let catalog = SqliteCatalog::open(path).expect("migrated catalog");
-    let (version, capture_time, parent_path, name_key): (i64, String, String, String) = catalog
-        .connection
-        .query_row(
-            "SELECT schema_info.version, asset_locations.capture_local_time,
+    let (version, capture_time, parent_path, name_key): (i64, Option<String>, String, String) =
+        catalog
+            .connection
+            .query_row(
+                "SELECT schema_info.version, asset_locations.capture_local_time,
                         asset_locations.parent_relative_path,
                         asset_locations.natural_name_key
                  FROM schema_info CROSS JOIN asset_locations",
-            [],
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
-        )
-        .expect("migrated gallery row");
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+            )
+            .expect("migrated gallery row");
     let gallery_index: i64 = catalog
         .connection
         .query_row(
@@ -2262,7 +3476,7 @@ fn migrates_v10_by_adding_the_gallery_time_index_without_rewriting_rows() {
         .expect("gallery index");
 
     assert_eq!(version, SCHEMA_VERSION);
-    assert_eq!(capture_time, "2025-08-07T10:20:30.000000000");
+    assert!(capture_time.is_none());
     assert_eq!(parent_path, "Album");
     assert_eq!(name_key, natural_name_key("Album/img10.png"));
     assert_eq!(gallery_index, 1);
@@ -2471,7 +3685,11 @@ fn migrates_v14_preview_ownership_to_every_active_location() {
         .expect("ownership collection");
 
     assert_eq!(version, SCHEMA_VERSION);
-    assert_eq!(locations, ["location-1", "location-2"]);
+    assert!(locations.is_empty());
+    assert_eq!(
+        preview_lifecycle_state(&catalog, "shared-artifact"),
+        "evictable"
+    );
 }
 
 #[test]
@@ -2570,20 +3788,20 @@ fn migrates_v15_by_reconciling_preview_ownership_with_active_locations() {
         .expect("shared ownership collection");
 
     assert_eq!(version, SCHEMA_VERSION);
-    assert_eq!(shared_locations, ["location-1", "location-2"]);
+    assert!(shared_locations.is_empty());
     assert_eq!(preview_reference_count(&catalog, "retired-artifact"), 0);
     assert_eq!(
         preview_lifecycle_state(&catalog, "retired-artifact"),
-        "stale"
+        "evictable"
     );
     assert_eq!(preview_reference_count(&catalog, "wrong-path-artifact"), 0);
     assert_eq!(
         preview_lifecycle_state(&catalog, "wrong-path-artifact"),
-        "stale"
+        "evictable"
     );
     assert_eq!(
         preview_lifecycle_state(&catalog, "shared-artifact"),
-        "ready"
+        "evictable"
     );
 }
 
@@ -2686,6 +3904,9 @@ fn capture_time_evidence_round_trips_with_engine_identity() {
         .begin_scan(&request, "root-capture", "C:\\Pictures")
         .expect("begin scan");
     catalog
+        .prove_live_only_first_import_handoff_for_test(&request.scan_id)
+        .expect("prove capture fixture first-import handoff");
+    catalog
         .stage_location(
             "scan-capture",
             "root-capture",
@@ -2693,6 +3914,7 @@ fn capture_time_evidence_round_trips_with_engine_identity() {
                 asset_id: "asset-capture".to_owned(),
                 location_id: "location-capture".to_owned(),
                 root_id: "root-capture".to_owned(),
+                scan_id: "scan-capture".to_owned(),
                 absolute_path: "C:\\Pictures\\capture.jpg".to_owned(),
                 display_path: "C:\\Pictures\\capture.jpg".to_owned(),
                 relative_path: "capture.jpg".to_owned(),
@@ -2704,6 +3926,11 @@ fn capture_time_evidence_round_trips_with_engine_identity() {
                     scheme: "windows-file-id-128-v1".to_owned(),
                     value: "0000000000000001:00000000000000000000000000000002".to_owned(),
                 }),
+                source_revision: Some(SourceRevisionEvidence {
+                    scheme: "windows-file-change-time-100ns-v1".to_owned(),
+                    value: "0000000000000001".to_owned(),
+                }),
+                source_generation: 1,
                 width: 40,
                 height: 50,
                 preview_status: PreviewStatus::Pending,
@@ -2917,6 +4144,221 @@ fn keyset_pages_retain_multiple_roots_and_reject_stale_cursors() {
     assert_eq!(error.code, "catalog_cursor_stale");
 }
 
+fn insert_publication_gate_live_change(
+    catalog: &SqliteCatalog,
+    root_id: &str,
+    intent_kind: &str,
+    scope: &str,
+    relative_path: &str,
+    status: &str,
+    authoritative_scan_id: Option<&str>,
+) -> i64 {
+    let revision: i64 = catalog
+        .connection
+        .query_row("SELECT revision FROM catalog_state", [], |row| row.get(0))
+        .expect("publication gate catalog revision");
+    catalog
+        .connection
+        .execute(
+            "INSERT INTO library_change_queue(
+               root_id, root_generation, intent_kind, scope, relative_path,
+               origin, first_observed_unix_ms, most_recent_observed_unix_ms,
+               first_sequence, most_recent_sequence, coalesced_observation_count,
+               status, ready_unix_ms, next_retry_unix_ms, lease_expires_unix_ms,
+               last_failure_code, last_failure_message,
+               catalog_revision_at_enqueue, authoritative_scan_id,
+               created_unix_ms, updated_unix_ms
+             ) VALUES (
+               ?1, 1, ?2, ?3, ?4, 'live_notification', 50, 50, '1', '1', 1,
+               ?5, 50, CASE WHEN ?5 = 'retry_wait' THEN 75 ELSE NULL END,
+               CASE WHEN ?5 = 'leased' THEN 100 ELSE NULL END,
+               CASE WHEN ?5 = 'retry_wait' THEN 'fixture_retry' ELSE NULL END,
+               CASE WHEN ?5 = 'retry_wait' THEN 'Fixture retry debt' ELSE NULL END,
+               ?6, ?7, 50, 50
+             )",
+            params![
+                root_id,
+                intent_kind,
+                scope,
+                relative_path,
+                status,
+                revision,
+                authoritative_scan_id,
+            ],
+        )
+        .expect("insert publication gate live change");
+    catalog.connection.last_insert_rowid()
+}
+
+#[test]
+fn first_import_allows_durable_exact_path_work_but_keeps_it_pending() {
+    let directory = tempdir().expect("temporary directory");
+    let mut catalog =
+        SqliteCatalog::open(directory.path().join("catalog.sqlite3")).expect("catalog");
+    let request = fixture_request("first-path-scan", "C:\\FirstPath");
+    catalog
+        .begin_scan(&request, "first-path-root", &request.root_path)
+        .expect("begin first import");
+    catalog
+        .prove_live_only_first_import_handoff_for_test(&request.scan_id)
+        .expect("prove first import change capture");
+    let change_id = insert_publication_gate_live_change(
+        &catalog,
+        "first-path-root",
+        "reconcile",
+        "path",
+        "changed.jpg",
+        "pending",
+        None,
+    );
+
+    catalog
+        .publish_scan(&request.scan_id, "first-path-root", 0, 0)
+        .expect("publish first import around durable exact path work");
+
+    let retained: (String, Option<i64>) = catalog
+        .connection
+        .query_row(
+            "SELECT status, catalog_revision_at_success
+             FROM library_change_queue WHERE id = ?1",
+            [change_id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .expect("retained first-import path work");
+    assert_eq!(retained, ("pending".to_owned(), None));
+}
+
+#[test]
+fn first_import_retains_non_path_live_work_without_claiming_freshness() {
+    for (kind, scope, relative_path) in [
+        ("freshness_unknown", "root", ""),
+        ("reconcile", "root", ""),
+        ("reconcile", "subtree", "incoming"),
+    ] {
+        for status in ["pending", "leased", "retry_wait"] {
+            assert_first_import_retains_live_work(kind, scope, relative_path, status);
+        }
+    }
+}
+
+fn assert_first_import_retains_live_work(
+    kind: &str,
+    scope: &str,
+    relative_path: &str,
+    status: &str,
+) {
+    let directory = tempdir().expect("temporary directory");
+    let mut catalog =
+        SqliteCatalog::open(directory.path().join("catalog.sqlite3")).expect("catalog");
+    let request = fixture_request("first-root-gap-scan", "C:\\FirstRootGap");
+    catalog
+        .begin_scan(&request, "first-root-gap", &request.root_path)
+        .expect("begin first import");
+    catalog
+        .prove_live_only_first_import_handoff_for_test(&request.scan_id)
+        .expect("prove first import change capture");
+    let change_id = insert_publication_gate_live_change(
+        &catalog,
+        "first-root-gap",
+        kind,
+        scope,
+        relative_path,
+        status,
+        None,
+    );
+
+    catalog
+        .publish_scan(&request.scan_id, "first-root-gap", 0, 0)
+        .expect("publish a baseline so live work can become eligible");
+    let retained: (String, Option<i64>) = catalog
+        .connection
+        .query_row(
+            "SELECT status, catalog_revision_at_success
+             FROM library_change_queue WHERE id = ?1",
+            [change_id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .expect("unconsumed live work");
+    assert_eq!(retained, (status.to_owned(), None));
+    let authority: (String, String) = catalog
+        .connection
+        .query_row(
+            "SELECT roots.active_scan_id, journal.continuity_state
+             FROM library_roots AS roots
+             JOIN library_persistent_journal_root_state AS journal ON journal.root_id = roots.id
+             WHERE roots.id = 'first-root-gap'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .expect("non-current baseline authority");
+    assert_eq!(authority, (request.scan_id, "live_only".to_owned()));
+}
+
+#[test]
+fn replacement_blocks_pending_path_work_but_preserves_retry_wait_after_publication() {
+    let directory = tempdir().expect("temporary directory");
+    let mut catalog =
+        SqliteCatalog::open(directory.path().join("catalog.sqlite3")).expect("catalog");
+    publish_fixture(
+        &mut catalog,
+        "path-gate-initial",
+        "path-gate-root",
+        "C:\\PathGate",
+        "path-gate-location",
+    );
+    let replacement = fixture_request("path-gate-replacement", "C:\\PathGate");
+    catalog
+        .begin_scan(&replacement, "path-gate-root", &replacement.root_path)
+        .expect("begin replacement");
+    let change_id = insert_publication_gate_live_change(
+        &catalog,
+        "path-gate-root",
+        "reconcile",
+        "path",
+        "changed.jpg",
+        "pending",
+        Some(&replacement.scan_id),
+    );
+    catalog
+        .connection
+        .execute(
+            "UPDATE scan_runs SET change_queue_high_watermark = ?2 WHERE id = ?1",
+            params![replacement.scan_id, change_id],
+        )
+        .expect("bind replacement high watermark");
+
+    let error = catalog
+        .publish_scan(&replacement.scan_id, "path-gate-root", 0, 0)
+        .expect_err("pending path work blocks replacement");
+    assert_eq!(error.code, "catalog_scan_live_changes_pending");
+
+    catalog
+        .connection
+        .execute(
+            "UPDATE library_change_queue
+             SET status = 'retry_wait', next_retry_unix_ms = 75,
+                 last_failure_code = 'fixture_retry',
+                 last_failure_message = 'Fixture retry debt'
+             WHERE id = ?1",
+            [change_id],
+        )
+        .expect("move path work to durable retry debt");
+    catalog
+        .publish_scan(&replacement.scan_id, "path-gate-root", 0, 0)
+        .expect("retry-wait exact path does not hold the old snapshot hostage");
+
+    let retained: (String, Option<String>, Option<i64>) = catalog
+        .connection
+        .query_row(
+            "SELECT status, authoritative_scan_id, catalog_revision_at_success
+             FROM library_change_queue WHERE id = ?1",
+            [change_id],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .expect("retained path retry debt");
+    assert_eq!(retained, ("retry_wait".to_owned(), None, None));
+}
+
 #[test]
 fn keyset_walk_returns_each_location_once_across_many_pages() {
     let directory = tempdir().expect("temporary directory");
@@ -2926,6 +4368,9 @@ fn keyset_walk_returns_each_location_once_across_many_pages() {
     catalog
         .begin_scan(&request, "root-many", "C:\\Many")
         .expect("begin scan");
+    catalog
+        .prove_live_only_first_import_handoff_for_test(&request.scan_id)
+        .expect("prove keyset fixture first-import handoff");
     let transaction = catalog
         .connection
         .transaction()
@@ -2945,9 +4390,11 @@ fn keyset_walk_returns_each_location_once_across_many_pages() {
                 "INSERT INTO asset_locations(
                        scan_id, asset_id, location_id, root_id, absolute_path,
                        relative_path, preview_path, file_size, modified_unix_ms,
-                       width, height
+                       width, height, file_identity_scheme, file_identity_value,
+                       source_generation
                      ) VALUES (
-                       'scan-many', ?1, ?2, 'root-many', ?3, ?4, ?5, 20, 30, 40, 50
+                       'scan-many', ?1, ?2, 'root-many', ?3, ?4, ?5, 20, 30, 40, 50,
+                       'fixture-identity-v1', ?6, 1
                      )",
                 params![
                     asset_id,
@@ -2955,10 +4402,14 @@ fn keyset_walk_returns_each_location_once_across_many_pages() {
                     format!("C:\\Many\\{relative_path}"),
                     relative_path,
                     format!("C:\\Cache\\{index:04}.jpg"),
+                    format!("identity-{index:04}"),
                 ],
             )
             .expect("fixture location");
     }
+    transaction
+        .execute("UPDATE catalog_state SET next_source_generation = 2", [])
+        .expect("advance fixture source generation allocator");
     transaction.commit().expect("fixture commit");
     catalog
         .publish_scan("scan-many", "root-many", 1_025, 0)
@@ -2986,6 +4437,124 @@ fn keyset_walk_returns_each_location_once_across_many_pages() {
         location_ids.last().map(String::as_str),
         Some("location-1024")
     );
+}
+
+#[test]
+fn progress_handler_preempts_projection_replacement_and_rolls_back_the_transaction() {
+    const OLD_LOCATION_COUNT: i64 = 4_096;
+
+    let directory = tempdir().expect("temporary directory");
+    let mut catalog =
+        SqliteCatalog::open(directory.path().join("catalog.sqlite3")).expect("catalog");
+    let initial = fixture_request("preempt-initial", "C:\\Preempt");
+    catalog
+        .begin_scan(&initial, "preempt-root", &initial.root_path)
+        .expect("begin initial scan");
+    catalog
+        .prove_live_only_first_import_handoff_for_test(&initial.scan_id)
+        .expect("prove first-import handoff");
+    catalog
+        .connection
+        .execute_batch(
+            "WITH RECURSIVE sequence(value) AS (
+               VALUES(0) UNION ALL SELECT value + 1 FROM sequence WHERE value < 4095
+             )
+             INSERT INTO assets(id, created_unix_ms)
+             SELECT printf('preempt-asset-%05d', value), 1 FROM sequence;
+             WITH RECURSIVE sequence(value) AS (
+               VALUES(0) UNION ALL SELECT value + 1 FROM sequence WHERE value < 4095
+             )
+             INSERT INTO asset_locations(
+               scan_id, asset_id, location_id, root_id, absolute_path,
+               relative_path, preview_path, file_size, modified_unix_ms,
+               width, height, source_generation
+             )
+             SELECT 'preempt-initial', printf('preempt-asset-%05d', value),
+                    printf('preempt-location-%05d', value), 'preempt-root',
+                    printf('C:/Preempt/%05d.png', value), printf('%05d.png', value),
+                    '', 20, 30, 40, 50, 1
+             FROM sequence;
+             UPDATE catalog_state SET next_source_generation = 2;",
+        )
+        .expect("seed large initial projection");
+    catalog
+        .publish_scan(
+            &initial.scan_id,
+            "preempt-root",
+            OLD_LOCATION_COUNT as u64,
+            0,
+        )
+        .expect("publish initial projection");
+
+    let replacement = fixture_request("preempt-replacement", &initial.root_path);
+    catalog
+        .begin_scan(&replacement, "preempt-root", &replacement.root_path)
+        .expect("begin replacement scan");
+    let admission = Arc::clone(&catalog.write_admission);
+    let waiter_slot = Arc::new(Mutex::new(None));
+    let waiter_slot_for_hook = Arc::clone(&waiter_slot);
+    let (acquired_sender, acquired_receiver) = mpsc::channel();
+    let _hook =
+        set_before_scan_projection_replacement_hook(&replacement.scan_id, move |preempted| {
+            let waiter = thread::spawn(move || {
+                let _permit = admission.acquire(LibraryChangeLane::Live);
+                acquired_sender.send(()).expect("report live admission");
+            });
+            *waiter_slot_for_hook.lock().expect("live waiter slot") = Some(waiter);
+            let deadline = Instant::now() + Duration::from_secs(1);
+            while !preempted.load(Ordering::Acquire) {
+                assert!(
+                    Instant::now() < deadline,
+                    "live waiter did not preempt scan publication"
+                );
+                thread::yield_now();
+            }
+        });
+
+    let error = catalog
+        .publish_scan(&replacement.scan_id, "preempt-root", 0, 0)
+        .expect_err("live work preempts the replacement transaction");
+    assert_eq!(error.code, "catalog_scan_publication_preempted");
+    acquired_receiver
+        .recv_timeout(Duration::from_secs(1))
+        .expect("live writer acquires after publication rollback");
+    waiter_slot
+        .lock()
+        .expect("live waiter slot")
+        .take()
+        .expect("live waiter")
+        .join()
+        .expect("join live waiter");
+
+    let rolled_back: (String, String, i64, i64) = catalog
+        .connection
+        .query_row(
+            "SELECT roots.active_scan_id,
+                    (SELECT status FROM scan_runs WHERE id = ?2),
+                    (SELECT COUNT(*) FROM asset_locations WHERE scan_id = ?1),
+                    (SELECT revision FROM catalog_state)
+             FROM library_roots AS roots WHERE roots.id = 'preempt-root'",
+            params![initial.scan_id, replacement.scan_id],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        )
+        .expect("rolled-back publication state");
+    assert_eq!(
+        rolled_back,
+        (initial.scan_id, "running".to_owned(), OLD_LOCATION_COUNT, 1,)
+    );
+
+    catalog
+        .publish_scan(&replacement.scan_id, "preempt-root", 0, 0)
+        .expect("cleared progress handler permits a later publication");
+    let replacement_count: i64 = catalog
+        .connection
+        .query_row(
+            "SELECT COUNT(*) FROM asset_locations WHERE scan_id = ?1",
+            [&replacement.scan_id],
+            |row| row.get(0),
+        )
+        .expect("replacement projection");
+    assert_eq!(replacement_count, 0);
 }
 
 #[test]
@@ -4116,6 +5685,9 @@ fn publish_fixture(
         .begin_scan(&request, root_id, root_path)
         .expect("begin scan");
     catalog
+        .prove_live_only_first_import_handoff_for_test(scan_id)
+        .expect("prove fixture first-import handoff");
+    catalog
         .stage_location(
             scan_id,
             root_id,
@@ -4123,6 +5695,7 @@ fn publish_fixture(
                 asset_id: format!("asset-{scan_id}"),
                 location_id: location_id.to_owned(),
                 root_id: root_id.to_owned(),
+                scan_id: scan_id.to_owned(),
                 absolute_path: format!("{root_path}\\one.png"),
                 display_path: format!("{root_path}\\one.png"),
                 relative_path: "one.png".to_owned(),
@@ -4131,6 +5704,11 @@ fn publish_fixture(
                 created_unix_ms: Some(25),
                 modified_unix_ms: 30,
                 file_identity: None,
+                source_revision: Some(SourceRevisionEvidence {
+                    scheme: "windows-file-change-time-100ns-v1".to_owned(),
+                    value: "0000000000000001".to_owned(),
+                }),
+                source_generation: 1,
                 width: 40,
                 height: 50,
                 preview_status: PreviewStatus::Ready,
@@ -4147,6 +5725,57 @@ fn publish_fixture(
         .expect("publish scan");
 }
 
+fn insert_active_identity_alias(
+    catalog: &mut SqliteCatalog,
+    original_location_id: &str,
+    alias_location_id: &str,
+) {
+    catalog
+        .connection
+        .execute(
+            "UPDATE asset_locations
+             SET file_identity_scheme = 'windows-file-id-128-v1',
+                 file_identity_value =
+                   '0000000000000001:00000000000000000000000000000001',
+                 source_revision_token = NULL
+             WHERE location_id = ?1",
+            [original_location_id],
+        )
+        .expect("assign original identity");
+    let alias_asset_id = format!("asset-{alias_location_id}");
+    catalog
+        .connection
+        .execute(
+            "INSERT INTO assets(id, created_unix_ms) VALUES (?1, 1)",
+            [&alias_asset_id],
+        )
+        .expect("insert alias asset");
+    catalog
+        .connection
+        .execute(
+            "INSERT INTO asset_locations(
+               scan_id, asset_id, location_id, root_id, absolute_path, relative_path,
+               preview_path, file_size, created_unix_ms, modified_unix_ms,
+               file_local_time, parent_relative_path, natural_name_key, width, height,
+               preview_status, preview_issue_code, preview_issue_message,
+               metadata_engine_id, metadata_engine_version, capture_local_time,
+               capture_offset_minutes, capture_time_source, capture_raw_value,
+               file_identity_scheme, file_identity_value, source_revision_token,
+               source_generation
+             )
+             SELECT scan_id, ?2, ?3, root_id, absolute_path, 'alias.png',
+                    '', file_size, created_unix_ms, modified_unix_ms,
+                    file_local_time, '', 'alias.png', width, height,
+                    'pending', NULL, NULL, metadata_engine_id, metadata_engine_version,
+                    capture_local_time, capture_offset_minutes, capture_time_source,
+                    capture_raw_value, file_identity_scheme, file_identity_value, NULL,
+                    source_generation
+             FROM asset_locations WHERE location_id = ?1",
+            params![original_location_id, alias_asset_id, alias_location_id],
+        )
+        .expect("insert identity alias");
+}
+
 fn publish_preview_artifact(
     catalog: &mut SqliteCatalog,
     location_id: &str,
@@ -4157,6 +5786,13 @@ fn publish_preview_artifact(
         .load_active_location(location_id)
         .expect("active location query")
         .expect("active location");
+    let request = exact_preview_request(&location);
+    if location.source_revision.is_none() {
+        location.source_revision = Some(SourceRevisionEvidence {
+            scheme: "windows-file-change-time-100ns-v1".to_owned(),
+            value: "0000000000000001".to_owned(),
+        });
+    }
     location.preview_path = artifact_path.to_owned();
     location.preview_status = PreviewStatus::Ready;
     let artifact = PreviewArtifact {
@@ -4173,9 +5809,22 @@ fn publish_preview_artifact(
         height: location.height,
     };
     catalog
-        .update_active_preview(&location, Some(&artifact))
+        .update_active_preview(&location, Some(&artifact), Some(&request))
         .expect("publish preview artifact");
     artifact
+}
+
+fn exact_preview_request(location: &AssetLocationView) -> PreviewRequest {
+    PreviewRequest {
+        location_id: location.location_id.clone(),
+        expected_root_id: location.root_id.clone(),
+        expected_scan_id: location.scan_id.clone(),
+        expected_source_revision: location.source_revision.clone(),
+        expected_source_generation: location.source_generation,
+        preview_edge: 256,
+        retry_failed: false,
+        protected_location_ids: Vec::new(),
+    }
 }
 
 fn publish_empty_replacement_scan(
@@ -4221,6 +5870,60 @@ fn ensure_legacy_scan_runs_contract(connection: &Connection) {
                WHERE NOT EXISTS (SELECT 1 FROM catalog_state);",
         )
         .expect("legacy scan run contract");
+    ensure_legacy_asset_location_contract(connection);
+}
+
+fn ensure_legacy_asset_location_contract(connection: &Connection) {
+    let version = connection
+        .query_row("SELECT version FROM schema_info LIMIT 1", [], |row| {
+            row.get::<_, i64>(0)
+        })
+        .expect("legacy asset location schema version");
+    let columns = [
+        (1, "absolute_path", "TEXT NOT NULL DEFAULT ''"),
+        (1, "preview_path", "TEXT NOT NULL DEFAULT ''"),
+        (1, "file_size", "INTEGER NOT NULL DEFAULT 0"),
+        (1, "modified_unix_ms", "INTEGER NOT NULL DEFAULT 0"),
+        (1, "width", "INTEGER NOT NULL DEFAULT 0"),
+        (1, "height", "INTEGER NOT NULL DEFAULT 0"),
+        (2, "asset_id", "TEXT NOT NULL DEFAULT ''"),
+        (7, "preview_status", "TEXT NOT NULL DEFAULT 'pending'"),
+        (7, "preview_issue_code", "TEXT"),
+        (7, "preview_issue_message", "TEXT"),
+        (8, "metadata_engine_id", "TEXT NOT NULL DEFAULT 'unknown'"),
+        (8, "metadata_engine_version", "TEXT NOT NULL DEFAULT '0'"),
+        (8, "capture_local_time", "TEXT"),
+        (8, "capture_offset_minutes", "INTEGER"),
+        (8, "capture_time_source", "TEXT"),
+        (8, "capture_raw_value", "TEXT"),
+        (9, "file_identity_scheme", "TEXT"),
+        (9, "file_identity_value", "TEXT"),
+        (12, "created_unix_ms", "INTEGER"),
+        (12, "parent_relative_path", "TEXT NOT NULL DEFAULT ''"),
+        (12, "natural_name_key", "TEXT NOT NULL DEFAULT ''"),
+        (13, "file_local_time", "TEXT"),
+    ];
+    for (introduced_in, name, definition) in columns {
+        if version < introduced_in {
+            continue;
+        }
+        let exists = connection
+            .query_row(
+                "SELECT EXISTS(
+                   SELECT 1 FROM pragma_table_info('asset_locations') WHERE name = ?1
+                 )",
+                [name],
+                |row| row.get::<_, bool>(0),
+            )
+            .expect("legacy asset location column query");
+        if !exists {
+            connection
+                .execute_batch(&format!(
+                    "ALTER TABLE asset_locations ADD COLUMN {name} {definition}"
+                ))
+                .expect("complete legacy asset location fixture");
+        }
+    }
 }
 
 fn preview_reference_count(catalog: &SqliteCatalog, artifact_key: &str) -> i64 {
@@ -4272,6 +5975,7 @@ fn publish_gallery_query_fixture(
     catalog
         .begin_scan(&request, root_id, root_path)
         .expect("begin query fixture scan");
+    prove_gallery_first_import_handoff_if_needed(catalog, scan_id, root_id);
     for (location_id, relative_path, capture_local_time, created_unix_ms, modified_unix_ms) in
         locations
     {
@@ -4283,6 +5987,7 @@ fn publish_gallery_query_fixture(
                     asset_id: format!("asset-{scan_id}-{location_id}"),
                     location_id: (*location_id).to_owned(),
                     root_id: root_id.to_owned(),
+                    scan_id: scan_id.to_owned(),
                     absolute_path: format!("{root_path}\\{}", relative_path.replace('/', "\\")),
                     display_path: format!("{root_path}\\{}", relative_path.replace('/', "\\")),
                     relative_path: (*relative_path).to_owned(),
@@ -4291,6 +5996,8 @@ fn publish_gallery_query_fixture(
                     created_unix_ms: *created_unix_ms,
                     modified_unix_ms: *modified_unix_ms,
                     file_identity: None,
+                    source_revision: None,
+                    source_generation: 0,
                     width: 40,
                     height: 50,
                     preview_status: PreviewStatus::Pending,
@@ -4329,6 +6036,7 @@ fn publish_gallery_dimension_fixture(
     catalog
         .begin_scan(&request, root_id, root_path)
         .expect("begin gallery scan");
+    prove_gallery_first_import_handoff_if_needed(catalog, scan_id, root_id);
     for (location_id, capture_local_time, modified_unix_ms, width, height) in locations {
         catalog
             .stage_location(
@@ -4338,6 +6046,7 @@ fn publish_gallery_dimension_fixture(
                     asset_id: format!("asset-{scan_id}-{location_id}"),
                     location_id: (*location_id).to_owned(),
                     root_id: root_id.to_owned(),
+                    scan_id: scan_id.to_owned(),
                     absolute_path: format!("{root_path}\\{location_id}.png"),
                     display_path: format!("{root_path}\\{location_id}.png"),
                     relative_path: format!("{location_id}.png"),
@@ -4346,6 +6055,8 @@ fn publish_gallery_dimension_fixture(
                     created_unix_ms: Some(*modified_unix_ms - 1),
                     modified_unix_ms: *modified_unix_ms,
                     file_identity: None,
+                    source_revision: None,
+                    source_generation: 0,
                     width: *width,
                     height: *height,
                     preview_status: PreviewStatus::Pending,
@@ -4373,6 +6084,26 @@ fn publish_gallery_dimension_fixture(
         .expect("publish gallery scan");
 }
 
+fn prove_gallery_first_import_handoff_if_needed(
+    catalog: &mut SqliteCatalog,
+    scan_id: &str,
+    root_id: &str,
+) {
+    let is_first_import = catalog
+        .connection
+        .query_row(
+            "SELECT active_scan_id IS NULL FROM library_roots WHERE id = ?1",
+            [root_id],
+            |row| row.get::<_, bool>(0),
+        )
+        .expect("load gallery fixture publication state");
+    if is_first_import {
+        catalog
+            .prove_live_only_first_import_handoff_for_test(scan_id)
+            .expect("prove gallery fixture first-import handoff");
+    }
+}
+
 fn fixture_request(scan_id: &str, root_path: &str) -> ScanRequest {
     ScanRequest {
         scan_id: scan_id.to_owned(),
@@ -4390,7 +6121,55 @@ fn publication_identity(hex_digit: char) -> FileIdentityEvidence {
     }
 }
 
+fn seed_current_explicit_recovery_claim(
+    catalog: &SqliteCatalog,
+    root_id: &str,
+    observed_unix_ms: i64,
+) {
+    let catalog_revision: i64 = catalog
+        .connection
+        .query_row("SELECT revision FROM catalog_state", [], |row| row.get(0))
+        .expect("catalog revision");
+    catalog
+        .connection
+        .execute(
+            "INSERT INTO library_change_queue(
+               root_id, root_generation, intent_kind, scope, relative_path,
+               origin, first_observed_unix_ms, most_recent_observed_unix_ms,
+               first_sequence, most_recent_sequence, coalesced_observation_count,
+               status, ready_unix_ms, attempt_count, next_retry_unix_ms,
+               last_failure_code, last_failure_message,
+               catalog_revision_at_enqueue, created_unix_ms, updated_unix_ms
+             ) VALUES (
+               ?1, 1, 'freshness_unknown', 'root', '', 'startup_catch_up',
+               ?2, ?2, ?3, ?3, 1, 'retry_wait', ?2, 0, NULL,
+               'live_gap_v30_explicit_recovery_required',
+               'The ambiguous historical gap requires an explicit library update',
+               ?4, ?2, ?2
+             )",
+            params![
+                root_id,
+                observed_unix_ms,
+                observed_unix_ms.to_string(),
+                catalog_revision,
+            ],
+        )
+        .expect("insert explicit recovery gap");
+    let gap_change_id = catalog.connection.last_insert_rowid();
+    catalog
+        .connection
+        .execute(
+            "INSERT INTO library_live_gap_recovery_claims(
+               gap_change_id, root_id, root_generation, consumer_kind,
+               created_unix_ms
+             ) VALUES (?1, ?2, 1, 'explicit_recovery_required', ?3)",
+            params![gap_change_id, root_id, observed_unix_ms],
+        )
+        .expect("insert explicit recovery claim");
+}
+
 fn downgrade_live_gap_contract_to_v29(connection: &Connection) {
+    downgrade_source_revision_contract_to_v30_for_test(connection);
     connection
         .execute_batch(
             "DROP TRIGGER library_live_gap_recovery_claim_identity_update_guard;
@@ -4482,6 +6261,9 @@ fn migrate_v29_foreground_owned_gap_fixture(
     catalog
         .begin_scan_with_publication_namespace(&initial, root_id, root_path, &identity)
         .expect("begin initial publication");
+    catalog
+        .prove_live_only_first_import_handoff_for_test(&initial.scan_id)
+        .expect("prove v29 fixture first-import handoff");
     catalog
         .publish_scan(&initial.scan_id, root_id, 0, 0)
         .expect("publish initial catalog");
@@ -4875,6 +6657,9 @@ fn explicit_recovery_claim_is_consumed_only_by_its_foreground_scan_publication()
     );
 
     catalog
+        .prove_live_only_first_import_handoff_for_test(&request.scan_id)
+        .expect("prove explicit recovery first-import handoff");
+    catalog
         .publish_scan(&request.scan_id, root_id, 0, 0)
         .expect("publish explicit foreground recovery");
     drop(catalog);
@@ -5053,6 +6838,9 @@ fn foreground_scan_does_not_capture_a_pending_journal_claim() {
     catalog
         .begin_scan(&initial, root_id, root_path)
         .expect("begin initial scan");
+    catalog
+        .prove_live_only_first_import_handoff_for_test(&initial.scan_id)
+        .expect("prove pending-journal fixture first-import handoff");
     catalog
         .publish_scan(&initial.scan_id, root_id, 0, 0)
         .expect("publish initial scan");
@@ -5264,6 +7052,9 @@ fn current_v30_rejects_an_inexact_consumed_foreground_claim_on_reopen() {
         )
         .expect("begin foreground recovery");
     catalog
+        .prove_live_only_first_import_handoff_for_test(&request.scan_id)
+        .expect("prove consumed recovery first-import handoff");
+    catalog
         .publish_scan(&request.scan_id, root_id, 0, 0)
         .expect("publish foreground recovery");
     catalog
@@ -5308,6 +7099,9 @@ fn current_v30_rejects_a_consumed_foreground_claim_bound_to_authoritative_recove
             &publication_identity('7'),
         )
         .expect("begin foreground recovery");
+    catalog
+        .prove_live_only_first_import_handoff_for_test(&request.scan_id)
+        .expect("prove consumed recovery owner first-import handoff");
     catalog
         .publish_scan(&request.scan_id, root_id, 0, 0)
         .expect("consume foreground claim");
@@ -5498,6 +7292,9 @@ fn foreground_publication_binding_is_atomic_and_replacement_retires_the_generati
     catalog
         .begin_scan_with_publication_namespace(&first, root_id, root_path, &first_identity)
         .expect("bind first foreground scan");
+    catalog
+        .prove_live_only_first_import_handoff_for_test(&first.scan_id)
+        .expect("prove publication fixture first-import handoff");
     let before_publish: (i64, i64, i64) = catalog
         .connection
         .query_row(
@@ -5662,6 +7459,221 @@ fn one_root_cannot_have_overlapping_authoritative_scans() {
 }
 
 #[test]
+fn crash_recovery_keeps_only_the_newest_unpublished_foreground_import() {
+    let directory = tempdir().expect("catalog directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let mut catalog = SqliteCatalog::open(path.clone()).expect("catalog");
+    let older = fixture_request("initial-import-a", "C:\\InitialA");
+    let newer = fixture_request("initial-import-z", "C:\\InitialZ");
+    catalog
+        .begin_scan(&older, "initial-root-a", &older.root_path)
+        .expect("begin older initial import");
+    catalog
+        .begin_scan(&newer, "initial-root-z", &newer.root_path)
+        .expect("begin newer initial import");
+    drop(catalog);
+    let mut catalog = SqliteCatalog::open(path).expect("reopen after simulated crash");
+
+    let recoverable = catalog
+        .load_single_recoverable_foreground_scan()
+        .expect("converge recoverable imports")
+        .expect("newest initial import remains recoverable");
+
+    assert_eq!(recoverable.scan_id, newer.scan_id);
+    let statuses: (String, String, i64, i64) = catalog
+        .connection
+        .query_row(
+            "SELECT
+               (SELECT status FROM scan_runs WHERE id = ?1),
+               (SELECT status FROM scan_runs WHERE id = ?2),
+               (SELECT COUNT(*) FROM scan_directory_frontier WHERE scan_id = ?1),
+               (SELECT COUNT(*) FROM scan_directory_entries WHERE scan_id = ?1)",
+            params![older.scan_id, newer.scan_id],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        )
+        .expect("converged initial imports");
+    assert_eq!(statuses, ("failed".to_owned(), "running".to_owned(), 0, 0),);
+
+    let replacement = fixture_request("initial-import-a-retry", &older.root_path);
+    catalog
+        .begin_scan(&replacement, "initial-root-a", &replacement.root_path)
+        .expect("retired initial root can be imported again");
+    catalog
+        .abandon_scan(&replacement.scan_id, "cancelled", 0)
+        .expect("clean up replacement import");
+    catalog
+        .abandon_scan(&newer.scan_id, "cancelled", 0)
+        .expect("clean up retained import");
+}
+
+#[test]
+fn crash_recovery_abandons_updates_and_preserves_the_paused_initial_import() {
+    let directory = tempdir().expect("catalog directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let mut catalog = SqliteCatalog::open(path.clone()).expect("catalog");
+
+    let initial_a = fixture_request("published-a", "C:\\PublishedA");
+    catalog
+        .begin_scan(&initial_a, "published-root-a", &initial_a.root_path)
+        .expect("begin first published root");
+    catalog
+        .prove_live_only_first_import_handoff_for_test(&initial_a.scan_id)
+        .expect("prove first crash fixture first-import handoff");
+    catalog
+        .publish_scan(&initial_a.scan_id, "published-root-a", 0, 0)
+        .expect("publish first root");
+    seed_current_explicit_recovery_claim(&catalog, "published-root-a", 101);
+    let update_a = fixture_request("crashed-update-a", &initial_a.root_path);
+    catalog
+        .begin_scan(&update_a, "published-root-a", &update_a.root_path)
+        .expect("begin first update");
+
+    let initial_b = fixture_request("published-b", "C:\\PublishedB");
+    catalog
+        .begin_scan(&initial_b, "published-root-b", &initial_b.root_path)
+        .expect("begin second published root");
+    catalog
+        .prove_live_only_first_import_handoff_for_test(&initial_b.scan_id)
+        .expect("prove second crash fixture first-import handoff");
+    catalog
+        .publish_scan(&initial_b.scan_id, "published-root-b", 0, 0)
+        .expect("publish second root");
+    seed_current_explicit_recovery_claim(&catalog, "published-root-b", 102);
+    let update_b = fixture_request("crashed-update-b", &initial_b.root_path);
+    catalog
+        .begin_scan(&update_b, "published-root-b", &update_b.root_path)
+        .expect("begin second update");
+
+    let paused = fixture_request("paused-initial-import", "C:\\PausedInitial");
+    catalog
+        .begin_scan(&paused, "paused-initial-root", &paused.root_path)
+        .expect("begin paused initial import");
+    catalog
+        .pause_scan(&paused.scan_id, &ScanCheckpoint::default())
+        .expect("pause initial import");
+    let running = fixture_request("running-initial-import", "C:\\RunningInitial");
+    catalog
+        .begin_scan(&running, "running-initial-root", &running.root_path)
+        .expect("begin running initial import");
+    drop(catalog);
+    let mut catalog = SqliteCatalog::open(path).expect("reopen after simulated crash");
+
+    let recoverable = catalog
+        .load_single_paused_foreground_scan()
+        .expect("converge foreground recovery")
+        .expect("paused initial import remains recoverable");
+    assert_eq!(recoverable.scan_id, paused.scan_id);
+    assert!(
+        catalog
+            .load_single_recoverable_foreground_scan()
+            .expect("running recovery projection")
+            .is_none(),
+    );
+
+    let statuses: (String, String, String, String, i64, i64, i64, i64) = catalog
+        .connection
+        .query_row(
+            "SELECT
+               (SELECT status FROM scan_runs WHERE id = ?1),
+               (SELECT status FROM scan_runs WHERE id = ?2),
+               (SELECT status FROM scan_runs WHERE id = ?3),
+               (SELECT status FROM scan_runs WHERE id = ?4),
+               (SELECT COUNT(*) FROM scan_directory_frontier
+                WHERE scan_id IN (?1, ?2, ?4)),
+               (SELECT COUNT(*) FROM scan_directory_entries
+                WHERE scan_id IN (?1, ?2, ?4)),
+               (SELECT COUNT(*) FROM library_scan_publication_namespace_bindings
+                WHERE scan_id IN (?1, ?2, ?4)),
+               (SELECT COUNT(*) FROM asset_locations
+                WHERE scan_id IN (?1, ?2, ?4))",
+            params![
+                update_a.scan_id,
+                update_b.scan_id,
+                paused.scan_id,
+                running.scan_id
+            ],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                    row.get(5)?,
+                    row.get(6)?,
+                    row.get(7)?,
+                ))
+            },
+        )
+        .expect("converged foreground scans");
+    assert_eq!(
+        statuses,
+        (
+            "failed".to_owned(),
+            "failed".to_owned(),
+            "paused".to_owned(),
+            "failed".to_owned(),
+            0,
+            0,
+            0,
+            0,
+        ),
+    );
+    let restored_claims: Vec<(String, String, Option<String>, String)> = catalog
+        .connection
+        .prepare(
+            "SELECT claim.root_id, claim.consumer_kind, claim.foreground_scan_id,
+                    gap.status
+             FROM library_live_gap_recovery_claims AS claim
+             JOIN library_change_queue AS gap ON gap.id = claim.gap_change_id
+             WHERE claim.root_id IN ('published-root-a', 'published-root-b')
+             ORDER BY claim.root_id",
+        )
+        .expect("restored claims statement")
+        .query_map([], |row| {
+            Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
+        })
+        .expect("restored claim rows")
+        .collect::<Result<_, _>>()
+        .expect("restored claims");
+    assert_eq!(
+        restored_claims,
+        vec![
+            (
+                "published-root-a".to_owned(),
+                "explicit_recovery_required".to_owned(),
+                None,
+                "retry_wait".to_owned(),
+            ),
+            (
+                "published-root-b".to_owned(),
+                "explicit_recovery_required".to_owned(),
+                None,
+                "retry_wait".to_owned(),
+            ),
+        ],
+    );
+
+    let retry_a = fixture_request("retry-update-a", &initial_a.root_path);
+    catalog
+        .begin_scan(&retry_a, "published-root-a", &retry_a.root_path)
+        .expect("first root can update again");
+    let retry_b = fixture_request("retry-update-b", &initial_b.root_path);
+    catalog
+        .begin_scan(&retry_b, "published-root-b", &retry_b.root_path)
+        .expect("second root can update again");
+    catalog
+        .abandon_scan(&retry_a.scan_id, "cancelled", 0)
+        .expect("clean up first retry");
+    catalog
+        .abandon_scan(&retry_b.scan_id, "cancelled", 0)
+        .expect("clean up second retry");
+    catalog
+        .abandon_scan(&paused.scan_id, "cancelled", 0)
+        .expect("clean up paused import");
+}
+
+#[test]
 fn legacy_automatic_scans_are_retired_while_foreground_checkpoint_remains_recoverable() {
     let directory = tempdir().expect("catalog directory");
     let path = directory.path().join("catalog.sqlite3");
@@ -5795,6 +7807,9 @@ fn legacy_root_audit_and_its_exclusive_recovery_scan_are_retired() {
         .begin_scan(&initial, root_id, root_path)
         .expect("begin initial scan");
     catalog
+        .prove_live_only_first_import_handoff_for_test(&initial.scan_id)
+        .expect("prove legacy audit first-import handoff");
+    catalog
         .publish_scan(&initial.scan_id, root_id, 0, 0)
         .expect("publish initial scan");
     let generation = LibraryRootGeneration::initial();
@@ -5899,6 +7914,9 @@ fn legacy_automatic_full_scan_releases_live_gap_to_metadata_inventory() {
     catalog
         .begin_scan(&initial, root_id, root_path)
         .expect("begin initial scan");
+    catalog
+        .prove_live_only_first_import_handoff_for_test(&initial.scan_id)
+        .expect("prove legacy live-gap first-import handoff");
     catalog
         .publish_scan(&initial.scan_id, root_id, 0, 0)
         .expect("publish initial scan");

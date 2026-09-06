@@ -103,6 +103,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ScanRequest dco_decode_box_autoadd_scan_request(dynamic raw);
 
   @protected
+  SourceRevisionEvidence dco_decode_box_autoadd_source_revision_evidence(
+    dynamic raw,
+  );
+
+  @protected
   StorageSettingsUpdate dco_decode_box_autoadd_storage_settings_update(
     dynamic raw,
   );
@@ -136,6 +141,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   CatalogReadRetryOperation dco_decode_catalog_read_retry_operation(
+    dynamic raw,
+  );
+
+  @protected
+  CatalogReclamationPhase dco_decode_catalog_reclamation_phase(dynamic raw);
+
+  @protected
+  CatalogReclamationSnapshot dco_decode_catalog_reclamation_snapshot(
     dynamic raw,
   );
 
@@ -310,6 +323,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   RecoverableScan? dco_decode_opt_box_autoadd_recoverable_scan(dynamic raw);
 
   @protected
+  SourceRevisionEvidence? dco_decode_opt_box_autoadd_source_revision_evidence(
+    dynamic raw,
+  );
+
+  @protected
   int? dco_decode_opt_box_autoadd_u_32(dynamic raw);
 
   @protected
@@ -345,6 +363,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ScanRequest dco_decode_scan_request(dynamic raw);
+
+  @protected
+  SourceRevisionEvidence dco_decode_source_revision_evidence(dynamic raw);
 
   @protected
   StorageSettingsUpdate dco_decode_storage_settings_update(dynamic raw);
@@ -470,6 +491,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ScanRequest sse_decode_box_autoadd_scan_request(SseDeserializer deserializer);
 
   @protected
+  SourceRevisionEvidence sse_decode_box_autoadd_source_revision_evidence(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   StorageSettingsUpdate sse_decode_box_autoadd_storage_settings_update(
     SseDeserializer deserializer,
   );
@@ -515,6 +541,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   CatalogReadRetryOperation sse_decode_catalog_read_retry_operation(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  CatalogReclamationPhase sse_decode_catalog_reclamation_phase(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  CatalogReclamationSnapshot sse_decode_catalog_reclamation_snapshot(
     SseDeserializer deserializer,
   );
 
@@ -729,6 +765,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  SourceRevisionEvidence? sse_decode_opt_box_autoadd_source_revision_evidence(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   int? sse_decode_opt_box_autoadd_u_32(SseDeserializer deserializer);
 
   @protected
@@ -768,6 +809,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ScanRequest sse_decode_scan_request(SseDeserializer deserializer);
+
+  @protected
+  SourceRevisionEvidence sse_decode_source_revision_evidence(
+    SseDeserializer deserializer,
+  );
 
   @protected
   StorageSettingsUpdate sse_decode_storage_settings_update(
@@ -922,6 +968,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_source_revision_evidence(
+    SourceRevisionEvidence self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_storage_settings_update(
     StorageSettingsUpdate self,
     SseSerializer serializer,
@@ -975,6 +1027,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_catalog_read_retry_operation(
     CatalogReadRetryOperation self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_catalog_reclamation_phase(
+    CatalogReclamationPhase self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_catalog_reclamation_snapshot(
+    CatalogReclamationSnapshot self,
     SseSerializer serializer,
   );
 
@@ -1240,6 +1304,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_source_revision_evidence(
+    SourceRevisionEvidence? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_u_32(int? self, SseSerializer serializer);
 
   @protected
@@ -1289,6 +1359,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_scan_request(ScanRequest self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_source_revision_evidence(
+    SourceRevisionEvidence self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_storage_settings_update(

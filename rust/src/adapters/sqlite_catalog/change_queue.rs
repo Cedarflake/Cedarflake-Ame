@@ -51,11 +51,14 @@ fn metadata_inventory_recovery_affinity_change_id(
     let baseline_change_ids = {
         let mut statement = connection
             .prepare(
-                "SELECT change_id
-                 FROM library_persistent_journal_baselines
-                 WHERE root_id = ?1 AND root_generation = ?2
-                   AND phase <> 'completed'
-                 ORDER BY change_id",
+                "SELECT baseline.change_id
+                 FROM library_persistent_journal_baselines AS baseline
+                 JOIN library_recovery_authorities AS authority
+                   ON authority.change_id = baseline.change_id
+                 WHERE baseline.root_id = ?1 AND baseline.root_generation = ?2
+                   AND baseline.phase <> 'completed'
+                   AND authority.reason <> 'first_import_boundary'
+                 ORDER BY baseline.change_id",
             )
             .map_err(database_error)?;
         let rows = statement
@@ -2152,6 +2155,7 @@ impl SqliteCatalog {
                      AND (?5 IS NULL OR queue.id = ?5)
                      AND lanes.lane = 'p2_recovery'
                      AND authority.retired_unix_ms IS NULL
+                     AND authority.reason <> 'first_import_boundary'
                      AND authority.run_id <> ''
                      AND (authority.reason = 'watcher_uncovered_gap'
                        OR window.change_id IS NOT NULL)
@@ -2349,6 +2353,7 @@ impl SqliteCatalog {
                                  AND authority.root_id = queue.root_id
                                  AND authority.root_generation = queue.root_generation
                                  AND authority.retired_unix_ms IS NULL
+                                 AND authority.reason <> 'first_import_boundary'
                                  AND authority.run_id <> ''
                                  AND (
                                    authority.reason = 'watcher_uncovered_gap'
@@ -2513,6 +2518,7 @@ impl SqliteCatalog {
                            AND authority.root_id = library_change_queue.root_id
                            AND authority.root_generation = library_change_queue.root_generation
                            AND authority.retired_unix_ms IS NULL
+                           AND authority.reason <> 'first_import_boundary'
                            AND authority.run_id <> ''
                            AND (
                              authority.reason = 'watcher_uncovered_gap'

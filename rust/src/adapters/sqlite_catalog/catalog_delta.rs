@@ -8,15 +8,16 @@ use crate::domain::{
     AssetLocationView, CatalogDeltaBatch, CatalogDeltaPublication, CatalogDeltaPublicationStatus,
     DerivedEvidenceDisposition, FileIdentityEvidence, IncrementalCatalogRoot,
     IncrementalReconciliationOutcome, LibraryChangeCatchUpEvidence, LibraryChangeFailure,
-    LibraryChangeId, LibraryRootGeneration, PreviewStatus, RetainedPreviewExpectation, ScanError,
-    TerminalMediaEvidence,
+    LibraryChangeId, LibraryChangeLane, LibraryRootGeneration, PreviewStatus,
+    RetainedPreviewExpectation, ScanError, TerminalMediaEvidence,
 };
 use crate::ports::IncrementalCatalogRepository;
 
 use super::change_queue::{PERSISTENT_JOURNAL_CATCH_UP_SOURCE, admission_lane_for_change_ids};
 use super::{
-    SqliteCatalog, database_error, load_catalog_revision, persist_location, read_stored_asset,
-    sqlite_integer, sqlite_unsigned, stored_asset_view,
+    IdentityGenerationExpectation, SqliteCatalog, allocate_source_generation, database_error,
+    load_catalog_revision, persist_location, read_stored_asset, source_revision_token,
+    sqlite_integer, sqlite_unsigned, stored_asset_view, stored_source_revision,
 };
 
 const MAX_DELTA_MUTATIONS: usize = 256;
@@ -273,6 +274,7 @@ impl IncrementalCatalogRepository for SqliteCatalog {
             .join(", ");
         let query = format!(
             "SELECT locations.asset_id, locations.location_id, locations.root_id,
+                    locations.scan_id,
                     locations.absolute_path, locations.relative_path,
                     locations.preview_path, locations.file_size,
                     locations.created_unix_ms, locations.modified_unix_ms,
@@ -282,7 +284,8 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                     locations.metadata_engine_version, locations.capture_local_time,
                     locations.capture_offset_minutes, locations.capture_time_source,
                     locations.capture_raw_value, locations.file_identity_scheme,
-                    locations.file_identity_value
+                    locations.file_identity_value, locations.source_revision_token,
+                    locations.source_generation
              FROM library_roots AS roots
              JOIN asset_locations AS locations ON locations.scan_id = roots.active_scan_id
              WHERE locations.root_id = ?
@@ -361,6 +364,7 @@ impl IncrementalCatalogRepository for SqliteCatalog {
         let query = format!(
             "SELECT relative_path, file_size, modified_unix_ms,
                     file_identity_scheme, file_identity_value,
+                    source_revision_token, source_generation,
                     inspection_engine_id, inspection_engine_version,
                     issue_code, issue_message
              FROM library_terminal_media_evidence
@@ -377,10 +381,12 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                     row.get::<_, i64>(2)?,
                     row.get::<_, Option<String>>(3)?,
                     row.get::<_, Option<String>>(4)?,
-                    row.get::<_, String>(5)?,
-                    row.get::<_, i64>(6)?,
+                    row.get::<_, Option<String>>(5)?,
+                    row.get::<_, Option<i64>>(6)?,
                     row.get::<_, String>(7)?,
-                    row.get::<_, String>(8)?,
+                    row.get::<_, i64>(8)?,
+                    row.get::<_, String>(9)?,
+                    row.get::<_, String>(10)?,
                 ))
             })
             .map_err(database_error)?;
@@ -392,6 +398,8 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                 modified_unix_ms,
                 file_identity_scheme,
                 file_identity_value,
+                source_revision_token,
+                source_generation,
                 inspection_engine_id,
                 inspection_engine_version,
                 issue_code,
@@ -412,6 +420,16 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                 file_size: sqlite_unsigned(file_size, "terminal media file size")?,
                 modified_unix_ms,
                 file_identity,
+                source_revision: stored_source_revision(source_revision_token)?,
+                source_generation: sqlite_unsigned(
+                    source_generation.ok_or_else(|| {
+                        ScanError::new(
+                            "catalog_source_generation_missing",
+                            "Terminal media evidence has no source generation",
+                        )
+                    })?,
+                    "terminal media source generation",
+                )?,
                 inspection_engine_id,
                 inspection_engine_version: u32::try_from(inspection_engine_version).map_err(
                     |_| {
@@ -447,6 +465,7 @@ impl IncrementalCatalogRepository for SqliteCatalog {
             .connection
             .prepare(
                 "SELECT locations.asset_id, locations.location_id, locations.root_id,
+                        locations.scan_id,
                         locations.absolute_path, locations.relative_path,
                         locations.preview_path, locations.file_size,
                         locations.created_unix_ms, locations.modified_unix_ms,
@@ -456,7 +475,8 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                         locations.metadata_engine_version, locations.capture_local_time,
                         locations.capture_offset_minutes, locations.capture_time_source,
                         locations.capture_raw_value, locations.file_identity_scheme,
-                        locations.file_identity_value
+                        locations.file_identity_value, locations.source_revision_token,
+                        locations.source_generation
                  FROM library_roots AS roots
                  JOIN asset_locations AS locations ON locations.scan_id = roots.active_scan_id
                  WHERE locations.root_id = ?1
@@ -499,13 +519,30 @@ impl IncrementalCatalogRepository for SqliteCatalog {
         )?;
         let transaction = self.begin_write_in_lane(lane)?;
         let current_revision = load_catalog_revision(&transaction)?;
+        let all_live_completions =
+            batch
+                .completions
+                .iter()
+                .try_fold(true, |all_live, completion| {
+                    transaction
+                        .query_row(
+                            "SELECT lane = 'p0_live' FROM library_change_queue_lanes
+                     WHERE change_id = ?1",
+                            [sqlite_integer(completion.change_id.value(), "change ID")?],
+                            |row| row.get::<_, bool>(0),
+                        )
+                        .map(|is_live| all_live && is_live)
+                        .map_err(database_error)
+                })?;
+        let can_publish_during_scan = lane == LibraryChangeLane::Live && all_live_completions;
         let root_state = transaction
             .query_row(
                 "SELECT roots.active_scan_id, state.generation, state.is_active,
-                        EXISTS(
-                          SELECT 1 FROM scan_runs AS running
+                        (
+                          SELECT running.id FROM scan_runs AS running
                           WHERE running.root_id = roots.id
                             AND running.status IN ('running', 'paused')
+                          LIMIT 1
                         )
                  FROM library_roots AS roots
                  JOIN library_change_root_state AS state ON state.root_id = roots.id
@@ -516,13 +553,13 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                         row.get::<_, Option<String>>(0)?,
                         row.get::<_, i64>(1)?,
                         row.get::<_, bool>(2)?,
-                        row.get::<_, bool>(3)?,
+                        row.get::<_, Option<String>>(3)?,
                     ))
                 },
             )
             .optional()
             .map_err(database_error)?;
-        let Some((active_scan_id, stored_generation, is_active, has_running_scan)) = root_state
+        let Some((active_scan_id, stored_generation, is_active, running_scan_id)) = root_state
         else {
             return Ok(publication(
                 CatalogDeltaPublicationStatus::RootGenerationChanged,
@@ -538,7 +575,7 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                 current_revision,
             ));
         }
-        if has_running_scan {
+        if running_scan_id.is_some() && !can_publish_during_scan {
             return Ok(publication(
                 CatalogDeltaPublicationStatus::RootScanInProgress,
                 current_revision,
@@ -651,6 +688,7 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                 (relative_path, previous_relative_path),
             );
         }
+        let mut terminal_projection_change_ids = HashSet::new();
         for update in &batch.terminal_media_evidence {
             if affected_paths_by_change
                 .get(&update.change_id)
@@ -697,12 +735,32 @@ impl IncrementalCatalogRepository for SqliteCatalog {
             &mut affected_asset_ids,
             &mut affected_artifact_keys,
         )?;
+        collect_identity_fanout_preview_artifacts(
+            &transaction,
+            batch
+                .mutations
+                .iter()
+                .filter_map(|mutation| mutation.upsert_location.as_ref())
+                .filter(|location| location.source_generation == 0)
+                .filter_map(|location| location.file_identity.as_ref())
+                .chain(
+                    batch
+                        .terminal_media_evidence
+                        .iter()
+                        .map(|update| &update.evidence)
+                        .filter(|evidence| evidence.source_generation == 0)
+                        .filter_map(|evidence| evidence.file_identity.as_ref()),
+                ),
+            &mut affected_artifact_keys,
+        )?;
         for mutation in &batch.mutations {
             if let Some(location) = &mutation.upsert_location {
                 affected_asset_ids.insert(location.asset_id.clone());
             }
         }
 
+        let mut identity_generation_batch = HashMap::new();
+        let mut staging_identity_generation_batch = HashMap::new();
         for mutation in &batch.mutations {
             if let Some(lineage) = catch_up_evidence_by_change.get(&mutation.change_id) {
                 for evidence in lineage {
@@ -740,13 +798,34 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                 transaction
                     .execute(
                         "DELETE FROM asset_locations
-                         WHERE scan_id = ?1 AND root_id = ?2 AND location_id = ?3",
-                        params![active_scan_id, batch.root_id, location_id],
+                         WHERE (scan_id = ?1 OR scan_id = ?4)
+                           AND root_id = ?2 AND location_id = ?3",
+                        params![active_scan_id, batch.root_id, location_id, running_scan_id,],
                     )
                     .map_err(database_error)?;
             }
             if let Some(location) = &mutation.upsert_location {
-                persist_location(&transaction, &active_scan_id, &batch.root_id, location)?;
+                let persisted = persist_location(
+                    &transaction,
+                    &active_scan_id,
+                    &batch.root_id,
+                    location,
+                    IdentityGenerationExpectation::ResolveCurrent,
+                    &mut identity_generation_batch,
+                )?;
+                if let Some(running_scan_id) = running_scan_id.as_deref() {
+                    let mut mirrored_location = location.clone();
+                    mirrored_location.source_generation =
+                        sqlite_unsigned(persisted.source_generation, "mirrored source generation")?;
+                    persist_location(
+                        &transaction,
+                        running_scan_id,
+                        &batch.root_id,
+                        &mirrored_location,
+                        IdentityGenerationExpectation::MirrorCurrentActive,
+                        &mut staging_identity_generation_batch,
+                    )?;
+                }
                 if matches!(location.preview_status, PreviewStatus::Ready)
                     && !location.preview_path.is_empty()
                 {
@@ -804,19 +883,191 @@ impl IncrementalCatalogRepository for SqliteCatalog {
         }
         for update in &batch.terminal_media_evidence {
             let evidence = &update.evidence;
+            let source_revision_token = evidence
+                .source_revision
+                .as_ref()
+                .map(source_revision_token)
+                .transpose()?;
+            let source_generation = if evidence.source_generation == 0 {
+                let existing_generation = transaction
+                    .query_row(
+                        "SELECT locations.source_generation
+                         FROM library_roots AS roots
+                         JOIN asset_locations AS locations
+                           ON locations.scan_id = roots.active_scan_id
+                          AND locations.root_id = roots.id
+                         WHERE roots.id = ?1 AND locations.relative_path = ?2
+                           AND locations.file_size = ?3
+                           AND locations.modified_unix_ms = ?4
+                           AND locations.file_identity_scheme IS ?5
+                           AND locations.file_identity_value IS ?6
+                           AND locations.source_revision_token IS ?7",
+                        params![
+                            batch.root_id,
+                            evidence.relative_path,
+                            sqlite_integer(evidence.file_size, "terminal media file size")?,
+                            evidence.modified_unix_ms,
+                            evidence
+                                .file_identity
+                                .as_ref()
+                                .map(|identity| &identity.scheme),
+                            evidence
+                                .file_identity
+                                .as_ref()
+                                .map(|identity| &identity.value),
+                            source_revision_token,
+                        ],
+                        |row| row.get::<_, i64>(0),
+                    )
+                    .optional()
+                    .map_err(database_error)?;
+                match existing_generation {
+                    Some(generation) => generation,
+                    None => allocate_source_generation(&transaction)?,
+                }
+            } else {
+                sqlite_integer(
+                    evidence.source_generation,
+                    "terminal media source generation",
+                )?
+            };
+            let inspection_engine_version = evidence.inspection_engine_version.to_string();
+            if evidence.source_generation == 0
+                && let Some(identity) = evidence.file_identity.as_ref()
+            {
+                transaction
+                    .execute(
+                        "DELETE FROM preview_artifact_locations
+                         WHERE location_id IN (
+                           SELECT locations.location_id
+                           FROM asset_locations AS locations
+                           JOIN library_roots AS roots
+                             ON roots.id = locations.root_id
+                            AND roots.active_scan_id = locations.scan_id
+                           WHERE locations.file_identity_scheme = ?1
+                             AND locations.file_identity_value = ?2
+                         )",
+                        params![identity.scheme, identity.value],
+                    )
+                    .map_err(database_error)?;
+                let updated = transaction
+                    .execute(
+                        "UPDATE asset_locations
+                         SET file_size = ?3, modified_unix_ms = ?4,
+                             file_local_time = strftime(
+                               '%Y-%m-%dT%H:%M:%f',
+                               COALESCE(created_unix_ms, ?4) / 1000.0,
+                               'unixepoch', 'localtime'
+                             ),
+                             width = 0, height = 0,
+                             metadata_engine_id = ?7, metadata_engine_version = ?8,
+                             capture_local_time = NULL, capture_offset_minutes = NULL,
+                             capture_time_source = NULL, capture_raw_value = NULL,
+                             source_revision_token = ?5, source_generation = ?6,
+                             preview_path = '', preview_status = 'failed',
+                             preview_issue_code = ?9, preview_issue_message = ?10
+                         WHERE file_identity_scheme = ?1 AND file_identity_value = ?2
+                           AND (
+                             EXISTS (
+                               SELECT 1 FROM library_roots AS roots
+                               WHERE roots.id = asset_locations.root_id
+                                 AND roots.active_scan_id = asset_locations.scan_id
+                             )
+                             OR EXISTS (
+                               SELECT 1 FROM scan_runs AS running
+                               WHERE running.id = asset_locations.scan_id
+                                 AND running.root_id = asset_locations.root_id
+                                 AND running.status IN ('running', 'paused')
+                             )
+                           )",
+                        params![
+                            identity.scheme,
+                            identity.value,
+                            sqlite_integer(evidence.file_size, "terminal media file size")?,
+                            evidence.modified_unix_ms,
+                            source_revision_token,
+                            source_generation,
+                            evidence.inspection_engine_id,
+                            inspection_engine_version,
+                            evidence.issue.code,
+                            evidence.issue.message,
+                        ],
+                    )
+                    .map_err(database_error)?;
+                if updated > 0 {
+                    terminal_projection_change_ids.insert(update.change_id);
+                }
+                transaction
+                    .execute(
+                        "INSERT INTO library_terminal_media_evidence(
+                           root_id, relative_path, file_size, modified_unix_ms,
+                           file_identity_scheme, file_identity_value,
+                           source_revision_token, source_generation,
+                           inspection_engine_id, inspection_engine_version,
+                           issue_code, issue_message, updated_unix_ms
+                         )
+                         SELECT DISTINCT locations.root_id, locations.relative_path,
+                           ?3, ?4, ?1, ?2, ?5, ?6, ?7, ?8, ?9, ?10, ?11
+                         FROM asset_locations AS locations
+                         WHERE locations.file_identity_scheme = ?1
+                           AND locations.file_identity_value = ?2
+                           AND (
+                             EXISTS (
+                               SELECT 1 FROM library_roots AS roots
+                               WHERE roots.id = locations.root_id
+                                 AND roots.active_scan_id = locations.scan_id
+                             )
+                             OR EXISTS (
+                               SELECT 1 FROM scan_runs AS running
+                               WHERE running.id = locations.scan_id
+                                 AND running.root_id = locations.root_id
+                                 AND running.status IN ('running', 'paused')
+                             )
+                           )
+                         ON CONFLICT(root_id, relative_path) DO UPDATE SET
+                           file_size = excluded.file_size,
+                           modified_unix_ms = excluded.modified_unix_ms,
+                           file_identity_scheme = excluded.file_identity_scheme,
+                           file_identity_value = excluded.file_identity_value,
+                           source_revision_token = excluded.source_revision_token,
+                           source_generation = excluded.source_generation,
+                           inspection_engine_id = excluded.inspection_engine_id,
+                           inspection_engine_version = excluded.inspection_engine_version,
+                           issue_code = excluded.issue_code,
+                           issue_message = excluded.issue_message,
+                           updated_unix_ms = excluded.updated_unix_ms",
+                        params![
+                            identity.scheme,
+                            identity.value,
+                            sqlite_integer(evidence.file_size, "terminal media file size")?,
+                            evidence.modified_unix_ms,
+                            source_revision_token,
+                            source_generation,
+                            evidence.inspection_engine_id,
+                            i64::from(evidence.inspection_engine_version),
+                            evidence.issue.code,
+                            evidence.issue.message,
+                            completed_unix_ms,
+                        ],
+                    )
+                    .map_err(database_error)?;
+            }
             transaction
                 .execute(
                     "INSERT INTO library_terminal_media_evidence(
                        root_id, relative_path, file_size, modified_unix_ms,
                        file_identity_scheme, file_identity_value,
+                       source_revision_token, source_generation,
                        inspection_engine_id, inspection_engine_version,
                        issue_code, issue_message, updated_unix_ms
-                     ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
+                     ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
                      ON CONFLICT(root_id, relative_path) DO UPDATE SET
                        file_size = excluded.file_size,
                        modified_unix_ms = excluded.modified_unix_ms,
                        file_identity_scheme = excluded.file_identity_scheme,
                        file_identity_value = excluded.file_identity_value,
+                       source_revision_token = excluded.source_revision_token,
+                       source_generation = excluded.source_generation,
                        inspection_engine_id = excluded.inspection_engine_id,
                        inspection_engine_version = excluded.inspection_engine_version,
                        issue_code = excluded.issue_code,
@@ -835,6 +1086,8 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                             .file_identity
                             .as_ref()
                             .map(|identity| &identity.value),
+                        source_revision_token,
+                        source_generation,
                         evidence.inspection_engine_id,
                         i64::from(evidence.inspection_engine_version),
                         evidence.issue.code,
@@ -869,7 +1122,9 @@ impl IncrementalCatalogRepository for SqliteCatalog {
             ));
         }
 
-        let published_revision = if batch.mutations.is_empty() {
+        let has_projection_mutation =
+            !batch.mutations.is_empty() || !terminal_projection_change_ids.is_empty();
+        let published_revision = if !has_projection_mutation {
             current_revision
         } else {
             let updated = transaction
@@ -964,10 +1219,29 @@ impl IncrementalCatalogRepository for SqliteCatalog {
         #[cfg(test)]
         run_before_catalog_delta_commit_hook(&batch.root_id)?;
         transaction.commit().map_err(database_error)?;
+        let mutation_change_ids = batch
+            .mutations
+            .iter()
+            .map(|mutation| mutation.change_id)
+            .collect::<HashSet<_>>();
+        let terminal_only_mutation_count = terminal_projection_change_ids
+            .iter()
+            .filter(|change_id| !mutation_change_ids.contains(change_id))
+            .count();
+        let applied_mutation_count = batch
+            .mutations
+            .len()
+            .checked_add(terminal_only_mutation_count)
+            .ok_or_else(|| {
+                ScanError::new(
+                    "catalog_delta_count_overflow",
+                    "The catalog delta mutation count exceeded the supported range",
+                )
+            })?;
         Ok(CatalogDeltaPublication {
             status: CatalogDeltaPublicationStatus::Applied,
             catalog_revision: published_revision,
-            applied_mutation_count: u32::try_from(batch.mutations.len()).map_err(|_| {
+            applied_mutation_count: u32::try_from(applied_mutation_count).map_err(|_| {
                 ScanError::new(
                     "catalog_delta_count_overflow",
                     "The catalog delta mutation count exceeded the supported range",
@@ -1002,6 +1276,7 @@ where
 {
     let query = format!(
         "SELECT locations.asset_id, locations.location_id, locations.root_id,
+                locations.scan_id,
                 locations.absolute_path, locations.relative_path,
                 locations.preview_path, locations.file_size,
                 locations.created_unix_ms, locations.modified_unix_ms,
@@ -1011,7 +1286,8 @@ where
                 locations.metadata_engine_version, locations.capture_local_time,
                 locations.capture_offset_minutes, locations.capture_time_source,
                 locations.capture_raw_value, locations.file_identity_scheme,
-                locations.file_identity_value
+                locations.file_identity_value, locations.source_revision_token,
+                locations.source_generation
          FROM library_roots AS roots
          JOIN asset_locations AS locations ON locations.scan_id = roots.active_scan_id
          WHERE {predicate}
@@ -1043,7 +1319,7 @@ pub(super) fn load_scan_location_by_file_identity(
     let normalized = catalog
         .connection
         .query_row(
-            "SELECT items.asset_id, items.source_location_id, items.root_id,
+            "SELECT items.asset_id, items.source_location_id, items.root_id, ?1 AS scan_id,
                     items.absolute_path, items.relative_path, items.preview_path,
                     items.file_size, items.created_unix_ms, items.modified_unix_ms,
                     items.width, items.height, items.preview_status,
@@ -1051,7 +1327,8 @@ pub(super) fn load_scan_location_by_file_identity(
                     items.metadata_engine_id, items.metadata_engine_version,
                     items.capture_local_time, items.capture_offset_minutes,
                     items.capture_time_source, items.capture_raw_value,
-                    items.file_identity_scheme, items.file_identity_value
+                    items.file_identity_scheme, items.file_identity_value,
+                    items.source_revision_token, items.source_generation
              FROM scan_run_catch_up_lineage AS current_lineage
              JOIN library_change_scan_handoff_lineage AS handoff_lineage
                ON handoff_lineage.catch_up_source = current_lineage.catch_up_source
@@ -1080,6 +1357,7 @@ pub(super) fn load_scan_location_by_file_identity(
         .connection
         .query_row(
             "SELECT handoffs.asset_id, handoffs.source_location_id, handoffs.root_id,
+                    ?1 AS scan_id,
                     handoffs.absolute_path, handoffs.relative_path, handoffs.preview_path,
                     handoffs.file_size, handoffs.created_unix_ms,
                     handoffs.modified_unix_ms, handoffs.width, handoffs.height,
@@ -1088,7 +1366,8 @@ pub(super) fn load_scan_location_by_file_identity(
                     handoffs.metadata_engine_version, handoffs.capture_local_time,
                     handoffs.capture_offset_minutes, handoffs.capture_time_source,
                     handoffs.capture_raw_value, handoffs.file_identity_scheme,
-                    handoffs.file_identity_value
+                    handoffs.file_identity_value, handoffs.source_revision_token,
+                    handoffs.source_generation
              FROM scan_run_catch_up_lineage AS lineage
              JOIN library_change_catch_up_handoffs AS handoffs
                ON handoffs.catch_up_source = lineage.catch_up_source
@@ -1116,7 +1395,7 @@ fn load_catch_up_handoff_location(
     let normalized = catalog
         .connection
         .query_row(
-            "SELECT items.asset_id, items.source_location_id, items.root_id,
+            "SELECT items.asset_id, items.source_location_id, items.root_id, '' AS scan_id,
                     items.absolute_path, items.relative_path, items.preview_path,
                     items.file_size, items.created_unix_ms, items.modified_unix_ms,
                     items.width, items.height, items.preview_status,
@@ -1124,7 +1403,8 @@ fn load_catch_up_handoff_location(
                     items.metadata_engine_id, items.metadata_engine_version,
                     items.capture_local_time, items.capture_offset_minutes,
                     items.capture_time_source, items.capture_raw_value,
-                    items.file_identity_scheme, items.file_identity_value
+                    items.file_identity_scheme, items.file_identity_value,
+                    items.source_revision_token, items.source_generation
              FROM library_change_scan_handoff_lineage AS lineage
              JOIN library_change_scan_handoff_batches AS batches ON batches.id = lineage.batch_id
              JOIN library_change_scan_handoff_items AS items ON items.batch_id = batches.id
@@ -1150,12 +1430,14 @@ fn load_catch_up_handoff_location(
     catalog
         .connection
         .query_row(
-            "SELECT asset_id, source_location_id, root_id, absolute_path, relative_path,
+            "SELECT asset_id, source_location_id, root_id, '' AS scan_id,
+                    absolute_path, relative_path,
                     preview_path, file_size, created_unix_ms, modified_unix_ms,
                     width, height, preview_status, preview_issue_code,
                     preview_issue_message, metadata_engine_id, metadata_engine_version,
                     capture_local_time, capture_offset_minutes, capture_time_source,
-                    capture_raw_value, file_identity_scheme, file_identity_value
+                    capture_raw_value, file_identity_scheme, file_identity_value,
+                    source_revision_token, source_generation
              FROM library_change_catch_up_handoffs
              WHERE catch_up_source = ?1 AND catch_up_watermark = ?2
                AND file_identity_scheme = ?3 AND file_identity_value = ?4",
@@ -1278,6 +1560,7 @@ fn retain_catch_up_handoff_snapshots(
                    width, height, preview_status, preview_issue_code, preview_issue_message,
                    metadata_engine_id, metadata_engine_version, capture_local_time,
                    capture_offset_minutes, capture_time_source, capture_raw_value,
+                   source_revision_token, source_generation,
                    updated_unix_ms
                  )
                  SELECT ?1, ?2, locations.file_identity_scheme, locations.file_identity_value,
@@ -1289,7 +1572,8 @@ fn retain_catch_up_handoff_snapshots(
                         locations.preview_issue_message, locations.metadata_engine_id,
                         locations.metadata_engine_version, locations.capture_local_time,
                         locations.capture_offset_minutes, locations.capture_time_source,
-                        locations.capture_raw_value, ?6
+                        locations.capture_raw_value, locations.source_revision_token,
+                        locations.source_generation, ?6
                  FROM asset_locations AS locations
                  WHERE locations.scan_id = ?3 AND locations.root_id = ?4
                    AND locations.location_id = ?5
@@ -1405,7 +1689,8 @@ pub(super) fn retain_scan_handoff_snapshots(
                preview_path, file_size, created_unix_ms, modified_unix_ms,
                width, height, preview_status, preview_issue_code, preview_issue_message,
                metadata_engine_id, metadata_engine_version, capture_local_time,
-               capture_offset_minutes, capture_time_source, capture_raw_value
+               capture_offset_minutes, capture_time_source, capture_raw_value,
+               source_revision_token, source_generation
              )
              SELECT ?1, locations.file_identity_scheme, locations.file_identity_value,
                     locations.asset_id, locations.location_id, locations.root_id,
@@ -1416,7 +1701,8 @@ pub(super) fn retain_scan_handoff_snapshots(
                     locations.preview_issue_message, locations.metadata_engine_id,
                     locations.metadata_engine_version, locations.capture_local_time,
                     locations.capture_offset_minutes, locations.capture_time_source,
-                    locations.capture_raw_value
+                    locations.capture_raw_value, locations.source_revision_token,
+                    locations.source_generation
              FROM asset_locations AS locations
              WHERE locations.scan_id = ?2 AND locations.root_id = ?3
                AND EXISTS (
@@ -1459,6 +1745,18 @@ pub(super) fn cleanup_terminal_catch_up_handoffs_batch(
     transaction: &rusqlite::Transaction<'_>,
     evidence: &[(String, String)],
 ) -> Result<(), ScanError> {
+    let removed_owner = release_terminal_catch_up_handoffs_batch(transaction, evidence)?;
+    if removed_owner {
+        super::mark_unreferenced_preview_artifacts_stale(transaction)?;
+        super::delete_orphan_assets(transaction)?;
+    }
+    Ok(())
+}
+
+pub(super) fn release_terminal_catch_up_handoffs_batch(
+    transaction: &rusqlite::Transaction<'_>,
+    evidence: &[(String, String)],
+) -> Result<bool, ScanError> {
     let mut removed_owner = false;
     for (source, watermark) in evidence {
         let has_active_work = transaction
@@ -1497,11 +1795,7 @@ pub(super) fn cleanup_terminal_catch_up_handoffs_batch(
             removed_owner |= release_catch_up_handoff_evidence(transaction, source, watermark)?;
         }
     }
-    if removed_owner {
-        super::mark_unreferenced_preview_artifacts_stale(transaction)?;
-        super::delete_orphan_assets(transaction)?;
-    }
-    Ok(())
+    Ok(removed_owner)
 }
 
 #[cfg(test)]
@@ -1662,6 +1956,41 @@ fn load_affected_state(
         }
     }
     Ok(count)
+}
+
+fn collect_identity_fanout_preview_artifacts<'a>(
+    transaction: &rusqlite::Transaction<'_>,
+    identities: impl IntoIterator<Item = &'a FileIdentityEvidence>,
+    artifact_keys: &mut HashSet<String>,
+) -> Result<(), ScanError> {
+    let mut seen = HashSet::new();
+    let mut statement = transaction
+        .prepare_cached(
+            "SELECT DISTINCT owners.artifact_key
+             FROM preview_artifact_locations AS owners
+             JOIN asset_locations AS locations
+               ON locations.location_id = owners.location_id
+             JOIN library_roots AS roots
+               ON roots.id = locations.root_id
+              AND roots.active_scan_id = locations.scan_id
+             WHERE locations.file_identity_scheme = ?1
+               AND locations.file_identity_value = ?2",
+        )
+        .map_err(database_error)?;
+    for identity in identities {
+        if !seen.insert((identity.scheme.as_str(), identity.value.as_str())) {
+            continue;
+        }
+        let rows = statement
+            .query_map(params![identity.scheme, identity.value], |row| {
+                row.get::<_, String>(0)
+            })
+            .map_err(database_error)?;
+        for row in rows {
+            artifact_keys.insert(row.map_err(database_error)?);
+        }
+    }
+    Ok(())
 }
 
 fn count_affected_locations(
@@ -1835,6 +2164,10 @@ fn validate_delta_batch(batch: &CatalogDeltaBatch) -> Result<(), ScanError> {
                 mutation.evidence_disposition == DerivedEvidenceDisposition::RetainCompatible
                     && mutation.upsert_location.is_some()
             }
+            IncrementalReconciliationOutcome::TerminalIssue => {
+                mutation.evidence_disposition == DerivedEvidenceDisposition::InvalidateDerived
+                    && mutation.upsert_location.is_some()
+            }
             IncrementalReconciliationOutcome::Removed => {
                 mutation.evidence_disposition
                     == DerivedEvidenceDisposition::RemoveFromCurrentProjection
@@ -1842,8 +2175,7 @@ fn validate_delta_batch(batch: &CatalogDeltaBatch) -> Result<(), ScanError> {
                     && !mutation.remove_location_ids.is_empty()
             }
             IncrementalReconciliationOutcome::Skipped
-            | IncrementalReconciliationOutcome::RetryableFailure
-            | IncrementalReconciliationOutcome::TerminalIssue => false,
+            | IncrementalReconciliationOutcome::RetryableFailure => false,
         };
         if !valid_evidence_contract {
             return Err(ScanError::new(

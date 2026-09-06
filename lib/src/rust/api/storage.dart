@@ -9,11 +9,26 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // These functions are ignored because they are not marked as `pub`: `clear_preview_cache_with`, `clear_retired_preview_cache_with`
 
-StorageStatus loadStorageStatus() =>
+Future<StorageStatus> loadStorageStatus() =>
     RustLib.instance.api.crateApiStorageLoadStorageStatus();
 
-StorageStatus updateStorageSettings({required StorageSettingsUpdate update}) =>
-    RustLib.instance.api.crateApiStorageUpdateStorageSettings(update: update);
+Future<StorageStatus> updateStorageSettings({
+  required StorageSettingsUpdate update,
+}) => RustLib.instance.api.crateApiStorageUpdateStorageSettings(update: update);
+
+Future<CatalogReclamationSnapshot> startCatalogDatabaseReclamation({
+  required String operationId,
+}) => RustLib.instance.api.crateApiStorageStartCatalogDatabaseReclamation(
+  operationId: operationId,
+);
+
+Future<CatalogReclamationSnapshot> loadCatalogDatabaseReclamation() =>
+    RustLib.instance.api.crateApiStorageLoadCatalogDatabaseReclamation();
+
+Future<bool> cancelCatalogDatabaseReclamation({required String operationId}) =>
+    RustLib.instance.api.crateApiStorageCancelCatalogDatabaseReclamation(
+      operationId: operationId,
+    );
 
 Stream<PreviewCleanupEvent> clearPreviewCache({required String operationId}) =>
     RustLib.instance.api.crateApiStorageClearPreviewCache(

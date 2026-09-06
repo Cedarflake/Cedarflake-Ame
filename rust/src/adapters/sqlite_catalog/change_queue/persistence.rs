@@ -170,14 +170,16 @@ pub(super) fn establish_root_generation(
                     "The stored root generation must be nonzero",
                 )
             })?;
+    retire_unconsumed_live_gap_claims(transaction, root_id, previous_generation)?;
     let superseded = transaction
         .execute(
             "UPDATE library_change_queue
              SET status = 'superseded', next_retry_unix_ms = NULL,
                  lease_expires_unix_ms = NULL, superseded_by_change_id = NULL,
                  updated_unix_ms = ?1
-             WHERE root_id = ?2 AND status IN ('pending', 'leased', 'retry_wait')",
-            params![now_unix_ms, root_id],
+             WHERE root_id = ?2 AND root_generation = ?3
+               AND status IN ('pending', 'leased', 'retry_wait')",
+            params![now_unix_ms, root_id, stored_generation],
         )
         .map_err(database_error)?;
     retire_persistent_journal_authority(transaction, root_id, previous_generation, now_unix_ms)?;
@@ -194,6 +196,144 @@ pub(super) fn establish_root_generation(
     Ok(GenerationDisposition::Current {
         superseded_count: u32::try_from(superseded).unwrap_or(u32::MAX),
     })
+}
+
+fn retire_unconsumed_live_gap_claims(
+    transaction: &Transaction<'_>,
+    root_id: &str,
+    root_generation: LibraryRootGeneration,
+) -> Result<(), ScanError> {
+    let root_generation = sqlite_integer(root_generation.value(), "root generation")?;
+    let candidates = {
+        let mut statement = transaction
+            .prepare(
+                "SELECT claim.gap_change_id,
+                        CASE WHEN (
+                          claim.root_id = ?1 AND claim.root_generation = ?2
+                          AND claim.consumed_unix_ms IS NULL
+                          AND claim.consumer_kind = 'pending_journal'
+                          AND claim.source_range_id IS NULL
+                          AND claim.recovery_change_id IS NULL
+                          AND claim.foreground_scan_id IS NULL
+                          AND claim.opening_volume_guid IS NOT NULL
+                          AND claim.opening_volume_serial IS NOT NULL
+                          AND claim.opening_root_reference_version IN (2, 3)
+                          AND claim.opening_root_file_reference IS NOT NULL
+                          AND claim.opening_journal_id IS NOT NULL
+                          AND claim.opening_next_usn IS NOT NULL
+                          AND claim.protocol_version BETWEEN 1 AND 65535
+                          AND claim.contract_version = 1
+                          AND gap.root_id = ?1 AND gap.root_generation = ?2
+                          AND gap.origin = 'live_notification'
+                          AND gap.intent_kind = 'freshness_unknown'
+                          AND gap.scope = 'root' AND gap.relative_path = ''
+                          AND gap.previous_relative_path IS NULL
+                          AND gap.status = 'retry_wait'
+                          AND gap.authoritative_scan_id IS NULL
+                          AND gap.last_failure_code = 'live_gap_waiting_for_journal_range'
+                          AND lane.lane = 'p0_live'
+                          AND EXISTS(
+                            SELECT 1
+                            FROM library_persistent_journal_checkpoints AS checkpoint
+                            JOIN library_persistent_journal_root_state AS journal_root
+                              ON journal_root.root_id = checkpoint.root_id
+                             AND journal_root.root_generation = checkpoint.root_generation
+                            WHERE checkpoint.root_id = claim.root_id
+                              AND checkpoint.root_generation = claim.root_generation
+                              AND checkpoint.volume_guid = claim.opening_volume_guid
+                              AND checkpoint.volume_serial = claim.opening_volume_serial
+                              AND checkpoint.root_reference_version =
+                                    claim.opening_root_reference_version
+                              AND checkpoint.root_file_reference =
+                                    claim.opening_root_file_reference
+                              AND checkpoint.journal_id = claim.opening_journal_id
+                              AND checkpoint.next_unread_usn = claim.opening_next_usn
+                              AND checkpoint.captured_exclusive_end = claim.opening_next_usn
+                              AND checkpoint.protocol_version = claim.protocol_version
+                              AND checkpoint.contract_version = claim.contract_version
+                              AND checkpoint.continuity_state = 'current'
+                              AND checkpoint.last_failure_code IS NULL
+                              AND journal_root.capability_state = 'supported'
+                              AND journal_root.continuity_state = 'current'
+                          )
+                        ) OR (
+                          claim.root_id = ?1 AND claim.root_generation = ?2
+                          AND claim.consumed_unix_ms IS NULL
+                          AND claim.consumer_kind = 'explicit_recovery_required'
+                          AND claim.opening_volume_guid IS NULL
+                          AND claim.opening_volume_serial IS NULL
+                          AND claim.opening_root_reference_version IS NULL
+                          AND claim.opening_root_file_reference IS NULL
+                          AND claim.opening_journal_id IS NULL
+                          AND claim.opening_next_usn IS NULL
+                          AND claim.protocol_version IS NULL
+                          AND claim.contract_version IS NULL
+                          AND claim.source_range_id IS NULL
+                          AND claim.recovery_change_id IS NULL
+                          AND claim.foreground_scan_id IS NULL
+                          AND gap.root_id = ?1 AND gap.root_generation = ?2
+                          AND gap.origin = 'startup_catch_up'
+                          AND gap.intent_kind = 'freshness_unknown'
+                          AND gap.scope = 'root' AND gap.relative_path = ''
+                          AND gap.previous_relative_path IS NULL
+                          AND gap.status = 'retry_wait'
+                          AND gap.next_retry_unix_ms IS NULL
+                          AND gap.authoritative_scan_id IS NULL
+                          AND gap.last_failure_code =
+                                'live_gap_v30_explicit_recovery_required'
+                          AND lane.lane = 'p1_journal'
+                        ) THEN 1 ELSE 0 END AS is_retirable
+                 FROM library_live_gap_recovery_claims AS claim
+                 LEFT JOIN library_change_queue AS gap ON gap.id = claim.gap_change_id
+                 LEFT JOIN library_change_queue_lanes AS lane ON lane.change_id = gap.id
+                 WHERE (
+                   claim.root_id = ?1 AND claim.root_generation = ?2
+                   AND claim.consumed_unix_ms IS NULL
+                   AND claim.consumer_kind IN (
+                     'pending_journal', 'explicit_recovery_required', 'foreground_scan'
+                   )
+                 ) OR (
+                   gap.root_id = ?1 AND gap.root_generation = ?2
+                   AND gap.status IN ('pending', 'leased', 'retry_wait')
+                 )
+                 ORDER BY claim.gap_change_id",
+            )
+            .map_err(database_error)?;
+        let rows = statement
+            .query_map(params![root_id, root_generation], |row| {
+                Ok((row.get::<_, i64>(0)?, row.get::<_, bool>(1)?))
+            })
+            .map_err(database_error)?;
+        let mut candidates = Vec::new();
+        for row in rows {
+            candidates.push(row.map_err(database_error)?);
+        }
+        candidates
+    };
+    if candidates.iter().any(|(_, is_retirable)| !is_retirable) {
+        return Err(ScanError::new(
+            "live_gap_retirement_consumer_conflict",
+            "The retired root generation has live-gap ownership that requires explicit abandonment",
+        ));
+    }
+    for (gap_change_id, _) in candidates {
+        let deleted = transaction
+            .execute(
+                "DELETE FROM library_live_gap_recovery_claims
+                 WHERE gap_change_id = ?1 AND root_id = ?2 AND root_generation = ?3
+                   AND consumed_unix_ms IS NULL
+                   AND consumer_kind IN ('pending_journal', 'explicit_recovery_required')",
+                params![gap_change_id, root_id, root_generation],
+            )
+            .map_err(database_error)?;
+        if deleted != 1 {
+            return Err(ScanError::new(
+                "live_gap_retirement_consumer_conflict",
+                "The retired root generation changed while releasing live-gap ownership",
+            ));
+        }
+    }
+    Ok(())
 }
 
 fn retire_persistent_journal_authority(
@@ -1656,6 +1796,21 @@ pub(in crate::adapters::sqlite_catalog) fn retire_root_change_queue(
         .optional()
         .map_err(database_error)?;
     if let Some(current_generation) = current_generation {
+        if current_generation <= 0 {
+            return Err(ScanError::new(
+                "change_queue_generation_invalid",
+                "The retired root has an invalid stored generation",
+            ));
+        }
+        let parsed_generation =
+            LibraryRootGeneration::new(sqlite_unsigned(current_generation, "root generation")?)
+                .ok_or_else(|| {
+                    ScanError::new(
+                        "change_queue_generation_invalid",
+                        "The retired root has an invalid stored generation",
+                    )
+                })?;
+        retire_unconsumed_live_gap_claims(transaction, root_id, parsed_generation)?;
         retire_root_publication_namespace(transaction, root_id, current_generation)?;
         transaction
             .execute(
@@ -1664,12 +1819,6 @@ pub(in crate::adapters::sqlite_catalog) fn retire_root_change_queue(
                 params![now_unix_ms, root_id],
             )
             .map_err(database_error)?;
-        if current_generation <= 0 {
-            return Err(ScanError::new(
-                "change_queue_generation_invalid",
-                "The retired root has an invalid stored generation",
-            ));
-        }
     } else {
         return Err(ScanError::new(
             "change_queue_generation_missing",
@@ -1682,8 +1831,9 @@ pub(in crate::adapters::sqlite_catalog) fn retire_root_change_queue(
              SET status = 'superseded', next_retry_unix_ms = NULL,
                  lease_expires_unix_ms = NULL, superseded_by_change_id = NULL,
                  updated_unix_ms = ?1
-             WHERE root_id = ?2 AND status IN ('pending', 'leased', 'retry_wait')",
-            params![now_unix_ms, root_id],
+             WHERE root_id = ?2 AND root_generation = ?3
+               AND status IN ('pending', 'leased', 'retry_wait')",
+            params![now_unix_ms, root_id, current_generation],
         )
         .map_err(database_error)?;
     Ok(())

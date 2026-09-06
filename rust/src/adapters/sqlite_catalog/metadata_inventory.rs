@@ -25,7 +25,10 @@ use crate::domain::{
 };
 use crate::ports::{MetadataInventoryAbsencePublicationRequest, MetadataInventoryRepository};
 
-use super::{SqliteCatalog, database_error, sqlite_integer, sqlite_unsigned};
+use super::{
+    SqliteCatalog, database_error, source_revision_token, sqlite_integer, sqlite_unsigned,
+    stored_source_revision,
+};
 
 const MAX_PAGE_ENTRIES: u32 = 4_096;
 const MAX_CLEANUP_RUNS: u32 = 128;
@@ -33,7 +36,7 @@ const METADATA_ENTRY_INSERT_ROWS_PER_STATEMENT: usize = 64;
 const METADATA_INVENTORY_SPOOL_PAGE_SQL: &str =
     "SELECT relative_path, entry_kind, file_size, modified_unix_ms,
             file_identity_scheme, file_identity_value, placeholder_state,
-            is_reparse_point
+            is_reparse_point, source_revision_token
      FROM library_metadata_inventory_spool_entries
      WHERE run_id = ?1
        AND relative_path > COALESCE(?2, '')
@@ -44,6 +47,7 @@ type StoredEntryParts<'a> = (
     Option<&'a str>,
     Option<&'a str>,
     &'static str,
+    Option<String>,
 );
 
 #[cfg(test)]
@@ -290,6 +294,26 @@ impl MetadataInventoryRepository for SqliteCatalog {
                        WHERE entry.run_id = run.id
                          AND entry.comparison_status = 'pending'
                      )
+                   UNION ALL
+                   SELECT 1
+                   FROM library_recovery_authorities AS authority
+                   JOIN library_persistent_journal_baselines AS baseline
+                     ON baseline.change_id = authority.change_id
+                   JOIN scan_runs AS scan ON scan.id = authority.run_id
+                   JOIN library_roots AS root ON root.id = authority.root_id
+                   JOIN library_change_root_state AS active
+                     ON active.root_id = authority.root_id
+                    AND active.generation = authority.root_generation
+                   WHERE authority.run_id = ?1
+                     AND authority.reason = 'first_import_boundary'
+                     AND authority.retired_unix_ms IS NULL
+                     AND baseline.phase = 'inventory'
+                     AND scan.status = 'completed'
+                     AND scan.scan_owner = 'foreground'
+                     AND scan.root_id = authority.root_id
+                     AND scan.root_generation_at_start = authority.root_generation
+                     AND root.active_scan_id = scan.id
+                     AND active.is_active = 1
                  )",
                 [run_id],
                 |row| row.get::<_, bool>(0),
@@ -838,7 +862,7 @@ impl MetadataInventoryRepository for SqliteCatalog {
             .prepare(
                 "SELECT relative_path, entry_kind, file_size, modified_unix_ms,
                         file_identity_scheme, file_identity_value, placeholder_state,
-                        is_reparse_point
+                        is_reparse_point, source_revision_token
                  FROM library_metadata_inventory_entries
                  WHERE run_id = ?1 AND comparison_status = 'pending'
                  ORDER BY relative_path
@@ -2193,15 +2217,15 @@ fn insert_spool_entries(
 ) -> Result<(), ScanError> {
     for entry in entries {
         validate_entry(scope, entry)?;
-        let (entry_kind, file_size, identity_scheme, identity_value, placeholder_state) =
+        let (entry_kind, file_size, identity_scheme, identity_value, placeholder_state, revision) =
             entry_parts(entry)?;
         transaction
             .execute(
                 "INSERT INTO library_metadata_inventory_spool_entries(
                    run_id, directory_relative_path, relative_path, entry_kind, file_size,
                    modified_unix_ms, file_identity_scheme, file_identity_value,
-                   placeholder_state, is_reparse_point, staged_unix_ms
-                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+                   placeholder_state, is_reparse_point, staged_unix_ms, source_revision_token
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
                 params![
                     run_id,
                     relative_directory,
@@ -2214,6 +2238,7 @@ fn insert_spool_entries(
                     placeholder_state,
                     entry.is_reparse_point,
                     updated_unix_ms,
+                    revision,
                 ],
             )
             .map_err(metadata_inventory_spool_write_error)?;
@@ -3450,6 +3475,7 @@ struct StoredEntry {
     file_identity_value: Option<String>,
     placeholder_state: String,
     is_reparse_point: bool,
+    source_revision_token: Option<String>,
 }
 
 impl StoredEntry {
@@ -3496,6 +3522,7 @@ impl StoredEntry {
                 .transpose()?,
             modified_unix_ms: self.modified_unix_ms,
             file_identity,
+            source_revision: stored_source_revision(self.source_revision_token)?,
             placeholder_state,
             is_reparse_point: self.is_reparse_point,
         })
@@ -3512,6 +3539,7 @@ fn stored_entry(row: &Row<'_>) -> rusqlite::Result<StoredEntry> {
         file_identity_value: row.get(5)?,
         placeholder_state: row.get(6)?,
         is_reparse_point: row.get(7)?,
+        source_revision_token: row.get(8)?,
     })
 }
 
@@ -3658,17 +3686,23 @@ fn insert_metadata_inventory_page_entries(
             "INSERT INTO library_metadata_inventory_entries(
                run_id, relative_path, entry_kind, file_size, modified_unix_ms,
                file_identity_scheme, file_identity_value, placeholder_state,
-               is_reparse_point, staged_page_index, staged_unix_ms
+               is_reparse_point, staged_page_index, staged_unix_ms, source_revision_token
              ) VALUES ",
         );
-        let mut parameters = Vec::with_capacity(entries.len().saturating_mul(11));
+        let mut parameters = Vec::with_capacity(entries.len().saturating_mul(12));
         for (index, entry) in entries.iter().enumerate() {
             if index > 0 {
                 sql.push(',');
             }
-            sql.push_str("(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            let (entry_kind, file_size, identity_scheme, identity_value, placeholder_state) =
-                entry_parts(entry)?;
+            sql.push_str("(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            let (
+                entry_kind,
+                file_size,
+                identity_scheme,
+                identity_value,
+                placeholder_state,
+                revision,
+            ) = entry_parts(entry)?;
             parameters.extend([
                 Value::Text(run.request.run_id.clone()),
                 Value::Text(entry.relative_path.clone()),
@@ -3681,6 +3715,7 @@ fn insert_metadata_inventory_page_entries(
                 Value::Integer(i64::from(entry.is_reparse_point)),
                 Value::Integer(page_index),
                 Value::Integer(updated_unix_ms),
+                revision.map_or(Value::Null, Value::Text),
             ]);
         }
         transaction
@@ -3776,12 +3811,18 @@ fn entry_parts(entry: &MetadataInventoryEntry) -> Result<StoredEntryParts<'_>, S
         MetadataInventoryPlaceholderState::RecallOnOpen => "recall_on_open",
         MetadataInventoryPlaceholderState::RecallOnDataAccess => "recall_on_data_access",
     };
+    let revision = entry
+        .source_revision
+        .as_ref()
+        .map(source_revision_token)
+        .transpose()?;
     Ok((
         entry_kind,
         file_size,
         identity_scheme,
         identity_value,
         placeholder_state,
+        revision,
     ))
 }
 

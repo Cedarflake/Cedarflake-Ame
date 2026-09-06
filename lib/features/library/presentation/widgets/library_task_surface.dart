@@ -3,7 +3,9 @@ import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_theme.dart";
 import "../../domain/library_state.dart";
+import "../library_strings.dart";
 import "library_navigation.dart";
+import "library_task_live_region.dart";
 
 class LibraryTaskSurface extends StatelessWidget {
   const LibraryTaskSurface({
@@ -25,24 +27,46 @@ class LibraryTaskSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLibraryUpdate = state.taskKind == LibraryTaskKind.update;
+    final isRootRemoval = state.taskKind == LibraryTaskKind.remove;
     final title = switch (state.status) {
       LibraryStatus.choosingDirectory => "正在选择文件夹…",
       LibraryStatus.scanning =>
-        state.scanPhase == LibraryScanPhase.finalizing
+        isLibraryUpdate && state.scanPhase == LibraryScanPhase.finalizing
+            ? "正在核对图库“${_rootName(state.displayRootPath)}”…"
+            : isLibraryUpdate
+            ? "正在更新图库“${_rootName(state.displayRootPath)}”…"
+            : state.scanPhase == LibraryScanPhase.finalizing
             ? "正在核对文件夹“${_rootName(state.displayRootPath)}”…"
             : "正在添加文件夹“${_rootName(state.displayRootPath)}”…",
       LibraryStatus.pausing => "正在暂停…",
       LibraryStatus.cancelling => "正在取消…",
+      LibraryStatus.removing =>
+        state.isRemovalCommitted
+            ? LibraryStrings.refreshingAfterRemoval(
+                _rootName(state.removingRootDisplayPath),
+              )
+            : LibraryStrings.removingFromAme(
+                _rootName(state.removingRootDisplayPath),
+              ),
       LibraryStatus.refreshing => "正在更新图库…",
-      LibraryStatus.cancelled => "已取消添加文件夹",
-      LibraryStatus.paused => "已暂停添加文件夹",
+      LibraryStatus.cancelled => isLibraryUpdate ? "已取消更新图库" : "已取消添加文件夹",
+      LibraryStatus.paused => isLibraryUpdate ? "已暂停更新图库" : "已暂停添加文件夹",
       LibraryStatus.stale => "源文件发生变化，需要重新更新",
-      LibraryStatus.failed => "添加文件夹失败",
-      LibraryStatus.completed => "导入完成",
+      LibraryStatus.failed =>
+        isRootRemoval
+            ? state.isRemovalCommitted
+                  ? LibraryStrings.removedFolderRefreshFailed
+                  : LibraryStrings.removeFolderFailed
+            : isLibraryUpdate
+            ? "更新图库失败"
+            : "添加文件夹失败",
+      LibraryStatus.completed => isLibraryUpdate ? "图库更新完成" : "导入完成",
       LibraryStatus.empty => "",
     };
-    final completedDetail =
-        "已检查 ${state.visitedEntries} 个文件 · 已导入 ${state.stagedAssetCount} 张图片";
+    final completedDetail = isLibraryUpdate
+        ? "已检查 ${state.visitedEntries} 个文件 · 图库包含 ${state.stagedAssetCount} 张图片"
+        : "已检查 ${state.visitedEntries} 个文件 · 已导入 ${state.stagedAssetCount} 张图片";
     final isFinalizing =
         state.status == LibraryStatus.scanning &&
         state.scanPhase == LibraryScanPhase.finalizing;
@@ -52,10 +76,14 @@ class LibraryTaskSurface extends StatelessWidget {
         : "已检查 ${state.visitedEntries} 个文件 · 已找到 ${state.stagedAssetCount} 张图片";
     final detail =
         state.errorMessage ??
-        (state.status == LibraryStatus.completed
+        (state.status == LibraryStatus.removing
+            ? state.isRemovalCommitted
+                  ? LibraryStrings.refreshingAfterRemovalDetail
+                  : LibraryStrings.removingFolderDetail
+            : state.status == LibraryStatus.completed
             ? completedDetail
             : scanningDetail);
-    return Material(
+    final surface = Material(
       key: const Key("library-task-surface"),
       elevation: ameNotificationElevation,
       color: Theme.of(context).colorScheme.surfaceContainerHigh,
@@ -97,11 +125,12 @@ class LibraryTaskSurface extends StatelessWidget {
                       onPressed: onRetry,
                       child: const Text("重试"),
                     ),
-                    TextButton(
-                      key: const Key("library-task-dismiss-button"),
-                      onPressed: onDismiss,
-                      child: const Text("知道了"),
-                    ),
+                    if (!state.isCommittedRemovalReloadPending)
+                      TextButton(
+                        key: const Key("library-task-dismiss-button"),
+                        onPressed: onDismiss,
+                        child: const Text("知道了"),
+                      ),
                   ] else if (state.status == LibraryStatus.stale)
                     TextButton(
                       key: const Key("library-retry-button"),
@@ -138,6 +167,15 @@ class LibraryTaskSurface extends StatelessWidget {
           ),
         ),
       ),
+    );
+    if (!isRootRemoval) {
+      return surface;
+    }
+    return LibraryTaskLiveRegion(
+      message: "$title。$detail",
+      announcementScope:
+          "${state.status.name}:${state.isRemovalCommitted}:${state.removingRootId}",
+      child: surface,
     );
   }
 

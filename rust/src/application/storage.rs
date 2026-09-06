@@ -4,13 +4,15 @@ use std::sync::OnceLock;
 
 use directories::ProjectDirs;
 
+#[cfg(test)]
+use crate::adapters::SqliteCatalog;
 use crate::adapters::{
-    LocalPreviewStore, PREVIEW_CACHE_VERSION, SqliteCatalog, SqliteStorageSettings,
-    is_ame_preview_cache_entry, user_visible_path,
+    LocalPreviewStore, PREVIEW_CACHE_VERSION, SqliteStorageSettings, is_ame_preview_cache_entry,
+    user_visible_path,
 };
 use crate::domain::{
-    GalleryQuery, RetiredPreviewRootView, ScanError, StorageConfiguration, StorageSettingsUpdate,
-    StorageStatus,
+    GalleryQuery, LibraryChangeLane, RetiredPreviewRootView, ScanError, StorageConfiguration,
+    StorageSettingsUpdate, StorageStatus,
 };
 use crate::ports::{CatalogRepository, StorageSettingsRepository};
 
@@ -53,6 +55,10 @@ pub(crate) fn storage_paths() -> Result<StoragePaths, ScanError> {
     let storage = ACTIVE_STORAGE
         .get_or_init(resolve_configured_storage)
         .clone()?;
+    #[cfg(not(test))]
+    if storage.catalog_path.is_file() {
+        super::schedule_catalog_reclamation_recovery(storage.catalog_path.clone());
+    }
     Ok(storage)
 }
 
@@ -185,11 +191,12 @@ fn activate_configured_preview_root_with(
     }
     if !pending_roots.is_empty() && catalog_path.exists() {
         let reset_result =
-            SqliteCatalog::open(catalog_path.to_path_buf()).and_then(|mut catalog| {
-                catalog
-                    .reset_previews_outside_root(&preview_root_prefix(&target))
-                    .map(|_| ())
-            });
+            super::catalog_session::open_catalog(catalog_path, LibraryChangeLane::Recovery)
+                .and_then(|mut catalog| {
+                    catalog
+                        .reset_previews_outside_root(&preview_root_prefix(&target))
+                        .map(|_| ())
+                });
         if let Err(reset_error) = reset_result {
             settings.restore_pending_preview_roots(&pending_roots)?;
             return initialize_previous_preview_root(
@@ -329,7 +336,8 @@ fn validate_configuration_paths(
     if !active_catalog_path.exists() {
         return Ok(());
     }
-    let mut catalog = SqliteCatalog::open(active_catalog_path.to_path_buf())?;
+    let mut catalog =
+        super::catalog_session::open_catalog(active_catalog_path, LibraryChangeLane::Recovery)?;
     let query = GalleryQuery::default();
     let snapshot = catalog.load_snapshot(1, &query, "storage-validation", None, None, None)?;
     let configured_catalog = Path::new(&configuration.catalog_path);
@@ -407,7 +415,8 @@ pub(crate) fn validate_preview_root_outside_sources(
     if !catalog_path.exists() {
         return Ok(());
     }
-    let mut catalog = SqliteCatalog::open(catalog_path.to_path_buf())?;
+    let mut catalog =
+        super::catalog_session::open_catalog(catalog_path, LibraryChangeLane::Recovery)?;
     let snapshot = catalog.load_snapshot(
         1,
         &GalleryQuery::default(),
@@ -434,7 +443,7 @@ fn active_catalog_has_roots(path: &Path) -> Result<bool, ScanError> {
     if !path.exists() {
         return Ok(false);
     }
-    let mut catalog = SqliteCatalog::open(path.to_path_buf())?;
+    let mut catalog = super::catalog_session::open_catalog(path, LibraryChangeLane::Recovery)?;
     let query = GalleryQuery::default();
     Ok(!catalog
         .load_snapshot(1, &query, "storage-validation", None, None, None)?
@@ -562,6 +571,13 @@ fn storage_status(
             preview_root,
         })
         .collect();
+    let catalog_used_bytes = catalog_size(&active.catalog_path)?;
+    let catalog_reclamation = super::catalog_reclamation_snapshot(&active.catalog_path)?;
+    let catalog_live_bytes = if catalog_reclamation.catalog_file_bytes == 0 {
+        catalog_used_bytes
+    } else {
+        catalog_reclamation.live_bytes
+    };
     Ok(StorageStatus {
         settings_path: active.settings_path.to_string_lossy().into_owned(),
         active_catalog_path: active_catalog_path.clone(),
@@ -572,7 +588,10 @@ fn storage_status(
         configured_preview_display_path: user_visible_path(&configured.preview_root),
         preview_budget_bytes: configured.preview_budget_bytes,
         preview_used_bytes: directory_size(&active.preview_root)?,
-        catalog_used_bytes: catalog_size(&active.catalog_path)?,
+        catalog_used_bytes,
+        catalog_live_bytes,
+        catalog_reclaimable_bytes: catalog_reclamation.reclaimable_bytes,
+        catalog_reclamation,
         requires_restart: !resolved_paths_same(
             Path::new(&active_catalog_path),
             Path::new(&configured.catalog_path),
@@ -1144,6 +1163,9 @@ mod tests {
             .begin_scan(&request, "storage-root", &request.root_path)
             .expect("begin storage scan");
         catalog
+            .prove_live_only_first_import_handoff_for_test(&request.scan_id)
+            .expect("prove storage fixture first-import handoff");
+        catalog
             .stage_location(
                 &request.scan_id,
                 "storage-root",
@@ -1151,17 +1173,23 @@ mod tests {
                     asset_id: "storage-asset".to_owned(),
                     location_id: "storage-location".to_owned(),
                     root_id: "storage-root".to_owned(),
+                    scan_id: request.scan_id.clone(),
                     absolute_path: source_root.join("one.png").to_string_lossy().into_owned(),
                     display_path: "source\\one.png".to_owned(),
                     relative_path: "one.png".to_owned(),
-                    preview_path: preview_path.to_string_lossy().into_owned(),
+                    preview_path: String::new(),
                     file_size: 20,
                     created_unix_ms: Some(25),
                     modified_unix_ms: 30,
                     file_identity: None,
+                    source_revision: Some(crate::domain::SourceRevisionEvidence {
+                        scheme: "windows-file-change-time-100ns-v1".to_owned(),
+                        value: "0000000000000001".to_owned(),
+                    }),
+                    source_generation: 0,
                     width: 40,
                     height: 50,
-                    preview_status: PreviewStatus::Ready,
+                    preview_status: PreviewStatus::Pending,
                     preview_issue_code: None,
                     preview_issue_message: None,
                     metadata_engine_id: "fixture-metadata".to_owned(),
@@ -1173,10 +1201,12 @@ mod tests {
         catalog
             .publish_scan(&request.scan_id, "storage-root", 1, 0)
             .expect("publish storage scan");
-        let location = catalog
+        let mut location = catalog
             .load_active_location("storage-location")
             .expect("active storage location query")
             .expect("active storage location");
+        location.preview_path = preview_path.to_string_lossy().into_owned();
+        location.preview_status = PreviewStatus::Ready;
         let artifact = PreviewArtifact {
             artifact_key: "storage-preview-artifact".to_owned(),
             algorithm_id: "ame-jpeg-thumbnail".to_owned(),
@@ -1191,7 +1221,7 @@ mod tests {
             height: location.height,
         };
         catalog
-            .update_active_preview(&location, Some(&artifact))
+            .update_active_preview(&location, Some(&artifact), None)
             .expect("publish storage preview artifact");
     }
 }

@@ -3,7 +3,7 @@ use std::fs;
 use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Condvar, Mutex, OnceLock, Weak};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use rusqlite::types::Value;
 use rusqlite::{
@@ -15,15 +15,16 @@ use crate::domain::{
     AssetLocationView, CaptureTimeEvidence, CaptureTimeSource, CatalogCursor, CatalogSnapshot,
     ExpectedFileState, FileIdentityEvidence, GalleryLayoutDateGroup, GalleryLayoutManifestChunk,
     GalleryLayoutManifestCursor, GalleryQuery, GallerySortKey, GalleryTimeAnchor,
-    GalleryTimeBucket, GalleryTimeline, LibraryChangeIntent, LibraryChangeIntentKind,
-    LibraryChangeLane, LibraryChangeOrigin, LibraryChangeQueuePolicy, LibraryChangeScope,
+    GalleryTimeBucket, GalleryTimeline, LibraryChangeLane, LibraryChangeQueuePolicy,
     LibraryFolderCursor, LibraryFolderPage, LibraryRootAvailability, LibraryRootGeneration,
-    LibraryRootView, PreviewArtifact, PreviewReclamationCandidate, PreviewStatus, RecoverableScan,
-    ScanCheckpoint, ScanError, ScanIssue, ScanRequest,
+    LibraryRootView, PreviewArtifact, PreviewReclamationCandidate, PreviewRequest, PreviewStatus,
+    RecoverableScan, ScanCheckpoint, ScanError, ScanIssue, ScanRequest, SourceRevisionEvidence,
 };
 use crate::ports::CatalogRepository;
 
-use super::{file_identity_evidence, open_catalog_identity_guard, user_visible_path};
+use super::{
+    file_identity_evidence, open_catalog_identity_guard, revalidate_file_state, user_visible_path,
+};
 
 mod folders;
 mod gallery;
@@ -38,6 +39,8 @@ mod migrations;
 )]
 mod persistent_journal;
 mod read_retry;
+mod reclamation;
+mod scan_publication;
 
 use change_queue::{activate_root_change_queue, retire_root_change_queue};
 use gallery::{
@@ -46,8 +49,12 @@ use gallery::{
     resolve_gallery_anchor_cursor, resolve_gallery_asset_anchor, resolve_gallery_location_anchor,
     validate_gallery_query,
 };
-use migrations::migrate_schema;
+use migrations::{migrate_schema, prepare_fresh_catalog_auto_vacuum};
 pub(crate) use read_retry::SqliteCatalogReadExecutor;
+pub(crate) use reclamation::SqliteCatalogSpaceMaintenance;
+pub(crate) use scan_publication::{
+    StagedValidationOutcome, StagedValidationRoster, ValidatedStagingProof,
+};
 
 mod catalog_delta;
 #[cfg(test)]
@@ -58,7 +65,9 @@ mod change_queue;
 pub(crate) use catalog_delta::set_before_catalog_delta_commit_hook;
 #[cfg(test)]
 pub(crate) use metadata_inventory::set_before_metadata_inventory_spool_commit_hook;
-const SCHEMA_VERSION: i64 = 30;
+#[cfg(test)]
+pub(crate) use scan_publication::set_before_scan_projection_replacement_hook;
+const SCHEMA_VERSION: i64 = 31;
 const SQLITE_APPLICATION_ID: i64 = 0x414D_4531;
 const SCAN_QUEUE_LEASE_MILLIS: i64 = 15 * 60 * 1_000;
 const MAX_SCAN_CATCH_UP_LINEAGE: i64 = 4_096;
@@ -67,6 +76,7 @@ const MAX_LAYOUT_MANIFEST_CHUNK_ITEMS: u32 = 4_096;
 const MAX_CATALOG_PAGE_ITEMS: u32 = 4_096;
 const LAYOUT_FLAG_DIMENSIONS_KNOWN: u8 = 1;
 const SQLITE_BUSY_TIMEOUT: Duration = Duration::from_secs(5);
+const SQLITE_USER_INTERACTIVE_ADMISSION_TIMEOUT: Duration = Duration::from_secs(5);
 
 static SQLITE_WRITE_ADMISSIONS: OnceLock<Mutex<HashMap<PathBuf, Weak<SqliteWriteAdmission>>>> =
     OnceLock::new();
@@ -77,10 +87,15 @@ static SQLITE_SCHEMA_INITIALIZERS: OnceLock<Mutex<HashMap<PathBuf, Weak<Mutex<()
 static SQLITE_FULL_SCHEMA_VALIDATION_COUNTS: OnceLock<Mutex<HashMap<PathBuf, usize>>> =
     OnceLock::new();
 
+type SqliteWritePreemptCallback = Arc<dyn Fn() + Send + Sync>;
+
 #[derive(Default)]
 struct SqliteWriteAdmissionState {
     is_active: bool,
-    waiting: [u64; 3],
+    active_priority: usize,
+    active_preempt: Option<SqliteWritePreemptCallback>,
+    waiting: [u64; 5],
+    completed_write_epoch: u64,
 }
 
 struct SqliteWriteAdmission {
@@ -97,9 +112,73 @@ impl SqliteWriteAdmission {
     }
 
     fn acquire(self: &Arc<Self>, lane: LibraryChangeLane) -> SqliteWritePermit {
-        let priority = sqlite_write_priority(lane);
+        self.acquire_priority(sqlite_write_priority(lane), None)
+    }
+
+    fn acquire_preemptible(
+        self: &Arc<Self>,
+        lane: LibraryChangeLane,
+        preempt: SqliteWritePreemptCallback,
+    ) -> SqliteWritePermit {
+        self.acquire_priority(sqlite_write_priority(lane), Some(preempt))
+    }
+
+    fn acquire_user_interactive(self: &Arc<Self>) -> Option<SqliteWritePermit> {
+        self.acquire_user_interactive_for(SQLITE_USER_INTERACTIVE_ADMISSION_TIMEOUT)
+    }
+
+    fn acquire_user_interactive_for(
+        self: &Arc<Self>,
+        timeout: Duration,
+    ) -> Option<SqliteWritePermit> {
+        let priority = SQLITE_USER_INTERACTIVE_PRIORITY;
+        let deadline = Instant::now() + timeout;
         let mut state = self.state.lock().unwrap_or_else(|error| error.into_inner());
         state.waiting[priority] = state.waiting[priority].saturating_add(1);
+        let preempt = preemption_callback(&state, priority);
+        drop(state);
+        if let Some(preempt) = preempt {
+            preempt();
+        }
+        let mut state = self.state.lock().unwrap_or_else(|error| error.into_inner());
+        loop {
+            if !state.is_active && !state.waiting[..priority].iter().any(|count| *count > 0) {
+                state.waiting[priority] = state.waiting[priority].saturating_sub(1);
+                state.is_active = true;
+                state.active_priority = priority;
+                state.active_preempt = None;
+                return Some(SqliteWritePermit {
+                    admission: Arc::clone(self),
+                });
+            }
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() {
+                state.waiting[priority] = state.waiting[priority].saturating_sub(1);
+                drop(state);
+                self.ready.notify_all();
+                return None;
+            }
+            let (next, _) = self
+                .ready
+                .wait_timeout(state, remaining)
+                .unwrap_or_else(|error| error.into_inner());
+            state = next;
+        }
+    }
+
+    fn acquire_priority(
+        self: &Arc<Self>,
+        priority: usize,
+        active_preempt: Option<SqliteWritePreemptCallback>,
+    ) -> SqliteWritePermit {
+        let mut state = self.state.lock().unwrap_or_else(|error| error.into_inner());
+        state.waiting[priority] = state.waiting[priority].saturating_add(1);
+        let preempt = preemption_callback(&state, priority);
+        drop(state);
+        if let Some(preempt) = preempt {
+            preempt();
+        }
+        let mut state = self.state.lock().unwrap_or_else(|error| error.into_inner());
         while state.is_active || state.waiting[..priority].iter().any(|count| *count > 0) {
             state = self
                 .ready
@@ -108,10 +187,68 @@ impl SqliteWriteAdmission {
         }
         state.waiting[priority] = state.waiting[priority].saturating_sub(1);
         state.is_active = true;
+        state.active_priority = priority;
+        state.active_preempt = active_preempt;
         drop(state);
         SqliteWritePermit {
             admission: Arc::clone(self),
         }
+    }
+
+    fn completed_write_epoch(&self) -> u64 {
+        self.state
+            .lock()
+            .unwrap_or_else(|error| error.into_inner())
+            .completed_write_epoch
+    }
+
+    fn wait_for_completed_write_after(&self, observed_epoch: u64, timeout: Duration) -> u64 {
+        let deadline = Instant::now() + timeout;
+        let mut state = self.state.lock().unwrap_or_else(|error| error.into_inner());
+        while state.completed_write_epoch == observed_epoch {
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() {
+                break;
+            }
+            let (next, wait_result) = self
+                .ready
+                .wait_timeout(state, remaining)
+                .unwrap_or_else(|error| error.into_inner());
+            state = next;
+            if wait_result.timed_out() {
+                break;
+            }
+        }
+        state.completed_write_epoch
+    }
+
+    #[cfg(test)]
+    fn try_acquire(self: &Arc<Self>, lane: LibraryChangeLane) -> Option<SqliteWritePermit> {
+        self.try_acquire_priority(sqlite_write_priority(lane), None)
+    }
+
+    fn try_acquire_preemptible_maintenance(
+        self: &Arc<Self>,
+        preempt: SqliteWritePreemptCallback,
+    ) -> Option<SqliteWritePermit> {
+        self.try_acquire_priority(SQLITE_MAINTENANCE_PRIORITY, Some(preempt))
+    }
+
+    fn try_acquire_priority(
+        self: &Arc<Self>,
+        priority: usize,
+        preempt: Option<SqliteWritePreemptCallback>,
+    ) -> Option<SqliteWritePermit> {
+        let mut state = self.state.lock().unwrap_or_else(|error| error.into_inner());
+        if state.is_active || state.waiting[..priority].iter().any(|count| *count > 0) {
+            return None;
+        }
+        state.is_active = true;
+        state.active_priority = priority;
+        state.active_preempt = preempt;
+        Some(SqliteWritePermit {
+            admission: Arc::clone(self),
+        })
     }
 }
 
@@ -127,6 +264,10 @@ impl Drop for SqliteWritePermit {
             .lock()
             .unwrap_or_else(|error| error.into_inner());
         state.is_active = false;
+        state.active_priority = 0;
+        state.active_preempt = None;
+        state.completed_write_epoch = state.completed_write_epoch.wrapping_add(1);
+        drop(state);
         self.admission.ready.notify_all();
     }
 }
@@ -163,11 +304,23 @@ impl DerefMut for PriorityTransaction<'_> {
     }
 }
 
+const SQLITE_USER_INTERACTIVE_PRIORITY: usize = 0;
+const SQLITE_MAINTENANCE_PRIORITY: usize = 4;
+
+fn preemption_callback(
+    state: &SqliteWriteAdmissionState,
+    waiting_priority: usize,
+) -> Option<SqliteWritePreemptCallback> {
+    (state.is_active && waiting_priority < state.active_priority)
+        .then(|| state.active_preempt.clone())
+        .flatten()
+}
+
 fn sqlite_write_priority(lane: LibraryChangeLane) -> usize {
     match lane {
-        LibraryChangeLane::Live => 0,
-        LibraryChangeLane::Journal => 1,
-        LibraryChangeLane::Recovery => 2,
+        LibraryChangeLane::Live => 1,
+        LibraryChangeLane::Journal => 2,
+        LibraryChangeLane::Recovery => 3,
     }
 }
 
@@ -217,6 +370,7 @@ pub(crate) fn full_schema_validation_count(path: &Path) -> usize {
 
 #[cfg(test)]
 pub(crate) fn remove_persistent_journal_v22_contract_for_test(connection: &Connection) {
+    migrations::downgrade_source_revision_contract_to_v30_for_test(connection);
     connection
         .execute_batch(
             "DROP TRIGGER IF EXISTS library_live_gap_recovery_claim_identity_update_guard;
@@ -309,6 +463,35 @@ struct PendingLocation {
     scan_id: String,
     root_id: String,
     location: AssetLocationView,
+    identity_group_baseline: Option<StoredIdentityGroupState>,
+}
+
+#[derive(Clone)]
+enum IdentityGenerationExpectation {
+    Captured(Option<StoredIdentityGroupState>),
+    MirrorCurrentActive,
+    ResolveCurrent,
+}
+
+struct PersistLocationOutcome {
+    active_projection_changed: bool,
+    source_generation: i64,
+}
+
+struct IdentityGenerationBatchState {
+    baseline_state: Option<StoredIdentityGroupState>,
+    assigned_generation: i64,
+    source_revision_token: Option<String>,
+    file_size: i64,
+    modified_unix_ms: i64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct StoredIdentityGroupState {
+    generation: i64,
+    source_revision_token: Option<String>,
+    file_size: i64,
+    modified_unix_ms: i64,
 }
 
 struct StoredLayoutManifestItem {
@@ -346,6 +529,7 @@ impl SqliteCatalogSession {
             .lock()
             .unwrap_or_else(|error| error.into_inner());
         let mut connection = Connection::open(&path).map_err(database_error)?;
+        prepare_fresh_catalog_auto_vacuum(&connection)?;
         configure_catalog_connection(&connection)?;
         let journal_mode = connection
             .query_row("PRAGMA journal_mode", [], |row| row.get::<_, String>(0))
@@ -383,6 +567,7 @@ impl SqliteCatalogSession {
         self.open_in_lane_with_read_stage(lane, |_| Ok(()))
     }
 
+    #[cfg(test)]
     pub(super) fn validate_existing_for_read(
         path: PathBuf,
         mut before_stage: impl FnMut(SqliteCatalogReadStage) -> Result<(), ScanError>,
@@ -650,12 +835,83 @@ fn stale_catalog_session_error() -> ScanError {
 }
 
 impl SqliteCatalog {
+    #[cfg(test)]
     pub fn open(path: PathBuf) -> Result<Self, ScanError> {
         Self::open_in_lane(path, LibraryChangeLane::Recovery)
     }
 
+    #[cfg(test)]
     pub(crate) fn open_in_lane(path: PathBuf, lane: LibraryChangeLane) -> Result<Self, ScanError> {
         SqliteCatalogSession::validate(path)?.open_in_lane(lane)
+    }
+
+    pub(crate) fn completed_write_epoch(&self) -> u64 {
+        self.write_admission.completed_write_epoch()
+    }
+
+    pub(crate) fn wait_for_completed_write_after(
+        &self,
+        observed_epoch: u64,
+        timeout: Duration,
+    ) -> u64 {
+        self.write_admission
+            .wait_for_completed_write_after(observed_epoch, timeout)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn prove_live_only_first_import_handoff_for_test(
+        &mut self,
+        scan_id: &str,
+    ) -> Result<(), ScanError> {
+        let (root_id, stored_generation, started_unix_ms) = self
+            .connection
+            .query_row(
+                "SELECT scan.root_id, scan.root_generation_at_start, scan.started_unix_ms
+                 FROM scan_runs AS scan
+                 JOIN library_roots AS root ON root.id = scan.root_id
+                 WHERE scan.id = ?1 AND scan.status = 'running'
+                   AND scan.scan_owner = 'foreground'
+                   AND root.active_scan_id IS NULL",
+                [scan_id],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, i64>(1)?,
+                        row.get::<_, i64>(2)?,
+                    ))
+                },
+            )
+            .optional()
+            .map_err(database_error)?
+            .ok_or_else(|| {
+                ScanError::new(
+                    "catalog_test_first_import_handoff_invalid",
+                    "The test handoff requires a running foreground first-import scan",
+                )
+            })?;
+        let root_generation = LibraryRootGeneration::new(sqlite_unsigned(
+            stored_generation,
+            "first-import test root generation",
+        )?)
+        .ok_or_else(|| {
+            ScanError::new(
+                "catalog_test_first_import_handoff_invalid",
+                "The test handoff root generation is invalid",
+            )
+        })?;
+        <Self as crate::ports::PersistentJournalRepository>::save_persistent_journal_capability(
+            self,
+            &crate::domain::PersistentJournalCapability {
+                root_id,
+                root_generation,
+                protocol_version: crate::journal_broker::PROTOCOL_VERSION,
+                contract_version: crate::domain::PERSISTENT_JOURNAL_CONTRACT_VERSION,
+                state: crate::domain::PersistentJournalCapabilityState::LiveOnly,
+                continuity: crate::domain::PersistentJournalContinuityState::LiveOnly,
+                failure: None,
+                updated_unix_ms: started_unix_ms,
+            },
+        )
     }
 
     pub(crate) fn validated_session(&self) -> SqliteCatalogSession {
@@ -740,14 +996,71 @@ impl SqliteCatalog {
         })
     }
 
+    fn begin_preemptible_write_in_lane(
+        &mut self,
+        lane: LibraryChangeLane,
+        preempt: SqliteWritePreemptCallback,
+    ) -> Result<PriorityTransaction<'_>, ScanError> {
+        let permit = self.write_admission.acquire_preemptible(lane, preempt);
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(database_error)?;
+        Ok(PriorityTransaction {
+            transaction: Some(transaction),
+            _permit: permit,
+        })
+    }
+
+    fn begin_user_interactive_write(&mut self) -> Result<PriorityTransaction<'_>, ScanError> {
+        let permit = self
+            .write_admission
+            .acquire_user_interactive()
+            .ok_or_else(|| {
+                ScanError::new(
+                    "catalog_user_interactive_write_timeout",
+                    "The catalog did not release the current writer in time; retry the removal",
+                )
+            })?;
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(database_error)?;
+        Ok(PriorityTransaction {
+            transaction: Some(transaction),
+            _permit: permit,
+        })
+    }
+
     fn flush_pending_locations(&mut self) -> Result<(), ScanError> {
         if self.pending_locations.is_empty() {
             return Ok(());
         }
         let pending = self.pending_locations.clone();
         let transaction = self.begin_write()?;
+        let mut active_projection_changed = false;
+        let mut identity_generation_batch = HashMap::new();
         for item in &pending {
-            persist_location(&transaction, &item.scan_id, &item.root_id, &item.location)?;
+            active_projection_changed |= persist_location(
+                &transaction,
+                &item.scan_id,
+                &item.root_id,
+                &item.location,
+                IdentityGenerationExpectation::Captured(item.identity_group_baseline.clone()),
+                &mut identity_generation_batch,
+            )?
+            .active_projection_changed;
+        }
+        if active_projection_changed {
+            let updated = transaction
+                .execute("UPDATE catalog_state SET revision = revision + 1", [])
+                .map_err(database_error)?;
+            if updated != 1 {
+                return Err(ScanError::new(
+                    "catalog_revision_unavailable",
+                    "The catalog revision state is missing or invalid",
+                ));
+            }
         }
         transaction.commit().map_err(database_error)?;
         self.pending_locations.clear();
@@ -806,6 +1119,97 @@ impl SqliteCatalog {
         );
         self.pending_authoritative_retry_paths.clear();
         result
+    }
+
+    pub(crate) fn pristine_first_import_scan(
+        &self,
+        root_id: &str,
+        root_generation: LibraryRootGeneration,
+    ) -> Result<Option<(String, i64)>, ScanError> {
+        let mut statement = self
+            .connection
+            .prepare(
+                "SELECT scan.id, scan.started_unix_ms
+                 FROM scan_runs AS scan
+                 JOIN library_roots AS root ON root.id = scan.root_id
+                 JOIN library_change_root_state AS active
+                   ON active.root_id = scan.root_id
+                  AND active.generation = scan.root_generation_at_start
+                 WHERE scan.root_id = ?1 AND scan.root_generation_at_start = ?2
+                   AND scan.scan_owner = 'foreground' AND scan.status = 'running'
+                   AND scan.visited_entries = 0 AND scan.accepted_items = 0
+                   AND root.active_scan_id IS NULL AND active.is_active = 1
+                 ORDER BY scan.started_unix_ms, scan.id
+                 LIMIT 2",
+            )
+            .map_err(database_error)?;
+        let scan_ids = statement
+            .query_map(
+                params![
+                    root_id,
+                    sqlite_integer(root_generation.value(), "root generation")?,
+                ],
+                |row| Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?)),
+            )
+            .map_err(database_error)?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(database_error)?;
+        match scan_ids.as_slice() {
+            [] => Ok(None),
+            [scan] => Ok(Some(scan.clone())),
+            _ => Err(ScanError::new(
+                "catalog_first_import_scan_ambiguous",
+                "The root has more than one pristine first-import scan",
+            )),
+        }
+    }
+
+    pub(crate) fn first_import_change_capture_is_ready(
+        &self,
+        scan_id: &str,
+        root_id: &str,
+        root_generation: LibraryRootGeneration,
+    ) -> Result<bool, ScanError> {
+        self.connection
+            .query_row(
+                "SELECT EXISTS(
+                   SELECT 1
+                   FROM library_recovery_authorities AS authority
+                   JOIN library_persistent_journal_baselines AS baseline
+                     ON baseline.change_id = authority.change_id
+                   WHERE authority.run_id = ?1 AND authority.root_id = ?2
+                     AND authority.root_generation = ?3
+                     AND authority.reason = 'first_import_boundary'
+                     AND authority.retired_unix_ms IS NULL
+                     AND baseline.root_id = authority.root_id
+                     AND baseline.root_generation = authority.root_generation
+                     AND baseline.phase = 'inventory'
+                 ) OR EXISTS(
+                   SELECT 1
+                   FROM library_persistent_journal_root_state AS journal
+                   JOIN library_change_root_state AS active
+                     ON active.root_id = journal.root_id
+                    AND active.generation = journal.root_generation
+                   JOIN scan_runs AS scan
+                     ON scan.id = ?1
+                    AND scan.root_id = journal.root_id
+                    AND scan.root_generation_at_start = journal.root_generation
+                   WHERE journal.root_id = ?2 AND journal.root_generation = ?3
+                     AND journal.capability_state = 'live_only'
+                     AND journal.continuity_state = 'live_only'
+                     AND journal.updated_unix_ms >= scan.started_unix_ms
+                     AND active.is_active = 1
+                     AND scan.scan_owner = 'foreground'
+                     AND scan.status = 'running'
+                 )",
+                params![
+                    scan_id,
+                    root_id,
+                    sqlite_integer(root_generation.value(), "root generation")?,
+                ],
+                |row| row.get::<_, bool>(0),
+            )
+            .map_err(database_error)
     }
 
     pub(crate) fn preserve_authoritative_retry_evidence(
@@ -932,7 +1336,8 @@ impl SqliteCatalog {
                        preview_status, preview_issue_code, preview_issue_message,
                        metadata_engine_id, metadata_engine_version, capture_local_time,
                        capture_offset_minutes, capture_time_source, capture_raw_value,
-                       file_identity_scheme, file_identity_value
+                       file_identity_scheme, file_identity_value, source_revision_token,
+                       source_generation
                      )
                      SELECT ?1, asset_id, location_id, root_id, absolute_path, relative_path,
                             preview_path, file_size, created_unix_ms, modified_unix_ms,
@@ -940,7 +1345,8 @@ impl SqliteCatalog {
                             preview_status, preview_issue_code, preview_issue_message,
                             metadata_engine_id, metadata_engine_version, capture_local_time,
                             capture_offset_minutes, capture_time_source, capture_raw_value,
-                            file_identity_scheme, file_identity_value
+                            file_identity_scheme, file_identity_value, source_revision_token,
+                            source_generation
                      FROM asset_locations
                      WHERE scan_id = ?2 AND root_id = ?3 AND relative_path = ?4",
                     params![scan_id, previous_active_scan, root_id, relative_path],
@@ -1213,6 +1619,67 @@ fn restore_explicit_recovery_claims_from_foreground_scan(
     Ok(())
 }
 
+fn abandon_scan_transaction(
+    transaction: &Transaction<'_>,
+    scan_id: &str,
+    status: &str,
+    issue_count: i64,
+    completed_unix_ms: i64,
+) -> Result<(), ScanError> {
+    let abandoned = transaction
+        .execute(
+            "UPDATE scan_runs
+             SET status = ?2, completed_unix_ms = ?3, issue_count = ?4,
+                 current_directory_relative_path = NULL,
+                 current_directory_enumerated = 0,
+                 last_visited_relative_path = NULL
+             WHERE id = ?1 AND status IN ('running', 'paused')",
+            params![scan_id, status, completed_unix_ms, issue_count],
+        )
+        .map_err(database_error)?;
+    if abandoned == 1 {
+        restore_explicit_recovery_claims_from_foreground_scan(
+            transaction,
+            scan_id,
+            completed_unix_ms,
+        )?;
+        transaction
+            .execute(
+                "UPDATE library_change_queue
+                 SET status = 'pending', ready_unix_ms = ?2,
+                     next_retry_unix_ms = NULL, lease_expires_unix_ms = NULL,
+                     authoritative_scan_id = NULL, updated_unix_ms = ?2
+                  WHERE authoritative_scan_id = ?1 AND status = 'leased'
+                    AND NOT EXISTS(
+                      SELECT 1 FROM library_live_gap_recovery_claims AS claim
+                      WHERE claim.gap_change_id = library_change_queue.id
+                    )",
+                params![scan_id, completed_unix_ms],
+            )
+            .map_err(database_error)?;
+        transaction
+            .execute(
+                "UPDATE library_change_queue
+                 SET authoritative_scan_id = NULL
+                 WHERE authoritative_scan_id = ?1",
+                [scan_id],
+            )
+            .map_err(database_error)?;
+    }
+    for sql in [
+        "DELETE FROM scan_run_catch_up_lineage WHERE scan_id = ?1",
+        "DELETE FROM scan_directory_frontier WHERE scan_id = ?1",
+        "DELETE FROM scan_directory_entries WHERE scan_id = ?1",
+        "DELETE FROM library_scan_publication_namespace_bindings WHERE scan_id = ?1",
+        "DELETE FROM asset_locations WHERE scan_id = ?1",
+    ] {
+        transaction
+            .execute(sql, [scan_id])
+            .map_err(database_error)?;
+    }
+    Ok(())
+}
+
 impl ScanOwner {
     const fn as_str(self) -> &'static str {
         match self {
@@ -1295,6 +1762,81 @@ impl SqliteCatalog {
         self.abandon_scan(scan_id, "failed", issue_count)
     }
 
+    pub(crate) fn load_single_recoverable_foreground_scan(
+        &mut self,
+    ) -> Result<Option<RecoverableScan>, ScanError> {
+        self.converge_single_recoverable_foreground_scan()?;
+        load_scan_with_status(&self.connection, "running", ScanOwner::Foreground)
+    }
+
+    pub(crate) fn load_single_paused_foreground_scan(
+        &mut self,
+    ) -> Result<Option<RecoverableScan>, ScanError> {
+        self.converge_single_recoverable_foreground_scan()?;
+        load_scan_with_status(&self.connection, "paused", ScanOwner::Foreground)
+    }
+
+    fn converge_single_recoverable_foreground_scan(&mut self) -> Result<(), ScanError> {
+        let retired_scan_ids = {
+            let completed_unix_ms = unix_time_ms();
+            let transaction = self.begin_write()?;
+            let unfinished_scans = {
+                let mut statement = transaction
+                    .prepare(
+                        "SELECT scans.id, scans.issue_count,
+                                roots.active_scan_id IS NOT NULL AS has_published_root
+                         FROM scan_runs AS scans
+                         JOIN library_roots AS roots ON roots.id = scans.root_id
+                         WHERE scans.status IN ('running', 'paused')
+                           AND scans.scan_owner = 'foreground'
+                         ORDER BY CASE scans.status WHEN 'paused' THEN 0 ELSE 1 END,
+                                  scans.started_unix_ms DESC, scans.id DESC",
+                    )
+                    .map_err(database_error)?;
+                let rows = statement
+                    .query_map([], |row| {
+                        Ok((
+                            row.get::<_, String>(0)?,
+                            row.get::<_, i64>(1)?,
+                            row.get::<_, bool>(2)?,
+                        ))
+                    })
+                    .map_err(database_error)?;
+                rows.collect::<Result<Vec<_>, _>>()
+                    .map_err(database_error)?
+            };
+            let mut retired_scan_ids = Vec::new();
+            let mut retained_initial_import = false;
+            for (scan_id, issue_count, has_published_root) in unfinished_scans {
+                if !has_published_root && !retained_initial_import {
+                    retained_initial_import = true;
+                    continue;
+                }
+                abandon_scan_transaction(
+                    &transaction,
+                    &scan_id,
+                    "failed",
+                    issue_count,
+                    completed_unix_ms,
+                )?;
+                retired_scan_ids.push(scan_id);
+            }
+            if !retired_scan_ids.is_empty() {
+                delete_orphan_assets(&transaction)?;
+            }
+            transaction.commit().map_err(database_error)?;
+            retired_scan_ids
+        };
+        if !retired_scan_ids.is_empty() {
+            self.pending_locations.retain(|pending| {
+                !retired_scan_ids
+                    .iter()
+                    .any(|scan_id| scan_id == &pending.scan_id)
+            });
+        }
+        Ok(())
+    }
+
     fn begin_scan_owned(
         &mut self,
         request: &ScanRequest,
@@ -1367,11 +1909,13 @@ impl SqliteCatalog {
             .query_row(
                 "SELECT state.generation,
                         MAX(CASE WHEN queue.status IN ('pending', 'leased', 'retry_wait')
-                          THEN queue.id END)
+                          AND lanes.lane <> 'p0_live' THEN queue.id END)
                  FROM library_change_root_state AS state
                  LEFT JOIN library_change_queue AS queue
                    ON queue.root_id = state.root_id
                   AND queue.root_generation = state.generation
+                 LEFT JOIN library_change_queue_lanes AS lanes
+                   ON lanes.change_id = queue.id
                   AND NOT EXISTS(
                     SELECT 1 FROM library_live_gap_recovery_claims AS claim
                     WHERE claim.gap_change_id = queue.id
@@ -1438,6 +1982,11 @@ impl SqliteCatalog {
                          authoritative_scan_id = ?3
                       WHERE root_id = ?4 AND root_generation = ?5 AND id <= ?6
                         AND status IN ('pending', 'retry_wait')
+                        AND EXISTS(
+                          SELECT 1 FROM library_change_queue_lanes AS lanes
+                          WHERE lanes.change_id = library_change_queue.id
+                            AND lanes.lane <> 'p0_live'
+                        )
                         AND NOT EXISTS(
                           SELECT 1 FROM library_live_gap_recovery_claims AS claim
                           WHERE claim.gap_change_id = library_change_queue.id
@@ -1466,6 +2015,7 @@ impl SqliteCatalog {
                          WHERE changes.root_id = ?2
                            AND changes.root_generation = ?3
                             AND changes.id <= ?4
+                            AND changes.authoritative_scan_id = ?1
                             AND changes.status IN ('pending', 'leased', 'retry_wait')
                             AND NOT EXISTS(
                               SELECT 1 FROM library_live_gap_recovery_claims AS claim
@@ -1821,6 +2371,7 @@ impl CatalogRepository for SqliteCatalog {
         self.connection
             .query_row(
                 "SELECT locations.asset_id, locations.location_id, locations.root_id,
+                        locations.scan_id,
                         locations.absolute_path, locations.relative_path,
                         locations.preview_path, locations.file_size,
                         locations.created_unix_ms, locations.modified_unix_ms,
@@ -1830,7 +2381,8 @@ impl CatalogRepository for SqliteCatalog {
                         locations.metadata_engine_version, locations.capture_local_time,
                         locations.capture_offset_minutes, locations.capture_time_source,
                         locations.capture_raw_value, locations.file_identity_scheme,
-                        locations.file_identity_value
+                        locations.file_identity_value, locations.source_revision_token,
+                        locations.source_generation
                  FROM library_roots AS roots
                  JOIN asset_locations AS locations
                    ON locations.scan_id = roots.active_scan_id
@@ -1853,6 +2405,7 @@ impl CatalogRepository for SqliteCatalog {
         self.connection
             .query_row(
                 "SELECT locations.asset_id, locations.location_id, locations.root_id,
+                        locations.scan_id,
                         locations.absolute_path, locations.relative_path,
                         locations.preview_path, locations.file_size,
                         locations.created_unix_ms, locations.modified_unix_ms,
@@ -1862,7 +2415,8 @@ impl CatalogRepository for SqliteCatalog {
                         locations.metadata_engine_version, locations.capture_local_time,
                         locations.capture_offset_minutes, locations.capture_time_source,
                         locations.capture_raw_value, locations.file_identity_scheme,
-                        locations.file_identity_value
+                        locations.file_identity_value, locations.source_revision_token,
+                        locations.source_generation
                  FROM library_roots AS roots
                  JOIN asset_locations AS locations
                    ON locations.scan_id = roots.active_scan_id
@@ -1891,10 +2445,40 @@ impl CatalogRepository for SqliteCatalog {
                 "The staged location does not belong to the scan root",
             ));
         }
+        let location_file_size = sqlite_integer(location.file_size, "file size")?;
+        let location_revision_token = location
+            .source_revision
+            .as_ref()
+            .map(source_revision_token)
+            .transpose()?;
+        let identity_group_baseline = location
+            .file_identity
+            .as_ref()
+            .map(|identity| load_staging_identity_group_state(&self.connection, identity, scan_id))
+            .transpose()?
+            .flatten();
+        if identity_group_baseline.as_ref().is_some_and(|state| {
+            state.file_size != location_file_size
+                || state.modified_unix_ms != location.modified_unix_ms
+                || revisions_conflict(
+                    state.source_revision_token.as_deref(),
+                    location_revision_token.as_deref(),
+                )
+        }) {
+            revalidate_file_state(&ExpectedFileState {
+                absolute_path: location.absolute_path.clone(),
+                file_size: location.file_size,
+                modified_unix_ms: location.modified_unix_ms,
+                file_identity: location.file_identity.clone(),
+                source_revision: location.source_revision.clone(),
+            })
+            .map_err(|issue| ScanError::new(issue.code, issue.message))?;
+        }
         self.pending_locations.push(PendingLocation {
             scan_id: scan_id.to_owned(),
             root_id: root_id.to_owned(),
             location: location.clone(),
+            identity_group_baseline,
         });
         if self.pending_locations.len() >= LOCATION_STAGE_BATCH {
             self.flush_pending_locations()?;
@@ -1906,10 +2490,110 @@ impl CatalogRepository for SqliteCatalog {
         &mut self,
         location: &AssetLocationView,
         artifact: Option<&PreviewArtifact>,
+        request: Option<&PreviewRequest>,
     ) -> Result<(), ScanError> {
+        self.update_active_preview_with_authority(location, artifact, request, None)
+    }
+
+    fn update_active_preview_with_authority(
+        &mut self,
+        location: &AssetLocationView,
+        artifact: Option<&PreviewArtifact>,
+        request: Option<&PreviewRequest>,
+        publication_authority: Option<&crate::ports::PreviewPublicationAuthority>,
+    ) -> Result<(), ScanError> {
+        if let Some(request) = request
+            && (request.location_id != location.location_id
+                || request.expected_root_id != location.root_id
+                || request.expected_scan_id != location.scan_id
+                || request.expected_source_generation != location.source_generation
+                || (request.expected_source_revision.is_some()
+                    && request.expected_source_revision != location.source_revision))
+        {
+            return Err(ScanError::new(
+                "preview_request_context_invalid",
+                "The preview result does not belong to its requested source context",
+            ));
+        }
         let file_size = sqlite_integer(location.file_size, "file size")?;
+        let expected_scan_id = request.map_or(location.scan_id.as_str(), |request| {
+            request.expected_scan_id.as_str()
+        });
+        let expected_source_generation = request.map_or(location.source_generation, |request| {
+            request.expected_source_generation
+        });
+        let expected_source_revision = request
+            .map_or(location.source_revision.as_ref(), |request| {
+                request.expected_source_revision.as_ref()
+            })
+            .map(source_revision_token)
+            .transpose()?;
+        let published_source_revision = location
+            .source_revision
+            .as_ref()
+            .map(source_revision_token)
+            .transpose()?;
+        let expected_root_generation = publication_authority
+            .map(|authority| sqlite_integer(authority.root_generation.value(), "root generation"))
+            .transpose()?;
+        let expected_root_identity_scheme = publication_authority
+            .and_then(|authority| authority.root_identity.as_ref())
+            .map(|identity| identity.scheme.as_str());
+        let expected_root_identity_value = publication_authority
+            .and_then(|authority| authority.root_identity.as_ref())
+            .map(|identity| identity.value.as_str());
         let transaction = self.begin_write()?;
+        if publication_authority.is_some() {
+            let authority_is_current = transaction
+                .query_row(
+                    "SELECT EXISTS(
+                       SELECT 1
+                       FROM library_change_root_state AS root_state
+                       WHERE root_state.root_id = ?1
+                         AND root_state.generation = ?2
+                         AND root_state.is_active = 1
+                         AND (
+                           (
+                             ?3 IS NULL AND ?4 IS NULL
+                             AND NOT EXISTS (
+                               SELECT 1
+                               FROM library_root_publication_namespaces AS namespace
+                               WHERE namespace.root_id = root_state.root_id
+                             )
+                           )
+                           OR EXISTS (
+                             SELECT 1
+                             FROM library_root_publication_namespaces AS namespace
+                             WHERE namespace.root_id = root_state.root_id
+                               AND namespace.root_generation = root_state.generation
+                               AND namespace.identity_scheme = ?3
+                               AND namespace.identity_value = ?4
+                           )
+                         )
+                     )",
+                    params![
+                        location.root_id,
+                        expected_root_generation,
+                        expected_root_identity_scheme,
+                        expected_root_identity_value,
+                    ],
+                    |row| row.get::<_, bool>(0),
+                )
+                .map_err(database_error)?;
+            if !authority_is_current {
+                return Err(ScanError::new(
+                    "active_preview_authority_stale",
+                    "The library root publication authority changed before its preview was updated",
+                ));
+            }
+        }
         if let Some(artifact) = artifact {
+            if location.source_revision.is_none() || location.source_generation == 0 {
+                return Err(ScanError::new(
+                    "preview_source_revision_unproven",
+                    "A preview cannot be published before the source revision is proven",
+                ));
+            }
             let artifact_bytes = sqlite_integer(artifact.byte_size, "preview artifact size")?;
             transaction
                 .execute(
@@ -1966,19 +2650,22 @@ impl CatalogRepository for SqliteCatalog {
                 .execute(
                     "INSERT INTO preview_artifacts(
                        artifact_key, source_file_size, source_modified_unix_ms,
-                       source_identity_scheme, source_identity_value, algorithm_id,
+                       source_identity_scheme, source_identity_value, source_revision_token,
+                       source_generation, algorithm_id,
                        algorithm_version, orientation_contract, size_bucket, encoded_width,
                        encoded_height, artifact_path, byte_size, lifecycle_state,
                        created_unix_ms, last_used_unix_ms
                      ) VALUES (
                        ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13,
-                       'ready', ?14, ?14
+                       ?14, ?15, 'ready', ?16, ?16
                      )
                      ON CONFLICT(artifact_key) DO UPDATE SET
                        source_file_size = excluded.source_file_size,
                        source_modified_unix_ms = excluded.source_modified_unix_ms,
                        source_identity_scheme = excluded.source_identity_scheme,
                        source_identity_value = excluded.source_identity_value,
+                       source_revision_token = excluded.source_revision_token,
+                       source_generation = excluded.source_generation,
                        algorithm_id = excluded.algorithm_id,
                        algorithm_version = excluded.algorithm_version,
                        orientation_contract = excluded.orientation_contract,
@@ -2001,6 +2688,12 @@ impl CatalogRepository for SqliteCatalog {
                             .file_identity
                             .as_ref()
                             .map(|identity| &identity.value),
+                        location
+                            .source_revision
+                            .as_ref()
+                            .map(source_revision_token)
+                            .transpose()?,
+                        sqlite_integer(location.source_generation, "source generation")?,
                         artifact.algorithm_id,
                         i64::from(artifact.algorithm_version),
                         artifact.orientation_contract,
@@ -2034,14 +2727,65 @@ impl CatalogRepository for SqliteCatalog {
             .execute(
                 "UPDATE asset_locations
                  SET preview_path = ?2, width = ?3, height = ?4,
-                     preview_status = ?5, preview_issue_code = ?6,
-                     preview_issue_message = ?7
+                      preview_status = ?5, preview_issue_code = ?6,
+                      preview_issue_message = ?7, source_revision_token = ?14,
+                      metadata_engine_id = ?21, metadata_engine_version = ?22,
+                      capture_local_time = ?23, capture_offset_minutes = ?24,
+                      capture_time_source = ?25, capture_raw_value = ?26
                  WHERE location_id = ?1 AND file_size = ?8 AND modified_unix_ms = ?9
-                   AND root_id = ?10 AND absolute_path = ?11
-                   AND file_identity_scheme IS ?12 AND file_identity_value IS ?13
-                   AND scan_id = (
-                     SELECT active_scan_id FROM library_roots WHERE id = ?10
-                   )",
+                    AND root_id = ?10 AND absolute_path = ?11
+                    AND file_identity_scheme IS ?12 AND file_identity_value IS ?13
+                    AND scan_id = ?15 AND source_generation = ?16
+                    AND (
+                      source_revision_token IS ?17
+                      OR (?17 IS NULL AND source_revision_token = ?14)
+                    )
+                    AND (
+                      ?14 IS NULL OR file_identity_scheme IS NULL OR NOT EXISTS (
+                        SELECT 1
+                        FROM asset_locations AS sibling
+                        JOIN library_roots AS sibling_root
+                          ON sibling_root.id = sibling.root_id
+                         AND sibling_root.active_scan_id = sibling.scan_id
+                        WHERE sibling.file_identity_scheme = asset_locations.file_identity_scheme
+                          AND sibling.file_identity_value = asset_locations.file_identity_value
+                          AND sibling.source_generation = ?16
+                          AND sibling.source_revision_token IS NOT NULL
+                          AND sibling.source_revision_token <> ?14
+                      )
+                    )
+                    AND scan_id = (
+                      SELECT active_scan_id FROM library_roots WHERE id = ?10
+                    )
+                    AND (
+                      ?18 IS NULL OR (
+                        EXISTS (
+                          SELECT 1
+                          FROM library_change_root_state AS root_state
+                          WHERE root_state.root_id = ?10
+                            AND root_state.generation = ?18
+                            AND root_state.is_active = 1
+                        )
+                        AND (
+                          (
+                            ?19 IS NULL AND ?20 IS NULL
+                            AND NOT EXISTS (
+                              SELECT 1
+                              FROM library_root_publication_namespaces AS namespace
+                              WHERE namespace.root_id = ?10
+                            )
+                          )
+                          OR EXISTS (
+                            SELECT 1
+                            FROM library_root_publication_namespaces AS namespace
+                            WHERE namespace.root_id = ?10
+                              AND namespace.root_generation = ?18
+                              AND namespace.identity_scheme = ?19
+                              AND namespace.identity_value = ?20
+                          )
+                        )
+                      )
+                    )",
                 params![
                     location.location_id,
                     location.preview_path,
@@ -2062,6 +2806,32 @@ impl CatalogRepository for SqliteCatalog {
                         .file_identity
                         .as_ref()
                         .map(|identity| &identity.value),
+                    published_source_revision,
+                    expected_scan_id,
+                    sqlite_integer(expected_source_generation, "source generation")?,
+                    expected_source_revision,
+                    expected_root_generation,
+                    expected_root_identity_scheme,
+                    expected_root_identity_value,
+                    location.metadata_engine_id,
+                    location.metadata_engine_version,
+                    location
+                        .capture_time
+                        .as_ref()
+                        .map(|evidence| &evidence.local_time),
+                    location
+                        .capture_time
+                        .as_ref()
+                        .and_then(|evidence| evidence.offset_minutes)
+                        .map(i64::from),
+                    location
+                        .capture_time
+                        .as_ref()
+                        .map(|evidence| capture_time_source_text(&evidence.source)),
+                    location
+                        .capture_time
+                        .as_ref()
+                        .map(|evidence| &evidence.raw_value),
                 ],
             )
             .map_err(database_error)?;
@@ -2070,6 +2840,30 @@ impl CatalogRepository for SqliteCatalog {
                 "active_preview_location_stale",
                 "The active catalog location changed before its preview was updated",
             ));
+        }
+        if let (Some(identity), Some(revision)) = (
+            location.file_identity.as_ref(),
+            published_source_revision.as_ref(),
+        ) {
+            transaction
+                .execute(
+                    "UPDATE asset_locations
+                     SET source_revision_token = ?3
+                     WHERE file_identity_scheme = ?1 AND file_identity_value = ?2
+                       AND source_generation = ?4 AND source_revision_token IS NULL
+                       AND EXISTS (
+                         SELECT 1 FROM library_roots AS roots
+                         WHERE roots.id = asset_locations.root_id
+                           AND roots.active_scan_id = asset_locations.scan_id
+                       )",
+                    params![
+                        identity.scheme,
+                        identity.value,
+                        revision,
+                        sqlite_integer(location.source_generation, "source generation")?,
+                    ],
+                )
+                .map_err(database_error)?;
         }
         transaction.commit().map_err(database_error)
     }
@@ -2527,10 +3321,12 @@ impl CatalogRepository for SqliteCatalog {
         Ok(())
     }
 
+    #[cfg(test)]
     fn load_recoverable_scan(&self) -> Result<Option<RecoverableScan>, ScanError> {
         load_scan_with_status(&self.connection, "running", ScanOwner::Foreground)
     }
 
+    #[cfg(test)]
     fn load_paused_scan(&self) -> Result<Option<RecoverableScan>, ScanError> {
         load_scan_with_status(&self.connection, "paused", ScanOwner::Foreground)
     }
@@ -2915,7 +3711,7 @@ impl CatalogRepository for SqliteCatalog {
             .connection
             .prepare(
                 "SELECT location_id, relative_path, absolute_path, file_size, modified_unix_ms,
-                        file_identity_scheme, file_identity_value
+                        file_identity_scheme, file_identity_value, source_revision_token
                  FROM asset_locations
                  WHERE scan_id = ?1 AND (?2 IS NULL OR location_id > ?2)
                  ORDER BY location_id LIMIT ?3",
@@ -2933,6 +3729,7 @@ impl CatalogRepository for SqliteCatalog {
                         row.get::<_, i64>(4)?,
                         row.get::<_, Option<String>>(5)?,
                         row.get::<_, Option<String>>(6)?,
+                        row.get::<_, Option<String>>(7)?,
                     ))
                 },
             )
@@ -2947,6 +3744,7 @@ impl CatalogRepository for SqliteCatalog {
                 modified_unix_ms,
                 identity_scheme,
                 identity_value,
+                source_revision_token,
             ) = row.map_err(database_error)?;
             let file_size = u64::try_from(file_size).map_err(|_| {
                 ScanError::new(
@@ -2962,6 +3760,7 @@ impl CatalogRepository for SqliteCatalog {
                     file_size,
                     modified_unix_ms,
                     file_identity: stored_file_identity(identity_scheme, identity_value)?,
+                    source_revision: stored_source_revision(source_revision_token)?,
                 },
             ));
         }
@@ -2975,318 +3774,7 @@ impl CatalogRepository for SqliteCatalog {
         asset_count: u64,
         issue_count: u64,
     ) -> Result<(), ScanError> {
-        let retry_relative_paths = std::mem::take(&mut self.pending_authoritative_retry_paths);
-        self.flush_pending_locations()?;
-        let asset_count = sqlite_integer(asset_count, "asset count")?;
-        let issue_count = sqlite_integer(issue_count, "issue count")?;
-        let transaction = self.begin_write()?;
-        let (
-            previous_active_scan,
-            root_generation_at_start,
-            change_queue_high_watermark,
-            requires_previous_snapshot,
-            scan_owner,
-        ) = transaction
-            .query_row(
-                "SELECT roots.active_scan_id, scans.root_generation_at_start,
-                        scans.change_queue_high_watermark,
-                        scans.requires_previous_snapshot, scans.scan_owner
-                 FROM library_roots AS roots
-                 JOIN scan_runs AS scans ON scans.id = ?1 AND scans.root_id = roots.id
-                 WHERE roots.id = ?2",
-                params![scan_id, root_id],
-                |row| {
-                    Ok((
-                        row.get::<_, Option<String>>(0)?,
-                        row.get::<_, Option<i64>>(1)?,
-                        row.get::<_, Option<i64>>(2)?,
-                        row.get::<_, bool>(3)?,
-                        row.get::<_, String>(4)?,
-                    ))
-                },
-            )
-            .map_err(database_error)?;
-        if requires_previous_snapshot {
-            return Err(ScanError::new(
-                "catalog_scan_requires_previous_snapshot",
-                "The scan encountered evidence that requires retaining the previous catalog snapshot",
-            ));
-        }
-        if !retry_relative_paths.is_empty()
-            && scan_owner != ScanOwner::AuthoritativeRecovery.as_str()
-        {
-            return Err(ScanError::new(
-                "catalog_scan_retry_paths_owner_invalid",
-                "Only an authoritative recovery scan may publish durable retry paths",
-            ));
-        }
-        let root_generation_at_start = root_generation_at_start.ok_or_else(|| {
-            ScanError::new(
-                "catalog_scan_generation_unverifiable",
-                "The scan cannot prove the root generation captured at start",
-            )
-        })?;
-        let root_generation_is_current = transaction
-            .query_row(
-                "SELECT generation = ?2 AND is_active = 1
-                 FROM library_change_root_state WHERE root_id = ?1",
-                params![root_id, root_generation_at_start],
-                |row| row.get::<_, bool>(0),
-            )
-            .optional()
-            .map_err(database_error)?
-            .unwrap_or(false);
-        if !root_generation_is_current {
-            return Err(ScanError::new(
-                "catalog_scan_root_generation_changed",
-                "The library root changed while the authoritative scan was running",
-            ));
-        }
-        let publication_binding = transaction
-            .query_row(
-                "SELECT root_generation, identity_scheme, identity_value
-                 FROM library_scan_publication_namespace_bindings
-                 WHERE scan_id = ?1 AND root_id = ?2",
-                params![scan_id, root_id],
-                |row| {
-                    Ok((
-                        row.get::<_, i64>(0)?,
-                        FileIdentityEvidence {
-                            scheme: row.get(1)?,
-                            value: row.get(2)?,
-                        },
-                    ))
-                },
-            )
-            .optional()
-            .map_err(database_error)?;
-        if publication_binding
-            .as_ref()
-            .is_some_and(|(generation, _)| *generation != root_generation_at_start)
-        {
-            return Err(ScanError::new(
-                "catalog_scan_publication_namespace_mismatch",
-                "The scan namespace binding no longer belongs to its root generation",
-            ));
-        }
-        let completed_unix_ms = unix_time_ms();
-        let catch_up_lineage = load_scan_catch_up_lineage(&transaction, scan_id)?;
-        if let Some(previous_active_scan) = previous_active_scan.as_deref()
-            && previous_active_scan != scan_id
-        {
-            catalog_delta::retain_scan_handoff_snapshots(
-                &transaction,
-                scan_id,
-                previous_active_scan,
-                root_id,
-                completed_unix_ms,
-            )?;
-        }
-        let updated = transaction
-            .execute(
-                "UPDATE scan_runs
-                 SET status = 'completed', completed_unix_ms = ?2,
-                     asset_count = ?3, issue_count = ?4,
-                     current_directory_relative_path = NULL,
-                     current_directory_enumerated = 0,
-                     last_visited_relative_path = NULL
-                 WHERE id = ?1 AND status = 'running'",
-                params![scan_id, completed_unix_ms, asset_count, issue_count],
-            )
-            .map_err(database_error)?;
-        if updated != 1 {
-            return Err(ScanError::new(
-                "catalog_scan_not_publishable",
-                "The scan is no longer in a publishable running state",
-            ));
-        }
-        transaction
-            .execute(
-                "DELETE FROM scan_directory_frontier WHERE scan_id = ?1",
-                [scan_id],
-            )
-            .map_err(database_error)?;
-        transaction
-            .execute(
-                "DELETE FROM scan_directory_entries WHERE scan_id = ?1",
-                [scan_id],
-            )
-            .map_err(database_error)?;
-        transaction
-            .execute(
-                "UPDATE library_roots SET active_scan_id = ?2 WHERE id = ?1",
-                params![root_id, scan_id],
-            )
-            .map_err(database_error)?;
-        detach_preview_references_for_root_locations(&transaction, root_id, Some(scan_id))?;
-        transaction
-            .execute(
-                "INSERT OR IGNORE INTO preview_artifact_locations(artifact_key, location_id)
-                 SELECT artifacts.artifact_key, locations.location_id
-                 FROM asset_locations AS locations
-                 JOIN preview_artifacts AS artifacts
-                   ON artifacts.artifact_path = locations.preview_path
-                 WHERE locations.root_id = ?1 AND locations.scan_id = ?2
-                   AND locations.preview_status = 'ready'",
-                params![root_id, scan_id],
-            )
-            .map_err(database_error)?;
-        mark_unreferenced_preview_artifacts_stale(&transaction)?;
-        if let Some(previous_active_scan) = previous_active_scan
-            && previous_active_scan != scan_id
-        {
-            transaction
-                .execute(
-                    "DELETE FROM asset_locations WHERE scan_id = ?1",
-                    [previous_active_scan],
-                )
-                .map_err(database_error)?;
-        }
-        delete_orphan_assets(&transaction)?;
-        let revision_updated = transaction
-            .execute("UPDATE catalog_state SET revision = revision + 1", [])
-            .map_err(database_error)?;
-        if revision_updated != 1 {
-            return Err(ScanError::new(
-                "catalog_revision_unavailable",
-                "The catalog revision state is missing or invalid",
-            ));
-        }
-        let published_revision = load_catalog_revision(&transaction)?;
-        if let Some((_, identity)) = publication_binding.as_ref() {
-            establish_root_publication_namespace(
-                &transaction,
-                root_id,
-                root_generation_at_start,
-                identity,
-                "foreground_scan",
-                published_revision,
-                completed_unix_ms,
-            )?;
-            let deleted = transaction
-                .execute(
-                    "DELETE FROM library_scan_publication_namespace_bindings
-                     WHERE scan_id = ?1 AND root_id = ?2 AND root_generation = ?3",
-                    params![scan_id, root_id, root_generation_at_start],
-                )
-                .map_err(database_error)?;
-            if deleted != 1 {
-                return Err(ScanError::new(
-                    "catalog_scan_publication_namespace_raced",
-                    "The scan namespace binding changed during catalog publication",
-                ));
-            }
-        }
-        if scan_owner == ScanOwner::Foreground.as_str() {
-            consume_foreground_recovery_claims(
-                &transaction,
-                scan_id,
-                root_id,
-                root_generation_at_start,
-                published_revision,
-                completed_unix_ms,
-            )?;
-        }
-        if let Some(high_watermark) = change_queue_high_watermark {
-            transaction
-                .execute(
-                    "UPDATE library_change_queue
-                     SET status = 'completed', next_retry_unix_ms = NULL,
-                         lease_expires_unix_ms = NULL,
-                         catalog_revision_at_success = ?1, updated_unix_ms = ?2,
-                         authoritative_scan_id = NULL
-                      WHERE root_id = ?3 AND root_generation = ?4 AND id <= ?5
-                        AND status IN ('pending', 'leased', 'retry_wait')
-                        AND NOT EXISTS(
-                          SELECT 1 FROM library_live_gap_recovery_claims AS claim
-                          WHERE claim.gap_change_id = library_change_queue.id
-                        )",
-                    params![
-                        sqlite_integer(published_revision, "catalog revision")?,
-                        completed_unix_ms,
-                        root_id,
-                        root_generation_at_start,
-                        high_watermark,
-                    ],
-                )
-                .map_err(database_error)?;
-            transaction
-                .execute(
-                    "UPDATE library_change_queue
-                     SET authoritative_scan_id = NULL
-                     WHERE authoritative_scan_id = ?1",
-                    [scan_id],
-                )
-                .map_err(database_error)?;
-        }
-        if !retry_relative_paths.is_empty() {
-            let root_generation = LibraryRootGeneration::new(sqlite_unsigned(
-                root_generation_at_start,
-                "root generation",
-            )?)
-            .ok_or_else(|| {
-                ScanError::new(
-                    "catalog_scan_generation_invalid",
-                    "The authoritative scan captured an invalid root generation",
-                )
-            })?;
-            let retry_intents = retry_relative_paths
-                .iter()
-                .zip(1_u64..)
-                .map(|(relative_path, sequence)| LibraryChangeIntent {
-                    root_id: root_id.to_owned(),
-                    root_generation,
-                    kind: LibraryChangeIntentKind::Reconcile,
-                    scope: LibraryChangeScope::Path,
-                    relative_path: relative_path.clone(),
-                    previous_relative_path: None,
-                    origin: LibraryChangeOrigin::StartupCatchUp,
-                    first_observed_unix_ms: completed_unix_ms,
-                    most_recent_observed_unix_ms: completed_unix_ms,
-                    first_sequence: sequence,
-                    most_recent_sequence: sequence,
-                    coalesced_observation_count: 1,
-                })
-                .collect::<Vec<_>>();
-            change_queue::validate_enqueue_batch(&retry_intents)?;
-            let report = change_queue::enqueue_intents_in_transaction(
-                &transaction,
-                &retry_intents,
-                None,
-                completed_unix_ms,
-                LibraryChangeQueuePolicy::default(),
-            )?;
-            if report.stale_generation_count > 0 {
-                return Err(ScanError::new(
-                    "catalog_scan_retry_generation_stale",
-                    "The authoritative retry paths no longer belong to the current root generation",
-                ));
-            }
-        }
-        for (source, watermark) in &catch_up_lineage {
-            catalog_delta::cleanup_terminal_catch_up_handoffs(&transaction, source, watermark)?;
-        }
-        transaction
-            .execute(
-                "DELETE FROM scan_run_catch_up_lineage WHERE scan_id = ?1",
-                [scan_id],
-            )
-            .map_err(database_error)?;
-        transaction
-            .execute(
-                "DELETE FROM library_scan_publication_namespace_bindings WHERE scan_id = ?1",
-                [scan_id],
-            )
-            .map_err(database_error)?;
-        transaction
-            .execute(
-                "UPDATE library_change_root_state
-                 SET last_consistency_audit_unix_ms = ?2, updated_unix_ms = ?2
-                 WHERE root_id = ?1 AND generation = ?3 AND is_active = 1",
-                params![root_id, completed_unix_ms, root_generation_at_start],
-            )
-            .map_err(database_error)?;
-        transaction.commit().map_err(database_error)
+        scan_publication::publish_scan(self, scan_id, root_id, asset_count, issue_count)
     }
 
     fn abandon_scan(
@@ -3300,69 +3788,7 @@ impl CatalogRepository for SqliteCatalog {
         let issue_count = sqlite_integer(issue_count, "issue count")?;
         let now = unix_time_ms();
         let transaction = self.begin_write()?;
-        let abandoned = transaction
-            .execute(
-                "UPDATE scan_runs
-                 SET status = ?2, completed_unix_ms = ?3, issue_count = ?4,
-                     current_directory_relative_path = NULL,
-                     current_directory_enumerated = 0,
-                     last_visited_relative_path = NULL
-                 WHERE id = ?1 AND status IN ('running', 'paused')",
-                params![scan_id, status, now, issue_count],
-            )
-            .map_err(database_error)?;
-        if abandoned == 1 {
-            restore_explicit_recovery_claims_from_foreground_scan(&transaction, scan_id, now)?;
-            transaction
-                .execute(
-                    "UPDATE library_change_queue
-                     SET status = 'pending', ready_unix_ms = ?2,
-                         next_retry_unix_ms = NULL, lease_expires_unix_ms = NULL,
-                         authoritative_scan_id = NULL, updated_unix_ms = ?2
-                      WHERE authoritative_scan_id = ?1 AND status = 'leased'
-                        AND NOT EXISTS(
-                          SELECT 1 FROM library_live_gap_recovery_claims AS claim
-                          WHERE claim.gap_change_id = library_change_queue.id
-                        )",
-                    params![scan_id, now],
-                )
-                .map_err(database_error)?;
-            transaction
-                .execute(
-                    "UPDATE library_change_queue
-                     SET authoritative_scan_id = NULL
-                     WHERE authoritative_scan_id = ?1",
-                    [scan_id],
-                )
-                .map_err(database_error)?;
-        }
-        transaction
-            .execute(
-                "DELETE FROM scan_run_catch_up_lineage WHERE scan_id = ?1",
-                [scan_id],
-            )
-            .map_err(database_error)?;
-        transaction
-            .execute(
-                "DELETE FROM scan_directory_frontier WHERE scan_id = ?1",
-                [scan_id],
-            )
-            .map_err(database_error)?;
-        transaction
-            .execute(
-                "DELETE FROM scan_directory_entries WHERE scan_id = ?1",
-                [scan_id],
-            )
-            .map_err(database_error)?;
-        transaction
-            .execute(
-                "DELETE FROM library_scan_publication_namespace_bindings WHERE scan_id = ?1",
-                [scan_id],
-            )
-            .map_err(database_error)?;
-        transaction
-            .execute("DELETE FROM asset_locations WHERE scan_id = ?1", [scan_id])
-            .map_err(database_error)?;
+        abandon_scan_transaction(&transaction, scan_id, status, issue_count, now)?;
         delete_orphan_assets(&transaction)?;
         transaction.commit().map_err(database_error)
     }
@@ -3852,7 +4278,7 @@ impl CatalogRepository for SqliteCatalog {
 
     fn unregister_root(&mut self, root_id: &str) -> Result<bool, ScanError> {
         self.flush_pending_locations()?;
-        let transaction = self.begin_write()?;
+        let transaction = self.begin_user_interactive_write()?;
         let root_exists = transaction
             .query_row(
                 "SELECT EXISTS(SELECT 1 FROM library_roots WHERE id = ?1)",
@@ -3865,6 +4291,7 @@ impl CatalogRepository for SqliteCatalog {
             return Ok(false);
         }
         retire_root_change_queue(&transaction, root_id, unix_time_ms())?;
+        persistent_journal::remove_root_persistent_journal_state(&transaction, root_id)?;
         for table in [
             "scan_directory_frontier",
             "scan_directory_entries",
@@ -3882,8 +4309,9 @@ impl CatalogRepository for SqliteCatalog {
                 )
                 .map_err(database_error)?;
         }
+        prepare_root_unregister_scope(&transaction, root_id)?;
         detach_preview_references_for_root_locations(&transaction, root_id, None)?;
-        mark_unreferenced_preview_artifacts_stale(&transaction)?;
+        mark_root_unregister_preview_artifacts_stale(&transaction)?;
         transaction
             .execute("DELETE FROM asset_locations WHERE root_id = ?1", [root_id])
             .map_err(database_error)?;
@@ -3899,7 +4327,7 @@ impl CatalogRepository for SqliteCatalog {
                 "The registered library root could not be removed",
             ));
         }
-        delete_orphan_assets(&transaction)?;
+        delete_root_unregister_orphan_assets(&transaction)?;
         let revision_updated = transaction
             .execute("UPDATE catalog_state SET revision = revision + 1", [])
             .map_err(database_error)?;
@@ -3909,6 +4337,7 @@ impl CatalogRepository for SqliteCatalog {
                 "The catalog revision state is missing or invalid",
             ));
         }
+        clear_root_unregister_scope(&transaction)?;
         transaction.commit().map_err(database_error)?;
         Ok(true)
     }
@@ -4135,13 +4564,348 @@ fn natural_name_key(relative_path: &str) -> String {
     output
 }
 
+fn load_active_identity_group_state(
+    connection: &Connection,
+    identity: &FileIdentityEvidence,
+) -> Result<Option<StoredIdentityGroupState>, ScanError> {
+    load_identity_group_state_query(
+        connection,
+        "SELECT MIN(locations.source_generation), MAX(locations.source_generation),
+                COUNT(DISTINCT locations.source_revision_token),
+                MAX(locations.source_revision_token),
+                MIN(locations.file_size), MAX(locations.file_size),
+                MIN(locations.modified_unix_ms), MAX(locations.modified_unix_ms)
+         FROM asset_locations AS locations
+         JOIN library_roots AS roots
+           ON roots.id = locations.root_id
+          AND roots.active_scan_id = locations.scan_id
+         WHERE locations.file_identity_scheme = ?1
+           AND locations.file_identity_value = ?2",
+        params![identity.scheme, identity.value],
+    )
+}
+
+fn load_scan_identity_group_state(
+    connection: &Connection,
+    identity: &FileIdentityEvidence,
+    scan_id: &str,
+) -> Result<Option<StoredIdentityGroupState>, ScanError> {
+    load_identity_group_state_query(
+        connection,
+        "SELECT MIN(source_generation), MAX(source_generation),
+                COUNT(DISTINCT source_revision_token), MAX(source_revision_token),
+                MIN(file_size), MAX(file_size),
+                MIN(modified_unix_ms), MAX(modified_unix_ms)
+         FROM asset_locations
+         WHERE file_identity_scheme = ?1 AND file_identity_value = ?2
+           AND scan_id = ?3",
+        params![identity.scheme, identity.value, scan_id],
+    )
+}
+
+fn load_staging_identity_group_state(
+    connection: &Connection,
+    identity: &FileIdentityEvidence,
+    scan_id: &str,
+) -> Result<Option<StoredIdentityGroupState>, ScanError> {
+    load_scan_identity_group_state(connection, identity, scan_id)?.map_or_else(
+        || load_active_identity_group_state(connection, identity),
+        |state| Ok(Some(state)),
+    )
+}
+
+fn load_identity_group_state_query<P>(
+    connection: &Connection,
+    query: &str,
+    parameters: P,
+) -> Result<Option<StoredIdentityGroupState>, ScanError>
+where
+    P: rusqlite::Params,
+{
+    let (
+        minimum_generation,
+        maximum_generation,
+        known_revision_count,
+        source_revision_token,
+        minimum_file_size,
+        maximum_file_size,
+        minimum_modified_unix_ms,
+        maximum_modified_unix_ms,
+    ) = connection
+        .query_row(query, parameters, |row| {
+            Ok((
+                row.get::<_, Option<i64>>(0)?,
+                row.get::<_, Option<i64>>(1)?,
+                row.get::<_, i64>(2)?,
+                row.get::<_, Option<String>>(3)?,
+                row.get::<_, Option<i64>>(4)?,
+                row.get::<_, Option<i64>>(5)?,
+                row.get::<_, Option<i64>>(6)?,
+                row.get::<_, Option<i64>>(7)?,
+            ))
+        })
+        .map_err(database_error)?;
+    let Some(generation) = minimum_generation else {
+        return Ok(None);
+    };
+    if maximum_generation != Some(generation)
+        || known_revision_count > 1
+        || minimum_file_size != maximum_file_size
+        || minimum_modified_unix_ms != maximum_modified_unix_ms
+    {
+        return Err(ScanError::new(
+            "catalog_source_identity_state_unverifiable",
+            "The catalog contains conflicting source state for one physical file identity",
+        ));
+    }
+    Ok(Some(StoredIdentityGroupState {
+        generation,
+        source_revision_token,
+        file_size: minimum_file_size.expect("an identity group has a file size"),
+        modified_unix_ms: minimum_modified_unix_ms
+            .expect("an identity group has a modification time"),
+    }))
+}
+
+fn revisions_conflict(left: Option<&str>, right: Option<&str>) -> bool {
+    matches!((left, right), (Some(left), Some(right)) if left != right)
+}
+
+fn source_observation_superseded() -> ScanError {
+    ScanError::new(
+        "catalog_source_observation_superseded",
+        "A newer observation already owns this physical file identity",
+    )
+}
+
 fn persist_location(
     transaction: &Transaction<'_>,
     scan_id: &str,
     root_id: &str,
     location: &AssetLocationView,
-) -> Result<(), ScanError> {
+    identity_generation_expectation: IdentityGenerationExpectation,
+    identity_generation_batch: &mut HashMap<(String, String), IdentityGenerationBatchState>,
+) -> Result<PersistLocationOutcome, ScanError> {
     let file_size = sqlite_integer(location.file_size, "file size")?;
+    let source_revision_token = location
+        .source_revision
+        .as_ref()
+        .map(source_revision_token)
+        .transpose()?;
+    let requested_generation = (location.source_generation != 0)
+        .then(|| sqlite_integer(location.source_generation, "source generation"))
+        .transpose()?;
+    let is_scan_staging = !matches!(
+        &identity_generation_expectation,
+        IdentityGenerationExpectation::ResolveCurrent
+    );
+    let mut should_fan_out = false;
+    let source_generation = if let Some(identity) = location.file_identity.as_ref() {
+        let key = (identity.scheme.clone(), identity.value.clone());
+        if let Some(batch_state) = identity_generation_batch.get_mut(&key) {
+            if let IdentityGenerationExpectation::Captured(expected) =
+                &identity_generation_expectation
+                && expected != &batch_state.baseline_state
+            {
+                return Err(source_observation_superseded());
+            }
+            if batch_state.file_size != file_size
+                || batch_state.modified_unix_ms != location.modified_unix_ms
+                || revisions_conflict(
+                    batch_state.source_revision_token.as_deref(),
+                    source_revision_token.as_deref(),
+                )
+            {
+                return Err(source_observation_superseded());
+            }
+            if batch_state.source_revision_token.is_none() {
+                batch_state
+                    .source_revision_token
+                    .clone_from(&source_revision_token);
+            }
+            if requested_generation.is_some_and(|requested| {
+                requested
+                    != batch_state
+                        .baseline_state
+                        .as_ref()
+                        .map_or(requested, |state| state.generation)
+                    && requested != batch_state.assigned_generation
+            }) {
+                return Err(source_observation_superseded());
+            }
+            batch_state.assigned_generation
+        } else {
+            let group_state = if is_scan_staging {
+                load_staging_identity_group_state(transaction, identity, scan_id)?
+            } else {
+                load_active_identity_group_state(transaction, identity)?
+            };
+            let current_generation = group_state.as_ref().map(|state| state.generation);
+            if let IdentityGenerationExpectation::Captured(expected) =
+                &identity_generation_expectation
+                && expected != &group_state
+            {
+                return Err(source_observation_superseded());
+            }
+            if let Some(requested) = requested_generation {
+                let incompatible_state = group_state.as_ref().is_some_and(|state| {
+                    state.file_size != file_size
+                        || state.modified_unix_ms != location.modified_unix_ms
+                        || revisions_conflict(
+                            state.source_revision_token.as_deref(),
+                            source_revision_token.as_deref(),
+                        )
+                });
+                let generation_conflicts = match identity_generation_expectation {
+                    IdentityGenerationExpectation::MirrorCurrentActive => current_generation
+                        .is_some_and(|current| {
+                            current > requested || current == requested && incompatible_state
+                        }),
+                    IdentityGenerationExpectation::Captured(_)
+                    | IdentityGenerationExpectation::ResolveCurrent => {
+                        current_generation.is_some_and(|current| current != requested)
+                            || incompatible_state
+                    }
+                };
+                if generation_conflicts {
+                    return Err(source_observation_superseded());
+                }
+            }
+            let observation_matches_group = group_state.as_ref().is_some_and(|state| {
+                state.file_size == file_size
+                    && state.modified_unix_ms == location.modified_unix_ms
+                    && !revisions_conflict(
+                        state.source_revision_token.as_deref(),
+                        source_revision_token.as_deref(),
+                    )
+            });
+            let assigned_generation = match requested_generation {
+                Some(requested) => requested,
+                None if is_scan_staging && observation_matches_group => {
+                    current_generation.expect("a matching group has a source generation")
+                }
+                None => {
+                    should_fan_out = !is_scan_staging;
+                    allocate_source_generation(transaction)?
+                }
+            };
+            identity_generation_batch.insert(
+                key,
+                IdentityGenerationBatchState {
+                    baseline_state: group_state,
+                    assigned_generation,
+                    source_revision_token: source_revision_token.clone(),
+                    file_size,
+                    modified_unix_ms: location.modified_unix_ms,
+                },
+            );
+            assigned_generation
+        }
+    } else if let Some(requested) = requested_generation {
+        requested
+    } else {
+        allocate_source_generation(transaction)?
+    };
+    let mut active_projection_changed = false;
+    if should_fan_out && let Some(identity) = location.file_identity.as_ref() {
+        active_projection_changed = transaction
+            .query_row(
+                "SELECT EXISTS(
+                   SELECT 1 FROM asset_locations AS locations
+                   JOIN library_roots AS roots
+                     ON roots.id = locations.root_id
+                    AND roots.active_scan_id = locations.scan_id
+                   WHERE locations.file_identity_scheme = ?1
+                     AND locations.file_identity_value = ?2
+                 )",
+                params![identity.scheme, identity.value],
+                |row| row.get::<_, bool>(0),
+            )
+            .map_err(database_error)?;
+        transaction
+            .execute(
+                "DELETE FROM preview_artifact_locations
+                 WHERE location_id IN (
+                   SELECT locations.location_id
+                   FROM asset_locations AS locations
+                   JOIN library_roots AS roots
+                     ON roots.id = locations.root_id
+                    AND roots.active_scan_id = locations.scan_id
+                   WHERE locations.file_identity_scheme = ?1
+                     AND locations.file_identity_value = ?2
+                 )",
+                params![identity.scheme, identity.value],
+            )
+            .map_err(database_error)?;
+        transaction
+            .execute(
+                "DELETE FROM library_terminal_media_evidence
+                 WHERE file_identity_scheme = ?1 AND file_identity_value = ?2",
+                params![identity.scheme, identity.value],
+            )
+            .map_err(database_error)?;
+        transaction
+            .execute(
+                "UPDATE asset_locations
+                 SET file_size = ?3, created_unix_ms = ?4, modified_unix_ms = ?5,
+                     file_local_time = strftime(
+                       '%Y-%m-%dT%H:%M:%f', COALESCE(?4, ?5) / 1000.0,
+                       'unixepoch', 'localtime'
+                     ),
+                     width = ?6, height = ?7,
+                     metadata_engine_id = ?8, metadata_engine_version = ?9,
+                     capture_local_time = ?10, capture_offset_minutes = ?11,
+                     capture_time_source = ?12, capture_raw_value = ?13,
+                     source_revision_token = ?14, source_generation = ?15,
+                     preview_path = '', preview_status = 'pending',
+                     preview_issue_code = NULL, preview_issue_message = NULL
+                 WHERE file_identity_scheme = ?1 AND file_identity_value = ?2
+                   AND (
+                     EXISTS (
+                       SELECT 1 FROM library_roots AS roots
+                       WHERE roots.id = asset_locations.root_id
+                         AND roots.active_scan_id = asset_locations.scan_id
+                     )
+                     OR EXISTS (
+                       SELECT 1 FROM scan_runs AS running
+                       WHERE running.id = asset_locations.scan_id
+                         AND running.root_id = asset_locations.root_id
+                         AND running.status IN ('running', 'paused')
+                     )
+                   )",
+                params![
+                    identity.scheme,
+                    identity.value,
+                    file_size,
+                    location.created_unix_ms,
+                    location.modified_unix_ms,
+                    i64::from(location.width),
+                    i64::from(location.height),
+                    location.metadata_engine_id,
+                    location.metadata_engine_version,
+                    location
+                        .capture_time
+                        .as_ref()
+                        .map(|evidence| &evidence.local_time),
+                    location
+                        .capture_time
+                        .as_ref()
+                        .and_then(|evidence| evidence.offset_minutes)
+                        .map(i64::from),
+                    location
+                        .capture_time
+                        .as_ref()
+                        .map(|evidence| capture_time_source_text(&evidence.source)),
+                    location
+                        .capture_time
+                        .as_ref()
+                        .map(|evidence| &evidence.raw_value),
+                    source_revision_token,
+                    source_generation,
+                ],
+            )
+            .map_err(database_error)?;
+    }
     transaction
         .execute(
             "INSERT OR IGNORE INTO assets(id, created_unix_ms) VALUES (?1, ?2)",
@@ -4157,7 +4921,8 @@ fn persist_location(
                preview_status, preview_issue_code, preview_issue_message,
                metadata_engine_id, metadata_engine_version, capture_local_time,
                capture_offset_minutes, capture_time_source, capture_raw_value,
-               file_identity_scheme, file_identity_value
+               file_identity_scheme, file_identity_value, source_revision_token,
+               source_generation
              ) VALUES (
                 ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10,
                 strftime(
@@ -4165,7 +4930,7 @@ fn persist_location(
                   'unixepoch', 'localtime'
                 ),
                 ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20,
-                ?21, ?22, ?23, ?24, ?25
+                ?21, ?22, ?23, ?24, ?25, ?26, ?27
               )
              ON CONFLICT(scan_id, location_id) DO UPDATE SET
                asset_id = excluded.asset_id,
@@ -4191,7 +4956,9 @@ fn persist_location(
                capture_time_source = excluded.capture_time_source,
                capture_raw_value = excluded.capture_raw_value,
                file_identity_scheme = excluded.file_identity_scheme,
-               file_identity_value = excluded.file_identity_value",
+               file_identity_value = excluded.file_identity_value,
+               source_revision_token = excluded.source_revision_token,
+               source_generation = excluded.source_generation",
             params![
                 scan_id,
                 location.asset_id,
@@ -4237,16 +5004,45 @@ fn persist_location(
                     .file_identity
                     .as_ref()
                     .map(|identity| &identity.value),
+                source_revision_token,
+                source_generation,
             ],
         )
         .map_err(database_error)?;
-    Ok(())
+    Ok(PersistLocationOutcome {
+        active_projection_changed,
+        source_generation,
+    })
+}
+
+fn allocate_source_generation(transaction: &Transaction<'_>) -> Result<i64, ScanError> {
+    let generation = transaction
+        .query_row(
+            "SELECT next_source_generation FROM catalog_state",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .map_err(database_error)?;
+    if generation <= 0 || generation == i64::MAX {
+        return Err(ScanError::new(
+            "catalog_source_generation_exhausted",
+            "The catalog source-generation allocator is exhausted",
+        ));
+    }
+    transaction
+        .execute(
+            "UPDATE catalog_state SET next_source_generation = ?1",
+            [generation + 1],
+        )
+        .map_err(database_error)?;
+    Ok(generation)
 }
 
 struct StoredAssetRow {
     asset_id: String,
     location_id: String,
     root_id: String,
+    scan_id: String,
     absolute_path: String,
     relative_path: String,
     preview_path: String,
@@ -4266,6 +5062,8 @@ struct StoredAssetRow {
     capture_raw_value: Option<String>,
     file_identity_scheme: Option<String>,
     file_identity_value: Option<String>,
+    source_revision_token: Option<String>,
+    source_generation: Option<i64>,
 }
 
 fn read_stored_asset(row: &Row<'_>) -> rusqlite::Result<StoredAssetRow> {
@@ -4273,25 +5071,28 @@ fn read_stored_asset(row: &Row<'_>) -> rusqlite::Result<StoredAssetRow> {
         asset_id: row.get(0)?,
         location_id: row.get(1)?,
         root_id: row.get(2)?,
-        absolute_path: row.get(3)?,
-        relative_path: row.get(4)?,
-        preview_path: row.get(5)?,
-        file_size: row.get(6)?,
-        created_unix_ms: row.get(7)?,
-        modified_unix_ms: row.get(8)?,
-        width: row.get(9)?,
-        height: row.get(10)?,
-        preview_status: row.get(11)?,
-        preview_issue_code: row.get(12)?,
-        preview_issue_message: row.get(13)?,
-        metadata_engine_id: row.get(14)?,
-        metadata_engine_version: row.get(15)?,
-        capture_local_time: row.get(16)?,
-        capture_offset_minutes: row.get(17)?,
-        capture_time_source: row.get(18)?,
-        capture_raw_value: row.get(19)?,
-        file_identity_scheme: row.get(20)?,
-        file_identity_value: row.get(21)?,
+        scan_id: row.get(3)?,
+        absolute_path: row.get(4)?,
+        relative_path: row.get(5)?,
+        preview_path: row.get(6)?,
+        file_size: row.get(7)?,
+        created_unix_ms: row.get(8)?,
+        modified_unix_ms: row.get(9)?,
+        width: row.get(10)?,
+        height: row.get(11)?,
+        preview_status: row.get(12)?,
+        preview_issue_code: row.get(13)?,
+        preview_issue_message: row.get(14)?,
+        metadata_engine_id: row.get(15)?,
+        metadata_engine_version: row.get(16)?,
+        capture_local_time: row.get(17)?,
+        capture_offset_minutes: row.get(18)?,
+        capture_time_source: row.get(19)?,
+        capture_raw_value: row.get(20)?,
+        file_identity_scheme: row.get(21)?,
+        file_identity_value: row.get(22)?,
+        source_revision_token: row.get(23)?,
+        source_generation: row.get(24)?,
     })
 }
 
@@ -4306,6 +5107,7 @@ fn stored_asset_view(stored: StoredAssetRow) -> Result<AssetLocationView, ScanEr
         asset_id: stored.asset_id,
         location_id: stored.location_id,
         root_id: stored.root_id,
+        scan_id: stored.scan_id,
         display_path: user_visible_path(&stored.absolute_path),
         absolute_path: stored.absolute_path,
         relative_path: stored.relative_path,
@@ -4316,6 +5118,16 @@ fn stored_asset_view(stored: StoredAssetRow) -> Result<AssetLocationView, ScanEr
         file_identity: stored_file_identity(
             stored.file_identity_scheme,
             stored.file_identity_value,
+        )?,
+        source_revision: stored_source_revision(stored.source_revision_token)?,
+        source_generation: sqlite_unsigned(
+            stored.source_generation.ok_or_else(|| {
+                ScanError::new(
+                    "catalog_source_generation_missing",
+                    "The catalog location has no source generation",
+                )
+            })?,
+            "source generation",
         )?,
         width: sqlite_u32(stored.width, "image width")?,
         height: sqlite_u32(stored.height, "image height")?,
@@ -4363,6 +5175,40 @@ fn stored_file_identity(
             "The stored file-identity evidence is incomplete",
         )),
     }
+}
+
+fn source_revision_token(evidence: &SourceRevisionEvidence) -> Result<String, ScanError> {
+    if evidence.scheme != "windows-file-change-time-100ns-v1"
+        || evidence.value.len() != 16
+        || !evidence
+            .value
+            .bytes()
+            .all(|value| value.is_ascii_hexdigit() && !value.is_ascii_uppercase())
+    {
+        return Err(ScanError::new(
+            "catalog_source_revision_invalid",
+            "Source revision evidence is not a canonical Windows ChangeTime token",
+        ));
+    }
+    Ok(format!("{}:{}", evidence.scheme, evidence.value))
+}
+
+fn stored_source_revision(
+    token: Option<String>,
+) -> Result<Option<SourceRevisionEvidence>, ScanError> {
+    let Some(token) = token else { return Ok(None) };
+    let Some((scheme, value)) = token.rsplit_once(':') else {
+        return Err(ScanError::new(
+            "catalog_source_revision_invalid",
+            "The stored source revision token is malformed",
+        ));
+    };
+    let evidence = SourceRevisionEvidence {
+        scheme: scheme.to_owned(),
+        value: value.to_owned(),
+    };
+    source_revision_token(&evidence)?;
+    Ok(Some(evidence))
 }
 
 fn preview_status_text(status: &PreviewStatus) -> &'static str {
@@ -4602,6 +5448,110 @@ fn detach_preview_references_for_root_locations(
         )
         .map_err(database_error)?;
     Ok(())
+}
+
+fn prepare_root_unregister_scope(
+    transaction: &Transaction<'_>,
+    root_id: &str,
+) -> Result<(), ScanError> {
+    transaction
+        .execute_batch(
+            "CREATE TEMP TABLE IF NOT EXISTS ame_root_unregister_assets (
+               asset_id TEXT PRIMARY KEY
+             ) WITHOUT ROWID;
+             CREATE TEMP TABLE IF NOT EXISTS ame_root_unregister_preview_artifacts (
+               artifact_key TEXT PRIMARY KEY
+             ) WITHOUT ROWID;
+             DELETE FROM temp.ame_root_unregister_assets;
+             DELETE FROM temp.ame_root_unregister_preview_artifacts;",
+        )
+        .map_err(database_error)?;
+    transaction
+        .execute(
+            "INSERT OR IGNORE INTO temp.ame_root_unregister_assets(asset_id)
+             SELECT asset_id
+             FROM asset_locations
+             WHERE root_id = ?1",
+            [root_id],
+        )
+        .map_err(database_error)?;
+    transaction
+        .execute(
+            "INSERT OR IGNORE INTO temp.ame_root_unregister_preview_artifacts(artifact_key)
+             SELECT owners.artifact_key
+             FROM preview_artifact_locations AS owners
+             JOIN asset_locations AS locations
+               ON locations.location_id = owners.location_id
+             WHERE locations.root_id = ?1",
+            [root_id],
+        )
+        .map_err(database_error)?;
+    Ok(())
+}
+
+fn mark_root_unregister_preview_artifacts_stale(
+    transaction: &Transaction<'_>,
+) -> Result<(), ScanError> {
+    transaction
+        .execute(
+            "UPDATE preview_artifacts
+             SET lifecycle_state = 'stale'
+             WHERE lifecycle_state = 'ready'
+               AND artifact_key IN (
+                 SELECT artifact_key
+                 FROM temp.ame_root_unregister_preview_artifacts
+               )
+               AND NOT EXISTS (
+                 SELECT 1 FROM preview_artifact_locations AS owners
+                 WHERE owners.artifact_key = preview_artifacts.artifact_key
+               )
+               AND NOT EXISTS (
+                 SELECT 1 FROM library_change_catch_up_handoffs AS handoffs
+                 WHERE handoffs.preview_status = 'ready'
+                   AND handoffs.preview_path = preview_artifacts.artifact_path
+               )
+               AND NOT EXISTS (
+                 SELECT 1 FROM library_change_scan_handoff_items AS handoffs
+                 WHERE handoffs.preview_status = 'ready'
+                   AND handoffs.preview_path = preview_artifacts.artifact_path
+               )",
+            [],
+        )
+        .map_err(database_error)?;
+    Ok(())
+}
+
+fn delete_root_unregister_orphan_assets(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+    transaction
+        .execute(
+            "DELETE FROM assets
+             WHERE id IN (
+               SELECT asset_id FROM temp.ame_root_unregister_assets
+             )
+               AND NOT EXISTS (
+                 SELECT 1 FROM asset_locations WHERE asset_locations.asset_id = assets.id
+               )
+               AND NOT EXISTS (
+                 SELECT 1 FROM library_change_catch_up_handoffs AS handoffs
+                 WHERE handoffs.asset_id = assets.id
+               )
+               AND NOT EXISTS (
+                 SELECT 1 FROM library_change_scan_handoff_items AS handoffs
+                 WHERE handoffs.asset_id = assets.id
+               )",
+            [],
+        )
+        .map_err(database_error)?;
+    Ok(())
+}
+
+fn clear_root_unregister_scope(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+    transaction
+        .execute_batch(
+            "DELETE FROM temp.ame_root_unregister_assets;
+             DELETE FROM temp.ame_root_unregister_preview_artifacts;",
+        )
+        .map_err(database_error)
 }
 
 fn mark_unreferenced_preview_artifacts_stale(

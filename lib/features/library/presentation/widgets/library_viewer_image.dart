@@ -1,3 +1,4 @@
+import "dart:async";
 import "dart:io";
 
 import "package:flutter/material.dart";
@@ -5,6 +6,7 @@ import "package:material_symbols_icons/symbols.dart";
 
 import "../../domain/library_models.dart";
 import "library_loading_indicator.dart";
+import "library_source_image.dart";
 
 class LibraryViewerImage extends StatefulWidget {
   const LibraryViewerImage({required this.asset, super.key});
@@ -16,7 +18,8 @@ class LibraryViewerImage extends StatefulWidget {
 }
 
 class _LibraryViewerImageState extends State<LibraryViewerImage> {
-  late FileImage _sourceImage;
+  late LibrarySourceImage _sourceImage;
+  int _retryGeneration = 0;
 
   @override
   void initState() {
@@ -27,22 +30,23 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
   @override
   void didUpdateWidget(covariant LibraryViewerImage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.asset.sourcePath != widget.asset.sourcePath) {
-      _sourceImage.evict();
-      _sourceImage = _createSourceImage();
+    final nextImage = _createSourceImage();
+    if (_sourceImage != nextImage) {
+      unawaited(_sourceImage.evict());
+      _sourceImage = nextImage;
     }
   }
 
   @override
   void dispose() {
-    _sourceImage.evict();
+    unawaited(_sourceImage.evict());
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Image(
-      key: ValueKey("viewer-source-${widget.asset.locationId}"),
+      key: ValueKey(_sourceImage),
       image: _sourceImage,
       semanticLabel: widget.asset.relativePath,
       fit: BoxFit.contain,
@@ -126,11 +130,15 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
     );
   }
 
-  FileImage _createSourceImage() => FileImage(File(widget.asset.sourcePath));
+  LibrarySourceImage _createSourceImage() =>
+      LibrarySourceImage(widget.asset, retryGeneration: _retryGeneration);
 
   void _retry() {
-    _sourceImage.evict();
-    setState(() => _sourceImage = _createSourceImage());
+    unawaited(_sourceImage.evict());
+    setState(() {
+      _retryGeneration += 1;
+      _sourceImage = _createSourceImage();
+    });
   }
 
   bool get _hasPreview =>

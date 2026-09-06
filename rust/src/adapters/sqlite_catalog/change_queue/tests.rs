@@ -20,7 +20,7 @@ use crate::domain::{
     PersistentJournalCapabilityState, PersistentJournalCheckpoint,
     PersistentJournalContinuityState, PersistentJournalEnrollmentBatch,
     PersistentJournalRangeState, PersistentJournalSourceRange, PersistentJournalVolumeIdentity,
-    ScanRequest, persistent_journal_batch_id, persistent_journal_batch_payload,
+    ScanRequest, persistent_journal_batch_id,
 };
 use crate::ports::{CatalogRepository, MetadataInventoryRepository, PersistentJournalRepository};
 
@@ -61,11 +61,27 @@ fn migrates_v16_without_losing_existing_catalog_rows() {
                scan_id TEXT NOT NULL,
                location_id TEXT NOT NULL,
                preview_path TEXT NOT NULL DEFAULT '',
-               preview_status TEXT NOT NULL DEFAULT 'pending'
+               preview_status TEXT NOT NULL DEFAULT 'pending',
+               preview_issue_code TEXT,
+               preview_issue_message TEXT,
+               file_size INTEGER NOT NULL DEFAULT 0,
+               modified_unix_ms INTEGER NOT NULL DEFAULT 0,
+               metadata_engine_id TEXT NOT NULL DEFAULT 'unknown',
+               metadata_engine_version TEXT NOT NULL DEFAULT '0',
+               capture_local_time TEXT,
+               capture_offset_minutes INTEGER,
+               capture_time_source TEXT,
+               capture_raw_value TEXT,
+               file_identity_scheme TEXT,
+               file_identity_value TEXT
              );
              CREATE TABLE preview_artifacts (
                artifact_path TEXT NOT NULL,
                lifecycle_state TEXT NOT NULL
+             );
+             CREATE TABLE preview_artifact_locations (
+               artifact_key TEXT NOT NULL,
+               location_id TEXT NOT NULL
              );
              CREATE TABLE preserved_fixture(value TEXT NOT NULL);
              INSERT INTO preserved_fixture(value) VALUES ('kept');",
@@ -125,31 +141,36 @@ fn migrates_v16_without_losing_existing_catalog_rows() {
 }
 
 #[test]
-fn authoritative_scan_publication_preserves_evidence_arriving_after_its_watermark() {
+fn replacement_scan_cannot_consume_live_evidence_arriving_after_enumeration() {
     let directory = tempdir().expect("temporary directory");
     let path = directory.path().join("catalog.sqlite3");
     let generation = LibraryRootGeneration::initial();
     let policy = immediate_policy();
-    let mut catalog = queue_catalog(path);
+    let mut catalog = queue_catalog(path.clone());
+    let initial = scan_request("initial-scan");
     catalog
-        .enqueue_library_change_intents(
-            &[intent(
-                "root-a",
-                generation,
-                1,
-                1_000,
-                LibraryChangeIntentKind::FreshnessUnknown,
-                LibraryChangeScope::Root,
-                "",
-            )],
-            1_000,
-            policy,
-        )
-        .expect("enqueue recovery gap");
+        .begin_scan(&initial, "root-a", &initial.root_path)
+        .expect("begin initial scan");
+    catalog
+        .prove_live_only_first_import_handoff_for_test("initial-scan")
+        .expect("prove initial first-import handoff");
+    catalog
+        .publish_scan("initial-scan", "root-a", 0, 0)
+        .expect("publish initial scan");
     let request = scan_request("authoritative-scan");
     catalog
         .begin_scan(&request, "root-a", &request.root_path)
         .expect("begin authoritative scan");
+    assert_eq!(
+        catalog
+            .claim_next_directory("authoritative-scan")
+            .expect("claim root directory")
+            .as_deref(),
+        Some("")
+    );
+    catalog
+        .complete_directory_enumeration("authoritative-scan", "")
+        .expect("complete root enumeration before the live file appears");
 
     let report = catalog
         .enqueue_library_change_intents(
@@ -164,9 +185,10 @@ fn authoritative_scan_publication_preserves_evidence_arriving_after_its_watermar
             policy,
         )
         .expect("enqueue evidence during scan");
-    catalog
+    let publication = catalog
         .publish_scan("authoritative-scan", "root-a", 0, 0)
-        .expect("publish authoritative scan");
+        .expect_err("unfinished live evidence must delay scan publication");
+    assert_eq!(publication.code, "catalog_scan_live_changes_pending");
 
     let rows = catalog
         .connection
@@ -189,17 +211,292 @@ fn authoritative_scan_publication_preserves_evidence_arriving_after_its_watermar
         .load_library_change_queue_metrics(1_001, policy)
         .expect("queue metrics");
 
-    assert!(report.freshness_unknown_enqueued);
-    assert_eq!(rows.len(), 2);
-    assert_eq!(rows[0].1, "superseded");
-    assert_eq!(rows[1].1, "pending");
+    assert!(!report.freshness_unknown_enqueued);
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0].1, "pending");
     assert!(rows.iter().all(|row| row.2.is_none()));
     assert_eq!(metrics.pending_count, 1);
     assert_eq!(metrics.completed_count, 0);
 }
 
 #[test]
-fn abandoning_authoritative_scan_releases_only_its_frozen_work() {
+fn first_import_publishes_before_its_durable_exact_path_catch_up() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let generation = LibraryRootGeneration::initial();
+    let policy = immediate_policy();
+    let mut catalog = queue_catalog(path);
+    let initial = scan_request("initial-scan");
+    catalog
+        .begin_scan(&initial, "root-a", &initial.root_path)
+        .expect("begin initial scan");
+    catalog
+        .prove_live_only_first_import_handoff_for_test("initial-scan")
+        .expect("prove initial first-import handoff");
+    catalog
+        .enqueue_library_change_intents(
+            &[path_intent(
+                "root-a",
+                generation,
+                1,
+                1_000,
+                "arrived-during-first-import.jpg",
+            )],
+            1_000,
+            policy,
+        )
+        .expect("persist first-import path catch-up");
+
+    catalog
+        .publish_scan("initial-scan", "root-a", 0, 0)
+        .expect("publish first snapshot before path catch-up becomes processable");
+    let state: (String, Option<String>) = catalog
+        .connection
+        .query_row(
+            "SELECT queue.status, roots.active_scan_id
+             FROM library_change_queue AS queue
+             JOIN library_roots AS roots ON roots.id = queue.root_id
+             WHERE queue.relative_path = 'arrived-during-first-import.jpg'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .expect("load durable first-import catch-up");
+    assert_eq!(state.0, "pending");
+    assert_eq!(state.1.as_deref(), Some("initial-scan"));
+}
+
+#[test]
+fn first_import_keeps_unresolved_root_freshness_after_baseline_publication() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let generation = LibraryRootGeneration::initial();
+    let policy = immediate_policy();
+    let mut catalog = queue_catalog(path);
+    let initial = scan_request("initial-scan");
+    catalog
+        .begin_scan(&initial, "root-a", &initial.root_path)
+        .expect("begin initial scan");
+    catalog
+        .prove_live_only_first_import_handoff_for_test("initial-scan")
+        .expect("prove initial first-import handoff");
+    catalog
+        .enqueue_library_change_intents(
+            &[intent(
+                "root-a",
+                generation,
+                1,
+                1_000,
+                LibraryChangeIntentKind::FreshnessUnknown,
+                LibraryChangeScope::Root,
+                "",
+            )],
+            1_000,
+            policy,
+        )
+        .expect("persist root freshness gap");
+
+    catalog
+        .publish_scan("initial-scan", "root-a", 0, 0)
+        .expect("a first snapshot makes retained root-gap recovery processable");
+    let retained: (String, Option<i64>, String, String) = catalog
+        .connection
+        .query_row(
+            "SELECT queue.status, queue.catalog_revision_at_success,
+                roots.active_scan_id, journal.continuity_state
+         FROM library_change_queue AS queue
+         JOIN library_roots AS roots ON roots.id = queue.root_id
+         JOIN library_persistent_journal_root_state AS journal ON journal.root_id = roots.id
+         WHERE queue.root_id = 'root-a' AND queue.intent_kind = 'freshness_unknown'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        )
+        .expect("preserved root-gap authority");
+    assert_eq!(
+        retained,
+        (
+            "pending".to_owned(),
+            None,
+            "initial-scan".to_owned(),
+            "live_only".to_owned()
+        )
+    );
+}
+
+#[test]
+fn replacement_scan_publishes_while_an_exact_path_retry_remains_durable() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let generation = LibraryRootGeneration::initial();
+    let policy = LibraryChangeQueuePolicy {
+        max_attempts: 1,
+        ..immediate_policy()
+    };
+    let mut catalog = queue_catalog(path);
+    let initial = scan_request("initial-scan");
+    catalog
+        .begin_scan(&initial, "root-a", &initial.root_path)
+        .expect("begin initial scan");
+    catalog
+        .prove_live_only_first_import_handoff_for_test("initial-scan")
+        .expect("prove initial first-import handoff");
+    catalog
+        .publish_scan("initial-scan", "root-a", 0, 0)
+        .expect("publish initial scan");
+
+    let replacement = scan_request("replacement-scan");
+    catalog
+        .begin_scan(&replacement, "root-a", &replacement.root_path)
+        .expect("begin replacement scan");
+    assert_eq!(
+        catalog
+            .claim_next_directory("replacement-scan")
+            .expect("claim root directory")
+            .as_deref(),
+        Some("")
+    );
+    catalog
+        .complete_directory_enumeration("replacement-scan", "")
+        .expect("complete root enumeration before the live file appears");
+
+    catalog
+        .enqueue_library_change_intents(
+            &[path_intent(
+                "root-a",
+                generation,
+                1,
+                1_000,
+                "arrived-after-enumeration.jpg",
+            )],
+            1_000,
+            policy,
+        )
+        .expect("enqueue live file after enumeration");
+    let leased = catalog
+        .lease_path_library_changes_in_lane(
+            "root-a",
+            generation,
+            LibraryChangeLane::Live,
+            1_000,
+            policy,
+        )
+        .expect("lease live file through running scan")
+        .pop()
+        .expect("live file lease");
+    catalog
+        .retry_library_change(
+            leased.change.id,
+            leased.lease_generation,
+            &LibraryChangeFailure {
+                code: "path_locked".to_owned(),
+                message: "The new path remained locked.".to_owned(),
+            },
+            1_001,
+            policy,
+        )
+        .expect("record exhausted live retry");
+
+    catalog
+        .publish_scan("replacement-scan", "root-a", 0, 0)
+        .expect("an exact path retry must not discard an otherwise publishable snapshot");
+    let retained_debt: (String, i64, Option<i64>, Option<String>) = catalog
+        .connection
+        .query_row(
+            "SELECT status, attempt_count, next_retry_unix_ms, authoritative_scan_id
+             FROM library_change_queue WHERE id = ?1",
+            [i64::try_from(leased.change.id.value()).expect("change ID")],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        )
+        .expect("load exhausted live retry");
+    assert_eq!(retained_debt, ("retry_wait".to_owned(), 1, None, None));
+    let active_scan: Option<String> = catalog
+        .connection
+        .query_row(
+            "SELECT active_scan_id FROM library_roots WHERE id = 'root-a'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("load published root");
+    assert_eq!(active_scan.as_deref(), Some("replacement-scan"));
+}
+
+#[test]
+fn replacement_scan_rejects_path_shaped_retry_with_root_freshness_authority() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let generation = LibraryRootGeneration::initial();
+    let policy = LibraryChangeQueuePolicy {
+        max_attempts: 1,
+        ..immediate_policy()
+    };
+    let mut catalog = queue_catalog(path);
+    let initial = scan_request("initial-scan");
+    catalog
+        .begin_scan(&initial, "root-a", &initial.root_path)
+        .expect("begin initial scan");
+    catalog
+        .prove_live_only_first_import_handoff_for_test("initial-scan")
+        .expect("prove initial first-import handoff");
+    catalog
+        .publish_scan("initial-scan", "root-a", 0, 0)
+        .expect("publish initial scan");
+    let replacement = scan_request("replacement-scan");
+    catalog
+        .begin_scan(&replacement, "root-a", &replacement.root_path)
+        .expect("begin replacement scan");
+    catalog
+        .enqueue_library_change_intents(
+            &[path_intent(
+                "root-a",
+                generation,
+                1,
+                1_000,
+                "unverifiable.jpg",
+            )],
+            1_000,
+            policy,
+        )
+        .expect("enqueue path evidence");
+    let leased = catalog
+        .lease_path_library_changes_in_lane(
+            "root-a",
+            generation,
+            LibraryChangeLane::Live,
+            1_000,
+            policy,
+        )
+        .expect("lease path evidence")
+        .pop()
+        .expect("path lease");
+    catalog
+        .retry_library_change(
+            leased.change.id,
+            leased.lease_generation,
+            &LibraryChangeFailure {
+                code: "path_locked".to_owned(),
+                message: "The path remained locked.".to_owned(),
+            },
+            1_001,
+            policy,
+        )
+        .expect("record exhausted retry");
+    catalog
+        .connection
+        .execute(
+            "UPDATE library_change_queue
+             SET intent_kind = 'freshness_unknown'
+             WHERE id = ?1",
+            [i64::try_from(leased.change.id.value()).expect("change ID")],
+        )
+        .expect("construct legacy path-shaped freshness debt");
+
+    let blocked = catalog
+        .publish_scan("replacement-scan", "root-a", 0, 0)
+        .expect_err("root-authority debt must remain publication-blocking");
+    assert_eq!(blocked.code, "catalog_scan_live_changes_pending");
+}
+
+#[test]
+fn abandoning_authoritative_scan_preserves_live_work_and_releases_only_frozen_work() {
     let directory = tempdir().expect("temporary directory");
     let path = directory.path().join("catalog.sqlite3");
     let generation = LibraryRootGeneration::initial();
@@ -225,23 +522,52 @@ fn abandoning_authoritative_scan_releases_only_its_frozen_work() {
         .lease_path_library_changes("root-a", generation, 1_000, policy)
         .expect("lease worker path");
     assert_eq!(worker_lease.len(), 1);
+    let mut scan_owned = path_intent("root-a", generation, 2, 1_001, "scan-owned.jpg");
+    scan_owned.origin = LibraryChangeOrigin::StartupCatchUp;
+    catalog
+        .enqueue_library_change_intents(&[scan_owned], 1_001, policy)
+        .expect("enqueue scan-owned journal path");
     catalog
         .enqueue_library_change_intents(
             &[path_intent(
                 "root-a",
                 generation,
-                2,
-                1_001,
-                "scan-owned.jpg",
+                3,
+                1_002,
+                "pending-live.jpg",
             )],
-            1_001,
+            1_002,
             policy,
         )
-        .expect("enqueue scan-owned path");
+        .expect("enqueue pending live path");
     let request = scan_request("abandoned-authoritative-scan");
     catalog
         .begin_scan(&request, "root-a", &request.root_path)
         .expect("begin authoritative scan");
+    let ownership = catalog
+        .connection
+        .prepare(
+            "SELECT status, authoritative_scan_id
+             FROM library_change_queue ORDER BY id",
+        )
+        .expect("prepare scan ownership evidence")
+        .query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?))
+        })
+        .expect("query scan ownership evidence")
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .expect("collect scan ownership evidence");
+    assert_eq!(
+        ownership,
+        vec![
+            ("leased".to_owned(), None),
+            (
+                "leased".to_owned(),
+                Some("abandoned-authoritative-scan".to_owned()),
+            ),
+            ("pending".to_owned(), None),
+        ]
+    );
     catalog
         .abandon_scan("abandoned-authoritative-scan", "stale", 1)
         .expect("abandon authoritative scan");
@@ -266,7 +592,7 @@ fn abandoning_authoritative_scan_releases_only_its_frozen_work() {
         .collect::<rusqlite::Result<Vec<_>>>()
         .expect("queue evidence");
 
-    assert_eq!(rows.len(), 2);
+    assert_eq!(rows.len(), 3);
     assert_eq!(
         u64::try_from(rows[0].0).expect("worker queue id"),
         worker_lease[0].change.id.value()
@@ -277,13 +603,36 @@ fn abandoning_authoritative_scan_releases_only_its_frozen_work() {
     assert_eq!(rows[1].1, "pending");
     assert_eq!(rows[1].3, None);
     assert_eq!(rows[1].4, None);
+    assert_eq!(rows[2].1, "pending");
+    assert_eq!(rows[2].3, None);
+    assert_eq!(rows[2].4, None);
     let released = catalog
-        .lease_path_library_changes("root-a", generation, rows[1].2, policy)
+        .lease_path_library_changes_in_lane(
+            "root-a",
+            generation,
+            LibraryChangeLane::Journal,
+            rows[1].2,
+            policy,
+        )
         .expect("lease released scan work");
     assert_eq!(released.len(), 1);
     assert_eq!(
         released[0].change.id.value(),
         u64::try_from(rows[1].0).expect("released queue id")
+    );
+    let live = catalog
+        .lease_path_library_changes_in_lane(
+            "root-a",
+            generation,
+            LibraryChangeLane::Live,
+            rows[2].2,
+            policy,
+        )
+        .expect("lease live work retained outside scan ownership");
+    assert_eq!(live.len(), 1);
+    assert_eq!(
+        live[0].change.id.value(),
+        u64::try_from(rows[2].0).expect("live queue id")
     );
 }
 
@@ -633,6 +982,81 @@ fn create_then_remove_remains_one_final_state_reconciliation() {
 }
 
 #[test]
+fn live_rename_then_same_target_dirty_reconcile_preserves_both_semantics() {
+    assert_live_dirty_rename_coalescing(true);
+}
+
+#[test]
+fn live_dirty_reconcile_then_same_target_rename_preserves_both_semantics() {
+    assert_live_dirty_rename_coalescing(false);
+}
+
+#[test]
+fn startup_catch_up_canonicalization_preserves_dirty_rename_lineage_in_any_order() {
+    let generation = LibraryRootGeneration::initial();
+    let mut rename = rename_intent(
+        "root-a",
+        generation,
+        1,
+        1_000,
+        "old/photo.jpg",
+        "new/photo.jpg",
+    );
+    rename.origin = LibraryChangeOrigin::StartupCatchUp;
+    let mut dirty = path_intent("root-a", generation, 2, 1_001, "new/photo.jpg");
+    dirty.origin = LibraryChangeOrigin::StartupCatchUp;
+
+    let rename_first = normalize_persistent_journal_intents(&[rename.clone(), dirty.clone()])
+        .expect("normalize rename then dirty");
+    let dirty_first = normalize_persistent_journal_intents(&[dirty, rename])
+        .expect("normalize dirty then rename");
+
+    assert_eq!(rename_first, dirty_first);
+    assert_eq!(rename_first.len(), 1);
+    assert_dirty_rename_intent(&rename_first[0]);
+}
+
+#[test]
+fn startup_catch_up_dirty_rename_conflict_degrades_to_a_root_gap() {
+    let generation = LibraryRootGeneration::initial();
+    let mut rename = rename_intent(
+        "root-a",
+        generation,
+        1,
+        1_000,
+        "old/photo.jpg",
+        "new/photo.jpg",
+    );
+    rename.origin = LibraryChangeOrigin::StartupCatchUp;
+    let mut dirty = path_intent("root-a", generation, 2, 1_001, "new/photo.jpg");
+    dirty.origin = LibraryChangeOrigin::StartupCatchUp;
+    let mut conflicting = rename_intent(
+        "root-a",
+        generation,
+        3,
+        1_002,
+        "old/photo.jpg",
+        "elsewhere/photo.jpg",
+    );
+    conflicting.origin = LibraryChangeOrigin::StartupCatchUp;
+
+    let normalized = normalize_persistent_journal_intents(&[conflicting, dirty, rename])
+        .expect("normalize conflicting dirty rename evidence");
+
+    assert_eq!(normalized.len(), 1);
+    assert_eq!(
+        normalized[0].kind,
+        LibraryChangeIntentKind::FreshnessUnknown
+    );
+    assert_eq!(normalized[0].scope, LibraryChangeScope::Root);
+    assert!(normalized[0].relative_path.is_empty());
+    assert!(normalized[0].previous_relative_path.is_none());
+    assert_eq!(normalized[0].first_sequence, 1);
+    assert_eq!(normalized[0].most_recent_sequence, 3);
+    assert_eq!(normalized[0].coalesced_observation_count, 3);
+}
+
+#[test]
 fn paired_rename_persists_both_paths_across_restart() {
     let directory = tempdir().expect("temporary directory");
     let path = directory.path().join("catalog.sqlite3");
@@ -723,7 +1147,7 @@ fn divergent_renames_from_one_old_path_degrade_to_a_root_gap() {
 }
 
 #[test]
-fn later_old_path_evidence_invalidates_a_leased_rename() {
+fn later_old_path_evidence_preserves_precise_work_and_invalidates_a_leased_rename() {
     let directory = tempdir().expect("temporary directory");
     let path = directory.path().join("catalog.sqlite3");
     let generation = LibraryRootGeneration::initial();
@@ -764,20 +1188,36 @@ fn later_old_path_evidence_invalidates_a_leased_rename() {
             1_002,
         )
         .expect("reject stale rename completion");
-    let replacement = catalog
-        .lease_library_changes("root-a", generation, 1_001, policy)
-        .expect("lease conservative replacement")
+    let precise = catalog
+        .lease_path_library_changes_in_lane(
+            "root-a",
+            generation,
+            LibraryChangeLane::Live,
+            1_001,
+            policy,
+        )
+        .expect("lease precise old-path reconciliation")
         .pop()
-        .expect("replacement root work");
+        .expect("precise old-path reconciliation");
+    let recovery = catalog
+        .lease_live_authoritative_library_change("root-a", generation, 1_001, policy)
+        .expect("lease conservative rename recovery")
+        .expect("conservative rename recovery");
 
     assert_eq!(stale_outcome, LibraryChangeLeaseUpdateOutcome::Superseded);
     assert!(report.freshness_unknown_enqueued);
     assert_eq!(
-        replacement.change.intent.kind,
+        precise.change.intent.kind,
+        LibraryChangeIntentKind::Reconcile,
+    );
+    assert_eq!(precise.change.intent.scope, LibraryChangeScope::Path);
+    assert_eq!(precise.change.intent.relative_path, "old/photo.jpg");
+    assert_eq!(
+        recovery.change.intent.kind,
         LibraryChangeIntentKind::FreshnessUnknown,
     );
-    assert_eq!(replacement.change.intent.scope, LibraryChangeScope::Root);
-    assert_eq!(replacement.change.intent.coalesced_observation_count, 2);
+    assert_eq!(recovery.change.intent.scope, LibraryChangeScope::Root);
+    assert_eq!(recovery.change.intent.coalesced_observation_count, 2);
 }
 
 #[test]
@@ -847,7 +1287,7 @@ fn partial_subtree_overlap_invalidates_a_cross_subtree_rename_lease() {
 }
 
 #[test]
-fn old_subtree_descendant_invalidates_a_leased_directory_rename() {
+fn old_subtree_descendant_preserves_precise_work_and_invalidates_a_leased_directory_rename() {
     let directory = tempdir().expect("temporary directory");
     let path = directory.path().join("catalog.sqlite3");
     let generation = LibraryRootGeneration::initial();
@@ -864,7 +1304,7 @@ fn old_subtree_descendant_invalidates_a_leased_directory_rename() {
         .pop()
         .expect("leased directory rename");
 
-    catalog
+    let report = catalog
         .enqueue_library_change_intents(
             &[path_intent(
                 "root-a",
@@ -885,23 +1325,36 @@ fn old_subtree_descendant_invalidates_a_leased_directory_rename() {
             1_002,
         )
         .expect("reject stale directory rename completion");
-    let replacement = catalog
-        .lease_library_changes("root-a", generation, 1_001, policy)
-        .expect("lease descendant reconciliation")
+    let precise = catalog
+        .lease_path_library_changes_in_lane(
+            "root-a",
+            generation,
+            LibraryChangeLane::Live,
+            1_001,
+            policy,
+        )
+        .expect("lease precise descendant reconciliation")
         .pop()
-        .expect("descendant reconciliation");
+        .expect("precise descendant reconciliation");
+    let recovery = catalog
+        .lease_live_authoritative_library_change("root-a", generation, 1_001, policy)
+        .expect("lease conservative namespace recovery")
+        .expect("conservative namespace recovery");
 
     assert_eq!(stale_outcome, LibraryChangeLeaseUpdateOutcome::Superseded);
+    assert!(report.freshness_unknown_enqueued);
     assert_eq!(
-        replacement.change.intent.kind,
-        LibraryChangeIntentKind::RenameCandidate,
+        precise.change.intent.kind,
+        LibraryChangeIntentKind::Reconcile,
     );
-    assert_eq!(replacement.change.intent.scope, LibraryChangeScope::Subtree);
-    assert_eq!(replacement.change.intent.relative_path, "new/album");
+    assert_eq!(precise.change.intent.scope, LibraryChangeScope::Path);
+    assert_eq!(precise.change.intent.relative_path, "old/album/new.jpg");
+    assert!(precise.change.intent.previous_relative_path.is_none());
     assert_eq!(
-        replacement.change.intent.previous_relative_path.as_deref(),
-        Some("old/album"),
+        recovery.change.intent.kind,
+        LibraryChangeIntentKind::FreshnessUnknown,
     );
+    assert_eq!(recovery.change.intent.scope, LibraryChangeScope::Root);
 }
 
 #[test]
@@ -943,12 +1396,12 @@ fn divergent_nested_directory_renames_degrade_to_a_root_gap() {
 }
 
 #[test]
-fn parent_subtree_supersedes_unleased_child_work() {
+fn parent_subtree_keeps_precise_dirty_child_work_across_restart() {
     let directory = tempdir().expect("temporary directory");
     let path = directory.path().join("catalog.sqlite3");
     let generation = LibraryRootGeneration::initial();
     let policy = fixture_policy();
-    let mut catalog = queue_catalog(path);
+    let mut catalog = queue_catalog(path.clone());
 
     catalog
         .enqueue_library_change_intents(
@@ -980,20 +1433,75 @@ fn parent_subtree_supersedes_unleased_child_work() {
             policy,
         )
         .expect("enqueue subtree");
+    drop(catalog);
+    let mut catalog = SqliteCatalog::open(path).expect("reopen queue catalog");
     let metrics = catalog
         .load_library_change_queue_metrics(1_100, policy)
         .expect("metrics");
     let leased = catalog
         .lease_library_changes("root-a", generation, 1_600, policy)
-        .expect("lease subtree");
+        .expect("lease precise child");
 
-    assert_eq!(report.superseded_count, 1);
-    assert_eq!(metrics.pending_count, 1);
-    assert_eq!(metrics.superseded_count, 1);
-    assert_eq!(leased.len(), 1);
-    assert_eq!(leased[0].change.intent.scope, LibraryChangeScope::Subtree);
-    assert_eq!(leased[0].change.intent.relative_path, "album");
-    assert_eq!(leased[0].change.intent.coalesced_observation_count, 2);
+    assert_eq!(report.inserted_count, 1);
+    assert_eq!(report.superseded_count, 0);
+    assert_eq!(metrics.pending_count, 2);
+    assert_eq!(metrics.superseded_count, 0);
+    assert_eq!(leased.len(), 2);
+    let precise = leased
+        .iter()
+        .find(|change| change.change.intent.scope == LibraryChangeScope::Path)
+        .expect("precise child remains independently leased");
+    assert_eq!(precise.change.intent.relative_path, "album/photo.jpg");
+    assert_eq!(precise.change.intent.coalesced_observation_count, 1);
+}
+
+#[test]
+fn directory_rename_does_not_absorb_a_precise_dirty_descendant() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let generation = LibraryRootGeneration::initial();
+    let policy = fixture_policy();
+    let mut catalog = queue_catalog(path.clone());
+    let mut rename = intent(
+        "root-a",
+        generation,
+        1,
+        1_000,
+        LibraryChangeIntentKind::RenameCandidate,
+        LibraryChangeScope::Subtree,
+        "new",
+    );
+    rename.previous_relative_path = Some("old".to_owned());
+    catalog
+        .enqueue_library_change_intents(&[rename], 1_000, policy)
+        .expect("enqueue directory rename");
+    let report = catalog
+        .enqueue_library_change_intents(
+            &[path_intent("root-a", generation, 2, 1_001, "new/photo.jpg")],
+            1_001,
+            policy,
+        )
+        .expect("enqueue dirty descendant");
+    drop(catalog);
+
+    let catalog = SqliteCatalog::open(path).expect("reopen queue catalog");
+    let shape: (i64, i64, i64) = catalog
+        .connection
+        .query_row(
+            "SELECT COUNT(*),
+                    SUM(scope = 'subtree' AND intent_kind = 'rename_candidate'),
+                    SUM(scope = 'path' AND intent_kind = 'reconcile')
+             FROM library_change_queue
+             WHERE root_id = 'root-a' AND status = 'pending'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .expect("load retained dirty rename evidence");
+
+    assert_eq!(report.inserted_count, 1);
+    assert_eq!(report.coalesced_count, 0);
+    assert_eq!(report.superseded_count, 0);
+    assert_eq!(shape, (2, 1, 1));
 }
 
 #[test]
@@ -1128,7 +1636,7 @@ fn newer_root_generation_supersedes_old_work_and_rejects_late_enqueue() {
     let first_generation = LibraryRootGeneration::initial();
     let next_generation = first_generation.next().expect("next generation");
     let policy = immediate_policy();
-    let mut catalog = queue_catalog(path);
+    let mut catalog = queue_catalog(path.clone());
     catalog
         .enqueue_library_change_intents(
             &[path_intent("root-a", first_generation, 1, 1_000, "old.jpg")],
@@ -1136,24 +1644,38 @@ fn newer_root_generation_supersedes_old_work_and_rejects_late_enqueue() {
             policy,
         )
         .expect("enqueue old generation");
+    let pending_gap_id = seed_pending_journal_claim(&mut catalog, 1_010);
+    let explicit_gap_id = seed_explicit_recovery_claim(&catalog, 1_020);
+    assert!(
+        catalog
+            .connection
+            .query_row(
+                "SELECT next_retry_unix_ms IS NOT NULL
+                 FROM library_change_queue WHERE id = ?1",
+                [pending_gap_id],
+                |row| row.get::<_, bool>(0),
+            )
+            .expect("pending-journal retry deadline"),
+        "pending-journal retirement must accept its scheduled retry deadline"
+    );
     let mut retained_range = PersistentJournalEnrollmentBatch {
         range: PersistentJournalSourceRange {
             batch_id: "0".repeat(64),
             root_id: "root-a".to_owned(),
             root_generation: first_generation,
             volume: PersistentJournalVolumeIdentity {
-                volume_guid: "volume-a".to_owned(),
-                volume_serial: 77,
+                volume_guid: "watcher-gap-volume".to_owned(),
+                volume_serial: 41,
             },
-            journal_id: JournalIdentifier::new(44).expect("journal"),
-            requested_start_usn: JournalUsn::new(0).expect("start"),
-            requested_end_usn: JournalUsn::new(10).expect("end"),
-            covered_until_usn: JournalUsn::new(10).expect("covered"),
+            journal_id: JournalIdentifier::new(83).expect("journal"),
+            requested_start_usn: JournalUsn::new(1_024).expect("start"),
+            requested_end_usn: JournalUsn::new(1_034).expect("end"),
+            covered_until_usn: JournalUsn::new(1_034).expect("covered"),
             is_complete: true,
-            protocol_version: 4,
+            protocol_version: 5,
             contract_version: 1,
             state: PersistentJournalRangeState::Enrolled,
-            enrolled_unix_ms: 1_000,
+            enrolled_unix_ms: 1_030,
             checkpointed_unix_ms: None,
         },
         intents: Vec::new(),
@@ -1163,21 +1685,8 @@ fn newer_root_generation_supersedes_old_work_and_rejects_late_enqueue() {
         consumed_pending_rename_ids: Vec::new(),
     };
     retained_range.range.batch_id = persistent_journal_batch_id(&retained_range);
-    let retained_range_payload = persistent_journal_batch_payload(&retained_range);
     catalog
-        .connection
-        .execute(
-            "INSERT INTO library_persistent_journal_source_ranges (
-               id, root_id, root_generation, volume_guid, volume_serial, journal_id,
-               requested_start_usn, requested_end_usn, covered_until_usn, is_complete,
-               protocol_version, contract_version, status, enrolled_unix_ms,
-               checkpointed_unix_ms, canonical_payload
-             ) VALUES (
-               ?1, 'root-a', 1, 'volume-a', '77', '44',
-               '0', '10', '10', 1, 4, 1, 'enrolled', 1000, NULL, ?2
-             )",
-            rusqlite::params![retained_range.range.batch_id, retained_range_payload],
-        )
+        .enroll_persistent_journal_batch(&retained_range, 1_030, policy)
         .expect("seed durable range for old generation");
     let replacement_report = catalog
         .enqueue_library_change_intents(
@@ -1200,7 +1709,7 @@ fn newer_root_generation_supersedes_old_work_and_rejects_late_enqueue() {
         )
         .expect("reject stale generation");
 
-    assert_eq!(replacement_report.superseded_count, 1);
+    assert_eq!(replacement_report.superseded_count, 3);
     assert_eq!(stale_report.stale_generation_count, 1);
     assert_eq!(
         catalog
@@ -1237,6 +1746,28 @@ fn newer_root_generation_supersedes_old_work_and_rejects_late_enqueue() {
         .expect("new generation lease");
     assert_eq!(current.len(), 1);
     assert_eq!(current[0].change.intent.relative_path, "new.jpg");
+    let retired_claims: i64 = catalog
+        .connection
+        .query_row(
+            "SELECT COUNT(*) FROM library_live_gap_recovery_claims
+             WHERE gap_change_id IN (?1, ?2)",
+            rusqlite::params![pending_gap_id, explicit_gap_id],
+            |row| row.get(0),
+        )
+        .expect("retired claims");
+    let retained_gaps: (i64, i64) = catalog
+        .connection
+        .query_row(
+            "SELECT COUNT(*), SUM(status = 'superseded')
+             FROM library_change_queue WHERE id IN (?1, ?2)",
+            rusqlite::params![pending_gap_id, explicit_gap_id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .expect("retained terminal gaps");
+    assert_eq!(retired_claims, 0);
+    assert_eq!(retained_gaps, (2, 2));
+    drop(catalog);
+    SqliteCatalog::open(path).expect("reopen advanced-generation catalog");
 }
 
 #[test]
@@ -1245,7 +1776,7 @@ fn unregistering_a_root_retires_its_generation_and_unresolved_work() {
     let path = directory.path().join("catalog.sqlite3");
     let generation = LibraryRootGeneration::initial();
     let policy = immediate_policy();
-    let mut catalog = queue_catalog(path);
+    let mut catalog = queue_catalog(path.clone());
     catalog
         .enqueue_library_change_intents(
             &[path_intent("root-a", generation, 1, 1_000, "photo.jpg")],
@@ -1253,6 +1784,7 @@ fn unregistering_a_root_retires_its_generation_and_unresolved_work() {
             policy,
         )
         .expect("enqueue work");
+    let explicit_gap_id = seed_explicit_recovery_claim(&catalog, 1_010);
 
     assert!(catalog.unregister_root("root-a").expect("unregister root"));
     let stale = catalog
@@ -1268,7 +1800,132 @@ fn unregistering_a_root_retires_its_generation_and_unresolved_work() {
 
     assert_eq!(stale.stale_generation_count, 1);
     assert_eq!(metrics.pending_count, 0);
-    assert_eq!(metrics.superseded_count, 1);
+    assert_eq!(metrics.superseded_count, 2);
+    let retired_evidence: (i64, String) = catalog
+        .connection
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM library_live_gap_recovery_claims
+                WHERE gap_change_id = ?1),
+               status
+             FROM library_change_queue WHERE id = ?1",
+            [explicit_gap_id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .expect("retained retired gap");
+    assert_eq!(retired_evidence, (0, "superseded".to_owned()));
+    drop(catalog);
+    SqliteCatalog::open(path).expect("reopen unregistered-root catalog");
+}
+
+#[test]
+fn generation_retirement_rolls_back_claim_release_when_superseding_fails() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let first_generation = LibraryRootGeneration::initial();
+    let next_generation = first_generation.next().expect("next generation");
+    let mut catalog = queue_catalog(path);
+    let explicit_gap_id = seed_explicit_recovery_claim(&catalog, 1_000);
+    catalog
+        .connection
+        .execute_batch(&format!(
+            "CREATE TRIGGER reject_test_gap_retirement
+             BEFORE UPDATE OF status ON library_change_queue
+             WHEN OLD.id = {explicit_gap_id} AND NEW.status = 'superseded'
+             BEGIN
+               SELECT RAISE(ABORT, 'injected retirement failure');
+             END;"
+        ))
+        .expect("install retirement failure injection");
+
+    let error = catalog
+        .enqueue_library_change_intents(
+            &[path_intent("root-a", next_generation, 2, 1_100, "new.jpg")],
+            1_100,
+            immediate_policy(),
+        )
+        .expect_err("superseding failure must roll back claim release");
+    assert_eq!(error.code, "catalog_database_error");
+    let retained: (i64, String, i64) = catalog
+        .connection
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM library_live_gap_recovery_claims
+                WHERE gap_change_id = ?1),
+               gap.status,
+               (SELECT generation FROM library_change_root_state WHERE root_id = 'root-a')
+             FROM library_change_queue AS gap WHERE gap.id = ?1",
+            [explicit_gap_id],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .expect("rolled-back retirement evidence");
+    assert_eq!(retained, (1, "retry_wait".to_owned(), 1));
+}
+
+#[test]
+fn generation_retirement_rejects_an_active_foreground_live_gap_owner() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let first_generation = LibraryRootGeneration::initial();
+    let next_generation = first_generation.next().expect("next generation");
+    let mut catalog = queue_catalog(path);
+    let gap_change_id = seed_explicit_recovery_claim(&catalog, 1_000);
+    catalog
+        .connection
+        .execute(
+            "INSERT INTO scan_runs(
+               id, root_id, status, started_unix_ms, preview_edge,
+               root_generation_at_start, scan_owner
+             ) VALUES ('active-foreground', 'root-a', 'running', 1001, 128, 1, 'foreground')",
+            [],
+        )
+        .expect("active foreground scan");
+    catalog
+        .connection
+        .execute(
+            "UPDATE library_change_queue
+             SET status = 'leased', lease_expires_unix_ms = 5000,
+                 authoritative_scan_id = 'active-foreground',
+                 last_failure_code = 'live_gap_v30_explicit_recovery_in_progress',
+                 last_failure_message = 'The explicit recovery is in progress'
+             WHERE id = ?1",
+            [gap_change_id],
+        )
+        .expect("lease gap to foreground scan");
+    catalog
+        .connection
+        .execute(
+            "UPDATE library_live_gap_recovery_claims
+             SET consumer_kind = 'foreground_scan', foreground_scan_id = 'active-foreground'
+             WHERE gap_change_id = ?1",
+            [gap_change_id],
+        )
+        .expect("bind active foreground claim");
+
+    let error = catalog
+        .enqueue_library_change_intents(
+            &[path_intent("root-a", next_generation, 2, 1_100, "new.jpg")],
+            1_100,
+            immediate_policy(),
+        )
+        .expect_err("active foreground ownership requires explicit abandonment");
+    assert_eq!(error.code, "live_gap_retirement_consumer_conflict");
+    let retained: (String, String, i64) = catalog
+        .connection
+        .query_row(
+            "SELECT claim.consumer_kind, gap.status,
+                    (SELECT generation FROM library_change_root_state WHERE root_id = 'root-a')
+             FROM library_live_gap_recovery_claims AS claim
+             JOIN library_change_queue AS gap ON gap.id = claim.gap_change_id
+             WHERE claim.gap_change_id = ?1",
+            [gap_change_id],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .expect("retained foreground ownership");
+    assert_eq!(
+        retained,
+        ("foreground_scan".to_owned(), "leased".to_owned(), 1),
+    );
 }
 
 #[test]
@@ -2288,7 +2945,7 @@ fn normalized_capacity_overflow_degrades_to_one_root_gap() {
         max_lease_batch: 1,
         ..immediate_policy()
     };
-    let mut catalog = queue_catalog(path);
+    let mut catalog = queue_catalog(path.clone());
     catalog
         .enqueue_library_change_intents(
             &[path_intent("root-a", generation, 1, 1_000, "a.jpg")],
@@ -2303,6 +2960,8 @@ fn normalized_capacity_overflow_degrades_to_one_root_gap() {
             policy,
         )
         .expect("degrade capacity");
+    drop(catalog);
+    let mut catalog = SqliteCatalog::open(path).expect("reopen degraded queue");
     let leased = catalog
         .lease_library_changes("root-a", generation, 1_001, policy)
         .expect("lease root gap");
@@ -2323,7 +2982,7 @@ fn normalized_capacity_overflow_degrades_to_one_root_gap() {
 }
 
 #[test]
-fn lowered_capacity_accepts_a_parent_subtree_that_absorbs_existing_work() {
+fn lowered_capacity_degrades_precise_children_instead_of_losing_dirty_evidence() {
     let directory = tempdir().expect("temporary directory");
     let path = directory.path().join("catalog.sqlite3");
     let generation = LibraryRootGeneration::initial();
@@ -2367,16 +3026,19 @@ fn lowered_capacity_accepts_a_parent_subtree_that_absorbs_existing_work() {
         .lease_library_changes("root-a", generation, 1_001, lowered_policy)
         .expect("lease retained subtree");
 
-    assert!(!report.capacity_degraded);
-    assert!(!report.freshness_unknown_enqueued);
+    assert!(report.capacity_degraded);
+    assert!(report.freshness_unknown_enqueued);
     assert_eq!(report.superseded_count, 2);
     assert_eq!(retained.len(), 1);
-    assert_eq!(retained[0].change.intent.scope, LibraryChangeScope::Subtree);
-    assert_eq!(retained[0].change.intent.relative_path, "album");
+    assert_eq!(retained[0].change.intent.scope, LibraryChangeScope::Root);
+    assert_eq!(
+        retained[0].change.intent.kind,
+        LibraryChangeIntentKind::FreshnessUnknown
+    );
 }
 
 #[test]
-fn lowered_capacity_accepts_root_reconciliation_that_absorbs_existing_work() {
+fn lowered_capacity_degrades_root_plus_precise_dirty_work_without_losing_the_gap() {
     let directory = tempdir().expect("temporary directory");
     let path = directory.path().join("catalog.sqlite3");
     let generation = LibraryRootGeneration::initial();
@@ -2420,14 +3082,14 @@ fn lowered_capacity_accepts_root_reconciliation_that_absorbs_existing_work() {
         .lease_library_changes("root-a", generation, 1_001, lowered_policy)
         .expect("lease retained root work");
 
-    assert!(!report.capacity_degraded);
-    assert!(!report.freshness_unknown_enqueued);
+    assert!(report.capacity_degraded);
+    assert!(report.freshness_unknown_enqueued);
     assert_eq!(report.superseded_count, 2);
     assert_eq!(retained.len(), 1);
     assert_eq!(retained[0].change.intent.scope, LibraryChangeScope::Root);
     assert_eq!(
         retained[0].change.intent.kind,
-        LibraryChangeIntentKind::Reconcile,
+        LibraryChangeIntentKind::FreshnessUnknown,
     );
 }
 
@@ -2590,7 +3252,7 @@ fn terminal_retention_atomically_releases_all_handoff_owners() {
 }
 
 #[test]
-fn terminal_retention_preserves_lineage_provenance_for_an_active_scan() {
+fn terminal_retention_does_not_bind_live_provenance_to_an_active_scan() {
     let directory = tempdir().expect("temporary directory");
     let path = directory.path().join("catalog.sqlite3");
     let generation = LibraryRootGeneration::initial();
@@ -2633,8 +3295,8 @@ fn terminal_retention_preserves_lineage_provenance_for_an_active_scan() {
     assert_eq!(
         catalog
             .cleanup_terminal_library_changes(1_010, 1)
-            .expect("retain active scan provenance"),
-        0,
+            .expect("clean live provenance outside the active scan"),
+        1,
     );
     drop(catalog);
     let mut catalog = SqliteCatalog::open(path).expect("reopen with provable frozen lineage");
@@ -2644,8 +3306,8 @@ fn terminal_retention_preserves_lineage_provenance_for_an_active_scan() {
     assert_eq!(
         catalog
             .cleanup_terminal_library_changes(i64::MAX, 1)
-            .expect("clean released queue provenance"),
-        1,
+            .expect("no frozen queue provenance remains"),
+        0,
     );
 }
 
@@ -3761,6 +4423,16 @@ fn p2_authoritative_lease_requires_matching_unretired_persisted_authority() {
     let generation = LibraryRootGeneration::initial();
     let policy = immediate_policy();
     let mut catalog = queue_catalog(directory.path().join("catalog.sqlite3"));
+    let initial = scan_request("persisted-recovery-initial");
+    catalog
+        .begin_scan(&initial, "root-a", &initial.root_path)
+        .expect("begin persisted recovery fixture scan");
+    catalog
+        .prove_live_only_first_import_handoff_for_test(&initial.scan_id)
+        .expect("prove persisted recovery fixture first-import handoff");
+    catalog
+        .publish_scan(&initial.scan_id, "root-a", 0, 0)
+        .expect("publish persisted recovery fixture scan");
     let mut recovery = intent(
         "root-a",
         generation,
@@ -3812,6 +4484,8 @@ fn p2_authoritative_lease_requires_matching_unretired_persisted_authority() {
                 run_id: "persisted-recovery-run".to_owned(),
                 root_id: "root-a".to_owned(),
                 root_generation: generation,
+                authority_reason:
+                    crate::domain::LibraryRecoveryAuthorityReason::ExistingRootBaseline,
                 volume: PersistentJournalVolumeIdentity {
                     volume_guid: "persisted-recovery-volume".to_owned(),
                     volume_serial: 1,
@@ -5752,7 +6426,7 @@ fn forged_capacity_code_in_the_wrong_lane_does_not_escape_terminal_state() {
 }
 
 #[test]
-fn forged_capacity_code_in_pending_status_does_not_block_normal_root_coalescing() {
+fn ordinary_pending_root_does_not_absorb_precise_dirty_work() {
     let directory = tempdir().expect("temporary directory");
     let generation = LibraryRootGeneration::initial();
     let policy = immediate_policy();
@@ -5793,9 +6467,9 @@ fn forged_capacity_code_in_pending_status_does_not_block_normal_root_coalescing(
             1_001,
             policy,
         )
-        .expect("coalesce path into ordinary pending root");
-    assert_eq!(report.inserted_count, 0);
-    assert_eq!(report.coalesced_count, 1);
+        .expect("preserve path beside ordinary pending root");
+    assert_eq!(report.inserted_count, 1);
+    assert_eq!(report.coalesced_count, 0);
     assert_eq!(report.superseded_count, 0);
     let shape: (i64, String, String, i64) = catalog
         .connection
@@ -5808,7 +6482,7 @@ fn forged_capacity_code_in_pending_status_does_not_block_normal_root_coalescing(
             |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
         )
         .expect("load ordinary root coalescing evidence");
-    assert_eq!(shape, (1, "root".to_owned(), "pending".to_owned(), 2));
+    assert_eq!(shape, (2, "path".to_owned(), "pending".to_owned(), 2));
 }
 
 fn queue_catalog(path: PathBuf) -> SqliteCatalog {
@@ -5816,6 +6490,93 @@ fn queue_catalog(path: PathBuf) -> SqliteCatalog {
     let generation = register_root(&mut catalog, 1);
     assert_eq!(generation, LibraryRootGeneration::initial());
     catalog
+}
+
+fn seed_explicit_recovery_claim(catalog: &SqliteCatalog, observed_unix_ms: i64) -> i64 {
+    let catalog_revision: i64 = catalog
+        .connection
+        .query_row("SELECT revision FROM catalog_state", [], |row| row.get(0))
+        .expect("catalog revision");
+    catalog
+        .connection
+        .execute(
+            "INSERT INTO library_change_queue(
+               root_id, root_generation, intent_kind, scope, relative_path,
+               origin, first_observed_unix_ms, most_recent_observed_unix_ms,
+               first_sequence, most_recent_sequence, coalesced_observation_count,
+               status, ready_unix_ms, attempt_count, next_retry_unix_ms,
+               last_failure_code, last_failure_message,
+               catalog_revision_at_enqueue, created_unix_ms, updated_unix_ms
+             ) VALUES (
+               'root-a', 1, 'freshness_unknown', 'root', '', 'startup_catch_up',
+               ?1, ?1, ?2, ?2, 1, 'retry_wait', ?1, 0, NULL,
+               'live_gap_v30_explicit_recovery_required',
+               'The ambiguous historical gap requires an explicit library update',
+               ?3, ?1, ?1
+             )",
+            rusqlite::params![
+                observed_unix_ms,
+                observed_unix_ms.to_string(),
+                catalog_revision,
+            ],
+        )
+        .expect("insert explicit recovery gap");
+    let gap_change_id = catalog.connection.last_insert_rowid();
+    catalog
+        .connection
+        .execute(
+            "INSERT INTO library_live_gap_recovery_claims(
+               gap_change_id, root_id, root_generation, consumer_kind, created_unix_ms
+             ) VALUES (?1, 'root-a', 1, 'explicit_recovery_required', ?2)",
+            rusqlite::params![gap_change_id, observed_unix_ms],
+        )
+        .expect("insert explicit recovery claim");
+    gap_change_id
+}
+
+fn seed_pending_journal_claim(catalog: &mut SqliteCatalog, observed_unix_ms: i64) -> i64 {
+    seed_current_journal_authority(catalog);
+    let generation = LibraryRootGeneration::initial();
+    catalog
+        .enqueue_library_change_intents(
+            &[intent(
+                "root-a",
+                generation,
+                91,
+                observed_unix_ms,
+                LibraryChangeIntentKind::FreshnessUnknown,
+                LibraryChangeScope::Root,
+                "",
+            )],
+            observed_unix_ms,
+            immediate_policy(),
+        )
+        .expect("enqueue live gap");
+    let leased = catalog
+        .lease_live_authoritative_library_change(
+            "root-a",
+            generation,
+            observed_unix_ms,
+            immediate_policy(),
+        )
+        .expect("lease live gap")
+        .expect("live gap work");
+    assert_eq!(
+        catalog
+            .promote_live_watcher_gap_to_metadata_inventory(
+                leased.change.id,
+                leased.lease_generation,
+                &LibraryChangeFailure {
+                    code: "metadata_inventory_required".to_owned(),
+                    message: "The watcher gap needs a durable consumer".to_owned(),
+                },
+                observed_unix_ms + 1,
+                immediate_policy(),
+            )
+            .expect("bind pending journal claim"),
+        LibraryChangeLeaseUpdateOutcome::Applied,
+    );
+    i64::try_from(leased.change.id.value()).expect("live gap change ID")
 }
 
 fn seed_current_journal_authority(catalog: &mut SqliteCatalog) -> PersistentJournalCheckpoint {
@@ -5952,6 +6713,7 @@ fn recovery_inventory_catalog(
                         file_size: Some(1),
                         modified_unix_ms: 1,
                         file_identity: None,
+                        source_revision: None,
                         placeholder_state: MetadataInventoryPlaceholderState::Available,
                         is_reparse_point: false,
                     })
@@ -6138,6 +6900,63 @@ fn intent(
         most_recent_sequence: sequence,
         coalesced_observation_count: 1,
     }
+}
+
+fn assert_live_dirty_rename_coalescing(rename_first: bool) {
+    let directory = tempdir().expect("temporary directory");
+    let generation = LibraryRootGeneration::initial();
+    let mut catalog = queue_catalog(directory.path().join("catalog.sqlite3"));
+    let (rename_sequence, rename_observed, dirty_sequence, dirty_observed) = if rename_first {
+        (1, 1_000, 2, 1_001)
+    } else {
+        (2, 1_001, 1, 1_000)
+    };
+    let rename = rename_intent(
+        "root-a",
+        generation,
+        rename_sequence,
+        rename_observed,
+        "old/photo.jpg",
+        "new/photo.jpg",
+    );
+    let dirty = path_intent(
+        "root-a",
+        generation,
+        dirty_sequence,
+        dirty_observed,
+        "new/photo.jpg",
+    );
+    let intents = if rename_first {
+        [rename, dirty]
+    } else {
+        [dirty, rename]
+    };
+    for intent in intents {
+        let observed_unix_ms = intent.most_recent_observed_unix_ms;
+        catalog
+            .enqueue_library_change_intents(&[intent], observed_unix_ms, immediate_policy())
+            .expect("enqueue dirty rename evidence");
+    }
+
+    let leased = catalog
+        .lease_library_changes("root-a", generation, 1_001, immediate_policy())
+        .expect("lease dirty rename");
+
+    assert_eq!(leased.len(), 1);
+    assert_dirty_rename_intent(&leased[0].change.intent);
+}
+
+fn assert_dirty_rename_intent(intent: &LibraryChangeIntent) {
+    assert_eq!(intent.kind, LibraryChangeIntentKind::Reconcile);
+    assert_eq!(intent.scope, LibraryChangeScope::Path);
+    assert_eq!(intent.relative_path, "new/photo.jpg");
+    assert_eq!(
+        intent.previous_relative_path.as_deref(),
+        Some("old/photo.jpg")
+    );
+    assert_eq!(intent.first_sequence, 1);
+    assert_eq!(intent.most_recent_sequence, 2);
+    assert_eq!(intent.coalesced_observation_count, 2);
 }
 
 fn fixture_policy() -> LibraryChangeQueuePolicy {

@@ -315,6 +315,9 @@ mod tests {
             .begin_scan(&request, "cleanup-root", &request.root_path)
             .expect("begin cleanup root scan");
         catalog
+            .prove_live_only_first_import_handoff_for_test(&request.scan_id)
+            .expect("prove catch-up fixture first-import handoff");
+        catalog
             .publish_scan(
                 &request.scan_id,
                 "cleanup-root",

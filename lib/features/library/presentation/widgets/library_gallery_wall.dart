@@ -17,7 +17,6 @@ import "library_gallery_layout.dart";
 import "library_gallery_layout_snapshot.dart";
 import "library_photo_tile.dart";
 import "library_virtual_gallery_geometry.dart";
-import "library_virtual_gallery_placeholder.dart";
 
 class LibraryGalleryVisiblePosition {
   const LibraryGalleryVisiblePosition({
@@ -226,8 +225,7 @@ class LibraryGalleryWall extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final manifest = layoutManifest;
-    if (layoutShape == GalleryLayoutShape.equalHeight &&
-        manifest != null &&
+    if (manifest != null &&
         manifest.queryId == state.queryId &&
         manifest.revision == state.catalogRevision &&
         manifest.itemCount ==
@@ -237,6 +235,7 @@ class LibraryGalleryWall extends StatelessWidget {
         controller: controller,
         scrollController: scrollController,
         thumbnailSize: thumbnailSize,
+        layoutShape: layoutShape,
         selection: selection,
         isSelecting: isSelecting,
         isSidebarResizing: isSidebarResizing,
@@ -360,15 +359,39 @@ class LibraryGalleryWall extends StatelessWidget {
             state.catalogRevision,
             availableWidth,
           );
-          final visibleRange = _visibleRangeFor(
-            layoutMetrics: layoutMetrics,
-            scrollOffset: localScrollOffset,
-            viewportDimension: metrics.viewportDimension,
-            queryId: state.queryId,
-            revision: state.catalogRevision,
-          );
+          final isViewportInsideLoadedWindow =
+              metrics.pixels >= virtualGeometry.leadingExtent &&
+              metrics.pixels + metrics.viewportDimension <=
+                  virtualGeometry.loadedEndExtent;
+          final visibleRange =
+              layoutShape == GalleryLayoutShape.square &&
+                  virtualGeometry.isVirtualized &&
+                  !isViewportInsideLoadedWindow
+              ? _estimatedSquareVisibleRangeFor(
+                  virtualGeometry: virtualGeometry,
+                  scrollOffset: metrics.pixels,
+                  viewportDimension: metrics.viewportDimension,
+                  availableWidth: availableWidth,
+                  thumbnailSize: thumbnailSize,
+                  queryId: state.queryId,
+                  revision: state.catalogRevision,
+                )
+              : _visibleRangeFor(
+                  layoutMetrics: layoutMetrics,
+                  scrollOffset: localScrollOffset,
+                  viewportDimension: metrics.viewportDimension,
+                  queryId: state.queryId,
+                  revision: state.catalogRevision,
+                );
           if (visibleRange != null) {
             onVisibleRangeChanged?.call(visibleRange);
+            if (layoutShape == GalleryLayoutShape.square) {
+              controller.ensureVisibleRange(
+                startItemOffset: visibleRange.startGlobalItemIndex,
+                endItemOffsetExclusive:
+                    visibleRange.endGlobalItemIndexExclusive,
+              );
+            }
           }
           _updatePreviewDemand(
             controller: controller,
@@ -485,11 +508,9 @@ class LibraryGalleryWall extends StatelessWidget {
                         slivers: [
                           if (virtualGeometry.leadingExtent > 0)
                             SliverToBoxAdapter(
-                              child: LibraryVirtualGalleryPlaceholder(
+                              child: SizedBox(
                                 key: const Key("library-leading-placeholder"),
-                                extent: virtualGeometry.leadingExtent,
-                                horizontalPadding: horizontalPadding + 16,
-                                targetTileExtent: thumbnailSize.targetExtent,
+                                height: virtualGeometry.leadingExtent,
                               ),
                             ),
                           SliverPadding(
@@ -601,11 +622,9 @@ class LibraryGalleryWall extends StatelessWidget {
                           ),
                           if (virtualGeometry.trailingExtent > 0)
                             SliverToBoxAdapter(
-                              child: LibraryVirtualGalleryPlaceholder(
+                              child: SizedBox(
                                 key: const Key("library-trailing-placeholder"),
-                                extent: virtualGeometry.trailingExtent,
-                                horizontalPadding: horizontalPadding + 16,
-                                targetTileExtent: thumbnailSize.targetExtent,
+                                height: virtualGeometry.trailingExtent,
                               ),
                             ),
                           if (!virtualGeometry.isVirtualized &&
@@ -1107,6 +1126,67 @@ class LibraryGalleryWall extends StatelessWidget {
       endGlobalItemIndexExclusive: lastVisibleRowEnd,
     );
   }
+
+  static LibraryGalleryVisibleRange? _estimatedSquareVisibleRangeFor({
+    required LibraryVirtualGalleryGeometry virtualGeometry,
+    required double scrollOffset,
+    required double viewportDimension,
+    required double availableWidth,
+    required GalleryThumbnailSize thumbnailSize,
+    required String queryId,
+    required BigInt? revision,
+  }) {
+    final totalItems = virtualGeometry.totalItemCount;
+    if (revision == null ||
+        queryId.isEmpty ||
+        totalItems <= 0 ||
+        !scrollOffset.isFinite ||
+        !viewportDimension.isFinite ||
+        viewportDimension <= 0 ||
+        availableWidth <= 0) {
+      return null;
+    }
+    final spacing = LibraryGalleryLayoutEntry.spacing;
+    final columnCount =
+        ((availableWidth + spacing) / (thumbnailSize.targetExtent + spacing))
+            .floor()
+            .clamp(1, totalItems)
+            .toInt();
+    final tileExtent =
+        (availableWidth - spacing * (columnCount - 1)) / columnCount;
+    final minimumSpan =
+        columnCount * ((viewportDimension / (tileExtent + spacing)).ceil() + 2);
+    final startValue = virtualGeometry.valueForScrollOffset(scrollOffset);
+    final endValue = virtualGeometry.valueForScrollOffset(
+      scrollOffset + viewportDimension,
+    );
+    var start = (startValue * totalItems)
+        .floor()
+        .clamp(0, totalItems - 1)
+        .toInt();
+    var end = (endValue * totalItems)
+        .ceil()
+        .clamp(start + 1, totalItems)
+        .toInt();
+    if (end - start < minimumSpan) {
+      final center = ((start + end) / 2).round();
+      start = (center - minimumSpan ~/ 2).clamp(0, totalItems - 1).toInt();
+      end = (start + minimumSpan).clamp(start + 1, totalItems).toInt();
+      if (end - start < minimumSpan) {
+        start = (end - minimumSpan).clamp(0, totalItems - 1).toInt();
+      }
+    }
+    start -= start % columnCount;
+    end = (((end + columnCount - 1) ~/ columnCount) * columnCount)
+        .clamp(start + 1, totalItems)
+        .toInt();
+    return LibraryGalleryVisibleRange(
+      queryId: queryId,
+      revision: revision,
+      startGlobalItemIndex: start,
+      endGlobalItemIndexExclusive: end,
+    );
+  }
 }
 
 class _ManifestLibraryGalleryWall extends StatefulWidget {
@@ -1115,6 +1195,7 @@ class _ManifestLibraryGalleryWall extends StatefulWidget {
     required this.controller,
     required this.scrollController,
     required this.thumbnailSize,
+    required this.layoutShape,
     required this.selection,
     required this.isSelecting,
     required this.isSidebarResizing,
@@ -1138,6 +1219,7 @@ class _ManifestLibraryGalleryWall extends StatefulWidget {
   final LibraryController controller;
   final ScrollController scrollController;
   final GalleryThumbnailSize thumbnailSize;
+  final GalleryLayoutShape layoutShape;
   final GallerySelection selection;
   final bool isSelecting;
   final bool isSidebarResizing;
@@ -1507,6 +1589,7 @@ class _ManifestLibraryGalleryWallState
           otherManifest: widget.manifest,
           otherAvailableWidth: availableWidth,
           otherThumbnailSize: widget.thumbnailSize,
+          otherLayoutShape: widget.layoutShape,
           otherSortKey: widget.state.query.sortKey,
         ) &&
         publishedViewportExtent != null &&
@@ -1518,6 +1601,7 @@ class _ManifestLibraryGalleryWallState
         current.canReplaceGeometry(
           otherManifest: widget.manifest,
           otherThumbnailSize: widget.thumbnailSize,
+          otherLayoutShape: widget.layoutShape,
           otherSortKey: widget.state.query.sortKey,
         )) {
       _scheduleResizeSnapshot(availableWidth, viewportExtent);
@@ -1532,6 +1616,7 @@ class _ManifestLibraryGalleryWallState
       manifest: widget.manifest,
       availableWidth: availableWidth,
       thumbnailSize: widget.thumbnailSize,
+      layoutShape: widget.layoutShape,
       sortKey: widget.state.query.sortKey,
     );
   }
@@ -1663,9 +1748,6 @@ class _ManifestLibraryGalleryWallState
         MediaQuery.devicePixelRatioOf(context),
       ),
     );
-    if (widget.state.isLoadingPage || widget.state.isLoadingPreviousPage) {
-      return;
-    }
     widget.controller.ensureVisibleRange(
       startItemOffset: firstVisibleRowStart,
       endItemOffsetExclusive: lastVisibleRowEnd,
@@ -1687,6 +1769,7 @@ class _ManifestLibraryGalleryWallState
         current.matchesInputs(
           otherManifest: widget.manifest,
           otherThumbnailSize: widget.thumbnailSize,
+          otherLayoutShape: widget.layoutShape,
           otherSortKey: widget.state.query.sortKey,
         ) &&
         (current.availableWidth - availableWidth).abs() >= 0.01 &&
@@ -1740,6 +1823,7 @@ class _ManifestLibraryGalleryWallState
                 otherManifest: widget.manifest,
                 otherAvailableWidth: pendingWidth,
                 otherThumbnailSize: widget.thumbnailSize,
+                otherLayoutShape: widget.layoutShape,
                 otherSortKey: widget.state.query.sortKey,
               ) &&
               publishedViewportExtent != null &&
@@ -1751,6 +1835,7 @@ class _ManifestLibraryGalleryWallState
             otherManifest: widget.manifest,
             otherAvailableWidth: pendingWidth,
             otherThumbnailSize: widget.thumbnailSize,
+            otherLayoutShape: widget.layoutShape,
             otherSortKey: widget.state.query.sortKey,
           )
           ? current
@@ -1758,6 +1843,7 @@ class _ManifestLibraryGalleryWallState
               manifest: widget.manifest,
               availableWidth: pendingWidth,
               thumbnailSize: widget.thumbnailSize,
+              layoutShape: widget.layoutShape,
               sortKey: widget.state.query.sortKey,
             );
       final position = widget.scrollController.hasClients
@@ -2027,7 +2113,7 @@ class _ManifestLibraryGalleryWallState
     final locationId = snapshot.manifest.locationIdAt(itemIndex);
     final asset = assetsByLocation[locationId];
     if (asset == null) {
-      return _LibraryGalleryStablePlaceholderTile(
+      return _LibraryGalleryUnloadedSlot(
         key: ValueKey(locationId),
         width: width,
         height: height,
@@ -2083,8 +2169,8 @@ class _ManifestLibraryGalleryWallState
   }
 }
 
-class _LibraryGalleryStablePlaceholderTile extends StatelessWidget {
-  const _LibraryGalleryStablePlaceholderTile({
+class _LibraryGalleryUnloadedSlot extends StatelessWidget {
+  const _LibraryGalleryUnloadedSlot({
     required this.width,
     required this.height,
     super.key,
@@ -2095,17 +2181,6 @@ class _LibraryGalleryStablePlaceholderTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: width,
-      height: height,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: Theme.of(
-            context,
-          ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.72),
-          borderRadius: BorderRadius.circular(10),
-        ),
-      ),
-    );
+    return SizedBox(width: width, height: height);
   }
 }

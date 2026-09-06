@@ -24,16 +24,17 @@ use crate::adapters::{
     production_library_change_source_factory,
 };
 use crate::domain::{
-    IncrementalLibraryChangeReport, JournalFileReference, JournalIdentifier, JournalUsn,
-    LeasedLibraryChange, LibraryChangeId, LibraryChangeLane, LibraryRootGeneration,
-    LibrarySynchronizationPhase, LibrarySynchronizationSnapshot,
-    PERSISTENT_JOURNAL_CONTRACT_VERSION, PersistentJournalBaseline,
-    PersistentJournalBaselineClosingBoundary, PersistentJournalBaselinePhase,
-    PersistentJournalBaselineStartRequest, PersistentJournalCapability,
+    IncrementalLibraryChangeReport, LeasedLibraryChange, LibraryChangeId, LibraryChangeLane,
+    LibraryRootGeneration, LibrarySynchronizationPhase, LibrarySynchronizationSnapshot,
     PersistentJournalCapabilityState, PersistentJournalCheckpoint,
-    PersistentJournalContinuityState, PersistentJournalEnrollmentReport, PersistentJournalFailure,
-    PersistentJournalRootFailure, PersistentJournalRootFailureKind,
-    PersistentJournalVolumeIdentity, ScanError,
+    PersistentJournalContinuityState, PersistentJournalEnrollmentReport,
+    PersistentJournalRootFailure, PersistentJournalRootFailureKind, ScanError,
+};
+#[cfg(all(test, windows))]
+use crate::domain::{
+    JournalFileReference, JournalIdentifier, JournalUsn, LibraryRecoveryAuthorityReason,
+    PERSISTENT_JOURNAL_CONTRACT_VERSION, PersistentJournalBaselineStartRequest,
+    PersistentJournalCapability, PersistentJournalFailure, PersistentJournalVolumeIdentity,
 };
 
 #[cfg(windows)]
@@ -54,18 +55,19 @@ use crate::application::{
     process_ready_metadata_inventory_recovery_candidates_cancellable,
     process_ready_unowned_recovery_paths_cancellable, storage_paths,
 };
-#[cfg(windows)]
-use crate::journal_broker::{
-    BrokerResponse, JournalCapability, PersistentChangeJournal, PersistentChangeJournalConnection,
-    PersistentChangeJournalLiveOnlyReason, PersistentChangeJournalOperationError,
-    ProductionPersistentJournalRoot, QueryJournalRequest, RegisterRootRequest,
-    describe_production_persistent_journal_root, production_client_allows_broker_activation,
-    production_persistent_change_journal, production_persistent_journal_caller_claim,
-};
 #[cfg(all(test, windows))]
 use crate::journal_broker::{
-    PersistentChangeJournalRead, PersistentChangeJournalSession, ReadJournalRangeRequest,
-    ReadJournalVolumeRequest, RootCapability,
+    BrokerResponse, JournalCapability, PersistentChangeJournalRead, PersistentChangeJournalSession,
+    QueryJournalRequest, ReadJournalRangeRequest, ReadJournalVolumeRequest, RegisterRootRequest,
+    RootCapability,
+};
+#[cfg(windows)]
+use crate::journal_broker::{
+    PersistentChangeJournal, PersistentChangeJournalConnection,
+    PersistentChangeJournalLiveOnlyReason, PersistentChangeJournalOperationError,
+    ProductionPersistentJournalRoot, describe_production_persistent_journal_root,
+    production_client_allows_broker_activation, production_persistent_change_journal,
+    production_persistent_journal_caller_claim,
 };
 #[cfg(windows)]
 use crate::ports::{
@@ -194,11 +196,9 @@ const RECOVERY_RETRY_MAXIMUM_MILLIS: i64 = 5 * 60 * 1_000;
 // The absolute 4096th queue slot remains the inventory authority while one candidate page drains.
 const METADATA_INVENTORY_WORK_PAGE_ENTRIES: u32 = 4_095;
 #[cfg(windows)]
-const JOURNAL_BOUNDARY_TIMEOUT_MILLIS: u32 = 10_000;
-#[cfg(windows)]
 struct ProductionSynchronization {
     runtime: LibrarySynchronizationRuntime,
-    catalog_session: Option<SqliteCatalogSession>,
+    catalog_session: Option<Arc<SqliteCatalogSession>>,
     persistent_change_journal_factory: Option<Arc<dyn PersistentChangeJournal>>,
     _persistent_change_journal: PersistentChangeJournalConnection,
     persistent_change_journal_opened: bool,
@@ -613,25 +613,6 @@ struct JournalRootWork {
 }
 
 #[cfg(windows)]
-struct JournalBaselineWork {
-    root_id: String,
-    root_generation: LibraryRootGeneration,
-    root_path: std::path::PathBuf,
-    baseline: Option<PersistentJournalBaseline>,
-}
-
-#[cfg(windows)]
-enum JournalBoundaryProbe {
-    Supported {
-        volume: PersistentJournalVolumeIdentity,
-        root_file_reference: JournalFileReference,
-        journal_id: JournalIdentifier,
-        next_usn: JournalUsn,
-    },
-    LiveOnly,
-}
-
-#[cfg(windows)]
 struct RecoveryTask {
     root_id: String,
     kind: RecoveryTaskKind,
@@ -815,6 +796,72 @@ pub(crate) fn poll_production_library_synchronization(
     #[cfg(not(windows))]
     {
         Err(unsupported_platform())
+    }
+}
+
+#[cfg(not(test))]
+pub(crate) fn poll_production_first_import_change_capture(
+    scan_id: &str,
+    root_id: &str,
+    root_generation: LibraryRootGeneration,
+    catalog_path: &std::path::Path,
+) -> Result<bool, ScanError> {
+    #[cfg(windows)]
+    {
+        let Some(owner_ticket) = first_import_runtime_owner_for_poll(runtime_registry())? else {
+            return Ok(false);
+        };
+        let snapshot = match poll_production_library_synchronization(owner_ticket.raw()) {
+            Ok(snapshot) => snapshot,
+            Err(error)
+                if matches!(
+                    error.code.as_str(),
+                    "library_synchronization_start_in_progress"
+                        | "library_synchronization_poll_in_progress"
+                        | "library_synchronization_state_raced"
+                ) =>
+            {
+                return Ok(false);
+            }
+            Err(error) => return Err(error),
+        };
+        let observer_is_healthy = snapshot.roots.iter().any(|root| {
+            root.root_id == root_id
+                && root.root_generation == root_generation.value()
+                && root.availability == crate::domain::LibraryRootAvailability::Available
+                && root.source_health == crate::domain::LibraryChangeSourceHealth::Healthy
+        });
+        if !observer_is_healthy {
+            return Ok(false);
+        }
+        let catalog = crate::application::catalog_session::open_catalog(
+            catalog_path,
+            LibraryChangeLane::Journal,
+        )?;
+        catalog.first_import_change_capture_is_ready(scan_id, root_id, root_generation)
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = (scan_id, root_id, root_generation, catalog_path);
+        Err(unsupported_platform())
+    }
+}
+
+#[cfg(windows)]
+fn first_import_runtime_owner_for_poll(
+    registry: &SynchronizationRuntimeRegistry,
+) -> Result<Option<RuntimeStartTicket>, ScanError> {
+    let registry = lock_runtime_registry(registry)?;
+    match &registry.entry {
+        SynchronizationRuntimeEntry::Empty
+        | SynchronizationRuntimeEntry::Starting { .. }
+        | SynchronizationRuntimeEntry::Polling { .. } => Ok(None),
+        SynchronizationRuntimeEntry::Ready { owner_ticket, .. } => Ok(Some(*owner_ticket)),
+        SynchronizationRuntimeEntry::Stopping { .. }
+        | SynchronizationRuntimeEntry::Draining { .. } => Err(ScanError::new(
+            "library_synchronization_stop_in_progress",
+            "Library synchronization is stopping before first-import change capture",
+        )),
     }
 }
 
@@ -1652,12 +1699,28 @@ fn poll_runtime_with_storage(
     runtime: &mut ProductionSynchronization,
     storage: &crate::application::storage::StoragePaths,
 ) -> Result<LibrarySynchronizationSnapshot, ScanError> {
+    let started = Instant::now();
+    let mut timings = SynchronizationPollStageTimings::default();
+    let result = poll_runtime_with_storage_inner(runtime, storage, &mut timings);
+    log_synchronization_poll_diagnostic(started.elapsed(), &timings, &result);
+    result
+}
+
+#[cfg(windows)]
+fn poll_runtime_with_storage_inner(
+    runtime: &mut ProductionSynchronization,
+    storage: &crate::application::storage::StoragePaths,
+    timings: &mut SynchronizationPollStageTimings,
+) -> Result<LibrarySynchronizationSnapshot, ScanError> {
+    timings.stage = "preflight";
     if runtime.stop_requested.load(Ordering::Acquire) {
         return Err(ScanError::new(
             "library_synchronization_poll_cancelled",
             "Synchronization polling was cancelled before work began",
         ));
     }
+    timings.stage = "catalog";
+    let catalog_timer = ElapsedStageTimer::new(&mut timings.catalog_ms);
     let mut poll_unix_ms = now_unix_ms()?;
     let mut catalog = runtime.open_catalog(&storage.catalog_path, LibraryChangeLane::Live)?;
     if !runtime.legacy_automatic_scans_retired {
@@ -1665,6 +1728,9 @@ fn poll_runtime_with_storage(
         runtime.legacy_automatic_scans_retired = true;
         poll_unix_ms = now_unix_ms()?;
     }
+    drop(catalog_timer);
+    timings.stage = "observation";
+    let observation_timer = ElapsedStageTimer::new(&mut timings.observation_ms);
     let mut snapshot = runtime.runtime.poll_without_authoritative_recovery(
         &mut catalog,
         poll_unix_ms,
@@ -1676,6 +1742,9 @@ fn poll_runtime_with_storage(
             "Synchronization polling was cancelled after root observation",
         ));
     }
+    drop(observation_timer);
+    timings.stage = "lanes";
+    let lanes_timer = ElapsedStageTimer::new(&mut timings.lanes_ms);
     runtime.open_persistent_change_journal_after_watcher();
     if runtime.stop_requested.load(Ordering::Acquire) {
         return Err(ScanError::new(
@@ -1686,6 +1755,7 @@ fn poll_runtime_with_storage(
     let live_mutation_count = runtime.poll_live(poll_unix_ms);
     let journal_mutation_count = runtime.poll_journal();
     let recovered_mutation_count = runtime.poll_recovery(poll_unix_ms)?;
+    catalog.finalize_ready_first_import_journal_baseline(poll_unix_ms)?;
     runtime.prune_recovery_inventory_sources(&catalog)?;
     runtime.cancel_stale_automatic_recovery();
     snapshot.applied_mutation_count = snapshot
@@ -1699,9 +1769,13 @@ fn poll_runtime_with_storage(
                 "The synchronization mutation count exceeded the supported range",
             )
         })?;
+    drop(lanes_timer);
+    timings.stage = "scheduling";
+    let scheduling_timer = ElapsedStageTimer::new(&mut timings.scheduling_ms);
+    let change_capture_unix_ms = now_unix_ms()?;
     project_active_recovery_as_updating(runtime.recovery.as_ref(), &mut snapshot);
     runtime.schedule_next_live_work(&catalog, &snapshot, poll_unix_ms, storage)?;
-    runtime.schedule_next_journal_work(&catalog, &snapshot, poll_unix_ms, storage)?;
+    runtime.schedule_next_journal_work(&mut catalog, &snapshot, change_capture_unix_ms, storage)?;
     if runtime.recovery.is_none()
         && let Some(work) = ready_recovery_work(runtime, &catalog, &snapshot, poll_unix_ms)?
     {
@@ -1770,9 +1844,99 @@ fn poll_runtime_with_storage(
             }
         }
     }
+    drop(scheduling_timer);
+    timings.stage = "projection";
+    let projection_timer = ElapsedStageTimer::new(&mut timings.projection_ms);
     project_active_recovery_as_updating(runtime.recovery.as_ref(), &mut snapshot);
     runtime.project_persistent_journal_continuity(&catalog, &mut snapshot)?;
+    drop(projection_timer);
+    timings.stage = "complete";
     Ok(snapshot)
+}
+
+#[cfg(windows)]
+struct SynchronizationPollStageTimings {
+    stage: &'static str,
+    catalog_ms: u128,
+    observation_ms: u128,
+    lanes_ms: u128,
+    scheduling_ms: u128,
+    projection_ms: u128,
+}
+
+#[cfg(windows)]
+impl Default for SynchronizationPollStageTimings {
+    fn default() -> Self {
+        Self {
+            stage: "not_started",
+            catalog_ms: 0,
+            observation_ms: 0,
+            lanes_ms: 0,
+            scheduling_ms: 0,
+            projection_ms: 0,
+        }
+    }
+}
+
+#[cfg(windows)]
+struct ElapsedStageTimer<'a> {
+    started: Instant,
+    elapsed_ms: &'a mut u128,
+}
+
+#[cfg(windows)]
+impl<'a> ElapsedStageTimer<'a> {
+    fn new(elapsed_ms: &'a mut u128) -> Self {
+        Self {
+            started: Instant::now(),
+            elapsed_ms,
+        }
+    }
+}
+
+#[cfg(windows)]
+impl Drop for ElapsedStageTimer<'_> {
+    fn drop(&mut self) {
+        *self.elapsed_ms = (*self.elapsed_ms).saturating_add(self.started.elapsed().as_millis());
+    }
+}
+
+#[cfg(windows)]
+fn log_synchronization_poll_diagnostic(
+    elapsed: Duration,
+    timings: &SynchronizationPollStageTimings,
+    result: &Result<LibrarySynchronizationSnapshot, ScanError>,
+) {
+    #[cfg(debug_assertions)]
+    {
+        const SLOW_POLL: Duration = Duration::from_millis(500);
+        if elapsed < SLOW_POLL && result.is_ok() {
+            return;
+        }
+        let (outcome, code, roots, mutations) = match result {
+            Ok(snapshot) => (
+                "ok",
+                "none",
+                snapshot.roots.len(),
+                snapshot.applied_mutation_count,
+            ),
+            Err(error) => ("error", error.code.as_str(), 0, 0),
+        };
+        eprintln!(
+            "[Ame sync native] outcome={outcome} code={code} stage={} total_ms={} \
+             catalog_ms={} observation_ms={} lanes_ms={} scheduling_ms={} projection_ms={} \
+             roots={roots} mutations={mutations}",
+            timings.stage,
+            elapsed.as_millis(),
+            timings.catalog_ms,
+            timings.observation_ms,
+            timings.lanes_ms,
+            timings.scheduling_ms,
+            timings.projection_ms,
+        );
+    }
+    #[cfg(not(debug_assertions))]
+    let _ = (elapsed, timings, result);
 }
 
 #[cfg(windows)]
@@ -1878,7 +2042,7 @@ impl ProductionSynchronization {
     fn validated_catalog_session(
         &mut self,
         catalog_path: &std::path::Path,
-    ) -> Result<SqliteCatalogSession, ScanError> {
+    ) -> Result<Arc<SqliteCatalogSession>, ScanError> {
         if let Some(session) = &self.catalog_session {
             if session.path() != catalog_path {
                 return Err(ScanError::new(
@@ -1888,8 +2052,8 @@ impl ProductionSynchronization {
             }
             return Ok(session.clone());
         }
-        let session = SqliteCatalogSession::validate(catalog_path.to_path_buf())?;
-        self.catalog_session = Some(session.clone());
+        let session = crate::application::catalog_session::validated_catalog_session(catalog_path)?;
+        self.catalog_session = Some(Arc::clone(&session));
         Ok(session)
     }
 
@@ -1902,7 +2066,11 @@ impl ProductionSynchronization {
         match session.open_in_lane(lane) {
             Ok(catalog) => Ok(catalog),
             Err(error) if error.code == "catalog_validated_session_stale" => {
-                let replacement = SqliteCatalogSession::validate(catalog_path.to_path_buf())?;
+                let replacement =
+                    crate::application::catalog_session::refresh_stale_catalog_session(
+                        catalog_path,
+                        &session,
+                    )?;
                 let catalog = replacement.open_in_lane(lane)?;
                 self.catalog_session = Some(replacement);
                 Ok(catalog)
@@ -2203,6 +2371,7 @@ fn ready_recovery_work(
         let root = &snapshot.roots[(start_index + offset) % snapshot.roots.len()];
         if root.availability != crate::domain::LibraryRootAvailability::Available
             || root.source_health != crate::domain::LibraryChangeSourceHealth::Healthy
+            || root.recovery_blocked
             || !runtime.recovery_is_due(&root.root_id, now_unix_ms)
         {
             continue;
@@ -2303,6 +2472,12 @@ fn ready_live_root(
                     "The synchronization root generation is invalid",
                 )
             })?;
+        if catalog
+            .load_incremental_catalog_root(&root.root_id)?
+            .is_none_or(|catalog_root| catalog_root.active_scan_id.is_none())
+        {
+            continue;
+        }
         if catalog.has_ready_live_authoritative_library_change(
             &root.root_id,
             root_generation,
@@ -2332,6 +2507,12 @@ fn snapshot_has_ready_live_work(
         let Some(root_generation) = LibraryRootGeneration::new(root.root_generation) else {
             continue;
         };
+        if catalog
+            .load_incremental_catalog_root(&root.root_id)?
+            .is_none_or(|catalog_root| catalog_root.active_scan_id.is_none())
+        {
+            continue;
+        }
         if catalog.has_ready_live_authoritative_library_change(
             &root.root_id,
             root_generation,
@@ -2485,10 +2666,7 @@ impl ProductionSynchronization {
                     let Some(root) = catalog.load_incremental_catalog_root(&worker_root_id)? else {
                         return Ok(AuthoritativeLibraryChangeReport::default());
                     };
-                    if root.root_generation != root_generation
-                        || root.active_scan_id.is_none()
-                        || root.has_running_scan
-                    {
+                    if root.root_generation != root_generation || root.active_scan_id.is_none() {
                         return Ok(AuthoritativeLibraryChangeReport::default());
                     }
                     if let Some(leased) = catalog.lease_live_authoritative_library_change(
@@ -2632,7 +2810,7 @@ impl ProductionSynchronization {
 
     fn schedule_next_journal_work(
         &mut self,
-        catalog: &SqliteCatalog,
+        catalog: &mut SqliteCatalog,
         snapshot: &LibrarySynchronizationSnapshot,
         now_unix_ms: i64,
         storage: &crate::application::storage::StoragePaths,
@@ -2668,11 +2846,29 @@ impl ProductionSynchronization {
             (PersistentChangeJournalConnection::Connected(session), Some(caller)) => {
                 (Arc::clone(session), caller.clone())
             }
+            (PersistentChangeJournalConnection::LiveOnly(_), _) => {
+                if let Some(work) = super::journal_baseline::select_opening_work(
+                    catalog,
+                    snapshot,
+                    self.journal_root_cursor.as_deref(),
+                )? {
+                    super::journal_baseline::persist_unavailable_session(
+                        catalog,
+                        &work,
+                        now_unix_ms,
+                    )?;
+                }
+                return Ok(());
+            }
             _ => return Ok(()),
         };
 
-        if let Some(work) = self.next_baseline_closing(catalog, snapshot)? {
-            self.journal_root_cursor = Some(work.root_id.clone());
+        if let Some(work) = super::journal_baseline::select_closing_work(
+            catalog,
+            snapshot,
+            self.journal_root_cursor.as_deref(),
+        )? {
+            self.journal_root_cursor = Some(work.root_id().to_owned());
             return self.start_baseline_closing(
                 work,
                 session,
@@ -2681,8 +2877,12 @@ impl ProductionSynchronization {
                 storage.catalog_path.clone(),
             );
         }
-        if let Some(work) = self.next_baseline_opening(catalog, snapshot)? {
-            self.journal_root_cursor = Some(work.root_id.clone());
+        if let Some(work) = super::journal_baseline::select_opening_work(
+            catalog,
+            snapshot,
+            self.journal_root_cursor.as_deref(),
+        )? {
+            self.journal_root_cursor = Some(work.root_id().to_owned());
             return self.start_baseline_opening(
                 work,
                 session,
@@ -2716,106 +2916,6 @@ impl ProductionSynchronization {
         }
         self.journal_next_action_is_read = true;
         Ok(())
-    }
-
-    fn next_baseline_closing(
-        &self,
-        catalog: &SqliteCatalog,
-        snapshot: &LibrarySynchronizationSnapshot,
-    ) -> Result<Option<JournalBaselineWork>, ScanError> {
-        let roots = catalog.load_incremental_catalog_roots()?;
-        let mut candidates = BTreeMap::new();
-        for baseline in catalog.load_persistent_journal_baselines()? {
-            if baseline.phase != PersistentJournalBaselinePhase::Inventory
-                || !catalog.metadata_inventory_is_waiting_for_closing_boundary(&baseline.run_id)?
-            {
-                continue;
-            }
-            let Some(root) = roots.iter().find(|root| {
-                root.root_id == baseline.root_id && root.root_generation == baseline.root_generation
-            }) else {
-                continue;
-            };
-            if !snapshot.roots.iter().any(|status| {
-                status.root_id == baseline.root_id
-                    && status.root_generation == baseline.root_generation.value()
-                    && status.availability == crate::domain::LibraryRootAvailability::Available
-                    && status.source_health == crate::domain::LibraryChangeSourceHealth::Healthy
-            }) {
-                continue;
-            }
-            candidates.insert(
-                baseline.root_id.clone(),
-                JournalBaselineWork {
-                    root_id: baseline.root_id.clone(),
-                    root_generation: baseline.root_generation,
-                    root_path: std::path::PathBuf::from(&root.root_path),
-                    baseline: Some(baseline),
-                },
-            );
-        }
-        let Some(key) = select_rotated_key(candidates.keys(), self.journal_root_cursor.as_deref())
-        else {
-            return Ok(None);
-        };
-        Ok(candidates.remove(&key))
-    }
-
-    fn next_baseline_opening(
-        &self,
-        catalog: &SqliteCatalog,
-        snapshot: &LibrarySynchronizationSnapshot,
-    ) -> Result<Option<JournalBaselineWork>, ScanError> {
-        let capabilities = catalog.load_persistent_journal_capabilities()?;
-        let baselines = catalog.load_persistent_journal_baselines()?;
-        let mut candidates = BTreeMap::new();
-        for root in catalog.load_incremental_catalog_roots()? {
-            let Some(status) = snapshot.roots.iter().find(|status| {
-                status.root_id == root.root_id
-                    && status.root_generation == root.root_generation.value()
-                    && status.availability == crate::domain::LibraryRootAvailability::Available
-                    && status.source_health == crate::domain::LibraryChangeSourceHealth::Healthy
-            }) else {
-                continue;
-            };
-            let root_generation =
-                LibraryRootGeneration::new(status.root_generation).ok_or_else(|| {
-                    ScanError::new(
-                        "library_root_generation_invalid",
-                        "The synchronization root generation is invalid",
-                    )
-                })?;
-            if catalog
-                .load_persistent_journal_checkpoint(&root.root_id, root_generation)?
-                .is_some()
-                || baselines.iter().any(|baseline| {
-                    baseline.root_id == root.root_id && baseline.root_generation == root_generation
-                })
-            {
-                continue;
-            }
-            if let Some(capability) = capabilities.iter().find(|capability| {
-                capability.root_id == root.root_id && capability.root_generation == root_generation
-            }) && (capability.state == PersistentJournalCapabilityState::LiveOnly
-                || capability.continuity != PersistentJournalContinuityState::BaselineRequired)
-            {
-                continue;
-            }
-            candidates.insert(
-                root.root_id.clone(),
-                JournalBaselineWork {
-                    root_id: root.root_id,
-                    root_generation,
-                    root_path: std::path::PathBuf::from(root.root_path),
-                    baseline: None,
-                },
-            );
-        }
-        let Some(key) = select_rotated_key(candidates.keys(), self.journal_root_cursor.as_deref())
-        else {
-            return Ok(None);
-        };
-        Ok(candidates.remove(&key))
     }
 
     fn next_journal_volume(
@@ -2964,7 +3064,7 @@ impl ProductionSynchronization {
 
     fn start_baseline_opening(
         &mut self,
-        work: JournalBaselineWork,
+        work: super::journal_baseline::JournalBaselineOpeningWork,
         session: Arc<dyn crate::journal_broker::PersistentChangeJournalSession>,
         caller: crate::journal_broker::CallerClaim,
         observed_unix_ms: i64,
@@ -2978,82 +3078,16 @@ impl ProductionSynchronization {
         let worker = thread::Builder::new()
             .name("ame-p1-baseline-opening".to_owned())
             .spawn(move || {
-                let result = (|| {
-                    if worker_cancelled.load(Ordering::Acquire) {
-                        return Err(ScanError::new(
-                            "persistent_journal_boundary_cancelled",
-                            "The opening change boundary was cancelled",
-                        ));
-                    }
-                    let registration = describe_production_persistent_journal_root(
-                        &work.root_id,
-                        work.root_generation.value(),
-                        &work.root_path,
-                    )
-                    .map_err(map_journal_operation_error)?;
-                    let boundary =
-                        probe_journal_boundary(session.as_ref(), &caller, &registration)?;
-                    let mut catalog = catalog_session.open_in_lane(LibraryChangeLane::Journal)?;
-                    match boundary {
-                        JournalBoundaryProbe::Supported {
-                            volume,
-                            root_file_reference,
-                            journal_id,
-                            next_usn,
-                        } => {
-                            catalog.save_persistent_journal_capability(
-                                &PersistentJournalCapability {
-                                    root_id: work.root_id.clone(),
-                                    root_generation: work.root_generation,
-                                    protocol_version: crate::journal_broker::PROTOCOL_VERSION,
-                                    contract_version: PERSISTENT_JOURNAL_CONTRACT_VERSION,
-                                    state: PersistentJournalCapabilityState::Supported,
-                                    continuity: PersistentJournalContinuityState::BaselineRequired,
-                                    failure: None,
-                                    updated_unix_ms: observed_unix_ms,
-                                },
-                            )?;
-                            let run_id = crate::application::scan_library::stable_id(
-                                "persistent-journal-baseline-v1",
-                                &format!(
-                                    "{}\0{}\0{}\0{}\0{}\0{}",
-                                    work.root_id,
-                                    work.root_generation.value(),
-                                    volume.volume_guid,
-                                    volume.volume_serial,
-                                    journal_id.value(),
-                                    next_usn.value(),
-                                ),
-                            );
-                            catalog.begin_persistent_journal_baseline(
-                                &PersistentJournalBaselineStartRequest {
-                                    run_id,
-                                    root_id: work.root_id,
-                                    root_generation: work.root_generation,
-                                    volume,
-                                    root_file_reference,
-                                    journal_id,
-                                    opening_next_usn: next_usn,
-                                    protocol_version: crate::journal_broker::PROTOCOL_VERSION,
-                                    contract_version: PERSISTENT_JOURNAL_CONTRACT_VERSION,
-                                    authorized_unix_ms: observed_unix_ms,
-                                },
-                                queue_policy,
-                            )?;
-                        }
-                        JournalBoundaryProbe::LiveOnly => {
-                            catalog.save_persistent_journal_capability(
-                                &live_only_journal_capability(
-                                    &work.root_id,
-                                    work.root_generation,
-                                    observed_unix_ms,
-                                ),
-                            )?;
-                        }
-                    }
-                    drop(registration);
-                    Ok(JournalTaskOutcome::BaselineBoundary)
-                })();
+                let result = super::journal_baseline::capture_opening_boundary(
+                    work,
+                    session.as_ref(),
+                    &caller,
+                    observed_unix_ms,
+                    catalog_session.as_ref(),
+                    queue_policy,
+                    worker_cancelled.as_ref(),
+                )
+                .map(|()| JournalTaskOutcome::BaselineBoundary);
                 let _ = sender.send(result);
             })
             .map_err(|error| {
@@ -3072,7 +3106,7 @@ impl ProductionSynchronization {
 
     fn start_baseline_closing(
         &mut self,
-        work: JournalBaselineWork,
+        work: super::journal_baseline::JournalBaselineClosingWork,
         session: Arc<dyn crate::journal_broker::PersistentChangeJournalSession>,
         caller: crate::journal_broker::CallerClaim,
         observed_unix_ms: i64,
@@ -3085,54 +3119,15 @@ impl ProductionSynchronization {
         let worker = thread::Builder::new()
             .name("ame-p1-baseline-closing".to_owned())
             .spawn(move || {
-                let result = (|| {
-                    let baseline = work.baseline.ok_or_else(|| {
-                        ScanError::new(
-                            "persistent_journal_baseline_missing",
-                            "The closing boundary no longer has a durable baseline",
-                        )
-                    })?;
-                    if worker_cancelled.load(Ordering::Acquire) {
-                        return Err(ScanError::new(
-                            "persistent_journal_boundary_cancelled",
-                            "The closing change boundary was cancelled",
-                        ));
-                    }
-                    let registration = describe_production_persistent_journal_root(
-                        &work.root_id,
-                        work.root_generation.value(),
-                        &work.root_path,
-                    )
-                    .map_err(map_journal_operation_error)?;
-                    let boundary =
-                        probe_journal_boundary(session.as_ref(), &caller, &registration)?;
-                    let JournalBoundaryProbe::Supported {
-                        volume,
-                        root_file_reference,
-                        journal_id,
-                        next_usn,
-                    } = boundary
-                    else {
-                        return Err(ScanError::new(
-                            "persistent_journal_baseline_closing_unavailable",
-                            "The closing change boundary is unavailable",
-                        ));
-                    };
-                    let mut catalog = catalog_session.open_in_lane(LibraryChangeLane::Journal)?;
-                    catalog.capture_persistent_journal_baseline_closing_boundary(
-                        &PersistentJournalBaselineClosingBoundary {
-                            change_id: baseline.change_id,
-                            volume,
-                            root_file_reference,
-                            journal_id,
-                            closing_next_usn: next_usn,
-                            protocol_version: crate::journal_broker::PROTOCOL_VERSION,
-                            captured_unix_ms: observed_unix_ms,
-                        },
-                    )?;
-                    drop(registration);
-                    Ok(JournalTaskOutcome::BaselineBoundary)
-                })();
+                let result = super::journal_baseline::capture_closing_boundary(
+                    work,
+                    session.as_ref(),
+                    &caller,
+                    observed_unix_ms,
+                    catalog_session.as_ref(),
+                    worker_cancelled.as_ref(),
+                )
+                .map(|()| JournalTaskOutcome::BaselineBoundary);
                 let _ = sender.send(result);
             })
             .map_err(|error| {
@@ -4072,68 +4067,6 @@ fn finish_journal_close_task_until(
 }
 
 #[cfg(windows)]
-fn probe_journal_boundary(
-    session: &dyn crate::journal_broker::PersistentChangeJournalSession,
-    caller: &crate::journal_broker::CallerClaim,
-    registration: &ProductionPersistentJournalRoot,
-) -> Result<JournalBoundaryProbe, ScanError> {
-    let capability = session
-        .register_root(RegisterRootRequest {
-            caller: caller.clone(),
-            root: registration.authorization.clone(),
-            client_root_handle: registration.client_root_handle,
-            timeout_ms: JOURNAL_BOUNDARY_TIMEOUT_MILLIS,
-        })
-        .map_err(map_journal_operation_error)?;
-    match session
-        .query_journal(QueryJournalRequest {
-            caller: caller.clone(),
-            root: registration.authorization.clone(),
-            root_capability: capability,
-            timeout_ms: JOURNAL_BOUNDARY_TIMEOUT_MILLIS,
-        })
-        .map_err(map_journal_operation_error)?
-    {
-        BrokerResponse::Journal {
-            capability: JournalCapability::Supported,
-            journal_id: Some(journal_id),
-            first_usn: Some(first_usn),
-            next_usn: Some(next_usn),
-            ..
-        } if first_usn >= 0 && next_usn >= first_usn => Ok(JournalBoundaryProbe::Supported {
-            volume: PersistentJournalVolumeIdentity {
-                volume_guid: registration.authorization.volume_id.clone(),
-                volume_serial: registration.volume_serial,
-            },
-            root_file_reference: JournalFileReference::from_bytes(
-                &registration.authorization.root_identity,
-            )?,
-            journal_id: JournalIdentifier::new(journal_id)?,
-            next_usn: JournalUsn::new(next_usn)?,
-        }),
-        BrokerResponse::Journal {
-            capability: JournalCapability::LiveOnly,
-            journal_id: None,
-            first_usn: None,
-            next_usn: None,
-            ..
-        } => Ok(JournalBoundaryProbe::LiveOnly),
-        _ => Err(ScanError::new(
-            "persistent_journal_boundary_invalid",
-            "The retained change boundary response is incomplete or inconsistent",
-        )),
-    }
-}
-
-#[cfg(windows)]
-fn map_journal_operation_error(error: PersistentChangeJournalOperationError) -> ScanError {
-    ScanError::new(
-        "persistent_journal_boundary_unavailable",
-        format!("The retained change boundary is unavailable: {error}"),
-    )
-}
-
-#[cfg(windows)]
 fn persist_journal_registration_failure(
     catalog: &mut SqliteCatalog,
     root_id: &str,
@@ -4155,27 +4088,6 @@ fn persist_journal_registration_failure(
         catalog.persist_persistent_journal_root_failure(&failure, failed_unix_ms, policy)?;
     }
     Ok(failure)
-}
-
-#[cfg(windows)]
-fn live_only_journal_capability(
-    root_id: &str,
-    root_generation: LibraryRootGeneration,
-    observed_unix_ms: i64,
-) -> PersistentJournalCapability {
-    PersistentJournalCapability {
-        root_id: root_id.to_owned(),
-        root_generation,
-        protocol_version: crate::journal_broker::PROTOCOL_VERSION,
-        contract_version: PERSISTENT_JOURNAL_CONTRACT_VERSION,
-        state: PersistentJournalCapabilityState::LiveOnly,
-        continuity: PersistentJournalContinuityState::LiveOnly,
-        failure: Some(PersistentJournalFailure {
-            code: "retained_change_history_unavailable".to_owned(),
-            message: "Updates remain continuous only while Ame is open".to_owned(),
-        }),
-        updated_unix_ms: observed_unix_ms,
-    }
 }
 
 #[cfg(all(windows, debug_assertions))]
@@ -4979,6 +4891,37 @@ mod tests {
     }
 
     #[cfg(windows)]
+    fn wait_for_retained_journal_close_worker(
+        registry: &SynchronizationRuntimeRegistry,
+        timeout: Duration,
+    ) {
+        let deadline = Instant::now() + timeout;
+        loop {
+            let is_finished = {
+                let state = registry.state.lock().expect("local registry");
+                match &state.entry {
+                    SynchronizationRuntimeEntry::Draining { runtime, .. } => runtime
+                        .lock()
+                        .expect("draining runtime")
+                        .journal_close
+                        .as_ref()
+                        .and_then(|task| task.worker.as_ref())
+                        .is_some_and(JoinHandle::is_finished),
+                    _ => false,
+                }
+            };
+            if is_finished {
+                return;
+            }
+            assert!(
+                Instant::now() < deadline,
+                "the retained journal-close worker did not finish after release"
+            );
+            thread::yield_now();
+        }
+    }
+
+    #[cfg(windows)]
     fn retained_stop_deadline(registry: &SynchronizationRuntimeRegistry) -> Option<Instant> {
         match registry.state.lock().expect("local registry").entry {
             SynchronizationRuntimeEntry::Stopping { deadline, .. }
@@ -5162,12 +5105,7 @@ mod tests {
     #[cfg(windows)]
     impl ProductionGapFixture {
         fn new(name: &str, source_entry_count: usize) -> Self {
-            let public_documents = std::path::PathBuf::from(
-                std::env::var_os("PUBLIC").expect("Windows public profile path"),
-            )
-            .join("Documents");
-            let directory =
-                tempfile::tempdir_in(public_documents).expect("production gap test directory");
+            let directory = tempfile::tempdir().expect("production gap test directory");
             let source_root = directory.path().join("source");
             std::fs::create_dir_all(&source_root).expect("production gap source root");
             for index in 0..source_entry_count {
@@ -5210,6 +5148,9 @@ mod tests {
                 )
                 .expect("begin production gap fixture scan");
             catalog
+                .prove_live_only_first_import_handoff_for_test(&request.scan_id)
+                .expect("prove production gap fixture first-import handoff");
+            catalog
                 .publish_scan(&request.scan_id, &root_id, 0, 0)
                 .expect("publish production gap fixture scan");
             drop(catalog);
@@ -5229,12 +5170,7 @@ mod tests {
         }
 
         fn new_with_media_baseline(name: &str) -> Self {
-            let public_documents = std::path::PathBuf::from(
-                std::env::var_os("PUBLIC").expect("Windows public profile path"),
-            )
-            .join("Documents");
-            let directory =
-                tempfile::tempdir_in(public_documents).expect("media gap test directory");
+            let directory = tempfile::tempdir().expect("media gap test directory");
             let source_root = directory.path().join("source");
             std::fs::create_dir_all(&source_root).expect("media gap source root");
             image::RgbImage::from_pixel(2, 2, image::Rgb([20, 40, 80]))
@@ -6477,6 +6413,80 @@ mod tests {
             .stop()
             .expect("stop journal-gap production runtime");
         assert_eq!(close_count.load(Ordering::Acquire), 1);
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn first_import_preflight_waits_until_the_runtime_is_ready_to_poll() {
+        let empty_registry = SynchronizationRuntimeRegistry::default();
+        assert_eq!(
+            first_import_runtime_owner_for_poll(&empty_registry).expect("inspect an empty runtime"),
+            None
+        );
+
+        let starting_registry = SynchronizationRuntimeRegistry::default();
+        let starting_owner = reserve_runtime_start_ticket(&starting_registry)
+            .expect("reserve the starting runtime owner");
+        let SynchronizationRuntimeClaim::Construct { .. } =
+            claim_runtime_for_start_with_ticket(&starting_registry, starting_owner)
+                .expect("claim the starting runtime")
+        else {
+            panic!("an empty runtime must enter Starting")
+        };
+        assert_eq!(
+            first_import_runtime_owner_for_poll(&starting_registry)
+                .expect("inspect a starting runtime"),
+            None
+        );
+
+        let close_count = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let ready_registry = ready_test_registry(runtime_with_close_probe(close_count));
+        let ready_owner = active_owner_ticket(&ready_registry);
+        assert_eq!(
+            first_import_runtime_owner_for_poll(&ready_registry).expect("inspect a ready runtime"),
+            Some(ready_owner)
+        );
+
+        let _poll_claim = claim_runtime_for_poll_with_ticket(&ready_registry, ready_owner)
+            .expect("claim the ready runtime for polling");
+        assert_eq!(
+            first_import_runtime_owner_for_poll(&ready_registry)
+                .expect("inspect a polling runtime"),
+            None
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn first_import_preflight_rejects_stopping_and_draining_runtimes() {
+        let stopping_registry = SynchronizationRuntimeRegistry::default();
+        let stopping_owner = reserve_runtime_start_ticket(&stopping_registry)
+            .expect("reserve the stopping runtime owner");
+        let SynchronizationRuntimeClaim::Construct { .. } =
+            claim_runtime_for_start_with_ticket(&stopping_registry, stopping_owner)
+                .expect("claim the runtime before stopping")
+        else {
+            panic!("an empty runtime must enter Starting")
+        };
+        reserve_runtime_stop_fence(&stopping_registry, Duration::from_secs(1))
+            .expect("move the starting runtime to Stopping");
+        let stopping_error = first_import_runtime_owner_for_poll(&stopping_registry)
+            .expect_err("Stopping must terminate first-import preflight");
+        assert_eq!(
+            stopping_error.code,
+            "library_synchronization_stop_in_progress"
+        );
+
+        let close_count = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let draining_registry = ready_test_registry(runtime_with_close_probe(close_count));
+        reserve_runtime_stop_fence(&draining_registry, Duration::from_secs(1))
+            .expect("move the ready runtime to Draining");
+        let draining_error = first_import_runtime_owner_for_poll(&draining_registry)
+            .expect_err("Draining must terminate first-import preflight");
+        assert_eq!(
+            draining_error.code,
+            "library_synchronization_stop_in_progress"
+        );
     }
 
     #[cfg(windows)]
@@ -8449,6 +8459,7 @@ mod tests {
         );
         assert_eq!(close_count.load(Ordering::Acquire), 1);
         assert_start_is_blocked_while_stopping(&registry);
+        wait_for_retained_journal_close_worker(&registry, Duration::from_secs(2));
 
         stop_runtime(&registry).expect("retry reaps the original completed close task");
         assert_eq!(close_count.load(Ordering::Acquire), 1);
@@ -8538,6 +8549,7 @@ mod tests {
         );
         assert_eq!(close_count.load(Ordering::Acquire), 1);
         assert_start_is_blocked_while_stopping(&registry);
+        wait_for_retained_journal_close_worker(&registry, Duration::from_secs(2));
 
         stop_runtime(&registry).expect("retry reaps the original late-construction close task");
         assert_eq!(close_count.load(Ordering::Acquire), 1);
@@ -8885,6 +8897,9 @@ mod tests {
             .begin_scan(&request, &root_id, &root_path)
             .expect("begin initial scan");
         catalog
+            .prove_live_only_first_import_handoff_for_test(&request.scan_id)
+            .expect("prove ordering fixture first-import handoff");
+        catalog
             .publish_scan(&request.scan_id, &root_id, 0, 0)
             .expect("publish initial scan");
         drop(catalog);
@@ -8948,6 +8963,9 @@ mod tests {
         catalog
             .begin_scan(&request, &root_id, &root_path)
             .expect("begin initial scan");
+        catalog
+            .prove_live_only_first_import_handoff_for_test(&request.scan_id)
+            .expect("prove projection fixture first-import handoff");
         catalog
             .publish_scan(&request.scan_id, &root_id, 0, 0)
             .expect("publish initial scan");
@@ -9039,6 +9057,9 @@ mod tests {
             catalog
                 .begin_scan(&request, root_id, &root_path)
                 .expect("begin root scan");
+            catalog
+                .prove_live_only_first_import_handoff_for_test(&request.scan_id)
+                .expect("prove P1 fixture first-import handoff");
             catalog
                 .publish_scan(&request.scan_id, root_id, 0, 0)
                 .expect("publish root scan");
@@ -9134,6 +9155,9 @@ mod tests {
             catalog
                 .begin_scan(&request, root_id, &request.root_path)
                 .expect("begin root scan");
+            catalog
+                .prove_live_only_first_import_handoff_for_test(&request.scan_id)
+                .expect("prove lane fixture first-import handoff");
             catalog
                 .publish_scan(&request.scan_id, root_id, 0, 0)
                 .expect("publish root scan");
@@ -9336,6 +9360,9 @@ mod tests {
                     &publication_identity,
                 )
                 .expect("begin priority root scan");
+            catalog
+                .prove_live_only_first_import_handoff_for_test(scan_id)
+                .expect("prove priority fixture first-import handoff");
             catalog
                 .publish_scan(scan_id, root_id, 0, 0)
                 .expect("publish priority root scan");
@@ -9951,6 +9978,9 @@ mod tests {
             .begin_scan(&request, &root_id, &root_path)
             .expect("begin initial scan");
         catalog
+            .prove_live_only_first_import_handoff_for_test(&request.scan_id)
+            .expect("prove journal fixture first-import handoff");
+        catalog
             .publish_scan(&request.scan_id, &root_id, 0, 0)
             .expect("publish initial scan");
         let root = catalog
@@ -10209,8 +10239,23 @@ mod tests {
             .begin_scan(&request, &root_id, &root_path)
             .expect("begin initial scan");
         catalog
+            .prove_live_only_first_import_handoff_for_test(&request.scan_id)
+            .expect("prove baseline fixture first-import handoff");
+        catalog
             .publish_scan(&request.scan_id, &root_id, 0, 0)
             .expect("publish initial scan");
+        catalog
+            .save_persistent_journal_capability(&PersistentJournalCapability {
+                root_id: root_id.clone(),
+                root_generation: LibraryRootGeneration::initial(),
+                protocol_version: crate::journal_broker::PROTOCOL_VERSION,
+                contract_version: PERSISTENT_JOURNAL_CONTRACT_VERSION,
+                state: PersistentJournalCapabilityState::Supported,
+                continuity: PersistentJournalContinuityState::BaselineRequired,
+                failure: None,
+                updated_unix_ms: 1,
+            })
+            .expect("require an existing-root production baseline");
         drop(catalog);
 
         let query_count = Arc::new(std::sync::atomic::AtomicUsize::new(0));
@@ -10315,8 +10360,23 @@ mod tests {
             .begin_scan(&request, &root_id, &root_path)
             .expect("begin initial scan");
         catalog
+            .prove_live_only_first_import_handoff_for_test(&request.scan_id)
+            .expect("prove advancing-baseline fixture first-import handoff");
+        catalog
             .publish_scan(&request.scan_id, &root_id, 0, 0)
             .expect("publish initial scan");
+        catalog
+            .save_persistent_journal_capability(&PersistentJournalCapability {
+                root_id: root_id.clone(),
+                root_generation: LibraryRootGeneration::initial(),
+                protocol_version: crate::journal_broker::PROTOCOL_VERSION,
+                contract_version: PERSISTENT_JOURNAL_CONTRACT_VERSION,
+                state: PersistentJournalCapabilityState::Supported,
+                continuity: PersistentJournalContinuityState::BaselineRequired,
+                failure: None,
+                updated_unix_ms: 1,
+            })
+            .expect("require an advancing existing-root production baseline");
         drop(catalog);
 
         let query_count = Arc::new(std::sync::atomic::AtomicUsize::new(0));
@@ -10446,6 +10506,9 @@ mod tests {
                 .begin_scan(&request, &root_id, &root_path)
                 .expect("begin initial scan");
             catalog
+                .prove_live_only_first_import_handoff_for_test(&request.scan_id)
+                .expect("prove LiveOnly fixture first-import handoff");
+            catalog
                 .publish_scan(&request.scan_id, &root_id, 0, 0)
                 .expect("publish initial scan");
             drop(catalog);
@@ -10505,6 +10568,188 @@ mod tests {
 
     #[cfg(windows)]
     #[test]
+    fn stale_live_only_first_import_capability_is_refreshed_once() {
+        let directory = tempfile::tempdir().expect("test directory");
+        let source_root = directory.path().join("source");
+        std::fs::create_dir_all(&source_root).expect("source root");
+        let root_path = source_root.to_string_lossy().into_owned();
+        let root_id = crate::application::scan_library::stable_id("library-root-v1", &root_path);
+        let storage = crate::application::storage::StoragePaths {
+            catalog_path: directory.path().join("catalog").join("ame.sqlite3"),
+            preview_root: directory.path().join("previews"),
+            preview_budget_bytes: 64 * 1024 * 1024,
+            settings_path: directory.path().join("settings").join("storage.sqlite3"),
+        };
+        let request = ScanRequest {
+            scan_id: "stale-live-only-first-import".to_owned(),
+            root_path: root_path.clone(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 512,
+        };
+        let generation = LibraryRootGeneration::initial();
+        let mut catalog =
+            SqliteCatalog::open(storage.catalog_path.clone()).expect("fixture catalog");
+        catalog
+            .begin_scan(&request, &root_id, &root_path)
+            .expect("begin first import");
+        let (_, started_unix_ms) = catalog
+            .pristine_first_import_scan(&root_id, generation)
+            .expect("load pristine first import")
+            .expect("pristine first import");
+        let stale_unix_ms = started_unix_ms
+            .checked_sub(1)
+            .expect("fixture scan starts after the Unix epoch");
+        catalog
+            .save_persistent_journal_capability(
+                &super::super::journal_baseline::live_only_capability(
+                    &root_id,
+                    generation,
+                    stale_unix_ms,
+                ),
+            )
+            .expect("seed stale LiveOnly capability");
+        assert!(
+            !catalog
+                .first_import_change_capture_is_ready(&request.scan_id, &root_id, generation)
+                .expect("inspect stale first-import handoff")
+        );
+        drop(catalog);
+
+        let mut production = new_production_synchronization_with_connection(
+            crate::ports::erase_library_change_source_factory(HealthyFactory),
+            test_live_only_connection(),
+        );
+        let snapshot = poll_runtime_with_storage(&mut production, &storage)
+            .expect("refresh stale first-import handoff");
+        assert_eq!(
+            snapshot.roots[0].source_health,
+            crate::domain::LibraryChangeSourceHealth::Healthy
+        );
+
+        let catalog =
+            SqliteCatalog::open(storage.catalog_path.clone()).expect("inspect refreshed catalog");
+        assert!(
+            catalog
+                .first_import_change_capture_is_ready(&request.scan_id, &root_id, generation)
+                .expect("inspect refreshed first-import handoff")
+        );
+        let refreshed_unix_ms = catalog
+            .load_persistent_journal_capabilities()
+            .expect("load refreshed capability")
+            .into_iter()
+            .find(|capability| {
+                capability.root_id == root_id && capability.root_generation == generation
+            })
+            .expect("refreshed LiveOnly capability")
+            .updated_unix_ms;
+        assert!(refreshed_unix_ms >= started_unix_ms);
+        drop(catalog);
+
+        poll_runtime_with_storage(&mut production, &storage)
+            .expect("poll after first-import handoff became current");
+        let catalog =
+            SqliteCatalog::open(storage.catalog_path.clone()).expect("inspect stable catalog");
+        let stable_unix_ms = catalog
+            .load_persistent_journal_capabilities()
+            .expect("load stable capability")
+            .into_iter()
+            .find(|capability| {
+                capability.root_id == root_id && capability.root_generation == generation
+            })
+            .expect("stable LiveOnly capability")
+            .updated_unix_ms;
+        assert_eq!(stable_unix_ms, refreshed_unix_ms);
+        production
+            .stop()
+            .expect("stop stale LiveOnly production runtime");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn failed_first_import_retries_stale_live_only_in_the_same_generation() {
+        let directory = tempfile::tempdir().expect("test directory");
+        let source_root = directory.path().join("source");
+        std::fs::create_dir_all(&source_root).expect("source root");
+        let root_path = source_root.to_string_lossy().into_owned();
+        let root_id = crate::application::scan_library::stable_id("library-root-v1", &root_path);
+        let storage = crate::application::storage::StoragePaths {
+            catalog_path: directory.path().join("catalog").join("ame.sqlite3"),
+            preview_root: directory.path().join("previews"),
+            preview_budget_bytes: 64 * 1024 * 1024,
+            settings_path: directory.path().join("settings").join("storage.sqlite3"),
+        };
+        let generation = LibraryRootGeneration::initial();
+        let failed_request = ScanRequest {
+            scan_id: "failed-first-import".to_owned(),
+            root_path: root_path.clone(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 512,
+        };
+        let retry_request = ScanRequest {
+            scan_id: "retried-first-import".to_owned(),
+            ..failed_request.clone()
+        };
+        let mut catalog =
+            SqliteCatalog::open(storage.catalog_path.clone()).expect("fixture catalog");
+        catalog
+            .begin_scan(&failed_request, &root_id, &root_path)
+            .expect("begin failed first import");
+        let (_, failed_started_unix_ms) = catalog
+            .pristine_first_import_scan(&root_id, generation)
+            .expect("load failed first import")
+            .expect("failed first import is pristine");
+        let stale_unix_ms = failed_started_unix_ms
+            .checked_sub(1)
+            .expect("fixture scan starts after the Unix epoch");
+        catalog
+            .save_persistent_journal_capability(
+                &super::super::journal_baseline::live_only_capability(
+                    &root_id,
+                    generation,
+                    stale_unix_ms,
+                ),
+            )
+            .expect("seed failed import capability");
+        catalog
+            .abandon_scan(&failed_request.scan_id, "failed", 0)
+            .expect("abandon first import");
+        catalog
+            .begin_scan(&retry_request, &root_id, &root_path)
+            .expect("begin retry in the same root generation");
+        let root = catalog
+            .load_incremental_catalog_root(&root_id)
+            .expect("load retry root")
+            .expect("retry root");
+        assert_eq!(root.root_generation, generation);
+        assert!(
+            !catalog
+                .first_import_change_capture_is_ready(&retry_request.scan_id, &root_id, generation,)
+                .expect("inspect stale retry handoff")
+        );
+        drop(catalog);
+
+        let mut production = new_production_synchronization_with_connection(
+            crate::ports::erase_library_change_source_factory(HealthyFactory),
+            test_live_only_connection(),
+        );
+        poll_runtime_with_storage(&mut production, &storage)
+            .expect("refresh retry handoff in the same generation");
+        let catalog =
+            SqliteCatalog::open(storage.catalog_path.clone()).expect("inspect retry catalog");
+        assert!(
+            catalog
+                .first_import_change_capture_is_ready(&retry_request.scan_id, &root_id, generation,)
+                .expect("inspect refreshed retry handoff")
+        );
+        production
+            .stop()
+            .expect("stop failed-import retry production runtime");
+    }
+
+    #[cfg(windows)]
+    #[test]
     fn startup_retires_legacy_full_scan_into_bounded_inventory_without_new_scan() {
         let directory = tempfile::tempdir().expect("test directory");
         let source_root = directory.path().join("source");
@@ -10538,6 +10783,9 @@ mod tests {
         catalog
             .begin_scan(&initial, &root_id, &root_path)
             .expect("begin initial scan");
+        catalog
+            .prove_live_only_first_import_handoff_for_test(&initial.scan_id)
+            .expect("prove automatic-recovery fixture first-import handoff");
         catalog
             .publish_scan(&initial.scan_id, &root_id, 0, 0)
             .expect("publish initial scan");
@@ -10808,6 +11056,9 @@ mod tests {
             )
             .expect("begin root scan");
         catalog
+            .prove_live_only_first_import_handoff_for_test("scan-a")
+            .expect("prove continuity revision fixture first-import handoff");
+        catalog
             .publish_scan("scan-a", root_id, 0, 0)
             .expect("publish root scan");
         let mut production = ProductionSynchronization {
@@ -11025,6 +11276,9 @@ mod tests {
                 )
                 .expect("begin root scan");
             catalog
+                .prove_live_only_first_import_handoff_for_test(&scan_id)
+                .expect("prove recovery cursor fixture first-import handoff");
+            catalog
                 .publish_scan(&scan_id, root_id, 0, 0)
                 .expect("publish root scan");
             catalog
@@ -11046,6 +11300,7 @@ mod tests {
                         run_id: format!("round-robin-{root_id}"),
                         root_id: root_id.to_owned(),
                         root_generation: generation,
+                        authority_reason: LibraryRecoveryAuthorityReason::ExistingRootBaseline,
                         volume: PersistentJournalVolumeIdentity {
                             volume_guid: format!("round-robin-volume-{index}"),
                             volume_serial: u64::try_from(index + 1).expect("fixture volume serial"),
@@ -11231,6 +11486,9 @@ mod tests {
             )
             .expect("begin initial scan");
         catalog
+            .prove_live_only_first_import_handoff_for_test("ordinary-audit-scan")
+            .expect("prove audit fixture first-import handoff");
+        catalog
             .publish_scan("ordinary-audit-scan", &root_id, 0, 0)
             .expect("publish initial scan");
         catalog
@@ -11377,6 +11635,9 @@ mod tests {
                 &publication_identity,
             )
             .expect("begin empty initial catalog");
+        catalog
+            .prove_live_only_first_import_handoff_for_test("production-4096-initial")
+            .expect("prove 4096-file fixture first-import handoff");
         catalog
             .publish_scan("production-4096-initial", &root_id, 0, 0)
             .expect("publish empty initial catalog");
@@ -11633,10 +11894,9 @@ mod tests {
     }
 
     #[cfg(windows)]
-    fn public_documents_test_directory() -> tempfile::TempDir {
-        let public_root = std::env::var_os("PUBLIC").expect("Windows public profile path");
-        let public_documents = std::path::PathBuf::from(public_root).join("Documents");
-        tempfile::tempdir_in(public_documents).expect("public disposable test directory")
+    fn ordinary_user_test_directory() -> tempfile::TempDir {
+        tempfile::tempdir_in(std::env::current_dir().expect("current directory"))
+            .expect("ordinary-user disposable test directory")
     }
 
     #[cfg(windows)]
@@ -11644,8 +11904,9 @@ mod tests {
         scope: crate::domain::LibraryChangeScope,
         relative_path: &str,
         guard_ancestor: bool,
+        with_running_scan: bool,
     ) {
-        let directory = public_documents_test_directory();
+        let directory = ordinary_user_test_directory();
         let namespace = directory.path().join("namespace");
         let source = namespace.join("source");
         std::fs::create_dir_all(source.join("album")).expect("source namespace");
@@ -11699,12 +11960,31 @@ mod tests {
             )
             .expect("begin proven initial scan");
         catalog
+            .prove_live_only_first_import_handoff_for_test("p0-commit-window-scan")
+            .expect("prove P0 commit-window fixture first-import handoff");
+        catalog
             .publish_scan("p0-commit-window-scan", &root_id, 0, 0)
             .expect("publish initial scan");
         let initial_root = catalog
             .load_incremental_catalog_root(&root_id)
             .expect("load initial root")
             .expect("published initial root");
+        if with_running_scan {
+            catalog
+                .begin_scan_with_publication_namespace(
+                    &ScanRequest {
+                        scan_id: "p0-concurrent-full-scan".to_owned(),
+                        root_path: root_path.clone(),
+                        max_items: None,
+                        max_entries: None,
+                        preview_edge: 512,
+                    },
+                    &root_id,
+                    &root_path,
+                    &publication_identity,
+                )
+                .expect("begin concurrent full scan");
+        }
         catalog
             .enqueue_library_change_intents(
                 &[crate::domain::LibraryChangeIntent {
@@ -11814,8 +12094,16 @@ mod tests {
         }
         let rename_error = rename_error.load(Ordering::Acquire);
         assert_eq!(rename_error, 32, "the held guard must deny delete sharing");
-        assert!(enumerated_entries.load(Ordering::Acquire) > 0);
-        assert!(crate::adapters::source_spool_open_count(&root_path) > 0);
+        if scope == crate::domain::LibraryChangeScope::Path {
+            assert_eq!(
+                enumerated_entries.load(Ordering::Acquire),
+                0,
+                "an exact P0 path must not enumerate its containing directory"
+            );
+        } else {
+            assert!(enumerated_entries.load(Ordering::Acquire) > 0);
+            assert!(crate::adapters::source_spool_open_count(&root_path) > 0);
+        }
         let catalog = SqliteCatalog::open(storage.catalog_path.clone()).expect("evidence catalog");
         let current_root = catalog
             .load_incremental_catalog_root(&root_id)
@@ -11823,6 +12111,7 @@ mod tests {
             .expect("guarded root remains published");
         assert_eq!(current_root.catalog_revision, initial_root.catalog_revision);
         assert_eq!(current_root.active_scan_id, initial_root.active_scan_id);
+        assert_eq!(current_root.has_running_scan, with_running_scan);
         assert_eq!(
             current_root.last_consistency_audit_unix_ms,
             initial_root.last_consistency_audit_unix_ms
@@ -11851,6 +12140,7 @@ mod tests {
             crate::domain::LibraryChangeScope::Root,
             "",
             false,
+            false,
         );
     }
 
@@ -11861,13 +12151,25 @@ mod tests {
             crate::domain::LibraryChangeScope::Subtree,
             "album",
             true,
+            false,
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn production_p0_live_worker_crosses_running_full_scan_gate() {
+        assert_production_p0_catalog_commit_guard(
+            crate::domain::LibraryChangeScope::Path,
+            "album/created.png",
+            false,
+            true,
         );
     }
 
     #[cfg(windows)]
     #[test]
     fn production_bounded_p2_holds_guard_through_catalog_rollback_without_retiring_authority() {
-        let directory = public_documents_test_directory();
+        let directory = ordinary_user_test_directory();
         let namespace = directory.path().join("namespace");
         let source = namespace.join("source");
         std::fs::create_dir_all(&source).expect("source namespace");
@@ -11918,6 +12220,9 @@ mod tests {
             )
             .expect("begin proven initial scan");
         catalog
+            .prove_live_only_first_import_handoff_for_test("bounded-p2-commit-window-scan")
+            .expect("prove bounded P2 fixture first-import handoff");
+        catalog
             .publish_scan("bounded-p2-commit-window-scan", &root_id, 0, 0)
             .expect("publish initial scan");
         let initial_root = catalog
@@ -11942,6 +12247,7 @@ mod tests {
                     run_id: "bounded-p2-commit-window".to_owned(),
                     root_id: root_id.clone(),
                     root_generation: generation,
+                    authority_reason: LibraryRecoveryAuthorityReason::ExistingRootBaseline,
                     volume: PersistentJournalVolumeIdentity {
                         volume_guid: "bounded-p2-volume".to_owned(),
                         volume_serial: 7,
@@ -12171,6 +12477,9 @@ mod tests {
             )
             .expect("begin proven initial scan");
         catalog
+            .prove_live_only_first_import_handoff_for_test("p0-reserved-worker-scan")
+            .expect("prove reserved-worker fixture first-import handoff");
+        catalog
             .publish_scan("p0-reserved-worker-scan", &root_id, 0, 0)
             .expect("publish initial scan");
         catalog
@@ -12235,6 +12544,7 @@ mod tests {
                             file_size: Some(1),
                             modified_unix_ms: base_unix_ms,
                             file_identity: None,
+                            source_revision: None,
                             placeholder_state:
                                 crate::domain::MetadataInventoryPlaceholderState::Available,
                             is_reparse_point: false,
@@ -12468,6 +12778,9 @@ mod tests {
                 )
                 .expect("begin root scan");
             catalog
+                .prove_live_only_first_import_handoff_for_test(&scan_id)
+                .expect("prove candidate-drain fixture first-import handoff");
+            catalog
                 .publish_scan(&scan_id, root_id, 0, 0)
                 .expect("publish root scan");
             catalog
@@ -12547,6 +12860,7 @@ mod tests {
                                 file_size: Some(1),
                                 modified_unix_ms: base_unix_ms,
                                 file_identity: None,
+                                source_revision: None,
                                 placeholder_state:
                                     crate::domain::MetadataInventoryPlaceholderState::Available,
                                 is_reparse_point: false,
@@ -12699,6 +13013,9 @@ mod tests {
             )
             .expect("begin initial scan");
         catalog
+            .prove_live_only_first_import_handoff_for_test("lane-boundary-scan")
+            .expect("prove lane-boundary fixture first-import handoff");
+        catalog
             .publish_scan("lane-boundary-scan", &root_id, 0, 0)
             .expect("publish initial scan");
         catalog
@@ -12770,6 +13087,7 @@ mod tests {
                         file_size: Some(1),
                         modified_unix_ms: base_unix_ms,
                         file_identity: None,
+                        source_revision: None,
                         placeholder_state:
                             crate::domain::MetadataInventoryPlaceholderState::Available,
                         is_reparse_point: false,
@@ -12958,6 +13276,9 @@ mod tests {
             )
             .expect("begin initial scan");
         catalog
+            .prove_live_only_first_import_handoff_for_test("legacy-capacity-scan")
+            .expect("prove legacy-capacity fixture first-import handoff");
+        catalog
             .publish_scan("legacy-capacity-scan", &root_id, 0, 0)
             .expect("publish initial scan");
         let registration =
@@ -13079,6 +13400,7 @@ mod tests {
                             file_size: Some(1),
                             modified_unix_ms: base_unix_ms,
                             file_identity: None,
+                            source_revision: None,
                             placeholder_state:
                                 crate::domain::MetadataInventoryPlaceholderState::Available,
                             is_reparse_point: false,
@@ -13303,6 +13625,9 @@ mod tests {
                 &publication_identity,
             )
             .expect("begin initial scan");
+        catalog
+            .prove_live_only_first_import_handoff_for_test("zero-owner-capacity-scan")
+            .expect("prove zero-owner fixture first-import handoff");
         catalog
             .publish_scan("zero-owner-capacity-scan", &root_id, 0, 0)
             .expect("publish initial scan");
@@ -13583,6 +13908,9 @@ mod tests {
             )
             .expect("begin proven initial scan");
         catalog
+            .prove_live_only_first_import_handoff_for_test("single-legacy-scan")
+            .expect("prove single-legacy fixture first-import handoff");
+        catalog
             .publish_scan("single-legacy-scan", &root_id, 0, 0)
             .expect("publish initial scan");
         let registration =
@@ -13861,6 +14189,9 @@ mod tests {
                 )
                 .expect("begin root scan");
             catalog
+                .prove_live_only_first_import_handoff_for_test(&scan_id)
+                .expect("prove legacy-drain fixture first-import handoff");
+            catalog
                 .publish_scan(&scan_id, root_id, 0, 0)
                 .expect("publish root scan");
             catalog
@@ -13932,6 +14263,193 @@ mod tests {
 
     #[cfg(windows)]
     #[test]
+    fn recovery_blocked_root_is_excluded_from_p2_while_other_roots_keep_rotating() {
+        let directory = tempfile::tempdir().expect("test directory");
+        let catalog_path = directory.path().join("catalog.sqlite3");
+        let mut catalog = SqliteCatalog::open(catalog_path).expect("fixture catalog");
+        let generation = LibraryRootGeneration::initial();
+        let policy = crate::domain::LibraryChangeQueuePolicy {
+            debounce_millis: 0,
+            max_lease_batch: 1,
+            ..crate::domain::LibraryChangeQueuePolicy::default()
+        };
+        let mut roots = Vec::new();
+        for (index, (root_id, recovery_blocked)) in [("blocked-root", true), ("ready-root", false)]
+            .into_iter()
+            .enumerate()
+        {
+            let root_path = directory.path().join(root_id);
+            std::fs::create_dir_all(&root_path).expect("source root");
+            let root_path = root_path.to_string_lossy().into_owned();
+            let scan_id = format!("scan-{root_id}");
+            catalog
+                .begin_scan(
+                    &ScanRequest {
+                        scan_id: scan_id.clone(),
+                        root_path: root_path.clone(),
+                        max_items: None,
+                        max_entries: None,
+                        preview_edge: 512,
+                    },
+                    root_id,
+                    &root_path,
+                )
+                .expect("begin root scan");
+            catalog
+                .prove_live_only_first_import_handoff_for_test(&scan_id)
+                .expect("prove recovery-blocked fixture first-import handoff");
+            catalog
+                .publish_scan(&scan_id, root_id, 0, 0)
+                .expect("publish root scan");
+            catalog
+                .enqueue_library_change_intents(
+                    &[crate::domain::LibraryChangeIntent {
+                        root_id: root_id.to_owned(),
+                        root_generation: generation,
+                        kind: crate::domain::LibraryChangeIntentKind::Reconcile,
+                        scope: crate::domain::LibraryChangeScope::Path,
+                        relative_path: format!("legacy-{index}.jpg"),
+                        previous_relative_path: None,
+                        origin: crate::domain::LibraryChangeOrigin::MetadataInventory,
+                        first_observed_unix_ms: 100,
+                        most_recent_observed_unix_ms: 100,
+                        first_sequence: u64::try_from(index + 1).expect("sequence"),
+                        most_recent_sequence: u64::try_from(index + 1).expect("sequence"),
+                        coalesced_observation_count: 1,
+                    }],
+                    100,
+                    policy,
+                )
+                .expect("seed legacy unowned P2 debt");
+            assert!(
+                catalog
+                    .has_ready_legacy_unowned_recovery_debt(root_id, generation, 100, policy,)
+                    .expect("legacy debt readiness")
+            );
+            roots.push(crate::domain::LibraryRootSynchronizationStatus {
+                root_id: root_id.to_owned(),
+                root_generation: generation.value(),
+                availability: crate::domain::LibraryRootAvailability::Available,
+                freshness: if recovery_blocked {
+                    crate::domain::CatalogFreshnessState::NeedsReconciliation
+                } else {
+                    crate::domain::CatalogFreshnessState::Updating
+                },
+                freshness_cause: if recovery_blocked {
+                    crate::domain::CatalogFreshnessCause::EvidenceGap
+                } else {
+                    crate::domain::CatalogFreshnessCause::PendingChanges
+                },
+                continuity: PersistentJournalContinuityState::RecoveryRequired,
+                phase: if recovery_blocked {
+                    LibrarySynchronizationPhase::Blocked
+                } else {
+                    LibrarySynchronizationPhase::Reconciliation
+                },
+                source_health: crate::domain::LibraryChangeSourceHealth::Healthy,
+                queue_health: crate::domain::LibraryChangeQueueHealth::Healthy,
+                pending_change_count: 1,
+                retry_wait_count: 0,
+                freshness_unknown_count: if recovery_blocked { 1 } else { 0 },
+                recovery_blocked,
+                last_issue_code: recovery_blocked
+                    .then(|| "live_gap_v30_explicit_recovery_required".to_owned()),
+            });
+        }
+        let snapshot = LibrarySynchronizationSnapshot {
+            is_running: true,
+            catalog_revision: 0,
+            applied_mutation_count: 0,
+            roots,
+        };
+        let mut production = new_production_synchronization_with_connection(
+            crate::ports::erase_library_change_source_factory(HealthyFactory),
+            test_live_only_connection(),
+        );
+        production.runtime.queue_policy = policy;
+
+        let blocked_only = LibrarySynchronizationSnapshot {
+            roots: vec![snapshot.roots[0].clone()],
+            ..snapshot.clone()
+        };
+        assert!(
+            ready_recovery_work(&mut production, &catalog, &blocked_only, 100)
+                .expect("inspect blocked root")
+                .is_none(),
+            "a recovery-blocked root must not receive candidate, legacy, or control P2 work"
+        );
+
+        let first = ready_recovery_work(&mut production, &catalog, &snapshot, 100)
+            .expect("rotate past blocked root")
+            .expect("ready root remains eligible");
+        assert!(matches!(
+            &first,
+            ReadyRecoveryWork::LegacyUnownedDrain { .. }
+        ));
+        assert_eq!(first.root_id(), "ready-root");
+        let second = ready_recovery_work(&mut production, &catalog, &snapshot, 100)
+            .expect("keep rotating past blocked root")
+            .expect("ready root remains eligible on the next rotation");
+        assert_eq!(second.root_id(), "ready-root");
+
+        production
+            .start_legacy_unowned_recovery_drain(
+                first.root_id().to_owned(),
+                generation,
+                0,
+                100,
+                catalog.catalog_path().to_path_buf(),
+            )
+            .expect("start selected ready-root P2 work");
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while production.recovery.is_some() {
+            std::thread::sleep(Duration::from_millis(5));
+            production
+                .poll_recovery(100)
+                .expect("finish selected ready-root P2 work");
+            assert!(
+                Instant::now() < deadline,
+                "selected ready-root P2 work did not finish"
+            );
+        }
+
+        let attempt_counts: (i64, i64) = rusqlite::Connection::open(catalog.catalog_path())
+            .expect("open blocked attempt evidence")
+            .query_row(
+                "SELECT
+                   MAX(CASE WHEN root_id = 'blocked-root' THEN attempt_count END),
+                   MAX(CASE WHEN root_id = 'ready-root' THEN attempt_count END)
+                 FROM library_change_queue",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .expect("load mixed-root attempt counts");
+        assert_eq!(
+            attempt_counts,
+            (0, 1),
+            "automatic P2 dispatch must lease the ready root without retrying blocked legacy debt"
+        );
+
+        let mut unblocked_snapshot = snapshot;
+        unblocked_snapshot.roots[0].recovery_blocked = false;
+        unblocked_snapshot.roots[0].freshness = crate::domain::CatalogFreshnessState::Updating;
+        unblocked_snapshot.roots[0].freshness_cause =
+            crate::domain::CatalogFreshnessCause::PendingChanges;
+        unblocked_snapshot.roots[0].phase = LibrarySynchronizationPhase::Reconciliation;
+        unblocked_snapshot.roots[0].freshness_unknown_count = 0;
+        unblocked_snapshot.roots[0].last_issue_code = None;
+        let released = ready_recovery_work(&mut production, &catalog, &unblocked_snapshot, 100)
+            .expect("inspect released root")
+            .expect("released root regains P2 eligibility");
+        assert!(matches!(
+            &released,
+            ReadyRecoveryWork::LegacyUnownedDrain { .. }
+        ));
+        assert_eq!(released.root_id(), "blocked-root");
+    }
+
+    #[cfg(windows)]
+    #[test]
     fn metadata_inventory_catalog_validation_failure_preserves_retained_change_owner() {
         let directory = tempfile::tempdir().expect("test directory");
         let catalog_path = directory.path().join("catalog").join("ame.sqlite3");
@@ -13940,10 +14458,10 @@ mod tests {
             crate::ports::erase_library_change_source_factory(HealthyFactory),
             test_live_only_connection(),
         );
-        production.catalog_session = Some(
+        production.catalog_session = Some(Arc::new(
             SqliteCatalogSession::validate(catalog_path.clone())
                 .expect("validated catalog session"),
-        );
+        ));
         let change_id = LibraryChangeId::new(41).expect("fixture change ID");
         production
             .recovery_inventory_sources
@@ -14136,6 +14654,9 @@ mod tests {
                     &publication_identity,
                 )
                 .expect("begin root scan");
+            catalog
+                .prove_live_only_first_import_handoff_for_test(&scan_id)
+                .expect("prove P2 page fixture first-import handoff");
             catalog
                 .publish_scan(&scan_id, root_id, 0, 0)
                 .expect("publish root scan");
@@ -14460,6 +14981,40 @@ mod tests {
                 .recovery_inventory_sources
                 .contains_key(&second_retained_change_id)
         );
+        let watcher_overlap_deadline = Instant::now() + Duration::from_secs(5);
+        loop {
+            let watcher_authority_count: i64 = evidence_connection
+                .query_row(
+                    "SELECT COUNT(*) FROM library_recovery_authorities
+                     WHERE root_id = ?1 AND root_generation = 1
+                       AND reason = 'watcher_uncovered_gap'
+                       AND retired_unix_ms IS NULL",
+                    [second_root.as_str()],
+                    |row| row.get(0),
+                )
+                .expect("load second-root watcher authority count");
+            if watcher_authority_count == 1 {
+                break;
+            }
+            assert!(
+                Instant::now() < watcher_overlap_deadline,
+                "the second root did not persist its independent watcher-gap authority"
+            );
+            poll_runtime_with_storage(&mut production, &storage)
+                .expect("advance the independent second-root watcher gap");
+            assert!(
+                production.recovery.as_ref().is_some_and(|task| {
+                    task.root_id == second_root
+                        && matches!(
+                            &task.kind,
+                            RecoveryTaskKind::MetadataInventory { change_id, .. }
+                                if *change_id == second_retained_change_id
+                        )
+                }),
+                "watcher-gap admission displaced the gated second-root P2 owner"
+            );
+            std::thread::yield_now();
+        }
         let second_recovery_authorities = {
             let mut statement = evidence_connection
                 .prepare(
@@ -14493,7 +15048,11 @@ mod tests {
                 .collect::<Result<Vec<_>, _>>()
                 .expect("collect recovery authority evidence")
         };
-        assert_eq!(second_recovery_authorities.len(), 2);
+        assert_eq!(
+            second_recovery_authorities.len(),
+            2,
+            "unexpected second-root recovery authorities: {second_recovery_authorities:?}"
+        );
         assert!(second_recovery_authorities.iter().any(|authority| {
             authority.0 == i64::try_from(second_retained_change_id.value()).expect("retained ID")
                 && authority.4 == second_retained_run_id

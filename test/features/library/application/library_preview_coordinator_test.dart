@@ -1,6 +1,7 @@
 import "dart:async";
 
 import "package:cedarflake_ame/features/library/application/library_preview_coordinator.dart";
+import "package:cedarflake_ame/features/library/application/library_preview_queue.dart";
 import "package:cedarflake_ame/features/library/application/library_previewer.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -114,6 +115,50 @@ void main() {
 
     expect(previewer.requests, [active.locationId, center.locationId]);
   });
+
+  test(
+    "restores one root fuse and cached failure without changing its scan",
+    () async {
+      final previewer = _ControlledPreviewer();
+      final coordinator = LibraryPreviewCoordinator(
+        previewer: previewer,
+        defaultPreviewEdge: 512,
+        maxActive: 1,
+        canPublish: (_) => true,
+        onPublished: (_) {},
+      );
+      addTearDown(coordinator.dispose);
+      final pending = _asset("authority", LibraryPreviewStatus.pending);
+
+      coordinator.updateGalleryDemand(visible: [pending]);
+      previewer.fail(
+        pending.locationId,
+        const LibraryPreviewFailure(
+          code: "preview_root_identity_unproven",
+          message: "root proof is unavailable",
+        ),
+      );
+      await _flushAsyncWork();
+      expect(
+        coordinator.resolve(pending).previewIssueCode,
+        "preview_root_identity_unproven",
+      );
+
+      coordinator.restoreRootAuthority(pending.rootId);
+      expect(
+        coordinator.resolve(pending).previewStatus,
+        LibraryPreviewStatus.pending,
+      );
+      final outcome = coordinator.retry(pending);
+      expect(previewer.requests, [pending.locationId, pending.locationId]);
+      previewer.succeed(
+        pending.locationId,
+        _readyAsset("authority"),
+        attempt: 1,
+      );
+      expect(await outcome, LibraryPreviewRequestOutcome.ready);
+    },
+  );
 }
 
 LibraryAsset _asset(String suffix, LibraryPreviewStatus previewStatus) {
@@ -121,12 +166,18 @@ LibraryAsset _asset(String suffix, LibraryPreviewStatus previewStatus) {
     assetId: "asset-$suffix",
     locationId: "location-$suffix",
     rootId: "root-1",
+    activeScanId: "scan-1",
     sourcePath: "C:\\Pictures\\$suffix.png",
     displayPath: "C:\\Pictures\\$suffix.png",
     relativePath: "$suffix.png",
     previewPath: "",
     fileSize: BigInt.from(128),
     modifiedUnixMs: 42,
+    sourceRevision: const LibrarySourceRevisionEvidence(
+      scheme: "windows-file-change-time-100ns-v1",
+      value: "0000000000000001",
+    ),
+    sourceGeneration: BigInt.one,
     width: 320,
     height: 240,
     previewStatus: previewStatus,
@@ -155,8 +206,12 @@ class _ControlledPreviewer implements LibraryPreviewer {
   @override
   Future<LibraryAsset> materialize({
     required String locationId,
+    required String expectedRootId,
+    required String expectedScanId,
+    required LibrarySourceRevisionEvidence? expectedSourceRevision,
+    required BigInt expectedSourceGeneration,
     required int previewEdge,
-    bool retry = false,
+    bool force = false,
     Iterable<String> protectedLocationIds = const [],
   }) {
     requests.add(locationId);
@@ -168,5 +223,9 @@ class _ControlledPreviewer implements LibraryPreviewer {
 
   void succeed(String locationId, LibraryAsset asset, {int attempt = 0}) {
     _attempts[locationId]![attempt].complete(asset);
+  }
+
+  void fail(String locationId, Object error, {int attempt = 0}) {
+    _attempts[locationId]![attempt].completeError(error);
   }
 }

@@ -1,4 +1,5 @@
 import "package:cedarflake_ame/app/notifications/ame_notification_controller.dart";
+import "package:cedarflake_ame/app/presentation/ame_menu.dart";
 import "package:cedarflake_ame/app/presentation/ame_notifications.dart";
 import "package:cedarflake_ame/app/presentation/ame_theme.dart";
 import "package:flutter/material.dart";
@@ -73,6 +74,74 @@ void main() {
 
       expect(find.byKey(const Key("notification-read-icon")), findsOneWidget);
       expect(find.byKey(const Key("notification-unread-icon")), findsNothing);
+    },
+  );
+
+  testWidgets(
+    "long notification history stays bounded on the shared popup route",
+    (tester) async {
+      const longTitle = "一个很长的通知标题用于确认弹出菜单不会因为内容长度而改变视觉与交互契约";
+      const longMessage = "一个同样很长的通知说明用于确认两行截断、滚动边界和菜单宽度都保持稳定。";
+      final notifications = [
+        for (var index = 0; index < 18; index += 1)
+          _notification(
+            id: "notification-$index",
+            title: "$longTitle $index",
+            message: longMessage,
+            isUnread: index == 0,
+          ),
+      ];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildAmeTheme(),
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.topRight,
+              child: AmeNotificationHistoryButton(
+                state: AmeNotificationState(history: notifications),
+                onOpened: () {},
+                onSelected: (_) {},
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.byKey(const Key("notification-history-button")));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(MenuAnchor), findsNothing);
+      expect(
+        find.byWidgetPredicate(
+          (widget) => widget is AmePopupMenuButton<AmeNotificationEntry>,
+        ),
+        findsOneWidget,
+      );
+      final firstItem = find.byKey(
+        const Key("notification-history-item-notification-0"),
+      );
+      expect(tester.getSize(firstItem).width, 360);
+      final title = tester.widget<Text>(find.text("$longTitle 0"));
+      expect(title.maxLines, 1);
+      expect(title.overflow, TextOverflow.ellipsis);
+      final message = tester.widget<Text>(find.text(longMessage).first);
+      expect(message.maxLines, 2);
+      expect(message.overflow, TextOverflow.ellipsis);
+
+      final scrollable = find.byType(SingleChildScrollView);
+      expect(scrollable, findsOneWidget);
+      expect(tester.getSize(scrollable).height, lessThanOrEqualTo(520));
+      final lastItem = find.byKey(
+        const Key("notification-history-item-notification-17"),
+      );
+      await Scrollable.ensureVisible(
+        tester.element(lastItem),
+        duration: Duration.zero,
+      );
+      await tester.pumpAndSettle();
+      expect(lastItem.hitTestable(), findsOneWidget);
+      expect(tester.takeException(), isNull);
     },
   );
 
@@ -171,14 +240,17 @@ void main() {
 
 AmeNotificationEntry _notification({
   required bool isUnread,
+  String id = "notification-1",
+  String title = "“Documents”需要重新核对",
+  String message = "检测到无法确认的文件变化，Ame 正在自动重新核对该目录。",
   bool isPersistent = false,
   String? actionLabel,
   DateTime? elapsedStartedAt,
 }) {
   return AmeNotificationEntry(
-    id: "notification-1",
-    title: "“Documents”需要重新核对",
-    message: "检测到无法确认的文件变化，Ame 正在自动重新核对该目录。",
+    id: id,
+    title: title,
+    message: message,
     detail: "3 项等待重试",
     elapsedStartedAt: elapsedStartedAt,
     sourcePath: r"C:\Users\Example\Documents",

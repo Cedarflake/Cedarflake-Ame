@@ -5,11 +5,9 @@ use crate::domain::{
     AssetLocationView, CatalogCursor, CatalogReadRetryCause, CatalogReadRetryDetails,
     CatalogReadRetryOperation, CatalogSnapshot, GalleryLayoutManifestChunk,
     GalleryLayoutManifestCursor, GalleryQuery, GalleryTimeAnchor, GalleryTimeline,
-    LibraryFolderCursor, LibraryFolderPage, ScanError,
+    IncrementalCatalogRoot, LibraryFolderCursor, LibraryFolderPage, ScanError,
 };
-use crate::ports::CatalogRepository;
-#[cfg(test)]
-use crate::ports::IncrementalCatalogRepository;
+use crate::ports::{CatalogRepository, IncrementalCatalogRepository};
 
 #[cfg(test)]
 use super::WatcherRecoveryObservation;
@@ -188,10 +186,12 @@ impl SqliteCatalogReadExecutor {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn open_existing(path: std::path::PathBuf) -> Result<Self, ScanError> {
         Self::open_existing_with(path, SqliteCatalogReadRetryPolicy::default(), None, None)
     }
 
+    #[cfg(test)]
     fn open_existing_with(
         path: std::path::PathBuf,
         policy: SqliteCatalogReadRetryPolicy,
@@ -384,6 +384,20 @@ impl SqliteCatalogReadExecutor {
     ) -> Result<Option<AssetLocationView>, ScanError> {
         self.execute_read(CatalogReadRetryOperation::CatalogAssetById, |catalog| {
             catalog.load_active_location_by_asset_id(asset_id, preferred_location_id)
+        })
+    }
+
+    pub(crate) fn load_preview_context(
+        &self,
+        location_id: &str,
+    ) -> Result<(Option<AssetLocationView>, Option<IncrementalCatalogRoot>), ScanError> {
+        self.execute_read(CatalogReadRetryOperation::CatalogAssetById, |catalog| {
+            let location = catalog.load_active_location(location_id)?;
+            let root = match location.as_ref() {
+                Some(location) => catalog.load_incremental_catalog_root(&location.root_id)?,
+                None => None,
+            };
+            Ok((location, root))
         })
     }
 

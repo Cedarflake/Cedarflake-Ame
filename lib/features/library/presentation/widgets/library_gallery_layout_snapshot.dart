@@ -16,6 +16,7 @@ class LibraryGalleryLayoutSnapshot {
     required this._itemEndOffsets,
     required this.availableWidth,
     required this.thumbnailSize,
+    required this.layoutShape,
     required this.sortKey,
   });
 
@@ -23,6 +24,7 @@ class LibraryGalleryLayoutSnapshot {
     required LibraryGalleryLayoutManifest manifest,
     required double availableWidth,
     required GalleryThumbnailSize thumbnailSize,
+    GalleryLayoutShape layoutShape = GalleryLayoutShape.equalHeight,
     required LibraryGallerySortKey sortKey,
   }) {
     if (manifest.itemCount == 0 || availableWidth <= 0) {
@@ -42,6 +44,7 @@ class LibraryGalleryLayoutSnapshot {
         itemEndOffsets: Float64List(0),
         availableWidth: availableWidth,
         thumbnailSize: thumbnailSize,
+        layoutShape: layoutShape,
         sortKey: sortKey,
       );
     }
@@ -85,6 +88,47 @@ class LibraryGalleryLayoutSnapshot {
             label: label,
           ),
         );
+      }
+
+      if (layoutShape == GalleryLayoutShape.square) {
+        final columnCount = math.max(
+          1,
+          ((availableWidth + LibraryGalleryLayoutEntry.spacing) /
+                  (targetRowHeight + LibraryGalleryLayoutEntry.spacing))
+              .floor(),
+        );
+        final tileExtent =
+            (availableWidth -
+                LibraryGalleryLayoutEntry.spacing * (columnCount - 1)) /
+            columnCount;
+        for (var rowStart = start; rowStart < end; rowStart += columnCount) {
+          final rowEnd = math.min(rowStart + columnCount, end);
+          final rowOffset = _topPadding + entryExtent;
+          final rowEndOffset =
+              rowOffset + tileExtent + LibraryGalleryLayoutEntry.spacing;
+          for (var itemIndex = rowStart; itemIndex < rowEnd; itemIndex++) {
+            itemOffsets[itemIndex] = rowOffset;
+            itemEndOffsets[itemIndex] = rowEndOffset;
+          }
+          appendEntry(
+            LibraryGalleryLayoutSnapshotEntry.row(
+              startItemIndex: rowStart,
+              itemCount: rowEnd - rowStart,
+              monthKey: monthKey,
+              rowHeight: tileExtent,
+              cellWidths: Float32List.fromList(
+                List<double>.filled(rowEnd - rowStart, tileExtent),
+              ),
+            ),
+          );
+        }
+        appendEntry(
+          LibraryGalleryLayoutSnapshotEntry.gap(
+            itemIndex: end - 1,
+            monthKey: monthKey,
+          ),
+        );
+        return;
       }
 
       var rowStart = start;
@@ -184,9 +228,16 @@ class LibraryGalleryLayoutSnapshot {
       entryStartOffsets[index] = runningEntryOffset;
       runningEntryOffset += entries[index].extent;
     }
+    var photoRowHeight = targetRowHeight;
+    for (final entry in entries) {
+      if (entry.isPhotoRow) {
+        photoRowHeight = entry.rowHeight;
+        break;
+      }
+    }
     final metrics = LibraryGalleryLayoutMetrics(
       contentExtent: _topPadding + runningEntryOffset + _bottomPadding,
-      photoRowHeight: targetRowHeight,
+      photoRowHeight: photoRowHeight,
       dateAnchors: List.unmodifiable(dateAnchors),
       locationOffsets: const {},
       itemOffsets: itemOffsets,
@@ -201,6 +252,7 @@ class LibraryGalleryLayoutSnapshot {
       itemEndOffsets: itemEndOffsets,
       availableWidth: availableWidth,
       thumbnailSize: thumbnailSize,
+      layoutShape: layoutShape,
       sortKey: sortKey,
     );
   }
@@ -216,39 +268,46 @@ class LibraryGalleryLayoutSnapshot {
   final Float64List _itemEndOffsets;
   final double availableWidth;
   final GalleryThumbnailSize thumbnailSize;
+  final GalleryLayoutShape layoutShape;
   final LibraryGallerySortKey sortKey;
 
   bool matches({
     required LibraryGalleryLayoutManifest otherManifest,
     required double otherAvailableWidth,
     required GalleryThumbnailSize otherThumbnailSize,
+    required GalleryLayoutShape otherLayoutShape,
     required LibraryGallerySortKey otherSortKey,
   }) {
     return identical(manifest, otherManifest) &&
         (availableWidth - otherAvailableWidth).abs() < 0.01 &&
         thumbnailSize == otherThumbnailSize &&
+        layoutShape == otherLayoutShape &&
         sortKey == otherSortKey;
   }
 
   bool matchesInputs({
     required LibraryGalleryLayoutManifest otherManifest,
     required GalleryThumbnailSize otherThumbnailSize,
+    required GalleryLayoutShape otherLayoutShape,
     required LibraryGallerySortKey otherSortKey,
   }) {
     return identical(manifest, otherManifest) &&
         thumbnailSize == otherThumbnailSize &&
+        layoutShape == otherLayoutShape &&
         sortKey == otherSortKey;
   }
 
   bool canReplaceGeometry({
     required LibraryGalleryLayoutManifest otherManifest,
     required GalleryThumbnailSize otherThumbnailSize,
+    required GalleryLayoutShape otherLayoutShape,
     required LibraryGallerySortKey otherSortKey,
   }) {
     return manifest.queryId == otherManifest.queryId &&
         manifest.revision == otherManifest.revision &&
         manifest.itemCount == otherManifest.itemCount &&
         thumbnailSize == otherThumbnailSize &&
+        layoutShape == otherLayoutShape &&
         sortKey == otherSortKey;
   }
 

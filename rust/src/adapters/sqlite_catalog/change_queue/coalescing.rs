@@ -147,7 +147,7 @@ pub(super) fn enqueue_one(
         if !allow_scope_degradation {
             return Err(metadata_inventory_backpressure());
         }
-        return degrade_to_root(
+        let root_id = degrade_to_root(
             transaction,
             same_lane,
             incoming,
@@ -159,7 +159,23 @@ pub(super) fn enqueue_one(
                 capacity_degraded: false,
                 evidence,
             },
-        );
+        )?;
+        if is_precise_dirty_reconcile(incoming) {
+            return enqueue_one(
+                transaction,
+                incoming,
+                EnqueueContext {
+                    enqueued_unix_ms,
+                    catalog_revision,
+                    policy,
+                    evidence,
+                    protected_change_ids,
+                    allow_scope_degradation,
+                },
+                report,
+            );
+        }
+        return Ok(root_id);
     }
     let covering = active.iter().position(|change| {
         is_unleased(change.status)
@@ -481,7 +497,13 @@ pub(in crate::adapters::sqlite_catalog) fn normalize_persistent_journal_intents(
     };
     validate_intent_batch(intents, first)?;
     let mut ordered = intents.to_vec();
-    ordered.sort_by_cached_key(persistent_journal_canonical_intent_entry);
+    ordered.sort_by_cached_key(|intent| {
+        (
+            intent.most_recent_sequence,
+            intent.first_sequence,
+            persistent_journal_canonical_intent_entry(intent),
+        )
+    });
     let mut normalized = Vec::new();
     for incoming in ordered {
         normalize_persistent_journal_intent(&mut normalized, incoming);
@@ -494,12 +516,13 @@ fn normalize_persistent_journal_intent(
     active: &mut Vec<LibraryChangeIntent>,
     incoming: LibraryChangeIntent,
 ) {
-    if active.iter().any(|change| {
-        incoming.kind == LibraryChangeIntentKind::RenameCandidate
-            && change.kind == LibraryChangeIntentKind::RenameCandidate
-            && !same_work_key(change, &incoming)
-            && affected_paths_overlap(change, &incoming)
-    }) {
+    if rename_lineage_previous_path(&incoming).is_some()
+        && active.iter().any(|change| {
+            rename_lineage_previous_path(change).is_some()
+                && !same_work_key(change, &incoming)
+                && affected_paths_overlap(change, &incoming)
+        })
+    {
         let mut root = incoming;
         root.kind = LibraryChangeIntentKind::FreshnessUnknown;
         root.scope = LibraryChangeScope::Root;
@@ -728,9 +751,16 @@ fn validate_intent_shape(intent: &LibraryChangeIntent) -> Result<(), ScanError> 
             LibraryChangeScope::Root => {
                 intent.relative_path.is_empty() && intent.previous_relative_path.is_none()
             }
-            LibraryChangeScope::Path | LibraryChangeScope::Subtree => {
-                has_path && intent.previous_relative_path.is_none()
+            LibraryChangeScope::Path => {
+                has_path
+                    && match intent.previous_relative_path.as_deref() {
+                        None => true,
+                        Some(previous) => {
+                            has_previous_path && previous != intent.relative_path.as_str()
+                        }
+                    }
             }
+            LibraryChangeScope::Subtree => has_path && intent.previous_relative_path.is_none(),
         },
     };
     if shape_is_valid {
@@ -782,6 +812,9 @@ fn is_unleased(status: LibraryChangeQueueStatus) -> bool {
 }
 
 fn intent_covers(covering: &LibraryChangeIntent, candidate: &LibraryChangeIntent) -> bool {
+    if covering.scope != LibraryChangeScope::Path && is_precise_dirty_reconcile(candidate) {
+        return false;
+    }
     if covering.scope == LibraryChangeScope::Root {
         return true;
     }
@@ -792,10 +825,21 @@ fn intent_covers(covering: &LibraryChangeIntent, candidate: &LibraryChangeIntent
         });
     }
     same_work_key(covering, candidate)
-        || covering.kind == LibraryChangeIntentKind::RenameCandidate
+        || path_rename_lineage_previous_path(covering).is_some()
             && candidate.kind == LibraryChangeIntentKind::Reconcile
             && candidate.scope == LibraryChangeScope::Path
             && covering.relative_path == candidate.relative_path
+}
+
+fn is_precise_dirty_reconcile(intent: &LibraryChangeIntent) -> bool {
+    intent.kind == LibraryChangeIntentKind::Reconcile
+        && intent.scope == LibraryChangeScope::Path
+        && matches!(
+            intent.origin,
+            LibraryChangeOrigin::LiveNotification
+                | LibraryChangeOrigin::StartupCatchUp
+                | LibraryChangeOrigin::MetadataInventory
+        )
 }
 
 fn stale_overlap(leased: &LibraryChangeIntent, incoming: &LibraryChangeIntent) -> bool {
@@ -805,10 +849,11 @@ fn stale_overlap(leased: &LibraryChangeIntent, incoming: &LibraryChangeIntent) -
 }
 
 fn same_work_key(left: &LibraryChangeIntent, right: &LibraryChangeIntent) -> bool {
-    left.kind == right.kind
+    (left.kind == right.kind
         && left.scope == right.scope
         && left.relative_path == right.relative_path
-        && left.previous_relative_path == right.previous_relative_path
+        && left.previous_relative_path == right.previous_relative_path)
+        || same_rename_lineage(left, right)
 }
 
 fn affected_paths(intent: &LibraryChangeIntent) -> impl Iterator<Item = &str> {
@@ -823,11 +868,11 @@ fn is_within_subtree(path: &str, subtree: &str) -> bool {
 }
 
 fn has_conflicting_rename(active: &[ActiveChange], incoming: &LibraryChangeIntent) -> bool {
-    if incoming.kind != LibraryChangeIntentKind::RenameCandidate {
+    if rename_lineage_previous_path(incoming).is_none() {
         return false;
     }
     active.iter().any(|change| {
-        change.intent.kind == LibraryChangeIntentKind::RenameCandidate
+        rename_lineage_previous_path(&change.intent).is_some()
             && !same_work_key(&change.intent, incoming)
             && affected_paths_overlap(&change.intent, incoming)
     })
@@ -858,6 +903,11 @@ pub(super) fn affected_paths_overlap(
 }
 
 fn intent_strength(intent: &LibraryChangeIntent) -> u8 {
+    if intent.kind == LibraryChangeIntentKind::Reconcile
+        && path_rename_lineage_previous_path(intent).is_some()
+    {
+        return 2;
+    }
     match (intent.kind, intent.scope) {
         (LibraryChangeIntentKind::FreshnessUnknown, _) => 5,
         (_, LibraryChangeScope::Root) => 4,
@@ -885,6 +935,7 @@ pub(super) fn merge_older_evidence(
 }
 
 fn merge_evidence_range(target: &mut LibraryChangeIntent, evidence: &LibraryChangeIntent) {
+    merge_dirty_rename_semantics(target, evidence);
     target.first_observed_unix_ms = target
         .first_observed_unix_ms
         .min(evidence.first_observed_unix_ms);
@@ -892,4 +943,55 @@ fn merge_evidence_range(target: &mut LibraryChangeIntent, evidence: &LibraryChan
     target.coalesced_observation_count = target
         .coalesced_observation_count
         .saturating_add(evidence.coalesced_observation_count);
+}
+
+fn rename_lineage_previous_path(intent: &LibraryChangeIntent) -> Option<&str> {
+    (intent.kind == LibraryChangeIntentKind::RenameCandidate
+        || intent.kind == LibraryChangeIntentKind::Reconcile
+            && intent.scope == LibraryChangeScope::Path)
+        .then_some(intent.previous_relative_path.as_deref())
+        .flatten()
+}
+
+fn path_rename_lineage_previous_path(intent: &LibraryChangeIntent) -> Option<&str> {
+    (intent.scope == LibraryChangeScope::Path)
+        .then_some(rename_lineage_previous_path(intent))
+        .flatten()
+}
+
+fn same_rename_lineage(left: &LibraryChangeIntent, right: &LibraryChangeIntent) -> bool {
+    left.scope == LibraryChangeScope::Path
+        && right.scope == LibraryChangeScope::Path
+        && left.relative_path == right.relative_path
+        && path_rename_lineage_previous_path(left).is_some()
+        && path_rename_lineage_previous_path(left) == path_rename_lineage_previous_path(right)
+}
+
+fn merge_dirty_rename_semantics(target: &mut LibraryChangeIntent, evidence: &LibraryChangeIntent) {
+    if target.scope != LibraryChangeScope::Path
+        || evidence.scope != LibraryChangeScope::Path
+        || target.relative_path != evidence.relative_path
+    {
+        return;
+    }
+    let target_previous = path_rename_lineage_previous_path(target).map(str::to_owned);
+    let evidence_previous = path_rename_lineage_previous_path(evidence).map(str::to_owned);
+    if target_previous.is_some()
+        && evidence_previous.is_some()
+        && target_previous != evidence_previous
+    {
+        return;
+    }
+    let previous = if target.kind == LibraryChangeIntentKind::Reconcile {
+        evidence_previous
+    } else if evidence.kind == LibraryChangeIntentKind::Reconcile {
+        target_previous
+    } else {
+        None
+    };
+    let Some(previous) = previous else {
+        return;
+    };
+    target.kind = LibraryChangeIntentKind::Reconcile;
+    target.previous_relative_path = Some(previous);
 }

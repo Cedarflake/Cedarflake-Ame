@@ -1,5 +1,5 @@
+use std::fs::File;
 use std::io::BufReader;
-use std::path::Path;
 
 use exif::{In, Reader, Tag};
 use image::metadata::Orientation;
@@ -9,7 +9,6 @@ use jpeg_decoder::{Decoder, PixelFormat};
 use crate::domain::ImageOrientation;
 
 use super::image_orientation::{apply_image_orientation, from_image_orientation};
-use super::local_files::open_source_file;
 
 pub(crate) struct DecodedJpegPreview {
     pub(crate) image: DynamicImage,
@@ -18,12 +17,10 @@ pub(crate) struct DecodedJpegPreview {
 }
 
 pub(crate) fn decode_scaled_jpeg(
-    path: &Path,
-    source_root: &Path,
+    file: File,
     requested_edge: u32,
     max_decoding_buffer_size: u64,
 ) -> Option<DecodedJpegPreview> {
-    let file = open_source_file(path, source_root).ok()?;
     let mut decoder = Decoder::new(BufReader::new(file));
     decoder.set_max_decoding_buffer_size(max_decoding_buffer_size.try_into().ok()?);
     decoder.read_info().ok()?;
@@ -103,8 +100,13 @@ mod tests {
         drop(source);
         let source_root = canonical_source_root_path(directory.path()).expect("canonical root");
 
-        let decoded = decode_scaled_jpeg(&source_path, &source_root, 256, 256 * 1024 * 1024)
-            .expect("scaled jpeg decode");
+        let decoded = decode_scaled_jpeg(
+            super::super::local_files::open_source_file(&source_path, &source_root)
+                .expect("open source"),
+            256,
+            256 * 1024 * 1024,
+        )
+        .expect("scaled jpeg decode");
         let scaled_thumbnail = decoded.image.thumbnail(256, 256).to_rgb8();
         let full_thumbnail = image::open(&source_path)
             .expect("full jpeg decode")
@@ -158,10 +160,15 @@ mod tests {
         let full_elapsed = full_started.elapsed();
 
         let scaled_started = std::time::Instant::now();
-        let scaled = decode_scaled_jpeg(&source_path, &source_root, 512, 256 * 1024 * 1024)
-            .expect("scaled jpeg decode")
-            .image
-            .thumbnail(512, 512);
+        let scaled = decode_scaled_jpeg(
+            super::super::local_files::open_source_file(&source_path, &source_root)
+                .expect("open source"),
+            512,
+            256 * 1024 * 1024,
+        )
+        .expect("scaled jpeg decode")
+        .image
+        .thumbnail(512, 512);
         let scaled_elapsed = scaled_started.elapsed();
 
         assert_eq!(

@@ -7,7 +7,7 @@ use crate::adapters::{
     PREVIEW_ORIENTATION_CONTRACT, SqliteCatalog, current_preview_artifact_key,
     is_ame_preview_cache_entry, is_managed_preview_cleanup_entry,
 };
-use crate::domain::ScanError;
+use crate::domain::{LibraryChangeLane, ScanError};
 use crate::ports::CatalogRepository;
 
 use super::{StoragePaths, acquire_preview_reclamation};
@@ -36,7 +36,8 @@ pub(crate) fn reclaim_preview_capacity(
         return Ok(0);
     }
 
-    let mut catalog = SqliteCatalog::open(storage.catalog_path.clone())?;
+    let mut catalog =
+        super::catalog_session::open_catalog(&storage.catalog_path, LibraryChangeLane::Recovery)?;
     remove_interrupted_and_unreferenced(&storage.preview_root, target, preview_store, &catalog)?;
     for _ in 0..MAX_RECLAMATION_PASSES {
         if preview_store.used_bytes() <= target {
@@ -250,21 +251,30 @@ mod tests {
         catalog
             .begin_scan(&request, &root_id, &root_path)
             .expect("begin fixture scan");
+        catalog
+            .prove_live_only_first_import_handoff_for_test(&scan_id)
+            .expect("prove fixture first-import handoff");
         let location = AssetLocationView {
             asset_id: format!("reclaim-{suffix}-asset"),
             location_id: location_id.to_owned(),
             root_id: root_id.clone(),
+            scan_id: scan_id.clone(),
             absolute_path: format!("{root_path}\\one.png"),
             display_path: format!("{root_path}\\one.png"),
             relative_path: "one.png".to_owned(),
-            preview_path: path.to_string_lossy().into_owned(),
+            preview_path: String::new(),
             file_size: 100,
             created_unix_ms: Some(10),
             modified_unix_ms: 20,
             file_identity: None,
+            source_revision: Some(crate::domain::SourceRevisionEvidence {
+                scheme: "windows-file-change-time-100ns-v1".to_owned(),
+                value: "0000000000000001".to_owned(),
+            }),
+            source_generation: 0,
             width: 4_032,
             height: 3_024,
-            preview_status: PreviewStatus::Ready,
+            preview_status: PreviewStatus::Pending,
             preview_issue_code: None,
             preview_issue_message: None,
             metadata_engine_id: "fixture".to_owned(),
@@ -277,6 +287,12 @@ mod tests {
         catalog
             .publish_scan(&scan_id, &root_id, 1, 0)
             .expect("publish fixture scan");
+        let mut location = catalog
+            .load_active_location(location_id)
+            .expect("active fixture location query")
+            .expect("active fixture location");
+        location.preview_path = path.to_string_lossy().into_owned();
+        location.preview_status = PreviewStatus::Ready;
         let artifact = PreviewArtifact {
             artifact_key: format!("reclaim-{suffix}-artifact"),
             algorithm_id: PREVIEW_ALGORITHM_ID.to_owned(),
@@ -291,7 +307,7 @@ mod tests {
             height: location.height,
         };
         catalog
-            .update_active_preview(&location, Some(&artifact))
+            .update_active_preview(&location, Some(&artifact), None)
             .expect("publish fixture artifact");
     }
 }

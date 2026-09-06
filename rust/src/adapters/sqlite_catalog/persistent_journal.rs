@@ -27,6 +27,10 @@ use super::change_queue::{
 use super::metadata_inventory::insert_metadata_inventory_recovery_authority;
 use super::{SqliteCatalog, database_error, sqlite_integer, sqlite_unsigned};
 
+mod root_unregister;
+
+pub(super) use root_unregister::remove_root_persistent_journal_state;
+
 impl PersistentJournalRepository for SqliteCatalog {
     fn begin_persistent_journal_baseline(
         &mut self,
@@ -42,6 +46,25 @@ impl PersistentJournalRepository for SqliteCatalog {
         if let Some(existing) =
             load_baseline_for_root(&transaction, &request.root_id, request.root_generation)?
         {
+            let stored_reason = transaction
+                .query_row(
+                    "SELECT reason FROM library_recovery_authorities WHERE change_id = ?1",
+                    [sqlite_integer(
+                        existing.change_id.value(),
+                        "baseline change ID",
+                    )?],
+                    |row| row.get::<_, String>(0),
+                )
+                .map_err(database_error)?;
+            let requested_reason = match request.authority_reason {
+                crate::domain::LibraryRecoveryAuthorityReason::ExistingRootBaseline => {
+                    "existing_root_baseline"
+                }
+                crate::domain::LibraryRecoveryAuthorityReason::FirstImportBoundary => {
+                    "first_import_boundary"
+                }
+                _ => unreachable!("baseline request validation restricts authority"),
+            };
             if existing.phase == PersistentJournalBaselinePhase::Completed {
                 return Err(ScanError::new(
                     "persistent_journal_baseline_already_completed",
@@ -55,6 +78,7 @@ impl PersistentJournalRepository for SqliteCatalog {
                 || existing.opening_next_usn != request.opening_next_usn
                 || existing.protocol_version != request.protocol_version
                 || existing.contract_version != request.contract_version
+                || stored_reason != requested_reason
             {
                 return Err(ScanError::new(
                     "persistent_journal_baseline_conflict",
@@ -70,6 +94,42 @@ impl PersistentJournalRepository for SqliteCatalog {
                 "A root with a trustworthy checkpoint cannot start a migration baseline",
             ));
         }
+        let capability_updated = transaction
+            .execute(
+                "UPDATE library_persistent_journal_root_state
+                 SET protocol_version = ?1, contract_version = ?2,
+                     capability_state = 'supported', continuity_state = 'baseline_required',
+                     last_failure_code = NULL, last_failure_message = NULL,
+                     updated_unix_ms = ?3
+                 WHERE root_id = ?4 AND root_generation = ?5
+                   AND EXISTS(
+                     SELECT 1 FROM library_change_root_state AS active
+                     WHERE active.root_id = ?4 AND active.generation = ?5
+                       AND active.is_active = 1
+                   )
+                   AND (
+                     (capability_state = 'unknown' AND continuity_state = 'baseline_required'
+                      AND protocol_version = 0 AND last_failure_code IS NULL)
+                     OR
+                     (capability_state = 'supported' AND continuity_state = 'baseline_required'
+                      AND protocol_version = ?1 AND contract_version = ?2
+                      AND last_failure_code IS NULL)
+                   )",
+                params![
+                    i64::from(request.protocol_version),
+                    i64::from(request.contract_version),
+                    request.authorized_unix_ms,
+                    request.root_id,
+                    sqlite_integer(request.root_generation.value(), "root generation")?,
+                ],
+            )
+            .map_err(database_error)?;
+        if capability_updated != 1 {
+            return Err(ScanError::new(
+                "persistent_journal_baseline_capability_invalid",
+                "The root cannot atomically acquire supported baseline-required journal authority",
+            ));
+        }
         let root_state =
             load_root_authority_for_key(&transaction, &request.root_id, request.root_generation)?;
         if root_state.capability_state != "supported"
@@ -81,6 +141,53 @@ impl PersistentJournalRepository for SqliteCatalog {
                 "persistent_journal_baseline_capability_invalid",
                 "The root does not own supported baseline-required journal authority",
             ));
+        }
+        let root_has_published_scan = transaction
+            .query_row(
+                "SELECT active_scan_id IS NOT NULL FROM library_roots WHERE id = ?1",
+                [&request.root_id],
+                |row| row.get::<_, bool>(0),
+            )
+            .map_err(database_error)?;
+        match request.authority_reason {
+            crate::domain::LibraryRecoveryAuthorityReason::ExistingRootBaseline
+                if !root_has_published_scan =>
+            {
+                return Err(ScanError::new(
+                    "persistent_journal_baseline_authority_invalid",
+                    "An existing-root baseline requires a published catalog snapshot",
+                ));
+            }
+            crate::domain::LibraryRecoveryAuthorityReason::FirstImportBoundary => {
+                let owns_pristine_first_import = transaction
+                    .query_row(
+                        "SELECT EXISTS(
+                           SELECT 1 FROM scan_runs AS scan
+                           JOIN library_roots AS root ON root.id = scan.root_id
+                           WHERE scan.id = ?1 AND scan.root_id = ?2
+                             AND scan.root_generation_at_start = ?3
+                             AND scan.scan_owner = 'foreground'
+                             AND scan.status = 'running'
+                             AND scan.visited_entries = 0
+                             AND scan.accepted_items = 0
+                             AND root.active_scan_id IS NULL
+                         )",
+                        params![
+                            request.run_id,
+                            request.root_id,
+                            sqlite_integer(request.root_generation.value(), "root generation")?,
+                        ],
+                        |row| row.get::<_, bool>(0),
+                    )
+                    .map_err(database_error)?;
+                if !owns_pristine_first_import {
+                    return Err(ScanError::new(
+                        "persistent_journal_first_import_boundary_late",
+                        "The first-import opening boundary was not persisted before enumeration",
+                    ));
+                }
+            }
+            _ => {}
         }
         let unresolved_recovery = transaction
             .query_row(
@@ -178,12 +285,21 @@ impl PersistentJournalRepository for SqliteCatalog {
                 "INSERT INTO library_recovery_authorities(
                    change_id, run_id, root_id, root_generation, reason,
                    opening_journal_id, opening_next_usn, authorized_unix_ms, retired_unix_ms
-                 ) VALUES (?1, ?2, ?3, ?4, 'existing_root_baseline', ?5, ?6, ?7, NULL)",
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, NULL)",
                 params![
                     sqlite_integer(change_id.value(), "baseline change ID")?,
                     request.run_id,
                     request.root_id,
                     sqlite_integer(request.root_generation.value(), "root generation")?,
+                    match request.authority_reason {
+                        crate::domain::LibraryRecoveryAuthorityReason::ExistingRootBaseline => {
+                            "existing_root_baseline"
+                        }
+                        crate::domain::LibraryRecoveryAuthorityReason::FirstImportBoundary => {
+                            "first_import_boundary"
+                        }
+                        _ => unreachable!("baseline request validation restricts authority"),
+                    },
                     request.journal_id.to_canonical_text(),
                     request.opening_next_usn.to_canonical_text(),
                     request.authorized_unix_ms,
@@ -439,6 +555,176 @@ impl PersistentJournalRepository for SqliteCatalog {
         change_id: LibraryChangeId,
     ) -> Result<bool, ScanError> {
         baseline_closing_is_covered(&self.connection, change_id)
+    }
+
+    fn finalize_ready_first_import_journal_baseline(
+        &mut self,
+        completed_unix_ms: i64,
+    ) -> Result<bool, ScanError> {
+        if completed_unix_ms < 0 {
+            return Err(invalid_batch(
+                "The first-import baseline completion time is invalid",
+            ));
+        }
+        let transaction = self.begin_write_in_lane(crate::domain::LibraryChangeLane::Journal)?;
+        let candidates = {
+            let mut statement = transaction
+                .prepare(
+                    "SELECT baseline.change_id
+                     FROM library_persistent_journal_baselines AS baseline
+                     JOIN library_recovery_authorities AS authority
+                       ON authority.change_id = baseline.change_id
+                     JOIN library_change_queue AS control ON control.id = baseline.change_id
+                     JOIN library_change_root_state AS root_state
+                       ON root_state.root_id = baseline.root_id
+                      AND root_state.generation = baseline.root_generation
+                     JOIN library_roots AS root ON root.id = baseline.root_id
+                     JOIN scan_runs AS scan ON scan.id = authority.run_id
+                     WHERE authority.reason = 'first_import_boundary'
+                       AND authority.retired_unix_ms IS NULL
+                       AND baseline.phase = 'replay'
+                       AND baseline.closing_next_usn IS NOT NULL
+                       AND control.status IN ('pending', 'retry_wait')
+                       AND root_state.is_active = 1
+                       AND root.active_scan_id = scan.id
+                       AND scan.root_id = baseline.root_id
+                       AND scan.root_generation_at_start = baseline.root_generation
+                       AND scan.scan_owner = 'foreground'
+                       AND scan.status = 'completed'
+                       AND NOT EXISTS (
+                         SELECT 1
+                         FROM library_change_queue AS pending
+                         JOIN library_change_queue_lanes AS lane
+                           ON lane.change_id = pending.id
+                         WHERE pending.root_id = baseline.root_id
+                           AND pending.root_generation = baseline.root_generation
+                           AND (
+                             lane.lane IN ('p0_live', 'p1_journal')
+                             OR (lane.lane = 'p2_recovery'
+                               AND pending.id <> baseline.change_id)
+                           )
+                           AND pending.status IN ('pending', 'leased', 'retry_wait')
+                       )
+                     ORDER BY baseline.change_id
+                     LIMIT 16",
+                )
+                .map_err(database_error)?;
+            statement
+                .query_map([], |row| row.get::<_, i64>(0))
+                .map_err(database_error)?
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(database_error)?
+        };
+        let mut selected = None;
+        for stored_change_id in candidates {
+            let change_id = LibraryChangeId::new(sqlite_unsigned(
+                stored_change_id,
+                "first-import baseline change ID",
+            )?)
+            .ok_or_else(|| invalid_batch("The first-import baseline change ID is invalid"))?;
+            if baseline_closing_is_covered(&transaction, change_id)? {
+                selected = Some(stored_change_id);
+                break;
+            }
+        }
+        let Some(stored_change_id) = selected else {
+            transaction.commit().map_err(database_error)?;
+            return Ok(false);
+        };
+        let (root_id, root_generation, updated_unix_ms) = transaction
+            .query_row(
+                "SELECT root_id, root_generation, updated_unix_ms
+                 FROM library_persistent_journal_baselines
+                 WHERE change_id = ?1 AND phase = 'replay'",
+                [stored_change_id],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, i64>(1)?,
+                        row.get::<_, i64>(2)?,
+                    ))
+                },
+            )
+            .map_err(database_error)?;
+        if completed_unix_ms < updated_unix_ms {
+            return Err(ScanError::new(
+                "persistent_journal_first_import_completion_time_invalid",
+                "The first-import baseline cannot complete before its closing replay",
+            ));
+        }
+        let catalog_revision = super::load_catalog_revision(&transaction)?;
+        let completed = transaction
+            .execute(
+                "UPDATE library_change_queue
+                 SET status = 'completed', next_retry_unix_ms = NULL,
+                     lease_expires_unix_ms = NULL,
+                     catalog_revision_at_success = ?2, updated_unix_ms = ?3
+                 WHERE id = ?1 AND status IN ('pending', 'retry_wait')",
+                params![
+                    stored_change_id,
+                    sqlite_integer(catalog_revision, "catalog revision")?,
+                    completed_unix_ms,
+                ],
+            )
+            .map_err(database_error)?;
+        if completed != 1 {
+            return Err(ScanError::new(
+                "persistent_journal_first_import_completion_raced",
+                "The first-import baseline control changed during completion",
+            ));
+        }
+        let baseline_updated = transaction
+            .execute(
+                "UPDATE library_persistent_journal_baselines
+                 SET phase = 'completed', completed_unix_ms = ?2, updated_unix_ms = ?2
+                 WHERE change_id = ?1 AND phase = 'replay'
+                   AND completed_unix_ms IS NULL",
+                params![stored_change_id, completed_unix_ms],
+            )
+            .map_err(database_error)?;
+        let checkpoint_updated = transaction
+            .execute(
+                "UPDATE library_persistent_journal_checkpoints
+                 SET continuity_state = 'current', updated_unix_ms = ?3
+                 WHERE root_id = ?1 AND root_generation = ?2
+                   AND continuity_state = 'catching_up'
+                   AND next_unread_usn = captured_exclusive_end
+                   AND last_failure_code IS NULL",
+                params![root_id, root_generation, completed_unix_ms],
+            )
+            .map_err(database_error)?;
+        let root_state_updated = transaction
+            .execute(
+                "UPDATE library_persistent_journal_root_state
+                 SET continuity_state = 'current', updated_unix_ms = ?3
+                 WHERE root_id = ?1 AND root_generation = ?2
+                   AND capability_state = 'supported'
+                   AND continuity_state = 'catching_up'
+                   AND last_failure_code IS NULL",
+                params![root_id, root_generation, completed_unix_ms],
+            )
+            .map_err(database_error)?;
+        let authority_retired = transaction
+            .execute(
+                "UPDATE library_recovery_authorities
+                 SET retired_unix_ms = ?2
+                 WHERE change_id = ?1 AND reason = 'first_import_boundary'
+                   AND retired_unix_ms IS NULL",
+                params![stored_change_id, completed_unix_ms],
+            )
+            .map_err(database_error)?;
+        if baseline_updated != 1
+            || checkpoint_updated != 1
+            || root_state_updated != 1
+            || authority_retired != 1
+        {
+            return Err(ScanError::new(
+                "persistent_journal_first_import_completion_raced",
+                "The first-import baseline authority changed during atomic completion",
+            ));
+        }
+        transaction.commit().map_err(database_error)?;
+        Ok(true)
     }
 
     fn load_persistent_journal_capabilities(
@@ -3465,7 +3751,7 @@ mod tests {
 
     use crate::domain::{
         JournalFileReference, JournalIdentifier, JournalUsn, LibraryChangeFailure,
-        LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeOrigin,
+        LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeLane, LibraryChangeOrigin,
         LibraryChangeQueuePolicy, LibraryChangeScope, LibraryRecoveryOpeningBoundary,
         LibraryRootGeneration, MetadataInventoryFrontierEntry, MetadataInventoryPage,
         MetadataInventoryRunRequest, MetadataInventoryScope, PersistentJournalBaseline,
@@ -3520,6 +3806,202 @@ mod tests {
                 .load_persistent_journal_baselines()
                 .expect("active baselines"),
             vec![first]
+        );
+    }
+
+    #[test]
+    fn first_import_opening_boundary_survives_restart_before_enumeration() {
+        let directory = tempdir().expect("catalog directory");
+        let path = directory.path().join("catalog.sqlite3");
+        let request = first_import_scan_request("first-import-after-opening", "root-first-a");
+        let mut catalog = SqliteCatalog::open(path.clone()).expect("catalog");
+        catalog
+            .begin_scan(&request, "root-first-a", &request.root_path)
+            .expect("begin first import");
+        let baseline = first_import_baseline_request(&request, "root-first-a", 10);
+        catalog
+            .begin_persistent_journal_baseline(&baseline, policy())
+            .expect("persist opening boundary before enumeration");
+        drop(catalog);
+
+        let mut reopened = SqliteCatalog::open(path).expect("reopen after opening boundary");
+        assert!(
+            reopened
+                .first_import_change_capture_is_ready(
+                    &request.scan_id,
+                    "root-first-a",
+                    LibraryRootGeneration::initial(),
+                )
+                .expect("reload first-import authority")
+        );
+        let resumed = reopened
+            .resume_scan(&request, "root-first-a", &request.root_path)
+            .expect("resume the same foreground scan");
+        assert_eq!(resumed.visited_entries, 0);
+        assert_eq!(
+            reopened
+                .connection
+                .query_row(
+                    "SELECT COUNT(*) FROM library_metadata_inventory_runs",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("metadata inventory count"),
+            0
+        );
+    }
+
+    #[test]
+    fn first_import_published_baseline_survives_restart_without_second_inventory() {
+        let directory = tempdir().expect("catalog directory");
+        let path = directory.path().join("catalog.sqlite3");
+        let request = first_import_scan_request("first-import-after-publish", "root-first-c");
+        let mut catalog = SqliteCatalog::open(path.clone()).expect("catalog");
+        catalog
+            .begin_scan(&request, "root-first-c", &request.root_path)
+            .expect("begin first import");
+        catalog
+            .begin_persistent_journal_baseline(
+                &first_import_baseline_request(&request, "root-first-c", 10),
+                policy(),
+            )
+            .expect("persist opening boundary");
+        catalog
+            .publish_scan(&request.scan_id, "root-first-c", 0, 0)
+            .expect("publish first inventory as baseline");
+        drop(catalog);
+
+        let reopened = SqliteCatalog::open(path).expect("reopen after first publication");
+        assert!(
+            reopened
+                .metadata_inventory_is_waiting_for_closing_boundary(&request.scan_id)
+                .expect("first import awaits only the closing boundary")
+        );
+        assert_eq!(
+            reopened
+                .connection
+                .query_row(
+                    "SELECT COUNT(*) FROM library_metadata_inventory_runs",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("metadata inventory count"),
+            0
+        );
+    }
+
+    #[test]
+    fn first_import_replay_restart_waits_for_the_replayed_live_queue() {
+        let directory = tempdir().expect("catalog directory");
+        let path = directory.path().join("catalog.sqlite3");
+        let request = first_import_scan_request("first-import-replay", "root-first-replay");
+        let mut catalog = SqliteCatalog::open(path.clone()).expect("catalog");
+        catalog
+            .begin_scan(&request, "root-first-replay", &request.root_path)
+            .expect("begin first import");
+        let baseline = catalog
+            .begin_persistent_journal_baseline(
+                &first_import_baseline_request(&request, "root-first-replay", 10),
+                policy(),
+            )
+            .expect("persist opening boundary");
+        catalog
+            .publish_scan(&request.scan_id, "root-first-replay", 0, 0)
+            .expect("publish first inventory");
+        catalog
+            .capture_persistent_journal_baseline_closing_boundary(&closing_boundary(
+                baseline.change_id,
+                10,
+            ))
+            .expect("enter replay phase with an empty journal range");
+        catalog
+            .enqueue_library_change_intents(
+                &[LibraryChangeIntent {
+                    root_id: "root-first-replay".to_owned(),
+                    root_generation: LibraryRootGeneration::initial(),
+                    kind: LibraryChangeIntentKind::Reconcile,
+                    scope: LibraryChangeScope::Path,
+                    relative_path: "during-scan.png".to_owned(),
+                    previous_relative_path: None,
+                    origin: LibraryChangeOrigin::LiveNotification,
+                    first_observed_unix_ms: 2_001,
+                    most_recent_observed_unix_ms: 2_001,
+                    first_sequence: 1,
+                    most_recent_sequence: 1,
+                    coalesced_observation_count: 1,
+                }],
+                2_001,
+                policy(),
+            )
+            .expect("persist live work before the replay-phase restart");
+        drop(catalog);
+
+        let mut reopened = SqliteCatalog::open(path).expect("reopen during replay");
+        assert!(
+            !reopened
+                .finalize_ready_first_import_journal_baseline(3_000)
+                .expect("pending live work must block first-import completion")
+        );
+        let live = reopened
+            .lease_path_library_changes_in_lane(
+                "root-first-replay",
+                LibraryRootGeneration::initial(),
+                LibraryChangeLane::Live,
+                3_001,
+                policy(),
+            )
+            .expect("lease persisted live work after restart")
+            .pop()
+            .expect("persisted live work");
+        let catalog_revision = reopened
+            .connection
+            .query_row("SELECT revision FROM catalog_state", [], |row| {
+                row.get::<_, i64>(0)
+            })
+            .expect("catalog revision after first publication");
+        reopened
+            .complete_library_change(
+                live.change.id,
+                live.lease_generation,
+                u64::try_from(catalog_revision).expect("non-negative catalog revision"),
+                3_002,
+            )
+            .expect("complete replayed live work");
+        assert!(
+            reopened
+                .finalize_ready_first_import_journal_baseline(3_003)
+                .expect("finalize first-import replay")
+        );
+        assert!(
+            reopened
+                .load_persistent_journal_baselines()
+                .expect("load active baselines after completion")
+                .is_empty()
+        );
+        let (baseline_phase, authority_retired_unix_ms) = reopened
+            .connection
+            .query_row(
+                "SELECT baseline.phase, authority.retired_unix_ms
+                 FROM library_persistent_journal_baselines AS baseline
+                 JOIN library_recovery_authorities AS authority
+                   ON authority.change_id = baseline.change_id
+                 WHERE baseline.change_id = ?1",
+                [i64::try_from(baseline.change_id.value()).expect("stored change ID")],
+                |row| Ok((row.get::<_, String>(0)?, row.get::<_, Option<i64>>(1)?)),
+            )
+            .expect("load durable completed baseline");
+        assert_eq!(baseline_phase, "completed");
+        assert_eq!(authority_retired_unix_ms, Some(3_003));
+        assert_eq!(
+            reopened
+                .load_persistent_journal_checkpoint(
+                    "root-first-replay",
+                    LibraryRootGeneration::initial(),
+                )
+                .expect("load current checkpoint")
+                .expect("current checkpoint")
+                .continuity,
+            PersistentJournalContinuityState::Current
         );
     }
 
@@ -5232,6 +5714,264 @@ mod tests {
         );
         drop(consumed);
         assert_contract_reopen_fails(path, "deleted consumed carry proof");
+    }
+
+    #[test]
+    fn unregister_root_releases_both_cross_root_endpoints_and_keeps_independent_survivor_state() {
+        let directory = tempdir().expect("catalog directory");
+        for removed_root_id in ["root-a", "root-b"] {
+            let path = directory
+                .path()
+                .join(format!("remove-{removed_root_id}.sqlite3"));
+            let (mut catalog, _, _) = catalog_with_pending_lineage_batches(path.clone());
+            let survivor_root_id = if removed_root_id == "root-a" {
+                "root-b"
+            } else {
+                "root-a"
+            };
+            let survivor_path = if removed_root_id == "root-a" {
+                "new.jpg"
+            } else {
+                "old.jpg"
+            };
+            catalog
+                .connection
+                .execute(
+                    "UPDATE library_persistent_journal_root_state
+                     SET continuity_state = 'catching_up', updated_unix_ms = 2_000
+                     WHERE root_id = ?1",
+                    [survivor_root_id],
+                )
+                .expect("arm survivor catch-up state");
+            catalog
+                .connection
+                .execute(
+                    "UPDATE library_persistent_journal_checkpoints
+                     SET captured_exclusive_end = '30', continuity_state = 'catching_up',
+                         updated_unix_ms = 2_000
+                     WHERE root_id = ?1",
+                    [survivor_root_id],
+                )
+                .expect("arm survivor catch-up checkpoint");
+            let independent = atomic_volume_batch(vec![batch(
+                "independent-survivor",
+                survivor_root_id,
+                20,
+                30,
+                &["independent.jpg"],
+            )]);
+            let independent_range_id = independent.pages[0].enrollment.range.batch_id.clone();
+            catalog
+                .publish_persistent_journal_volume_batch(&independent, 1_000, policy())
+                .expect("publish independent survivor evidence");
+
+            assert!(
+                catalog
+                    .unregister_root(removed_root_id)
+                    .expect("remove cross-root endpoint")
+            );
+            assert_root_unregister_journal_state(
+                &catalog,
+                removed_root_id,
+                survivor_root_id,
+                &independent_range_id,
+            );
+            let lease_unix_ms = ready_live_path_lease_unix_ms(&catalog, survivor_root_id);
+            let survivor_work = catalog
+                .lease_path_library_changes_in_lane(
+                    survivor_root_id,
+                    LibraryRootGeneration::initial(),
+                    LibraryChangeLane::Live,
+                    lease_unix_ms,
+                    policy(),
+                )
+                .expect("lease survivor root-removal handoff");
+            assert_eq!(survivor_work.len(), 1);
+            let survivor_work = &survivor_work[0];
+            assert_eq!(
+                survivor_work.change.intent.kind,
+                LibraryChangeIntentKind::Reconcile
+            );
+            assert_eq!(survivor_work.change.intent.scope, LibraryChangeScope::Path);
+            assert_eq!(survivor_work.change.intent.relative_path, survivor_path);
+            assert!(survivor_work.change.catch_up_source.is_none());
+            assert!(survivor_work.change.catch_up_watermark.is_none());
+            assert!(survivor_work.change.catch_up_lineage.is_empty());
+            let catalog_revision = catalog
+                .connection
+                .query_row("SELECT revision FROM catalog_state", [], |row| {
+                    row.get::<_, i64>(0)
+                })
+                .expect("catalog revision after root removal");
+            catalog
+                .complete_library_change(
+                    survivor_work.change.id,
+                    survivor_work.lease_generation,
+                    u64::try_from(catalog_revision).expect("nonnegative catalog revision"),
+                    lease_unix_ms + 1,
+                )
+                .expect("complete survivor root-removal handoff");
+            assert_survivor_root_unregister_handoff_completed(
+                &catalog,
+                survivor_root_id,
+                survivor_path,
+            );
+            drop(catalog);
+
+            let reopened = SqliteCatalog::open(path).expect("reopen after cross-root removal");
+            assert_root_unregister_journal_state(
+                &reopened,
+                removed_root_id,
+                survivor_root_id,
+                &independent_range_id,
+            );
+            assert_survivor_root_unregister_handoff_completed(
+                &reopened,
+                survivor_root_id,
+                survivor_path,
+            );
+        }
+    }
+
+    #[test]
+    fn unregister_root_releases_both_paths_of_a_survivor_rename_from_a_retired_peer_range() {
+        let directory = tempdir().expect("catalog directory");
+        let path = directory.path().join("remove-peer-range-rename.sqlite3");
+        let mut catalog = catalog_with_roots(path.clone(), &["root-a", "root-b"]);
+        support_root(&mut catalog, "root-a");
+        support_root(&mut catalog, "root-b");
+        let mut previous = batch("range-a", "root-a", 10, 20, &["old.jpg"]);
+        previous
+            .cross_root_lineage
+            .push(lineage(&previous.range.batch_id));
+        let mut current = batch("range-b", "root-b", 10, 20, &["new.jpg"]);
+        current
+            .cross_root_lineage
+            .push(lineage(&current.range.batch_id));
+        current.intents.push(LibraryChangeIntent {
+            root_id: "root-b".to_owned(),
+            root_generation: LibraryRootGeneration::initial(),
+            kind: LibraryChangeIntentKind::RenameCandidate,
+            scope: LibraryChangeScope::Path,
+            relative_path: "renamed-new.jpg".to_owned(),
+            previous_relative_path: Some("renamed-old.jpg".to_owned()),
+            origin: LibraryChangeOrigin::StartupCatchUp,
+            first_observed_unix_ms: 1_000,
+            most_recent_observed_unix_ms: 1_000,
+            first_sequence: 2,
+            most_recent_sequence: 2,
+            coalesced_observation_count: 1,
+        });
+        let volume_batch = atomic_volume_batch(vec![previous, current]);
+        catalog
+            .publish_persistent_journal_volume_batch(&volume_batch, 1_000, policy())
+            .expect("publish cross-root range with survivor rename");
+
+        assert!(
+            catalog
+                .unregister_root("root-a")
+                .expect("remove cross-root endpoint")
+        );
+        let lease_unix_ms = ready_live_path_lease_unix_ms(&catalog, "root-b");
+        let survivor_work = catalog
+            .lease_path_library_changes_in_lane(
+                "root-b",
+                LibraryRootGeneration::initial(),
+                LibraryChangeLane::Live,
+                lease_unix_ms,
+                policy(),
+            )
+            .expect("lease survivor root-removal handoffs");
+        let mut survivor_paths = survivor_work
+            .iter()
+            .map(|work| {
+                assert_eq!(work.change.intent.kind, LibraryChangeIntentKind::Reconcile);
+                assert_eq!(work.change.intent.scope, LibraryChangeScope::Path);
+                assert!(work.change.catch_up_source.is_none());
+                assert!(work.change.catch_up_watermark.is_none());
+                assert!(work.change.catch_up_lineage.is_empty());
+                work.change.intent.relative_path.clone()
+            })
+            .collect::<Vec<_>>();
+        survivor_paths.sort();
+        assert_eq!(
+            survivor_paths,
+            vec![
+                "new.jpg".to_owned(),
+                "renamed-new.jpg".to_owned(),
+                "renamed-old.jpg".to_owned(),
+            ]
+        );
+        let catalog_revision = catalog
+            .connection
+            .query_row("SELECT revision FROM catalog_state", [], |row| {
+                row.get::<_, i64>(0)
+            })
+            .expect("catalog revision after root removal");
+        for (index, work) in survivor_work.iter().enumerate() {
+            catalog
+                .complete_library_change(
+                    work.change.id,
+                    work.lease_generation,
+                    u64::try_from(catalog_revision).expect("nonnegative catalog revision"),
+                    lease_unix_ms + i64::try_from(index).expect("bounded handoff index") + 1,
+                )
+                .expect("complete survivor rename handoff");
+        }
+        for survivor_path in &survivor_paths {
+            assert_survivor_root_unregister_handoff_completed(&catalog, "root-b", survivor_path);
+        }
+        drop(catalog);
+
+        let reopened =
+            SqliteCatalog::open(path).expect("reopen with durable survivor rename handoffs");
+        for survivor_path in &survivor_paths {
+            assert_survivor_root_unregister_handoff_completed(&reopened, "root-b", survivor_path);
+        }
+    }
+
+    #[test]
+    fn unregister_root_releases_pending_carry_and_keeps_survivor_source_range() {
+        let directory = tempdir().expect("catalog directory");
+        let path = directory.path().join("remove-pending-carry.sqlite3");
+        let mut catalog = catalog_with_roots(path.clone(), &["root-a", "root-b"]);
+        support_root(&mut catalog, "root-a");
+        support_root(&mut catalog, "root-b");
+        let mut removed = batch("removed-carry", "root-a", 10, 20, &["old.jpg"]);
+        let mut carry = PersistentJournalPendingRename {
+            carry_id: String::new(),
+            source_range_id: removed.range.batch_id.clone(),
+            volume: volume(),
+            journal_id: JournalIdentifier::new(9).expect("journal ID"),
+            file_reference: JournalFileReference::V3([8; 16]),
+            old_usn: JournalUsn::new(15).expect("OLD USN"),
+            previous_root_id: "root-a".to_owned(),
+            previous_root_generation: LibraryRootGeneration::initial(),
+            previous_relative_path: "old.jpg".to_owned(),
+            is_directory: false,
+            enrolled_unix_ms: 1_000,
+        };
+        carry.carry_id = persistent_journal_pending_rename_id(&carry);
+        removed.pending_renames.push(carry);
+        let volume_batch = atomic_volume_batch(vec![
+            removed,
+            batch("survivor-range", "root-b", 10, 20, &["survivor.jpg"]),
+        ]);
+        let survivor_range_id = volume_batch.pages[1].enrollment.range.batch_id.clone();
+        catalog
+            .publish_persistent_journal_volume_batch(&volume_batch, 1_000, policy())
+            .expect("publish pending carry and survivor range");
+
+        assert!(
+            catalog
+                .unregister_root("root-a")
+                .expect("remove pending-carry root")
+        );
+        assert_root_unregister_journal_state(&catalog, "root-a", "root-b", &survivor_range_id);
+        drop(catalog);
+
+        let reopened = SqliteCatalog::open(path).expect("reopen after pending-carry removal");
+        assert_root_unregister_journal_state(&reopened, "root-a", "root-b", &survivor_range_id);
     }
 
     #[test]
@@ -7011,6 +7751,7 @@ mod tests {
     }
 
     fn remove_v25_contract_for_legacy_fixture(connection: &rusqlite::Connection) {
+        super::super::migrations::downgrade_source_revision_contract_to_v30_for_test(connection);
         connection
             .execute_batch(
                 "PRAGMA foreign_keys = OFF;
@@ -7071,6 +7812,22 @@ mod tests {
             catalog
                 .begin_scan(&request, root_id, &request.root_path)
                 .expect("begin root baseline");
+            catalog
+                .save_persistent_journal_capability(&PersistentJournalCapability {
+                    root_id: (*root_id).to_owned(),
+                    root_generation: LibraryRootGeneration::initial(),
+                    protocol_version: 1,
+                    contract_version: 1,
+                    state: PersistentJournalCapabilityState::LiveOnly,
+                    continuity: PersistentJournalContinuityState::LiveOnly,
+                    failure: Some(PersistentJournalFailure {
+                        code: "test_live_observer_only".to_owned(),
+                        message: "The fixed catalog fixture owns a trusted live observer seam"
+                            .to_owned(),
+                    }),
+                    updated_unix_ms: super::super::unix_time_ms(),
+                })
+                .expect("arm fixture first-import handoff");
             catalog
                 .publish_scan(&request.scan_id, root_id, 0, 0)
                 .expect("publish root baseline");
@@ -7218,6 +7975,37 @@ mod tests {
             run_id: format!("baseline-{root_id}"),
             root_id: root_id.to_owned(),
             root_generation: LibraryRootGeneration::initial(),
+            authority_reason: crate::domain::LibraryRecoveryAuthorityReason::ExistingRootBaseline,
+            volume: volume(),
+            root_file_reference: JournalFileReference::V2([1; 8]),
+            journal_id: JournalIdentifier::new(9).expect("journal ID"),
+            opening_next_usn: JournalUsn::new(opening_next_usn).expect("opening USN"),
+            protocol_version: 1,
+            contract_version: 1,
+            authorized_unix_ms: 1_000,
+        }
+    }
+
+    fn first_import_scan_request(scan_id: &str, root_id: &str) -> ScanRequest {
+        ScanRequest {
+            scan_id: scan_id.to_owned(),
+            root_path: format!("C:/{root_id}"),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        }
+    }
+
+    fn first_import_baseline_request(
+        request: &ScanRequest,
+        root_id: &str,
+        opening_next_usn: i64,
+    ) -> PersistentJournalBaselineStartRequest {
+        PersistentJournalBaselineStartRequest {
+            run_id: request.scan_id.clone(),
+            root_id: root_id.to_owned(),
+            root_generation: LibraryRootGeneration::initial(),
+            authority_reason: crate::domain::LibraryRecoveryAuthorityReason::FirstImportBoundary,
             volume: volume(),
             root_file_reference: JournalFileReference::V2([1; 8]),
             journal_id: JournalIdentifier::new(9).expect("journal ID"),
@@ -7315,6 +8103,94 @@ mod tests {
             failure: None,
             updated_unix_ms,
         }
+    }
+
+    fn assert_root_unregister_journal_state(
+        catalog: &SqliteCatalog,
+        removed_root_id: &str,
+        survivor_root_id: &str,
+        survivor_range_id: &str,
+    ) {
+        let state: (i64, i64, i64, i64, i64, i64, i64, i64) = catalog
+            .connection
+            .query_row(
+                "SELECT
+                   (SELECT COUNT(*) FROM library_roots WHERE id = ?1),
+                   (SELECT COUNT(*) FROM library_persistent_journal_root_state
+                    WHERE root_id = ?1),
+                   (SELECT COUNT(*) FROM library_persistent_journal_root_state
+                    WHERE root_id = ?2),
+                   (SELECT COUNT(*) FROM library_persistent_journal_source_ranges
+                    WHERE id = ?3 AND root_id = ?2),
+                   (SELECT COUNT(*) FROM library_persistent_journal_cross_root_lineage),
+                   (SELECT COUNT(*) FROM library_persistent_journal_pending_renames),
+                   (SELECT COUNT(*)
+                    FROM library_change_queue_catch_up_lineage AS lineage
+                    LEFT JOIN library_persistent_journal_source_ranges AS ranges
+                      ON ranges.id = lineage.catch_up_watermark
+                    WHERE lineage.catch_up_source = 'persistent_journal_v1'
+                      AND ranges.id IS NULL),
+                   (SELECT COUNT(*) FROM library_change_queue
+                    WHERE root_id = ?1
+                      AND status IN ('pending', 'leased', 'retry_wait'))",
+                params![removed_root_id, survivor_root_id, survivor_range_id],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                        row.get(5)?,
+                        row.get(6)?,
+                        row.get(7)?,
+                    ))
+                },
+            )
+            .expect("root unregister journal state");
+        assert_eq!(state, (0, 0, 1, 1, 0, 0, 0, 0));
+    }
+
+    fn assert_survivor_root_unregister_handoff_completed(
+        catalog: &SqliteCatalog,
+        survivor_root_id: &str,
+        survivor_path: &str,
+    ) {
+        let state = catalog
+            .connection
+            .query_row(
+                "SELECT queue.status, queue.catch_up_source, queue.catch_up_watermark
+                 FROM library_change_queue AS queue
+                 JOIN library_change_queue_lanes AS lane ON lane.change_id = queue.id
+                 WHERE queue.root_id = ?1 AND queue.root_generation = 1
+                   AND lane.lane = 'p0_live' AND queue.intent_kind = 'reconcile'
+                   AND queue.scope = 'path' AND queue.relative_path = ?2",
+                params![survivor_root_id, survivor_path],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, Option<String>>(1)?,
+                        row.get::<_, Option<String>>(2)?,
+                    ))
+                },
+            )
+            .expect("completed survivor root-removal handoff");
+        assert_eq!(state, ("completed".to_owned(), None, None));
+    }
+
+    fn ready_live_path_lease_unix_ms(catalog: &SqliteCatalog, root_id: &str) -> i64 {
+        catalog
+            .connection
+            .query_row(
+                "SELECT COALESCE(MAX(queue.ready_unix_ms), 0) + 1
+                 FROM library_change_queue AS queue
+                 JOIN library_change_queue_lanes AS lane ON lane.change_id = queue.id
+                 WHERE queue.root_id = ?1 AND queue.status = 'pending'
+                   AND lane.lane = 'p0_live'",
+                [root_id],
+                |row| row.get(0),
+            )
+            .expect("ready live path lease time")
     }
 
     fn assert_pending_carry_rollback(

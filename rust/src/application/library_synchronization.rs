@@ -23,12 +23,16 @@ use super::{
     AuthoritativeRecoveryPolicy, enqueue_library_change_plan, process_ready_library_changes_in_lane,
 };
 
+#[cfg(windows)]
+mod journal_baseline;
 mod production;
 
 #[cfg(test)]
 #[path = "../../test_support/production_synchronization_cadence.rs"]
 mod production_synchronization_cadence;
 
+#[cfg(not(test))]
+pub(crate) use production::poll_production_first_import_change_capture;
 pub(crate) use production::{
     poll_production_library_synchronization,
     reserve_production_library_synchronization_start_ticket,

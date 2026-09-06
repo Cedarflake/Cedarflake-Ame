@@ -28,6 +28,8 @@ class LibraryNavigation extends StatefulWidget {
     required this.transientRootPath,
     required this.folderTree,
     required this.isBusy,
+    this.updatingRootIds = const {},
+    this.isAddingSourceDisabled = false,
     required this.onSelectLibrary,
     required this.onSelectRoot,
     required this.onSelectFolder,
@@ -54,6 +56,8 @@ class LibraryNavigation extends StatefulWidget {
   final String? transientRootPath;
   final LibraryFolderTreeState folderTree;
   final bool isBusy;
+  final Set<String> updatingRootIds;
+  final bool isAddingSourceDisabled;
   final VoidCallback onSelectLibrary;
   final ValueChanged<LibraryRoot> onSelectRoot;
   final void Function(LibraryRoot root, LibraryFolder folder) onSelectFolder;
@@ -63,7 +67,7 @@ class LibraryNavigation extends StatefulWidget {
   onLoadMoreFolders;
   final VoidCallback onAddSource;
   final VoidCallback onOpenSettings;
-  final ValueChanged<String> onUpdateRoot;
+  final ValueChanged<LibraryRoot> onUpdateRoot;
   final ValueChanged<LibraryRoot> onOpenRoot;
   final void Function(LibraryRoot root, LibraryFolder folder) onOpenFolder;
   final ValueChanged<LibraryRoot> onRemoveRoot;
@@ -74,6 +78,74 @@ class LibraryNavigation extends StatefulWidget {
 
 class _LibraryNavigationState extends State<LibraryNavigation> {
   final Set<LibraryFolderBranchKey> _expandedBranches = {};
+  final FocusNode _libraryFocusNode = FocusNode(
+    debugLabel: "Library navigation entry",
+  );
+  final Map<String, FocusNode> _rootFocusNodes = {};
+  String? _pendingRemovalFocusRootId;
+
+  @override
+  void didUpdateWidget(covariant LibraryNavigation oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final currentRootIds = widget.roots.map((root) => root.id).toSet();
+    final removedRootIds = oldWidget.roots
+        .map((root) => root.id)
+        .where((rootId) => !currentRootIds.contains(rootId))
+        .toList(growable: false);
+    if (removedRootIds.isEmpty) {
+      return;
+    }
+    String? focusedRemovedRootId;
+    final pendingRootId = _pendingRemovalFocusRootId;
+    if (pendingRootId != null && removedRootIds.contains(pendingRootId)) {
+      focusedRemovedRootId = pendingRootId;
+    } else {
+      for (final rootId in removedRootIds) {
+        if (_rootFocusNodes[rootId]?.hasFocus ?? false) {
+          focusedRemovedRootId = rootId;
+          break;
+        }
+      }
+    }
+    final nodesToDispose = [
+      for (final rootId in removedRootIds) ?_rootFocusNodes.remove(rootId),
+    ];
+    _pendingRemovalFocusRootId = null;
+    if (focusedRemovedRootId == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        for (final node in nodesToDispose) {
+          node.dispose();
+        }
+      });
+      return;
+    }
+    final removedIndex = oldWidget.roots.indexWhere(
+      (root) => root.id == focusedRemovedRootId,
+    );
+    final targetRoot = widget.roots.isEmpty
+        ? null
+        : widget.roots[removedIndex.clamp(0, widget.roots.length - 1).toInt()];
+    final targetNode = targetRoot == null
+        ? _libraryFocusNode
+        : _focusNodeForRoot(targetRoot.id);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        targetNode.requestFocus();
+      }
+      for (final node in nodesToDispose) {
+        node.dispose();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _libraryFocusNode.dispose();
+    for (final node in _rootFocusNodes.values) {
+      node.dispose();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -94,6 +166,7 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                       message: LibraryStrings.library,
                       child: IconButton(
                         key: const Key("library-sidebar-library"),
+                        focusNode: _libraryFocusNode,
                         isSelected:
                             !widget.isSettingsSelected &&
                             widget.selectedRootId == null,
@@ -107,13 +180,17 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                       message: LibraryStrings.addFolder,
                       child: IconButton(
                         key: const Key("library-sidebar-import"),
-                        onPressed: widget.isBusy ? null : widget.onAddSource,
+                        onPressed:
+                            widget.isBusy || widget.isAddingSourceDisabled
+                            ? null
+                            : widget.onAddSource,
                         icon: const Icon(Symbols.create_new_folder_rounded),
                       ),
                     ),
                   ] else
                     ListTile(
                       key: const Key("library-sidebar-library"),
+                      focusNode: _libraryFocusNode,
                       selected:
                           !widget.isSettingsSelected &&
                           widget.selectedRootId == null,
@@ -144,7 +221,8 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                           message: LibraryStrings.addFolder,
                           child: IconButton(
                             key: const Key("library-sidebar-import"),
-                            onPressed: widget.isBusy
+                            onPressed:
+                                widget.isBusy || widget.isAddingSourceDisabled
                                 ? null
                                 : widget.onAddSource,
                             icon: const Icon(Symbols.create_new_folder_rounded),
@@ -181,12 +259,16 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                           widget.selectedRootId == root.id &&
                           widget.selectedFolderRelativePath == null,
                       isExpanded: _isExpanded(root.id, ""),
-                      isBusy: widget.isBusy,
+                      isBusy:
+                          widget.isBusy ||
+                          widget.updatingRootIds.contains(root.id),
+                      isUpdating: widget.updatingRootIds.contains(root.id),
+                      focusNode: _focusNodeForRoot(root.id),
                       onSelect: () => widget.onSelectRoot(root),
                       onToggleExpansion: () => _toggleBranch(root.id, ""),
-                      onUpdate: () => widget.onUpdateRoot(root.path),
+                      onUpdate: () => widget.onUpdateRoot(root),
                       onOpen: () => widget.onOpenRoot(root),
-                      onRemove: () => widget.onRemoveRoot(root),
+                      onRemove: () => _requestRemoveRoot(root),
                     ),
                     if (!widget.isCompact && _isExpanded(root.id, ""))
                       ..._buildFolderBranch(root, "", 1),
@@ -312,6 +394,18 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
         parentRelativePath: parentRelativePath,
       ),
     );
+  }
+
+  FocusNode _focusNodeForRoot(String rootId) {
+    return _rootFocusNodes.putIfAbsent(
+      rootId,
+      () => FocusNode(debugLabel: "Library source $rootId"),
+    );
+  }
+
+  void _requestRemoveRoot(LibraryRoot root) {
+    _pendingRemovalFocusRootId = root.id;
+    widget.onRemoveRoot(root);
   }
 
   void _toggleBranch(String rootId, String parentRelativePath) {

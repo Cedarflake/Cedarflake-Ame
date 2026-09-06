@@ -1,20 +1,44 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex, OnceLock, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::sync::{Arc, Condvar, Mutex, OnceLock};
 
-use crate::adapters::{
-    SqliteCatalog, SqliteStorageSettings, is_ame_preview_cache_entry, user_visible_path,
-};
-use crate::domain::{PreviewCleanupEvent, ScanError, ScanIssue};
+#[cfg(test)]
+use crate::adapters::SqliteCatalog;
+use crate::adapters::{SqliteStorageSettings, is_ame_preview_cache_entry, user_visible_path};
+use crate::domain::{LibraryChangeLane, PreviewCleanupEvent, ScanError, ScanIssue};
 use crate::ports::{CatalogRepository, StorageSettingsRepository};
 
 use super::{StoragePaths, storage_paths};
 
 const PROGRESS_INTERVAL: u64 = 32;
 
-static PREVIEW_ACCESS: OnceLock<RwLock<()>> = OnceLock::new();
+static PREVIEW_ACCESS: OnceLock<PreviewAccess> = OnceLock::new();
 static ACTIVE_CLEANUP: OnceLock<Mutex<Option<ActiveCleanup>>> = OnceLock::new();
+
+#[derive(Default)]
+struct PreviewAccessState {
+    active_generations: usize,
+    generation_waiters: usize,
+    next_generation_ticket: u128,
+    recovery_active: bool,
+    recovery_waiters: usize,
+    foreground_turn_through: Option<u128>,
+    foreground_turn_remaining: usize,
+}
+
+struct PreviewAccess {
+    state: Mutex<PreviewAccessState>,
+    changed: Condvar,
+}
+
+pub(crate) struct PreviewGenerationGuard {
+    access: &'static PreviewAccess,
+}
+
+pub(crate) struct PreviewReclamationGuard {
+    access: &'static PreviewAccess,
+}
 
 struct ActiveCleanup {
     operation_id: String,
@@ -48,7 +72,10 @@ impl CleanupScope {
 
     fn prepare(&self) -> Result<(), ScanError> {
         if let Self::Active(storage) = self {
-            let mut catalog = SqliteCatalog::open(storage.catalog_path.clone())?;
+            let mut catalog = super::catalog_session::open_catalog(
+                &storage.catalog_path,
+                LibraryChangeLane::Recovery,
+            )?;
             catalog.reset_all_previews_for_cleanup()?;
             super::preview::invalidate_active_preview_store()?;
         }
@@ -75,7 +102,7 @@ impl CleanupScope {
     }
 }
 
-pub(crate) fn acquire_preview_generation() -> Result<RwLockReadGuard<'static, ()>, ScanError> {
+pub(crate) fn acquire_preview_generation() -> Result<PreviewGenerationGuard, ScanError> {
     let cleanups = active_cleanup()
         .lock()
         .map_err(|_| preview_cleanup_registry_error())?;
@@ -85,12 +112,15 @@ pub(crate) fn acquire_preview_generation() -> Result<RwLockReadGuard<'static, ()
             "Preview generation is paused while preview cleanup is active",
         ));
     }
-    preview_access()
-        .read()
-        .map_err(|_| ScanError::new("preview_access_unavailable", "Preview access is poisoned"))
+    drop(cleanups);
+    preview_access().acquire_generation()
 }
 
-pub(crate) fn acquire_preview_reclamation() -> Result<RwLockWriteGuard<'static, ()>, ScanError> {
+pub(crate) fn preview_generation_waiter_count() -> usize {
+    preview_access().generation_waiter_count()
+}
+
+pub(crate) fn acquire_preview_reclamation() -> Result<PreviewReclamationGuard, ScanError> {
     let cleanups = active_cleanup()
         .lock()
         .map_err(|_| preview_cleanup_registry_error())?;
@@ -100,9 +130,8 @@ pub(crate) fn acquire_preview_reclamation() -> Result<RwLockWriteGuard<'static, 
             "Preview reclamation is paused while preview cleanup is active",
         ));
     }
-    preview_access()
-        .write()
-        .map_err(|_| ScanError::new("preview_access_unavailable", "Preview access is poisoned"))
+    drop(cleanups);
+    preview_access().acquire_reclamation()
 }
 
 pub fn clear_previews(
@@ -192,9 +221,7 @@ fn clear_preview_scope(
     let _registration = CleanupRegistration {
         operation_id: operation_id.clone(),
     };
-    let _exclusive_access = preview_access()
-        .write()
-        .map_err(|_| ScanError::new("preview_access_unavailable", "Preview access is poisoned"))?;
+    let _exclusive_access = preview_access().acquire_reclamation()?;
     super::storage::validate_preview_root_outside_sources(
         scope.catalog_path(),
         scope.preview_root(),
@@ -441,8 +468,97 @@ fn register_cleanup(operation_id: &str) -> Result<Arc<AtomicBool>, ScanError> {
     Ok(cancellation)
 }
 
-fn preview_access() -> &'static RwLock<()> {
-    PREVIEW_ACCESS.get_or_init(|| RwLock::new(()))
+fn preview_access() -> &'static PreviewAccess {
+    PREVIEW_ACCESS.get_or_init(|| PreviewAccess {
+        state: Mutex::new(PreviewAccessState::default()),
+        changed: Condvar::new(),
+    })
+}
+
+impl PreviewAccess {
+    fn acquire_generation(&'static self) -> Result<PreviewGenerationGuard, ScanError> {
+        let mut state = self.state.lock().map_err(|_| preview_access_error())?;
+        let ticket = state.next_generation_ticket;
+        state.next_generation_ticket =
+            state.next_generation_ticket.checked_add(1).ok_or_else(|| {
+                ScanError::new(
+                    "preview_access_ticket_exhausted",
+                    "Preview access cannot admit another generation ticket",
+                )
+            })?;
+        state.generation_waiters = state.generation_waiters.saturating_add(1);
+        while state.recovery_active
+            || (state.recovery_waiters > 0
+                && !state
+                    .foreground_turn_through
+                    .is_some_and(|through| ticket <= through))
+        {
+            state = self
+                .changed
+                .wait(state)
+                .map_err(|_| preview_access_error())?;
+        }
+        state.generation_waiters = state.generation_waiters.saturating_sub(1);
+        if state.recovery_waiters > 0 {
+            state.foreground_turn_remaining = state.foreground_turn_remaining.saturating_sub(1);
+        }
+        state.active_generations = state.active_generations.saturating_add(1);
+        Ok(PreviewGenerationGuard { access: self })
+    }
+
+    fn acquire_reclamation(&'static self) -> Result<PreviewReclamationGuard, ScanError> {
+        let mut state = self.state.lock().map_err(|_| preview_access_error())?;
+        state.recovery_waiters = state.recovery_waiters.saturating_add(1);
+        while state.recovery_active
+            || state.active_generations > 0
+            || state.foreground_turn_remaining > 0
+        {
+            state = self
+                .changed
+                .wait(state)
+                .map_err(|_| preview_access_error())?;
+        }
+        state.recovery_waiters = state.recovery_waiters.saturating_sub(1);
+        state.recovery_active = true;
+        state.foreground_turn_through = None;
+        Ok(PreviewReclamationGuard { access: self })
+    }
+
+    fn generation_waiter_count(&self) -> usize {
+        self.state
+            .lock()
+            .map_or(0, |state| state.generation_waiters)
+    }
+}
+
+impl Drop for PreviewGenerationGuard {
+    fn drop(&mut self) {
+        if let Ok(mut state) = self.access.state.lock() {
+            state.active_generations = state.active_generations.saturating_sub(1);
+            self.access.changed.notify_all();
+        }
+    }
+}
+
+impl Drop for PreviewReclamationGuard {
+    fn drop(&mut self) {
+        if let Ok(mut state) = self.access.state.lock() {
+            state.recovery_active = false;
+            if state.recovery_waiters > 0 && state.generation_waiters > 0 {
+                state.foreground_turn_through =
+                    Some(state.next_generation_ticket.saturating_sub(1));
+                state.foreground_turn_remaining = state.generation_waiters;
+            } else {
+                state.foreground_turn_through = None;
+                state.foreground_turn_remaining = 0;
+            }
+            self.access.changed.notify_all();
+        }
+    }
+}
+
+fn preview_access_error() -> ScanError {
+    ScanError::new("preview_access_unavailable", "Preview access is poisoned")
 }
 
 fn active_cleanup() -> &'static Mutex<Option<ActiveCleanup>> {
@@ -480,14 +596,131 @@ struct CleanupSummary {
 #[cfg(test)]
 mod tests {
     use std::path::PathBuf;
+    use std::sync::mpsc;
+    use std::thread;
+    use std::time::{Duration, Instant};
 
     use tempfile::tempdir;
 
     use crate::domain::{
-        AssetLocationView, PreviewArtifact, PreviewStatus, ScanRequest, StorageConfiguration,
+        AssetLocationView, PreviewArtifact, PreviewStatus, ScanRequest, SourceRevisionEvidence,
+        StorageConfiguration,
     };
 
     use super::*;
+
+    #[test]
+    fn waiting_recovery_blocks_late_generations_until_its_bounded_turn_finishes() {
+        let _test_lock = crate::application::PREVIEW_LIFECYCLE_TEST_LOCK
+            .lock()
+            .expect("preview lifecycle test lock");
+        let active_generation = acquire_preview_generation().expect("active preview generation");
+        let (events_tx, events_rx) = mpsc::channel();
+        let (release_recovery_tx, release_recovery_rx) = mpsc::channel();
+        let recovery_events = events_tx.clone();
+        let recovery = thread::spawn(move || {
+            let access = acquire_preview_reclamation().expect("waiting preview recovery");
+            recovery_events.send("recovery").expect("recovery event");
+            release_recovery_rx.recv().expect("release recovery");
+            drop(access);
+        });
+        wait_for_access_state(|state| state.recovery_waiters == 1);
+
+        let generation_events = events_tx.clone();
+        let generation = thread::spawn(move || {
+            let _access = acquire_preview_generation().expect("late preview generation");
+            generation_events
+                .send("generation")
+                .expect("generation event");
+        });
+        wait_for_access_state(|state| state.generation_waiters == 1);
+        drop(active_generation);
+
+        assert_eq!(
+            events_rx
+                .recv_timeout(Duration::from_secs(1))
+                .expect("recovery must converge"),
+            "recovery",
+        );
+        assert!(
+            events_rx.recv_timeout(Duration::from_millis(20)).is_err(),
+            "a late generation must not enter the active recovery turn",
+        );
+        release_recovery_tx.send(()).expect("finish recovery");
+        assert_eq!(
+            events_rx
+                .recv_timeout(Duration::from_secs(1))
+                .expect("generation after recovery"),
+            "generation",
+        );
+        recovery.join().expect("recovery thread");
+        generation.join().expect("generation thread");
+    }
+
+    #[test]
+    fn queued_foreground_generation_runs_before_a_second_recovery_turn() {
+        let _test_lock = crate::application::PREVIEW_LIFECYCLE_TEST_LOCK
+            .lock()
+            .expect("preview lifecycle test lock");
+        let first_recovery = acquire_preview_reclamation().expect("first recovery turn");
+        let (events_tx, events_rx) = mpsc::channel();
+        let second_recovery_events = events_tx.clone();
+        let second_recovery = thread::spawn(move || {
+            let _access = acquire_preview_reclamation().expect("second recovery turn");
+            second_recovery_events
+                .send("recovery")
+                .expect("second recovery event");
+        });
+        wait_for_access_state(|state| state.recovery_waiters == 1);
+
+        let (release_generation_tx, release_generation_rx) = mpsc::channel();
+        let generation_events = events_tx.clone();
+        let generation = thread::spawn(move || {
+            let access = acquire_preview_generation().expect("queued foreground generation");
+            generation_events
+                .send("generation")
+                .expect("foreground event");
+            release_generation_rx.recv().expect("release generation");
+            drop(access);
+        });
+        wait_for_access_state(|state| state.generation_waiters == 1);
+        drop(first_recovery);
+
+        assert_eq!(
+            events_rx
+                .recv_timeout(Duration::from_secs(1))
+                .expect("foreground turn"),
+            "generation",
+        );
+        assert!(
+            events_rx.recv_timeout(Duration::from_millis(20)).is_err(),
+            "the next recovery must wait for the admitted foreground cohort",
+        );
+        release_generation_tx.send(()).expect("finish generation");
+        assert_eq!(
+            events_rx
+                .recv_timeout(Duration::from_secs(1))
+                .expect("second recovery turn"),
+            "recovery",
+        );
+        generation.join().expect("generation thread");
+        second_recovery.join().expect("second recovery thread");
+    }
+
+    fn wait_for_access_state(predicate: impl Fn(&PreviewAccessState) -> bool) {
+        let deadline = Instant::now() + Duration::from_secs(1);
+        loop {
+            let matches = preview_access()
+                .state
+                .lock()
+                .is_ok_and(|state| predicate(&state));
+            if matches {
+                return;
+            }
+            assert!(Instant::now() < deadline, "preview access state timed out");
+            thread::yield_now();
+        }
+    }
 
     #[test]
     fn cleanup_removes_only_managed_previews_and_preserves_geometry() {
@@ -506,11 +739,13 @@ mod tests {
             "b".repeat(64)
         ));
         let legacy_path = preview_root.join(format!("{}.jpg", "e".repeat(64)));
+        let legacy_temporary_path = preview_root.join(format!("{}.456-2.tmp", "f".repeat(64)));
         let foreign_hash_path = preview_root.join(format!("{}.jpg", "F".repeat(64)));
         let unrelated_path = preview_root.join("keep.txt");
         fs::write(&artifact_path, b"artifact").expect("artifact");
         fs::write(&temporary_path, b"temporary").expect("temporary");
         fs::write(&legacy_path, b"legacy").expect("legacy");
+        fs::write(&legacy_temporary_path, b"legacy temporary").expect("legacy temporary");
         fs::write(&foreign_hash_path, b"foreign hash").expect("foreign hash");
         fs::write(&unrelated_path, b"unrelated").expect("unrelated");
         let storage_paths = StoragePaths {
@@ -538,6 +773,7 @@ mod tests {
         assert!(!artifact_path.exists());
         assert!(!temporary_path.exists());
         assert!(!legacy_path.exists());
+        assert!(!legacy_temporary_path.exists());
         assert_eq!(
             fs::read(&foreign_hash_path).expect("foreign hash after"),
             b"foreign hash"
@@ -560,7 +796,7 @@ mod tests {
         assert!(matches!(
             events.last(),
             Some(PreviewCleanupEvent::Completed {
-                removed_files: 3,
+                removed_files: 4,
                 issue_count: 0,
                 ..
             })
@@ -748,6 +984,9 @@ mod tests {
             .begin_scan(&request, "cleanup-root", &request.root_path)
             .expect("begin scan");
         catalog
+            .prove_live_only_first_import_handoff_for_test(&request.scan_id)
+            .expect("prove cleanup fixture first-import handoff");
+        catalog
             .stage_location(
                 &request.scan_id,
                 "cleanup-root",
@@ -755,20 +994,26 @@ mod tests {
                     asset_id: "cleanup-asset".to_owned(),
                     location_id: "cleanup-location".to_owned(),
                     root_id: "cleanup-root".to_owned(),
+                    scan_id: request.scan_id.clone(),
                     absolute_path: PathBuf::from(&request.root_path)
                         .join("one.png")
                         .to_string_lossy()
                         .into_owned(),
                     display_path: "source\\one.png".to_owned(),
                     relative_path: "one.png".to_owned(),
-                    preview_path: artifact_path.to_string_lossy().into_owned(),
+                    preview_path: String::new(),
                     file_size: 100,
                     created_unix_ms: Some(10),
                     modified_unix_ms: 20,
                     file_identity: None,
+                    source_revision: Some(SourceRevisionEvidence {
+                        scheme: "windows-file-change-time-100ns-v1".to_owned(),
+                        value: "0000000000000001".to_owned(),
+                    }),
+                    source_generation: 0,
                     width: 4_032,
                     height: 3_024,
-                    preview_status: PreviewStatus::Ready,
+                    preview_status: PreviewStatus::Pending,
                     preview_issue_code: None,
                     preview_issue_message: None,
                     metadata_engine_id: "fixture".to_owned(),
@@ -780,10 +1025,12 @@ mod tests {
         catalog
             .publish_scan(&request.scan_id, "cleanup-root", 1, 0)
             .expect("publish scan");
-        let location = catalog
+        let mut location = catalog
             .load_active_location("cleanup-location")
             .expect("active location query")
             .expect("active location");
+        location.preview_path = artifact_path.to_string_lossy().into_owned();
+        location.preview_status = PreviewStatus::Ready;
         let artifact = PreviewArtifact {
             artifact_key: "cleanup-artifact".to_owned(),
             algorithm_id: "ame-jpeg-thumbnail".to_owned(),
@@ -800,7 +1047,7 @@ mod tests {
             height: location.height,
         };
         catalog
-            .update_active_preview(&location, Some(&artifact))
+            .update_active_preview(&location, Some(&artifact), None)
             .expect("publish preview artifact");
     }
 }

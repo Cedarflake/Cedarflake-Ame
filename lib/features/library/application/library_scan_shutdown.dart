@@ -3,8 +3,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 typedef LibraryScanShutdownAction = Future<void> Function();
 
 class LibraryScanShutdownCoordinator {
-  Object? _owner;
-  LibraryScanShutdownAction? _action;
+  final Map<Object, LibraryScanShutdownAction> _actions = {};
   bool _isShuttingDown = false;
   Future<void>? _suspension;
 
@@ -14,16 +13,11 @@ class LibraryScanShutdownCoordinator {
     if (_isShuttingDown) {
       return;
     }
-    _owner = owner;
-    _action = action;
+    _actions[owner] = action;
   }
 
   void detach(Object owner) {
-    if (!identical(_owner, owner)) {
-      return;
-    }
-    _owner = null;
-    _action = null;
+    _actions.remove(owner);
   }
 
   Future<void> suspend() {
@@ -32,10 +26,8 @@ class LibraryScanShutdownCoordinator {
   }
 
   Future<void> _run() async {
-    final action = _action;
-    if (action != null) {
-      await action();
-    }
+    final actions = _actions.values.toList(growable: false);
+    await Future.wait(actions.map((action) => action()));
   }
 }
 

@@ -257,6 +257,9 @@ fn r2c_h_small_read_only_reliability_fixture() {
             .begin_scan(&request, root_id, &request.root_path)
             .expect("begin small retained scan");
         catalog
+            .prove_live_only_first_import_handoff_for_test(scan_id)
+            .expect("prove small retained first-import handoff");
+        catalog
             .publish_scan(
                 scan_id,
                 root_id,

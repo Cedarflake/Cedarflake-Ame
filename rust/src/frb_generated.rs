@@ -38,7 +38,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 941711727;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -723226519;
 
 // Section: executor
 
@@ -46,6 +46,41 @@ flutter_rust_bridge::frb_generated_default_handler!();
 
 // Section: wire_funcs
 
+fn wire__crate__api__storage__cancel_catalog_database_reclamation_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "cancel_catalog_database_reclamation",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_operation_id = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let output_ok = Result::<_, ()>::Ok(
+                        crate::api::storage::cancel_catalog_database_reclamation(api_operation_id),
+                    )?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
 fn wire__crate__api__catalog__cancel_library_scan_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -217,6 +252,38 @@ fn wire__crate__api__initialization__init_app_impl(
                     let output_ok = Result::<_, ()>::Ok({
                         crate::api::initialization::init_app();
                     })?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__storage__load_catalog_database_reclamation_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "load_catalog_database_reclamation",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let output_ok = crate::api::storage::load_catalog_database_reclamation()?;
                     Ok(output_ok)
                 })())
             }
@@ -503,15 +570,16 @@ fn wire__crate__api__catalog__load_library_gallery_layout_manifest_chunk_impl(
     )
 }
 fn wire__crate__api__catalog__load_library_gallery_timeline_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
     data_len_: i32,
-) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "load_library_gallery_timeline",
-            port: None,
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
             let message = unsafe {
@@ -525,10 +593,12 @@ fn wire__crate__api__catalog__load_library_gallery_timeline_impl(
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             let api_query = <crate::domain::GalleryQuery>::sse_decode(&mut deserializer);
             deserializer.end();
-            transform_result_sse::<_, crate::domain::ScanError>((move || {
-                let output_ok = crate::api::catalog::load_library_gallery_timeline(api_query)?;
-                Ok(output_ok)
-            })())
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let output_ok = crate::api::catalog::load_library_gallery_timeline(api_query)?;
+                    Ok(output_ok)
+                })())
+            }
         },
     )
 }
@@ -591,15 +661,16 @@ fn wire__crate__api__catalog__load_recoverable_library_scan_impl(
     )
 }
 fn wire__crate__api__storage__load_storage_status_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
     data_len_: i32,
-) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "load_storage_status",
-            port: None,
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
             let message = unsafe {
@@ -612,10 +683,12 @@ fn wire__crate__api__storage__load_storage_status_impl(
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             deserializer.end();
-            transform_result_sse::<_, crate::domain::ScanError>((move || {
-                let output_ok = crate::api::storage::load_storage_status()?;
-                Ok(output_ok)
-            })())
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let output_ok = crate::api::storage::load_storage_status()?;
+                    Ok(output_ok)
+                })())
+            }
         },
     )
 }
@@ -719,15 +792,16 @@ fn wire__crate__api__synchronization__poll_library_synchronization_impl(
     )
 }
 fn wire__crate__api__catalog__remove_library_root_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
     data_len_: i32,
-) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "remove_library_root",
-            port: None,
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
             let message = unsafe {
@@ -741,10 +815,12 @@ fn wire__crate__api__catalog__remove_library_root_impl(
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             let api_root_id = <String>::sse_decode(&mut deserializer);
             deserializer.end();
-            transform_result_sse::<_, crate::domain::ScanError>((move || {
-                let output_ok = crate::api::catalog::remove_library_root(api_root_id)?;
-                Ok(output_ok)
-            })())
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let output_ok = crate::api::catalog::remove_library_root(api_root_id)?;
+                    Ok(output_ok)
+                })())
+            }
         },
     )
 }
@@ -883,6 +959,40 @@ fn wire__crate__api__catalog__scan_library_impl(
         },
     )
 }
+fn wire__crate__api__storage__start_catalog_database_reclamation_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "start_catalog_database_reclamation",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_operation_id = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let output_ok =
+                        crate::api::storage::start_catalog_database_reclamation(api_operation_id)?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
 fn wire__crate__api__synchronization__start_library_synchronization_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -985,15 +1095,16 @@ fn wire__crate__api__catalog__suspend_library_scan_impl(
     )
 }
 fn wire__crate__api__storage__update_storage_settings_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
     data_len_: i32,
-) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "update_storage_settings",
-            port: None,
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
             let message = unsafe {
@@ -1007,10 +1118,12 @@ fn wire__crate__api__storage__update_storage_settings_impl(
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             let api_update = <crate::domain::StorageSettingsUpdate>::sse_decode(&mut deserializer);
             deserializer.end();
-            transform_result_sse::<_, crate::domain::ScanError>((move || {
-                let output_ok = crate::api::storage::update_storage_settings(api_update)?;
-                Ok(output_ok)
-            })())
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let output_ok = crate::api::storage::update_storage_settings(api_update)?;
+                    Ok(output_ok)
+                })())
+            }
         },
     )
 }
@@ -1059,6 +1172,7 @@ impl SseDecode for crate::domain::AssetLocationView {
         let mut var_assetId = <String>::sse_decode(deserializer);
         let mut var_locationId = <String>::sse_decode(deserializer);
         let mut var_rootId = <String>::sse_decode(deserializer);
+        let mut var_scanId = <String>::sse_decode(deserializer);
         let mut var_absolutePath = <String>::sse_decode(deserializer);
         let mut var_displayPath = <String>::sse_decode(deserializer);
         let mut var_relativePath = <String>::sse_decode(deserializer);
@@ -1068,6 +1182,9 @@ impl SseDecode for crate::domain::AssetLocationView {
         let mut var_modifiedUnixMs = <i64>::sse_decode(deserializer);
         let mut var_fileIdentity =
             <Option<crate::domain::FileIdentityEvidence>>::sse_decode(deserializer);
+        let mut var_sourceRevision =
+            <Option<crate::domain::SourceRevisionEvidence>>::sse_decode(deserializer);
+        let mut var_sourceGeneration = <u64>::sse_decode(deserializer);
         let mut var_width = <u32>::sse_decode(deserializer);
         let mut var_height = <u32>::sse_decode(deserializer);
         let mut var_previewStatus = <crate::domain::PreviewStatus>::sse_decode(deserializer);
@@ -1081,6 +1198,7 @@ impl SseDecode for crate::domain::AssetLocationView {
             asset_id: var_assetId,
             location_id: var_locationId,
             root_id: var_rootId,
+            scan_id: var_scanId,
             absolute_path: var_absolutePath,
             display_path: var_displayPath,
             relative_path: var_relativePath,
@@ -1089,6 +1207,8 @@ impl SseDecode for crate::domain::AssetLocationView {
             created_unix_ms: var_createdUnixMs,
             modified_unix_ms: var_modifiedUnixMs,
             file_identity: var_fileIdentity,
+            source_revision: var_sourceRevision,
+            source_generation: var_sourceGeneration,
             width: var_width,
             height: var_height,
             preview_status: var_previewStatus,
@@ -1243,6 +1363,54 @@ impl SseDecode for crate::domain::CatalogReadRetryOperation {
             11 => crate::domain::CatalogReadRetryOperation::IncrementalLocation,
             12 => crate::domain::CatalogReadRetryOperation::CompletedPersistentJournalRange,
             _ => unreachable!("Invalid variant for CatalogReadRetryOperation: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::domain::CatalogReclamationPhase {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::domain::CatalogReclamationPhase::Idle,
+            1 => crate::domain::CatalogReclamationPhase::Queued,
+            2 => crate::domain::CatalogReclamationPhase::Inspecting,
+            3 => crate::domain::CatalogReclamationPhase::WaitingForIdle,
+            4 => crate::domain::CatalogReclamationPhase::CheckingCapacity,
+            5 => crate::domain::CatalogReclamationPhase::Converting,
+            6 => crate::domain::CatalogReclamationPhase::Reclaiming,
+            7 => crate::domain::CatalogReclamationPhase::Completed,
+            8 => crate::domain::CatalogReclamationPhase::Cancelled,
+            9 => crate::domain::CatalogReclamationPhase::Failed,
+            _ => unreachable!("Invalid variant for CatalogReclamationPhase: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::domain::CatalogReclamationSnapshot {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_operationId = <Option<String>>::sse_decode(deserializer);
+        let mut var_phase = <crate::domain::CatalogReclamationPhase>::sse_decode(deserializer);
+        let mut var_catalogFileBytes = <u64>::sse_decode(deserializer);
+        let mut var_liveBytes = <u64>::sse_decode(deserializer);
+        let mut var_reclaimableBytes = <u64>::sse_decode(deserializer);
+        let mut var_reclaimedBytes = <u64>::sse_decode(deserializer);
+        let mut var_requiredTemporaryBytes = <Option<u64>>::sse_decode(deserializer);
+        let mut var_availableTemporaryBytes = <Option<u64>>::sse_decode(deserializer);
+        let mut var_errorCode = <Option<String>>::sse_decode(deserializer);
+        let mut var_errorMessage = <Option<String>>::sse_decode(deserializer);
+        return crate::domain::CatalogReclamationSnapshot {
+            operation_id: var_operationId,
+            phase: var_phase,
+            catalog_file_bytes: var_catalogFileBytes,
+            live_bytes: var_liveBytes,
+            reclaimable_bytes: var_reclaimableBytes,
+            reclaimed_bytes: var_reclaimedBytes,
+            required_temporary_bytes: var_requiredTemporaryBytes,
+            available_temporary_bytes: var_availableTemporaryBytes,
+            error_code: var_errorCode,
+            error_message: var_errorMessage,
         };
     }
 }
@@ -1952,6 +2120,19 @@ impl SseDecode for Option<crate::domain::RecoverableScan> {
     }
 }
 
+impl SseDecode for Option<crate::domain::SourceRevisionEvidence> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<crate::domain::SourceRevisionEvidence>::sse_decode(
+                deserializer,
+            ));
+        } else {
+            return None;
+        }
+    }
+}
+
 impl SseDecode for Option<u32> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -2076,11 +2257,20 @@ impl SseDecode for crate::domain::PreviewRequest {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_locationId = <String>::sse_decode(deserializer);
+        let mut var_expectedRootId = <String>::sse_decode(deserializer);
+        let mut var_expectedScanId = <String>::sse_decode(deserializer);
+        let mut var_expectedSourceRevision =
+            <Option<crate::domain::SourceRevisionEvidence>>::sse_decode(deserializer);
+        let mut var_expectedSourceGeneration = <u64>::sse_decode(deserializer);
         let mut var_previewEdge = <u32>::sse_decode(deserializer);
         let mut var_retryFailed = <bool>::sse_decode(deserializer);
         let mut var_protectedLocationIds = <Vec<String>>::sse_decode(deserializer);
         return crate::domain::PreviewRequest {
             location_id: var_locationId,
+            expected_root_id: var_expectedRootId,
+            expected_scan_id: var_expectedScanId,
+            expected_source_revision: var_expectedSourceRevision,
+            expected_source_generation: var_expectedSourceGeneration,
             preview_edge: var_previewEdge,
             retry_failed: var_retryFailed,
             protected_location_ids: var_protectedLocationIds,
@@ -2313,6 +2503,18 @@ impl SseDecode for crate::domain::ScanRequest {
     }
 }
 
+impl SseDecode for crate::domain::SourceRevisionEvidence {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_scheme = <String>::sse_decode(deserializer);
+        let mut var_value = <String>::sse_decode(deserializer);
+        return crate::domain::SourceRevisionEvidence {
+            scheme: var_scheme,
+            value: var_value,
+        };
+    }
+}
+
 impl SseDecode for crate::domain::StorageSettingsUpdate {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -2340,6 +2542,10 @@ impl SseDecode for crate::domain::StorageStatus {
         let mut var_previewBudgetBytes = <u64>::sse_decode(deserializer);
         let mut var_previewUsedBytes = <u64>::sse_decode(deserializer);
         let mut var_catalogUsedBytes = <u64>::sse_decode(deserializer);
+        let mut var_catalogLiveBytes = <u64>::sse_decode(deserializer);
+        let mut var_catalogReclaimableBytes = <u64>::sse_decode(deserializer);
+        let mut var_catalogReclamation =
+            <crate::domain::CatalogReclamationSnapshot>::sse_decode(deserializer);
         let mut var_requiresRestart = <bool>::sse_decode(deserializer);
         let mut var_retiredPreviewRoots =
             <Vec<crate::domain::RetiredPreviewRootView>>::sse_decode(deserializer);
@@ -2354,6 +2560,9 @@ impl SseDecode for crate::domain::StorageStatus {
             preview_budget_bytes: var_previewBudgetBytes,
             preview_used_bytes: var_previewUsedBytes,
             catalog_used_bytes: var_catalogUsedBytes,
+            catalog_live_bytes: var_catalogLiveBytes,
+            catalog_reclaimable_bytes: var_catalogReclaimableBytes,
+            catalog_reclamation: var_catalogReclamation,
             requires_restart: var_requiresRestart,
             retired_preview_roots: var_retiredPreviewRoots,
         };
@@ -2402,70 +2611,106 @@ fn pde_ffi_dispatcher_primary_impl(
 ) {
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
-        3 => wire__crate__api__storage__clear_preview_cache_impl(port, ptr, rust_vec_len, data_len),
-        4 => wire__crate__api__storage__clear_retired_preview_cache_impl(
+        1 => wire__crate__api__storage__cancel_catalog_database_reclamation_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        5 => wire__crate__api__initialization__init_app_impl(port, ptr, rust_vec_len, data_len),
-        6 => wire__crate__api__catalog__load_library_asset_by_id_impl(
+        4 => wire__crate__api__storage__clear_preview_cache_impl(port, ptr, rust_vec_len, data_len),
+        5 => wire__crate__api__storage__clear_retired_preview_cache_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        7 => {
+        6 => wire__crate__api__initialization__init_app_impl(port, ptr, rust_vec_len, data_len),
+        7 => wire__crate__api__storage__load_catalog_database_reclamation_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        8 => wire__crate__api__catalog__load_library_asset_by_id_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        9 => {
             wire__crate__api__catalog__load_library_catalog_impl(port, ptr, rust_vec_len, data_len)
         }
-        8 => wire__crate__api__catalog__load_library_catalog_around_asset_impl(
+        10 => wire__crate__api__catalog__load_library_catalog_around_asset_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        9 => wire__crate__api__catalog__load_library_catalog_around_location_impl(
+        11 => wire__crate__api__catalog__load_library_catalog_around_location_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        10 => wire__crate__api__catalog__load_library_catalog_at_time_impl(
+        12 => wire__crate__api__catalog__load_library_catalog_at_time_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        12 => wire__crate__api__catalog__load_library_gallery_layout_manifest_chunk_impl(
+        14 => wire__crate__api__catalog__load_library_gallery_layout_manifest_chunk_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        17 => wire__crate__api__preview__materialize_library_preview_impl(
+        15 => wire__crate__api__catalog__load_library_gallery_timeline_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        19 => wire__crate__api__synchronization__poll_library_synchronization_impl(
+        18 => {
+            wire__crate__api__storage__load_storage_status_impl(port, ptr, rust_vec_len, data_len)
+        }
+        19 => wire__crate__api__preview__materialize_library_preview_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        23 => {
+        21 => wire__crate__api__synchronization__poll_library_synchronization_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        22 => {
+            wire__crate__api__catalog__remove_library_root_impl(port, ptr, rust_vec_len, data_len)
+        }
+        25 => {
             wire__crate__api__catalog__resume_library_scan_impl(port, ptr, rust_vec_len, data_len)
         }
-        24 => wire__crate__api__catalog__scan_library_impl(port, ptr, rust_vec_len, data_len),
-        25 => wire__crate__api__synchronization__start_library_synchronization_impl(
+        26 => wire__crate__api__catalog__scan_library_impl(port, ptr, rust_vec_len, data_len),
+        27 => wire__crate__api__storage__start_catalog_database_reclamation_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        26 => wire__crate__api__synchronization__stop_library_synchronization_impl(
+        28 => wire__crate__api__synchronization__start_library_synchronization_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        29 => wire__crate__api__synchronization__stop_library_synchronization_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        31 => wire__crate__api__storage__update_storage_settings_impl(
             port,
             ptr,
             rust_vec_len,
@@ -2483,39 +2728,31 @@ fn pde_ffi_dispatcher_sync_impl(
 ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
-        1 => wire__crate__api__catalog__cancel_library_scan_impl(ptr, rust_vec_len, data_len),
-        2 => wire__crate__api__storage__cancel_preview_cache_cleanup_impl(
+        2 => wire__crate__api__catalog__cancel_library_scan_impl(ptr, rust_vec_len, data_len),
+        3 => wire__crate__api__storage__cancel_preview_cache_cleanup_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        11 => wire__crate__api__catalog__load_library_folder_page_impl(ptr, rust_vec_len, data_len),
-        13 => wire__crate__api__catalog__load_library_gallery_timeline_impl(
+        13 => wire__crate__api__catalog__load_library_folder_page_impl(ptr, rust_vec_len, data_len),
+        16 => wire__crate__api__catalog__load_paused_library_scan_impl(ptr, rust_vec_len, data_len),
+        17 => wire__crate__api__catalog__load_recoverable_library_scan_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        14 => wire__crate__api__catalog__load_paused_library_scan_impl(ptr, rust_vec_len, data_len),
-        15 => wire__crate__api__catalog__load_recoverable_library_scan_impl(
+        20 => wire__crate__api__catalog__pause_library_scan_impl(ptr, rust_vec_len, data_len),
+        23 => wire__crate__api__synchronization__reserve_library_synchronization_start_ticket_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        16 => wire__crate__api__storage__load_storage_status_impl(ptr, rust_vec_len, data_len),
-        18 => wire__crate__api__catalog__pause_library_scan_impl(ptr, rust_vec_len, data_len),
-        20 => wire__crate__api__catalog__remove_library_root_impl(ptr, rust_vec_len, data_len),
-        21 => wire__crate__api__synchronization__reserve_library_synchronization_start_ticket_impl(
+        24 => wire__crate__api__synchronization__reserve_library_synchronization_stop_fence_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        22 => wire__crate__api__synchronization__reserve_library_synchronization_stop_fence_impl(
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        27 => wire__crate__api__catalog__suspend_library_scan_impl(ptr, rust_vec_len, data_len),
-        28 => wire__crate__api__storage__update_storage_settings_impl(ptr, rust_vec_len, data_len),
+        30 => wire__crate__api__catalog__suspend_library_scan_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -2529,6 +2766,7 @@ impl flutter_rust_bridge::IntoDart for crate::domain::AssetLocationView {
             self.asset_id.into_into_dart().into_dart(),
             self.location_id.into_into_dart().into_dart(),
             self.root_id.into_into_dart().into_dart(),
+            self.scan_id.into_into_dart().into_dart(),
             self.absolute_path.into_into_dart().into_dart(),
             self.display_path.into_into_dart().into_dart(),
             self.relative_path.into_into_dart().into_dart(),
@@ -2537,6 +2775,8 @@ impl flutter_rust_bridge::IntoDart for crate::domain::AssetLocationView {
             self.created_unix_ms.into_into_dart().into_dart(),
             self.modified_unix_ms.into_into_dart().into_dart(),
             self.file_identity.into_into_dart().into_dart(),
+            self.source_revision.into_into_dart().into_dart(),
+            self.source_generation.into_into_dart().into_dart(),
             self.width.into_into_dart().into_dart(),
             self.height.into_into_dart().into_dart(),
             self.preview_status.into_into_dart().into_dart(),
@@ -2748,6 +2988,64 @@ impl flutter_rust_bridge::IntoIntoDart<crate::domain::CatalogReadRetryOperation>
     for crate::domain::CatalogReadRetryOperation
 {
     fn into_into_dart(self) -> crate::domain::CatalogReadRetryOperation {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::CatalogReclamationPhase {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Idle => 0.into_dart(),
+            Self::Queued => 1.into_dart(),
+            Self::Inspecting => 2.into_dart(),
+            Self::WaitingForIdle => 3.into_dart(),
+            Self::CheckingCapacity => 4.into_dart(),
+            Self::Converting => 5.into_dart(),
+            Self::Reclaiming => 6.into_dart(),
+            Self::Completed => 7.into_dart(),
+            Self::Cancelled => 8.into_dart(),
+            Self::Failed => 9.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::CatalogReclamationPhase
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::CatalogReclamationPhase>
+    for crate::domain::CatalogReclamationPhase
+{
+    fn into_into_dart(self) -> crate::domain::CatalogReclamationPhase {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::CatalogReclamationSnapshot {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.operation_id.into_into_dart().into_dart(),
+            self.phase.into_into_dart().into_dart(),
+            self.catalog_file_bytes.into_into_dart().into_dart(),
+            self.live_bytes.into_into_dart().into_dart(),
+            self.reclaimable_bytes.into_into_dart().into_dart(),
+            self.reclaimed_bytes.into_into_dart().into_dart(),
+            self.required_temporary_bytes.into_into_dart().into_dart(),
+            self.available_temporary_bytes.into_into_dart().into_dart(),
+            self.error_code.into_into_dart().into_dart(),
+            self.error_message.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::CatalogReclamationSnapshot
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::CatalogReclamationSnapshot>
+    for crate::domain::CatalogReclamationSnapshot
+{
+    fn into_into_dart(self) -> crate::domain::CatalogReclamationSnapshot {
         self
     }
 }
@@ -3429,6 +3727,10 @@ impl flutter_rust_bridge::IntoDart for crate::domain::PreviewRequest {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
             self.location_id.into_into_dart().into_dart(),
+            self.expected_root_id.into_into_dart().into_dart(),
+            self.expected_scan_id.into_into_dart().into_dart(),
+            self.expected_source_revision.into_into_dart().into_dart(),
+            self.expected_source_generation.into_into_dart().into_dart(),
             self.preview_edge.into_into_dart().into_dart(),
             self.retry_failed.into_into_dart().into_dart(),
             self.protected_location_ids.into_into_dart().into_dart(),
@@ -3700,6 +4002,27 @@ impl flutter_rust_bridge::IntoIntoDart<crate::domain::ScanRequest> for crate::do
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::SourceRevisionEvidence {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.scheme.into_into_dart().into_dart(),
+            self.value.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::SourceRevisionEvidence
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::SourceRevisionEvidence>
+    for crate::domain::SourceRevisionEvidence
+{
+    fn into_into_dart(self) -> crate::domain::SourceRevisionEvidence {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::domain::StorageSettingsUpdate {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -3739,6 +4062,9 @@ impl flutter_rust_bridge::IntoDart for crate::domain::StorageStatus {
             self.preview_budget_bytes.into_into_dart().into_dart(),
             self.preview_used_bytes.into_into_dart().into_dart(),
             self.catalog_used_bytes.into_into_dart().into_dart(),
+            self.catalog_live_bytes.into_into_dart().into_dart(),
+            self.catalog_reclaimable_bytes.into_into_dart().into_dart(),
+            self.catalog_reclamation.into_into_dart().into_dart(),
             self.requires_restart.into_into_dart().into_dart(),
             self.retired_preview_roots.into_into_dart().into_dart(),
         ]
@@ -3792,6 +4118,7 @@ impl SseEncode for crate::domain::AssetLocationView {
         <String>::sse_encode(self.asset_id, serializer);
         <String>::sse_encode(self.location_id, serializer);
         <String>::sse_encode(self.root_id, serializer);
+        <String>::sse_encode(self.scan_id, serializer);
         <String>::sse_encode(self.absolute_path, serializer);
         <String>::sse_encode(self.display_path, serializer);
         <String>::sse_encode(self.relative_path, serializer);
@@ -3800,6 +4127,11 @@ impl SseEncode for crate::domain::AssetLocationView {
         <Option<i64>>::sse_encode(self.created_unix_ms, serializer);
         <i64>::sse_encode(self.modified_unix_ms, serializer);
         <Option<crate::domain::FileIdentityEvidence>>::sse_encode(self.file_identity, serializer);
+        <Option<crate::domain::SourceRevisionEvidence>>::sse_encode(
+            self.source_revision,
+            serializer,
+        );
+        <u64>::sse_encode(self.source_generation, serializer);
         <u32>::sse_encode(self.width, serializer);
         <u32>::sse_encode(self.height, serializer);
         <crate::domain::PreviewStatus>::sse_encode(self.preview_status, serializer);
@@ -3952,6 +4284,46 @@ impl SseEncode for crate::domain::CatalogReadRetryOperation {
             },
             serializer,
         );
+    }
+}
+
+impl SseEncode for crate::domain::CatalogReclamationPhase {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::domain::CatalogReclamationPhase::Idle => 0,
+                crate::domain::CatalogReclamationPhase::Queued => 1,
+                crate::domain::CatalogReclamationPhase::Inspecting => 2,
+                crate::domain::CatalogReclamationPhase::WaitingForIdle => 3,
+                crate::domain::CatalogReclamationPhase::CheckingCapacity => 4,
+                crate::domain::CatalogReclamationPhase::Converting => 5,
+                crate::domain::CatalogReclamationPhase::Reclaiming => 6,
+                crate::domain::CatalogReclamationPhase::Completed => 7,
+                crate::domain::CatalogReclamationPhase::Cancelled => 8,
+                crate::domain::CatalogReclamationPhase::Failed => 9,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::domain::CatalogReclamationSnapshot {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Option<String>>::sse_encode(self.operation_id, serializer);
+        <crate::domain::CatalogReclamationPhase>::sse_encode(self.phase, serializer);
+        <u64>::sse_encode(self.catalog_file_bytes, serializer);
+        <u64>::sse_encode(self.live_bytes, serializer);
+        <u64>::sse_encode(self.reclaimable_bytes, serializer);
+        <u64>::sse_encode(self.reclaimed_bytes, serializer);
+        <Option<u64>>::sse_encode(self.required_temporary_bytes, serializer);
+        <Option<u64>>::sse_encode(self.available_temporary_bytes, serializer);
+        <Option<String>>::sse_encode(self.error_code, serializer);
+        <Option<String>>::sse_encode(self.error_message, serializer);
     }
 }
 
@@ -4515,6 +4887,16 @@ impl SseEncode for Option<crate::domain::RecoverableScan> {
     }
 }
 
+impl SseEncode for Option<crate::domain::SourceRevisionEvidence> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::domain::SourceRevisionEvidence>::sse_encode(value, serializer);
+        }
+    }
+}
+
 impl SseEncode for Option<u32> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -4633,6 +5015,13 @@ impl SseEncode for crate::domain::PreviewRequest {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.location_id, serializer);
+        <String>::sse_encode(self.expected_root_id, serializer);
+        <String>::sse_encode(self.expected_scan_id, serializer);
+        <Option<crate::domain::SourceRevisionEvidence>>::sse_encode(
+            self.expected_source_revision,
+            serializer,
+        );
+        <u64>::sse_encode(self.expected_source_generation, serializer);
         <u32>::sse_encode(self.preview_edge, serializer);
         <bool>::sse_encode(self.retry_failed, serializer);
         <Vec<String>>::sse_encode(self.protected_location_ids, serializer);
@@ -4830,6 +5219,14 @@ impl SseEncode for crate::domain::ScanRequest {
     }
 }
 
+impl SseEncode for crate::domain::SourceRevisionEvidence {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.scheme, serializer);
+        <String>::sse_encode(self.value, serializer);
+    }
+}
+
 impl SseEncode for crate::domain::StorageSettingsUpdate {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -4852,6 +5249,12 @@ impl SseEncode for crate::domain::StorageStatus {
         <u64>::sse_encode(self.preview_budget_bytes, serializer);
         <u64>::sse_encode(self.preview_used_bytes, serializer);
         <u64>::sse_encode(self.catalog_used_bytes, serializer);
+        <u64>::sse_encode(self.catalog_live_bytes, serializer);
+        <u64>::sse_encode(self.catalog_reclaimable_bytes, serializer);
+        <crate::domain::CatalogReclamationSnapshot>::sse_encode(
+            self.catalog_reclamation,
+            serializer,
+        );
         <bool>::sse_encode(self.requires_restart, serializer);
         <Vec<crate::domain::RetiredPreviewRootView>>::sse_encode(
             self.retired_preview_roots,

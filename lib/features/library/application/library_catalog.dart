@@ -116,7 +116,7 @@ class RustLibraryCatalog
   @override
   Future<LibraryTimeline> loadTimeline(LibraryGalleryQuery query) async {
     try {
-      final timeline = rust_api.loadLibraryGalleryTimeline(
+      final timeline = await rust_api.loadLibraryGalleryTimeline(
         query: _mapQuery(query),
       );
       return LibraryTimeline(
@@ -273,7 +273,7 @@ class RustLibraryCatalog
   @override
   Future<bool> unregisterRoot(String rootId) async {
     try {
-      return rust_api.removeLibraryRoot(rootId: rootId);
+      return await rust_api.removeLibraryRoot(rootId: rootId);
     } on Object catch (error) {
       throw _mapFailure(error, "bridge_root_unregister_failed");
     }
@@ -384,10 +384,12 @@ rust_domain.GalleryQuery mapLibraryGalleryQueryToRust(
 LibraryAsset mapRustLibraryAsset(rust_domain.AssetLocationView asset) {
   final captureTime = asset.captureTime;
   final fileIdentity = asset.fileIdentity;
+  final sourceRevision = asset.sourceRevision;
   return LibraryAsset(
     assetId: asset.assetId,
     locationId: asset.locationId,
     rootId: asset.rootId,
+    activeScanId: asset.scanId,
     sourcePath: asset.absolutePath,
     displayPath: asset.displayPath,
     relativePath: asset.relativePath,
@@ -395,6 +397,13 @@ LibraryAsset mapRustLibraryAsset(rust_domain.AssetLocationView asset) {
     fileSize: asset.fileSize,
     createdUnixMs: asset.createdUnixMs,
     modifiedUnixMs: asset.modifiedUnixMs,
+    sourceRevision: sourceRevision == null
+        ? null
+        : LibrarySourceRevisionEvidence(
+            scheme: sourceRevision.scheme,
+            value: sourceRevision.value,
+          ),
+    sourceGeneration: asset.sourceGeneration,
     width: asset.width,
     height: asset.height,
     previewStatus: switch (asset.previewStatus) {

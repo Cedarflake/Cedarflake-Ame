@@ -365,6 +365,7 @@ pub struct PersistentJournalBaselineStartRequest {
     pub run_id: String,
     pub root_id: String,
     pub root_generation: LibraryRootGeneration,
+    pub authority_reason: LibraryRecoveryAuthorityReason,
     pub volume: PersistentJournalVolumeIdentity,
     pub root_file_reference: JournalFileReference,
     pub journal_id: JournalIdentifier,
@@ -376,6 +377,13 @@ pub struct PersistentJournalBaselineStartRequest {
 
 impl PersistentJournalBaselineStartRequest {
     pub fn validate(&self) -> Result<(), ScanError> {
+        if !matches!(
+            self.authority_reason,
+            LibraryRecoveryAuthorityReason::ExistingRootBaseline
+                | LibraryRecoveryAuthorityReason::FirstImportBoundary
+        ) {
+            return Err(invalid_value("persistent journal baseline authority"));
+        }
         let baseline = PersistentJournalBaseline {
             change_id: super::LibraryChangeId::new(1).expect("one is a valid change ID"),
             run_id: self.run_id.clone(),

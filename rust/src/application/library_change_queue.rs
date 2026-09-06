@@ -82,9 +82,16 @@ fn validate_intent(
         }
         LibraryChangeIntentKind::Reconcile => match intent.scope {
             LibraryChangeScope::Root => !has_path && !has_previous_path,
-            LibraryChangeScope::Path | LibraryChangeScope::Subtree => {
-                has_path && !has_previous_path
+            LibraryChangeScope::Path => {
+                has_path
+                    && match intent.previous_relative_path.as_deref() {
+                        None => true,
+                        Some(previous) => {
+                            !previous.is_empty() && previous != intent.relative_path.as_str()
+                        }
+                    }
             }
+            LibraryChangeScope::Subtree => has_path && !has_previous_path,
         },
     };
     if !shape_is_valid {

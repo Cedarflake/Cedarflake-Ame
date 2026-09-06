@@ -34,6 +34,7 @@ class LibraryPreviewCoordinator {
       previewEdge: defaultPreviewEdge,
       maxActive: maxActive,
       onResult: _publish,
+      canPublishResult: _canPublish,
     );
   }
 
@@ -64,6 +65,21 @@ class LibraryPreviewCoordinator {
     _queue.request(
       resolved,
       retry: retry,
+      priority: priority,
+      previewEdge: previewEdge ?? defaultPreviewEdge,
+    );
+  }
+
+  Future<LibraryPreviewRequestOutcome> retry(
+    LibraryAsset asset, {
+    LibraryPreviewPriority priority = LibraryPreviewPriority.visible,
+    int? previewEdge,
+  }) {
+    if (_isDisposed) {
+      return Future.value(LibraryPreviewRequestOutcome.disposed);
+    }
+    return _queue.retry(
+      _store.resolve(asset),
       priority: priority,
       previewEdge: previewEdge ?? defaultPreviewEdge,
     );
@@ -141,6 +157,17 @@ class LibraryPreviewCoordinator {
     _galleryDemand = const {};
     _verifiedSizes.clear();
     _viewerDemand = null;
+  }
+
+  void restoreRootAuthority(String rootId) {
+    if (_isDisposed) {
+      return;
+    }
+    _queue.clearBlockedRoot(rootId);
+    _store.invalidateRoot(rootId);
+    _verifiedSizes.removeWhere(
+      (_, verified) => verified.source.rootId == rootId,
+    );
   }
 
   void dispose() {

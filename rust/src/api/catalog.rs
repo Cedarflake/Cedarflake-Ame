@@ -64,7 +64,6 @@ pub fn load_library_catalog(
     load_catalog(max_items, query, after, before)
 }
 
-#[flutter_rust_bridge::frb(sync)]
 pub fn load_library_gallery_timeline(query: GalleryQuery) -> Result<GalleryTimeline, ScanError> {
     load_gallery_timeline(query)
 }
@@ -126,7 +125,6 @@ pub fn load_library_asset_by_id(
     load_catalog_asset_by_id(asset_id, preferred_location_id)
 }
 
-#[flutter_rust_bridge::frb(sync)]
 pub fn remove_library_root(root_id: String) -> Result<bool, ScanError> {
     unregister_library_root(root_id)
 }
@@ -186,6 +184,7 @@ mod tests {
                         asset_id: "asset".to_owned(),
                         location_id: "location".to_owned(),
                         root_id: "root".to_owned(),
+                        scan_id: "scan-failure".to_owned(),
                         absolute_path: "C:\\Pictures\\asset.png".to_owned(),
                         display_path: "C:\\Pictures\\asset.png".to_owned(),
                         relative_path: "asset.png".to_owned(),
@@ -194,6 +193,8 @@ mod tests {
                         created_unix_ms: None,
                         modified_unix_ms: 1,
                         file_identity: None,
+                        source_revision: None,
+                        source_generation: 1,
                         width: 1,
                         height: 1,
                         preview_status: PreviewStatus::Pending,

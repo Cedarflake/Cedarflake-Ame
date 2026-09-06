@@ -15,6 +15,8 @@ use crate::adapters::{
     reset_configured_root_open_instrumentation, reset_source_enumeration_instrumentation,
     source_directory_open_count, source_entry_read_count,
 };
+#[cfg(windows)]
+use crate::adapters::{reset_source_content_open_instrumentation, source_content_open_count};
 use crate::application::metadata_inventory::{
     MetadataInventoryRecoveryExecution, process_leased_metadata_inventory_change,
     process_leased_metadata_inventory_change_with_retained_source,
@@ -25,8 +27,11 @@ use crate::application::persistent_journal_continuity::{
 };
 use crate::application::{
     AuthoritativeRecoveryPolicy, process_ready_authoritative_library_change_cancellable,
+    process_ready_library_changes_in_lane,
     process_ready_metadata_inventory_recovery_candidates_cancellable,
 };
+#[cfg(windows)]
+use crate::domain::PreviewRequest;
 use crate::domain::{
     AssetLocationView, CatalogDeltaBatch, CatalogDeltaPublication, DerivedEvidenceDisposition,
     FileIdentityEvidence, JournalFileReference, JournalIdentifier, JournalUsn,
@@ -383,7 +388,7 @@ fn replacement_root_uses_only_the_proof_guard_and_enumerates_nothing() {
     assert_eq!(report.retried_count, 1);
     assert_eq!(report.completed_count, 0);
     assert_eq!(configured_root_open_count(&fixture.root_path, true), 0);
-    assert_eq!(configured_root_open_count(&fixture.root_path, false), 0);
+    assert_eq!(configured_root_open_count(&fixture.root_path, false), 1);
     assert_eq!(source_entry_read_count(&fixture.root_path), 0);
     assert_eq!(source_directory_open_count(&fixture.root_path), 0);
     assert!(fixture.location("replacement.png").is_none());
@@ -395,25 +400,204 @@ use super::{
     user_visible_path,
 };
 
+#[cfg(windows)]
 #[test]
-fn unchanged_path_completes_without_incrementing_the_catalog_revision() {
+fn live_equal_length_rewrite_with_restored_mtime_supersedes_the_ready_preview() {
+    assert_equal_length_rewrite_supersedes_ready_preview(
+        LibraryChangeOrigin::LiveNotification,
+        "live-equal-length-preview",
+    );
+}
+
+#[cfg(windows)]
+#[test]
+fn startup_catch_up_equal_length_rewrite_with_restored_mtime_supersedes_the_ready_preview() {
+    assert_equal_length_rewrite_supersedes_ready_preview(
+        LibraryChangeOrigin::StartupCatchUp,
+        "catch-up-equal-length-preview",
+    );
+}
+
+#[cfg(windows)]
+#[test]
+fn metadata_inventory_equal_evidence_invalidates_preview_without_opening_content() {
     let source = tempdir().expect("source directory");
-    write_png(&source.path().join("same.png"), 2, 2, [10, 20, 30]);
-    let original_bytes = fs::read(source.path().join("same.png")).expect("source bytes");
-    let mut fixture = seed_catalog(source, &["same.png"]);
+    write_png(&source.path().join("dirty.png"), 4, 3, [10, 20, 30]);
+    let mut fixture = seed_catalog(source, &["dirty.png"]);
+    let ready = publish_ready_preview(&mut fixture, "dirty.png", "metadata-dirty-ready-preview");
     let revision = fixture.revision();
-    fixture.enqueue(&[intent(&fixture.root_id, "same.png", None, 1)]);
+    reset_source_content_open_instrumentation(&fixture.root_path);
+    let mut change = intent(&fixture.root_id, "dirty.png", None, 1);
+    change.origin = LibraryChangeOrigin::MetadataInventory;
+    fixture.enqueue(&[change]);
 
     let report = fixture.process();
 
-    assert_eq!(report.completed_count, 1);
-    assert_eq!(report.applied_mutation_count, 0);
-    assert_eq!(report.catalog_revision, revision);
-    assert_eq!(fixture.revision(), revision);
+    assert_eq!(report.completed_count, 1, "{report:?}");
+    assert_eq!(report.applied_mutation_count, 1);
+    assert_eq!(report.catalog_revision, revision + 1);
+    assert_eq!(source_content_open_count(&fixture.root_path), 0);
+    let after = fixture.location("dirty.png").expect("dirty location");
+    assert_eq!(after.asset_id, ready.location.asset_id);
+    assert_eq!(after.file_size, ready.location.file_size);
+    assert_eq!(after.modified_unix_ms, ready.location.modified_unix_ms);
+    assert_eq!(after.file_identity, ready.location.file_identity);
+    assert_eq!(after.source_revision, ready.location.source_revision);
+    assert_ne!(after.source_generation, ready.location.source_generation);
     assert_eq!(
-        fs::read(fixture.source.path().join("same.png")).expect("source bytes after delta"),
-        original_bytes
+        (after.width, after.height),
+        (ready.location.width, ready.location.height)
     );
+    assert_eq!(
+        after.metadata_engine_id,
+        super::super::INVALIDATED_MEDIA_METADATA_ENGINE_ID
+    );
+    assert_eq!(
+        after.metadata_engine_version,
+        super::super::INVALIDATED_MEDIA_METADATA_ENGINE_VERSION
+    );
+    assert!(after.capture_time.is_none());
+    assert!(matches!(after.preview_status, PreviewStatus::Pending));
+    assert!(after.preview_path.is_empty());
+    assert!(after.preview_issue_code.is_none());
+    assert!(after.preview_issue_message.is_none());
+    assert_ready_preview_superseded(&mut fixture, &ready);
+}
+
+#[cfg(windows)]
+#[test]
+fn metadata_inventory_equal_wrong_extension_skips_magic_content_read() {
+    let source = tempdir().expect("source directory");
+    write_png_with_format(&source.path().join("illustration.data"), 5, 3, [31, 41, 59]);
+    let mut fixture = seed_catalog(source, &["illustration.data"]);
+    let before = fixture
+        .location("illustration.data")
+        .expect("wrong-extension location");
+    reset_source_content_open_instrumentation(&fixture.root_path);
+    let mut change = intent(&fixture.root_id, "illustration.data", None, 1);
+    change.origin = LibraryChangeOrigin::MetadataInventory;
+    fixture.enqueue(&[change]);
+
+    let report = fixture.process();
+
+    assert_eq!(report.completed_count, 1, "{report:?}");
+    assert_eq!(report.applied_mutation_count, 1);
+    assert_eq!(source_content_open_count(&fixture.root_path), 0);
+    let after = fixture
+        .location("illustration.data")
+        .expect("invalidated wrong-extension location");
+    assert_eq!(after.asset_id, before.asset_id);
+    assert_ne!(after.source_generation, before.source_generation);
+    assert_eq!((after.width, after.height), (before.width, before.height));
+    assert!(matches!(after.preview_status, PreviewStatus::Pending));
+}
+
+#[cfg(windows)]
+#[test]
+fn metadata_inventory_changed_evidence_falls_back_to_full_inspection() {
+    let source = tempdir().expect("source directory");
+    write_png(&source.path().join("changed.png"), 2, 2, [26, 53, 82]);
+    let mut fixture = seed_catalog(source, &["changed.png"]);
+    let before = fixture.location("changed.png").expect("prior location");
+    write_png(
+        &fixture.source.path().join("changed.png"),
+        7,
+        4,
+        [97, 93, 29],
+    );
+    reset_source_content_open_instrumentation(&fixture.root_path);
+    let mut change = intent(&fixture.root_id, "changed.png", None, 1);
+    change.origin = LibraryChangeOrigin::MetadataInventory;
+    fixture.enqueue(&[change]);
+
+    let report = fixture.process();
+
+    assert_eq!(report.completed_count, 1, "{report:?}");
+    assert_eq!(report.applied_mutation_count, 1);
+    assert_eq!(source_content_open_count(&fixture.root_path), 1);
+    let after = fixture.location("changed.png").expect("changed location");
+    assert_eq!(after.asset_id, before.asset_id);
+    assert_ne!(after.source_generation, before.source_generation);
+    assert_eq!((after.width, after.height), (7, 4));
+}
+
+#[cfg(windows)]
+#[test]
+fn metadata_inventory_engine_upgrade_falls_back_to_full_inspection() {
+    let source = tempdir().expect("source directory");
+    write_png(&source.path().join("upgrade.png"), 3, 2, [38, 46, 54]);
+    let mut fixture =
+        seed_catalog_with_metadata(source, &["upgrade.png"], Some(("legacy-metadata", "0")));
+    reset_source_content_open_instrumentation(&fixture.root_path);
+    let mut change = intent(&fixture.root_id, "upgrade.png", None, 1);
+    change.origin = LibraryChangeOrigin::MetadataInventory;
+    fixture.enqueue(&[change]);
+
+    let report = fixture.process();
+
+    assert_eq!(report.completed_count, 1, "{report:?}");
+    assert_eq!(report.applied_mutation_count, 1);
+    assert_eq!(source_content_open_count(&fixture.root_path), 1);
+    let after = fixture.location("upgrade.png").expect("upgraded location");
+    assert_ne!(after.metadata_engine_id, "legacy-metadata");
+    assert_ne!(after.metadata_engine_version, "0");
+    assert_eq!((after.width, after.height), (3, 2));
+}
+
+#[cfg(windows)]
+#[test]
+fn metadata_inventory_equal_hard_link_invalidates_every_owner_without_content_read() {
+    let source = tempdir().expect("source directory");
+    let primary_path = source.path().join("primary.png");
+    let alias_path = source.path().join("alias.png");
+    write_png(&primary_path, 3, 2, [50, 100, 150]);
+    fs::hard_link(&primary_path, &alias_path).expect("create source hard link");
+    let mut fixture = seed_catalog(source, &["primary.png", "alias.png"]);
+    let primary_ready = publish_ready_preview_at_edge(
+        &mut fixture,
+        "primary.png",
+        "metadata-hard-link-primary-preview",
+        256,
+    );
+    let alias_ready = publish_ready_preview_at_edge(
+        &mut fixture,
+        "alias.png",
+        "metadata-hard-link-alias-preview",
+        512,
+    );
+    assert_eq!(
+        preview_owner_count(&fixture.catalog, &primary_ready.artifact.artifact_key),
+        1
+    );
+    assert_eq!(
+        preview_owner_count(&fixture.catalog, &alias_ready.artifact.artifact_key),
+        1
+    );
+    reset_source_content_open_instrumentation(&fixture.root_path);
+    let mut change = intent(&fixture.root_id, "primary.png", None, 1);
+    change.origin = LibraryChangeOrigin::MetadataInventory;
+    fixture.enqueue(&[change]);
+
+    let report = fixture.process();
+
+    assert_eq!(report.completed_count, 1, "{report:?}");
+    assert_eq!(report.applied_mutation_count, 1);
+    assert_eq!(source_content_open_count(&fixture.root_path), 0);
+    let primary = fixture.location("primary.png").expect("updated primary");
+    let alias = fixture.location("alias.png").expect("updated alias");
+    assert_eq!(primary.source_generation, alias.source_generation);
+    assert_ne!(
+        primary.source_generation,
+        primary_ready.location.source_generation
+    );
+    for location in [&primary, &alias] {
+        assert!(matches!(location.preview_status, PreviewStatus::Pending));
+        assert!(location.preview_path.is_empty());
+        assert!(location.preview_issue_code.is_none());
+        assert!(location.preview_issue_message.is_none());
+    }
+    assert_ready_preview_superseded(&mut fixture, &primary_ready);
+    assert_ready_preview_superseded(&mut fixture, &alias_ready);
 }
 
 #[test]
@@ -629,11 +813,11 @@ fn paired_rename_followed_by_removal_drops_the_obsolete_old_location() {
 
 #[cfg(windows)]
 #[test]
-fn same_path_replacement_creates_a_new_asset_identity() {
+fn delete_recreate_at_the_same_path_supersedes_the_ready_preview_source() {
     let source = tempdir().expect("source directory");
     write_png(&source.path().join("replace.png"), 2, 2, [130, 140, 150]);
     let mut fixture = seed_catalog(source, &["replace.png"]);
-    let before = fixture.location("replace.png").expect("original location");
+    let ready = publish_ready_preview(&mut fixture, "replace.png", "delete-recreate-ready-preview");
     fs::remove_file(fixture.source.path().join("replace.png")).expect("remove original fixture");
     write_png(
         &fixture.source.path().join("replace.png"),
@@ -642,7 +826,9 @@ fn same_path_replacement_creates_a_new_asset_identity() {
         [150, 140, 130],
     );
     let replacement = fixture.discovered("replace.png");
-    assert_ne!(replacement.file_identity, before.file_identity);
+    let replacement_bytes =
+        fs::read(fixture.source.path().join("replace.png")).expect("replacement bytes");
+    assert_ne!(replacement.file_identity, ready.location.file_identity);
     fixture.enqueue(&[intent(&fixture.root_id, "replace.png", None, 1)]);
 
     let report = fixture.process();
@@ -652,8 +838,300 @@ fn same_path_replacement_creates_a_new_asset_identity() {
     let after = fixture
         .location("replace.png")
         .expect("replacement location");
-    assert_ne!(after.asset_id, before.asset_id);
+    assert_ne!(after.asset_id, ready.location.asset_id);
     assert_eq!(after.file_identity, replacement.file_identity);
+    assert_eq!(after.source_revision, replacement.source_revision);
+    assert_ne!(after.source_generation, ready.location.source_generation);
+    assert!(matches!(after.preview_status, PreviewStatus::Pending));
+    assert!(after.preview_path.is_empty());
+    assert_ready_preview_superseded(&mut fixture, &ready);
+    assert_eq!(
+        fs::read(fixture.source.path().join("replace.png")).expect("replacement bytes after delta"),
+        replacement_bytes
+    );
+}
+
+#[cfg(windows)]
+#[test]
+fn atomic_replace_at_the_same_path_supersedes_the_ready_preview_source() {
+    let source = tempdir().expect("source directory");
+    let source_path = source.path().join("replace.png");
+    let replacement_path = source.path().join("replacement-staging.png");
+    write_png(&source_path, 2, 2, [13, 21, 34]);
+    let mut fixture = seed_catalog(source, &["replace.png"]);
+    let ready = publish_ready_preview(&mut fixture, "replace.png", "atomic-replace-preview");
+    write_png(&replacement_path, 6, 3, [55, 89, 144]);
+    let replacement_identity = FileDiscovery::new(&fixture.root_path)
+        .expect("replacement discovery")
+        .visit_relative_path("replacement-staging.png");
+    let FileVisitOutcome::File(replacement) = replacement_identity.outcome else {
+        panic!("expected replacement source file");
+    };
+    assert_ne!(replacement.file_identity, ready.location.file_identity);
+
+    crate::adapters::replace_file_atomically_for_test(&replacement_path, &source_path)
+        .expect("atomically replace source fixture");
+    assert!(!replacement_path.exists());
+    let replaced = fixture.discovered("replace.png");
+    let replaced_bytes = fs::read(&source_path).expect("atomically replaced source bytes");
+    assert_eq!(replaced.file_identity, replacement.file_identity);
+    assert_ne!(replaced.file_identity, ready.location.file_identity);
+    fixture.enqueue(&[intent(&fixture.root_id, "replace.png", None, 1)]);
+
+    let report = fixture.process();
+
+    assert_eq!(report.completed_count, 1, "{report:?}");
+    assert_eq!(report.applied_mutation_count, 1);
+    let after = fixture
+        .location("replace.png")
+        .expect("replacement location");
+    assert_ne!(after.asset_id, ready.location.asset_id);
+    assert_eq!(after.file_identity, replaced.file_identity);
+    assert_eq!(after.source_revision, replaced.source_revision);
+    assert_ne!(after.source_generation, ready.location.source_generation);
+    assert_eq!((after.width, after.height), (6, 3));
+    assert!(matches!(after.preview_status, PreviewStatus::Pending));
+    assert!(after.preview_path.is_empty());
+    assert_ready_preview_superseded(&mut fixture, &ready);
+    assert_eq!(
+        fs::read(&source_path).expect("source bytes after atomic replacement delta"),
+        replaced_bytes,
+    );
+}
+
+#[cfg(windows)]
+#[test]
+fn hard_link_write_fans_out_source_generation_and_invalidates_every_ready_owner() {
+    let source = tempdir().expect("source directory");
+    let primary_path = source.path().join("primary.png");
+    let alias_path = source.path().join("alias.png");
+    write_png(&primary_path, 3, 2, [21, 34, 55]);
+    fs::hard_link(&primary_path, &alias_path).expect("create source hard link");
+    let mut fixture = seed_catalog(source, &["primary.png", "alias.png"]);
+    let primary_ready =
+        publish_ready_preview(&mut fixture, "primary.png", "shared-hard-link-preview");
+    let alias_ready = publish_ready_preview(&mut fixture, "alias.png", "shared-hard-link-preview");
+    assert_eq!(
+        primary_ready.location.file_identity,
+        alias_ready.location.file_identity
+    );
+    assert_eq!(
+        primary_ready.location.source_generation,
+        alias_ready.location.source_generation
+    );
+    assert_eq!(
+        preview_owner_count(&fixture.catalog, &primary_ready.artifact.artifact_key),
+        2
+    );
+
+    write_png(&primary_path, 5, 4, [89, 144, 233]);
+    let rewritten = fixture.discovered("primary.png");
+    let rewritten_bytes = fs::read(&primary_path).expect("rewritten hard-link bytes");
+    assert_eq!(
+        fs::read(&alias_path).expect("rewritten alias bytes"),
+        rewritten_bytes
+    );
+    fixture.enqueue(&[intent(&fixture.root_id, "primary.png", None, 1)]);
+
+    let report = fixture.process();
+
+    assert_eq!(report.completed_count, 1, "{report:?}");
+    assert_eq!(report.applied_mutation_count, 1);
+    let primary = fixture.location("primary.png").expect("updated primary");
+    let alias = fixture.location("alias.png").expect("updated alias");
+    assert_eq!(primary.file_identity, primary_ready.location.file_identity);
+    assert_eq!(alias.file_identity, primary_ready.location.file_identity);
+    assert_eq!(primary.source_revision, rewritten.source_revision);
+    assert_eq!(alias.source_revision, rewritten.source_revision);
+    assert_eq!(primary.source_generation, alias.source_generation);
+    assert_ne!(
+        primary.source_generation,
+        primary_ready.location.source_generation
+    );
+    assert_eq!((primary.width, primary.height), (5, 4));
+    assert_eq!((alias.width, alias.height), (5, 4));
+    for location in [&primary, &alias] {
+        assert!(matches!(location.preview_status, PreviewStatus::Pending));
+        assert!(location.preview_path.is_empty());
+    }
+    assert_ready_preview_superseded(&mut fixture, &primary_ready);
+    assert_ready_preview_superseded(&mut fixture, &alias_ready);
+    assert_eq!(
+        fs::read(&primary_path).expect("hard-link bytes after delta"),
+        rewritten_bytes
+    );
+}
+
+#[cfg(windows)]
+#[test]
+fn ready_preview_survives_no_stale_publication_across_zero_truncated_and_valid_rewrites() {
+    let source = tempdir().expect("source directory");
+    let source_path = source.path().join("recover.png");
+    write_png(&source_path, 4, 3, [8, 13, 21]);
+    let mut fixture = seed_catalog(source, &["recover.png"]);
+    let ready = publish_ready_preview(&mut fixture, "recover.png", "zero-truncated-ready-preview");
+
+    fs::write(&source_path, b"").expect("truncate source to zero bytes");
+    let zero_source = fixture.discovered("recover.png");
+    assert_eq!(zero_source.file_identity, ready.location.file_identity);
+    fixture.enqueue(&[intent(&fixture.root_id, "recover.png", None, 1)]);
+    let zero_report = fixture.process();
+
+    assert_eq!(zero_report.completed_count, 1, "{zero_report:?}");
+    assert_eq!(zero_report.applied_mutation_count, 1);
+    let zero = fixture
+        .location("recover.png")
+        .expect("zero-byte terminal state");
+    assert_eq!(zero.asset_id, ready.location.asset_id);
+    assert_eq!(zero.file_identity, ready.location.file_identity);
+    assert_eq!(zero.source_revision, zero_source.source_revision);
+    assert_ne!(zero.source_generation, ready.location.source_generation);
+    assert!(matches!(zero.preview_status, PreviewStatus::Failed));
+    assert!(zero.preview_path.is_empty());
+    assert!(zero.preview_issue_code.is_some());
+    assert!(
+        fs::read(&source_path)
+            .expect("zero bytes after delta")
+            .is_empty()
+    );
+
+    fs::write(&source_path, b"\x89PNG\r\n\x1a\ntruncated").expect("write truncated PNG source");
+    let truncated_source = fixture.discovered("recover.png");
+    let truncated_bytes = fs::read(&source_path).expect("truncated source bytes");
+    assert_eq!(truncated_source.file_identity, ready.location.file_identity);
+    fixture.enqueue(&[intent(&fixture.root_id, "recover.png", None, 2)]);
+    let truncated_report = fixture.process();
+
+    assert_eq!(truncated_report.completed_count, 1, "{truncated_report:?}");
+    assert_eq!(truncated_report.applied_mutation_count, 1);
+    let truncated = fixture
+        .location("recover.png")
+        .expect("truncated terminal state");
+    assert_eq!(truncated.asset_id, ready.location.asset_id);
+    assert_eq!(truncated.file_identity, ready.location.file_identity);
+    assert_eq!(truncated.source_revision, truncated_source.source_revision);
+    assert_ne!(truncated.source_generation, zero.source_generation);
+    assert!(matches!(truncated.preview_status, PreviewStatus::Failed));
+    assert!(truncated.preview_path.is_empty());
+    assert!(truncated.preview_issue_code.is_some());
+    assert_eq!(
+        fs::read(&source_path).expect("truncated bytes after delta"),
+        truncated_bytes
+    );
+
+    write_png(&source_path, 6, 5, [34, 55, 89]);
+    let recovered_source = fixture.discovered("recover.png");
+    let recovered_bytes = fs::read(&source_path).expect("recovered source bytes");
+    assert_eq!(recovered_source.file_identity, ready.location.file_identity);
+    fixture.enqueue(&[intent(&fixture.root_id, "recover.png", None, 3)]);
+    let recovered_report = fixture.process();
+
+    assert_eq!(recovered_report.completed_count, 1, "{recovered_report:?}");
+    assert_eq!(recovered_report.applied_mutation_count, 1);
+    let recovered = fixture.location("recover.png").expect("recovered location");
+    assert_eq!(recovered.asset_id, ready.location.asset_id);
+    assert_eq!(recovered.file_identity, ready.location.file_identity);
+    assert_eq!(recovered.source_revision, recovered_source.source_revision);
+    assert_ne!(recovered.source_generation, truncated.source_generation);
+    assert_eq!((recovered.width, recovered.height), (6, 5));
+    assert!(matches!(recovered.preview_status, PreviewStatus::Pending));
+    assert!(recovered.preview_path.is_empty());
+    assert!(recovered.preview_issue_code.is_none());
+    assert_ready_preview_superseded(&mut fixture, &ready);
+    assert_eq!(
+        fs::read(&source_path).expect("recovered bytes after delta"),
+        recovered_bytes
+    );
+}
+
+#[cfg(windows)]
+#[test]
+fn disappeared_ready_source_reappears_without_accepting_its_old_preview_request() {
+    let source = tempdir().expect("source directory");
+    let source_path = source.path().join("reappear.png");
+    write_png(&source_path, 2, 3, [144, 89, 55]);
+    let mut fixture = seed_catalog(source, &["reappear.png"]);
+    let ready = publish_ready_preview(
+        &mut fixture,
+        "reappear.png",
+        "disappear-reappear-ready-preview",
+    );
+
+    fs::remove_file(&source_path).expect("remove ready source");
+    fixture.enqueue(&[intent(&fixture.root_id, "reappear.png", None, 1)]);
+    let removal = fixture.process();
+
+    assert_eq!(removal.completed_count, 1, "{removal:?}");
+    assert_eq!(removal.applied_mutation_count, 1);
+    assert!(fixture.location("reappear.png").is_none());
+    assert_eq!(
+        preview_owner_count(&fixture.catalog, &ready.artifact.artifact_key),
+        0
+    );
+
+    write_png(&source_path, 7, 4, [233, 144, 89]);
+    let reappeared_source = fixture.discovered("reappear.png");
+    let reappeared_bytes = fs::read(&source_path).expect("reappeared source bytes");
+    assert_ne!(
+        reappeared_source.file_identity,
+        ready.location.file_identity
+    );
+    fixture.enqueue(&[intent(&fixture.root_id, "reappear.png", None, 2)]);
+    let reappearance = fixture.process();
+
+    assert_eq!(reappearance.completed_count, 1, "{reappearance:?}");
+    assert_eq!(reappearance.applied_mutation_count, 1);
+    let reappeared = fixture
+        .location("reappear.png")
+        .expect("reappeared location");
+    assert_ne!(reappeared.asset_id, ready.location.asset_id);
+    assert_eq!(reappeared.file_identity, reappeared_source.file_identity);
+    assert_eq!(
+        reappeared.source_revision,
+        reappeared_source.source_revision
+    );
+    assert_ne!(
+        reappeared.source_generation,
+        ready.location.source_generation
+    );
+    assert_eq!((reappeared.width, reappeared.height), (7, 4));
+    assert!(matches!(reappeared.preview_status, PreviewStatus::Pending));
+    assert!(reappeared.preview_path.is_empty());
+    assert_ready_preview_superseded(&mut fixture, &ready);
+    assert_eq!(
+        fs::read(&source_path).expect("reappeared bytes after delta"),
+        reappeared_bytes
+    );
+}
+
+#[cfg(windows)]
+#[test]
+fn dirty_rename_invalidates_preview_generation_and_removes_the_previous_path() {
+    let source = tempdir().expect("source directory");
+    write_png(&source.path().join("old.png"), 2, 2, [31, 41, 59]);
+    let mut fixture = seed_catalog(source, &["old.png"]);
+    let before = fixture.location("old.png").expect("original location");
+    fs::rename(
+        fixture.source.path().join("old.png"),
+        fixture.source.path().join("new.png"),
+    )
+    .expect("rename source fixture");
+    fixture.enqueue(&[
+        intent(&fixture.root_id, "new.png", Some("old.png"), 1),
+        intent(&fixture.root_id, "new.png", None, 2),
+    ]);
+
+    let report = fixture.process();
+
+    assert_eq!(report.completed_count, 1, "{report:?}");
+    assert_eq!(report.applied_mutation_count, 1);
+    assert!(fixture.location("old.png").is_none());
+    let after = fixture.location("new.png").expect("renamed location");
+    assert_eq!(after.asset_id, before.asset_id);
+    assert_eq!(after.file_identity, before.file_identity);
+    assert_ne!(after.source_generation, before.source_generation);
+    assert!(matches!(after.preview_status, PreviewStatus::Pending));
+    assert!(after.preview_path.is_empty());
 }
 
 #[test]
@@ -697,9 +1175,18 @@ fn malformed_image_completes_once_without_blocking_a_valid_sibling() {
     assert_eq!(report.leased_count, 2);
     assert_eq!(report.completed_count, 2);
     assert_eq!(report.retried_count, 0);
-    assert_eq!(report.applied_mutation_count, 1);
+    assert_eq!(report.applied_mutation_count, 2);
     assert!(fixture.location("valid.png").is_some());
-    assert!(fixture.location("broken.jpg").is_none());
+    let failed = fixture
+        .location("broken.jpg")
+        .expect("terminal image placeholder");
+    assert!(matches!(failed.preview_status, PreviewStatus::Failed));
+    assert_eq!((failed.width, failed.height), (0, 0));
+    assert!(failed.preview_path.is_empty());
+    assert_eq!(
+        failed.preview_issue_code.as_deref(),
+        Some("image_format_unsupported")
+    );
     let metrics = fixture
         .catalog
         .load_library_change_queue_metrics(2_000, policy())
@@ -736,7 +1223,11 @@ fn malformed_image_completes_once_without_blocking_a_valid_sibling() {
 
     assert_eq!(recovered.completed_count, 1);
     assert_eq!(recovered.applied_mutation_count, 1);
-    assert!(fixture.location("broken.jpg").is_some());
+    let repaired = fixture.location("broken.jpg").expect("repaired image");
+    assert_eq!(repaired.asset_id, failed.asset_id);
+    assert_ne!(repaired.source_generation, failed.source_generation);
+    assert_eq!((repaired.width, repaired.height), (2, 3));
+    assert!(matches!(repaired.preview_status, PreviewStatus::Pending));
     assert!(
         fixture
             .catalog
@@ -746,6 +1237,88 @@ fn malformed_image_completes_once_without_blocking_a_valid_sibling() {
             )
             .expect("reload terminal media evidence")
             .is_empty()
+    );
+}
+
+#[cfg(windows)]
+#[test]
+fn valid_image_can_become_corrupt_and_recover_at_the_same_path() {
+    let source = tempdir().expect("source directory");
+    write_png(&source.path().join("mutable.png"), 4, 3, [30, 40, 50]);
+    let mut fixture = seed_catalog(source, &["mutable.png"]);
+    let original = fixture.location("mutable.png").expect("original image");
+
+    fs::write(
+        fixture.source.path().join("mutable.png"),
+        b"corrupt image bytes",
+    )
+    .expect("corrupt source in place");
+    let corrupt_source = fixture.discovered("mutable.png");
+    assert_eq!(corrupt_source.file_identity, original.file_identity);
+    assert_ne!(corrupt_source.source_revision, original.source_revision);
+    let corrupt_bytes =
+        fs::read(fixture.source.path().join("mutable.png")).expect("corrupt source bytes");
+    fixture.enqueue(&[intent(&fixture.root_id, "mutable.png", None, 1)]);
+
+    let failed_report = fixture.process();
+
+    assert_eq!(failed_report.completed_count, 1);
+    assert_eq!(failed_report.applied_mutation_count, 1);
+    let failed = fixture
+        .location("mutable.png")
+        .expect("failed image placeholder");
+    assert_eq!(failed.asset_id, original.asset_id);
+    assert_eq!(failed.file_identity, original.file_identity);
+    assert_ne!(failed.source_generation, original.source_generation);
+    assert_eq!(failed.source_revision, corrupt_source.source_revision);
+    assert!(matches!(failed.preview_status, PreviewStatus::Failed));
+    assert_eq!((failed.width, failed.height), (0, 0));
+    assert_eq!(
+        fs::read(fixture.source.path().join("mutable.png")).expect("corrupt bytes after update"),
+        corrupt_bytes
+    );
+
+    write_png(
+        &fixture.source.path().join("mutable.png"),
+        5,
+        2,
+        [60, 70, 80],
+    );
+    let repaired_source = fixture.discovered("mutable.png");
+    let repaired_bytes =
+        fs::read(fixture.source.path().join("mutable.png")).expect("repaired source bytes");
+    assert_eq!(repaired_source.file_identity, original.file_identity);
+    assert_ne!(
+        repaired_source.source_revision,
+        corrupt_source.source_revision
+    );
+    fixture.enqueue(&[intent(&fixture.root_id, "mutable.png", None, 2)]);
+
+    let repaired_report = fixture.process();
+
+    assert_eq!(repaired_report.completed_count, 1);
+    assert_eq!(repaired_report.applied_mutation_count, 1);
+    let repaired = fixture.location("mutable.png").expect("repaired image");
+    assert_eq!(repaired.asset_id, original.asset_id);
+    assert_eq!(repaired.file_identity, original.file_identity);
+    assert_ne!(repaired.source_generation, failed.source_generation);
+    assert_eq!(repaired.source_revision, repaired_source.source_revision);
+    assert_eq!((repaired.width, repaired.height), (5, 2));
+    assert!(matches!(repaired.preview_status, PreviewStatus::Pending));
+    assert!(repaired.preview_issue_code.is_none());
+    assert!(
+        fixture
+            .catalog
+            .load_terminal_media_evidence_by_relative_paths(
+                &fixture.root_id,
+                &["mutable.png".to_owned()],
+            )
+            .expect("repaired terminal evidence")
+            .is_empty()
+    );
+    assert_eq!(
+        fs::read(fixture.source.path().join("mutable.png")).expect("repaired bytes after update"),
+        repaired_bytes
     );
 }
 
@@ -788,7 +1361,7 @@ fn locked_wrong_extension_retries_without_removing_trustworthy_catalog_state() {
 }
 
 #[test]
-fn pending_work_is_claimed_by_a_running_full_scan_without_entering_the_path_worker() {
+fn pending_live_work_publishes_into_active_and_running_scan() {
     let source = tempdir().expect("source directory");
     let mut fixture = seed_catalog(source, &[]);
     write_png(
@@ -810,19 +1383,53 @@ fn pending_work_is_claimed_by_a_running_full_scan_without_entering_the_path_work
         .begin_scan(&replacement_scan, &fixture.root_id, &fixture.root_path)
         .expect("begin replacement scan");
 
-    let report = fixture.process();
+    let report = process_ready_library_changes_in_lane(
+        &mut fixture.catalog,
+        &fixture.root_id,
+        LibraryRootGeneration::initial(),
+        LibraryChangeLane::Live,
+        2_000,
+        policy(),
+    )
+    .expect("process live changes through running scan");
 
-    assert_eq!(report.leased_count, 0);
+    assert_eq!(report.leased_count, 1);
+    assert_eq!(report.completed_count, 1);
     assert_eq!(report.retried_count, 0);
-    assert_eq!(report.applied_mutation_count, 0);
-    assert!(fixture.location("waiting.png").is_none());
+    assert_eq!(report.applied_mutation_count, 1);
+    let active = fixture
+        .location("waiting.png")
+        .expect("live location published to active scan");
+    let identity = active
+        .file_identity
+        .as_ref()
+        .expect("live location stable identity");
+    let staged = fixture
+        .catalog
+        .load_scan_location_by_file_identity(&replacement_scan.scan_id, identity)
+        .expect("load mirrored replacement location")
+        .expect("live location mirrored to replacement scan");
+    assert_eq!(staged.relative_path, "waiting.png");
+    assert_eq!(staged.source_generation, active.source_generation);
+    assert_eq!(staged.source_revision, active.source_revision);
     let metrics = fixture
         .catalog
         .load_library_change_queue_metrics(2_000, policy())
         .expect("queue metrics");
     assert_eq!(metrics.pending_count, 0);
-    assert_eq!(metrics.leased_count, 1);
+    assert_eq!(metrics.leased_count, 0);
     assert_eq!(metrics.retry_wait_count, 0);
+    assert_eq!(metrics.completed_count, 1);
+
+    fixture
+        .catalog
+        .publish_scan(&replacement_scan.scan_id, &fixture.root_id, 1, 0)
+        .expect("publish replacement scan after live queue drains");
+    let published = fixture
+        .location("waiting.png")
+        .expect("live location survives replacement publication");
+    assert_eq!(published.source_generation, active.source_generation);
+    assert_eq!(published.source_revision, active.source_revision);
 }
 
 #[test]
@@ -1069,7 +1676,7 @@ fn migrated_v17_location_is_preserved_while_unproven_namespace_blocks_backfill()
             },
         )
         .expect("load post-backfill counts");
-    assert_eq!(schema_version, 30);
+    assert_eq!(schema_version, 31);
     assert_eq!(location_count, 1);
     assert_eq!(asset_count, 1);
     assert_eq!(proof_count, 0);
@@ -1185,7 +1792,7 @@ fn metadata_engine_mismatch_invalidates_a_rename_mutation_contract() {
 
 #[cfg(windows)]
 #[test]
-fn compatible_rename_preserves_failed_preview_evidence() {
+fn compatible_rename_invalidates_failed_preview_source_context() {
     let source = tempdir().expect("source directory");
     write_png(&source.path().join("old.png"), 2, 3, [51, 52, 53]);
     let mut fixture = seed_catalog(source, &["old.png"]);
@@ -1195,7 +1802,7 @@ fn compatible_rename_preserves_failed_preview_evidence() {
     failed.preview_issue_message = Some("fixture failure".to_owned());
     fixture
         .catalog
-        .update_active_preview(&failed, None)
+        .update_active_preview(&failed, None, None)
         .expect("record failed preview");
     fs::rename(
         fixture.source.path().join("old.png"),
@@ -1207,20 +1814,17 @@ fn compatible_rename_preserves_failed_preview_evidence() {
     fixture.process();
 
     let renamed = fixture.location("new.png").expect("renamed location");
-    assert!(matches!(renamed.preview_status, PreviewStatus::Failed));
-    assert_eq!(
-        renamed.preview_issue_code.as_deref(),
-        Some("preview_decode_failed")
-    );
-    assert_eq!(
-        renamed.preview_issue_message.as_deref(),
-        Some("fixture failure")
-    );
+    assert_eq!(renamed.asset_id, failed.asset_id);
+    assert!(matches!(renamed.preview_status, PreviewStatus::Pending));
+    assert!(renamed.preview_path.is_empty());
+    assert!(renamed.preview_issue_code.is_none());
+    assert!(renamed.preview_issue_message.is_none());
+    assert_ne!(renamed.source_generation, failed.source_generation);
 }
 
 #[cfg(windows)]
 #[test]
-fn source_first_cross_root_move_preserves_asset_and_preview_continuity() {
+fn source_first_cross_root_move_preserves_asset_and_invalidates_preview_context() {
     assert_cross_root_move_preserves_continuity(
         "a-source",
         "z-destination",
@@ -1233,7 +1837,7 @@ fn source_first_cross_root_move_preserves_asset_and_preview_continuity() {
 
 #[cfg(windows)]
 #[test]
-fn destination_first_cross_root_move_preserves_asset_and_preview_continuity() {
+fn destination_first_cross_root_move_preserves_asset_and_invalidates_preview_context() {
     assert_cross_root_move_preserves_continuity(
         "z-source",
         "a-destination",
@@ -1544,7 +2148,7 @@ fn bidirectional_authoritative_moves_preserve_both_assets_without_a_dependency_c
         location.preview_issue_code = Some("preview_decode_failed".to_owned());
         location.preview_issue_message = Some("retained authoritative evidence".to_owned());
         catalog
-            .update_active_preview(location, None)
+            .update_active_preview(location, None, None)
             .expect("record authoritative preview evidence");
     }
     let first_temporary = storage.path().join("first-moving.png");
@@ -1594,8 +2198,14 @@ fn bidirectional_authoritative_moves_preserve_both_assets_without_a_dependency_c
         .expect("moved first");
     assert_eq!(moved_second.asset_id, second.asset_id);
     assert_eq!(moved_first.asset_id, first.asset_id);
-    assert!(matches!(moved_second.preview_status, PreviewStatus::Failed));
-    assert!(matches!(moved_first.preview_status, PreviewStatus::Failed));
+    for moved in [&moved_second, &moved_first] {
+        assert!(matches!(moved.preview_status, PreviewStatus::Pending));
+        assert!(moved.preview_path.is_empty());
+        assert!(moved.preview_issue_code.is_none());
+        assert!(moved.preview_issue_message.is_none());
+    }
+    assert_ne!(moved_second.source_generation, second.source_generation);
+    assert_ne!(moved_first.source_generation, first.source_generation);
 }
 
 #[cfg(windows)]
@@ -1654,14 +2264,14 @@ fn assert_cross_root_move_preserves_continuity(
             height: original.height,
         };
         catalog
-            .update_active_preview(&original, Some(&artifact))
+            .update_active_preview(&original, Some(&artifact), None)
             .expect("record ready preview before cleanup");
     } else {
         original.preview_status = PreviewStatus::Failed;
         original.preview_issue_code = Some("preview_decode_failed".to_owned());
         original.preview_issue_message = Some("retained cross-root evidence".to_owned());
         catalog
-            .update_active_preview(&original, None)
+            .update_active_preview(&original, None, None)
             .expect("record retained preview evidence");
     }
     fs::rename(
@@ -1802,18 +2412,11 @@ fn assert_cross_root_move_preserves_continuity(
         .expect("destination location");
     assert_eq!(moved.asset_id, original.asset_id);
     assert_eq!(moved.file_identity, original.file_identity);
-    if cleanup_after_source || repair_stale_handoff_preview {
-        assert!(matches!(moved.preview_status, PreviewStatus::Pending));
-        assert!(moved.preview_path.is_empty());
-        assert!(moved.preview_issue_code.is_none());
-        assert!(moved.preview_issue_message.is_none());
-    } else {
-        assert!(matches!(moved.preview_status, PreviewStatus::Failed));
-        assert_eq!(
-            moved.preview_issue_code.as_deref(),
-            Some("preview_decode_failed")
-        );
-    }
+    assert!(matches!(moved.preview_status, PreviewStatus::Pending));
+    assert!(moved.preview_path.is_empty());
+    assert!(moved.preview_issue_code.is_none());
+    assert!(moved.preview_issue_message.is_none());
+    assert_ne!(moved.source_generation, original.source_generation);
 
     if !source_first {
         let source = process_ready_library_changes(
@@ -1874,7 +2477,7 @@ fn assert_target_translation_recovery_preserves_continuity(source_first: bool) {
     original.preview_issue_code = Some("preview_decode_failed".to_owned());
     original.preview_issue_message = Some("service target recovery evidence".to_owned());
     catalog
-        .update_active_preview(&original, None)
+        .update_active_preview(&original, None, None)
         .expect("record service preview evidence");
     for root_id in ["journal-source-root", "journal-destination-root"] {
         catalog
@@ -2188,11 +2791,11 @@ fn assert_target_translation_recovery_preserves_continuity(source_first: bool) {
         .expect("recovered destination location");
     assert_eq!(moved.asset_id, original.asset_id);
     assert_eq!(moved.file_identity, original.file_identity);
-    assert!(matches!(moved.preview_status, PreviewStatus::Failed));
-    assert_eq!(
-        moved.preview_issue_code.as_deref(),
-        Some("preview_decode_failed")
-    );
+    assert!(matches!(moved.preview_status, PreviewStatus::Pending));
+    assert!(moved.preview_path.is_empty());
+    assert!(moved.preview_issue_code.is_none());
+    assert!(moved.preview_issue_message.is_none());
+    assert_ne!(moved.source_generation, original.source_generation);
     assert!(
         catalog
             .load_incremental_location_by_relative_path("journal-source-root", "old.png")
@@ -2242,7 +2845,7 @@ fn assert_persistent_journal_cross_root_move_preserves_continuity(source_first: 
     original.preview_issue_code = Some("preview_decode_failed".to_owned());
     original.preview_issue_message = Some("persistent journal retained evidence".to_owned());
     catalog
-        .update_active_preview(&original, None)
+        .update_active_preview(&original, None, None)
         .expect("record journal preview evidence");
     for root_id in ["journal-source-root", "journal-destination-root"] {
         catalog
@@ -2556,11 +3159,11 @@ fn assert_persistent_journal_cross_root_move_preserves_continuity(source_first: 
         .expect("journal destination location");
     assert_eq!(moved.asset_id, original.asset_id);
     assert_eq!(moved.file_identity, original.file_identity);
-    assert!(matches!(moved.preview_status, PreviewStatus::Failed));
-    assert_eq!(
-        moved.preview_issue_code.as_deref(),
-        Some("preview_decode_failed")
-    );
+    assert!(matches!(moved.preview_status, PreviewStatus::Pending));
+    assert!(moved.preview_path.is_empty());
+    assert!(moved.preview_issue_code.is_none());
+    assert!(moved.preview_issue_message.is_none());
+    assert_ne!(moved.source_generation, original.source_generation);
     assert!(
         catalog
             .load_incremental_location_by_relative_path("journal-source-root", "old.png")
@@ -2936,6 +3539,9 @@ fn prepare_revision_races(
                     &root_path,
                 )
                 .expect("begin competing revision scan");
+            catalog
+                .prove_live_only_first_import_handoff_for_test(&scan_id)
+                .expect("prove revision-race first-import handoff");
             (scan_id, root_id)
         })
         .collect()
@@ -2997,6 +3603,185 @@ impl CatalogFixture {
     }
 }
 
+#[cfg(windows)]
+struct ReadyPreviewFixture {
+    location: AssetLocationView,
+    request: PreviewRequest,
+    artifact: PreviewArtifact,
+}
+
+#[cfg(windows)]
+fn publish_ready_preview(
+    fixture: &mut CatalogFixture,
+    relative_path: &str,
+    artifact_key: &str,
+) -> ReadyPreviewFixture {
+    publish_ready_preview_at_edge(fixture, relative_path, artifact_key, 256)
+}
+
+#[cfg(windows)]
+fn publish_ready_preview_at_edge(
+    fixture: &mut CatalogFixture,
+    relative_path: &str,
+    artifact_key: &str,
+    preview_edge: u32,
+) -> ReadyPreviewFixture {
+    let mut location = fixture.location(relative_path).expect("preview location");
+    assert!(location.source_revision.is_some());
+    assert_ne!(location.source_generation, 0);
+    let request = PreviewRequest {
+        location_id: location.location_id.clone(),
+        expected_root_id: location.root_id.clone(),
+        expected_scan_id: location.scan_id.clone(),
+        expected_source_revision: location.source_revision.clone(),
+        expected_source_generation: location.source_generation,
+        preview_edge,
+        retry_failed: false,
+        protected_location_ids: Vec::new(),
+    };
+    let artifact_path = fixture._storage.path().join(format!("{artifact_key}.jpg"));
+    RgbImage::from_pixel(
+        location.width.max(1),
+        location.height.max(1),
+        Rgb([4, 8, 15]),
+    )
+    .save_with_format(&artifact_path, ImageFormat::Jpeg)
+    .expect("write ready preview artifact");
+    location.preview_path = artifact_path.to_string_lossy().into_owned();
+    location.preview_status = PreviewStatus::Ready;
+    let artifact = PreviewArtifact {
+        artifact_key: artifact_key.to_owned(),
+        algorithm_id: "ame-jpeg-thumbnail".to_owned(),
+        algorithm_version: 2,
+        orientation_contract: "exif-display-v1".to_owned(),
+        size_bucket: preview_edge,
+        path: location.preview_path.clone(),
+        byte_size: fs::metadata(&artifact_path)
+            .expect("ready preview metadata")
+            .len(),
+        encoded_width: location.width.max(1),
+        encoded_height: location.height.max(1),
+        width: location.width,
+        height: location.height,
+    };
+    fixture
+        .catalog
+        .update_active_preview(&location, Some(&artifact), Some(&request))
+        .expect("publish ready preview");
+    ReadyPreviewFixture {
+        location,
+        request,
+        artifact,
+    }
+}
+
+#[cfg(windows)]
+fn assert_ready_preview_superseded(fixture: &mut CatalogFixture, ready: &ReadyPreviewFixture) {
+    assert_eq!(
+        preview_owner_count(&fixture.catalog, &ready.artifact.artifact_key),
+        0
+    );
+    assert_eq!(
+        preview_lifecycle_state(&fixture.catalog, &ready.artifact.artifact_key),
+        "stale"
+    );
+    let error = fixture
+        .catalog
+        .update_active_preview(&ready.location, Some(&ready.artifact), Some(&ready.request))
+        .expect_err("stale preview request must not publish");
+    assert_eq!(error.code, "active_preview_location_stale");
+    assert_eq!(
+        preview_owner_count(&fixture.catalog, &ready.artifact.artifact_key),
+        0
+    );
+    assert_eq!(
+        preview_lifecycle_state(&fixture.catalog, &ready.artifact.artifact_key),
+        "stale"
+    );
+}
+
+#[cfg(windows)]
+fn preview_owner_count(catalog: &SqliteCatalog, artifact_key: &str) -> i64 {
+    Connection::open(catalog.catalog_path())
+        .expect("open preview owner query")
+        .query_row(
+            "SELECT COUNT(*) FROM preview_artifact_locations WHERE artifact_key = ?1",
+            [artifact_key],
+            |row| row.get(0),
+        )
+        .expect("preview owner count")
+}
+
+#[cfg(windows)]
+fn preview_lifecycle_state(catalog: &SqliteCatalog, artifact_key: &str) -> String {
+    Connection::open(catalog.catalog_path())
+        .expect("open preview lifecycle query")
+        .query_row(
+            "SELECT lifecycle_state FROM preview_artifacts WHERE artifact_key = ?1",
+            [artifact_key],
+            |row| row.get(0),
+        )
+        .expect("preview lifecycle state")
+}
+
+#[cfg(windows)]
+fn assert_equal_length_rewrite_supersedes_ready_preview(
+    origin: LibraryChangeOrigin,
+    artifact_key: &str,
+) {
+    let source = tempdir().expect("source directory");
+    let source_path = source.path().join("same.bmp");
+    write_bmp(&source_path, 4, 3, [10, 20, 30]);
+    let original_modified = fs::metadata(&source_path)
+        .expect("original source metadata")
+        .modified()
+        .expect("original modified time");
+    let original_bytes = fs::read(&source_path).expect("original source bytes");
+    let mut fixture = seed_catalog(source, &["same.bmp"]);
+    let ready = publish_ready_preview(&mut fixture, "same.bmp", artifact_key);
+    let revision = fixture.revision();
+
+    write_bmp(&source_path, 4, 3, [30, 20, 10]);
+    fs::OpenOptions::new()
+        .write(true)
+        .open(&source_path)
+        .expect("open rewritten source for timestamp restore")
+        .set_times(fs::FileTimes::new().set_modified(original_modified))
+        .expect("restore source modified time");
+    let rewritten_bytes = fs::read(&source_path).expect("rewritten source bytes");
+    assert_ne!(rewritten_bytes, original_bytes);
+    assert_eq!(rewritten_bytes.len(), original_bytes.len());
+    let rewritten = fixture.discovered("same.bmp");
+    assert_eq!(rewritten.file_size, ready.location.file_size);
+    assert_eq!(rewritten.modified_unix_ms, ready.location.modified_unix_ms);
+    assert_eq!(rewritten.file_identity, ready.location.file_identity);
+    assert_ne!(rewritten.source_revision, ready.location.source_revision);
+    let mut change = intent(&fixture.root_id, "same.bmp", None, 1);
+    change.origin = origin;
+    fixture.enqueue(&[change]);
+
+    let report = fixture.process();
+
+    assert_eq!(report.completed_count, 1, "{report:?}");
+    assert_eq!(report.applied_mutation_count, 1);
+    assert_eq!(report.catalog_revision, revision + 1);
+    assert_eq!(fixture.revision(), revision + 1);
+    let after = fixture.location("same.bmp").expect("rewritten location");
+    assert_eq!(after.asset_id, ready.location.asset_id);
+    assert_eq!(after.file_identity, ready.location.file_identity);
+    assert_eq!(after.file_size, ready.location.file_size);
+    assert_eq!(after.modified_unix_ms, ready.location.modified_unix_ms);
+    assert_eq!(after.source_revision, rewritten.source_revision);
+    assert_ne!(after.source_generation, ready.location.source_generation);
+    assert!(matches!(after.preview_status, PreviewStatus::Pending));
+    assert!(after.preview_path.is_empty());
+    assert_ready_preview_superseded(&mut fixture, &ready);
+    assert_eq!(
+        fs::read(&source_path).expect("rewritten bytes after delta"),
+        rewritten_bytes
+    );
+}
+
 fn seed_root(
     catalog: &mut SqliteCatalog,
     root_id: &str,
@@ -3030,6 +3815,9 @@ fn seed_root(
             &publication_identity,
         )
         .expect("begin root scan");
+    catalog
+        .prove_live_only_first_import_handoff_for_test(scan_id)
+        .expect("prove root fixture first-import handoff");
     let inspector = LocalMediaInspector::new();
     for relative_path in relative_paths {
         let file = match discovery.visit_relative_path(relative_path).outcome {
@@ -3041,6 +3829,7 @@ fn seed_root(
             asset_id: stable_id("test-asset-v1", relative_path),
             location_id: stable_location_id(root_id, relative_path),
             root_id: root_id.to_owned(),
+            scan_id: scan_id.to_owned(),
             absolute_path: file.absolute_path.clone(),
             display_path: user_visible_path(&file.absolute_path),
             relative_path: file.relative_path,
@@ -3049,6 +3838,8 @@ fn seed_root(
             created_unix_ms: file.created_unix_ms,
             modified_unix_ms: file.modified_unix_ms,
             file_identity: file.file_identity,
+            source_revision: file.source_revision,
+            source_generation: 0,
             width: inspection.width,
             height: inspection.height,
             preview_status: PreviewStatus::Pending,
@@ -3124,6 +3915,9 @@ fn seed_catalog_with_options(
             &publication_identity,
         )
         .expect("begin baseline scan");
+    catalog
+        .prove_live_only_first_import_handoff_for_test(&request.scan_id)
+        .expect("prove baseline fixture first-import handoff");
     let inspector = LocalMediaInspector::new();
     for relative_path in relative_paths {
         let file = match discovery.visit_relative_path(relative_path).outcome {
@@ -3141,6 +3935,7 @@ fn seed_catalog_with_options(
             asset_id: stable_id("test-asset-v1", relative_path),
             location_id: stable_location_id(&root_id, relative_path),
             root_id: root_id.clone(),
+            scan_id: request.scan_id.clone(),
             absolute_path: file.absolute_path.clone(),
             display_path: user_visible_path(&file.absolute_path),
             relative_path: file.relative_path,
@@ -3151,6 +3946,8 @@ fn seed_catalog_with_options(
             file_identity: (!clear_file_identity)
                 .then_some(file.file_identity)
                 .flatten(),
+            source_revision: file.source_revision,
+            source_generation: 0,
             width: inspection.width,
             height: inspection.height,
             preview_status: PreviewStatus::Pending,
@@ -3234,6 +4031,13 @@ fn policy() -> LibraryChangeQueuePolicy {
 fn write_png(path: &Path, width: u32, height: u32, color: [u8; 3]) {
     let image = RgbImage::from_pixel(width, height, Rgb(color));
     image.save(path).expect("write PNG fixture");
+}
+
+#[cfg(windows)]
+fn write_bmp(path: &Path, width: u32, height: u32, color: [u8; 3]) {
+    RgbImage::from_pixel(width, height, Rgb(color))
+        .save_with_format(path, ImageFormat::Bmp)
+        .expect("write BMP fixture");
 }
 
 fn write_png_with_format(path: &Path, width: u32, height: u32, color: [u8; 3]) {

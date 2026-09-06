@@ -403,6 +403,7 @@ pub(super) fn build_gallery_asset_query(
     Ok(BuiltGalleryQuery {
         sql: format!(
             "SELECT locations.asset_id, locations.location_id, locations.root_id,
+                    locations.scan_id,
                     locations.absolute_path, locations.relative_path,
                     locations.preview_path, locations.file_size,
                     locations.created_unix_ms, locations.modified_unix_ms,
@@ -412,7 +413,8 @@ pub(super) fn build_gallery_asset_query(
                     locations.metadata_engine_version, locations.capture_local_time,
                     locations.capture_offset_minutes, locations.capture_time_source,
                     locations.capture_raw_value, locations.file_identity_scheme,
-                    locations.file_identity_value
+                    locations.file_identity_value, locations.source_revision_token,
+                    locations.source_generation
              FROM library_roots AS roots
              JOIN asset_locations AS locations
                ON locations.scan_id = roots.active_scan_id
@@ -472,6 +474,7 @@ pub(super) fn resolve_gallery_anchor_cursor(
     let direction = gallery_direction_sql(&query.sort_direction);
     let sql = format!(
         "SELECT locations.asset_id, locations.location_id, locations.root_id,
+                locations.scan_id,
                 locations.absolute_path, locations.relative_path,
                 locations.preview_path, locations.file_size,
                 locations.created_unix_ms, locations.modified_unix_ms,
@@ -481,7 +484,8 @@ pub(super) fn resolve_gallery_anchor_cursor(
                 locations.metadata_engine_version, locations.capture_local_time,
                 locations.capture_offset_minutes, locations.capture_time_source,
                 locations.capture_raw_value, locations.file_identity_scheme,
-                locations.file_identity_value
+                locations.file_identity_value, locations.source_revision_token,
+                locations.source_generation
          FROM library_roots AS roots
          JOIN asset_locations AS locations
            ON locations.scan_id = roots.active_scan_id

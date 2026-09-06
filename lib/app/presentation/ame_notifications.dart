@@ -27,51 +27,49 @@ class AmeNotificationHistoryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final menuChildren = <Widget>[
-      ameFixedWidthMenuItem(
-        width: _notificationMenuWidth,
-        child: const Padding(
-          padding: EdgeInsets.fromLTRB(16, 12, 16, 8),
+    final onSurface = Theme.of(context).colorScheme.onSurface;
+    final menuItems = <PopupMenuEntry<AmeNotificationEntry>>[
+      PopupMenuItem<AmeNotificationEntry>(
+        enabled: false,
+        padding: EdgeInsets.zero,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
           child: Text(
             AmeNotificationStrings.notifications,
-            style: TextStyle(fontWeight: FontWeight.w600),
+            style: TextStyle(color: onSurface, fontWeight: FontWeight.w600),
           ),
         ),
       ),
-      const Divider(height: 1),
+      const PopupMenuDivider(height: 1),
       if (state.history.isEmpty)
-        ameFixedWidthMenuItem(
-          width: _notificationMenuWidth,
-          child: const Padding(
-            padding: EdgeInsets.all(20),
-            child: Text(AmeNotificationStrings.noNotifications),
+        PopupMenuItem<AmeNotificationEntry>(
+          enabled: false,
+          padding: EdgeInsets.zero,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Text(
+              AmeNotificationStrings.noNotifications,
+              style: TextStyle(color: onSurface),
+            ),
           ),
         )
       else
         for (final notification in state.history)
-          ameFixedWidthMenuItem(
-            width: _notificationMenuWidth,
-            child: MenuItemButton(
-              key: Key("notification-history-item-${notification.id}"),
-              onPressed: () => onSelected(notification),
-              child: _NotificationHistoryItem(notification: notification),
-            ),
+          PopupMenuItem<AmeNotificationEntry>(
+            key: Key("notification-history-item-${notification.id}"),
+            value: notification,
+            child: _NotificationHistoryItem(notification: notification),
           ),
     ];
-    return AmeMenuAnchor(
-      style: const MenuStyle(
-        alignment: AlignmentDirectional.bottomEnd,
-        minimumSize: WidgetStatePropertyAll(Size(_notificationMenuWidth, 0)),
-        maximumSize: WidgetStatePropertyAll(
-          Size(_notificationMenuWidth, _notificationMenuMaximumHeight),
-        ),
-      ),
-      alignmentOffset: ameMenuBelowEndAlignment(
-        menuWidth: _notificationMenuWidth,
-        verticalGap: 6,
-      ),
-      menuChildren: menuChildren,
-      builder: (context, controller, child) {
+    return AmePopupMenuButton<AmeNotificationEntry>(
+      labels: const [AmeNotificationStrings.notifications],
+      items: menuItems,
+      menuWidth: _notificationMenuWidth,
+      maximumHeight: _notificationMenuMaximumHeight,
+      verticalGap: 6,
+      onOpened: onOpened,
+      onSelected: onSelected,
+      builder: (context, openMenu) {
         final semanticLabel = state.hasUnread ? "通知，有未读消息" : "通知，无未读消息";
         return Semantics(
           label: semanticLabel,
@@ -80,12 +78,7 @@ class AmeNotificationHistoryButton extends StatelessWidget {
             message: AmeNotificationStrings.notifications,
             child: IconButton(
               key: const Key("notification-history-button"),
-              onPressed: () {
-                if (!controller.isOpen) {
-                  onOpened();
-                }
-                toggleAmeMenu(controller);
-              },
+              onPressed: openMenu,
               icon: Icon(
                 state.hasUnread
                     ? Symbols.notifications_unread_rounded

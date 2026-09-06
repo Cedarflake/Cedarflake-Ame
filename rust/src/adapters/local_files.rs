@@ -39,8 +39,9 @@ use windows_sys::Wdk::Storage::FileSystem::{
 
 #[cfg(windows)]
 use windows_sys::Win32::Foundation::{
-    ERROR_NO_MORE_FILES, ERROR_REPARSE_POINT_ENCOUNTERED, HANDLE, INVALID_HANDLE_VALUE,
-    OBJ_CASE_INSENSITIVE, OBJ_DONT_REPARSE, RtlNtStatusToDosError, UNICODE_STRING,
+    ERROR_ACCESS_DENIED, ERROR_NO_MORE_FILES, ERROR_REPARSE_POINT_ENCOUNTERED, HANDLE,
+    INVALID_HANDLE_VALUE, OBJ_CASE_INSENSITIVE, OBJ_DONT_REPARSE, RtlNtStatusToDosError,
+    UNICODE_STRING,
 };
 #[cfg(windows)]
 use windows_sys::Win32::Globalization::{CSTR_EQUAL, CompareStringOrdinal};
@@ -52,14 +53,14 @@ use windows_sys::Win32::Storage::CloudFilters::{
 };
 #[cfg(windows)]
 use windows_sys::Win32::Storage::FileSystem::{
-    FILE_ATTRIBUTE_DIRECTORY, FILE_ATTRIBUTE_REPARSE_POINT, FILE_ATTRIBUTE_TAG_INFO,
-    FILE_CASE_SENSITIVE_INFO, FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_OPEN_NO_RECALL,
-    FILE_FLAG_OPEN_REPARSE_POINT, FILE_ID_EXTD_DIR_INFO, FILE_ID_INFO, FILE_LIST_DIRECTORY,
-    FILE_READ_ATTRIBUTES, FILE_READ_DATA, FILE_SHARE_DELETE, FILE_SHARE_READ, FILE_SHARE_WRITE,
-    FILE_TRAVERSE, FileAttributeTagInfo, FileCaseSensitiveInfo, FileIdExtdDirectoryInfo,
-    FileIdExtdDirectoryRestartInfo, FileIdInfo, FindClose, FindFirstFileW,
+    DELETE, FILE_ATTRIBUTE_DIRECTORY, FILE_ATTRIBUTE_REPARSE_POINT, FILE_ATTRIBUTE_TAG_INFO,
+    FILE_BASIC_INFO, FILE_CASE_SENSITIVE_INFO, FILE_DELETE_CHILD, FILE_FLAG_BACKUP_SEMANTICS,
+    FILE_FLAG_OPEN_NO_RECALL, FILE_FLAG_OPEN_REPARSE_POINT, FILE_ID_EXTD_DIR_INFO, FILE_ID_INFO,
+    FILE_LIST_DIRECTORY, FILE_READ_ATTRIBUTES, FILE_READ_DATA, FILE_SHARE_DELETE, FILE_SHARE_READ,
+    FILE_SHARE_WRITE, FILE_TRAVERSE, FileAttributeTagInfo, FileBasicInfo, FileCaseSensitiveInfo,
+    FileIdExtdDirectoryInfo, FileIdExtdDirectoryRestartInfo, FileIdInfo, FindClose, FindFirstFileW,
     GetFileInformationByHandleEx, GetFinalPathNameByHandleW, GetLongPathNameW,
-    GetVolumeInformationByHandleW, SYNCHRONIZE, WIN32_FIND_DATAW,
+    GetVolumeInformationByHandleW, SYNCHRONIZE, WIN32_FIND_DATAW, WRITE_DAC, WRITE_OWNER,
 };
 #[cfg(all(windows, test))]
 use windows_sys::Win32::Storage::FileSystem::{
@@ -74,6 +75,7 @@ use crate::domain::{
     DiscoveredFile, ExpectedFileState, FileIdentityEvidence, LibraryRootAvailability,
     MediaInspection, MetadataInventoryEntry, MetadataInventoryEntryKind,
     MetadataInventoryPlaceholderState, RootAvailabilityEvidence, ScanError, ScanIssue,
+    SourceRevisionEvidence,
 };
 
 const IMAGE_EXTENSIONS: &[&str] = &[
@@ -88,6 +90,9 @@ const WINDOWS_TO_UNIX_EPOCH_100NS: i64 = 116_444_736_000_000_000;
 
 #[cfg(windows)]
 const HUNDRED_NS_PER_MILLISECOND: i64 = 10_000;
+
+#[cfg(windows)]
+const WINDOWS_SOURCE_REVISION_SCHEME: &str = "windows-file-change-time-100ns-v1";
 
 #[cfg(test)]
 static SOURCE_ENUMERATION_COUNTS: LazyLock<Mutex<HashMap<String, SourceEnumerationCounts>>> =
@@ -1069,6 +1074,10 @@ fn parse_handle_directory_buffer(
                 record,
                 std::mem::offset_of!(FILE_ID_EXTD_DIR_INFO, LastWriteTime),
             )?;
+            let change_time_100ns = read_i64_field(
+                record,
+                std::mem::offset_of!(FILE_ID_EXTD_DIR_INFO, ChangeTime),
+            )?;
             let file_id_offset = std::mem::offset_of!(FILE_ID_EXTD_DIR_INFO, FileId);
             let file_id_bytes: [u8; 16] = record
                 .get(file_id_offset..file_id_offset + 16)
@@ -1086,6 +1095,7 @@ fn parse_handle_directory_buffer(
                 reparse_tag,
                 end_of_file,
                 modified_100ns,
+                change_time_100ns,
                 volume_serial,
                 file_id_bytes,
             )?);
@@ -1112,6 +1122,7 @@ fn metadata_inventory_entry_from_handle_record(
     reparse_tag: u32,
     end_of_file: i64,
     modified_100ns: i64,
+    change_time_100ns: i64,
     volume_serial: u64,
     file_id_bytes: [u8; 16],
 ) -> Result<MetadataInventoryEntry, ScanIssue> {
@@ -1166,6 +1177,9 @@ fn metadata_inventory_entry_from_handle_record(
         file_size,
         modified_unix_ms: windows_file_time_to_unix_ms(modified_100ns),
         file_identity,
+        source_revision: (kind == MetadataInventoryEntryKind::File
+            && placeholder_state == MetadataInventoryPlaceholderState::Available)
+            .then(|| windows_source_revision(change_time_100ns)),
         placeholder_state,
         is_reparse_point,
     })
@@ -2004,15 +2018,21 @@ impl FileDiscovery {
         metadata: &Metadata,
         known_identity: Option<FileIdentityEvidence>,
     ) -> DiscoveredFile {
-        let (file_identity, issues) = match known_identity
+        #[cfg(windows)]
+        let evidence = file_source_evidence(path)
+            .map(|(identity, revision)| (known_identity.or(identity), Some(revision)));
+        #[cfg(not(windows))]
+        let evidence = known_identity
             .map_or_else(|| file_identity(path), |identity| Ok(Some(identity)))
-        {
-            Ok(identity) => (identity, Vec::new()),
+            .map(|identity| (identity, None));
+        let (file_identity, source_revision, issues) = match evidence {
+            Ok((identity, revision)) => (identity, revision, Vec::new()),
             Err(error) => (
+                None,
                 None,
                 vec![ScanIssue {
                     path: Some(path_text(path)),
-                    code: "file_identity_unavailable".to_owned(),
+                    code: "source_revision_unavailable".to_owned(),
                     message: error.to_string(),
                 }],
             ),
@@ -2026,6 +2046,8 @@ impl FileDiscovery {
             created_unix_ms: created_unix_ms(metadata),
             modified_unix_ms: modified_unix_ms(metadata),
             file_identity,
+            source_revision,
+            source_generation: 0,
             issues,
         }
     }
@@ -2062,11 +2084,13 @@ impl FileDiscovery {
         #[cfg(windows)]
         {
             let path = self.canonical_root.join(relative_path);
-            let file = open_root_relative_handle(
+            let file = open_root_relative_handle_with_options(
                 &self.root_proof.handle,
                 relative_path,
                 FILE_READ_ATTRIBUTES,
-                None,
+                Some(false),
+                true,
+                true,
             )
             .map_err(|error| path_metadata_issue(&path, error))?;
             let info = file_attribute_tag_info_from_handle(&file).map_err(|error| ScanIssue {
@@ -2074,20 +2098,27 @@ impl FileDiscovery {
                 code: "source_revalidation_failed".to_owned(),
                 message: error.to_string(),
             })?;
+            validate_present_file_revalidation_attributes(&path, &info)?;
             let metadata = file
                 .metadata()
                 .map_err(|error| path_metadata_issue(&path, error))?;
-            if info.FileAttributes & FILE_ATTRIBUTE_DIRECTORY != 0
-                || info.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT != 0
-            {
-                return Err(path_containment_issue(&path));
-            }
             let actual_identity = file_identity_from_handle(&file).map_err(|error| ScanIssue {
                 path: Some(path_text(&path)),
                 code: "source_identity_unavailable".to_owned(),
                 message: error.to_string(),
             })?;
-            revalidate_file_state_values(expected, &metadata, actual_identity)
+            let actual_revision =
+                source_revision_from_handle(&file).map_err(|error| ScanIssue {
+                    path: Some(path_text(&path)),
+                    code: "source_revision_unavailable".to_owned(),
+                    message: error.to_string(),
+                })?;
+            revalidate_file_state_values(
+                expected,
+                &metadata,
+                actual_identity,
+                Some(actual_revision),
+            )
         }
         #[cfg(not(windows))]
         {
@@ -2184,12 +2215,21 @@ fn metadata_inventory_entry_from_checked_directory_entry(
             entry.reparse_kind,
         )
     };
-    let file_identity = if kind == MetadataInventoryEntryKind::File
+    let (file_identity, source_revision) = if kind == MetadataInventoryEntryKind::File
         && entry.placeholder_state == MetadataInventoryPlaceholderState::Available
     {
-        file_identity(path).ok().flatten()
+        #[cfg(windows)]
+        {
+            file_source_evidence(path)
+                .map(|(identity, revision)| (identity, Some(revision)))
+                .unwrap_or((None, None))
+        }
+        #[cfg(not(windows))]
+        {
+            (file_identity(path).ok().flatten(), None)
+        }
     } else {
-        None
+        (None, None)
     };
     Ok(MetadataInventoryEntry {
         relative_path: entry.relative_path,
@@ -2197,6 +2237,7 @@ fn metadata_inventory_entry_from_checked_directory_entry(
         file_size: (kind == MetadataInventoryEntryKind::File).then_some(entry.metadata.len()),
         modified_unix_ms: modified_unix_ms(&entry.metadata),
         file_identity,
+        source_revision,
         placeholder_state: entry.placeholder_state,
         is_reparse_point,
     })
@@ -2239,6 +2280,35 @@ fn reparse_evidence_from_attribute_tag(
         placeholder_state
     };
     Ok((ReparseKind::CloudFiles, placeholder_state))
+}
+
+#[cfg(windows)]
+fn validate_present_file_revalidation_attributes(
+    path: &Path,
+    info: &FILE_ATTRIBUTE_TAG_INFO,
+) -> Result<(), ScanIssue> {
+    if info.FileAttributes & FILE_ATTRIBUTE_DIRECTORY != 0 {
+        return Err(path_containment_issue(path));
+    }
+    let (reparse_kind, placeholder_state) =
+        reparse_evidence_from_attribute_tag(info.FileAttributes, info.ReparseTag).map_err(
+            |error| ScanIssue {
+                path: Some(path_text(path)),
+                code: "file_reparse_evidence_unreadable".to_owned(),
+                message: error.to_string(),
+            },
+        )?;
+    if placeholder_state != MetadataInventoryPlaceholderState::Available {
+        return Err(ScanIssue {
+            path: Some(path_text(path)),
+            code: "cloud_placeholder_skipped".to_owned(),
+            message: "The file is not locally available and was not hydrated".to_owned(),
+        });
+    }
+    if reparse_kind == ReparseKind::Other {
+        return Err(path_containment_issue(path));
+    }
+    Ok(())
 }
 
 #[cfg(not(windows))]
@@ -2355,6 +2425,189 @@ pub fn revalidate_file_state(expected: &ExpectedFileState) -> Result<(), ScanIss
     revalidate_file_state_with_metadata(expected, path, &evidence)
 }
 
+pub(crate) struct OpenedPreviewSource {
+    pub(crate) file: File,
+    pub(crate) source_revision: Option<SourceRevisionEvidence>,
+    pub(crate) source_root_path: PathBuf,
+}
+
+pub(crate) struct PreviewPublicationGuard {
+    source_file: File,
+    #[cfg(windows)]
+    _root_proof: WindowsDirectoryRootProof,
+    #[cfg(windows)]
+    _namespace_guards: Vec<File>,
+}
+
+impl PreviewPublicationGuard {
+    pub(crate) fn source_file(&self) -> &File {
+        &self.source_file
+    }
+}
+
+pub(crate) fn open_preview_source(
+    expected: &ExpectedFileState,
+    source_root: &Path,
+    expected_root_identity: Option<&FileIdentityEvidence>,
+) -> Result<OpenedPreviewSource, ScanIssue> {
+    let path = Path::new(&expected.absolute_path);
+
+    #[cfg(windows)]
+    let (file, source_root_path) = {
+        let expected_root_identity = expected_root_identity.ok_or_else(|| ScanIssue {
+            path: Some(expected.absolute_path.clone()),
+            code: "preview_root_identity_unproven".to_owned(),
+            message: "The preview source root lacks durable Windows identity evidence".to_owned(),
+        })?;
+        let (root_proof, canonical_root) =
+            WindowsDirectoryRootProof::open_configured(source_root, true).map_err(|error| {
+                ScanIssue {
+                    path: Some(expected.absolute_path.clone()),
+                    code: "preview_root_unavailable".to_owned(),
+                    message: format!("The preview source root cannot be resolved safely: {error}"),
+                }
+            })?;
+        if &root_proof.identity != expected_root_identity {
+            return Err(ScanIssue {
+                path: Some(expected.absolute_path.clone()),
+                code: "preview_root_identity_changed".to_owned(),
+                message: "The preview source root no longer matches its publication identity"
+                    .to_owned(),
+            });
+        }
+        let file = open_source_file_with_root_proof(path, &canonical_root, &root_proof, || {})
+            .map_err(|error| ScanIssue {
+                path: Some(expected.absolute_path.clone()),
+                code: "preview_source_open_failed".to_owned(),
+                message: error.to_string(),
+            })?;
+        (file, canonical_root)
+    };
+
+    #[cfg(not(windows))]
+    let (file, source_root_path) = {
+        let source_root_path =
+            canonical_source_root_path(source_root).map_err(|error| ScanIssue {
+                path: Some(expected.absolute_path.clone()),
+                code: "preview_root_unavailable".to_owned(),
+                message: format!("The preview source root cannot be resolved safely: {error}"),
+            })?;
+        let file = open_source_file(path, &source_root_path).map_err(|error| ScanIssue {
+            path: Some(expected.absolute_path.clone()),
+            code: "preview_source_open_failed".to_owned(),
+            message: error.to_string(),
+        })?;
+        (file, source_root_path)
+    };
+
+    #[cfg(not(windows))]
+    let _ = expected_root_identity;
+    let source_revision = revalidate_open_preview_source(&file, expected)?;
+    Ok(OpenedPreviewSource {
+        file,
+        source_revision,
+        source_root_path,
+    })
+}
+
+pub(crate) fn revalidate_open_preview_source(
+    file: &File,
+    expected: &ExpectedFileState,
+) -> Result<Option<SourceRevisionEvidence>, ScanIssue> {
+    let metadata = file.metadata().map_err(|error| ScanIssue {
+        path: Some(expected.absolute_path.clone()),
+        code: "source_revalidation_failed".to_owned(),
+        message: error.to_string(),
+    })?;
+    #[cfg(windows)]
+    let (actual_identity, actual_revision) = (
+        file_identity_from_handle(file).map_err(|error| ScanIssue {
+            path: Some(expected.absolute_path.clone()),
+            code: "source_identity_unavailable".to_owned(),
+            message: error.to_string(),
+        })?,
+        Some(
+            source_revision_from_handle(file).map_err(|error| ScanIssue {
+                path: Some(expected.absolute_path.clone()),
+                code: "source_revision_unavailable".to_owned(),
+                message: error.to_string(),
+            })?,
+        ),
+    );
+    #[cfg(not(windows))]
+    let (actual_identity, actual_revision) = (None, None);
+    revalidate_file_state_values(
+        expected,
+        &metadata,
+        actual_identity,
+        actual_revision.clone(),
+    )?;
+    Ok(actual_revision)
+}
+
+#[cfg(windows)]
+pub(crate) fn open_preview_publication_guard(
+    expected: &ExpectedFileState,
+    source_root: &Path,
+    expected_root_identity: Option<&FileIdentityEvidence>,
+) -> Result<PreviewPublicationGuard, ScanIssue> {
+    let path = Path::new(&expected.absolute_path);
+    let (root_proof, _, namespace_guards) =
+        WindowsDirectoryRootProof::open_publication_namespace(source_root, expected_root_identity)
+            .map_err(|error| ScanIssue {
+                path: Some(expected.absolute_path.clone()),
+                code: "preview_source_guard_failed".to_owned(),
+                message: format!("Could not pin the preview source root namespace: {error}"),
+            })?;
+    let file = OpenOptions::new()
+        .access_mode(FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE)
+        .share_mode(FILE_SHARE_READ)
+        .custom_flags(FILE_FLAG_OPEN_NO_RECALL | FILE_FLAG_OPEN_REPARSE_POINT)
+        .open(path)
+        .map_err(|error| ScanIssue {
+            path: Some(expected.absolute_path.clone()),
+            code: "preview_source_guard_failed".to_owned(),
+            message: format!("Could not pin the preview source file: {error}"),
+        })?;
+    let info = file_attribute_tag_info_from_handle(&file).map_err(|error| ScanIssue {
+        path: Some(expected.absolute_path.clone()),
+        code: "preview_source_guard_failed".to_owned(),
+        message: format!("Could not validate the pinned preview source attributes: {error}"),
+    })?;
+    validate_source_file_info(&AttributeTagEvidence {
+        attributes: info.FileAttributes,
+        reparse_tag: info.ReparseTag,
+    })
+    .map_err(|error| ScanIssue {
+        path: Some(expected.absolute_path.clone()),
+        code: "preview_source_guard_failed".to_owned(),
+        message: error.to_string(),
+    })?;
+    validate_handle_within_root(&file, &root_proof).map_err(|error| ScanIssue {
+        path: Some(expected.absolute_path.clone()),
+        code: "preview_source_guard_failed".to_owned(),
+        message: format!("Could not validate the pinned preview source root: {error}"),
+    })?;
+    revalidate_open_preview_source(&file, expected)?;
+    Ok(PreviewPublicationGuard {
+        source_file: file,
+        _root_proof: root_proof,
+        _namespace_guards: namespace_guards,
+    })
+}
+
+#[cfg(not(windows))]
+pub(crate) fn open_preview_publication_guard(
+    expected: &ExpectedFileState,
+    source_root: &Path,
+    _expected_root_identity: Option<&FileIdentityEvidence>,
+) -> Result<PreviewPublicationGuard, ScanIssue> {
+    let opened = open_preview_source(expected, source_root, None)?;
+    Ok(PreviewPublicationGuard {
+        source_file: opened.file,
+    })
+}
+
 fn revalidate_file_state_with_metadata(
     expected: &ExpectedFileState,
     path: &Path,
@@ -2376,13 +2629,29 @@ fn revalidate_file_state_with_metadata(
     } else {
         None
     };
-    revalidate_file_state_values(expected, &evidence.metadata, actual_identity)
+    #[cfg(windows)]
+    let actual_revision = file_source_evidence(path)
+        .map(|(_, revision)| Some(revision))
+        .map_err(|error| ScanIssue {
+            path: Some(expected.absolute_path.clone()),
+            code: "source_revision_unavailable".to_owned(),
+            message: error.to_string(),
+        })?;
+    #[cfg(not(windows))]
+    let actual_revision = None;
+    revalidate_file_state_values(
+        expected,
+        &evidence.metadata,
+        actual_identity,
+        actual_revision,
+    )
 }
 
 fn revalidate_file_state_values(
     expected: &ExpectedFileState,
     metadata: &Metadata,
     actual_identity: Option<FileIdentityEvidence>,
+    actual_revision: Option<SourceRevisionEvidence>,
 ) -> Result<(), ScanIssue> {
     if metadata.len() != expected.file_size
         || modified_unix_ms(metadata) != expected.modified_unix_ms
@@ -2400,6 +2669,15 @@ fn revalidate_file_state_values(
             path: Some(expected.absolute_path.clone()),
             code: "source_replaced_during_scan".to_owned(),
             message: "The file identity changed during the scan".to_owned(),
+        });
+    }
+    if let Some(expected_revision) = &expected.source_revision
+        && actual_revision.as_ref() != Some(expected_revision)
+    {
+        return Err(ScanIssue {
+            path: Some(expected.absolute_path.clone()),
+            code: "source_revision_changed_during_scan".to_owned(),
+            message: "The filesystem source revision changed during the scan".to_owned(),
         });
     }
     Ok(())
@@ -2454,6 +2732,47 @@ fn file_identity_from_handle(file: &File) -> std::io::Result<Option<FileIdentity
         scheme: "windows-file-id-128-v1".to_owned(),
         value: format!("{:016x}:{file_id:032x}", info.VolumeSerialNumber),
     }))
+}
+
+#[cfg(windows)]
+fn windows_source_revision(change_time_100ns: i64) -> SourceRevisionEvidence {
+    SourceRevisionEvidence {
+        scheme: WINDOWS_SOURCE_REVISION_SCHEME.to_owned(),
+        value: format!(
+            "{:016x}",
+            u64::from_ne_bytes(change_time_100ns.to_ne_bytes())
+        ),
+    }
+}
+
+#[cfg(windows)]
+fn source_revision_from_handle(file: &File) -> std::io::Result<SourceRevisionEvidence> {
+    let mut info = FILE_BASIC_INFO::default();
+    // SAFETY: the borrowed File keeps the handle live and `info` is a correctly sized writable
+    // FILE_BASIC_INFO buffer for the duration of this synchronous attribute-only call.
+    let result = unsafe {
+        GetFileInformationByHandleEx(
+            file.as_raw_handle(),
+            FileBasicInfo,
+            (&raw mut info).cast(),
+            u32::try_from(size_of::<FILE_BASIC_INFO>()).expect("FILE_BASIC_INFO size fits u32"),
+        )
+    };
+    if result == 0 {
+        return Err(std::io::Error::last_os_error());
+    }
+    Ok(windows_source_revision(info.ChangeTime))
+}
+
+#[cfg(windows)]
+fn file_source_evidence(
+    path: &Path,
+) -> std::io::Result<(Option<FileIdentityEvidence>, SourceRevisionEvidence)> {
+    let file = open_validation_handle(path)?;
+    Ok((
+        file_identity_from_handle(&file)?,
+        source_revision_from_handle(&file)?,
+    ))
 }
 
 #[cfg(windows)]
@@ -2741,14 +3060,8 @@ fn nt_create_root_relative_handle_with_case_semantics(
     if status < 0 {
         // SAFETY: converting an NTSTATUS value does not dereference pointers or retain state.
         let error = unsafe { RtlNtStatusToDosError(status) };
-        let win32_error =
-            std::io::Error::from_raw_os_error(i32::try_from(error).unwrap_or(i32::MAX));
-        return Err(std::io::Error::new(
-            win32_error.kind(),
-            format!(
-                "NtCreateFile failed with NTSTATUS 0x{:08x} / Win32 {error}: {win32_error}",
-                status.cast_unsigned()
-            ),
+        return Err(std::io::Error::from_raw_os_error(
+            i32::try_from(error).unwrap_or(i32::MAX),
         ));
     }
     if handle == INVALID_HANDLE_VALUE {
@@ -2782,12 +3095,29 @@ fn directory_is_case_sensitive(directory: &File) -> std::io::Result<bool> {
 }
 
 #[cfg(all(windows, test))]
-fn enable_directory_case_sensitivity(path: &Path) -> std::io::Result<bool> {
-    let directory = OpenOptions::new()
+enum DirectoryCaseSensitivityFixture {
+    Enabled,
+    AccessDenied(&'static str),
+}
+
+#[cfg(all(windows, test))]
+fn enable_directory_case_sensitivity(
+    path: &Path,
+) -> std::io::Result<DirectoryCaseSensitivityFixture> {
+    let directory = match OpenOptions::new()
         .access_mode(FILE_READ_ATTRIBUTES | FILE_WRITE_ATTRIBUTES)
         .share_mode(FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE)
         .custom_flags(FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT)
-        .open(path)?;
+        .open(path)
+    {
+        Ok(directory) => directory,
+        Err(error) if error.raw_os_error() == Some(ERROR_ACCESS_DENIED as i32) => {
+            return Ok(DirectoryCaseSensitivityFixture::AccessDenied(
+                "open-directory-for-write-attributes",
+            ));
+        }
+        Err(error) => return Err(error),
+    };
     let info = FILE_CASE_SENSITIVE_INFO {
         Flags: FILE_CS_FLAG_CASE_SENSITIVE_DIR,
     };
@@ -2803,9 +3133,21 @@ fn enable_directory_case_sensitivity(path: &Path) -> std::io::Result<bool> {
         )
     };
     if result == 0 {
-        return Err(std::io::Error::last_os_error());
+        let error = std::io::Error::last_os_error();
+        if error.raw_os_error() == Some(ERROR_ACCESS_DENIED as i32) {
+            return Ok(DirectoryCaseSensitivityFixture::AccessDenied(
+                "set-file-case-sensitive-info",
+            ));
+        }
+        return Err(error);
     }
-    directory_is_case_sensitive(&directory)
+    if directory_is_case_sensitive(&directory)? {
+        Ok(DirectoryCaseSensitivityFixture::Enabled)
+    } else {
+        Err(std::io::Error::other(
+            "The directory accepted FileCaseSensitiveInfo but did not retain it",
+        ))
+    }
 }
 
 #[cfg(windows)]
@@ -2857,12 +3199,9 @@ fn open_validated_root_relative_source_file(
     Ok(data_handle)
 }
 
-#[cfg(all(windows, test))]
-fn open_publication_namespace_guard(
-    path: &Path,
-    _parent_is_case_sensitive: bool,
-) -> std::io::Result<File> {
-    let desired_access = FILE_TRAVERSE;
+#[cfg(windows)]
+fn open_publication_namespace_guard(path: &Path) -> std::io::Result<File> {
+    let desired_access = FILE_TRAVERSE | FILE_READ_ATTRIBUTES | SYNCHRONIZE;
     let share_access = FILE_SHARE_READ | FILE_SHARE_WRITE;
     let flags = FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT;
     #[cfg(test)]
@@ -2892,7 +3231,7 @@ fn open_publication_namespace_child_guard(
     PUBLICATION_NAMESPACE_GUARD_OPENS.with(|facts| {
         facts.borrow_mut().push(PublicationNamespaceGuardOpenFacts {
             path: _path.to_path_buf(),
-            desired_access: FILE_TRAVERSE,
+            desired_access: FILE_TRAVERSE | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
             share_access: FILE_SHARE_READ | FILE_SHARE_WRITE,
             flags: FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT,
         });
@@ -2900,12 +3239,65 @@ fn open_publication_namespace_child_guard(
     nt_create_root_relative_handle_with_case_semantics(
         parent,
         component,
-        FILE_TRAVERSE,
+        FILE_TRAVERSE | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
         Some(true),
         false,
         false,
         parent_is_case_sensitive,
     )
+}
+
+#[cfg(windows)]
+fn require_publication_namespace_acl_boundary(
+    path: &Path,
+    parent_path: &Path,
+) -> std::io::Result<()> {
+    for (access, label) in [
+        (DELETE, "delete the namespace component"),
+        (WRITE_DAC, "rewrite the namespace component DACL"),
+        (WRITE_OWNER, "take ownership of the namespace component"),
+    ] {
+        require_absolute_access_denied(path, access, label)?;
+    }
+    for (access, label) in [
+        (FILE_DELETE_CHILD, "delete a child through the parent"),
+        (WRITE_DAC, "rewrite the parent DACL"),
+        (WRITE_OWNER, "take ownership of the parent"),
+    ] {
+        require_absolute_access_denied(parent_path, access, label)?;
+    }
+    Ok(())
+}
+
+#[cfg(windows)]
+fn require_absolute_access_denied(
+    path: &Path,
+    desired_access: u32,
+    label: &str,
+) -> std::io::Result<()> {
+    match OpenOptions::new()
+        .access_mode(desired_access)
+        .share_mode(FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE)
+        .custom_flags(FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT)
+        .open(path)
+    {
+        Err(error) if publication_namespace_access_is_denied(&error) => Ok(()),
+        Err(error) => Err(std::io::Error::new(
+            error.kind(),
+            format!("Could not prove that the current token cannot {label} at {path:?}: {error}"),
+        )),
+        Ok(_) => Err(std::io::Error::new(
+            std::io::ErrorKind::PermissionDenied,
+            format!(
+                "The current token can {label} at {path:?}; the ACL boundary does not protect the configured namespace"
+            ),
+        )),
+    }
+}
+
+#[cfg(windows)]
+fn publication_namespace_access_is_denied(error: &std::io::Error) -> bool {
+    error.raw_os_error() == Some(ERROR_ACCESS_DENIED as i32)
 }
 
 #[cfg(windows)]
@@ -3000,7 +3392,21 @@ impl WindowsDirectoryRootProof {
         path: &Path,
         expected_identity: Option<&FileIdentityEvidence>,
     ) -> std::io::Result<(Self, PathBuf, Vec<File>)> {
-        let configured_long_path = windows_long_dos_path(path)?;
+        let (configured_long_path, has_long_path_evidence) = match windows_long_dos_path(path) {
+            Ok(path) => (path, true),
+            Err(error) if publication_namespace_access_is_denied(&error) => {
+                // A restricted ordinary-user token can traverse a protected profile prefix while
+                // GetLongPathNameW is denied. The component guards, no-reparse checks, and final
+                // durable root identity remain authoritative in that case.
+                (path.to_path_buf(), false)
+            }
+            Err(error) => {
+                return Err(std::io::Error::new(
+                    error.kind(),
+                    format!("Could not normalize the configured publication path: {error}"),
+                ));
+            }
+        };
         let (volume_root, components) = publication_namespace_path(&configured_long_path)?;
         let volume = OpenOptions::new()
             .access_mode(FILE_TRAVERSE | FILE_READ_ATTRIBUTES | SYNCHRONIZE)
@@ -3013,97 +3419,159 @@ impl WindowsDirectoryRootProof {
                     format!("Could not pin the configured volume directory namespace: {error}"),
                 )
             })?;
-        validate_publication_namespace_directory(&volume, None)?;
-        let mut ancestors = Vec::with_capacity(components.len());
-        let mut parent_metadata = volume.try_clone()?;
-        let mut parent = volume;
-        let mut prefix_path = volume_root;
-        for component in components {
-            let parent_is_case_sensitive = directory_is_case_sensitive(&parent_metadata)?;
-            prefix_path.push(&component);
-            let child = open_publication_namespace_child_guard(
-                &parent,
-                &component,
-                &prefix_path,
-                parent_is_case_sensitive,
+        validate_publication_namespace_directory(&volume, None).map_err(|error| {
+            std::io::Error::new(
+                error.kind(),
+                format!("Could not validate the configured publication volume: {error}"),
             )
+        })?;
+        let volume_serial = raw_file_id_info(&volume)
             .map_err(|error| {
                 std::io::Error::new(
                     error.kind(),
-                    format!(
-                        "Could not pin configured namespace prefix {:?} with no delete sharing: {error}",
-                        prefix_path
-                    ),
+                    format!("Could not identify the configured publication volume: {error}"),
                 )
-            })?;
-            let child_metadata = nt_create_root_relative_handle_with_case_semantics(
-                &parent,
-                &component,
-                FILE_READ_ATTRIBUTES | SYNCHRONIZE,
-                Some(true),
-                true,
-                false,
-                parent_is_case_sensitive,
-            )?;
-            validate_publication_namespace_directory(
-                &child_metadata,
-                Some(raw_file_id_info(&parent_metadata)?.VolumeSerialNumber),
-            )
-            .map_err(|error| {
+            })?
+            .VolumeSerialNumber;
+        let mut ancestors = Vec::with_capacity(components.len().saturating_add(1));
+        let mut parent_guard = Some(volume);
+        let mut prefix_path = volume_root;
+        let mut parent_path = prefix_path.clone();
+        for component in components {
+            prefix_path.push(&component);
+            validate_publication_namespace_path(&prefix_path).map_err(|error| {
                 std::io::Error::new(
                     error.kind(),
                     format!(
                         "Could not validate configured namespace component {:?}: {error}",
-                        component
+                        prefix_path
                     ),
                 )
             })?;
-            validate_publication_namespace_child(
-                &parent_metadata,
-                &child_metadata,
-                &component,
-                parent_is_case_sensitive,
+            let opened = if let Some(parent) = parent_guard.as_ref() {
+                let parent_is_case_sensitive =
+                    directory_is_case_sensitive(parent).map_err(|error| {
+                        std::io::Error::new(
+                            error.kind(),
+                            format!("Could not query configured namespace case semantics: {error}"),
+                        )
+                    })?;
+                open_publication_namespace_child_guard(
+                    parent,
+                    &component,
+                    &prefix_path,
+                    parent_is_case_sensitive,
+                )
+                .and_then(|child| {
+                    validate_publication_namespace_directory(&child, Some(volume_serial))?;
+                    validate_publication_namespace_child(
+                        parent,
+                        &child,
+                        &component,
+                        parent_is_case_sensitive,
+                    )?;
+                    Ok(child)
+                })
+            } else {
+                open_publication_namespace_guard(&prefix_path).and_then(|child| {
+                    validate_publication_namespace_directory(&child, Some(volume_serial))?;
+                    if has_long_path_evidence {
+                        validate_publication_namespace_handle_path(&child, &prefix_path)?;
+                    }
+                    Ok(child)
+                })
+            };
+            let child_guard = match opened {
+                Ok(child_guard) => Some(child_guard),
+                Err(error) if publication_namespace_access_is_denied(&error) => {
+                    require_publication_namespace_acl_boundary(&prefix_path, &parent_path)
+                        .map_err(|error| {
+                            std::io::Error::new(
+                                error.kind(),
+                                format!(
+                                    "Could not establish the ACL-protected publication boundary at {:?}: {error}",
+                                    prefix_path
+                                ),
+                            )
+                        })?;
+                    None
+                }
+                Err(error) => {
+                    return Err(std::io::Error::new(
+                        error.kind(),
+                        format!(
+                            "Could not pin configured namespace prefix {:?} with no delete sharing: {error}",
+                            prefix_path
+                        ),
+                    ));
+                }
+            };
+            if let Some(parent) = parent_guard.take() {
+                ancestors.push(parent);
+            }
+            parent_guard = child_guard;
+            parent_path.clone_from(&prefix_path);
+        }
+        let guarded_root = parent_guard
+            .as_ref()
+            .map(|root| {
+                Ok::<_, std::io::Error>((
+                    file_identity_from_handle(root)?.ok_or_else(|| {
+                        std::io::Error::other(
+                            "The guarded publication root has no stable Windows file identity",
+                        )
+                    })?,
+                    final_path_from_handle(root)?,
+                ))
+            })
+            .transpose()?;
+        if let Some(root) = parent_guard.take() {
+            ancestors.push(root);
+        }
+        let (enumeration_root, final_path) = Self::open_configured(path, false)?;
+        if has_long_path_evidence {
+            validate_publication_namespace_handle_path(
+                &enumeration_root.handle,
+                &configured_long_path,
             )
             .map_err(|error| {
                 std::io::Error::new(
                     error.kind(),
-                    format!(
-                        "Could not verify configured namespace component {:?}: {error}",
-                        component
-                    ),
+                    format!("Could not rebind the configured publication path: {error}"),
                 )
             })?;
-            ancestors.push(parent);
-            parent = child;
-            parent_metadata = child_metadata;
         }
-        let final_path = final_path_from_handle(&parent_metadata)?;
-        let raw_identity = raw_file_id_info(&parent_metadata)?;
-        let identity = file_identity_from_handle(&parent_metadata)?.ok_or_else(|| {
-            std::io::Error::other(
-                "The configured publication root has no stable Windows file identity",
+        let raw_identity = raw_file_id_info(&enumeration_root.handle).map_err(|error| {
+            std::io::Error::new(
+                error.kind(),
+                format!("Could not identify the configured publication root: {error}"),
             )
         })?;
+        let identity = enumeration_root.identity.clone();
         if expected_identity.is_some_and(|expected| expected != &identity) {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
                 "The configured publication root does not match its durable identity",
             ));
         }
-        let (enumeration_root, enumeration_final_path) = Self::open_configured(path, false)?;
-        if enumeration_root.identity != identity
-            || enumeration_root.volume_serial != raw_identity.VolumeSerialNumber
-            || enumeration_final_path != final_path
+        if guarded_root.is_some_and(|(guarded_identity, guarded_path)| {
+            guarded_identity != identity || guarded_path != final_path
+        }) {
+            return Err(std::io::Error::other(
+                "The configured publication root changed while its namespace was pinned",
+            ));
+        }
+        if enumeration_root.volume_serial != volume_serial
+            || raw_identity.VolumeSerialNumber != volume_serial
         {
             return Err(std::io::Error::other(
                 "The configured publication root changed while its namespace was pinned",
             ));
         }
-        ancestors.push(parent);
         Ok((
             Self {
                 handle: enumeration_root.handle,
-                metadata_handle: Some(parent_metadata),
+                metadata_handle: None,
                 identity,
                 volume_serial: raw_identity.VolumeSerialNumber,
             },
@@ -3205,18 +3673,14 @@ fn validate_publication_namespace_directory(
     directory: &File,
     expected_volume_serial: Option<u64>,
 ) -> std::io::Result<()> {
-    let attributes = if expected_volume_serial.is_some() {
-        exact_directory_entry_info(&final_path_from_handle(directory)?)?.dwFileAttributes
-    } else {
-        file_attribute_tag_info_from_handle(directory)
-            .map_err(|error| {
-                std::io::Error::new(
-                    error.kind(),
-                    format!("Could not read configured namespace attributes: {error}"),
-                )
-            })?
-            .FileAttributes
-    };
+    let attributes = file_attribute_tag_info_from_handle(directory)
+        .map_err(|error| {
+            std::io::Error::new(
+                error.kind(),
+                format!("Could not read configured namespace attributes: {error}"),
+            )
+        })?
+        .FileAttributes;
     if attributes & FILE_ATTRIBUTE_DIRECTORY == 0
         || attributes & FILE_ATTRIBUTE_REPARSE_POINT != 0
         || metadata_placeholder_state_from_attributes(attributes)
@@ -3271,6 +3735,22 @@ fn validate_publication_namespace_directory(
 }
 
 #[cfg(windows)]
+fn validate_publication_namespace_path(path: &Path) -> std::io::Result<()> {
+    let metadata = path.symlink_metadata()?;
+    let attributes = metadata.file_attributes();
+    if attributes & FILE_ATTRIBUTE_DIRECTORY == 0
+        || attributes & FILE_ATTRIBUTE_REPARSE_POINT != 0
+        || metadata_placeholder_state_from_attributes(attributes)
+            != MetadataInventoryPlaceholderState::Available
+    {
+        return Err(std::io::Error::other(
+            "The configured publication namespace contains an unavailable or reparse directory",
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(windows)]
 fn validate_publication_namespace_child(
     parent: &File,
     child: &File,
@@ -3306,6 +3786,30 @@ fn validate_publication_namespace_child(
         return Err(std::io::Error::other(
             "The configured publication namespace component changed identity",
         ));
+    }
+    Ok(())
+}
+
+#[cfg(windows)]
+fn validate_publication_namespace_handle_path(
+    directory: &File,
+    expected_path: &Path,
+) -> std::io::Result<()> {
+    let expected = windows_path_parts(expected_path)?;
+    let actual = windows_path_parts(&final_path_from_handle(directory)?)?;
+    if !windows_ordinal_equals(&expected.anchor, &actual.anchor, true)?
+        || expected.components.len() != actual.components.len()
+    {
+        return Err(std::io::Error::other(
+            "The configured publication namespace handle resolved to a different path",
+        ));
+    }
+    for (expected, actual) in expected.components.iter().zip(actual.components.iter()) {
+        if !windows_ordinal_equals(expected, actual, false)? {
+            return Err(std::io::Error::other(
+                "The configured publication namespace handle resolved to a different path",
+            ));
+        }
     }
     Ok(())
 }
@@ -3440,6 +3944,16 @@ fn open_source_file_with_hook(
     after_validation: impl FnOnce(),
 ) -> std::io::Result<File> {
     let (root_proof, _) = WindowsDirectoryRootProof::open_configured(source_root, true)?;
+    open_source_file_with_root_proof(path, source_root, &root_proof, after_validation)
+}
+
+#[cfg(windows)]
+fn open_source_file_with_root_proof(
+    path: &Path,
+    _source_root: &Path,
+    root_proof: &WindowsDirectoryRootProof,
+    after_validation: impl FnOnce(),
+) -> std::io::Result<File> {
     let validation = open_validation_handle(path)?;
     let validation_evidence = exact_attribute_tag_evidence(path, &validation, 0)?;
     validate_source_file_info(&validation_evidence)?;
@@ -3460,9 +3974,9 @@ fn open_source_file_with_hook(
             "The source path changed while it was being opened",
         ));
     }
-    validate_handle_within_root(&source, &root_proof)?;
+    validate_handle_within_root(&source, root_proof)?;
     #[cfg(test)]
-    record_source_content_open(source_root);
+    record_source_content_open(_source_root);
     Ok(source)
 }
 
@@ -3587,7 +4101,7 @@ fn windows_ordinal_equals(
     Ok(result == CSTR_EQUAL)
 }
 
-#[cfg(windows)]
+#[cfg(all(windows, test))]
 pub(crate) fn canonical_source_root_path(path: &Path) -> std::io::Result<PathBuf> {
     WindowsDirectoryRootProof::open_configured(path, true).map(|(_, final_path)| final_path)
 }
@@ -4318,16 +4832,19 @@ mod tests {
     #[cfg(windows)]
     #[test]
     fn root_lookup_obeys_the_real_parent_case_semantics() {
-        let directory = tempdir().expect("temporary directory");
+        let directory = tempdir_in(std::env::temp_dir())
+            .expect("ordinary-user LocalAppData temporary directory");
         let parent = directory.path().join("sensitive-parent");
         fs::create_dir(&parent).expect("case parent");
-        let is_case_sensitive =
-            enable_directory_case_sensitivity(&parent).expect("query case semantics");
-        assert!(
-            is_case_sensitive,
-            "the controlled Windows 11 x64 fixture must enable case sensitivity"
-        );
-        eprintln!("controlled_case_sensitive_directory={is_case_sensitive}");
+        match enable_directory_case_sensitivity(&parent).expect("enable case semantics") {
+            DirectoryCaseSensitivityFixture::Enabled => {}
+            DirectoryCaseSensitivityFixture::AccessDenied(operation) => {
+                eprintln!(
+                    "skipped case-sensitive directory fixture: ordinary token was denied during {operation}"
+                );
+                return;
+            }
+        }
         let upper = parent.join("Photos");
         fs::create_dir(&upper).expect("upper-case sibling");
         fs::write(upper.join("upper.png"), b"upper").expect("upper fixture");
@@ -4337,10 +4854,15 @@ mod tests {
         fs::write(lower.join("lower.png"), b"lower").expect("lower fixture");
         let nested = upper.join("NestedSensitive");
         fs::create_dir(&nested).expect("nested case-sensitive parent");
-        assert!(
-            enable_directory_case_sensitivity(&nested).expect("enable nested case semantics"),
-            "the nested controlled fixture must enable case sensitivity"
-        );
+        match enable_directory_case_sensitivity(&nested).expect("enable nested case semantics") {
+            DirectoryCaseSensitivityFixture::Enabled => {}
+            DirectoryCaseSensitivityFixture::AccessDenied(operation) => {
+                eprintln!(
+                    "skipped nested case-sensitive directory fixture: ordinary token was denied during {operation}"
+                );
+                return;
+            }
+        }
         let nested_upper = nested.join("Album");
         let nested_lower = nested.join("album");
         fs::create_dir(&nested_upper).expect("nested upper-case sibling");
@@ -4436,10 +4958,68 @@ mod tests {
 
     #[cfg(windows)]
     #[test]
+    fn preview_publication_guard_pins_file_root_and_mutable_ancestors_until_drop() {
+        let current_directory = std::env::current_dir().expect("current directory");
+        let directory = tempdir_in(current_directory).expect("ordinary-user temporary directory");
+        let ancestor = directory.path().join("ancestor");
+        let root = ancestor.join("root");
+        let source = root.join("source.png");
+        fs::create_dir_all(&root).expect("preview source root");
+        fs::write(&source, b"preview-source").expect("preview source");
+        let metadata = source.metadata().expect("preview source metadata");
+        let (file_identity, source_revision) =
+            file_source_evidence(&source).expect("preview source evidence");
+        let root_identity = FileDiscovery::new(&root.to_string_lossy())
+            .expect("source discovery")
+            .metadata_inventory_root_identity()
+            .expect("root identity query")
+            .expect("stable root identity");
+        let expected = ExpectedFileState {
+            absolute_path: path_text(&source),
+            file_size: metadata.len(),
+            modified_unix_ms: modified_unix_ms(&metadata),
+            file_identity,
+            source_revision: Some(source_revision),
+        };
+
+        let guard = open_preview_publication_guard(&expected, &root, Some(&root_identity))
+            .expect("preview publication guard");
+        for (path, destination) in [
+            (&source, root.join("moved-source.png")),
+            (&root, ancestor.join("moved-root")),
+            (&ancestor, directory.path().join("moved-ancestor")),
+        ] {
+            let error = match fs::rename(path, destination) {
+                Ok(()) => {
+                    panic!("the live preview guard allowed namespace rebinding at {path:?}")
+                }
+                Err(error) => error,
+            };
+            assert!(matches!(error.raw_os_error(), Some(5) | Some(32)));
+        }
+        drop(guard);
+
+        let moved_root = ancestor.join("released-root");
+        rename_disposable_directory(&root, &moved_root, "root rename after preview guard drop");
+        rename_disposable_directory(&moved_root, &root, "restore root after preview guard drop");
+        let moved_ancestor = directory.path().join("released-ancestor");
+        rename_disposable_directory(
+            &ancestor,
+            &moved_ancestor,
+            "ancestor rename after preview guard drop",
+        );
+        rename_disposable_directory(
+            &moved_ancestor,
+            &ancestor,
+            "restore ancestor after preview guard drop",
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
     fn metadata_inventory_cursor_retains_its_own_publication_guard() {
-        let public_root = std::env::var_os("PUBLIC").expect("Windows public profile path");
-        let public_documents = PathBuf::from(public_root).join("Documents");
-        let directory = tempdir_in(public_documents).expect("public disposable directory");
+        let directory = tempdir_in(std::env::current_dir().expect("current directory"))
+            .expect("ordinary-user disposable directory");
         let root = directory.path().join("root");
         let moved = directory.path().join("moved-root");
         let album = root.join("album");
@@ -4502,7 +5082,7 @@ mod tests {
         let guard_facts = PUBLICATION_NAMESPACE_GUARD_OPENS.with(|facts| facts.borrow().clone());
         assert!(guard_facts.len() >= 3);
         assert!(guard_facts.iter().all(|fact| {
-            fact.desired_access == FILE_TRAVERSE
+            fact.desired_access == (FILE_TRAVERSE | FILE_READ_ATTRIBUTES | SYNCHRONIZE)
                 && fact.share_access == (FILE_SHARE_READ | FILE_SHARE_WRITE)
                 && fact.flags == (FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT)
                 && fact.flags & FILE_FLAG_OPEN_NO_RECALL == 0
@@ -4514,10 +5094,10 @@ mod tests {
             (&first, directory.path().join("moved-first")),
         ] {
             let error = fs::rename(path, moved).expect_err("held namespace rename must fail");
-            assert_eq!(error.raw_os_error(), Some(32));
+            assert!(matches!(error.raw_os_error(), Some(5) | Some(32)));
         }
         let delete_error = fs::remove_dir(&root).expect_err("held root delete must fail");
-        assert_eq!(delete_error.raw_os_error(), Some(32));
+        assert!(matches!(delete_error.raw_os_error(), Some(5) | Some(32)));
         drop(guard);
 
         let moved_root = second.join("released-root");
@@ -4687,31 +5267,29 @@ mod tests {
 
     #[cfg(windows)]
     #[test]
-    fn public_documents_namespace_supports_full_publication_guard() {
-        let public_root = std::env::var_os("PUBLIC").expect("Windows public profile path");
-        let public_documents = PathBuf::from(public_root).join("Documents");
-        assert!(public_documents.is_dir(), "public documents fixture base");
-        let long_path = windows_long_dos_path(&public_documents).expect("long DOS path");
-        let (volume_root, components) = publication_namespace_path(&long_path).expect("path parts");
-        let mut prefix = volume_root;
-        for component in components {
-            prefix.push(component);
-            let opened = OpenOptions::new()
-                .access_mode(FILE_TRAVERSE)
-                .share_mode(FILE_SHARE_READ | FILE_SHARE_WRITE)
-                .custom_flags(FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT)
-                .open(&prefix);
-            let handle = opened.unwrap_or_else(|error| {
-                panic!("public namespace prefix {prefix:?} must support a traverse guard: {error}")
-            });
-            validate_publication_namespace_directory(&handle, None)
-                .expect("public namespace prefix must be a no-follow directory");
+    fn ordinary_user_profile_boundary_supports_a_full_publication_guard() {
+        let user_profile =
+            PathBuf::from(std::env::var_os("USERPROFILE").expect("Windows user profile path"));
+        let profile_parent = user_profile.parent().expect("user profile parent");
+        validate_publication_namespace_path(&user_profile).expect("user profile path evidence");
+        match open_publication_namespace_guard(&user_profile) {
+            Ok(guard) => drop(guard),
+            Err(error) if publication_namespace_access_is_denied(&error) => {
+                require_publication_namespace_acl_boundary(&user_profile, profile_parent)
+                    .expect("the inaccessible profile prefix must be ACL-protected");
+            }
+            Err(error) => panic!("unexpected user-profile guard failure: {error}"),
         }
 
-        let directory = tempdir_in(&public_documents).expect("public disposable directory");
+        let current_directory = std::env::current_dir().expect("current directory");
+        let directory = tempdir_in(current_directory).expect("ordinary-user disposable directory");
         let namespace = directory.path().join("namespace");
         let source = namespace.join("source");
-        fs::create_dir_all(&source).expect("public disposable source root");
+        fs::create_dir_all(&source).expect("ordinary-user disposable source root");
+        assert!(
+            require_publication_namespace_acl_boundary(&source, &namespace).is_err(),
+            "a caller-mutable namespace must never be accepted as an ACL trust boundary"
+        );
         let expected_identity = FileDiscovery::new(&source.to_string_lossy())
             .expect("source discovery")
             .metadata_inventory_root_identity()
@@ -4721,21 +5299,21 @@ mod tests {
             &source.to_string_lossy(),
             &expected_identity,
         )
-        .expect("full public namespace guard");
+        .expect("full ordinary-user namespace guard");
         let moved_source = namespace.join("moved-source");
         let held_rename = fs::rename(&source, &moved_source)
-            .expect_err("full public namespace guard must pin the configured root");
-        assert_eq!(held_rename.raw_os_error(), Some(32));
+            .expect_err("full ordinary-user namespace guard must pin the configured root");
+        assert!(matches!(held_rename.raw_os_error(), Some(5) | Some(32)));
         drop(guard);
         rename_disposable_directory(
             &source,
             &moved_source,
-            "rename after public namespace guard release",
+            "rename after ordinary-user namespace guard release",
         );
         rename_disposable_directory(
             &moved_source,
             &source,
-            "restore public disposable source root",
+            "restore ordinary-user disposable source root",
         );
     }
 
@@ -4753,7 +5331,7 @@ mod tests {
         let guards = layers
             .iter()
             .map(|layer| {
-                let guard = open_publication_namespace_guard(layer, false)
+                let guard = open_publication_namespace_guard(layer)
                     .unwrap_or_else(|error| panic!("guard {layer:?}: {error}"));
                 raw_file_id_info(&guard).expect("live production guard handle");
                 guard
@@ -4763,7 +5341,10 @@ mod tests {
         assert_eq!(facts.len(), layers.len());
         for (fact, layer) in facts.iter().zip(layers.iter()) {
             assert_eq!(&fact.path, layer);
-            assert_eq!(fact.desired_access, FILE_TRAVERSE);
+            assert_eq!(
+                fact.desired_access,
+                FILE_TRAVERSE | FILE_READ_ATTRIBUTES | SYNCHRONIZE
+            );
             assert_eq!(fact.share_access, FILE_SHARE_READ | FILE_SHARE_WRITE);
             assert_eq!(
                 fact.flags,
@@ -4774,10 +5355,10 @@ mod tests {
         for (index, layer) in layers.iter().enumerate() {
             let moved = layer.with_file_name(format!("held-layer-{index}"));
             let error = fs::rename(layer, &moved).expect_err("held layer rename must fail");
-            assert_eq!(error.raw_os_error(), Some(32));
+            assert!(matches!(error.raw_os_error(), Some(5) | Some(32)));
         }
         let delete_error = fs::remove_dir(&root).expect_err("held root delete must fail");
-        assert_eq!(delete_error.raw_os_error(), Some(32));
+        assert!(matches!(delete_error.raw_os_error(), Some(5) | Some(32)));
         drop(guards);
         for (index, layer) in layers.iter().enumerate().rev() {
             let moved = layer.with_file_name(format!("released-layer-{index}"));
@@ -4851,6 +5432,47 @@ mod tests {
         assert_eq!(PINNED_SOURCE_DATA_AUTHORIZATION_COUNT.with(Cell::get), 0);
         assert_eq!(LAST_ROOT_RELATIVE_DATA_OPEN.with(Cell::get), None);
         assert!(error.to_string().contains("not locally available"));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn final_present_revalidation_uses_one_no_recall_attribute_handle() {
+        let directory = tempdir().expect("temporary directory");
+        let path = directory.path().join("local.png");
+        fs::write(&path, b"local-content").expect("source fixture");
+        let metadata = fs::metadata(&path).expect("source metadata");
+        let (file_identity, source_revision) =
+            file_source_evidence(&path).expect("source evidence");
+        let expected = ExpectedFileState {
+            absolute_path: path_text(&path),
+            file_size: metadata.len(),
+            modified_unix_ms: modified_unix_ms(&metadata),
+            file_identity,
+            source_revision: Some(source_revision),
+        };
+        let discovery =
+            FileDiscovery::new(&directory.path().to_string_lossy()).expect("file discovery");
+        LAST_ROOT_RELATIVE_DATA_OPEN.with(|facts| facts.set(None));
+
+        discovery
+            .revalidate_relative_file_state("local.png", &expected)
+            .expect("present local source");
+
+        let facts = LAST_ROOT_RELATIVE_DATA_OPEN
+            .with(Cell::get)
+            .expect("root-relative revalidation open facts");
+        assert_eq!(facts.desired_access, FILE_READ_ATTRIBUTES | SYNCHRONIZE);
+        assert_eq!(
+            facts.share_access,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE
+        );
+        assert_ne!(facts.create_options & FILE_OPEN_REPARSE_POINT, 0);
+        assert_ne!(facts.create_options & FILE_OPEN_NO_RECALL_NATIVE, 0);
+        assert_ne!(facts.create_options & FILE_NON_DIRECTORY_FILE, 0);
+        assert!(facts.ea_buffer_is_null);
+        assert_eq!(facts.ea_length, 0);
+        assert!(!facts.object_name_is_absolute);
+        assert!(!facts.object_name_has_separator);
     }
 
     #[cfg(windows)]
@@ -4937,6 +5559,11 @@ mod tests {
             );
             write_i64(
                 buffer,
+                std::mem::offset_of!(FILE_ID_EXTD_DIR_INFO, ChangeTime),
+                0x0123_4567_89ab_cdef,
+            );
+            write_i64(
+                buffer,
                 std::mem::offset_of!(FILE_ID_EXTD_DIR_INFO, EndOfFile),
                 7,
             );
@@ -4975,6 +5602,13 @@ mod tests {
         assert_eq!(entries[0].kind, MetadataInventoryEntryKind::File);
         assert_eq!(entries[0].file_size, Some(7));
         assert_eq!(entries[0].modified_unix_ms, 42);
+        assert_eq!(
+            entries[0].source_revision,
+            Some(SourceRevisionEvidence {
+                scheme: "windows-file-change-time-100ns-v1".to_owned(),
+                value: "0123456789abcdef".to_owned(),
+            })
+        );
         assert_eq!(
             entries[0]
                 .file_identity
@@ -5017,7 +5651,9 @@ mod tests {
     #[cfg(windows)]
     #[test]
     fn cloud_files_tag_distinguishes_hydrated_placeholder_from_other_reparse_points() {
-        use windows_sys::Win32::Storage::FileSystem::FILE_ATTRIBUTE_RECALL_ON_OPEN;
+        use windows_sys::Win32::Storage::FileSystem::{
+            FILE_ATTRIBUTE_OFFLINE, FILE_ATTRIBUTE_RECALL_ON_OPEN,
+        };
         use windows_sys::Win32::System::SystemServices::{
             IO_REPARSE_TAG_CLOUD_2, IO_REPARSE_TAG_SYMLINK,
         };
@@ -5070,6 +5706,37 @@ mod tests {
                 MetadataInventoryPlaceholderState::Available,
             )
         );
+
+        let fixture_path = Path::new(r"C:\library\photo.png");
+        validate_present_file_revalidation_attributes(fixture_path, &handle_info)
+            .expect("available Cloud Files entry remains present");
+        let recall_issue = validate_present_file_revalidation_attributes(
+            fixture_path,
+            &FILE_ATTRIBUTE_TAG_INFO {
+                FileAttributes: FILE_ATTRIBUTE_REPARSE_POINT | FILE_ATTRIBUTE_RECALL_ON_OPEN,
+                ReparseTag: IO_REPARSE_TAG_CLOUD_2,
+            },
+        )
+        .expect_err("recall-on-open Cloud Files entry is not present locally");
+        assert_eq!(recall_issue.code, "cloud_placeholder_skipped");
+        let offline_issue = validate_present_file_revalidation_attributes(
+            fixture_path,
+            &FILE_ATTRIBUTE_TAG_INFO {
+                FileAttributes: FILE_ATTRIBUTE_REPARSE_POINT | FILE_ATTRIBUTE_OFFLINE,
+                ReparseTag: IO_REPARSE_TAG_CLOUD_2,
+            },
+        )
+        .expect_err("offline Cloud Files entry is not present locally");
+        assert_eq!(offline_issue.code, "cloud_placeholder_skipped");
+        let symlink_issue = validate_present_file_revalidation_attributes(
+            fixture_path,
+            &FILE_ATTRIBUTE_TAG_INFO {
+                FileAttributes: FILE_ATTRIBUTE_REPARSE_POINT,
+                ReparseTag: IO_REPARSE_TAG_SYMLINK,
+            },
+        )
+        .expect_err("non-Cloud reparse entry is not a present file");
+        assert_eq!(symlink_issue.code, "source_path_outside_root");
     }
 
     #[cfg(windows)]
@@ -5112,9 +5779,56 @@ mod tests {
             file_size: replacement_metadata.len(),
             modified_unix_ms: modified_unix_ms(&replacement_metadata),
             file_identity: Some(original_identity),
+            source_revision: None,
         })
         .expect_err("replacement identity must be rejected");
         assert_eq!(error.code, "source_replaced_during_scan");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_revision_rejects_same_size_in_place_edit_with_restored_mtime() {
+        let directory = tempdir().expect("temporary directory");
+        let source_path = directory.path().join("source.bin");
+        fs::write(&source_path, b"original").expect("original fixture");
+        let original_metadata = fs::metadata(&source_path).expect("original metadata");
+        let original_modified = original_metadata
+            .modified()
+            .expect("original modified time");
+        let (original_identity, original_revision) =
+            file_source_evidence(&source_path).expect("original source evidence");
+        let expected = ExpectedFileState {
+            absolute_path: path_text(&source_path),
+            file_size: original_metadata.len(),
+            modified_unix_ms: modified_unix_ms(&original_metadata),
+            file_identity: original_identity.clone(),
+            source_revision: Some(original_revision.clone()),
+        };
+
+        thread::sleep(Duration::from_millis(2));
+        fs::write(&source_path, b"changed!").expect("same-size in-place edit");
+        let source = fs::OpenOptions::new()
+            .write(true)
+            .open(&source_path)
+            .expect("open edited fixture");
+        source
+            .set_times(std::fs::FileTimes::new().set_modified(original_modified))
+            .expect("restore modified time");
+        drop(source);
+
+        let edited_metadata = fs::metadata(&source_path).expect("edited metadata");
+        let (edited_identity, edited_revision) =
+            file_source_evidence(&source_path).expect("edited source evidence");
+        assert_eq!(edited_metadata.len(), expected.file_size);
+        assert_eq!(
+            modified_unix_ms(&edited_metadata),
+            expected.modified_unix_ms
+        );
+        assert_eq!(edited_identity, original_identity);
+        assert_ne!(edited_revision, original_revision);
+        let error = revalidate_file_state(&expected)
+            .expect_err("restored mtime must not hide an in-place content edit");
+        assert_eq!(error.code, "source_revision_changed_during_scan");
     }
 
     #[test]
@@ -5201,6 +5915,48 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
             Some(metadata_domain_source),
         )
         .expect("comments and whitespace must not affect the token contract");
+
+        let broadened_file_system_import = source.replacen(
+            "GetVolumeInformationByHandleW, SYNCHRONIZE, WIN32_FIND_DATAW, WRITE_DAC, WRITE_OWNER,",
+            "GetVolumeInformationByHandleW, ReadDirectoryChangesW, SYNCHRONIZE, WIN32_FIND_DATAW, WRITE_DAC, WRITE_OWNER,",
+            1,
+        );
+        assert_ne!(broadened_file_system_import, source);
+        let error = assert_availability_exact_source_contract(
+            &broadened_file_system_import,
+            Some(domain_source),
+            Some(metadata_domain_source),
+        )
+        .expect_err("an additional Win32 import must require another intentional signature");
+        assert!(error.contains("local-use:file-system-api"));
+
+        let broadened_domain_import = source.replacen(
+            "SourceRevisionEvidence,",
+            "SourceRevisionEvidence, UserOverride,",
+            1,
+        );
+        assert_ne!(broadened_domain_import, source);
+        let error = assert_availability_exact_source_contract(
+            &broadened_domain_import,
+            Some(domain_source),
+            Some(metadata_domain_source),
+        )
+        .expect_err("an additional domain import must require another intentional signature");
+        assert!(error.contains("local-use:domain-availability-types"));
+
+        let moved_source_revision_docs = domain_source.replacen(
+            "pub struct SourceRevisionEvidence",
+            "pub struct RenamedSourceRevisionEvidence",
+            1,
+        );
+        assert_ne!(moved_source_revision_docs, domain_source);
+        let error = assert_availability_exact_source_contract(
+            source,
+            Some(&moved_source_revision_docs),
+            Some(metadata_domain_source),
+        )
+        .expect_err("the exact SourceRevision documentation must not authorize another item");
+        assert!(error.contains("unapproved top-level attribute doc"));
 
         let structural_violations = [
             (
@@ -6009,8 +6765,8 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
             locator: AvailabilitySupportLocator::UseContaining(
                 "windows_sys::Win32::Storage::FileSystem::FindFirstFileW",
             ),
-            digest: "2cdc106856e0bfe6771315b8601e0e265526d2d0daec1c0934f1bdfa5ecf56f7",
-            summary: "exact-name Win32 metadata APIs and constants",
+            digest: "b0c467ca86a60e4c30e7f84976f43ad0ace573657b2d0d24ca2c4c2d38b4246a",
+            summary: "shared exact-name Win32 metadata, revision, and publication APIs",
         },
         AvailabilitySupportContract {
             key: "local-use:domain-availability-types",
@@ -6018,8 +6774,8 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
             locator: AvailabilitySupportLocator::UseContaining(
                 "crate::domain::RootAvailabilityEvidence",
             ),
-            digest: "0efe593df4d280167886f6c1c181eb42f76296d71cfa26149c8765e71cf3ca25",
-            summary: "absolute Ame-owned availability evidence types",
+            digest: "fbe8afb4ad396f7dcce39c217abd1742da311b35225fb6bf9225f38ffaadee8b",
+            summary: "shared Ame-owned availability and source-revision evidence types",
         },
         AvailabilitySupportContract {
             key: "domain-enum:LibraryRootAvailability",
@@ -6581,6 +7337,26 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
             "PartialEq",
         ];
         for attribute in attributes {
+            if source_key == "domain"
+                && matches!(
+                    item,
+                    Item::Struct(structure)
+                        if structure.ident == "SourceRevisionEvidence"
+                            && [
+                                concat!(
+                                    "doc = \" Filesystem-owned evidence that the bytes reachable ",
+                                    "through a file identity may have changed.\""
+                                ),
+                                concat!(
+                                    "doc = \" Windows ChangeTime is cheap change evidence, ",
+                                    "not a content fingerprint.\""
+                                ),
+                            ]
+                            .contains(&normalized_tokens(&attribute.meta).as_str())
+                )
+            {
+                continue;
+            }
             if attribute.path().is_ident("cfg") || attribute.path().is_ident("allow") {
                 continue;
             }

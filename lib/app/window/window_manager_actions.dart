@@ -240,7 +240,7 @@ Future<WindowManagerActions> initializeAmeWindow(
     visibleScreenBounds: visibleBounds,
     minimumSize: _minimumWindowSize,
   );
-  final initialNormalPlacement = await restoreAmeWindowBeforeShow(
+  final initialNormalPlacement = await prepareAmeWindowBeforeShow(
     window: const _WindowManagerBootstrapActions(),
     restoredPlacement: restoredPlacement,
     shouldMaximize: savedPlacement?.isMaximized ?? false,
@@ -301,7 +301,7 @@ class _WindowManagerBootstrapActions implements AmeWindowBootstrapActions {
 }
 
 @visibleForTesting
-Future<AmeWindowPlacement> restoreAmeWindowBeforeShow({
+Future<AmeWindowPlacement> prepareAmeWindowBeforeShow({
   required AmeWindowBootstrapActions window,
   required AmeWindowPlacement? restoredPlacement,
   required bool shouldMaximize,
@@ -334,9 +334,23 @@ Future<AmeWindowPlacement> restoreAmeWindowBeforeShow({
   if (shouldMaximize) {
     await window.maximize();
   }
+  return initialNormalPlacement;
+}
+
+Future<void> showAmeWindowAfterFirstFrame({
+  AmeWindowBootstrapActions window = const _WindowManagerBootstrapActions(),
+  Future<void>? firstFrameRasterized,
+  Duration firstFrameTimeout = const Duration(seconds: 5),
+}) async {
+  try {
+    await (firstFrameRasterized ??
+            WidgetsBinding.instance.waitUntilFirstFrameRasterized)
+        .timeout(firstFrameTimeout);
+  } on Object {
+    // Showing the mounted shell is safer than leaving a failed renderer invisible.
+  }
   await window.show();
   await window.focus();
-  return initialNormalPlacement;
 }
 
 Future<List<Rect>> _loadVisibleScreenBounds() async {

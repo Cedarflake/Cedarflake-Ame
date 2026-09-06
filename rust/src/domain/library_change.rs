@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 
-use super::{FileIdentityEvidence, LibraryRootAvailability};
+use super::{FileIdentityEvidence, LibraryRootAvailability, SourceRevisionEvidence};
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct LibraryRootGeneration(u64);
@@ -287,6 +287,9 @@ pub struct ReconciliationFileEvidence {
     pub file_size: u64,
     pub modified_unix_ms: i64,
     pub file_identity: Option<FileIdentityEvidence>,
+    pub source_revision: Option<SourceRevisionEvidence>,
+    /// Catalog-wide monotonic generation. Fresh filesystem observations use zero until publication.
+    pub source_generation: u64,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

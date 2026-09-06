@@ -347,7 +347,7 @@ fn fallback_intent_preserves_the_current_generation_observation_range() {
 }
 
 #[test]
-fn parent_subtree_supersession_happens_before_intent_capacity_degradation() {
+fn precise_dirty_children_degrade_only_at_the_bounded_intent_capacity() {
     let mut observations = (0..8)
         .map(|index| {
             observation(
@@ -379,22 +379,26 @@ fn parent_subtree_supersession_happens_before_intent_capacity_degradation() {
     )
     .expect("subtree plan");
 
-    assert_eq!(result.freshness, CatalogFreshnessState::Updating);
+    assert_eq!(result.freshness, CatalogFreshnessState::NeedsReconciliation);
     assert!(
-        !result
+        result
             .issues
             .contains(&LibraryChangePlanningIssue::IntentLimitExceeded)
     );
     assert_eq!(result.intents.len(), 1);
-    assert_eq!(result.intents[0].scope, LibraryChangeScope::Subtree);
-    assert_eq!(result.intents[0].relative_path, "album");
+    assert_eq!(result.intents[0].scope, LibraryChangeScope::Root);
+    assert_eq!(
+        result.intents[0].kind,
+        LibraryChangeIntentKind::FreshnessUnknown
+    );
+    assert!(result.intents[0].relative_path.is_empty());
     assert_eq!(result.intents[0].first_sequence, 0);
     assert_eq!(result.intents[0].most_recent_sequence, 9);
     assert_eq!(result.intents[0].coalesced_observation_count, 9);
 }
 
 #[test]
-fn subtree_supersession_does_not_double_count_one_unpaired_rename() {
+fn subtree_reconciliation_keeps_both_unpaired_rename_paths_precise() {
     let mut directory = observation(
         2,
         1_200,
@@ -421,9 +425,22 @@ fn subtree_supersession_does_not_double_count_one_unpaired_rename() {
     )
     .expect("subtree plan");
 
-    assert_eq!(result.intents.len(), 1);
-    assert_eq!(result.intents[0].scope, LibraryChangeScope::Subtree);
-    assert_eq!(result.intents[0].coalesced_observation_count, 2);
+    assert_eq!(result.intents.len(), 3);
+    assert!(result.intents.iter().any(|intent| {
+        intent.scope == LibraryChangeScope::Subtree && intent.relative_path == "album"
+    }));
+    assert!(result.intents.iter().any(|intent| {
+        intent.scope == LibraryChangeScope::Path && intent.relative_path == "album/old.jpg"
+    }));
+    assert!(result.intents.iter().any(|intent| {
+        intent.scope == LibraryChangeScope::Path && intent.relative_path == "album/new.jpg"
+    }));
+    assert!(
+        result
+            .intents
+            .iter()
+            .all(|intent| intent.coalesced_observation_count == 1)
+    );
 }
 
 #[test]
@@ -718,5 +735,10 @@ fn evidence(relative_path: &str, identity: Option<(&str, &str)>) -> Reconciliati
             scheme: scheme.to_owned(),
             value: value.to_owned(),
         }),
+        source_revision: Some(crate::domain::SourceRevisionEvidence {
+            scheme: "windows-file-change-time-100ns-v1".to_owned(),
+            value: "0000000000000001".to_owned(),
+        }),
+        source_generation: 1,
     }
 }

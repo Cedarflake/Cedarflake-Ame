@@ -159,6 +159,7 @@ impl<'a> MetadataInventoryRecoveryExecution<'a> {
 #[derive(Clone, Copy)]
 struct InventoryExecution<'a> {
     authority: Option<&'a LeasedLibraryChange>,
+    invalidates_unchanged_sources: bool,
     yield_after_work_page: bool,
     observed_unix_ms: i64,
     page_limit: u32,
@@ -289,6 +290,9 @@ where
     };
     let execution = InventoryExecution {
         authority: Some(authority),
+        invalidates_unchanged_sources: recovery_reason_invalidates_unchanged_sources(
+            recovery_authority.reason,
+        ),
         yield_after_work_page: true,
         observed_unix_ms,
         page_limit,
@@ -555,6 +559,21 @@ fn metadata_inventory_recovery_reason(
     }
 }
 
+const fn recovery_reason_invalidates_unchanged_sources(
+    reason: LibraryRecoveryAuthorityReason,
+) -> bool {
+    matches!(
+        reason,
+        LibraryRecoveryAuthorityReason::JournalGap
+            | LibraryRecoveryAuthorityReason::JournalReset
+            | LibraryRecoveryAuthorityReason::JournalTrim
+            | LibraryRecoveryAuthorityReason::JournalReconstructionFailure
+            | LibraryRecoveryAuthorityReason::ContainmentFailure
+            | LibraryRecoveryAuthorityReason::BrokerAfterCurrentFailure
+            | LibraryRecoveryAuthorityReason::WatcherUncoveredGap
+    )
+}
+
 #[cfg(test)]
 fn metadata_inventory_run_id(leased: &LeasedLibraryChange) -> String {
     let intent = &leased.change.intent;
@@ -642,6 +661,7 @@ where
         request,
         InventoryExecution {
             authority: None,
+            invalidates_unchanged_sources: false,
             yield_after_work_page: false,
             observed_unix_ms,
             page_limit,
@@ -706,6 +726,7 @@ where
 {
     let InventoryExecution {
         authority,
+        invalidates_unchanged_sources,
         yield_after_work_page,
         observed_unix_ms,
         page_limit,
@@ -869,6 +890,18 @@ where
                 &previous_paths,
                 &mut claimed_identities,
             );
+            let comparison = match comparison {
+                EntryComparison::Unchanged
+                    if invalidates_unchanged_sources
+                        && entry.kind == MetadataInventoryEntryKind::File
+                        && path_priors.contains_key(&entry.relative_path) =>
+                {
+                    EntryComparison::Candidate {
+                        previous_path: None,
+                    }
+                }
+                comparison => comparison,
+            };
             match comparison {
                 EntryComparison::Unchanged => {
                     report.unchanged_count = checked_add(
@@ -1217,19 +1250,27 @@ fn inventory_matches_terminal_media_evidence(
 ) -> bool {
     entry.file_size == Some(evidence.file_size)
         && entry.modified_unix_ms == evidence.modified_unix_ms
+        && entry.source_revision.is_some()
+        && entry.source_revision == evidence.source_revision
         && entry.placeholder_state == MetadataInventoryPlaceholderState::Available
         && entry.file_identity == evidence.file_identity
         && evidence.inspection_engine_id == media_inspector.inspection_engine_id()
         && evidence.inspection_engine_version == media_inspector.inspection_engine_version()
 }
 
-fn inventory_matches_location(entry: &MetadataInventoryEntry, prior: &AssetLocationView) -> bool {
+pub(super) fn inventory_matches_location(
+    entry: &MetadataInventoryEntry,
+    prior: &AssetLocationView,
+) -> bool {
     if entry.file_size != Some(prior.file_size) || entry.modified_unix_ms != prior.modified_unix_ms
     {
         return false;
     }
     if entry.placeholder_state != MetadataInventoryPlaceholderState::Available {
         return entry.file_identity.is_none();
+    }
+    if entry.source_revision.is_none() || entry.source_revision != prior.source_revision {
+        return false;
     }
     match (&entry.file_identity, &prior.file_identity) {
         (Some(current), Some(previous)) => current == previous,

@@ -22,6 +22,29 @@ use super::{
     natural_name_key, parent_relative_path, unix_time_ms,
 };
 
+mod current_schema;
+
+use current_schema::{
+    ContractValidationDepth, validate_current_schema_contract,
+    validate_current_schema_contract_with_source_revision_rows,
+};
+
+pub(super) fn prepare_fresh_catalog_auto_vacuum(connection: &Connection) -> Result<(), ScanError> {
+    let user_schema_objects: i64 = connection
+        .query_row(
+            "SELECT COUNT(*) FROM sqlite_master WHERE name NOT LIKE 'sqlite_%'",
+            [],
+            |row| row.get(0),
+        )
+        .map_err(database_error)?;
+    if user_schema_objects == 0 {
+        connection
+            .execute_batch("PRAGMA auto_vacuum = INCREMENTAL;")
+            .map_err(database_error)?;
+    }
+    Ok(())
+}
+
 pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanError> {
     let has_schema_info: bool = connection
         .query_row(
@@ -35,6 +58,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
         .map_err(database_error)?;
 
     if !has_schema_info {
+        prepare_fresh_catalog_auto_vacuum(connection)?;
         let transaction = connection.transaction().map_err(database_error)?;
         create_schema_v19(&transaction)?;
         migrate_v19_to_v20_transaction(&transaction)?;
@@ -48,6 +72,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
         migrate_v27_to_v28_transaction(&transaction)?;
         migrate_v28_to_v29_transaction(&transaction)?;
         migrate_v29_to_v30_transaction(&transaction)?;
+        migrate_v30_to_v31_transaction(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -61,7 +86,8 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             SCHEMA_VERSION => {
                 repair_prerelease_v24_source_range_id_triggers(connection)?;
                 repair_prerelease_v26_recovery_window_schema(connection)?;
-                repair_and_validate_current_terminal_metadata_inventory_state(connection)?;
+                repair_and_validate_current_terminal_recovery_state(connection)?;
+                repair_prerelease_v31_source_revision_metadata(connection)?;
                 recover_interrupted_explicit_foreground_claims(connection)?;
                 return Ok(());
             }
@@ -116,6 +142,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             27 => migrate_v27_to_v28(connection)?,
             28 => migrate_v28_to_v29(connection)?,
             29 => migrate_v29_to_v30(connection)?,
+            30 => migrate_v30_to_v31(connection)?,
             _ => {
                 return Err(ScanError::new(
                     "catalog_schema_unsupported",
@@ -454,10 +481,17 @@ fn create_library_change_queue_schema(transaction: &Transaction<'_>) -> Result<(
 }
 
 fn validate_v19_schema_contract(connection: &Connection) -> Result<(), ScanError> {
+    validate_v19_schema_contract_with_depth(connection, ContractValidationDepth::Full)
+}
+
+fn validate_v19_schema_contract_with_depth(
+    connection: &Connection,
+    depth: ContractValidationDepth,
+) -> Result<(), ScanError> {
     validate_change_queue_authority(connection)?;
     validate_authoritative_recovery_marker(connection)?;
-    validate_change_catch_up_contract(connection)?;
-    validate_scan_handoff_batch_contract(connection)?;
+    validate_change_catch_up_contract_with_depth(connection, depth)?;
+    validate_scan_handoff_batch_contract_with_depth(connection, depth)?;
     let (has_scan_runs, has_single_scan_owner_index, has_scan_owner) = connection
         .query_row(
             "SELECT
@@ -530,6 +564,10 @@ fn validate_prerelease_v19_catch_up_authority(connection: &Connection) -> Result
 std::thread_local! {
     static CURRENT_SCHEMA_VALIDATION_COUNT: std::cell::Cell<usize> =
         const { std::cell::Cell::new(0) };
+    static SOURCE_REVISION_ROW_AUDIT_COUNT: std::cell::Cell<usize> =
+        const { std::cell::Cell::new(0) };
+    static CURRENT_SCHEMA_ROW_AUDIT_COUNT: std::cell::Cell<usize> =
+        const { std::cell::Cell::new(0) };
 }
 
 #[cfg(test)]
@@ -542,11 +580,127 @@ fn current_schema_validation_count() -> usize {
     CURRENT_SCHEMA_VALIDATION_COUNT.with(std::cell::Cell::get)
 }
 
-fn validate_current_schema_contract(connection: &Connection) -> Result<(), ScanError> {
+#[cfg(test)]
+fn reset_source_revision_row_audit_count() {
+    SOURCE_REVISION_ROW_AUDIT_COUNT.with(|count| count.set(0));
+}
+
+#[cfg(test)]
+fn source_revision_row_audit_count() -> usize {
+    SOURCE_REVISION_ROW_AUDIT_COUNT.with(std::cell::Cell::get)
+}
+
+#[cfg(test)]
+fn reset_current_schema_row_audit_count() {
+    CURRENT_SCHEMA_ROW_AUDIT_COUNT.with(|count| count.set(0));
+}
+
+#[cfg(test)]
+fn current_schema_row_audit_count() -> usize {
+    CURRENT_SCHEMA_ROW_AUDIT_COUNT.with(std::cell::Cell::get)
+}
+
+fn record_current_schema_row_audit() {
     #[cfg(test)]
-    CURRENT_SCHEMA_VALIDATION_COUNT.with(|count| count.set(count.get() + 1));
-    validate_pre_live_gap_schema_contract(connection, SCHEMA_VERSION)?;
-    validate_live_gap_recovery_contract(connection)
+    CURRENT_SCHEMA_ROW_AUDIT_COUNT.with(|count| count.set(count.get() + 1));
+}
+
+fn source_revision_metadata_contract_is_complete(
+    connection: &Connection,
+) -> Result<bool, ScanError> {
+    if !schema_object_sql_matches(
+        connection,
+        "table",
+        "library_source_revision_metadata_contract",
+        SOURCE_REVISION_METADATA_CONTRACT_TABLE_DDL,
+    )? {
+        return Ok(false);
+    }
+    connection
+        .query_row(
+            "SELECT contract_version = 1 AND complete = 1
+             FROM library_source_revision_metadata_contract
+             WHERE singleton = 1",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .optional()
+        .map(|value| value.unwrap_or(false))
+        .map_err(database_error)
+}
+
+fn invalidate_precontract_source_revision_metadata(
+    transaction: &Transaction<'_>,
+) -> Result<(), ScanError> {
+    transaction
+        .execute_batch(
+            "DELETE FROM preview_artifact_locations;
+             UPDATE preview_artifacts SET lifecycle_state = 'evictable';
+             UPDATE asset_locations
+             SET preview_path = '', preview_status = 'pending',
+                 preview_issue_code = NULL, preview_issue_message = NULL,
+                 metadata_engine_id = 'ame-invalidated-media-metadata',
+                 metadata_engine_version = '0',
+                 capture_local_time = NULL, capture_offset_minutes = NULL,
+                 capture_time_source = NULL, capture_raw_value = NULL;",
+        )
+        .map_err(database_error)
+}
+
+fn create_source_revision_metadata_contract(
+    transaction: &Transaction<'_>,
+) -> Result<(), ScanError> {
+    transaction
+        .execute_batch(SOURCE_REVISION_METADATA_CONTRACT_TABLE_DDL)
+        .map_err(database_error)?;
+    transaction
+        .execute(
+            "INSERT INTO library_source_revision_metadata_contract(
+               singleton, contract_version, complete
+             ) VALUES (1, 1, 1)",
+            [],
+        )
+        .map_err(database_error)?;
+    Ok(())
+}
+
+fn repair_prerelease_v31_source_revision_metadata(
+    connection: &mut Connection,
+) -> Result<(), ScanError> {
+    let marker_sql = connection
+        .query_row(
+            "SELECT sql FROM sqlite_master
+             WHERE type = 'table'
+               AND name = 'library_source_revision_metadata_contract'",
+            [],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()
+        .map_err(database_error)?;
+    if marker_sql.is_some() {
+        if source_revision_metadata_contract_is_complete(connection)? {
+            return Ok(());
+        }
+        return Err(ScanError::new(
+            "catalog_source_revision_contract_unverifiable",
+            "The catalog cannot prove that legacy source metadata was invalidated",
+        ));
+    }
+
+    let transaction = connection
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .map_err(database_error)?;
+    validate_current_schema_contract_with_source_revision_rows(&transaction)?;
+    invalidate_precontract_source_revision_metadata(&transaction)?;
+    create_source_revision_metadata_contract(&transaction)?;
+    if !source_revision_metadata_contract_is_complete(&transaction)? {
+        return Err(ScanError::new(
+            "catalog_source_revision_contract_unverifiable",
+            "The catalog could not record its source metadata invalidation",
+        ));
+    }
+    validate_current_schema_contract_with_source_revision_rows(&transaction)?;
+    transaction.commit().map_err(database_error)
 }
 
 fn legacy_terminal_metadata_inventory_repair_shape_matches(
@@ -556,7 +710,8 @@ fn legacy_terminal_metadata_inventory_repair_shape_matches(
     let spool_contract_version = match schema_version {
         25 | 26 => None,
         27 => Some(1),
-        28..=SCHEMA_VERSION => Some(2),
+        28..=30 => Some(2),
+        31 => Some(3),
         _ => return Ok(false),
     };
     let core_matches = schema_object_sql_matches(
@@ -661,17 +816,199 @@ fn repair_legacy_terminal_metadata_inventory_state_transaction(
     Ok(())
 }
 
-fn repair_and_validate_current_terminal_metadata_inventory_state(
+fn retired_live_gap_claim_repair_shape_matches(
+    connection: &Connection,
+    schema_version: i64,
+) -> Result<bool, ScanError> {
+    if !matches!(schema_version, 30 | 31) {
+        return Ok(false);
+    }
+    let schema_matches = schema_object_sql_matches(
+        connection,
+        "table",
+        "library_live_gap_recovery_contract",
+        LIVE_GAP_RECOVERY_CONTRACT_TABLE_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "table",
+        "library_live_gap_recovery_claims",
+        LIVE_GAP_RECOVERY_CLAIM_TABLE_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "index",
+        "library_live_gap_recovery_claims_root",
+        LIVE_GAP_RECOVERY_ROOT_INDEX_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "trigger",
+        "library_live_gap_recovery_claim_insert_guard",
+        LIVE_GAP_RECOVERY_INSERT_GUARD_DDL,
+    )? && schema_object_sql_matches(
+        connection,
+        "trigger",
+        "library_live_gap_recovery_claim_identity_update_guard",
+        LIVE_GAP_RECOVERY_IDENTITY_UPDATE_GUARD_DDL,
+    )?;
+    if !schema_matches {
+        return Ok(false);
+    }
+    let marker_complete = connection
+        .query_row(
+            "SELECT contract_version = 1 AND complete = 1
+             FROM library_live_gap_recovery_contract WHERE singleton = 1",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .optional()
+        .map_err(database_error)?
+        .unwrap_or(false);
+    Ok(marker_complete)
+}
+
+fn repairable_retired_live_gap_claim_ids(
+    connection: &Connection,
+    schema_version: i64,
+) -> Result<Vec<i64>, ScanError> {
+    if !retired_live_gap_claim_repair_shape_matches(connection, schema_version)? {
+        return Ok(Vec::new());
+    }
+    let mut statement = connection
+        .prepare(
+            "SELECT claim.gap_change_id
+             FROM library_live_gap_recovery_claims AS claim
+             JOIN library_change_queue AS gap ON gap.id = claim.gap_change_id
+             JOIN library_change_queue_lanes AS lane ON lane.change_id = gap.id
+             JOIN library_change_root_state AS root_state
+               ON root_state.root_id = claim.root_id
+             WHERE claim.consumed_unix_ms IS NULL
+               AND claim.source_range_id IS NULL
+               AND claim.recovery_change_id IS NULL
+               AND claim.foreground_scan_id IS NULL
+               AND gap.root_id = claim.root_id
+               AND gap.root_generation = claim.root_generation
+               AND gap.intent_kind = 'freshness_unknown'
+               AND gap.scope = 'root' AND gap.relative_path = ''
+               AND gap.previous_relative_path IS NULL
+               AND gap.status = 'superseded'
+               AND gap.next_retry_unix_ms IS NULL
+               AND gap.lease_expires_unix_ms IS NULL
+               AND gap.authoritative_scan_id IS NULL
+               AND gap.catalog_revision_at_success IS NULL
+               AND gap.catch_up_source IS NULL
+               AND gap.catch_up_watermark IS NULL
+               AND gap.superseded_by_change_id IS NULL
+               AND gap.last_failure_message IS NOT NULL
+               AND (
+                 (claim.consumer_kind = 'explicit_recovery_required'
+                   AND claim.opening_volume_guid IS NULL
+                   AND claim.opening_volume_serial IS NULL
+                   AND claim.opening_root_reference_version IS NULL
+                   AND claim.opening_root_file_reference IS NULL
+                   AND claim.opening_journal_id IS NULL
+                   AND claim.opening_next_usn IS NULL
+                   AND claim.protocol_version IS NULL
+                   AND claim.contract_version IS NULL
+                   AND gap.origin = 'startup_catch_up'
+                   AND lane.lane = 'p1_journal'
+                   AND gap.last_failure_code =
+                         'live_gap_v30_explicit_recovery_required')
+                 OR
+                 (claim.consumer_kind = 'pending_journal'
+                   AND claim.opening_volume_guid IS NOT NULL
+                   AND length(claim.opening_volume_guid) BETWEEN 1 AND 512
+                   AND claim.opening_volume_serial IS NOT NULL
+                   AND length(claim.opening_volume_serial) BETWEEN 1 AND 20
+                   AND claim.opening_volume_serial NOT GLOB '*[^0-9]*'
+                   AND claim.opening_root_reference_version IN (2, 3)
+                   AND claim.opening_root_file_reference IS NOT NULL
+                   AND length(claim.opening_root_file_reference) = CASE
+                     claim.opening_root_reference_version WHEN 2 THEN 8 ELSE 16 END
+                   AND claim.opening_journal_id IS NOT NULL
+                   AND length(claim.opening_journal_id) BETWEEN 1 AND 20
+                   AND claim.opening_journal_id <> '0'
+                   AND claim.opening_journal_id NOT GLOB '*[^0-9]*'
+                   AND claim.opening_next_usn IS NOT NULL
+                   AND length(claim.opening_next_usn) BETWEEN 1 AND 19
+                   AND claim.opening_next_usn NOT GLOB '*[^0-9]*'
+                   AND claim.protocol_version BETWEEN 1 AND 65535
+                   AND claim.contract_version = 1
+                   AND gap.origin = 'live_notification'
+                   AND lane.lane = 'p0_live'
+                   AND gap.last_failure_code = 'live_gap_waiting_for_journal_range')
+               )
+               AND (
+                 (root_state.is_active = 0
+                   AND root_state.generation >= claim.root_generation
+                   AND NOT EXISTS(
+                     SELECT 1 FROM library_roots AS root
+                     WHERE root.id = claim.root_id
+                   ))
+                 OR
+                 (root_state.is_active = 1
+                   AND root_state.generation > claim.root_generation
+                   AND EXISTS(
+                     SELECT 1 FROM library_roots AS root
+                     WHERE root.id = claim.root_id
+                   ))
+               )
+             ORDER BY claim.gap_change_id",
+        )
+        .map_err(database_error)?;
+    statement
+        .query_map([], |row| row.get::<_, i64>(0))
+        .map_err(database_error)?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(database_error)
+}
+
+fn retired_live_gap_claim_repair_needed(
+    connection: &Connection,
+    schema_version: i64,
+) -> Result<bool, ScanError> {
+    Ok(!repairable_retired_live_gap_claim_ids(connection, schema_version)?.is_empty())
+}
+
+fn repair_retired_live_gap_claims_transaction(
+    transaction: &Transaction<'_>,
+    schema_version: i64,
+) -> Result<(), ScanError> {
+    for gap_change_id in repairable_retired_live_gap_claim_ids(transaction, schema_version)? {
+        let deleted = transaction
+            .execute(
+                "DELETE FROM library_live_gap_recovery_claims
+                 WHERE gap_change_id = ?1
+                   AND consumer_kind IN (
+                     'explicit_recovery_required', 'pending_journal'
+                   )
+                   AND consumed_unix_ms IS NULL",
+                [gap_change_id],
+            )
+            .map_err(database_error)?;
+        if deleted != 1 {
+            return Err(ScanError::new(
+                "catalog_live_gap_recovery_repair_conflict",
+                "The retired live-gap claim changed during catalog repair",
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn repair_and_validate_current_terminal_recovery_state(
     connection: &mut Connection,
 ) -> Result<(), ScanError> {
-    if !legacy_terminal_metadata_inventory_repair_needed(connection, SCHEMA_VERSION)? {
+    let repair_terminal_inventory =
+        legacy_terminal_metadata_inventory_repair_needed(connection, SCHEMA_VERSION)?;
+    let repair_retired_live_gap = retired_live_gap_claim_repair_needed(connection, SCHEMA_VERSION)?;
+    if !repair_terminal_inventory && !repair_retired_live_gap {
         return validate_current_schema_contract(connection);
     }
     let transaction = connection
         .transaction_with_behavior(TransactionBehavior::Immediate)
         .map_err(database_error)?;
     repair_legacy_terminal_metadata_inventory_state_transaction(&transaction, SCHEMA_VERSION)?;
-    validate_current_schema_contract(&transaction)?;
+    repair_retired_live_gap_claims_transaction(&transaction, SCHEMA_VERSION)?;
+    validate_current_schema_contract_with_source_revision_rows(&transaction)?;
     transaction.commit().map_err(database_error)
 }
 
@@ -822,7 +1159,7 @@ fn recover_interrupted_explicit_foreground_claims(
         }
     }
     super::delete_orphan_assets(&transaction)?;
-    validate_current_schema_contract(&transaction)?;
+    validate_current_schema_contract_with_source_revision_rows(&transaction)?;
     transaction.commit().map_err(database_error)
 }
 
@@ -830,16 +1167,33 @@ fn validate_pre_live_gap_schema_contract(
     connection: &Connection,
     schema_version: i64,
 ) -> Result<(), ScanError> {
-    validate_v19_schema_contract(connection)?;
-    validate_metadata_inventory_contract(connection)?;
-    validate_terminal_media_evidence_contract(connection)?;
-    validate_persistent_journal_contract(connection)?;
-    validate_change_lane_contract(connection)?;
-    validate_recovery_authority_contract(connection)?;
-    validate_persistent_journal_baseline_contract(connection)?;
-    validate_recovery_execution_contract(connection)?;
-    validate_metadata_inventory_spool_contract_version(connection, schema_version, 2)?;
-    validate_root_publication_namespace_contract(connection)
+    validate_pre_live_gap_schema_contract_with_depth(
+        connection,
+        schema_version,
+        ContractValidationDepth::Full,
+    )
+}
+
+fn validate_pre_live_gap_schema_contract_with_depth(
+    connection: &Connection,
+    schema_version: i64,
+    depth: ContractValidationDepth,
+) -> Result<(), ScanError> {
+    validate_v19_schema_contract_with_depth(connection, depth)?;
+    validate_metadata_inventory_contract_with_depth(connection, depth)?;
+    validate_terminal_media_evidence_contract_with_depth(connection, depth)?;
+    validate_persistent_journal_contract_with_depth(connection, depth)?;
+    validate_change_lane_contract_with_depth(connection, depth)?;
+    validate_recovery_authority_contract_with_depth(connection, depth)?;
+    validate_persistent_journal_baseline_contract_with_depth(connection, depth)?;
+    validate_recovery_execution_contract_with_depth(connection, depth)?;
+    validate_metadata_inventory_spool_contract_version_with_depth(
+        connection,
+        schema_version,
+        if schema_version >= 31 { 3 } else { 2 },
+        depth,
+    )?;
+    validate_root_publication_namespace_contract_with_depth(connection, depth)
 }
 
 const CHANGE_LANE_INDEX_DDL: &str = "CREATE INDEX library_change_queue_lanes_eligible
@@ -1215,6 +1569,18 @@ const METADATA_INVENTORY_SPOOL_CONTRACT_TABLE_DDL: &str =
        contract_version INTEGER NOT NULL CHECK(contract_version = 2),
        complete INTEGER NOT NULL CHECK(complete = 1)
      )";
+const METADATA_INVENTORY_SPOOL_CONTRACT_TABLE_V31_DDL: &str =
+    "CREATE TABLE library_metadata_inventory_spool_contract (
+       singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+       contract_version INTEGER NOT NULL CHECK(contract_version = 3),
+       complete INTEGER NOT NULL CHECK(complete = 1)
+     )";
+const SOURCE_REVISION_METADATA_CONTRACT_TABLE_DDL: &str =
+    "CREATE TABLE library_source_revision_metadata_contract (
+       singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+       contract_version INTEGER NOT NULL CHECK(contract_version = 1),
+       complete INTEGER NOT NULL CHECK(complete = 1)
+     )";
 const METADATA_INVENTORY_SPOOL_TABLE_DDL: &str = "CREATE TABLE library_metadata_inventory_spools (
        run_id TEXT PRIMARY KEY,
        authority_change_id INTEGER NOT NULL UNIQUE,
@@ -1276,6 +1642,40 @@ const METADATA_INVENTORY_SPOOL_ENTRY_TABLE_DDL: &str =
        )),
        is_reparse_point INTEGER NOT NULL CHECK(is_reparse_point IN (0, 1)),
        staged_unix_ms INTEGER NOT NULL CHECK(staged_unix_ms >= 0),
+       CHECK(directory_relative_path IS NULL OR instr(directory_relative_path, char(92)) = 0),
+       CHECK(instr(relative_path, char(92)) = 0),
+       CHECK(
+         (entry_kind = 'file' AND file_size IS NOT NULL)
+         OR
+         (entry_kind <> 'file' AND file_size IS NULL)
+       ),
+       CHECK(
+         (file_identity_scheme IS NULL AND file_identity_value IS NULL)
+         OR
+         (length(file_identity_scheme) BETWEEN 1 AND 128
+           AND length(file_identity_value) BETWEEN 1 AND 512)
+       ),
+       PRIMARY KEY(run_id, relative_path),
+       FOREIGN KEY(run_id, directory_relative_path)
+         REFERENCES library_metadata_inventory_spool_directories(run_id, relative_directory)
+         ON DELETE CASCADE
+     )";
+const METADATA_INVENTORY_SPOOL_ENTRY_TABLE_V31_DDL: &str =
+    "CREATE TABLE library_metadata_inventory_spool_entries (
+       run_id TEXT NOT NULL,
+       directory_relative_path TEXT,
+       relative_path TEXT NOT NULL CHECK(length(relative_path) BETWEEN 1 AND 32767),
+       entry_kind TEXT NOT NULL CHECK(entry_kind IN ('file', 'directory', 'other')),
+       file_size INTEGER CHECK(file_size IS NULL OR file_size >= 0),
+       modified_unix_ms INTEGER NOT NULL,
+       file_identity_scheme TEXT,
+       file_identity_value TEXT,
+       placeholder_state TEXT NOT NULL CHECK(placeholder_state IN (
+         'available', 'offline', 'recall_on_open', 'recall_on_data_access'
+       )),
+       is_reparse_point INTEGER NOT NULL CHECK(is_reparse_point IN (0, 1)),
+       staged_unix_ms INTEGER NOT NULL CHECK(staged_unix_ms >= 0),
+       source_revision_token TEXT,
        CHECK(directory_relative_path IS NULL OR instr(directory_relative_path, char(92)) = 0),
        CHECK(instr(relative_path, char(92)) = 0),
        CHECK(
@@ -1523,6 +1923,13 @@ const METADATA_INVENTORY_SPOOL_DIRECTORY_COMPLETE_GUARD_DDL: &str =
        END";
 
 fn validate_change_lane_contract(connection: &Connection) -> Result<(), ScanError> {
+    validate_change_lane_contract_with_depth(connection, ContractValidationDepth::Full)
+}
+
+fn validate_change_lane_contract_with_depth(
+    connection: &Connection,
+    depth: ContractValidationDepth,
+) -> Result<(), ScanError> {
     let columns_match = table_columns_match(
         connection,
         "library_change_lane_contract",
@@ -1591,6 +1998,13 @@ fn validate_change_lane_contract(connection: &Connection) -> Result<(), ScanErro
         "library_change_queue",
         "id",
     )?;
+    if !columns_match || !marker_complete || !schema_matches || !foreign_key_matches {
+        return Err(unverifiable_change_lane_contract());
+    }
+    if !depth.includes_rows() {
+        return Ok(());
+    }
+    record_current_schema_row_audit();
     let invalid_rows = connection
         .query_row(
             "SELECT EXISTS(
@@ -1610,8 +2024,7 @@ fn validate_change_lane_contract(connection: &Connection) -> Result<(), ScanErro
             |row| row.get::<_, bool>(0),
         )
         .map_err(database_error)?;
-    if !columns_match || !marker_complete || !schema_matches || !foreign_key_matches || invalid_rows
-    {
+    if invalid_rows {
         return Err(unverifiable_change_lane_contract());
     }
     Ok(())
@@ -1625,6 +2038,13 @@ fn unverifiable_change_lane_contract() -> ScanError {
 }
 
 fn validate_recovery_authority_contract(connection: &Connection) -> Result<(), ScanError> {
+    validate_recovery_authority_contract_with_depth(connection, ContractValidationDepth::Full)
+}
+
+fn validate_recovery_authority_contract_with_depth(
+    connection: &Connection,
+    depth: ContractValidationDepth,
+) -> Result<(), ScanError> {
     let columns_match = table_columns_match(
         connection,
         "library_recovery_authority_contract",
@@ -1690,6 +2110,13 @@ fn validate_recovery_authority_contract(connection: &Connection) -> Result<(), S
         "library_change_queue",
         "id",
     )?;
+    if !columns_match || !marker_complete || !schema_matches || !foreign_key_matches {
+        return Err(unverifiable_recovery_authority_contract());
+    }
+    if !depth.includes_rows() {
+        return Ok(());
+    }
+    record_current_schema_row_audit();
     let invalid_rows = connection
         .query_row(
             "SELECT EXISTS(
@@ -1727,19 +2154,23 @@ fn validate_recovery_authority_contract(connection: &Connection) -> Result<(), S
                     && JournalUsn::parse_canonical(&next_usn).is_ok()
             })
         });
-    if !columns_match
-        || !marker_complete
-        || !schema_matches
-        || !foreign_key_matches
-        || invalid_rows
-        || !canonical_boundaries
-    {
+    if invalid_rows || !canonical_boundaries {
         return Err(unverifiable_recovery_authority_contract());
     }
     Ok(())
 }
 
 fn validate_persistent_journal_baseline_contract(connection: &Connection) -> Result<(), ScanError> {
+    validate_persistent_journal_baseline_contract_with_depth(
+        connection,
+        ContractValidationDepth::Full,
+    )
+}
+
+fn validate_persistent_journal_baseline_contract_with_depth(
+    connection: &Connection,
+    depth: ContractValidationDepth,
+) -> Result<(), ScanError> {
     let columns_match = table_columns_match(
         connection,
         "library_persistent_journal_baselines",
@@ -1814,6 +2245,16 @@ fn validate_persistent_journal_baseline_contract(connection: &Connection) -> Res
             |row| row.get::<_, bool>(0),
         )
         .map_err(database_error)?;
+    if !columns_match || !schema_matches || !foreign_keys_match {
+        return Err(ScanError::new(
+            "catalog_persistent_journal_baseline_contract_unverifiable",
+            "The catalog cannot prove its one-time persistent journal baseline authority",
+        ));
+    }
+    if !depth.includes_rows() {
+        return Ok(());
+    }
+    record_current_schema_row_audit();
     let invalid_rows = connection
         .query_row(
             "SELECT EXISTS(
@@ -2036,7 +2477,7 @@ fn validate_persistent_journal_baseline_contract(connection: &Connection) -> Res
                 },
             )
         });
-    if !columns_match || !schema_matches || !foreign_keys_match || invalid_rows || !canonical_rows {
+    if invalid_rows || !canonical_rows {
         return Err(ScanError::new(
             "catalog_persistent_journal_baseline_contract_unverifiable",
             "The catalog cannot prove its one-time persistent journal baseline authority",
@@ -2046,6 +2487,13 @@ fn validate_persistent_journal_baseline_contract(connection: &Connection) -> Res
 }
 
 fn validate_recovery_execution_contract(connection: &Connection) -> Result<(), ScanError> {
+    validate_recovery_execution_contract_with_depth(connection, ContractValidationDepth::Full)
+}
+
+fn validate_recovery_execution_contract_with_depth(
+    connection: &Connection,
+    depth: ContractValidationDepth,
+) -> Result<(), ScanError> {
     let columns_match = table_columns_match(
         connection,
         "library_recovery_execution_contract",
@@ -2127,6 +2575,16 @@ fn validate_recovery_execution_contract(connection: &Connection) -> Result<(), S
         "library_metadata_inventory_frontier_state",
         METADATA_INVENTORY_FRONTIER_STATE_INDEX_DDL,
     )?;
+    if !columns_match || !marker_complete || !schema_matches {
+        return Err(ScanError::new(
+            "catalog_recovery_execution_contract_unverifiable",
+            "The catalog cannot prove recovery candidate ownership and frontier lifecycle",
+        ));
+    }
+    if !depth.includes_rows() {
+        return Ok(());
+    }
+    record_current_schema_row_audit();
     let invalid_relations = connection
         .query_row(
             "SELECT EXISTS(
@@ -2240,7 +2698,7 @@ fn validate_recovery_execution_contract(connection: &Connection) -> Result<(), S
             |row| row.get::<_, bool>(0),
         )
         .map_err(database_error)?;
-    if !columns_match || !marker_complete || !schema_matches || invalid_relations {
+    if invalid_relations {
         return Err(ScanError::new(
             "catalog_recovery_execution_contract_unverifiable",
             "The catalog cannot prove recovery candidate ownership and frontier lifecycle",
@@ -2250,6 +2708,16 @@ fn validate_recovery_execution_contract(connection: &Connection) -> Result<(), S
 }
 
 fn validate_root_publication_namespace_contract(connection: &Connection) -> Result<(), ScanError> {
+    validate_root_publication_namespace_contract_with_depth(
+        connection,
+        ContractValidationDepth::Full,
+    )
+}
+
+fn validate_root_publication_namespace_contract_with_depth(
+    connection: &Connection,
+    depth: ContractValidationDepth,
+) -> Result<(), ScanError> {
     let columns_match = table_columns_match(
         connection,
         "library_root_publication_namespace_contract",
@@ -2314,6 +2782,13 @@ fn validate_root_publication_namespace_contract(connection: &Connection) -> Resu
         .optional()
         .map_err(database_error)?
         .unwrap_or(false);
+    if !columns_match || !schema_matches || !marker_complete {
+        return Err(unverifiable_root_publication_namespace_contract());
+    }
+    if !depth.includes_rows() {
+        return Ok(());
+    }
+    record_current_schema_row_audit();
     let invalid_relations = connection
         .query_row(
             "SELECT EXISTS(
@@ -2362,18 +2837,20 @@ fn validate_root_publication_namespace_contract(connection: &Connection) -> Resu
         .all(|row| {
             row.is_ok_and(|(scheme, value)| validate_windows_root_identity(&scheme, &value).is_ok())
         });
-    if !columns_match
-        || !schema_matches
-        || !marker_complete
-        || invalid_relations
-        || !identities_valid
-    {
+    if invalid_relations || !identities_valid {
         return Err(unverifiable_root_publication_namespace_contract());
     }
     Ok(())
 }
 
 fn validate_live_gap_recovery_contract(connection: &Connection) -> Result<(), ScanError> {
+    validate_live_gap_recovery_contract_with_depth(connection, ContractValidationDepth::Full)
+}
+
+fn validate_live_gap_recovery_contract_with_depth(
+    connection: &Connection,
+    depth: ContractValidationDepth,
+) -> Result<(), ScanError> {
     let columns_match = table_columns_match(
         connection,
         "library_live_gap_recovery_contract",
@@ -2441,11 +2918,27 @@ fn validate_live_gap_recovery_contract(connection: &Connection) -> Result<(), Sc
         .optional()
         .map_err(database_error)?
         .unwrap_or(false);
+    if !columns_match || !schema_matches || !marker_complete {
+        return Err(ScanError::new(
+            "catalog_live_gap_recovery_contract_unverifiable",
+            "The catalog cannot prove live-gap lineage and consumer ownership",
+        ));
+    }
+    if !depth.includes_active_rows() {
+        return Ok(());
+    }
+    if depth.includes_rows() {
+        record_current_schema_row_audit();
+    }
+    let include_terminal_claims = depth.includes_rows();
     let invalid_relations = connection
         .query_row(
             "SELECT EXISTS(
                SELECT 1
-               FROM library_live_gap_recovery_claims AS claim
+               FROM (
+                 SELECT * FROM library_live_gap_recovery_claims
+                 WHERE ?1 OR consumed_unix_ms IS NULL
+               ) AS claim
                LEFT JOIN library_change_queue AS gap ON gap.id = claim.gap_change_id
                LEFT JOIN library_change_queue_lanes AS gap_lane
                  ON gap_lane.change_id = gap.id
@@ -2565,16 +3058,16 @@ fn validate_live_gap_recovery_contract(connection: &Connection) -> Result<(), Sc
                        OR gap.catalog_revision_at_success IS NULL
                      ))
                    ))
-             ) OR EXISTS(
+             ) OR (?1 AND EXISTS(
                SELECT 1 FROM pragma_foreign_key_check(
                  'library_live_gap_recovery_claims'
                )
-             )",
-            [],
+             ))",
+            [include_terminal_claims],
             |row| row.get::<_, bool>(0),
         )
         .map_err(database_error)?;
-    if !columns_match || !schema_matches || !marker_complete || invalid_relations {
+    if invalid_relations {
         return Err(ScanError::new(
             "catalog_live_gap_recovery_contract_unverifiable",
             "The catalog cannot prove live-gap lineage and consumer ownership",
@@ -2608,10 +3101,11 @@ fn metadata_inventory_spool_schema_matches(
     connection: &Connection,
     expected_contract_version: i64,
 ) -> Result<bool, ScanError> {
-    let contract_ddl = if expected_contract_version == 1 {
-        METADATA_INVENTORY_SPOOL_CONTRACT_TABLE_V27_DDL
-    } else {
-        METADATA_INVENTORY_SPOOL_CONTRACT_TABLE_DDL
+    let contract_ddl = match expected_contract_version {
+        1 => METADATA_INVENTORY_SPOOL_CONTRACT_TABLE_V27_DDL,
+        2 => METADATA_INVENTORY_SPOOL_CONTRACT_TABLE_DDL,
+        3 => METADATA_INVENTORY_SPOOL_CONTRACT_TABLE_V31_DDL,
+        _ => return Ok(false),
     };
     let spool_ddl = if expected_contract_version == 1 {
         METADATA_INVENTORY_SPOOL_TABLE_V27_DDL
@@ -2647,7 +3141,11 @@ fn metadata_inventory_spool_schema_matches(
         connection,
         "table",
         "library_metadata_inventory_spool_entries",
-        METADATA_INVENTORY_SPOOL_ENTRY_TABLE_DDL,
+        if expected_contract_version == 3 {
+            METADATA_INVENTORY_SPOOL_ENTRY_TABLE_V31_DDL
+        } else {
+            METADATA_INVENTORY_SPOOL_ENTRY_TABLE_DDL
+        },
     )? && schema_object_sql_matches(
         connection,
         "index",
@@ -2670,6 +3168,20 @@ fn validate_metadata_inventory_spool_contract_version(
     connection: &Connection,
     expected_schema_version: i64,
     expected_contract_version: i64,
+) -> Result<(), ScanError> {
+    validate_metadata_inventory_spool_contract_version_with_depth(
+        connection,
+        expected_schema_version,
+        expected_contract_version,
+        ContractValidationDepth::Full,
+    )
+}
+
+fn validate_metadata_inventory_spool_contract_version_with_depth(
+    connection: &Connection,
+    expected_schema_version: i64,
+    expected_contract_version: i64,
+    depth: ContractValidationDepth,
 ) -> Result<(), ScanError> {
     let application_id: i64 = connection
         .query_row("PRAGMA application_id", [], |row| row.get(0))
@@ -2704,6 +3216,22 @@ fn validate_metadata_inventory_spool_contract_version(
             ("updated_unix_ms", "INTEGER", true, 0),
         ]
     };
+    let mut spool_entry_columns = vec![
+        ("run_id", "TEXT", true, 1),
+        ("directory_relative_path", "TEXT", false, 0),
+        ("relative_path", "TEXT", true, 2),
+        ("entry_kind", "TEXT", true, 0),
+        ("file_size", "INTEGER", false, 0),
+        ("modified_unix_ms", "INTEGER", true, 0),
+        ("file_identity_scheme", "TEXT", false, 0),
+        ("file_identity_value", "TEXT", false, 0),
+        ("placeholder_state", "TEXT", true, 0),
+        ("is_reparse_point", "INTEGER", true, 0),
+        ("staged_unix_ms", "INTEGER", true, 0),
+    ];
+    if expected_contract_version == 3 {
+        spool_entry_columns.push(("source_revision_token", "TEXT", false, 0));
+    }
     let columns_match = table_columns_match(
         connection,
         "library_metadata_inventory_spool_contract",
@@ -2733,19 +3261,7 @@ fn validate_metadata_inventory_spool_contract_version(
     )? && table_columns_match(
         connection,
         "library_metadata_inventory_spool_entries",
-        &[
-            ("run_id", "TEXT", true, 1),
-            ("directory_relative_path", "TEXT", false, 0),
-            ("relative_path", "TEXT", true, 2),
-            ("entry_kind", "TEXT", true, 0),
-            ("file_size", "INTEGER", false, 0),
-            ("modified_unix_ms", "INTEGER", true, 0),
-            ("file_identity_scheme", "TEXT", false, 0),
-            ("file_identity_value", "TEXT", false, 0),
-            ("placeholder_state", "TEXT", true, 0),
-            ("is_reparse_point", "INTEGER", true, 0),
-            ("staged_unix_ms", "INTEGER", true, 0),
-        ],
+        &spool_entry_columns,
     )?;
     let marker_complete = connection
         .query_row(
@@ -2759,6 +3275,21 @@ fn validate_metadata_inventory_spool_contract_version(
         .unwrap_or(false);
     let schema_matches =
         metadata_inventory_spool_schema_matches(connection, expected_contract_version)?;
+    if application_id != SQLITE_APPLICATION_ID
+        || user_version != expected_schema_version
+        || !columns_match
+        || !marker_complete
+        || !schema_matches
+    {
+        return Err(ScanError::new(
+            "catalog_metadata_inventory_spool_contract_unverifiable",
+            "The catalog cannot prove its bounded metadata inventory source spool",
+        ));
+    }
+    if !depth.includes_rows() {
+        return Ok(());
+    }
+    record_current_schema_row_audit();
     let invalid_relations = connection
         .query_row(
             "SELECT EXISTS(
@@ -2769,7 +3300,7 @@ fn validate_metadata_inventory_spool_contract_version(
                  ON authority.change_id = spool.authority_change_id
                WHERE run.id IS NULL OR authority.change_id IS NULL
                   OR (?1 = 1 AND run.status <> 'running')
-                  OR (?1 = 2 AND run.status NOT IN ('running', 'comparing', 'completed'))
+                  OR (?1 >= 2 AND run.status NOT IN ('running', 'comparing', 'completed'))
                   OR authority.retired_unix_ms IS NOT NULL
                   OR authority.run_id <> spool.run_id
                   OR authority.root_id <> spool.root_id
@@ -2821,13 +3352,7 @@ fn validate_metadata_inventory_spool_contract_version(
             |row| row.get::<_, bool>(0),
         )
         .map_err(database_error)?;
-    if application_id != SQLITE_APPLICATION_ID
-        || user_version != expected_schema_version
-        || !columns_match
-        || !marker_complete
-        || !schema_matches
-        || invalid_relations
-    {
+    if invalid_relations {
         return Err(ScanError::new(
             "catalog_metadata_inventory_spool_contract_unverifiable",
             "The catalog cannot prove its bounded metadata inventory source spool",
@@ -2844,6 +3369,30 @@ fn unverifiable_recovery_authority_contract() -> ScanError {
 }
 
 fn validate_terminal_media_evidence_contract(connection: &Connection) -> Result<(), ScanError> {
+    validate_terminal_media_evidence_contract_with_depth(connection, ContractValidationDepth::Full)
+}
+
+fn validate_terminal_media_evidence_contract_with_depth(
+    connection: &Connection,
+    depth: ContractValidationDepth,
+) -> Result<(), ScanError> {
+    let mut evidence_columns = vec![
+        ("root_id", "TEXT", true, 1),
+        ("relative_path", "TEXT", true, 2),
+        ("file_size", "INTEGER", true, 0),
+        ("modified_unix_ms", "INTEGER", true, 0),
+        ("file_identity_scheme", "TEXT", false, 0),
+        ("file_identity_value", "TEXT", false, 0),
+        ("inspection_engine_id", "TEXT", true, 0),
+        ("inspection_engine_version", "INTEGER", true, 0),
+        ("issue_code", "TEXT", true, 0),
+        ("issue_message", "TEXT", true, 0),
+        ("updated_unix_ms", "INTEGER", true, 0),
+    ];
+    if schema_version(connection)? >= 31 {
+        evidence_columns.push(("source_revision_token", "TEXT", false, 0));
+        evidence_columns.push(("source_generation", "INTEGER", false, 0));
+    }
     let structure_matches = table_columns_match(
         connection,
         "library_terminal_media_evidence_contract",
@@ -2854,19 +3403,7 @@ fn validate_terminal_media_evidence_contract(connection: &Connection) -> Result<
     )? && table_columns_match(
         connection,
         "library_terminal_media_evidence",
-        &[
-            ("root_id", "TEXT", true, 1),
-            ("relative_path", "TEXT", true, 2),
-            ("file_size", "INTEGER", true, 0),
-            ("modified_unix_ms", "INTEGER", true, 0),
-            ("file_identity_scheme", "TEXT", false, 0),
-            ("file_identity_value", "TEXT", false, 0),
-            ("inspection_engine_id", "TEXT", true, 0),
-            ("inspection_engine_version", "INTEGER", true, 0),
-            ("issue_code", "TEXT", true, 0),
-            ("issue_message", "TEXT", true, 0),
-            ("updated_unix_ms", "INTEGER", true, 0),
-        ],
+        &evidence_columns,
     )?;
     let marker_complete = connection
         .query_row(
@@ -2885,6 +3422,16 @@ fn validate_terminal_media_evidence_contract(connection: &Connection) -> Result<
         "library_roots",
         "id",
     )?;
+    if !structure_matches || !marker_complete || !foreign_key_matches {
+        return Err(ScanError::new(
+            "catalog_terminal_media_evidence_contract_unverifiable",
+            "The catalog cannot prove its terminal media evidence authority",
+        ));
+    }
+    if !depth.includes_rows() {
+        return Ok(());
+    }
+    record_current_schema_row_audit();
     let invalid_relations = connection
         .query_row(
             "SELECT EXISTS(
@@ -2894,7 +3441,7 @@ fn validate_terminal_media_evidence_contract(connection: &Connection) -> Result<
             |row| row.get::<_, bool>(0),
         )
         .map_err(database_error)?;
-    if !structure_matches || !marker_complete || !foreign_key_matches || invalid_relations {
+    if invalid_relations {
         return Err(ScanError::new(
             "catalog_terminal_media_evidence_contract_unverifiable",
             "The catalog cannot prove its terminal media evidence authority",
@@ -2903,7 +3450,40 @@ fn validate_terminal_media_evidence_contract(connection: &Connection) -> Result<
     Ok(())
 }
 
+fn schema_version(connection: &Connection) -> Result<i64, ScanError> {
+    connection
+        .query_row("SELECT version FROM schema_info LIMIT 1", [], |row| {
+            row.get(0)
+        })
+        .map_err(database_error)
+}
+
 fn validate_metadata_inventory_contract(connection: &Connection) -> Result<(), ScanError> {
+    validate_metadata_inventory_contract_with_depth(connection, ContractValidationDepth::Full)
+}
+
+fn validate_metadata_inventory_contract_with_depth(
+    connection: &Connection,
+    depth: ContractValidationDepth,
+) -> Result<(), ScanError> {
+    let mut entry_columns = vec![
+        ("run_id", "TEXT", true, 1),
+        ("relative_path", "TEXT", true, 2),
+        ("entry_kind", "TEXT", true, 0),
+        ("file_size", "INTEGER", false, 0),
+        ("modified_unix_ms", "INTEGER", true, 0),
+        ("file_identity_scheme", "TEXT", false, 0),
+        ("file_identity_value", "TEXT", false, 0),
+        ("placeholder_state", "TEXT", true, 0),
+        ("is_reparse_point", "INTEGER", true, 0),
+        ("staged_page_index", "INTEGER", true, 0),
+        ("comparison_status", "TEXT", true, 0),
+        ("candidate_previous_relative_path", "TEXT", false, 0),
+        ("staged_unix_ms", "INTEGER", true, 0),
+    ];
+    if schema_version(connection)? >= 31 {
+        entry_columns.push(("source_revision_token", "TEXT", false, 0));
+    }
     let structure_matches = table_columns_match(
         connection,
         "library_metadata_inventory_contract",
@@ -2939,21 +3519,7 @@ fn validate_metadata_inventory_contract(connection: &Connection) -> Result<(), S
     )? && table_columns_match(
         connection,
         "library_metadata_inventory_entries",
-        &[
-            ("run_id", "TEXT", true, 1),
-            ("relative_path", "TEXT", true, 2),
-            ("entry_kind", "TEXT", true, 0),
-            ("file_size", "INTEGER", false, 0),
-            ("modified_unix_ms", "INTEGER", true, 0),
-            ("file_identity_scheme", "TEXT", false, 0),
-            ("file_identity_value", "TEXT", false, 0),
-            ("placeholder_state", "TEXT", true, 0),
-            ("is_reparse_point", "INTEGER", true, 0),
-            ("staged_page_index", "INTEGER", true, 0),
-            ("comparison_status", "TEXT", true, 0),
-            ("candidate_previous_relative_path", "TEXT", false, 0),
-            ("staged_unix_ms", "INTEGER", true, 0),
-        ],
+        &entry_columns,
     )?;
     let indexes_match = named_index_matches(
         connection,
@@ -3056,6 +3622,10 @@ fn validate_metadata_inventory_contract(connection: &Connection) -> Result<(), S
     {
         return Err(unverifiable_metadata_inventory_contract());
     }
+    if !depth.includes_rows() {
+        return Ok(());
+    }
+    record_current_schema_row_audit();
     let invalid_relations = connection
         .query_row(
             "SELECT
@@ -3126,6 +3696,13 @@ fn validate_metadata_inventory_contract(connection: &Connection) -> Result<(), S
 }
 
 fn validate_persistent_journal_contract(connection: &Connection) -> Result<(), ScanError> {
+    validate_persistent_journal_contract_with_depth(connection, ContractValidationDepth::Full)
+}
+
+fn validate_persistent_journal_contract_with_depth(
+    connection: &Connection,
+    depth: ContractValidationDepth,
+) -> Result<(), ScanError> {
     let columns_match = table_columns_match(
         connection,
         "library_persistent_journal_contract",
@@ -3350,7 +3927,12 @@ fn validate_persistent_journal_contract(connection: &Connection) -> Result<(), S
     if !columns_match || !marker_complete || !indexes_match || !checks_and_foreign_keys_match {
         return Err(unverifiable_persistent_journal_contract());
     }
-    validate_persistent_journal_rows(connection)
+    if depth.includes_rows() {
+        record_current_schema_row_audit();
+        validate_persistent_journal_rows(connection)
+    } else {
+        Ok(())
+    }
 }
 
 fn persistent_journal_schema_sql_matches(connection: &Connection) -> Result<bool, ScanError> {
@@ -5264,7 +5846,10 @@ fn add_preview_expectation_repair_marker(transaction: &Transaction<'_>) -> Resul
         .map_err(database_error)
 }
 
-fn validate_change_catch_up_contract(connection: &Connection) -> Result<(), ScanError> {
+fn validate_change_catch_up_contract_with_depth(
+    connection: &Connection,
+    depth: ContractValidationDepth,
+) -> Result<(), ScanError> {
     let state_columns_match = table_columns_match(
         connection,
         "library_change_catch_up_state",
@@ -5277,36 +5862,41 @@ fn validate_change_catch_up_contract(connection: &Connection) -> Result<(), Scan
             ("updated_unix_ms", "INTEGER", true, 0),
         ],
     )?;
+    let mut handoff_columns = vec![
+        ("catch_up_source", "TEXT", true, 1),
+        ("catch_up_watermark", "TEXT", true, 2),
+        ("file_identity_scheme", "TEXT", true, 3),
+        ("file_identity_value", "TEXT", true, 4),
+        ("asset_id", "TEXT", true, 0),
+        ("source_location_id", "TEXT", true, 0),
+        ("root_id", "TEXT", true, 0),
+        ("absolute_path", "TEXT", true, 0),
+        ("relative_path", "TEXT", true, 0),
+        ("preview_path", "TEXT", true, 0),
+        ("file_size", "INTEGER", true, 0),
+        ("created_unix_ms", "INTEGER", false, 0),
+        ("modified_unix_ms", "INTEGER", true, 0),
+        ("width", "INTEGER", true, 0),
+        ("height", "INTEGER", true, 0),
+        ("preview_status", "TEXT", true, 0),
+        ("preview_issue_code", "TEXT", false, 0),
+        ("preview_issue_message", "TEXT", false, 0),
+        ("metadata_engine_id", "TEXT", true, 0),
+        ("metadata_engine_version", "TEXT", true, 0),
+        ("capture_local_time", "TEXT", false, 0),
+        ("capture_offset_minutes", "INTEGER", false, 0),
+        ("capture_time_source", "TEXT", false, 0),
+        ("capture_raw_value", "TEXT", false, 0),
+        ("updated_unix_ms", "INTEGER", true, 0),
+    ];
+    if schema_version(connection)? >= 31 {
+        handoff_columns.push(("source_revision_token", "TEXT", false, 0));
+        handoff_columns.push(("source_generation", "INTEGER", false, 0));
+    }
     let handoff_columns_match = table_columns_match(
         connection,
         "library_change_catch_up_handoffs",
-        &[
-            ("catch_up_source", "TEXT", true, 1),
-            ("catch_up_watermark", "TEXT", true, 2),
-            ("file_identity_scheme", "TEXT", true, 3),
-            ("file_identity_value", "TEXT", true, 4),
-            ("asset_id", "TEXT", true, 0),
-            ("source_location_id", "TEXT", true, 0),
-            ("root_id", "TEXT", true, 0),
-            ("absolute_path", "TEXT", true, 0),
-            ("relative_path", "TEXT", true, 0),
-            ("preview_path", "TEXT", true, 0),
-            ("file_size", "INTEGER", true, 0),
-            ("created_unix_ms", "INTEGER", false, 0),
-            ("modified_unix_ms", "INTEGER", true, 0),
-            ("width", "INTEGER", true, 0),
-            ("height", "INTEGER", true, 0),
-            ("preview_status", "TEXT", true, 0),
-            ("preview_issue_code", "TEXT", false, 0),
-            ("preview_issue_message", "TEXT", false, 0),
-            ("metadata_engine_id", "TEXT", true, 0),
-            ("metadata_engine_version", "TEXT", true, 0),
-            ("capture_local_time", "TEXT", false, 0),
-            ("capture_offset_minutes", "INTEGER", false, 0),
-            ("capture_time_source", "TEXT", false, 0),
-            ("capture_raw_value", "TEXT", false, 0),
-            ("updated_unix_ms", "INTEGER", true, 0),
-        ],
+        &handoff_columns,
     )?;
     let (
         has_table,
@@ -5347,8 +5937,8 @@ fn validate_change_catch_up_contract(connection: &Connection) -> Result<(), Scan
                    'preview_status', 'preview_issue_code', 'preview_issue_message',
                    'metadata_engine_id', 'metadata_engine_version', 'capture_local_time',
                    'capture_offset_minutes', 'capture_time_source', 'capture_raw_value',
-                   'updated_unix_ms'
-                 )) = 25
+                   'updated_unix_ms', 'source_revision_token', 'source_generation'
+                 )) IN (25, 27)
                AND (SELECT group_concat(name, ',') FROM (
                  SELECT name FROM pragma_table_info('library_change_catch_up_handoffs')
                  WHERE pk > 0 ORDER BY pk
@@ -5525,6 +6115,10 @@ fn validate_change_catch_up_contract(connection: &Connection) -> Result<(), Scan
             "The catalog cannot prove its downtime catch-up checkpoint authority",
         ));
     }
+    if !depth.includes_rows() {
+        return Ok(());
+    }
+    record_current_schema_row_audit();
     let invalid_lineage = connection
         .query_row(
             "SELECT
@@ -5603,7 +6197,10 @@ fn validate_change_catch_up_contract(connection: &Connection) -> Result<(), Scan
     Ok(())
 }
 
-fn validate_scan_handoff_batch_contract(connection: &Connection) -> Result<(), ScanError> {
+fn validate_scan_handoff_batch_contract_with_depth(
+    connection: &Connection,
+    depth: ContractValidationDepth,
+) -> Result<(), ScanError> {
     let marker_complete = connection
         .query_row(
             "SELECT scan_handoff_batch_complete = 1
@@ -5707,6 +6304,10 @@ fn validate_scan_handoff_batch_contract(connection: &Connection) -> Result<(), S
             "The catalog cannot prove its normalized scan handoff contract",
         ));
     }
+    if !depth.includes_rows() {
+        return Ok(());
+    }
+    record_current_schema_row_audit();
 
     let invalid_relations = connection
         .query_row(
@@ -5808,8 +6409,18 @@ fn table_columns_match(
     let actual = rows
         .collect::<Result<Vec<_>, _>>()
         .map_err(database_error)?;
+    let mut expected = expected.to_vec();
+    if schema_version(connection)? >= 31
+        && !expected
+            .iter()
+            .any(|column| column.0 == "source_revision_token")
+        && table == "library_change_scan_handoff_items"
+    {
+        expected.push(("source_revision_token", "TEXT", false, 0));
+        expected.push(("source_generation", "INTEGER", false, 0));
+    }
     Ok(actual.len() == expected.len()
-        && actual.iter().zip(expected).all(|(actual, expected)| {
+        && actual.iter().zip(&expected).all(|(actual, expected)| {
             actual.0 == expected.0
                 && actual.1.eq_ignore_ascii_case(expected.1)
                 && actual.2 == expected.2
@@ -8566,6 +9177,299 @@ fn migrate_v29_to_v30_transaction(transaction: &Transaction<'_>) -> Result<(), S
     validate_live_gap_recovery_contract(transaction)
 }
 
+fn migrate_v30_to_v31(connection: &mut Connection) -> Result<(), ScanError> {
+    let transaction = connection
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .map_err(database_error)?;
+    migrate_v30_to_v31_transaction(&transaction)?;
+    transaction.commit().map_err(database_error)
+}
+
+fn migrate_v30_to_v31_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+    repair_legacy_terminal_metadata_inventory_state_transaction(transaction, 30)?;
+    validate_pre_live_gap_schema_contract(transaction, 30)?;
+    repair_retired_live_gap_claims_transaction(transaction, 30)?;
+    validate_live_gap_recovery_contract(transaction)?;
+    transaction
+        .execute_batch(
+            "ALTER TABLE catalog_state ADD COLUMN next_source_generation INTEGER NOT NULL DEFAULT 1
+               CHECK(next_source_generation > 0);
+             ALTER TABLE asset_locations ADD COLUMN source_revision_token TEXT;
+             ALTER TABLE asset_locations ADD COLUMN source_generation INTEGER;
+             UPDATE asset_locations AS location
+             SET file_identity_scheme = NULL, file_identity_value = NULL
+             WHERE location.file_identity_scheme IS NOT NULL
+               AND EXISTS (
+                 SELECT 1 FROM asset_locations AS peer
+                 WHERE peer.file_identity_scheme = location.file_identity_scheme
+                   AND peer.file_identity_value = location.file_identity_value
+                 GROUP BY peer.file_identity_scheme, peer.file_identity_value
+                 HAVING MIN(peer.file_size) <> MAX(peer.file_size)
+                    OR MIN(peer.modified_unix_ms) <> MAX(peer.modified_unix_ms)
+               );
+             UPDATE asset_locations AS location
+             SET source_generation = CASE
+               WHEN file_identity_scheme IS NOT NULL THEN (
+                 SELECT MIN(peer.rowid) FROM asset_locations AS peer
+                 WHERE peer.file_identity_scheme = location.file_identity_scheme
+                   AND peer.file_identity_value = location.file_identity_value
+               )
+               ELSE location.rowid
+             END;
+             ALTER TABLE preview_artifacts ADD COLUMN source_revision_token TEXT;
+             ALTER TABLE preview_artifacts ADD COLUMN source_generation INTEGER;
+
+             ALTER TABLE library_terminal_media_evidence ADD COLUMN source_revision_token TEXT;
+             ALTER TABLE library_terminal_media_evidence ADD COLUMN source_generation INTEGER;
+             ALTER TABLE library_change_catch_up_handoffs ADD COLUMN source_revision_token TEXT;
+             ALTER TABLE library_change_catch_up_handoffs ADD COLUMN source_generation INTEGER;
+             ALTER TABLE library_change_scan_handoff_items ADD COLUMN source_revision_token TEXT;
+             ALTER TABLE library_change_scan_handoff_items ADD COLUMN source_generation INTEGER;
+             ALTER TABLE library_metadata_inventory_entries ADD COLUMN source_revision_token TEXT;
+
+             DELETE FROM library_terminal_media_evidence;
+             DELETE FROM library_change_catch_up_handoffs;
+             DELETE FROM library_change_scan_handoff_batches;
+
+             UPDATE library_metadata_inventory_runs
+             SET status = 'failed', absence_authority = 0,
+                 completed_unix_ms = updated_unix_ms,
+                 last_issue_code = 'source_revision_v31_recapture_required',
+                 last_issue_message =
+                   'The v30 metadata inventory lacked persistent source revision evidence'
+             WHERE id IN (SELECT run_id FROM library_metadata_inventory_spools)
+               AND status IN ('running', 'comparing', 'completed');
+             DELETE FROM library_metadata_inventory_spools;
+             DROP INDEX library_metadata_inventory_spool_entries_order;
+             DROP TABLE library_metadata_inventory_spool_entries;
+             DROP TABLE library_metadata_inventory_spool_contract;
+             CREATE TABLE library_metadata_inventory_spool_contract (
+               singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+               contract_version INTEGER NOT NULL CHECK(contract_version = 3),
+               complete INTEGER NOT NULL CHECK(complete = 1)
+             );
+             INSERT INTO library_metadata_inventory_spool_contract(
+               singleton, contract_version, complete
+             ) VALUES (1, 3, 1);
+             CREATE TRIGGER asset_locations_source_generation_insert_guard
+             BEFORE INSERT ON asset_locations
+             WHEN NEW.source_generation IS NULL OR NEW.source_generation <= 0
+             BEGIN
+               SELECT RAISE(ABORT, 'asset location source generation is required');
+             END;
+             CREATE TRIGGER asset_locations_source_generation_update_guard
+             BEFORE UPDATE OF source_generation ON asset_locations
+             WHEN NEW.source_generation IS NULL OR NEW.source_generation <= 0
+             BEGIN
+               SELECT RAISE(ABORT, 'asset location source generation is required');
+             END;
+
+             PRAGMA application_id = 1095583025;
+             PRAGMA user_version = 31;
+             UPDATE schema_info SET version = 31;",
+        )
+        .map_err(database_error)?;
+    invalidate_precontract_source_revision_metadata(transaction)?;
+    create_source_revision_metadata_contract(transaction)?;
+    transaction
+        .execute_batch(METADATA_INVENTORY_SPOOL_ENTRY_TABLE_V31_DDL)
+        .map_err(database_error)?;
+    transaction
+        .execute_batch(METADATA_INVENTORY_SPOOL_ENTRY_ORDER_INDEX_DDL)
+        .map_err(database_error)?;
+    let maximum_generation = transaction
+        .query_row(
+            "SELECT COALESCE(MAX(source_generation), 0) FROM asset_locations",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .map_err(database_error)?;
+    let next_generation = maximum_generation.checked_add(1).ok_or_else(|| {
+        ScanError::new(
+            "catalog_source_generation_exhausted",
+            "The migrated catalog cannot allocate another source generation",
+        )
+    })?;
+    transaction
+        .execute(
+            "UPDATE catalog_state SET next_source_generation = ?1",
+            [next_generation.max(1)],
+        )
+        .map_err(database_error)?;
+    validate_current_schema_contract_with_source_revision_rows(transaction)
+}
+
+fn validate_source_revision_structure_contract(connection: &Connection) -> Result<(), ScanError> {
+    let required_columns = [
+        ("catalog_state", "next_source_generation"),
+        ("asset_locations", "source_revision_token"),
+        ("asset_locations", "source_generation"),
+        ("preview_artifacts", "source_revision_token"),
+        ("preview_artifacts", "source_generation"),
+        ("library_terminal_media_evidence", "source_revision_token"),
+        ("library_terminal_media_evidence", "source_generation"),
+        ("library_change_catch_up_handoffs", "source_revision_token"),
+        ("library_change_catch_up_handoffs", "source_generation"),
+        ("library_change_scan_handoff_items", "source_revision_token"),
+        ("library_change_scan_handoff_items", "source_generation"),
+        (
+            "library_metadata_inventory_entries",
+            "source_revision_token",
+        ),
+        (
+            "library_metadata_inventory_spool_entries",
+            "source_revision_token",
+        ),
+    ];
+    let mut structure_matches = true;
+    for (table, column) in required_columns {
+        structure_matches &= connection
+            .query_row(
+                &format!(
+                    "SELECT EXISTS(SELECT 1 FROM pragma_table_info('{table}') WHERE name = ?1)"
+                ),
+                [column],
+                |row| row.get::<_, bool>(0),
+            )
+            .map_err(database_error)?;
+    }
+    structure_matches &= schema_object_sql_matches(
+        connection,
+        "trigger",
+        "asset_locations_source_generation_insert_guard",
+        "CREATE TRIGGER asset_locations_source_generation_insert_guard
+           BEFORE INSERT ON asset_locations
+           WHEN NEW.source_generation IS NULL OR NEW.source_generation <= 0
+           BEGIN
+             SELECT RAISE(ABORT, 'asset location source generation is required');
+           END",
+    )?;
+    structure_matches &= schema_object_sql_matches(
+        connection,
+        "trigger",
+        "asset_locations_source_generation_update_guard",
+        "CREATE TRIGGER asset_locations_source_generation_update_guard
+           BEFORE UPDATE OF source_generation ON asset_locations
+           WHEN NEW.source_generation IS NULL OR NEW.source_generation <= 0
+           BEGIN
+             SELECT RAISE(ABORT, 'asset location source generation is required');
+           END",
+    )?;
+    if !structure_matches {
+        return Err(ScanError::new(
+            "catalog_source_revision_contract_unverifiable",
+            "The catalog cannot prove its source revision and generation contract",
+        ));
+    }
+    Ok(())
+}
+
+fn validate_source_revision_rows(connection: &Connection) -> Result<(), ScanError> {
+    #[cfg(test)]
+    SOURCE_REVISION_ROW_AUDIT_COUNT.with(|count| count.set(count.get() + 1));
+    let invalid_state = connection
+        .query_row(
+            "SELECT EXISTS(
+               SELECT 1 FROM asset_locations
+               WHERE source_generation IS NULL OR source_generation <= 0
+                  OR (source_revision_token IS NOT NULL AND (
+                    length(source_revision_token) <> 50
+                    OR source_revision_token NOT GLOB
+                      'windows-file-change-time-100ns-v1:[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]'
+                  ))
+             ) OR EXISTS(
+               SELECT 1 FROM preview_artifacts
+               WHERE lifecycle_state = 'ready'
+                 AND (source_generation IS NULL OR source_generation <= 0
+                      OR source_revision_token IS NULL)
+             ) OR EXISTS(
+               SELECT 1
+               FROM asset_locations AS locations
+               JOIN library_roots AS roots
+                 ON roots.id = locations.root_id
+                AND roots.active_scan_id = locations.scan_id
+               WHERE locations.file_identity_scheme IS NOT NULL
+               GROUP BY locations.file_identity_scheme, locations.file_identity_value
+               HAVING MIN(locations.source_generation) <> MAX(locations.source_generation)
+                  OR COUNT(DISTINCT locations.source_revision_token) > 1
+                  OR MIN(locations.file_size) <> MAX(locations.file_size)
+                  OR MIN(locations.modified_unix_ms) <> MAX(locations.modified_unix_ms)
+             ) OR EXISTS(
+               SELECT 1 FROM asset_locations AS locations
+               WHERE locations.file_identity_scheme IS NOT NULL
+               GROUP BY locations.scan_id, locations.file_identity_scheme,
+                        locations.file_identity_value
+               HAVING MIN(locations.source_generation) <> MAX(locations.source_generation)
+                  OR COUNT(DISTINCT locations.source_revision_token) > 1
+                  OR MIN(locations.file_size) <> MAX(locations.file_size)
+                  OR MIN(locations.modified_unix_ms) <> MAX(locations.modified_unix_ms)
+             ) OR (SELECT next_source_generation FROM catalog_state) <= COALESCE(
+               (SELECT MAX(source_generation) FROM asset_locations), 0
+             )",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    if invalid_state {
+        return Err(ScanError::new(
+            "catalog_source_revision_contract_unverifiable",
+            "The catalog cannot prove its source revision and generation contract",
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+pub(super) fn downgrade_source_revision_contract_to_v30_for_test(connection: &Connection) {
+    let version = connection
+        .query_row("SELECT version FROM schema_info LIMIT 1", [], |row| {
+            row.get::<_, i64>(0)
+        })
+        .expect("source revision fixture schema version");
+    if version != 31 {
+        return;
+    }
+
+    connection
+        .execute_batch(
+            "DROP TRIGGER asset_locations_source_generation_update_guard;
+             DROP TRIGGER asset_locations_source_generation_insert_guard;
+             DROP TABLE library_source_revision_metadata_contract;
+             DROP TABLE library_metadata_inventory_spool_contract;
+             ALTER TABLE library_metadata_inventory_spool_entries
+               DROP COLUMN source_revision_token;",
+        )
+        .expect("remove v31-only source revision schema");
+    connection
+        .execute_batch(METADATA_INVENTORY_SPOOL_CONTRACT_TABLE_DDL)
+        .expect("restore v30 inventory spool marker shape");
+    connection
+        .execute_batch(
+            "INSERT INTO library_metadata_inventory_spool_contract(
+               singleton, contract_version, complete
+             ) VALUES (1, 2, 1);",
+        )
+        .expect("restore v30 inventory spool marker");
+    connection
+        .execute_batch(
+            "ALTER TABLE catalog_state DROP COLUMN next_source_generation;
+             ALTER TABLE asset_locations DROP COLUMN source_revision_token;
+             ALTER TABLE asset_locations DROP COLUMN source_generation;
+             ALTER TABLE preview_artifacts DROP COLUMN source_revision_token;
+             ALTER TABLE preview_artifacts DROP COLUMN source_generation;
+             ALTER TABLE library_terminal_media_evidence DROP COLUMN source_revision_token;
+             ALTER TABLE library_terminal_media_evidence DROP COLUMN source_generation;
+             ALTER TABLE library_change_catch_up_handoffs DROP COLUMN source_revision_token;
+             ALTER TABLE library_change_catch_up_handoffs DROP COLUMN source_generation;
+             ALTER TABLE library_change_scan_handoff_items DROP COLUMN source_revision_token;
+             ALTER TABLE library_change_scan_handoff_items DROP COLUMN source_generation;
+             ALTER TABLE library_metadata_inventory_entries DROP COLUMN source_revision_token;
+             PRAGMA user_version = 30;
+             UPDATE schema_info SET version = 30;",
+        )
+        .expect("restore exact v30 source revision shape");
+}
+
 fn insert_migrated_publication_proof(
     proofs: &mut std::collections::BTreeMap<(String, i64), (String, String, String, i64)>,
     root_id: String,
@@ -9389,7 +10293,7 @@ fn normalize_relative_paths_for_continuous_synchronization(
 #[cfg(test)]
 mod tests {
     use rusqlite::Connection;
-    use tempfile::NamedTempFile;
+    use tempfile::{NamedTempFile, tempdir};
 
     use super::{
         PERSISTENT_JOURNAL_CANONICAL_TRIGGER_DDL, PERSISTENT_JOURNAL_LEGACY_V24_TRIGGER_DDL,
@@ -9401,7 +10305,74 @@ mod tests {
     use crate::adapters::SqliteCatalog;
     use crate::adapters::sqlite_catalog::remove_persistent_journal_v22_contract_for_test;
 
+    #[test]
+    fn fresh_catalog_enables_incremental_auto_vacuum_before_schema_creation() {
+        let catalog = NamedTempFile::new().expect("fresh catalog");
+        let mut connection = Connection::open(catalog.path()).expect("open fresh catalog");
+
+        migrate_schema(&mut connection).expect("create current schema");
+
+        let mode: i64 = connection
+            .query_row("PRAGMA auto_vacuum", [], |row| row.get(0))
+            .expect("read auto-vacuum mode");
+        assert_eq!(mode, 2);
+    }
+
+    #[test]
+    fn production_catalog_open_enables_incremental_before_wal_initialization() {
+        let directory = tempdir().expect("catalog directory");
+        let path = directory.path().join("ame.sqlite3");
+
+        drop(SqliteCatalog::open(path.clone()).expect("initialize production catalog"));
+
+        let connection = Connection::open(path).expect("inspect production catalog");
+        let mode: i64 = connection
+            .query_row("PRAGMA auto_vacuum", [], |row| row.get(0))
+            .expect("read production auto-vacuum mode");
+        assert_eq!(mode, 2);
+    }
+
+    #[test]
+    fn opening_a_current_legacy_none_catalog_does_not_vacuum_during_migration() {
+        let directory = tempdir().expect("catalog directory");
+        let path = directory.path().join("ame.sqlite3");
+        let mut connection = Connection::open(&path).expect("open legacy catalog");
+        migrate_schema(&mut connection).expect("create current schema");
+        connection
+            .execute_batch(
+                "PRAGMA journal_mode = DELETE;
+                 PRAGMA auto_vacuum = NONE;
+                 VACUUM;
+                 CREATE TABLE migration_reclamation_fixture(payload BLOB NOT NULL);
+                 WITH RECURSIVE rows(value) AS (
+                   SELECT 1 UNION ALL SELECT value + 1 FROM rows WHERE value < 512
+                 )
+                 INSERT INTO migration_reclamation_fixture(payload)
+                 SELECT zeroblob(4096) FROM rows;
+                 DELETE FROM migration_reclamation_fixture;",
+            )
+            .expect("seed legacy freelist");
+        let before_freelist: i64 = connection
+            .query_row("PRAGMA freelist_count", [], |row| row.get(0))
+            .expect("legacy freelist before reopen migration");
+        assert!(before_freelist > 0);
+        drop(connection);
+
+        drop(SqliteCatalog::open(path.clone()).expect("reopen current legacy catalog"));
+
+        let connection = Connection::open(path).expect("inspect reopened legacy catalog");
+        let mode: i64 = connection
+            .query_row("PRAGMA auto_vacuum", [], |row| row.get(0))
+            .expect("legacy auto-vacuum mode after migration");
+        let after_freelist: i64 = connection
+            .query_row("PRAGMA freelist_count", [], |row| row.get(0))
+            .expect("legacy freelist after migration");
+        assert_eq!(mode, 0);
+        assert_eq!(after_freelist, before_freelist);
+    }
+
     fn remove_root_publication_namespace_v29_contract_for_test(connection: &Connection) {
+        super::downgrade_source_revision_contract_to_v30_for_test(connection);
         connection
             .execute_batch(
                 "DROP TRIGGER IF EXISTS library_live_gap_recovery_claim_identity_update_guard;
@@ -9418,6 +10389,7 @@ mod tests {
     }
 
     fn downgrade_current_catalog_to_v29(connection: &Connection) {
+        super::downgrade_source_revision_contract_to_v30_for_test(connection);
         connection
             .execute_batch(
                 "DROP TRIGGER IF EXISTS library_live_gap_recovery_claim_identity_update_guard;
@@ -9717,6 +10689,248 @@ mod tests {
         catalog
     }
 
+    fn seed_current_explicit_live_gap_claim(
+        connection: &Connection,
+        root_id: &str,
+        gap_change_id: i64,
+    ) {
+        connection
+            .execute_batch("PRAGMA foreign_keys = ON")
+            .expect("enable explicit live-gap foreign keys");
+        let root_path = format!("C:/retired-live-gap/{root_id}");
+        connection
+            .execute(
+                "INSERT INTO library_roots(id, path, created_unix_ms) VALUES (?1, ?2, 1)",
+                rusqlite::params![root_id, root_path],
+            )
+            .expect("insert explicit live-gap root");
+        connection
+            .execute(
+                "INSERT INTO library_change_root_state(
+                   root_id, generation, is_active, updated_unix_ms
+                 ) VALUES (?1, 1, 1, 1)",
+                [root_id],
+            )
+            .expect("insert explicit live-gap generation");
+        connection
+            .execute(
+                "INSERT INTO library_persistent_journal_root_state(
+                   root_id, root_generation, protocol_version, contract_version,
+                   capability_state, continuity_state, updated_unix_ms
+                 ) VALUES (?1, 1, 0, 1, 'unknown', 'baseline_required', 1)",
+                [root_id],
+            )
+            .expect("insert explicit live-gap journal root");
+        connection
+            .execute(
+                "INSERT INTO library_change_queue(
+                   id, root_id, root_generation, intent_kind, scope, relative_path,
+                   origin, first_observed_unix_ms, most_recent_observed_unix_ms,
+                   first_sequence, most_recent_sequence, coalesced_observation_count,
+                   status, ready_unix_ms, attempt_count, next_retry_unix_ms,
+                   last_failure_code, last_failure_message,
+                   catalog_revision_at_enqueue, created_unix_ms, updated_unix_ms
+                 ) VALUES (
+                   ?1, ?2, 1, 'freshness_unknown', 'root', '', 'startup_catch_up',
+                   2, 2, ?3, ?3, 1, 'retry_wait', 2, 0, NULL,
+                   'live_gap_v30_explicit_recovery_required',
+                   'The retained gap requires an explicit library update',
+                   0, 2, 2
+                 )",
+                rusqlite::params![gap_change_id, root_id, gap_change_id.to_string()],
+            )
+            .expect("insert explicit live-gap row");
+        connection
+            .execute(
+                "INSERT INTO library_live_gap_recovery_claims(
+                   gap_change_id, root_id, root_generation, consumer_kind,
+                   created_unix_ms
+                 ) VALUES (?1, ?2, 1, 'explicit_recovery_required', 2)",
+                rusqlite::params![gap_change_id, root_id],
+            )
+            .expect("insert explicit live-gap claim");
+    }
+
+    fn seed_current_pending_journal_live_gap_claim(
+        connection: &Connection,
+        root_id: &str,
+        gap_change_id: i64,
+    ) {
+        connection
+            .execute_batch("PRAGMA foreign_keys = ON")
+            .expect("enable pending-journal foreign keys");
+        let root_path = format!("C:/retired-live-gap/{root_id}");
+        connection
+            .execute(
+                "INSERT INTO library_roots(id, path, created_unix_ms) VALUES (?1, ?2, 1)",
+                rusqlite::params![root_id, root_path],
+            )
+            .expect("insert pending-journal root");
+        connection
+            .execute(
+                "INSERT INTO library_change_root_state(
+                   root_id, generation, is_active, updated_unix_ms
+                 ) VALUES (?1, 1, 1, 1)",
+                [root_id],
+            )
+            .expect("insert pending-journal generation");
+        connection
+            .execute(
+                "INSERT INTO library_persistent_journal_root_state(
+                   root_id, root_generation, protocol_version, contract_version,
+                   capability_state, continuity_state, updated_unix_ms
+                 ) VALUES (?1, 1, 5, 1, 'supported', 'current', 1)",
+                [root_id],
+            )
+            .expect("insert pending-journal root authority");
+        connection
+            .execute(
+                "INSERT INTO library_persistent_journal_checkpoints(
+                   root_id, root_generation, volume_guid, volume_serial,
+                   root_reference_version, root_file_reference, journal_id,
+                   next_unread_usn, captured_exclusive_end, covered_catalog_revision,
+                   protocol_version, contract_version, continuity_state, updated_unix_ms
+                 ) VALUES (
+                   ?1, 1, 'volume-guid', '77', 3, ?2, '44', '55', '55', 0,
+                   5, 1, 'current', 1
+                 )",
+                rusqlite::params![root_id, vec![1_u8; 16]],
+            )
+            .expect("insert pending-journal checkpoint");
+        connection
+            .execute(
+                "INSERT INTO library_change_queue(
+                   id, root_id, root_generation, intent_kind, scope, relative_path,
+                   origin, first_observed_unix_ms, most_recent_observed_unix_ms,
+                   first_sequence, most_recent_sequence, coalesced_observation_count,
+                   status, ready_unix_ms, attempt_count, next_retry_unix_ms,
+                   last_failure_code, last_failure_message,
+                   catalog_revision_at_enqueue, created_unix_ms, updated_unix_ms
+                 ) VALUES (
+                   ?1, ?2, 1, 'freshness_unknown', 'root', '', 'live_notification',
+                   2, 2, ?3, ?3, 1, 'retry_wait', 2, 0, 3,
+                   'live_gap_waiting_for_journal_range',
+                   'The live gap is waiting for its durable journal range',
+                   0, 2, 2
+                 )",
+                rusqlite::params![gap_change_id, root_id, gap_change_id.to_string()],
+            )
+            .expect("insert pending-journal gap");
+        connection
+            .execute(
+                "INSERT INTO library_live_gap_recovery_claims(
+                   gap_change_id, root_id, root_generation, consumer_kind,
+                   opening_volume_guid, opening_volume_serial,
+                   opening_root_reference_version, opening_root_file_reference,
+                   opening_journal_id, opening_next_usn, protocol_version,
+                   contract_version, created_unix_ms
+                 ) VALUES (
+                   ?1, ?2, 1, 'pending_journal', 'volume-guid', '77', 3, ?3,
+                   '44', '55', 5, 1, 2
+                 )",
+                rusqlite::params![gap_change_id, root_id, vec![1_u8; 16]],
+            )
+            .expect("insert pending-journal claim");
+    }
+
+    fn retire_live_gap_root(connection: &Connection, root_id: &str, gap_change_id: i64) {
+        connection
+            .execute(
+                "UPDATE library_change_root_state
+                 SET is_active = 0, updated_unix_ms = 3 WHERE root_id = ?1",
+                [root_id],
+            )
+            .expect("retire live-gap generation");
+        connection
+            .execute(
+                "UPDATE library_change_queue
+                 SET status = 'superseded', next_retry_unix_ms = NULL,
+                     lease_expires_unix_ms = NULL, superseded_by_change_id = NULL,
+                     updated_unix_ms = 3
+                 WHERE id = ?1",
+                [gap_change_id],
+            )
+            .expect("supersede retired live gap");
+        connection
+            .execute("DELETE FROM library_roots WHERE id = ?1", [root_id])
+            .expect("remove retired live-gap root");
+    }
+
+    fn advance_live_gap_root_generation(
+        connection: &Connection,
+        root_id: &str,
+        gap_change_id: i64,
+    ) {
+        connection
+            .execute(
+                "UPDATE library_change_queue
+                 SET status = 'superseded', next_retry_unix_ms = NULL,
+                     lease_expires_unix_ms = NULL, superseded_by_change_id = NULL,
+                     updated_unix_ms = 3
+                 WHERE id = ?1",
+                [gap_change_id],
+            )
+            .expect("supersede previous-generation live gap");
+        connection
+            .execute(
+                "UPDATE library_persistent_journal_root_state
+                 SET capability_state = CASE
+                       WHEN protocol_version = 0 THEN 'unknown' ELSE 'live_only' END,
+                     continuity_state = 'unavailable',
+                     last_failure_code = 'root_generation_retired',
+                     last_failure_message = 'The root generation was retired',
+                     updated_unix_ms = 3
+                 WHERE root_id = ?1 AND root_generation = 1",
+                [root_id],
+            )
+            .expect("retire previous journal generation");
+        connection
+            .execute(
+                "UPDATE library_change_root_state
+                 SET generation = 2, is_active = 1, updated_unix_ms = 3
+                 WHERE root_id = ?1",
+                [root_id],
+            )
+            .expect("advance live-gap root generation");
+        connection
+            .execute(
+                "INSERT INTO library_persistent_journal_root_state(
+                   root_id, root_generation, protocol_version, contract_version,
+                   capability_state, continuity_state, updated_unix_ms
+                 ) VALUES (?1, 2, 0, 1, 'unknown', 'baseline_required', 3)",
+                [root_id],
+            )
+            .expect("insert current journal generation");
+    }
+
+    fn assert_retired_live_gap_claim_repaired(connection: &Connection, gap_change_id: i64) {
+        let evidence = connection
+            .query_row(
+                "SELECT gap.status, gap.superseded_by_change_id,
+                        gap.last_failure_code,
+                        (SELECT COUNT(*) FROM library_live_gap_recovery_claims AS claim
+                         WHERE claim.gap_change_id = gap.id)
+                 FROM library_change_queue AS gap WHERE gap.id = ?1",
+                [gap_change_id],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, Option<i64>>(1)?,
+                        row.get::<_, String>(2)?,
+                        row.get::<_, i64>(3)?,
+                    ))
+                },
+            )
+            .expect("retained terminal live-gap evidence");
+        assert_eq!(evidence.0, "superseded");
+        assert_eq!(evidence.1, None);
+        assert!(matches!(
+            evidence.2.as_str(),
+            "live_gap_v30_explicit_recovery_required" | "live_gap_waiting_for_journal_range"
+        ));
+        assert_eq!(evidence.3, 0);
+    }
+
     fn assert_superseded_inventory_authority_retired(connection: &Connection) {
         let retained: (i64, String, i64, Option<String>, i64, i64) = connection
             .query_row(
@@ -9999,6 +11213,227 @@ mod tests {
         create_schema_v19(&transaction).expect("fresh v19 schema");
         transaction.commit().expect("commit fresh v19 schema");
         connection
+    }
+
+    fn fresh_v30_catalog() -> Connection {
+        let mut connection = fresh_v19_catalog();
+        super::migrate_v19_to_v20(&mut connection).expect("v20");
+        super::migrate_v20_to_v21(&mut connection).expect("v21");
+        super::migrate_v21_to_v22(&mut connection).expect("v22");
+        super::migrate_v22_to_v23(&mut connection).expect("v23");
+        super::migrate_v23_to_v24(&mut connection).expect("v24");
+        super::migrate_v24_to_v25(&mut connection).expect("v25");
+        super::migrate_v25_to_v26(&mut connection).expect("v26");
+        super::migrate_v26_to_v27(&mut connection).expect("v27");
+        super::migrate_v27_to_v28(&mut connection).expect("v28");
+        super::migrate_v28_to_v29(&mut connection).expect("v29");
+        super::migrate_v29_to_v30(&mut connection).expect("v30");
+        connection
+    }
+
+    #[test]
+    fn v30_to_v31_adds_source_revision_contract_without_inventing_revision_evidence() {
+        let mut connection = fresh_v30_catalog();
+        connection
+            .execute_batch(
+                "INSERT INTO library_roots(id, path, active_scan_id, created_unix_ms)
+                   VALUES ('root', 'C:/source', 'scan', 1);
+                 INSERT INTO scan_runs(
+                   id, root_id, status, started_unix_ms, completed_unix_ms,
+                   asset_count, preview_edge
+                 ) VALUES ('scan', 'root', 'completed', 1, 2, 2, 256);
+                 INSERT INTO assets(id, created_unix_ms) VALUES ('asset-a', 1), ('asset-b', 1);
+                 INSERT INTO asset_locations(
+                   scan_id, asset_id, location_id, root_id, absolute_path, relative_path,
+                   preview_path, file_size, modified_unix_ms, width, height, preview_status,
+                   metadata_engine_id, metadata_engine_version, capture_local_time,
+                   capture_time_source, capture_raw_value,
+                   file_identity_scheme, file_identity_value
+                 ) VALUES
+                   ('scan', 'asset-a', 'location-a', 'root', 'C:/source/a.png', 'a.png',
+                    'C:/cache/a.jpg', 10, 20, 1, 1, 'ready',
+                    'legacy-metadata', '7', '2020-01-02T03:04:05',
+                    'exif_original', '2020:01:02 03:04:05',
+                    'windows-file-id-128-v1', '0000000000000001:00000000000000000000000000000001'),
+                   ('scan', 'asset-b', 'location-b', 'root', 'C:/source/b.png', 'b.png',
+                    'C:/cache/b.jpg', 10, 20, 1, 1, 'ready',
+                    'legacy-metadata', '7', '2020-01-02T03:04:05',
+                    'exif_original', '2020:01:02 03:04:05',
+                    'windows-file-id-128-v1', '0000000000000001:00000000000000000000000000000001');
+                 INSERT INTO preview_artifacts(
+                   artifact_key, source_file_size, source_modified_unix_ms,
+                   algorithm_id, algorithm_version, orientation_contract, size_bucket,
+                   encoded_width, encoded_height, artifact_path, byte_size, lifecycle_state,
+                   created_unix_ms, last_used_unix_ms
+                 ) VALUES ('artifact', 10, 20, 'preview', 1, 'orientation', 256,
+                           1, 1, 'C:/cache/a.jpg', 10, 'ready', 1, 1);
+                 INSERT INTO preview_artifact_locations(artifact_key, location_id)
+                   VALUES ('artifact', 'location-a');",
+            )
+            .expect("v30 source fixture");
+
+        super::reset_source_revision_row_audit_count();
+        super::reset_current_schema_row_audit_count();
+        super::migrate_v30_to_v31(&mut connection).expect("v31");
+        assert_eq!(super::source_revision_row_audit_count(), 1);
+        assert!(super::current_schema_row_audit_count() > 0);
+
+        assert_eq!(
+            super::schema_version(&connection).expect("schema version"),
+            31
+        );
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .expect("user version"),
+            31
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT contract_version FROM library_metadata_inventory_spool_contract",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("spool contract"),
+            3
+        );
+        let migrated_locations = connection
+            .query_row(
+                "SELECT COUNT(*), COUNT(DISTINCT source_generation),
+                        COUNT(source_revision_token),
+                        SUM(preview_status = 'pending' AND preview_path = ''),
+                        SUM(metadata_engine_id = 'ame-invalidated-media-metadata'
+                            AND metadata_engine_version = '0'),
+                        SUM(capture_local_time IS NULL
+                            AND capture_time_source IS NULL
+                            AND capture_raw_value IS NULL)
+                 FROM asset_locations",
+                [],
+                |row| {
+                    Ok((
+                        row.get::<_, i64>(0)?,
+                        row.get::<_, i64>(1)?,
+                        row.get::<_, i64>(2)?,
+                        row.get::<_, i64>(3)?,
+                        row.get::<_, i64>(4)?,
+                        row.get::<_, i64>(5)?,
+                    ))
+                },
+            )
+            .expect("migrated locations");
+        assert_eq!(migrated_locations, (2, 1, 0, 2, 2, 2));
+        assert!(
+            super::source_revision_metadata_contract_is_complete(&connection)
+                .expect("source metadata contract")
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT lifecycle_state, source_revision_token, source_generation
+                     FROM preview_artifacts WHERE artifact_key = 'artifact'",
+                    [],
+                    |row| {
+                        Ok((
+                            row.get::<_, String>(0)?,
+                            row.get::<_, Option<String>>(1)?,
+                            row.get::<_, Option<i64>>(2)?,
+                        ))
+                    },
+                )
+                .expect("migrated artifact"),
+            ("evictable".to_owned(), None, None)
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM preview_artifact_locations",
+                    [],
+                    |row| { row.get::<_, i64>(0) }
+                )
+                .expect("preview owners"),
+            0
+        );
+        super::validate_current_schema_contract(&connection).expect("source revision contract");
+    }
+
+    #[test]
+    fn v30_to_v31_quarantines_conflicting_legacy_identity_observations() {
+        let mut connection = fresh_v30_catalog();
+        connection
+            .execute_batch(
+                "INSERT INTO library_roots(id, path, active_scan_id, created_unix_ms)
+                   VALUES ('root-a', 'C:/source-a', 'scan-a', 1),
+                          ('root-b', 'C:/source-b', 'scan-b', 1);
+                 INSERT INTO scan_runs(
+                   id, root_id, status, started_unix_ms, completed_unix_ms,
+                   asset_count, preview_edge
+                 ) VALUES ('scan-a', 'root-a', 'completed', 1, 2, 5, 256),
+                          ('scan-b', 'root-b', 'completed', 1, 2, 1, 256);
+                 INSERT INTO assets(id, created_unix_ms) VALUES
+                   ('asset-compatible-a', 1), ('asset-compatible-b', 1),
+                   ('asset-scan-conflict-a', 1), ('asset-scan-conflict-b', 1),
+                   ('asset-root-conflict-a', 1), ('asset-root-conflict-b', 1);
+                 INSERT INTO asset_locations(
+                   scan_id, asset_id, location_id, root_id, absolute_path, relative_path,
+                   preview_path, file_size, modified_unix_ms, width, height, preview_status,
+                   file_identity_scheme, file_identity_value
+                 ) VALUES
+                   ('scan-a', 'asset-compatible-a', 'compatible-a', 'root-a',
+                    'C:/source-a/compatible-a.png', 'compatible-a.png', '',
+                    10, 20, 1, 1, 'pending', 'windows-file-id-128-v1',
+                    '0000000000000001:00000000000000000000000000000001'),
+                   ('scan-a', 'asset-compatible-b', 'compatible-b', 'root-a',
+                    'C:/source-a/compatible-b.png', 'compatible-b.png', '',
+                    10, 20, 1, 1, 'pending', 'windows-file-id-128-v1',
+                    '0000000000000001:00000000000000000000000000000001'),
+                   ('scan-a', 'asset-scan-conflict-a', 'scan-conflict-a', 'root-a',
+                    'C:/source-a/scan-conflict-a.png', 'scan-conflict-a.png', '',
+                    11, 21, 1, 1, 'pending', 'windows-file-id-128-v1',
+                    '0000000000000001:00000000000000000000000000000002'),
+                   ('scan-a', 'asset-scan-conflict-b', 'scan-conflict-b', 'root-a',
+                    'C:/source-a/scan-conflict-b.png', 'scan-conflict-b.png', '',
+                    12, 22, 1, 1, 'pending', 'windows-file-id-128-v1',
+                    '0000000000000001:00000000000000000000000000000002'),
+                   ('scan-a', 'asset-root-conflict-a', 'root-conflict-a', 'root-a',
+                    'C:/source-a/root-conflict.png', 'root-conflict.png', '',
+                    13, 23, 1, 1, 'pending', 'windows-file-id-128-v1',
+                    '0000000000000001:00000000000000000000000000000003'),
+                   ('scan-b', 'asset-root-conflict-b', 'root-conflict-b', 'root-b',
+                    'C:/source-b/root-conflict.png', 'root-conflict.png', '',
+                    14, 24, 1, 1, 'pending', 'windows-file-id-128-v1',
+                    '0000000000000001:00000000000000000000000000000003');",
+            )
+            .expect("v30 conflicting identity fixtures");
+
+        super::migrate_v30_to_v31(&mut connection).expect("v31 conflict-safe migration");
+
+        let compatible = connection
+            .query_row(
+                "SELECT COUNT(*), COUNT(DISTINCT source_generation)
+                 FROM asset_locations
+                 WHERE file_identity_value =
+                   '0000000000000001:00000000000000000000000000000001'",
+                [],
+                |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)),
+            )
+            .expect("compatible identity group");
+        let quarantined = connection
+            .query_row(
+                "SELECT COUNT(*), COUNT(DISTINCT source_generation)
+                 FROM asset_locations
+                 WHERE location_id IN (
+                   'scan-conflict-a', 'scan-conflict-b',
+                   'root-conflict-a', 'root-conflict-b'
+                 ) AND file_identity_scheme IS NULL AND file_identity_value IS NULL",
+                [],
+                |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)),
+            )
+            .expect("quarantined identity groups");
+        assert_eq!(compatible, (2, 1));
+        assert_eq!(quarantined, (4, 4));
+        super::validate_current_schema_contract(&connection)
+            .expect("conflicting legacy identities no longer block startup");
     }
 
     fn recovery_lifecycle_catalog(is_completed: bool) -> NamedTempFile {
@@ -11204,7 +12639,7 @@ mod tests {
     }
 
     #[test]
-    fn clean_current_schema_validates_once_without_write_admission() {
+    fn clean_current_schema_validates_once_with_full_authority_audit() {
         let mut connection = Connection::open_in_memory().expect("clean catalog");
         migrate_schema(&mut connection).expect("create current catalog");
         connection
@@ -11212,9 +12647,541 @@ mod tests {
             .expect("make clean current catalog read only");
 
         super::reset_current_schema_validation_count();
+        super::reset_source_revision_row_audit_count();
+        super::reset_current_schema_row_audit_count();
         migrate_schema(&mut connection).expect("validate clean current catalog");
 
         assert_eq!(super::current_schema_validation_count(), 1);
+        assert_eq!(super::source_revision_row_audit_count(), 1);
+        assert!(super::current_schema_row_audit_count() > 0);
+    }
+
+    #[test]
+    fn current_v31_source_revision_structure_damage_still_fails_closed() {
+        let mut connection = Connection::open_in_memory().expect("current catalog");
+        migrate_schema(&mut connection).expect("create current catalog");
+        connection
+            .execute_batch("DROP TRIGGER asset_locations_source_generation_update_guard;")
+            .expect("damage source revision structure");
+
+        super::reset_source_revision_row_audit_count();
+        let error = migrate_schema(&mut connection).expect_err("reject damaged current catalog");
+
+        assert_eq!(error.code, "catalog_source_revision_contract_unverifiable");
+        assert_eq!(super::source_revision_row_audit_count(), 0);
+    }
+
+    #[test]
+    fn current_v31_change_catch_up_ddl_damage_still_fails_closed() {
+        let mut connection = Connection::open_in_memory().expect("current catalog");
+        migrate_schema(&mut connection).expect("create current catalog");
+        connection
+            .execute_batch("DROP INDEX scan_run_catch_up_lineage_evidence;")
+            .expect("damage catch-up DDL");
+
+        super::reset_current_schema_row_audit_count();
+        let error = migrate_schema(&mut connection).expect_err("reject damaged current catalog");
+
+        assert_eq!(error.code, "catalog_change_catch_up_contract_unverifiable");
+        assert_eq!(super::current_schema_row_audit_count(), 0);
+    }
+
+    #[test]
+    fn current_v31_source_revision_marker_damage_still_fails_closed() {
+        let mut connection = Connection::open_in_memory().expect("current catalog");
+        migrate_schema(&mut connection).expect("create current catalog");
+        connection
+            .execute_batch("DELETE FROM library_source_revision_metadata_contract;")
+            .expect("damage source revision marker");
+
+        super::reset_current_schema_row_audit_count();
+        let error = migrate_schema(&mut connection).expect_err("reject damaged current catalog");
+
+        assert_eq!(error.code, "catalog_source_revision_contract_unverifiable");
+        assert_eq!(super::current_schema_row_audit_count(), 0);
+    }
+
+    #[test]
+    fn current_schema_repairs_removed_root_explicit_claim_idempotently() {
+        let catalog = NamedTempFile::new().expect("retired explicit catalog");
+        let mut connection = Connection::open(catalog.path()).expect("open retired catalog");
+        migrate_schema(&mut connection).expect("create current catalog");
+        seed_current_explicit_live_gap_claim(&connection, "removed-explicit-root", 4_001);
+        retire_live_gap_root(&connection, "removed-explicit-root", 4_001);
+        drop(connection);
+
+        drop(
+            SqliteCatalog::open(catalog.path().to_path_buf())
+                .expect("repair removed-root explicit claim"),
+        );
+        let evidence = Connection::open(catalog.path()).expect("inspect repaired explicit claim");
+        assert_retired_live_gap_claim_repaired(&evidence, 4_001);
+        let lifecycle: (i64, i64, i64) = evidence
+            .query_row(
+                "SELECT
+                   (SELECT generation FROM library_change_root_state
+                    WHERE root_id = 'removed-explicit-root'),
+                   (SELECT is_active FROM library_change_root_state
+                    WHERE root_id = 'removed-explicit-root'),
+                   (SELECT COUNT(*) FROM library_roots
+                    WHERE id = 'removed-explicit-root')",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .expect("removed-root lifecycle evidence");
+        assert_eq!(lifecycle, (1, 0, 0));
+        drop(evidence);
+
+        drop(
+            SqliteCatalog::open(catalog.path().to_path_buf())
+                .expect("idempotently reopen repaired catalog"),
+        );
+        let evidence = Connection::open(catalog.path()).expect("inspect idempotent repair");
+        assert_retired_live_gap_claim_repaired(&evidence, 4_001);
+    }
+
+    #[test]
+    fn current_schema_repairs_explicit_claim_from_an_older_generation() {
+        let catalog = NamedTempFile::new().expect("advanced explicit catalog");
+        let mut connection = Connection::open(catalog.path()).expect("open advanced catalog");
+        migrate_schema(&mut connection).expect("create current catalog");
+        seed_current_explicit_live_gap_claim(&connection, "advanced-explicit-root", 4_002);
+        advance_live_gap_root_generation(&connection, "advanced-explicit-root", 4_002);
+        drop(connection);
+
+        drop(
+            SqliteCatalog::open(catalog.path().to_path_buf())
+                .expect("repair previous-generation claim"),
+        );
+        let evidence = Connection::open(catalog.path()).expect("inspect advanced repair");
+        assert_retired_live_gap_claim_repaired(&evidence, 4_002);
+        let lifecycle: (i64, i64, i64) = evidence
+            .query_row(
+                "SELECT
+                   (SELECT generation FROM library_change_root_state
+                    WHERE root_id = 'advanced-explicit-root'),
+                   (SELECT is_active FROM library_change_root_state
+                    WHERE root_id = 'advanced-explicit-root'),
+                   (SELECT COUNT(*) FROM library_roots
+                    WHERE id = 'advanced-explicit-root')",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .expect("advanced-root lifecycle evidence");
+        assert_eq!(lifecycle, (2, 1, 1));
+    }
+
+    #[test]
+    fn current_schema_repairs_the_retained_two_removed_one_advanced_shape() {
+        let catalog = NamedTempFile::new().expect("retained live-gap catalog");
+        let mut connection = Connection::open(catalog.path()).expect("open retained catalog");
+        migrate_schema(&mut connection).expect("create current catalog");
+        for (root_id, gap_change_id) in
+            [("removed-explicit-a", 4_011), ("removed-explicit-b", 4_012)]
+        {
+            seed_current_explicit_live_gap_claim(&connection, root_id, gap_change_id);
+            retire_live_gap_root(&connection, root_id, gap_change_id);
+        }
+        seed_current_explicit_live_gap_claim(&connection, "advanced-explicit", 4_013);
+        advance_live_gap_root_generation(&connection, "advanced-explicit", 4_013);
+        drop(connection);
+
+        drop(
+            SqliteCatalog::open(catalog.path().to_path_buf())
+                .expect("repair retained live-gap shape"),
+        );
+        let evidence = Connection::open(catalog.path()).expect("inspect retained live-gap repair");
+        for gap_change_id in [4_011, 4_012, 4_013] {
+            assert_retired_live_gap_claim_repaired(&evidence, gap_change_id);
+        }
+        let lifecycle: (i64, i64, i64, i64) = evidence
+            .query_row(
+                "SELECT
+                   (SELECT COUNT(*) FROM library_change_root_state
+                    WHERE is_active = 0 AND generation = 1
+                      AND root_id IN ('removed-explicit-a', 'removed-explicit-b')),
+                   (SELECT COUNT(*) FROM library_roots
+                    WHERE id IN ('removed-explicit-a', 'removed-explicit-b')),
+                   (SELECT generation FROM library_change_root_state
+                    WHERE root_id = 'advanced-explicit'),
+                   (SELECT COUNT(*) FROM library_live_gap_recovery_claims)",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+            )
+            .expect("retained lifecycle projection");
+        assert_eq!(lifecycle, (2, 0, 2, 0));
+    }
+
+    #[test]
+    fn current_schema_repairs_retired_pending_journal_claim() {
+        let catalog = NamedTempFile::new().expect("retired pending-journal catalog");
+        let mut connection = Connection::open(catalog.path()).expect("open pending catalog");
+        migrate_schema(&mut connection).expect("create current catalog");
+        seed_current_pending_journal_live_gap_claim(&connection, "removed-pending-root", 4_021);
+        retire_live_gap_root(&connection, "removed-pending-root", 4_021);
+        drop(connection);
+
+        drop(
+            SqliteCatalog::open(catalog.path().to_path_buf())
+                .expect("repair retired pending-journal claim"),
+        );
+        let evidence = Connection::open(catalog.path()).expect("inspect pending-journal repair");
+        assert_retired_live_gap_claim_repaired(&evidence, 4_021);
+    }
+
+    #[test]
+    fn current_schema_repairs_inventory_and_live_gap_residue_atomically() {
+        let catalog = current_terminal_inventory_authority_catalog();
+        let connection = Connection::open(catalog.path()).expect("open mixed repair fixture");
+        seed_current_explicit_live_gap_claim(&connection, "mixed-removed-root", 4_031);
+        retire_live_gap_root(&connection, "mixed-removed-root", 4_031);
+        drop(connection);
+
+        drop(
+            SqliteCatalog::open(catalog.path().to_path_buf()).expect("repair mixed terminal state"),
+        );
+        let evidence = Connection::open(catalog.path()).expect("inspect mixed repair evidence");
+        assert_current_terminal_inventory_repaired(&evidence);
+        assert_retired_live_gap_claim_repaired(&evidence, 4_031);
+    }
+
+    #[test]
+    fn v30_to_v31_repairs_retired_live_gap_claim_before_validation() {
+        let catalog = NamedTempFile::new().expect("v30 retired claim catalog");
+        let mut connection = Connection::open(catalog.path()).expect("open v30 claim catalog");
+        migrate_schema(&mut connection).expect("create current catalog");
+        seed_current_explicit_live_gap_claim(&connection, "v30-removed-root", 4_041);
+        retire_live_gap_root(&connection, "v30-removed-root", 4_041);
+        super::downgrade_source_revision_contract_to_v30_for_test(&connection);
+        drop(connection);
+
+        drop(
+            SqliteCatalog::open(catalog.path().to_path_buf()).expect("migrate repaired v30 claim"),
+        );
+        let evidence = Connection::open(catalog.path()).expect("inspect migrated claim repair");
+        assert_eq!(
+            evidence
+                .query_row("SELECT version FROM schema_info", [], |row| row
+                    .get::<_, i64>(0))
+                .expect("migrated schema version"),
+            SCHEMA_VERSION,
+        );
+        assert_retired_live_gap_claim_repaired(&evidence, 4_041);
+    }
+
+    #[test]
+    fn current_schema_preserves_legal_explicit_and_pending_journal_claims() {
+        let catalog = NamedTempFile::new().expect("legal live-gap catalog");
+        let mut connection = Connection::open(catalog.path()).expect("open legal claim catalog");
+        migrate_schema(&mut connection).expect("create current catalog");
+        seed_current_explicit_live_gap_claim(&connection, "legal-explicit-root", 4_051);
+        seed_current_pending_journal_live_gap_claim(&connection, "legal-pending-root", 4_052);
+        drop(connection);
+
+        drop(
+            SqliteCatalog::open(catalog.path().to_path_buf())
+                .expect("validate legal live-gap claims"),
+        );
+        let evidence = Connection::open(catalog.path()).expect("inspect legal live-gap claims");
+        let retained: Vec<(String, String, String)> = evidence
+            .prepare(
+                "SELECT claim.root_id, claim.consumer_kind, gap.status
+                 FROM library_live_gap_recovery_claims AS claim
+                 JOIN library_change_queue AS gap ON gap.id = claim.gap_change_id
+                 ORDER BY claim.root_id",
+            )
+            .expect("legal claim statement")
+            .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))
+            .expect("legal claim rows")
+            .collect::<Result<_, _>>()
+            .expect("collect legal claims");
+        assert_eq!(
+            retained,
+            vec![
+                (
+                    "legal-explicit-root".to_owned(),
+                    "explicit_recovery_required".to_owned(),
+                    "retry_wait".to_owned(),
+                ),
+                (
+                    "legal-pending-root".to_owned(),
+                    "pending_journal".to_owned(),
+                    "retry_wait".to_owned(),
+                ),
+            ],
+        );
+    }
+
+    #[test]
+    fn current_schema_live_gap_repair_rolls_back_when_another_claim_is_invalid() {
+        let catalog = NamedTempFile::new().expect("mixed valid-invalid claim catalog");
+        let mut connection = Connection::open(catalog.path()).expect("open rollback catalog");
+        migrate_schema(&mut connection).expect("create current catalog");
+        seed_current_explicit_live_gap_claim(&connection, "repairable-removed-root", 4_061);
+        retire_live_gap_root(&connection, "repairable-removed-root", 4_061);
+        seed_current_explicit_live_gap_claim(&connection, "invalid-active-root", 4_062);
+        connection
+            .execute(
+                "UPDATE library_change_queue SET status = 'superseded' WHERE id = 4062",
+                [],
+            )
+            .expect("make active-generation claim invalid");
+        drop(connection);
+
+        let error = match SqliteCatalog::open(catalog.path().to_path_buf()) {
+            Ok(_) => panic!("invalid peer claim must roll back safe repair"),
+            Err(error) => error,
+        };
+        assert_eq!(
+            error.code,
+            "catalog_live_gap_recovery_contract_unverifiable"
+        );
+        let evidence =
+            Connection::open(catalog.path()).expect("inspect rolled-back live-gap repair");
+        let retained: (i64, i64) = evidence
+            .query_row(
+                "SELECT
+                   (SELECT COUNT(*) FROM library_live_gap_recovery_claims
+                    WHERE gap_change_id = 4061),
+                   (SELECT COUNT(*) FROM library_live_gap_recovery_claims
+                    WHERE gap_change_id = 4062)",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .expect("rolled-back claim evidence");
+        assert_eq!(retained, (1, 1));
+    }
+
+    #[test]
+    fn current_schema_live_gap_repair_keeps_malformed_states_fail_closed() {
+        for case in 0..6 {
+            let catalog = NamedTempFile::new().expect("malformed live-gap catalog");
+            let mut connection =
+                Connection::open(catalog.path()).expect("open malformed live-gap catalog");
+            migrate_schema(&mut connection).expect("create current catalog");
+            let gap_change_id = 4_100 + case;
+            let root_id = format!("malformed-live-gap-{case}");
+            if case == 5 {
+                seed_current_pending_journal_live_gap_claim(&connection, &root_id, gap_change_id);
+            } else {
+                seed_current_explicit_live_gap_claim(&connection, &root_id, gap_change_id);
+            }
+            match case {
+                0 => {
+                    connection
+                        .execute(
+                            "UPDATE library_change_queue
+                             SET status = 'superseded' WHERE id = ?1",
+                            [gap_change_id],
+                        )
+                        .expect("make active same-generation claim invalid");
+                }
+                1 => {
+                    advance_live_gap_root_generation(&connection, &root_id, gap_change_id);
+                    let successor_id = gap_change_id + 100;
+                    connection
+                        .execute(
+                            "INSERT INTO library_change_queue(
+                               id, root_id, root_generation, intent_kind, scope, relative_path,
+                               origin, first_observed_unix_ms, most_recent_observed_unix_ms,
+                               first_sequence, most_recent_sequence,
+                               coalesced_observation_count, status, ready_unix_ms,
+                               catalog_revision_at_enqueue, catalog_revision_at_success,
+                               created_unix_ms, updated_unix_ms
+                             ) VALUES (
+                               ?1, ?2, 2, 'reconcile', 'path', 'successor.jpg',
+                               'user_refresh', 4, 4, ?3, ?3, 1, 'completed', 4,
+                               0, 0, 4, 4
+                             )",
+                            rusqlite::params![successor_id, root_id, successor_id.to_string()],
+                        )
+                        .expect("insert explicit successor evidence");
+                    connection
+                        .execute(
+                            "UPDATE library_change_queue
+                             SET superseded_by_change_id = ?1 WHERE id = ?2",
+                            rusqlite::params![successor_id, gap_change_id],
+                        )
+                        .expect("attach forbidden explicit successor");
+                }
+                2 => {
+                    retire_live_gap_root(&connection, &root_id, gap_change_id);
+                    connection
+                        .execute(
+                            "UPDATE library_change_queue
+                             SET last_failure_code = 'wrong_explicit_failure',
+                                 last_failure_message = 'Wrong explicit failure'
+                             WHERE id = ?1",
+                            [gap_change_id],
+                        )
+                        .expect("corrupt explicit failure evidence");
+                }
+                3 => {
+                    retire_live_gap_root(&connection, &root_id, gap_change_id);
+                    connection
+                        .execute("DELETE FROM library_live_gap_recovery_contract", [])
+                        .expect("remove live-gap marker");
+                }
+                4 => {
+                    retire_live_gap_root(&connection, &root_id, gap_change_id);
+                    let original = connection
+                        .query_row(
+                            "SELECT sql FROM sqlite_master
+                             WHERE type = 'table'
+                               AND name = 'library_live_gap_recovery_claims'",
+                            [],
+                            |row| row.get::<_, String>(0),
+                        )
+                        .expect("canonical live-gap claim DDL");
+                    let modified =
+                        original.replacen("'foreground_scan'", "'foreground_scan_other'", 1);
+                    assert_ne!(modified, original);
+                    connection
+                        .execute_batch("PRAGMA writable_schema = ON")
+                        .expect("enable controlled live-gap DDL mutation");
+                    connection
+                        .execute(
+                            "UPDATE sqlite_master SET sql = ?1
+                             WHERE type = 'table'
+                               AND name = 'library_live_gap_recovery_claims'",
+                            [modified],
+                        )
+                        .expect("mutate live-gap claim DDL");
+                    connection
+                        .execute_batch("PRAGMA writable_schema = OFF; PRAGMA schema_version = 1410")
+                        .expect("publish controlled live-gap DDL mutation");
+                }
+                5 => {
+                    retire_live_gap_root(&connection, &root_id, gap_change_id);
+                    connection
+                        .execute(
+                            "UPDATE library_change_queue
+                             SET last_failure_code = 'wrong_pending_journal_failure',
+                                 last_failure_message = 'Wrong pending-journal failure'
+                             WHERE id = ?1",
+                            [gap_change_id],
+                        )
+                        .expect("corrupt pending-journal failure evidence");
+                }
+                _ => unreachable!(),
+            }
+            drop(connection);
+
+            let error = match SqliteCatalog::open(catalog.path().to_path_buf()) {
+                Ok(_) => panic!("malformed live-gap case {case} must fail closed"),
+                Err(error) => error,
+            };
+            assert_eq!(
+                error.code, "catalog_live_gap_recovery_contract_unverifiable",
+                "unexpected error for malformed live-gap case {case}",
+            );
+            let evidence =
+                Connection::open(catalog.path()).expect("inspect malformed live-gap row");
+            let retained = evidence
+                .query_row(
+                    "SELECT COUNT(*) FROM library_live_gap_recovery_claims
+                     WHERE gap_change_id = ?1",
+                    [gap_change_id],
+                    |row| row.get::<_, i64>(0),
+                )
+                .expect("retained malformed claim");
+            assert_eq!(retained, 1, "case {case} must remain unchanged");
+        }
+    }
+
+    #[test]
+    fn current_v31_repairs_precontract_metadata_for_every_hardlink_alias() {
+        let mut connection = Connection::open_in_memory().expect("current catalog");
+        migrate_schema(&mut connection).expect("create current catalog");
+        connection
+            .execute_batch(
+                "UPDATE catalog_state SET next_source_generation = 2;
+                 INSERT INTO library_roots(id, path, active_scan_id, created_unix_ms)
+                   VALUES ('root-a', 'C:/source', 'published-scan', 1);
+                 INSERT INTO scan_runs(
+                   id, root_id, status, started_unix_ms, completed_unix_ms,
+                   asset_count, preview_edge
+                 ) VALUES ('published-scan', 'root-a', 'completed', 1, 2, 2, 256);
+                 INSERT INTO library_change_root_state(
+                   root_id, generation, is_active, updated_unix_ms
+                 ) VALUES ('root-a', 1, 1, 2);
+                 INSERT INTO library_persistent_journal_root_state(
+                   root_id, root_generation, protocol_version, contract_version,
+                   capability_state, continuity_state, updated_unix_ms
+                 ) VALUES ('root-a', 1, 0, 1, 'unknown', 'baseline_required', 2);
+                 INSERT INTO assets(id, created_unix_ms)
+                   VALUES ('asset-a', 1), ('asset-b', 1);
+                 INSERT INTO asset_locations(
+                   scan_id, asset_id, location_id, root_id, absolute_path, relative_path,
+                   preview_path, file_size, modified_unix_ms, width, height, preview_status,
+                   metadata_engine_id, metadata_engine_version, capture_local_time,
+                   capture_time_source, capture_raw_value,
+                   file_identity_scheme, file_identity_value,
+                   source_revision_token, source_generation
+                 ) VALUES
+                   ('published-scan', 'asset-a', 'location-a', 'root-a',
+                    'C:/source/a.bmp', 'a.bmp', 'C:/cache/a.jpg', 1024, 55, 8, 6, 'ready',
+                    'legacy-metadata', '7', '2020-01-02T03:04:05',
+                    'exif_original', '2020:01:02 03:04:05',
+                    'windows-file-id-128-v1',
+                    '0000000000000001:00000000000000000000000000000001',
+                    'windows-file-change-time-100ns-v1:0000000000000042', 1),
+                   ('published-scan', 'asset-b', 'location-b', 'root-a',
+                    'C:/source/b.bmp', 'b.bmp', 'C:/cache/b.jpg', 1024, 55, 8, 6, 'ready',
+                    'legacy-metadata', '7', '2020-01-02T03:04:05',
+                    'exif_original', '2020:01:02 03:04:05',
+                    'windows-file-id-128-v1',
+                    '0000000000000001:00000000000000000000000000000001',
+                    'windows-file-change-time-100ns-v1:0000000000000042', 1);
+                 DROP TABLE library_source_revision_metadata_contract;",
+            )
+            .expect("precontract v31 hardlink fixture");
+
+        super::reset_source_revision_row_audit_count();
+        super::reset_current_schema_row_audit_count();
+        migrate_schema(&mut connection).expect("repair precontract v31 metadata");
+        assert_eq!(
+            super::source_revision_row_audit_count(),
+            3,
+            "initial validation plus the repair transaction's before-and-after proof",
+        );
+        assert!(super::current_schema_row_audit_count() > 0);
+
+        let repaired = connection
+            .query_row(
+                "SELECT COUNT(*),
+                        SUM(metadata_engine_id = 'ame-invalidated-media-metadata'
+                            AND metadata_engine_version = '0'),
+                        SUM(capture_local_time IS NULL
+                            AND capture_time_source IS NULL
+                            AND capture_raw_value IS NULL),
+                        SUM(preview_status = 'pending' AND preview_path = ''),
+                        COUNT(DISTINCT source_generation),
+                        COUNT(DISTINCT source_revision_token)
+                 FROM asset_locations",
+                [],
+                |row| {
+                    Ok((
+                        row.get::<_, i64>(0)?,
+                        row.get::<_, i64>(1)?,
+                        row.get::<_, i64>(2)?,
+                        row.get::<_, i64>(3)?,
+                        row.get::<_, i64>(4)?,
+                        row.get::<_, i64>(5)?,
+                    ))
+                },
+            )
+            .expect("repaired alias evidence");
+        assert_eq!(repaired, (2, 2, 2, 2, 1, 1));
+        assert!(
+            super::source_revision_metadata_contract_is_complete(&connection)
+                .expect("repaired source metadata contract")
+        );
+
+        connection
+            .execute_batch("PRAGMA query_only = ON")
+            .expect("make repaired catalog read only");
+        migrate_schema(&mut connection).expect("idempotently validate repaired v31 metadata");
     }
 
     #[test]
@@ -11234,6 +13201,124 @@ mod tests {
         drop(reopened);
         let evidence = Connection::open(catalog_path).expect("reopen repaired current evidence");
         assert_current_terminal_inventory_repaired(&evidence);
+    }
+
+    #[test]
+    fn v30_to_v31_repairs_orphaned_terminal_inventory_authority_before_validation() {
+        let catalog = current_terminal_inventory_authority_catalog();
+        let catalog_path = catalog.path().to_path_buf();
+        let connection = Connection::open(&catalog_path).expect("open v30 authority fixture");
+        connection
+            .execute(
+                "DELETE FROM library_metadata_inventory_spools
+                 WHERE run_id = 'terminal-spool-inventory'",
+                [],
+            )
+            .expect("isolate terminal authority fixture");
+        super::downgrade_source_revision_contract_to_v30_for_test(&connection);
+        drop(connection);
+
+        let reopened = SqliteCatalog::open(catalog_path.clone())
+            .expect("migrate v30 terminal authority catalog");
+        drop(reopened);
+        let evidence = Connection::open(&catalog_path).expect("open migrated authority evidence");
+        assert_current_terminal_inventory_repaired(&evidence);
+        drop(evidence);
+
+        let reopened = SqliteCatalog::open(catalog_path.clone())
+            .expect("idempotently reopen migrated terminal authority catalog");
+        drop(reopened);
+        let evidence = Connection::open(catalog_path).expect("reopen migrated authority evidence");
+        assert_current_terminal_inventory_repaired(&evidence);
+    }
+
+    #[test]
+    fn v30_to_v31_retires_terminal_inventory_spool_before_validation() {
+        let catalog = current_terminal_inventory_authority_catalog();
+        let catalog_path = catalog.path().to_path_buf();
+        let connection = Connection::open(&catalog_path).expect("open v30 spool fixture");
+        connection
+            .execute(
+                "UPDATE library_metadata_inventory_runs
+                 SET absence_authority = 0
+                 WHERE id = 'terminal-inventory'",
+                [],
+            )
+            .expect("isolate terminal spool fixture");
+        super::downgrade_source_revision_contract_to_v30_for_test(&connection);
+        drop(connection);
+
+        let reopened =
+            SqliteCatalog::open(catalog_path.clone()).expect("migrate v30 terminal spool catalog");
+        drop(reopened);
+        let evidence = Connection::open(&catalog_path).expect("open migrated spool evidence");
+        assert_current_terminal_inventory_repaired(&evidence);
+        drop(evidence);
+
+        let reopened = SqliteCatalog::open(catalog_path.clone())
+            .expect("idempotently reopen migrated terminal spool catalog");
+        drop(reopened);
+        let evidence = Connection::open(catalog_path).expect("reopen migrated spool evidence");
+        assert_current_terminal_inventory_repaired(&evidence);
+    }
+
+    #[test]
+    fn v30_to_v31_terminal_inventory_repair_rejects_malformed_ddl_without_writes() {
+        let catalog = current_terminal_inventory_authority_catalog();
+        let catalog_path = catalog.path().to_path_buf();
+        let connection = Connection::open(&catalog_path).expect("open malformed v30 fixture");
+        super::downgrade_source_revision_contract_to_v30_for_test(&connection);
+        let original = connection
+            .query_row(
+                "SELECT sql FROM sqlite_master
+                 WHERE type = 'table' AND name = 'library_metadata_inventory_runs'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .expect("canonical v30 inventory run DDL");
+        let modified = original.replacen(
+            "CHECK(enumeration_complete = 1 OR absence_authority = 0)",
+            "CHECK(1)",
+            1,
+        );
+        assert_ne!(modified, original);
+        connection
+            .execute_batch("PRAGMA writable_schema = ON")
+            .expect("enable controlled v30 inventory DDL mutation");
+        connection
+            .execute(
+                "UPDATE sqlite_master SET sql = ?1
+                 WHERE type = 'table' AND name = 'library_metadata_inventory_runs'",
+                [modified],
+            )
+            .expect("weaken v30 inventory run DDL");
+        connection
+            .execute_batch("PRAGMA writable_schema = OFF; PRAGMA schema_version = 1310")
+            .expect("publish controlled v30 inventory DDL mutation");
+        drop(connection);
+
+        let error = match SqliteCatalog::open(catalog_path.clone()) {
+            Ok(_) => panic!("malformed v30 inventory DDL must fail closed"),
+            Err(error) => error,
+        };
+        assert_eq!(
+            error.code,
+            "catalog_persistent_journal_contract_unverifiable"
+        );
+        let evidence = Connection::open(catalog_path).expect("open rolled-back v30 evidence");
+        let retained: (i64, i64, i64) = evidence
+            .query_row(
+                "SELECT
+                   (SELECT version FROM schema_info),
+                   (SELECT absence_authority FROM library_metadata_inventory_runs
+                    WHERE id = 'terminal-inventory'),
+                   (SELECT COUNT(*) FROM library_metadata_inventory_spools
+                    WHERE run_id = 'terminal-spool-inventory')",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .expect("load rolled-back v30 repair evidence");
+        assert_eq!(retained, (30, 1, 1));
     }
 
     #[test]
@@ -11860,7 +13945,7 @@ mod tests {
                     |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
                 )
                 .expect("current exact shape evidence");
-            assert_eq!(schema, (SCHEMA_VERSION, 2, 2, 1), "phase {phase}");
+            assert_eq!(schema, (SCHEMA_VERSION, 3, 2, 1), "phase {phase}");
 
             let projection: (String, i64, i64) = connection
                 .query_row(

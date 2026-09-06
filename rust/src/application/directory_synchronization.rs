@@ -412,10 +412,16 @@ fn compact_intents(mut intents: Vec<AccumulatedIntent>) -> Vec<AccumulatedIntent
             && accumulated.intent.scope == LibraryChangeScope::Root
     }) {
         let mut root = intents.swap_remove(root_index);
+        let mut retained = Vec::new();
         for intent in intents {
-            root.evidence_ids.extend(intent.evidence_ids);
+            if is_precise_dirty_reconcile(&intent.intent) {
+                retained.push(intent);
+            } else {
+                root.evidence_ids.extend(intent.evidence_ids);
+            }
         }
-        return vec![root];
+        retained.push(root);
+        return retained;
     }
 
     let subtree_indexes = intents
@@ -462,7 +468,7 @@ fn covering_subtree_index(
     intent: &LibraryChangeIntent,
     subtree_indexes: &BTreeMap<String, usize>,
 ) -> Option<usize> {
-    if intent.scope == LibraryChangeScope::Root {
+    if intent.scope == LibraryChangeScope::Root || is_precise_dirty_reconcile(intent) {
         return None;
     }
     let (subtree, covering_index) = ancestor_paths(&intent.relative_path)
@@ -478,6 +484,15 @@ fn covering_subtree_index(
         .as_deref()
         .is_none_or(|previous| is_within_subtree(previous, subtree))
         .then_some(covering_index)
+}
+
+fn is_precise_dirty_reconcile(intent: &LibraryChangeIntent) -> bool {
+    intent.kind == LibraryChangeIntentKind::Reconcile
+        && intent.scope == LibraryChangeScope::Path
+        && matches!(
+            intent.origin,
+            LibraryChangeOrigin::LiveNotification | LibraryChangeOrigin::StartupCatchUp
+        )
 }
 
 fn ancestor_paths(path: &str) -> impl Iterator<Item = &str> {
@@ -777,8 +792,11 @@ fn reconcile_present_path(
             "prior_file_identity_invalid".to_owned(),
         );
     }
-    let is_same_state =
-        prior.file_size == current.file_size && prior.modified_unix_ms == current.modified_unix_ms;
+    let has_same_known_revision =
+        prior.source_revision.is_some() && prior.source_revision == current.source_revision;
+    let is_same_state = prior.file_size == current.file_size
+        && prior.modified_unix_ms == current.modified_unix_ms
+        && has_same_known_revision;
     let has_matching_identity =
         prior.file_identity.is_some() && prior.file_identity == current.file_identity;
     let has_conflicting_identity = prior.file_identity.is_some()
@@ -833,6 +851,12 @@ fn reconcile_present_path(
             DerivedEvidenceDisposition::NoReusableEvidence,
         )
     };
+    current.source_generation =
+        if evidence_disposition == DerivedEvidenceDisposition::RetainCompatible {
+            prior.source_generation
+        } else {
+            0
+        };
     IncrementalReconciliationDecision {
         outcome,
         evidence_disposition,

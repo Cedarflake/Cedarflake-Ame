@@ -22,11 +22,13 @@ class LibrarySourceNavigationTile extends StatefulWidget {
     required this.isSelected,
     required this.isExpanded,
     required this.isBusy,
+    this.isUpdating = false,
     required this.onSelect,
     required this.onToggleExpansion,
     required this.onUpdate,
     required this.onOpen,
     required this.onRemove,
+    this.focusNode,
     super.key,
   });
 
@@ -37,11 +39,13 @@ class LibrarySourceNavigationTile extends StatefulWidget {
   final bool isSelected;
   final bool isExpanded;
   final bool isBusy;
+  final bool isUpdating;
   final VoidCallback onSelect;
   final VoidCallback onToggleExpansion;
   final VoidCallback onUpdate;
   final VoidCallback onOpen;
   final VoidCallback onRemove;
+  final FocusNode? focusNode;
 
   @override
   State<LibrarySourceNavigationTile> createState() =>
@@ -50,25 +54,42 @@ class LibrarySourceNavigationTile extends StatefulWidget {
 
 class _LibrarySourceNavigationTileState
     extends State<LibrarySourceNavigationTile> {
-  final FocusNode _focusNode = FocusNode(debugLabel: "Library source");
-  final MenuController _buttonMenuController = MenuController();
+  late FocusNode _focusNode;
+  late bool _ownsFocusNode;
+  final GlobalKey _moreButtonAnchorKey = GlobalKey(
+    debugLabel: "Library source more button",
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = widget.focusNode ?? FocusNode(debugLabel: "Library source");
+    _ownsFocusNode = widget.focusNode == null;
+  }
+
+  @override
+  void didUpdateWidget(covariant LibrarySourceNavigationTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (identical(oldWidget.focusNode, widget.focusNode)) {
+      return;
+    }
+    if (_ownsFocusNode) {
+      _focusNode.dispose();
+    }
+    _focusNode = widget.focusNode ?? FocusNode(debugLabel: "Library source");
+    _ownsFocusNode = widget.focusNode == null;
+  }
 
   @override
   void dispose() {
-    _focusNode.dispose();
+    if (_ownsFocusNode) {
+      _focusNode.dispose();
+    }
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final buttonMenuWidth = amePopupMenuContentWidth(
-      context: context,
-      labels: const [
-        LibraryStrings.updateLibrary,
-        LibraryStrings.openInExplorer,
-        LibraryStrings.removeFromAme,
-      ],
-    );
     final icon = switch (widget.root.availability) {
       LibraryRootAvailability.available ||
       LibraryRootAvailability.unknown => Symbols.folder_rounded,
@@ -80,19 +101,20 @@ class _LibrarySourceNavigationTileState
       widget.root,
       widget.synchronizationStatus,
       widget.hasSynchronizationFailure,
+      widget.isUpdating,
     );
-    final statusDetail =
-        widget.synchronizationStatus?.continuity ==
-            LibraryContinuityState.liveOnly
-        ? LibraryStrings.continuityLiveOnlyDetail
-        : null;
+    final expandedSubtitle =
+        !widget.isUpdating &&
+            _isHealthyLiveOnlySynchronization(
+              widget.root,
+              widget.synchronizationStatus,
+              widget.hasSynchronizationFailure,
+            )
+        ? null
+        : statusLabel;
     final tile = widget.isCompact
         ? AmeTooltip(
-            message: [
-              widget.root.displayPath,
-              statusLabel,
-              ?statusDetail,
-            ].join("\n"),
+            message: [widget.root.displayPath, statusLabel].join("\n"),
             child: IconButton(
               focusNode: _focusNode,
               isSelected: widget.isSelected,
@@ -107,7 +129,7 @@ class _LibrarySourceNavigationTileState
             title: librarySourceName(widget.root.displayPath),
             path: widget.root.displayPath,
             titleKey: ValueKey("source-title-${widget.root.id}"),
-            subtitle: statusLabel,
+            subtitle: expandedSubtitle,
             isSelected: widget.isSelected,
             trailing: SizedBox(
               width: 96,
@@ -128,50 +150,19 @@ class _LibrarySourceNavigationTileState
                       ),
                     ),
                   ),
-                  AmeMenuAnchor(
-                    controller: _buttonMenuController,
-                    style: ameFixedWidthMenuStyle(buttonMenuWidth),
-                    alignmentOffset: ameMenuBelowEndAlignment(
-                      menuWidth: buttonMenuWidth,
-                    ),
-                    menuChildren: [
-                      ameFixedWidthMenuItem(
-                        width: buttonMenuWidth,
-                        child: MenuItemButton(
-                          onPressed: widget.isBusy ? null : widget.onUpdate,
-                          child: const AmeMenuItemContent(
-                            icon: Symbols.refresh_rounded,
-                            label: LibraryStrings.updateLibrary,
-                          ),
-                        ),
-                      ),
-                      ameFixedWidthMenuItem(
-                        width: buttonMenuWidth,
-                        child: MenuItemButton(
-                          onPressed: widget.onOpen,
-                          child: const AmeMenuItemContent(
-                            icon: Symbols.folder_open_rounded,
-                            label: LibraryStrings.openInExplorer,
-                          ),
-                        ),
-                      ),
-                      const Divider(height: AmeMenuMetrics.dividerHeight),
-                      ameFixedWidthMenuItem(
-                        width: buttonMenuWidth,
-                        child: MenuItemButton(
-                          onPressed: widget.isBusy ? null : widget.onRemove,
-                          child: const AmeMenuItemContent(
-                            icon: Symbols.remove_circle_rounded,
-                            label: LibraryStrings.removeFromAme,
-                          ),
-                        ),
-                      ),
-                    ],
-                    builder: (context, controller, child) => AmeTooltip(
-                      message: LibraryStrings.more,
+                  AmeTooltip(
+                    message: LibraryStrings.more,
+                    child: SizedBox(
+                      key: _moreButtonAnchorKey,
                       child: IconButton(
                         key: ValueKey("source-more-${widget.root.id}"),
-                        onPressed: () => toggleAmeMenu(controller),
+                        onPressed: () {
+                          final anchorContext =
+                              _moreButtonAnchorKey.currentContext;
+                          if (anchorContext != null) {
+                            unawaited(_showMenuAtAnchor(anchorContext));
+                          }
+                        },
                         icon: const Icon(Symbols.more_vert_rounded),
                       ),
                     ),
@@ -281,6 +272,7 @@ class _LibrarySourceNavigationTileState
     LibraryRoot root,
     LibraryRootSynchronizationStatus? synchronizationStatus,
     bool hasSynchronizationFailure,
+    bool isUpdating,
   ) {
     if (root.availability != LibraryRootAvailability.available) {
       return switch (root.availability) {
@@ -291,6 +283,39 @@ class _LibrarySourceNavigationTileState
         LibraryRootAvailability.offline => LibraryStrings.sourceOffline,
         LibraryRootAvailability.unknown => LibraryStrings.sourceUnknown,
       };
+    }
+    if (synchronizationStatus case final status?
+        when status.availability != LibraryRootAvailability.available) {
+      return switch (status.availability) {
+        LibraryRootAvailability.available => LibraryStrings.sourceAvailable,
+        LibraryRootAvailability.missing => LibraryStrings.sourceMissing,
+        LibraryRootAvailability.inaccessible =>
+          LibraryStrings.sourceInaccessible,
+        LibraryRootAvailability.offline => LibraryStrings.sourceOffline,
+        LibraryRootAvailability.unknown => LibraryStrings.sourceUnknown,
+      };
+    }
+    if (synchronizationStatus?.freshness ==
+        LibraryCatalogFreshness.unavailable) {
+      return LibraryStrings.sourceUnavailable;
+    }
+    if (synchronizationStatus?.continuity ==
+        LibraryContinuityState.unavailable) {
+      return LibraryStrings.continuityUnavailable;
+    }
+    if (isUpdating ||
+        synchronizationStatus?.freshness == LibraryCatalogFreshness.updating) {
+      return LibraryStrings.synchronizing;
+    }
+    if (hasSynchronizationFailure ||
+        synchronizationStatus?.recoveryBlocked == true ||
+        synchronizationStatus?.freshness ==
+            LibraryCatalogFreshness.needsReconciliation ||
+        synchronizationStatus?.sourceStatus ==
+            LibraryChangeSourceStatus.degraded ||
+        synchronizationStatus?.sourceStatus ==
+            LibraryChangeSourceStatus.failed) {
+      return LibraryStrings.needsReconciliation;
     }
     return switch (synchronizationStatus?.continuity) {
       LibraryContinuityState.baselineRequired =>
@@ -315,6 +340,30 @@ class _LibrarySourceNavigationTileState
             ? LibraryStrings.needsReconciliation
             : LibraryStrings.synchronizing,
     };
+  }
+
+  static bool _isHealthyLiveOnlySynchronization(
+    LibraryRoot root,
+    LibraryRootSynchronizationStatus? synchronizationStatus,
+    bool hasSynchronizationFailure,
+  ) {
+    return !hasSynchronizationFailure &&
+        root.availability == LibraryRootAvailability.available &&
+        synchronizationStatus?.availability ==
+            LibraryRootAvailability.available &&
+        synchronizationStatus?.freshness ==
+            LibraryCatalogFreshness.synchronized &&
+        synchronizationStatus?.freshnessCause ==
+            LibraryCatalogFreshnessCause.noPendingChanges &&
+        synchronizationStatus?.continuity == LibraryContinuityState.liveOnly &&
+        synchronizationStatus?.phase ==
+            LibrarySynchronizationPhase.synchronized &&
+        synchronizationStatus?.sourceStatus ==
+            LibraryChangeSourceStatus.healthy &&
+        synchronizationStatus?.pendingChangeCount == BigInt.zero &&
+        synchronizationStatus?.retryWaitCount == BigInt.zero &&
+        synchronizationStatus?.freshnessUnknownCount == BigInt.zero &&
+        synchronizationStatus?.recoveryBlocked == false;
   }
 }
 

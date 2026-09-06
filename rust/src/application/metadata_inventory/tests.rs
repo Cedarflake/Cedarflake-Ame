@@ -30,7 +30,7 @@ use crate::domain::{
     MetadataInventoryStartRequest, PersistentJournalBaselineClosingBoundary,
     PersistentJournalBaselineStartRequest, PersistentJournalCapability,
     PersistentJournalCapabilityState, PersistentJournalContinuityState,
-    PersistentJournalVolumeIdentity, ScanError, ScanRequest,
+    PersistentJournalVolumeIdentity, PreviewStatus, ScanError, ScanRequest,
 };
 use crate::ports::{
     CatalogRepository, IncrementalCatalogRepository, LibraryChangeQueue,
@@ -42,9 +42,39 @@ use super::{
     MetadataInventoryProgressPhase, MetadataInventoryRecoveryExecution,
     MetadataInventoryWorkerControl, leased_change_requires_metadata_inventory,
     metadata_inventory_run_id, process_leased_metadata_inventory_change,
-    process_leased_metadata_inventory_change_with_retained_source, retry_terminalization,
-    run_metadata_inventory, set_before_metadata_inventory_finalization_hook,
+    process_leased_metadata_inventory_change_with_retained_source,
+    recovery_reason_invalidates_unchanged_sources, retry_terminalization, run_metadata_inventory,
+    set_before_metadata_inventory_finalization_hook,
 };
+
+#[test]
+fn recovery_reason_invalidation_matrix_covers_every_authority_reason() {
+    let cases = [
+        (LibraryRecoveryAuthorityReason::ExistingRootBaseline, false),
+        (LibraryRecoveryAuthorityReason::FirstImportBoundary, false),
+        (LibraryRecoveryAuthorityReason::JournalGap, true),
+        (LibraryRecoveryAuthorityReason::JournalReset, true),
+        (LibraryRecoveryAuthorityReason::JournalTrim, true),
+        (
+            LibraryRecoveryAuthorityReason::JournalReconstructionFailure,
+            true,
+        ),
+        (LibraryRecoveryAuthorityReason::ContainmentFailure, true),
+        (
+            LibraryRecoveryAuthorityReason::BrokerAfterCurrentFailure,
+            true,
+        ),
+        (LibraryRecoveryAuthorityReason::WatcherUncoveredGap, true),
+    ];
+
+    for (reason, expected) in cases {
+        assert_eq!(
+            recovery_reason_invalidates_unchanged_sources(reason),
+            expected,
+            "unexpected invalidation policy for {reason:?}"
+        );
+    }
+}
 
 #[test]
 fn closed_process_metadata_changes_converge_through_bounded_inventory_pages() {
@@ -414,6 +444,8 @@ fn first_p2_baseline_without_publication_proof_establishes_a_guarded_spool_ident
                 run_id: "first-p2-unproven-baseline".to_owned(),
                 root_id: fixture.root_id.clone(),
                 root_generation: LibraryRootGeneration::initial(),
+                authority_reason:
+                    crate::domain::LibraryRecoveryAuthorityReason::ExistingRootBaseline,
                 volume: PersistentJournalVolumeIdentity {
                     volume_guid: "first-p2-unproven-baseline-volume".to_owned(),
                     volume_serial: 1,
@@ -734,6 +766,8 @@ fn candidate_drain_rejects_an_ancestor_junction_after_a_proven_spool_snapshot() 
                 run_id: "spool-candidate-junction".to_owned(),
                 root_id: fixture.root_id.clone(),
                 root_generation: LibraryRootGeneration::initial(),
+                authority_reason:
+                    crate::domain::LibraryRecoveryAuthorityReason::ExistingRootBaseline,
                 volume: PersistentJournalVolumeIdentity {
                     volume_guid: "cross-stage-volume".to_owned(),
                     volume_serial: 77,
@@ -888,7 +922,13 @@ fn unchanged_terminal_media_evidence_is_reused_after_catalog_reopen() {
     .expect("process terminal media candidate");
     assert_eq!(processed.completed_count, 1);
     assert_eq!(processed.retried_count, 0);
-    assert_eq!(processed.applied_mutation_count, 0);
+    assert_eq!(processed.applied_mutation_count, 1);
+    let failed = fixture
+        .location("broken.jpg")
+        .expect("terminal media placeholder");
+    assert!(matches!(failed.preview_status, PreviewStatus::Failed));
+    assert!(failed.source_revision.is_some());
+    assert!(failed.source_generation > 0);
     let catalog_path = fixture._storage.path().join("catalog.sqlite3");
     drop(fixture.catalog);
     fixture.catalog = SqliteCatalog::open(catalog_path).expect("reopen catalog");
@@ -946,7 +986,7 @@ fn mixed_non_media_and_malformed_batch_converges_without_retry_growth() {
     assert_eq!(processed.leased_count, 128);
     assert_eq!(processed.completed_count, 128);
     assert_eq!(processed.retried_count, 0);
-    assert_eq!(processed.applied_mutation_count, 0);
+    assert_eq!(processed.applied_mutation_count, 128);
     let metrics = fixture
         .catalog
         .load_library_change_root_queue_metrics(
@@ -1008,6 +1048,7 @@ fn placeholder_evidence_is_staged_and_enqueued_without_media_inspection() {
                 file_size: Some(123),
                 modified_unix_ms: 1_500,
                 file_identity: None,
+                source_revision: None,
                 placeholder_state: MetadataInventoryPlaceholderState::Offline,
                 is_reparse_point: false,
             }],
@@ -1058,6 +1099,7 @@ fn unchanged_reparse_cloud_placeholder_preserves_location_without_retry() {
                 file_size: Some(prior.file_size),
                 modified_unix_ms: prior.modified_unix_ms,
                 file_identity: None,
+                source_revision: None,
                 placeholder_state: MetadataInventoryPlaceholderState::Offline,
                 is_reparse_point: true,
             }],
@@ -1110,6 +1152,7 @@ fn hydrated_cloud_files_reparse_matches_the_existing_location() {
                 file_size: Some(prior.file_size),
                 modified_unix_ms: prior.modified_unix_ms,
                 file_identity: prior.file_identity.clone(),
+                source_revision: prior.source_revision.clone(),
                 placeholder_state: MetadataInventoryPlaceholderState::Available,
                 is_reparse_point: true,
             }],
@@ -2734,6 +2777,14 @@ fn active_p2_owner_keeps_exact_lease_affinity_until_completion() {
             &AtomicBool::new(false),
         )
         .expect("continue exact active P2 owner");
+        process_ready_library_changes(
+            &mut fixture.catalog,
+            &fixture.root_id,
+            LibraryRootGeneration::initial(),
+            now_unix_ms,
+            policy,
+        )
+        .expect("publish exact older owner candidates");
         if report.inventory.is_complete {
             old_completed = true;
             break;
@@ -2778,6 +2829,14 @@ fn active_p2_owner_keeps_exact_lease_affinity_until_completion() {
             &AtomicBool::new(false),
         )
         .expect("process newer P2 owner");
+        process_ready_library_changes(
+            &mut fixture.catalog,
+            &fixture.root_id,
+            LibraryRootGeneration::initial(),
+            now_unix_ms,
+            policy,
+        )
+        .expect("publish newer owner candidates");
         if report.inventory.is_complete {
             new_completed = true;
             break;
@@ -3188,6 +3247,8 @@ fn baseline_blocks_absence_until_closing_and_completes_atomically_after_restart(
                 run_id: "migration-baseline-run".to_owned(),
                 root_id: fixture.root_id.clone(),
                 root_generation: LibraryRootGeneration::initial(),
+                authority_reason:
+                    crate::domain::LibraryRecoveryAuthorityReason::ExistingRootBaseline,
                 volume: volume.clone(),
                 root_file_reference: JournalFileReference::V3([7; 16]),
                 journal_id: JournalIdentifier::new(9).expect("journal ID"),
@@ -3513,6 +3574,8 @@ fn prepare_baseline_closing_wait(
                 run_id: run_id.to_owned(),
                 root_id: fixture.root_id.clone(),
                 root_generation: LibraryRootGeneration::initial(),
+                authority_reason:
+                    crate::domain::LibraryRecoveryAuthorityReason::ExistingRootBaseline,
                 volume: volume.clone(),
                 root_file_reference: JournalFileReference::V3([7; 16]),
                 journal_id: JournalIdentifier::new(9).expect("journal ID"),
@@ -3910,6 +3973,7 @@ fn metadata_entry(relative_path: &str) -> MetadataInventoryEntry {
         file_size: Some(1),
         modified_unix_ms: 1,
         file_identity: None,
+        source_revision: None,
         placeholder_state: MetadataInventoryPlaceholderState::Available,
         is_reparse_point: false,
     }

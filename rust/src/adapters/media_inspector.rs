@@ -1,4 +1,4 @@
-use std::io::BufReader;
+use std::io::{BufReader, Seek, SeekFrom};
 use std::path::Path;
 
 use image::{ImageDecoder, ImageError, ImageReader, Limits};
@@ -55,6 +55,30 @@ impl LocalMediaInspector {
             let _ = discovery;
             self.inspect(file)
         }
+    }
+
+    pub(crate) fn inspect_open_source(
+        &self,
+        file: &DiscoveredFile,
+        source: &std::fs::File,
+    ) -> Result<MediaInspection, MediaInspectionFailure> {
+        let mut source = source.try_clone().map_err(|error| {
+            media_failure(
+                file,
+                MediaInspectionFailureKind::Retryable,
+                "image_open_failed",
+                error,
+            )
+        })?;
+        source.seek(SeekFrom::Start(0)).map_err(|error| {
+            media_failure(
+                file,
+                MediaInspectionFailureKind::Retryable,
+                "image_open_failed",
+                error,
+            )
+        })?;
+        self.inspect_source(file, source)
     }
 
     fn inspect_source(
@@ -261,6 +285,8 @@ mod tests {
             created_unix_ms: None,
             modified_unix_ms: 0,
             file_identity: None,
+            source_revision: None,
+            source_generation: 0,
             issues: Vec::new(),
         };
 
@@ -327,6 +353,8 @@ mod tests {
                 created_unix_ms: None,
                 modified_unix_ms: 0,
                 file_identity: None,
+                source_revision: None,
+                source_generation: 0,
                 issues: Vec::new(),
             };
 

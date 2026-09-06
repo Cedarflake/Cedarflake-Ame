@@ -118,7 +118,7 @@ fn unpaired_rename_degrades_to_old_and_new_path_reconciliation() {
 }
 
 #[test]
-fn parent_subtree_supersedes_children_but_not_cross_subtree_rename() {
+fn parent_subtree_preserves_precise_dirty_children_and_cross_subtree_rename() {
     let result = plan_library_changes(
         &available_context(),
         [
@@ -134,9 +134,14 @@ fn parent_subtree_supersedes_children_but_not_cross_subtree_rename() {
     )
     .expect("plan changes");
 
-    assert_eq!(result.intents.len(), 2);
+    assert_eq!(result.intents.len(), 3);
     assert!(result.intents.iter().any(|intent| {
         intent.scope == LibraryChangeScope::Subtree && intent.relative_path == "album"
+    }));
+    assert!(result.intents.iter().any(|intent| {
+        intent.kind == LibraryChangeIntentKind::Reconcile
+            && intent.scope == LibraryChangeScope::Path
+            && intent.relative_path == "album/child/image.jpg"
     }));
     assert!(result.intents.iter().any(|intent| {
         intent.kind == LibraryChangeIntentKind::RenameCandidate
@@ -145,7 +150,7 @@ fn parent_subtree_supersedes_children_but_not_cross_subtree_rename() {
 }
 
 #[test]
-fn root_directory_change_supersedes_narrower_reconciliation() {
+fn root_directory_change_preserves_precise_dirty_reconciliation() {
     let result = plan_library_changes(
         &available_context(),
         [
@@ -156,9 +161,15 @@ fn root_directory_change_supersedes_narrower_reconciliation() {
     )
     .expect("plan changes");
 
-    assert_eq!(result.intents.len(), 1);
-    assert_eq!(result.intents[0].scope, LibraryChangeScope::Root);
-    assert!(result.intents[0].relative_path.is_empty());
+    assert_eq!(result.intents.len(), 2);
+    assert!(result.intents.iter().any(|intent| {
+        intent.scope == LibraryChangeScope::Root && intent.relative_path.is_empty()
+    }));
+    assert!(result.intents.iter().any(|intent| {
+        intent.kind == LibraryChangeIntentKind::Reconcile
+            && intent.scope == LibraryChangeScope::Path
+            && intent.relative_path == "album/image.jpg"
+    }));
 }
 
 #[test]
@@ -607,5 +618,81 @@ fn evidence(
             scheme: "fixture-v1".to_owned(),
             value: value.to_owned(),
         }),
+        source_revision: Some(crate::domain::SourceRevisionEvidence {
+            scheme: "windows-file-change-time-100ns-v1".to_owned(),
+            value: "0000000000000001".to_owned(),
+        }),
+        source_generation: 1,
     }
+}
+
+#[test]
+fn same_path_metadata_with_different_source_revision_is_modified() {
+    let prior = evidence("same.png", 100, 1_000, Some("file"));
+    let mut current = prior.clone();
+    current.source_revision = Some(crate::domain::SourceRevisionEvidence {
+        scheme: "windows-file-change-time-100ns-v1".to_owned(),
+        value: "0000000000000002".to_owned(),
+    });
+    current.source_generation = 0;
+
+    let decision =
+        super::reconcile_path_evidence(Some(&prior), ReconciliationObservedState::Present(current));
+
+    assert_eq!(decision.outcome, IncrementalReconciliationOutcome::Modified);
+    assert_eq!(
+        decision.evidence_disposition,
+        DerivedEvidenceDisposition::InvalidateDerived
+    );
+    assert_eq!(
+        decision
+            .current
+            .expect("current evidence")
+            .source_generation,
+        0
+    );
+}
+
+#[test]
+fn unknown_source_revision_never_proves_unchanged() {
+    let prior = evidence("same.png", 100, 1_000, Some("file"));
+    let mut current = prior.clone();
+    current.source_revision = None;
+    current.source_generation = 0;
+
+    let decision =
+        super::reconcile_path_evidence(Some(&prior), ReconciliationObservedState::Present(current));
+
+    assert_eq!(decision.outcome, IncrementalReconciliationOutcome::Modified);
+    assert_eq!(
+        decision.evidence_disposition,
+        DerivedEvidenceDisposition::InvalidateDerived
+    );
+}
+
+#[test]
+fn identity_and_revision_preserving_rename_keeps_generation() {
+    let prior = evidence("old.png", 100, 1_000, Some("file"));
+    let mut current = prior.clone();
+    current.relative_path = "new.png".to_owned();
+    current.source_generation = 0;
+
+    let decision =
+        super::reconcile_path_evidence(Some(&prior), ReconciliationObservedState::Present(current));
+
+    assert_eq!(
+        decision.outcome,
+        IncrementalReconciliationOutcome::RenamedOrMoved
+    );
+    assert_eq!(
+        decision.evidence_disposition,
+        DerivedEvidenceDisposition::RetainCompatible
+    );
+    assert_eq!(
+        decision
+            .current
+            .expect("current evidence")
+            .source_generation,
+        1
+    );
 }

@@ -122,8 +122,98 @@ pub struct StorageStatus {
     pub preview_budget_bytes: u64,
     pub preview_used_bytes: u64,
     pub catalog_used_bytes: u64,
+    pub catalog_live_bytes: u64,
+    pub catalog_reclaimable_bytes: u64,
+    pub catalog_reclamation: CatalogReclamationSnapshot,
     pub requires_restart: bool,
     pub retired_preview_roots: Vec<RetiredPreviewRootView>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CatalogReclamationPhase {
+    Idle,
+    Queued,
+    Inspecting,
+    WaitingForIdle,
+    CheckingCapacity,
+    Converting,
+    Reclaiming,
+    Completed,
+    Cancelled,
+    Failed,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CatalogReclamationSnapshot {
+    pub operation_id: Option<String>,
+    pub phase: CatalogReclamationPhase,
+    pub catalog_file_bytes: u64,
+    pub live_bytes: u64,
+    pub reclaimable_bytes: u64,
+    pub reclaimed_bytes: u64,
+    pub required_temporary_bytes: Option<u64>,
+    pub available_temporary_bytes: Option<u64>,
+    pub error_code: Option<String>,
+    pub error_message: Option<String>,
+}
+
+impl CatalogReclamationSnapshot {
+    pub fn idle() -> Self {
+        Self {
+            operation_id: None,
+            phase: CatalogReclamationPhase::Idle,
+            catalog_file_bytes: 0,
+            live_bytes: 0,
+            reclaimable_bytes: 0,
+            reclaimed_bytes: 0,
+            required_temporary_bytes: None,
+            available_temporary_bytes: None,
+            error_code: None,
+            error_message: None,
+        }
+    }
+
+    pub fn is_active(&self) -> bool {
+        matches!(
+            self.phase,
+            CatalogReclamationPhase::Queued
+                | CatalogReclamationPhase::Inspecting
+                | CatalogReclamationPhase::WaitingForIdle
+                | CatalogReclamationPhase::CheckingCapacity
+                | CatalogReclamationPhase::Converting
+                | CatalogReclamationPhase::Reclaiming
+        )
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum CatalogAutoVacuumMode {
+    None,
+    Full,
+    Incremental,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct CatalogSpaceUsage {
+    pub page_size: u64,
+    pub page_count: u64,
+    pub freelist_count: u64,
+    pub auto_vacuum: CatalogAutoVacuumMode,
+}
+
+impl CatalogSpaceUsage {
+    pub fn catalog_file_bytes(self) -> u64 {
+        self.page_count.saturating_mul(self.page_size)
+    }
+
+    pub fn reclaimable_bytes(self) -> u64 {
+        self.freelist_count.saturating_mul(self.page_size)
+    }
+
+    pub fn live_bytes(self) -> u64 {
+        self.catalog_file_bytes()
+            .saturating_sub(self.reclaimable_bytes())
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -145,11 +235,20 @@ pub struct FileIdentityEvidence {
     pub value: String,
 }
 
+/// Filesystem-owned evidence that the bytes reachable through a file identity may have changed.
+/// Windows ChangeTime is cheap change evidence, not a content fingerprint.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SourceRevisionEvidence {
+    pub scheme: String,
+    pub value: String,
+}
+
 #[derive(Clone, Debug)]
 pub struct AssetLocationView {
     pub asset_id: String,
     pub location_id: String,
     pub root_id: String,
+    pub scan_id: String,
     pub absolute_path: String,
     pub display_path: String,
     pub relative_path: String,
@@ -158,6 +257,8 @@ pub struct AssetLocationView {
     pub created_unix_ms: Option<i64>,
     pub modified_unix_ms: i64,
     pub file_identity: Option<FileIdentityEvidence>,
+    pub source_revision: Option<SourceRevisionEvidence>,
+    pub source_generation: u64,
     pub width: u32,
     pub height: u32,
     pub preview_status: PreviewStatus,
@@ -235,7 +336,12 @@ pub struct MediaInspection {
 #[derive(Clone, Debug)]
 pub struct PreviewRequest {
     pub location_id: String,
+    pub expected_root_id: String,
+    pub expected_scan_id: String,
+    pub expected_source_revision: Option<SourceRevisionEvidence>,
+    pub expected_source_generation: u64,
     pub preview_edge: u32,
+    /// An explicit retry is a force-regenerate request, not merely permission to retry a failure.
     pub retry_failed: bool,
     pub protected_location_ids: Vec<String>,
 }
@@ -589,6 +695,9 @@ pub struct DiscoveredFile {
     pub created_unix_ms: Option<i64>,
     pub modified_unix_ms: i64,
     pub file_identity: Option<FileIdentityEvidence>,
+    pub source_revision: Option<SourceRevisionEvidence>,
+    /// Zero until a catalog publication allocates a catalog-wide generation.
+    pub source_generation: u64,
     pub issues: Vec<ScanIssue>,
 }
 
@@ -612,6 +721,7 @@ pub(crate) struct PreviewMaterialization {
     pub artifact: PreviewArtifact,
     pub staged_path: Option<String>,
     pub reserved_bytes: u64,
+    pub replace_existing: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -626,4 +736,5 @@ pub struct ExpectedFileState {
     pub file_size: u64,
     pub modified_unix_ms: i64,
     pub file_identity: Option<FileIdentityEvidence>,
+    pub source_revision: Option<SourceRevisionEvidence>,
 }

@@ -9,6 +9,7 @@ import "package:cedarflake_ame/features/library/application/library_controller.d
 import "package:cedarflake_ame/features/library/application/library_platform_actions.dart";
 import "package:cedarflake_ame/features/library/application/library_scanner.dart";
 import "package:cedarflake_ame/features/library/application/library_synchronization.dart";
+import "package:cedarflake_ame/features/library/application/library_update_controller.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/domain/library_synchronization_models.dart";
@@ -415,6 +416,7 @@ void main() {
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
+      final initialState = _libraryState(assetCount: 1);
       final scanner = _HeldLibraryScanner();
       final synchronization = _TestLibrarySynchronization(
         _explicitRecoveryRequiredSnapshot(),
@@ -425,11 +427,13 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            initialLibraryStateProvider.overrideWithValue(
-              _libraryState(assetCount: 1),
-            ),
+            initialLibraryStateProvider.overrideWithValue(initialState),
             libraryScannerProvider.overrideWithValue(scanner),
             librarySynchronizationProvider.overrideWithValue(synchronization),
+            libraryUpdateConfiguredRootsProvider.overrideWithValue(
+              initialState.roots,
+            ),
+            libraryUpdatePrimaryBusyProvider.overrideWithValue(false),
           ],
           child: const AmeApp(),
         ),
@@ -457,9 +461,28 @@ void main() {
       );
 
       await tester.tap(updateAction);
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key("library-update-dialog")), findsOneWidget);
+      expect(scanner.scanCount, 0);
+      expect(
+        tester
+            .widget<CheckboxListTile>(
+              find.byKey(const ValueKey("library-update-root-root-1")),
+            )
+            .value,
+        isTrue,
+      );
+
+      await tester.tap(find.byKey(const Key("library-update-confirm")));
       await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
       expect(scanner.scanCount, 1);
+      expect(
+        find.byKey(const Key("library-update-task-surface")),
+        findsOneWidget,
+      );
     },
   );
 
@@ -560,6 +583,92 @@ void main() {
     expect(scanner.scanCount, 0);
   });
 
+  testWidgets(
+    "healthy live-only capability is reported once and yields to a blocked root",
+    (tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final initialState = _libraryState(assetCount: 1);
+      final synchronization = _TestLibrarySynchronization(
+        _liveOnlySynchronizedRootSnapshot(),
+      );
+      final catalog = _SynchronizationViewerCatalog(
+        _snapshotFromState(initialState),
+      );
+      final scanner = _HeldLibraryScanner();
+      addTearDown(synchronization.dispose);
+      addTearDown(scanner.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            initialLibraryStateProvider.overrideWithValue(initialState),
+            libraryCatalogProvider.overrideWithValue(catalog),
+            libraryScannerProvider.overrideWithValue(scanner),
+            librarySynchronizationProvider.overrideWithValue(synchronization),
+          ],
+          child: const AmeApp(),
+        ),
+      );
+      await tester.pump();
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(AmeApp)),
+      );
+      final firstNotification = container
+          .read(ameNotificationControllerProvider)
+          .history
+          .single;
+      expect(firstNotification.title, LibraryStrings.continuityLiveOnly);
+      expect(
+        firstNotification.message,
+        LibraryStrings.continuityLiveOnlyDetail,
+      );
+      expect(firstNotification.severity, AmeNotificationSeverity.info);
+      expect(firstNotification.dedupeKey, "library.liveOnlyCapability");
+      expect(firstNotification.isPersistent, isFalse);
+      expect(firstNotification.isActive, isTrue);
+      final libraryState = container.read(libraryControllerProvider);
+      expect(libraryState.errorMessage, isNull);
+      expect(libraryState.status, LibraryStatus.completed);
+      expect(find.byKey(const Key("library-task-surface")), findsNothing);
+      expect(find.byKey(const Key("ame-notification-surface")), findsOneWidget);
+      expect(find.text(LibraryStrings.continuityLiveOnly), findsOneWidget);
+
+      for (var poll = 0; poll < 4; poll += 1) {
+        synchronization.publish(_liveOnlySynchronizedRootSnapshot());
+        await tester.pump(const Duration(milliseconds: 250));
+      }
+
+      final repeatedState = container.read(ameNotificationControllerProvider);
+      expect(repeatedState.history, hasLength(1));
+      expect(repeatedState.history.single.id, firstNotification.id);
+      expect(
+        repeatedState.history.single.occurredAt,
+        firstNotification.occurredAt,
+      );
+
+      synchronization.publish(_needsReconciliationSnapshot());
+      await tester.pumpAndSettle();
+
+      final blockedState = container.read(ameNotificationControllerProvider);
+      expect(blockedState.history, hasLength(2));
+      final liveOnlyNotification = blockedState.history.singleWhere(
+        (entry) => entry.id == firstNotification.id,
+      );
+      expect(liveOnlyNotification.isActive, isFalse);
+      expect(
+        blockedState.current?.technicalCode,
+        "change_source_callback_access_denied",
+      );
+      expect(blockedState.current?.isPersistent, isTrue);
+      expect(find.byKey(const Key("ame-notification-surface")), findsOneWidget);
+      expect(find.text("“Pictures”更新受阻"), findsOneWidget);
+    },
+  );
+
   testWidgets("root generation change resolves the prior blocked condition", (
     tester,
   ) async {
@@ -629,6 +738,10 @@ void main() {
             libraryCatalogProvider.overrideWithValue(catalog),
             libraryScannerProvider.overrideWithValue(scanner),
             librarySynchronizationProvider.overrideWithValue(synchronization),
+            libraryUpdateConfiguredRootsProvider.overrideWithValue(
+              initialState.roots,
+            ),
+            libraryUpdatePrimaryBusyProvider.overrideWithValue(false),
           ],
           child: const AmeApp(),
         ),
@@ -643,9 +756,9 @@ void main() {
       final container = ProviderScope.containerOf(
         tester.element(find.byType(AmeApp)),
       );
-      await container
-          .read(libraryControllerProvider.notifier)
-          .scanDirectory(r"C:\Pictures");
+      container.read(libraryUpdateControllerProvider.notifier).startUpdates(
+        const ["root-1"],
+      );
       final scanId = scanner.scanId;
       expect(scanId, isNotNull);
       scanner.add(
@@ -665,11 +778,10 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text("正在添加文件夹“Pictures”…"), findsOneWidget);
+      expect(find.text("正在更新图库“Pictures”…"), findsOneWidget);
       expect(find.text("已检查 128 个文件 · 已找到 64 张图片"), findsOneWidget);
-      expect(find.byKey(const Key("library-pause-button")), findsOneWidget);
-      expect(find.byKey(const Key("library-cancel-button")), findsOneWidget);
-      expect(find.byKey(const Key("library-retry-button")), findsNothing);
+      expect(find.bySemanticsLabel("取消更新 Pictures"), findsOneWidget);
+      expect(find.byKey(const Key("library-pause-button")), findsNothing);
       expect(
         find.text(LibraryStrings.synchronizationRefreshFailureTitle),
         findsNothing,
@@ -687,14 +799,17 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.text("导入完成"), findsOneWidget);
+      expect(find.text("图库更新已结束"), findsOneWidget);
+      expect(find.text("更新完成"), findsOneWidget);
       expect(
-        find.byKey(const Key("library-task-dismiss-button")),
+        find.byKey(const Key("library-update-dismiss-terminal")),
         findsOneWidget,
       );
-      expect(find.byKey(const Key("library-retry-button")), findsNothing);
+      expect(find.bySemanticsLabel("重试更新 Pictures"), findsNothing);
 
-      await tester.tap(find.byKey(const Key("library-task-dismiss-button")));
+      await tester.tap(
+        find.byKey(const Key("library-update-dismiss-terminal")),
+      );
       await tester.pump();
 
       expect(
@@ -716,7 +831,8 @@ void main() {
         code: "catalog_database_busy",
         message: "The catalog database remained busy after waiting",
       ),
-      terminalTitle: "添加文件夹失败",
+      terminalTitle: "更新失败",
+      canRetry: true,
     ),
   );
 
@@ -728,7 +844,8 @@ void main() {
         acceptedItems: 0,
         issueCount: 0,
       ),
-      terminalTitle: "已取消添加文件夹",
+      terminalTitle: "已取消",
+      canRetry: false,
     ),
   );
 
@@ -1092,6 +1209,7 @@ Future<void> _verifyTerminalScanFeedbackAcknowledgement(
   WidgetTester tester, {
   required LibraryScanUpdate terminalUpdate,
   required String terminalTitle,
+  required bool canRetry,
 }) async {
   tester.view.physicalSize = const Size(1280, 800);
   tester.view.devicePixelRatio = 1;
@@ -1113,6 +1231,10 @@ Future<void> _verifyTerminalScanFeedbackAcknowledgement(
         libraryCatalogProvider.overrideWithValue(catalog),
         libraryScannerProvider.overrideWithValue(scanner),
         librarySynchronizationProvider.overrideWithValue(synchronization),
+        libraryUpdateConfiguredRootsProvider.overrideWithValue(
+          initialState.roots,
+        ),
+        libraryUpdatePrimaryBusyProvider.overrideWithValue(false),
       ],
       child: const AmeApp(),
     ),
@@ -1127,25 +1249,34 @@ Future<void> _verifyTerminalScanFeedbackAcknowledgement(
   final container = ProviderScope.containerOf(
     tester.element(find.byType(AmeApp)),
   );
-  await container
-      .read(libraryControllerProvider.notifier)
-      .scanDirectory(r"C:\Pictures");
+  container.read(libraryUpdateControllerProvider.notifier).startUpdates(const [
+    "root-1",
+  ]);
   final scanId = scanner.scanId;
   expect(scanId, isNotNull);
   scanner.add(LibraryScanStarted(scanId: scanId!, rootPath: r"C:\Pictures"));
   scanner.add(terminalUpdate);
+  await scanner.close();
+  await tester.pump();
   await tester.pump();
 
+  expect(find.text("图库更新已结束"), findsOneWidget);
   expect(find.text(terminalTitle), findsOneWidget);
-  expect(find.byKey(const Key("library-retry-button")), findsOneWidget);
-  expect(find.byKey(const Key("library-task-dismiss-button")), findsOneWidget);
+  expect(
+    find.bySemanticsLabel("重试更新 Pictures"),
+    canRetry ? findsOneWidget : findsNothing,
+  );
+  expect(
+    find.byKey(const Key("library-update-dismiss-terminal")),
+    findsOneWidget,
+  );
   expect(
     find.text(LibraryStrings.synchronizationRefreshFailureTitle),
     findsNothing,
   );
   expect(scanner.scanCount, 1);
 
-  await tester.tap(find.byKey(const Key("library-task-dismiss-button")));
+  await tester.tap(find.byKey(const Key("library-update-dismiss-terminal")));
   await tester.pump();
 
   expect(find.text(terminalTitle), findsNothing);
@@ -1178,6 +1309,9 @@ LibraryState _libraryState({
         assetId: "asset-$index",
         locationId: "location-$index",
         rootId: "root-1",
+        activeScanId: "scan-1",
+        sourceRevision: null,
+        sourceGeneration: BigInt.one,
         sourcePath: "$sourceRoot\\$index.jpg",
         displayPath: "$readableRoot\\$index.jpg",
         relativePath: "$index.jpg",
@@ -1202,6 +1336,7 @@ LibraryState _libraryState({
           createdUnixMs: 1,
           assetCount: assets.length,
           issueCount: 0,
+          availability: LibraryRootAvailability.available,
         ),
       ],
       assets: assets,
@@ -1231,6 +1366,9 @@ LibraryAsset _assetAtPath(
     assetId: assetId ?? source.assetId,
     locationId: locationId,
     rootId: source.rootId,
+    activeScanId: source.activeScanId,
+    sourceRevision: source.sourceRevision,
+    sourceGeneration: source.sourceGeneration,
     sourcePath: "C:\\Pictures\\$relativePath",
     displayPath: "C:\\Pictures\\$relativePath",
     relativePath: relativePath,
@@ -1402,6 +1540,30 @@ LibrarySynchronizationSnapshot _synchronizedRootSnapshot() {
         continuity: LibraryContinuityState.current,
         phase: LibrarySynchronizationPhase.synchronized,
         phaseStartedAt: DateTime.utc(2026, 8, 21),
+        sourceStatus: LibraryChangeSourceStatus.healthy,
+        pendingChangeCount: BigInt.zero,
+        retryWaitCount: BigInt.zero,
+        freshnessUnknownCount: BigInt.zero,
+      ),
+    },
+  );
+}
+
+LibrarySynchronizationSnapshot _liveOnlySynchronizedRootSnapshot() {
+  return LibrarySynchronizationSnapshot(
+    isRunning: true,
+    catalogRevision: BigInt.one,
+    appliedMutationCount: 0,
+    roots: {
+      "root-1": LibraryRootSynchronizationStatus(
+        rootId: "root-1",
+        rootGeneration: BigInt.one,
+        availability: LibraryRootAvailability.available,
+        freshness: LibraryCatalogFreshness.synchronized,
+        freshnessCause: LibraryCatalogFreshnessCause.noPendingChanges,
+        continuity: LibraryContinuityState.liveOnly,
+        phase: LibrarySynchronizationPhase.synchronized,
+        phaseStartedAt: DateTime.utc(2026, 9, 4),
         sourceStatus: LibraryChangeSourceStatus.healthy,
         pendingChangeCount: BigInt.zero,
         retryWaitCount: BigInt.zero,

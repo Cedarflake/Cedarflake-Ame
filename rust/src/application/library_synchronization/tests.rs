@@ -1000,6 +1000,9 @@ fn metadata_inventory_readiness_is_isolated_per_root() {
         .begin_scan(&request, "other-runtime-root", &request.root_path)
         .expect("begin other root scan");
     catalog
+        .prove_live_only_first_import_handoff_for_test(&request.scan_id)
+        .expect("prove other-root first-import handoff");
+    catalog
         .publish_scan(
             &request.scan_id,
             "other-runtime-root",
@@ -1181,6 +1184,9 @@ fn multi_root_shutdown_uses_one_epoch_deadline_and_retries_owned_tasks() {
         .begin_scan(&request, "other-stop-runtime-root", &request.root_path)
         .expect("begin other root scan");
     catalog
+        .prove_live_only_first_import_handoff_for_test(&request.scan_id)
+        .expect("prove other-stop-root first-import handoff");
+    catalog
         .publish_scan(
             &request.scan_id,
             "other-stop-runtime-root",
@@ -1288,6 +1294,9 @@ impl RuntimeFixture {
                 &publication_identity,
             )
             .expect("begin scan");
+        catalog
+            .prove_live_only_first_import_handoff_for_test(&request.scan_id)
+            .expect("prove runtime fixture first-import handoff");
         catalog
             .publish_scan(
                 &request.scan_id,

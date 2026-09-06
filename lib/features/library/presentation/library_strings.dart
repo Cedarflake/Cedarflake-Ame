@@ -45,6 +45,13 @@ abstract final class LibraryStrings {
   static const openInExplorer = "在文件资源管理器中打开";
   static const updateLibrary = "更新图库";
   static const removeFromAme = "从 Ame 中移除";
+  static const removeFolderFailed = "移除文件夹失败";
+  static const removedFolderRefreshFailed = "文件夹已移除，刷新显示失败";
+  static String refreshingAfterRemoval(String sourceName) =>
+      "已从 Ame 中移除“$sourceName”，正在刷新显示…";
+  static const removingFolderDetail = "正在清理该文件夹的图库记录。磁盘上的文件夹和图片不会被删除或修改。";
+  static const refreshingAfterRemovalDetail =
+      "移除已经完成。正在加载最新图库显示，磁盘上的文件夹和图片未被删除或修改。";
   static const expandFolder = "展开文件夹";
   static const collapseFolder = "折叠文件夹";
   static const loadingFolders = "正在加载文件夹…";
@@ -52,6 +59,11 @@ abstract final class LibraryStrings {
   static const retryFolders = "重新加载文件夹";
   static const unknownCaptureDate = "拍摄日期未知";
   static const retryPreview = "重试预览";
+  static const retryingPreview = "正在重试预览…";
+
+  static String removingFromAme(String sourceName) =>
+      "正在从 Ame 中移除“$sourceName”…";
+  static const previewUpdateRequired = "请先更新图库，再重试预览。";
   static const retryLoading = "重试加载";
   static const noFolder = "还没有添加文件夹";
   static const emptyLibraryTitle = "建立你的图片图库";

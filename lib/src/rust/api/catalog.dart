@@ -27,10 +27,11 @@ Future<CatalogSnapshot> loadLibraryCatalog({
   before: before,
 );
 
-GalleryTimeline loadLibraryGalleryTimeline({required GalleryQuery query}) =>
-    RustLib.instance.api.crateApiCatalogLoadLibraryGalleryTimeline(
-      query: query,
-    );
+Future<GalleryTimeline> loadLibraryGalleryTimeline({
+  required GalleryQuery query,
+}) => RustLib.instance.api.crateApiCatalogLoadLibraryGalleryTimeline(
+  query: query,
+);
 
 Future<GalleryLayoutManifestChunk> loadLibraryGalleryLayoutManifestChunk({
   required int maxItems,
@@ -96,7 +97,7 @@ Future<AssetLocationView?> loadLibraryAssetById({
   preferredLocationId: preferredLocationId,
 );
 
-bool removeLibraryRoot({required String rootId}) =>
+Future<bool> removeLibraryRoot({required String rootId}) =>
     RustLib.instance.api.crateApiCatalogRemoveLibraryRoot(rootId: rootId);
 
 RecoverableScan? loadRecoverableLibraryScan() =>

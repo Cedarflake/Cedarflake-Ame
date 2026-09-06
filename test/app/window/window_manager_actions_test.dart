@@ -8,38 +8,65 @@ import "package:flutter_test/flutter_test.dart";
 import "package:window_manager/window_manager.dart";
 
 void main() {
+  test("restores normal bounds and maximized state while hidden", () async {
+    final window = _FakeWindowBootstrapActions();
+    const placement = AmeWindowPlacement(
+      left: 120,
+      top: 80,
+      width: 1440,
+      height: 900,
+      isMaximized: true,
+    );
+
+    final normalPlacement = await prepareAmeWindowBeforeShow(
+      window: window,
+      restoredPlacement: placement,
+      shouldMaximize: true,
+    );
+
+    expect(window.calls, [
+      "ready",
+      "position",
+      "get-position",
+      "get-size",
+      "maximize",
+    ]);
+    expect(window.options?.size, const Size(1440, 900));
+    expect(window.options?.minimumSize, const Size(800, 560));
+    expect(window.position, const Offset(120, 80));
+    expect(normalPlacement.bounds, const Rect.fromLTWH(120, 80, 1440, 900));
+    expect(normalPlacement.isMaximized, isFalse);
+  });
+
+  test("shows and focuses only after the first rasterized frame", () async {
+    final window = _FakeWindowBootstrapActions();
+    final firstFrame = Completer<void>();
+
+    final showing = showAmeWindowAfterFirstFrame(
+      window: window,
+      firstFrameRasterized: firstFrame.future,
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    expect(window.calls, isEmpty);
+    firstFrame.complete();
+    await showing;
+    expect(window.calls, ["show", "focus"]);
+  });
+
   test(
-    "restores normal bounds and maximized state before first show",
+    "shows the mounted shell when first-frame reporting times out",
     () async {
       final window = _FakeWindowBootstrapActions();
-      const placement = AmeWindowPlacement(
-        left: 120,
-        top: 80,
-        width: 1440,
-        height: 900,
-        isMaximized: true,
-      );
+      final firstFrame = Completer<void>();
 
-      final normalPlacement = await restoreAmeWindowBeforeShow(
+      await showAmeWindowAfterFirstFrame(
         window: window,
-        restoredPlacement: placement,
-        shouldMaximize: true,
+        firstFrameRasterized: firstFrame.future,
+        firstFrameTimeout: Duration.zero,
       );
 
-      expect(window.calls, [
-        "ready",
-        "position",
-        "get-position",
-        "get-size",
-        "maximize",
-        "show",
-        "focus",
-      ]);
-      expect(window.options?.size, const Size(1440, 900));
-      expect(window.options?.minimumSize, const Size(800, 560));
-      expect(window.position, const Offset(120, 80));
-      expect(normalPlacement.bounds, const Rect.fromLTWH(120, 80, 1440, 900));
-      expect(normalPlacement.isMaximized, isFalse);
+      expect(window.calls, ["show", "focus"]);
     },
   );
 
