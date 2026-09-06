@@ -2,7 +2,9 @@
 
 Date: 2026-09-06 to 2026-09-07
 
-Status: implementation and verification in progress. This record does not declare R2c accepted.
+Status: implemented and independently reviewed; final full-head verification is tracked by
+[PR #12 checks](https://github.com/Cedarflake/Cedarflake-Ame/pull/12/checks). This record does not
+declare R2c accepted.
 
 ## Why the earlier green gate was insufficient
 
@@ -132,7 +134,13 @@ placeholder behavior is introduced.
   regressions pass, including the existing replacement-failure suite. The first run's fixture
   expected an unscaled 64 by 48 output from the existing 128-pixel bucket; correcting the expected
   128 by 96 geometry changes no production resize policy or long-path assertions.
-- Lint, actual Release workloads and full-head hosted gates remain required at this checkpoint.
+- The local lint run passes its compiler-free guardrails and formatting check. Clippy identifies
+  one collapsible conditional in the benchmark poll-worker cleanup; the equivalent let-chain
+  correction passes the repeated all-target/all-feature Clippy check with warnings denied. Dart
+  analysis then passes with fatal warnings and information enabled. This resumed sequence is not
+  reported as a second uninterrupted invocation of the entire lint script.
+- The remaining actual Release workloads and complete Daily/unsigned hosted gates must pass for
+  the final head through the linked checks, including the unchanged long-path media workload.
   Independent cross-owner review covers the final keysets, source-negative lifecycle, decoder
   policy, committed counts, control counts and five-case CI boundary. Implementation or a prior
   green head does not substitute for execution evidence.

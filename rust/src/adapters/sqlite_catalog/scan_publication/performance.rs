@@ -308,10 +308,10 @@ impl PublicationPolling {
 
 impl Drop for PublicationPolling {
     fn drop(&mut self) {
-        if self.worker.is_some() {
-            if let Err(error) = self.finish() {
-                eprintln!("publication benchmark cleanup: {error}");
-            }
+        if self.worker.is_some()
+            && let Err(error) = self.finish()
+        {
+            eprintln!("publication benchmark cleanup: {error}");
         }
     }
 }
