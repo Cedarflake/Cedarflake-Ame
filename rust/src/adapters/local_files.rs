@@ -4253,6 +4253,8 @@ fn metadata_placeholder_state(_metadata: &Metadata) -> MetadataInventoryPlacehol
 
 #[cfg(test)]
 mod tests {
+    mod availability_module_topology;
+
     use std::collections::{BTreeMap, BTreeSet, VecDeque};
     use std::fs;
     #[cfg(windows)]
@@ -6364,6 +6366,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
             is_inline: false,
         },
         AvailabilityModuleContract {
+            name: "media_fixtures",
+            visibility: "pub(crate)",
+            attributes: &["cfg(test)", "path=\"../test_support/media_fixtures.rs\""],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
             name: "ports",
             visibility: "",
             attributes: &[],
@@ -6504,6 +6512,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
     ];
 
     const LOCAL_MODULE_CONTRACTS: &[AvailabilityModuleContract] = &[
+        AvailabilityModuleContract {
+            name: "media_signature",
+            visibility: "",
+            attributes: &[],
+            is_inline: false,
+        },
         AvailabilityModuleContract {
             name: "tests",
             visibility: "",

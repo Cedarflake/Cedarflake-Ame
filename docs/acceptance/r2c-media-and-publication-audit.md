@@ -139,11 +139,30 @@ placeholder behavior is introduced.
   correction passes the repeated all-target/all-feature Clippy check with warnings denied. Dart
   analysis then passes with fatal warnings and information enabled. This resumed sequence is not
   reported as a second uninterrupted invocation of the entire lint script.
-- The remaining actual Release workloads and complete Daily/unsigned hosted gates must pass for
-  the final head through the linked checks, including the unchanged long-path media workload.
-  Independent cross-owner review covers the final keysets, source-negative lifecycle, decoder
-  policy, committed counts, control counts and five-case CI boundary. Implementation or a prior
-  green head does not substitute for execution evidence.
+- The local native scan partition passes all three controlled interactions, including manual
+  continuation and durable cancellation. Native accessibility passes both tests and all ten UI
+  Automation phases without an invalid AXTree update; its completion records no run, cleanup or
+  probe-cleanup failure. These executions use isolated fixtures, not a retained source library.
+- Hosted run [34047864932](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/34047864932)
+  for `12e36da` passes Flutter, both native partitions, unsigned Windows x64 Release and all five
+  exact synthetic workloads. Seven-format evidence records seven cold generations, seven warm
+  reuses and seven unchanged sources. Publication records 50,000 identities, 145 overlapping
+  polls, one call and one commit, zero partial observations and the original pending P0 intent;
+  fixture preparation takes 20,078 ms and publication takes 2,218 ms. These are bounded synthetic
+  results, not actual-library timings or a complete green gate.
+- That run fails exactly one Rust test after 1,265 passes and 19 separate-workflow ignores: the
+  exact availability source contract had not registered the new `media_signature` and test-only
+  `media_fixtures` module declarations. A local invocation reproduces the same failure. The
+  correction registers their exact visibility, attributes, paths and external-module shapes only
+  inside the existing test contract. Production availability code, protected digests, validator,
+  call closure and access capabilities remain unchanged. All seven focused availability tests
+  pass, including the original failing test and 22 real source mutations covering missing,
+  duplicate, broader, alternate, nested and generated loading. Independent review confirms the
+  original fail-closed rules remain intact; the correction is not a test exclusion.
+- Complete Daily and unsigned hosted gates still must pass for the final head through the linked
+  checks. Independent cross-owner review covers the final keysets, source-negative lifecycle,
+  decoder policy, committed counts, control counts and five-case CI boundary. Implementation or
+  a prior green head does not substitute for execution evidence.
 
 ## Physical review
 
@@ -161,6 +180,7 @@ are listed explicitly so moving a test out of an owner does not hide its physica
 | `application/preview.rs` | 670 | 1,047 | Failure policy: 29 + 42 inline; lifecycle tests: 311 |
 | `scan_library.rs` | 1,213 | 0 | Media lifecycle tests: 679; finalization control tests: 96 |
 | `scan_library/finalization.rs` | 438 | 33 | Rejected-input owner: 125; retained-issue owner: 118; dedicated tests: 157 |
+| `local_files.rs` | 4,253 | 3,396 | Module-loading contract tests: 119; this correction adds no production behavior |
 
 The 5,528-line SQLite facade and older large inline suites remain physical debt. The new
 679-line application media suite is also explicitly visible: further expansion should separate
