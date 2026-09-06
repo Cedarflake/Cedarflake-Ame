@@ -20,14 +20,18 @@ if (-not (Test-AmeSyntheticPlatform -Platform Win32NT -Architecture X64 -Is64Bit
 if (((Get-AmeSyntheticBuildArguments) -join ' ') -cne 'test --locked --manifest-path rust/Cargo.toml --release --lib --all-features --jobs 1 --no-run --message-format=json') {
     throw "Synthetic builds must use the exact locked serial release library-test command"
 }
-if (($cases.Name -join ',') -cne "jpeg,scan,usn" -or @($cases.Test | Select-Object -Unique).Count -ne 3) {
-    throw "The synthetic allowlist must contain the exact three independent workloads"
+if (($cases.Name -join ',') -cne "jpeg,scan,usn,media,publication" -or @($cases.Test | Select-Object -Unique).Count -ne 5) {
+    throw "The synthetic allowlist must contain the exact five independent workloads"
 }
+. (Join-Path $PSScriptRoot "performance_test_synthetic_media.ps1")
+. (Join-Path $PSScriptRoot "performance_test_synthetic_publication.ps1")
 $scanMarker = "AME_SYNTHETIC_BENCHMARK files=10000 fixture_ms=923 cold_ms=10107 warm_ms=8300 pause_ms=2 resume_ms=10065 cancel_ms=86 catalog_bytes=55885824 resumed_catalog_bytes=32149504"
 $markers = @(
     "full_decode_resize_ms=12.5 scaled_decode_resize_ms=3.2 speedup=3.90",
     $scanMarker,
-    "R2c-R million-backlog records=1000000 covered_records=1000000 pages=245 production_records_per_native_buffer=4095 retained_frames_max=1 root_scope_checks=1000000 emitted_candidates=0 elapsed_ms=3"
+    "R2c-R million-backlog records=1000000 covered_records=1000000 pages=245 production_records_per_native_buffer=4095 retained_frames_max=1 root_scope_checks=1000000 emitted_candidates=0 elapsed_ms=3",
+    (Get-AmeSyntheticMediaProtocolFixture),
+    (Get-AmeSyntheticPublicationProtocolFixture)
 )
 for ($index = 0; $index -lt $cases.Count; $index++) {
     $name = $cases[$index].Test
@@ -76,4 +80,4 @@ foreach ($invalid in @(
 )) {
     Assert-Refused { Assert-AmeSyntheticResult -Output $scanOutput.Replace($scanMarker, $invalid) -TestName $scanName } "exact workload or evidence"
 }
-Write-Host "AME_SYNTHETIC_PROTOCOL exact_allowlist=3 locked_build=passed list_and_run_tamper=passed scan_bytes_schema=passed"
+Write-Host "AME_SYNTHETIC_PROTOCOL exact_allowlist=5 locked_build=passed list_and_run_tamper=passed scan_bytes_schema=passed media_format_schema=passed publication_overlap_schema=passed"

@@ -162,8 +162,16 @@ scenario-based separation.
 - Independent source reviews cover the final query-refresh, terminal-scan, original-reader, storage,
   pressure-fixture, and native-runner ownership changes. The historical physical debt above remains
   explicit; no review claims the absence of every possible defect.
+- Revision `8bb974ebc3c671981c7250cdc780aaf5800f821d` passes every ordinary job in
+  [the full-head hosted run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/34037032866):
+  Rust reports 1,215 passed and 17 explicit ignores; the mixed-load scenario and all six fixture
+  lifecycle tests pass inside that complete run. Flutter, native scan, native accessibility,
+  three then-admitted synthetic workloads, unsigned x64 Release, and the aggregate gate pass.
+  Protected release-only jobs are intentionally outside PR admission. This result does not validate
+  the subsequent media and full-count publication repairs tracked in
+  [the focused follow-up audit](r2c-media-and-publication-audit.md).
 - The delivered revision must pass every ordinary [PR #12 quality check](https://github.com/Cedarflake/Cedarflake-Ame/pull/12/checks):
   all Daily partitions, generated bridge compatibility, credential-free unsigned Release, and all
-  three hosted synthetic workloads. These immutable check results own full-revision verification,
+  admitted hosted synthetic workloads. These immutable check results own full-revision verification,
   not this local ledger or an earlier green head. Protected signing and authorization-bound
   real-library acceptance are not substituted with credential-free CI results.

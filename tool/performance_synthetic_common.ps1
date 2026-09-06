@@ -1,6 +1,8 @@
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot "quality_common.ps1")
 . (Join-Path $PSScriptRoot "integration_windows_accessibility_process.ps1")
+. (Join-Path $PSScriptRoot "performance_synthetic_media.ps1")
+. (Join-Path $PSScriptRoot "performance_synthetic_publication.ps1")
 
 function Get-AmeSyntheticBuildArguments {
     @("test", "--locked", "--manifest-path", "rust/Cargo.toml", "--release", "--lib", "--all-features", "--jobs", "1", "--no-run", "--message-format=json")
@@ -17,6 +19,8 @@ function Get-AmeSyntheticCases {
         [pscustomobject]@{ Name = "jpeg"; Test = "adapters::jpeg_preview::tests::benchmark_high_resolution_jpeg_preview_conversion"; Seconds = 180; Bytes = 536870912; Evidence = '(?m)^full_decode_resize_ms=[0-9.]+ scaled_decode_resize_ms=[0-9.]+ speedup=[0-9.]+\r?$' }
         [pscustomobject]@{ Name = "scan"; Test = "application::scan_library::tests::synthetic_ten_thousand_file_scan_records_bounded_acceptance_evidence"; Seconds = 360; Bytes = 536870912; Evidence = '(?m)^AME_SYNTHETIC_BENCHMARK files=10000 fixture_ms=\d+ cold_ms=\d+ warm_ms=\d+ pause_ms=\d+ resume_ms=\d+ cancel_ms=\d+ catalog_bytes=[0-9]+ resumed_catalog_bytes=[0-9]+\r?$' }
         [pscustomobject]@{ Name = "usn"; Test = "journal_broker::windows::usn::tests::million_unrelated_records_stream_through_bounded_production_parser_pages"; Seconds = 180; Bytes = 536870912; Evidence = '(?m)^R2c-R million-backlog records=1000000 covered_records=1000000 pages=245 production_records_per_native_buffer=4095 .* root_scope_checks=1000000 emitted_candidates=0 elapsed_ms=\d+\r?$' }
+        [pscustomobject]@{ Name = "media"; Test = "adapters::preview_cache::media_performance::benchmark_supported_media_preview_cold_and_warm"; Seconds = 360; Bytes = 536870912; Evidence = '(?m)^AME_MEDIA_BENCHMARK formats=7 cold_generated=7 warm_reused=7 sources_unchanged=7\r?$' }
+        [pscustomobject]@{ Name = "publication"; Test = "adapters::sqlite_catalog::scan_publication::performance::benchmark_fifty_thousand_identity_publication_with_noop_polls"; Seconds = 600; Bytes = 536870912; Evidence = '(?m)^AME_PUBLICATION_BENCHMARK identities=50000 staged=50000 published=50000 publication_calls=1 commits=1 polls=[0-9]+ overlapping_polls=[0-9]+ partial_observations=0 p0_pending=1 source_entries=0 fixture_ms=[0-9]+ publication_ms=[0-9]+ catalog_bytes=[0-9]+\r?$' }
     )
 }
 
@@ -43,6 +47,14 @@ function Assert-AmeSyntheticResult {
         [regex]::Matches($Output, '(?m)^test ' + [regex]::Escape($TestName) + ' \.\.\. ').Count -ne 1 -or
         [regex]::Matches([regex]::Replace($Output, '(?m)^test ' + [regex]::Escape($TestName) + ' \.\.\. ', ''), $case[0].Evidence).Count -ne 1) {
         throw "Synthetic execution is missing its exact workload or evidence"
+    }
+    if ($case[0].Name -ceq "media") {
+        $evidence = [regex]::Replace($Output, '(?m)^test ' + [regex]::Escape($TestName) + ' \.\.\. ', '')
+        Assert-AmeSyntheticMediaEvidence -Output $evidence
+    }
+    if ($case[0].Name -ceq "publication") {
+        $evidence = [regex]::Replace($Output, '(?m)^test ' + [regex]::Escape($TestName) + ' \.\.\. ', '')
+        Assert-AmeSyntheticPublicationEvidence -Output $evidence
     }
 }
 

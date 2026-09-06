@@ -16,6 +16,12 @@ use crate::ports::{CatalogRepository, LibraryChangeQueue};
 const FINALIZATION_WINDOW: u32 = 256;
 const RETRY_PATH_LIMIT: usize = LibraryChangeQueuePolicy::MAX_UNRESOLVED_CHANGES as usize;
 
+#[cfg(all(test, windows))]
+mod control_tests;
+mod rejected_inputs;
+mod retained_issue_recovery;
+use rejected_inputs::{RejectedInputs, validate_rejected_inputs};
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum FinalizationMode {
     Foreground,
@@ -26,6 +32,7 @@ pub(super) struct FinalizationPlan {
     mode: FinalizationMode,
     authoritative_retry_paths: BTreeSet<String>,
     foreground_revalidation: ForegroundRevalidationPlan,
+    rejected_inputs: RejectedInputs,
 }
 
 impl FinalizationPlan {
@@ -34,56 +41,18 @@ impl FinalizationPlan {
             mode,
             authoritative_retry_paths: BTreeSet::new(),
             foreground_revalidation: ForegroundRevalidationPlan::default(),
+            rejected_inputs: RejectedInputs::default(),
         }
     }
 
-    pub(super) fn restore_authoritative_scan_issues(
+    pub(super) fn restore_retained_scan_issues(
         &mut self,
         catalog: &mut SqliteCatalog,
         scan_id: &str,
         canonical_root: &Path,
         requested_root: &Path,
     ) -> Result<bool, ScanError> {
-        let issue_limit = LibraryChangeQueuePolicy::MAX_UNRESOLVED_CHANGES.saturating_add(1);
-        let issues = catalog.load_scan_issues(scan_id, issue_limit)?;
-        let evidence_is_complete = issues.len() <= RETRY_PATH_LIMIT;
-        Ok(self.restore_authoritative_issues(
-            &issues,
-            canonical_root,
-            requested_root,
-            evidence_is_complete,
-        ))
-    }
-
-    fn restore_authoritative_issues(
-        &mut self,
-        issues: &[ScanIssue],
-        canonical_root: &Path,
-        requested_root: &Path,
-        evidence_is_complete: bool,
-    ) -> bool {
-        debug_assert_eq!(self.mode, FinalizationMode::AuthoritativeRecovery);
-        let mut has_convertible_authoritative_issue = false;
-        let mut all_evidence_is_compatible = evidence_is_complete;
-        for issue in issues {
-            if is_retryable_authoritative_path_issue(&issue.code) {
-                has_convertible_authoritative_issue = true;
-                let Some(relative_path) = issue.path.as_deref().and_then(|path| {
-                    authoritative_retry_relative_path(path, canonical_root, requested_root)
-                }) else {
-                    all_evidence_is_compatible = false;
-                    continue;
-                };
-                if !retain_bounded_path(&mut self.authoritative_retry_paths, &relative_path) {
-                    all_evidence_is_compatible = false;
-                }
-            } else if is_terminal_media_issue(&issue.code) {
-                has_convertible_authoritative_issue = true;
-            } else if !is_nonblocking_scan_issue(&issue.code) {
-                all_evidence_is_compatible = false;
-            }
-        }
-        has_convertible_authoritative_issue && all_evidence_is_compatible
+        retained_issue_recovery::restore(self, catalog, scan_id, canonical_root, requested_root)
     }
 
     pub(super) fn record_retryable_path(&mut self, relative_path: &str) -> bool {
@@ -96,6 +65,24 @@ impl FinalizationPlan {
                 true
             }
         }
+    }
+
+    pub(super) fn record_rejected_input(
+        &mut self,
+        catalog: &SqliteCatalog,
+        file: &crate::domain::DiscoveredFile,
+    ) -> Result<(), ScanError> {
+        self.rejected_inputs.record(catalog, file)?;
+        self.authoritative_retry_paths.remove(&file.relative_path);
+        self.foreground_revalidation
+            .paths
+            .remove(&file.relative_path);
+        Ok(())
+    }
+
+    pub(super) fn has_retained_rejection(&self, relative_path: &str) -> bool {
+        self.authoritative_retry_paths.contains(relative_path)
+            || self.foreground_revalidation.paths.contains(relative_path)
     }
 
     fn preserves_authoritative_retry_evidence(&self, relative_path: &str) -> bool {
@@ -279,6 +266,17 @@ pub(super) fn validate_staged_locations(
     }
 
     let mut validated_items = 0_u64;
+    if !validate_rejected_inputs(
+        catalog,
+        plan,
+        &context,
+        &publication_guard,
+        total_items,
+        issue_count,
+        publish,
+    )? {
+        return Ok(None);
+    }
     let mut after_location_id = None;
     loop {
         let window = match &roster {
@@ -300,6 +298,7 @@ pub(super) fn validate_staged_locations(
                 catalog,
                 context.request,
                 context.checkpoint,
+                *issue_count,
                 publish,
                 context.had_published_root,
             )? {
@@ -395,6 +394,7 @@ pub(super) fn validate_staged_locations(
         catalog,
         context.request,
         context.checkpoint,
+        *issue_count,
         publish,
         context.had_published_root,
     )? {
@@ -426,22 +426,6 @@ fn finalizing_event(
     }
 }
 
-fn authoritative_retry_relative_path(
-    issue_path: &str,
-    canonical_root: &Path,
-    requested_root: &Path,
-) -> Option<String> {
-    let issue_path = Path::new(issue_path);
-    let relative_path = issue_path
-        .strip_prefix(requested_root)
-        .or_else(|_| issue_path.strip_prefix(canonical_root))
-        .ok()?;
-    if relative_path.as_os_str().is_empty() {
-        return None;
-    }
-    Some(relative_path.to_string_lossy().replace('\\', "/"))
-}
-
 fn retain_bounded_path(paths: &mut BTreeSet<String>, relative_path: &str) -> bool {
     if paths.contains(relative_path) {
         return true;
@@ -450,47 +434,6 @@ fn retain_bounded_path(paths: &mut BTreeSet<String>, relative_path: &str) -> boo
         return false;
     }
     paths.insert(relative_path.to_owned())
-}
-
-fn is_retryable_media_issue(code: &str) -> bool {
-    matches!(code, "image_open_failed" | "image_header_read_failed")
-}
-
-fn is_retryable_authoritative_path_issue(code: &str) -> bool {
-    is_retryable_media_issue(code)
-        || matches!(
-            code,
-            "source_changed_during_scan"
-                | "source_replaced_during_scan"
-                | "source_revalidation_failed"
-                | "source_became_unavailable"
-                | "source_identity_unavailable"
-        )
-}
-
-fn is_terminal_media_issue(code: &str) -> bool {
-    matches!(
-        code,
-        "image_dimensions_failed"
-            | "image_format_unsupported"
-            | "image_decode_invalid"
-            | "image_limits_exceeded"
-            | "image_decoder_rejected"
-            | "image_dimensions_exceeded"
-            | "media_type_unsupported"
-    )
-}
-
-fn is_nonblocking_scan_issue(code: &str) -> bool {
-    matches!(
-        code,
-        "file_identity_unavailable"
-            | "orientation_read_failed"
-            | "metadata_read_failed"
-            | "metadata_size_exceeded"
-            | "metadata_parse_failed"
-            | "capture_time_invalid"
-    )
 }
 
 #[cfg(test)]

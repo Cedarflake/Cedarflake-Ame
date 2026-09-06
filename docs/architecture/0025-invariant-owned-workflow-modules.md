@@ -161,6 +161,16 @@ persistence layers.
 
 ### Review and roadmap rule
 
+Content-signature admission and decoder failure classification have small adapter owners, separate
+from filesystem traversal and metadata extraction. Generated media fixtures, format adapter
+contracts, application replacement lifecycles, and performance workloads have distinct test modules.
+Negative source observations belong to a version-bound validation roster, not diagnostic strings.
+First-import journal completion owns read-only readiness selection and transactional revalidation;
+an empty maintenance poll must not acquire priority write authority and interrupt useful work.
+The scan publication receipt carries the count established by its committing transaction; an
+enumeration counter cannot replace the published result after concurrent reconciliation. Cursor
+queries retain strict keyset range selection independently of whether the requested page is first.
+
 File length is evidence for investigation, not an automatic rewrite trigger. Review records the
 responsibilities changed and the narrow owner of every new invariant. If a complete extraction
 would materially broaden the active fix, the current change establishes the typed seam, records the

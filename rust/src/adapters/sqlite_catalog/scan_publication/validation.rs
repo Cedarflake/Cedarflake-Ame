@@ -143,30 +143,37 @@ impl StagedValidationRoster {
         after: Option<&str>,
         limit: u32,
     ) -> Result<Vec<(String, String, ExpectedFileState)>, ScanError> {
+        let page = if after.is_some() {
+            "WHERE location_id > ?1 ORDER BY location_id LIMIT ?2"
+        } else {
+            "ORDER BY location_id LIMIT ?1"
+        };
         let mut statement = catalog
             .connection
             .prepare(&format!(
                 "SELECT location_id, relative_path, absolute_path, file_size, modified_unix_ms,
                     file_identity_scheme, file_identity_value, source_revision_token
-             FROM temp.{} WHERE (?1 IS NULL OR location_id > ?1)
-             ORDER BY location_id LIMIT ?2",
+             FROM temp.{} {page}",
                 self.table,
             ))
             .map_err(database_error)?;
-        let rows = statement
-            .query_map(params![after, i64::from(limit)], |row| {
-                Ok((
-                    row.get::<_, String>(0)?,
-                    row.get::<_, String>(1)?,
-                    row.get::<_, String>(2)?,
-                    row.get::<_, i64>(3)?,
-                    row.get::<_, i64>(4)?,
-                    row.get::<_, Option<String>>(5)?,
-                    row.get::<_, Option<String>>(6)?,
-                    row.get::<_, Option<String>>(7)?,
-                ))
-            })
-            .map_err(database_error)?;
+        let map_row = |row: &rusqlite::Row<'_>| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, i64>(3)?,
+                row.get::<_, i64>(4)?,
+                row.get::<_, Option<String>>(5)?,
+                row.get::<_, Option<String>>(6)?,
+                row.get::<_, Option<String>>(7)?,
+            ))
+        };
+        let rows = match after {
+            Some(after) => statement.query_map(params![after, i64::from(limit)], map_row),
+            None => statement.query_map([i64::from(limit)], map_row),
+        }
+        .map_err(database_error)?;
         rows.map(|row| {
             let (id, path, absolute_path, size, modified_unix_ms, scheme, identity, revision) =
                 row.map_err(database_error)?;
@@ -237,7 +244,7 @@ impl ValidatedStagingProof {
         root_id: &str,
         asset_count: u64,
         issue_count: u64,
-    ) -> Result<(), ScanError> {
+    ) -> Result<super::ScanPublicationReceipt, ScanError> {
         super::publish_scan_with_proof(
             catalog,
             &self.0.scan_id,

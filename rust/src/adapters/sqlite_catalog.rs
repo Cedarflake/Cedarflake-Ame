@@ -59,7 +59,8 @@ use migrations::{migrate_schema, prepare_fresh_catalog_auto_vacuum};
 pub(crate) use read_retry::SqliteCatalogReadExecutor;
 pub(crate) use reclamation::SqliteCatalogSpaceMaintenance;
 pub(crate) use scan_publication::{
-    StagedValidationOutcome, StagedValidationRoster, ValidatedStagingProof,
+    RejectedInputValidationRoster, StagedValidationOutcome, StagedValidationRoster,
+    ValidatedStagingProof, load_retained_scan_issue_window, retained_scan_has_unclassified_issues,
 };
 
 mod catalog_delta;
@@ -1070,33 +1071,6 @@ impl SqliteCatalog {
         transaction.commit().map_err(database_error)?;
         self.pending_locations.clear();
         Ok(())
-    }
-
-    pub(crate) fn load_scan_issues(
-        &self,
-        scan_id: &str,
-        limit: u32,
-    ) -> Result<Vec<ScanIssue>, ScanError> {
-        let mut statement = self
-            .connection
-            .prepare(
-                "SELECT path, code, message
-                 FROM scan_issues
-                 WHERE scan_id = ?1
-                 ORDER BY code, path, message
-                 LIMIT ?2",
-            )
-            .map_err(database_error)?;
-        let rows = statement
-            .query_map(params![scan_id, i64::from(limit)], |row| {
-                Ok(ScanIssue {
-                    path: row.get(0)?,
-                    code: row.get(1)?,
-                    message: row.get(2)?,
-                })
-            })
-            .map_err(database_error)?;
-        rows.collect::<Result<Vec<_>, _>>().map_err(database_error)
     }
 
     pub(crate) fn publish_authoritative_scan(
@@ -3425,22 +3399,31 @@ impl CatalogRepository for SqliteCatalog {
                 "Directory entries cannot be loaded before enumeration completes",
             ));
         }
+        let page = if after.is_some() {
+            "AND relative_path > ?3 ORDER BY relative_path LIMIT ?4"
+        } else {
+            "ORDER BY relative_path LIMIT ?3"
+        };
         let mut statement = self
             .connection
-            .prepare(
+            .prepare(&format!(
                 "SELECT relative_path FROM scan_directory_entries
                  WHERE scan_id = ?1 AND directory_relative_path = ?2
-                   AND (?3 IS NULL OR relative_path > ?3)
-                 ORDER BY relative_path
-                 LIMIT ?4",
-            )
+                   {page}",
+            ))
             .map_err(database_error)?;
-        let rows = statement
-            .query_map(
+        let map_row = |row: &rusqlite::Row<'_>| row.get::<_, String>(0);
+        let rows = match after {
+            Some(after) => statement.query_map(
                 params![scan_id, relative_directory, after, i64::from(limit)],
-                |row| row.get::<_, String>(0),
-            )
-            .map_err(database_error)?;
+                map_row,
+            ),
+            None => statement.query_map(
+                params![scan_id, relative_directory, i64::from(limit)],
+                map_row,
+            ),
+        }
+        .map_err(database_error)?;
         let mut entries = Vec::new();
         for row in rows {
             entries.push(row.map_err(database_error)?);

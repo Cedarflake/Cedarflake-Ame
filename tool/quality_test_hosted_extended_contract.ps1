@@ -48,8 +48,8 @@ function Assert-AmeHostedExtendedContract {
     }
     $cases = @([regex]::Matches($Synthetic, '(?m)^          - case: ([a-z]+)\r?$') |
         ForEach-Object { $_.Groups[1].Value } | Sort-Object)
-    if (($cases -join ",") -cne "jpeg,scan,usn") {
-        throw "Hosted synthetic coverage must contain exactly jpeg, scan, and usn"
+    if (($cases -join ",") -cne "jpeg,media,publication,scan,usn") {
+        throw "Hosted synthetic coverage must contain exactly jpeg, media, publication, scan, and usn"
     }
     foreach ($required in @(
         "      fail-fast: false", "    timeout-minutes: 45", "  contents: read",
@@ -76,6 +76,10 @@ foreach ($mutation in @(
     @{ Gate = $gate.Replace("      - quality_synthetic_windows", ""); Synthetic = $synthetic },
     @{ Gate = $gate.Replace("      - quality_unsigned_windows", ""); Synthetic = $synthetic },
     @{ Gate = $gate; Synthetic = $synthetic.Replace("          - case: usn", "          - case: skipped") },
+    @{ Gate = $gate; Synthetic = $synthetic.Replace("          - case: media", "          - case: skipped") },
+    @{ Gate = $gate; Synthetic = $synthetic.Replace("          - case: media", "          - case: jpeg") },
+    @{ Gate = $gate; Synthetic = $synthetic.Replace("          - case: publication", "          - case: skipped") },
+    @{ Gate = $gate; Synthetic = $synthetic.Replace("          - case: publication", "          - case: jpeg") },
     @{ Gate = $gate; Synthetic = $synthetic.Replace("      fail-fast: false", "      fail-fast: true") },
     @{ Gate = $gate; Synthetic = $synthetic + "`ncontinue-on-error: true`n" }
 )) {

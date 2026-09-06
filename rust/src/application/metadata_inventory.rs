@@ -1537,4 +1537,6 @@ enum EntryComparison {
 }
 
 #[cfg(test)]
+mod inspection_revision_tests;
+#[cfg(test)]
 mod tests;

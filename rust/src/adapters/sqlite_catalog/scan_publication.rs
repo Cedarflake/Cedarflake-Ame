@@ -16,6 +16,15 @@ use crate::domain::{
 
 use super::change_queue;
 #[cfg(test)]
+mod pagination_tests;
+#[cfg(test)]
+mod performance;
+mod rejected_input_validation;
+mod retained_issues;
+pub(crate) use retained_issues::{
+    load_retained_scan_issue_window, retained_scan_has_unclassified_issues,
+};
+#[cfg(test)]
 mod tests;
 mod validation;
 use super::{
@@ -27,9 +36,15 @@ use super::{
     load_scan_identity_group_state, mark_unreferenced_preview_artifacts_stale, revisions_conflict,
     sqlite_integer, sqlite_unsigned, unix_time_ms,
 };
+pub(crate) use rejected_input_validation::RejectedInputValidationRoster;
 pub(crate) use validation::{
     StagedValidationOutcome, StagedValidationRoster, ValidatedStagingProof,
 };
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct ScanPublicationReceipt {
+    pub(crate) asset_count: u64,
+}
 
 const IDENTITY_RECONCILIATION_WINDOW: i64 = 128;
 const PUBLICATION_PROGRESS_OPERATION_INTERVAL: i32 = 1_000;
@@ -134,7 +149,7 @@ pub(super) fn publish_scan(
     asset_count: u64,
     issue_count: u64,
 ) -> Result<(), ScanError> {
-    publish_scan_with_proof(catalog, scan_id, root_id, asset_count, issue_count, None)
+    publish_scan_with_proof(catalog, scan_id, root_id, asset_count, issue_count, None).map(|_| ())
 }
 
 pub(crate) fn publish_scan_with_proof(
@@ -144,7 +159,7 @@ pub(crate) fn publish_scan_with_proof(
     asset_count: u64,
     issue_count: u64,
     proof: Option<&ValidatedStagingProof>,
-) -> Result<(), ScanError> {
+) -> Result<ScanPublicationReceipt, ScanError> {
     let retry_relative_paths = catalog.pending_authoritative_retry_paths.clone();
     catalog.flush_pending_locations()?;
     let _reported_asset_count = sqlite_integer(asset_count, "reported asset count")?;
@@ -174,12 +189,12 @@ pub(crate) fn publish_scan_with_proof(
         .map_err(database_error);
 
     match result {
-        Ok(()) => {
+        Ok(receipt) => {
             // A committed snapshot is authoritative even if a waiter arrived immediately after
             // COMMIT. The waiter observes the new revision through its own transaction.
             catalog.pending_authoritative_retry_paths.clear();
             let _ = handler_cleanup;
-            Ok(())
+            Ok(receipt)
         }
         Err(_) if publication_preempted.load(Ordering::Acquire) => {
             let _ = handler_cleanup;
@@ -200,7 +215,7 @@ fn publish_preemptible_transaction(
     retry_relative_paths: &[String],
     publication_preempted: &Arc<AtomicBool>,
     proof: Option<&ValidatedStagingProof>,
-) -> Result<(), ScanError> {
+) -> Result<ScanPublicationReceipt, ScanError> {
     let interrupt = Arc::new(catalog.connection.get_interrupt_handle());
     let callback_preempted = Arc::clone(publication_preempted);
     let preempt: SqliteWritePreemptCallback = Arc::new(move || {
@@ -261,7 +276,11 @@ fn publish_preemptible_transaction(
         completed_unix_ms,
         publication_preempted,
     )?;
-    transaction.commit().map_err(database_error)
+    let receipt = ScanPublicationReceipt {
+        asset_count: sqlite_unsigned(asset_count, "published asset count")?,
+    };
+    transaction.commit().map_err(database_error)?;
+    Ok(receipt)
 }
 
 fn load_publication_authority(
@@ -801,37 +820,40 @@ fn load_identity_page(
     scan_id: &str,
     after: Option<&FileIdentityEvidence>,
 ) -> Result<Vec<FileIdentityEvidence>, ScanError> {
+    let page = if after.is_some() {
+        "AND (file_identity_scheme, file_identity_value) > (?2, ?3)
+         ORDER BY file_identity_scheme, file_identity_value LIMIT ?4"
+    } else {
+        "ORDER BY file_identity_scheme, file_identity_value LIMIT ?2"
+    };
     let mut statement = transaction
-        .prepare(
+        .prepare(&format!(
             "SELECT DISTINCT file_identity_scheme, file_identity_value
              FROM asset_locations
              WHERE scan_id = ?1 AND file_identity_scheme IS NOT NULL
-               AND (
-                 ?2 IS NULL OR file_identity_scheme > ?2
-                 OR (file_identity_scheme = ?2 AND file_identity_value > ?3)
-               )
-             ORDER BY file_identity_scheme, file_identity_value
-             LIMIT ?4",
-        )
+               {page}",
+        ))
         .map_err(database_error)?;
-    statement
-        .query_map(
+    let map_row = |row: &rusqlite::Row<'_>| {
+        Ok(FileIdentityEvidence {
+            scheme: row.get(0)?,
+            value: row.get(1)?,
+        })
+    };
+    let rows = match after {
+        Some(after) => statement.query_map(
             params![
                 scan_id,
-                after.map(|identity| identity.scheme.as_str()),
-                after.map(|identity| identity.value.as_str()),
+                after.scheme,
+                after.value,
                 IDENTITY_RECONCILIATION_WINDOW,
             ],
-            |row| {
-                Ok(FileIdentityEvidence {
-                    scheme: row.get(0)?,
-                    value: row.get(1)?,
-                })
-            },
-        )
-        .map_err(database_error)?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(database_error)
+            map_row,
+        ),
+        None => statement.query_map(params![scan_id, IDENTITY_RECONCILIATION_WINDOW], map_row),
+    }
+    .map_err(database_error)?;
+    rows.collect::<Result<Vec<_>, _>>().map_err(database_error)
 }
 
 fn reconcile_identity_group(

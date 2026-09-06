@@ -29,7 +29,7 @@ pub(super) struct ForegroundPublicationContext<'a> {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum ForegroundPublicationOutcome {
-    Published,
+    Published { asset_count: u64 },
     Interrupted,
 }
 
@@ -53,7 +53,11 @@ pub(super) fn publish_foreground_scan(
             context.accepted_items,
             context.issue_count,
         ) {
-            Ok(()) => return Ok(ForegroundPublicationOutcome::Published),
+            Ok(receipt) => {
+                return Ok(ForegroundPublicationOutcome::Published {
+                    asset_count: receipt.asset_count,
+                });
+            }
             Err(error) => {
                 let Some(delay) = PublicationDelay::from_error(&error) else {
                     return Err(error);
@@ -63,6 +67,7 @@ pub(super) fn publish_foreground_scan(
                     catalog,
                     context.request,
                     context.checkpoint,
+                    context.issue_count,
                     publish,
                     context.had_published_root,
                 )? {

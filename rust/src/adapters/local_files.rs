@@ -5,7 +5,6 @@ use std::collections::HashMap;
 #[cfg(windows)]
 use std::collections::{HashSet, VecDeque};
 use std::fs::{self, File, Metadata, ReadDir};
-use std::io::Read;
 #[cfg(windows)]
 use std::path::Prefix;
 use std::path::{Component, Path, PathBuf};
@@ -78,14 +77,12 @@ use crate::domain::{
     SourceRevisionEvidence,
 };
 
+mod media_signature;
 #[cfg(windows)]
 mod viewer_source_guard;
+use media_signature::{has_image_extension, has_supported_magic_from_reader};
 #[cfg(windows)]
 pub(crate) use viewer_source_guard::open_viewer_source_guard;
-
-const IMAGE_EXTENSIONS: &[&str] = &[
-    "bmp", "gif", "ico", "jpeg", "jpg", "png", "tif", "tiff", "webp",
-];
 
 #[cfg(windows)]
 const HANDLE_DIRECTORY_BUFFER_BYTES: usize = 64 * 1024;
@@ -4208,36 +4205,10 @@ pub(crate) fn user_visible_path(path: &str) -> String {
     path.to_owned()
 }
 
-fn has_image_extension(path: &Path) -> bool {
-    path.extension()
-        .and_then(|extension| extension.to_str())
-        .map(|extension| {
-            IMAGE_EXTENSIONS
-                .iter()
-                .any(|candidate| extension.eq_ignore_ascii_case(candidate))
-        })
-        .unwrap_or(false)
-}
-
 #[cfg(not(windows))]
 fn has_supported_magic(path: &Path, source_root: &Path) -> std::io::Result<bool> {
     let mut file = open_source_file(path, source_root)?;
     has_supported_magic_from_reader(&mut file)
-}
-
-fn has_supported_magic_from_reader(file: &mut File) -> std::io::Result<bool> {
-    let mut header = [0_u8; 16];
-    let read_count = file.read(&mut header)?;
-    let header = &header[..read_count];
-
-    Ok(header.starts_with(b"\x89PNG\r\n\x1a\n")
-        || header.starts_with(b"\xff\xd8\xff")
-        || header.starts_with(b"GIF87a")
-        || header.starts_with(b"GIF89a")
-        || header.starts_with(b"BM")
-        || header.starts_with(b"II*\0")
-        || header.starts_with(b"MM\0*")
-        || header.starts_with(b"RIFF") && header.get(8..12) == Some(b"WEBP"))
 }
 
 #[cfg(all(windows, test))]
@@ -4284,6 +4255,8 @@ fn metadata_placeholder_state(_metadata: &Metadata) -> MetadataInventoryPlacehol
 mod tests {
     use std::collections::{BTreeMap, BTreeSet, VecDeque};
     use std::fs;
+    #[cfg(windows)]
+    use std::io::Read;
     #[cfg(windows)]
     use std::thread;
     #[cfg(windows)]

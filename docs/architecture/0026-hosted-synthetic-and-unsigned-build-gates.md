@@ -13,15 +13,17 @@ entrypoints, historical scenarios, or consumers of private source-library inputs
 
 ## Decision
 
-Ordinary PR, main-push, merge-queue, and manual quality runs require three independent synthetic
+Ordinary PR, main-push, merge-queue, and manual quality runs require five independent synthetic
 workloads and a credential-free unsigned Windows x64 Release build alongside every Daily component.
 The stable Windows Gate aggregate fails if any required job fails, is cancelled, or is skipped.
 Workloads run in parallel on separate runners; cases within one workload remain serial. Workstation
 Daily stays serial and does not start these expensive jobs implicitly.
 
-The synthetic entrypoint admits exactly three named cases: a generated high-resolution JPEG,
-10,000 temporary images with scan/pause/resume/cancel checks, and one million generated USN records
-through the production parser and injected backend. Each case must be discovered and executed as
+The synthetic entrypoint admits exactly five named cases: a generated high-resolution JPEG,
+10,000 temporary images with scan/pause/resume/cancel checks, one million generated USN records
+through the production parser and injected backend, seven actual supported media encodings
+through cold/warm preview materialization, and concurrent publication of 50,000 generated identities.
+Each case must be discovered and executed as
 exactly one test with workload evidence and zero failed or ignored results. No blanket
 `--include-ignored`, arbitrary filter, real-library path, or authorization token is accepted. The
 million-record case may use this additional synthetic entrypoint without claiming the complete
@@ -33,6 +35,21 @@ are reported separately, not misrepresented as complete compiler-tree or job com
 Measurements retain their original assertions: JPEG speedup output does not invent a latency
 threshold, while the 10,000-image case retains its duration and storage limits. Each hosted case
 preserves diagnostic output and structured evidence even on failure.
+
+The media case processes JPEG, PNG, WebP, GIF, BMP, TIFF, and ICO serially. Six formats use 3000 by
+2000 source rasters; ICO uses its 256 by 256 container limit. It verifies decoded preview pixels,
+geometry, stable warm artifact bytes and ownership, and unchanged source bytes and modification
+time. Seven exact records are required, not only an aggregate success marker. The worker has a
+360-second deadline and 512 MiB observed working-set ceiling; each format has an 8 MiB cache budget.
+Correctness tests for wrong extensions, damaged input, source replacement, and retry remain ordinary
+Rust tests. Static format performance does not claim animation playback or end-to-end UI latency.
+
+The publication case measures the catalog port's actual staging and atomic publication alongside
+real no-change baseline completion calls. At least three calls must overlap the preemptible
+Recovery transaction. The projection changes from absent to all 50,000 locations, with one writer
+completion and preserved newer P0 work. The worker has a 600-second deadline and 512 MiB observed
+working-set ceiling. It uses an empty owned source namespace and synthetic catalog observations;
+it does not invent a filesystem verification proof or stand in for native UI acceptance.
 
 The pause/resume workload uses an unpublished first import in isolated fixture storage. A scan
 updating a completed baseline has cancellation semantics and cannot substitute for that checkpoint

@@ -59,8 +59,21 @@ $null = New-Item -ItemType Directory -Path (Join-Path $directory "summary.json")
     function Exit-AmeRepositoryToolLock { param($Mutex) $script:syntheticLockReleased = $true }
     $lock = $null
     $summary = @{}
+    $runFailure = $null
     Assert-Refused { & $finallyBody } "WriteAllText|denied|directory"
     if (-not $script:syntheticLockReleased) { throw "Summary failure skipped tool-lock release" }
+    $script:syntheticLockReleased = $false
+    try {
+        try { throw "original-synthetic-workload-failure" }
+        catch { $runFailure = $_; throw }
+        finally { & $finallyBody }
+    } catch {
+        if (-not [object]::ReferenceEquals($_.Exception, $runFailure.Exception) -or
+            $_.Exception.Message -cne "original-synthetic-workload-failure") {
+            throw "Summary persistence replaced the original workload failure"
+        }
+    }
+    if (-not $script:syntheticLockReleased) { throw "Workload and summary failure skipped tool-lock release" }
 }
 Assert-Refused { Invoke-Fixture -Name "nonzero" -Code "exit 7" } "exited with code 7"
 Assert-Refused { Invoke-Fixture -Name "timeout" -Code "Start-Sleep -Seconds 60" -Seconds 1 } "wall-clock budget"
@@ -72,4 +85,4 @@ foreach ($name in @("timeout", "memory", "output")) {
     try { if (-not $child.WaitForExit(5000)) { throw "Owned child survived the Job Object cleanup" } }
     finally { $child.Dispose() }
 }
-Write-Host "AME_SYNTHETIC_GUARDRAILS exact_allowlist=3 locked_build=passed artifact_tamper=passed list_and_run_tamper=passed owned_success=passed fast_exit_peak=passed preparation=passed nonzero=passed timeout=passed memory=passed output=passed cleanup=passed"
+Write-Host "AME_SYNTHETIC_GUARDRAILS exact_allowlist=5 locked_build=passed artifact_tamper=passed list_and_run_tamper=passed owned_success=passed fast_exit_peak=passed preparation=passed nonzero=passed timeout=passed memory=passed output=passed cleanup=passed"

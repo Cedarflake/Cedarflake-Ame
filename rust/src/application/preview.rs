@@ -18,6 +18,9 @@ use crate::ports::{CatalogRepository, PreviewStore};
 
 use super::{StoragePaths, storage_paths};
 
+mod failure;
+use failure::{FailureDisposition, apply_failure};
+
 static ACTIVE_PREVIEW_STORE: OnceLock<Mutex<Option<ActivePreviewStore>>> = OnceLock::new();
 #[cfg(test)]
 type PreviewTestHook = Box<dyn FnOnce() + Send>;
@@ -300,7 +303,8 @@ fn materialize_preview_attempt(
                     timings.commit_ms = timings
                         .commit_ms
                         .saturating_add(commit_started.elapsed().as_millis());
-                    if had_ready_preview
+                    if failure::disposition(&issue, request.retry_failed, had_ready_preview)
+                        == FailureDisposition::RetainReady
                         && preview_store.has_usable_artifact(&location.preview_path)
                     {
                         timings.materialization = "retained_ready_after_commit_failure";
@@ -343,6 +347,8 @@ fn materialize_preview_attempt(
             timings.materialization = "failed";
             revalidate_open_preview_source(&opened_source.file, &expected)
                 .map_err(source_superseded)?;
+            #[cfg(test)]
+            run_preview_test_hook(&AFTER_PREVIEW_REVALIDATION_HOOKS, &request.location_id);
             publication_guard = Some(
                 open_preview_publication_guard(
                     &expected,
@@ -351,7 +357,10 @@ fn materialize_preview_attempt(
                 )
                 .map_err(source_superseded)?,
             );
-            if had_ready_preview && preview_store.has_usable_artifact(&location.preview_path) {
+            if failure::disposition(&issue, request.retry_failed, had_ready_preview)
+                == FailureDisposition::RetainReady
+                && preview_store.has_usable_artifact(&location.preview_path)
+            {
                 timings.materialization = "retained_ready_after_materialization_failure";
                 retained_preview_failure = Some(issue);
             } else {
@@ -578,12 +587,6 @@ fn active_preview_store_slot() -> &'static Mutex<Option<ActivePreviewStore>> {
     ACTIVE_PREVIEW_STORE.get_or_init(|| Mutex::new(None))
 }
 
-fn apply_failure(location: &mut AssetLocationView, issue: &ScanIssue) {
-    location.preview_status = PreviewStatus::Failed;
-    location.preview_issue_code = Some(issue.code.clone());
-    location.preview_issue_message = Some(issue.message.clone());
-}
-
 fn validate_request(request: &PreviewRequest) -> Result<(), ScanError> {
     if request.location_id.trim().is_empty() {
         return Err(ScanError::new(
@@ -667,6 +670,8 @@ fn install_preview_test_hook(
 
 #[cfg(test)]
 mod tests {
+    #[cfg(windows)]
+    mod failure;
     use std::fs;
     use std::io::Cursor;
     use std::path::Path;
@@ -1399,13 +1404,23 @@ mod tests {
         suffix: &str,
         retain_root_identity: bool,
     ) -> PreviewFixture {
+        let mut bytes = Cursor::new(Vec::new());
+        image::DynamicImage::ImageRgb8(RgbImage::from_pixel(32, 24, Rgb([24, 96, 192])))
+            .write_to(&mut bytes, image::ImageFormat::Png)
+            .expect("source PNG");
+        preview_fixture_with_bytes(suffix, retain_root_identity, &bytes.into_inner())
+    }
+
+    fn preview_fixture_with_bytes(
+        suffix: &str,
+        retain_root_identity: bool,
+        bytes: &[u8],
+    ) -> PreviewFixture {
         let directory = tempdir().expect("fixture directory");
         let source_root = directory.path().join("source");
         fs::create_dir_all(&source_root).expect("source root");
         let source_path = source_root.join("source.png");
-        RgbImage::from_pixel(32, 24, Rgb([24, 96, 192]))
-            .save(&source_path)
-            .expect("source image");
+        fs::write(&source_path, bytes).expect("source image");
         let metadata = source_path.metadata().expect("source metadata");
         let root_path = canonical_source_root_path(&source_root)
             .expect("canonical source root")

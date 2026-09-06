@@ -1,4 +1,4 @@
-param([ValidateSet("all", "jpeg", "scan", "usn")] [string]$Case = "all")
+param([ValidateSet("all", "jpeg", "scan", "usn", "media", "publication")] [string]$Case = "all")
 
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "performance_synthetic_common.ps1")
@@ -10,6 +10,7 @@ $repository = Get-AmeRepositoryRoot
 $cargo = Resolve-AmeExecutable -Name "cargo" -FallbackPath (Join-Path $env:USERPROFILE ".cargo\bin\cargo.exe")
 $lock = Enter-AmeRepositoryToolLock
 $directory = $null
+$runFailure = $null
 $summary = [ordered]@{ format = "ame-synthetic-performance-v1"; status = "running"; cases = @(); failure = $null }
 try {
     $directory = New-AmeSyntheticEvidenceDirectory -RepositoryRoot $repository
@@ -36,6 +37,7 @@ try {
     if ($summary.cases.Count -ne $selected.Count) { throw "Synthetic workload coverage is incomplete" }
     $summary.status = "complete"
 } catch {
+    $runFailure = $_
     $summary.status = "failed"
     $summary.failure = $_.Exception.Message
     throw
@@ -44,5 +46,8 @@ try {
         if ($null -ne $directory -and (Test-Path -LiteralPath $directory -PathType Container)) {
             [IO.File]::WriteAllText((Join-Path $directory "summary.json"), ($summary | ConvertTo-Json -Depth 8), [Text.UTF8Encoding]::new($false))
         }
+    } catch {
+        if ($null -eq $runFailure) { throw }
+        Write-Warning -Message ("Synthetic summary persistence failed after the workload failure: " + $_.Exception.Message) -WarningAction Continue
     } finally { Exit-AmeRepositoryToolLock -Mutex $lock }
 }

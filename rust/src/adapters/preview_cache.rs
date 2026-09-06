@@ -16,9 +16,16 @@ use crate::domain::{
 use crate::ports::PreviewStore;
 
 use super::image_orientation::{apply_image_orientation, from_image_orientation};
-use super::jpeg_preview::decode_scaled_jpeg;
+use super::jpeg_preview::{JpegPreviewDecode, decode_scaled_jpeg};
 
+mod decode_failure;
 mod installation;
+#[cfg(test)]
+mod media_format_tests;
+#[cfg(test)]
+pub(crate) use media_format_tests::seed_legacy_jpeg_preview;
+#[cfg(test)]
+mod media_performance;
 
 struct PreviewDimensions {
     source_width: u32,
@@ -179,12 +186,12 @@ impl LocalPreviewStore {
             installation::install_new(&staged_path, &artifact_path)
         };
         let install_result = match (install_result, replaced_size) {
-            (Err(_), None) => match artifact_path.metadata() {
+            (Err(install_error), None) => match artifact_path.metadata() {
                 Ok(metadata) => {
                     replaced_size = Some(metadata.len());
                     installation::replace(&staged_path, &artifact_path)
                 }
-                Err(error) => Err(installation::InstallationFailure::from(error)),
+                Err(_) => Err(install_error),
             },
             (result, _) => result,
         };
@@ -422,7 +429,10 @@ impl PreviewStore for LocalPreviewStore {
             jpeg_source
                 .seek(SeekFrom::Start(0))
                 .map_err(|error| preview_issue(file, "image_open_failed", error))?;
-            if let Some(decoded) = decode_scaled_jpeg(jpeg_source, edge, MAX_DECODER_ALLOCATION) {
+            if let JpegPreviewDecode::Decoded(decoded) =
+                decode_scaled_jpeg(jpeg_source, edge, MAX_DECODER_ALLOCATION)
+                    .map_err(|error| decode_failure::jpeg_failure(file, error))?
+            {
                 return publish_preview(
                     self,
                     file,
@@ -449,13 +459,13 @@ impl PreviewStore for LocalPreviewStore {
         reader.limits(limits);
         let mut decoder = reader
             .into_decoder()
-            .map_err(|error| preview_issue(file, "image_decode_failed", error))?;
+            .map_err(|error| decode_failure::image_failure(file, error))?;
         let orientation = decoder
             .orientation()
             .map(from_image_orientation)
             .unwrap_or_else(|_| ImageOrientation::default());
         let mut image = DynamicImage::from_decoder(decoder)
-            .map_err(|error| preview_issue(file, "image_decode_failed", error))?;
+            .map_err(|error| decode_failure::image_failure(file, error))?;
         apply_image_orientation(&mut image, orientation);
         let width = image.width();
         let height = image.height();
@@ -1494,7 +1504,7 @@ mod tests {
     }
 
     #[test]
-    fn malformed_jpeg_fast_path_falls_back_to_a_structured_decode_failure() {
+    fn malformed_jpeg_fast_path_returns_a_structured_decode_failure_without_fallback() {
         let storage = tempdir().expect("storage");
         let source_path = storage.path().join("malformed.data");
         let source_bytes = b"\xFF\xD8\xFF\xE0not-a-complete-jpeg";

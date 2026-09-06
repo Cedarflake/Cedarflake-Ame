@@ -177,9 +177,9 @@ fn replace_with(
 
 #[cfg(windows)]
 fn replace_file(staged: &Path, target: &Path, backup: Option<&Path>) -> io::Result<()> {
-    let staged = wide_path(staged);
-    let target = wide_path(target);
-    let backup = backup.map(wide_path);
+    let staged = wide_path(staged)?;
+    let target = wide_path(target)?;
+    let backup = backup.map(wide_path).transpose()?;
     // SAFETY: all supplied UTF-16 paths are NUL terminated and live through the synchronous call.
     // Production paths are in one managed cache directory; the explicit backup is exclusively
     // owned. Flags are zero because ReplaceFileW does not support WRITE_THROUGH.
@@ -204,8 +204,8 @@ fn replace_file(staged: &Path, target: &Path, backup: Option<&Path>) -> io::Resu
 
 #[cfg(windows)]
 fn move_if_absent(source: &Path, target: &Path) -> io::Result<()> {
-    let source = wide_path(source);
-    let target = wide_path(target);
+    let source = wide_path(source)?;
+    let target = wide_path(target)?;
     // SAFETY: both UTF-16 buffers live through this synchronous call. No replace/copy flag is
     // supplied: installation and rollback cannot overwrite a target that appeared concurrently.
     if unsafe { MoveFileExW(source.as_ptr(), target.as_ptr(), 0) } == 0 {
@@ -216,9 +216,35 @@ fn move_if_absent(source: &Path, target: &Path) -> io::Result<()> {
 }
 
 #[cfg(windows)]
-fn wide_path(path: &Path) -> Vec<u16> {
-    path.as_os_str().encode_wide().chain(Some(0)).collect()
+fn wide_path(path: &Path) -> io::Result<Vec<u16>> {
+    if path.as_os_str().encode_wide().any(|unit| unit == 0) {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "A preview installation path contains a NUL character",
+        ));
+    }
+    let name = path.file_name().ok_or_else(|| {
+        io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "A preview file name is required",
+        )
+    })?;
+    let parent = path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
+    // Windows canonicalize supplies a verbatim DOS/UNC parent, independently of the host's
+    // longPathAware manifest. Only the managed cache parent must exist, not a new target.
+    let native_path = fs::canonicalize(parent)?.join(name);
+    Ok(native_path
+        .as_os_str()
+        .encode_wide()
+        .chain(Some(0))
+        .collect())
 }
+
+#[cfg(all(test, windows))]
+mod long_path_tests;
 
 #[cfg(not(windows))]
 fn replace_file(staged: &Path, target: &Path, backup: Option<&Path>) -> io::Result<()> {

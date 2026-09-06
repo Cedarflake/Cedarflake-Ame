@@ -150,7 +150,13 @@ bytes are released from accounting only after physical deletion; a failed post-i
 cleanup leaves those bytes counted until managed-cache recovery or reclamation removes them.
 No path other than an exclusively claimed backup is passed as the replacement backup or deleted
 by this owner. The narrow unsafe Windows boundary keeps all NUL-terminated UTF-16 buffers alive
-through synchronous calls and never retains their pointers. Only successful physical installation
+through synchronous calls and never retains their pointers. It resolves the existing managed-cache
+parent with Rust's filesystem adapter before joining the unchanged leaf name, so native installation
+and restoration receive extended-length paths even when the target does not yet exist. Embedded
+NULs are rejected. This does not change cache keys, confer source access, or claim protection against
+replacement of a cache parent. Correctness cannot depend on the host executable's long-path opt-in.
+A missing target after failed installation preserves the original installation error rather than
+replacing it with the subsequent metadata error. Only successful physical installation
 permits exact SQLite lease publication.
 
 The platform contract is verified against Microsoft's
@@ -200,8 +206,19 @@ behind a private Ame adapter. The crate is dual MIT or Apache-2.0 licensed, pure
 bounded output buffer, and can reduce JPEG inverse-DCT output by 1/8, 1/4, or 1/2 before the final
 bounded resize. This avoids allocating and resizing the complete source raster for the ordinary RGB
 and grayscale JPEG path. The adapter retains the orientation contract and original display
-dimensions; CMYK, greater-than-8-bit, malformed, or unsupported JPEGs fall back to the existing
-`image` decoder, as do all other formats.
+dimensions. Successfully decoded color modes outside the scaled RGB/grayscale path may use the
+existing `image` adapter for conversion. This uncommon path validates the bounded raster before
+releasing it and invoking conversion. Header, allocation, or pixel decoder errors are structured
+failures, not fallback signals: the pinned generic JPEG decoder tolerates missing entropy by
+filling pixels, which cannot establish a valid preview. Other admitted formats retain their
+bounded generic decoder path.
+
+The ordinary media suite checks all seven source formats, wrong extensions, empty/forged content,
+and deterministic header/pixel damage through staging, commit, reuse, and failure cleanup. The
+separate synthetic format workload measures real cold generation and warm reuse; it does not
+measure SQLite scheduling, UI latency, or retained-library performance. Current JPEG artifacts
+are static RGB posters: transparent-input and first-frame GIF fixtures characterize that behavior,
+not alpha-preserving output or validation of every animation frame.
 
 This is a narrow admission rather than a new media authority. `jpeg-decoder` is in maintenance mode,
 so its types and errors do not cross the preview-store boundary, its optional Rayon feature remains

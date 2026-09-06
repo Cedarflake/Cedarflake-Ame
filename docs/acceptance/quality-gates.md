@@ -24,8 +24,8 @@ checks the run, deadline, failure-precedence, and environment-restoration protoc
 
 | Gate | Entry point | Included evidence | When to run |
 | --- | --- | --- | --- |
-| Hosted CI | `.github/workflows/quality_ci.yml` | Parallel isolated Daily components, three synthetic workloads, unsigned x64 Release build, and committed revision-range whitespace validation | Push to `main`, pull request, merge queue, or manual run |
-| Hosted synthetic workloads | `./tool/performance_run_synthetic.ps1` | Exact JPEG, 10,000-image scan, and million-record parser cases, bounded execution and diagnostic evidence | Mandatory hosted CI; explicit serial workstation invocation |
+| Hosted CI | `.github/workflows/quality_ci.yml` | Parallel isolated Daily components, five synthetic workloads, unsigned x64 Release build, and committed revision-range whitespace validation | Push to `main`, pull request, merge queue, or manual run |
+| Hosted synthetic workloads | `./tool/performance_run_synthetic.ps1` | Exact JPEG, 10,000-image scan, million-record parser, seven-format cold/warm preview, and 50,000-identity concurrent publication cases | Mandatory hosted CI; explicit serial workstation invocation |
 | Unsigned Release build | `./tool/quality_verify_unsigned_windows.ps1` | Fresh x64 application/broker, payload and dependency identity, isolated Release bridge smoke; no catalog or signing | Mandatory hosted CI; explicit local packaging verification |
 | Daily | `./tool/quality_verify_daily.ps1` | Format, lint, Rust and Flutter tests, controlled Windows scan and native accessibility integrations, bridge hash plus asynchronous API/wire-mode contracts, tracked diff whitespace | Every material change |
 | Performance | `./tool/performance_benchmark_synthetic_library.ps1` | 10,000 temporary images, cold and warm scans, pause and resume, bounded memory | Scan pipeline, persistence, concurrency, or performance changes |
@@ -109,7 +109,7 @@ deletion of admitted version tags; no workflow can make a tag lookup and release
 
 For hosted Daily runs, the shared gate fans out four isolated `windows-2025` jobs: static and Rust
 verification, Flutter widget tests, the controlled Windows scan integration, and the native Windows
-accessibility integration. It also calls `quality_gate_synthetic_windows.yml` for three separately
+accessibility integration. It also calls `quality_gate_synthetic_windows.yml` for five separately
 isolated workload jobs and `quality_gate_unsigned_windows.yml` for optimized application/broker
 verification. A stable `Windows Gate` aggregation job succeeds only when every Daily, synthetic,
 and unsigned-build job succeeds; skipped or cancelled requirements fail. Once repository branch
@@ -140,14 +140,14 @@ Provenance and independent checksums remain deferred supply-chain work rather th
 current gate.
 
 GitHub-hosted workflows never receive real-library paths or authorization tokens and never run the
-real-library gate. Ordinary PR CI runs the three synthetic cases without release permission; retained
+real-library gate. Ordinary PR CI runs the five synthetic cases without release permission; retained
 real-library verification remains a separately authorized workstation action. Protected release jobs
 may still show as skipped in a PR: the independent unsigned quality job supplies compilation evidence
 without relaxing their protected-main admission.
 
 ### Hosted coverage boundary
 
-`performance_run_synthetic.ps1 -Case jpeg|scan|usn|all` accepts only the fixed workload catalog.
+`performance_run_synthetic.ps1 -Case jpeg|scan|usn|media|publication|all` accepts only the fixed workload catalog.
 It builds the locked optimized Rust test artifact, discovers and executes one exact test per case,
 and rejects missing tests, ignored results, nonzero exits, malformed evidence, and exceeded deadlines
 or workload working-set ceilings. JPEG output does not impose a speedup threshold. Scan timing/storage
@@ -160,6 +160,19 @@ creating fixtures, starting child processes, or initializing native helpers. The
 `performance_test_synthetic_guardrails.ps1` invokes it before its process and resource guardrails.
 The scan marker requires both published-catalog and resumed-first-import catalog byte counts;
 missing, duplicate, malformed, or unexpected fields fail rather than being silently ignored.
+
+`performance_test_synthetic_media.ps1` adds compiler-free rejection fixtures for the seven exact
+format records, dimensions, resource bounds, unchanged sources, and warm cache reuse. The media
+worker decodes real JPEG, PNG, WebP, GIF, BMP, TIFF, and ICO sources and verifies the resulting
+preview pixels. Wrong-extension, non-image, truncated-header/payload, and same-path replacement
+cases run separately in ordinary Rust tests; a JPEG-only speedup is not common-format coverage.
+
+The `publication` case stages 50,000 distinct generated physical identities through the catalog port
+and publishes while real no-change first-import completion calls run on an independent connection.
+It requires actual transaction overlap, one publication call and commit, no partial visible catalog,
+and unchanged pending P0 ownership. Its 600-second worker and 512 MiB working-set ceilings include
+fixture preparation. `performance_test_synthetic_publication.ps1` rejects incomplete or forged
+protocol records in lint. This is catalog-publication evidence, not a filesystem or native UI scan.
 
 The USN case uses generated bytes and an injected backend; it does not access a volume journal or
 stand in for the complete Windows 11 R2c-R runner. Old H/M controlled scenarios remain historical and

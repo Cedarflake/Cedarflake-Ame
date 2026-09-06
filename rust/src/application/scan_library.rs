@@ -32,6 +32,8 @@ use super::{StoragePaths, storage_paths};
 mod admission_tests;
 mod execution_registry;
 mod finalization;
+#[cfg(all(test, windows))]
+mod media_input_tests;
 mod publication;
 #[cfg(test)]
 mod resumption_tests;
@@ -231,6 +233,7 @@ fn run_scan_with_storage_reason(
             &mut catalog,
             &request,
             &checkpoint,
+            issue_count,
             &mut publish,
             had_published_root,
         )? {
@@ -243,7 +246,7 @@ fn run_scan_with_storage_reason(
         };
         let mut finalization = FinalizationPlan::new(finalization_mode);
         if is_authoritative_recovery {
-            let evidence_allows_publication = finalization.restore_authoritative_scan_issues(
+            let evidence_allows_publication = finalization.restore_retained_scan_issues(
                 &mut catalog,
                 &request.scan_id,
                 &canonical_root,
@@ -253,6 +256,13 @@ fn run_scan_with_storage_reason(
                 checkpoint.requires_previous_snapshot = false;
                 catalog.checkpoint_scan(&request.scan_id, &checkpoint)?;
             }
+        } else if reason == FullScanReason::ResumeForegroundCheckpoint {
+            finalization.restore_retained_scan_issues(
+                &mut catalog,
+                &request.scan_id,
+                &canonical_root,
+                Path::new(&request.root_path),
+            )?;
         }
         let has_active_locations = catalog.has_active_locations()?;
 
@@ -333,6 +343,7 @@ fn run_scan_with_storage_reason(
                         &mut catalog,
                         &request,
                         &checkpoint,
+                        issue_count,
                         &mut publish,
                         had_published_root,
                     )? {
@@ -370,6 +381,7 @@ fn run_scan_with_storage_reason(
                 &mut catalog,
                 &request,
                 &checkpoint,
+                issue_count,
                 &mut publish,
                 had_published_root,
             )? {
@@ -428,6 +440,7 @@ fn run_scan_with_storage_reason(
                             &mut catalog,
                             &request,
                             &checkpoint,
+                            issue_count,
                             &mut publish,
                             had_published_root,
                         )? {
@@ -495,6 +508,7 @@ fn run_scan_with_storage_reason(
                         &mut catalog,
                         &request,
                         &checkpoint,
+                        issue_count,
                         &mut publish,
                         had_published_root,
                     )? {
@@ -524,11 +538,23 @@ fn run_scan_with_storage_reason(
                         }
                         FileVisitOutcome::Ignored => {}
                         FileVisitOutcome::TerminalMedia {
+                            file,
                             issue,
                             report_issue,
-                            ..
                         } => {
-                            if report_issue {
+                            let known_media = finalization
+                                .has_retained_rejection(&file.relative_path)
+                                || has_active_locations
+                                    && catalog
+                                        .load_incremental_location_by_relative_path(
+                                            &root_id,
+                                            &file.relative_path,
+                                        )?
+                                        .is_some();
+                            if known_media {
+                                finalization.record_rejected_input(&catalog, &file)?;
+                            }
+                            if report_issue || known_media {
                                 issue_count += 1;
                                 catalog.record_issue(&request.scan_id, &issue)?;
                                 discovered_event = Some(ScanEvent::Issue {
@@ -750,6 +776,9 @@ fn run_scan_with_storage_reason(
                                 Err(failure) => {
                                     let is_retryable = failure.kind
                                         == crate::ports::MediaInspectionFailureKind::Retryable;
+                                    if !is_retryable {
+                                        finalization.record_rejected_input(&catalog, &file)?;
+                                    }
                                     let issue = failure.issue;
                                     issue_count += 1;
                                     catalog.record_issue(&request.scan_id, &issue)?;
@@ -872,6 +901,7 @@ fn run_scan_with_storage_reason(
             &mut catalog,
             &request,
             &checkpoint,
+            issue_count,
             &mut publish,
             had_published_root,
         )? {
@@ -964,8 +994,11 @@ fn run_scan_with_storage_reason(
                 },
                 &mut publish,
             )?;
-            if outcome == ForegroundPublicationOutcome::Interrupted {
-                return Ok(());
+            match outcome {
+                ForegroundPublicationOutcome::Interrupted => return Ok(()),
+                ForegroundPublicationOutcome::Published { asset_count } => {
+                    accepted_items = asset_count
+                }
             }
         }
         publish(ScanEvent::Completed {
@@ -1054,17 +1087,24 @@ fn finish_if_controlled(
     catalog: &mut SqliteCatalog,
     request: &ScanRequest,
     checkpoint: &crate::domain::ScanCheckpoint,
+    issue_count: u64,
     publish: &mut impl FnMut(ScanEvent) -> bool,
     had_published_root: bool,
 ) -> Result<bool, ScanError> {
+    if !matches!(control, CONTROL_PAUSE | CONTROL_CANCEL | CONTROL_SUSPEND) {
+        return Ok(false);
+    }
+    let mut current_checkpoint = checkpoint.clone();
+    current_checkpoint.issue_count = issue_count;
+    let checkpoint = &current_checkpoint;
     match control {
         CONTROL_PAUSE => {
             if had_published_root {
-                catalog.abandon_scan(&request.scan_id, "cancelled", checkpoint.issue_count)?;
+                catalog.abandon_scan(&request.scan_id, "cancelled", issue_count)?;
                 publish(ScanEvent::Cancelled {
                     scan_id: request.scan_id.clone(),
                     accepted_items: checkpoint.accepted_items,
-                    issue_count: checkpoint.issue_count,
+                    issue_count,
                 });
             } else {
                 catalog.pause_scan(&request.scan_id, checkpoint)?;
@@ -1072,24 +1112,24 @@ fn finish_if_controlled(
                     scan_id: request.scan_id.clone(),
                     visited_entries: checkpoint.visited_entries,
                     accepted_items: checkpoint.accepted_items,
-                    issue_count: checkpoint.issue_count,
+                    issue_count,
                 });
             }
             Ok(true)
         }
         CONTROL_CANCEL => {
             catalog.checkpoint_scan(&request.scan_id, checkpoint)?;
-            catalog.abandon_scan(&request.scan_id, "cancelled", checkpoint.issue_count)?;
+            catalog.abandon_scan(&request.scan_id, "cancelled", issue_count)?;
             publish(ScanEvent::Cancelled {
                 scan_id: request.scan_id.clone(),
                 accepted_items: checkpoint.accepted_items,
-                issue_count: checkpoint.issue_count,
+                issue_count,
             });
             Ok(true)
         }
         CONTROL_SUSPEND => {
             if had_published_root {
-                catalog.abandon_scan(&request.scan_id, "cancelled", checkpoint.issue_count)?;
+                catalog.abandon_scan(&request.scan_id, "cancelled", issue_count)?;
             } else {
                 catalog.checkpoint_scan(&request.scan_id, checkpoint)?;
             }

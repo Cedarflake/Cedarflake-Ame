@@ -478,9 +478,14 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   runs compiler-free negative fixtures against that boundary, including cross-method false matches.
 - `./tool/performance_benchmark_synthetic_library.ps1` is the explicit performance gate. It creates 10,000
   temporary images and records cold, warm, pause, resume, memory, and storage evidence.
-- `./tool/performance_run_synthetic.ps1` runs the fixed JPEG, 10,000-image scan, and million-record
-  parser catalog with exact execution and bounded resource evidence. Hosted CI runs its cases on
-  isolated workers; workstation use remains explicit and serial. Its focused guardrail runs in lint.
+- `./tool/performance_run_synthetic.ps1` runs the fixed JPEG, 10,000-image scan, million-record
+  parser, seven-format cold/warm preview, and 50,000-identity concurrent publication catalog with
+  exact execution and bounded resource evidence. Hosted CI runs its cases on isolated workers;
+  workstation use remains explicit and serial. Its focused guardrail runs in lint.
+  `./tool/performance_test_synthetic_media.ps1` verifies the exact per-format resource, source, and
+  cache evidence without decoding media; the synthetic protocol guardrail invokes it in lint.
+  `./tool/performance_test_synthetic_publication.ps1` rejects incomplete scale, overlap, atomic
+  publication, and pending-change evidence through the same compiler-free protocol gate.
 - `./tool/quality_verify_unsigned_windows.ps1` builds and verifies the credential-free x64 application
   and broker plus an isolated Release-DLL/native-channel smoke. It never loads a retained catalog or
   replaces signed candidate, installation, or Windows 11 client acceptance. Payload guardrails run

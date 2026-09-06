@@ -25,6 +25,10 @@ jobs:
             label: Ten Thousand Images
           - case: usn
             label: Million Journal Records
+          - case: media
+            label: Seven Supported Media Formats
+          - case: publication
+            label: Fifty Thousand Identity Publication
     runs-on: windows-2025
     timeout-minutes: 45
     env:

@@ -3354,7 +3354,8 @@ Do not rewrite their recorded results as if they validated ADR 0024, and do not 
 branch into `main` or start R3 until the new replacement reaches its own closeout.
 
 The hosted-coverage follow-up under ADR 0026 makes generated high-resolution JPEG, 10,000-image scan,
-million-record parser, and credential-free unsigned x64 Release verification mandatory alongside
+million-record parser, seven-format cold/warm preview, 50,000-identity concurrent publication, and
+credential-free unsigned x64 Release verification mandatory alongside
 Daily for ordinary PRs. These run on separate hosted workers instead of consuming workstation
 resources. Exact workload counts, failure propagation, bounded diagnostics, and payload identity
 require focused guardrails and independent audit. New hosted execution evidence remains pending
@@ -3418,6 +3419,38 @@ The accumulated findings, real-control negative cases, physical size measurement
 verification ledger are recorded in
 [the runtime lifecycle audit](acceptance/r2c-runtime-lifecycle-audit.md). That record is evidence,
 not a second roadmap or a substitute for the remaining gates.
+
+### R2c closeout constraint: 2026-09-06
+
+The delivery target is the requested current-week closeout, with no new product features or unrelated
+architecture expansion. Current blockers take priority: full-count first-import publication must
+converge while ordinary no-change polling continues; source replacement and rejected/corrupt inputs
+must not restore stale previews or lose their observed version; and import, interruption, cancellation,
+multi-root update, removal, reclamation, and viewer interactions must finish through their real controls.
+Only responsibility splits required to repair these invariants belong in this slice. Historical
+physical debt remains explicitly tracked rather than being mistaken for a prerequisite to rewrite
+the entire product before delivery.
+
+The reported 48,514-item finalization stall adds a scale-and-concurrency gate, not another progress
+wording fix. Empty journal maintenance must not preempt a scan commit. Verification must include
+production publication with a large generated catalog and repeated no-change polling, alongside
+real change priority and cancellation; a tiny fixture or a standalone scan does not establish it.
+Media coverage must use actual admitted encodings, wrong/absent extensions, non-image content,
+header/pixel damage, and same-path replacement across failure, retry, and recovery.
+
+The scan-cost follow-up first removes nullable-OR keyset prefix scans in validation and identity
+publication, proving equivalent results and bounded subsequent-page work with the bundled SQLite.
+The existing Windows batch metadata iterator, guarded-handle reuse, batched record association and
+bounded media pipeline remain candidates only after stage timing establishes the residual cost.
+They must preserve checkpoint completeness, source-version invalidation, unknown-extension image
+admission, no-recall safety and reserved live-change capacity. This closeout does not add a parallel
+scanner, change normal startup policy, or broaden the journal broker into an MFT/media service.
+
+Closeout reporting separates implemented, focused-verified, full-head-CI-verified, and actual-client
+acceptance. Earlier green revisions are historical evidence only. Independent review follows the
+final changes and covers missing scenarios as well as code defects. Open P0/P1 workflow defects
+block readiness; external signed/installed-service and real-library authority remain explicit and
+cannot be waived by the deadline or silently claimed from hosted Windows Server CI.
 
 R2b implementation, deterministic preview-lifecycle correctness, retained-catalog interaction
 Profile, real-library catalog parity, Daily, Windows Release, and bounded source-readable preview

@@ -51,12 +51,13 @@ pub(crate) use preview_cache::{
 };
 #[cfg(test)]
 pub(crate) use preview_cache::{
-    fail_next_atomic_replace_for_test, replace_file_atomically_for_test,
+    fail_next_atomic_replace_for_test, replace_file_atomically_for_test, seed_legacy_jpeg_preview,
 };
 pub use sqlite_catalog::SqliteCatalog;
 pub(crate) use sqlite_catalog::{
-    SqliteCatalogReadExecutor, SqliteCatalogSession, SqliteCatalogSpaceMaintenance,
-    StagedValidationOutcome, StagedValidationRoster, ValidatedStagingProof,
+    RejectedInputValidationRoster, SqliteCatalogReadExecutor, SqliteCatalogSession,
+    SqliteCatalogSpaceMaintenance, StagedValidationOutcome, StagedValidationRoster,
+    ValidatedStagingProof, load_retained_scan_issue_window, retained_scan_has_unclassified_issues,
 };
 #[cfg(test)]
 pub(crate) use sqlite_catalog::{

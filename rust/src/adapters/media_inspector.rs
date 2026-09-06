@@ -1,7 +1,7 @@
 use std::io::{BufReader, Seek, SeekFrom};
 use std::path::Path;
 
-use image::{ImageDecoder, ImageError, ImageReader, Limits};
+use image::{ImageDecoder, ImageReader, Limits};
 
 use crate::domain::{DiscoveredFile, ImageOrientation, MediaInspection, ScanIssue};
 use crate::ports::{
@@ -14,10 +14,13 @@ use super::image_orientation::from_image_orientation;
 use super::local_files::canonical_source_root_path;
 use super::local_files::{FileDiscovery, open_source_file};
 
+mod decoder_failure;
+use decoder_failure::classify_decoder_error;
+
 const MAX_SOURCE_DIMENSION: u32 = 100_000;
 const MAX_DECODER_ALLOCATION: u64 = 256 * 1024 * 1024;
 const INSPECTION_ENGINE_ID: &str = "ame-image-inspection";
-const INSPECTION_ENGINE_VERSION: u32 = 1;
+const INSPECTION_ENGINE_VERSION: u32 = 2;
 
 #[flutter_rust_bridge::frb(opaque)]
 pub struct LocalMediaInspector {
@@ -109,37 +112,9 @@ impl LocalMediaInspector {
         limits.max_image_height = Some(MAX_SOURCE_DIMENSION);
         limits.max_alloc = Some(MAX_DECODER_ALLOCATION);
         reader.limits(limits);
-        let mut decoder = reader.into_decoder().map_err(|error| match error {
-            error @ ImageError::IoError(_) => media_failure(
-                file,
-                MediaInspectionFailureKind::Retryable,
-                "image_header_read_failed",
-                error,
-            ),
-            error @ ImageError::Unsupported(_) => media_failure(
-                file,
-                MediaInspectionFailureKind::Terminal,
-                "image_format_unsupported",
-                error,
-            ),
-            error @ ImageError::Decoding(_) => media_failure(
-                file,
-                MediaInspectionFailureKind::Terminal,
-                "image_decode_invalid",
-                error,
-            ),
-            error @ ImageError::Limits(_) => media_failure(
-                file,
-                MediaInspectionFailureKind::Terminal,
-                "image_limits_exceeded",
-                error,
-            ),
-            error @ (ImageError::Parameter(_) | ImageError::Encoding(_)) => media_failure(
-                file,
-                MediaInspectionFailureKind::Terminal,
-                "image_decoder_rejected",
-                error,
-            ),
+        let mut decoder = reader.into_decoder().map_err(|error| {
+            let (kind, code) = classify_decoder_error(&error);
+            media_failure(file, kind, code, error)
         })?;
         let (pixel_width, pixel_height) = decoder.dimensions();
         if pixel_width > MAX_SOURCE_DIMENSION || pixel_height > MAX_SOURCE_DIMENSION {

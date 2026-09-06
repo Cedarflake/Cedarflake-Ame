@@ -38,6 +38,19 @@ File format handling must use observed content evidence where practical rather t
 extension alone. Unsupported, corrupt, inaccessible, unavailable, or changed files produce
 structured issues and do not fail the complete task.
 
+Discovery recognizes only the admitted seven formats from a bounded content prefix, including
+wrong, unknown, and absent extensions. Recognition is candidate admission, not proof of valid pixels.
+Header inspection stays separate from demand-driven pixel decoding. Stable malformed headers are
+terminal content evidence; access failures remain retryable. Negative evidence must retain the
+observed source version and be revalidated before publication, just like positive observations.
+A source that changes after rejection enters the existing change lane rather than restarting the
+entire scan. Inspection policy identity changes when recognition or rejection semantics change.
+
+Pixel decode failure retires only that demand's derived result and reports a structured failure.
+Explicit retry and a later source generation can recover independently. A successful decode does
+not certify original-file integrity: tolerant decoding, animation frames not requested for a static
+poster, and bit changes that remain valid encoded data require distinct evidence.
+
 Pure Rust parsers may initially run inside the application process when they return recoverable
 errors and pass hostile-fixture tests. Native codecs, model runtimes, and parsers capable of process
 termination must run in a supervised Rust worker process. Worker failure becomes a per-item or
