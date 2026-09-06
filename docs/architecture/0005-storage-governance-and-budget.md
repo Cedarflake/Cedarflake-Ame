@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-07
-- Last updated: 2026-08-16
+- Last updated: 2026-09-05
 - Related: ADR 0006, ADR 0014
 
 ## Context
@@ -54,11 +54,11 @@ trustworthy evidence.
 
 ### Preview artifact identity and variants
 
-Ame owns a preview-artifact index separate from gallery layout and durable user data. Its
-replaceable persistence representation records enough evidence to identify and account for an
-artifact:
+Ame owns a preview-artifact index separate from gallery layout and durable user data. Its current
+v3 representation records enough evidence to identify and account for an artifact:
 
-- every compatible active location reference plus compatible source state;
+- every compatible active location reference plus compatible file identity, source revision, and
+  catalog-wide source generation;
 - preview algorithm and version;
 - orientation contract;
 - one bounded physical-pixel size bucket and actual encoded dimensions;
@@ -83,17 +83,74 @@ warming. Queue and decode concurrency remain bounded. High-velocity movement may
 generation without deferring final layout geometry.
 
 The user-facing preview loading preference exposes only `small`, `medium`, and `large` resource
-policies. The queue maps them to base concurrency limits of one, two, and four; `medium` remains the
-default and preserves the accepted two-request baseline. The existing priority replacement path may
-temporarily use one additional slot so a viewer or newly visible item is not blocked behind obsolete
-work. Lowering the preference does not cancel active decodes; it prevents new work from starting
-until the active count falls below the new limit. Raw worker counts and queue depth remain internal.
+policies. The queue maps them to hard concurrency limits of one, two, and three; `medium` remains the
+default and preserves the accepted two-request baseline. Viewer, visible, movement, guard, and idle
+priorities determine which pending request starts next but never create an overflow slot. Obsolete
+active work remains harmless through publication guards and continues to occupy its existing slot
+until it finishes. Lowering the preference does not cancel active decodes; it prevents new work from
+starting until the active count falls below the new limit. Raw worker counts and queue depth remain
+internal.
 
-Each request and publication carries compatible location, source-state, catalog-revision, algorithm,
-orientation, and size-bucket identity. Generation writes a temporary artifact outside source trees,
-revalidates ownership, and atomically installs the completed file and index evidence. Obsolete work
-cannot publish over a newer generation or restore a stale path. No preview operation recalls an
-offline placeholder.
+Preview and bounded detail publication share one process-owned validated catalog-session contract.
+The session retains only immutable catalog identity, schema, and write-admission evidence; each
+operation still opens its own short-lived SQLite connection and no connection, transaction, or
+admission permit is held across media decode. Repeated preview requests and detail-window
+completion must not rerun migrations or the complete schema contract. A database identity or
+schema-cookie change invalidates the session, performs one serialized full validation outside the
+media operation, and retries the open once; any second stale result fails closed. Validation is
+single-flight per catalog path: concurrent callers share the same success or structured failure,
+validation for one path never holds the registry lock while doing SQLite work, and a failed result
+uses only a short bounded backoff before one caller may retry. Storage-path activation invalidates
+the owner rather than reusing evidence for another catalog.
+
+An explicit preview retry has an observable request lifetime. The tile enters a retrying state in
+the frame that accepts the action, prevents duplicate activation, and leaves that state on every
+terminal outcome: ready, failed, cancelled, superseded, context invalidation, or disposal. Queue
+deduplication attaches the caller to the existing compatible request rather than manufacturing a
+second decode. Structured diagnostics distinguish Dart queue wait from active execution. Rust
+diagnostics separate access and store setup, catalog work, source revalidation, materialization,
+artifact commit, reclamation, and catalog publication; the materialization outcome identifies a
+cache hit, generation, or failure without printing a complete source path.
+
+Each request and publication carries exact root, active scan, location, file identity, source
+revision, catalog-wide source generation, algorithm, orientation, and size-bucket identity. The
+global catalog revision still protects gallery queries, but it is deliberately not a preview lease:
+an unrelated catalog write must not invalidate otherwise exact preview work. A schema-v31 location
+whose revision is NULL may adopt the revision observed from the requested source exactly once under
+a conditional SQLite update; it is never treated as already unchanged.
+
+Generation reads through one already-open source handle, validates it before decode, and validates
+the same handle again after decode. Publication then holds the restrictive final source guard while
+installing the artifact and committing the exact SQLite lease. A source-state change, replaced
+handle, inactive scan, mismatched root or location, generation change, or revision change makes the
+work superseded. Superseded work removes only its staged output and never writes a `failed` preview
+state. No preview operation recalls an offline placeholder.
+
+The current cache namespace is `ame-jpeg-thumbnail-v3-source-revision`; its key includes both source
+revision and source generation. An explicit `ForceRegenerate` request bypasses compatible-cache
+reuse both before decode and at the post-decode race check. On Windows, replacing an existing v3
+target uses the `preview_cache/installation.rs` owner with same-directory staging and an
+exclusively created, managed temporary backup passed to `ReplaceFileW` with zero flags. Windows documents
+`REPLACEFILE_WRITE_THROUGH` as unsupported, and this rebuildable cache does not claim power-loss
+write-through durability. Installing a missing target or restoring the backup uses `MoveFileExW`
+with zero flags: the same-volume operation cannot overwrite a target that appeared concurrently.
+The target is never deleted first. With the explicit backup, Windows error 1176 retains the old
+target; error 1177 may move it to the owned backup. A failed restoration reports
+`preview_replace_restore_failed` and retains that recoverable managed backup instead of promising
+that every terminal error restores the old pathname. Staged bytes are discarded separately. Old
+bytes are released from accounting only after physical deletion; a failed post-install backup
+cleanup leaves those bytes counted until managed-cache recovery or reclamation removes them.
+No path other than an exclusively claimed backup is passed as the replacement backup or deleted
+by this owner. The narrow unsafe Windows boundary keeps all NUL-terminated UTF-16 buffers alive
+through synchronous calls and never retains their pointers. Only successful physical installation
+permits exact SQLite lease publication.
+
+The platform contract is verified against Microsoft's
+[ReplaceFileW failure states](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-replacefilew),
+[MoveFileExW flags](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-movefileexw),
+and [File.Replace backup overwrite contract](https://learn.microsoft.com/en-us/dotnet/api/system.io.file.replace).
+Controlled tests inject 1176/1177, failed restoration, retained-backup cleanup failure, and existing
+backup/target collisions without touching source media.
 
 The artifact index keeps location ownership as a many-to-many reference instead of a single mutable
 owner column. Identity-proven hard links, renamed locations, and other compatible active locations
@@ -147,23 +204,13 @@ for this slice because they add a native runtime, packaging, cancellation, and c
 boundary. Windows Imaging Component was not selected because it would make the first optimization
 Windows-specific and introduce a new unsafe platform boundary.
 
-Legacy `ame-jpeg-thumbnail-v1` artifacts are adopted only on current preview demand. Ame derives
-the exact legacy key from the current source-state evidence and requested bucket, validates that
-the cached file is a bounded decodable JPEG, and reads source orientation metadata without decoding
-the full raster. Only a source with the normal orientation can reuse the legacy pixels because v1
-did not apply the current EXIF orientation contract. After validating compatibility, Ame atomically
-renames the legacy file to the current managed v2 key; it does not re-encode, copy, grow
-the cache, or add a second cache walk. The existing startup inventory enables legacy lookup only
-when a bare v1 artifact is present, so a pure v2 cache does not add a legacy file probe to each
-miss. Invalid, oriented, or failed-promotion entries remain untouched and use the normal current
-generation path.
-
-The exact legacy filename contract is Ame-owned rebuildable storage. Startup inventory and the
-settings surface include its bytes in the same preview budget as current artifacts. An atomic v1
-to v2 rename keeps accounting constant instead of reserving the same bytes twice. Explicit manual
-cleanup and pressure-triggered automatic reclamation may delete recognized v1 artifacts while
-continuing to exclude unrelated files. Bounded startup recovery does not treat an unadopted v1
-artifact as an unreferenced v2 artifact, so ordinary startup preserves its on-demand reuse value.
+Legacy `ame-jpeg-thumbnail-v1` and `ame-jpeg-thumbnail-v2-orientation-*` artifacts lack the complete
+schema-v31 revision-and-generation proof. Inventory recognizes them only as Ame-managed,
+rebuildable bytes for accounting, bounded recovery, reclamation, and explicit cleanup. They are
+never reused, promoted, or published as v3 evidence. This prevents a weak legacy key from restoring
+pixels after an observed same-path replacement while still excluding unrelated files from cleanup.
+Startup does not read source content or scan source roots to repair legacy entries; current preview
+demand regenerates v3 evidence through the normal bounded path.
 
 ### Budget and automatic reclamation
 
@@ -194,6 +241,64 @@ Startup performs bounded reconciliation of accounted bytes, interrupted temporar
 ready files, and unreferenced managed artifacts. It does not scan source roots, hydrate placeholders,
 or block opening the last trustworthy catalog on a complete cache walk. Work beyond the startup
 allowance continues as observable bounded background maintenance.
+
+### Catalog database page reclamation
+
+Configured-root removal owns logical catalog cleanup; SQLite page reclamation is a separate derived-
+storage maintenance operation. A successful removal commits and returns to presentation before
+reclamation is scheduled. Reclamation never deletes rows, changes catalog revision, weakens shared-
+asset or preview ownership, removes queue or operation history, or touches source media. Its only
+authority is to compact pages that SQLite already reports on the freelist.
+
+Fresh catalogs set `auto_vacuum=INCREMENTAL` before creating any table. Existing catalogs in
+`auto_vacuum=NONE` are not synchronously vacuumed by schema migration or startup. When reclaimable
+pages are at least 64 MiB and at least 25 percent of the main database, Ame schedules one serialized
+background operation. It first checks caller-available capacity using the conservative SQLite
+upper bound of twice the current main-database bytes plus a 64 MiB explicit safety margin; every
+multiplication and addition is overflow checked. Insufficient capacity is a retryable structured
+failure and does not change the already committed removal.
+
+The one-time `NONE` to `INCREMENTAL` conversion uses an independent connection with zero busy
+timeout, sets the pragma before ordinary `VACUUM`, and runs only after acquiring a recovery-priority
+maintenance permit. Failure to acquire an idle SQLite window backs off without blocking the
+removal caller. After preemption, a root-removal writer waits at most five seconds for the
+maintenance permit to exit and otherwise returns `catalog_user_interactive_write_timeout` as an
+explicit retryable failure; the timed-out priority waiter is removed so lower-priority work cannot
+remain starved. Ordinary `VACUUM` supplies SQLite's transaction and crash consistency; Ame does not
+perform an unproven copy-and-replace sequence. A progress handler and interrupt handle make user
+cancellation and higher-priority root removal observable. Conversion progress is indeterminate
+because SQLite virtual-machine instruction counts do not provide a trustworthy byte denominator.
+Every completed, interrupted, or failed write-maintenance attempt invalidates the process-owned
+catalog-session metadata for that path. The next catalog request must reopen and fully validate the
+database instead of relying on prepared state from before `VACUUM`; the session cache owns no live
+SQLite connection across the maintenance window.
+
+An existing `FULL` catalog switches online to `INCREMENTAL` through SQLite's supported pragma
+transition and does not require the temporary capacity or full rewrite used by `NONE`. This mode
+transition is completed before the task may report success, even when the freelist is already below
+the reclamation threshold. Busy or preempted maintenance attempts remain `WaitingForIdle` with a
+25 ms exponential delay capped at 3.2 seconds; transient contention never becomes a permanent
+failure, and cancellation during any delay publishes `Cancelled`.
+
+Once incremental mode is established, each `incremental_vacuum(256)` call reopens a maintenance
+connection and reacquires the permit. The connection and permit are released between batches so
+Live, Journal, foreground scan, and user-interactive work can run. Progress is calculated only from
+successive `page_count`, `freelist_count`, and `page_size` evidence. Reclamation stops when the
+freelist reaches 8 MiB or five percent, avoiding cleanup thrash while retaining reusable pages.
+Interrupted conversion leaves the pre-conversion database transactionally usable; interrupted
+incremental work retains already committed batches. Startup may reschedule remaining eligible work.
+Before publishing `Completed`, a separate zero-busy-timeout maintenance attempt runs
+`wal_checkpoint(TRUNCATE)` under the same preemptible admission. Ame parses all three SQLite result
+columns; a busy result or SQLite busy error returns to capped waiting, while a catalog without a WAL
+passes normally. Only a successful checkpoint can complete the operation, so retained WAL bytes are
+not reported as reclaimed while an older reader still prevents truncation.
+
+Storage status reports total catalog files separately from estimated live main-database bytes and
+reclaimable freelist bytes. WAL and shared-memory sidecars remain part of total on-disk usage but
+are never mislabeled as freelist. The Windows capacity adapter contains one isolated
+`GetDiskFreeSpaceExW` call. Its unsafe boundary accepts a live NUL-terminated UTF-16 directory
+buffer and one valid writable `u64`; all other output pointers are null and no pointer escapes the
+call.
 
 ### Preview-root transition
 
@@ -228,7 +333,7 @@ verification, atomic activation, cancellation, progress, interrupted-run recover
 The existing storage baseline is covered by settings-database reload, budget-bound, path-overlap,
 restart-notice, atomic-reservation, Windows integration, and unchanged-source tests.
 
-Current deterministic lifecycle evidence covers:
+Recorded lifecycle evidence before the schema-v31/v3 amendment covers:
 
 - EXIF Orientation 1 through 8, unknown dimensions, source edit, same-path replacement, identity-
   proven rename or move, temporary unavailability, and authoritative removal fixtures;
@@ -236,8 +341,8 @@ Current deterministic lifecycle evidence covers:
   transitions preserve final geometry and logical scroll position;
 - proof that an unknown-to-known dimension recovery is coalesced separately from preview readiness
   and replaces layout geometry while preserving the logical viewport anchor;
-- proof that current and recognized legacy artifacts share usage accounting, manual cleanup, and
-  pressure reclamation without deleting foreign files or eagerly discarding legacy reuse at startup;
+- legacy artifact usage accounting, manual cleanup, and pressure reclamation without deleting
+  foreign files; its former v1-to-v2 adoption conclusion is superseded by the v3 decision above;
 - proof that all compatible location references protect a shared artifact, reclamation resets every
   referencing location, and v14 last-writer ownership migrates without losing active references;
 - proof that root unregistration and successful replacement publication remove retired location
@@ -254,6 +359,22 @@ Current deterministic lifecycle evidence covers:
 - preview-root activation failure and successful switch-and-regenerate fixtures;
 - adapter, migration, application, Flutter geometry, Windows integration, daily, and Windows Release
   gates with source bytes and entries unchanged.
+
+The schema-v31/v3 amendment is not accepted merely because its code and focused tests exist. Fresh
+evidence must cover v30-to-v31 preservation and NULL baselining, catalog-wide/hardlink generation,
+v1/v2 cleanup-only behavior, forced regeneration across both cache checks, same-handle source
+staleness, exact-lease rejection and unrelated-revision tolerance, replacement-failure retention and
+accounting, concurrency, corrupt or wrong-extension input, and the complete repository and Windows
+gates. Those gates remain pending as of 2026-09-05.
+
+Catalog page reclamation is likewise not accepted merely because its implementation and test
+fixtures exist. Fresh evidence must cover fresh-schema incremental-auto-vacuum ordering, unchanged
+legacy `NONE` startup migration, one-time conversion, bounded 256-page incremental batches,
+cancellation and preemption, the five-second user-interactive timeout without a leaked priority
+waiter, capacity overflow and insufficient-space failure, catalog-session invalidation after every
+write-maintenance outcome, committed-removal failure isolation, shared ownership, settings progress,
+complete repository gates, and a Windows run against an isolated disposable copy. Those gates
+remain pending as of 2026-09-05.
 
 Performance validation is a separate evidence class. It requires a bounded, read-only,
 source-readable workload that records cold and warm preview latency, cache-byte growth, bucket
@@ -283,10 +404,9 @@ decode. The initial 6000 by 4000 synthetic JPEG comparison on 2026-08-11 measure
 decode plus resize and 40.636 ms for scaled decode plus resize, a 2.22x improvement. This is a
 bounded synthetic result, not yet target-library latency evidence.
 
-Legacy adoption additionally requires byte-identical promotion without source changes or
-re-encoding, rejection of non-normal orientation, constant accounting across atomic promotion,
-inclusive usage reporting, manual and pressure cleanup, startup preservation, and proof that
-foreign entries remain in place.
+Legacy cleanup compatibility additionally requires inclusive usage reporting, bounded recovery,
+manual and pressure cleanup, proof that foreign entries remain in place, and proof that v1/v2 files
+cannot satisfy or be promoted into a v3 demand.
 
 ## Replacement and rollback strategy
 
@@ -298,6 +418,6 @@ persistence, or codec adapters can be replaced without a catalog or gallery rewr
 The scaled-JPEG adapter can be removed independently to restore the existing `image` path without a
 catalog migration or cache invalidation because the artifact and orientation contracts are
 unchanged.
-Legacy adoption can be disabled independently; already adopted files remain valid current v2
-artifacts, while untouched v1 files remain rebuildable derived data governed by the same preview
-budget and explicit cleanup boundary.
+Recognition of v1/v2 files can be removed only with a migration that preserves managed-byte
+accounting and foreign-file exclusion. Those artifacts remain cleanup-only rebuildable data and
+never become current v3 evidence.

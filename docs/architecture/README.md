@@ -37,3 +37,6 @@ Recorded decisions:
 - [ADR 0020: Run continuous library synchronization with the desktop lifecycle](0020-production-library-synchronization-lifecycle.md)
 - [ADR 0021: Recover library freshness through bounded authoritative reconciliation](0021-authoritative-library-recovery-and-consistency.md)
 - [ADR 0022: Catch up Windows downtime through the USN change journal](0022-windows-usn-downtime-catch-up.md)
+- [ADR 0023: Reconcile continuity without privileged journal access](0023-non-usn-library-continuity-reconciliation.md)
+- [ADR 0024: Drive Windows continuity from notifications and the USN journal](0024-windows-change-driven-library-continuity.md)
+- [ADR 0025: Keep workflows thin through invariant-owned modules](0025-invariant-owned-workflow-modules.md)

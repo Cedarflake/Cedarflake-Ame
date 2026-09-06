@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-18
+- Last amended: 2026-09-05
 
 ## Context
 
@@ -62,8 +63,9 @@ adapter rejects inconsistent combinations before opening the publication transac
 The application processes path-scoped work as follows:
 
 1. load the registered root, durable generation, active published scan, and catalog revision;
-2. verify root availability and wait without leasing while a first or replacement full scan owns
-   the publication boundary;
+2. verify root availability and require an active published snapshot; while a replacement full
+   scan is running, defer P1/P2 work but allow the reserved P0 Live lane to continue against that
+   active snapshot;
 3. lease only path work, leaving subtree, root, and freshness-gap rows untouched for R2c-F;
 4. reject intermediate symlink or Windows reparse traversal before reading a relative path;
 5. inspect path metadata, placeholder state, optional Windows file identity, and media dimensions;
@@ -79,14 +81,18 @@ The application processes path-scoped work as follows:
     placeholders to bounded retry. Placeholder inspection preserves the last trustworthy catalog
     evidence, performs no content access, and cannot terminally complete the durable path work.
 
-A full scan that starts after leasing is a coordination deferral, not a processing failure. The
-queue returns the lease to ready state and restores its attempt budget. The same rule applies if
-the active published catalog boundary disappears during preparation.
+A first import still owns the only publication boundary because there is no active snapshot to
+update. For a replacement full scan, P1/P2 work that discovers the scan after leasing is a
+coordination deferral, not a processing failure: the queue returns the lease to ready state and
+restores its attempt budget. P0 Live work does not defer. It publishes to the active snapshot and
+mirrors the same mutation into the exact running scan's staging in one transaction. If the active
+published catalog boundary disappears during preparation, every lane fails closed.
 
 The publisher uses `BEGIN IMMEDIATE` and, before changing catalog state, rechecks:
 
 - the root still exists and its durable generation remains active;
-- no full scan is running or paused for the root;
+- either no full scan is running or paused, or the batch is entirely P0 Live work and the exact
+  running scan can receive the same staged mutation;
 - the referenced active scan remains a completed published snapshot;
 - the global catalog revision still equals the prepared revision;
 - every queue row is still leased by the exact lease generation in the batch.
@@ -97,13 +103,56 @@ Only after those guards pass does the transaction detach obsolete preview owners
 locations, upsert new locations, transfer compatible ready-preview ownership, stale affected
 unreferenced preview artifacts, delete affected orphan assets, apply the bounded active-location
 count delta, increment the catalog revision once when at least one mutation exists, and complete
-every included queue lease at that same revision. A `Ready` preview cannot be committed without a
-live ready artifact owner. An unchanged batch completes its leases without creating a meaningless
-revision.
+every included queue lease at that same revision. When a replacement scan is running, the same P0
+transaction also mirrors create, replace, removal, terminal-media, and physical-identity hardlink
+effects into that scan's staging. The scan never captures, leases, or completes P0 rows, including
+P0 work already leased when `begin_scan` runs. Abandoning the scan discards only its staging and
+does not undo the active P0 result or queue completion.
+
+Before a replacement scan publishes, it rejects unfinished P0 work for the root, reconciles each
+staged location against the current active generation, and recomputes the staged location count
+inside the writer transaction. A higher active generation wins over older staged evidence;
+compatible observations keep the greater generation; incompatible equal-generation evidence fails
+closed. The caller's previously counted staging rows are validation input, not publication
+authority. A `Ready` preview cannot be committed without a live ready artifact owner. An unchanged
+batch completes its leases without creating a meaningless revision.
 
 The batch is bounded to 128 completions, 256 mutations, and four explicit removals per mutation.
 All filesystem and image work happens before the transaction; the transaction performs no source
 access. R2c-D introduces no schema migration and continues using schema v17.
+
+Configured-root unregistration uses the same all-or-nothing storage boundary but is a distinct
+user-interactive command rather than a filesystem-observation delta. It waits for any active writer
+to finish and never preempts a P0 commit already in progress. Once waiting, it is admitted before
+new Live, Journal, or Recovery writers, so a continuous notification stream cannot starve the user
+command; the UI still receives control because unregistration and catalog reads run on asynchronous
+bridge workers. Inside one immediate transaction the adapter materializes only
+the selected root's affected asset and preview-artifact identifiers in connection-local temporary
+tables, retires that root's queue and scan state, detaches only its preview owners, stales only its
+newly unreferenced artifacts, and deletes only newly orphaned affected assets. Shared assets,
+remaining preview owners, unrelated orphan records, and source files are untouched. Failure rolls
+back the complete removal and catalog revision. This bounded cleanup uses existing root-, location-,
+asset-, and artifact-key indexes and does not require a schema migration. A native success or
+already-absent result is an idempotent committed outcome. The presentation controller must then
+remove the affected root from every loaded projection immediately and publish a bounded first page;
+the O(remaining-library) timeline aggregation is not part of removal completion. It runs as a
+separate background read whose request sequence, query, catalog revision, and query identity must
+still match before publication. A post-commit first-page failure retains the committed root identity
+for reload-only recovery and cannot issue unregistration a second time.
+
+Physical SQLite page reclamation is deliberately outside that transaction. After a successful
+unregistration, the application releases the catalog connection and returns the committed result
+before scheduling maintenance. Maintenance may only compact pages SQLite already placed on its
+freelist; it cannot delete rows, revise catalog state, or weaken the root-removal scope. Failure,
+cancellation, insufficient temporary capacity, or a busy maintenance window therefore leaves the
+logical removal committed and retryable without endangering shared assets, remaining preview
+owners, queue history, user data, or source files. A newly requested unregistration preempts active
+maintenance before joining the user-interactive writer lane. That admission wait is capped at five
+seconds and returns `catalog_user_interactive_write_timeout` if the interrupted maintenance
+connection does not exit; timing out removes the queued priority waiter before background work may
+continue. Every write-maintenance outcome invalidates the process-owned session metadata for the
+catalog path, so the next request reopens and fully validates the database after `VACUUM` rather
+than reusing pre-maintenance prepared state.
 
 ## Validation gates
 
@@ -120,14 +169,26 @@ access. R2c-D introduces no schema migration and continues using schema v17.
   structured failed-preview evidence;
 - preview cleanup invalidates an already prepared retain-compatible delta without changing the
   catalog revision;
-- path-only leasing and normal coordination deferral do not consume authoritative or retry work;
+- path-only leasing and normal P1/P2 coordination deferral do not consume authoritative or retry
+  work;
 - intermediate filesystem links cannot escape the selected root, while an explicitly selected
   linked root remains valid;
 - unrelated orphan assets and preview artifacts are not visited or rewritten by one delta;
-- stale lease, changed revision, retired generation, and running full scan publish no delta;
+- stale lease, changed revision, and retired generation publish no delta; a running replacement
+  scan admits only an all-P0 Live batch and receives the same create, replace, removal, terminal,
+  and hardlink effects in staging;
+- `begin_scan` leaves pending and already leased P0 ownership untouched, scan publication rejects
+  unfinished P0, cancellation preserves P0 state, and an older staged generation cannot overwrite a
+  newer active generation;
 - an injected queue-completion database failure rolls back locations, revision, and completion;
 - inconsistent outcome and evidence-disposition combinations fail closed;
 - controlled fixture bytes are unchanged after reconciliation;
+- root unregistration preserves shared assets and preview owners, does not rewrite unrelated orphan
+  assets or ready artifacts, rolls back its complete cleanup on failure, and receives the next write
+  permit after an active P0 transaction even when another Live writer is already queued;
+- post-removal page maintenance is separately cancellable and retryable, and an injected
+  maintenance interruption cannot reverse the committed unregistration or rewrite a remaining
+  shared asset and preview owner;
 - Rust format, Clippy with warnings denied, the complete Rust suite, and repository Daily pass.
 
 ## Validation evidence
@@ -139,8 +200,9 @@ isolated catalogs. No real-library root or cloud placeholder was accessed.
 ## Consequences and risks
 
 - A single-file or related bounded path batch no longer requires a root-wide scan.
-- Full scans retain precedence and queued work waits behind their publication boundary without
-  consuming retry attempts.
+- First import retains precedence because no active snapshot exists. During a replacement full
+  scan, P1/P2 work waits without consuming retry attempts, while P0 Live work keeps its reserved
+  event-to-visible path and is mirrored into scan staging.
 - A filesystem change after final revalidation is still possible. A newer overlapping durable
   event supersedes the lease; the transaction rejects the stale worker before publication.
 - Independent good work may publish while a malformed sibling retries. A reliably paired rename
@@ -154,6 +216,8 @@ isolated catalogs. No real-library root or cloud placeholder was accessed.
 ## Replacement strategy
 
 Replace only the incremental catalog port or its SQLite adapter. A replacement must preserve the
-same outcome/disposition contract, prepublication revalidation, full-scan precedence, lease and
-generation guards, one-revision visibility, preview ownership rules, and all-or-nothing queue
-completion. A storage replacement cannot require source mutation or move policy into Flutter.
+same outcome/disposition contract, prepublication revalidation, first-import precedence, P1/P2 scan
+deferral, P0 active-and-staging atomicity, newer-generation precedence, unfinished-P0 publication
+guard, lease and generation guards, one-revision visibility, preview ownership rules, and
+all-or-nothing queue completion. A storage replacement cannot require source mutation or move
+policy into Flutter.

@@ -8,7 +8,7 @@ acceptance work. A passing lower gate never claims that a higher gate ran.
 | Gate | Entry point | Included evidence | When to run |
 | --- | --- | --- | --- |
 | Hosted CI | `.github/workflows/quality_ci.yml` | Parallel isolated Daily components plus committed revision-range whitespace validation on pinned Windows toolchains | Push to `main`, pull request, merge queue, or manual run |
-| Daily | `./tool/quality_verify_daily.ps1` | Format, lint, Rust and Flutter tests, controlled Windows scan and native accessibility integrations, bridge hash, tracked diff whitespace | Every material change |
+| Daily | `./tool/quality_verify_daily.ps1` | Format, lint, Rust and Flutter tests, controlled Windows scan and native accessibility integrations, bridge hash plus asynchronous API/wire-mode contracts, tracked diff whitespace | Every material change |
 | Performance | `./tool/performance_benchmark_synthetic_library.ps1` | 10,000 temporary images, cold and warm scans, pause and resume, bounded memory | Scan pipeline, persistence, concurrency, or performance changes |
 | Retained Profile | `./tool/performance_profile_retained_gallery.ps1` | Frozen-interaction Profile frame, memory, garbage-collection, query, publication, and retained-detail evidence; no source preview materialization | Guarded R2b gallery adaptations on the retained catalog |
 | Preview performance acceptance | `./tool/acceptance_run_preview_performance.ps1` | Cold/warm bucket latency, cache growth, reuse, reclamation, regeneration, bounded memory, and sampled source integrity | Explicitly authorized R2b preview closeout only |
@@ -21,6 +21,7 @@ acceptance work. A passing lower gate never claims that a higher gate ran.
 | Installed journal broker acceptance guardrails | `./tool/acceptance_test_windows_journal_broker_guardrails.ps1` | Explicit token, fresh temporary workspace, externally pre-signed protected bundle/publisher, ValidationOnly non-mutation, protected result channel, limited-client replacement rejection, no-follow cleanup, and no certificate, signing, trust-store, or automatic-elevation path | Installed broker acceptance harness changes |
 | Release | `./tool/release_verify_candidate.ps1` | Immutable signed x64 application bundle and broker admission, Daily gate, Windows Release and bridge smoke, synthetic performance gate, optional retained real-library validation | Before a release candidate |
 | Portable artifact | `./tool/release_package_portable_windows.ps1` | Versioned Windows x64 ZIP containing the same signed application and broker artifact, followed by archive-structure and extracted signature/publisher/protocol verification; no service installation | After a release build passes |
+| Portable publication guardrails | `./tool/release_test_portable_publication.ps1` | Exact inline workflow decision: missing attachment upload, same-digest skip, different or missing digest rejection, pagination, and fail-closed lookup errors; no network or publication | Release publication changes; included in lint |
 
 ## Hosted workflow lifecycle
 
@@ -29,8 +30,8 @@ The hosted Windows gate is implemented once in
 
 - `quality_ci.yml` runs the daily gate for pushes to `main`, pull requests targeting `main`, merge
   queue checks, and manual dispatches;
-- `release_candidate_windows.yml` runs the release-candidate gate for an existing `v*.*.*` tag or
-  an explicitly named tag selected by manual dispatch, then publishes the verified portable ZIP;
+- `release_candidate_windows.yml` is manually dispatched from protected `main` for one existing
+  strict-SemVer tag, then publishes the verified portable ZIP;
 - `release_verify_published.yml` downloads the exact published ZIP and independently verifies its
   identity and archive structure.
 
@@ -39,32 +40,75 @@ validated by the pull-request event, avoiding duplicate push and pull-request ru
 update. Merge queues receive their own `merge_group` check so the combined merge result cannot
 inherit a stale pull-request status.
 
-Every hosted workflow uses `windows-2025`, Flutter 3.44.9, and the repository Rust toolchain. Before
-the static Daily component or serial Release gate restores project dependencies, it downloads
-actionlint 1.7.12, verifies the official Windows x64 SHA-256, and validates every workflow through
-`./tool/quality_lint_workflows.ps1`. External actions are pinned to complete commit SHAs, checkout
-credentials are not persisted, and ordinary workflow jobs have read-only repository contents
-permission. Only the portable-publication job receives `contents: write`, and it starts only after
-the read-only candidate gate succeeds. Pull-request jobs receive no release secrets or write
-permission. The workstation daily gate does not download actionlint implicitly; contributors may
-run the same script with an explicitly supplied executable.
+Every hosted job uses `windows-2025`. Daily components and the unsigned-build and signed-verifier
+release jobs install Flutter 3.44.9 and use the repository Rust toolchain; the protected signer and
+published-artifact verifier do not. Static Daily, the unsigned-build job, and the signed-verifier job
+download actionlint 1.7.12, verify the official Windows x64 SHA-256, and validate every workflow through
+`./tool/quality_lint_workflows.ps1` before restoring project dependencies. External actions are
+pinned to complete commit SHAs, checkout credentials are not persisted, and ordinary workflow jobs
+have read-only repository contents permission. Only the final portable-publication job receives
+`contents: write`; it checks out no repository content and starts only after the read-only candidate
+and packaging gates succeed. Pull-request jobs receive no release secrets or write permission. The
+publisher preserves existing same-name attachments only when GitHub's uploaded-asset SHA-256 digest
+matches the verified ZIP; a missing attachment is uploaded without overwrite, and an unprovable
+identity or failed lookup stops publication. The workstation daily gate does not download actionlint
+implicitly; contributors may run the same script
+with an explicitly supplied executable.
+
+`windows-2025` is a hosted Windows Server build surface. It does not replace the explicitly
+authorized Windows 11 x64 client acceptance gates named below.
+
+The release-candidate chain begins with a no-checkout admission job that requires
+`workflow_dispatch`, `refs/heads/main`, `github.ref_protected`, and equality between the event SHA
+and the workflow-definition SHA. The reusable gate receives that trusted workflow commit. Its
+unsigned job checks out only the full `refs/tags/<tag>` ref, proves that the tag exists, that `HEAD`
+equals `tag^{commit}`, and that the source is an ancestor of the trusted workflow commit, then builds
+the application and journal broker without signing credentials. It uploads a unique, immutable
+artifact whose manifest records the source commit and enumerates every payload file by safe relative
+path, length, and SHA-256; its signing allowlist is exactly `cedarflake_ame.exe` and
+`cedarflake_ame_journal_broker.exe`.
+
+The next job is bound to the `windows-production-signing` GitHub Environment, which must require a
+reviewer and restrict deployments to protected `main`. Its PFX and password exist only as
+Environment secrets. The signer does not check out or execute repository code, has no
+`GITHUB_TOKEN` permission, and does not run Flutter or Cargo; it only downloads and strictly verifies
+the artifact, parses the PFX as ephemeral in-process key material, admits one active private-key
+certificate with the exact publisher and code-signing usage, signs the two fixed binaries, rewrites
+their manifest evidence without changing the source commit, clears credential and certificate
+material in `finally`, and uploads a new immutable artifact. It never writes the PFX to disk or
+imports it into a certificate store. A third, credential-free job re-proves source, tag, and trusted
+workflow ancestry on another runner, downloads the signed artifact, verifies its complete manifest
+and both signatures, and only then executes the repository release gate.
+
+A separate read-only packager checks out the immutable source SHA, binds the signed manifest to that
+SHA and the still-current tag, reverifies the bundle, and uploads the exact ZIP plus its SHA-256 as
+another immutable artifact. The sole `contents: write` publisher downloads only that ZIP, checks out
+no repository and executes no repository script. Immediately before GitHub Release mutation it
+peels the current tag through the GitHub API, requires the resolved commit to equal the signed
+source, and rechecks the ZIP hash. Repository configuration must additionally prevent update or
+deletion of admitted version tags; no workflow can make a tag lookup and release mutation atomic.
 
 For hosted Daily runs, the shared gate fans out four isolated `windows-2025` jobs: static and Rust
 verification, Flutter widget tests, the controlled Windows scan integration, and the native Windows
 accessibility integration. A stable `Windows Gate` aggregation job succeeds only when every
-component succeeds, so branch protection keeps one durable required-check name. Matrix fail-fast
-is disabled so one failure does not hide results from the other components. Jobs do not exchange
+component succeeds. Once repository branch protection is provisioned, its required status context
+must be the exact GitHub check name `Windows Gate / Windows Gate`. Matrix fail-fast is disabled so
+one failure does not hide results from the other components. Jobs do not exchange
 compiled artifacts or build directories; only dependency caches may be reused. This reduces
-wall-clock latency at the cost of additional hosted runner minutes. Release candidates remain
-serial because validation, release build, performance evidence, and packaging have an ordered
-dependency chain.
+wall-clock latency at the cost of additional hosted runner minutes. Release candidate jobs remain
+ordered by immutable artifacts because build, protected signing, credential-free verification, and
+publication form distinct trust boundaries.
 
-Before the release-candidate workflow executes its gate,
-`./tool/release_validate_version.ps1` checks that the `v`-prefixed tag, `pubspec.yaml` application
-version without its build suffix, and `rust/Cargo.toml` package version are identical. The daily
-lint gate runs a passing prerelease fixture and representative rejection cases for this contract.
-It also builds a controlled portable fixture and proves that missing runtime files and unsafe
-archive paths are rejected.
+Before any release checkout, inline validation accepts only the repository's strict `v`-prefixed
+SemVer 2.0 grammar, including the prohibition on leading zeroes in numeric prerelease identifiers.
+Tag checkouts name the full `refs/tags/<tag>` namespace; later jobs check out the already proven
+source SHA. Every such job proves exact tag existence and equality among the tag, source, and
+`HEAD`; a branch with the same name, an ambiguous revision expression, a moved tag, or a mismatched
+checkout therefore fails closed. `./tool/release_validate_version.ps1` then checks that this tag, the `pubspec.yaml`
+application version without its build suffix, and the `rust/Cargo.toml` package version are
+identical. The daily lint gate runs a passing prerelease fixture and representative rejection cases
+for these version, ref-identity, and job-isolation contracts. It also builds a controlled portable
+fixture and proves that missing runtime files and unsafe archive paths are rejected.
 
 The published-release workflow resolves the version contract from the published tag and downloads
 only `Cedarflake-Ame-<tag>-windows-x64-portable.zip`. It first validates bounded safe archive paths,
@@ -94,6 +138,13 @@ thread, while a second process waits instead of starting another Dart compiler o
 The daily gate expands `test` and executes every widget-test file separately with
 `--concurrency=1`, preventing suite-level state leakage and avoiding Flutter's processor-count-based
 default concurrency.
+
+The static bridge gate does not treat the generated content-hash constant as sufficient freshness
+evidence. In addition to matching the Rust and Dart hashes, it checks timeline load, root removal,
+and catalog-reclamation start, snapshot, and cancellation end to end: the Rust API source must not
+declare these functions `sync`, the Dart API and generated interface must return `Future`, generated
+Dart must dispatch through `executeNormal`, and generated Rust must use both `wrap_normal` and
+`FfiCallMode::Normal`.
 
 Run focused Flutter tests through the same lock-aware entrypoint:
 
@@ -756,9 +807,10 @@ After that gate has produced a complete Windows Release directory, create the po
   -ExpectedBrokerPublisher "<exact Authenticode signer subject>"
 ```
 
-The artifact is written to `build/release-artifacts/` with one `Cedarflake-Ame/` archive root. A tag
-push performs this step automatically only after its candidate gate passes. The accepted identity,
-x64-only support boundary, and deferred installer decisions are recorded in
+The artifact is written to `build/release-artifacts/` with one `Cedarflake-Ame/` archive root. A
+manual release request dispatched from protected `main` performs this step only after its candidate
+gate passes; a tag push never obtains signing credentials. The accepted identity, x64-only support
+boundary, and deferred installer decisions are recorded in
 [ADR 0015](../architecture/0015-windows-release-distribution.md).
 
 The portable ZIP contains the broker executable only as signed installer-compatible payload. It
@@ -766,14 +818,23 @@ does not install, start, repair, update, or remove SCM state and always remains 
 already installed for the protected Program Files client does not authorize a user-writable
 portable executable. Product admission rejects that portable identity before constructing or
 connecting the broker factory, and transport defense rejects it before any SCM or named-pipe side
-effect. The hosted candidate job builds once, imports an externally provisioned PFX,
-signs and verifies the application and broker, removes the temporary credential, and uploads that
-exact Release directory as a short-lived artifact. The publication job downloads and reverifies
-the same artifact without rebuilding. Published verification downloads the ZIP, validates safe
-archive structure, extracts into fresh bounded scratch storage, and revalidates both signatures,
-the exact publisher, x64 machine, and broker protocol before cleanup. The repository does not
-contain production signing credentials or a signed candidate. Until the external secrets and exact
-publisher are provisioned, candidate verification and publication fail closed by design.
+effect. The hosted candidate flow builds once without credentials, transfers a manifest-bound
+unsigned artifact to the protected Environment signer, and transfers the resulting immutable signed
+artifact to a separate credential-free verifier and read-only packager. The signer checks out no
+repository content and signs only the application and broker. The final write-capable publisher
+checks out no repository content, executes no repository script, and consumes only the manifest-
+bound ZIP after a current tag-to-source comparison and hash recheck. A successful candidate release
+invokes the reusable published-verification workflow directly with the admitted tag and publisher;
+the `release: published` entry point independently verifies releases created outside that candidate
+workflow, and `workflow_dispatch` is the recovery entry point. Published verification downloads the
+ZIP, validates safe archive structure, extracts into fresh bounded scratch storage, and revalidates
+both signatures, the exact publisher, x64 machine, and broker protocol before cleanup. The external
+event entry point requires the repository Actions variable `AME_WINDOWS_EXPECTED_PUBLISHER`. The
+repository does not contain production signing credentials or a signed candidate. Until the named
+Environment secrets, protected-main deployment restriction, required reviewer, immutable version-
+tag ruleset, exact `Windows Gate / Windows Gate` required check, and
+`AME_WINDOWS_EXPECTED_PUBLISHER` variable are provisioned, candidate verification and external
+publication verification fail closed by design.
 
 When current authorization exists and the retained real-library catalog is applicable to the
 release, append its validation explicitly:

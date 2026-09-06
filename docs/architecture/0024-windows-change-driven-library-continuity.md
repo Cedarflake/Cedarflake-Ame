@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-22
-- Last amended: 2026-09-02
+- Last amended: 2026-09-05
 - Supersedes: ADR 0023
 - Historical predecessor: ADR 0022
 
@@ -110,6 +110,65 @@ for an explicit baseline or a proven continuity gap.
 
 ## Decision
 
+### Source revision evidence at the change-driven boundary
+
+The accepted Windows 11 x64 boundary persists raw file `ChangeTime` as Ame-owned
+`SourceRevisionEvidence` using `windows-file-change-time-100ns-v1`. Handle-directory inventory uses
+`FILE_ID_EXTD_DIR_INFO.ChangeTime`; terminal inspection and publication revalidation use
+`FILE_BASIC_INFO.ChangeTime` from the already opened attribute handle. These calls read metadata
+only, retain `FILE_OPEN_NO_RECALL`/placeholder safeguards, and do not replace exact fingerprints.
+
+Schema v31 couples that evidence to a catalog-wide monotonic `source_generation`. A live watcher or
+startup-journal reconcile event is itself dirty evidence: an existing location is invalidated even
+when size, modification time, File ID, and ChangeTime compare equal or are unavailable. A proven
+pure rename may preserve its generation; inventory-inferred moves may not. All hardlink locations
+sharing a trustworthy File ID receive the same invalidation generation transactionally. Legacy v30
+preview ownership is detached because those artifacts have no revision proof, while legacy source
+revision remains NULL until bounded on-demand observation establishes a baseline.
+
+Path text and ordinary timestamps are therefore never a preview version. The same-path matrix is
+fail-closed: an in-place rewrite with a retained File ID is a modification; delete-and-recreate or
+atomic replacement with a new File ID is a replacement; a dirty event whose size, last-write time,
+File ID, and ChangeTime all compare equal still advances the generation; and an observation with no
+trustworthy revision cannot prove that a source is unchanged. A write through any proven hardlink
+alias invalidates every active alias. Rapid or coalesced writes may skip intermediate derived work,
+but the newest durable intent and generation win, so an older inspection or preview can never
+publish over the final source. Locked, partially written, truncated, zero-byte, wrong-extension,
+temporarily corrupt, unavailable, and cloud-placeholder states preserve retry or terminal evidence
+without reusing a stale artifact or hydrating the source; a later dirty event can recover the same
+logical location. A continuity gap does not guess from matching path metadata: it requires explicit
+recovery authority, while normal live and journal-confirmed changes remain independent of a full
+directory scan.
+
+### Preview publication at the change-driven boundary
+
+The current preview namespace is v3. Its cache key binds the requested variant to source revision
+and the catalog-wide source generation; recognized v1 and v2 files are managed only for inventory,
+accounting, reclamation, and explicit cleanup and can never be reused or promoted. Explicit
+`ForceRegenerate` bypasses both the early cache lookup and the late post-decode cache-race lookup.
+
+Preview work uses the already-open source file for its pre-decode and post-decode state checks, then
+holds the restrictive final source guard through physical artifact installation and catalog
+publication. The SQLite lease matches the exact root, active scan, location, generation, and source
+revision. A legacy NULL revision may be adopted once by the exact guarded location, but it never
+proves unchanged. Unrelated global catalog revisions are tolerated because query revision and
+source publication authority are distinct. A stale or superseded request discards only its staged
+work and never publishes `Failed`.
+
+On Windows, an existing target is atomically replaced with `ReplaceFileW` using zero flags;
+[`REPLACEFILE_WRITE_THROUGH` is unsupported](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-replacefilew),
+so this rebuildable cache does not claim power-loss write-through durability. The installation owner
+exclusively claims a same-directory managed temporary backup before passing it to `ReplaceFileW`.
+It never deletes the old target first. Error 1176 retains that target; error 1177 restores the old
+bytes from the explicit backup. Missing-target installation and backup restoration use
+`MoveFileExW` with zero flags so a concurrently appearing target cannot be overwritten. If restoring
+the old pathname fails, `preview_replace_restore_failed` reports the retained managed backup; it
+does not pretend restoration succeeded. Old bytes remain accounted until actually deleted, including
+post-install backup cleanup failures; staged bytes are discarded independently on failure. This
+narrow synchronous unsafe boundary and managed-temp recovery contract are owned by ADR 0005.
+SQLite ownership is published only after physical installation succeeds and the final source/lease
+guard still matches.
+
 ### Change sources and priority lanes
 
 Production has three distinct lanes:
@@ -163,6 +222,23 @@ reason while creating no change-queue entry and no metadata-inventory run. A lat
 gap may still request explicit recovery under the existing bounded policy. Per-root journal
 checkpoint validation, enqueue-before-advance, and the one-time migration baseline remain R2c-P and
 R2c-Q work; this foundation does not add or reinterpret persistence schema.
+
+A first import establishes its change boundary before enumerating the first directory. After the
+root and foreground scan generation exist, production first proves an `Available` root with a
+`Healthy` observer, probes the journal opening cursor without holding a catalog transaction, and
+then atomically persists supported capability, the P2 control, `FirstImportBoundary` authority, and
+the `Inventory` baseline bound to that scan. The foreground inventory is the baseline inventory; it
+is not followed by a second complete metadata pass. Its first snapshot may publish with newer P0
+work still pending, remains non-`Current`, captures a closing cursor after publication, replays the
+bounded journal interval, drains P0/P1, and becomes `Current` only through a finalizer that verifies
+the completed active scan, matching generation and closing boundary, covered checkpoint, empty
+change queues, and unretired authority in one transaction. A create, delete, rename, or same-path
+replacement during enumeration is therefore catch-up input rather than a reason to discard the
+inventory or ask the user to retry the whole root. If the broker is explicitly unavailable, the
+same pre-enumeration gate persists `LiveOnly` only after the observer is healthy; it never claims
+persistent journal continuity. A missing opening proof, changed root or volume identity, broken
+journal continuity, or generation mismatch fails into explicit recovery and cannot publish
+`Current`.
 
 ### Journal broker boundary
 
@@ -410,22 +486,25 @@ inspection and again immediately before its catalog transaction. A missing proof
 from the configured path: the operation fails closed to `RecoveryRequired` or `LiveOnly` and keeps
 the prior catalog authoritative.
 
-Publication normalizes the configured path to canonical long DOS names and opens the local DOS
-volume root plus every existing ancestor and the root as one RAII chain. The Win32 adapter opens
-the actual drive root (`C:\` for a C-drive path) with
-`FILE_TRAVERSE | FILE_READ_ATTRIBUTES | SYNCHRONIZE`; the native adapter opens every descendant
-component relative to its already pinned parent with pure `FILE_TRAVERSE`. Volume and descendant
-guards use read/write sharing but no delete sharing plus backup/open-reparse semantics; directory
-guards never use no-recall. After pinning a parent, a separate root-relative
-`FILE_READ_ATTRIBUTES | SYNCHRONIZE` metadata handle checks the next component's canonical final path, complete
-ID, volume, directory/reparse/offline state, NTFS volume, and actual parent case semantics before
-the next guard is opened. Neither
-`GetLongPathNameW` nor a handle-returned final path supplies authority or rewrites the configured
-path. The entire chain and one publication-namespace guard remain owned through the actual SQLite
-commit or rollback, including the second revision check. A renamed or replaced ancestor, renamed
-old root, replacement at the configured path, missing component, short-path expansion failure, or
-insufficient ancestor access therefore cannot inherit the old epoch or create a transient
-authoritative delta.
+Publication normalizes the configured path to canonical long DOS names and validates the local DOS
+volume root plus every existing ancestor and the root as one RAII chain. Each component must be an
+available, non-reparse directory. The adapter normally opens each component with
+`FILE_TRAVERSE | FILE_READ_ATTRIBUTES | SYNCHRONIZE`, read/write sharing, no delete sharing, and
+backup/open-reparse semantics; descendants are opened relative to an already pinned parent with its
+live case-sensitivity semantics. That same held handle supplies the component's canonical-path,
+complete-ID, volume, directory/reparse/offline, NTFS, and parent-case proof. If and only if that
+exact open returns Win32 `ERROR_ACCESS_DENIED`, an ACL trust boundary is admitted after independent
+access attempts prove that the current token cannot request `DELETE`, `WRITE_DAC`, or `WRITE_OWNER`
+on the component and cannot request `FILE_DELETE_CHILD`, `WRITE_DAC`, or `WRITE_OWNER` on its
+parent. Any other open failure or mutable permission fails closed. Directory guards never use no-
+recall. Neither `GetLongPathNameW` nor a handle-returned final path supplies authority or rewrites
+the configured path. The configured root itself must reproduce the persisted root-generation
+`FILE_ID_INFO` through its held no-delete-sharing guard. Every acquired ancestor guard, the durable
+root proof, and for preview publication the terminal source handle remain owned through the actual
+SQLite commit or rollback, including the second revision check. A renamed or replaced mutable
+ancestor, renamed old root, replacement at the configured path, missing component, short-path
+expansion failure, or unproven access denial therefore cannot inherit the old epoch or create a
+transient authoritative delta.
 
 The publication capability is represented by a private-field, non-cloneable
 `PublicationGuardedFileDiscovery`. Its constructors are crate-private and perform the complete
@@ -448,12 +527,15 @@ This adapter adds the following binding safety invariants:
 
 - discovery root and directory handles request only metadata/list rights, use backup and no-follow
   flags, share delete/read/write, have one RAII owner, and remain live for every query;
-- the configured-namespace volume handle opens the local DOS drive root with
-  `FILE_TRAVERSE | FILE_READ_ATTRIBUTES | SYNCHRONIZE`; descendant publication guards alone use
-  pure `FILE_TRAVERSE` relative to their parent. Both use backup/no-follow flags and read/write
-  sharing without delete sharing. Directory guards never request no-recall. A separate relative
-  `FILE_READ_ATTRIBUTES | SYNCHRONIZE` metadata handle validates each component from its already
-  fixed parent, and every guard remains live until catalog commit or rollback;
+- each configured-namespace component is opened with
+  `FILE_TRAVERSE | FILE_READ_ATTRIBUTES | SYNCHRONIZE`, no delete sharing, and backup/open-reparse
+  semantics. That one held guard both pins the component and proves its attributes, canonical path,
+  volume, complete identity, directory/reparse/availability state, filesystem, and live case
+  semantics. An exact Win32 `ERROR_ACCESS_DENIED` may instead form an ACL trust boundary only when
+  direct access probes prove the current token lacks delete and ACL/owner mutation rights on it and
+  corresponding delete-child and ACL/owner mutation rights on its parent. Any other result fails
+  closed. The configured root must reproduce its durable identity under the held no-delete-sharing
+  guard, and every acquired guard and proof remains live until catalog commit or rollback;
 - the root-relative UTF-16 name buffer remains alive and immutable for the complete synchronous
   `NtCreateFile` call; `UNICODE_STRING.Length` and `MaximumLength` are checked byte counts without a
   layout cast, `OBJECT_ATTRIBUTES` is initialized with its exact generated type and size, and its
@@ -969,8 +1051,11 @@ installer compatibility but has no SCM operation and does not activate it. The c
 has no production signing credential or signed candidate; release-candidate scripts therefore
 require an immutable signed Application bundle, its exact signed broker path, and the expected
 publisher and fail closed when any input is absent. Hosted release automation accepts production
-PFX material only through repository secrets, builds and signs once, uploads that exact bundle as a
-short-lived artifact, and makes packaging and post-publication verification revalidate the same
+PFX material only from the named protected signing Environment. An unsigned build runner first
+proves the exact full tag ref and uploads a bounded manifest artifact; a fresh signer runner checks
+out and executes no repository code, signs only the two fixed executable paths, and uploads a new
+immutable artifact; a third credential-free runner proves the same tag and verifies that signed
+artifact before publication. Packaging and post-publication verification revalidate the same
 application/broker signatures and broker protocol without rebuilding.
 
 The installed-broker acceptance harness is intentionally separate from release signing. It requires
@@ -1042,6 +1127,9 @@ repair of V1 and a distinct-hash same-publisher upgrade to V2 before its restart
 - a controlled running-time change reaches the visible catalog at P95 no greater than one second;
 - the same P95 bound holds while P1 contains a large backlog and while P2 enumerates a target-scale
   recovery root;
+- the same P0 bound holds while a replacement full scan is running: pending and already leased P0
+  remain outside scan ownership, each published delta is mirrored into staging, scan publication
+  waits for unfinished P0, and scan cancellation loses no P0 work;
 - a closed-process single-file create becomes visible at P95 no greater than two seconds after the
   normal application runtime is ready, without O(N) root enumeration;
 - one recovering or unavailable root cannot delay P0 or continuous P1 work for another root;
@@ -1065,13 +1153,15 @@ repair of V1 and a distinct-hash same-publisher upgrade to V2 before its restart
 
 The 2026-08-30 working tree has an R2c-Q remediation checkpoint behind schema v29. Production starts
 live observation before its retained broker session, services P0 before each lower-lane page, and
-keeps a dedicated bounded P0 worker separate from P2 recovery. Each production runtime epoch first
-creates one validated SQLite session: schema migration and complete cross-table validation run once,
-outside the runtime mutex and every lane-priority permit. Later poll and worker connections perform
-only constant-size checks for the canonical catalog path, Windows file identity, WAL mode,
-application ID, user version, and schema cookie. A path replacement or schema-cookie change makes
-the session stale and forces a fresh complete validation before use; ordinary data-version changes
-do not. The lane-aware admission permit begins at `BEGIN IMMEDIATE` and ends at commit or rollback,
+keeps a dedicated bounded P0 worker separate from P2 recovery. The application process creates one
+validated SQLite session per catalog path and the synchronization runtime borrows that shared owner:
+schema migration and complete cross-table validation run once, outside the runtime mutex and every
+lane-priority permit. Later scan, preview, gallery, poll, and worker connections perform only
+constant-size checks for the canonical catalog path, Windows file identity, WAL mode, application ID,
+user version, and schema cookie. A path replacement or schema-cookie change makes the session stale
+and requires a fresh complete validation before use, except that renewal is deferred while a
+foreground scan owns the same session; ordinary data-version changes do not. The lane-aware admission
+permit begins at `BEGIN IMMEDIATE` and ends at commit or rollback,
 so it never covers connection open, PRAGMA configuration, migration, validation, filesystem, broker,
 hash, signature, or pipe I/O. The runtime registry uses short epoch and ownership transitions, so
 stop can cancel and join while those slow operations are blocked and late results cannot install
@@ -1114,14 +1204,16 @@ check. Media inspection rebinds the configured root with a no-delete handle, the
 root-relative terminal-file `NtCreateFile` with native no-recall and no delete sharing. It
 revalidates the metadata handle's complete 128-bit identity, attributes, volume, and live root-
 identity containment before reading; raw volume/device namespaces never reach an OS open. Every
-publication boundary holds the full configured namespace chain from the local DOS volume root
-through every ancestor and the root. The volume handle uses
-`FILE_TRAVERSE | FILE_READ_ATTRIBUTES | SYNCHRONIZE`; root-relative descendant guards alone use
-pure `FILE_TRAVERSE`. Both use backup/open-reparse flags and no delete sharing; directory guards do
-not request no-recall. The configured long-DOS path supplies normalized descendant names rather
-than the volume-handle path. A separate relative `FILE_READ_ATTRIBUTES | SYNCHRONIZE` metadata
-handle validates each component from its already fixed parent. The chain remains held
-through the real SQLite commit or rollback.
+publication boundary validates the full configured namespace chain from the local DOS volume root
+through every ancestor and the root. Every directly pinnable component uses one held
+`FILE_TRAVERSE | FILE_READ_ATTRIBUTES | SYNCHRONIZE` guard with no delete sharing; the same handle
+supplies its attribute, canonical-path, volume, identity, availability, and filesystem validation.
+An exact Win32 `ERROR_ACCESS_DENIED` is admitted only when access probes prove the current token
+cannot delete or change the component's ACL/owner and cannot use its parent to do so. Backup/open-
+reparse flags are retained and directory guards do not request no-recall. The configured long-DOS
+path supplies normalized descendant names rather than a handle-returned path. The configured root
+reproduces its durable identity through its held guard. Every acquired guard and the durable root
+proof remain held through the real SQLite commit or rollback.
 An ancestor junction swap, moved-out object, offline object, renamed configured root, replacement
 root, missing root, or root-proof mismatch remains retryable and cannot publish absence or
 `Current`. The v27-to-v28 migration discards unproven derived active work and schedules bounded
@@ -2103,9 +2195,10 @@ limit.
 
 Releasing matching P1/P2 capacity wakes a deferred gap in the same completion or finalization
 transaction. A later precise P0 path event remains independent rather than being absorbed into the
-capacity-wait root gap, so recovery work cannot monopolize the reserved live lane. The schema-v30
-attempt, failure-code, lease, and retry fields already represent this invariant; no DDL or v31
-migration is required.
+capacity-wait root gap, so recovery work cannot monopolize the reserved live lane. At this
+historical checkpoint, the schema-v30 attempt, failure-code, lease, and retry fields already
+represented the capacity-deferral invariant without another DDL change. That scoped conclusion did
+not remove the later schema-v31 source-revision and source-generation migration.
 
 A root can legitimately own more than one unretired P2 authority while an older inventory page is
 retained, for example when a watcher gap arrives during a containment baseline. A retained source
@@ -2146,9 +2239,10 @@ This completion uses only disposable source and catalog storage. It does not acc
 Cloud Files, SCM, a real named-pipe/FSCTL journal, or signing; it does not add source mutation or an
 automatic full scan. R2c-R remains not accepted and R2c-O remains active.
 
-### Phase-31 migration ownership and crash-cleanup remediation
+### Historical Phase-31 migration ownership and crash-cleanup remediation
 
-Schema v30 continues to evolve in place because it has not shipped. The v29 migration may create an
+At this prerelease checkpoint, schema v30 continued to evolve in place because it had not shipped.
+The v29 migration may create an
 `explicit_recovery_required` claim only for a truly naked P1 root fallback: the row has no
 `authoritative_scan_id`, catch-up source or watermark, supersession target, queue or journal
 lineage, recovery authority, persistent-journal baseline, or metadata-inventory candidate owner.
@@ -2179,8 +2273,9 @@ delete. An injected cleanup failure rolls back claim restoration, scan terminali
 deletion, and asset deletion together; a later reopen can retry, and subsequent reopen is
 idempotent with no dangling handoff references.
 
-This is disposable-catalog implementation and migration evidence. It changes neither the external
-broker, bridge shape, schema version, nor source-media policy. R2c-R remains a non-external
+This was disposable-catalog implementation and migration evidence. That historical slice changed
+neither the external broker, bridge shape, schema version, nor source-media policy; the later v31
+source-state contract supersedes only its no-schema-change status. R2c-R remains a non-external
 checkpoint and is not accepted; R2c-O remains active. Daily, Release, the complete 19-case runner,
 retained-root, real Cloud Files, SCM, named-pipe/FSCTL, and signing evidence remain outside this
 focused slice.
@@ -2203,8 +2298,10 @@ lease or queue mutation. Refund on lease expiry, exemption from maximum attempts
 and capacity wake-up no longer use a string match alone. Each requires the same exact typed gap
 shape; wrong lane, scope, status, or recovery-claim state receives ordinary expiry, retry-budget,
 and terminal semantics. The real typed deferral still refunds its leased attempt, survives restart,
-wakes when matching recovery capacity is released, and yields to ordinary P0 work. Schema v30
-already stores every required discriminator, so this correction introduces no v31 DDL.
+wakes when matching recovery capacity is released, and yields to ordinary P0 work. At that
+historical checkpoint, schema v30 already stored every discriminator required by this queue-only
+correction, so the correction itself introduced no DDL. The later v31 source-state migration is a
+separate requirement.
 
 The queue red reproduced a leased capacity gap absorbing a precise path (`superseded_count = 1`),
 and the generic-retry red forged `live_gap_p2_capacity_deferred`, then observed lease-expiry refund
@@ -2350,6 +2447,181 @@ violation handling while their active-guard failure assertions remain immediate 
 This is migration and startup-recovery evidence, not retained-root synchronization acceptance;
 the final accumulated independent audit and hosted PR gate remain the closeout evidence. R2c-R
 remains not accepted and R2c-O remains active.
+
+### Phase-34 blocked-recovery scheduling and runtime observability
+
+An unconsumed `explicit_recovery_required` claim is a user-authorized foreground boundary, not
+automatic P2 authority. While the projected root is `recoveryBlocked`, production does not select
+candidate, legacy-unowned, or control P2 work for that root. This prevents historical debt from
+repeatedly consuming SQLite and filesystem capacity while being unable to establish freshness.
+Reserved P0 live work, P1 journal work, and eligible P2 work for other roots keep their existing
+priority and fairness. A successful foreground update consumes the exact claim transactionally and
+then permits remaining independently authorized work to be reconsidered; failure, cancellation, or
+restart restores the same block. The runtime never clears the claim, advances a checkpoint, or
+claims synchronization merely to silence the UI.
+
+Root retirement and generation replacement also retire consumer ownership, not historical gap
+evidence. Before either transition supersedes unresolved work, the same transaction validates and
+deletes only exact, unconsumed `pending_journal` and `explicit_recovery_required` claims for the
+generation being retired. Their gap, lane, source evidence, and terminal history remain. Consumed
+journal-range, metadata-inventory, and foreground history remain unchanged; an active foreground
+consumer or any malformed relation fails with a typed conflict and rolls the entire lifecycle
+transition back. Supersession is limited to the exact retired generation.
+
+Schema v30 and v31 startup apply one exact-DDL-and-marker-gated, shrink-only compatibility repair
+for claims left behind by the earlier lifecycle omission. A candidate must retain the complete
+typed claim and gap shape, already be terminal with no successor, and be proven obsolete either by
+an absent inactive root or by a registered active root whose durable generation is strictly newer.
+The repair deletes only the unconsumed claim and never restores a gap to retry, fabricates journal
+coverage, advances a checkpoint, starts inventory, or removes history. Current-schema terminal
+inventory repair and this live-gap repair execute in one `IMMEDIATE` transaction followed by the
+unchanged full validator, so one contradictory row rolls back every repair. The v30-to-v31 path
+performs the same repair before live-gap validation. Focused evidence passes all 94 migration tests
+and all 90 change-queue tests, including the retained two-removed/one-advanced shape, pending-journal
+retry deadlines, idempotent reopen, mixed repairs, malformed-state refusal, and injected rollback.
+
+Phase 34 also revises the historical replacement-full-scan precedence inherited from ADR 0019.
+`begin_scan` excludes P0 Live rows from its high watermark, ownership capture, lineage completion,
+and abandonment release, including a P0 row that was already leased. Only the Live lane may cross a
+running replacement scan; P1 journal and P2 recovery retain their existing scan deferral. One
+`BEGIN IMMEDIATE` delta transaction publishes P0 to the active snapshot and mirrors the exact
+create, replacement, removal, terminal-media, and physical-identity hardlink result into the
+running scan's staging. Active and staged rows receive the same assigned source generation and
+revision, while physical/media state and preview invalidation fan out to every matching active or
+staged alias owned by that root and scan.
+
+A replacement scan cannot publish while ordinary P0 work for its root remains unfinished. Inside
+the publication transaction it reconciles staging against the latest active state, keeps the
+greater compatible generation, lets a newer active generation replace older incompatible staging,
+fails closed on incompatible equal-generation evidence, and recomputes the staged location count
+instead of trusting an earlier enumeration count. Cancelling or abandoning the scan removes its
+staging without changing pending, leased, or completed P0 state. This amendment makes the accepted
+P0 latency contract true during a user-requested update while retaining first-import precedence:
+before any active snapshot exists there is no trustworthy projection for a live delta to amend.
+
+Foreground finalization captures a connection-local SQLite TEMP validation roster before its first
+progress callback. Its fixed location-key traversal validates only that starting set in bounded
+windows; P0 additions, deletions, and replacements continue to mirror into staging without changing
+the validation denominator or restarting enumeration. Each roster item records a typed outcome:
+filesystem-verified, awaiting durable live reconciliation, or superseded by a live publication.
+The last outcome cannot later authorize the original roster payload merely because staging happens
+to match it again. Inside the existing atomic publication transaction, every staged location must
+match either its filesystem-verified roster payload or the current active publication across every
+source, terminal-media, metadata, and preview field. A missing roster location must also be absent
+from the active projection. An unpublished first import may retain an unverified roster payload
+only with its same-generation unresolved P0 path or root evidence; it remains pending, not Current.
+Original queue authority, namespace guards, identity reconciliation, and rollback remain mandatory;
+publication entrypoints without this foreground proof retain their original checks.
+
+Preview materialization may advance only the active projection while P0's matching staging row is
+still pending. Before the full-payload proof, the same transaction may adopt that active derived
+payload only when every non-derived source-lease field matches exactly, including physical identity,
+source revision, and source generation. It does not overwrite a staged payload that still exactly
+matches an independently filesystem-verified roster item. P0 takeover detection compares source
+leases rather than preview completion, so finishing a preview cannot spuriously enqueue that source
+again. Full preview, metadata, and terminal-state comparisons remain in the final proof; after
+snapshot replacement the existing artifact-reference transaction retains the adopted ready owner.
+
+The roster owns no persistent schema or migration. SQLite uses file-backed TEMP storage with a
+2 MiB page-cache setting and only one bounded validation window enters Rust memory. Its cost is
+temporary disk space proportional to the staged projection, not another source-directory scan.
+The scan-exclusive connection releases TEMP state on completion, cancellation, failure, or
+detachment; no fallible cleanup after COMMIT can relabel a successful publication as uncommitted.
+A generation-only watermark was rejected because a legitimate rename can preserve generation while
+moving across the keyset cursor. Counting mutable staging again was also rejected: equal final
+counts do not prove that every retained item was checked.
+
+Phase 34 also makes non-conflicting precise dirty evidence stronger than broad reconciliation during
+planning and durable queue coalescing. A live or startup `Path/Reconcile` owner is retained beside a
+root or subtree owner instead of being treated as covered, including after restart and across a
+consistent rename lineage. A later precise event that invalidates a leased rename is published
+beside conservative root recovery; contradictory rename lineages remain root-only because their
+removal semantics cannot be proven independently. Only the absolute bounded-intent limit may collapse a
+representable root-plus-precise set to one P0 root
+`FreshnessUnknown` gap. The authoritative worker then promotes that gap to a
+`WatcherUncoveredGap` recovery authority; its bounded metadata inventory emits existing files as
+precise candidates even when File ID, size, last-write time, and source revision still match. The
+result advances source generation and invalidates derived owners conservatively. Inventories without
+journal, broker, or watcher gap authority retain the ordinary unchanged fast path.
+
+Focused 2026-09-05 evidence covers pending P0 arriving after root-directory enumeration, already
+leased P0 at `begin_scan`, exhausted `retry_wait` P0, cancellation, active/staging create and
+removal, newer-active generation precedence, P1/P2 deferral, valid and terminal hardlink fan-out,
+the application Live-lane path, and production root/subtree/path namespace rollback. The production
+path test also proves the exact P0 worker reaches the held namespace guard during a running scan,
+records a Win32 sharing violation, rolls the failed publication back to durable retry, and leaves
+the scan running. These are focused implementation checks; they do not claim the still-pending
+complete Daily, Release, hosted, retained-root, or accumulated-audit gates.
+
+One multi-root dialog confirmation grants explicit foreground update authority independently to
+each selected configured root; it does not create one cross-root scan or transaction. The Flutter
+application coordinator admits at most two different roots concurrently and queues the remainder.
+Every admitted root owns its own scan identifier, durable checkpoint, progress, failure, and cancel
+control. SQLite's existing priority-aware write admission serializes the short catalog mutations,
+and each root publishes atomically without making another root's completion a prerequisite. This
+bound applies across roots on the same physical volume as well as different volumes, so explicit
+batch selection cannot become unbounded parallel source enumeration or bypass P0/P1 priority.
+Unavailable roots are not admitted. Catalog publication and presentation reload are distinct: a
+root reports completion only after the current query reload succeeds, while reload failure becomes
+an explicit per-root result whose retry does not repeat source enumeration. Terminal scan outcomes
+remain owned by their run until its event stream closes; only then does the application expose
+completion or retry and release the root for another explicit update.
+
+Foreground scans, preview materialization and cleanup, gallery loads, storage validation, and the
+synchronization runtime share one process-owned validated catalog session per catalog path. Full
+schema migration, contract validation, and interrupted-claim recovery therefore execute once for a
+process session instead of once per scan, preview, load, or synchronization connection. A foreground
+scan registers its cancellation token before storage resolution and binds the catalog path before
+open. The validated-session owner hands a successfully checked connection to the scan and marks that
+catalog protected under the same per-catalog session lock before `begin_scan`, so neither concurrent
+startup recovery nor stale renewal can cross the open-to-begin handoff. If the schema cookie changes
+while such a scan is active, renewal fails with the typed
+`catalog_validated_session_stale_while_scan_active` result until the scan finishes; it must not run
+startup recovery against a row owned by the current process. Ordinary lane connections continue to
+perform the session's bounded identity and schema-cookie checks.
+
+The initial current-schema proof runs structural checks and the complete authority-row audit in
+one SQLite read snapshot, including canonical journal payloads, cross-root consumer ownership,
+lane/recovery bindings, and source generations. Persisted validation markers cannot replace that
+proof. Reuse belongs to the process session, not to a reduced first-open validator. Invalidation
+retains the per-path owner, rejects an in-flight obsolete validation result, and cannot admit
+startup recovery while a foreground scan is active. Ordinary maintenance contention retains a
+valid session; it does not trigger another catalog-wide audit for every preview connection.
+
+Once `begin_scan` succeeds, every unexpected application error attempts transactional abandonment:
+the run becomes failed, explicit foreground claims return to
+`explicit_recovery_required`/`retry_wait`, leased queue ownership is released, and scan frontier,
+directory-entry, publication-binding, lineage, and staged-location rows are removed. If that cleanup
+also fails, `scan_failure_cleanup_failed` preserves both the primary and cleanup error codes and
+bounded messages instead of masking either failure. A sink detach, explicit pause, or shutdown
+suspend retains a checkpoint only for a root with no prior published scan. The same controls on an
+already published root abandon that update's staging, because a batch update cannot be represented
+by the singular foreground-resume bridge contract.
+
+Application shutdown cancels and drains every admitted batch-update scan instead of suspending the
+batch. Queued roots are cancelled without starting, running roots receive their own cancel request,
+and window shutdown waits for every scan stream to terminate. Unfinished batch progress is
+intentionally not resumed on the next launch. On crash recovery, current-schema validation first
+restores any interrupted explicit foreground claims. The foreground recovery entry then converges
+all remaining running or paused rows deterministically: it preserves the newest paused unpublished
+first import when one exists, otherwise the newest running unpublished first import, and atomically
+abandons every published-root update and every additional unfinished import. Abandonment restores
+claims and removes staging before another update is admitted; a paused unpublished import is never
+silently replaced by a running candidate. Recovery projection shares the per-catalog session lock
+and is deferred while this process owns any foreground scan, so a retry or terminal reconciliation
+query cannot classify live work as crash residue. This is the narrow consequence of retaining the
+singular bridge contract: at most one unfinished first import resumes, while every interrupted update
+restarts
+from the last atomically published catalog after fresh user authorization. The last published catalog
+remains trustworthy and the user may explicitly retry any root; shutdown and recovery never combine
+roots into a transaction or mutate source media.
+
+The nominal 250 ms presentation poll remains a bounded state-snapshot cadence, not a license for
+repeated schema preparation or source enumeration. Production records privacy-safe stage timing
+only for slow or failed calls so catalog open, root availability, queue metrics, journal/live/P2
+scheduling, and projection can be distinguished. No-change startup and steady polling remain O(1)
+with respect to source-root entries. These diagnostics do not expose full paths and do not change
+lane capacity, retry policy, or acceptance thresholds.
 
 ## References
 

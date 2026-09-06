@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-07
-- Last amended: 2026-08-20
+- Last amended: 2026-09-05
 - Supersedes: ADR 0003
 
 ## Context
@@ -51,6 +51,10 @@ Use one unified gallery with these presentation rules.
   persistent blue rule.
 - Local, cloud-backed, unavailable, and removable sources remain folders in one list. Availability
   is row status, not a separate provider hierarchy.
+- A source-row subtitle is reserved for compact actionable state: synchronized, updating, blocked,
+  or unavailable. A healthy `LiveOnly` capability explanation is not repeated or truncated in each
+  row; it is exposed through the main notification/history surface and accessible compact-row
+  description. A blocked explicit recovery remains visible and actionable.
 - Truncated source and folder labels expose their complete user-readable path through a tooltip.
   Windows device prefixes such as `\\?\` remain an adapter detail and are never shown as part of a
   path presented to the user.
@@ -90,6 +94,36 @@ Use one unified gallery with these presentation rules.
 - A source row's overflow action, secondary click, and keyboard gesture open one shared menu for
   Rescan, Open in File Explorer, and Remove from Ame. Removing a root unregisters catalog state and
   never deletes its directory or files.
+- After Remove from Ame is confirmed, the dialog closes and the controller publishes a dedicated
+  removing state before native catalog work begins. The temporary task surface names the affected
+  source, states that source files are unchanged, and remains visibly indeterminate while the
+  catalog transaction and bounded post-removal gallery reload run. The first removing frame is
+  rasterized before the bridge call is admitted, duplicate removal and update commands are disabled,
+  and a failure retains the exact root identity for retry instead of falling into import behavior.
+  Native success and an already-absent result both establish the same idempotent committed boundary.
+  At that boundary the controller immediately removes the root and its loaded locations from the
+  in-memory roots, assets, query, and selection projections and clears the old timeline, so no ghost
+  source or stale navigation data can remain interactive while display reload continues. Completion
+  waits only for the bounded first catalog page and root list. The full timeline is loaded separately
+  in the background and may publish only for the same request sequence, query, revision, and query
+  identity. If the committed bounded reload fails, the task remains a dedicated, non-dismissible
+  `已移除，正在刷新显示` recovery state; Retry repeats only that reload and never resubmits
+  unregistration. Removal has no misleading mid-transaction cancel action because catalog cleanup
+  commits atomically.
+- Update Library opens one Material multi-selection dialog over the configured source roots. The
+  invoked root is selected initially, and the user may select additional roots before one
+  confirmation starts the work. Already active roots remain visible but unavailable for duplicate
+  selection; missing, inaccessible, offline, and not-yet-proven roots are also visible but disabled
+  because an explicit update cannot make an unavailable source readable. Ame runs at most two root
+  updates concurrently and queues any remaining selection;
+  the temporary progress surface preserves one status, progress, failure, retry, and cancellation
+  control per root. First import remains `添加文件夹`; an update of an already configured root is
+  always `更新图库` / `正在更新图库` and never inherits import wording merely because both operations
+  use the same native scan adapter. A native scan completion enters `正在刷新显示`; the row reaches
+  `更新完成` only after the current catalog view reloads. Reload failure remains visible on that row,
+  and Retry repeats only the reload rather than scanning the source again. Terminal actions become
+  interactive only after the owning scan stream has closed and left the active-run table, so an
+  immediate retry or next update cannot be silently rejected by the previous run.
 - Menu placement, focus, dismissal, keyboard navigation, and semantics use Flutter Material menu
   primitives. Source-file edit, print, share, move, copy, rename, and delete actions remain absent
   until separately accepted workflows own them.
@@ -106,9 +140,10 @@ Use one unified gallery with these presentation rules.
   edge reuses the caption controls accepted by ADR 0012. Returning to the gallery preserves the
   existing gallery widget, query, selection, and scroll position.
 - Flutter `InteractiveViewer` and `TransformationController` own image panning and zoom transforms.
-  Material `Slider`, `IconButton`, `MenuAnchor`, and modal bottom-sheet primitives own zoom input,
-  navigation, read-only actions, and information presentation. The product-specific layer only
-  calculates fit-to-window versus actual-pixel scale and connects gallery navigation.
+  Material `Slider`, `IconButton`, root-navigator popup-menu routes, and modal bottom-sheet
+  primitives own zoom input, navigation, read-only actions, and information presentation. The
+  product-specific layer only calculates fit-to-window versus actual-pixel scale and connects
+  gallery navigation.
 - The source image is loaded for viewing. A derived preview may be shown while it loads or as an
   explicitly labelled fallback when the source is unavailable; a preview is never presented as the
   original without that state being visible.
@@ -193,7 +228,11 @@ Use one unified gallery with these presentation rules.
 ### Feedback and settings
 
 - Import and update work uses temporary action-specific bottom progress with cancellation; there is
-  no permanent task destination.
+  no permanent task destination. A multi-root update remains one temporary surface with
+  independently labelled root rows rather than collapsing failures, progress, or cancellation into
+  one synthetic cross-root task. Closing Ame cancels every admitted update and waits for each scan
+  stream to finish; queued roots are cancelled before they start. Batch progress is not presented as
+  resumable after restart, while the last trustworthy published catalog remains available.
 - Non-task status changes and failures use one bounded bottom notification queue. Source rows retain
   only their compact availability or freshness label; reconciliation cause, affected counts, source
   path, stable technical code, and retry or reconcile action belong to the notification detail
@@ -208,9 +247,9 @@ Use one unified gallery with these presentation rules.
 - The settings canvas uses shallow, plain-language Material rows grouped as Personalization,
   Browsing, Storage, and About. Each row has an icon, a user-facing name, one short explanation,
   and a right-side Material control where the setting is actionable.
-- Flutter `Card` and `ListTile` own settings grouping and row semantics. `DropdownMenu`,
-  `OutlinedButton`, and progress indicators own choices, actions, and storage feedback; custom code
-  only supplies the responsive page composition and Ame-owned state connections.
+- Flutter `Card` and `ListTile` own settings grouping and row semantics. `OutlinedButton`,
+  `CheckedPopupMenuItem`, and progress indicators own choices, actions, and storage feedback; custom
+  code only supplies the responsive page composition and Ame-owned state connections.
 - Internal database versions, task queues, raw worker counts, hash engines, and analysis parameters
   are not user settings. The preview loading preference is the narrow exception: it exposes only
   `small`, `medium`, and `large` resource policies while ADR 0005 retains ownership of the internal
@@ -254,32 +293,58 @@ Flutter 3.44.9 was verified to provide `Slider`, `IconButton`, `TextButton`, `Ve
 those primitives.
 
 The official Material 3 menu catalog remains the basis of settings choices. Flutter 3.44.9 was
-verified to provide controlled `DropdownMenu` selection, selection callbacks, disabled search, and
-select-only behavior. Preview loading speed therefore reuses the repository-owned `SettingsChoice`
-composition and adds no custom pointer, focus, keyboard, or semantics layer.
+verified to provide `OutlinedButton`, `CheckedPopupMenuItem`, root-navigator `showMenu`, initial-value
+positioning, selection callbacks, disabled items, focus traversal, and configurable
+`AnimationStyle`. Its `DropdownMenu` was also evaluated, but it constructs an internal
+`MenuAnchor`/`OverlayPortal` and does not expose the route-level transition contract used elsewhere
+in Ame. It is therefore not retained as a settings exception on Windows 11 x64. The
+repository-owned `SettingsChoice` composes the first-party button and checked popup items through
+`AmePopupMenuButton`; preview loading speed and preview-cache budget reuse that control with their
+existing widths, current-value rendering, disabled state, keyboard behavior, and semantics.
+
+The official Material 3 Dialog and Checkbox catalogs remain the basis of multi-root library update
+selection. The repository-pinned Flutter 3.44.9 SDK provides `showDialog`, `AlertDialog`, and
+`CheckboxListTile`, including keyboard, focus, dismissal, checked-state semantics, and the dialog
+route. Ame adds only configured-root availability and active-task eligibility plus the selected-root
+set; it does not implement a parallel custom selection control.
 
 The official Material 3 Icon button, Menu, and Badge catalogs were evaluated for notification
 history and unread state. Flutter 3.44.9 provides `IconButton`, `MenuAnchor`, constrained
-`MenuStyle`, and small `Badge`; the pinned Material Symbols package also provides distinct
+`MenuStyle`, root-navigator `showMenu`, configurable `AnimationStyle`, and small `Badge`; the pinned
+Material Symbols package also provides distinct
 `notifications_rounded` and `notifications_unread_rounded` glyphs. The accepted bar uses the two
 glyph states because the product requires an icon swap with a dot and no count. The bounded history
-reuses `AmeMenuAnchor` so pointer, keyboard, focus, dismissal, and accessibility behavior remain
+reuses `AmePopupMenuButton` so pointer, keyboard, focus, dismissal, and accessibility behavior remain
 framework-owned; the product layer owns only queue state, text, severity, and action routing.
 
 Flutter 3.44.9 can publish retained `OverlayPortal` semantics updates that violate Windows
-`AccessibilityBridge` transaction preconditions. Sibling `Tooltip` and stable `MenuAnchor`
-controls can exchange traversal ownership during an overlay transition, so Ame keeps the framework
-controls and isolates those bounded anchors with a dedicated `Semantics` container. The pinned SDK's
-animated `MenuAnchor` can also paint a follower menu at its final visual position while its pointer
-hit-test geometry still resolves to content behind that menu. `AmeMenuAnchor` therefore leaves
-`animated` disabled and verifies a real item activation through the painted menu. Animation may be
-restored only after a Flutter SDK upgrade revalidates visual placement, pointer hit testing,
-keyboard behavior, and the native accessibility canary. A virtualized photo tile is different:
-retaining one `MenuAnchor` portal per visible tile multiplies the number of subtrees detached and
-introduced during sliver recycling. Photo tiles therefore keep their Material focus, pointer, and
-keyboard entry points but create one root-navigator popup route only when a menu is requested; idle
-and open tiles do not retain per-tile `MenuAnchor` portals. Dynamically expanded folder rows use the
-same on-demand route ownership rule.
+`AccessibilityBridge` transaction preconditions. Real retained-catalog interaction produced
+repeated orphan-node rejection after the earlier dedicated `Semantics` container mitigation, so
+that wrapper is not accepted as sufficient on Windows 11 x64. The first-party `Tooltip` was
+evaluated but cannot be retained on this pinned Windows engine because its visual surface is owned
+by that failing portal path. `AmeTooltip` instead keeps one stable framework `Semantics.tooltip` on
+the target and creates a visual `OverlayEntry` only after pointer hover. The visual entry is
+`IgnorePointer`, excluded from semantics, bounded to the screen, fades through a lazily allocated
+framework `AnimationController`, and is removed after exit or target disposal. It neither retains
+an idle route nor replaces focus, keyboard, activation, or screen-reader ownership. Other platforms
+retain the first-party tooltip. The pinned SDK's animated
+`MenuAnchor` can also paint a follower menu at its final visual position while its pointer hit-test
+geometry still resolves to content behind that menu. Ame therefore does not retain `MenuAnchor`
+portals for application dropdown or command menus: settings choices, preview-cache budget, source,
+folder, photo, toolbar, notification, and viewer menus all create the same root-navigator
+`PopupMenuRoute` only when requested. The shared route owns one visible Material transition
+contract: 200 milliseconds, ease-out cubic when opening, and ease-in cubic when closing.
+This prevents motion from changing with the call site while retaining framework-owned pointer,
+keyboard, focus-return, dismissal, and accessibility behavior. Changing menu motion is a single
+application-wide decision and requires the native accessibility, visual placement, pointer hit-test,
+and keyboard canaries to pass. A later pinned SDK upgrade may return Windows to the first-party
+tooltip only after that same native accessibility sequence passes. Accessible names, keyboard
+activation, focus return, visual hover, and complete-path discoverability remain required. No Ame
+menu retains an idle route. This matters most for virtualized photo tiles, where retaining one `MenuAnchor`
+portal per visible tile multiplies the number of subtrees detached and introduced during sliver
+recycling. Photo tiles therefore keep their Material focus, pointer, and keyboard entry points but
+create one root-navigator popup route only when a menu is requested. Dynamically expanded folder
+rows use the same on-demand route ownership rule.
 
 Material `Slider` also retains a value-indicator portal. When the gallery's timeline Slider becomes
 offstage inside the viewer `IndexedStack`, Flutter can prune that portal node and then serialize its
@@ -327,10 +392,40 @@ theme type crossing into widgets or application contracts.
   viewer Slider, viewer menu, viewer-return sequences, and deep virtual-gallery jumps with repeated
   on-demand photo menus against the retained Flutter semantics child-graph model.
 - The native Windows accessibility integration runs both a virtual-gallery stress sequence and a
-  populated application sequence covering stable toolbar and source menus, deep scrolling,
-  on-demand photo menus, timeline and viewer Sliders, viewer menus, and repeated viewer return. It
-  rejects any `AccessibilityBridge` `ui::AXTree` error captured from the engine and complements
-  rather than weakens the model's deterministic invariant coverage.
+  populated partial-detail application sequence covering adjacent source controls, stable toolbar
+  and source menus, menu dismissal during movement, deep final-geometry unloaded-slot replacement,
+  real pointer-driven timeline and viewer Sliders, viewer menus, repeated viewer return, and a
+  settings choice opened through the shared popup route. A test-only, nonce-bound checkpoint
+  protocol holds the application at deterministic open and dismissed states while an independent
+  PowerShell UI Automation client locates the runner's direct desktop child window by process ID
+  and traverses its native descendant tree. The gate requires phase-specific exact accessible names
+  and control types on visible reachable controls, requires popup names to be absent after
+  dismissal, rejects an incomplete or out-of-order checkpoint transcript, and still rejects every
+  `AccessibilityBridge` `ui::AXTree` error captured from the engine. The Flutter command is admitted
+  to a kill-on-close Windows Job Object before execution and has a 15-minute parent wall-clock
+  deadline. Native UIA reads run in a separate single-purpose probe process, not on the deadline-
+  owning parent thread. Each probe has its own kill-on-close Job Object and a parent-enforced
+  deadline of at most eight seconds, further capped by the complete gate's remaining time. A blocked
+  provider therefore cannot prevent the parent from terminating the probe and test process trees.
+  That parent is the only deadline owner. The probe atomically publishes bounded, nonce-, phase-,
+  and process-bound progress at native-call boundaries, including the last assertion mismatch.
+  After termination the parent validates and retains the last complete evidence record; progress
+  is never sufficient for acknowledgement or success. This distinguishes loading, window lookup,
+  tree traversal, and property reads without extending the deadline or weakening the UIA contract.
+  Each traversal uses a fresh
+  [UIA CacheRequest](https://learn.microsoft.com/en-us/dotnet/framework/ui-automation/use-caching-in-ui-automation)
+  to obtain the same six properties in bulk. Its raw-view, element-only cache scope applies to
+  every result of the unchanged full-subtree search; no snapshot survives a retry or checkpoint.
+  The dedicated PowerShell probe starts explicitly in MTA and checks that apartment before making
+  any UIA call, following Microsoft's
+  [UIA threading contract](https://learn.microsoft.com/en-us/windows/win32/winauto/uiauto-threading).
+  This affects neither the Flutter thread model nor the parent's process deadline.
+  A controlled blocked-probe fixture verifies deadline rejection and descendant cleanup without
+  traversing a real application or library. The process-completion evidence boundary replaces the
+  unified output log with the current Flutter output, validated phases, exit code, and run/cleanup
+  failure metadata before returning a run or cleanup exception. A failed or timed-out run must not
+  retain a previous successful transcript. This native evidence complements rather than weakens the
+  model's deterministic invariant coverage.
 - Pure layout and widget tests confirm balanced justified rows fill one gallery width and sparse rows
   do not exceed their enlargement limit.
 - Flutter analysis, the full Flutter test suite, and a Windows Debug build passed for the accepted

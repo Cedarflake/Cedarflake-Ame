@@ -119,6 +119,16 @@ decision. Never fill missing context with a convenient assumption merely to keep
   completed user workflow.
 - Diagnose root causes before replacing architecture or adding compensating layers.
 - Keep changes narrow. Avoid incidental cleanup and unrelated refactors.
+- Do not implement a bug fix by appending issue-specific flags, branches, callbacks, or SQL to an
+  already multi-responsibility owner. Before materially extending a long controller, orchestrator,
+  adapter, migration validator, or workflow script, map the owning invariant and extract the
+  affected responsibility behind a typed, independently testable boundary as part of the change.
+  File length alone does not justify churn, but repeated growth across unrelated responsibilities
+  is a stop signal: preserve a narrow facade, record any larger physical split in the roadmap, and
+  do not add further behavior to that debt area until its boundary is established.
+- Fixes must remove the cause at its owning layer and add a focused regression at that boundary.
+  Presentation-only guards, retry loops, status text, or broad catch-and-continue behavior must not
+  compensate for an unresolved application, persistence, or platform invariant.
 - Make assumptions only when they are reversible and do not materially change product behavior.
 - Unattended work does not broaden authorization or permit external publication, source-media
   mutation, large downloads, or destructive repository operations.
@@ -450,7 +460,8 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   sharing Flutter, Cargo, or build state.
 - `./tool/integration_test_windows_accessibility.ps1` runs a semantics-enabled virtual-gallery
   stress sequence in the native Windows runner and fails when engine stderr reports an invalid
-  `ui::AXTree` update.
+  `ui::AXTree` update. Run and cleanup failures persist current Flutter output, verified native
+  phases, and failure metadata before returning the original run error, replacing prior evidence.
 - `./tool/quality_verify_git_range.ps1` checks committed whitespace over an explicit Git revision
   range so a clean hosted checkout does not turn `git diff HEAD --check` into an empty gate.
 - `./tool/performance_benchmark_synthetic_library.ps1` is the explicit performance gate. It creates 10,000
@@ -522,6 +533,10 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   as a versioned portable ZIP after release verification.
 - `./tool/release_verify_portable_archive.ps1` verifies the portable ZIP filename, single-root
   layout, safe entry paths, and required Flutter and Rust runtime payload without extracting it.
+- `./tool/release_test_portable_publication.ps1` tests the workflow-owned attachment identity
+  decision using controlled API fixtures: missing attachments may upload, matching SHA-256 digests
+  skip publication, and conflicting, unprovable, or failed lookups fail closed. It runs in lint
+  without network access or publication permission.
 - `./tool/release_verify_portable_signatures.ps1` performs that structural gate, extracts into
   fresh bounded scratch storage, revalidates the application and broker signature, exact publisher,
   x64 machine, and broker protocol, then confirms scratch cleanup.

@@ -2,9 +2,9 @@
 
 Status: active delivery plan
 
-Last confirmed with the user: 2026-08-22
+Last confirmed with the user: 2026-09-05
 
-Last implementation-status synchronization: 2026-09-02
+Last implementation-status synchronization: 2026-09-05
 
 Repository: this repository root
 
@@ -859,13 +859,16 @@ The preview-artifact lifecycle is complete only when all of the following hold:
 
 1. viewer, visible, movement-direction-near, guard, and idle demand use the documented priority
    order with bounded generation and decode concurrency;
-2. publication is atomic and generation-guarded against a newer query, catalog revision, source
-   state, algorithm version, orientation contract, or requested size bucket;
+2. publication is atomic and guarded by the exact root, active scan, location, source generation,
+   source revision, algorithm version, orientation contract, and requested size bucket. Query
+   catalog revision remains a separate presentation guard, so an unrelated catalog write does not
+   invalidate an otherwise exact source lease;
 3. compatible unchanged files and identity-proven renames or moves reuse artifacts, while content
    edits, same-path replacements, and incompatible algorithm or orientation contracts invalidate
    them without exposing stale pixels as current;
-4. the preview index can account for artifact path, byte size, bounded size bucket, compatibility
-   identity, and coarsened last-use evidence without writing persistent state on every scroll tick;
+4. the preview index can account for artifact path, byte size, bounded size bucket, file identity,
+   source revision, source generation, and coarsened last-use evidence without writing persistent
+   state on every scroll tick;
 5. capacity uses a high watermark and a lower reclamation target so cleanup does not oscillate at
    the configured limit. Temporary and unreferenced files, obsolete algorithms, incompatible or
    superseded size variants, and then least-recently-used distant artifacts are reclaimed in that
@@ -1196,9 +1199,11 @@ work does not replace trustworthy state.
   trustworthy geometry until the replacement is complete, and preserves a compatible logical
   viewport anchor. It never clears a tile to a transient square merely because reinspection or
   preview generation is pending.
-- Preview demand and publication carry compatible location, source-state, revision, algorithm,
-  orientation, and size-bucket identity. A late result may populate only the matching preview entry;
-  it cannot restore an obsolete path, overwrite newer evidence, or mutate layout dimensions.
+- Preview demand and publication carry the exact root, active scan, location, source generation,
+  source revision, algorithm, orientation, and size-bucket identity. The global catalog revision
+  protects query snapshots but is not part of this source lease, so an unrelated catalog write does
+  not supersede otherwise exact preview work. A late result may populate only the matching preview
+  entry; it cannot restore an obsolete path, overwrite newer evidence, or mutate layout dimensions.
 - Every bounded delta exposes enough stable identity and evidence disposition for later analysis
   consumers to retain compatible results after a rename, invalidate them after content change or
   replacement, and remove them from current projections after authoritative deletion. R2c defines
@@ -1232,6 +1237,15 @@ Startup order:
    and require complete scope authority before publishing absence.
 7. Project an unsupported persistent-change source as `LiveOnly` or an explicit blocked capability;
    never compensate with an automatic complete inventory on every process start.
+
+First import uses its foreground scan as the first-authority baseline rather than scheduling a
+second metadata inventory. Its opening journal boundary and healthy observer are established before
+enumeration, its first snapshot may publish while scan-window P0 work remains queued, and its
+closing journal interval plus P0/P1 queues must converge before the per-root finalizer can publish
+`Current`. Ordinary changes during that scan, including a same-path content replacement, never
+invalidate the whole first import or turn into a user-visible retry request. Crash recovery resumes
+the same durable scan/baseline after opening admission, first publication, or replay without
+authorizing another complete root enumeration.
 
 Root changes:
 
@@ -2009,13 +2023,13 @@ volume, attributes, non-reparse state, and live root containment must match the 
 handle before reading; both native calls keep a null EA buffer and zero EA length, and raw
 volume/device roots never reach an OS open. Every P0/P1/P2 publication boundary is required to bind
 the generation to its persisted v29 proof and hold a configured-namespace chain from the local DOS
-volume root through every ancestor and root. The Win32 volume handle opens `C:\` with
-`FILE_TRAVERSE | FILE_READ_ATTRIBUTES | SYNCHRONIZE`; descendant guards alone open relative to
-their pinned parent with pure `FILE_TRAVERSE`. Both use backup/open-reparse semantics and
-read/write sharing without delete sharing. Directory guards never use no-recall, and each already
-pinned parent supplies a separate relative `FILE_READ_ATTRIBUTES | SYNCHRONIZE` metadata proof of
-the next component. The long-DOS configured path supplies normalized descendant names, not the
-volume-handle path or authority. The
+volume root through every ancestor and root. The Win32 DOS-volume handle and every descendant guard
+open with `FILE_TRAVERSE | FILE_READ_ATTRIBUTES | SYNCHRONIZE`; descendants open relative to their
+pinned parent. Every guard uses backup/open-reparse semantics and read/write sharing without delete
+sharing, and that same held handle supplies the next component's attributes, canonical path,
+volume, full identity, availability, filesystem, and case-semantics proof. Directory guards never
+use no-recall. The long-DOS configured path supplies normalized descendant names, not the volume-
+handle path or authority. The
 complete chain remains held through the real SQLite commit or rollback. New production-poll
 regressions exercise P0 root, P0 subtree, and bounded authoritative P2 with an existing proof: a
 pre-commit root or ancestor rename returns Win32 32, the real delta transaction rolls back to a
@@ -3235,6 +3249,102 @@ and keep both supported repository PowerShell hosts fail closed. It must pass th
 complete gates and receive an accumulated independent audit. It does not authorize a source-root
 scan or advance R2c-O/R2c-R acceptance.
 
+Phase 34 is the Windows 11 x64 runtime-usability and preview-correctness remediation prompted by
+retained-catalog use on 2026-09-04 and follow-up interaction reports on 2026-09-05. It removes
+repeated full catalog preparation from preview and detail-publication hot
+paths through one process-owned validated session contract with fail-closed stale-session renewal;
+makes explicit preview retry and distant visible-range loading observable without replacing the
+accepted query-wide manifest; keeps healthy capability prose out of source-row subtitles and puts
+actionable detail in the main notification surface; prevents an explicitly recovery-blocked root
+from running automatic P2 debt while preserving P0/P1 and other-root progress; and shows either the
+application or failure shell after its first rasterized frame, with a bounded fail-visible timeout
+if Flutter never reports that frame. On the pinned Flutter 3.44.9
+Windows engine, the phase also removes the proven sidebar `MenuAnchor` portal and replaces the
+failing first-party tooltip portal with a pointer-transparent, semantics-excluded visual overlay
+while retaining stable tooltip semantics on its target. The overlay is created only on hover and
+uses framework positioning and animation primitives; returning to the first-party tooltip requires
+the relevant upstream accessibility fixes and a passing expanded native stderr/UI traversal canary.
+The phase restores strict one/two/three
+preview concurrency for the small/medium/large policies; demand priority never creates an overflow
+decode. It preserves stable manifest geometry, source-media immutability, the explicit-recovery
+transaction, and the no-routine-scan rule. Schema v31 adds a Windows source-revision contract and a
+catalog-wide non-reused source generation so an observed same-path replacement, in-place edit,
+hard-link write, recovered bad image, or source change during decode cannot inherit a weak-key
+preview. Unknown legacy revision evidence fails closed and old weak preview ownership is detached;
+the migration does not read source bytes or start a library scan. Preview demand establishes missing
+revision evidence only for the requested file. The v3 cache key includes revision and generation;
+v1/v2 artifacts remain cleanup-only and cannot be reused or promoted. Work binds to the exact root,
+active scan, location, generation, and source revision while tolerating unrelated global catalog
+revisions. It uses the same opened source handle for pre/post-decode checks and a restrictive final
+guard through artifact installation and SQLite publication. Explicit `ForceRegenerate` must
+supersede an ordinary request, bypass both the early and late cache-hit paths, and atomically replace
+an existing derived artifact with `ReplaceFileW`; a missing target uses same-directory rename, and
+any failure retains the old file and correct byte accounting. Stale or superseded work must not
+publish `Failed`. During a replacement full scan, generic scan capture and completion exclude P0,
+including already leased work; only the Live lane may publish through the scan gate. Its single
+writer transaction updates the active projection and mirrors create, replacement, removal,
+terminal-media, and physical-identity hardlink state into the exact running staging snapshot with
+one generation/revision decision. The scan cannot publish over unfinished P0, recomputes its staged
+count, and must preserve a newer active generation over older staging; cancellation discards
+staging without losing P0. First import remains different because no active trustworthy snapshot
+exists for P0 to amend. P1/P2 retain replacement-scan deferral. A directly observed live or
+startup-catch-up modification remains dirty even when size, last-write time, file identity, and
+source revision appear unchanged. Non-conflicting broader root, subtree, or rename work cannot
+compact away that precise dirty path while bounded capacity remains; contradictory rename lineage
+fails closed instead of publishing an unproven removal. If the absolute intent bound forces degradation,
+the one durable root gap must obtain explicit gap-recovery authority and conservatively invalidate
+otherwise matching existing source generations through bounded per-path candidates; loss of exact
+continuity may cost cache reuse but may never preserve an unproven preview. It requires
+the acceptance matrix to cover in-place overwrite with a retained File ID, delete-and-recreate and
+atomic replacement, identical size and restored last-write time, rapid/coalesced writes, writes
+through a hardlink alias, change during decode or publication, locked and partial writes,
+zero-byte/truncated/wrong-extension content, valid-to-corrupt-to-valid recovery, disappearance and
+reappearance, unavailable/cloud-placeholder state without hydration, application restart, and
+crash-safe artifact/database ordering. Each case must prove that stale preview bytes cannot publish,
+the newest source generation wins, retry remains observable, and unchanged source bytes are not
+needlessly regenerated. It also requires
+first import and explicit update to retain distinct user-facing task identities. One `更新图库`
+action must allow selecting multiple configured roots and then submit independent per-root scans
+through a two-root concurrency bound, with queued overflow and per-root progress, failure, retry,
+and cancellation instead of one cross-root transaction. Unavailable roots must remain visibly
+disabled, scan publication must not display completion until the current view reloads, and a failed
+view reload must expose a retry that does not rescan source files. Closing the application must
+cancel and drain every admitted update and cancel queued roots without creating multi-root paused
+work that the singular recovery lookup cannot resume. The accepted loading presentation must remain
+visually stable: an immediate direct scrollbar jump into an unloaded range shows the existing
+loading/progress feedback without waiting for a later scroll notification and does not introduce an
+inline placeholder-pill wall. All drop-down and context menus use one transition-motion contract. A
+manual refresh is consistently labeled `更新图库`, never `添加图库`. These interaction corrections,
+the v31 migration, and the v3 preview publication path require focused failure and cancellation
+tests, the complete Daily and Windows gates, hosted PR checks, and
+one fresh accumulated independent audit before closeout.
+
+Phase 34 also has a code-health gate under ADR 0025. Correctness remains first, but a fix may not
+append another state machine to an already multi-responsibility owner. The current closeout must
+leave `scan_library.rs`, `sqlite_catalog.rs`, persistent-journal root unregistration, journal
+baseline probing, viewport/query ownership, and committed root-removal refresh behind typed
+independently tested modules. In particular, first-import and existing-root journal
+opening must be mutually exclusive at the type level; direct visible-range requests have one
+latest-wins generation/revision owner; a committed removal retry may refresh presentation but may
+not call database unregistration again; and Flutter `build()` must not mutate retained controller or
+selection state.
+
+The follow-up split order is deliberately bounded. P1 first moves primary Dart scan start,
+subscription, pause, resume, cancellation, and shutdown out of `LibraryController`; until then,
+`library_scan_execution.dart` owns admission only and neither file may acquire new scan-lifecycle
+behavior. Current-schema proof order and its consistent read snapshot now live in
+`migrations/current_schema.rs`; P1 next moves the shared historical SQL validators and exact
+shrink-only compatibility repair out of `migrations.rs`, then separates production synchronization
+runtime ownership and Live, Journal, and Recovery lane state machines. Native accessibility
+protocol evidence and owned-process supervision now have separate modules behind one public command,
+with the native UIA client isolated on MTA and its original parent deadline verified. P2 moves tests only
+with their owner and revisits viewer, selection, or sidebar
+files only when they acquire an independent lifecycle. Stable historical migrations, the shared
+Windows quality/release workflow, the accessibility public entrypoint, and cohesive layout code are
+not split merely to reduce line counts. Each split closes only when its facade owns no collaborator
+timer, subscription, SQL, retry flag, or impossible optional-field combination and its focused,
+lint, Daily, Windows, workflow, whitespace, and independent-audit gates pass.
+
 R2c-I through R2c-M and their audits remain historical evidence for the superseded ADR 0023 model.
 Do not rewrite their recorded results as if they validated ADR 0024, and do not merge the integration
 branch into `main` or start R3 until the new replacement reaches its own closeout.
@@ -3279,17 +3389,26 @@ or later analysis workflows.
 
 ### 10.1 Verified implementation snapshot
 
-This snapshot was synchronized on 2026-09-02 against the live working tree and current planning
+This snapshot was synchronized on 2026-09-06 against the live working tree and current planning
 decision. Historical gate claims retain their recorded dates. R2c-I through R2c-M have recorded ADR
 0023 implementation evidence. Under the accepted ADR 0024 replacement, R2c-O has deterministic
 broker and installer evidence but still lacks its external elevated installed-service evidence;
 schema v24 and protocol v5 provide an R2c-P sixth-remediation implementation checkpoint that
-remains not accepted. Schema v30 provides the current R2c-Q priority runtime, candidate ownership,
+remains not accepted. Schema v30 provides the established R2c-Q priority runtime, candidate ownership,
 durable bounded source spool, one-time baseline, and independent product-state implementation
 checkpoint described above, including the ninth-remediation start lifecycle, stable retired-epoch
 panic reconciliation, and the eleventh-remediation fenced-stop and retryable-close corrections.
-Current Rust, quality, non-sandbox Daily, controlled Windows integration, bridge, and internal x64
-Release build evidence pass. The fourteenth independent R2c-Q re-audit reports zero findings, so
+The live working tree now adds schema v31 and the v3 preview contract. Its P0-through-replacement-
+scan slice has focused adapter, queue, application, hardlink, cancellation, and production namespace
+evidence, including pending/leased/exhausted-retry boundaries and first-import separation. The
+v31 migration, preview, removal, reclamation, and Flutter suites now have refreshed local evidence.
+Native Windows UI Automation now passes all nine phases under its original eight-second probe
+deadline. Refreshed hosted PR checks remain pending for the final head; local partition and focused
+evidence does not claim one uninterrupted complete Daily invocation.
+These results are not inherited from v30.
+The recorded v30 checkpoint's Rust, quality, non-sandbox Daily, controlled Windows integration,
+bridge, and internal x64 Release build evidence pass. The fourteenth independent R2c-Q re-audit
+reports zero findings, so
 its implementation/audit checkpoint is closed; R2c-Q remains not accepted pending external signed
 release evidence. R2c-O remains the active acceptance slice. R2c-R has a remediated non-external
 controlled local reliability checkpoint but remains unaccepted with all external evidence and the
@@ -3309,7 +3428,8 @@ publication from a controlled PNG baseline without a new automatic full scan or 
 Retained P2 source frontiers are now owned by immutable change ID, so overlapping containment and
 watcher-gap authorities for one root cannot steal or reopen each other's source. Catalog validation
 precedes transfer, worker-spawn failure restores the exact owner, and current-authority pruning keeps
-the in-memory set bounded. The current schema-v30 fields are sufficient, so no v31 DDL is introduced.
+the in-memory set bounded. Schema-v30 fields were sufficient for that queue-only correction; the
+current schema-v31 source-revision and source-generation migration is separate.
 The accumulated ordinary-user closeout now passes the complete 83-test production module,
 `quality_lint.ps1`, the 19/19 internal-disposable runner, serial Daily with 927 Rust tests and both
 Windows integrations, exact bridge hash, Release-profile Clippy, and a fresh unsigned x64 Release
@@ -3324,7 +3444,7 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
 - R0 and R1 are accepted. The Rust-owned SQLite catalog, Flutter/Rust bridge, external preview
   storage, resumable multi-root scanning, atomic publication, per-file issue isolation, file
   identity, and revision-safe bounded queries are connected end to end.
-- The live working tree advances the catalog schema to v30 and retains storage-settings schema v2.
+- The live working tree advances the catalog schema to v31 and retains storage-settings schema v2.
   Schema v17 introduced the
   durable normalized change queue, root-generation tombstones, lease/retry state, catalog-revision
   evidence, bounded terminal-row retention, and permanent highest-generation authority. Schema v18
@@ -3360,6 +3480,13 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   conservatively retains every ambiguous naked fallback under explicit recovery ownership. A typed
   foreground-scan consumer may temporarily own only that claim after an explicit user update;
   publication consumes it atomically, while abandon or interrupted reopen restores it exactly.
+  Schema v31 adds low-cost Windows ChangeTime revision evidence and a catalog-wide monotonic source
+generation across locations, terminal/inventory evidence, spools, handoffs, and previews. Migration
+leaves legacy revisions NULL for bounded on-demand baselining, assigns nonzero generations,
+invalidates weak preview ownership, and does not read source bytes or enumerate a root. Its exact
+v30 forward path repairs legacy terminal inventory flags and derived spools inside the migration
+transaction before validation, while malformed DDL or active authority still fails closed and
+rolls back.
 - The authorized read-only target-library acceptance published 30,629 locations for
   `local-primary` and 48,384 for `cloud-primary`, for 79,013 active locations in one retained
   catalog. Sampled source bytes and source entries remained unchanged, and cloud-only placeholders
@@ -3610,7 +3737,7 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   positive-candidate early publication remain separate validation and contract work.
 - ADR 0024 and R2c-N through R2c-R now own the active replacement. The accepted target is Windows 11
   x64 with complete automatic continuity limited to local NTFS roots whose constrained broker is
-  installed and whose journal remains continuous. The current working tree now contains schema v30
+  installed and whose journal remains continuous. The current working tree now contains schema v31
   priority lanes, candidate ownership, the bounded durable source spool, watcher-first brokered
   catch-up, bounded recovery, the one-time baseline, and independent live and continuity projection.
   Controlled fixtures provide implementation evidence for reserved P0 publication, atomic
@@ -3716,6 +3843,46 @@ this roadmap does not preserve drifting commit hashes or duplicate complete test
   disposable-directory rename/restore fixtures each pass 200 repeated cycles without relaxing the
   immediate active-guard assertions. The accumulated independent audit and hosted PR gate remain
   required before this phase closes; R2c-R remains not accepted and R2c-O remains active.
+- Phase 34's current schema-v31 and v3-preview implementation has refreshed local evidence for
+  same-path replacement and in-place edits, source changes during decode, bounded preview demand,
+  immediate retry feedback, stable manifest loading feedback, shared menu motion, two-root manual
+  updates, committed root removal, and physical catalog reclamation. Startup repair remains
+  exact-DDL-and-marker-gated and shrink-only: it retires only proved terminal inventory residue and
+  obsolete unconsumed generation claims before the unchanged complete validator. It does not
+  manufacture continuity, discard live history, or initiate a source scan.
+- Read-only inspection of the reported catalog established three obsolete generation claims and a
+  1,156.75 MiB database whose 1,152.17 MiB freelist accounted for 99.60 percent of its size; asset,
+  location, and preview-artifact tables were empty. Root removal now schedules separately observable,
+  cancellable background reclamation after its committed unregister, with capacity-checked legacy
+  conversion and bounded incremental batches. The original catalog and source media remain
+  untouched by this remediation's verification; no cloud hydration or real-library acceptance was
+  performed.
+- Rust verification ran the complete 1,159-test library suite: 1,140 passed, 17 authorization-bound
+  tests were ignored, and two scan-handoff regressions required correction. Exact retry handoff now
+  records P0 Live origin transactionally; the locked-media fixture first changes the source so it
+  actually exercises content inspection rather than valid metadata reuse. The refreshed complete
+  scan module passes 62 tests with two explicit ignores, the publication module passes three tests
+  including the new transactional P0 regression, and broker-binary integration passes three tests.
+  All current normal library cases therefore have passing execution evidence across the full and
+  focused runs; a single fresh full-suite run for the final head remains a hosted closeout gate.
+- Current formatting, all-target/all-feature Clippy with warnings denied, Dart analysis with fatal
+  warnings and infos, 52 Flutter test files containing 437 tests, controlled native Windows scan
+  integration 2/2, bridge compatibility checks, and tracked-diff whitespace checks pass. The
+  static gate's PowerShell and policy guardrails also pass; the subsequent analyzer findings were
+  corrected and the analyzer rerun passed. These partition results do not claim a single completed
+  Daily invocation.
+- The unsigned Windows x64 Release build and broker build pass, as do PE architecture, dependency
+  freshness, packaged-DLL identity, and the existing accent-channel-only packaged Release bridge
+  test. That restricted smoke test does not load the retained catalog. The signed bundle gate and
+  external installed-service or retained-root acceptance remain unavailable and unclaimed.
+- Independent Rust, Flutter, and delivery boundary audits cover the current source-publication,
+  storage coordination, and native-probe fixes. Native Windows accessibility integration passes
+  2/2 with all nine exact UIA phases and no rejected `ui::AXTree` update under the unchanged
+  eight-second parent probe deadline. Each probe uses an explicitly checked MTA thread, fresh
+  bulk property snapshots, and identity-bound atomic progress/failure evidence; incomplete or
+  timed-out progress cannot acknowledge a checkpoint. A separate longer diagnostic established
+  traversal correctness but is not acceptance evidence. Refreshed hosted PR checks remain required
+  before Phase 34 closes.
 - The current R2b closeout working tree passed the complete local Daily gate and Windows Release
   gate on 2026-08-12, including packaged Rust-library loading and the release bridge smoke test.
   This is current-stage evidence, not a release candidate or completion of R10.

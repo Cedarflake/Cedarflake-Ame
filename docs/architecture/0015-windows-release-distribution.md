@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-11
-- Last amended: 2026-08-23
+- Last amended: 2026-09-06
 
 ## Context
 
@@ -11,10 +11,12 @@ signing, and supply-chain work is ready. Flutter's Windows Release output is a d
 the executable, Flutter and plugin DLLs, the Rust bridge DLL, and runtime data. Shipping only the
 executable would produce an unusable application.
 
-The application currently has one primary user and one measured platform. A release pipeline does
-not need a human approval environment, but it must not publish an artifact until the complete
-release-candidate gate has passed. Original media, local catalogs, caches, machine-specific paths,
-and identity data must never enter a release artifact.
+The application currently has one primary user and one measured platform. Production signing does
+require a human-reviewed GitHub Environment whose deployment policy admits only protected `main`;
+the signing credential must never become available to a tag-controlled or arbitrary-ref workflow
+definition. No artifact may be published until the complete release-candidate gate has passed.
+Original media, local catalogs, caches, machine-specific paths, and identity data must never enter a
+release artifact.
 
 ## Decision drivers
 
@@ -56,20 +58,29 @@ Use these stable identities:
 - archive root: `Cedarflake-Ame/`.
 
 The semantic version in the release tag, Flutter application manifest without its build suffix,
-and Rust package manifest must match. The current initial release line is `0.1.0`; the Flutter build
-suffix remains build metadata and is not part of the tag or artifact name.
+and Rust package manifest must match. SemVer 2.0 numeric prerelease identifiers have no leading
+zeroes; identifiers such as `-01` and `-rc.01` are rejected at every hosted and local release entry.
+The current initial release line is `0.1.0`; the Flutter build suffix remains build metadata and is
+not part of the tag or artifact name.
 
-Only Windows x64 is supported and published. ARM packages are not produced or implied.
+Only Windows 11 x64 is supported and published. ARM packages are not produced or implied. A hosted
+`windows-2025` Windows Server runner supplies reproducible build and release checks, but it does not
+replace the separately authorized Windows 11 client acceptance evidence.
 
 The portable archive contains the complete repository-built Flutter Release directory. Archive
 verification rejects an unexpected filename, entries outside the single archive root, traversal or
 absolute paths, duplicate paths, missing executable or core runtime DLLs, missing Rust bridge DLL,
 missing ICU or application data, and missing Flutter assets.
 
-A pushed `v*.*.*` tag runs the complete release-candidate gate. Only after that gate succeeds may a
-separate job with repository-content write permission build the bundle, verify the ZIP, and publish
-or update the corresponding GitHub Release. No GitHub environment or human approval is required.
-The published-release workflow downloads the exact attachment and verifies it independently.
+The release-candidate workflow is manually dispatched only from protected `main`; a tag push does
+not run a credential-bearing workflow. The `windows-production-signing` Environment must require a
+reviewer and must restrict deployment branches and tags to protected `main` only. Its PFX and
+password are Environment secrets, never repository or organization secrets. The repository must
+also enforce an immutable release-tag ruleset that prevents update or deletion of admitted
+`v<semantic-version>` tags. Only after the read-only candidate and package gates succeed may a
+separate no-checkout job with repository-content write permission publish or update the
+corresponding GitHub Release. The published-release workflow downloads the exact attachment and
+verifies it independently.
 
 ### ADR 0024 amendment: service-enabled distribution
 
@@ -154,15 +165,40 @@ path, both binary SHA-256 values, both signer-certificate SHA-256 values, and th
 validated by the installer.
 
 Hosted release verification consumes one immutable signed Application bundle rather than rebuilding
-or copying over it after admission. The release job requires an externally provisioned production
-PFX, password, and exact publisher; absence of any input fails closed. It builds the application and
-broker once, signs both, revalidates Authenticode, publisher, x64 machine, and broker protocol, then
-removes the temporary runner credential and uploads the exact Release tree as a short-lived pinned-
-action artifact. The publication job downloads and reverifies that same artifact before packaging;
-it does not run another Flutter or Cargo build. Post-publication verification first enforces safe ZIP
-paths and bounded expansion, then extracts to fresh repository scratch storage, revalidates both
-embedded signatures and the broker protocol, and removes the scratch directory. A structural ZIP
-check alone is not release identity evidence.
+or copying over it after admission. The protected-main dispatch commit is the trusted workflow
+commit. Before checkout, the workflow accepts only a strict `v`-prefixed SemVer tag; checkout names
+the complete `refs/tags/<tag>` ref and then proves `HEAD` equals `tag^{commit}` and that this source
+commit is an ancestor of the trusted workflow commit. The application and broker are built without
+signing credentials on one runner and transferred as a bounded, exact path/length/SHA-256 manifest
+artifact whose `sourceCommit` records that immutable SHA. A second runner, bound to the
+`windows-production-signing` GitHub Environment, does not check out or execute any repository
+content. It admits one ephemeral PFX certificate with the exact publisher and code-signing usage,
+signs only the two fixed executable paths, clears the secret material, preserves the tag and source
+commit in a new immutable manifest artifact, and exposes neither secret outside that step. A third
+credential-free runner checks out the same source commit, proves the current tag and `HEAD` still
+resolve to it, revalidates the complete signed manifest, Authenticode publisher, x64 machine, and
+broker protocol, and gates publication.
+
+A read-only packaging job consumes that verified signer artifact, binds its signed manifest to the
+same source commit, packages it, and exports the ZIP name and SHA-256 through an immutable workflow
+artifact. The only `contents: write` job checks out no repository content and executes no repository
+script. Immediately before publication it resolves lightweight or annotated tag objects through the
+GitHub API and requires the resulting commit to equal the manifest-bound source commit, then
+rechecks the ZIP hash. For an existing release it lists every asset page through the authenticated
+GitHub API. A same-name asset must be uploaded and have an API-provided SHA-256 digest matching the
+verified ZIP; that identity is retained without another upload. A different, missing, or malformed
+digest fails closed. Only a missing attachment may be uploaded, without overwrite permission.
+A release lookup's explicit HTTP 404 permits creation; transport errors and other unsuccessful
+release or asset lookups never count as absence. The immutable tag ruleset is a required enforcement
+layer because a workflow
+cannot make tag resolution and release-asset mutation one GitHub transaction. Post-publication
+verification first enforces safe ZIP paths and bounded expansion, then extracts to fresh repository
+scratch storage, revalidates both embedded signatures and the broker protocol, and removes the
+scratch directory. The candidate workflow calls that reusable verifier directly after publication;
+the `release: published` entry point covers externally created releases and requires the repository
+Actions variable `AME_WINDOWS_EXPECTED_PUBLISHER`, while `workflow_dispatch` remains the recovery
+entry point. Repository protection must require the exact `Windows Gate / Windows Gate` status
+context. A structural ZIP check alone is not release identity evidence.
 
 ## Deferred decisions
 
@@ -186,12 +222,15 @@ them as disposable cache.
 - Users extract one directory and run `cedarflake_ame.exe` from that directory.
 - Moving the directory is supported; removing it does not clean application data.
 - The ZIP is larger than the executable because it intentionally includes all runtime dependencies.
-- The current artifact has no signature, installer registration, automatic update, or rollback.
+- The application and broker are Authenticode-signed; the portable artifact still has no installer
+  registration, automatic update, or rollback.
 - The portable payload may contain the broker executable but never grants service lifecycle
   authority or protected client identity, so the portable application remains `LiveOnly`.
-- GitHub Release publication has write permission only after the read-only candidate gate succeeds.
-- A workflow rerun may replace the named attachment on a mutable release; immutable-release policy
-  and signed provenance remain R9 work.
+- GitHub Release publication has write permission only after the read-only candidate and packaging
+  gates succeed, and that job has no repository checkout.
+- A workflow rerun retains an existing same-name attachment only after proving the same immutable
+  source commit and ZIP identity; it never replaces an attachment. Tag update and deletion protection
+  is a repository-configuration prerequisite.
 
 ## Validation evidence
 
@@ -203,6 +242,9 @@ them as disposable cache.
   x64 machine, and broker protocol before confirmed cleanup.
 - `tool/release_test_portable_archive.ps1` proves a valid fixture passes and incomplete or
   traversal-bearing archives fail, including a broker-missing archive.
+- `tool/release_test_portable_publication.ps1` exercises the exact workflow-owned publication
+  decision with missing, matching, conflicting, digest-less, paginated, and failed-lookup fixtures.
+  It performs no remote requests and supplies no executable artifact to the write-permission job.
 - `tool/release_test_journal_broker_installer_guardrails.ps1` proves the Windows/x64, publisher,
   service account, service SID, privilege, DACL, fixed-destination, interrupted-transaction,
   rollback isolation, no-follow cleanup, source/catalog isolation, and no-journal-mutation
@@ -216,6 +258,8 @@ them as disposable cache.
 
 ## References
 
+- [GitHub: Get a release by tag name](https://docs.github.com/en/rest/releases/releases#get-a-release-by-tag-name)
+- [GitHub: List release assets and SHA-256 digest](https://docs.github.com/en/rest/releases/assets#list-release-assets)
 - [Microsoft: KNOWNFOLDERID](https://learn.microsoft.com/en-us/windows/win32/shell/knownfolderid)
 - [Microsoft: SHGetKnownFolderPath](https://learn.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-shgetknownfolderpath)
 - [Microsoft: GetFinalPathNameByHandleW](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfinalpathnamebyhandlew)

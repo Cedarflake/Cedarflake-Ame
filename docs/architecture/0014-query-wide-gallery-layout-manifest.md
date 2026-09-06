@@ -2,7 +2,7 @@
 
 - Status: Accepted for validation
 - Date: 2026-08-09
-- Last amended: 2026-08-16
+- Last amended: 2026-09-05
 - Amends: ADR 0010 and ADR 0011
 
 ## Context
@@ -37,8 +37,8 @@ plus one replacement asset window is sufficient presentation state.
 - The same logical image position must survive wheel scrolling, time-rail dragging, time-rail
   clicking, preview publication, incremental catalog updates, and window resizing.
 - Geometry must be deterministic before a thumbnail is decoded.
-- A cold cache may show placeholders, but it must not show a different layout or an unresponsive
-  blank canvas.
+- A cold cache may leave unloaded final-geometry slots unpainted behind the shared loading signal,
+  but it must not show a different layout or an unresponsive wall of placeholder tiles.
 - Full asset records, paths, and decoded media must remain bounded and lazy.
 - Catalog requests and preview work must be cancellable or made harmless through revision and
   generation checks.
@@ -83,7 +83,7 @@ anchors, and total extent in compact arrays.
 - An unknown aspect ratio uses one documented stable fallback until trustworthy dimensions arrive
   through a newer catalog revision or a compatible bounded geometry-evidence epoch. Preview
   readiness alone never supplies layout dimensions.
-- The placeholder, failed-preview state, and decoded thumbnail use the exact same item rectangle.
+- The unloaded slot, failed-preview state, and decoded thumbnail use the exact same item rectangle.
 - Publishing or evicting a preview must not change row membership, item bounds, total extent, or the
   user's scroll position.
 - A preview decode that recovers valid dimensions for an item whose catalog dimensions were unknown
@@ -110,9 +110,11 @@ the exact effective viewport width. A cache miss recomputes from the manifest, a
 may never override newer catalog dimensions.
 
 The existing generic square placeholder slivers are removed after this snapshot owns the complete
-visible range. An unloaded item is represented by a static placeholder inside its final rectangle.
-Indeterminate progress indicators are reserved for explicit foreground work and are not repeated
-across a large scrolling wall.
+visible range. An unloaded item retains an unpainted, non-interactive slot inside its final rectangle
+so the gallery background remains visually continuous instead of becoming a wall of fake tiles.
+The shared two-pixel top loading line is the only loading treatment for a pending visible detail
+range. Indeterminate progress indicators are reserved for explicit foreground work and are not
+repeated across a large scrolling wall.
 
 ### Logical viewport anchor
 
@@ -174,7 +176,7 @@ correction, manifest takeover, resize, and dimension recovery do not impersonate
 | Input | Position behavior | Detail loading | Preview behavior |
 | --- | --- | --- | --- |
 | Wheel, touchpad, keyboard | Native relative scrolling on the one `Scrollable`; the coordinator observes but does not enqueue deltas | Prefetch bounded pages before and after the viewport; never replace the complete visible model | Visible work expands from the center card toward both sides; expensive decode and recovered geometry may wait for native scrolling to become idle |
-| Time-rail drag | Update the exact manifest-backed position at most once per frame | Latest-wins target page requests at a measured bounded cadence; release promotes the final target | Reuse cached previews; otherwise show final-geometry placeholders |
+| Time-rail drag | Update the exact manifest-backed position at most once per frame | Latest-wins target page requests at a measured bounded cadence; release promotes the final target | Reuse cached previews; otherwise retain unpainted final-geometry slots behind the shared loading line |
 | Time-rail click or other distant jump | Jump directly to the resolved anchor without animating through the library | Request the target page and guard pages with highest priority | Publish cached or newly decoded previews without changing geometry |
 | Window resize | Preserve the logical anchor while one latest layout snapshot replaces the previous snapshot atomically | Reuse already loaded details; discard obsolete width computations | Reuse decode-width buckets and request only missing sizes after layout stabilizes |
 
@@ -254,6 +256,24 @@ query, revision, target width, or source state is no longer compatible. Concurre
 measured separately for local files and cloud-backed roots. No scheduler action may recall an
 offline placeholder.
 
+### Visible-detail loading feedback
+
+A distant native scroll or time jump keeps the manifest's final item rectangles and immediately
+submits the visible ordinal range to the latest-wins detail loader. Submission itself is observable:
+the gallery reuses its original two-pixel top `LinearProgressIndicator` while the request is
+pending, waiting behind another bounded catalog operation, or active. A direct timeline or
+scrollbar jump outside the loaded detail window publishes that state synchronously, before the
+catalog request drains; it cannot depend on a later scroll notification. It must not add a capsule
+over the wall, paint repeated placeholder tiles, create one spinner per unloaded slot, intercept
+scrolling, fabricate file actions for unknown details, or replace the wall with a paginated layout.
+The indication clears on compatible detail publication, supersession, cancellation, failure, or
+query/revision replacement. Loaded tiles replace their unpainted slots with the same keys and
+rectangles.
+
+Catalog-session preparation belongs outside this interaction loop. Detail-window completion may
+reconcile and touch preview evidence through ADR 0005's validated-session owner, but it may not run
+the complete migration/schema contract for every visible-range request.
+
 ### Resize computation
 
 Resize events may produce at most one pending layout request per frame, and only the newest viewport
@@ -307,8 +327,9 @@ This decision becomes **Accepted** only when all of the following pass:
   viewport back to an earlier target.
 - Time-rail input and its primary line update within one display frame while catalog and preview
   work remains bounded.
-- A distant cold-cache jump immediately shows final-geometry placeholders and remains interactive;
-  source-backed previews fill in without another layout transition.
+- A distant cold-cache jump immediately shows the shared two-pixel top loading line, retains
+  unpainted final-geometry slots, and remains scrollable; source-backed tiles fill in without
+  another layout transition or an intermediate placeholder wall.
 - Live resize preserves the logical item and viewport fraction with no more than two logical pixels
   of post-layout drift after settling.
 - Profile-mode frame evidence on the project workstation records P95 build and raster times within
