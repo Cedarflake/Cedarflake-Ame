@@ -1564,9 +1564,20 @@ try {
     $escapedTimeoutRepository = $repositoryRoot.Replace("'", "''")
     $blockingCommand = @"
 `$ErrorActionPreference = "Stop"
+`$timeoutClock = [Diagnostics.Stopwatch]::StartNew()
+[Console]::Out.WriteLine("R2C_R_TIMEOUT_PHASE phase=before-common elapsed_ms=`$(`$timeoutClock.ElapsedMilliseconds)")
+[Console]::Out.Flush()
 . '$escapedTimeoutCommon'
+[Console]::Out.WriteLine("R2C_R_TIMEOUT_PHASE phase=after-common elapsed_ms=`$(`$timeoutClock.ElapsedMilliseconds)")
+[Console]::Out.Flush()
+[Console]::Out.WriteLine("R2C_R_TIMEOUT_PHASE phase=before-native elapsed_ms=`$(`$timeoutClock.ElapsedMilliseconds)")
+[Console]::Out.Flush()
 Initialize-AmeR2cRNativeTypes -RepositoryRoot '$escapedTimeoutRepository'
+[Console]::Out.WriteLine("R2C_R_TIMEOUT_PHASE phase=after-native elapsed_ms=`$(`$timeoutClock.ElapsedMilliseconds)")
+[Console]::Out.Flush()
 `$hostExecutable = (Get-Process -Id `$PID).Path
+[Console]::Out.WriteLine("R2C_R_TIMEOUT_PHASE phase=before-child-start elapsed_ms=`$(`$timeoutClock.ElapsedMilliseconds)")
+[Console]::Out.Flush()
 `$detached = Invoke-AmeR2cROwnedProcess ``
     -ExecutableKind "PowerShell" ``
     -FileName `$hostExecutable ``
@@ -1574,6 +1585,8 @@ Initialize-AmeR2cRNativeTypes -RepositoryRoot '$escapedTimeoutRepository'
     -WorkingDirectory '$escapedTimeoutRepository' ``
     -Detached
 `$child = `$detached.Process
+[Console]::Out.WriteLine("R2C_R_TIMEOUT_PHASE phase=after-child-start elapsed_ms=`$(`$timeoutClock.ElapsedMilliseconds)")
+[Console]::Out.Flush()
 Write-Output "OWNED_CHILD_PID=`$(`$child.Id)"
 [Console]::Out.Flush()
 try { `$child.WaitForExit() } finally { `$child.Dispose() }
@@ -1594,7 +1607,12 @@ try { `$child.WaitForExit() } finally { `$child.Dispose() }
     }
     $childMarker = @($timeoutResult.Lines | Where-Object { $_ -match '^OWNED_CHILD_PID=[0-9]+$' })
     if ($childMarker.Count -ne 1) {
-        throw "R2c-R blocking fixture did not report exactly one owned child"
+        throw (
+            "R2c-R blocking fixture did not report exactly one owned child; " +
+            "TimedOut=$($timeoutResult.TimedOut); ExitCode=$($timeoutResult.ExitCode); " +
+            "ProcessId=$($timeoutResult.ProcessId); markerCount=$($childMarker.Count); " +
+            "Lines=$($timeoutResult.Lines -join ' | ')"
+        )
     }
     $ownedChildId = [int]($childMarker[0] -replace '^OWNED_CHILD_PID=', '')
     $ownedChild = Get-Process -Id $ownedChildId -ErrorAction SilentlyContinue
