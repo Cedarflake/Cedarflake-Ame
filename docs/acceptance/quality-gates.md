@@ -26,7 +26,8 @@ checks the run, deadline, failure-precedence, and environment-restoration protoc
 | --- | --- | --- | --- |
 | Hosted CI | `.github/workflows/quality_ci.yml` | Parallel isolated Daily components, five synthetic workloads, unsigned x64 Release build, and committed revision-range whitespace validation | Push to `main`, pull request, merge queue, or manual run |
 | Hosted synthetic workloads | `./tool/performance_run_synthetic.ps1` | Exact JPEG, 10,000-image scan, million-record parser, seven-format cold/warm preview, and 50,000-identity concurrent publication cases | Mandatory hosted CI; explicit serial workstation invocation |
-| Unsigned Release build | `./tool/quality_verify_unsigned_windows.ps1` | Fresh x64 application/broker, payload and dependency identity, isolated Release bridge smoke; no catalog or signing | Mandatory hosted CI; explicit local packaging verification |
+| Unsigned Release build | `./tool/quality_verify_unsigned_windows.ps1` | Fresh x64 application/broker, payload and dependency identity, native window lifecycle, isolated Release bridge smoke; no catalog or signing | Mandatory hosted CI; explicit local packaging verification |
+| Native window lifecycle | `./tool/integration_test_windows_runner.ps1` | Three exact engine-free hidden-HWND cases compiled with the production dispatcher; ordinary, creation, and destruction message handling | Native runner lifecycle changes; included in unsigned hosted verification |
 | Daily | `./tool/quality_verify_daily.ps1` | Format, lint, Rust and Flutter tests, controlled Windows scan and native accessibility integrations, bridge hash plus asynchronous API/wire-mode contracts, tracked diff whitespace | Every material change |
 | Performance | `./tool/performance_benchmark_synthetic_library.ps1` | 10,000 temporary images, cold and warm scans, pause and resume, bounded memory | Scan pipeline, persistence, concurrency, or performance changes |
 | Retained Profile | `./tool/performance_profile_retained_gallery.ps1` | Frozen-interaction Profile frame, memory, garbage-collection, query, publication, and retained-detail evidence; no source preview materialization | Guarded R2b gallery adaptations on the retained catalog |
@@ -182,9 +183,23 @@ Server jobs never report client acceptance. Real-root and signed/installed-servi
 separate. Ordinary parent-owned WAL and small M metadata child tests remain part of Daily.
 
 The unsigned gate has no credential-bearing Environment or publication path. It verifies a fresh
-application, broker, and Rust payload and runs only the isolated native-channel/Release-DLL smoke;
+application, broker, and Rust payload and runs the native window lifecycle fixture and isolated
+native-channel/Release-DLL smoke;
 it never starts the existing retained-catalog smoke. See
 [ADR 0026](../architecture/0026-hosted-synthetic-and-unsigned-build-gates.md) for these boundaries.
+
+The native lifecycle entrypoint holds the repository tool lock, resolves `cmake.exe` from an explicit
+`-CMakePath` or the current Flutter build's `CMAKE_COMMAND`, and uses the sibling `ctest.exe`. It does
+not download an SDK or run Flutter assembly itself. Configure/build use a separate build directory;
+Release compilation is serial and each CTest case has a 15-second deadline. The unsigned caller
+already owns the lock and invokes the internal owner immediately after its fresh Flutter build.
+Every invocation requires a fresh GUID-named, at-most-1-MiB JUnit report containing exactly
+`window_lifecycle_control`, `window_lifecycle_startup`, and `window_lifecycle_teardown`, all with
+executed status and exact native completion markers. Missing, duplicate, failed, disabled, skipped,
+or stale evidence is rejected. The compiler-free runner guardrail exercises result rejection,
+command failure precedence, tool resolution, and lock composition in lint. These cases exercise
+real HWND dispatch without creating an engine; they do not replace full application, initialized
+engine, accessibility, signed packaging, or real-library acceptance.
 
 ## Daily gate
 

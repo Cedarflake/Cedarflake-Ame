@@ -471,6 +471,12 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   fixture storage is retained rather than recursively deleted without cleanup authority.
   `./tool/integration_test_windows_scan_guardrails.ps1` verifies its compiler-free lifecycle protocol
   in lint, including original-failure precedence and independent environment restoration.
+- `./tool/integration_test_windows_runner.ps1` builds and executes three engine-free native window
+  lifecycle cases using the existing pinned Flutter artifacts and an explicit `-CMakePath` or the
+  current Flutter CMake cache. The unsigned Windows gate invokes the same internal owner after its
+  fresh Release build. `./tool/integration_test_windows_runner_guardrails.ps1` validates exact
+  execution evidence, fresh-result ownership, command failure propagation, and lock composition in
+  lint without compiling or starting the native fixture.
 - `./tool/quality_verify_git_range.ps1` checks committed whitespace over an explicit Git revision
   range so a clean hosted checkout does not turn `git diff HEAD --check` into an empty gate.
 - `./tool/quality_verify_bridge_contracts.ps1` checks generated bridge hash identity and exact

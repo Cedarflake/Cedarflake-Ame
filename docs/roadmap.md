@@ -3485,6 +3485,15 @@ neither the earlier green hosted head nor a probe asserting defective
 behavior closes these findings. The current evidence is in
 [the interleaving remediation record](acceptance/r2c-interleaving-remediation.md).
 
+A separate native lifecycle reproduction now demonstrates `WM_FONTCHANGE` reaching the real HWND
+before controller creation and after controller retirement. Both desired-normal-exit cases fail on
+the previous production handler and pass after checking the current controller/engine at dispatch.
+The ordinary-message control remains green. Independent review confirms the narrow handler change;
+engine-free native cases and a strict fresh-report gate enter unsigned hosted verification after
+the fresh Release build. Full controlled application scan verification also passes after the repair.
+This closes the reproduced empty-controller fault path only, not the historical crash's attribution,
+the zero-thread process record, initialized-engine behavior, or the outstanding client UIA query.
+
 R2b implementation, deterministic preview-lifecycle correctness, retained-catalog interaction
 Profile, real-library catalog parity, Daily, Windows Release, and bounded source-readable preview
 performance gates are complete. R2b was accepted on 2026-08-13. The former USN-based R2c reached its

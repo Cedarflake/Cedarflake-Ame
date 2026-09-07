@@ -31,6 +31,7 @@ The active delivery order remains in [the canonical roadmap](../roadmap.md).
 | Viewer close / reopen | Old pagination changed a reopened same-item viewer or retained its busy state | Viewer session and request identity own continuation and finalization; retired work cannot mutate another session |
 | Capacity retry / store invalidation | Recovery replaces the store while a capacity retry retains stale accounting, rejecting free space or omitting installed bytes from the current owner | Reacquire one typed accounting/installation owner with each generation or reclamation permit; never carry the old store across exclusion gaps |
 | Native verification / exceptional cleanup | Job disposal or process wait failure skipped later release, environment restoration, and evidence persistence | Independently settle every owned resource, preserve the original failure, and retain scratch evidence when exit or output capture is unconfirmed |
+| Native window / controller lifetime | A font-change message delivered to a real HWND before controller creation or after retirement terminates the test process | Recheck the current controller and engine after plugin dispatch before reloading fonts; keep ordinary and default message handling |
 
 The first boundary takes priority because it crosses source-media safety. A second uncoordinated
 path check or one disabled UI button does not close its race. Full catalog validation during an
@@ -180,6 +181,11 @@ signing and signed verification remain separate and were not executed. This is c
 evidence for that head, not verification of subsequent working-tree changes or resolution of the
 Windows 11 client failures below.
 
+Hosted run [34108751295](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/34108751295)
+also passes every required job on `f9fab3891806bd84c7bfaef590dbe1702ab6eff5`, including the stricter
+photo-menu assertions and persisted probe evidence. It predates the native font-change repair and
+new runner gate; it does not verify those subsequent changes.
+
 ## Native process lifecycle follow-up
 
 No user-launched Ame process is assumed. A read-only local snapshot found one historical process
@@ -263,6 +269,50 @@ the complete failure evidence and confirm owned-tree cleanup. The prequery and e
 removed exactly; neither is accepted as a fix or a relaxed gate. The diagnostic establishes that
 some native queries respond, but not which part of full traversal is blocked.
 
+## Native font-change lifetime reproduction
+
+A separate hidden-HWND fixture compiles the production `FlutterWindow` and `Win32Window` handlers,
+without starting Flutter or accessing a catalog. It sends a reentrant font-change message from real
+`WM_CREATE` before controller initialization, or from destruction after controller retirement while
+the HWND remains valid. Baseline `f9fab38` exits normally for the ordinary-message control, but both
+desired-normal-exit font cases terminate with `0xc000041d`. The verified red record reads exit codes
+from the owned Job's primary handle before disposal; an earlier diagnostic with unavailable
+`Process.ExitCode` values is not counted as exit evidence. Dispatch and normal-return counters also
+prevent a callback exception swallowed by Windows from producing a passing result.
+
+The handler now checks the current controller and engine after plugin delegation. The same three
+owned processes exit zero after repair, with confirmed process exit, Job closure, and no cleanup
+errors. A separate CTest execution runs all three cases, none skipped, in 2.02 seconds. Independent
+review finds no blocking issue in the handler or native fixture: normal initialized handling and
+default processing remain unchanged by source inspection. The fixture does not dynamically exercise
+an initialized engine or failed engine initialization. Matching a generic exception exit does not
+attribute the earlier archived Flutter crash or the zero-thread process record to this fault.
+
+The complete controlled Windows scan subsequently passes in 266,249 milliseconds, with all three native
+interaction tests executed, exit zero, and no cleanup failures. Its generated fixture storage and
+logs remain isolated and retained. The full accessibility query remains a separate open failure.
+The public lifecycle gate then configures and compiles the production dispatcher, actually runs all
+three CTest cases in 3.17 seconds, and accepts that invocation's fresh report. Independent script
+review separately injects simultaneous execution and lock-release failures, finding that the public
+facade's `finally` can replace the original failure. The corrected facade retains both errors,
+preserves the original execution exception, and publishes success only after lock release. Four
+real-facade AST execution cases prove ordinary, execution-only, unlock-only, and simultaneous-failure
+outcomes, including exception identity and exactly one release. Independent review and Windows
+PowerShell 5.1 execution pass; PowerShell 7 is not installed locally and is not claimed as tested.
+The complete lint entrypoint subsequently passes all guardrails, formatting, all-target/all-feature
+Clippy with warnings denied, and strict Dart analysis. The final public entrypoint is then run
+again: configure/build succeed, all three native cases actually execute in 2.23 seconds, and the
+fresh completion report passes validation before success is returned. Hosted verification of this
+repair remains pending at this checkpoint.
+
+After the font-change repair, another full original-scope accessibility run still fails at
+`application-ready`. It passes the virtual-gallery test and native activation, then records one
+application window and the `finding-elements` boundary at 1,674 milliseconds before the unchanged
+eight-second parent timeout. Owned-process exit and Job closure are confirmed, with no cleanup
+errors. This is further evidence that the reproduced font fault and accessibility timeout are
+separate; the current marker does not yet distinguish the managed query from callback output
+transfer or local cache-response construction.
+
 ## Physical ownership review
 
 Counts include whitespace and comments. The non-inline region may contain `cfg(test)` imports,
@@ -314,3 +364,8 @@ no alternate native traversal or deadline policy.
 The native integration file now has 940 dedicated-test lines, a net increase of 50 for real menu
 assertions and failure context. It adds no production code or new responsibility; existing probe
 protocol and controlled catalog fixtures remain candidates for a meaningful future test split.
+
+The native window owner is 142 production lines, with no inline tests; its repair adds two net
+lines. The dedicated HWND fixture has 150 lines and its independent CMake target 42. The public
+runner has 27 lines, its internal execution/result owner 133, and the dedicated compiler-free suite
+224. Native test building does not add another engine or window state machine to production.

@@ -2,7 +2,7 @@
 
 - Status: Accepted for validation
 - Date: 2026-08-08
-- Last amended: 2026-09-05
+- Last amended: 2026-09-07
 
 ## Context
 
@@ -95,6 +95,11 @@ Admit `window_manager` 0.5.2 behind `AmeWindowActions`.
   fallback rather than leaving an invisible process indefinitely. `window_manager` 0.5.2 declares
   the optional ready callback as `VoidCallback` and does not await a returned `Future`, so placement
   work must not be scheduled inside that callback.
+- The native HWND can receive messages before Flutter controller creation and after controller
+  retirement. `WM_FONTCHANGE` therefore reloads fonts only while the current controller and engine
+  exist. This check follows plugin dispatch; it must not retain an engine pointer across a callback
+  that can change window lifetime. Default Win32 processing and normal initialized font refresh
+  remain unchanged. This belongs in the native message owner, not a Dart startup delay or retry.
 
 ## Validation gates
 
@@ -104,6 +109,11 @@ Admit `window_manager` 0.5.2 behind `AmeWindowActions`.
   fallback, and one show/focus sequence shared by both application shells;
 - close-path tests prove immediate hide, one idempotent coordinator drain, native-close parity, the
   six-second destruction bound, and that placement debounce cannot hold the window open;
+- an independent native fixture uses a hidden real HWND and the production message dispatcher to
+  send font changes during creation and destruction without starting an engine. Separate ordinary,
+  startup, and teardown processes must all exit normally and retire their HWND; dispatch and return
+  counters prevent a swallowed native exception from satisfying the assertion. This is not dynamic
+  coverage of an initialized engine, failed engine initialization, or historical crash attribution;
 - Flutter analysis and the existing gallery widget suite pass;
 - a Windows Release build completes with the generated plugin registration;
 - runtime inspection confirms there is no native blue title bar, the app-drawn drag region works,
