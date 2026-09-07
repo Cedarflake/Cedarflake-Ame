@@ -4,6 +4,7 @@ import "../adapters/directory_picker.dart";
 import "../domain/library_models.dart";
 import "../domain/library_state.dart";
 import "library_catalog.dart";
+import "library_scan_control.dart";
 import "library_scan_execution.dart";
 import "library_scan_restoration.dart";
 import "library_scan_run.dart";
@@ -209,6 +210,7 @@ class LibraryPrimaryScanLifecycle implements LibraryScanRunListener {
     final run = LibraryScanRun(
       scanId: checkpoint.scanId,
       generation: ++_runGeneration,
+      scanner: _scanner,
     );
     _run = run;
     try {
@@ -267,11 +269,17 @@ class LibraryPrimaryScanLifecycle implements LibraryScanRunListener {
   }
 
   void pause() {
-    final scanId = _state.scanId;
-    if (scanId != null &&
+    final run = _run;
+    if (!_isUnavailable &&
+        run != null &&
         _state.status == LibraryStatus.scanning &&
-        _scanner.pause(scanId)) {
-      _publish(_state.copyWith(status: LibraryStatus.pausing));
+        run.control.request(LibraryScanCommand.pause)) {
+      _publish(
+        _state.copyWith(
+          status: LibraryStatus.pausing,
+          errorMessage: run.control.failure?.toString(),
+        ),
+      );
     }
   }
 
@@ -279,9 +287,17 @@ class LibraryPrimaryScanLifecycle implements LibraryScanRunListener {
     if (_state.hasRetainedScan) {
       return _retainedCancellation ??= _cancelRetained();
     }
-    final scanId = _state.scanId;
-    if (scanId != null && _state.isScanning && _scanner.cancel(scanId)) {
-      _publish(_state.copyWith(status: LibraryStatus.cancelling));
+    final run = _run;
+    if (!_isUnavailable &&
+        run != null &&
+        _state.isScanning &&
+        run.control.request(LibraryScanCommand.cancel)) {
+      _publish(
+        _state.copyWith(
+          status: LibraryStatus.cancelling,
+          errorMessage: run.control.failure?.toString(),
+        ),
+      );
     }
     return Future<void>.value();
   }
@@ -396,7 +412,19 @@ class LibraryPrimaryScanLifecycle implements LibraryScanRunListener {
       return;
     }
     final transition = _session.apply(_state, update);
-    _publish(transition.state);
+    final controlStatus = switch (run.control.command) {
+      LibraryScanCommand.cancel => LibraryStatus.cancelling,
+      LibraryScanCommand.pause => LibraryStatus.pausing,
+      LibraryScanCommand.suspend || null => null,
+    };
+    _publish(
+      controlStatus == null
+          ? transition.state
+          : transition.state.copyWith(
+              status: controlStatus,
+              errorMessage: run.control.failure?.toString(),
+            ),
+    );
     if (transition.shouldReloadCatalog) {
       unawaited(_reloadPublishedCatalog(_sequence));
     }
@@ -405,8 +433,9 @@ class LibraryPrimaryScanLifecycle implements LibraryScanRunListener {
   @override
   void onScanError(LibraryScanRun run, Object error) {
     if (_owns(run)) {
-      _release(run);
-      _publish(_session.fail(_state, error));
+      _publish(
+        _session.fail(_state, error).copyWith(status: LibraryStatus.cancelling),
+      );
     }
   }
 
@@ -416,6 +445,9 @@ class LibraryPrimaryScanLifecycle implements LibraryScanRunListener {
       return;
     }
     if (run.didReceiveTerminal) {
+      if (run.hasProtocolFailure) {
+        _publish(_state.copyWith(status: LibraryStatus.failed));
+      }
       _release(run);
     } else {
       unawaited(_reconcileEndedScan(run, _sequence));
@@ -553,19 +585,10 @@ class LibraryPrimaryScanLifecycle implements LibraryScanRunListener {
     _isClosing = true;
     await _commands;
     await _retainedCancellation;
-    while (!_isDisposed) {
-      final run = _run;
-      if (run == null || run.isDone) {
-        return;
-      }
-      if (_scanner.suspend(run.scanId)) {
-        await run.streamDone;
-        return;
-      }
-      await Future.any([
-        run.streamDone,
-        Future<void>.delayed(const Duration(milliseconds: 10)),
-      ]);
+    final run = _run;
+    if (!_isDisposed && run != null && !run.isDone) {
+      run.control.request(LibraryScanCommand.suspend);
+      await run.streamDone;
     }
   }
 
@@ -579,7 +602,7 @@ class LibraryPrimaryScanLifecycle implements LibraryScanRunListener {
     _admission.releasePrimary(this);
     if (run != null) {
       if (!_isClosing && !_shutdown.isShuttingDown) {
-        _scanner.cancel(run.scanId);
+        run.control.request(LibraryScanCommand.cancel);
       }
       unawaited(run.dispose());
     }

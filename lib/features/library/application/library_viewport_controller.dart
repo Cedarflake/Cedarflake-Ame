@@ -6,6 +6,7 @@ import "../domain/library_models.dart";
 import "../domain/library_state.dart";
 import "library_catalog.dart";
 import "library_catalog_publication.dart";
+import "library_page_operation.dart";
 import "library_query_refresh.dart";
 
 export "library_query_refresh.dart" show LibraryQueryUpdateOutcome;
@@ -69,6 +70,7 @@ class LibraryViewportController {
   final bool Function() _isHostDisposed;
   final void Function(Iterable<String>) _retainPreviewPending;
   final _publications = LibraryCatalogPublicationCoordinator();
+  final _pages = LibraryPageOperation();
   late final _queryRefresh = LibraryQueryRefreshCoordinator(_publications);
 
   _PendingTimeNavigation? _pendingTimeNavigation;
@@ -402,13 +404,45 @@ class LibraryViewportController {
   }
 
   Future<void> loadNextPage() async {
+    await _loadPage(LibraryPageDirection.next);
+  }
+
+  Future<bool> loadPreviousPage() => _loadPage(LibraryPageDirection.previous);
+
+  Future<bool> _loadPage(LibraryPageDirection direction) {
+    final state = _state;
+    final generation = _publicationGeneration;
+    final cursor = direction == LibraryPageDirection.next
+        ? state.nextCursor
+        : state.previousCursor;
+    return _pages.run(generation, cursor, () {
+      if (!_canPublishGeneration(generation)) {
+        return Future.value(false);
+      }
+      final current = _state;
+      final currentCursor = direction == LibraryPageDirection.next
+          ? current.nextCursor
+          : current.previousCursor;
+      if (state.query != current.query ||
+          state.queryId != current.queryId ||
+          state.catalogRevision != current.catalogRevision ||
+          !identical(cursor, currentCursor)) {
+        return Future.value(false);
+      }
+      return direction == LibraryPageDirection.next
+          ? _loadNextPage()
+          : _loadPreviousPage();
+    }, direction: direction);
+  }
+
+  Future<bool> _loadNextPage() async {
     final cursor = _state.nextCursor;
     if (cursor == null ||
         _state.isBusy ||
         _state.isLoadingPage ||
         _state.isLoadingPreviousPage ||
         _state.isLoadingTimeAnchor) {
-      return;
+      return false;
     }
 
     final generation = _publicationGeneration;
@@ -420,7 +454,7 @@ class LibraryViewportController {
         after: cursor,
       );
       if (!_canPublishGeneration(generation)) {
-        return;
+        return false;
       }
       if (snapshot.revision != _state.catalogRevision ||
           snapshot.queryId != _state.queryId) {
@@ -470,9 +504,10 @@ class LibraryViewportController {
         nextCursor: snapshot.nextCursor,
         isLoadingPage: false,
       );
+      return addedAssets.isNotEmpty;
     } on LibraryCatalogFailure catch (error) {
       if (!_canPublishGeneration(generation)) {
-        return;
+        return false;
       }
       if (error.code == "catalog_cursor_stale") {
         try {
@@ -485,24 +520,26 @@ class LibraryViewportController {
             );
           }
         }
-        return;
+        return false;
       }
       _state = _state.copyWith(
         isLoadingPage: false,
         pageErrorMessage: error.toString(),
       );
+      return false;
     } on Object catch (error) {
       if (!_canPublishGeneration(generation)) {
-        return;
+        return false;
       }
       _state = _state.copyWith(
         isLoadingPage: false,
         pageErrorMessage: error.toString(),
       );
+      return false;
     }
   }
 
-  Future<bool> loadPreviousPage() async {
+  Future<bool> _loadPreviousPage() async {
     final cursor = _state.previousCursor;
     if (cursor == null ||
         _state.isBusy ||

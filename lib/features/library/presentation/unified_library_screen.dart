@@ -25,6 +25,7 @@ import "../domain/library_synchronization_models.dart";
 import "gallery_selection.dart";
 import "library_strings.dart";
 import "library_task_surface_selection.dart";
+import "library_viewer_session.dart";
 import "widgets/library_asset_information_sheet.dart";
 import "widgets/library_gallery_header.dart";
 import "widgets/library_gallery_layout.dart";
@@ -73,12 +74,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   late GalleryThumbnailSize _thumbnailSize;
   late double _sidebarWidth;
   bool _isSidebarResizing = false;
-  String? _viewerAssetId;
-  String? _viewerLocationId;
-  LibraryAsset? _retainedViewerAsset;
+  late final LibraryViewerSession _viewer;
   int _timelineSemanticsGeneration = 0;
   bool _isSelecting = false;
-  bool _isNavigatingViewer = false;
   bool _isRestoringPreviousWindow = false;
   _LibraryDestination _destination = _LibraryDestination.gallery;
   late final ValueNotifier<_LibraryGalleryLayoutSnapshot?>
@@ -130,6 +128,15 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       onDetach: _handleGalleryScrollPositionDetached,
     );
     _libraryController = ref.read(libraryControllerProvider.notifier);
+    _viewer = LibraryViewerSession(
+      readLibrary: () => ref.read(libraryControllerProvider),
+      loadPrevious: () => _loadPreviousAssetsForViewer(_libraryController),
+      loadNext: _libraryController.loadNextPage,
+      catalog: ref.read(libraryCatalogProvider),
+      onPreviewDemand: _libraryController.updateViewerPreviewDemand,
+      onNavigationError: (error) =>
+          _publishFailureNotification("无法切换图片", error),
+    )..addListener(_handleViewerChanged);
     _notificationController = ref.read(
       ameNotificationControllerProvider.notifier,
     );
@@ -164,9 +171,8 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   @override
   void dispose() {
     _isDisposing = true;
-    if (_viewerAssetId != null) {
-      _libraryController.updateViewerPreviewDemand(null);
-    }
+    _viewer.removeListener(_handleViewerChanged);
+    _viewer.dispose();
     _searchDebounce?.cancel();
     _layoutDimensionSettleTimer?.cancel();
     _layoutDimensionDeadlineTimer?.cancel();
@@ -752,31 +758,29 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     final layoutManifest = baseLayoutManifest == null
         ? null
         : _manifestWithRecoveredDimensions(baseLayoutManifest);
-    final loadedViewerAsset = _viewerAssetId == null
+    final loadedViewerAsset = _viewer.assetId == null
         ? null
         : _assetByStableIdentity(
             state.assets,
-            _viewerAssetId!,
-            _viewerLocationId,
+            _viewer.assetId!,
+            _viewer.locationId,
           );
     final viewerCatalogAsset =
         loadedViewerAsset ??
-        (_retainedViewerAsset?.assetId == _viewerAssetId
-            ? _retainedViewerAsset
+        (_viewer.retainedAsset?.assetId == _viewer.assetId
+            ? _viewer.retainedAsset
             : null);
     final viewerIndex = viewerCatalogAsset == null
         ? -1
         : state.assets.indexWhere(
             (asset) => asset.locationId == viewerCatalogAsset.locationId,
           );
-    if (loadedViewerAsset != null) {
+    final viewerSelection = _viewer.selection;
+    if (loadedViewerAsset != null && viewerSelection != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted || _viewerAssetId != loadedViewerAsset.assetId) {
-          return;
+        if (mounted) {
+          _viewer.retainCatalogAsset(viewerSelection, loadedViewerAsset);
         }
-        _viewerLocationId = loadedViewerAsset.locationId;
-        _retainedViewerAsset = loadedViewerAsset;
-        controller.updateViewerPreviewDemand(loadedViewerAsset);
       });
     }
 
@@ -851,15 +855,21 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                           onPrevious:
                               viewerIndex > 0 ||
                                   (state.hasPreviousAssets &&
-                                      !_isNavigatingViewer)
-                              ? () => unawaited(_openAdjacentAsset(-1))
+                                      !_viewer.isNavigating)
+                              ? () => unawaited(
+                                  _viewer.navigate(
+                                    LibraryViewerDirection.previous,
+                                  ),
+                                )
                               : null,
                           onNext:
                               viewerIndex >= 0 &&
                                   (viewerIndex < state.assets.length - 1 ||
                                       (state.hasMoreAssets &&
-                                          !_isNavigatingViewer))
-                              ? () => unawaited(_openAdjacentAsset(1))
+                                          !_viewer.isNavigating))
+                              ? () => unawaited(
+                                  _viewer.navigate(LibraryViewerDirection.next),
+                                )
                               : null,
                           onBack: _closeViewer,
                           onInformation: () =>
@@ -1373,7 +1383,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
             positionResolver: _galleryPositionResolver,
           ),
         ),
-        if (_viewerAssetId == null)
+        if (_viewer.assetId == null)
           ValueListenableBuilder<_LibraryGalleryLayoutSnapshot?>(
             valueListenable: _galleryLayoutSnapshot,
             builder: (context, snapshot, child) {
@@ -1403,90 +1413,21 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     );
   }
 
-  void _openAsset(LibraryAsset asset) {
-    ref
-        .read(libraryControllerProvider.notifier)
-        .updateViewerPreviewDemand(asset);
-    setState(() {
-      _viewerAssetId = asset.assetId;
-      _viewerLocationId = asset.locationId;
-      _retainedViewerAsset = asset;
-    });
+  void _handleViewerChanged() {
+    if (mounted && !_isDisposing) setState(() {});
   }
+
+  void _openAsset(LibraryAsset asset) => _viewer.open(asset);
 
   void _closeViewer() {
-    ref
-        .read(libraryControllerProvider.notifier)
-        .updateViewerPreviewDemand(null);
-    setState(() {
-      _timelineSemanticsGeneration += 1;
-      _viewerAssetId = null;
-      _viewerLocationId = null;
-      _retainedViewerAsset = null;
-    });
-  }
-
-  Future<void> _openAdjacentAsset(int direction) async {
-    final currentAssetId = _viewerAssetId;
-    final currentLocationId = _viewerLocationId;
-    if (currentAssetId == null ||
-        currentLocationId == null ||
-        _isNavigatingViewer) {
-      return;
-    }
-    setState(() => _isNavigatingViewer = true);
-    try {
-      var state = ref.read(libraryControllerProvider);
-      var currentIndex = state.assets.indexWhere(
-        (asset) =>
-            asset.assetId == currentAssetId &&
-            asset.locationId == currentLocationId,
-      );
-      var targetIndex = currentIndex + direction;
-      if (targetIndex < 0 && state.hasPreviousAssets) {
-        await _loadPreviousAssetsForViewer(
-          ref.read(libraryControllerProvider.notifier),
-        );
-      } else if (targetIndex >= state.assets.length && state.hasMoreAssets) {
-        await ref.read(libraryControllerProvider.notifier).loadNextPage();
-      }
-      if (!mounted ||
-          _viewerAssetId != currentAssetId ||
-          _viewerLocationId != currentLocationId) {
-        return;
-      }
-      state = ref.read(libraryControllerProvider);
-      currentIndex = state.assets.indexWhere(
-        (asset) =>
-            asset.assetId == currentAssetId &&
-            asset.locationId == currentLocationId,
-      );
-      targetIndex = currentIndex + direction;
-      if (currentIndex < 0 ||
-          targetIndex < 0 ||
-          targetIndex >= state.assets.length) {
-        return;
-      }
-      final target = state.assets[targetIndex];
-      ref
-          .read(libraryControllerProvider.notifier)
-          .updateViewerPreviewDemand(target);
-      setState(() {
-        _viewerAssetId = target.assetId;
-        _viewerLocationId = target.locationId;
-        _retainedViewerAsset = target;
-      });
-    } finally {
-      if (mounted) {
-        setState(() => _isNavigatingViewer = false);
-      }
-    }
+    _timelineSemanticsGeneration += 1;
+    _viewer.close();
   }
 
   Future<void> _loadPreviousAssetsForViewer(
     LibraryController controller,
   ) async {
-    if (_galleryScrollController.hasClients) {
+    if (_galleryScrollController.hasClients && !_isRestoringPreviousWindow) {
       await _loadPreviousPagePreservingPosition(controller);
       return;
     }
@@ -1549,14 +1490,14 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
         : null;
     _pendingQueryPosition = frozenPosition;
     final viewerAnchor =
-        synchronizationRevision == null || _viewerAssetId == null
+        synchronizationRevision == null || _viewer.assetId == null
         ? null
         : _assetByStableIdentity(
                 currentState.assets,
-                _viewerAssetId!,
-                _viewerLocationId,
+                _viewer.assetId!,
+                _viewer.locationId,
               ) ??
-              _retainedViewerAsset;
+              _viewer.retainedAsset;
     final requestedAnchorLocationId =
         viewerAnchor?.locationId ?? frozenPosition?.locationId;
     final anchorAssetId =
@@ -1604,7 +1545,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       return updateOutcome;
     }
     if (synchronizationRevision != null) {
-      await _reconcileViewerAfterSynchronization();
+      await _viewer.reconcile();
       if (!mounted || requestGeneration != _queryTransitionGeneration) {
         return LibraryQueryUpdateOutcome.superseded;
       }
@@ -1689,54 +1630,6 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
           position.jumpTo(position.minScrollExtent);
         }
       }
-    });
-  }
-
-  Future<void> _reconcileViewerAfterSynchronization() async {
-    final assetId = _viewerAssetId;
-    final preferredLocationId = _viewerLocationId;
-    if (assetId == null || preferredLocationId == null) {
-      return;
-    }
-    final catalog = ref.read(libraryCatalogProvider);
-    final stableAssetCatalog = catalog is LibraryStableAssetCatalog
-        ? catalog as LibraryStableAssetCatalog
-        : null;
-    if (stableAssetCatalog == null) {
-      return;
-    }
-    LibraryAsset? asset;
-    try {
-      asset = await stableAssetCatalog.loadAssetById(
-        assetId: assetId,
-        preferredLocationId: preferredLocationId,
-      );
-    } on Object {
-      return;
-    }
-    if (!mounted ||
-        _viewerAssetId != assetId ||
-        _viewerLocationId != preferredLocationId) {
-      return;
-    }
-    if (asset == null) {
-      ref
-          .read(libraryControllerProvider.notifier)
-          .updateViewerPreviewDemand(null);
-      setState(() {
-        _viewerAssetId = null;
-        _viewerLocationId = null;
-        _retainedViewerAsset = null;
-      });
-      return;
-    }
-    final resolvedAsset = asset;
-    ref
-        .read(libraryControllerProvider.notifier)
-        .updateViewerPreviewDemand(resolvedAsset);
-    setState(() {
-      _viewerLocationId = resolvedAsset.locationId;
-      _retainedViewerAsset = resolvedAsset;
     });
   }
 
@@ -1936,7 +1829,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   }
 
   void _cancelCurrentMode() {
-    if (_viewerAssetId != null) {
+    if (_viewer.assetId != null) {
       _closeViewer();
       return;
     }
