@@ -1,3 +1,5 @@
+. (Join-Path $PSScriptRoot "integration_windows_accessibility_cleanup.ps1")
+
 function Write-AmeWindowsUiaProbeRecord {
     param(
         [Parameter(Mandatory = $true)] [string]$ResultPath,
@@ -6,7 +8,7 @@ function Write-AmeWindowsUiaProbeRecord {
         [Parameter(Mandatory = $true)] [int]$TargetProcessId,
         [Parameter(Mandatory = $true)] [int]$ProbeProcessId,
         [ValidateSet("progress", "complete")] [string]$Status = "progress",
-        [ValidateSet("loading-assemblies", "loading-uia-types", "loading-uia-client", "locating-window", "finding-elements", "reading-properties", "asserting-contract", "complete")]
+        [ValidateSet("loading-assemblies", "loading-uia-types", "loading-uia-client", "locating-window", "activating-cache", "finding-elements", "disposing-cache", "reading-properties", "asserting-contract", "complete")]
         [string]$Stage,
         [ValidateRange(0, 2147483647)] [int]$Attempt = 0,
         [ValidateRange(0, 2147483647)] [int]$WindowCount = 0,
@@ -73,7 +75,7 @@ function Read-AmeWindowsUiaProbeRecord {
     if (
         $record.status -cnotin @("progress", "complete") -or
         $record.stage -cnotin @(
-            "loading-assemblies", "loading-uia-types", "loading-uia-client", "locating-window", "finding-elements",
+            "loading-assemblies", "loading-uia-types", "loading-uia-client", "locating-window", "activating-cache", "finding-elements", "disposing-cache",
             "reading-properties", "asserting-contract", "complete"
         ) -or
         (($record.status -ceq "complete") -ne ($record.stage -ceq "complete"))
@@ -94,25 +96,27 @@ function Read-AmeWindowsUiaProbeRecord {
     return $record
 }
 
-function Complete-AmeWindowsAccessibilityRun {
+function Get-AmeWindowsAccessibilityCompletionOutput {
     param(
-        [Parameter(Mandatory = $true)]
-        [string]$OutputPath,
-        [AllowEmptyString()]
-        [string]$CapturedOutput = "",
-        [AllowEmptyString()]
-        [string]$ProbeTranscript = "",
-        [int]$ExitCode = 0,
-        [AllowNull()]
-        [System.Exception]$RunFailure,
-        [AllowNull()]
-        [System.Exception]$CleanupFailure
+        [string]$CapturedOutput, [string]$ProbeTranscript, [int]$ExitCode,
+        [AllowNull()] [Exception]$RunFailure, [object]$Cleanup,
+        [bool]$EvidencePersisted
     )
 
+    $cleanupFailure = Get-AmeWindowsAccessibilityCleanupFailure $Cleanup
     $completion = [ordered]@{
         exitCode = $ExitCode
         runFailure = $(if ($null -ne $RunFailure) { $RunFailure.Message } else { $null })
-        cleanupFailure = $(if ($null -ne $CleanupFailure) { $CleanupFailure.Message } else { $null })
+        cleanupFailure = $(if ($null -ne $cleanupFailure) { $cleanupFailure.Message } else { $null })
+        cleanupFailures = @(Get-AmeWindowsAccessibilityCleanupRecords $Cleanup)
+        evidencePersisted = $EvidencePersisted
+        primaryProcessExited = $Cleanup.ProcessExited
+        ownedJobClosed = $Cleanup.JobClosed
+        scratchStorage = [ordered]@{
+            path = $Cleanup.ScratchPath
+            disposition = $Cleanup.ScratchDisposition
+            retentionReason = $Cleanup.ScratchRetentionReason
+        }
         probeEvidenceStatus = $(
             if ($null -ne $RunFailure) { $RunFailure.Data["ameWindowsUiaProbeEvidenceStatus"] } else { $null }
         )
@@ -122,29 +126,55 @@ function Complete-AmeWindowsAccessibilityRun {
         probeCleanupFailure = $(
             if ($null -ne $RunFailure) { $RunFailure.Data["ameWindowsUiaProbeCleanupFailure"] } else { $null }
         )
-    } | ConvertTo-Json -Compress -Depth 4
-    $combinedOutput = @(
+        probeCleanupFailures = $(
+            if ($null -ne $RunFailure) { $RunFailure.Data["ameWindowsUiaProbeCleanupFailures"] } else { $null }
+        )
+    } | ConvertTo-Json -Compress -Depth 6
+    return @(
         $CapturedOutput.TrimEnd()
         $ProbeTranscript.TrimEnd()
         "AME_WINDOWS_ACCESSIBILITY_COMPLETION $completion"
     ) -join [Environment]::NewLine
-    $resolvedOutputPath = [System.IO.Path]::GetFullPath($OutputPath)
-    $outputDirectory = Split-Path -Parent $resolvedOutputPath
-    New-Item -ItemType Directory -Path $outputDirectory -Force | Out-Null
-    [System.IO.File]::WriteAllText(
-        $resolvedOutputPath,
-        "$combinedOutput$([Environment]::NewLine)",
-        [System.Text.UTF8Encoding]::new($false)
-    )
-    Write-Host $combinedOutput
+}
 
-    if ($null -ne $RunFailure) {
-        throw $RunFailure
-    }
+function Complete-AmeWindowsAccessibilityRun {
+    param(
+        [Parameter(Mandatory = $true)] [string]$OutputPath,
+        [AllowEmptyString()] [string]$CapturedOutput = "",
+        [AllowEmptyString()] [string]$ProbeTranscript = "",
+        [int]$ExitCode = 0,
+        [AllowNull()] [Exception]$RunFailure,
+        [AllowNull()] [Exception]$CleanupFailure,
+        [AllowNull()] [object]$Cleanup
+    )
+
+    if ($null -eq $Cleanup) { $Cleanup = New-AmeWindowsAccessibilityCleanup }
     if ($null -ne $CleanupFailure) {
-        throw $CleanupFailure
+        $Cleanup.Failures.Add([pscustomobject]@{
+            stage = "reported-cleanup"; exception = $CleanupFailure
+        })
     }
-    if ($ExitCode -ne 0) {
-        throw "Windows accessibility integration failed with exit code $ExitCode"
+    if ($null -eq $RunFailure -and $ExitCode -ne 0) {
+        $RunFailure = [InvalidOperationException]::new(
+            "Windows accessibility integration failed with exit code $ExitCode"
+        )
     }
+    $outputArguments = @{
+        CapturedOutput = $CapturedOutput; ProbeTranscript = $ProbeTranscript
+        ExitCode = $ExitCode; RunFailure = $RunFailure; Cleanup = $Cleanup
+    }
+    $Cleanup.EvidencePersisted = $false
+    $output = Get-AmeWindowsAccessibilityCompletionOutput @outputArguments -EvidencePersisted $true
+    Invoke-AmeWindowsAccessibilityCleanupStep $Cleanup "persist-completion" {
+        Write-AmeWindowsAccessibilityCompletionEvidence $OutputPath "$output$([Environment]::NewLine)"
+        $Cleanup.EvidencePersisted = $true
+    }
+    if (-not $Cleanup.EvidencePersisted) {
+        $output = Get-AmeWindowsAccessibilityCompletionOutput @outputArguments -EvidencePersisted $false
+    }
+    Write-Host $output
+
+    if ($null -ne $RunFailure) { throw $RunFailure }
+    $failure = Get-AmeWindowsAccessibilityCleanupFailure $Cleanup
+    if ($null -ne $failure) { throw $failure }
 }

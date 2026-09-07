@@ -139,8 +139,10 @@ function Remove-AmeWindowsAccessibilityScratch {
                 "Retained Windows accessibility scratch storage because it " +
                 "contains unknown entries: $resolvedScratch"
             )
+            return $false
         }
     }
+    return $true
 }
 
 $repositoryRoot = Get-AmeRepositoryRoot
@@ -163,14 +165,17 @@ if ($capturedOutputMode -and (
     )
 }
 
-$toolLock = Enter-AmeRepositoryToolLock
-Push-Location $repositoryRoot
+$toolLock = $null
+$locationPushed = $false
+$capturedOutput = ""
+$probeTranscript = ""
+$exitCode = 0
+$runFailure = $null
+$cleanup = New-AmeWindowsAccessibilityCleanup
 try {
-    $capturedOutput = ""
-    $probeTranscript = ""
-    $exitCode = 0
-    $runFailure = $null
-    $cleanupFailure = $null
+    $toolLock = Enter-AmeRepositoryToolLock
+    Push-Location $repositoryRoot
+    $locationPushed = $true
 
     if ($capturedOutputMode) {
         $capturedOutput = Get-Content `
@@ -201,6 +206,9 @@ try {
             throw "Windows accessibility scratch storage must remain inside build"
         }
         New-Item -ItemType Directory -Path $scratchRoot | Out-Null
+        $cleanup.ScratchPath = $scratchRoot
+        $cleanup.ScratchDisposition = "retained"
+        $cleanup.ScratchRetentionReason = "cleanup-not-reached"
 
         $processLogPath = Join-Path $scratchRoot "flutter.log"
         $runnerPath = Join-Path `
@@ -230,16 +238,6 @@ try {
             $probeTokenEnvironment,
             "Process"
         )
-        [System.Environment]::SetEnvironmentVariable(
-            $probeDirectoryEnvironment,
-            $scratchRoot,
-            "Process"
-        )
-        [System.Environment]::SetEnvironmentVariable(
-            $probeTokenEnvironment,
-            $probeToken,
-            "Process"
-        )
 
         $cmd = Join-Path ([Environment]::GetFolderPath("System")) "cmd.exe"
         $flutterInvocation = (
@@ -252,6 +250,16 @@ try {
         $testStartedAt = Get-Date
         $validatedPhases = [System.Collections.Generic.List[string]]::new()
         try {
+            [System.Environment]::SetEnvironmentVariable(
+                $probeDirectoryEnvironment,
+                $scratchRoot,
+                "Process"
+            )
+            [System.Environment]::SetEnvironmentVariable(
+                $probeTokenEnvironment,
+                $probeToken,
+                "Process"
+            )
             $processJob = [AmeWindowsAccessibilityProcessJob]::new()
             $process = $processJob.Start($cmd, $cmdArguments, $repositoryRoot)
             $runClock = [System.Diagnostics.Stopwatch]::StartNew()
@@ -318,66 +326,52 @@ try {
         } catch {
             $runFailure = $_.Exception
         } finally {
-            if ($null -ne $processJob) {
-                $processJob.Dispose()
-                $processJob = $null
-            }
-            if ($null -ne $process) {
-                if (-not $process.WaitForExit(5000)) {
-                    $cleanupFailure = [System.TimeoutException]::new(
-                        "Windows accessibility process tree did not terminate " +
-                        "after its Job Object was closed"
-                    )
+            Complete-AmeWindowsAccessibilityCleanup `
+                -Cleanup $cleanup -Job $processJob -Process $process `
+                -EnvironmentValues ([ordered]@{
+                    $probeDirectoryEnvironment = $previousProbeDirectory
+                    $probeTokenEnvironment = $previousProbeToken
+                }) `
+                -CaptureOutput {
+                    if (Test-Path -LiteralPath $processLogPath -PathType Leaf) {
+                        [System.IO.File]::ReadAllText($processLogPath)
+                    } else { "" }
+                } `
+                -CaptureTranscript {
+                    @(
+                        foreach ($phase in $validatedPhases) {
+                            "$probeTranscriptPrefix phase=$phase result=ok"
+                        }
+                    ) -join [Environment]::NewLine
+                } `
+                -RemoveScratch {
+                    Remove-AmeWindowsAccessibilityScratch `
+                        -ScratchRoot $scratchRoot -BuildRoot $buildRoot
                 }
-                $process.Dispose()
-            }
-            [System.Environment]::SetEnvironmentVariable(
-                $probeDirectoryEnvironment,
-                $previousProbeDirectory,
-                "Process"
-            )
-            [System.Environment]::SetEnvironmentVariable(
-                $probeTokenEnvironment,
-                $previousProbeToken,
-                "Process"
-            )
-            if (Test-Path -LiteralPath $processLogPath -PathType Leaf) {
-                $capturedOutput = [System.IO.File]::ReadAllText($processLogPath)
-            }
-            $probeTranscript = @(
-                foreach ($phase in $validatedPhases) {
-                    "$probeTranscriptPrefix phase=$phase result=ok"
-                }
-            ) -join [Environment]::NewLine
-            try {
-                Remove-AmeWindowsAccessibilityScratch `
-                    -ScratchRoot $scratchRoot `
-                    -BuildRoot $buildRoot
-            } catch {
-                if ($null -eq $cleanupFailure) {
-                    $cleanupFailure = $_.Exception
-                } else {
-                    $cleanupFailure = [System.AggregateException]::new(
-                        "Windows accessibility cleanup failed",
-                        [System.Exception[]]@($cleanupFailure, $_.Exception)
-                    )
-                }
-            }
+            $capturedOutput = $cleanup.CapturedOutput
+            $probeTranscript = $cleanup.ProbeTranscript
         }
     }
 
-    Complete-AmeWindowsAccessibilityRun `
-        -OutputPath $OutputPath `
-        -CapturedOutput $capturedOutput `
-        -ProbeTranscript $probeTranscript `
-        -ExitCode $exitCode `
-        -RunFailure $runFailure `
-        -CleanupFailure $cleanupFailure
-    if ($capturedOutput -match "Failed to update ui::AXTree") {
-        throw "Windows AccessibilityBridge rejected a semantics update"
+    if ($null -eq $runFailure -and $exitCode -eq 0) {
+        if ($capturedOutput -match "Failed to update ui::AXTree") {
+            throw "Windows AccessibilityBridge rejected a semantics update"
+        }
+        Assert-AmeWindowsUiaProbeTranscript -Transcript $probeTranscript
     }
-    Assert-AmeWindowsUiaProbeTranscript -Transcript $probeTranscript
+} catch {
+    if ($null -eq $runFailure) { $runFailure = $_.Exception }
 } finally {
-    Pop-Location
-    Exit-AmeRepositoryToolLock $toolLock
+    if ($locationPushed) {
+        Invoke-AmeWindowsAccessibilityCleanupStep $cleanup "pop-location" { Pop-Location }
+    }
+    if ($null -ne $toolLock) {
+        Invoke-AmeWindowsAccessibilityCleanupStep $cleanup "release-tool-lock" {
+            Exit-AmeRepositoryToolLock $toolLock
+        }
+    }
 }
+Complete-AmeWindowsAccessibilityRun `
+    -OutputPath $OutputPath -CapturedOutput $capturedOutput `
+    -ProbeTranscript $probeTranscript -ExitCode $exitCode `
+    -RunFailure $runFailure -Cleanup $cleanup

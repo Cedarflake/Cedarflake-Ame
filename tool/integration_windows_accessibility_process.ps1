@@ -157,16 +157,33 @@ public sealed class AmeWindowsAccessibilityProcessJob : IDisposable
 
     public void Dispose()
     {
-        if (jobHandle != null)
+        SafeFileHandle ownedJob = jobHandle;
+        SafeFileHandle ownedProcess = processHandle;
+        jobHandle = null;
+        processHandle = null;
+        Exception jobFailure = null;
+        try
         {
-            jobHandle.Dispose();
-            jobHandle = null;
+            if (ownedJob != null) { ownedJob.Dispose(); }
         }
-        if (processHandle != null)
+        catch (Exception error)
         {
-            processHandle.Dispose();
-            processHandle = null;
+            jobFailure = error;
         }
+        try
+        {
+            if (ownedProcess != null) { ownedProcess.Dispose(); }
+        }
+        catch (Exception error)
+        {
+            if (jobFailure != null)
+            {
+                throw new AggregateException(
+                    "Windows accessibility handle cleanup failed", jobFailure, error);
+            }
+            throw;
+        }
+        if (jobFailure != null) { throw jobFailure; }
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -322,7 +339,7 @@ function Invoke-AmeWindowsAccessibilityProbe {
     $probeProcessId = 0
     $exitCode = $null
     $probeFailure = $null
-    $cleanupFailure = $null
+    $cleanup = New-AmeWindowsAccessibilityCleanup
     $elapsed = [System.Diagnostics.Stopwatch]::StartNew()
     try {
         $job = [AmeWindowsAccessibilityProcessJob]::new()
@@ -350,40 +367,26 @@ function Invoke-AmeWindowsAccessibilityProbe {
     } catch {
         $probeFailure = $_.Exception
     } finally {
-        if ($null -ne $job) {
-            $job.Dispose()
-        }
-        if ($null -ne $process) {
-            $terminated = $process.WaitForExit(5000)
-            $process.Dispose()
-            if (-not $terminated) {
-                $cleanupFailure = [System.TimeoutException]::new(
-                    "Windows UIA probe did not terminate after its Job Object closed"
-                )
-            }
-        }
+        Close-AmeWindowsAccessibilityProcess -Cleanup $cleanup -Job $job -Process $process
         $elapsed.Stop()
     }
+    $cleanupFailure = Get-AmeWindowsAccessibilityCleanupFailure $cleanup
 
     $result = $null
     $evidenceStatus = if ($probeProcessId -gt 0) { "missing" } else { "not-started" }
-    if (Test-Path -LiteralPath $ResultPath -PathType Leaf) {
-        try {
+    try {
+        if (Test-Path -LiteralPath $ResultPath -PathType Leaf) {
             $result = Read-AmeWindowsUiaProbeRecord `
                 -ResultPath $ResultPath -Token $Token -Phase $Phase `
                 -TargetProcessId $TargetProcessId -ProbeProcessId $probeProcessId
             $evidenceStatus = "verified"
-        } catch {
-            $evidenceStatus = "invalid"
-            if ($null -eq $probeFailure) {
-                $probeFailure = $_.Exception
-            }
         }
+    } catch {
+        $evidenceStatus = "invalid"
+        if ($null -eq $probeFailure) { $probeFailure = $_.Exception }
     }
     if ($null -eq $probeFailure) {
-        if ($null -ne $cleanupFailure) {
-            $probeFailure = $cleanupFailure
-        } elseif ($exitCode -ne 0) {
+        if ($exitCode -ne 0) {
             $probeFailure = [System.InvalidOperationException]::new(
                 "Windows UIA probe '$Phase' failed with a nonzero process exit"
             )
@@ -395,6 +398,8 @@ function Invoke-AmeWindowsAccessibilityProbe {
             $probeFailure = [System.InvalidOperationException]::new(
                 "Windows UIA probe '$Phase' failed: $($result.failure)"
             )
+        } elseif ($null -ne $cleanupFailure) {
+            $probeFailure = $cleanupFailure
         }
     }
     if ($null -ne $probeFailure) {
@@ -402,6 +407,9 @@ function Invoke-AmeWindowsAccessibilityProbe {
         $probeFailure.Data["ameWindowsUiaProbeProgress"] = $result
         if ($null -ne $cleanupFailure) {
             $probeFailure.Data["ameWindowsUiaProbeCleanupFailure"] = $cleanupFailure.Message
+            $probeFailure.Data["ameWindowsUiaProbeCleanupFailures"] = @(
+                Get-AmeWindowsAccessibilityCleanupRecords $cleanup
+            )
         }
         throw $probeFailure
     }

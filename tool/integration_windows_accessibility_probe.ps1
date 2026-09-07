@@ -221,16 +221,19 @@ function Get-AmeWindowsUiaSnapshot {
         $cacheRequest.Add($property)
     }
     foreach ($window in $windows) {
-        Publish-AmeWindowsUiaProbeProgress -Stage "finding-elements"
-        $activeCache = $cacheRequest.Activate()
-        try {
-            $elements = $window.FindAll(
-                [System.Windows.Automation.TreeScope]::Subtree,
-                [System.Windows.Automation.Condition]::TrueCondition
-            )
-        } finally {
-            $activeCache.Dispose()
-        }
+        Publish-AmeWindowsUiaProbeProgress -Stage "activating-cache"
+        $elements = Invoke-AmeWindowsAccessibilityCacheScope `
+            -CacheRequest $cacheRequest `
+            -Read {
+                Publish-AmeWindowsUiaProbeProgress -Stage "finding-elements"
+                ,($window.FindAll(
+                    [System.Windows.Automation.TreeScope]::Subtree,
+                    [System.Windows.Automation.Condition]::TrueCondition
+                ))
+            } `
+            -BeforeDispose {
+                Publish-AmeWindowsUiaProbeProgress -Stage "disposing-cache"
+            }
         $script:probeRecord.ElementCount += $elements.Count
         Publish-AmeWindowsUiaProbeProgress -Stage "reading-properties"
         foreach ($element in $elements) {

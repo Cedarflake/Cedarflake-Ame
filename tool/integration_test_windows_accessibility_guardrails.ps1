@@ -3,6 +3,9 @@ $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "integration_windows_accessibility_process.ps1")
 . (Join-Path $PSScriptRoot "integration_windows_accessibility_evidence.ps1")
 
+& (Join-Path $PSScriptRoot "integration_test_windows_accessibility_cleanup.ps1")
+& (Join-Path $PSScriptRoot "integration_test_windows_accessibility_cache_scope.ps1")
+
 $repositoryRoot = Get-AmeRepositoryRoot
 $buildRoot = [System.IO.Path]::GetFullPath((Join-Path $repositoryRoot "build"))
 $scratchRoot = [System.IO.Path]::GetFullPath(
@@ -315,7 +318,7 @@ try {
     $blockedProbeResult = Join-Path $scratchRoot "probe-blocked.json"
     $progressFixture = Join-Path $scratchRoot "progress.json"
     foreach ($stage in @(
-        "loading-assemblies", "loading-uia-types", "loading-uia-client", "locating-window", "finding-elements",
+        "loading-assemblies", "loading-uia-types", "loading-uia-client", "locating-window", "activating-cache", "finding-elements", "disposing-cache",
         "reading-properties", "asserting-contract"
     )) {
         Write-AmeWindowsUiaProbeRecord `
