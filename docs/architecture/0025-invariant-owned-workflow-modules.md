@@ -97,6 +97,15 @@ persistence layers.
   Evidence-only completion does not create a gallery location. `rename_change.rs` owns paired-path
   composition while preserving the current lease's terminal-evidence boundary and both paths'
   source revalidation; it does not invent a second persistence contract.
+- `incremental_library_changes/preparation_catalog.rs` owns the bounded read set used to decide
+  whether a prepared delta survives an unrelated catalog revision. It preserves every original
+  path and global identity lookup, including negative results and ordered catch-up lineage.
+  `preparation_rebase.rs` requires matching root context, complete catalog observations, and current
+  source-version evidence before reuse; otherwise it retires the old proof before preparing again.
+  Every observed file is revalidated even when it produces no mutation. An absent path acquiring
+  terminal media is a new observation, not equivalent absence. Reuse never replaces the final
+  transaction's revision, root, lease, or preview guards. The authoritative path-set workflow uses
+  the same preparation and source checks without retaining an unused rebase read set.
 - `application/storage/preview_activation.rs` owns the cross-database restart obligation for
   switch-and-regenerate. Target initialization and idempotent catalog reset precede pending-intent
   retirement. The storage facade selects this use case; it does not carry compensating SQL or a

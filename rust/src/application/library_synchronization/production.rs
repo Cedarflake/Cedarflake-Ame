@@ -76,6 +76,14 @@ use crate::ports::{
 };
 
 #[cfg(windows)]
+mod poll_diagnostics;
+
+#[cfg(windows)]
+use poll_diagnostics::{
+    ElapsedStageTimer, SynchronizationPollStageTimings, log_synchronization_poll_diagnostic,
+};
+
+#[cfg(windows)]
 static SYNCHRONIZATION_RUNTIME: OnceLock<SynchronizationRuntimeRegistry> = OnceLock::new();
 
 #[cfg(all(test, windows))]
@@ -1857,93 +1865,13 @@ fn poll_runtime_with_storage_inner(
     admissions.revalidate(&catalog, &mut runtime.runtime, &mut snapshot)?;
     admissions.append_dormant_statuses(&mut snapshot);
     drop(projection_timer);
+    timings.stage = "retirement";
+    let retirement_started = Instant::now();
+    drop(admissions);
+    drop(catalog);
+    timings.retirement_ms = Some(retirement_started.elapsed().as_millis());
     timings.stage = "complete";
     Ok(snapshot)
-}
-
-#[cfg(windows)]
-struct SynchronizationPollStageTimings {
-    stage: &'static str,
-    catalog_ms: u128,
-    observation_ms: u128,
-    lanes_ms: u128,
-    scheduling_ms: u128,
-    projection_ms: u128,
-}
-
-#[cfg(windows)]
-impl Default for SynchronizationPollStageTimings {
-    fn default() -> Self {
-        Self {
-            stage: "not_started",
-            catalog_ms: 0,
-            observation_ms: 0,
-            lanes_ms: 0,
-            scheduling_ms: 0,
-            projection_ms: 0,
-        }
-    }
-}
-
-#[cfg(windows)]
-struct ElapsedStageTimer<'a> {
-    started: Instant,
-    elapsed_ms: &'a mut u128,
-}
-
-#[cfg(windows)]
-impl<'a> ElapsedStageTimer<'a> {
-    fn new(elapsed_ms: &'a mut u128) -> Self {
-        Self {
-            started: Instant::now(),
-            elapsed_ms,
-        }
-    }
-}
-
-#[cfg(windows)]
-impl Drop for ElapsedStageTimer<'_> {
-    fn drop(&mut self) {
-        *self.elapsed_ms = (*self.elapsed_ms).saturating_add(self.started.elapsed().as_millis());
-    }
-}
-
-#[cfg(windows)]
-fn log_synchronization_poll_diagnostic(
-    elapsed: Duration,
-    timings: &SynchronizationPollStageTimings,
-    result: &Result<LibrarySynchronizationSnapshot, ScanError>,
-) {
-    #[cfg(debug_assertions)]
-    {
-        const SLOW_POLL: Duration = Duration::from_millis(500);
-        if elapsed < SLOW_POLL && result.is_ok() {
-            return;
-        }
-        let (outcome, code, roots, mutations) = match result {
-            Ok(snapshot) => (
-                "ok",
-                "none",
-                snapshot.roots.len(),
-                snapshot.applied_mutation_count,
-            ),
-            Err(error) => ("error", error.code.as_str(), 0, 0),
-        };
-        eprintln!(
-            "[Ame sync native] outcome={outcome} code={code} stage={} total_ms={} \
-             catalog_ms={} observation_ms={} lanes_ms={} scheduling_ms={} projection_ms={} \
-             roots={roots} mutations={mutations}",
-            timings.stage,
-            elapsed.as_millis(),
-            timings.catalog_ms,
-            timings.observation_ms,
-            timings.lanes_ms,
-            timings.scheduling_ms,
-            timings.projection_ms,
-        );
-    }
-    #[cfg(not(debug_assertions))]
-    let _ = (elapsed, timings, result);
 }
 
 #[cfg(windows)]

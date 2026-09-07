@@ -32,6 +32,8 @@ The active delivery order remains in [the canonical roadmap](../roadmap.md).
 | Capacity retry / store invalidation | Recovery replaces the store while a capacity retry retains stale accounting, rejecting free space or omitting installed bytes from the current owner | Reacquire one typed accounting/installation owner with each generation or reclamation permit; never carry the old store across exclusion gaps |
 | Native verification / exceptional cleanup | Job disposal or process wait failure skipped later release, environment restoration, and evidence persistence | Independently settle every owned resource, preserve the original failure, and retain scratch evidence when exit or output capture is unconfirmed |
 | Native window / controller lifetime | A font-change message delivered to a real HWND before controller creation or after retirement terminates the test process | Recheck the current controller and engine after plugin dispatch before reloading fonts; keep ordinary and default message handling |
+| Native scope exit / child-window destruction | Actual engine child destruction reenters a still-exposed retiring controller | Retire controller ownership before member destruction and retire the window before COM teardown |
+| Incremental preparation / concurrent publication | An unrelated live revision repeats the full prepared batch; unchanged and absent paths have incomplete source proof | Revalidate every source observation and reuse only a complete matching bounded read set, preserving final transaction authority |
 
 The first boundary takes priority because it crosses source-media safety. A second uncoordinated
 path check or one disabled UI button does not close its race. Full catalog validation during an
@@ -423,6 +425,67 @@ The temporary production-probe branch is removed afterward. A read-only terminat
 and a separate limited-information query for the historical process both return access denied;
 its actual termination state and external references remain unproved.
 
+A direct-owned-window native COM comparison avoids desktop enumeration by passing the validated
+application HWND to `ElementFromHandle`. COM creation and cache setup return in 78 milliseconds,
+but that call does not return before the unchanged eight-second parent deadline; no subtree query
+has started. The framework interaction still passes, and the owned application/probe processes exit
+with Job closure and no cleanup errors. This is diagnostic evidence only.
+
+The same native query helper then runs against a separate hidden standard Win32 window with three
+system controls and a normal message pump. `ElementFromHandle` returns at 187 milliseconds and the
+complete subtree query returns at 750 milliseconds, exposing five cached elements. All property
+reads, interface releases, and COM teardown return by 765 milliseconds. The helper exits with the
+expected missing-Ame-canary status; the fixture receives verified `WM_CLOSE` and exits normally.
+The 6735-millisecond owned run confirms both descendant exits, primary exit, Job closure, and no
+cleanup errors. This rules out universal query failure for this client configuration, not every
+platform or Flutter failure mode. The Ame window/provider message path remains under investigation;
+standard-control success does not satisfy the Ame accessibility gate.
+
+Hosted run `34132450514` passes all required jobs on `c23a813`, including the new real-engine exit
+gate, Static and Rust, Flutter, native interactions, all five synthetic workloads, and unsigned x64
+verification. Protected signing remains outside ordinary PR authority. That head does not include
+the following preparation repair, and hosted success does not settle the Windows 11 client query
+failure or the historical process record.
+
+## Prepared delta and source revalidation follow-up
+
+The incremental worker now retains a bounded, complete catalog read set for each prepared batch.
+Same-root unrelated live publication can reuse it only after matching every original path and
+global identity observation, complete root context, and current source evidence. Negative results,
+ordered catch-up lineage, and full preview state are included. Budget exhaustion falls back to
+ordinary preparation; the old proof is dropped before a new one is retained. Source revalidation
+now includes unchanged files and rejects an absent path that acquires terminal media. Final SQL
+revision, root, lease, and preview checks and the two-rebase limit remain unchanged.
+
+All 69 incremental tests pass, including 12 new controlled cases and the existing cancellation,
+bounded-rebase, rename, corrupt-input, and replacement cases. The first-publication tests exercise
+the actual prepare/revalidate boundary without a catalog revision conflict; they are not native UI
+tests. Independent review finds no additional actionable defect in this slice. No retained catalog
+or real source root is accessed.
+
+The unchanged mixed-load test now completes all 25 measured samples with progress in both lower
+lanes. Recorded P0 visibility is P50 581, P95 658, and maximum 660 milliseconds, with no sample over
+one second; P1 eventually completes all 2048 candidates. The overall test still fails: after the
+60-second post-measurement deadline, P2 has enumerated 9600 of 10000 entries and has not published
+its default 4095-entry page. Its spool is still enumerating and its worker is active. These sample
+statistics do not constitute a passing mixed-load gate. The remaining P2 convergence path requires
+separate investigation; no workload or timeout was changed to obtain these results. Source review
+confirms one retained Windows enumeration cursor, not repeated directory-prefix traversal. The
+remaining work repeatedly yields after 128 raw entries in this fixture, retires its worker and
+lease, and reopens sessions and transactions on the next poll. Remaining P1 work also defers new
+P2 admission within the final deadline. Stage measurements are still needed to identify the dominant
+cost; a running spool with no logical page is not proof of lost staging or publication failure.
+
+The subsequent complete local lint invocation stops in the unchanged R2c-R process-timeout
+guardrail before formatting, Clippy, or Dart analysis. Its 15-second owned parent records native
+initialization complete at 3944 milliseconds and `before-child-start` at 4011 milliseconds, but no
+child identity marker. This is an incomplete guardrail execution, not evidence that the expected
+descendant cleanup assertion passed. Separate formatting (212 unchanged files), all-target/all-feature
+Clippy with warnings denied, strict Dart analysis, all 14 asynchronous bridge contracts and matching
+hashes, and whitespace checks pass. These do not erase the original full-gate failure. A fresh
+process inventory finds no new Ame or fixture process;
+the four Dart tools belong to the editor and are not terminated.
+
 ## Physical ownership review
 
 Counts include whitespace and comments. The non-inline region may contain `cfg(test)` imports,
@@ -485,3 +548,11 @@ entrypoint 60, both without inline tests. The separate engine fixture has 146 C+
 CMake target. Its input, result, and execution owners have 108, 50, and 203 lines; the dedicated
 compiler-free suite has 236. The existing public facade is 31 lines and its combined guardrail 242.
 The two production ownership corrections do not add another lifetime flag or callback state machine.
+
+At the preparation checkpoint, the incremental facade has 1754 production lines with no inline
+tests; its read-set and rebase owners have 231 and 88, and rename composition has 104. The dedicated
+test facade has 3773 lines, the extracted race repository helper 394, and the new regression suite
+504. The synchronization runtime has 4077 non-inline and 10502 inline-test lines; its extracted poll
+diagnostic owner has 87 production lines and the dedicated priority suite has 965. The existing
+runtime/lane and test decomposition debt remains open; this repair does not add another scheduling
+policy to that large owner.

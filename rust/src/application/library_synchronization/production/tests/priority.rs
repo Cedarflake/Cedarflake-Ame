@@ -73,7 +73,13 @@ fn priority_queue_progress(connection: &rusqlite::Connection) -> rusqlite::Resul
     connection.query_row(
         "SELECT COALESCE(GROUP_CONCAT(summary, '; '), '') FROM (
            SELECT lane.lane || ':' || queue.status || ':' ||
-                  COALESCE(SUBSTR(queue.last_failure_code, 1, 96), '') || '=' || COUNT(*) AS summary
+                  COALESCE(SUBSTR(queue.last_failure_code, 1, 96), '') || '=' || COUNT(*) ||
+                  ',attempts=' || MIN(queue.attempt_count) || '..' || MAX(queue.attempt_count) ||
+                  ',lease_generation=' || MIN(queue.lease_generation) || '..' || MAX(queue.lease_generation) ||
+                  ',lease_expires=' || COALESCE(MIN(queue.lease_expires_unix_ms), 'none') ||
+                      '..' || COALESCE(MAX(queue.lease_expires_unix_ms), 'none') ||
+                  ',retry_at=' || COALESCE(MIN(queue.next_retry_unix_ms), 'none') ||
+                      '..' || COALESCE(MAX(queue.next_retry_unix_ms), 'none') AS summary
            FROM library_change_queue AS queue
            JOIN library_change_queue_lanes AS lane ON lane.change_id = queue.id
            GROUP BY lane.lane, queue.status, queue.last_failure_code
@@ -81,6 +87,17 @@ fn priority_queue_progress(connection: &rusqlite::Connection) -> rusqlite::Resul
          )",
         [],
         |row| row.get(0),
+    )
+}
+
+fn priority_worker_progress<'a>(
+    worker: Option<&'a JoinHandle<()>>,
+    cancelled: &AtomicBool,
+) -> (Option<&'a str>, Option<bool>, bool) {
+    (
+        worker.and_then(|worker| worker.thread().name()),
+        worker.map(JoinHandle::is_finished),
+        cancelled.load(Ordering::Acquire),
     )
 }
 
@@ -368,7 +385,7 @@ fn p0_event_to_visible_p95_stays_below_one_second_with_p1_and_p2_active() {
 
     let mut latencies = Vec::with_capacity(SAMPLE_COUNT);
     let mut queue_admission_latencies = Vec::with_capacity(SAMPLE_COUNT);
-    let mut worker_start_latencies = Vec::with_capacity(SAMPLE_COUNT);
+    let mut worker_admission_latencies = Vec::with_capacity(SAMPLE_COUNT);
     let mut visible_query_latencies = Vec::with_capacity(SAMPLE_COUNT);
     let mut p1_completed_samples = Vec::with_capacity(SAMPLE_COUNT);
     let mut p2_source_read_samples = Vec::with_capacity(SAMPLE_COUNT);
@@ -489,12 +506,20 @@ fn p0_event_to_visible_p95_stays_below_one_second_with_p1_and_p2_active() {
 
         let visible_deadline = started + Duration::from_secs(5);
         let mut queue_admission_latency = None;
-        let mut worker_start_latency = None;
+        let mut worker_admission_latency = None;
+        let mut poll_count = 0_u64;
+        let mut poll_total = Duration::ZERO;
+        let mut poll_maximum = Duration::ZERO;
         let location = loop {
-            poll_runtime_with_storage(&mut fixture.production, &storage)
-                .expect("drive reserved P0 publication");
-            if worker_start_latency.is_none() && fixture.production.live.is_some() {
-                worker_start_latency = Some(started.elapsed());
+            let poll_started = std::time::Instant::now();
+            let poll_result = poll_runtime_with_storage(&mut fixture.production, &storage);
+            let poll_elapsed = poll_started.elapsed();
+            poll_count = poll_count.saturating_add(1);
+            poll_total = poll_total.saturating_add(poll_elapsed);
+            poll_maximum = poll_maximum.max(poll_elapsed);
+            poll_result.expect("drive reserved P0 publication");
+            if worker_admission_latency.is_none() && fixture.production.live.is_some() {
+                worker_admission_latency = Some(started.elapsed());
             }
             if queue_admission_latency.is_none() {
                 let queued: i64 = progress_connection
@@ -543,7 +568,7 @@ fn p0_event_to_visible_p95_stays_below_one_second_with_p1_and_p2_active() {
                     )
                     .expect("load timed-out P0 queue evidence");
                 panic!(
-                    "P0 location did not become visible within five seconds: queue={queue_evidence:?} queue_admission={queue_admission_latency:?} live_active={} journal_active={} recovery_active={} low_writer_ops={}",
+                    "P0 location did not become visible within five seconds: queue={queue_evidence:?} queue_admission={queue_admission_latency:?} worker_admission={worker_admission_latency:?} poll_count={poll_count} poll_total={poll_total:?} poll_maximum={poll_maximum:?} live_active={} journal_active={} recovery_active={} low_writer_ops={}",
                     fixture.production.live.is_some(),
                     fixture.production.journal.is_some(),
                     fixture.production.recovery.is_some(),
@@ -554,9 +579,10 @@ fn p0_event_to_visible_p95_stays_below_one_second_with_p1_and_p2_active() {
         };
         queue_admission_latencies
             .push(queue_admission_latency.expect("visible P0 work has durable queue evidence"));
-        worker_start_latencies
-            .push(worker_start_latency.expect("visible P0 work started the reserved worker"));
-        latencies.push(started.elapsed());
+        worker_admission_latencies
+            .push(worker_admission_latency.expect("visible P0 work admitted the reserved worker"));
+        let visible_latency = started.elapsed();
+        latencies.push(visible_latency);
         assert!(matches!(
             location.preview_status,
             crate::domain::PreviewStatus::Pending
@@ -583,7 +609,21 @@ fn p0_event_to_visible_p95_stays_below_one_second_with_p1_and_p2_active() {
             }
             assert!(
                 std::time::Instant::now() < lane_progress_deadline,
-                "sample {index} did not advance both active lower-priority lanes: p1={p1_completed_at_start}->{p1_completed} p2={p2_source_reads_at_start}->{p2_source_reads}"
+                "sample {index} did not advance both active lower-priority lanes: p1={p1_completed_at_start}->{p1_completed} p2={p2_source_reads_at_start}->{p2_source_reads} visible={visible_latency:?} poll_count={poll_count} poll_total={poll_total:?} poll_maximum={poll_maximum:?} queue_admission={queue_admission_latency:?} worker_admission={worker_admission_latency:?} queue={:?} live_worker={:?} journal_worker={:?} recovery_worker={:?} runtime_stopping={} stop_requested={} low_writer_ops={} now_unix_ms={:?}",
+                priority_queue_progress(&progress_connection),
+                fixture.production.live.as_ref().map(|task| {
+                    priority_worker_progress(task.worker.as_ref(), &task.cancelled)
+                }),
+                fixture.production.journal.as_ref().map(|task| {
+                    priority_worker_progress(task.worker.as_ref(), &task.cancelled)
+                }),
+                fixture.production.recovery.as_ref().map(|task| {
+                    priority_worker_progress(task.worker.as_ref(), &task.cancelled)
+                }),
+                fixture.production.is_stopping,
+                fixture.production.stop_requested.load(Ordering::Acquire),
+                low_writer_operations.load(Ordering::Acquire),
+                now_unix_ms(),
             );
             std::thread::yield_now();
         };
@@ -601,6 +641,18 @@ fn p0_event_to_visible_p95_stays_below_one_second_with_p1_and_p2_active() {
         p2_progress_sample_count = p2_progress_sample_count.saturating_add(1);
         p1_completed_samples.push(p1_completed);
         p2_source_read_samples.push(p2_source_reads);
+        eprintln!(
+            "controlled P0 sample index={index} queue_admission_ms={} worker_admission_ms={} visible_ms={} poll_count={poll_count} poll_total_ms={} poll_max_ms={}",
+            queue_admission_latency
+                .expect("sample queue admission")
+                .as_millis(),
+            worker_admission_latency
+                .expect("sample worker admission")
+                .as_millis(),
+            visible_latency.as_millis(),
+            poll_total.as_millis(),
+            poll_maximum.as_millis(),
+        );
     }
 
     p1_published_next_usn.store(
@@ -653,7 +705,7 @@ fn p0_event_to_visible_p95_stays_below_one_second_with_p1_and_p2_active() {
 
     latencies.sort_unstable();
     queue_admission_latencies.sort_unstable();
-    worker_start_latencies.sort_unstable();
+    worker_admission_latencies.sort_unstable();
     visible_query_latencies.sort_unstable();
     let p50_index = (latencies.len() * 50).div_ceil(100) - 1;
     let p95_index = (latencies.len() * 95).div_ceil(100) - 1;
@@ -665,7 +717,7 @@ fn p0_event_to_visible_p95_stays_below_one_second_with_p1_and_p2_active() {
         .filter(|latency| **latency > Duration::from_secs(1))
         .count();
     let queue_p95 = queue_admission_latencies[p95_index];
-    let worker_start_p95 = worker_start_latencies[p95_index];
+    let worker_admission_p95 = worker_admission_latencies[p95_index];
     let visible_query_p95 = visible_query_latencies[p95_index];
     let writer_operations_after = low_writer_operations.load(Ordering::Acquire);
     let p1_completed_first = p1_completed_samples.first().copied().unwrap_or_default();
@@ -696,10 +748,10 @@ fn p0_event_to_visible_p95_stays_below_one_second_with_p1_and_p2_active() {
             .expect("collect P1 status evidence")
     };
     eprintln!(
-        "controlled P0 priority fixture samples={SAMPLE_COUNT} p1_candidates={P1_CANDIDATE_COUNT} p1_completed={p1_completed_before}->{p1_completed_first}->{p1_completed_last}->{p1_completed_after} p1_active_samples={p1_active_sample_count} p1_progress_samples={p1_progress_sample_count} p1_statuses={p1_statuses:?} p2_entries={P2_SOURCE_ENTRIES} p2_cold_staged={p2_staged_before} p2_source_reads={p2_source_reads_first}->{p2_source_reads_last}->{} p2_staged_after={p2_staged_after} p2_active_samples={p2_active_sample_count} p2_progress_samples={p2_progress_sample_count} low_writer_ops={writer_operations_before}->{writer_operations_after} queue_p95_ms={} worker_start_p95_ms={} visible_query_p95_ms={} visible_p50_ms={} visible_p95_ms={} visible_max_ms={} visible_over_one_second={over_one_second}",
+        "controlled P0 priority fixture samples={SAMPLE_COUNT} p1_candidates={P1_CANDIDATE_COUNT} p1_completed={p1_completed_before}->{p1_completed_first}->{p1_completed_last}->{p1_completed_after} p1_active_samples={p1_active_sample_count} p1_progress_samples={p1_progress_sample_count} p1_statuses={p1_statuses:?} p2_entries={P2_SOURCE_ENTRIES} p2_cold_staged={p2_staged_before} p2_source_reads={p2_source_reads_first}->{p2_source_reads_last}->{} p2_staged_after={p2_staged_after} p2_active_samples={p2_active_sample_count} p2_progress_samples={p2_progress_sample_count} low_writer_ops={writer_operations_before}->{writer_operations_after} queue_p95_ms={} worker_admission_p95_ms={} visible_query_p95_ms={} visible_p50_ms={} visible_p95_ms={} visible_max_ms={} visible_over_one_second={over_one_second}",
         crate::adapters::source_entry_read_count(&p2_root_path),
         queue_p95.as_millis(),
-        worker_start_p95.as_millis(),
+        worker_admission_p95.as_millis(),
         visible_query_p95.as_millis(),
         p50.as_millis(),
         p95.as_millis(),

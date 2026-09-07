@@ -2,13 +2,14 @@ use crate::adapters::{LocalMediaInspector, PublicationGuardedFileDiscovery};
 use crate::domain::{LeasedLibraryChange, LibraryChangeFailure};
 use crate::ports::IncrementalCatalogRepository;
 
+use super::preparation_catalog::PreparationCatalog;
 use super::{
     InspectedPath, PathChangeContext, PreparedChange, failure, inspect_path, prepare_path_change,
     push_unique, scan_failure, windows_case_alias,
 };
 
 pub(super) fn prepare_rename_change<Repository>(
-    repository: &Repository,
+    repository: &mut PreparationCatalog<'_, Repository>,
     discovery: &PublicationGuardedFileDiscovery,
     inspector: &LocalMediaInspector,
     leased: &LeasedLibraryChange,

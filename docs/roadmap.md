@@ -3503,7 +3503,8 @@ The main window must also retire before COM teardown. Closeout requires an indep
 real-engine regression in the mandatory native gate; the empty-controller fixture cannot substitute
 for it. The integrated local gate now executes and passes all three engine-free and both real-engine
 cases, with fresh native completion and owned-process retirement evidence. Its subsequent full-head
-CI remains required. The historical zero-thread record remains present and unattributed without a matching dump.
+CI passes all required jobs on `c23a813` in run `34132450514`. The historical zero-thread record
+remains present and unattributed without a matching dump; client UIA acceptance remains open.
 Hosted `f58e483` also exposes a separate mixed-load P0 latency failure: P95 is 1.344 seconds against
 the unchanged one-second requirement. Stage-complete logs omit substantial return/retirement time;
 measure that boundary before changing connection ownership or priority scheduling. No workload,
@@ -3513,9 +3514,16 @@ batch after the live worker has retired. Stage measurements identify a full 64-p
 repeated after a same-root unrelated live change advances the catalog revision, while write admission
 takes less than one millisecond. Prepared-result reuse must prove the complete catalog read set and
 source state without removing the final revision guard. Missing source revalidation on unchanged
-locations and absent-to-terminal transitions must close first. A bounded direct MSAA experiment traverses 119 objects in the populated Flutter
-fragment and releases all interfaces within the existing probe deadline. Whole-window UIA remains
-unaccepted; successful fragment traversal alone does not verify its bridge or navigation behavior.
+locations and absent-to-terminal transitions are now repaired with complete read-set ownership and
+69 passing incremental regressions. The unchanged mixed-load run completes all 25 samples with P0
+P95 658 milliseconds and full P1 completion, but fails its final P2 deadline at 9600 of 10000 source
+entries with no staged page. P2 convergence and the full current-head gates remain open; the sample
+statistics are not a passing gate. A bounded direct MSAA experiment traverses 119 objects in the
+populated Flutter fragment and releases all interfaces within the existing probe deadline.
+Whole-window UIA remains unaccepted: native `ElementFromHandle` stalls for Ame, while the same
+query client completes a standard Win32 window subtree and retires normally. The native application
+message/provider path needs further diagnosis; neither that control nor successful MSAA fragment
+traversal verifies Ame's complete bridge or navigation behavior.
 
 R2b implementation, deterministic preview-lifecycle correctness, retained-catalog interaction
 Profile, real-library catalog parity, Daily, Windows Release, and bounded source-readable preview

@@ -243,7 +243,7 @@ pub struct SourceRevisionEvidence {
     pub value: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AssetLocationView {
     pub asset_id: String,
     pub location_id: String,
@@ -269,14 +269,14 @@ pub struct AssetLocationView {
     pub capture_time: Option<CaptureTimeEvidence>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PreviewStatus {
     Pending,
     Ready,
     Failed,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CaptureTimeEvidence {
     pub local_time: String,
     pub offset_minutes: Option<i16>,
@@ -284,7 +284,7 @@ pub struct CaptureTimeEvidence {
     pub raw_value: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum CaptureTimeSource {
     Original,
     Digitized,

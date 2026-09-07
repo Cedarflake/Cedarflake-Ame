@@ -25,8 +25,12 @@ use super::scan_library::{stable_id, stable_location_id};
 
 const MAX_CATALOG_REVISION_REBASE_ATTEMPTS: usize = 2;
 
+mod preparation_catalog;
+mod preparation_rebase;
 mod rename_change;
 mod terminal_media;
+use preparation_catalog::PreparationCatalog;
+use preparation_rebase::{RebaseContext, RebasedPreparation, refresh_preparation};
 use terminal_media::terminal_media_change;
 
 struct PreparedChange {
@@ -320,16 +324,19 @@ where
     let inspector = LocalMediaInspector::new();
     let mut prepared = Vec::new();
     let mut retries = Vec::new();
+    let mut preparation = PreparationCatalog::new(repository);
     for change in &leased {
         if cancellation_requested(cancelled) {
             defer_cancelled_leases(repository, &leased, now_unix_ms, &mut report)?;
             return Ok(report);
         }
-        match prepare_change(repository, &discovery, &inspector, change) {
+        match prepare_change(&mut preparation, &discovery, &inspector, change) {
             Ok(change) => prepared.push(change),
             Err(issue) => retries.push((change.clone(), issue)),
         }
     }
+    let mut preparation_reads = preparation.finish();
+    let mut preparation_root = root.clone();
     let mut ready = Vec::new();
     for change in prepared {
         if cancellation_requested(cancelled) {
@@ -456,28 +463,34 @@ where
                     break;
                 }
                 expected_catalog_revision = latest_root.catalog_revision;
-                let mut refreshed_ready = Vec::with_capacity(ready.len());
-                for change in &ready {
-                    if cancellation_requested(cancelled) {
+                match refresh_preparation(
+                    repository,
+                    &discovery,
+                    &inspector,
+                    ready,
+                    preparation_reads,
+                    RebaseContext {
+                        previous_root: &preparation_root,
+                        current_root: &latest_root,
+                        leased: &leased,
+                        cancelled,
+                    },
+                ) {
+                    RebasedPreparation::Cancelled => {
                         defer_cancelled_leases(repository, &leased, now_unix_ms, &mut report)?;
                         return Ok(report);
                     }
-                    let leased = leased
-                        .iter()
-                        .find(|leased| leased.change.id == change.completion.change_id)
-                        .expect("prepared changes originate from the leased batch")
-                        .clone();
-                    match prepare_change(repository, &discovery, &inspector, &leased).and_then(
-                        |prepared| {
-                            revalidate_change(&discovery, &prepared)?;
-                            Ok(prepared)
-                        },
-                    ) {
-                        Ok(prepared) => refreshed_ready.push(prepared),
-                        Err(issue) => retries.push((leased, issue)),
+                    RebasedPreparation::Ready {
+                        changes,
+                        reads,
+                        retries: refreshed_retries,
+                    } => {
+                        ready = changes;
+                        preparation_reads = reads;
+                        retries.extend(refreshed_retries);
+                        preparation_root = latest_root;
                     }
                 }
-                ready = refreshed_ready;
             }
             status => {
                 let issue = publication_failure(status);
@@ -652,7 +665,7 @@ where
             return defer_authoritative_path_set(repository, &request);
         }
         let prepared = match prepare_path_change(
-            repository,
+            &mut PreparationCatalog::untracked(repository),
             request.discovery,
             &inspector,
             request.leased,
@@ -831,7 +844,7 @@ fn record_lease_deferral(
 }
 
 fn prepare_change<Repository>(
-    repository: &Repository,
+    repository: &mut PreparationCatalog<'_, Repository>,
     discovery: &PublicationGuardedFileDiscovery,
     inspector: &LocalMediaInspector,
     leased: &LeasedLibraryChange,
@@ -872,7 +885,7 @@ where
 }
 
 fn prepare_path_change<Repository>(
-    repository: &Repository,
+    repository: &mut PreparationCatalog<'_, Repository>,
     discovery: &PublicationGuardedFileDiscovery,
     inspector: &LocalMediaInspector,
     leased: &LeasedLibraryChange,
@@ -949,6 +962,10 @@ where
     let mut revalidation = Vec::new();
     let (decision, current_file, selected_prior) = match observed {
         InspectedPath::File(file) => {
+            revalidation.push(RevalidationTarget::Present {
+                relative_path: relative_path.to_owned(),
+                expected: expected_state(&file),
+            });
             let identity_prior = file
                 .file_identity
                 .as_ref()
@@ -1111,10 +1128,6 @@ where
                     }
                 };
                 built.location.location_id.clone_from(&prior.location_id);
-                revalidation.push(RevalidationTarget::Present {
-                    relative_path: relative_path.to_owned(),
-                    expected: expected_state(file),
-                });
                 Some(CatalogDeltaMutation {
                     change_id: leased.change.id,
                     outcome: decision.outcome,
@@ -1193,10 +1206,6 @@ where
             if completion_issue.is_none() {
                 completion_issue = built.issue;
             }
-            revalidation.push(RevalidationTarget::Present {
-                relative_path: relative_path.to_owned(),
-                expected: expected_state(file),
-            });
             Some(CatalogDeltaMutation {
                 change_id: leased.change.id,
                 outcome: decision.outcome,
@@ -1466,11 +1475,11 @@ fn revalidate_change(
             }
             RevalidationTarget::CatalogAbsent(relative_path) => {
                 match inspect_path(discovery, relative_path) {
-                    InspectedPath::CatalogAbsent | InspectedPath::TerminalMedia { .. } => {}
-                    InspectedPath::File(_) => {
+                    InspectedPath::CatalogAbsent => {}
+                    InspectedPath::File(_) | InspectedPath::TerminalMedia { .. } => {
                         return Err(failure(
                             "incremental_source_changed_before_publication",
-                            "A catalog-absent path became a supported file before publication",
+                            "A catalog-absent path acquired media evidence before publication",
                         ));
                     }
                     InspectedPath::PreservedIssue(issue) | InspectedPath::Retry(issue) => {
