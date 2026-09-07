@@ -213,6 +213,12 @@ inject exceptional outcomes without starting Flutter or substituting for the nat
 Only an owned process tree grants termination authority; an unrelated process name or a retained
 zero-thread process record does not.
 
+Probe completion belongs to the evidence owner: identity, process exit, complete status, and cleanup
+must validate before a successful record can return. The runner persists that record before
+acknowledgement and records phase success only after acknowledgement. Successful traversal metrics
+must survive scratch cleanup, just as failed traversal evidence does; neither can replace the
+ordered native interaction assertions.
+
 ### Review and roadmap rule
 
 Content-signature admission and decoder failure classification have small adapter owners, separate

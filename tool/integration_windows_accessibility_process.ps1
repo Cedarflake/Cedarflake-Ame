@@ -370,47 +370,8 @@ function Invoke-AmeWindowsAccessibilityProbe {
         Close-AmeWindowsAccessibilityProcess -Cleanup $cleanup -Job $job -Process $process
         $elapsed.Stop()
     }
-    $cleanupFailure = Get-AmeWindowsAccessibilityCleanupFailure $cleanup
-
-    $result = $null
-    $evidenceStatus = if ($probeProcessId -gt 0) { "missing" } else { "not-started" }
-    try {
-        if (Test-Path -LiteralPath $ResultPath -PathType Leaf) {
-            $result = Read-AmeWindowsUiaProbeRecord `
-                -ResultPath $ResultPath -Token $Token -Phase $Phase `
-                -TargetProcessId $TargetProcessId -ProbeProcessId $probeProcessId
-            $evidenceStatus = "verified"
-        }
-    } catch {
-        $evidenceStatus = "invalid"
-        if ($null -eq $probeFailure) { $probeFailure = $_.Exception }
-    }
-    if ($null -eq $probeFailure) {
-        if ($exitCode -ne 0) {
-            $probeFailure = [System.InvalidOperationException]::new(
-                "Windows UIA probe '$Phase' failed with a nonzero process exit"
-            )
-        } elseif ($null -eq $result -or $result.status -cne "complete") {
-            $probeFailure = [System.InvalidOperationException]::new(
-                "Windows UIA probe '$Phase' produced no complete result"
-            )
-        } elseif ($null -ne $result.failure) {
-            $probeFailure = [System.InvalidOperationException]::new(
-                "Windows UIA probe '$Phase' failed: $($result.failure)"
-            )
-        } elseif ($null -ne $cleanupFailure) {
-            $probeFailure = $cleanupFailure
-        }
-    }
-    if ($null -ne $probeFailure) {
-        $probeFailure.Data["ameWindowsUiaProbeEvidenceStatus"] = $evidenceStatus
-        $probeFailure.Data["ameWindowsUiaProbeProgress"] = $result
-        if ($null -ne $cleanupFailure) {
-            $probeFailure.Data["ameWindowsUiaProbeCleanupFailure"] = $cleanupFailure.Message
-            $probeFailure.Data["ameWindowsUiaProbeCleanupFailures"] = @(
-                Get-AmeWindowsAccessibilityCleanupRecords $cleanup
-            )
-        }
-        throw $probeFailure
-    }
+    Complete-AmeWindowsUiaProbe `
+        -ResultPath $ResultPath -Token $Token -Phase $Phase `
+        -TargetProcessId $TargetProcessId -ProbeProcessId $probeProcessId `
+        -ExitCode $exitCode -ProbeFailure $probeFailure -Cleanup $cleanup
 }

@@ -96,6 +96,69 @@ function Read-AmeWindowsUiaProbeRecord {
     return $record
 }
 
+function Complete-AmeWindowsUiaProbe {
+    param(
+        [Parameter(Mandatory = $true)] [string]$ResultPath,
+        [Parameter(Mandatory = $true)] [string]$Token,
+        [Parameter(Mandatory = $true)] [string]$Phase,
+        [Parameter(Mandatory = $true)] [int]$TargetProcessId,
+        [Parameter(Mandatory = $true)] [int]$ProbeProcessId,
+        [AllowNull()] [Nullable[int]]$ExitCode,
+        [AllowNull()] [Exception]$ProbeFailure,
+        [Parameter(Mandatory = $true)] [object]$Cleanup
+    )
+
+    $cleanupFailure = Get-AmeWindowsAccessibilityCleanupFailure $Cleanup
+    $result = $null
+    $evidenceStatus = if ($ProbeProcessId -gt 0) { "missing" } else { "not-started" }
+    try {
+        if (Test-Path -LiteralPath $ResultPath -PathType Leaf) {
+            $result = Read-AmeWindowsUiaProbeRecord `
+                -ResultPath $ResultPath -Token $Token -Phase $Phase `
+                -TargetProcessId $TargetProcessId -ProbeProcessId $ProbeProcessId
+            $evidenceStatus = "verified"
+        }
+    } catch {
+        $evidenceStatus = "invalid"
+        if ($null -eq $ProbeFailure) { $ProbeFailure = $_.Exception }
+    }
+    if ($null -eq $ProbeFailure) {
+        if ($ExitCode -ne 0) {
+            $ProbeFailure = [InvalidOperationException]::new(
+                "Windows UIA probe '$Phase' failed with a nonzero process exit"
+            )
+        } elseif ($null -eq $result -or $result.status -cne "complete") {
+            $ProbeFailure = [InvalidOperationException]::new(
+                "Windows UIA probe '$Phase' produced no complete result"
+            )
+        } elseif ($null -ne $result.failure) {
+            $ProbeFailure = [InvalidOperationException]::new(
+                "Windows UIA probe '$Phase' failed: $($result.failure)"
+            )
+        } elseif ($null -ne $cleanupFailure) {
+            $ProbeFailure = $cleanupFailure
+        }
+    }
+    if ($null -ne $ProbeFailure) {
+        $ProbeFailure.Data["ameWindowsUiaProbeEvidenceStatus"] = $evidenceStatus
+        $ProbeFailure.Data["ameWindowsUiaProbeProgress"] = $result
+        if ($null -ne $cleanupFailure) {
+            $ProbeFailure.Data["ameWindowsUiaProbeCleanupFailure"] = $cleanupFailure.Message
+            $ProbeFailure.Data["ameWindowsUiaProbeCleanupFailures"] = @(
+                Get-AmeWindowsAccessibilityCleanupRecords $Cleanup
+            )
+        }
+        throw $ProbeFailure
+    }
+    return $result
+}
+
+function Format-AmeWindowsUiaProbeTranscript {
+    param([Parameter(Mandatory = $true)] [object]$Record)
+
+    return "AME_WINDOWS_UIA_PROBE_RESULT $($Record | ConvertTo-Json -Compress)"
+}
+
 function Get-AmeWindowsAccessibilityCompletionOutput {
     param(
         [string]$CapturedOutput, [string]$ProbeTranscript, [int]$ExitCode,

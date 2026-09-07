@@ -172,6 +172,14 @@ UIA heartbeat instrumentation; the corrected strict analysis passes. The tempora
 subsequently removed exactly, not retained as a product repair. These corrected partition results
 do not claim one completed full Daily invocation or a new hosted-head result.
 
+The subsequent hosted run [34102982670](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/34102982670)
+passes on exact head `223c0a7d7ba480ac7d5067b01112a61f50635f61`: Static and Rust, all Flutter
+tests, controlled Windows scan, native accessibility, all five synthetic workloads (including seven
+media formats and 50,000-identity publication), and unsigned Windows x64 verification. Protected
+signing and signed verification remain separate and were not executed. This is completed hosted
+evidence for that head, not verification of subsequent working-tree changes or resolution of the
+Windows 11 client failures below.
+
 ## Native process lifecycle follow-up
 
 No user-launched Ame process is assumed. A read-only local snapshot found one historical process
@@ -223,6 +231,38 @@ failure plus original collection identity for zero, one, and multiple elements. 
 into the existing accessibility guardrail, passes in the complete guardrail run, and receives an
 independent scope/collection-shape review. No UIA scope, deadline, or accepted phase is relaxed.
 
+A temporary direct-children query before the unchanged subtree query allows one native run to
+complete both tests and all ten UIA phases under the original deadline. This is a diagnostic
+perturbation, not a product repair: the successful probe metrics were discarded by the parent,
+so its child count and query timing were not retained. After removing that query exactly, the
+original gate fails again at `application-ready`; its first test also reports no hit-testable
+photo tile after a distant jump. That assertion did not record the scroll fraction or overlay
+state, so it does not yet establish whether an undismissed menu or gallery layout caused the miss.
+
+The evidence owner now returns identity-checked successful records only after process completion
+and cleanup. The runner preserves them before acknowledgement without substituting metrics for
+the original ordered phase contract. Compiler-free failure/identity tests, actual transcript
+composition, and the full native process guardrails pass; independent review finds no additional
+defect in that boundary. A subsequent original-query native run passes the virtual-gallery test
+but still times out inside the populated-shell subtree query. Its successful activation metrics
+are now preserved. Both recent failing runs confirm owned process exit and Job closure with no
+cleanup failure; post-run snapshots contain only the historical zero-thread record.
+
+The virtual-gallery test is also strengthened to check the actual four photo-menu actions and
+popup route, then require their absence and route closure immediately after Escape. A missing
+`MenuAnchor` alone never established those properties. Failure-only hit-test context records the
+scroll fraction, mounted tiles, overlay counts, geometry, and focus without adding waits or changing
+the production menu. The strengthened virtual-gallery test passes in two subsequent native runs
+and receives an independent review. The test remains framework route/hit-test evidence, not a claim
+that these four photo-menu items were individually traversed by the native probe.
+
+Repeating the direct-children diagnostic does not reproduce its earlier success: two children return
+in 413 milliseconds, but the subsequent original subtree query still exceeds the eight-second
+deadline. A separate temporary 15-second parent window also fails inside that query. Both retain
+the complete failure evidence and confirm owned-tree cleanup. The prequery and extended window are
+removed exactly; neither is accepted as a fix or a relaxed gate. The diagnostic establishes that
+some native queries respond, but not which part of full traversal is blocked.
+
 ## Physical ownership review
 
 Counts include whitespace and comments. The non-inline region may contain `cfg(test)` imports,
@@ -260,8 +300,17 @@ terminal-evidence owner. The new incremental terminal suite has 177 lines. The i
 facade decreases to 3889 lines, with 321 lines in its dedicated terminal-media suite. These are
 later physical measurements, not additions to the earlier cache-checkpoint test totals.
 
-The accessibility facade now has 377 lines, process owner 416, evidence owner 180, and shared
+At the cleanup checkpoint, the accessibility facade has 377 lines, process owner 416, evidence owner 180, and shared
 cleanup owner 155; its dedicated failure-injection suites have 308 and 82 lines. The existing guardrail
 entrypoint has 494 lines and invokes both suites; the native probe has 546 lines. These are
 physical boundaries, not a claim
 that native execution or original crash attribution is complete.
+
+The subsequent success-evidence extraction leaves the facade at 380 lines, process owner at 377,
+and evidence owner at 243. Its dedicated compiler-free evidence suite has 173 lines; the existing
+guardrail entrypoint has 498. It moves completion validation rather than duplicating it, and adds
+no alternate native traversal or deadline policy.
+
+The native integration file now has 940 dedicated-test lines, a net increase of 50 for real menu
+assertions and failure context. It adds no production code or new responsibility; existing probe
+protocol and controlled catalog fixtures remain candidates for a meaningful future test split.

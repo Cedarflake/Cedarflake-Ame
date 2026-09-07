@@ -3476,7 +3476,11 @@ native fault remain unattributed; neither is claimed as repaired by tool cleanup
 scan verification passes. Native accessibility repeatedly fails at the first populated-application
 subtree query under unchanged deadlines while a bounded diagnostic confirms continued Dart frames;
 confirmed owned-tree cleanup does not satisfy that gate.
-Current-head full gates remain pending;
+Hosted run `34102982670` passes the full required gate on `223c0a7`, including Static and Rust,
+Flutter, native interactions, five synthetic workloads, and unsigned x64 verification. It does not
+close the repeated Windows 11 client UIA query failure, the historical native crash, or subsequent
+working-tree verification. Successful probe metrics must persist through cleanup; actual photo-menu
+open/close assertions must replace the former absence-only observation. Local closeout remains open;
 neither the earlier green hosted head nor a probe asserting defective
 behavior closes these findings. The current evidence is in
 [the interleaving remediation record](acceptance/r2c-interleaving-remediation.md).

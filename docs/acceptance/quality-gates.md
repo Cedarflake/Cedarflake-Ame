@@ -251,6 +251,12 @@ part of `integration_test_windows_accessibility_guardrails.ps1`. The existing ei
 deadline, MTA client, owned process tree, and native positive/negative assertions remain unchanged;
 workstation PowerShell evidence does not replace execution in the hosted PowerShell runtime.
 
+Validated successful probe records, including traversal counts and timing, are retained in the
+same transcript before acknowledgement; they do not replace the ten ordered phase assertions.
+`integration_test_windows_accessibility_probe_evidence.ps1` exercises completion identity, original
+failure precedence, and the actual transcript composition without running Flutter, and is included
+in the accessibility guardrail entrypoint.
+
 ## Performance gate
 
 ```powershell

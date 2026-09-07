@@ -156,6 +156,17 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byType(MenuAnchor), findsNothing);
+      final navigator = Navigator.of(
+        tester.element(find.byType(LibraryGalleryWall)),
+        rootNavigator: true,
+      );
+      const photoMenuLabels = [
+        LibraryStrings.open,
+        LibraryStrings.viewInformation,
+        LibraryStrings.copyPath,
+        LibraryStrings.openInExplorer,
+      ];
+      expect(navigator.canPop(), isFalse);
 
       for (final fraction in <double>[0.15, 0.45, 0.75, 1, 0.6, 0.3, 0.9, 0]) {
         scrollController.jumpTo(
@@ -164,14 +175,53 @@ void main() {
         await tester.pump();
         await tester.pump();
 
-        final visibleTiles = find.byType(LibraryPhotoTile).hitTestable();
-        expect(visibleTiles, findsWidgets);
+        final mountedTiles = find.byType(LibraryPhotoTile);
+        final mountedTileCount = mountedTiles.evaluate().length;
+        final visibleTiles = mountedTiles.hitTestable();
+        final modalBarrierCount = find
+            .byWidgetPredicate(
+              (widget) =>
+                  widget is ModalBarrier || widget is AnimatedModalBarrier,
+            )
+            .evaluate()
+            .length;
+        final popupEntryCount = find
+            .byWidgetPredicate((widget) => widget is PopupMenuEntry<Object?>)
+            .evaluate()
+            .length;
+        expect(
+          visibleTiles,
+          findsWidgets,
+          reason:
+              "fraction=$fraction; mountedTiles=$mountedTileCount; "
+              "onstageModalBarriers=$modalBarrierCount; "
+              "onstagePopupEntries=$popupEntryCount; "
+              "firstTileRect=${mountedTileCount == 0 ? null : tester.getRect(mountedTiles.first)}; "
+              "primaryFocus=${FocusManager.instance.primaryFocus?.debugLabel}",
+        );
         await tester.tap(visibleTiles.first, buttons: kSecondaryMouseButton);
         await tester.pumpAndSettle();
         expect(find.byType(MenuAnchor), findsNothing);
+        expect(
+          navigator.canPop(),
+          isTrue,
+          reason: "Photo popup route did not open at fraction $fraction",
+        );
+        for (final label in photoMenuLabels) {
+          expect(find.text(label).hitTestable(), findsOneWidget);
+        }
 
         await tester.sendKeyEvent(LogicalKeyboardKey.escape);
         await tester.pumpAndSettle();
+        expect(
+          navigator.canPop(),
+          isFalse,
+          reason:
+              "Escape left the photo popup route open at fraction $fraction",
+        );
+        for (final label in photoMenuLabels) {
+          expect(find.text(label), findsNothing);
+        }
       }
 
       await tester.pumpWidget(const SizedBox.shrink());

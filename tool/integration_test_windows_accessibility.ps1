@@ -249,6 +249,7 @@ try {
         $process = $null
         $testStartedAt = Get-Date
         $validatedPhases = [System.Collections.Generic.List[string]]::new()
+        $probeResultTranscript = [System.Collections.Generic.List[string]]::new()
         try {
             [System.Environment]::SetEnvironmentVariable(
                 $probeDirectoryEnvironment,
@@ -295,13 +296,14 @@ try {
                         $probeTimeout = [TimeSpan]::FromSeconds(
                             [Math]::Min(8, [Math]::Max(0, $remainingSeconds))
                         )
-                        Invoke-AmeWindowsAccessibilityProbe `
+                        $probeResult = Invoke-AmeWindowsAccessibilityProbe `
                             -ProbeScriptPath (Join-Path $PSScriptRoot "integration_windows_accessibility_probe.ps1") `
                             -TargetProcessId $runnerProcessId `
                             -Phase $phase `
                             -ResultPath (Join-Path $scratchRoot "probe-$sequence.json") `
                             -Token $probeToken `
                             -Timeout $probeTimeout
+                        $probeResultTranscript.Add((Format-AmeWindowsUiaProbeTranscript -Record $probeResult))
                         $acknowledgementPath = Join-Path `
                             $scratchRoot `
                             "ack-$sequence.txt"
@@ -339,6 +341,7 @@ try {
                 } `
                 -CaptureTranscript {
                     @(
+                        $probeResultTranscript.ToArray()
                         foreach ($phase in $validatedPhases) {
                             "$probeTranscriptPrefix phase=$phase result=ok"
                         }

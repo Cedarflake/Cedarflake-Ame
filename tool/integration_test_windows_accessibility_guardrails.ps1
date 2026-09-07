@@ -5,6 +5,7 @@ $ErrorActionPreference = "Stop"
 
 & (Join-Path $PSScriptRoot "integration_test_windows_accessibility_cleanup.ps1")
 & (Join-Path $PSScriptRoot "integration_test_windows_accessibility_cache_scope.ps1")
+& (Join-Path $PSScriptRoot "integration_test_windows_accessibility_probe_evidence.ps1")
 
 $repositoryRoot = Get-AmeRepositoryRoot
 $buildRoot = [System.IO.Path]::GetFullPath((Join-Path $repositoryRoot "build"))
@@ -384,13 +385,16 @@ if ($Phase -ceq "blocked-fixture") {
         (Join-Path $PSScriptRoot "integration_windows_accessibility_evidence.ps1").Replace("'", "''")
     )
     [System.IO.File]::WriteAllText($probeFixture, $probeFixtureSource, $utf8)
-    Invoke-AmeWindowsAccessibilityProbe `
+    $successfulProbe = @(Invoke-AmeWindowsAccessibilityProbe `
         -ProbeScriptPath $probeFixture `
         -TargetProcessId $PID `
         -Phase "success-fixture" `
         -ResultPath $successProbeResult `
         -Token "owned-probe-fixture" `
-        -Timeout ([TimeSpan]::FromSeconds(5))
+        -Timeout ([TimeSpan]::FromSeconds(5)))
+    if ($successfulProbe.Count -ne 1 -or $successfulProbe[0].phase -cne "success-fixture") {
+        throw "The owned native probe did not return exactly one verified success record"
+    }
 
     foreach ($case in @(
         @{
