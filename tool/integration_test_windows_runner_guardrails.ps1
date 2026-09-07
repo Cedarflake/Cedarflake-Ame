@@ -135,7 +135,7 @@ try {
 $repositoryRoot = Get-AmeRepositoryRoot
 $entry = Get-Content -LiteralPath (Join-Path $PSScriptRoot "integration_test_windows_runner.ps1") -Raw -Encoding UTF8
 $internal = Get-Content -LiteralPath (Join-Path $PSScriptRoot "integration_windows_runner_lifecycle.ps1") -Raw -Encoding UTF8
-foreach ($command in @("Enter-AmeRepositoryToolLock", "Exit-AmeRepositoryToolLock", "Invoke-AmeWindowsRunnerLifecycle")) {
+foreach ($command in @("Enter-AmeRepositoryToolLock", "Exit-AmeRepositoryToolLock", "Invoke-AmeWindowsRunnerLifecycle", "Invoke-AmeWindowsEngineRetirement")) {
     if ([regex]::Matches($entry, [regex]::Escape($command)).Count -ne 1) {
         throw "The public runner entry must own exactly one lock lifetime and invocation"
     }
@@ -150,19 +150,22 @@ $facadeStatements = @($entryAst.EndBlock.Statements | Where-Object {
         $_.PipelineElements[0] -is [System.Management.Automation.Language.CommandAst] -and
         $_.PipelineElements[0].InvocationOperator -eq [System.Management.Automation.Language.TokenKind]::Dot)
 })
-if ($facadeStatements.Count -ne $entryAst.EndBlock.Statements.Count - 2) {
-    throw "The runner facade must have only its two existing dependency imports"
+if ($facadeStatements.Count -ne $entryAst.EndBlock.Statements.Count - 3) {
+    throw "The runner facade must have only its three explicit dependency imports"
 }
 $facade = [scriptblock]::Create(
     $entryAst.ParamBlock.Extent.Text + "`n" + (($facadeStatements | ForEach-Object { $_.Extent.Text }) -join "`n")
 )
 & {
     param([scriptblock]$Facade)
-    foreach ($scenario in @(@($false, $false), @($true, $false), @($false, $true), @($true, $true))) {
+    foreach ($scenario in @(@($false, $false, $false), @($true, $false, $false),
+        @($false, $true, $false), @($true, $true, $false), @($false, $false, $true), @($false, $true, $true))) {
         $runThrows = $scenario[0]
         $unlockThrows = $scenario[1]
+        $engineThrows = $scenario[2]
         $runError = [InvalidOperationException]::new("facade run failed")
         $unlockError = [InvalidOperationException]::new("facade unlock failed")
+        $engineError = [InvalidOperationException]::new("facade engine failed")
         $sentinel = [object]::new()
         $expectedResult = [pscustomobject]@{ status = "passed" }
         $order = [System.Collections.Generic.List[string]]::new()
@@ -186,19 +189,31 @@ $facade = [scriptblock]::Create(
             $order.Add("release")
             if ($unlockThrows) { throw $unlockError }
         }
+        function Invoke-AmeWindowsEngineRetirement {
+            param([string]$RepositoryRoot, [string]$CMakePath)
+            if ($RepositoryRoot -cne "controlled-runner-repository" -or $CMakePath -cne "controlled-cmake") {
+                throw "The facade changed the engine invocation"
+            }
+            $order.Add("engine")
+            if ($engineThrows) { throw $engineError }
+            return $expectedResult
+        }
         $outputs = [System.Collections.Generic.List[object]]::new()
         $observed = $null
         try { & $Facade -CMakePath "controlled-cmake" | ForEach-Object { $outputs.Add($_) } }
         catch { $observed = $_.Exception }
-        if (($order -join ",") -cne "enter,run,release") {
+        $expectedOrder = if ($runThrows) { "enter,run,release" } else { "enter,run,engine,release" }
+        if (($order -join ",") -cne $expectedOrder) {
             throw "The real facade must acquire, invoke, and release exactly once"
         }
-        $expectedError = if ($runThrows) { $runError } elseif ($unlockThrows) { $unlockError } else { $null }
+        $expectedError = if ($runThrows) { $runError } elseif ($engineThrows) { $engineError } elseif ($unlockThrows) { $unlockError } else { $null }
         if (-not [object]::ReferenceEquals($observed, $expectedError)) {
             throw "The real facade replaced the original failure or ignored unlock failure"
         }
         if ($null -eq $expectedError) {
-            if ($outputs.Count -ne 1 -or -not [object]::ReferenceEquals($outputs[0], $expectedResult)) {
+            if ($outputs.Count -ne 1 -or
+                -not [object]::ReferenceEquals($outputs[0].windowLifecycle, $expectedResult) -or
+                -not [object]::ReferenceEquals($outputs[0].engineRetirement, $expectedResult)) {
                 throw "The real facade changed or duplicated its normal result"
             }
         } elseif ($outputs.Count -ne 0) {
@@ -216,9 +231,12 @@ $unsigned = Get-Content -LiteralPath (Join-Path $PSScriptRoot "quality_verify_un
 $release = $unsigned.IndexOf("@('build', 'windows', '--release', '--no-pub')", [StringComparison]::Ordinal)
 $native = $unsigned.IndexOf("Invoke-AmeWindowsRunnerLifecycle -RepositoryRoot", [StringComparison]::Ordinal)
 $broker = $unsigned.IndexOf('Invoke-AmeChecked $toolchain.Cargo', [StringComparison]::Ordinal)
-if ($release -lt 0 -or $native -le $release -or $broker -le $native -or
+$engine = $unsigned.IndexOf("Invoke-AmeWindowsEngineRetirement -RepositoryRoot", [StringComparison]::Ordinal)
+if ($release -lt 0 -or $native -le $release -or $engine -le $native -or $broker -le $engine -or
     [regex]::Matches($unsigned, 'Invoke-AmeWindowsRunnerLifecycle').Count -ne 1 -or
+    [regex]::Matches($unsigned, 'Invoke-AmeWindowsEngineRetirement').Count -ne 1 -or
     $unsigned.Contains('integration_test_windows_runner.ps1')) {
     throw "Unsigned verification must run the internal lifecycle gate after the pinned Release build"
 }
+& (Join-Path $PSScriptRoot "integration_test_windows_engine_guardrails.ps1")
 Write-Output "Windows runner lifecycle result, command, and lock ownership guardrails passed"

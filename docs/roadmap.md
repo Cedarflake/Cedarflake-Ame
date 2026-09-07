@@ -3494,6 +3494,29 @@ the fresh Release build. Full controlled application scan verification also pass
 This closes the reproduced empty-controller fault path only, not the historical crash's attribution,
 the zero-thread process record, initialized-engine behavior, or the outstanding client UIA query.
 
+Real-engine close-path investigation subsequently reproduces a separate natural scope-exit crash.
+Destroying the actual Flutter child window sends a parent notification while member destruction
+still exposes its retiring controller. An isolated no-op Dart entrypoint crashes at the same engine
+offset recorded in the historical report; explicit window destruction is the passing control.
+Retiring controller ownership in the destructor body makes both identical cases exit normally.
+The main window must also retire before COM teardown. Closeout requires an independently reviewed
+real-engine regression in the mandatory native gate; the empty-controller fixture cannot substitute
+for it. The integrated local gate now executes and passes all three engine-free and both real-engine
+cases, with fresh native completion and owned-process retirement evidence. Its subsequent full-head
+CI remains required. The historical zero-thread record remains present and unattributed without a matching dump.
+Hosted `f58e483` also exposes a separate mixed-load P0 latency failure: P95 is 1.344 seconds against
+the unchanged one-second requirement. Stage-complete logs omit substantial return/retirement time;
+measure that boundary before changing connection ownership or priority scheduling. No workload,
+threshold, UIA scope, or deadline is weakened to close either finding.
+Local failure diagnostics additionally place one P1 stall inside an already leased journal-drain
+batch after the live worker has retired. Stage measurements identify a full 64-path preparation
+repeated after a same-root unrelated live change advances the catalog revision, while write admission
+takes less than one millisecond. Prepared-result reuse must prove the complete catalog read set and
+source state without removing the final revision guard. Missing source revalidation on unchanged
+locations and absent-to-terminal transitions must close first. A bounded direct MSAA experiment traverses 119 objects in the populated Flutter
+fragment and releases all interfaces within the existing probe deadline. Whole-window UIA remains
+unaccepted; successful fragment traversal alone does not verify its bridge or navigation behavior.
+
 R2b implementation, deterministic preview-lifecycle correctness, retained-catalog interaction
 Profile, real-library catalog parity, Daily, Windows Release, and bounded source-readable preview
 performance gates are complete. R2b was accepted on 2026-08-13. The former USN-based R2c reached its

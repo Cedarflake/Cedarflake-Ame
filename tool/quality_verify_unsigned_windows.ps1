@@ -5,6 +5,7 @@ $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "quality_common.ps1")
 . (Join-Path $PSScriptRoot "quality_unsigned_windows_payload.ps1")
 . (Join-Path $PSScriptRoot "integration_windows_runner_lifecycle.ps1")
+. (Join-Path $PSScriptRoot "integration_windows_engine_retirement.ps1")
 
 if ([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT -or
     [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture -ne 'X64' -or
@@ -51,6 +52,7 @@ try {
     Invoke-AmeChecked $toolchain.Flutter @('pub', 'get', '--enforce-lockfile')
     Invoke-AmeChecked $toolchain.Flutter @('build', 'windows', '--release', '--no-pub')
     $evidence['nativeRunnerLifecycle'] = Invoke-AmeWindowsRunnerLifecycle -RepositoryRoot $repositoryRoot
+    $evidence['nativeEngineRetirement'] = Invoke-AmeWindowsEngineRetirement -RepositoryRoot $repositoryRoot
     Invoke-AmeChecked $toolchain.Cargo @(
         'build', '--locked', '--manifest-path', 'rust\Cargo.toml', '--release',
         '--target', 'x86_64-pc-windows-msvc', '--target-dir', $brokerTarget,

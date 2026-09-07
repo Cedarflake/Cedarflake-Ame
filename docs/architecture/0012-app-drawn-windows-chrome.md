@@ -100,6 +100,13 @@ Admit `window_manager` 0.5.2 behind `AmeWindowActions`.
   exist. This check follows plugin dispatch; it must not retain an engine pointer across a callback
   that can change window lifetime. Default Win32 processing and normal initialized font refresh
   remain unchanged. This belongs in the native message owner, not a Dart startup delay or retry.
+- Native scope exit explicitly retires the theme channel and controller in the `FlutterWindow`
+  destructor body. Resetting the owning controller clears the dispatch-visible pointer before
+  destroying its view; relying on member destruction instead leaves that pointer visible while
+  child HWND destruction synchronously notifies the parent. The same retirement operation remains
+  idempotent for explicit destruction and failed creation. The window, project, and engine leave
+  scope before the successful COM initialization is balanced; failed COM initialization does not
+  enter the window loop or call `CoUninitialize`.
 
 ## Validation gates
 
@@ -114,6 +121,14 @@ Admit `window_manager` 0.5.2 behind `AmeWindowActions`.
   startup, and teardown processes must all exit normally and retire their HWND; dispatch and return
   counters prevent a swallowed native exception from satisfying the assertion. This is not dynamic
   coverage of an initialized engine, failed engine initialization, or historical crash attribution;
+- two separate native processes use the prepared SDK's real Debug engine and an isolated,
+  dependency-free no-op Dart kernel to exercise explicit destruction and natural scope exit through
+  the production window owner. Both must prove engine start, child HWND destruction notification,
+  completed retirement without an access violation, and COM release after window scope. Fresh exact
+  JUnit evidence and owned process/Job retirement are required, with 30-second case and 75-second
+  parent deadlines. Offline SDK/package preflight rejects missing inputs; application plugins and
+  catalogs remain outside this fixture. These cases complement rather than replace the three
+  engine-free cases and are mandatory in ordinary unsigned hosted verification;
 - Flutter analysis and the existing gallery widget suite pass;
 - a Windows Release build completes with the generated plugin registration;
 - runtime inspection confirms there is no native blue title bar, the app-drawn drag region works,

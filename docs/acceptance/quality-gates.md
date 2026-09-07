@@ -27,7 +27,7 @@ checks the run, deadline, failure-precedence, and environment-restoration protoc
 | Hosted CI | `.github/workflows/quality_ci.yml` | Parallel isolated Daily components, five synthetic workloads, unsigned x64 Release build, and committed revision-range whitespace validation | Push to `main`, pull request, merge queue, or manual run |
 | Hosted synthetic workloads | `./tool/performance_run_synthetic.ps1` | Exact JPEG, 10,000-image scan, million-record parser, seven-format cold/warm preview, and 50,000-identity concurrent publication cases | Mandatory hosted CI; explicit serial workstation invocation |
 | Unsigned Release build | `./tool/quality_verify_unsigned_windows.ps1` | Fresh x64 application/broker, payload and dependency identity, native window lifecycle, isolated Release bridge smoke; no catalog or signing | Mandatory hosted CI; explicit local packaging verification |
-| Native window lifecycle | `./tool/integration_test_windows_runner.ps1` | Three exact engine-free hidden-HWND cases compiled with the production dispatcher; ordinary, creation, and destruction message handling | Native runner lifecycle changes; included in unsigned hosted verification |
+| Native window lifecycle | `./tool/integration_test_windows_runner.ps1` | Three engine-free hidden-HWND cases plus two real Debug-engine explicit/scope retirement cases using the production window owner | Native runner lifecycle changes; mandatory in unsigned hosted verification |
 | Daily | `./tool/quality_verify_daily.ps1` | Format, lint, Rust and Flutter tests, controlled Windows scan and native accessibility integrations, bridge hash plus asynchronous API/wire-mode contracts, tracked diff whitespace | Every material change |
 | Performance | `./tool/performance_benchmark_synthetic_library.ps1` | 10,000 temporary images, cold and warm scans, pause and resume, bounded memory | Scan pipeline, persistence, concurrency, or performance changes |
 | Retained Profile | `./tool/performance_profile_retained_gallery.ps1` | Frozen-interaction Profile frame, memory, garbage-collection, query, publication, and retained-detail evidence; no source preview materialization | Guarded R2b gallery adaptations on the retained catalog |
@@ -189,17 +189,43 @@ it never starts the existing retained-catalog smoke. See
 [ADR 0026](../architecture/0026-hosted-synthetic-and-unsigned-build-gates.md) for these boundaries.
 
 The native lifecycle entrypoint holds the repository tool lock, resolves `cmake.exe` from an explicit
-`-CMakePath` or the current Flutter build's `CMAKE_COMMAND`, and uses the sibling `ctest.exe`. It does
-not download an SDK or run Flutter assembly itself. Configure/build use a separate build directory;
-Release compilation is serial and each CTest case has a 15-second deadline. The unsigned caller
-already owns the lock and invokes the internal owner immediately after its fresh Flutter build.
-Every invocation requires a fresh GUID-named, at-most-1-MiB JUnit report containing exactly
+`-CMakePath` or the current Flutter build's `CMAKE_COMMAND`, and uses the sibling `ctest.exe`.
+Both native suites are mandatory in the ordinary unsigned hosted gate, whose caller already owns
+the lock and invokes their internal owners after the fresh application Release build. Compilation
+and cases remain serial. The engine-free fixture uses a separate Release build directory and a
+15-second deadline per case. It requires a fresh GUID-named, at-most-1-MiB JUnit report containing
 `window_lifecycle_control`, `window_lifecycle_startup`, and `window_lifecycle_teardown`, all with
-executed status and exact native completion markers. Missing, duplicate, failed, disabled, skipped,
-or stale evidence is rejected. The compiler-free runner guardrail exercises result rejection,
-command failure precedence, tool resolution, and lock composition in lint. These cases exercise
-real HWND dispatch without creating an engine; they do not replace full application, initialized
-engine, accessibility, signed packaging, or real-library acceptance.
+executed status and exact native completion markers.
+
+The engine-retirement fixture uses only the prepared SDK's Debug `windows-x64` engine, matching
+engine/Dart/SDK stamps, and existing compiler artifacts; missing or incompatible inputs fail before
+assembly rather than downloading replacements. It copies the dependency-free no-op package from
+`windows/runner/tests/engine_retirement` into fresh GUID storage under `build`, runs offline package
+resolution, requires the package configuration to contain only itself, and assembles
+`kernel_snapshot_program`. Only the current target stamp's single `app.dill` output is copied as
+`kernel_blob.bin`; duplicate entries naming that same output are deduplicated. The application
+package and Release/ephemeral engine files are not inputs to this isolated Debug build.
+
+`engine_lifecycle_explicit_destroy` and `engine_lifecycle_scope_exit` each have a 30-second CTest
+deadline; their parent has a 75-second deadline and an owned kill-on-close Job Object. A separate
+fresh, at-most-1-MiB JUnit report must prove both cases executed, including real engine start, child
+destruction notification, completed scope exit, retired HWND, no access violation, no plugin
+registration, and COM release after window scope. Native process exit and Job closure must also be
+confirmed. Produced build/native stdout and stderr plus native completion metadata remain in the
+generated storage, including on failure. Missing, duplicate, failed, disabled, skipped, or stale
+results fail both suites; exit zero alone is insufficient.
+
+The unsigned hosted workflow's always-run evidence upload includes the unsigned summary, the
+engine-free JUnit reports and CTest `LastTest.log`, and the engine-retirement JUnit, native completion
+record, and four build-step plus native stdout/stderr pairs. Only files produced before a failure
+are available to upload. Its explicit diagnostic paths exclude generated packages, kernel blobs,
+DLLs, and catalogs; retaining a complete local fixture does not upload that fixture to CI artifacts.
+
+The compiler-free runner guardrail includes `integration_test_windows_engine_guardrails.ps1` for
+offline inputs, isolated package/stamp authority, exact results, command failure and stderr behavior,
+independent cleanup, and lock composition. These controlled suites do not replace full application
+or plugin shutdown, failed-engine initialization, accessibility, signed packaging, or real-library
+acceptance.
 
 ## Daily gate
 

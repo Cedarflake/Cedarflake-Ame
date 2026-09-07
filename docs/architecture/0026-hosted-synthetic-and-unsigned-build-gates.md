@@ -59,13 +59,21 @@ scan, independently of the cold/warm replacement measurements.
 
 The unsigned gate builds the application and broker from the checked-out revision, verifies x64
 payload, dependency freshness, and packaged Rust DLL identity, and tests the isolated Rust
-bridge and native accent channel. After the fresh Flutter Release build, an independent native
-fixture compiles the production window dispatcher against those pinned SDK artifacts. Its three
-engine-free hidden-window processes verify ordinary, startup, and teardown message handling under
-per-case deadlines. A fresh bounded JUnit report must prove all three exact cases executed and
-completed; exit zero, missing tests, skipped cases, or a stale report cannot substitute for that
-evidence. The internal runner reuses the unsigned gate's tool lock rather than acquiring it again.
-It never loads a retained catalog. Its evidence is not a signed
+bridge and native accent channel. After the fresh Flutter Release build, two mandatory independent
+native suites compile the production window owner. Three engine-free hidden-window processes verify
+ordinary, startup, and teardown messages with 15-second case deadlines. Two real Debug-engine cases
+verify explicit destruction and natural scope retirement, child HWND notification, and COM lifetime.
+They use matching prepared SDK artifacts and a fresh, dependency-free no-op Dart package resolved
+offline; only the current kernel target's exact output becomes the fixture asset. They neither load
+the application package nor reuse its Release/ephemeral engine. Missing prepared inputs fail closed
+without downloading an SDK. The two cases have 30-second deadlines and a 75-second parent owned Job
+lifetime, with separate exit, Job closure, stdout/stderr, and completion evidence.
+
+Fresh bounded JUnit reports must prove the exact three-case and two-case rosters executed and
+completed; exit zero, missing tests, skipped cases, or stale results cannot substitute for that
+evidence. Both internal owners reuse the unsigned gate's tool lock rather than acquiring it again.
+These fixtures do not register application plugins or load a retained catalog, and do not replace
+full application shutdown or failed-engine-initialization coverage. Their evidence is not a signed
 candidate, installability result, or Windows 11 client acceptance. It has no signing secrets,
 Environment, SCM operation, publication, or artifact handoff into the protected signing chain.
 That chain remains unchanged under ADR 0015.

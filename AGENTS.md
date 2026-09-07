@@ -472,11 +472,16 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   `./tool/integration_test_windows_scan_guardrails.ps1` verifies its compiler-free lifecycle protocol
   in lint, including original-failure precedence and independent environment restoration.
 - `./tool/integration_test_windows_runner.ps1` builds and executes three engine-free native window
-  lifecycle cases using the existing pinned Flutter artifacts and an explicit `-CMakePath` or the
-  current Flutter CMake cache. The unsigned Windows gate invokes the same internal owner after its
-  fresh Release build. `./tool/integration_test_windows_runner_guardrails.ps1` validates exact
-  execution evidence, fresh-result ownership, command failure propagation, and lock composition in
-  lint without compiling or starting the native fixture.
+  cases and two real Debug-engine retirement cases, using an explicit `-CMakePath` or the current
+  Flutter CMake cache. The latter require prepared, matching SDK artifacts and assemble only an
+  isolated dependency-free no-op Dart package offline; they never use the application package or
+  Release engine payload. Their CTest cases have 30-second deadlines inside a 75-second owned Job
+  lifetime. Fresh exact three-case and two-case JUnit reports are required; the engine suite also
+  requires native exit and Job closure evidence and retains its logs. The unsigned Windows gate must
+  invoke both internal owners after its fresh Release build under its existing lock.
+  `./tool/integration_test_windows_runner_guardrails.ps1`
+  includes the compiler-free engine guardrail and checks inputs, exact execution evidence, fresh
+  results, command failure propagation, cleanup, and lock composition without building an engine.
 - `./tool/quality_verify_git_range.ps1` checks committed whitespace over an explicit Git revision
   range so a clean hosted checkout does not turn `git diff HEAD --check` into an empty gate.
 - `./tool/quality_verify_bridge_contracts.ps1` checks generated bridge hash identity and exact

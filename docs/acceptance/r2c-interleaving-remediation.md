@@ -313,6 +313,116 @@ errors. This is further evidence that the reproduced font fault and accessibilit
 separate; the current marker does not yet distinguish the managed query from callback output
 transfer or local cache-response construction.
 
+## Real-engine scope-exit reproduction
+
+The next isolated experiment uses production `FlutterWindow::OnCreate`, the pinned Debug engine,
+and a compiled zero-dependency Dart `main` that performs no work. Plugin registration is only a
+link stub; no Ame bootstrap, retained catalog, or source root is entered. A current-thread observer
+records the actual parent notification from destruction of the verified `FLUTTERVIEW` child, without
+injecting that message or overriding the window's lifecycle. COM remains initialized until the
+whole window scope ends. A first-chance access-violation observer records evidence and always
+continues exception search; success separately rejects an observed AV.
+
+On `f58e483`, explicit `Destroy()` exits zero. Natural scope exit reaches the actual child-destroy
+notification, then faults in `flutter_windows.dll` at RVA `0x1d7d0`, with `RCX = 0`, reading address
+`0x10`; the owned primary process exits `0xc000041d`. The matching pinned symbol is
+`FlutterWindowsView::GetEngine`. MSVC's member `unique_ptr` destructor still exposes the pointer
+while invoking its deleter; its reset operation clears that pointer first. Calling the existing
+`OnDestroy()` from the derived destructor body therefore removes the reentrant access to the
+half-destroyed controller. The identical two cases then both exit zero, observe one real child
+notification, retire both HWNDs, and report no AV. All four owned process trees confirm primary exit
+and Job closure without cleanup errors. No new Ame or experiment process remains afterward.
+
+The old report has the same module offset, which is strong correlation, not a recovered historical
+stack. Its zero-thread, zero-handle process record remains present; neither that record's exact
+lifetime nor its removal is claimed. The main entrypoint separately moves window/project lifetime
+inside the successful COM scope, handles initialization failure without an unmatched uninitialization,
+and treats `GetMessage` failure as failure rather than dispatching invalid message state. Independent
+source review confirms the ownership order; formal native-gate integration and subsequent full-head
+verification remain pending at this checkpoint.
+
+The subsequent public native gate compiles and executes all five cases: the original three
+engine-free cases pass in 3.16 seconds, and the two real-engine cases pass in 8.62 seconds. Both
+engine cases observe exactly one natural child-destroy notification, complete the entire window
+scope before COM release, retire both HWNDs, and reject any observed access violation. The parent
+records exit zero, confirmed process exit and Job closure, and no cleanup failures. No new native
+fixture or Ame process remains after execution. The fixture builds an offline no-op kernel in fresh
+isolated storage from the already prepared pinned Debug SDK; it does not load Ame plugins or media.
+Compiler-free checks additionally reproduce and repair command quoting for compiler paths containing
+spaces: the same actual invocation now handles spaces and ampersands, preserves stdout and stderr,
+and rejects nonzero exit status. Independent review covers this command boundary, strict result
+admission, and original-error precedence. These passes close the formal exit regression, not the
+remaining complete-head quality or client accessibility gates.
+
+Hosted run `34114741707` on `f58e483` passes all native, Flutter, five synthetic, and unsigned Release
+jobs, including the engine-free window gate. Static checks pass, but Rust reports 1322 passed,
+one failed, and 19 ignored. The failing mixed-load priority test records P0 P95 1344 milliseconds
+against its 1000-millisecond requirement, with 25 samples and three over one second. P1 completes
+2048 candidates, P2 reads 10000 entries and stages its real 4095-entry page; both lanes progress
+through every sample. Most slow-poll records spend their time outside the measured stages. This
+does not yet prove a worker, SQLite-close, or scheduler cause. Connection retirement and same-sample
+poll timing need direct evidence before a repair; replaying CI or relaxing the workload is not
+accepted verification.
+
+The first local retirement-instrumented priority run fails before collecting all 25 samples:
+sample 3 leaves P1 at 192 completed while P2 advances from 384 to 512 reads. Its first three P0
+samples are below one second, which does not establish the required P95. A focused regression
+first validates the added failure-only queue SQL against the current schema. The next single run
+then fails at sample 7: P0 is visible in 569 milliseconds, P1 remains at 448 completed with 64
+leased items, and P2 advances from 896 to 1024 reads. There is no live worker; the uncancelled
+`ame-p1-journal-drain` worker is still executing. Its leases have not expired, no retry is scheduled,
+and runtime shutdown has not begun. This excludes waiting for live-worker retirement for that
+failure, but does not distinguish media preparation from database publication. The workload and
+five-second progress deadline remain unchanged. Neither local run supplies a complete P95 result
+or repairs the separate hosted long-tail failure.
+
+Stage instrumentation on the next single run identifies repeated preparation rather than write
+admission as the immediate P1 delay. Preparing 64 paths takes 2562 milliseconds, followed by 265
+milliseconds of source revalidation. The first transaction rejects a stale global catalog revision
+before mutations; re-preparing and revalidating that same batch costs another 2603 milliseconds.
+Both write admissions take less than one millisecond, and the eventual COMMIT takes 19 milliseconds.
+The batch finishes at 6094 milliseconds, after the unchanged lower-lane progress assertion fails.
+The live change is another path in the same P1 root, not a different root. This evidence requires
+reuse only when the complete catalog read set and source versions remain valid; it does not justify
+removing the global transaction revision guard. Independent source review also finds missing
+pre-publication validation for unchanged locations and incorrect equivalence between a formerly
+absent path and newly observed terminal media. These source-proof defects must be repaired before
+prepared results can safely be reused. No complete P95 or repair result is claimed from this run.
+
+A separate native accessibility diagnostic removes all six requested properties and retains only
+the default runtime identity in the same whole-window subtree query. The current Debug application
+build and framework interaction test pass, but the query still does not return within the unchanged
+eight-second parent deadline. The boundary record is written immediately before `FindAll`; there
+is no return record. The six property reads are therefore not a necessary condition for this
+timeout. This does not yet separate native provider traversal, the MSAA/UIA bridge, or managed
+response handling. Owned primary exit and Job closure both succeed with no cleanup errors. The
+temporary diagnostic is removed from the production probe after retaining its failure output;
+this experiment does not acknowledge or satisfy an accessibility phase.
+
+The next experiment uses the same populated-application checkpoint and a separately compiled
+system-only MSAA helper inside the existing probe Job. A PID/class/parent-validated `FLUTTERVIEW`
+returns its `IAccessible`; bounded downward enumeration completes 119 objects and 118 edges to
+depth 10, with no simple children. Interface and VARIANT release and COM teardown all return before
+the helper reports completion; the complete probe takes 4209 milliseconds. It intentionally fails
+the business phase instead of acknowledging it. This establishes responsiveness of that Flutter
+fragment's downward MSAA traversal, not equivalence to whole-window UIA parent/sibling navigation
+or successful screen-reader operation. Framework interaction passes; the owning application and
+probe trees exit with no cleanup error. Both native process listings still contain only the old
+zero-thread record afterward. The temporary probe branch is removed after preserving the trace.
+
+A native COM comparison uses the system CUIAutomation client with the same raw cache properties
+and required application elements. The first attempt expires while loading the managed client,
+before invoking the helper, and cannot compare query behavior. A second attempt excludes that
+managed load: COM initialization, automation creation, and desktop acquisition return within 157
+milliseconds, but the desktop's immediate-child ProcessId-filtered search does not return before
+the unchanged eight-second parent deadline. The application-subtree query has not started. This
+narrows that run to native window discovery, not managed result conversion, and does not attribute
+the earlier subtree timeout to the same cause. Both experiments retain failure evidence and close
+their owned process trees without cleanup errors; neither acknowledges an accessibility phase.
+The temporary production-probe branch is removed afterward. A read-only termination-signal check
+and a separate limited-information query for the historical process both return access denied;
+its actual termination state and external references remain unproved.
+
 ## Physical ownership review
 
 Counts include whitespace and comments. The non-inline region may contain `cfg(test)` imports,
@@ -369,3 +479,9 @@ The native window owner is 142 production lines, with no inline tests; its repai
 lines. The dedicated HWND fixture has 150 lines and its independent CMake target 42. The public
 runner has 27 lines, its internal execution/result owner 133, and the dedicated compiler-free suite
 224. Native test building does not add another engine or window state machine to production.
+
+At the real-engine retirement checkpoint, the window owner has 146 production lines and the native
+entrypoint 60, both without inline tests. The separate engine fixture has 146 C++ lines and a 52-line
+CMake target. Its input, result, and execution owners have 108, 50, and 203 lines; the dedicated
+compiler-free suite has 236. The existing public facade is 31 lines and its combined guardrail 242.
+The two production ownership corrections do not add another lifetime flag or callback state machine.

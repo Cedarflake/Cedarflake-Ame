@@ -31,7 +31,11 @@ std::optional<std::int64_t> ReadSystemAccentColor() {
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
     : project_(project) {}
 
-FlutterWindow::~FlutterWindow() {}
+FlutterWindow::~FlutterWindow() {
+  // Child HWND destruction can synchronously reenter the parent dispatcher.
+  // Retire the controller before its destructor starts dispatching messages.
+  OnDestroy();
+}
 
 bool FlutterWindow::OnCreate() {
   if (!Win32Window::OnCreate()) {
