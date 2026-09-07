@@ -49,6 +49,9 @@ use crate::domain::{
     persistent_journal_batch_id, persistent_journal_pending_rename_id,
 };
 
+#[cfg(windows)]
+mod terminal_media;
+
 #[test]
 fn p1_revision_rebase_reprepares_and_revalidates_the_latest_file_state() {
     let source = tempdir().expect("source directory");

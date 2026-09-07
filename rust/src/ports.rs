@@ -4,6 +4,8 @@ use std::sync::{Arc, Mutex};
 
 mod preview_health;
 pub use preview_health::{PreviewHealthObservation, PreviewHealthOutcome, PreviewHealthTarget};
+mod scan_publication_control;
+pub(crate) use scan_publication_control::ScanPublicationControl;
 
 use crate::domain::{
     AssetLocationView, CatalogCursor, CatalogDeltaBatch, CatalogDeltaPublication, CatalogSnapshot,

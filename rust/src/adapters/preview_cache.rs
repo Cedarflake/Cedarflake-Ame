@@ -11,21 +11,32 @@ use blake3::Hasher;
 use image::{DynamicImage, ImageDecoder, ImageFormat, ImageReader, Limits};
 
 use crate::domain::{
-    DiscoveredFile, ImageOrientation, PreviewArtifact, PreviewMaterialization, ScanIssue,
+    DiscoveredFile, FileIdentityEvidence, ImageOrientation, PreviewArtifact,
+    PreviewMaterialization, ScanIssue,
 };
 use crate::ports::PreviewStore;
 
+use super::PreviewCacheNamespace;
 use super::image_orientation::{apply_image_orientation, from_image_orientation};
 use super::jpeg_preview::{JpegPreviewDecode, decode_scaled_jpeg};
 
 mod decode_failure;
 mod installation;
+mod preparation;
+#[cfg(test)]
+pub(crate) use preparation::prepare_preview_root_with_namespace_probe;
+pub(crate) use preparation::{
+    PreviewRootPreparation, open_preview_cache_operation_namespace, prepare_preview_root,
+};
 #[cfg(test)]
 mod media_format_tests;
+mod staging_encoding;
 #[cfg(test)]
 pub(crate) use media_format_tests::seed_legacy_jpeg_preview;
 #[cfg(test)]
 mod media_performance;
+#[cfg(all(test, windows))]
+mod staging_safety_tests;
 
 struct PreviewDimensions {
     source_width: u32,
@@ -66,6 +77,7 @@ pub(crate) fn fail_next_atomic_replace_for_test(artifact_path: &Path) {
 
 pub struct LocalPreviewStore {
     root: PathBuf,
+    namespace_identity: Option<FileIdentityEvidence>,
     budget_bytes: u64,
     used_bytes: AtomicU64,
     rejected_reservation_bytes: AtomicU64,
@@ -75,15 +87,33 @@ pub struct LocalPreviewStore {
 }
 
 impl LocalPreviewStore {
+    #[cfg(test)]
     pub fn new(root: PathBuf, budget_bytes: u64) -> Result<Self, ScanIssue> {
-        fs::create_dir_all(&root).map_err(|error| ScanIssue {
-            path: Some(root.to_string_lossy().into_owned()),
-            code: "preview_cache_unavailable".to_owned(),
-            message: error.to_string(),
-        })?;
+        let namespace =
+            open_preview_cache_operation_namespace(&root).map_err(|error| ScanIssue {
+                path: Some(root.to_string_lossy().into_owned()),
+                code: error.code,
+                message: error.message,
+            })?;
+        Self::new_in_namespace(root, budget_bytes, &namespace)
+    }
+
+    pub(crate) fn new_in_namespace(
+        root: PathBuf,
+        budget_bytes: u64,
+        namespace: &PreviewCacheNamespace,
+    ) -> Result<Self, ScanIssue> {
+        if !namespace.admits(&root) {
+            return Err(ScanIssue {
+                path: Some(root.to_string_lossy().into_owned()),
+                code: "preview_cache_namespace_mismatch".to_owned(),
+                message: "The preview inventory does not own this directory namespace".to_owned(),
+            });
+        }
         let (used_bytes, _) = cache_inventory(&root)?;
         Ok(Self {
             root,
+            namespace_identity: namespace.identity().cloned(),
             budget_bytes,
             used_bytes: AtomicU64::new(used_bytes),
             rejected_reservation_bytes: AtomicU64::new(0),
@@ -91,6 +121,10 @@ impl LocalPreviewStore {
             staging_targets: Mutex::new(HashSet::new()),
             staging_changed: Condvar::new(),
         })
+    }
+
+    pub(crate) fn namespace_identity(&self) -> Option<&FileIdentityEvidence> {
+        self.namespace_identity.as_ref()
     }
 
     fn artifact_path(&self, file: &DiscoveredFile, preview_edge: u32) -> PathBuf {
@@ -544,22 +578,9 @@ fn publish_preview(
     }
 
     let thumbnail = image.thumbnail(edge, edge);
-    let temporary_path = artifact_path.with_extension(format!(
-        "{}-{}.tmp",
-        std::process::id(),
-        TEMPORARY_SEQUENCE.fetch_add(1, Ordering::Relaxed)
-    ));
-    if let Err(error) = thumbnail.save_with_format(&temporary_path, ImageFormat::Jpeg) {
-        let _ = fs::remove_file(&temporary_path);
-        return Err(preview_issue(file, "preview_write_failed", error));
-    }
-    let preview_size = match temporary_path.metadata() {
-        Ok(metadata) => metadata.len(),
-        Err(error) => {
-            let _ = fs::remove_file(&temporary_path);
-            return Err(preview_issue(file, "preview_size_unavailable", error));
-        }
-    };
+    let encoded = staging_encoding::encode(&thumbnail, &artifact_path, file)?;
+    let temporary_path = encoded.path;
+    let preview_size = encoded.byte_size;
     let replaced_size = artifact_path
         .metadata()
         .map(|metadata| metadata.len())

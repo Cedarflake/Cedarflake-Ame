@@ -1,17 +1,17 @@
-use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
-
 #[cfg(test)]
 use std::collections::HashMap;
+#[cfg(test)]
+use std::sync::atomic::AtomicBool;
 #[cfg(test)]
 use std::sync::{Mutex, OnceLock};
 
 use rusqlite::{OptionalExtension, Transaction, params};
 
+#[cfg(test)]
+use crate::domain::LibraryChangeLane;
 use crate::domain::{
-    FileIdentityEvidence, LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeLane,
-    LibraryChangeOrigin, LibraryChangeQueuePolicy, LibraryChangeScope, LibraryRootGeneration,
-    ScanError,
+    FileIdentityEvidence, LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeOrigin,
+    LibraryChangeQueuePolicy, LibraryChangeScope, LibraryRootGeneration, ScanError,
 };
 
 use super::change_queue;
@@ -26,17 +26,20 @@ pub(crate) use retained_issues::{
 };
 #[cfg(test)]
 mod tests;
+mod transaction;
 mod validation;
 use super::{
-    LiveGapRecoveryConsumer, ScanOwner, SqliteCatalog, SqliteWritePreemptCallback,
-    StoredIdentityGroupState, allocate_source_generation, catalog_delta,
-    consume_foreground_recovery_claims, database_error, delete_orphan_assets,
-    detach_preview_references_for_root_locations, establish_root_publication_namespace,
-    load_active_identity_group_state, load_catalog_revision, load_scan_catch_up_lineage,
+    LiveGapRecoveryConsumer, ScanOwner, SqliteCatalog, StoredIdentityGroupState,
+    allocate_source_generation, catalog_delta, consume_foreground_recovery_claims, database_error,
+    delete_orphan_assets, detach_preview_references_for_root_locations,
+    establish_root_publication_namespace, load_active_identity_group_state, load_catalog_revision,
     load_scan_identity_group_state, mark_unreferenced_preview_artifacts_stale, revisions_conflict,
-    sqlite_integer, sqlite_unsigned, unix_time_ms,
+    sqlite_integer, sqlite_unsigned,
 };
+use crate::ports::ScanPublicationControl;
 pub(crate) use rejected_input_validation::RejectedInputValidationRoster;
+use transaction::PublicationInterruption;
+pub(crate) use transaction::publish_scan_with_proof;
 pub(crate) use validation::{
     StagedValidationOutcome, StagedValidationRoster, ValidatedStagingProof,
 };
@@ -47,7 +50,6 @@ pub(crate) struct ScanPublicationReceipt {
 }
 
 const IDENTITY_RECONCILIATION_WINDOW: i64 = 128;
-const PUBLICATION_PROGRESS_OPERATION_INTERVAL: i32 = 1_000;
 
 struct PublicationAuthority {
     previous_active_scan: Option<String>,
@@ -139,9 +141,6 @@ fn run_before_projection_replacement_hook(scan_id: &str, preempted: &AtomicBool)
     }
 }
 
-#[cfg(not(test))]
-fn run_before_projection_replacement_hook(_scan_id: &str, _preempted: &AtomicBool) {}
-
 pub(super) fn publish_scan(
     catalog: &mut SqliteCatalog,
     scan_id: &str,
@@ -149,138 +148,16 @@ pub(super) fn publish_scan(
     asset_count: u64,
     issue_count: u64,
 ) -> Result<(), ScanError> {
-    publish_scan_with_proof(catalog, scan_id, root_id, asset_count, issue_count, None).map(|_| ())
-}
-
-pub(crate) fn publish_scan_with_proof(
-    catalog: &mut SqliteCatalog,
-    scan_id: &str,
-    root_id: &str,
-    asset_count: u64,
-    issue_count: u64,
-    proof: Option<&ValidatedStagingProof>,
-) -> Result<ScanPublicationReceipt, ScanError> {
-    let retry_relative_paths = catalog.pending_authoritative_retry_paths.clone();
-    catalog.flush_pending_locations()?;
-    let _reported_asset_count = sqlite_integer(asset_count, "reported asset count")?;
-    let issue_count = sqlite_integer(issue_count, "issue count")?;
-    let publication_preempted = Arc::new(AtomicBool::new(false));
-    let progress_preempted = Arc::clone(&publication_preempted);
-    catalog
-        .connection
-        .progress_handler(
-            PUBLICATION_PROGRESS_OPERATION_INTERVAL,
-            Some(move || progress_preempted.load(Ordering::Acquire)),
-        )
-        .map_err(database_error)?;
-
-    let result = publish_preemptible_transaction(
+    publish_scan_with_proof(
         catalog,
         scan_id,
         root_id,
-        issue_count,
-        &retry_relative_paths,
-        &publication_preempted,
-        proof,
-    );
-    let handler_cleanup = catalog
-        .connection
-        .progress_handler(0, None::<fn() -> bool>)
-        .map_err(database_error);
-
-    match result {
-        Ok(receipt) => {
-            // A committed snapshot is authoritative even if a waiter arrived immediately after
-            // COMMIT. The waiter observes the new revision through its own transaction.
-            catalog.pending_authoritative_retry_paths.clear();
-            let _ = handler_cleanup;
-            Ok(receipt)
-        }
-        Err(_) if publication_preempted.load(Ordering::Acquire) => {
-            let _ = handler_cleanup;
-            Err(scan_publication_preempted_error())
-        }
-        Err(error) => {
-            handler_cleanup?;
-            Err(error)
-        }
-    }
-}
-
-fn publish_preemptible_transaction(
-    catalog: &mut SqliteCatalog,
-    scan_id: &str,
-    root_id: &str,
-    issue_count: i64,
-    retry_relative_paths: &[String],
-    publication_preempted: &Arc<AtomicBool>,
-    proof: Option<&ValidatedStagingProof>,
-) -> Result<ScanPublicationReceipt, ScanError> {
-    let interrupt = Arc::new(catalog.connection.get_interrupt_handle());
-    let callback_preempted = Arc::clone(publication_preempted);
-    let preempt: SqliteWritePreemptCallback = Arc::new(move || {
-        callback_preempted.store(true, Ordering::Release);
-        interrupt.interrupt();
-    });
-    let transaction =
-        catalog.begin_preemptible_write_in_lane(LibraryChangeLane::Recovery, preempt)?;
-    ensure_not_preempted(publication_preempted)?;
-    let authority = load_publication_authority(
-        &transaction,
-        scan_id,
-        root_id,
-        !retry_relative_paths.is_empty(),
-    )?;
-    ensure_change_queue_is_publishable(&transaction, scan_id, root_id, &authority)?;
-    if let Some(proof) = proof {
-        proof.require_current_staging(&transaction, scan_id, root_id)?;
-    }
-
-    let completed_unix_ms = unix_time_ms();
-    reconcile_identity_pages(&transaction, scan_id, publication_preempted)?;
-    let asset_count = count_staged_assets(&transaction, scan_id, root_id, publication_preempted)?;
-    let catch_up_lineage = load_scan_catch_up_lineage(&transaction, scan_id)?;
-    retain_previous_snapshot_handoffs(
-        &transaction,
-        scan_id,
-        root_id,
-        authority.previous_active_scan.as_deref(),
-        completed_unix_ms,
-    )?;
-    complete_scan_and_replace_projection(
-        &transaction,
-        scan_id,
-        root_id,
-        &authority,
         asset_count,
         issue_count,
-        completed_unix_ms,
-        publication_preempted,
-    )?;
-    let published_revision = publish_root_authority(
-        &transaction,
-        scan_id,
-        root_id,
-        &authority,
-        completed_unix_ms,
-        publication_preempted,
-    )?;
-    settle_change_lineage(
-        &transaction,
-        scan_id,
-        root_id,
-        &authority,
-        retry_relative_paths,
-        &catch_up_lineage,
-        published_revision,
-        completed_unix_ms,
-        publication_preempted,
-    )?;
-    let receipt = ScanPublicationReceipt {
-        asset_count: sqlite_unsigned(asset_count, "published asset count")?,
-    };
-    transaction.commit().map_err(database_error)?;
-    Ok(receipt)
+        None,
+        &ScanPublicationControl::default(),
+    )
+    .map(|_| ())
 }
 
 fn load_publication_authority(
@@ -493,9 +370,9 @@ fn count_staged_assets(
     transaction: &Transaction<'_>,
     scan_id: &str,
     root_id: &str,
-    preempted: &AtomicBool,
+    interruption: &PublicationInterruption,
 ) -> Result<i64, ScanError> {
-    ensure_not_preempted(preempted)?;
+    interruption.ensure_running()?;
     transaction
         .query_row(
             "SELECT COUNT(*) FROM asset_locations WHERE scan_id = ?1 AND root_id = ?2",
@@ -535,7 +412,7 @@ fn complete_scan_and_replace_projection(
     asset_count: i64,
     issue_count: i64,
     completed_unix_ms: i64,
-    preempted: &AtomicBool,
+    interruption: &PublicationInterruption,
 ) -> Result<(), ScanError> {
     let updated = transaction
         .execute(
@@ -588,11 +465,12 @@ fn complete_scan_and_replace_projection(
         .map_err(database_error)?;
     mark_unreferenced_preview_artifacts_stale(transaction)?;
 
+    interruption.ensure_running()?;
+    #[cfg(test)]
+    run_before_projection_replacement_hook(scan_id, interruption.preemption_flag());
     if let Some(previous_active_scan) = authority.previous_active_scan.as_deref()
         && previous_active_scan != scan_id
     {
-        ensure_not_preempted(preempted)?;
-        run_before_projection_replacement_hook(scan_id, preempted);
         transaction
             .execute(
                 "DELETE FROM asset_locations WHERE scan_id = ?1",
@@ -609,7 +487,7 @@ fn publish_root_authority(
     root_id: &str,
     authority: &PublicationAuthority,
     completed_unix_ms: i64,
-    preempted: &AtomicBool,
+    interruption: &PublicationInterruption,
 ) -> Result<u64, ScanError> {
     let revision_updated = transaction
         .execute("UPDATE catalog_state SET revision = revision + 1", [])
@@ -655,7 +533,7 @@ fn publish_root_authority(
             completed_unix_ms,
         )?;
     }
-    ensure_not_preempted(preempted)?;
+    interruption.ensure_running()?;
     Ok(published_revision)
 }
 
@@ -669,7 +547,7 @@ fn settle_change_lineage(
     catch_up_lineage: &[(String, String)],
     published_revision: u64,
     completed_unix_ms: i64,
-    preempted: &AtomicBool,
+    interruption: &PublicationInterruption,
 ) -> Result<(), ScanError> {
     if let Some(high_watermark) = authority.change_queue_high_watermark {
         transaction
@@ -739,7 +617,7 @@ fn settle_change_lineage(
             params![root_id, completed_unix_ms, authority.root_generation],
         )
         .map_err(database_error)?;
-    ensure_not_preempted(preempted)
+    interruption.ensure_running()
 }
 
 fn enqueue_authoritative_retry_paths(
@@ -798,17 +676,17 @@ fn enqueue_authoritative_retry_paths(
 fn reconcile_identity_pages(
     transaction: &Transaction<'_>,
     scan_id: &str,
-    preempted: &AtomicBool,
+    interruption: &PublicationInterruption,
 ) -> Result<(), ScanError> {
     let mut cursor: Option<FileIdentityEvidence> = None;
     loop {
-        ensure_not_preempted(preempted)?;
+        interruption.ensure_running()?;
         let identities = load_identity_page(transaction, scan_id, cursor.as_ref())?;
         if identities.is_empty() {
             return Ok(());
         }
         for identity in identities {
-            ensure_not_preempted(preempted)?;
+            interruption.ensure_running()?;
             reconcile_identity_group(transaction, scan_id, &identity)?;
             cursor = Some(identity);
         }
@@ -1139,19 +1017,4 @@ fn load_staged_identity_payload(
             },
         )
         .map_err(database_error)
-}
-
-fn ensure_not_preempted(preempted: &AtomicBool) -> Result<(), ScanError> {
-    if preempted.load(Ordering::Acquire) {
-        Err(scan_publication_preempted_error())
-    } else {
-        Ok(())
-    }
-}
-
-fn scan_publication_preempted_error() -> ScanError {
-    ScanError::new(
-        "catalog_scan_publication_preempted",
-        "A newer live or journal change preempted catalog publication",
-    )
 }

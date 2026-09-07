@@ -6,7 +6,8 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use crate::adapters::{
-    SqliteCatalog, current_preview_artifact_key, is_managed_preview_cleanup_entry,
+    PreviewCacheNamespace, SqliteCatalog, current_preview_artifact_key,
+    is_managed_preview_cleanup_entry,
 };
 use crate::domain::{LibraryChangeLane, ScanError};
 use crate::ports::{CatalogRepository, PreviewHealthOutcome, PreviewHealthTarget};
@@ -80,9 +81,15 @@ pub fn preview_recovery_snapshot() -> PreviewRecoverySnapshot {
 fn run_preview_recovery(storage: &StoragePaths) -> Result<(), ScanError> {
     let mut catalog =
         super::catalog_session::open_catalog(&storage.catalog_path, LibraryChangeLane::Recovery)?;
-    reconcile_directory(storage, &catalog)?;
+    let namespace = PreviewCacheNamespace::observe_existing(&storage.preview_root)?;
+    #[cfg(all(test, windows))]
+    namespace_tests::after_namespace_observation(&storage.preview_root);
+    if namespace.root().is_some() {
+        reconcile_directory(storage, &catalog)?;
+    }
     update_snapshot(|snapshot| snapshot.phase = PreviewRecoveryPhase::Index);
-    reconcile_index(storage, &mut catalog)?;
+    reconcile_index(storage, &mut catalog, &namespace)?;
+    drop(namespace);
     update_snapshot(|snapshot| snapshot.phase = PreviewRecoveryPhase::Completed);
     Ok(())
 }
@@ -154,6 +161,8 @@ fn reconcile_directory(storage: &StoragePaths, catalog: &SqliteCatalog) -> Resul
             {
                 continue;
             }
+            #[cfg(all(test, windows))]
+            namespace_tests::before_remove(&path);
             match fs::remove_file(&path) {
                 Ok(()) => {
                     update_snapshot(|snapshot| {
@@ -174,7 +183,11 @@ fn reconcile_directory(storage: &StoragePaths, catalog: &SqliteCatalog) -> Resul
     }
 }
 
-fn reconcile_index(storage: &StoragePaths, catalog: &mut SqliteCatalog) -> Result<(), ScanError> {
+fn reconcile_index(
+    storage: &StoragePaths,
+    catalog: &mut SqliteCatalog,
+    namespace: &PreviewCacheNamespace,
+) -> Result<(), ScanError> {
     let root_prefix = preview_root_prefix(&storage.preview_root);
     let mut after_artifact_key = None;
     loop {
@@ -199,11 +212,17 @@ fn reconcile_index(storage: &StoragePaths, catalog: &mut SqliteCatalog) -> Resul
             update_snapshot(|snapshot| {
                 snapshot.inspected_artifacts = snapshot.inspected_artifacts.saturating_add(1);
             });
-            match super::preview_health::reconcile(
-                catalog,
-                &storage.preview_root,
-                PreviewHealthTarget::Artifact(&candidate),
-            )? {
+            let target = PreviewHealthTarget::Artifact(&candidate);
+            let outcome = if namespace.root().is_some() {
+                super::preview_health::reconcile(catalog, &storage.preview_root, target)?
+            } else {
+                super::preview_health::reconcile_missing_root(
+                    catalog,
+                    &storage.preview_root,
+                    target,
+                )?
+            };
+            match outcome {
                 PreviewHealthOutcome::Deferred => break,
                 PreviewHealthOutcome::Invalidated => {
                     update_snapshot(|snapshot| {
@@ -215,9 +234,17 @@ fn reconcile_index(storage: &StoragePaths, catalog: &mut SqliteCatalog) -> Resul
                         snapshot.corrected_sizes = snapshot.corrected_sizes.saturating_add(1);
                     });
                 }
-                PreviewHealthOutcome::Unavailable => update_snapshot(|snapshot| {
-                    snapshot.issue_count = snapshot.issue_count.saturating_add(1);
-                }),
+                PreviewHealthOutcome::Unavailable => {
+                    update_snapshot(|snapshot| {
+                        snapshot.issue_count = snapshot.issue_count.saturating_add(1);
+                    });
+                    if namespace.root().is_none() {
+                        return Err(ScanError::new(
+                            "preview_recovery_namespace_changed",
+                            "The initially absent preview directory appeared or could no longer be proven absent",
+                        ));
+                    }
+                }
                 PreviewHealthOutcome::Unchanged => {}
             }
             next_cursor = Some(candidate.artifact_key);
@@ -269,6 +296,9 @@ fn update_snapshot(update: impl FnOnce(&mut PreviewRecoverySnapshot)) {
         update(&mut snapshot);
     }
 }
+
+#[cfg(all(test, windows))]
+mod namespace_tests;
 
 #[cfg(test)]
 mod tests {
@@ -460,7 +490,7 @@ mod tests {
         ))
     }
 
-    fn publish_artifact(
+    pub(super) fn publish_artifact(
         catalog: &mut SqliteCatalog,
         suffix: &str,
         path: &Path,

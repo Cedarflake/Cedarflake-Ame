@@ -4,6 +4,7 @@ use crate::ports::StorageSettingsRepository;
 use tempfile::tempdir;
 
 mod activation_tests;
+mod preview_capability_tests;
 
 #[test]
 fn overlap_detection_is_case_insensitive_and_bidirectional() {

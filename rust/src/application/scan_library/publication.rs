@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::time::{Duration, Instant};
 
@@ -8,12 +9,16 @@ use crate::domain::{
 };
 
 use super::finalization::FinalizationPlan;
+use crate::ports::ScanPublicationControl;
 
 const PUBLICATION_RETRY_WAIT: Duration = Duration::from_millis(250);
 const PUBLICATION_PROGRESS_INTERVAL: Duration = Duration::from_secs(1);
 
+#[cfg(all(test, windows))]
+mod control_tests;
+
 pub(super) struct ForegroundPublicationContext<'a> {
-    pub(super) control: &'a AtomicU8,
+    pub(super) control: &'a Arc<AtomicU8>,
     pub(super) request: &'a ScanRequest,
     pub(super) checkpoint: &'a ScanCheckpoint,
     pub(super) root_id: &'a str,
@@ -44,14 +49,25 @@ pub(super) fn publish_foreground_scan(
         context.root_id,
         context.root_generation,
     )?;
+    let command = Arc::clone(context.control);
+    let control = ScanPublicationControl::new(move || {
+        matches!(
+            command.load(Ordering::Acquire),
+            super::CONTROL_PAUSE | super::CONTROL_CANCEL | super::CONTROL_SUSPEND
+        )
+    });
     let mut last_progress = Instant::now();
     loop {
+        if settle_requested_control(catalog, &context, publish)? {
+            return Ok(ForegroundPublicationOutcome::Interrupted);
+        }
         let observed_write_epoch = catalog.completed_write_epoch();
         match context.validation_proof.publish(
             catalog,
             context.root_id,
             context.accepted_items,
             context.issue_count,
+            &control,
         ) {
             Ok(receipt) => {
                 return Ok(ForegroundPublicationOutcome::Published {
@@ -59,20 +75,15 @@ pub(super) fn publish_foreground_scan(
                 });
             }
             Err(error) => {
-                let Some(delay) = PublicationDelay::from_error(&error) else {
-                    return Err(error);
-                };
-                if super::finish_if_controlled(
-                    context.control.load(Ordering::Relaxed),
-                    catalog,
-                    context.request,
-                    context.checkpoint,
-                    context.issue_count,
-                    publish,
-                    context.had_published_root,
-                )? {
+                let delay = PublicationDelay::from_error(&error);
+                if (error.code == "catalog_scan_publication_controlled" || delay.is_some())
+                    && settle_requested_control(catalog, &context, publish)?
+                {
                     return Ok(ForegroundPublicationOutcome::Interrupted);
                 }
+                let Some(delay) = delay else {
+                    return Err(error);
+                };
                 let drained_live_work = delay == PublicationDelay::LiveChangesPending
                     && context.had_published_root
                     && drain_one_live_batch(catalog, &context)?;
@@ -100,11 +111,30 @@ pub(super) fn publish_foreground_scan(
                 if drained_live_work {
                     continue;
                 }
+                if settle_requested_control(catalog, &context, publish)? {
+                    return Ok(ForegroundPublicationOutcome::Interrupted);
+                }
                 catalog
                     .wait_for_completed_write_after(observed_write_epoch, PUBLICATION_RETRY_WAIT);
             }
         }
     }
+}
+
+fn settle_requested_control(
+    catalog: &mut SqliteCatalog,
+    context: &ForegroundPublicationContext<'_>,
+    publish: &mut impl FnMut(ScanEvent) -> bool,
+) -> Result<bool, ScanError> {
+    super::finish_if_controlled(
+        context.control.load(Ordering::Acquire),
+        catalog,
+        context.request,
+        context.checkpoint,
+        context.issue_count,
+        publish,
+        context.had_published_root,
+    )
 }
 
 fn drain_one_live_batch(

@@ -10,7 +10,9 @@ use crate::adapters::{
 use crate::domain::{LibraryChangeLane, ScanError};
 use crate::ports::CatalogRepository;
 
-use super::{StoragePaths, acquire_preview_reclamation};
+#[cfg(test)]
+use super::StoragePaths;
+use super::preview::store_admission::PreviewReclamationAdmission;
 
 const RECLAMATION_TARGET_NUMERATOR: u64 = 4;
 const RECLAMATION_TARGET_DENOMINATOR: u64 = 5;
@@ -18,13 +20,28 @@ const RECLAMATION_BATCH: u32 = 256;
 const MAX_RECLAMATION_PASSES: u32 = 16;
 const MAX_UNINDEXED_RECLAMATION_ENTRIES: usize = 65_536;
 
+#[cfg(test)]
 pub(crate) fn reclaim_preview_capacity(
     storage: &StoragePaths,
     preview_store: &LocalPreviewStore,
     protected_location_ids: &[String],
     required_bytes: u64,
 ) -> Result<u64, ScanError> {
-    let _exclusive_access = acquire_preview_reclamation()?;
+    let admission = super::preview::store_admission::PreviewStoreSource::Injected {
+        storage,
+        store: preview_store,
+    }
+    .reclamation()?;
+    reclaim_admitted_capacity(admission, protected_location_ids, required_bytes)
+}
+
+pub(super) fn reclaim_admitted_capacity(
+    admission: PreviewReclamationAdmission<'_>,
+    protected_location_ids: &[String],
+    required_bytes: u64,
+) -> Result<u64, ScanError> {
+    let storage = admission.storage();
+    let preview_store = admission.store();
     let low_watermark = storage
         .preview_budget_bytes
         .saturating_mul(RECLAMATION_TARGET_NUMERATOR)

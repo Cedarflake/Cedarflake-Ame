@@ -13,7 +13,7 @@ use crate::domain::{
     LibraryRootGeneration, MetadataInventoryEntry, MetadataInventoryEntryKind,
     MetadataInventoryPlaceholderState, PreviewStatus, ReconciliationFileEvidence,
     ReconciliationObservedState, RetainedPreviewExpectation, ScanError, ScanIssue,
-    TerminalMediaEvidence, TerminalMediaEvidenceUpdate,
+    TerminalMediaEvidenceUpdate,
 };
 use crate::ports::{
     IncrementalCatalogRepository, LibraryChangeQueue, MediaInspectionFailureKind, MediaInspector,
@@ -24,6 +24,10 @@ use super::metadata_inventory::inventory_matches_location;
 use super::scan_library::{stable_id, stable_location_id};
 
 const MAX_CATALOG_REVISION_REBASE_ATTEMPTS: usize = 2;
+
+mod rename_change;
+mod terminal_media;
+use terminal_media::terminal_media_change;
 
 struct PreparedChange {
     completion: LibraryChangeCompletion,
@@ -861,89 +865,7 @@ where
             )
         }
         LibraryChangeIntentKind::Reconcile | LibraryChangeIntentKind::RenameCandidate => {
-            let previous_path = intent.previous_relative_path.as_deref().ok_or_else(|| {
-                failure(
-                    "incremental_rename_previous_path_missing",
-                    "A paired rename requires its previous relative path",
-                )
-            })?;
-            let previous_prior = repository
-                .load_incremental_location_by_relative_path(&intent.root_id, previous_path)
-                .map_err(scan_failure)?;
-            let previous_observed = inspect_path(discovery, previous_path);
-            let previous_identity = match &previous_observed {
-                InspectedPath::File(file) => file.file_identity.clone(),
-                InspectedPath::TerminalMedia { file, .. } => file.file_identity.clone(),
-                _ => None,
-            };
-            let previous_is_absent = match &previous_observed {
-                InspectedPath::CatalogAbsent => true,
-                InspectedPath::File(_) | InspectedPath::TerminalMedia { .. } => false,
-                InspectedPath::PreservedIssue(issue) | InspectedPath::Retry(issue) => {
-                    return Err(issue.clone());
-                }
-            };
-            let mut previous = prepare_path_change(
-                repository,
-                discovery,
-                inspector,
-                leased,
-                PathChangeContext {
-                    relative_path: previous_path,
-                    observed: Some(previous_observed),
-                    candidate_prior: None,
-                    may_remove_candidate_prior: false,
-                    removals: Vec::new(),
-                },
-            )?;
-            let mut current = prepare_path_change(
-                repository,
-                discovery,
-                inspector,
-                leased,
-                PathChangeContext {
-                    relative_path: &intent.relative_path,
-                    observed: None,
-                    candidate_prior: previous_prior.clone(),
-                    may_remove_candidate_prior: previous_is_absent,
-                    removals: Vec::new(),
-                },
-            )?;
-            let current_identity = current
-                .mutations
-                .iter()
-                .find_map(|mutation| mutation.upsert_location.as_ref())
-                .and_then(|location| location.file_identity.clone());
-            if previous_is_absent
-                && current
-                    .mutations
-                    .iter()
-                    .any(|mutation| mutation.upsert_location.is_some())
-            {
-                previous.mutations.clear();
-            }
-            if windows_case_alias(previous_path, &intent.relative_path)
-                && previous_identity.is_some()
-                && previous_identity == current_identity
-            {
-                previous.mutations.clear();
-                if let Some(prior) = &previous_prior {
-                    for mutation in &mut current.mutations {
-                        if mutation.upsert_location.is_some() {
-                            push_unique(
-                                &mut mutation.remove_location_ids,
-                                prior.location_id.clone(),
-                            );
-                        }
-                    }
-                }
-            }
-            previous.mutations.append(&mut current.mutations);
-            previous.revalidation.append(&mut current.revalidation);
-            if previous.completion.issue.is_none() {
-                previous.completion.issue = current.completion.issue;
-            }
-            Ok(previous)
+            rename_change::prepare_rename_change(repository, discovery, inspector, leased)
         }
         LibraryChangeIntentKind::FreshnessUnknown => unreachable!("handled above"),
     }
@@ -1300,87 +1222,6 @@ where
     })
 }
 
-fn terminal_media_change(
-    inspector: &LocalMediaInspector,
-    leased: &LeasedLibraryChange,
-    file: DiscoveredFile,
-    prior: Option<&AssetLocationView>,
-    issue: LibraryChangeFailure,
-    report_issue: bool,
-    removals: Vec<String>,
-) -> PreparedChange {
-    let relative_path = file.relative_path.clone();
-    let expected = expected_state(&file);
-    let retains_asset_identity = prior.is_some_and(|prior| {
-        file.file_identity.is_some() && prior.file_identity == file.file_identity
-    });
-    let terminal_location = AssetLocationView {
-        asset_id: if retains_asset_identity {
-            prior
-                .expect("retained identity requires a prior asset")
-                .asset_id
-                .clone()
-        } else {
-            incremental_asset_id(leased, &file)
-        },
-        location_id: stable_location_id(&leased.change.intent.root_id, &file.relative_path),
-        root_id: leased.change.intent.root_id.clone(),
-        scan_id: prior.map_or_else(String::new, |prior| prior.scan_id.clone()),
-        absolute_path: file.absolute_path.clone(),
-        display_path: user_visible_path(&file.absolute_path),
-        relative_path: file.relative_path.clone(),
-        preview_path: String::new(),
-        file_size: file.file_size,
-        created_unix_ms: file.created_unix_ms,
-        modified_unix_ms: file.modified_unix_ms,
-        file_identity: file.file_identity.clone(),
-        source_revision: file.source_revision.clone(),
-        source_generation: 0,
-        width: 0,
-        height: 0,
-        preview_status: PreviewStatus::Failed,
-        preview_issue_code: Some(issue.code.clone()),
-        preview_issue_message: Some(issue.message.clone()),
-        metadata_engine_id: inspector.inspection_engine_id().to_owned(),
-        metadata_engine_version: inspector.inspection_engine_version().to_string(),
-        capture_time: None,
-    };
-    let mutation = CatalogDeltaMutation {
-        change_id: leased.change.id,
-        outcome: IncrementalReconciliationOutcome::TerminalIssue,
-        evidence_disposition: DerivedEvidenceDisposition::InvalidateDerived,
-        remove_location_ids: removals,
-        upsert_location: Some(terminal_location),
-        retained_preview_expectation: None,
-    };
-    PreparedChange {
-        completion: LibraryChangeCompletion {
-            change_id: leased.change.id,
-            lease_generation: leased.lease_generation,
-            issue: report_issue.then(|| issue.clone()),
-        },
-        mutations: vec![mutation],
-        terminal_media_evidence: vec![TerminalMediaEvidenceUpdate {
-            change_id: leased.change.id,
-            evidence: TerminalMediaEvidence {
-                relative_path: file.relative_path.clone(),
-                file_size: file.file_size,
-                modified_unix_ms: file.modified_unix_ms,
-                file_identity: file.file_identity.clone(),
-                source_revision: file.source_revision.clone(),
-                source_generation: 0,
-                inspection_engine_id: inspector.inspection_engine_id().to_owned(),
-                inspection_engine_version: inspector.inspection_engine_version(),
-                issue,
-            },
-        }],
-        revalidation: vec![RevalidationTarget::Present {
-            relative_path,
-            expected,
-        }],
-    }
-}
-
 fn metadata_inventory_dirty_path_change(
     leased: &LeasedLibraryChange,
     prior: &AssetLocationView,
@@ -1586,7 +1427,9 @@ fn inspect_path(discovery: &PublicationGuardedFileDiscovery, relative_path: &str
         FileVisitOutcome::Issue(issue) if issue.code == "cloud_placeholder_skipped" => {
             InspectedPath::PreservedIssue(issue_failure(&issue))
         }
-        FileVisitOutcome::Issue(issue) => InspectedPath::Retry(issue_failure(&issue)),
+        FileVisitOutcome::Issue(issue) | FileVisitOutcome::RetryableFile { issue, .. } => {
+            InspectedPath::Retry(issue_failure(&issue))
+        }
     }
 }
 

@@ -47,6 +47,8 @@ use super::{
     set_before_metadata_inventory_finalization_hook,
 };
 
+mod terminal_media;
+
 #[test]
 fn recovery_reason_invalidation_matrix_covers_every_authority_reason() {
     let cases = [
@@ -901,108 +903,6 @@ fn candidate_drain_rejects_an_ancestor_junction_after_a_proven_spool_snapshot() 
     assert_eq!(evidence.2, 0);
     assert_eq!(evidence.3, 0);
     assert_eq!(evidence.4, 0);
-}
-
-#[test]
-fn unchanged_terminal_media_evidence_is_reused_after_catalog_reopen() {
-    let mut fixture = InventoryFixture::new(&[]);
-    fs::write(fixture.source.path().join("broken.jpg"), b"not a jpeg")
-        .expect("write malformed media fixture");
-
-    let first = fixture.run_inventory_with_id("inventory-terminal-1", 1, 4);
-    assert!(first.is_complete);
-    assert_eq!(first.candidate_count, 1);
-    let processed = process_ready_library_changes(
-        &mut fixture.catalog,
-        &fixture.root_id,
-        LibraryRootGeneration::initial(),
-        4_000,
-        queue_policy(),
-    )
-    .expect("process terminal media candidate");
-    assert_eq!(processed.completed_count, 1);
-    assert_eq!(processed.retried_count, 0);
-    assert_eq!(processed.applied_mutation_count, 1);
-    let failed = fixture
-        .location("broken.jpg")
-        .expect("terminal media placeholder");
-    assert!(matches!(failed.preview_status, PreviewStatus::Failed));
-    assert!(failed.source_revision.is_some());
-    assert!(failed.source_generation > 0);
-    let catalog_path = fixture._storage.path().join("catalog.sqlite3");
-    drop(fixture.catalog);
-    fixture.catalog = SqliteCatalog::open(catalog_path).expect("reopen catalog");
-
-    let second = fixture.run_inventory_with_id("inventory-terminal-2", 2, 4);
-
-    assert!(second.is_complete);
-    assert_eq!(second.candidate_count, 0);
-    assert!(second.unchanged_count >= 1);
-    let metrics = fixture
-        .catalog
-        .load_library_change_root_queue_metrics(
-            &fixture.root_id,
-            LibraryRootGeneration::initial(),
-            3_000,
-            queue_policy(),
-        )
-        .expect("queue metrics after evidence reuse");
-    assert_eq!(
-        metrics.pending_count + metrics.leased_count + metrics.retry_wait_count,
-        0
-    );
-}
-
-#[test]
-fn mixed_non_media_and_malformed_batch_converges_without_retry_growth() {
-    let mut fixture = InventoryFixture::new(&[]);
-    for index in 0..96 {
-        fs::write(
-            fixture.source.path().join(format!("clip-{index:03}.mp4")),
-            b"\0\0\0\x18ftypmp42\0\0\0\0",
-        )
-        .expect("write video fixture");
-    }
-    for index in 0..32 {
-        fs::write(
-            fixture.source.path().join(format!("broken-{index:03}.jpg")),
-            b"not a jpeg",
-        )
-        .expect("write malformed image fixture");
-    }
-
-    let first = fixture.run_inventory_with_id("inventory-mixed-terminal-1", 1, 64);
-    assert!(first.is_complete);
-    assert_eq!(first.candidate_count, 128);
-    let processed = process_ready_library_changes(
-        &mut fixture.catalog,
-        &fixture.root_id,
-        LibraryRootGeneration::initial(),
-        4_000,
-        queue_policy(),
-    )
-    .expect("process mixed terminal batch");
-
-    assert_eq!(processed.leased_count, 128);
-    assert_eq!(processed.completed_count, 128);
-    assert_eq!(processed.retried_count, 0);
-    assert_eq!(processed.applied_mutation_count, 128);
-    let metrics = fixture
-        .catalog
-        .load_library_change_root_queue_metrics(
-            &fixture.root_id,
-            LibraryRootGeneration::initial(),
-            4_000,
-            queue_policy(),
-        )
-        .expect("mixed terminal queue metrics");
-    assert_eq!(metrics.retry_wait_count, 0);
-    assert_eq!(metrics.exhausted_retry_count, 0);
-
-    let second = fixture.run_inventory_with_id("inventory-mixed-terminal-2", 2, 64);
-    assert!(second.is_complete);
-    assert_eq!(second.candidate_count, 0);
-    assert_eq!(second.unchanged_count, 128);
 }
 
 #[test]

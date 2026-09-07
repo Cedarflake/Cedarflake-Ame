@@ -32,6 +32,7 @@ use super::{StoragePaths, storage_paths};
 mod admission_tests;
 mod execution_registry;
 mod finalization;
+mod inspection_failure;
 #[cfg(all(test, windows))]
 mod media_input_tests;
 mod publication;
@@ -54,6 +55,7 @@ pub use execution_registry::{cancel_scan, pause_scan, suspend_scan};
 pub use retained_cancellation::cancel_retained_scan;
 
 use finalization::{FinalizationContext, FinalizationMode, FinalizationPlan};
+use inspection_failure::{FailedFileContext, record_failed_file};
 use publication::{
     ForegroundPublicationContext, ForegroundPublicationOutcome, publish_foreground_scan,
 };
@@ -592,6 +594,39 @@ fn run_scan_with_storage_reason(
                                 issue: user_visible_issue(issue),
                             });
                         }
+                        FileVisitOutcome::RetryableFile { file, issue } => {
+                            let prior = if had_published_root {
+                                catalog.load_incremental_location_by_relative_path(
+                                    &root_id,
+                                    &file.relative_path,
+                                )?
+                            } else {
+                                None
+                            };
+                            let (accepted, issue) = record_failed_file(
+                                &mut catalog,
+                                &mut finalization,
+                                FailedFileContext {
+                                    scan_id: &request.scan_id,
+                                    root_id: &root_id,
+                                    file: &file,
+                                    preservation_prior: prior.as_ref(),
+                                    had_published_root,
+                                    accepted_items,
+                                },
+                                crate::ports::MediaInspectionFailure {
+                                    kind: crate::ports::MediaInspectionFailureKind::Retryable,
+                                    issue,
+                                },
+                                &mut checkpoint,
+                                &mut issue_count,
+                            )?;
+                            accepted_items = accepted;
+                            discovered_event = Some(ScanEvent::Issue {
+                                scan_id: request.scan_id.clone(),
+                                issue: user_visible_issue(issue),
+                            });
+                        }
                         FileVisitOutcome::File(file) => {
                             for issue in &file.issues {
                                 issue_count += 1;
@@ -774,39 +809,22 @@ fn run_scan_with_storage_reason(
                                     });
                                 }
                                 Err(failure) => {
-                                    let is_retryable = failure.kind
-                                        == crate::ports::MediaInspectionFailureKind::Retryable;
-                                    if !is_retryable {
-                                        finalization.record_rejected_input(&catalog, &file)?;
-                                    }
-                                    let issue = failure.issue;
-                                    issue_count += 1;
-                                    catalog.record_issue(&request.scan_id, &issue)?;
-                                    if had_published_root
-                                        && is_retryable
-                                        && let Some(prior) = preservation_prior.as_ref()
-                                    {
-                                        catalog.stage_location(
-                                            &request.scan_id,
-                                            &root_id,
-                                            prior,
-                                        )?;
-                                        accepted_items =
-                                        accepted_items.checked_add(1).ok_or_else(|| {
-                                                ScanError::new(
-                                                    "accepted_item_count_overflow",
-                                                    "The accepted item count exceeded the supported range",
-                                                )
-                                            })?;
-                                    }
-                                    if is_retryable
-                                        && !finalization.record_retryable_path(&file.relative_path)
-                                    {
-                                        checkpoint.requires_previous_snapshot = true;
-                                    }
-                                    checkpoint.accepted_items = accepted_items;
-                                    checkpoint.issue_count = issue_count;
-                                    catalog.checkpoint_scan(&request.scan_id, &checkpoint)?;
+                                    let (accepted, issue) = record_failed_file(
+                                        &mut catalog,
+                                        &mut finalization,
+                                        FailedFileContext {
+                                            scan_id: &request.scan_id,
+                                            root_id: &root_id,
+                                            file: &file,
+                                            preservation_prior: preservation_prior.as_ref(),
+                                            had_published_root,
+                                            accepted_items,
+                                        },
+                                        failure,
+                                        &mut checkpoint,
+                                        &mut issue_count,
+                                    )?;
+                                    accepted_items = accepted;
                                     discovered_event = Some(ScanEvent::Issue {
                                         scan_id: request.scan_id.clone(),
                                         issue: user_visible_issue(issue),

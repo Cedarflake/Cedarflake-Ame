@@ -88,6 +88,7 @@ pub(crate) fn with_scan_start<T>(
     begin: impl FnOnce() -> Result<T, ScanError>,
 ) -> Result<T, ScanError> {
     let _permit = reserve_catalog_transition(storage)?;
+    let _source = super::source_cleanup_admission::reserve_source_registration(source_root)?;
     validate_source_root_storage_paths(source_root, storage)?;
     if storage.settings_path.exists() {
         let configured = load_configured_storage(storage)?;

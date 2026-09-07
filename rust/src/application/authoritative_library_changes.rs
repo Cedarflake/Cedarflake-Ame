@@ -338,7 +338,7 @@ fn enumerate_scopes(
             }
             FileVisitOutcome::Ignored => {}
             FileVisitOutcome::Issue(issue) if issue.code == "file_missing" => {}
-            FileVisitOutcome::Issue(issue) => {
+            FileVisitOutcome::Issue(issue) | FileVisitOutcome::RetryableFile { issue, .. } => {
                 return Err(EnumerationFailure::Issue(scan_issue_failure(issue)));
             }
         }
@@ -381,7 +381,7 @@ fn enumerate_scopes(
                 }
                 FileVisitOutcome::Ignored => {}
                 FileVisitOutcome::Issue(issue) if issue.code == "file_missing" => {}
-                FileVisitOutcome::Issue(issue) => {
+                FileVisitOutcome::Issue(issue) | FileVisitOutcome::RetryableFile { issue, .. } => {
                     return Err(EnumerationFailure::Issue(scan_issue_failure(issue)));
                 }
             }

@@ -10,15 +10,21 @@ const ADAPTERS_SOURCE: &str = include_str!("../../mod.rs");
 const CRATE_SOURCE: &str = include_str!("../../../lib.rs");
 
 #[test]
-fn root_availability_admitted_media_modules_preserve_exact_source_loading_contracts() {
-    let signature = LOCAL_MODULE_CONTRACTS
-        .iter()
-        .filter(|contract| contract.name == "media_signature")
-        .collect::<Vec<_>>();
-    assert_eq!(signature.len(), 1);
-    assert_eq!(signature[0].visibility, "");
-    assert!(signature[0].attributes.is_empty());
-    assert!(!signature[0].is_inline);
+fn root_availability_admitted_modules_preserve_exact_source_loading_contracts() {
+    for module_name in [
+        "media_signature",
+        "file_admission",
+        "preview_cache_namespace",
+    ] {
+        let contracts = LOCAL_MODULE_CONTRACTS
+            .iter()
+            .filter(|contract| contract.name == module_name)
+            .collect::<Vec<_>>();
+        assert_eq!(contracts.len(), 1);
+        assert_eq!(contracts[0].visibility, "");
+        assert!(contracts[0].attributes.is_empty());
+        assert!(!contracts[0].is_inline);
+    }
     let fixtures = CRATE_PARENT_MODULE_CONTRACTS
         .iter()
         .filter(|contract| contract.name == "media_fixtures")
@@ -31,11 +37,11 @@ fn root_availability_admitted_media_modules_preserve_exact_source_loading_contra
     );
     assert!(!fixtures[0].is_inline);
     assert_contract(LOCAL_SOURCE, CRATE_SOURCE)
-        .expect("the complete live source contract must accept the two exact declarations");
+        .expect("the complete live source contract must accept the exact declarations");
 }
 
 #[test]
-fn root_availability_admitted_media_modules_reject_alternate_generated_or_broader_loading() {
+fn root_availability_admitted_modules_reject_alternate_generated_or_broader_loading() {
     let crate_source = CRATE_SOURCE.replace("\r\n", "\n");
     let signature = "mod media_signature;";
     let fixtures = concat!(
@@ -44,6 +50,43 @@ fn root_availability_admitted_media_modules_reject_alternate_generated_or_broade
         "pub(crate) mod media_fixtures;"
     );
     for (source, declaration, replacements, source_key, module_name) in [
+        (
+            LOCAL_SOURCE,
+            "mod preview_cache_namespace;",
+            vec![
+                "".to_owned(),
+                "mod preview_cache_namespace;\nmod preview_cache_namespace;".to_owned(),
+                "pub mod preview_cache_namespace;".to_owned(),
+                "#[cfg(test)]\nmod preview_cache_namespace;".to_owned(),
+                "#[path = \"alternate.rs\"]\nmod preview_cache_namespace;".to_owned(),
+                "#[cfg_attr(not(test), path = \"alternate.rs\")]\nmod preview_cache_namespace;"
+                    .to_owned(),
+                "#[adversarial_loader]\nmod preview_cache_namespace;".to_owned(),
+                "mod preview_cache_namespace { mod generated {} }".to_owned(),
+                "include!(\"alternate.rs\");".to_owned(),
+                "mod preview_cache_namespace;\nmod unknown_cleanup_namespace;".to_owned(),
+            ],
+            "local",
+            "preview_cache_namespace",
+        ),
+        (
+            LOCAL_SOURCE,
+            "mod file_admission;",
+            vec![
+                "".to_owned(),
+                "mod file_admission;\nmod file_admission;".to_owned(),
+                "pub mod file_admission;".to_owned(),
+                "#[cfg(test)]\nmod file_admission;".to_owned(),
+                "#[path = \"alternate.rs\"]\nmod file_admission;".to_owned(),
+                "#[cfg_attr(not(test), path = \"alternate.rs\")]\nmod file_admission;".to_owned(),
+                "#[adversarial_loader]\nmod file_admission;".to_owned(),
+                "mod file_admission { mod generated {} }".to_owned(),
+                "include!(\"alternate.rs\");".to_owned(),
+                "mod file_admission;\nmod unknown_file_admission;".to_owned(),
+            ],
+            "local",
+            "file_admission",
+        ),
         (
             LOCAL_SOURCE,
             signature,

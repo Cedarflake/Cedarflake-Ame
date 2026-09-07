@@ -5,13 +5,19 @@ use std::sync::{Arc, Condvar, Mutex, OnceLock};
 
 #[cfg(test)]
 use crate::adapters::SqliteCatalog;
-use crate::adapters::{SqliteStorageSettings, is_ame_preview_cache_entry, user_visible_path};
+use crate::adapters::{
+    PreviewCacheNamespace, SqliteStorageSettings, is_ame_preview_cache_entry, user_visible_path,
+};
 use crate::domain::{LibraryChangeLane, PreviewCleanupEvent, ScanError, ScanIssue};
 use crate::ports::{CatalogRepository, StorageSettingsRepository};
 
 use super::{StoragePaths, storage_paths};
 
 const PROGRESS_INTERVAL: u64 = 32;
+
+#[cfg(all(test, windows))]
+#[path = "preview_cleanup/source_admission_tests.rs"]
+mod source_admission_tests;
 
 static PREVIEW_ACCESS: OnceLock<PreviewAccess> = OnceLock::new();
 static ACTIVE_CLEANUP: OnceLock<Mutex<Option<ActiveCleanup>>> = OnceLock::new();
@@ -222,11 +228,14 @@ fn clear_preview_scope(
         operation_id: operation_id.clone(),
     };
     let _exclusive_access = preview_access().acquire_reclamation()?;
+    let namespace = PreviewCacheNamespace::open(scope.preview_root())?;
+    let _source_exclusion =
+        super::storage::source_cleanup_admission::reserve_preview_cleanup(scope.preview_root())?;
     super::storage::validate_preview_root_outside_sources(
         scope.catalog_path(),
         scope.preview_root(),
     )?;
-    let Some(summary) = summarize_managed_files(scope.preview_root(), &cancellation)? else {
+    let Some(summary) = summarize_managed_files(&namespace, &cancellation)? else {
         publish(cancelled_event(&operation_id, 0, 0, 0));
         return Ok(());
     };
@@ -248,8 +257,8 @@ fn clear_preview_scope(
     let mut removed_files = 0_u64;
     let mut removed_bytes = 0_u64;
     let mut issue_count = 0_u64;
-    if scope.preview_root().exists() {
-        let entries = fs::read_dir(scope.preview_root()).map_err(|error| {
+    if let Some(preview_root) = namespace.root() {
+        let entries = fs::read_dir(preview_root).map_err(|error| {
             ScanError::new(
                 "preview_cleanup_directory_unavailable",
                 format!("Could not inspect the preview cache for cleanup: {error}"),
@@ -341,7 +350,7 @@ fn clear_preview_scope(
         ));
         return Ok(());
     }
-    let Some(remaining) = summarize_managed_files(scope.preview_root(), &cancellation)? else {
+    let Some(remaining) = summarize_managed_files(&namespace, &cancellation)? else {
         publish(cancelled_event(
             &operation_id,
             removed_files,
@@ -375,12 +384,12 @@ fn clear_preview_scope(
 }
 
 fn summarize_managed_files(
-    preview_root: &Path,
+    namespace: &PreviewCacheNamespace,
     cancellation: &AtomicBool,
 ) -> Result<Option<CleanupSummary>, ScanError> {
-    if !preview_root.exists() {
+    let Some(preview_root) = namespace.root() else {
         return Ok(Some(CleanupSummary { files: 0, bytes: 0 }));
-    }
+    };
     let entries = fs::read_dir(preview_root).map_err(|error| {
         ScanError::new(
             "preview_cleanup_directory_unavailable",

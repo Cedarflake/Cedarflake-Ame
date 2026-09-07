@@ -1,15 +1,16 @@
+#[cfg(test)]
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
 #[cfg(test)]
 use std::collections::HashMap;
 
-#[cfg(test)]
-use crate::adapters::canonical_source_root_path;
 use crate::adapters::{
-    LocalMediaInspector, LocalPreviewStore, open_preview_publication_guard, open_preview_source,
+    LocalMediaInspector, open_preview_publication_guard, open_preview_source,
     revalidate_open_preview_source,
 };
+#[cfg(test)]
+use crate::adapters::{LocalPreviewStore, canonical_source_root_path};
 use crate::domain::{
     AssetLocationView, DiscoveredFile, ExpectedFileState, LibraryChangeLane, PreviewRequest,
     PreviewStatus, ScanError, ScanIssue,
@@ -20,8 +21,12 @@ use super::{StoragePaths, storage_paths};
 
 mod failure;
 use failure::{FailureDisposition, apply_failure};
+pub(super) mod store_admission;
+#[cfg(test)]
+pub(crate) use store_admission::active_preview_store;
+pub(crate) use store_admission::invalidate_active_preview_store;
+use store_admission::{PreviewGenerationAdmission, PreviewStoreSource};
 
-static ACTIVE_PREVIEW_STORE: OnceLock<Mutex<Option<ActivePreviewStore>>> = OnceLock::new();
 #[cfg(test)]
 type PreviewTestHook = Box<dyn FnOnce() + Send>;
 #[cfg(test)]
@@ -38,12 +43,6 @@ static BEFORE_PREVIEW_CATALOG_PUBLISH_HOOKS: OnceLock<Mutex<HashMap<String, Prev
     OnceLock::new();
 #[cfg(debug_assertions)]
 const SLOW_PREVIEW_DIAGNOSTIC: Duration = Duration::from_millis(250);
-
-struct ActivePreviewStore {
-    root: std::path::PathBuf,
-    budget_bytes: u64,
-    store: Arc<LocalPreviewStore>,
-}
 
 struct PreviewStageTimings {
     access_ms: u128,
@@ -91,31 +90,27 @@ pub fn materialize_preview(request: PreviewRequest) -> Result<AssetLocationView,
     let result = (|| {
         validate_request(&request)?;
         let storage = storage_paths()?;
-        let catalog_started = Instant::now();
-        let preflight = load_preview_catalog_context(&storage, &request);
-        timings.catalog_ms = timings
-            .catalog_ms
-            .saturating_add(catalog_started.elapsed().as_millis());
-        preflight?;
-        #[cfg(test)]
-        run_preview_test_hook(&AFTER_PREVIEW_PREFLIGHT_HOOKS, &request.location_id);
-        let access_started = Instant::now();
-        let preview_access = super::acquire_preview_generation()?;
-        timings.access_ms = access_started.elapsed().as_millis();
-        let store_started = Instant::now();
-        let preview_store = active_preview_store(&storage)?;
-        timings.store_ms = store_started.elapsed().as_millis();
-        materialize_preview_attempt(
-            request,
-            storage,
-            &preview_store,
-            true,
-            Some(preview_access),
-            &mut timings,
-        )
+        materialize_active_preview(request, storage, &mut timings)
     })();
     log_preview_diagnostic(&location_id, is_retry, started.elapsed(), &timings, &result);
     result
+}
+
+fn materialize_active_preview(
+    request: PreviewRequest,
+    storage: StoragePaths,
+    timings: &mut PreviewStageTimings,
+) -> Result<AssetLocationView, ScanError> {
+    let catalog_started = Instant::now();
+    let preflight = load_preview_catalog_context(&storage, &request);
+    timings.catalog_ms = timings
+        .catalog_ms
+        .saturating_add(catalog_started.elapsed().as_millis());
+    preflight?;
+    #[cfg(test)]
+    run_preview_test_hook(&AFTER_PREVIEW_PREFLIGHT_HOOKS, &request.location_id);
+    let admission = PreviewStoreSource::Active(&storage).generation(timings)?;
+    materialize_preview_attempt(request, admission, true, timings)
 }
 
 #[cfg(test)]
@@ -143,30 +138,25 @@ pub(crate) fn materialize_preview_with_store(
     preview_store: &LocalPreviewStore,
 ) -> Result<AssetLocationView, ScanError> {
     validate_request(&request)?;
-    materialize_preview_attempt(
-        request,
-        storage,
-        preview_store,
-        true,
-        None,
-        &mut PreviewStageTimings::default(),
-    )
+    let mut timings = PreviewStageTimings::default();
+    let admission = PreviewStoreSource::Injected {
+        storage: &storage,
+        store: preview_store,
+    }
+    .generation(&mut timings)?;
+    materialize_preview_attempt(request, admission, true, &mut timings)
 }
 
 fn materialize_preview_attempt(
     request: PreviewRequest,
-    storage: StoragePaths,
-    preview_store: &LocalPreviewStore,
+    preview_access: PreviewGenerationAdmission<'_>,
     can_reclaim: bool,
-    preview_access: Option<super::preview_cleanup::PreviewGenerationGuard>,
     timings: &mut PreviewStageTimings,
 ) -> Result<AssetLocationView, ScanError> {
-    let preview_access = match preview_access {
-        Some(access) => access,
-        None => super::acquire_preview_generation()?,
-    };
+    let storage = preview_access.storage();
+    let preview_store = preview_access.store();
     let catalog_started = Instant::now();
-    let catalog_state = load_preview_catalog_context(&storage, &request);
+    let catalog_state = load_preview_catalog_context(storage, &request);
     timings.catalog_ms = timings
         .catalog_ms
         .saturating_add(catalog_started.elapsed().as_millis());
@@ -319,29 +309,27 @@ fn materialize_preview_attempt(
         Err(issue) if issue.code == "preview_cache_budget_exceeded" && can_reclaim => {
             timings.materialization = "capacity_reclaim";
             let required_bytes = preview_store.take_rejected_reservation_bytes();
+            let source = preview_access.source();
             drop(preview_access);
+            #[cfg(all(test, windows))]
+            tests::store_reacquisition::before_reclamation(&request.location_id);
             let mut protected_location_ids = request.protected_location_ids.clone();
             protected_location_ids.push(request.location_id.clone());
             protected_location_ids.sort_unstable();
             protected_location_ids.dedup();
             let reclaim_started = Instant::now();
-            super::preview_reclamation::reclaim_preview_capacity(
-                &storage,
-                preview_store,
+            super::preview_reclamation::reclaim_admitted_capacity(
+                source.reclamation()?,
                 &protected_location_ids,
                 required_bytes,
             )?;
             timings.reclaim_ms = timings
                 .reclaim_ms
                 .saturating_add(reclaim_started.elapsed().as_millis());
-            return materialize_preview_attempt(
-                request,
-                storage,
-                preview_store,
-                false,
-                None,
-                timings,
-            );
+            #[cfg(all(test, windows))]
+            tests::store_reacquisition::after_reclamation(&request.location_id);
+            let admission = source.generation(timings)?;
+            return materialize_preview_attempt(request, admission, false, timings);
         }
         Err(issue) => {
             timings.materialization = "failed";
@@ -381,7 +369,7 @@ fn materialize_preview_attempt(
         root_identity: expected_root_identity,
     };
     publish_preview_state(
-        &storage,
+        storage,
         &request,
         &publication_authority,
         &location,
@@ -540,53 +528,6 @@ fn preview_source_open_error(issue: ScanIssue) -> ScanError {
     source_superseded(issue)
 }
 
-pub(crate) fn active_preview_store(
-    storage: &StoragePaths,
-) -> Result<Arc<LocalPreviewStore>, ScanError> {
-    let mut active = active_preview_store_slot().lock().map_err(|_| {
-        ScanError::new(
-            "preview_store_registry_unavailable",
-            "Preview store registry is poisoned",
-        )
-    })?;
-    if let Some(current) = active.as_ref()
-        && current.root == storage.preview_root
-        && current.budget_bytes == storage.preview_budget_bytes
-    {
-        return Ok(Arc::clone(&current.store));
-    }
-    let store = Arc::new(
-        LocalPreviewStore::new(storage.preview_root.clone(), storage.preview_budget_bytes)
-            .map_err(|issue| {
-                ScanError::new(
-                    issue.code,
-                    format!("Preview cache initialization failed: {}", issue.message),
-                )
-            })?,
-    );
-    *active = Some(ActivePreviewStore {
-        root: storage.preview_root.clone(),
-        budget_bytes: storage.preview_budget_bytes,
-        store: Arc::clone(&store),
-    });
-    Ok(store)
-}
-
-pub(crate) fn invalidate_active_preview_store() -> Result<(), ScanError> {
-    let mut active = active_preview_store_slot().lock().map_err(|_| {
-        ScanError::new(
-            "preview_store_registry_unavailable",
-            "Preview store registry is poisoned",
-        )
-    })?;
-    *active = None;
-    Ok(())
-}
-
-fn active_preview_store_slot() -> &'static Mutex<Option<ActivePreviewStore>> {
-    ACTIVE_PREVIEW_STORE.get_or_init(|| Mutex::new(None))
-}
-
 fn validate_request(request: &PreviewRequest) -> Result<(), ScanError> {
     if request.location_id.trim().is_empty() {
         return Err(ScanError::new(
@@ -671,7 +612,11 @@ fn install_preview_test_hook(
 #[cfg(test)]
 mod tests {
     #[cfg(windows)]
+    mod cache_namespace;
+    #[cfg(windows)]
     mod failure;
+    #[cfg(windows)]
+    pub(super) mod store_reacquisition;
     use std::fs;
     use std::io::Cursor;
     use std::path::Path;

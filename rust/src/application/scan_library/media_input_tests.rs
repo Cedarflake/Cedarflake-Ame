@@ -23,6 +23,8 @@ use super::{run_scan_with_storage, stable_id};
 
 const WIDTH: u32 = 128;
 const HEIGHT: u32 = 96;
+
+mod locked_discovery;
 const REPLACEMENT_COLORS: [[u8; 3]; 4] = [
     QUADRANT_COLORS[3],
     QUADRANT_COLORS[2],

@@ -49,6 +49,31 @@ pub(super) fn is_active_location_file(path: &str, root: &Path) -> Result<bool, S
         && super::storage::resolved_path_is_within(Path::new(path), root)?)
 }
 
+pub(super) fn reconcile_missing_root(
+    catalog: &mut impl CatalogRepository,
+    root: &Path,
+    target: PreviewHealthTarget<'_>,
+) -> Result<PreviewHealthOutcome, ScanError> {
+    let _access = match super::acquire_preview_reclamation() {
+        Ok(access) => access,
+        Err(error) if error.code == "preview_cleanup_active" => {
+            return Ok(PreviewHealthOutcome::Deferred);
+        }
+        Err(error) => return Err(error),
+    };
+    // Revalidate absence under publication exclusion; never inspect a later replacement root.
+    match std::fs::symlink_metadata(root) {
+        Err(error) if error.kind() == ErrorKind::NotFound => {}
+        Ok(_) | Err(_) => return Ok(PreviewHealthOutcome::Unavailable),
+    }
+    let outcome =
+        catalog.try_reconcile_preview_health(target, PreviewHealthObservation::Missing)?;
+    if outcome == PreviewHealthOutcome::Invalidated {
+        super::preview::invalidate_active_preview_store()?;
+    }
+    Ok(outcome)
+}
+
 /// Candidates are only lookup hints. Final filesystem evidence and its conditional catalog
 /// write share the publication exclusion; database contention returns without retaining it.
 pub(super) fn reconcile(

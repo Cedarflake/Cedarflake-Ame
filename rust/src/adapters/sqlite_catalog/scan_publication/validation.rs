@@ -244,6 +244,7 @@ impl ValidatedStagingProof {
         root_id: &str,
         asset_count: u64,
         issue_count: u64,
+        control: &crate::ports::ScanPublicationControl,
     ) -> Result<super::ScanPublicationReceipt, ScanError> {
         super::publish_scan_with_proof(
             catalog,
@@ -252,6 +253,7 @@ impl ValidatedStagingProof {
             asset_count,
             issue_count,
             Some(self),
+            control,
         )
     }
 

@@ -7,6 +7,8 @@ use tempfile::tempdir;
 use super::*;
 use crate::adapters::SqliteCatalog;
 
+mod scan_interleaving;
+
 fn usage(page_count: u64, freelist_count: u64) -> CatalogSpaceUsage {
     CatalogSpaceUsage {
         page_size: 4_096,
@@ -219,10 +221,12 @@ fn maintenance_success_and_failure_invalidate_the_cached_catalog_session() {
         "Injected maintenance failure",
     );
     assert_eq!(
-        finish_maintenance_attempt::<()>(&path, Err(injected.clone()))
-            .err()
-            .expect("injected failure")
-            .code,
+        super::super::catalog_session::with_catalog_maintenance::<()>(&path, || Err(
+            injected.clone()
+        ))
+        .err()
+        .expect("injected failure")
+        .code,
         injected.code,
     );
     drop(
@@ -265,7 +269,8 @@ fn busy_maintenance_retains_the_validated_catalog_session() {
     let control = CatalogMaintenanceControl::new(Arc::new(AtomicBool::new(false)));
 
     assert!(matches!(
-        finish_maintenance_attempt(&path, maintenance.try_checkpoint_wal(&control))
+        maintenance
+            .try_checkpoint_wal(&control)
             .expect("busy maintenance remains retryable"),
         CatalogMaintenanceAttempt::Busy,
     ));
@@ -308,15 +313,17 @@ fn busy_conversion_and_incremental_vacuum_preserve_the_validated_signature() {
             .expect("hold SQLite writer");
         let maintenance = SqliteCatalogSpaceMaintenance::new(path.clone());
         let control = CatalogMaintenanceControl::new(Arc::new(AtomicBool::new(false)));
-        let attempt = if mode == "INCREMENTAL" {
-            maintenance.try_reclaim_incremental(1, &control)
-        } else {
-            maintenance.try_convert_to_incremental(&control)
-        };
+        let attempt = super::super::catalog_session::with_catalog_maintenance(&path, || {
+            if mode == "INCREMENTAL" {
+                maintenance.try_reclaim_incremental(1, &control)
+            } else {
+                maintenance.try_convert_to_incremental(&control)
+            }
+        });
 
         assert!(
             matches!(
-                finish_maintenance_attempt(&path, attempt).expect("busy result"),
+                attempt.expect("busy result"),
                 CatalogMaintenanceAttempt::Busy
             ),
             "{mode}"

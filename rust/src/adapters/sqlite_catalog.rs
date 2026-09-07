@@ -5248,6 +5248,12 @@ fn database_error(error: rusqlite::Error) -> ScanError {
     if let rusqlite::Error::SqliteFailure(failure, _) = &error {
         read_retry::record_database_error_code(failure.code);
         match failure.code {
+            rusqlite::ErrorCode::OperationInterrupted => {
+                return ScanError::new(
+                    "catalog_database_interrupted",
+                    "The catalog database operation was interrupted",
+                );
+            }
             rusqlite::ErrorCode::DatabaseBusy => {
                 return ScanError::new(
                     "catalog_database_busy",

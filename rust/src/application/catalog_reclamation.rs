@@ -208,7 +208,7 @@ fn run_reclamation_inner(
         }
     }
 
-    let Some(()) = checkpoint_with_retry(path, &maintenance, operation)? else {
+    let Some(()) = checkpoint_with_retry(&maintenance, operation)? else {
         return Ok(ReclamationCompletion::Cancelled);
     };
 
@@ -244,7 +244,9 @@ fn convert_with_retry(
     operation: &CatalogReclamationOperation,
 ) -> Result<Option<CatalogSpaceUsage>, ScanError> {
     retry_controlled_maintenance(operation, CatalogReclamationPhase::Converting, |control| {
-        finish_maintenance_attempt(path, maintenance.try_convert_to_incremental(control))
+        super::catalog_session::with_catalog_maintenance(path, || {
+            maintenance.try_convert_to_incremental(control)
+        })
     })
 }
 
@@ -254,20 +256,18 @@ fn reclaim_batch_with_retry(
     operation: &CatalogReclamationOperation,
 ) -> Result<Option<CatalogSpaceUsage>, ScanError> {
     retry_controlled_maintenance(operation, CatalogReclamationPhase::Reclaiming, |control| {
-        finish_maintenance_attempt(
-            path,
-            maintenance.try_reclaim_incremental(INCREMENTAL_BATCH_PAGES, control),
-        )
+        super::catalog_session::with_catalog_maintenance(path, || {
+            maintenance.try_reclaim_incremental(INCREMENTAL_BATCH_PAGES, control)
+        })
     })
 }
 
 fn checkpoint_with_retry(
-    path: &Path,
     maintenance: &SqliteCatalogSpaceMaintenance,
     operation: &CatalogReclamationOperation,
 ) -> Result<Option<()>, ScanError> {
     retry_controlled_maintenance(operation, CatalogReclamationPhase::Reclaiming, |control| {
-        finish_maintenance_attempt(path, maintenance.try_checkpoint_wal(control))
+        maintenance.try_checkpoint_wal(control)
     })
 }
 
@@ -308,23 +308,6 @@ fn retry_controlled_maintenance_with_wait<T>(
                     return Ok(None);
                 }
             }
-        }
-    }
-}
-
-fn finish_maintenance_attempt<T>(
-    path: &Path,
-    attempt: Result<CatalogMaintenanceAttempt<T>, ScanError>,
-) -> Result<CatalogMaintenanceAttempt<T>, ScanError> {
-    if matches!(attempt, Ok(CatalogMaintenanceAttempt::Busy)) {
-        return attempt;
-    }
-    let invalidation = super::catalog_session::invalidate_catalog_session(path);
-    match attempt {
-        Err(error) => Err(error),
-        Ok(value) => {
-            invalidation?;
-            Ok(value)
         }
     }
 }
