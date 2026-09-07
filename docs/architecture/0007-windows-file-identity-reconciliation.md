@@ -143,6 +143,20 @@ invalidation. A later valid observation through any alias restores the complete 
 group to pending-preview state and removes the identity-wide terminal evidence. Source bytes are
 never changed by either transition.
 
+Media discovery distinguishes a proven unsupported file from an unreadable signature. A locally
+available ordinary file whose signature read fails retains typed file/path evidence and enters the
+same durable precise Live retry as a decoder-open failure, irrespective of suffix. A failed read
+neither proves absence nor forces an entire published root to become stale; an existing trustworthy
+location is retained until its exact retry settles. On successful retry, an unsupported file with
+no prior media identity, path, or removal obligation completes without creating a gallery location.
+It still publishes version-bound negative evidence atomically with lease completion, so unchanged
+non-images are not repeatedly inspected. Paired rename retains only its current-path terminal
+evidence; previous-path invalidation remains owned by the same transaction. A matching physical
+File ID from another published media alias is prior
+media evidence, even when the newly observed pathname has an unknown suffix, and retains the
+identity-wide failure and recovery behavior above. Final source-state revalidation remains required
+for both a no-mutation completion and a published media transition.
+
 Schema v31 propagates revision and generation through discovery, reconciliation, terminal evidence,
 metadata inventory, change deltas, spool and scan/catch-up handoffs, locations, and previews. Legacy
 locations receive a catalog-wide nonzero generation during migration but keep a NULL revision and

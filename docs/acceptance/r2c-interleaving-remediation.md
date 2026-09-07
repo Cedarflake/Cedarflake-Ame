@@ -1,0 +1,267 @@
+# R2c cross-workflow interleaving remediation
+
+Date: 2026-09-07
+
+Status: implementation and verification in progress; not release acceptance.
+
+## Scope and safety
+
+This follow-up covers interactions missed by the earlier green PR #12 head: source admission and
+destructive cleanup, catalog maintenance and active scans, discovery and retry ownership, scan
+commands and asynchronous registration, and viewer/cache ownership after an operation is retired.
+It does not infer safety from isolated green tests or claim that every possible defect is excluded.
+
+Reproductions use generated disposable sources, isolated catalogs, and controlled application
+ports. No retained source root, live user catalog, cloud placeholder, installed service, or original
+media is accessed or modified. Real-library and signed/installed-service acceptance remain separate.
+The active delivery order remains in [the canonical roadmap](../roadmap.md).
+
+## Owning invariants
+
+| Boundary | Reproduced failure | Required repair |
+| --- | --- | --- |
+| Retired-preview cleanup / import | A source registered after cleanup's initial check could have its image deleted | A shared resolved-scope reservation lasts through destructive cleanup or source registration; conflicts reject before mutation, unrelated roots proceed |
+| Cleanup / external namespace replacement | Replacing a checked cache directory with a generated, cataloged source at Started caused its image to be deleted | Pin the existing namespace through deletion; an initially absent namespace cannot acquire later files |
+| Automatic recovery and staging disposal / namespace replacement | Replacing the cache before recovery deletion or after preview staging deleted a generated source with the same leaf | Hold operation-scoped namespace identity before inventory or staging, across capacity handoffs, until all installation and cleanup is settled |
+| Temporary encoding / leaf collision | A preexisting hard link at the generated temporary name was truncated and then deleted | Claim a new leaf exclusively, encode and flush through that held handle, and never remove an unclaimed collision |
+| Database maintenance / scan | Successful checkpoint discarded valid proof, making new readers fail throughout a running scan | Checkpoint preserves proof; structural maintenance shares atomic admission with scan session protection and releases it on every outcome |
+| Signature discovery / retry | A temporary read lock dropped exact retry ownership for unknown or absent suffixes | Typed retryable file discovery enters the existing durable Live handoff; neither read failure nor suffix guesses establish absence |
+| Primary control / registration | Cancel or pause returned false before the native worker registered and was forgotten | The exact scan run retains ordered user intent through Started, terminal events, and shutdown |
+| Final scan publication / control | Accepted cancellation before projection replacement still committed a new catalog | Existing scan intent participates in bounded SQL interruption and COMMIT admission; rollback preserves the baseline, while a committed receipt wins over late control |
+| Viewer close / reopen | Old pagination changed a reopened same-item viewer or retained its busy state | Viewer session and request identity own continuation and finalization; retired work cannot mutate another session |
+| Capacity retry / store invalidation | Recovery replaces the store while a capacity retry retains stale accounting, rejecting free space or omitting installed bytes from the current owner | Reacquire one typed accounting/installation owner with each generation or reclamation permit; never carry the old store across exclusion gaps |
+| Native verification / exceptional cleanup | Job disposal or process wait failure skipped later release, environment restoration, and evidence persistence | Independently settle every owned resource, preserve the original failure, and retain scratch evidence when exit or output capture is unconfirmed |
+
+The first boundary takes priority because it crosses source-media safety. A second uncoordinated
+path check or one disabled UI button does not close its race. Full catalog validation during an
+active scan is also not an acceptable workaround: recovery must not retire a live scan's claim.
+Changes to this decision are explicit in [ADR 0005](../architecture/0005-storage-governance-and-budget.md).
+Module ownership follows [ADR 0025](../architecture/0025-invariant-owned-workflow-modules.md).
+
+## Verification ledger
+
+- Baseline desired-behavior checkpoint regression fails at
+  `catalog_validated_session_stale_while_scan_active`, after the real checkpoint succeeded and the
+  original adapter session still passed its identity/schema check.
+- Both permanent locked-discovery regressions fail on the baseline because the expected durable
+  path owner is absent. They use a read-only Windows lock and no byte/mtime change to trigger retry.
+- The permanent cleanup/import regression fails on the baseline because the overlapping foreground
+  import succeeds after cleanup admission. This regression stops before deletion; the earlier
+  diagnostic independently demonstrated deletion of only the generated fixture.
+- Repaired catalog-session/reclamation verification passes 32 tests with no warnings, including the
+  checkpoint regression, structural maintenance deferral during a real scan, busy preservation,
+  success/error/interruption/unwind retirement, and independent-catalog admission. The reverse
+  interleaving completes a real structural conversion while retaining maintenance admission; an
+  arriving foreground scan must preempt that exact maintenance attempt and acquire a renewed proof.
+  An in-flight validator also defers maintenance without waiting under the registry lock.
+- Source/cleanup admission passes five production workflow tests and three reservation tests.
+  These establish two-way registration exclusion and cancellation/detachment/unwind release,
+  not operating-system namespace stability or real reparse-alias race coverage.
+- Both cache-reacquisition regressions fail before repair through the production storage-resolved
+  entrypoint. Recovery before reclamation leaves usable capacity but the request reports `Failed`;
+  recovery after reclamation leaves the current owner accounting for zero bytes after a 1,973-byte
+  artifact is installed. Each regression was observed independently; a poisoned test mutex from the
+  first combined failing run is not counted as a second behavioral reproduction.
+- A protocol-error review of scan-control repair rejected premature stream completion: visible
+  failure must retain the original run until its actual stream drains, matching batch-update
+  ownership. The earlier 12-test pass predates that correction and does not verify the final slice.
+- The next locked-discovery run passes four tests but rejects ordinary-document completion because
+  the actual gallery contains two items instead of one. The incremental terminal-media owner was
+  unconditionally publishing a failed media location. The repair retains the original assertion
+  and adds no-gallery-location and known-media hardlink failure/recovery checks. The initial repair
+  also suppressed negative evidence; the later full-suite result below rejects that part.
+- Independent viewer review also rejects a fake-only completion claim: real pagination deduplicates
+  an in-flight request, so a new Next action after closing and reopening the same boundary item must
+  join its actual completion. Tests must cover both passive reopen (no old automatic navigation) and
+  reopen plus a new navigation action (one underlying page load and a successful new selection).
+- Final focused Rust runs pass cache reacquisition (2), locked discovery and identity alias (6),
+  preview materialization (22), reclamation (2), health (7), recovery (4), incremental changes (55),
+  and mixed media input (8). The reacquisition cases are included in the materialization suite;
+  these counts are not summed as unique tests.
+- The namespace-replacement regression first fails after actual deletion of a generated source
+  image. The repaired cleanup filter passes all 19 tests, including that original assertion,
+  root/ancestor rename exclusion, cancellation/detachment/unwind release, and a root created only
+  after Started remaining untouched. This is manual-cleanup evidence, not a claim that every cache
+  writer or background remover has the same namespace capability.
+- These focused runs preceded the complete repair set. No old hosted run or bug-presence assertion
+  is counted as verification of later changes.
+- Two additional desired-behavior probes independently fail through startup recovery and production
+  preview materialization: both report `replacement_admitted=true` and `source_survives=false`,
+  then fail reading the generated source with Windows error 2. No production repair was present
+  during these runs. Directory protection must cover background workflows, not only manual cleanup.
+- Final directional page-owner tests (8) and real viewport/viewer interleavings (6) pass. A new
+  primary-task widget test stalled in its asynchronous setup/drain sequence; its exact owned tester
+  was stopped after parent-chain verification. The interrupted run is not a passing scan-control
+  gate, and later unexecuted cases are not counted as separate product failures.
+- Repaired automatic recovery namespace tests (2), superseded staging disposal (1), and capacity
+  handoff tests (4, including the two accounting regressions) pass with generated sources intact.
+  An idle-store fixture initially reused an obsolete NULL source revision after the first request
+  adopted its revision; its retry now uses the real publication receipt. That fixture correction
+  and the final namespace suite still require the next compiled run.
+- The temporary-leaf desired-behavior regression fails before the writer repair with both
+  `source_unchanged=false` and `existing_leaf_survives=false`. The exclusive-creation repair has
+  received an independent code review; its green execution remains pending.
+- Isolating the protocol-feedback widget did not eliminate its stall. The installed Dart SDK's
+  synchronous controller close can return a shared root-zone completed Future when its done
+  future was not captured before synchronous delivery. The fixture now captures that same
+  controller's `done` before closing it, preserving the actual drain boundary inside Flutter's
+  fake-async test zone. With production code and assertions unchanged, the widget passes through
+  the failed-state frame and both teardown stages. This is a test-fixture diagnosis, not evidence
+  of a production rendering deadlock or a reason to bypass native accessibility acceptance.
+- The next compiled Rust run passes the original temporary-leaf collision regression with both
+  source bytes and the preexisting leaf preserved. It then passes 47 focused tests: namespace (5),
+  storage capability (4), preparation (2), actionable capability failure (1), recovery (6), preview
+  application lifecycle (26), and existing restart-activation ownership (3). The idle-store fixture
+  now proves current accounting and release of OS handles after the real publication receipt.
+  The collision assertion was subsequently strengthened to require successful encoding under a
+  different exclusively owned leaf, so unconditional generation failure cannot satisfy the test.
+- The final diagnostic-free Dart run passes 44 tests across six files: primary control (15),
+  primary-task feedback (1), page-operation ownership (8), bidirectional viewport/viewer interaction
+  (6), viewer-session ownership (11), and actual application widgets (3).
+- The existing controller (56), primary workflow (15), image viewer (10), retained-import
+  interaction (8), multi-root update flow (5), and viewer position (20) suites also pass: 114
+  additional tests. Strict Dart analysis reports no issues with warnings and information treated
+  as failures. The complete Flutter Daily partition subsequently passes all 70 test files with no
+  skipped widget tests.
+- Independent final-publication review adds one confirmed control defect. At the production hook
+  before replacement-projection deletion, an independent reader still sees the published baseline;
+  the real `cancel_scan` returns true, yet the scan replaces it and reports Completed. The desired
+  Cancelled assertion fails. The reverse test passes: a cancellation first sent from the Completed
+  event cannot undo an already committed replacement. Repair must bind existing scan intent into
+  the publication transaction without changing first-import journal-permit semantics.
+- Final-publication implementation and independent review are complete. The
+  extracted transaction owner retires progress and priority callbacks before rollback, including
+  unwinding, and distinguishes actual SQLite interruption from unrelated SQL errors. Eight new
+  tests cover pre/post-publication control, first-import manual continuation, replacement baseline
+  preservation, retry-callback cancellation, and same-connection cleanup after a panic. Cancellation
+  cuts off at COMMIT admission; this is not a fixed cancellation-latency guarantee while waiting for
+  shared write admission. The final compiled run passes all eight new tests, the existing live
+  preemption/rollback regression, and the strengthened exclusive-staging regression. The original
+  pre-commit cancellation reproduction now retains one baseline location and persists Cancelled;
+  post-commit cancellation retains the completed two-location replacement. The injected panic is
+  caught by its test, which then proves rollback and successful same-connection SQL/terminal cleanup.
+
+Full static/Rust Daily and native Windows gates remain pending at this checkpoint. Focused evidence
+above does not substitute for those gates or the separately authorized real-library acceptance.
+The first full static run reached Clippy after the guardrails, then rejected a legacy preview-store
+constructor whose remaining callers were test-only. That constructor is now explicitly test-only;
+all-target/all-feature Clippy passes with warnings denied. No lint suppression or production
+fallback was introduced. The complete static partition then passed its guardrails, formatting,
+Clippy, and strict Dart analysis, but the Rust library suite failed: 1319 passed, one failed,
+19 ignored. The mixed non-media/malformed inventory test expected 128 gallery mutations and observed
+32. Only 32 malformed-media locations is correct; losing the other 96 version-bound negative
+observations is not. The repaired terminal-media owner now completes that batch with 128 exact
+version-bound observations and 32 gallery mutations. The compiled follow-up passes the dedicated
+inventory suite (3), the complete incremental application suite (57), locked discovery (6), and
+the atomic evidence/lease regression (1). These overlapping filters are not summed as unique tests.
+The tests reopen the catalog, require zero unchanged candidates, and overwrite a non-media file
+with PNG bytes while preserving its file identity, byte count, and modification time. Paired-rename
+tests retain current-path evidence without assigning previous-path evidence to the current lease.
+The independent follow-up review found no additional defect in that boundary. No aggregate Rust
+success is claimed from the focused rerun.
+
+A later static invocation failed the existing R2c-R owned-child fixture before compilation: its
+15-second parent deadline expired without exactly one child marker. The fixture now flushes six
+phase/timing markers and reports the original bounded-process result on that assertion; its exact
+source digest was refreshed without broadening source admission. The complete focused guardrail
+then passed all 19 cases under the unchanged deadline and cleanup assertions. This rerun did not
+reproduce the failure and does not establish or repair its cause. The next static invocation also
+passes that unchanged guardrail, all other compiler-free boundaries, formatting, and all-target,
+all-feature warnings-denied Clippy. Its final Dart analysis rejects a missing import in the temporary
+UIA heartbeat instrumentation; the corrected strict analysis passes. The temporary Dart change is
+subsequently removed exactly, not retained as a product repair. These corrected partition results
+do not claim one completed full Daily invocation or a new hosted-head result.
+
+## Native process lifecycle follow-up
+
+No user-launched Ame process is assumed. A read-only local snapshot found one historical process
+record with zero threads, zero handles, and no available executable path; its parent no longer
+exists. The available test logs do not cover that record's creation time. Windows Application Error
+and Error Reporting records do identify its parent Ame instance crashing in `flutter_windows.dll`
+with `0xc0000005` and then `0xc000041d`, at the same module offset and application start time.
+The archived report contains metadata but no retained dump. This proves a historical native crash,
+not an executing scan or the cause of the zero-thread record. No matching stack is available, and
+the tool-cleanup repair does not claim to explain or remove that record or repair the Flutter crash.
+
+The accessibility runner did contain independently confirmed exceptional-cleanup gaps: failure in
+job disposal or process waiting bypassed subsequent resource disposal, environment restoration,
+and current evidence persistence. An environment setter could fail before its restoration scope,
+and Pop-Location failure could skip tool-lock release. A completion-write failure also replaced the
+original run failure. The extracted cleanup owner preserves separate stage errors and original
+failure precedence. Initial compiler-free failure-injection and existing accessibility guardrails
+pass. Independent review then rejected unconditional scratch removal after failed output capture
+or unconfirmed process exit. The correction also retains evidence after failed Job closure or phase
+capture; five controlled tiny log/JSON fixtures prove exact bytes survive and destructive cleanup
+is not called, while resource release continues. The final compiler-free regression passes.
+
+The current controlled native scan run passes with actual Debug application execution, retained
+first-import/manual-continuation interactions, terminal cancellation, and successful owned-tree
+cleanup. The subsequent native accessibility run fails at the first populated-application UIA
+checkpoint. A second run adds narrowly separated cache-activation, subtree-query, and cache-disposal
+stages and fails at the same checkpoint: cache activation returns, but `FindAll(Subtree,
+TrueCondition)` has not returned before the unchanged eight-second parent deadline. Its last
+`elementCount = 0` is an incomplete query record, not proof of an empty native tree. Neither run
+reports a rejected AXTree update, but neither passes native accessibility acceptance. Both record
+confirmed primary-process exit and Job closure, no cleanup failures, and persisted current failure
+evidence. Read-only post-run process snapshots contain only the historical zero-thread record;
+no new Ame crash event is found for this controlled-run interval. UIA traversal and the historical
+native crash remain separate unresolved investigations.
+
+A third unchanged-deadline native run adds a temporary, bounded real-timer heartbeat to the existing
+checkpoint, without changing its waiting or frame policy. At `application-ready`, heartbeat output
+continues from 505 to 8001 milliseconds; 104 frame pumps and acknowledgement checks complete while
+the external probe remains inside `FindAll`. This rules out a stalled Dart frame/checkpoint loop
+for that run, not native-provider or RPC failure. The run still fails, confirms owned process exit
+and Job closure, and leaves no new Ame process record. Its raw output is retained in ignored local
+evidence; the heartbeat is removed from the working tree after collection.
+
+Independent review of the stage instrumentation also finds that a cache-disposal progress-write
+exception can replace the preceding UIA read error. The shared cleanup owner now retains the exact
+original exception while separately recording progress/disposal errors, and still disposes the
+activation token once. Compiler-free regressions cover simultaneous read, progress, and disposal
+failure plus original collection identity for zero, one, and multiple elements. The suite is wired
+into the existing accessibility guardrail, passes in the complete guardrail run, and receives an
+independent scope/collection-shape review. No UIA scope, deadline, or accepted phase is relaxed.
+
+## Physical ownership review
+
+Counts include whitespace and comments. The non-inline region may contain `cfg(test)` imports,
+hooks, and helpers; it is not advertised as pure production SLOC. Dedicated-test totals describe
+affected files, including their preexisting cases, not newly written lines.
+
+| Rust owner | Total | Non-inline region | Inline-test region |
+| --- | ---: | ---: | ---: |
+| `local_files.rs` | 7494 | 4086 | 3408 |
+| `preview_cache.rs` | 1802 | 908 | 894 |
+| `incremental_library_changes.rs` | 1745 | 1745 | 0 |
+| `scan_library.rs` | 1231 | 1231 | 0 |
+| `preview.rs` | 1662 | 611 | 1051 |
+| `preview_cleanup.rs` | 1062 | 604 | 458 |
+| `preview_recovery.rs` | 575 | 302 | 273 |
+| `catalog_session.rs` | 371 | 371 | 0 |
+
+Affected dedicated Rust tests span 21 files and 8581 lines at the cache-remediation checkpoint.
+The seven Dart test/support files contain 1375 lines. The screen is 2321 lines, viewport 1642,
+primary-scan lifecycle 610, viewer session 234, scan run 116, page owner 77, and scan control 62.
+Dedicated owners now hold file admission, source/cleanup reservation, namespace authority,
+preparation, staging encoding, maintenance admission, terminal media, store admission, and scan
+failure handoff. No duplicate production state machine or naming violation was found in this review.
+Large-file debt remains, including the 4142-line incremental test owner and the long scan execution
+function; these changes do not claim completion of the roadmap's broader physical decomposition.
+
+The formatted publication repair adds a 25-line read-only port and a 234-line transaction owner.
+Its SQL facade is now 1020 lines; the application publication owner is 196 lines, including its
+existing inline policy tests. Four dedicated control/transaction test files contain 665 lines
+(266, 145, 130, and 124). These are a later checkpoint, not additions to the cache-checkpoint totals
+above; no new behavior was appended to the long scan execution function for this repair.
+
+The terminal-media follow-up extracts a 103-line rename-composition owner and retains a 110-line
+terminal-evidence owner. The new incremental terminal suite has 177 lines. The inventory test
+facade decreases to 3889 lines, with 321 lines in its dedicated terminal-media suite. These are
+later physical measurements, not additions to the earlier cache-checkpoint test totals.
+
+The accessibility facade now has 377 lines, process owner 416, evidence owner 180, and shared
+cleanup owner 155; its dedicated failure-injection suites have 308 and 82 lines. The existing guardrail
+entrypoint has 494 lines and invokes both suites; the native probe has 546 lines. These are
+physical boundaries, not a claim
+that native execution or original crash attribution is complete.

@@ -259,6 +259,17 @@ admitted first may commit before the worker's terminal transaction, which then s
 the owned boundary. No synchronous UI control waits for database commit. Retiring an execution
 invalidates its token before the same scan identity can be registered again.
 
+Final foreground catalog publication has a separate interruption boundary from first-import
+journal capture. It observes the executing scan's existing control token before each attempt,
+through bounded SQL phases and SQLite progress callbacks, and immediately before commit admission.
+Controlled interruption rolls back the unpublished transaction before the application settles
+pause, cancellation, or suspension. Callback retirement precedes rollback and later checkpoint or
+abandonment writes; priority-write admission is held until transaction cleanup finishes. Successful
+COMMIT remains authoritative even when a later control request was accepted while the execution
+was draining. The final control check and callback retirement define commit admission, not a
+promise that every request before physical COMMIT completion can win. This does not establish a
+new cancellation deadline for waiting on the shared writer-admission condition variable.
+
 Cancelling a retained checkpoint is a separate asynchronous application command, not a request to
 an absent execution token. A short registry operation reserves the exact scan identity against
 concurrent execution registration, without holding its mutex across catalog I/O. The catalog write

@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-07
-- Last updated: 2026-09-06
+- Last updated: 2026-09-07
 - Related: ADR 0006, ADR 0014
 
 ## Context
@@ -189,6 +189,14 @@ managed temporary namespace, including its reserved budget bytes, until source r
 succeeds; only then is it atomically renamed into the final namespace. Failed validation removes
 only the staged file and cannot delete an artifact already used by another location.
 
+Temporary encoding claims a new file atomically before writing. A PID and sequence are candidate
+names, not ownership proof: collisions must leave the existing file and every hard-linked source
+unchanged. Encoding writes through the claimed handle and explicitly flushes its buffered output;
+it must not reopen the candidate with a truncating path-based convenience API. A bounded collision
+search either obtains a new file or returns a structured failure without deleting an unclaimed
+candidate. This creation rule is separate from directory-namespace protection and atomic final
+installation; it does not establish persistent ownership of arbitrary files in a configured cache.
+
 When a compatible current artifact already exists but the catalog has no durable dimensions, Ame
 reads bounded source header and orientation evidence to recover the display dimensions without
 decoding the full source raster or rewriting the artifact. This cache-hit inspection remains
@@ -239,6 +247,16 @@ demand regenerates v3 evidence through the normal bounded path.
 
 ### Budget and automatic reclamation
 
+Selecting the active store is part of preview-access admission. A generation or reclamation
+capability owns its selected accounting, installation, and staging object until access is released.
+A capacity failure may release generation access for one bounded reclamation attempt, but only
+storage configuration and the operation's directory-identity capability cross that gap:
+reclamation and the subsequent generation each acquire
+their own access before selecting the current store. Recovery or health invalidation between those
+steps therefore cannot leave a request using an obsolete budget owner. Cache inventory runs outside
+the registry mutex; concurrent admissions select the same already-published owner under a second
+short lock. This does not add an unbounded capacity retry loop.
+
 The preview store counts managed artifacts at startup and reserves capacity atomically before
 publication. Capacity uses a high watermark and lower reclamation target. Reclamation runs as
 bounded background work outside pointer, scroll, layout, and paint critical paths, in this order:
@@ -261,6 +279,39 @@ failure states. It removes managed preview artifacts and resets compatible previ
 pending. It preserves dimensions, metadata, source configuration, user decisions, operation
 history, row membership, item rectangles, total extent, and logical scroll anchor. Visible previews
 then regenerate through normal demand priority.
+
+Source registration and destructive preview cleanup share bounded, resolved-scope admission.
+Registration retains its permit through the root-registration commit, not through enumeration;
+cleanup retains its permit from before the catalog source-overlap check through its final
+filesystem mutation. Either direction rejects an overlapping in-flight operation before mutation,
+while unrelated sources remain admissible. Scope resolution happens before the short registry
+lock; neither a callback nor filesystem/database work runs under that mutex. RAII releases the
+reservation on completion, failure, cancellation, detachment, and unwinding. This process-local
+arbitration is distinct from proving stability of an operating-system directory namespace.
+
+Preview operations on the supported Windows local-NTFS namespace pin the existing cache root and
+complete ancestor chain before inventory, staging, source-overlap validation, or callbacks. The
+dedicated `PreviewCacheNamespace` capability reuses the ADR 0024 directory-handle implementation
+without exposing a source-discovery adapter or adding unsafe code. Operation-scoped guards remain
+live through generation, capacity handoffs, installation, discarded staging, recovery, and manual
+cleanup. The idle store registry retains only comparable identity evidence, not open directory
+guards; a later operation must reacquire authority before reusing accounting. Windows includes rename
+in delete access; the [CreateFile sharing contract](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew)
+therefore prevents an admitted namespace from being rebound during that lifetime. Unsupported or
+unprovable namespaces fail before deletion. If the root is initially absent, that execution retains
+no deletion authority even if a directory appears later. These guards do not establish persistent
+ownership of a directory replaced before admission or freeze individual leaf-file content; neither
+limitation is misrepresented as covered by process-local source reservation.
+
+Preparation distinguishes unavailable safe-write capability from ordinary inventory failure.
+Unsupported or inaccessible cache namespaces cannot grant generation or cleanup authority, but
+they must not prevent loading the trustworthy catalog. Restart activation first prefers a
+source-disjoint usable previous cache, then a source-disjoint read-only previous cache; without a
+previous cache it retains the validated configured path for read-only loading. This is not a
+successful cache migration: pending ownership, existing preview references, and configured paths
+remain unchanged. Generation reports an actionable cache capability error without recording a
+source-media failure. Database, settings, inventory, and source-overlap failures are not swallowed.
+This does not claim safe writes on UNC or non-NTFS caches.
 
 Startup performs bounded reconciliation of accounted bytes, interrupted temporary files, missing
 ready files, and unreferenced managed artifacts. It does not scan source roots, hydrate placeholders,
@@ -304,10 +355,16 @@ remain starved. Ordinary `VACUUM` supplies SQLite's transaction and crash consis
 perform an unproven copy-and-replace sequence. A progress handler and interrupt handle make user
 cancellation and higher-priority root removal observable. Conversion progress is indeterminate
 because SQLite virtual-machine instruction counts do not provide a trustworthy byte denominator.
-Every completed, interrupted, or failed write-maintenance attempt invalidates the process-owned
-catalog-session metadata for that path. The next catalog request must reopen and fully validate the
-database instead of relying on prepared state from before `VACUUM`; the session cache owns no live
-SQLite connection across the maintenance window.
+Conversion and incremental reclamation reserve the catalog-session maintenance boundary before
+entering SQLite. Admission and foreground-scan session protection share the same short transition
+lock: an active scan defers maintenance, while admitted maintenance prevents a new scan from
+protecting stale session evidence. Neither the registry lock nor a database transaction spans the
+maintenance operation. A newly arriving foreground scan requests maintenance preemption before
+waiting for session renewal. Busy attempts preserve the prior proof; completed, interrupted, failed,
+or unwound structural attempts retire it before releasing admission. The next catalog request must
+fully validate instead of relying on prepared state from before `VACUUM`. Full validation remains
+forbidden while a protected scan is active; it must not recover that execution's live claim.
+The session cache owns no live SQLite connection across the maintenance window.
 
 An existing `FULL` catalog switches online to `INCREMENTAL` through SQLite's supported pragma
 transition and does not require the temporary capacity or full rewrite used by `NONE`. This mode
@@ -335,6 +392,11 @@ Before publishing `Completed`, a separate zero-busy-timeout maintenance attempt 
 columns; a busy result or SQLite busy error returns to capped waiting, while a catalog without a WAL
 passes normally. Only a successful checkpoint can complete the operation, so retained WAL bytes are
 not reported as reclaimed while an older reader still prevents truncation.
+Checkpointing is a separate proof-preserving operation: it does not discard the validated session
+on success, contention, interruption, or failure. Normal identity and schema-cookie checks remain
+mandatory on subsequent opens. SQLite's [schema-version contract](https://www.sqlite.org/pragma.html#pragma_schema_version)
+and [VACUUM behavior](https://www.sqlite.org/lang_vacuum.html) distinguish a database rewrite from
+moving committed WAL pages; an arbitrary maintenance result is not evidence of schema mutation.
 
 Storage status reports total catalog files separately from estimated live main-database bytes and
 reclaimable freelist bytes. WAL and shared-memory sidecars remain part of total on-disk usage but
@@ -420,8 +482,9 @@ Catalog page reclamation is likewise not accepted merely because its implementat
 fixtures exist. Fresh evidence must cover fresh-schema incremental-auto-vacuum ordering, unchanged
 legacy `NONE` startup migration, one-time conversion, bounded 256-page incremental batches,
 cancellation and preemption, the five-second user-interactive timeout without a leaked priority
-waiter, capacity overflow and insufficient-space failure, catalog-session invalidation after every
-write-maintenance outcome, committed-removal failure isolation, shared ownership, settings progress,
+waiter, capacity overflow and insufficient-space failure, structural-maintenance session retirement,
+checkpoint proof preservation, scan/maintenance admission interleavings, committed-removal failure
+isolation, shared ownership, settings progress,
 complete repository gates, and a Windows run against an isolated disposable copy. Those gates
 remain pending as of 2026-09-05.
 

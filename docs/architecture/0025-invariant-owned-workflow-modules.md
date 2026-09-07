@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-09-06
+- Last amended: 2026-09-07
 
 ## Context
 
@@ -53,6 +54,10 @@ persistence layers.
   `sqlite_catalog/scan_publication.rs`. Its `validation.rs` owner captures the fixed temporary
   validation roster and verifies typed per-item outcomes against the complete staged/live payload
   in that same publication transaction; the facade does not carry opaque exception flags.
+  `ports/scan_publication_control.rs` exposes read-only scan interruption evidence without exporting
+  application command values. `scan_publication/transaction.rs` owns attempt-scoped priority
+  preemption, SQLite progress interruption, callback retirement, and the transaction boundary;
+  application publication owns retry admission and the pause/cancel/suspend terminal policy.
 - `sqlite_catalog/persistent_journal.rs` remains the journal facade. Root-unregistration lineage and
   cleanup live in `persistent_journal/root_unregister.rs` so removal cannot accidentally discard a
   surviving root's cross-root rename evidence.
@@ -66,6 +71,11 @@ persistence layers.
   worker retirement, pending-request handoff, run identity, and attempt control. The worker consumes
   typed transitions instead of separately reading status and appending work that may have lost its
   executor. Its terminal status cannot be overwritten by a delayed preemption notification.
+- `catalog_session/maintenance.rs` owns structural-maintenance admission and retirement alongside
+  the session cache's validation and foreground-scan protection transitions. It releases the
+  transition mutex before the operation and wakes waiters on success, failure, interruption, and
+  unwind. Checkpointing remains outside structural invalidation. The reclamation facade selects
+  these contracts rather than maintaining a second active-scan flag or invalidation protocol.
 - `sqlite_catalog/migrations.rs` remains the ordered migration coordinator while historical steps
   are stable. `migrations/current_schema.rs` owns current-schema proof order and its consistent read
   snapshot: structural checks precede the complete authority-row audit. Process-owned validated
@@ -77,6 +87,16 @@ persistence layers.
   exclusion with a zero-wait conditional transaction; deferred maintenance cannot block foreground
   publication or downgrade a newer same-key artifact. The recovery worker owns traversal, not a
   second invalidation protocol.
+- `preview/store_admission.rs` selects the active store only after obtaining generation or
+  reclamation access and owns both for the admitted lifetime. The preview facade carries storage
+  configuration, not a previously selected store, across a capacity-reclamation gap.
+- `local_files/file_admission.rs` owns supported, terminal, and retryable file discovery after
+  local-availability checks. `scan_library/inspection_failure.rs` owns the shared retained-location
+  and precise-retry checkpoint rules for discovery and decoder failures. Incremental terminal-media
+  classification lives in `incremental_library_changes/terminal_media.rs`, not in the worker loop.
+  Evidence-only completion does not create a gallery location. `rename_change.rs` owns paired-path
+  composition while preserving the current lease's terminal-evidence boundary and both paths'
+  source revalidation; it does not invent a second persistence contract.
 - `application/storage/preview_activation.rs` owns the cross-database restart obligation for
   switch-and-regenerate. Target initialization and idempotent catalog reset precede pending-intent
   retirement. The storage facade selects this use case; it does not carry compensating SQL or a
@@ -86,6 +106,16 @@ persistence layers.
   and scan registration. `storage/configuration_update.rs` owns complete settings validation and
   save. The scan facade calls the typed admission boundary only around registration; it does not
   duplicate storage policy or hold a configuration permit during enumeration.
+- `storage/source_cleanup_admission.rs` owns the shared resolved-scope reservation between source
+  registration and destructive preview cleanup. Its typed permits exclude conflicting operations
+  without retaining a registry lock during registration commits, callbacks, or deletion.
+- `local_files/preview_cache_namespace.rs` owns the operation-scoped capability over the existing
+  Windows namespace proof. A missing-root cleanup cannot acquire later deletion authority; a bound
+  operation retains root and ancestor guards through generation, capacity handoffs, and cleanup.
+  Idle accounting retains identity evidence only. `preview_cache/preparation.rs` distinguishes
+  unavailable write capability from failed inventory so cache limitations cannot abort catalog
+  startup or retire an incomplete migration. `preview_cache/staging_encoding.rs` owns exclusive
+  temporary-file creation, held-handle encoding, flush, and cleanup of its own failed output.
 
 ### Dart boundaries
 
@@ -98,6 +128,13 @@ persistence layers.
   multi-responsibility file is not an extraction. `library_scan_execution.dart` remains only the
   mutual-exclusion boundary between a running primary scan and per-root updates. Multi-root update
   selection, bounded scheduling, retry, and cancellation live in `library_update_controller.dart`.
+- `library_scan_control.dart` owns per-run ordered control intent and native registration replay.
+  `library_scan_run.dart` owns stream identity and drain, including protocol failures; a visible
+  error is not permission to release a still-running native task.
+- `library_viewer_session.dart` owns viewer selection, navigation requests, stable-asset lookups,
+  and preview demand. Closing or reopening creates a new selection identity even for the same
+  asset. Old continuations, error handlers, finalizers, and post-frame callbacks cannot change the
+  new session; the screen composes existing viewer controls rather than owning those state machines.
 - `library_scan_restoration.dart` owns the ordered, read-only checkpoint lookup and its stale-result
   guards. Startup restores an unfinished first import as paused; only the existing explicit user
   continuation executes it. Restoration does not own scan commands or subscriptions. Cancelling a
@@ -108,6 +145,12 @@ persistence layers.
   navigation, and directly requested visible ranges. Root removal distinguishes the one database
   unregister command from display-only refresh retries. Gallery widgets consume immutable state
   and may not compensate for an unresolved catalog or task-lifecycle invariant.
+- `library_page_operation.dart` owns cursor-read completion independently of viewer selection.
+  Same-direction requests share the current read; opposite directions wait only for predecessors
+  registered earlier in the same query generation. A new generation does not wait for old reads,
+  and superseded queued work cannot execute. The viewport revalidates query, revision, and cursor
+  before a queued read; the viewer alone decides whether a completed page may change selection.
+  Retired navigation remains silent, while a current explicit action with no target reports failure.
 - `LibraryQueryActivity` is a sealed idle/loading/failed projection owned by the viewport. Failure
   retains its requested query separately from the still-visible gallery and primary task error.
   Primary scan publication separately distinguishes uncommitted work, committed display reload,
@@ -158,6 +201,17 @@ persistence layers.
   cannot publish into the current image widget. No layer may fall back to an unchecked source path.
 - Menus, loading feedback, task live regions, and startup orchestration use repository-owned shared
   components so one defect fix does not create a second interaction contract.
+
+### Native verification boundaries
+
+`integration_windows_accessibility_cleanup.ps1` owns independent process/job disposal, bounded exit
+confirmation, exact environment restoration, and evidence-safe scratch disposition. Failure at one
+stage cannot bypass later resource release; unconfirmed exit or failed output capture retains the
+owned scratch evidence. The public runner composes acquisition and cleanup, while the evidence
+owner persists structured stage failures without replacing the original run error. Cleanup tests
+inject exceptional outcomes without starting Flutter or substituting for the native UIA gate.
+Only an owned process tree grants termination authority; an unrelated process name or a retained
+zero-thread process record does not.
 
 ### Review and roadmap rule
 

@@ -3452,6 +3452,35 @@ final changes and covers missing scenarios as well as code defects. Open P0/P1 w
 block readiness; external signed/installed-service and real-library authority remain explicit and
 cannot be waived by the deadline or silently claimed from hosted Windows Server CI.
 
+The 2026-09-07 interleaving audit adds five reproduced repair obligations: source registration must
+not race destructive retired-preview cleanup; WAL checkpointing must preserve usable catalog reads
+during scans; temporarily unreadable wrong/absent-suffix files must retain precise retry ownership;
+primary cancel/pause intent must survive bridge registration; and viewer close/reopen must retire
+old navigation ownership. Deterministic capacity probes also confirmed stale preview accounting
+across reclamation gaps. Namespace replacement probes then demonstrated generated-source deletion
+in manual cleanup, startup recovery, and superseded staging disposal. Directory identity must span
+each operation independently of replaceable budget ownership; a manual-cleanup-only guard does not
+close automatic cleanup. A temporary-leaf collision probe additionally demonstrated truncation of
+a generated hard-linked source; exclusive file creation and held-handle encoding replace the
+truncating pathname writer. Cache capability refusal must preserve read-only catalog startup and
+pending migration ownership. Final-publication review additionally reproduced an accepted scan
+cancellation before projection replacement still publishing Completed; transaction interruption
+must preserve the old baseline while leaving already committed receipts authoritative.
+Implementation follows those invariant owners with desired-behavior regressions and an independent
+cross-review. Full-suite review additionally requires ordinary non-media to retain version-bound
+negative evidence without creating gallery cards, including paired-rename lease ownership. Native
+verification must independently settle exceptional process/job cleanup, preserve original failure
+evidence, and retain scratch when exit or output capture cannot be proved. A historical zero-thread
+process record has a matching parent Ame crash in Windows event evidence, but its lifetime and the
+native fault remain unattributed; neither is claimed as repaired by tool cleanup. Current native
+scan verification passes. Native accessibility repeatedly fails at the first populated-application
+subtree query under unchanged deadlines while a bounded diagnostic confirms continued Dart frames;
+confirmed owned-tree cleanup does not satisfy that gate.
+Current-head full gates remain pending;
+neither the earlier green hosted head nor a probe asserting defective
+behavior closes these findings. The current evidence is in
+[the interleaving remediation record](acceptance/r2c-interleaving-remediation.md).
+
 R2b implementation, deterministic preview-lifecycle correctness, retained-catalog interaction
 Profile, real-library catalog parity, Daily, Windows Release, and bounded source-readable preview
 performance gates are complete. R2b was accepted on 2026-08-13. The former USN-based R2c reached its
@@ -3505,8 +3534,9 @@ The live working tree now adds schema v31 and the v3 preview contract. Its P0-th
 scan slice has focused adapter, queue, application, hardlink, cancellation, and production namespace
 evidence, including pending/leased/exhausted-retry boundaries and first-import separation. The
 v31 migration, preview, removal, reclamation, and Flutter suites now have refreshed local evidence.
-Native Windows UI Automation now passes an explicit OS activation checkpoint and all nine tree
-phases under its original eight-second probe deadline. Refreshed hosted PR checks remain pending
+At the 2026-09-06 snapshot, native Windows UI Automation passed an explicit OS activation checkpoint
+and all nine tree phases under its original eight-second probe deadline. That historical success
+is superseded for current readiness by the failed 2026-09-07 runs recorded above. Hosted PR checks remain pending
 for the final head; local partition and focused evidence does not claim one uninterrupted complete
 Daily invocation.
 These results are not inherited from v30.
