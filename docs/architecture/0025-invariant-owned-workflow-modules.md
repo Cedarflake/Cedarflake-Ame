@@ -80,6 +80,13 @@ persistence layers.
   later transaction: that transaction selects again. Caller-owned transactions cannot be silently
   reused or ended. Raw-spool retirement remains a separate ownership obligation, not proof supplied
   by the logical-entry cleanup budget.
+- `sqlite_catalog/metadata_inventory/spool_initialization.rs` owns source initialization and
+  incomplete-directory reset. Its write transaction revalidates the persisted run identity and
+  status, active root, exact current queue lease, and matching unretired recovery owner before
+  creating or resetting raw storage. A caller's earlier `Running` snapshot is not authority after
+  cancellation or lease handoff. Normal progress fields are not immutable identity, and a current
+  continuation may still reset incomplete directories while preserving completed ones. This
+  initialization boundary does not replace fencing for later source writes or delayed retirement.
 - `sqlite_catalog/spool_retirement.rs` owns deletion of run-bound raw observations together with
   their spool header. A subtree's initial observation has no directory foreign-key parent and
   therefore requires explicit retirement in the same transaction. Run, removed-root, queue, and

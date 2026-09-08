@@ -776,6 +776,40 @@ No retained catalog or real source root is used. Raw-spool cascade latency, the 
 cleanup drain, historical unowned raw observations, broader physical decomposition, and the
 unattributed intermittent native/client incidents remain open beyond this verified slice.
 
+### Stale source initialization after terminalization
+
+The delayed-retirement audit first exposes a prerequisite in the existing schema-31 source
+initializer. A controlled generated-root regression captures a production `Running` run, opens its
+source, commits cancellation through `terminate_metadata_inventory`, then submits the old snapshot
+to the production initializer. The original initializer succeeds and recreates one raw header and
+one directory. A subsequent FULL open repairs those rows; the reproduction therefore does not
+establish a startup failure or source-media loss. It establishes an unauthorized post-terminal
+storage mutation that must be rejected at write admission rather than repaired on next startup.
+
+Initialization and incomplete-directory reset now share a dedicated SQL owner. Inside its existing
+Recovery write transaction, it re-reads immutable run identity and current status, revalidates the
+root publication boundary, and checks both exact queue lease generation and matching unretired P2
+authority. Terminal snapshots cannot recreate storage; released and subsequently reacquired leases
+cannot reset another execution's incomplete prefix. A legitimate newer lease can still reset that
+prefix while preserving completed parent observations. Lease expiry semantics remain owned by the
+queue classifier; this change does not introduce a second wall-clock expiry policy.
+
+The cancellation reproduction is red before the guard and green afterward. The focused spool
+lifecycle suite passes 15 cases, including four new tests covering cancellation, failed/superseded
+runs, released/reacquired leases with valid continuation, and immutable epoch mismatch. Generated
+source bytes and FULL reopen are checked where applicable. These cases overlap the inventory and
+full Rust suites and must not be added to their counts. The complete inventory application module
+passes 59 cases in 72.44 seconds, including retained-source handoff and 10000-entry page reopening.
+Independent review finds no actionable gap in this initializer extraction and guard; it neither
+runs tests nor audits later raw APIs. Complete current-source gates remain separate evidence, not
+inherited from the previous source head.
+
+Delayed physical retirement, stale retained-source write/read fencing, historical NULL-parent
+orphans, and whole-cleanup draining remain open. Inspection also identifies correlated ordinal and
+entry-count checks in the spool validator; a deterministic execution-step regression and a separate
+query-owner change are required before calling that cost bounded. No schema, migration, source
+format, UI, lease-handoff protocol, or performance threshold changes in this slice.
+
 ## Physical ownership review
 
 Counts include whitespace and comments. The non-inline region may contain `cfg(test)` imports,
@@ -866,3 +900,9 @@ queue persistence decreases to 1689 lines and the metadata-inventory facade to 3
 spool setup/lifecycle, retirement, and scope-isolation suites have 322, 275, and 152 lines;
 the queue-retention suite has 83. The split follows raw ownership, logical retention, queue
 dependency retention, and their separate regression fixtures rather than arbitrary line caps.
+
+At the stale-initialization checkpoint, the metadata-inventory facade decreases to 3581 lines and
+the separate initialization/reset owner contains 208 lines, both without inline-test modules.
+The dedicated shared spool lifecycle fixture has 342 lines and the stale-source suite 208. The
+remaining spool writes, paging, and migration validation are still separate physical decomposition
+obligations; extracting initialization does not make the entire inventory facade small.

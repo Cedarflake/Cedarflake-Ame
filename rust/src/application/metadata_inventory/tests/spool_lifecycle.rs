@@ -2,6 +2,7 @@ use super::*;
 
 mod retirement;
 mod scope_isolation;
+mod stale_source;
 
 #[test]
 fn subtree_spool_terminal_cleanup_removes_initial_entry_across_reopen() {
@@ -170,6 +171,15 @@ fn stage_named_spool(
     scope: MetadataInventoryScope,
     run_id: &str,
 ) -> (MetadataInventoryRun, LeasedLibraryChange) {
+    let (run, leased) = begin_named_spool(fixture, scope.clone(), run_id);
+    stage_opened_spool(fixture, &scope, run, leased)
+}
+
+fn begin_named_spool(
+    fixture: &mut InventoryFixture,
+    scope: MetadataInventoryScope,
+    run_id: &str,
+) -> (MetadataInventoryRun, LeasedLibraryChange) {
     let (kind, change_scope, relative_path) = match &scope {
         MetadataInventoryScope::Root => (
             LibraryChangeIntentKind::FreshnessUnknown,
@@ -228,8 +238,18 @@ fn stage_named_spool(
             started_unix_ms: 4_000,
         })
         .expect("begin real durable inventory");
+    (run, leased)
+}
+
+fn stage_opened_spool(
+    fixture: &mut InventoryFixture,
+    scope: &MetadataInventoryScope,
+    run: MetadataInventoryRun,
+    leased: LeasedLibraryChange,
+) -> (MetadataInventoryRun, LeasedLibraryChange) {
+    let run_id = &run.request.run_id;
     let cancellation = AtomicBool::new(false);
-    let mut source = open_inventory_source(fixture, &scope, &run, &leased);
+    let mut source = open_inventory_source(fixture, scope, &run, &leased);
     let mut ready = false;
     for _ in 0..8 {
         if matches!(

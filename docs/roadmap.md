@@ -3591,6 +3591,16 @@ unattributed rather than declared permanently fixed. A bounded MSAA-to-UIA diagn
 for evidence boundaries. These gate results do not close delayed raw retirement, old unowned
 observations, or the broader physical decomposition work.
 
+The delayed-retirement follow-up prioritizes a reproduced stale-source initialization defect:
+after committed cancellation, an earlier Running snapshot recreates raw storage, which only the
+next FULL open repairs. A dedicated initialization/reset owner now revalidates current run, root,
+lease, and recovery authority inside the write transaction. Fifteen focused spool lifecycle cases
+pass, including terminal rejection, stale-lease preservation, and legitimate newer-lease reset.
+This is a prerequisite correction, not delivery of delayed raw retirement. Later raw writes and
+reads need execution fencing compatible with retained-source lease handoff before headers can be
+retained for bounded reclamation. Historical orphan cleanup, the application-wide drain, and
+correlated spool-validation cost remain explicit work; final current-diff gates are separate.
+
 R2b implementation, deterministic preview-lifecycle correctness, retained-catalog interaction
 Profile, real-library catalog parity, Daily, Windows Release, and bounded source-readable preview
 performance gates are complete. R2b was accepted on 2026-08-13. The former USN-based R2c reached its
