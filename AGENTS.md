@@ -109,6 +109,17 @@ decision. Never fill missing context with a convenient assumption merely to keep
 ## 4. Scope and delivery discipline
 
 - Stay aligned with the user's named problem. Do not add adjacent product ideas without approval.
+- Delegation is demand-driven and quota-aware. The primary agent works directly by default; do not
+  start a group of subagents when a task begins or automatically fan out an audit. Delegate only a
+  concrete, bounded subtask whose independence and expected benefit justify its context and token
+  cost. Simple edits, lookups, and coordination remain with the primary agent.
+- Default to at most one active delegated subtask. Reuse an existing suitable subagent when needed
+  and sequence implementation and independent review. Additional concurrent subagents require an
+  explicit user request; otherwise keep the work serial. Available concurrency slots are not a
+  reason to fill them.
+- Give each delegation only the relevant context and a narrow deliverable. Avoid duplicate
+  investigations, unnecessary full-history copies, idle speculative assignments, and repeated
+  review rounds that have no new evidence to examine.
 - A delegated subagent must complete its assigned work itself and must not create another subagent,
   child task, peer task, or delegated execution chain unless the user explicitly authorizes nested
   delegation for the current task. The parent agent must state this restriction in every delegation
