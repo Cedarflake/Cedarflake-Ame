@@ -8,6 +8,8 @@ use crate::application::catalog_session::{
 };
 use crate::domain::{LibraryChangeLane, ScanError};
 
+use super::super::observation_diagnostics::measure_observation;
+
 #[derive(Clone, Default)]
 pub(super) struct PollCatalogOwner {
     slot: Arc<Mutex<PollCatalogState>>,
@@ -124,13 +126,16 @@ impl PollCatalogCheckout {
     fn prepare(&mut self, path: &Path) -> Result<(), ScanError> {
         let mut has_current_proof = false;
         if let Some(entry) = &self.retained {
-            match entry.session.revalidate_connection(self) {
+            match measure_observation("catalog_revalidation", || {
+                entry.session.revalidate_connection(self)
+            }) {
                 Ok(()) => has_current_proof = true,
                 Err(error) if error.code == "catalog_validated_session_stale" => {}
                 Err(error) => return Err(error),
             }
         }
-        let session = validated_catalog_session(path)?;
+        let session =
+            measure_observation("catalog_session_lookup", || validated_catalog_session(path))?;
         if self
             .retained
             .as_ref()

@@ -1530,6 +1530,62 @@ non-inline lines. The production facade is 14531 lines: 4049 before its inline t
 admission, reservation, ingress-transaction, observer-contention, and production-contention
 files have 327, 110, 140, 265, and 322 lines respectively; the first includes preexisting tests.
 
+### Current hosted mixed-load failure — active item 2
+
+Run `34283874470` on `42c9058` uses the same product source as `7c529b9`, but its Static/Rust
+worker `102254793403` fails the production arm of the existing connection-lifetime comparison.
+The main suite reports 1473 passed, one failed, and 19 ignored in 1386.92 seconds. The other nine
+ordinary workers pass, including accessibility; that later pass does not repair the intermittent
+item-3 failure below. Protected-release conditions remain unchanged. No failed run is rerun.
+
+The failing production arm retains 25 samples, all 2048 P1 candidates, all 10000 P2 source entries,
+the 4095-entry first page, and lower-lane progress in every sample. P0 P95/maximum are 1429/2830 ms,
+with three samples above one second. Its 5045 polls open one connection and close none. Sample 9
+contains 2283 ms in the catalog stage, sample 17 contains 1318 ms there, and sample 22 contains
+1269 ms in queue persistence. These are current failures, not proof of the old 1092 ms cause.
+The full failed-case output is retained untruncated in
+`build/r2c_interleaving_audit/ci_42c9058_mixed_case_complete_102254793403.log` (967 lines).
+
+The next diagnostic boundary separates checkout revalidation from session-registry lookup, each
+identity/proof operation, and ingress reservation, admission, BEGIN, cleanup, enqueue, and COMMIT.
+It also measures timeout set/restore and writer-permit/reservation retirement. Inner and outer
+timers, sample start/visible boundaries, and lifetime-arm reports use the same immediate stderr
+stream with thread correlation, rather than mixing live inner records with delayed libtest output.
+This preserves slow successful operations and numerical results in hosted logs; best-effort writes
+remain non-panicking during guard retirement. Sample markers surround the original stopwatch and
+do not move any workload out of its measured interval.
+It changes no query, invocation order, timeout, workload, admission, or proof. SQLite operation
+timers exist only in test builds; the two outer checkout timers use existing debug diagnostics.
+COMMIT is measured outside SQLite so its automatic-checkpoint tail is not mistaken for a fast
+statement-profile callback. A zero busy timeout clears SQLite's busy and set-lock timeouts, but
+does not prove a wall-clock bound on file I/O or all SQLite work. No inner operation is yet
+identified by the captured failed run; these measurements are not a behavioral correction.
+
+The unchanged local comparison before the final correlation/retirement-timer additions passes in
+135.52 seconds. Per-poll and
+production per-epoch P95 are 141 and 101 ms respectively; production maximum is 102 ms with zero
+samples above one second. Both arms retain the original workload and lane-progress assertions.
+The output in `build/r2c_interleaving_audit/item2_operation_diagnostics_42c9058_20260909.log`
+explicitly contains one truncated intermediate chunk; both aggregates and the final result are
+intact. No recorded new slow-operation timer identifies a cause. Eleven reusable-connection,
+three reserved-ingress, eight poll-owner/lifecycle, and nineteen admission-related regressions pass
+after adding retirement timers. All-target/all-feature Clippy with warnings denied also passes at
+that checkpoint. These intermediate checks are not final-source or hosted acceptance. Item 2 remains active;
+no further implementation item, changed exit criterion, or acceptance claim follows from this pass.
+
+The final correlated comparison passes in 137.27 seconds under ordinary libtest capture, without
+`--nocapture`. Its untruncated `item2_correlated_operation_trace_20260909.log` retains both arms,
+all 50 start/visible marker pairs, original workload totals, and final retirement assertions.
+Per-poll P95 is 160 ms; production P95/maximum are 103/124 ms with no sample over one second.
+Production retains one connection through 3701 polls with zero poll-time closes. This verifies
+the evidence transport, not the cause of the hosted failure. Final-source all-target/all-feature
+Clippy, Rust format check, all 14 asynchronous bridge contracts, and whitespace validation pass.
+
+The timing owner is 45 lines with no production clock/log state. Affected non-inline owners are
+85 lines for reusable proof, 123 for ingress, 314 for admission, 245 for poll catalog, 91 for poll
+timings, and 25 for observation timings. Dedicated priority/lifetime tests have 796/115 lines.
+This instrumentation does not close the previously recorded facade or large-fixture physical debt.
+
 ### New-head hosted accessibility failure — queued item 3
 
 Run `34280948135` on `7c529b9` finishes with nine ordinary workers passing, one failing, and a

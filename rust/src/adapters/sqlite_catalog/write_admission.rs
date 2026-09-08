@@ -255,6 +255,8 @@ impl PendingWrite {
 
 impl Drop for PendingWrite {
     fn drop(&mut self) {
+        let _timer =
+            super::operation_diagnostics::OperationTimer::start("writer_reservation_retirement");
         let Some(token) = self.token.take() else {
             return;
         };
@@ -275,6 +277,8 @@ pub(super) struct SqliteWritePermit {
 
 impl Drop for SqliteWritePermit {
     fn drop(&mut self) {
+        let _timer =
+            super::operation_diagnostics::OperationTimer::start("writer_permit_retirement");
         let mut state = self
             .admission
             .state

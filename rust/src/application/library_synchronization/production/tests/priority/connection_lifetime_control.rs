@@ -17,6 +17,11 @@ struct ConnectionControl {
 
 impl ConnectionControl {
     fn new(lifetime: ConnectionLifetime) -> Self {
+        let _ = writeln!(
+            std::io::stderr().lock(),
+            "controlled poll start lifetime={lifetime:?} thread={:?}",
+            std::thread::current().id()
+        );
         Self {
             lifetime,
             polls: 0,
@@ -73,7 +78,8 @@ impl ConnectionControl {
                 );
             }
         }
-        eprintln!(
+        let _ = writeln!(
+            std::io::stderr().lock(),
             "controlled poll lifetime={:?} polls={} poll_catalog_opens={} \
              poll_catalog_closes={} poll_retirement_ms={} visible_p95_ms={}",
             self.lifetime,

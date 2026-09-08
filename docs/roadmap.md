@@ -3282,7 +3282,12 @@ before taking the next item; another verified prerequisite is not completion of 
    final-source production, queue, admission, and lint checks pass, including the unchanged
    mixed-load gate. These results remain within item 2; no new implementation item or UI change
    is authorized by that finding, and final hosted/client gates are not inferred from them.
-   Historical observation-stage attribution and the complete item exit remain outstanding.
+   Hosted run `34283874470` on documentation head `42c9058` fails the unchanged production
+   connection-lifetime comparison at P0 P95 1429 ms. Its retained-connection checkout and queue
+   ingress contain new measured stalls despite one open and zero closes during polling. These
+   current failures remain within this item and require operation-level discrimination; neither
+   the preceding hosted pass nor a subsequent local pass closes them. Historical observation-stage
+   attribution and the complete item exit remain outstanding.
 3. **Queued — accumulated workflow review and client verification.** Review the fixed lifecycle
    matrix: first import and final publication; pause/cancel/exit/manual continuation; multi-root
    update and removal; source registration versus cleanup; preview replacement, corrupt/non-media

@@ -1,3 +1,5 @@
+#[cfg(debug_assertions)]
+use std::io::Write;
 use std::time::{Duration, Instant};
 
 use crate::domain::{LibrarySynchronizationSnapshot, ScanError};
@@ -67,10 +69,11 @@ pub(super) fn log_synchronization_poll_diagnostic(
             ),
             Err(error) => ("error", error.code.as_str(), 0, 0),
         };
-        eprintln!(
+        let _ = writeln!(
+            std::io::stderr().lock(),
             "[Ame sync native] outcome={outcome} code={code} stage={} total_ms={} \
              catalog_ms={} observation_ms={} lanes_ms={} scheduling_ms={} projection_ms={} \
-             checkout_return_ms={} checkout_return_measured={} roots={roots} mutations={mutations}",
+             checkout_return_ms={} checkout_return_measured={} roots={roots} mutations={mutations} thread={:?}",
             timings.stage,
             elapsed.as_millis(),
             timings.catalog_ms,
@@ -80,6 +83,7 @@ pub(super) fn log_synchronization_poll_diagnostic(
             timings.projection_ms,
             timings.checkout_return_ms.unwrap_or_default(),
             timings.checkout_return_ms.is_some(),
+            std::thread::current().id(),
         );
     }
     #[cfg(not(debug_assertions))]

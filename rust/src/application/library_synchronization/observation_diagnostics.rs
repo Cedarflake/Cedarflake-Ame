@@ -1,4 +1,6 @@
 #[cfg(debug_assertions)]
+use std::io::Write;
+#[cfg(debug_assertions)]
 use std::time::{Duration, Instant};
 
 pub(super) fn measure_observation<T>(stage: &'static str, operation: impl FnOnce() -> T) -> T {
@@ -9,9 +11,11 @@ pub(super) fn measure_observation<T>(stage: &'static str, operation: impl FnOnce
     {
         let elapsed = started.elapsed();
         if elapsed >= Duration::from_millis(100) {
-            eprintln!(
-                "[Ame sync observation] stage={stage} elapsed_ms={}",
+            let _ = writeln!(
+                std::io::stderr().lock(),
+                "[Ame sync observation] stage={stage} elapsed_ms={} thread={:?}",
                 elapsed.as_millis(),
+                std::thread::current().id(),
             );
         }
     }

@@ -30,6 +30,7 @@ mod folders;
 mod gallery;
 mod metadata_inventory;
 mod migrations;
+mod operation_diagnostics;
 #[cfg_attr(
     not(test),
     expect(

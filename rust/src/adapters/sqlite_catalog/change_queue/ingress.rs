@@ -4,7 +4,10 @@ use rusqlite::{Connection, TransactionBehavior};
 
 use crate::ports::LibraryChangeIngress;
 
-use super::super::{SQLITE_BUSY_TIMEOUT, SqliteDatabaseIdentity, write_admission::ReservedWrite};
+use super::super::{
+    SQLITE_BUSY_TIMEOUT, SqliteDatabaseIdentity, operation_diagnostics::measure,
+    write_admission::ReservedWrite,
+};
 use super::*;
 
 #[cfg(test)]
@@ -31,7 +34,7 @@ impl LibraryChangeIngress for SqliteCatalog {
             root_id: root_id.to_owned(),
             root_generation,
             lane,
-            admission: self.write_admission.reserve(lane),
+            admission: measure("ingress_reservation", || self.write_admission.reserve(lane)),
         })
     }
 
@@ -54,27 +57,37 @@ impl LibraryChangeIngress for SqliteCatalog {
                 "Change ingress admission does not belong to this catalog, root generation, and lane",
             ));
         }
-        let _permit = reservation.admission.try_acquire().ok_or_else(|| {
-            ScanError::new(
-                "catalog_database_busy",
-                "Change ingress is waiting for its reserved writer position",
-            )
-        })?;
+        let _permit = measure("ingress_admission", || reservation.admission.try_acquire())
+            .ok_or_else(|| {
+                ScanError::new(
+                    "catalog_database_busy",
+                    "Change ingress is waiting for its reserved writer position",
+                )
+            })?;
         let restore = RestoreBusyTimeout {
             connection: &mut self.connection,
         };
-        restore
-            .connection
-            .busy_timeout(Duration::ZERO)
-            .map_err(database_error)?;
-        let transaction = restore
-            .connection
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(database_error)?;
-        cleanup_for_enqueue(&transaction, enqueued_unix_ms, policy)?;
-        let report =
-            enqueue_intents_in_transaction(&transaction, intents, None, enqueued_unix_ms, policy)?;
-        transaction.commit().map_err(database_error)?;
+        measure("ingress_zero_busy_timeout", || {
+            restore
+                .connection
+                .busy_timeout(Duration::ZERO)
+                .map_err(database_error)
+        })?;
+        let transaction = measure("ingress_begin", || {
+            restore
+                .connection
+                .transaction_with_behavior(TransactionBehavior::Immediate)
+                .map_err(database_error)
+        })?;
+        measure("ingress_cleanup", || {
+            cleanup_for_enqueue(&transaction, enqueued_unix_ms, policy)
+        })?;
+        let report = measure("ingress_enqueue", || {
+            enqueue_intents_in_transaction(&transaction, intents, None, enqueued_unix_ms, policy)
+        })?;
+        measure("ingress_commit", || {
+            transaction.commit().map_err(database_error)
+        })?;
         Ok(report)
     }
 }
@@ -103,6 +116,8 @@ struct RestoreBusyTimeout<'connection> {
 
 impl Drop for RestoreBusyTimeout<'_> {
     fn drop(&mut self) {
-        let _ = self.connection.busy_timeout(SQLITE_BUSY_TIMEOUT);
+        let _ = measure("ingress_restore_busy_timeout", || {
+            self.connection.busy_timeout(SQLITE_BUSY_TIMEOUT)
+        });
     }
 }

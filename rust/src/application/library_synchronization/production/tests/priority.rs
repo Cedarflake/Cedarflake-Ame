@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use super::*;
 
 mod connection_lifetime_control;
@@ -433,6 +435,11 @@ fn run_priority_workload(
         .save(&absolute_path)
         .expect("live image fixture");
         let observed_unix_ms = now_unix_ms().expect("event time");
+        let _ = writeln!(
+            std::io::stderr().lock(),
+            "controlled P0 start index={index} thread={:?}",
+            std::thread::current().id()
+        );
         let started = std::time::Instant::now();
         source_factory
             .batches
@@ -538,6 +545,11 @@ fn run_priority_workload(
             .push(worker_admission_latency.expect("visible P0 work admitted the reserved worker"));
         let visible_latency = started.elapsed();
         latencies.push(visible_latency);
+        let _ = writeln!(
+            std::io::stderr().lock(),
+            "controlled P0 visible index={index} thread={:?}",
+            std::thread::current().id()
+        );
         assert!(matches!(
             location.preview_status,
             crate::domain::PreviewStatus::Pending
@@ -596,7 +608,8 @@ fn run_priority_workload(
         p2_progress_sample_count = p2_progress_sample_count.saturating_add(1);
         p1_completed_samples.push(p1_completed);
         p2_source_read_samples.push(p2_source_reads);
-        eprintln!(
+        let _ = writeln!(
+            std::io::stderr().lock(),
             "controlled P0 sample index={index} queue_admission_ms={} worker_admission_ms={} visible_ms={} poll_count={poll_count} poll_total_ms={} poll_max_ms={}",
             queue_admission_latency
                 .expect("sample queue admission")
@@ -711,7 +724,8 @@ fn run_priority_workload(
             .collect::<Result<Vec<_>, _>>()
             .expect("collect P1 status evidence")
     };
-    eprintln!(
+    let _ = writeln!(
+        std::io::stderr().lock(),
         "controlled P0 priority fixture samples={SAMPLE_COUNT} p1_candidates={P1_CANDIDATE_COUNT} p1_completed={p1_completed_before}->{p1_completed_first}->{p1_completed_last}->{p1_completed_after} p1_active_samples={p1_active_sample_count} p1_progress_samples={p1_progress_sample_count} p1_statuses={p1_statuses:?} p2_entries={P2_SOURCE_ENTRIES} p2_cold_staged={p2_staged_before} p2_source_reads={p2_source_reads_first}->{p2_source_reads_last}->{} p2_staged_after={p2_staged_after} p2_active_samples={p2_active_sample_count} p2_progress_samples={p2_progress_sample_count} low_writer_ops={writer_operations_before}->{writer_operations_after} queue_p95_ms={} worker_admission_p95_ms={} visible_query_p95_ms={} visible_p50_ms={} visible_p95_ms={} visible_max_ms={} visible_over_one_second={over_one_second}",
         crate::adapters::source_entry_read_count(&p2_root_path),
         queue_p95.as_millis(),
