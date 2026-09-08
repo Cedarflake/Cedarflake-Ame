@@ -738,6 +738,44 @@ Job closure, no cleanup failures, and retained diagnostic logs; a subsequent pro
 neither owned test process. The historical zero-thread/zero-handle record remains present and is
 not relabelled as a running test or a cleared incident.
 
+### Same-source verification checkpoint: 1ea769d
+
+On 2026-09-08 the complete local Daily gate passes on source head
+`1ea769d9fe0c7c295bf8fba8db85c548a1e920ee`, with an unchanged working tree. The Rust
+main test binary reports 1371 passes, no failures, and 19 explicitly ignored cases in 1040.88
+seconds; nested process-test summaries are not additional main-suite cases. All Flutter files,
+controlled Windows scan, the original ten-phase native UIA sequence, and bridge checks pass.
+The unchanged mixed-load test passes its 25-sample, one-second P95 and actual P1/P2 progress
+requirements. Successful captured test output does not expose a new numerical percentile.
+
+[Hosted run 34207127797](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/34207127797)
+tests PR merge `9eb3fb484a73829c185ad2dab201ef7d4eb5329a`, containing the same source head and
+base `3da6c96f3356d23ca1a80803d8a3f0dd02e62b8c`; that base is already an ancestor of the source
+head. Static/Rust, Flutter, Windows scan, all five synthetic workloads, and unsigned x64 verification
+pass. The Rust main suite reports 1371 passes, no failures, and 19 ignored cases in 894.31 seconds.
+The first accessibility attempt fails before window querying: its last verified progress is
+`loading-uia-client` at 1777 milliseconds, followed by the unchanged eight-second parent timeout.
+Its owned application and probe cleanup succeeds. One rerun of only that job passes all ten phases;
+the application-ready probe completes in 2337 milliseconds. Preserve the initial failure: this
+does not prove the cold assembly-loading incident is fixed. Protected release jobs remain outside
+ordinary PR authority.
+
+The original local whole-window UIA sequence also now passes all ten phases, with application
+exit and Job closure verified. Read-only process and CIM checks no longer enumerate the historical
+PID 17412; neither observation establishes why the earlier query stalled or the process record
+persisted. This is new successful original-path evidence, not a root-cause or permanent-fix claim.
+A subsequent isolated conversion diagnostic obtains the Flutter fragment's `IAccessible` and
+receives `E_FAIL` (`0x80004005`) immediately from `ElementFromIAccessible`; conversion, interface
+release, and COM teardown return by 16 milliseconds. No UIA element is returned, so neither planned
+parent nor sibling navigation executes. The enclosing probe finishes in 704 milliseconds and
+deliberately does not accept a business phase. The temporary probe hook is removed after verified
+owned-process cleanup. [Microsoft documents conversion as a distinct, fallible API](https://learn.microsoft.com/en-us/windows/win32/api/uiautomationclient/nf-uiautomationclient-iuiautomation-elementfromiaccessible);
+this result does not identify the earlier whole-window timeout's cause.
+
+No retained catalog or real source root is used. Raw-spool cascade latency, the application-wide
+cleanup drain, historical unowned raw observations, broader physical decomposition, and the
+unattributed intermittent native/client incidents remain open beyond this verified slice.
+
 ## Physical ownership review
 
 Counts include whitespace and comments. The non-inline region may contain `cfg(test)` imports,

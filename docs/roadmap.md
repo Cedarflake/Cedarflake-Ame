@@ -3578,6 +3578,19 @@ retirement/selection boundary; complete current-diff lint passes. Do not treat t
 correction as the delayed-retirement migration: header cascades, the application-wide cleanup
 drain, already unowned legacy rows, and final same-head gates remain unresolved.
 
+The subsequent source-head `1ea769d` checkpoint passes the complete local Daily gate, including
+the original ten-phase whole-window UIA sequence and unchanged mixed-load threshold. Hosted run
+`34207127797` passes Static/Rust, Flutter, scan, all five synthetic workloads, and unsigned x64
+verification. Its first accessibility attempt times out while loading the client assembly, before
+window querying; exactly one failed-job rerun passes. The local and hosted Rust main suites each
+report 1371 passes, no failures, and 19 ignored cases, without adding overlapping nested summaries.
+The historical PID is no longer enumerated, but the original native/client incidents remain
+unattributed rather than declared permanently fixed. A bounded MSAA-to-UIA diagnostic returns
+`E_FAIL` immediately and never reaches navigation; its temporary hook is removed. See the
+[same-source checkpoint](acceptance/r2c-interleaving-remediation.md#same-source-verification-checkpoint-1ea769d)
+for evidence boundaries. These gate results do not close delayed raw retirement, old unowned
+observations, or the broader physical decomposition work.
+
 R2b implementation, deterministic preview-lifecycle correctness, retained-catalog interaction
 Profile, real-library catalog parity, Daily, Windows Release, and bounded source-readable preview
 performance gates are complete. R2b was accepted on 2026-08-13. The former USN-based R2c reached its
