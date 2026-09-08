@@ -3237,6 +3237,58 @@ v5 plus R2c-P and R2c-Q implementation checkpoints. Those checkpoints are not R2
 acceptance.
 R3 is paused; no R3 implementation belongs in this work.
 
+#### Fixed closeout execution queue — 2026-09-08
+
+This queue orders the existing closeout obligations below; it adds no product scope and does not
+reopen accepted work. Only one implementation item is active. Complete its end-to-end exit criteria
+before taking the next item; another verified prerequisite is not completion of its parent item.
+
+1. **Active — raw-inventory retirement and bounded cleanup.** Complete the already-started
+   separation of execution-authority revocation from physical reclamation. Completion, terminal
+   cancellation, supersession, queue pruning, and root removal must not cascade through the entire
+   raw spool in their foreground transaction. Preserve resumable worker pause and legitimate lease
+   handoff; reclaim retired and historically unowned observations through bounded, restart-safe
+   work with an eventual-drain owner. Remove the application-wide drain-to-exhaustion path. Exit
+   requires lifecycle, migration/reopen, rollback, stale-execution, bounded-work, and other-root/live
+   progress evidence through the production callers. Required schema and owner splits belong to
+   this item, not an expanding chain of separately declared deliveries.
+2. **Queued — mixed-load convergence and latency.** Resolve the recorded slow catalog-open,
+   observation, and retirement paths using the existing operation measurements. Keep the original
+   25 samples, P0 P95 at most one second, all 2048 P1 candidates, 10000 P2 source entries, the 4095-entry
+   logical page, and existing deadlines. That page is not proof of complete P2 recovery. Preserve
+   failed-run evidence and establish a causal correction with controlled comparisons; a later
+   green run or diagnostics alone cannot close the historical failure.
+3. **Queued — accumulated workflow review and client verification.** Review the fixed lifecycle
+   matrix: first import and final publication; pause/cancel/exit/manual continuation; multi-root
+   update and removal; source registration versus cleanup; preview replacement, corrupt/non-media
+   inputs and retry; viewer close/reopen; direct-scroll loading and menu feedback. Reuse existing
+   evidence where the owning source is unchanged and add negative cases for uncovered transitions.
+   Verify the original local whole-window UIA sequence and native exit/process ownership; hosted,
+   MSAA, or standard-window controls cannot substitute. Record unresolved historical attribution
+   separately. Naming and physical-size review stays with affected owners; unrelated decomposition
+   remains recorded debt. Use one demand-driven independent reviewer, without nested delegation.
+4. **Queued — final-source gates and readiness decision.** Close the accumulated review findings,
+   then verify the final product source through applicable local Daily/Windows gates and hosted PR
+   checks. Record implemented, focused-verified, full-head-verified, and client-accepted separately.
+   Any later behavioral fix invalidates affected evidence and returns to its owning item; documentation
+   alone does not require another heavy gate. Existing P0/P1 workflow defects block readiness.
+
+New findings enter the existing acceptance ledger with reproduction evidence, severity, owning
+invariant, and the specific exit criterion they block. Only a demonstrated source/data-safety risk
+or a defect blocking the active item's exit may interrupt this order; state that reason before
+changing course. Other findings wait for their owning queued item or remain explicit follow-up debt.
+Do not insert unrelated SQL tuning, new diagnostics, framework changes, or file splitting merely
+because inspection discovers an opportunity. Focused subchanges remain internal progress until the
+whole active item meets its applicable gates; do not restart repository-wide exploration after each
+green test or repeatedly audit unchanged code without new evidence.
+
+Signed/installed-service, real-journal, retained-root, and real Cloud Files acceptance keep their
+existing authorization and evidence requirements. They are explicit outstanding acceptance items,
+not permission to substitute unrelated local work or declare all of R2c complete. This queue grants
+no source-media access, release publication, or merge into `main`.
+
+#### Existing scope and retained checkpoints
+
 Current work: preserve the open authorization-bound R2c-O, R2c-P, and R2c-Q external evidence while
 continuing the non-external controlled R2c-R reliability checkpoint. No local result promotes those
 slices to accepted. Each implementation slice receives focused tests, applicable complete gates,
