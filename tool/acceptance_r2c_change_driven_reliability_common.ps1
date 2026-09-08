@@ -47,7 +47,7 @@ $script:AmeR2cRVerifiedProcessBoundaryDigest = "c4702c1005217d99cb2d0558c7de0c34
 $script:AmeR2cRNativeProcessBoundaryDigest = "4e58cf525fd2f628a38bfefb4b1728fbf6e66632b3c03220d67a2249c3e55860"
 $script:AmeR2cRAuditedScriptSnapshotDigest = "165355dcd5dedbf01a73953547f1b71a7f9503ff3b02ed0d8c9eb15e7e54a0cf"
 $script:AmeR2cRNativeDefinitionDigest = "2da77861b8b5fb1a65ab474d8e9f22406fa3c049ec771d88288587bb7e579259"
-$script:AmeR2cRGuardrailMoveSourceDigest = "32f779ca3decea6bf7b3c027061dbedb0e38e20a405d66b1076120d57d60dee3"
+$script:AmeR2cRGuardrailMoveSourceDigest = "2df1ff9fdfc1b0a61c48eae7842bd24e01ff13bfe9d37464ff3da34377cb91a1"
 $script:AmeR2cRDeletionAuditBudgetLimits = [ordered]@{
     "source-count" = [uint64]8
     "dot-source-depth" = [uint64]8
@@ -2664,17 +2664,21 @@ function Add-AmeR2cRDeletionAuditAstNodesBounded {
     $counter = [pscustomobject]@{
         Current = [uint64]$State.BudgetActual["ast-nodes"]
     }
+    $limit = [uint64]$State.BudgetLimits["ast-nodes"]
     $null = $Ast.FindAll({
         param($node)
         $actual = [uint64]($counter.Current + 1)
         if ($actual -gt [uint64]$State.BudgetVisitedHighWater["ast-nodes"]) {
             $State.BudgetVisitedHighWater["ast-nodes"] = $actual
         }
-        $counter.Current = Assert-AmeR2cRDeletionAuditBudgetValue `
-            -State $State `
-            -Key "ast-nodes" `
-            -Current ([uint64]$counter.Current) `
-            -Delta 1
+        if ($actual -gt $limit) {
+            Assert-AmeR2cRDeletionAuditBudgetValue `
+                -State $State `
+                -Key "ast-nodes" `
+                -Current ([uint64]$counter.Current) `
+                -Delta 1 | Out-Null
+        }
+        $counter.Current = $actual
         $State.BudgetActual["ast-nodes"] = [uint64]$counter.Current
         return $false
     }, $true)

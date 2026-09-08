@@ -1,6 +1,7 @@
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "quality_common.ps1")
 . (Join-Path $PSScriptRoot "acceptance_r2c_change_driven_reliability_common.ps1")
+. (Join-Path $PSScriptRoot "acceptance_r2c_deletion_audit_budget_tests.ps1")
 
 function Assert-Contains {
     param([Parameter(Mandatory = $true)][string]$Value, [Parameter(Mandatory = $true)][string]$Expected)
@@ -683,62 +684,7 @@ try {
     } catch { Assert-Contains $_.Exception.Message "budget=total-bytes" }
 } finally { Close-AmeR2cRDeletionAuditState -State $totalState }
 
-$knownEmptyAstNodeCount = [uint64]2
-$emptyNodeState = New-AmeR2cRDeletionAuditState `
-    -BudgetOverridesForGuardrail @{ "ast-nodes" = $knownEmptyAstNodeCount }
-try {
-    Add-AmeR2cRDeletionAuditSource `
-        -State $emptyNodeState `
-        -SourceText "" `
-        -Label "known empty AST" `
-        -SourcePath $null `
-        -IsRoot $true `
-        -Depth 0 | Out-Null
-    if ($emptyNodeState.BudgetActual["ast-nodes"] -ne $knownEmptyAstNodeCount -or
-        $emptyNodeState.BudgetVisitedHighWater["ast-nodes"] -ne $knownEmptyAstNodeCount) {
-        throw "R2c-R empty AST node count did not match the independent known assertion"
-    }
-} finally { Close-AmeR2cRDeletionAuditState -State $emptyNodeState }
-
-$knownLiteralAstNodeCount = [uint64]5
-foreach ($fixture in @(
-    [pscustomobject]@{ Label = "limit-1"; Limit = [uint64]6; MustPass = $true },
-    [pscustomobject]@{ Label = "limit"; Limit = [uint64]5; MustPass = $true },
-    [pscustomobject]@{ Label = "limit+1"; Limit = [uint64]4; MustPass = $false }
-)) {
-    $nodeState = New-AmeR2cRDeletionAuditState `
-        -BudgetOverridesForGuardrail @{ "ast-nodes" = [uint64]$fixture.Limit }
-    try {
-        if ($fixture.MustPass) {
-            Add-AmeR2cRDeletionAuditSource `
-                -State $nodeState `
-                -SourceText "1" `
-                -Label "AST $($fixture.Label)" `
-                -SourcePath $null `
-                -IsRoot $true `
-                -Depth 0 | Out-Null
-            if ($nodeState.BudgetActual["ast-nodes"] -ne $knownLiteralAstNodeCount) {
-                throw "R2c-R AST $($fixture.Label) fixture recorded the wrong node count"
-            }
-        } else {
-            try {
-                Add-AmeR2cRDeletionAuditSource `
-                    -State $nodeState `
-                    -SourceText "1" `
-                    -Label "AST $($fixture.Label)" `
-                    -SourcePath $null `
-                    -IsRoot $true `
-                    -Depth 0 | Out-Null
-                throw "R2c-R AST node budget accepted limit+1"
-            } catch {
-                Assert-Contains $_.Exception.Message "budget=ast-nodes limit=4 actual=5"
-            }
-        }
-        if ($nodeState.BudgetVisitedHighWater["ast-nodes"] -ne $knownLiteralAstNodeCount) {
-            throw "R2c-R AST $($fixture.Label) fixture lost its visited high-water"
-        }
-    } finally { Close-AmeR2cRDeletionAuditState -State $nodeState }
-}
+Test-AmeR2cRDeletionAuditNodeBudgets
 
 $functionState = New-AmeR2cRDeletionAuditState `
     -BudgetOverridesForGuardrail @{ "function-count" = [uint64]1 }
