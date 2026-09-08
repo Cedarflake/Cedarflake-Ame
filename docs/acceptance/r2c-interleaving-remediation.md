@@ -801,8 +801,24 @@ source bytes and FULL reopen are checked where applicable. These cases overlap t
 full Rust suites and must not be added to their counts. The complete inventory application module
 passes 59 cases in 72.44 seconds, including retained-source handoff and 10000-entry page reopening.
 Independent review finds no actionable gap in this initializer extraction and guard; it neither
-runs tests nor audits later raw APIs. Complete current-source gates remain separate evidence, not
-inherited from the previous source head.
+runs tests nor audits later raw APIs.
+
+The complete local Daily gate then passes on fixed source head `64d16c5`, with the worktree clean
+throughout verification. The main Rust suite reports 1375 passes, zero failures, and 19 unchanged
+ignored cases in 990.33 seconds; its nested child summaries are not additional tests. The original
+25-sample mixed-load P95 threshold and P1/P2 progress assertions pass, without a fresh numerical P95
+in the successful default output. Complete lint, all Flutter files, controlled Windows scan, and
+all 14 asynchronous bridge checks pass. The scan completes in 94535 milliseconds with no cleanup
+failure and retains its generated evidence storage under the existing ownership policy.
+
+The original full-window native accessibility gate passes all ten ordered phases without probe
+overrides or reruns. Its application-ready query completes in 1549 milliseconds and traverses 126
+elements; owned application exit and Job closure are confirmed, with no cleanup failures. A final
+read-only process probe enumerates neither Ame nor Flutter tester, nor the historical PID. The
+complete log is `build/r2c_interleaving_audit/daily_64d16c5_native_capture_20260908.log`; native detail
+is retained beside it as `uia_64d16c5_20260908.log`. This successful same-source run is not attribution
+of the historical native incidents, and hosted verification of the resulting PR head remains a
+separate checkpoint.
 
 Delayed physical retirement, stale retained-source write/read fencing, historical NULL-parent
 orphans, and whole-cleanup draining remain open. Inspection also identifies correlated ordinal and

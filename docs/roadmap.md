@@ -3600,6 +3600,11 @@ This is a prerequisite correction, not delivery of delayed raw retirement. Later
 reads need execution fencing compatible with retained-source lease handoff before headers can be
 retained for bounded reclamation. Historical orphan cleanup, the application-wide drain, and
 correlated spool-validation cost remain explicit work; final current-diff gates are separate.
+The fixed `64d16c5` source subsequently passes complete local Daily: 1375 main Rust cases, all
+Flutter files, the unchanged mixed-load threshold, controlled Windows scan, ten native UIA phases,
+and bridge checks. Source and worktree remain unchanged during that run; owned native processes
+exit cleanly. Hosted final-head verification remains separate, as do the retirement obligations
+above and attribution of the historical native incidents.
 
 R2b implementation, deterministic preview-lifecycle correctness, retained-catalog interaction
 Profile, real-library catalog parity, Daily, Windows Release, and bounded source-readable preview
