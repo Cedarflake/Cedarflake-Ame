@@ -62,31 +62,29 @@ fn stale_source_lease_cannot_reset_a_released_or_reacquired_directory() {
     let (run, old_lease) = begin_named_spool(&mut fixture, scope.clone(), "lease-reset");
     drop(open_inventory_source(&fixture, &scope, &run, &old_lease));
     let identity = spool_root_identity(&fixture, &run.request.run_id);
+    let execution = fixture
+        .catalog
+        .initialize_metadata_inventory_spool(&run, &old_lease, &identity, None, Some(""), 4_000)
+        .expect("capture directory execution");
     fixture
         .catalog
-        .begin_metadata_inventory_spool_directory(&run.request.run_id, "", &identity, 4_100)
+        .begin_metadata_inventory_spool_directory(&execution, "", &identity, 4_100)
         .expect("begin root directory");
     let mut child = metadata_entry("album");
     child.kind = MetadataInventoryEntryKind::Directory;
     child.file_size = None;
     fixture
         .catalog
-        .complete_metadata_inventory_spool_directory(
-            &run.request.run_id,
-            "",
-            &identity,
-            &[child],
-            4_200,
-        )
+        .complete_metadata_inventory_spool_directory(&execution, "", &identity, &[child], 4_200)
         .expect("retain completed parent directory and discover child");
     fixture
         .catalog
-        .begin_metadata_inventory_spool_directory(&run.request.run_id, "album", &identity, 4_300)
+        .begin_metadata_inventory_spool_directory(&execution, "album", &identity, 4_300)
         .expect("begin child directory");
     fixture
         .catalog
         .append_metadata_inventory_spool_entries(
-            &run.request.run_id,
+            &execution,
             "album",
             &[metadata_entry("album/partial.txt")],
             4_400,

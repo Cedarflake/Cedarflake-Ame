@@ -559,6 +559,24 @@ fn durable_spool_rebinds_the_configured_root_before_resuming_an_active_directory
         .catalog
         .begin_next_metadata_inventory(&request)
         .expect("begin identity inventory");
+    let opening_identity = fixture
+        .catalog
+        .load_incremental_catalog_root(&fixture.root_id)
+        .expect("load initial root")
+        .expect("initial root")
+        .publication_root_identity
+        .expect("initial root identity");
+    let execution = fixture
+        .catalog
+        .initialize_metadata_inventory_spool(
+            &run,
+            &leased,
+            &opening_identity,
+            None,
+            Some(""),
+            7_000,
+        )
+        .expect("capture initial spool execution");
     let cancellation = AtomicBool::new(false);
     let mut source = open_inventory_source(&fixture, &request.scope, &run, &leased);
     assert_eq!(
@@ -616,7 +634,7 @@ fn durable_spool_rebinds_the_configured_root_before_resuming_an_active_directory
     );
     let paging_error = fixture
         .catalog
-        .load_metadata_inventory_spool_page(&request.run_id, 4_095)
+        .load_metadata_inventory_spool_page(&execution, 4_095)
         .expect_err("provisional rows must not become an output page");
     assert_eq!(paging_error.code, "metadata_inventory_spool_not_ready");
     fs::remove_dir_all(&original).expect("remove replacement source directory");

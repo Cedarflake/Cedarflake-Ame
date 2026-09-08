@@ -55,6 +55,7 @@ pub(crate) use preview_cache::{
     fail_next_atomic_replace_for_test, prepare_preview_root_with_namespace_probe,
     replace_file_atomically_for_test, seed_legacy_jpeg_preview,
 };
+pub(crate) use sqlite_catalog::MetadataInventorySpoolExecution;
 pub use sqlite_catalog::SqliteCatalog;
 pub(crate) use sqlite_catalog::{
     RejectedInputValidationRoster, SqliteCatalogReadExecutor, SqliteCatalogSession,

@@ -86,7 +86,19 @@ persistence layers.
   creating or resetting raw storage. A caller's earlier `Running` snapshot is not authority after
   cancellation or lease handoff. Normal progress fields are not immutable identity, and a current
   continuation may still reset incomplete directories while preserving completed ones. This
-  initialization boundary does not replace fencing for later source writes or delayed retirement.
+  initialization returns the adapter-owned execution identity used by later source operations.
+- `sqlite_catalog/metadata_inventory/spool_execution.rs` owns the immutable run request and exact
+  current queue lease for raw source access. Readiness, directory selection, and ordered paging
+  share authority validation and their data reads in one short, independently owned read snapshot.
+  Directory start, append, and completion revalidate that same execution inside their write
+  transaction. Caller-owned transactions cannot supply or receive implicit read ownership.
+  `spool_read.rs` and `spool_write.rs` own those queries and mutations; the inventory facade does
+  not keep duplicate run-id-only raw APIs. A retained application continuation explicitly accepts
+  its new lease through the source port without resetting its iterator or completed directories.
+  Failed rebinding preserves the previous token, which remains subject to current authority checks.
+  Active enumeration checks admission before advancing its iterator and again before committing;
+  a failed attempt is discarded by the application before reconstruction. No database transaction
+  spans source I/O. This execution fence does not replace generation-specific delayed retirement.
 - `sqlite_catalog/spool_retirement.rs` owns deletion of run-bound raw observations together with
   their spool header. A subtree's initial observation has no directory foreign-key parent and
   therefore requires explicit retirement in the same transaction. Run, removed-root, queue, and

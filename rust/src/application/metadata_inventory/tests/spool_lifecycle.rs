@@ -1,7 +1,9 @@
 use super::*;
 
+mod execution_admission;
 mod retirement;
 mod scope_isolation;
+mod source_execution;
 mod stale_source;
 
 #[test]

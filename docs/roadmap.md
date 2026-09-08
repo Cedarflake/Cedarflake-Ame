@@ -3603,8 +3603,17 @@ correlated spool-validation cost remain explicit work; final current-diff gates 
 The fixed `64d16c5` source subsequently passes complete local Daily: 1375 main Rust cases, all
 Flutter files, the unchanged mixed-load threshold, controlled Windows scan, ten native UIA phases,
 and bridge checks. Source and worktree remain unchanged during that run; owned native processes
-exit cleanly. Hosted final-head verification remains separate, as do the retirement obligations
-above and attribution of the historical native incidents.
+exit cleanly. Hosted run `34218414939` for `e253cbc` subsequently passes every ordinary job and
+the aggregate gate without a rerun; the three protected-release-only jobs retain their existing
+skip conditions. Retirement obligations and historical native-incident attribution remain separate.
+
+The next prerequisite reproduces stale retained-source append and ready-page reads after lease
+handoff. Raw operations now require an adapter-owned immutable execution identity, with same-
+transaction write validation and consistent read snapshots. Legitimate retained continuation
+explicitly rebinds its current lease without resetting source iteration. Raw reading and writing
+move out of the long inventory facade. Focused and full current-diff verification are in progress;
+these changes do not deliver delayed header retirement, historical orphan reclamation, or bounded
+whole-operation cleanup.
 
 R2b implementation, deterministic preview-lifecycle correctness, retained-catalog interaction
 Profile, real-library catalog parity, Daily, Windows Release, and bounded source-readable preview

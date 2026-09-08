@@ -1,17 +1,15 @@
-use rusqlite::{OptionalExtension, Transaction, params};
+use rusqlite::{OptionalExtension, params};
 
 use crate::domain::{
-    FileIdentityEvidence, LeasedLibraryChange, LibraryChangeLane, LibraryChangeLeaseUpdateOutcome,
-    MetadataInventoryEntry, MetadataInventoryRun, MetadataInventoryRunStatus, ScanError,
+    FileIdentityEvidence, LeasedLibraryChange, LibraryChangeLane, MetadataInventoryEntry,
+    MetadataInventoryRun, MetadataInventoryRunStatus, ScanError,
 };
 
-use super::super::change_queue::classify_lease_update;
 #[cfg(test)]
 use super::run_before_metadata_inventory_spool_commit_hook;
+use super::spool_write::insert_spool_entries;
 use super::{
-    SqliteCatalog, database_error, insert_spool_entries,
-    load_metadata_inventory_authority_owner_for_run, require_run, scope_parts, sqlite_integer,
-    validate_active_root,
+    MetadataInventorySpoolExecution, SqliteCatalog, database_error, scope_parts, sqlite_integer,
 };
 
 impl SqliteCatalog {
@@ -23,7 +21,7 @@ impl SqliteCatalog {
         initial_entry: Option<&MetadataInventoryEntry>,
         initial_directory: Option<&str>,
         updated_unix_ms: i64,
-    ) -> Result<(), ScanError> {
+    ) -> Result<MetadataInventorySpoolExecution, ScanError> {
         if run.status != MetadataInventoryRunStatus::Running
             || run.request.root_id != authority.change.intent.root_id
             || run.request.root_generation != authority.change.intent.root_generation
@@ -34,7 +32,8 @@ impl SqliteCatalog {
             ));
         }
         let transaction = self.begin_write_in_lane(LibraryChangeLane::Recovery)?;
-        require_current_initialization(&transaction, run, authority)?;
+        let execution = MetadataInventorySpoolExecution::capture(run, authority);
+        execution.require_current_run(&transaction)?;
         let authority_change_id = sqlite_integer(
             authority.change.id.value(),
             "metadata inventory spool authority change id",
@@ -105,7 +104,7 @@ impl SqliteCatalog {
             #[cfg(test)]
             run_before_metadata_inventory_spool_commit_hook();
             transaction.commit().map_err(database_error)?;
-            return Ok(());
+            return Ok(execution);
         }
         let state = if initial_directory.is_some() {
             "enumerating"
@@ -159,50 +158,7 @@ impl SqliteCatalog {
         }
         #[cfg(test)]
         run_before_metadata_inventory_spool_commit_hook();
-        transaction.commit().map_err(database_error)
+        transaction.commit().map_err(database_error)?;
+        Ok(execution)
     }
-}
-
-fn require_current_initialization(
-    transaction: &Transaction<'_>,
-    snapshot: &MetadataInventoryRun,
-    authority: &LeasedLibraryChange,
-) -> Result<(), ScanError> {
-    let current = require_run(transaction, &snapshot.request.run_id)?;
-    if current.status != MetadataInventoryRunStatus::Running || current.request != snapshot.request
-    {
-        return Err(stale_initialization());
-    }
-    validate_active_root(transaction, &current.request)?;
-    if classify_lease_update(
-        transaction,
-        authority.change.id,
-        authority.lease_generation,
-        None,
-    )? != LibraryChangeLeaseUpdateOutcome::Applied
-    {
-        return Err(stale_initialization());
-    }
-    let owner = load_metadata_inventory_authority_owner_for_run(
-        transaction,
-        &current.request.run_id,
-        &current.request.root_id,
-        current.request.root_generation,
-    )?;
-    if owner
-        != Some(sqlite_integer(
-            authority.change.id.value(),
-            "metadata inventory spool authority change id",
-        )?)
-    {
-        return Err(stale_initialization());
-    }
-    Ok(())
-}
-
-fn stale_initialization() -> ScanError {
-    ScanError::new(
-        "metadata_inventory_spool_authority_mismatch",
-        "The source spool initialization no longer owns the current recovery run and lease",
-    )
 }

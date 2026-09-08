@@ -7,14 +7,17 @@ use crate::domain::{
 use crate::ports::{MetadataInventorySource, MetadataInventorySourcePreparation};
 
 use super::local_files::PublicationGuardedMetadataInventoryEntries;
-use super::{PublicationGuardedFileDiscovery, SqliteCatalogSession};
+use super::{
+    MetadataInventorySpoolExecution, PublicationGuardedFileDiscovery, SqliteCatalog,
+    SqliteCatalogSession,
+};
 
 const RAW_SOURCE_BATCH_ENTRIES: usize = 128;
 
 pub(crate) struct DurableLocalMetadataInventory {
     discovery: PublicationGuardedFileDiscovery,
     session: SqliteCatalogSession,
-    run_id: String,
+    execution: MetadataInventorySpoolExecution,
     root_path: String,
     root_identity: FileIdentityEvidence,
     active_directory: Option<ActiveDirectory>,
@@ -64,7 +67,7 @@ impl DurableLocalMetadataInventory {
             }
         };
         let mut catalog = session.open_in_lane(LibraryChangeLane::Recovery)?;
-        catalog.initialize_metadata_inventory_spool(
+        let execution = catalog.initialize_metadata_inventory_spool(
             run,
             authority,
             &root_identity,
@@ -75,20 +78,23 @@ impl DurableLocalMetadataInventory {
         Ok(Self {
             discovery,
             session,
-            run_id: run.request.run_id.clone(),
+            execution,
             root_path: root_path.to_owned(),
             root_identity,
             active_directory: None,
         })
     }
 
-    fn open_next_directory(&mut self, updated_unix_ms: i64) -> Result<bool, ScanError> {
-        let mut catalog = self.session.open_in_lane(LibraryChangeLane::Recovery)?;
-        if catalog.metadata_inventory_spool_is_ready(&self.run_id)? {
+    fn open_next_directory(
+        &mut self,
+        catalog: &mut SqliteCatalog,
+        updated_unix_ms: i64,
+    ) -> Result<bool, ScanError> {
+        if catalog.metadata_inventory_spool_is_ready(&self.execution)? {
             return Ok(false);
         }
         let relative_directory = catalog
-            .next_metadata_inventory_spool_directory(&self.run_id)?
+            .next_metadata_inventory_spool_directory(&self.execution)?
             .ok_or_else(|| {
                 ScanError::new(
                     "metadata_inventory_spool_frontier_invalid",
@@ -106,7 +112,7 @@ impl DurableLocalMetadataInventory {
             )
         })?;
         catalog.begin_metadata_inventory_spool_directory(
-            &self.run_id,
+            &self.execution,
             &relative_directory,
             &opening_identity,
             updated_unix_ms,
@@ -121,6 +127,13 @@ impl DurableLocalMetadataInventory {
 }
 
 impl MetadataInventorySource for DurableLocalMetadataInventory {
+    fn rebind_recovery_lease(&mut self, authority: &LeasedLibraryChange) -> Result<(), ScanError> {
+        let catalog = self.session.open_in_lane(LibraryChangeLane::Recovery)?;
+        self.execution =
+            catalog.rebind_metadata_inventory_spool_execution(&self.execution, authority)?;
+        Ok(())
+    }
+
     fn prepare_next_page(
         &mut self,
         max_source_entries: u32,
@@ -135,13 +148,19 @@ impl MetadataInventorySource for DurableLocalMetadataInventory {
         if cancelled.load(Ordering::Acquire) {
             return Err(cancelled_error());
         }
+        let mut catalog = self.session.open_in_lane(LibraryChangeLane::Recovery)?;
+        if self.active_directory.is_some() {
+            catalog.validate_metadata_inventory_spool_execution(&self.execution)?;
+        }
         let _publication_guard =
             PublicationGuardedFileDiscovery::new_metadata_inventory_publication_guard(
                 &self.root_path,
                 &self.root_identity,
             )?;
         let updated_unix_ms = now_unix_ms()?;
-        if self.active_directory.is_none() && !self.open_next_directory(updated_unix_ms)? {
+        if self.active_directory.is_none()
+            && !self.open_next_directory(&mut catalog, updated_unix_ms)?
+        {
             return Ok(MetadataInventorySourcePreparation::Ready);
         }
         let source_limit = usize::try_from(max_source_entries)
@@ -169,7 +188,6 @@ impl MetadataInventorySource for DurableLocalMetadataInventory {
         }
         #[cfg(test)]
         super::local_files::record_source_peak_staged_window(&self.root_path, batch.len());
-        let mut catalog = self.session.open_in_lane(LibraryChangeLane::Recovery)?;
         if exhausted {
             let active = self.active_directory.take().ok_or_else(|| {
                 ScanError::new(
@@ -195,7 +213,7 @@ impl MetadataInventorySource for DurableLocalMetadataInventory {
                 ));
             }
             catalog.complete_metadata_inventory_spool_directory(
-                &self.run_id,
+                &self.execution,
                 &active.relative_directory,
                 &closing_identity,
                 &batch,
@@ -209,7 +227,7 @@ impl MetadataInventorySource for DurableLocalMetadataInventory {
                 )
             })?;
             catalog.append_metadata_inventory_spool_entries(
-                &self.run_id,
+                &self.execution,
                 &active.relative_directory,
                 &batch,
                 updated_unix_ms,
@@ -227,7 +245,7 @@ impl MetadataInventorySource for DurableLocalMetadataInventory {
             return Err(cancelled_error());
         }
         let catalog = self.session.open_in_lane(LibraryChangeLane::Recovery)?;
-        catalog.load_metadata_inventory_spool_page(&self.run_id, max_entries)
+        catalog.load_metadata_inventory_spool_page(&self.execution, max_entries)
     }
 }
 

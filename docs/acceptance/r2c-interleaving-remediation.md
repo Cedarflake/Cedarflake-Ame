@@ -826,6 +826,50 @@ entry-count checks in the spool validator; a deterministic execution-step regres
 query-owner change are required before calling that cost bounded. No schema, migration, source
 format, UI, lease-handoff protocol, or performance threshold changes in this slice.
 
+### Retained source execution across lease handoff
+
+Two deterministic generated-root regressions exercise real source objects after returning and
+reacquiring the same recovery queue entry. Before the execution fence, an old source appends a
+second raw row (one becomes two), and another old source reads a ready spool successfully. Both
+desired-behavior assertions fail. This proves unauthorized raw access, not an observed stale
+gallery publication or source-media mutation; the downstream publication boundary is separate.
+
+Raw access now carries an adapter-owned immutable run request and exact lease identity.
+Initialization, raw writes, and raw reads share the current run/root/queue/authority proof.
+Readiness, frontier selection, ordered rows, and run progress are read in an independently owned
+consistent snapshot. Every write checks again inside its committing transaction. An active source
+checks before advancing its iterator; its one catalog connection can span a bounded source batch,
+but no database transaction or write permit spans filesystem I/O.
+
+The application explicitly rebinds a retained source to the current lease. Successful rebinding
+does not reinitialize storage or reopen the iterator; failed rebinding does not overwrite the
+previous token. A source failure propagates through the existing attempt boundary and discards
+that retained iterator before reconstruction. Queue expiry semantics, raw batch size, page size,
+schema, and final publication requirements remain unchanged.
+
+Coverage includes every raw directory API under an old lease, terminal/root-removal revocation,
+legitimate continuation with exact source-read counts, and caller-transaction isolation. A
+deterministic two-connection interleaving commits cancellation after read admission: the admitted
+page retains its original rows and frontier, the next read fails, and logical staging of that old
+page into the cancelled run is rejected. This does not promise revocation of an already admitted
+read snapshot; it proves snapshot consistency and the separate staging boundary.
+
+The first expanded inventory run reports 63 passes and one instrumentation assertion failure:
+the new exact-read counter was not enabled, and its directory-open assertion initially referenced
+the non-durable enumerator. The test now enables and reads the existing durable-source counters.
+That failed test observation is not a demonstrated product re-enumeration defect. The fresh
+20-case spool lifecycle suite passes in 18.05 seconds, and the separate caller-transaction case
+passes. Complete current-diff lint then passes, including formatting, all-target/all-feature
+Clippy with warnings denied, and the Dart analyzer. Full same-source Daily remains the next gate;
+these focused counts overlap it and must not be added together.
+
+Independent read-only review of the execution token, raw API extraction, source adapter, and
+application continuation finds no actionable defect in that boundary. It does not run builds,
+replace the new regressions, or audit delayed retirement. The preceding `e253cbc` hosted run
+`34218414939` passes all ordinary jobs and the aggregate without a rerun; its three protected
+release jobs retain their existing skip conditions. That earlier head is not verification of this
+new execution fence.
+
 ## Physical ownership review
 
 Counts include whitespace and comments. The non-inline region may contain `cfg(test)` imports,
@@ -922,3 +966,12 @@ the separate initialization/reset owner contains 208 lines, both without inline-
 The dedicated shared spool lifecycle fixture has 342 lines and the stale-source suite 208. The
 remaining spool writes, paging, and migration validation are still separate physical decomposition
 obligations; extracting initialization does not make the entire inventory facade small.
+
+At the execution-fencing checkpoint, the metadata-inventory facade decreases to 3162 non-inline
+lines. Initialization, execution proof, raw reading, and raw writing contain 164, 167, 171, and
+268 lines, respectively, with no inline test cases. The durable source has 278 production lines;
+application composition has 1543 non-inline lines. Dedicated execution, admission/interleaving,
+and read-transaction test/support files contain 129, 182, and 98 lines. The existing inventory test
+facade has 3909 lines and shared spool fixture 344. These counts are a new checkpoint, not additions
+to preceding totals. Migration validation, the remaining inventory facade, and larger physical
+decomposition remain debt; the split removes raw SQL responsibility rather than forwarding it.

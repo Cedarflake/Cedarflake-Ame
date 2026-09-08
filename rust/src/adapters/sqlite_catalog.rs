@@ -65,6 +65,7 @@ use gallery::{
     resolve_gallery_anchor_cursor, resolve_gallery_asset_anchor, resolve_gallery_location_anchor,
     validate_gallery_query,
 };
+pub(crate) use metadata_inventory::MetadataInventorySpoolExecution;
 use migrations::{migrate_schema, prepare_fresh_catalog_auto_vacuum};
 pub(crate) use read_retry::SqliteCatalogReadExecutor;
 pub(crate) use reclamation::SqliteCatalogSpaceMaintenance;

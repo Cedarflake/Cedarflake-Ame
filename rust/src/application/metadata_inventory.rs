@@ -271,9 +271,10 @@ where
     let run = repository.begin_next_metadata_inventory(request)?;
     let mut retained_source = if run.enumeration_complete {
         None
-    } else if let Some(retained) = retained_source
+    } else if let Some(mut retained) = retained_source
         && retained.run_id == run.request.run_id
     {
+        retained.source.rebind_recovery_lease(authority)?;
         Some(retained)
     } else {
         Some(RetainedMetadataInventorySource {

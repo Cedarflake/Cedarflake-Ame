@@ -590,6 +590,13 @@ pub enum MetadataInventorySourcePreparation {
 }
 
 pub trait MetadataInventorySource: Send {
+    fn rebind_recovery_lease(&mut self, _authority: &LeasedLibraryChange) -> Result<(), ScanError> {
+        Err(ScanError::new(
+            "metadata_inventory_source_rebind_unsupported",
+            "This inventory source cannot continue under a different recovery lease",
+        ))
+    }
+
     fn prepare_next_page(
         &mut self,
         _max_source_entries: u32,
