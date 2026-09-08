@@ -152,12 +152,21 @@ impl MetadataInventorySource for DurableLocalMetadataInventory {
         if self.active_directory.is_some() {
             catalog.validate_metadata_inventory_spool_execution(&self.execution)?;
         }
+        let updated_unix_ms = now_unix_ms()?;
+        if self.active_directory.is_none()
+            && catalog.reset_metadata_inventory_spool_batch(
+                &self.execution,
+                max_source_entries.min(RAW_SOURCE_BATCH_ENTRIES as u32),
+                updated_unix_ms,
+            )?
+        {
+            return Ok(MetadataInventorySourcePreparation::Yielded);
+        }
         let _publication_guard =
             PublicationGuardedFileDiscovery::new_metadata_inventory_publication_guard(
                 &self.root_path,
                 &self.root_identity,
             )?;
-        let updated_unix_ms = now_unix_ms()?;
         if self.active_directory.is_none()
             && !self.open_next_directory(&mut catalog, updated_unix_ms)?
         {

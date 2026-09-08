@@ -5,7 +5,7 @@ use crate::domain::ScanError;
 use super::database_error;
 
 #[cfg(test)]
-mod tests;
+pub(in crate::adapters::sqlite_catalog) mod tests;
 
 pub(super) fn validate(
     connection: &Connection,
@@ -14,9 +14,11 @@ pub(super) fn validate(
     let invalid_relations = connection
         .query_row(
             "WITH directory_ordinals AS (
-               SELECT ordinal,
-                      ROW_NUMBER() OVER (PARTITION BY run_id ORDER BY ordinal) - 1 AS expected
-               FROM library_metadata_inventory_spool_directories
+               SELECT directory.ordinal,
+                      ROW_NUMBER() OVER (PARTITION BY directory.run_id ORDER BY directory.ordinal) - 1 AS expected
+               FROM library_metadata_inventory_spool_directories AS directory
+               JOIN library_metadata_inventory_spools AS spool ON spool.run_id = directory.run_id
+               WHERE spool.state <> 'retired'
              ), entry_counts AS MATERIALIZED (
                SELECT run_id, directory_relative_path, COUNT(*) AS actual_count
                FROM library_metadata_inventory_spool_entries
@@ -29,7 +31,9 @@ pub(super) fn validate(
                LEFT JOIN library_metadata_inventory_runs AS run ON run.id = spool.run_id
                LEFT JOIN library_recovery_authorities AS authority
                  ON authority.change_id = spool.authority_change_id
-               WHERE run.id IS NULL OR authority.change_id IS NULL
+               WHERE typeof(spool.run_id) <> 'text'
+                  OR length(spool.run_id) NOT BETWEEN 1 AND 256
+                  OR (spool.state <> 'retired' AND (run.id IS NULL OR authority.change_id IS NULL
                   OR (?1 = 1 AND run.status <> 'running')
                   OR (?1 >= 2 AND run.status NOT IN ('running', 'comparing', 'completed'))
                   OR authority.retired_unix_ms IS NOT NULL
@@ -39,16 +43,29 @@ pub(super) fn validate(
                   OR run.root_id <> spool.root_id
                   OR run.root_generation <> spool.root_generation
                   OR run.scope_kind <> spool.scope_kind
-                  OR run.scope_relative_path <> spool.scope_relative_path
+                  OR run.scope_relative_path <> spool.scope_relative_path))
+                  OR (spool.state = 'retired' AND (
+                    ?1 < 4 OR run.status IN ('running', 'comparing')
+                    OR (authority.retired_unix_ms IS NULL AND authority.run_id = spool.run_id
+                      AND (run.id IS NULL OR run.status NOT IN ('failed', 'cancelled', 'superseded')))
+                    OR (authority.run_id = spool.run_id AND (
+                      authority.root_id <> spool.root_id
+                      OR authority.root_generation <> spool.root_generation))
+                    OR (run.id IS NOT NULL AND (run.root_id <> spool.root_id
+                      OR run.root_generation <> spool.root_generation
+                      OR run.scope_kind <> spool.scope_kind
+                      OR run.scope_relative_path <> spool.scope_relative_path))
+                  ))
              ) OR EXISTS(
                SELECT 1 FROM directory_ordinals WHERE ordinal <> expected
              ) OR EXISTS(
                SELECT 1
                FROM library_metadata_inventory_spool_directories AS directory
+               JOIN library_metadata_inventory_spools AS spool ON spool.run_id = directory.run_id
                LEFT JOIN entry_counts AS entries
                  ON entries.run_id = directory.run_id
                 AND entries.directory_relative_path = directory.relative_directory
-               WHERE directory.state = 'completed' AND (
+               WHERE spool.state <> 'retired' AND directory.state = 'completed' AND (
                  directory.directory_identity_scheme IS NULL
                  OR directory.source_entry_count <> COALESCE(entries.actual_count, 0)
                )
@@ -60,7 +77,7 @@ pub(super) fn validate(
                )) OR (spool.state = 'enumerating' AND NOT EXISTS(
                  SELECT 1 FROM library_metadata_inventory_spool_directories AS directory
                  WHERE directory.run_id = spool.run_id
-                   AND directory.state IN ('pending', 'enumerating')
+                   AND directory.state IN ('pending', 'enumerating', 'resetting')
                ))
              ) OR EXISTS(
                SELECT 1 FROM pragma_foreign_key_check('library_metadata_inventory_spools')

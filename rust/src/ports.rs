@@ -6,6 +6,8 @@ mod preview_health;
 pub use preview_health::{PreviewHealthObservation, PreviewHealthOutcome, PreviewHealthTarget};
 mod scan_publication_control;
 pub(crate) use scan_publication_control::ScanPublicationControl;
+mod inventory_cleanup_control;
+pub use inventory_cleanup_control::InventoryCleanupControl;
 
 use crate::domain::{
     AssetLocationView, CatalogCursor, CatalogDeltaBatch, CatalogDeltaPublication, CatalogSnapshot,
@@ -781,6 +783,7 @@ pub trait MetadataInventoryRepository {
         terminal_before_unix_ms: i64,
         entry_limit: u32,
         run_limit: u32,
+        control: InventoryCleanupControl,
     ) -> Result<MetadataInventoryCleanupReport, ScanError>;
 }
 

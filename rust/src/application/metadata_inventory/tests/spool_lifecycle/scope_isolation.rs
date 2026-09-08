@@ -12,7 +12,9 @@ fn removing_one_root_preserves_another_roots_real_subtree_spool() {
     let removed_id = fixture.root_id.clone();
     let removed_file = fixture.source.path().join("album/retained.png");
     let removed_bytes = fs::read(&removed_file).expect("first source bytes");
-    let removed_run = stage_real_spool(&mut fixture, subtree_scope());
+    let (removed_run, _, removed_execution) =
+        stage_named_spool_with_execution(&mut fixture, subtree_scope(), "spool-lifecycle");
+    let removed_raw = spool_rows(&fixture.catalog, &removed_run.request.run_id);
 
     let second_source = tempdir().expect("second controlled source");
     let retained_file = second_source.path().join("album/retained.png");
@@ -62,10 +64,8 @@ fn removing_one_root_preserves_another_roots_real_subtree_spool() {
             .unregister_root(&removed_id)
             .expect("remove only first root")
     );
-    assert_eq!(
-        spool_rows(&fixture.catalog, &removed_run.request.run_id),
-        SpoolRows::default()
-    );
+    assert_retired_spool(&fixture.catalog, &removed_run.request.run_id, &removed_raw);
+    assert_execution_rejected(&fixture.catalog, &removed_execution);
     assert_eq!(
         spool_rows(&fixture.catalog, &retained_run.request.run_id),
         retained_raw
@@ -75,7 +75,21 @@ fn removing_one_root_preserves_another_roots_real_subtree_spool() {
         retained_authority
     );
     drop(fixture.catalog);
-    fixture.catalog = SqliteCatalog::open(catalog_path).expect("full reopen retains second owner");
+    fixture.catalog =
+        SqliteCatalog::open(catalog_path.clone()).expect("full reopen retains second owner");
+    assert_retired_spool(&fixture.catalog, &removed_run.request.run_id, &removed_raw);
+    cleanup_inventory_until_idle(&mut fixture, 10_000);
+    assert_eq!(
+        spool_rows(&fixture.catalog, &removed_run.request.run_id),
+        SpoolRows::default()
+    );
+    assert_eq!(
+        recovery_retirement_evidence(&fixture.catalog, &retained_run.request.run_id),
+        retained_authority
+    );
+    drop(fixture.catalog);
+    fixture.catalog = SqliteCatalog::open(catalog_path)
+        .expect("full reopen after reclaiming only the removed root");
     assert_eq!(
         fixture
             .catalog
@@ -86,6 +100,14 @@ fn removing_one_root_preserves_another_roots_real_subtree_spool() {
     assert_eq!(
         spool_rows(&fixture.catalog, &retained_run.request.run_id),
         retained_raw
+    );
+    assert_eq!(
+        spool_state(&fixture.catalog, &retained_run.request.run_id).as_deref(),
+        Some("ready")
+    );
+    assert_eq!(
+        recovery_retirement_evidence(&fixture.catalog, &retained_run.request.run_id),
+        retained_authority
     );
     assert_eq!(
         fs::read(removed_file).expect("first source unchanged"),
@@ -102,7 +124,9 @@ fn newer_epoch_retires_the_previous_subtree_initial_observation() {
     let mut fixture = InventoryFixture::new(&["album/retained.png"]);
     let source_path = fixture.source.path().join("album/retained.png");
     let source_bytes = fs::read(&source_path).expect("source bytes");
-    let (old_run, leased) = stage_real_spool_with_lease(&mut fixture, subtree_scope());
+    let (old_run, leased, old_execution) =
+        stage_named_spool_with_execution(&mut fixture, subtree_scope(), "spool-lifecycle");
+    let old_raw = spool_rows(&fixture.catalog, &old_run.request.run_id);
     assert_eq!(
         spool_rows(&fixture.catalog, &old_run.request.run_id).entries_without_directory,
         1
@@ -126,14 +150,25 @@ fn newer_epoch_retires_the_previous_subtree_initial_observation() {
         .expect("retained old run history");
     assert_eq!(old.status, MetadataInventoryRunStatus::Superseded);
     assert!(!old.absence_authority);
+    assert_retired_spool(&fixture.catalog, &old_run.request.run_id, &old_raw);
+    assert_execution_rejected(&fixture.catalog, &old_execution);
+    let (next, _) = stage_opened_spool(&mut fixture, &subtree_scope(), next, leased);
+    let next_raw = spool_rows(&fixture.catalog, &next.request.run_id);
     assert_eq!(
-        spool_rows(&fixture.catalog, &old_run.request.run_id),
-        SpoolRows::default()
+        next_raw.entries, 2,
+        "the successor must start before old storage is reclaimed"
     );
     let catalog_path = fixture.catalog.catalog_path().to_path_buf();
     drop(fixture.catalog);
     fixture.catalog =
-        SqliteCatalog::open(catalog_path).expect("full reopen after epoch replacement");
+        SqliteCatalog::open(catalog_path.clone()).expect("full reopen after epoch replacement");
+    assert_retired_spool(&fixture.catalog, &old_run.request.run_id, &old_raw);
+    cleanup_inventory_until_idle(&mut fixture, 10_000);
+    assert_eq!(spool_rows(&fixture.catalog, &next.request.run_id), next_raw);
+    assert_execution_rejected(&fixture.catalog, &old_execution);
+    drop(fixture.catalog);
+    fixture.catalog = SqliteCatalog::open(catalog_path)
+        .expect("full reopen after reclaiming the superseded epoch");
     assert_eq!(
         fixture
             .catalog

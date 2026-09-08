@@ -25,7 +25,7 @@ fn empty_terminal_inventory_cleanup_preserves_active_rows_without_write_admissio
 
     let report = fixture
         .catalog
-        .cleanup_terminal_metadata_inventories(10_000, 1, 1)
+        .cleanup_terminal_metadata_inventories(10_000, 1, 1, Default::default())
         .expect("cleanup with only active inventory rows");
 
     assert_eq!(
@@ -104,7 +104,7 @@ fn terminal_inventory_cleanup_keeps_the_strict_expiry_boundary_and_input_validat
 
     let staged_cleanup = fixture
         .catalog
-        .cleanup_terminal_metadata_inventories(0, 2, 1)
+        .cleanup_terminal_metadata_inventories(0, 2, 1, Default::default())
         .expect("terminal staging cleanup is independent of summary age");
     assert_eq!(staged_cleanup.removed_entry_count, 2);
     assert_eq!(staged_cleanup.removed_run_count, 0);
@@ -113,7 +113,7 @@ fn terminal_inventory_cleanup_keeps_the_strict_expiry_boundary_and_input_validat
 
     let boundary = fixture
         .catalog
-        .cleanup_terminal_metadata_inventories(2_200, 2, 1)
+        .cleanup_terminal_metadata_inventories(2_200, 2, 1, Default::default())
         .expect("summary at the cutoff is not expired");
     assert_eq!(
         boundary,
@@ -128,7 +128,7 @@ fn terminal_inventory_cleanup_keeps_the_strict_expiry_boundary_and_input_validat
     );
     let expired = fixture
         .catalog
-        .cleanup_terminal_metadata_inventories(2_201, 2, 1)
+        .cleanup_terminal_metadata_inventories(2_201, 2, 1, Default::default())
         .expect("remove strictly expired summary");
     assert_eq!(expired.removed_entry_count, 0);
     assert_eq!(expired.removed_run_count, 1);
@@ -142,7 +142,7 @@ fn terminal_inventory_cleanup_keeps_the_strict_expiry_boundary_and_input_validat
     );
     let error = fixture
         .catalog
-        .cleanup_terminal_metadata_inventories(2_201, 0, 1)
+        .cleanup_terminal_metadata_inventories(2_201, 0, 1, Default::default())
         .expect_err("empty cleanup still validates its bounds");
     assert_eq!(error.code, "metadata_inventory_cleanup_limit_invalid");
 }

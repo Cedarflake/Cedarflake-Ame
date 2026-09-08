@@ -8,7 +8,10 @@ use rusqlite::{Connection, params};
 use super::super::migrate_schema;
 use super::validate;
 
-fn fixture(directory_count: u32, entries_per_directory: u32) -> Connection {
+pub(in crate::adapters::sqlite_catalog) fn fixture(
+    directory_count: u32,
+    entries_per_directory: u32,
+) -> Connection {
     let mut connection = Connection::open_in_memory().expect("isolated catalog");
     connection
         .execute_batch("PRAGMA foreign_keys = ON")
@@ -101,6 +104,7 @@ fn fixture(directory_count: u32, entries_per_directory: u32) -> Connection {
         }
     }
     transaction.commit().expect("seed fixture");
+    validate(&connection, 4).expect("valid active raw contract");
     connection
 }
 

@@ -100,7 +100,7 @@ fn cleanup_rereads_peer_exhausted_candidates_and_keeps_active_rows() {
             "the hint does not own a writer permit"
         );
         let removed = peer
-            .cleanup_terminal_metadata_inventories(3_000, 16, 16)
+            .cleanup_terminal_metadata_inventories(3_000, 16, 16, Default::default())
             .expect("peer exhausts terminal candidates");
         assert_eq!(removed.removed_entry_count, 1);
         assert_eq!(removed.removed_run_count, 1);
@@ -109,7 +109,7 @@ fn cleanup_rereads_peer_exhausted_candidates_and_keeps_active_rows() {
     });
 
     let report = catalog
-        .cleanup_terminal_metadata_inventories(3_000, 16, 16)
+        .cleanup_terminal_metadata_inventories(3_000, 16, 16, Default::default())
         .expect("reselect after positive hint becomes empty");
 
     assert!(ran.get(), "the positive hint must invoke the peer boundary");
@@ -184,7 +184,7 @@ fn authorize_inventory(catalog: &mut SqliteCatalog, request: &MetadataInventoryS
         .expect("persist active inventory recovery authority");
 }
 
-fn catalog_with_baseline() -> (tempfile::TempDir, tempfile::TempDir, SqliteCatalog) {
+pub(super) fn catalog_with_baseline() -> (tempfile::TempDir, tempfile::TempDir, SqliteCatalog) {
     let source = tempfile::tempdir().expect("generated empty source");
     let storage = tempfile::tempdir().expect("generated catalog storage");
     let mut catalog = SqliteCatalog::open(storage.path().join("catalog.sqlite3")).expect("catalog");
@@ -207,7 +207,7 @@ fn catalog_with_baseline() -> (tempfile::TempDir, tempfile::TempDir, SqliteCatal
     (source, storage, catalog)
 }
 
-fn request(run_id: &str) -> MetadataInventoryStartRequest {
+pub(super) fn request(run_id: &str) -> MetadataInventoryStartRequest {
     MetadataInventoryStartRequest {
         run_id: run_id.to_owned(),
         root_id: "inventory-race-root".to_owned(),

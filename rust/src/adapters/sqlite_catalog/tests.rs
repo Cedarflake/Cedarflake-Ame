@@ -15,6 +15,7 @@ use crate::ports::{
     LibraryChangeQueue,
 };
 
+use super::migrations::downgrade_source_revision_contract_to_v30_for_test;
 use super::*;
 
 mod root_unregistration;
@@ -47,85 +48,6 @@ fn user_interactive_timeout_releases_its_priority_waiter() {
         admission.try_acquire(LibraryChangeLane::Recovery).is_some(),
         "a timed-out user-interactive waiter must not permanently block background writers",
     );
-}
-
-fn downgrade_source_revision_contract_to_v30_for_test(connection: &Connection) {
-    let version = connection
-        .query_row("SELECT version FROM schema_info LIMIT 1", [], |row| {
-            row.get::<_, i64>(0)
-        })
-        .expect("source revision fixture schema version");
-    if version != 31 {
-        return;
-    }
-
-    connection
-        .execute_batch(
-            "DROP TRIGGER asset_locations_source_generation_update_guard;
-             DROP TRIGGER asset_locations_source_generation_insert_guard;
-             DROP TABLE library_source_revision_metadata_contract;
-             DELETE FROM library_metadata_inventory_spools;
-             DROP INDEX library_metadata_inventory_spool_entries_order;
-             DROP TABLE library_metadata_inventory_spool_entries;
-             DROP TABLE library_metadata_inventory_spool_contract;
-             CREATE TABLE library_metadata_inventory_spool_contract (
-               singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
-               contract_version INTEGER NOT NULL CHECK(contract_version = 2),
-               complete INTEGER NOT NULL CHECK(complete = 1)
-             );
-             INSERT INTO library_metadata_inventory_spool_contract(
-               singleton, contract_version, complete
-             ) VALUES (1, 2, 1);
-             CREATE TABLE library_metadata_inventory_spool_entries (
-               run_id TEXT NOT NULL,
-               directory_relative_path TEXT,
-               relative_path TEXT NOT NULL CHECK(length(relative_path) BETWEEN 1 AND 32767),
-               entry_kind TEXT NOT NULL CHECK(entry_kind IN ('file', 'directory', 'other')),
-               file_size INTEGER CHECK(file_size IS NULL OR file_size >= 0),
-               modified_unix_ms INTEGER NOT NULL,
-               file_identity_scheme TEXT,
-               file_identity_value TEXT,
-               placeholder_state TEXT NOT NULL CHECK(placeholder_state IN (
-                 'available', 'offline', 'recall_on_open', 'recall_on_data_access'
-               )),
-               is_reparse_point INTEGER NOT NULL CHECK(is_reparse_point IN (0, 1)),
-               staged_unix_ms INTEGER NOT NULL CHECK(staged_unix_ms >= 0),
-               CHECK(directory_relative_path IS NULL OR instr(directory_relative_path, char(92)) = 0),
-               CHECK(instr(relative_path, char(92)) = 0),
-               CHECK(
-                 (entry_kind = 'file' AND file_size IS NOT NULL)
-                 OR
-                 (entry_kind <> 'file' AND file_size IS NULL)
-               ),
-               CHECK(
-                 (file_identity_scheme IS NULL AND file_identity_value IS NULL)
-                 OR
-                 (length(file_identity_scheme) BETWEEN 1 AND 128
-                   AND length(file_identity_value) BETWEEN 1 AND 512)
-               ),
-               PRIMARY KEY(run_id, relative_path),
-               FOREIGN KEY(run_id, directory_relative_path)
-                 REFERENCES library_metadata_inventory_spool_directories(run_id, relative_directory)
-                 ON DELETE CASCADE
-             );
-             CREATE INDEX library_metadata_inventory_spool_entries_order
-               ON library_metadata_inventory_spool_entries(run_id, relative_path);
-             ALTER TABLE catalog_state DROP COLUMN next_source_generation;
-             ALTER TABLE asset_locations DROP COLUMN source_revision_token;
-             ALTER TABLE asset_locations DROP COLUMN source_generation;
-             ALTER TABLE preview_artifacts DROP COLUMN source_revision_token;
-             ALTER TABLE preview_artifacts DROP COLUMN source_generation;
-             ALTER TABLE library_terminal_media_evidence DROP COLUMN source_revision_token;
-             ALTER TABLE library_terminal_media_evidence DROP COLUMN source_generation;
-             ALTER TABLE library_change_catch_up_handoffs DROP COLUMN source_revision_token;
-             ALTER TABLE library_change_catch_up_handoffs DROP COLUMN source_generation;
-             ALTER TABLE library_change_scan_handoff_items DROP COLUMN source_revision_token;
-             ALTER TABLE library_change_scan_handoff_items DROP COLUMN source_generation;
-             ALTER TABLE library_metadata_inventory_entries DROP COLUMN source_revision_token;
-             PRAGMA user_version = 30;
-             UPDATE schema_info SET version = 30;",
-        )
-        .expect("restore v30 source revision shape");
 }
 
 fn remove_v27_spool_contract_for_test(connection: &Connection) {
@@ -788,7 +710,7 @@ fn migrates_v26_through_the_current_spool_contract_and_reopens() {
             },
         )
         .expect("current spool contract evidence");
-    assert_eq!(evidence, (SCHEMA_VERSION, SCHEMA_VERSION, 3, 1, 0));
+    assert_eq!(evidence, (SCHEMA_VERSION, SCHEMA_VERSION, 4, 1, 0));
     drop(migrated);
     SqliteCatalog::open(path).expect("reopen migrated current catalog");
 }

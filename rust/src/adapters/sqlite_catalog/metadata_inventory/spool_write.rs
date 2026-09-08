@@ -176,7 +176,7 @@ impl SqliteCatalog {
                 "UPDATE library_metadata_inventory_spools
                  SET state = CASE WHEN EXISTS(
                        SELECT 1 FROM library_metadata_inventory_spool_directories
-                       WHERE run_id = ?1 AND state IN ('pending', 'enumerating')
+                       WHERE run_id = ?1 AND state IN ('pending', 'enumerating', 'resetting')
                      ) THEN 'enumerating' ELSE 'ready' END,
                      updated_unix_ms = ?2
                  WHERE run_id = ?1",

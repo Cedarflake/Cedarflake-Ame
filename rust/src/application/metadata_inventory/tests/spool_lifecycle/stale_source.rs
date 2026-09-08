@@ -24,6 +24,7 @@ fn assert_terminal_source_rejected(status: MetadataInventoryRunStatus) {
     drop(open_inventory_source(&fixture, &scope, &stale_run, &lease));
     assert_eq!(stale_run.status, MetadataInventoryRunStatus::Running);
     let identity = spool_root_identity(&fixture, &stale_run.request.run_id);
+    let before = spool_rows(&fixture.catalog, &stale_run.request.run_id);
     let source_path = fixture.source.path().join("album/retained.png");
     let source_bytes = fs::read(&source_path).expect("original generated media");
 
@@ -31,6 +32,7 @@ fn assert_terminal_source_rejected(status: MetadataInventoryRunStatus) {
         .catalog
         .terminate_metadata_inventory(&stale_run.request.run_id, status, None, 6_000)
         .expect("commit termination before delayed source initialization");
+    assert_retired_spool(&fixture.catalog, &stale_run.request.run_id, &before);
     let result = fixture.catalog.initialize_metadata_inventory_spool(
         &stale_run,
         &lease,
@@ -41,7 +43,10 @@ fn assert_terminal_source_rejected(status: MetadataInventoryRunStatus) {
     );
     let retained = spool_rows(&fixture.catalog, &stale_run.request.run_id);
     let reopened = SqliteCatalog::open(fixture.catalog.catalog_path().to_path_buf());
-    assert_eq!(fs::read(source_path).expect("retained media"), source_bytes);
+    assert_eq!(
+        fs::read(&source_path).expect("retained media"),
+        source_bytes
+    );
     assert!(
         result.is_err(),
         "a stale Running snapshot must not recreate terminal spool storage; status={status:?}; rows={retained:?}; reopen={:?}",
@@ -51,8 +56,38 @@ fn assert_terminal_source_rejected(status: MetadataInventoryRunStatus) {
         result.unwrap_err().code,
         "metadata_inventory_spool_authority_mismatch"
     );
-    assert_eq!(retained, SpoolRows::default());
+    assert_eq!(retained, before);
+    assert_retired_spool(&fixture.catalog, &stale_run.request.run_id, &before);
     reopened.expect("termination remains a valid restart boundary");
+    cleanup_inventory_until_idle(&mut fixture, 6_001);
+    assert_eq!(
+        spool_rows(&fixture.catalog, &stale_run.request.run_id),
+        SpoolRows::default()
+    );
+    assert!(
+        fixture
+            .catalog
+            .initialize_metadata_inventory_spool(
+                &stale_run,
+                &lease,
+                &identity,
+                None,
+                Some("album"),
+                6_002,
+            )
+            .is_err(),
+        "reclamation cannot permit recreation from an old Running snapshot"
+    );
+    assert_eq!(
+        spool_rows(&fixture.catalog, &stale_run.request.run_id),
+        SpoolRows::default()
+    );
+    SqliteCatalog::open(fixture.catalog.catalog_path().to_path_buf())
+        .expect("reclaimed storage and rejected stale initialization remain valid");
+    assert_eq!(
+        fs::read(source_path).expect("retained media after cleanup"),
+        source_bytes
+    );
 }
 
 #[test]
@@ -125,10 +160,30 @@ fn stale_source_lease_cannot_reset_a_released_or_reacquired_directory() {
         before_directory
     );
 
-    fixture
+    let successor_execution = fixture
         .catalog
         .initialize_metadata_inventory_spool(&run, &current, &identity, None, Some(""), 4_700)
         .expect("current continuation may reset its incomplete directory");
+    assert_eq!(spool_rows(&fixture.catalog, &run.request.run_id), before);
+    assert_eq!(
+        directory_state(&fixture, &run.request.run_id, "album"),
+        ("resetting".to_owned(), 1, Some(identity.scheme.clone())),
+    );
+    SqliteCatalog::open(fixture.catalog.catalog_path().to_path_buf())
+        .expect("interrupted directory reset is restart-safe");
+    assert!(
+        fixture
+            .catalog
+            .reset_metadata_inventory_spool_batch(&execution, 1, 4_800)
+            .is_err(),
+        "a revoked lease cannot reclaim its successor's raw observations"
+    );
+    assert!(
+        fixture
+            .catalog
+            .reset_metadata_inventory_spool_batch(&successor_execution, 1, 4_800)
+            .expect("one bounded reset batch")
+    );
     assert_eq!(
         directory_state(&fixture, &run.request.run_id, "album"),
         ("pending".to_owned(), 0, None),

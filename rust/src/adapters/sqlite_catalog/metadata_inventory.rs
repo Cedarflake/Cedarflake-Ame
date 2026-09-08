@@ -25,16 +25,20 @@ use crate::domain::{
 };
 use crate::ports::{MetadataInventoryAbsencePublicationRequest, MetadataInventoryRepository};
 
-use super::spool_retirement::{SpoolOwner, delete_owned_spools};
+use super::spool_retirement::{SpoolOwner, retire_owned_spools};
 use super::{
     SqliteCatalog, database_error, source_revision_token, sqlite_integer, sqlite_unsigned,
     stored_source_revision,
 };
 
+mod candidate_cleanup;
+mod cleanup_transaction;
 mod lifecycle;
+mod spool_cleanup;
 mod spool_execution;
 mod spool_initialization;
 mod spool_read;
+mod spool_reset;
 mod spool_write;
 
 pub(crate) use spool_execution::MetadataInventorySpoolExecution;
@@ -602,7 +606,7 @@ impl MetadataInventoryRepository for SqliteCatalog {
                 ));
             }
         }
-        delete_owned_spools(&transaction, SpoolOwner::Run(&authority.run_id))?;
+        retire_owned_spools(&transaction, SpoolOwner::Run(&authority.run_id))?;
         let retired = transaction
             .execute(
                 "UPDATE library_recovery_authorities
@@ -1513,7 +1517,7 @@ impl MetadataInventoryRepository for SqliteCatalog {
             ));
         }
         let (issue_code, issue_message) = issue.unzip();
-        delete_owned_spools(&transaction, SpoolOwner::Run(run_id))?;
+        retire_owned_spools(&transaction, SpoolOwner::Run(run_id))?;
         transaction
             .execute(
                 "UPDATE library_metadata_inventory_runs
@@ -1549,8 +1553,15 @@ impl MetadataInventoryRepository for SqliteCatalog {
         terminal_before_unix_ms: i64,
         entry_limit: u32,
         run_limit: u32,
+        control: crate::ports::InventoryCleanupControl,
     ) -> Result<MetadataInventoryCleanupReport, ScanError> {
-        lifecycle::cleanup_terminal(self, terminal_before_unix_ms, entry_limit, run_limit)
+        lifecycle::cleanup_terminal(
+            self,
+            terminal_before_unix_ms,
+            entry_limit,
+            run_limit,
+            control,
+        )
     }
 }
 
@@ -2257,7 +2268,7 @@ fn begin_metadata_inventory_transaction(
                 ));
             }
         }
-        delete_owned_spools(transaction, SpoolOwner::Run(&active_id))?;
+        retire_owned_spools(transaction, SpoolOwner::Run(&active_id))?;
         transaction
             .execute(
                 "UPDATE library_metadata_inventory_runs

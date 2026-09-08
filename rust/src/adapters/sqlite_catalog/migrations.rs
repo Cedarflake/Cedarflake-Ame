@@ -23,8 +23,15 @@ use super::{
 };
 
 mod current_schema;
-mod inventory_spool_rows;
+mod inventory_spool_retirement;
+pub(super) mod inventory_spool_rows;
+mod persistent_journal_baseline;
 mod retired_root_authority;
+
+use persistent_journal_baseline::{
+    validate_persistent_journal_baseline_contract,
+    validate_persistent_journal_baseline_contract_with_depth,
+};
 
 use current_schema::{
     ContractValidationDepth, validate_current_schema_contract,
@@ -75,6 +82,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
         migrate_v28_to_v29_transaction(&transaction)?;
         migrate_v29_to_v30_transaction(&transaction)?;
         migrate_v30_to_v31_transaction(&transaction)?;
+        inventory_spool_retirement::migrate_transaction(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -145,6 +153,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             28 => migrate_v28_to_v29(connection)?,
             29 => migrate_v29_to_v30(connection)?,
             30 => migrate_v30_to_v31(connection)?,
+            31 => inventory_spool_retirement::migrate(connection)?,
             _ => {
                 return Err(ScanError::new(
                     "catalog_schema_unsupported",
@@ -714,6 +723,7 @@ fn legacy_terminal_metadata_inventory_repair_shape_matches(
         27 => Some(1),
         28..=30 => Some(2),
         31 => Some(3),
+        32 => Some(4),
         _ => return Ok(false),
     };
     let core_matches = schema_object_sql_matches(
@@ -769,6 +779,7 @@ fn legacy_terminal_metadata_inventory_repair_needed(
                    SELECT 1 FROM library_metadata_inventory_spools AS spool
                    JOIN library_metadata_inventory_runs AS run ON run.id = spool.run_id
                    WHERE run.status IN ('failed', 'cancelled', 'superseded')
+                     AND spool.state <> 'retired'
                  )",
                 [],
                 |row| row.get::<_, bool>(0),
@@ -787,7 +798,12 @@ fn repair_legacy_terminal_metadata_inventory_state_transaction(
     if !legacy_terminal_metadata_inventory_repair_shape_matches(transaction, schema_version)? {
         return Ok(());
     }
-    if schema_version >= 27 {
+    if schema_version >= 32 {
+        super::spool_retirement::retire_owned_spools(
+            transaction,
+            super::spool_retirement::SpoolOwner::LegacyTerminalRuns,
+        )?;
+    } else if schema_version >= 27 {
         super::spool_retirement::delete_owned_spools(
             transaction,
             super::spool_retirement::SpoolOwner::LegacyTerminalRuns,
@@ -816,7 +832,7 @@ fn retired_live_gap_claim_repair_shape_matches(
     connection: &Connection,
     schema_version: i64,
 ) -> Result<bool, ScanError> {
-    if !matches!(schema_version, 30 | 31) {
+    if !matches!(schema_version, 30..=32) {
         return Ok(false);
     }
     let schema_matches = schema_object_sql_matches(
@@ -1188,7 +1204,13 @@ fn validate_pre_live_gap_schema_contract_with_depth(
     validate_metadata_inventory_spool_contract_version_with_depth(
         connection,
         schema_version,
-        if schema_version >= 31 { 3 } else { 2 },
+        if schema_version >= 32 {
+            4
+        } else if schema_version == 31 {
+            3
+        } else {
+            2
+        },
         depth,
     )?;
     validate_root_publication_namespace_contract_with_depth(connection, depth)
@@ -2158,332 +2180,6 @@ fn validate_recovery_authority_contract_with_depth(
     Ok(())
 }
 
-fn validate_persistent_journal_baseline_contract(connection: &Connection) -> Result<(), ScanError> {
-    validate_persistent_journal_baseline_contract_with_depth(
-        connection,
-        ContractValidationDepth::Full,
-    )
-}
-
-fn validate_persistent_journal_baseline_contract_with_depth(
-    connection: &Connection,
-    depth: ContractValidationDepth,
-) -> Result<(), ScanError> {
-    let columns_match = table_columns_match(
-        connection,
-        "library_persistent_journal_baselines",
-        &[
-            ("change_id", "INTEGER", false, 1),
-            ("root_id", "TEXT", true, 0),
-            ("root_generation", "INTEGER", true, 0),
-            ("volume_guid", "TEXT", true, 0),
-            ("volume_serial", "TEXT", true, 0),
-            ("root_reference_version", "INTEGER", true, 0),
-            ("root_file_reference", "BLOB", true, 0),
-            ("journal_id", "TEXT", true, 0),
-            ("opening_next_usn", "TEXT", true, 0),
-            ("closing_next_usn", "TEXT", false, 0),
-            ("protocol_version", "INTEGER", true, 0),
-            ("contract_version", "INTEGER", true, 0),
-            ("phase", "TEXT", true, 0),
-            ("authorized_unix_ms", "INTEGER", true, 0),
-            ("updated_unix_ms", "INTEGER", true, 0),
-            ("completed_unix_ms", "INTEGER", false, 0),
-        ],
-    )?;
-    let schema_matches = schema_object_sql_matches(
-        connection,
-        "table",
-        "library_persistent_journal_baselines",
-        PERSISTENT_JOURNAL_BASELINE_TABLE_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "index",
-        "library_persistent_journal_baselines_root",
-        PERSISTENT_JOURNAL_BASELINE_ROOT_INDEX_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "trigger",
-        "library_persistent_journal_baseline_insert_guard",
-        PERSISTENT_JOURNAL_BASELINE_INSERT_GUARD_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "trigger",
-        "library_persistent_journal_baseline_update_guard",
-        PERSISTENT_JOURNAL_BASELINE_UPDATE_GUARD_DDL,
-    )?;
-    let foreign_keys_match = connection
-        .query_row(
-            "SELECT COUNT(*) = 3
-               AND EXISTS(
-                 SELECT 1 FROM pragma_foreign_key_list('library_persistent_journal_baselines')
-                 WHERE \"table\" = 'library_recovery_authorities'
-                   AND \"from\" = 'change_id' AND \"to\" = 'change_id'
-                   AND on_update = 'NO ACTION' AND on_delete = 'CASCADE'
-                   AND \"match\" = 'NONE'
-               )
-               AND EXISTS(
-                 SELECT 1
-                 FROM pragma_foreign_key_list('library_persistent_journal_baselines') AS root_id
-                 JOIN pragma_foreign_key_list('library_persistent_journal_baselines') AS generation
-                   ON generation.id = root_id.id AND generation.seq = 1
-                 WHERE root_id.seq = 0
-                   AND root_id.\"table\" = 'library_persistent_journal_root_state'
-                   AND generation.\"table\" = 'library_persistent_journal_root_state'
-                   AND root_id.\"from\" = 'root_id' AND root_id.\"to\" = 'root_id'
-                   AND generation.\"from\" = 'root_generation'
-                   AND generation.\"to\" = 'root_generation'
-                   AND root_id.on_update = 'NO ACTION' AND root_id.on_delete = 'CASCADE'
-                   AND generation.on_update = 'NO ACTION'
-                   AND generation.on_delete = 'CASCADE'
-                   AND root_id.\"match\" = 'NONE' AND generation.\"match\" = 'NONE'
-               )
-             FROM pragma_foreign_key_list('library_persistent_journal_baselines')",
-            [],
-            |row| row.get::<_, bool>(0),
-        )
-        .map_err(database_error)?;
-    if !columns_match || !schema_matches || !foreign_keys_match {
-        return Err(ScanError::new(
-            "catalog_persistent_journal_baseline_contract_unverifiable",
-            "The catalog cannot prove its one-time persistent journal baseline authority",
-        ));
-    }
-    if !depth.includes_rows() {
-        return Ok(());
-    }
-    record_current_schema_row_audit();
-    let invalid_rows = connection
-        .query_row(
-            "SELECT EXISTS(
-               SELECT 1 FROM library_persistent_journal_baselines AS baseline
-                LEFT JOIN library_recovery_authorities AS authority
-                  ON authority.change_id = baseline.change_id
-                LEFT JOIN library_change_queue AS queue ON queue.id = baseline.change_id
-                LEFT JOIN library_persistent_journal_root_state AS root
-                 ON root.root_id = baseline.root_id
-                AND root.root_generation = baseline.root_generation
-               LEFT JOIN library_persistent_journal_checkpoints AS checkpoint
-                 ON checkpoint.root_id = baseline.root_id
-                AND checkpoint.root_generation = baseline.root_generation
-               WHERE authority.change_id IS NULL OR root.root_id IS NULL
-                  OR authority.root_id <> baseline.root_id
-                  OR authority.root_generation <> baseline.root_generation
-                  OR authority.reason NOT IN (
-                    'existing_root_baseline', 'first_import_boundary',
-                    'watcher_uncovered_gap', 'journal_gap', 'journal_reset', 'journal_trim',
-                    'journal_reconstruction_failure', 'containment_failure',
-                    'broker_after_current_failure'
-                  )
-                  OR (authority.reason IN (
-                        'existing_root_baseline', 'first_import_boundary'
-                      ) AND (
-                        authority.opening_journal_id <> baseline.journal_id
-                        OR authority.opening_next_usn <> baseline.opening_next_usn
-                      ))
-                  OR (authority.reason IN (
-                        'watcher_uncovered_gap', 'journal_gap', 'journal_reset', 'journal_trim',
-                        'journal_reconstruction_failure', 'containment_failure',
-                        'broker_after_current_failure'
-                      ) AND (
-                        authority.opening_journal_id IS NOT NULL
-                        OR authority.opening_next_usn IS NOT NULL
-                      ))
-                   OR (baseline.phase = 'completed' AND NOT (
-                         (
-                           authority.retired_unix_ms IS NOT NULL
-                           AND root.continuity_state = 'current'
-                           AND checkpoint.root_id IS NOT NULL
-                           AND checkpoint.continuity_state = 'current'
-                           AND checkpoint.volume_guid = baseline.volume_guid
-                           AND checkpoint.volume_serial = baseline.volume_serial
-                           AND checkpoint.root_reference_version = baseline.root_reference_version
-                           AND checkpoint.root_file_reference = baseline.root_file_reference
-                           AND checkpoint.journal_id = baseline.journal_id
-                           AND checkpoint.next_unread_usn = baseline.closing_next_usn
-                           AND checkpoint.captured_exclusive_end = baseline.closing_next_usn
-                         ) OR (
-                           authority.retired_unix_ms IS NOT NULL
-                           AND queue.status IN ('completed', 'superseded')
-                           AND queue.last_failure_code =
-                             'metadata_inventory_v28_recapture_required'
-                           AND root.continuity_state = 'recovery_required'
-                           AND checkpoint.root_id IS NOT NULL
-                           AND checkpoint.continuity_state = 'recovery_required'
-                           AND checkpoint.last_failure_code =
-                             'metadata_inventory_v28_recapture_required'
-                           AND checkpoint.volume_guid = baseline.volume_guid
-                           AND checkpoint.volume_serial = baseline.volume_serial
-                           AND checkpoint.root_reference_version = baseline.root_reference_version
-                           AND checkpoint.root_file_reference = baseline.root_file_reference
-                           AND checkpoint.journal_id = baseline.journal_id
-                           AND checkpoint.next_unread_usn = baseline.closing_next_usn
-                           AND checkpoint.captured_exclusive_end = baseline.closing_next_usn
-                         )
-                       ))
-                  OR (baseline.phase <> 'completed' AND (
-                        authority.retired_unix_ms IS NOT NULL
-                        OR root.continuity_state = 'current'
-                        OR checkpoint.continuity_state = 'current'
-                      ))
-                  OR (baseline.phase = 'inventory'
-                      AND authority.reason IN (
-                        'existing_root_baseline', 'first_import_boundary'
-                      ) AND (
-                        root.continuity_state <> 'baseline_required'
-                        OR checkpoint.root_id IS NOT NULL
-                      ))
-                  OR (baseline.phase = 'inventory'
-                      AND authority.reason IN (
-                        'watcher_uncovered_gap', 'journal_gap', 'journal_reset', 'journal_trim',
-                        'journal_reconstruction_failure', 'containment_failure',
-                        'broker_after_current_failure'
-                      ) AND (
-                        root.continuity_state <> 'recovery_required'
-                        OR checkpoint.root_id IS NULL
-                        OR checkpoint.continuity_state <> 'recovery_required'
-                        OR checkpoint.volume_guid <> baseline.volume_guid
-                        OR checkpoint.volume_serial <> baseline.volume_serial
-                        OR checkpoint.root_reference_version <> baseline.root_reference_version
-                        OR checkpoint.root_file_reference <> baseline.root_file_reference
-                        OR checkpoint.captured_exclusive_end <> checkpoint.next_unread_usn
-                        OR (authority.reason = 'journal_reset'
-                          AND checkpoint.journal_id = baseline.journal_id)
-                        OR (authority.reason <> 'journal_reset' AND (
-                          checkpoint.journal_id <> baseline.journal_id
-                          OR CAST(checkpoint.next_unread_usn AS INTEGER)
-                            > CAST(baseline.opening_next_usn AS INTEGER)
-                        ))
-                      ))
-                  OR (baseline.phase IN ('replay', 'absence') AND (
-                        root.continuity_state <> 'catching_up'
-                        OR checkpoint.root_id IS NULL
-                        OR checkpoint.continuity_state <> 'catching_up'
-                        OR checkpoint.volume_guid <> baseline.volume_guid
-                        OR checkpoint.volume_serial <> baseline.volume_serial
-                        OR checkpoint.root_reference_version <> baseline.root_reference_version
-                        OR checkpoint.root_file_reference <> baseline.root_file_reference
-                        OR checkpoint.journal_id <> baseline.journal_id
-                        OR checkpoint.captured_exclusive_end <> baseline.closing_next_usn
-                        OR CAST(checkpoint.next_unread_usn AS INTEGER)
-                          > CAST(baseline.closing_next_usn AS INTEGER)
-                        OR (baseline.phase = 'absence'
-                          AND checkpoint.next_unread_usn <> baseline.closing_next_usn)
-                      ))
-             ) OR EXISTS(
-               SELECT 1 FROM pragma_foreign_key_check('library_persistent_journal_baselines')
-             ) OR EXISTS(
-               SELECT 1
-               FROM library_persistent_journal_baselines AS baseline
-               JOIN library_metadata_inventory_runs AS run
-                 ON run.root_id = baseline.root_id
-                AND run.root_generation = baseline.root_generation
-                AND run.status IN ('running', 'comparing')
-               LEFT JOIN library_recovery_authorities AS authority
-                 ON authority.run_id = run.id
-                AND authority.retired_unix_ms IS NULL
-               WHERE baseline.phase <> 'completed'
-                 AND (authority.change_id IS NULL
-                   OR authority.change_id <> baseline.change_id)
-             ) OR EXISTS(
-               SELECT 1
-               FROM library_persistent_journal_baselines AS baseline
-               JOIN library_recovery_authorities AS authority
-                 ON authority.change_id = baseline.change_id
-               JOIN library_metadata_inventory_runs AS run
-                 ON run.id = authority.run_id
-               WHERE baseline.phase <> 'completed'
-                 AND run.status NOT IN ('running', 'comparing')
-             )",
-            [],
-            |row| row.get::<_, bool>(0),
-        )
-        .map_err(database_error)?;
-    let mut rows = connection
-        .prepare(
-            "SELECT volume_guid, volume_serial, root_reference_version,
-                    root_file_reference, journal_id, opening_next_usn,
-                    closing_next_usn, protocol_version, contract_version,
-                    phase, authorized_unix_ms, updated_unix_ms, completed_unix_ms
-             FROM library_persistent_journal_baselines",
-        )
-        .map_err(database_error)?;
-    let canonical_rows = rows
-        .query_map([], |row| {
-            Ok((
-                row.get::<_, String>(0)?,
-                row.get::<_, String>(1)?,
-                row.get::<_, i64>(2)?,
-                row.get::<_, Vec<u8>>(3)?,
-                row.get::<_, String>(4)?,
-                row.get::<_, String>(5)?,
-                row.get::<_, Option<String>>(6)?,
-                row.get::<_, i64>(7)?,
-                row.get::<_, i64>(8)?,
-                row.get::<_, String>(9)?,
-                row.get::<_, i64>(10)?,
-                row.get::<_, i64>(11)?,
-                row.get::<_, Option<i64>>(12)?,
-            ))
-        })
-        .map_err(database_error)?
-        .all(|row| {
-            row.is_ok_and(
-                |(
-                    volume_guid,
-                    volume_serial,
-                    reference_version,
-                    reference,
-                    journal_id,
-                    opening,
-                    closing,
-                    protocol_version,
-                    contract_version,
-                    phase,
-                    authorized,
-                    updated,
-                    completed,
-                )| {
-                    let volume = crate::domain::PersistentJournalVolumeIdentity {
-                        volume_guid,
-                        volume_serial: match volume_serial.parse() {
-                            Ok(value) => value,
-                            Err(_) => return false,
-                        },
-                    };
-                    let reference = match JournalFileReference::from_bytes(&reference) {
-                        Ok(value) => value,
-                        Err(_) => return false,
-                    };
-                    volume.validate().is_ok()
-                        && i64::from(reference.record_version()) == reference_version
-                        && JournalIdentifier::parse_canonical(&journal_id).is_ok()
-                        && JournalUsn::parse_canonical(&opening).is_ok()
-                        && closing
-                            .as_deref()
-                            .is_none_or(|value| JournalUsn::parse_canonical(value).is_ok())
-                        && u16::try_from(protocol_version).is_ok_and(|value| value > 0)
-                        && contract_version
-                            == i64::from(crate::domain::PERSISTENT_JOURNAL_CONTRACT_VERSION)
-                        && matches!(
-                            phase.as_str(),
-                            "inventory" | "replay" | "absence" | "completed"
-                        )
-                        && authorized >= 0
-                        && updated >= authorized
-                        && completed.is_none_or(|value| value >= updated)
-                },
-            )
-        });
-    if invalid_rows || !canonical_rows {
-        return Err(ScanError::new(
-            "catalog_persistent_journal_baseline_contract_unverifiable",
-            "The catalog cannot prove its one-time persistent journal baseline authority",
-        ));
-    }
-    Ok(())
-}
-
 fn validate_recovery_execution_contract(connection: &Connection) -> Result<(), ScanError> {
     validate_recovery_execution_contract_with_depth(connection, ContractValidationDepth::Full)
 }
@@ -3099,6 +2795,9 @@ fn metadata_inventory_spool_schema_matches(
     connection: &Connection,
     expected_contract_version: i64,
 ) -> Result<bool, ScanError> {
+    if expected_contract_version == 4 {
+        return inventory_spool_retirement::schema_matches(connection);
+    }
     let contract_ddl = match expected_contract_version {
         1 => METADATA_INVENTORY_SPOOL_CONTRACT_TABLE_V27_DDL,
         2 => METADATA_INVENTORY_SPOOL_CONTRACT_TABLE_DDL,
@@ -3201,7 +2900,7 @@ fn validate_metadata_inventory_spool_contract_version_with_depth(
         ]
     } else {
         vec![
-            ("run_id", "TEXT", false, 1),
+            ("run_id", "TEXT", expected_contract_version >= 4, 1),
             ("authority_change_id", "INTEGER", true, 0),
             ("root_id", "TEXT", true, 0),
             ("root_generation", "INTEGER", true, 0),
@@ -3227,7 +2926,7 @@ fn validate_metadata_inventory_spool_contract_version_with_depth(
         ("is_reparse_point", "INTEGER", true, 0),
         ("staged_unix_ms", "INTEGER", true, 0),
     ];
-    if expected_contract_version == 3 {
+    if expected_contract_version >= 3 {
         spool_entry_columns.push(("source_revision_token", "TEXT", false, 0));
     }
     let columns_match = table_columns_match(
@@ -9226,7 +8925,7 @@ fn migrate_v30_to_v31_transaction(transaction: &Transaction<'_>) -> Result<(), S
             [next_generation.max(1)],
         )
         .map_err(database_error)?;
-    validate_current_schema_contract_with_source_revision_rows(transaction)
+    current_schema::validate_schema_version(transaction, 31)
 }
 
 fn validate_source_revision_structure_contract(connection: &Connection) -> Result<(), ScanError> {
@@ -9351,6 +9050,7 @@ fn validate_source_revision_rows(connection: &Connection) -> Result<(), ScanErro
 
 #[cfg(test)]
 pub(super) fn downgrade_source_revision_contract_to_v30_for_test(connection: &Connection) {
+    inventory_spool_retirement::downgrade_to_v31_for_test(connection);
     let version = connection
         .query_row("SELECT version FROM schema_info LIMIT 1", [], |row| {
             row.get::<_, i64>(0)
@@ -11047,9 +10747,11 @@ mod tests {
                    (SELECT last_issue_code FROM library_metadata_inventory_runs
                     WHERE id = 'terminal-spool-inventory'),
                    (SELECT COUNT(*) FROM library_metadata_inventory_spools
-                    WHERE run_id = 'terminal-spool-inventory'),
+                    WHERE run_id = 'terminal-spool-inventory' AND state <> 'retired'),
                    (SELECT COUNT(*) FROM library_metadata_inventory_spool_directories
-                    WHERE run_id = 'terminal-spool-inventory'),
+                    WHERE run_id = 'terminal-spool-inventory' AND EXISTS(
+                      SELECT 1 FROM library_metadata_inventory_spools
+                      WHERE run_id = 'terminal-spool-inventory' AND state <> 'retired')),
                    (SELECT COUNT(*) FROM library_recovery_authorities
                     WHERE run_id = 'terminal-spool-inventory' AND retired_unix_ms IS NULL)",
                 [],
@@ -11284,7 +10986,8 @@ mod tests {
                 .expect("preview owners"),
             0
         );
-        super::validate_current_schema_contract(&connection).expect("source revision contract");
+        super::current_schema::validate_schema_version(&connection, 31)
+            .expect("source revision contract");
     }
 
     #[test]
@@ -11362,11 +11065,11 @@ mod tests {
             .expect("quarantined identity groups");
         assert_eq!(compatible, (2, 1));
         assert_eq!(quarantined, (4, 4));
-        super::validate_current_schema_contract(&connection)
+        super::current_schema::validate_schema_version(&connection, 31)
             .expect("conflicting legacy identities no longer block startup");
     }
 
-    fn recovery_lifecycle_catalog(is_completed: bool) -> NamedTempFile {
+    pub(super) fn recovery_lifecycle_catalog(is_completed: bool) -> NamedTempFile {
         let catalog = NamedTempFile::new().expect("temporary recovery lifecycle catalog");
         let mut connection = Connection::open(catalog.path()).expect("recovery lifecycle catalog");
         migrate_schema(&mut connection).expect("fresh current catalog");
@@ -13138,6 +12841,7 @@ mod tests {
         let catalog = current_terminal_inventory_authority_catalog();
         let catalog_path = catalog.path().to_path_buf();
         let connection = Connection::open(&catalog_path).expect("open v30 authority fixture");
+        super::downgrade_source_revision_contract_to_v30_for_test(&connection);
         connection
             .execute(
                 "DELETE FROM library_metadata_inventory_spools
@@ -13145,7 +12849,6 @@ mod tests {
                 [],
             )
             .expect("isolate terminal authority fixture");
-        super::downgrade_source_revision_contract_to_v30_for_test(&connection);
         drop(connection);
 
         let reopened = SqliteCatalog::open(catalog_path.clone())
@@ -13875,7 +13578,7 @@ mod tests {
                     |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
                 )
                 .expect("current exact shape evidence");
-            assert_eq!(schema, (SCHEMA_VERSION, 3, 2, 1), "phase {phase}");
+            assert_eq!(schema, (SCHEMA_VERSION, 4, 2, 1), "phase {phase}");
 
             let projection: (String, i64, i64) = connection
                 .query_row(

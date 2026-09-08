@@ -21,9 +21,9 @@ use crate::ports::{
 };
 
 const MAX_INVENTORY_PAGE_ENTRIES: u32 = 4_096;
-const MAX_INVENTORY_CLEANUP_RUNS: u32 = 128;
-const INVENTORY_TERMINAL_RETENTION_MILLIS: i64 = 7 * 24 * 60 * 60 * 1_000;
 const TERMINATION_ATTEMPTS: usize = 2;
+
+pub(super) mod cleanup;
 
 #[cfg(test)]
 thread_local! {
@@ -267,7 +267,7 @@ where
                 "The recovery source root has no durable Windows file identity",
             )
         })?;
-    drain_terminal_inventory_cleanup(repository, observed_unix_ms)?;
+    cleanup::cleanup_pending(repository, observed_unix_ms)?;
     let run = repository.begin_next_metadata_inventory(request)?;
     let mut retained_source = if run.enumeration_complete {
         None
@@ -654,7 +654,7 @@ where
     Source: MetadataInventorySource,
 {
     validate_request(request, page_limit, queue_policy)?;
-    drain_terminal_inventory_cleanup(repository, observed_unix_ms)?;
+    cleanup::cleanup_pending(repository, observed_unix_ms)?;
     repository.begin_metadata_inventory(request)?;
     finish_started_metadata_inventory(
         repository,
@@ -686,9 +686,8 @@ where
     let result = run_started_metadata_inventory(repository, source, request, execution);
     match result {
         Ok(mut report) => {
-            if drain_terminal_inventory_cleanup(repository, observed_unix_ms).is_err() {
-                report.cleanup_pending = true;
-            }
+            report.cleanup_pending |=
+                cleanup::cleanup_pending(repository, observed_unix_ms).unwrap_or(true);
             Ok(report)
         }
         Err(error) => {
@@ -702,9 +701,7 @@ where
                     &terminal_error,
                 ));
             }
-            if let Err(cleanup_error) =
-                drain_terminal_inventory_cleanup(repository, observed_unix_ms)
-            {
+            if let Err(cleanup_error) = cleanup::cleanup_pending(repository, observed_unix_ms) {
                 return Err(combined_inventory_error(
                     "metadata_inventory_cleanup_failed",
                     &error,
@@ -1433,27 +1430,6 @@ fn retry_terminalization(
             "Metadata inventory terminalization did not complete",
         )
     }))
-}
-
-fn drain_terminal_inventory_cleanup<Repository>(
-    repository: &mut Repository,
-    observed_unix_ms: i64,
-) -> Result<(), ScanError>
-where
-    Repository: MetadataInventoryRepository,
-{
-    let terminal_before_unix_ms =
-        observed_unix_ms.saturating_sub(INVENTORY_TERMINAL_RETENTION_MILLIS);
-    loop {
-        let cleanup = repository.cleanup_terminal_metadata_inventories(
-            terminal_before_unix_ms,
-            MAX_INVENTORY_PAGE_ENTRIES,
-            MAX_INVENTORY_CLEANUP_RUNS,
-        )?;
-        if !cleanup.has_more {
-            return Ok(());
-        }
-    }
 }
 
 fn is_catalog_contention(code: &str) -> bool {

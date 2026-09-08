@@ -5,6 +5,7 @@ use crate::ports::MetadataInventoryRepository;
 
 use super::super::SqliteCatalog;
 
+mod cleanup_vm;
 mod races;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -90,7 +91,7 @@ fn cleanup_rejects_an_existing_transaction_without_ending_it() {
     let epoch = catalog.completed_write_epoch();
 
     let error = catalog
-        .cleanup_terminal_metadata_inventories(2_000, 1, 1)
+        .cleanup_terminal_metadata_inventories(2_000, 1, 1, Default::default())
         .expect_err("cleanup cannot inspect a caller-owned transaction");
 
     assert_eq!(

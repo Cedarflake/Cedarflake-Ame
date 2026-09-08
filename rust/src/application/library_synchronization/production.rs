@@ -81,6 +81,12 @@ use crate::ports::{
 mod poll_diagnostics;
 
 #[cfg(windows)]
+mod inventory_cleanup;
+
+#[cfg(windows)]
+use inventory_cleanup::InventoryCleanupOwner;
+
+#[cfg(windows)]
 use poll_diagnostics::{
     ElapsedStageTimer, SynchronizationPollStageTimings, log_synchronization_poll_diagnostic,
 };
@@ -225,6 +231,7 @@ struct ProductionSynchronization {
     recovery_retries: BTreeMap<String, RecoveryRetryState>,
     authoritative_root_cursor: Option<String>,
     legacy_automatic_scans_retired: bool,
+    inventory_cleanup: InventoryCleanupOwner,
     is_stopping: bool,
     stop_requested: Arc<AtomicBool>,
     core_stopped: bool,
@@ -1877,6 +1884,19 @@ fn poll_runtime_with_storage_inner(
     admissions.revalidate(&catalog, &mut runtime.runtime, &mut snapshot)?;
     admissions.append_dormant_statuses(&mut snapshot);
     drop(projection_timer);
+    runtime.inventory_cleanup.poll(
+        runtime
+            .catalog_session
+            .as_ref()
+            .ok_or_else(|| {
+                ScanError::new(
+                    "metadata_inventory_cleanup_session_missing",
+                    "The runtime lost its validated catalog before scheduling cleanup",
+                )
+            })?
+            .clone(),
+        Arc::clone(&runtime.stop_requested),
+    )?;
     timings.stage = "retirement";
     let retirement_started = Instant::now();
     drop(admissions);
@@ -1943,6 +1963,7 @@ fn new_production_synchronization_with_factory(
         recovery_retries: BTreeMap::new(),
         authoritative_root_cursor: None,
         legacy_automatic_scans_retired: false,
+        inventory_cleanup: InventoryCleanupOwner::default(),
         is_stopping: false,
         stop_requested: Arc::new(AtomicBool::new(false)),
         core_stopped: false,
@@ -1977,6 +1998,7 @@ fn new_production_synchronization_with_connection(
         recovery_retries: BTreeMap::new(),
         authoritative_root_cursor: None,
         legacy_automatic_scans_retired: false,
+        inventory_cleanup: InventoryCleanupOwner::default(),
         is_stopping: false,
         stop_requested: Arc::new(AtomicBool::new(false)),
         core_stopped: false,
@@ -3781,6 +3803,7 @@ impl ProductionSynchronization {
         if let Some(task) = &self.recovery {
             task.cancelled.store(true, Ordering::Release);
         }
+        self.inventory_cleanup.request_stop();
         if let Err(error) = self.runtime.request_stop() {
             self.is_stopping = false;
             return Err(error);
@@ -3907,6 +3930,7 @@ impl ProductionSynchronization {
             self.maybe_panic_while_draining(DrainPanicPoint::P2Result);
             self.recovery = None;
         }
+        self.inventory_cleanup.finish_stopping_until(deadline)?;
         self.finish_core_shutdown_until(deadline)
     }
 
@@ -10198,6 +10222,7 @@ mod tests {
             recovery_retries: BTreeMap::new(),
             authoritative_root_cursor: None,
             legacy_automatic_scans_retired: false,
+            inventory_cleanup: InventoryCleanupOwner::default(),
             is_stopping: false,
             stop_requested: Arc::new(AtomicBool::new(false)),
             core_stopped: false,
@@ -10445,6 +10470,7 @@ mod tests {
             recovery_retries: BTreeMap::new(),
             authoritative_root_cursor: None,
             legacy_automatic_scans_retired: false,
+            inventory_cleanup: InventoryCleanupOwner::default(),
             is_stopping: false,
             stop_requested: Arc::new(AtomicBool::new(false)),
             core_stopped: false,
@@ -10525,6 +10551,7 @@ mod tests {
             recovery_retries: BTreeMap::new(),
             authoritative_root_cursor: None,
             legacy_automatic_scans_retired: false,
+            inventory_cleanup: InventoryCleanupOwner::default(),
             is_stopping: false,
             stop_requested: Arc::new(AtomicBool::new(false)),
             core_stopped: false,
@@ -10573,6 +10600,7 @@ mod tests {
             recovery_retries: BTreeMap::new(),
             authoritative_root_cursor: None,
             legacy_automatic_scans_retired: false,
+            inventory_cleanup: InventoryCleanupOwner::default(),
             is_stopping: false,
             stop_requested: Arc::new(AtomicBool::new(false)),
             core_stopped: false,
@@ -10768,6 +10796,7 @@ mod tests {
             recovery_retries: BTreeMap::new(),
             authoritative_root_cursor: None,
             legacy_automatic_scans_retired: false,
+            inventory_cleanup: InventoryCleanupOwner::default(),
             is_stopping: false,
             stop_requested: Arc::new(AtomicBool::new(false)),
             core_stopped: false,
@@ -11233,16 +11262,17 @@ mod tests {
         );
         assert_eq!(crate::adapters::source_spool_open_count(&root_path), 1);
         assert!(crate::adapters::source_peak_staged_window(&root_path) <= 128);
-        let spool_count: i64 = evidence_connection
+        let spool_state: (i64, i64) = evidence_connection
             .query_row(
-                "SELECT COUNT(*) FROM library_metadata_inventory_spools",
+                "SELECT COUNT(*), COUNT(*) FILTER (WHERE state = 'retired')
+                 FROM library_metadata_inventory_spools",
                 [],
-                |row| row.get(0),
+                |row| Ok((row.get(0)?, row.get(1)?)),
             )
-            .expect("load spool cleanup evidence");
-        assert_eq!(
-            spool_count, 0,
-            "terminal recovery must clean its durable spool"
+            .expect("load atomic retirement and background cleanup evidence");
+        assert!(
+            matches!(spool_state, (0, 0) | (1, 1)),
+            "completed recovery permits only an absent or retired spool, never executable storage: {spool_state:?}"
         );
         assert!(
             query_count.load(Ordering::Acquire) >= 1,
@@ -11254,6 +11284,106 @@ mod tests {
             "closing must perform exactly one bounded replay read even when the window is empty"
         );
         production.stop().expect("stop production synchronization");
+        let mut catalog = SqliteCatalog::open(storage.catalog_path.clone())
+            .unwrap_or_else(|error| {
+                let evidence: String = evidence_connection.query_row(
+                    "SELECT json_object('baseline_completed', baseline.completed_unix_ms,
+                        'closing', baseline.closing_next_usn, 'next', checkpoint.next_unread_usn,
+                        'end', checkpoint.captured_exclusive_end,
+                        'root_state', root.continuity_state, 'checkpoint_state', checkpoint.continuity_state,
+                        'range_start', ranges.requested_start_usn, 'range_end', ranges.requested_end_usn,
+                        'range_covered', ranges.covered_until_usn, 'range_state', ranges.status,
+                        'range_enrolled', ranges.enrolled_unix_ms, 'range_lifecycle', lifecycle.lifecycle_state)
+                     FROM library_persistent_journal_baselines AS baseline
+                     JOIN library_persistent_journal_root_state AS root USING(root_id, root_generation)
+                     JOIN library_persistent_journal_checkpoints AS checkpoint USING(root_id, root_generation)
+                     LEFT JOIN library_persistent_journal_source_ranges AS ranges
+                       ON ranges.root_id = baseline.root_id AND ranges.covered_until_usn = checkpoint.next_unread_usn
+                     LEFT JOIN library_persistent_journal_range_lifecycle AS lifecycle ON lifecycle.source_range_id = ranges.id
+                     ORDER BY ranges.enrolled_unix_ms DESC LIMIT 1", [], |row| row.get(0),
+                ).expect("bounded baseline failure evidence");
+                panic!("FULL reopen after production retirement: {error:?}; {evidence}")
+            });
+        let run_id: String = evidence_connection
+            .query_row(
+                "SELECT run_id FROM library_recovery_authorities WHERE change_id = ?1",
+                [i64::try_from(recovery_control.value()).expect("control ID")],
+                |row| row.get(0),
+            )
+            .expect("completed recovery run identity");
+        let run = catalog
+            .load_metadata_inventory_run(&run_id)
+            .expect("load completed run")
+            .expect("retention preserves the completed summary");
+        assert_eq!(
+            catalog
+                .stage_metadata_inventory_page(
+                    &run_id,
+                    &crate::domain::MetadataInventoryPage {
+                        page_index: run.next_page_index,
+                        entries: Vec::new(),
+                        cursor: None,
+                        is_complete: true,
+                        frontier: vec![crate::domain::MetadataInventoryFrontierEntry::completed(
+                            "",
+                            Some(publication_identity),
+                        )],
+                    },
+                    now_unix_ms().expect("terminal page attempt clock"),
+                )
+                .expect_err("completed recovery cannot accept another source page")
+                .code,
+            "metadata_inventory_run_not_running",
+        );
+        let remaining_entries: i64 = evidence_connection.query_row(
+            "SELECT (SELECT COUNT(*) FROM library_metadata_inventory_spool_entries WHERE run_id = ?1)
+                  + (SELECT COUNT(*) FROM library_metadata_inventory_entries WHERE run_id = ?1)",
+            [&run_id], |row| row.get(0),
+        ).expect("persisted raw and logical debt after all workers stop");
+        let mut reclaimed_entries = 0_i64;
+        let mut cleanup_complete = false;
+        for _ in 0..128 {
+            assert!(
+                started.elapsed() < TEST_DEADLINE,
+                "cleanup shares the original test deadline"
+            );
+            let report = catalog
+                .cleanup_terminal_metadata_inventories(0, 128, 1, Default::default())
+                .expect("one real bounded cleanup batch");
+            assert!(report.removed_entry_count <= 128);
+            assert_eq!(
+                report.removed_run_count, 0,
+                "existing terminal retention stays intact"
+            );
+            reclaimed_entries += i64::from(report.removed_entry_count);
+            if !report.has_more {
+                cleanup_complete = true;
+                break;
+            }
+        }
+        assert!(
+            cleanup_complete,
+            "the 4096-file debt must finish within 128 bounded batches"
+        );
+        assert_eq!(reclaimed_entries, remaining_entries);
+        let retained: (i64, i64, i64, i64, i64) = evidence_connection.query_row(
+            "SELECT (SELECT COUNT(*) FROM library_metadata_inventory_spools WHERE run_id = ?1),
+                    (SELECT COUNT(*) FROM library_metadata_inventory_spool_directories WHERE run_id = ?1),
+                    (SELECT COUNT(*) FROM library_metadata_inventory_spool_entries WHERE run_id = ?1),
+                    (SELECT COUNT(*) FROM library_metadata_inventory_entries WHERE run_id = ?1),
+                    (SELECT COUNT(*) FROM library_metadata_inventory_candidate_owners WHERE run_id = ?1)",
+            [&run_id], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?)),
+        ).expect("physical retirement and retained candidate lineage");
+        assert_eq!(
+            retained,
+            (0, 0, 0, 0, i64::try_from(TOTAL_FILES).expect("owner total"))
+        );
+        assert_eq!(
+            crate::adapters::source_entry_read_count(&root_path),
+            u64::try_from(TOTAL_FILES).expect("unchanged source reads"),
+        );
+        SqliteCatalog::open(storage.catalog_path.clone())
+            .expect("FULL reopen after all bounded raw and logical cleanup batches");
     }
 
     #[cfg(windows)]
@@ -14114,6 +14244,7 @@ mod tests {
             recovery_retries: BTreeMap::new(),
             authoritative_root_cursor: None,
             legacy_automatic_scans_retired: false,
+            inventory_cleanup: InventoryCleanupOwner::default(),
             is_stopping: false,
             stop_requested: Arc::new(AtomicBool::new(false)),
             core_stopped: false,
@@ -14512,6 +14643,7 @@ mod tests {
             recovery_retries: BTreeMap::new(),
             authoritative_root_cursor: None,
             legacy_automatic_scans_retired: false,
+            inventory_cleanup: InventoryCleanupOwner::default(),
             is_stopping: false,
             stop_requested: Arc::new(AtomicBool::new(false)),
             core_stopped: false,
@@ -14570,6 +14702,7 @@ mod tests {
             recovery_retries: BTreeMap::new(),
             authoritative_root_cursor: None,
             legacy_automatic_scans_retired: false,
+            inventory_cleanup: InventoryCleanupOwner::default(),
             is_stopping: true,
             stop_requested: Arc::new(AtomicBool::new(true)),
             core_stopped: false,

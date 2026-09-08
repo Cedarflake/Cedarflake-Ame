@@ -41,6 +41,16 @@ pub(super) fn cleanup_terminal_records(
                    )
                    AND NOT EXISTS (
                      SELECT 1
+                     FROM library_persistent_journal_baselines AS candidate
+                     JOIN library_persistent_journal_baselines AS earlier
+                       ON earlier.root_id = candidate.root_id
+                      AND earlier.root_generation = candidate.root_generation
+                      AND (earlier.authorized_unix_ms, earlier.change_id)
+                          < (candidate.authorized_unix_ms, candidate.change_id)
+                     WHERE candidate.change_id = changes.id
+                   )
+                   AND NOT EXISTS (
+                     SELECT 1
                      FROM library_persistent_journal_queue_lineage AS ownership
                      WHERE ownership.change_id = changes.id
                    )
@@ -93,7 +103,7 @@ pub(super) fn cleanup_terminal_records(
             evidence.insert(row.map_err(database_error)?);
         }
         drop(statement);
-        super::super::spool_retirement::delete_owned_spools(
+        super::super::spool_retirement::retire_owned_spools(
             transaction,
             super::super::spool_retirement::SpoolOwner::Change(change_id),
         )?;

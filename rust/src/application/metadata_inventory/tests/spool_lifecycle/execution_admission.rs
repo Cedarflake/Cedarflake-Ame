@@ -87,6 +87,7 @@ fn source_execution_is_revoked_by_terminal_run_or_root_removal() {
             .prepare_next_page(1, &cancellation)
             .expect("retain active iterator");
         let reads = source_entry_read_count(&fixture.root_path);
+        let before = spool_rows(&fixture.catalog, &run.request.run_id);
         if removed {
             fixture
                 .catalog
@@ -107,16 +108,26 @@ fn source_execution_is_revoked_by_terminal_run_or_root_removal() {
         assert!(source.prepare_next_page(1, &cancellation).is_err());
         assert!(source.next_page(4, &cancellation).is_err());
         assert_eq!(source_entry_read_count(&fixture.root_path), reads);
-        assert_eq!(
-            spool_rows(&fixture.catalog, &run.request.run_id),
-            SpoolRows::default()
-        );
+        assert_retired_spool(&fixture.catalog, &run.request.run_id, &before);
         assert_eq!(
             fs::read(fixture.source.path().join("a.png")).expect("preserved source"),
             bytes
         );
         SqliteCatalog::open(fixture.catalog.catalog_path().to_path_buf())
             .expect("valid revoked state");
+        cleanup_inventory_until_idle(&mut fixture, 6_001);
+        assert_eq!(
+            spool_rows(&fixture.catalog, &run.request.run_id),
+            SpoolRows::default()
+        );
+        assert!(source.rebind_recovery_lease(&lease).is_err());
+        assert!(source.prepare_next_page(1, &cancellation).is_err());
+        assert!(source.next_page(4, &cancellation).is_err());
+        assert_eq!(source_entry_read_count(&fixture.root_path), reads);
+        assert_eq!(
+            fs::read(fixture.source.path().join("a.png")).expect("source after reclamation"),
+            bytes
+        );
     }
 }
 
@@ -142,6 +153,7 @@ fn raw_page_authority_frontier_and_rows_share_one_read_snapshot() {
     let mut writer = SqliteCatalog::open(fixture.catalog.catalog_path().to_path_buf())
         .expect("independent writer");
     let run_id = run.request.run_id.clone();
+    let before = spool_rows(&fixture.catalog, &run_id);
     let page = SqliteCatalog::with_metadata_inventory_source_read_hook(
         move || {
             writer
@@ -152,7 +164,13 @@ fn raw_page_authority_frontier_and_rows_share_one_read_snapshot() {
                     5_000,
                 )
                 .expect("commit retirement after read authority check");
-            assert_eq!(spool_rows(&writer, &run_id), SpoolRows::default());
+            assert_retired_spool(&writer, &run_id, &before);
+            let cleanup = writer
+                .cleanup_terminal_metadata_inventories(6_001, 1, 1, Default::default())
+                .expect("reclaim one raw entry after the reader acquired its snapshot");
+            assert_eq!(cleanup.removed_entry_count, 1);
+            assert!(cleanup.has_more);
+            assert_eq!(spool_rows(&writer, &run_id).entries, 1);
         },
         || source.next_page(4, &cancellation),
     )
@@ -173,10 +191,16 @@ fn raw_page_authority_frontier_and_rows_share_one_read_snapshot() {
             .is_err(),
         "a consistent old read is not authority to stage into a terminal run"
     );
+    assert_eq!(spool_rows(&fixture.catalog, &run.request.run_id).entries, 1);
+    assert_eq!(
+        spool_state(&fixture.catalog, &run.request.run_id).as_deref(),
+        Some("retired")
+    );
+    SqliteCatalog::open(fixture.catalog.catalog_path().to_path_buf())
+        .expect("valid snapshot retirement");
+    cleanup_inventory_until_idle(&mut fixture, 6_001);
     assert_eq!(
         spool_rows(&fixture.catalog, &run.request.run_id),
         SpoolRows::default()
     );
-    SqliteCatalog::open(fixture.catalog.catalog_path().to_path_buf())
-        .expect("valid snapshot retirement");
 }

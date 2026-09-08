@@ -47,6 +47,7 @@ use super::{
     set_before_metadata_inventory_finalization_hook,
 };
 
+mod bounded_cleanup;
 mod lifecycle_admission;
 mod spool_lifecycle;
 mod terminal_media;
@@ -1199,7 +1200,7 @@ fn newer_epoch_supersedes_an_orphaned_active_run_and_cleanup_stays_bounded() {
     assert_eq!(superseded.status, MetadataInventoryRunStatus::Superseded);
     let cleanup = fixture
         .catalog
-        .cleanup_terminal_metadata_inventories(4_000, 1, 1)
+        .cleanup_terminal_metadata_inventories(4_000, 1, 1, Default::default())
         .expect("bounded cleanup");
     assert_eq!(cleanup.removed_entry_count, 1);
     assert_eq!(cleanup.removed_run_count, 1);
@@ -3048,7 +3049,7 @@ fn terminal_inventory_cleanup_deletes_staging_in_bounded_batches() {
 
     let first = fixture
         .catalog
-        .cleanup_terminal_metadata_inventories(0, 2, 1)
+        .cleanup_terminal_metadata_inventories(0, 2, 1, Default::default())
         .expect("first cleanup batch");
     assert_eq!(first.removed_entry_count, 2);
     assert_eq!(first.removed_run_count, 0);
@@ -3059,7 +3060,7 @@ fn terminal_inventory_cleanup_deletes_staging_in_bounded_batches() {
         .expect("reopen partially cleaned terminal inventory");
     let second = fixture
         .catalog
-        .cleanup_terminal_metadata_inventories(0, 2, 1)
+        .cleanup_terminal_metadata_inventories(0, 2, 1, Default::default())
         .expect("second cleanup batch");
     assert_eq!(second.removed_entry_count, 1);
     assert_eq!(second.removed_run_count, 0);
@@ -3075,7 +3076,7 @@ fn terminal_inventory_cleanup_deletes_staging_in_bounded_batches() {
     fixture.catalog = SqliteCatalog::open(catalog_path).expect("reopen cleaned catalog");
     let expired = fixture
         .catalog
-        .cleanup_terminal_metadata_inventories(3_000, 2, 1)
+        .cleanup_terminal_metadata_inventories(3_000, 2, 1, Default::default())
         .expect("expired summary cleanup");
     assert_eq!(expired.removed_entry_count, 0);
     assert_eq!(expired.removed_run_count, 1);

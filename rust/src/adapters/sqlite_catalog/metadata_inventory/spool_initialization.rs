@@ -82,21 +82,8 @@ impl SqliteCatalog {
             }
             transaction
                 .execute(
-                    "DELETE FROM library_metadata_inventory_spool_entries
-                     WHERE run_id = ?1 AND directory_relative_path IN (
-                       SELECT relative_directory
-                       FROM library_metadata_inventory_spool_directories
-                       WHERE run_id = ?1 AND state = 'enumerating'
-                     )",
-                    [&run.request.run_id],
-                )
-                .map_err(database_error)?;
-            transaction
-                .execute(
                     "UPDATE library_metadata_inventory_spool_directories
-                     SET state = 'pending', directory_identity_scheme = NULL,
-                         directory_identity_value = NULL, source_entry_count = 0,
-                         updated_unix_ms = ?2
+                     SET state = 'resetting', updated_unix_ms = MAX(updated_unix_ms, ?2)
                      WHERE run_id = ?1 AND state = 'enumerating'",
                     params![run.request.run_id, updated_unix_ms],
                 )

@@ -48,7 +48,8 @@ fn root_authority_repair_restores_exact_legacy_removal_and_is_idempotent() {
         .query_row("SELECT version FROM schema_info", [], |row| row.get(0))
         .expect("unchanged schema version");
     assert_eq!(
-        version, 31,
+        version,
+        crate::adapters::sqlite_catalog::SCHEMA_VERSION,
         "compatibility repair does not conceal corruption with a version bump"
     );
 }

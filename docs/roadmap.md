@@ -3243,7 +3243,7 @@ This queue orders the existing closeout obligations below; it adds no product sc
 reopen accepted work. Only one implementation item is active. Complete its end-to-end exit criteria
 before taking the next item; another verified prerequisite is not completion of its parent item.
 
-1. **Active — raw-inventory retirement and bounded cleanup.** Complete the already-started
+1. **Locally verified — raw-inventory retirement and bounded cleanup.** Complete the already-started
    separation of execution-authority revocation from physical reclamation. Completion, terminal
    cancellation, supersession, queue pruning, and root removal must not cascade through the entire
    raw spool in their foreground transaction. Preserve resumable worker pause and legitimate lease
@@ -3252,7 +3252,12 @@ before taking the next item; another verified prerequisite is not completion of 
    requires lifecycle, migration/reopen, rollback, stale-execution, bounded-work, and other-root/live
    progress evidence through the production callers. Required schema and owner splits belong to
    this item, not an expanding chain of separately declared deliveries.
-2. **Queued — mixed-load convergence and latency.** Resolve the recorded slow catalog-open,
+   The schema-v32 implementation meets this item's local exit on 2026-09-09, including bounded
+   cleanup, cancellation/rollback, production recovery and FULL reopen, and narrow independent
+   review. All four canonical Daily partitions pass on the affected source. Evidence is recorded
+   in `docs/acceptance/r2c-interleaving-remediation.md`; final hosted and client acceptance remain
+   owned by items 3–4, not inferred from this local checkpoint.
+2. **Active — mixed-load convergence and latency.** Resolve the recorded slow catalog-open,
    observation, and retirement paths using the existing operation measurements. Keep the original
    25 samples, P0 P95 at most one second, all 2048 P1 candidates, 10000 P2 source entries, the 4095-entry
    logical page, and existing deadlines. That page is not proof of complete P2 recovery. Preserve

@@ -7,9 +7,10 @@ use crate::domain::{
 
 use super::{
     MAX_CLEANUP_RUNS, MAX_PAGE_ENTRIES, SqliteCatalog, begin_metadata_inventory_transaction,
-    database_error, load_run, sqlite_integer, sqlite_unsigned, validate_active_root,
+    database_error, load_run, spool_cleanup, sqlite_integer, sqlite_unsigned, validate_active_root,
     validate_start_request,
 };
+use crate::ports::InventoryCleanupControl;
 
 #[cfg(test)]
 mod tests;
@@ -106,6 +107,7 @@ pub(super) fn cleanup_terminal(
     terminal_before_unix_ms: i64,
     entry_limit: u32,
     run_limit: u32,
+    control: InventoryCleanupControl,
 ) -> Result<MetadataInventoryCleanupReport, ScanError> {
     if entry_limit == 0
         || entry_limit > MAX_PAGE_ENTRIES
@@ -119,34 +121,57 @@ pub(super) fn cleanup_terminal(
     }
     require_standalone_connection(&catalog.connection)?;
     // A single read statement is only an admission hint, never deletion authority.
-    if !has_cleanup_candidates(&catalog.connection, terminal_before_unix_ms)? {
+    if !super::cleanup_transaction::read_candidates(&catalog.connection, &control, |connection| {
+        has_cleanup_candidates(connection, terminal_before_unix_ms)
+    })? {
         return Ok(MetadataInventoryCleanupReport::default());
     }
     #[cfg(test)]
     tests::before_write(tests::WriteOperation::CleanupTerminal);
-    let transaction = catalog.begin_write()?;
-    if !has_cleanup_candidates(&transaction, terminal_before_unix_ms)? {
-        transaction.commit().map_err(database_error)?;
+    super::cleanup_transaction::try_cleanup_write(catalog, control, |transaction| {
+        cleanup_in_transaction(transaction, terminal_before_unix_ms, entry_limit, run_limit)
+    })
+}
+
+fn cleanup_in_transaction(
+    transaction: &rusqlite::Transaction<'_>,
+    terminal_before_unix_ms: i64,
+    entry_limit: u32,
+    run_limit: u32,
+) -> Result<MetadataInventoryCleanupReport, ScanError> {
+    if !has_cleanup_candidates(transaction, terminal_before_unix_ms)? {
         return Ok(MetadataInventoryCleanupReport::default());
     }
+    let removed_raw_entry_count =
+        spool_cleanup::cleanup_batch(transaction, entry_limit, run_limit)?;
     let removed_entry_count = transaction
         .execute(
             "DELETE FROM library_metadata_inventory_entries
              WHERE rowid IN (
                SELECT entries.rowid
                FROM library_metadata_inventory_entries AS entries
-               JOIN library_metadata_inventory_runs AS runs ON runs.id = entries.run_id
-               WHERE runs.status IN ('completed', 'failed', 'cancelled', 'superseded')
-                 AND NOT EXISTS (
-                   SELECT 1 FROM library_metadata_inventory_spools AS spool
-                   WHERE spool.run_id = runs.id
-                 )
-               ORDER BY runs.updated_unix_ms, runs.id, entries.relative_path
+               WHERE entries.run_id IN (
+                 SELECT runs.id FROM library_metadata_inventory_runs AS runs
+                 WHERE runs.status IN ('completed', 'failed', 'cancelled', 'superseded')
+                   AND NOT EXISTS (
+                     SELECT 1 FROM library_metadata_inventory_spools AS spool
+                     WHERE spool.run_id = runs.id
+                   )
+                   AND EXISTS(SELECT 1 FROM library_metadata_inventory_entries AS entry
+                     WHERE entry.run_id = runs.id)
+                 ORDER BY runs.status, runs.updated_unix_ms, runs.id LIMIT ?2
+               ) ORDER BY entries.run_id, entries.relative_path
                LIMIT ?1
              )",
-            [i64::from(entry_limit)],
+            params![entry_limit - removed_raw_entry_count, run_limit],
         )
         .map_err(database_error)?;
+    super::candidate_cleanup::cleanup_batch(
+        transaction,
+        terminal_before_unix_ms,
+        entry_limit,
+        run_limit,
+    )?;
     let removed_run_count = transaction
         .execute(
             "DELETE FROM library_metadata_inventory_runs
@@ -163,21 +188,25 @@ pub(super) fn cleanup_terminal(
                    SELECT 1 FROM library_metadata_inventory_entries AS entries
                    WHERE entries.run_id = runs.id
                  )
-               ORDER BY runs.updated_unix_ms, runs.id
+                 AND NOT EXISTS(
+                   SELECT 1 FROM library_metadata_inventory_candidate_owners AS owner
+                   WHERE owner.run_id = runs.id
+                 )
+               ORDER BY runs.status, runs.updated_unix_ms, runs.id
                LIMIT ?2
              )",
             params![terminal_before_unix_ms, i64::from(run_limit)],
         )
         .map_err(database_error)?;
-    let has_more = has_cleanup_candidates(&transaction, terminal_before_unix_ms)?;
-    transaction.commit().map_err(database_error)?;
+    let has_more = has_cleanup_candidates(transaction, terminal_before_unix_ms)?;
     Ok(MetadataInventoryCleanupReport {
-        removed_entry_count: u32::try_from(removed_entry_count).map_err(|_| {
-            ScanError::new(
-                "metadata_inventory_cleanup_count_overflow",
-                "Metadata inventory entry cleanup count overflowed",
-            )
-        })?,
+        removed_entry_count: u32::try_from(removed_entry_count + removed_raw_entry_count as usize)
+            .map_err(|_| {
+                ScanError::new(
+                    "metadata_inventory_cleanup_count_overflow",
+                    "Metadata inventory entry cleanup count overflowed",
+                )
+            })?,
         removed_run_count: u32::try_from(removed_run_count).map_err(|_| {
             ScanError::new(
                 "metadata_inventory_cleanup_count_overflow",
@@ -192,6 +221,9 @@ fn has_cleanup_candidates(
     connection: &Connection,
     terminal_before_unix_ms: i64,
 ) -> Result<bool, ScanError> {
+    if spool_cleanup::has_candidates(connection)? {
+        return Ok(true);
+    }
     connection
         .query_row(
             "SELECT

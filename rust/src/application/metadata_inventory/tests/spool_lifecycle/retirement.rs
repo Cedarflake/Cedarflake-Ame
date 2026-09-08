@@ -17,29 +17,43 @@ fn superseded_subtree_spool_retires_initial_observation() {
 }
 
 #[test]
-fn legacy_terminal_spool_repair_retires_initial_observation_atomically() {
+fn current_terminal_trigger_retires_initial_observation_before_reopen() {
     let mut fixture = InventoryFixture::new(&["album/retained.png"]);
     let source_path = fixture.source.path().join("album/retained.png");
     let source_bytes = fs::read(&source_path).expect("source bytes");
-    let run = stage_real_spool(&mut fixture, subtree_scope());
+    let (run, _, execution) =
+        stage_named_spool_with_execution(&mut fixture, subtree_scope(), "spool-lifecycle");
+    let before = spool_rows(&fixture.catalog, &run.request.run_id);
     let catalog_path = fixture.catalog.catalog_path().to_path_buf();
-    let connection = rusqlite::Connection::open(&catalog_path).expect("legacy fixture connection");
+    let connection =
+        rusqlite::Connection::open(&catalog_path).expect("current trigger fixture connection");
+    assert_eq!(
+        connection
+            .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+            .expect("current schema version"),
+        32
+    );
     connection
         .execute(
             "UPDATE library_metadata_inventory_runs
              SET status = 'failed', absence_authority = 0 WHERE id = ?1",
             [&run.request.run_id],
         )
-        .expect("reproduce legacy terminal header");
+        .expect("current terminal trigger revokes storage authority");
     drop(connection);
+    assert_retired_spool(&fixture.catalog, &run.request.run_id, &before);
+    assert_execution_rejected(&fixture.catalog, &execution);
     drop(fixture.catalog);
-    fixture.catalog = SqliteCatalog::open(catalog_path.clone()).expect("repair full catalog");
-    assert_eq!(
-        spool_rows(&fixture.catalog, &run.request.run_id),
-        SpoolRows::default()
-    );
+    fixture.catalog =
+        SqliteCatalog::open(catalog_path.clone()).expect("full open preserves retired payload");
+    assert_retired_spool(&fixture.catalog, &run.request.run_id, &before);
     drop(fixture.catalog);
-    fixture.catalog = SqliteCatalog::open(catalog_path).expect("idempotent full reopen");
+    fixture.catalog = SqliteCatalog::open(catalog_path.clone()).expect("idempotent full reopen");
+    assert_retired_spool(&fixture.catalog, &run.request.run_id, &before);
+    cleanup_inventory_until_idle(&mut fixture, 10_000);
+    drop(fixture.catalog);
+    fixture.catalog =
+        SqliteCatalog::open(catalog_path).expect("full reopen after bounded reclamation");
     assert_eq!(
         spool_rows(&fixture.catalog, &run.request.run_id),
         SpoolRows::default()
@@ -64,16 +78,17 @@ fn root_removal_failure_restores_the_initial_observation_and_all_ownership() {
     connection
         .execute_batch(
             "CREATE TRIGGER fixture_reject_spool_retirement
-             BEFORE DELETE ON library_metadata_inventory_spools
+             BEFORE UPDATE OF state ON library_metadata_inventory_spools
+             WHEN OLD.state <> 'retired' AND NEW.state = 'retired'
              BEGIN
-               SELECT CASE WHEN EXISTS(
+               SELECT CASE WHEN NOT EXISTS(
                  SELECT 1 FROM library_metadata_inventory_spool_entries
                  WHERE run_id = OLD.run_id AND directory_relative_path IS NULL
-               ) THEN RAISE(ABORT, 'fixture_initial_observation_not_retired') END;
+               ) THEN RAISE(ABORT, 'fixture_initial_observation_missing') END;
                SELECT RAISE(ABORT, 'fixture_retirement_failure');
              END;",
         )
-        .expect("inject failure after initial observation deletion");
+        .expect("inject retirement failure while the initial observation remains intact");
     drop(connection);
 
     let error = fixture
@@ -85,6 +100,10 @@ fn root_removal_failure_restores_the_initial_observation_and_all_ownership() {
         "{error:?}"
     );
     assert_eq!(spool_rows(&fixture.catalog, &run.request.run_id), before);
+    assert_eq!(
+        spool_state(&fixture.catalog, &run.request.run_id).as_deref(),
+        Some("ready")
+    );
     assert_eq!(
         recovery_retirement_evidence(&fixture.catalog, &run.request.run_id),
         recovery_before
@@ -104,6 +123,14 @@ fn root_removal_failure_restores_the_initial_observation_and_all_ownership() {
     drop(fixture.catalog);
     fixture.catalog = SqliteCatalog::open(catalog_path).expect("full reopen after rollback");
     assert_eq!(spool_rows(&fixture.catalog, &run.request.run_id), before);
+    assert_eq!(
+        spool_state(&fixture.catalog, &run.request.run_id).as_deref(),
+        Some("ready")
+    );
+    assert_eq!(
+        recovery_retirement_evidence(&fixture.catalog, &run.request.run_id),
+        recovery_before
+    );
     assert!(
         fixture
             .catalog
@@ -122,7 +149,9 @@ fn completed_subtree_recovery_retires_initial_observation_before_queue_pruning()
     let mut fixture = InventoryFixture::new(&["album/retained.png"]);
     let source_path = fixture.source.path().join("album/retained.png");
     let source_bytes = fs::read(&source_path).expect("source bytes");
-    let (run, mut leased) = stage_real_spool_with_lease(&mut fixture, subtree_scope());
+    let (run, mut leased, execution) =
+        stage_named_spool_with_execution(&mut fixture, subtree_scope(), "spool-lifecycle");
+    let before = spool_rows(&fixture.catalog, &run.request.run_id);
     let mut complete = false;
     for turn in 0..8 {
         let observed = 6_000 + turn;
@@ -168,10 +197,10 @@ fn completed_subtree_recovery_retires_initial_observation_before_queue_pruning()
         complete,
         "two-entry recovery must finish within eight work pages"
     );
-    assert_eq!(
-        spool_rows(&fixture.catalog, &run.request.run_id),
-        SpoolRows::default()
-    );
+    assert_retired_spool(&fixture.catalog, &run.request.run_id, &before);
+    assert_execution_rejected(&fixture.catalog, &execution);
+    SqliteCatalog::open(fixture.catalog.catalog_path().to_path_buf())
+        .expect("completed recovery with retired payload remains restart-safe");
     let evidence = recovery_retirement_evidence(&fixture.catalog, &run.request.run_id);
     assert_eq!(evidence.len(), 1);
     assert!(evidence[0].0.is_some());
@@ -185,11 +214,13 @@ fn completed_subtree_recovery_retires_initial_observation_before_queue_pruning()
         .cleanup_terminal_library_changes(10_000, 16)
         .expect("prune terminal queue");
     assert_eq!(candidate_owner_count(&fixture), retained_candidates);
-    let cleanup = fixture
-        .catalog
-        .cleanup_terminal_metadata_inventories(10_000, 16, 16)
-        .expect("expire terminal inventory");
+    assert_retired_spool(&fixture.catalog, &run.request.run_id, &before);
+    let cleanup = cleanup_inventory_until_idle(&mut fixture, 10_000);
     assert_eq!(cleanup.removed_run_count, 1);
+    assert_eq!(
+        spool_rows(&fixture.catalog, &run.request.run_id),
+        SpoolRows::default()
+    );
     assert_eq!(candidate_owner_count(&fixture), 0);
     assert!(
         fixture
@@ -228,6 +259,10 @@ fn terminal_cleanup_cannot_cascade_a_still_owned_completed_spool() {
     let source_bytes = fs::read(&source_path).expect("source bytes");
     let run = stage_real_spool(&mut fixture, subtree_scope());
     let before = spool_rows(&fixture.catalog, &run.request.run_id);
+    assert_eq!(
+        spool_state(&fixture.catalog, &run.request.run_id).as_deref(),
+        Some("ready")
+    );
     let catalog_path = fixture.catalog.catalog_path().to_path_buf();
     let connection =
         rusqlite::Connection::open(&catalog_path).expect("retained completed-state fixture");
@@ -250,13 +285,17 @@ fn terminal_cleanup_cannot_cascade_a_still_owned_completed_spool() {
         .expect("retained run");
     let cleanup = fixture
         .catalog
-        .cleanup_terminal_metadata_inventories(10_000, 16, 16)
+        .cleanup_terminal_metadata_inventories(10_000, 16, 16, Default::default())
         .expect("cleanup retains owned spool");
     assert_eq!(
         cleanup,
         crate::domain::MetadataInventoryCleanupReport::default()
     );
     assert_eq!(spool_rows(&fixture.catalog, &run.request.run_id), before);
+    assert_eq!(
+        spool_state(&fixture.catalog, &run.request.run_id).as_deref(),
+        Some("ready")
+    );
     assert_eq!(
         fixture
             .catalog

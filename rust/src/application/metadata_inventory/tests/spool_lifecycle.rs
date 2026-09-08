@@ -1,5 +1,9 @@
 use super::*;
+use crate::adapters::MetadataInventorySpoolExecution;
+use rusqlite::OptionalExtension;
 
+mod bounded_reset;
+mod bounded_retirement;
 mod execution_admission;
 mod retirement;
 mod scope_isolation;
@@ -29,11 +33,12 @@ fn subtree_spool_root_unregistration_removes_initial_entry_across_reopen() {
     let mut fixture = InventoryFixture::new(&["album/retained.png"]);
     let source_path = fixture.source.path().join("album/retained.png");
     let source_bytes = fs::read(&source_path).expect("source bytes before unregister");
-    let run = stage_real_spool(
+    let (run, _, execution) = stage_named_spool_with_execution(
         &mut fixture,
         MetadataInventoryScope::Subtree {
             relative_path: "album".to_owned(),
         },
+        "spool-lifecycle",
     );
     let before = spool_rows(&fixture.catalog, &run.request.run_id);
     SqliteCatalog::open(fixture.catalog.catalog_path().to_path_buf())
@@ -46,11 +51,13 @@ fn subtree_spool_root_unregistration_removes_initial_entry_across_reopen() {
             .expect("unregister root with durable subtree spool")
     );
     let after_unregister = spool_rows(&fixture.catalog, &run.request.run_id);
+    assert_retired_spool(&fixture.catalog, &run.request.run_id, &before);
+    assert_execution_rejected(&fixture.catalog, &execution);
     let recovery_after_unregister =
         recovery_retirement_evidence(&fixture.catalog, &run.request.run_id);
     let catalog_path = fixture.catalog.catalog_path().to_path_buf();
     drop(fixture.catalog);
-    fixture.catalog = SqliteCatalog::open(catalog_path).unwrap_or_else(|error| {
+    fixture.catalog = SqliteCatalog::open(catalog_path.clone()).unwrap_or_else(|error| {
         panic!(
             "reopen unregistered catalog: {error:?}; raw={after_unregister:?}; \
              authority(retired_unix_ms, queue_status, run_status)={recovery_after_unregister:?}"
@@ -71,14 +78,28 @@ fn subtree_spool_root_unregistration_removes_initial_entry_across_reopen() {
             .is_none()
     );
     let after_reopen = spool_rows(&fixture.catalog, &run.request.run_id);
+    assert_retired_spool(&fixture.catalog, &run.request.run_id, &before);
+    assert_execution_rejected(&fixture.catalog, &execution);
+    cleanup_inventory_until_idle(&mut fixture, 6_001);
+    assert_eq!(
+        spool_rows(&fixture.catalog, &run.request.run_id),
+        SpoolRows::default()
+    );
+    drop(fixture.catalog);
+    fixture.catalog =
+        SqliteCatalog::open(catalog_path).expect("reopen fully reclaimed removed root");
+    assert_eq!(
+        spool_rows(&fixture.catalog, &run.request.run_id),
+        SpoolRows::default()
+    );
     assert_eq!(
         fs::read(&source_path).expect("retained source bytes"),
         source_bytes
     );
     assert_eq!(
         (after_unregister, after_reopen),
-        (SpoolRows::default(), SpoolRows::default()),
-        "root removal must retire all raw rows, including the initial subtree entry; before={before:?}",
+        (before, before),
+        "root removal and reopen revoke authority without deleting raw observations",
     );
 }
 
@@ -89,7 +110,8 @@ fn assert_terminal_spool_cleanup(
     let mut fixture = InventoryFixture::new(&["album/retained.png"]);
     let source_path = fixture.source.path().join("album/retained.png");
     let source_bytes = fs::read(&source_path).expect("source bytes before termination");
-    let run = stage_real_spool(&mut fixture, scope);
+    let (run, _, execution) =
+        stage_named_spool_with_execution(&mut fixture, scope, "spool-lifecycle");
     let before = spool_rows(&fixture.catalog, &run.request.run_id);
     let terminal = fixture
         .catalog
@@ -103,22 +125,19 @@ fn assert_terminal_spool_cleanup(
     assert_eq!(terminal.status, status);
     assert!(!terminal.absence_authority);
     let after_terminal = spool_rows(&fixture.catalog, &run.request.run_id);
-
-    let first = fixture
-        .catalog
-        .cleanup_terminal_metadata_inventories(6_001, 1, 1)
-        .expect("first bounded terminal cleanup");
-    assert_eq!((first.removed_entry_count, first.removed_run_count), (1, 0));
-    assert!(first.has_more);
-    let second = fixture
-        .catalog
-        .cleanup_terminal_metadata_inventories(6_001, 1, 1)
-        .expect("second bounded terminal cleanup");
+    assert_retired_spool(&fixture.catalog, &run.request.run_id, &before);
+    assert_execution_rejected(&fixture.catalog, &execution);
+    let catalog_path = fixture.catalog.catalog_path().to_path_buf();
+    drop(fixture.catalog);
+    fixture.catalog =
+        SqliteCatalog::open(catalog_path.clone()).expect("reopen before physical cleanup");
+    assert_retired_spool(&fixture.catalog, &run.request.run_id, &before);
+    let cleanup = cleanup_inventory_until_idle(&mut fixture, 6_001);
     assert_eq!(
-        (second.removed_entry_count, second.removed_run_count),
-        (1, 1)
+        cleanup.removed_entry_count, 4,
+        "two raw and two logical entries share the budget"
     );
-    assert!(!second.has_more);
+    assert_eq!(cleanup.removed_run_count, 1);
     let after_cleanup = spool_rows(&fixture.catalog, &run.request.run_id);
 
     let catalog_path = fixture.catalog.catalog_path().to_path_buf();
@@ -145,11 +164,7 @@ fn assert_terminal_spool_cleanup(
     );
     assert_eq!(
         (after_terminal, after_cleanup, after_reopen),
-        (
-            SpoolRows::default(),
-            SpoolRows::default(),
-            SpoolRows::default()
-        ),
+        (before, SpoolRows::default(), SpoolRows::default()),
         "terminal cleanup must not leave raw rows after reporting no more work; before={before:?}",
     );
 }
@@ -175,6 +190,19 @@ fn stage_named_spool(
 ) -> (MetadataInventoryRun, LeasedLibraryChange) {
     let (run, leased) = begin_named_spool(fixture, scope.clone(), run_id);
     stage_opened_spool(fixture, &scope, run, leased)
+}
+
+fn stage_named_spool_with_execution(
+    fixture: &mut InventoryFixture,
+    scope: MetadataInventoryScope,
+    run_id: &str,
+) -> (
+    MetadataInventoryRun,
+    LeasedLibraryChange,
+    MetadataInventorySpoolExecution,
+) {
+    let (run, leased) = begin_named_spool(fixture, scope.clone(), run_id);
+    stage_opened_spool_with_execution(fixture, &scope, run, leased)
 }
 
 fn begin_named_spool(
@@ -249,6 +277,20 @@ fn stage_opened_spool(
     run: MetadataInventoryRun,
     leased: LeasedLibraryChange,
 ) -> (MetadataInventoryRun, LeasedLibraryChange) {
+    let (run, leased, _) = stage_opened_spool_with_execution(fixture, scope, run, leased);
+    (run, leased)
+}
+
+fn stage_opened_spool_with_execution(
+    fixture: &mut InventoryFixture,
+    scope: &MetadataInventoryScope,
+    run: MetadataInventoryRun,
+    leased: LeasedLibraryChange,
+) -> (
+    MetadataInventoryRun,
+    LeasedLibraryChange,
+    MetadataInventorySpoolExecution,
+) {
     let run_id = &run.request.run_id;
     let cancellation = AtomicBool::new(false);
     let mut source = open_inventory_source(fixture, scope, &run, &leased);
@@ -268,6 +310,19 @@ fn stage_opened_spool(
         ready,
         "two-entry fixture must finish within eight bounded raw reads"
     );
+    let identity = fixture
+        .catalog
+        .load_metadata_inventory_root_identity(run_id)
+        .expect("read ready source identity")
+        .expect("ready source identity");
+    let execution = fixture
+        .catalog
+        .initialize_metadata_inventory_spool(&run, &leased, &identity, None, None, 5_000)
+        .expect("capture the current ready execution before logical publication");
+    fixture
+        .catalog
+        .validate_metadata_inventory_spool_execution(&execution)
+        .expect("the original execution is current");
     let page = source
         .next_page(4_095, &cancellation)
         .expect("read real spool page");
@@ -280,15 +335,88 @@ fn stage_opened_spool(
     assert!(run.enumeration_complete);
     let rows = spool_rows(&fixture.catalog, run_id);
     assert_eq!((rows.spools, rows.entries), (1, 2));
-    (run, leased)
+    (run, leased, execution)
 }
 
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 struct SpoolRows {
     spools: i64,
     directories: i64,
     entries: i64,
     entries_without_directory: i64,
+}
+
+fn spool_state(catalog: &SqliteCatalog, run_id: &str) -> Option<String> {
+    rusqlite::Connection::open_with_flags(
+        catalog.catalog_path(),
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+    )
+    .expect("read spool state")
+    .query_row(
+        "SELECT state FROM library_metadata_inventory_spools WHERE run_id = ?1",
+        [run_id],
+        |row| row.get(0),
+    )
+    .optional()
+    .expect("decode spool state")
+}
+
+fn assert_retired_spool(catalog: &SqliteCatalog, run_id: &str, before: &SpoolRows) {
+    assert_eq!(
+        spool_rows(catalog, run_id),
+        *before,
+        "retirement cannot reclaim raw payload"
+    );
+    assert_eq!(spool_state(catalog, run_id).as_deref(), Some("retired"));
+}
+
+fn assert_execution_rejected(catalog: &SqliteCatalog, execution: &MetadataInventorySpoolExecution) {
+    assert!(
+        catalog
+            .validate_metadata_inventory_spool_execution(execution)
+            .is_err()
+    );
+    assert!(
+        catalog
+            .metadata_inventory_spool_is_ready(execution)
+            .is_err()
+    );
+    assert!(
+        catalog
+            .load_metadata_inventory_spool_page(execution, 4)
+            .is_err()
+    );
+}
+
+fn cleanup_inventory_until_idle(
+    fixture: &mut InventoryFixture,
+    terminal_before_unix_ms: i64,
+) -> crate::domain::MetadataInventoryCleanupReport {
+    let mut total = crate::domain::MetadataInventoryCleanupReport::default();
+    for _ in 0..32 {
+        let batch = fixture
+            .catalog
+            .cleanup_terminal_metadata_inventories(
+                terminal_before_unix_ms,
+                1,
+                1,
+                Default::default(),
+            )
+            .expect("one bounded raw and logical cleanup batch");
+        assert!(
+            batch.removed_entry_count <= 1,
+            "raw and logical entries share one budget"
+        );
+        assert!(batch.removed_run_count <= 1);
+        total.removed_entry_count += batch.removed_entry_count;
+        total.removed_run_count += batch.removed_run_count;
+        SqliteCatalog::open(fixture.catalog.catalog_path().to_path_buf())
+            .expect("every partial cleanup state passes a fresh full open");
+        if !batch.has_more {
+            return total;
+        }
+    }
+    panic!("tiny lifecycle fixture failed to finish within 32 bounded cleanup batches");
 }
 
 fn recovery_retirement_evidence(

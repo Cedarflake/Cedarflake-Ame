@@ -34,31 +34,45 @@ pub(super) fn validate_current_schema_contract(connection: &Connection) -> Resul
 pub(super) fn validate_current_schema_contract_with_source_revision_rows(
     connection: &Connection,
 ) -> Result<(), ScanError> {
+    validate_schema_version(connection, SCHEMA_VERSION)
+}
+
+pub(super) fn validate_schema_version(
+    connection: &Connection,
+    schema_version: i64,
+) -> Result<(), ScanError> {
     if connection.is_autocommit() {
         let transaction = connection.unchecked_transaction().map_err(database_error)?;
-        validate_in_snapshot(&transaction)?;
+        validate_in_snapshot(&transaction, schema_version)?;
         transaction.commit().map_err(database_error)
     } else {
-        validate_in_snapshot(connection)
+        validate_in_snapshot(connection, schema_version)
     }
 }
 
-fn validate_in_snapshot(connection: &Connection) -> Result<(), ScanError> {
-    validate_current_schema_structure(connection)?;
+fn validate_in_snapshot(connection: &Connection, schema_version: i64) -> Result<(), ScanError> {
+    validate_schema_structure(connection, schema_version)?;
 
     // The process session owns reuse. Only its initial validation (or explicit stale renewal)
     // reaches this full proof; ordinary connections retain bounded identity/schema checks.
-    validate_pre_live_gap_schema_contract(connection, SCHEMA_VERSION)?;
+    validate_pre_live_gap_schema_contract(connection, schema_version)?;
     validate_live_gap_recovery_contract(connection)?;
     validate_source_revision_rows(connection)
 }
 
 pub(super) fn validate_current_schema_structure(connection: &Connection) -> Result<(), ScanError> {
+    validate_schema_structure(connection, SCHEMA_VERSION)
+}
+
+pub(super) fn validate_schema_structure(
+    connection: &Connection,
+    schema_version: i64,
+) -> Result<(), ScanError> {
     // Reject missing or altered schema before queries interpret any authority rows. Successful
     // DDL markers cannot prove canonical journal payloads, cross-root ownership or generations.
     validate_pre_live_gap_schema_contract_with_depth(
         connection,
-        SCHEMA_VERSION,
+        schema_version,
         ContractValidationDepth::StructureOnly,
     )?;
     validate_live_gap_recovery_contract_with_depth(

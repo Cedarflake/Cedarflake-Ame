@@ -5012,12 +5012,12 @@ fn p2_completion_atomically_establishes_namespace_proof_and_retires_authority() 
             .expect("finish atomic P2 publication"),
         Some(LibraryChangeLeaseUpdateOutcome::Applied),
     );
-    let evidence: (String, String, i64, i64, String, i64) = catalog
+    let evidence: (String, String, i64, String, String, i64) = catalog
         .connection
         .query_row(
             "SELECT proof.authority_kind, control.status,
                     authority.retired_unix_ms,
-                    (SELECT COUNT(*) FROM library_metadata_inventory_spools
+                    (SELECT state FROM library_metadata_inventory_spools
                      WHERE run_id = ?1),
                     run.status, proof.root_generation
              FROM library_root_publication_namespaces AS proof
@@ -5046,11 +5046,48 @@ fn p2_completion_atomically_establishes_namespace_proof_and_retires_authority() 
             "metadata_inventory".to_owned(),
             "completed".to_owned(),
             1_003,
-            0,
+            "retired".to_owned(),
             "completed".to_owned(),
             1,
         )
     );
+    let completed = catalog
+        .load_metadata_inventory_run(run_id)
+        .expect("load completed inventory")
+        .expect("completed summary retained");
+    assert_eq!(
+        catalog
+            .stage_metadata_inventory_page(
+                run_id,
+                &MetadataInventoryPage {
+                    page_index: completed.next_page_index,
+                    entries: Vec::new(),
+                    cursor: None,
+                    is_complete: true,
+                    frontier: vec![MetadataInventoryFrontierEntry::completed("", None)],
+                },
+                1_004,
+            )
+            .expect_err("retired recovery cannot accept another logical page")
+            .code,
+        "metadata_inventory_run_not_running",
+    );
+    let cleanup = catalog
+        .cleanup_terminal_metadata_inventories(0, 1, 1, Default::default())
+        .expect("retire the empty header through the actual bounded cleanup owner");
+    assert_eq!(
+        cleanup,
+        crate::domain::MetadataInventoryCleanupReport::default()
+    );
+    let raw: (i64, i64, i64) = catalog.connection.query_row(
+        "SELECT (SELECT COUNT(*) FROM library_metadata_inventory_spools WHERE run_id = ?1),
+                (SELECT COUNT(*) FROM library_metadata_inventory_spool_directories WHERE run_id = ?1),
+                (SELECT COUNT(*) FROM library_metadata_inventory_spool_entries WHERE run_id = ?1)",
+        [run_id], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+    ).expect("physical retirement evidence");
+    assert_eq!(raw, (0, 0, 0));
+    SqliteCatalog::open(catalog.catalog_path().to_path_buf())
+        .expect("FULL reopen after authority retirement and bounded cleanup");
 }
 
 #[test]

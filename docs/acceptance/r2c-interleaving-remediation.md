@@ -1016,6 +1016,200 @@ Raw-data retirement, historical unowned observations, application-wide cleanup d
 separately observed mixed-load latency remain open. Removing repeated row audits does not establish
 a per-operation reclamation budget or explain the prior connection-close tail.
 
+## Fixed closeout item 1 — retirement and bounded reclamation (locally verified)
+
+This checkpoint follows the fixed queue recorded at `505bc260`. Item 1 meets its local exit after
+the final-source evidence below; item 2 is now the only active implementation item. Historical
+failed checkpoints remain recorded below. This is not hosted full-head verification or R2c
+acceptance, and it does not close the queued mixed-load, full client matrix, or readiness decision.
+
+The original controlled cancellation regression retained a two-entry raw spool before cancellation
+and observed all its raw rows disappear in the cancellation transaction. Schema v32 now separates
+physical raw storage from the run and recovery-authority foreign-key lifetime. Terminal operations
+mark storage retired in the same transaction; children use restricted deletion, and retired headers
+cannot become executable again. An authority can start a new epoch while its previous epoch awaits
+reclamation. A follow-up regression explicitly opens and stages that successor before cleanup; it
+first exposed the old full-authority UNIQUE constraint, which is now limited to active storage.
+
+One cleanup attempt removes at most 4096 raw plus logical entries, separately at most 4096 expired
+candidate-owner records, and at most 128 empty raw directories, raw headers, and terminal summaries
+per category. Summary deletion excludes remaining candidate owners rather than cascading through
+them. The seven-day summary/owner retention policy is unchanged. Historical NULL-parent observations
+without a header are reclaimed without inventing a missing run, root, or execution authority.
+Reopening an incomplete OS enumerator marks its directory `resetting` without deleting its prefix;
+source preparation retires at most 128 old entries per turn before starting the replacement
+enumerator. Completed directories and the initial subtree observation remain intact.
+
+Cleanup uses non-blocking maintenance admission and a zero SQLite busy timeout for the attempt.
+Foreground pressure interrupts its SQL, with the progress callback removed before rollback,
+including unwind. A dedicated regression observes a real Live-lane waiter preempt maintenance,
+then commit through a separate SQLite connection after cleanup rollback. The prior timeout and
+later connection usability are checked. This is not a fixed wall-clock shutdown guarantee.
+
+Application calls now perform one batch and preserve `has_more`; they do not drain the complete
+catalog. The production runtime owns subsequent batches independently of configured roots, with
+idle rechecks, bounded contention backoff, and the existing absolute stop deadline. Real production
+poll tests, not mocked cleanup callbacks, establish that 4097 historical orphan entries leave one
+after the first poll and resume after runtime reconstruction. A separate 129-header/directory case
+leaves one of each after the first batch and reaches idle on the next. These fixtures have no roots,
+scans, queue records, recovery authority, or source-watcher starts.
+
+Focused evidence collected during this checkpoint:
+
+- The 105-test migration suite passes after integrating v32 with existing terminal and live-gap
+  compatibility repair. Subsequent active-authority uniqueness and retired-binding refinements are
+  covered by the successor lifecycle regression; final-source migration gates remain required.
+- The `metadata_inventory::tests` filter executes 74 tests, all passing, including controlled
+  10000-entry enumeration, cancellation, restart, stale execution, root replacement, source-byte
+  preservation, and the 257-candidate-owner batch limit. Its earlier new-fixture failure used an
+  invalid `upsert` intent; correcting it to the existing `reconcile` contract did not change product
+  policy or relax a constraint.
+- The `bounded_cleanup` filter executes 15 passing tests at its earlier checkpoint; this overlaps
+  the suites above and is not an additional aggregate acceptance count. The later actual Live
+  writer commit regression executes separately and passes.
+- All-target/all-feature Clippy with warnings denied passes after removing three redundant borrows.
+  Scoped Rust formatting and tracked whitespace validation pass. Later test additions still require
+  the final applicable format/lint gate.
+
+The v31-to-v32 schema copy is a one-time migration cost, not runtime bounded reclamation. It retains
+legitimate ready/incomplete raw observations and source-revision tokens exactly, preserves historical
+orphans, rejects damaged DDL, and restores old schema, rows, and version after an injected final
+version-write failure. Source media is not read or modified by those SQL-only migration fixtures.
+Independent item review, resource-boundary review, and the applicable final-source gates remain
+open; no real-library acceptance, native UI result, hosted result, or release claim is inferred.
+
+### Item 1 bounded-work review — 2026-09-09
+
+The independent review identified three P2 defects blocking this item's exit, not new product scope:
+
+- Raw-entry JOIN ordering sorted the remaining run before applying the delete limit. A pinned
+  rusqlite VM-step regression reproduced 13626 versus 106810 instructions for 1024 versus 8192
+  retained entries with a one-entry batch. Selection now bounds the retired owner set before
+  indexed entry paging, and bounds inspected directories/headers before testing emptiness.
+- A nullable retired header identity passed row validation and could never match its final
+  deletion. The unreleased v32 schema now requires a 1–256-character non-null identity. Exact row
+  proof rejects NULL, empty, oversized, and non-text stored identities even under matching DDL.
+  Three native regression tests cover insert boundaries, FULL reopen rejection without mutation,
+  and atomic rejection of a damaged v31 migration.
+- The empty-debt hint chose a full raw index rather than the initial-observation partial index.
+  The existing two-root raw fixture reproduced 6174/49182 VM instructions with 1024/8192 active
+  entries per root and no cleanup debt. Explicit selection of the schema-owned partial index plus
+  retired-header short-circuiting now takes 26/26 instructions. The raw row contract is validated
+  before measurement. A final narrow independent review confirms this finding is resolved without
+  reopening unchanged paths; the other newly reviewed batch/cancellation paths have no remaining
+  reported blocker. This is not a whole-product audit verdict.
+
+Five pinned SQL-work regressions pass. For 1024 versus 8192 retained objects and the same one-row
+batch, VM instruction counts are respectively 343/343 (raw entries), 385/385 (nonempty directories),
+426/426 (retired headers), 991/991 (logical entries), and 1141/1141 (candidate owners). The last two
+execute the complete transaction SQL, including remaining-work detection, with real parent/FK
+graphs and FULL reopen before and after. These measurements prove these batch shapes, not a
+universal wall-clock latency bound or the queued mixed-load causal correction.
+
+Runtime stop now supplies a typed read-only cancellation control to the batch port. Its
+pre-admission read and write progress handlers observe cancellation; short statements are checked
+again before commit. Four focused native tests pass: pre-cancelled admission, read interruption,
+actual DELETE interruption after its first mutation with full rollback, and cancellation after
+short SQL before commit. Timeout restoration, handler retirement, and subsequent connection use
+are checked. Catalog opening and the existing absolute worker-retirement deadline remain separate
+boundaries; these tests do not claim that every native call is forcibly interruptible.
+
+The updated `bounded_cleanup` checkpoint executed 17 passing tests before the latest four
+cancellation tests; these overlap earlier suites and are not aggregate acceptance counts. Final
+scoped formatting, Cargo formatting check, and all-target/all-feature Clippy with warnings denied
+pass at that checkpoint. The final empty-debt hint then received its own passing native regression.
+Complete final-source Daily and hosted evidence are still required. An initial Daily invocation
+stopped at the shell capture boundary: merging native stderr into a Stop-policy PowerShell pipeline
+misclassified Cargo's successful completion message as `NativeCommandError`. It did not execute
+the complete Rust suite. Its log is retained separately; the plain canonical Daily invocation is
+the replacement, with no quality-script or product-policy change.
+
+That canonical Daily run passes lint but stops at the main Rust suite: 1400 passed, 20 failed,
+19 ignored in 601.32 seconds. Flutter tests and native integrations have not run at this checkpoint.
+The failed stream is retained at `build/r2c_interleaving_audit/daily_item1_native_tests_20260909.log`.
+Fifteen failures share a duplicate test-only v30 downgrade helper which skipped schema 32, leaving
+v31 columns behind a v29/v26 marker. Removing that duplicate and using the canonical migration
+fixture restores the first v26 reopen regression and seven explicit-recovery tests; production
+schema validation is unchanged. The other five failures expose old current-version or immediate
+physical-spool-deletion expectations. Their updates must retain exact terminal authority and
+eventual bounded reclamation evidence before the complete gate is retried.
+
+The exact 20-test rerun passes 19 and fails the 4096-file production test at its newly added FULL
+reopen, after recovery and shutdown succeed. A separate diagnostic reproduction records a completed
+baseline at journal 44, closing USN 20, and the legitimately advanced current checkpoint at USN 21
+with matching volume and root identities. The baseline row validator incorrectly requires exact
+cursor equality forever. This is a production startup risk, not an immediate-deletion assertion or
+reason to freeze the simulated journal. It blocks item 1's production completion/reopen exit.
+The diagnostic print has been removed; failure evidence is retained. The correction must preserve
+retired authority, namespace/journal identity, monotonic coverage, and active recovery validation.
+
+The first corrected validator passes its 13 focused cases but still fails the original production
+reopen. Bounded failure evidence shows the exact checkpointed, completed range 20–21 was enrolled
+before the P2 final receipt. Requiring range enrollment after baseline completion adds an invalid
+ordering between independent P1 and P2 publication. Removing that requirement preserves exact range,
+namespace, coverage, and lifecycle proof; a dedicated regression retains this interleaving. Both
+failed production reproductions remain evidence, not successful verification.
+
+The unchanged Dart source passes the canonical Daily Flutter partition: 70 files and 552 tests,
+exit 0. No Ame or Flutter tester process remains at the post-partition check. At that checkpoint,
+final-source Rust and native Windows evidence was still pending; it did not advance another item.
+
+The revised 14-case baseline suite and original 4096-file production test pass together: 15 passed
+in 72.92 seconds, including the later final-receipt interleaving and FULL reopen. Independent review
+then identifies a remaining P2 at terminal queue pruning: a consumed live-gap claim can retain an
+older completed baseline while the same candidate batch deletes its gap and a later journal-reset
+baseline. The remaining old journal can no longer explain the current checkpoint. The initial
+SQL-only reproduction uses SQLite 3.51.2 and is not pinned/native acceptance. Its owning correction
+must preserve per-root/generation baseline-prefix deletion and prove each batch through the pinned
+catalog API and FULL reopen; the validator's journal identity proof must not be weakened.
+
+The pinned native regression now reproduces that exact candidate error without the prefix guard:
+the first batch deletes three records instead of the two permitted records. With the guard restored,
+the same test passes in 1.30 seconds and checks history `[901,902] -> [902] -> []`, FULL reopen after
+each batch, foreign-key integrity, and other-root active and unexpired records. The final scoped
+independent review closes this P2 with no direct omission; it is not a second whole-product audit.
+The canonical Daily Static partition passes against the final Rust source: 1435 main-library tests
+pass with zero failures, 19 explicit specialized/worker-entry ignores, and zero filtered tests in
+662.48 seconds; broker-binary integration passes 3/3. Lint, formatting, warnings-denied Clippy,
+fatal-warning/info Dart analysis, 14 asynchronous bridge contracts, and tracked whitespace checks
+also pass. A prior attempt stopped at the owned test import order; the formatter corrected that
+order before this complete rerun. Both streams are retained separately. This Static result does
+not close the mixed-load historical causal investigation.
+
+The final native Daily scan partition passes 3/3 in 64965 milliseconds, covering retained-import
+manual waiting and durable cancellation, real picker cancellation, and controlled-folder import.
+Its completion receipt reports no run or cleanup failure and retains isolated storage as evidence.
+The final native accessibility partition passes 2/2 with all ten ordered UIA phases, no rejected
+AXTree update, and explicit primary-process exit and owned-Job closure. The post-run process check
+finds no Ame or Flutter tester. Together with Static and the unchanged-source Flutter partition,
+all four canonical Daily partitions pass. Only controlled test media was accessed; retained
+libraries were not accessed and no source mutation or cloud hydration was authorized or performed.
+
+Item 1's bounded retirement, migration/reopen, stale-execution, rollback/cancellation, eventual
+rootless cleanup, and other-root/Live progress obligations now have focused and complete local gate
+evidence. The independent bounded-work review and final baseline-prefix finding are closed. This
+permits the fixed queue to advance to item 2, not a claim of zero defects or whole-product readiness.
+The original mixed-load failure still requires a causal account; the accumulated client workflow
+matrix, historical native attribution, final hosted checks, and external acceptance remain open.
+
+Physical measurements at the first formatted checkpoint: the catalog facade is 5355 lines, inventory
+adapter 3173, inventory application 1519; the migration owner remains 15509 (10243 before inline
+tests, 5266 inline-test region), and synchronization production remains 14626 (4117/10509).
+They remain physical decomposition debt. New production owners are the v32 migration (250), raw
+cleanup (82), reset (68), candidate cleanup (36), cleanup transaction (139), runtime cleanup (199),
+and cancellation port (20). Application cleanup is 72 lines, with 43 before its inline tests and
+29 in that test region. New dedicated suites and fixtures have separate ownership: transaction
+tests 245+131, SQL-work tests 237+133, migration tests/fixtures 168+149+80, runtime tests 207+259,
+and application bounded cleanup/reset/retirement 138+98+64. These sizes describe checkpoint files,
+not newly added SLOC; no broader large-file cleanup is claimed.
+
+After the completed-baseline proof extraction, `migrations.rs` has 15189 lines: 9923 before the
+inline-test module and 5266 in that module. The extracted validator has 435 non-inline lines;
+its dedicated tests have 429 lines plus 222 for terminal-pruning lifecycle coverage. Queue terminal
+cleanup has 129 non-inline lines. The production synchronization owner has 14727 lines, split
+4117/10610; its bounded failure-only reopen evidence is test code, not a new runtime policy.
+These final measurements replace the earlier checkpoint for those owners only.
+
 ## Physical ownership review
 
 Counts include whitespace and comments. The non-inline region may contain `cfg(test)` imports,

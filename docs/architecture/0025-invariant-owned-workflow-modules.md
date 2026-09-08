@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-09-06
-- Last amended: 2026-09-08
+- Last amended: 2026-09-09
 
 ## Context
 
@@ -99,18 +99,43 @@ persistence layers.
   Active enumeration checks admission before advancing its iterator and again before committing;
   a failed attempt is discarded by the application before reconstruction. No database transaction
   spans source I/O. This execution fence does not replace generation-specific delayed retirement.
-- `sqlite_catalog/spool_retirement.rs` owns deletion of run-bound raw observations together with
-  their spool header. A subtree's initial observation has no directory foreign-key parent and
-  therefore requires explicit retirement in the same transaction. Run, removed-root, queue, and
-  exact legacy-terminal selections share this owner. Logical inventory cleanup cannot retire a
-  run or its comparison evidence while a spool still owns source observations. Authority
-  revocation and bounded physical reclamation remain separate obligations; the existing cascade
-  is not evidence of a bounded raw-data budget.
+- `sqlite_catalog/spool_retirement.rs` owns monotonic retirement of run-bound raw observations.
+  Schema v32 separates their storage lifetime from run/root/recovery-authority lifetime. Retired
+  headers carry historical binding only, never execution, replay, or absence authority. Parent
+  retirement/deletion and storage retirement share a transaction; worker pause and valid lease
+  handoff do not retire storage. Reopening an interrupted raw enumerator marks only its incomplete
+  directories as `resetting`; source preparation clears a bounded page per turn before returning
+  them to `pending`. Completed directories and the initial subtree observation remain intact, and
+  stale leases cannot reset or consume either generation. A recovery authority may bind its next
+  epoch while earlier storage is still retired; uniqueness applies only to executable storage, not
+  historical headers. Physical cleanup selects again under its own bounded transaction,
+  removes entries before empty directories and headers, and includes historical NULL-parent
+  observations without inventing missing source authority. It never drains the full debt inside
+  completion, cancellation, removal, or a single application call. Restart and idle maintenance
+  retain responsibility for later batches. The v31-to-v32 migration copies legitimate active raw
+  data before replacing foreign-key ownership, validates the complete resulting catalog before
+  commit, and rolls back on failure; its one-time schema-copy cost is separate from runtime batch
+  bounds. Current implementation and verification of this decision remain roadmap evidence.
+- `metadata_inventory/spool_cleanup.rs` and `candidate_cleanup.rs` own bounded physical selection.
+  Entry queries select a limited owner set before indexed payload paging; empty-directory/header
+  selection limits inspected metadata before testing emptiness. A final SQL `LIMIT` after a payload
+  sort is not a bounded-work contract. The empty-debt hint uses the schema-owned partial initial-
+  observation index and short-circuits retired storage; idle maintenance cannot traverse active raw
+  file payload. `cleanup_transaction.rs` owns nonblocking maintenance
+  admission, zero SQLite busy wait, read/write progress interruption, and callback retirement before
+  rollback. `ports/InventoryCleanupControl` carries read-only runtime cancellation; it does not grant
+  source or execution authority. `production/inventory_cleanup.rs` retains the single batch worker
+  and later cleanup obligation independently of roots, including idle rechecks and the existing
+  absolute shutdown deadline. Cancellation preserves committed debt for a later owner.
 - `sqlite_catalog/change_queue/terminal_cleanup.rs` owns terminal queue retention and deletion.
   Candidate ownership, live-gap consumer references, and unretired recovery authority exclude a
   row before the batch limit, alongside journal and active-scan lineage. A terminal status is not
   deletion authority over retained dependents. Their owning lifecycle retires those references;
   queue cleanup must not discard them to avoid a foreign-key failure.
+  Baseline history is retired as a per-root/generation prefix: a retained earlier window protects
+  its successor from deletion, including when the same batch releases the earlier window's last
+  dependency. Later batches advance the prefix without leaving a historical journal transition
+  unprovable on reopen.
 - Cancelled lease return belongs to `sqlite_catalog/change_queue/lease_deferral.rs`. It owns bounded
   batch admission, exact lease-generation classification, attempt refunds, and atomic rollback;
   incremental workers submit one typed batch rather than orchestrating per-lease transactions.
@@ -135,6 +160,13 @@ persistence layers.
   lifecycle, or foreign-key evidence. Structural proof and snapshot ownership remain upstream.
   Other historical validators and shrink-only compatibility repair remain the next physical split,
   not a completed extraction. Migration order and one-transaction rollback remain centralized.
+- `migrations/persistent_journal_baseline.rs` owns structural and row proof for recovery windows.
+  A completed window is historical coverage, not a demand to freeze the current checkpoint at its
+  closing cursor. Later progress requires compatible identity and retained range evidence; a later
+  recovery requires its own exact authority and window. History cannot authorize a regressed
+  checkpoint, an unrelated namespace or journal, or an unfinished window's premature completion.
+  This validator remains inside the current-schema owner's consistent read snapshot and preserves
+  the narrow historical migration exception rather than adding startup retry or repair policy.
 - `application/preview_health.rs` owns final missing-file and accounting observations for both
   startup recovery and ordinary catalog reads. Its typed persistence port pairs publication
   exclusion with a zero-wait conditional transaction; deferred maintenance cannot block foreground

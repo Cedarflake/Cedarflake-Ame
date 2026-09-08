@@ -20,9 +20,16 @@ pub(super) fn repair_needed(connection: &Connection) -> Result<bool, ScanError> 
 }
 
 pub(super) fn repair_in_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
+    repair_for_schema(transaction, super::SCHEMA_VERSION)
+}
+
+pub(super) fn repair_for_schema(
+    transaction: &Transaction<'_>,
+    schema_version: i64,
+) -> Result<(), ScanError> {
     // Recheck structure under the writer snapshot. The caller's full validation must succeed
     // before committing; unrelated corruption cannot be hidden by this monotonic retirement.
-    validate_current_schema_structure(transaction)?;
+    super::current_schema::validate_schema_structure(transaction, schema_version)?;
     transaction
         .execute(&removed_root_authority_retirement_sql(), [])
         .map_err(database_error)?;
