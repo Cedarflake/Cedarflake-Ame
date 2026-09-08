@@ -113,7 +113,9 @@ impl SynchronizationAdmissions {
     pub(super) fn revalidate(
         &mut self,
         catalog: &SqliteCatalog,
-        runtime: &mut super::LibrarySynchronizationRuntime,
+        runtime: &mut super::LibrarySynchronizationRuntime<
+            <SqliteCatalog as crate::ports::LibraryChangeIngress>::Reservation,
+        >,
         snapshot: &mut LibrarySynchronizationSnapshot,
     ) -> Result<(), ScanError> {
         *self = Self::load(catalog)?;

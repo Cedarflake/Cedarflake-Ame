@@ -3275,6 +3275,13 @@ before taking the next item; another verified prerequisite is not completion of 
    nonempty journal closing coverage, final baseline publication, synchronized state, and FULL
    reopen after owned stop. Original samples and first-page deadlines remain intact; this closes
    the controlled complete-recovery evidence gap, not historical observer attribution.
+   A held-writer counterexample additionally proves that observer queue ingress can wait behind
+   recovery despite the separate P0 worker. The locally verified correction separates retained writer
+   ordering from zero-wait transaction attempts and protects pending-plan ownership and truthful
+   freshness. The same-catalog scheduling guard has an independent two-root counterexample;
+   final-source production, queue, admission, and lint checks pass, including the unchanged
+   mixed-load gate. These results remain within item 2; no new implementation item or UI change
+   is authorized by that finding, and final hosted/client gates are not inferred from them.
    Historical observation-stage attribution and the complete item exit remain outstanding.
 3. **Queued — accumulated workflow review and client verification.** Review the fixed lifecycle
    matrix: first import and final publication; pause/cancel/exit/manual continuation; multi-root

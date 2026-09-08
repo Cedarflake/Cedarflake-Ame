@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-18
-- Last amended: 2026-09-02
+- Last amended: 2026-09-09
 
 ADR 0024 supersedes this record only where it makes every cold start or availability transition
 create a metadata-inventory epoch, cancels all journal continuity at shutdown, or permits older
@@ -72,7 +72,27 @@ only the R2c-D path worker. Subtree, root, and freshness-gap rows remain unlease
 Draining observer memory and committing the durable queue form an explicit handoff. The runtime retains
 one drained plan in memory until enqueue succeeds and retries that plan before polling the observer
 again. A database failure therefore degrades the visible source state without losing the only copy of
-the observations. Under ADR 0023, a cold start and every unavailable-to-available transition first
+the observations. Observer ingress reserves writer ordering separately from transaction ownership.
+The reservation is bound to the catalog identity, root generation, and lane. A busy attempt returns
+without waiting for an in-process writer or SQLite lock, retains its queue position and complete
+uncommitted plan, and retries on the next poll. No transaction or active permit spans polls. An
+immediate try-acquire that forgets its position is insufficient: a succession of queued recovery
+writers could otherwise repeatedly precede the live plan after preemption.
+
+Successful submission retires that admission. Capacity backpressure and non-contention failures
+also release it, allowing durable queue consumers to make room while the application retains the
+uncommitted plan or suffix. Stopping, root retirement/replacement, and a failed production poll
+release admission without claiming that the retained plan was published. A continuity-gap plan
+cannot overwrite pending precise observations, and pending ingress prevents synchronized freshness
+and new authoritative work for that root. The single poll must not synchronously request another
+writer while it owns a deferred ingress reservation for any root in the same catalog. Worker-result
+retirement and read-only status projection continue; synchronous catalog scheduling resumes after
+ingress commits or releases admission. The existing queue transaction still owns validation,
+coalescing, bounded cleanup, and atomic commit; its temporary zero busy timeout is restored before
+the active permit retires. This is not a wall-clock bound on arbitrary SQLite execution, catalog
+opening/validation, or the whole production poll.
+
+Under ADR 0023, a cold start and every unavailable-to-available transition first
 establish live observation, then start a new metadata-inventory continuity epoch. Inventory pages
 produce bounded path or subtree candidates through the same final-state reconciler, while complete
 scope authority is required before a removal may publish. Watcher evidence loss extends or replaces

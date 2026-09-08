@@ -81,6 +81,9 @@ use crate::ports::{
 mod poll_diagnostics;
 
 #[cfg(windows)]
+mod catalog_scheduling;
+
+#[cfg(windows)]
 mod inventory_cleanup;
 
 #[cfg(windows)]
@@ -219,7 +222,9 @@ const RECOVERY_RETRY_MAXIMUM_MILLIS: i64 = 5 * 60 * 1_000;
 const METADATA_INVENTORY_WORK_PAGE_ENTRIES: u32 = 4_095;
 #[cfg(windows)]
 struct ProductionSynchronization {
-    runtime: LibrarySynchronizationRuntime,
+    runtime: LibrarySynchronizationRuntime<
+        <SqliteCatalog as crate::ports::LibraryChangeIngress>::Reservation,
+    >,
     catalog_session: Option<Arc<SqliteCatalogSession>>,
     poll_catalog: PollCatalogOwner,
     persistent_change_journal_factory: Option<Arc<dyn PersistentChangeJournal>>,
@@ -1726,6 +1731,9 @@ fn poll_runtime_with_storage(
     let started = Instant::now();
     let mut timings = SynchronizationPollStageTimings::default();
     let result = poll_runtime_with_storage_inner(runtime, storage, &mut timings);
+    if result.is_err() {
+        runtime.runtime.release_ingress_admissions();
+    }
     log_synchronization_poll_diagnostic(started.elapsed(), &timings, &result);
     result
 }
@@ -1796,7 +1804,6 @@ fn poll_runtime_with_storage_inner(
     let live_mutation_count = runtime.poll_live(poll_unix_ms);
     let journal_mutation_count = runtime.poll_journal();
     let recovered_mutation_count = runtime.poll_recovery(poll_unix_ms)?;
-    catalog.finalize_ready_first_import_journal_baseline(poll_unix_ms)?;
     runtime.prune_recovery_inventory_sources(catalog)?;
     runtime.cancel_stale_automatic_recovery();
     snapshot.applied_mutation_count = snapshot
@@ -1815,76 +1822,13 @@ fn poll_runtime_with_storage_inner(
     let scheduling_timer = ElapsedStageTimer::new(&mut timings.scheduling_ms);
     let change_capture_unix_ms = now_unix_ms()?;
     project_active_recovery_as_updating(runtime.recovery.as_ref(), &mut snapshot);
-    runtime.schedule_next_live_work(catalog, &snapshot, poll_unix_ms, storage)?;
-    runtime.schedule_next_journal_work(catalog, &snapshot, change_capture_unix_ms, storage)?;
-    if runtime.recovery.is_none()
-        && let Some(work) = ready_recovery_work(runtime, catalog, &snapshot, poll_unix_ms)?
-    {
-        let root_id = work.root_id().to_owned();
-        let root_generation = work.root_generation();
-        let continuity_revision = runtime
-            .runtime
-            .root_continuity_revision(&root_id)
-            .ok_or_else(|| {
-                ScanError::new(
-                    "library_continuity_root_missing",
-                    "The selected continuity root is no longer active",
-                )
-            })?;
-        match work {
-            ReadyRecoveryWork::CandidateDrain { .. } => {
-                runtime.start_recovery_candidate_drain(
-                    root_id,
-                    root_generation,
-                    continuity_revision,
-                    poll_unix_ms,
-                    storage.catalog_path.clone(),
-                )?;
-            }
-            ReadyRecoveryWork::LegacyUnownedDrain { .. } => {
-                runtime.start_legacy_unowned_recovery_drain(
-                    root_id,
-                    root_generation,
-                    continuity_revision,
-                    poll_unix_ms,
-                    storage.catalog_path.clone(),
-                )?;
-            }
-            ReadyRecoveryWork::Control { .. } => {
-                if let Some(leased) = catalog.lease_metadata_inventory_recovery(
-                    &root_id,
-                    root_generation,
-                    poll_unix_ms,
-                    runtime.runtime.queue_policy(),
-                )? {
-                    let leased_for_defer = leased.clone();
-                    if let Err(start_error) = runtime.start_automatic_recovery(
-                        root_id,
-                        root_generation,
-                        continuity_revision,
-                        leased,
-                        poll_unix_ms,
-                        storage.catalog_path.clone(),
-                    ) {
-                        if let Err(defer_error) = catalog.defer_library_change(
-                            leased_for_defer.change.id,
-                            leased_for_defer.lease_generation,
-                            poll_unix_ms,
-                        ) {
-                            return Err(ScanError::new(
-                                "authoritative_recovery_worker_start_cleanup_failed",
-                                format!(
-                                    "{}; leased work could not be deferred: {}",
-                                    start_error.message, defer_error.message
-                                ),
-                            ));
-                        }
-                        return Err(start_error);
-                    }
-                }
-            }
-        }
-    }
+    runtime.schedule_catalog_work(
+        catalog,
+        &snapshot,
+        poll_unix_ms,
+        change_capture_unix_ms,
+        storage,
+    )?;
     drop(scheduling_timer);
     timings.stage = "projection";
     let projection_timer = ElapsedStageTimer::new(&mut timings.projection_ms);
@@ -4112,6 +4056,9 @@ mod tests {
 
     #[cfg(windows)]
     mod poll_catalog_runtime;
+
+    #[cfg(windows)]
+    mod ingress_reservation;
 
     use super::*;
     #[cfg(windows)]

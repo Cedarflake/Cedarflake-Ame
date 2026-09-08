@@ -11,7 +11,7 @@ use crate::domain::{
     PersistentJournalContinuityState, ScanError,
 };
 use crate::ports::{
-    IncrementalCatalogRepository, LibraryChangeQueue, LibraryChangeSourceRequest,
+    IncrementalCatalogRepository, LibraryChangeIngress, LibraryChangeSourceRequest,
     LibraryChangeSourceStarter,
 };
 #[cfg(test)]
@@ -19,18 +19,18 @@ use crate::ports::{LibraryChangeSourceFactory, erase_library_change_source_facto
 
 use super::authoritative_library_changes::process_ready_authoritative_library_change;
 use super::library_change_observer::LibraryChangeObserver;
-use super::{
-    AuthoritativeRecoveryPolicy, enqueue_library_change_plan, process_ready_library_changes_in_lane,
-};
+use super::{AuthoritativeRecoveryPolicy, process_ready_library_changes_in_lane};
 
 #[cfg(windows)]
 mod admission;
 #[cfg(windows)]
 mod journal_baseline;
 mod observation_diagnostics;
+mod observer_handoff;
 mod production;
 
 use observation_diagnostics::measure_observation;
+use observer_handoff::ObserverHandoff;
 
 #[cfg(test)]
 #[path = "../../test_support/production_synchronization_cadence.rs"]
@@ -49,7 +49,7 @@ const DEFAULT_INGRESS_CAPACITY: usize = 4_096;
 const PERSISTENCE_CONTENTION_GRACE_MILLIS: i64 = 30_000;
 const OBSERVER_STOP_TIMEOUT: Duration = Duration::from_secs(2);
 
-struct RootRuntime {
+struct RootRuntime<Reservation> {
     root: IncrementalCatalogRoot,
     observer: Option<LibraryChangeObserver>,
     availability: LibraryRootAvailability,
@@ -58,7 +58,7 @@ struct RootRuntime {
     blocking_issue_code: Option<String>,
     persistence_contention_started_unix_ms: Option<i64>,
     recovery_contention_started_unix_ms: Option<i64>,
-    pending_plan: Option<LibraryChangePlanningResult>,
+    handoff: ObserverHandoff<Reservation>,
     needs_continuity_gap: bool,
     continuity_revision: u64,
 }
@@ -68,9 +68,9 @@ struct RetiringObserver {
     observer: LibraryChangeObserver,
 }
 
-pub(crate) struct LibrarySynchronizationRuntime {
+pub(crate) struct LibrarySynchronizationRuntime<Reservation> {
     start_source: LibraryChangeSourceStarter,
-    roots: BTreeMap<String, RootRuntime>,
+    roots: BTreeMap<String, RootRuntime<Reservation>>,
     retiring_observers: Vec<RetiringObserver>,
     planning_limits: LibraryChangePlanningLimits,
     restart_policy: LibraryChangeRestartPolicy,
@@ -82,7 +82,7 @@ pub(crate) struct LibrarySynchronizationRuntime {
     is_stopping: bool,
 }
 
-impl LibrarySynchronizationRuntime {
+impl<Reservation> LibrarySynchronizationRuntime<Reservation> {
     #[cfg(test)]
     pub(crate) fn new_erased(start_source: LibraryChangeSourceStarter) -> Self {
         Self::new(start_source, true)
@@ -146,7 +146,7 @@ impl LibrarySynchronizationRuntime {
         inspect_availability: impl FnMut(&str) -> LibraryRootAvailability,
     ) -> Result<LibrarySynchronizationSnapshot, ScanError>
     where
-        Repository: IncrementalCatalogRepository + LibraryChangeQueue,
+        Repository: IncrementalCatalogRepository + LibraryChangeIngress<Reservation = Reservation>,
     {
         let catalog_roots = repository.load_incremental_catalog_roots()?;
         self.poll_internal(
@@ -167,7 +167,7 @@ impl LibrarySynchronizationRuntime {
         inspect_availability: impl FnMut(&str) -> LibraryRootAvailability,
     ) -> Result<LibrarySynchronizationSnapshot, ScanError>
     where
-        Repository: IncrementalCatalogRepository + LibraryChangeQueue,
+        Repository: IncrementalCatalogRepository + LibraryChangeIngress<Reservation = Reservation>,
     {
         let catalog_roots = repository.load_incremental_catalog_roots()?;
         self.poll_internal(
@@ -190,7 +190,7 @@ impl LibrarySynchronizationRuntime {
         process_live_changes: bool,
     ) -> Result<LibrarySynchronizationSnapshot, ScanError>
     where
-        Repository: IncrementalCatalogRepository + LibraryChangeQueue,
+        Repository: IncrementalCatalogRepository + LibraryChangeIngress<Reservation = Reservation>,
     {
         if !self.is_running || self.is_stopping {
             return Err(ScanError::new(
@@ -209,6 +209,11 @@ impl LibrarySynchronizationRuntime {
             .first()
             .map_or(0, |root| root.catalog_revision);
         let mut applied_mutation_count = 0_u32;
+        let mut reserved_ingress_count = self
+            .roots
+            .values()
+            .filter(|root| root.handoff.is_waiting_for_writer())
+            .count();
         for root in catalog_roots {
             let availability = inspect_availability(&root.root_path);
             let runtime = self
@@ -216,6 +221,7 @@ impl LibrarySynchronizationRuntime {
                 .get_mut(&root.root_id)
                 .expect("catalog roots are reconciled before processing");
             runtime.root = root.clone();
+            reserved_ingress_count -= usize::from(runtime.handoff.is_waiting_for_writer());
             let can_drain_observer =
                 persist_pending_plan_for_poll(runtime, repository, now_unix_ms, self.queue_policy);
             runtime.availability = availability;
@@ -270,7 +276,7 @@ impl LibrarySynchronizationRuntime {
                             if planning_requires_metadata_inventory(&poll.planning) {
                                 runtime.needs_continuity_gap = true;
                             } else {
-                                runtime.pending_plan = Some(poll.planning);
+                                runtime.handoff.retain(poll.planning)?;
                                 persist_pending_plan_for_poll(
                                     runtime,
                                     repository,
@@ -287,7 +293,7 @@ impl LibrarySynchronizationRuntime {
                 }
             }
 
-            if can_drain_observer
+            if !runtime.handoff.has_pending()
                 && runtime.needs_continuity_gap
                 && runtime.source_health == LibraryChangeSourceHealth::Healthy
             {
@@ -298,12 +304,17 @@ impl LibrarySynchronizationRuntime {
                             "The library continuity revision exceeded the supported range",
                         )
                     })?;
-                runtime.pending_plan = Some(continuity_gap_plan(&root, now_unix_ms));
+                runtime
+                    .handoff
+                    .retain(continuity_gap_plan(&root, now_unix_ms))?;
                 runtime.needs_continuity_gap = false;
                 persist_pending_plan_for_poll(runtime, repository, now_unix_ms, self.queue_policy);
             }
 
+            reserved_ingress_count += usize::from(runtime.handoff.is_waiting_for_writer());
             if process_authoritative_recovery
+                && reserved_ingress_count == 0
+                && !runtime.handoff.has_pending()
                 && availability == LibraryRootAvailability::Available
                 && runtime.source_health == LibraryChangeSourceHealth::Healthy
                 && !runtime.needs_continuity_gap
@@ -326,7 +337,10 @@ impl LibrarySynchronizationRuntime {
                         )
                     })?;
             }
-            if process_live_changes && availability == LibraryRootAvailability::Available {
+            if process_live_changes
+                && availability == LibraryRootAvailability::Available
+                && reserved_ingress_count == 0
+            {
                 let report = process_ready_library_changes_in_lane(
                     repository,
                     &root.root_id,
@@ -383,6 +397,7 @@ impl LibrarySynchronizationRuntime {
             return Ok(());
         }
         self.is_stopping = true;
+        self.release_ingress_admissions();
         let mut first_error = None;
         for runtime in self.roots.values_mut() {
             if let Some(observer) = runtime.observer.as_mut()
@@ -473,7 +488,7 @@ impl LibrarySynchronizationRuntime {
                     blocking_issue_code: None,
                     persistence_contention_started_unix_ms: None,
                     recovery_contention_started_unix_ms: None,
-                    pending_plan: None,
+                    handoff: ObserverHandoff::new(),
                     needs_continuity_gap: self.schedules_initial_metadata_inventory,
                     continuity_revision: 0,
                 });
@@ -514,9 +529,22 @@ impl LibrarySynchronizationRuntime {
     pub(crate) fn root_is_ready_for_authoritative_recovery(&self, root_id: &str) -> bool {
         self.roots.get(root_id).is_some_and(|runtime| {
             !runtime.needs_continuity_gap
+                && !runtime.handoff.has_pending()
                 && runtime.availability == LibraryRootAvailability::Available
                 && runtime.source_health == LibraryChangeSourceHealth::Healthy
         })
+    }
+
+    pub(crate) fn has_reserved_ingress(&self) -> bool {
+        self.roots
+            .values()
+            .any(|root| root.handoff.is_waiting_for_writer())
+    }
+
+    pub(crate) fn release_ingress_admissions(&mut self) {
+        for root in self.roots.values_mut() {
+            root.handoff.release_admission();
+        }
     }
 
     pub(crate) fn root_continuity_revision(&self, root_id: &str) -> Option<u64> {
@@ -546,7 +574,11 @@ impl LibrarySynchronizationRuntime {
     }
 }
 
-fn record_recovery_issue(runtime: &mut RootRuntime, code: &str, now_unix_ms: i64) {
+fn record_recovery_issue<Reservation>(
+    runtime: &mut RootRuntime<Reservation>,
+    code: &str,
+    now_unix_ms: i64,
+) {
     runtime.last_issue_code = Some(code.to_owned());
     if is_transient_persistence_contention(code) {
         let started = runtime
@@ -561,7 +593,7 @@ fn record_recovery_issue(runtime: &mut RootRuntime, code: &str, now_unix_ms: i64
     }
 }
 
-fn clear_recovery_contention(runtime: &mut RootRuntime) {
+fn clear_recovery_contention<Reservation>(runtime: &mut RootRuntime<Reservation>) {
     runtime.recovery_contention_started_unix_ms = None;
     if runtime.blocking_issue_code.is_none()
         && runtime
@@ -573,17 +605,19 @@ fn clear_recovery_contention(runtime: &mut RootRuntime) {
     }
 }
 
-fn persist_pending_plan_for_poll<Repository>(
-    runtime: &mut RootRuntime,
+fn persist_pending_plan_for_poll<Repository, Reservation>(
+    runtime: &mut RootRuntime<Reservation>,
     repository: &mut Repository,
     now_unix_ms: i64,
     queue_policy: LibraryChangeQueuePolicy,
 ) -> bool
 where
-    Repository: LibraryChangeQueue,
+    Repository: LibraryChangeIngress<Reservation = Reservation>,
 {
     match measure_observation("queue_persistence", || {
-        persist_pending_plan(runtime, repository, now_unix_ms, queue_policy)
+        runtime
+            .handoff
+            .persist(repository, now_unix_ms, queue_policy)
     }) {
         Ok(()) => {
             runtime.persistence_contention_started_unix_ms = None;
@@ -598,6 +632,7 @@ where
             true
         }
         Err(error) => {
+            runtime.last_issue_code = Some(error.code.clone());
             let is_transient = is_transient_persistence_contention(&error.code);
             let is_backpressured = error.code == "change_queue_backpressure";
             if is_backpressured {
@@ -638,68 +673,21 @@ fn is_retryable_plan_persistence(code: &str) -> bool {
     code == "change_queue_backpressure" || is_transient_persistence_contention(code)
 }
 
-fn root_has_converged(runtime: &RootRuntime, metrics: &LibraryChangeQueueMetrics) -> bool {
+fn root_has_converged<Reservation>(
+    runtime: &RootRuntime<Reservation>,
+    metrics: &LibraryChangeQueueMetrics,
+) -> bool {
     runtime.blocking_issue_code.is_some()
         && runtime.availability == LibraryRootAvailability::Available
         && runtime.source_health == LibraryChangeSourceHealth::Healthy
         && !runtime.needs_continuity_gap
-        && runtime.pending_plan.is_none()
+        && !runtime.handoff.has_pending()
         && !runtime.root.has_running_scan
         && runtime.root.active_scan_id.is_some()
         && metrics.health != LibraryChangeQueueHealth::Degraded
         && metrics.pending_count == 0
         && metrics.leased_count == 0
         && metrics.retry_wait_count == 0
-}
-
-fn persist_pending_plan<Repository>(
-    runtime: &mut RootRuntime,
-    repository: &mut Repository,
-    now_unix_ms: i64,
-    queue_policy: LibraryChangeQueuePolicy,
-) -> Result<(), ScanError>
-where
-    Repository: LibraryChangeQueue,
-{
-    let Some(mut plan) = runtime.pending_plan.take() else {
-        return Ok(());
-    };
-    match enqueue_library_change_plan(repository, &plan, now_unix_ms, queue_policy) {
-        Ok(_) => Ok(()),
-        Err(error) if error.code == "change_queue_backpressure" && plan.intents.len() > 1 => {
-            let mut prefix_len = (plan.intents.len() / 2).max(1);
-            loop {
-                let mut prefix = plan.clone();
-                prefix.intents.truncate(prefix_len);
-                match enqueue_library_change_plan(repository, &prefix, now_unix_ms, queue_policy) {
-                    Ok(_) => {
-                        plan.intents.drain(..prefix_len);
-                        if !plan.intents.is_empty() {
-                            runtime.pending_plan = Some(plan);
-                            runtime.last_issue_code = Some(error.code.clone());
-                            return Err(error);
-                        }
-                        return Ok(());
-                    }
-                    Err(prefix_error)
-                        if prefix_error.code == "change_queue_backpressure" && prefix_len > 1 =>
-                    {
-                        prefix_len = (prefix_len / 2).max(1);
-                    }
-                    Err(prefix_error) => {
-                        runtime.last_issue_code = Some(prefix_error.code.clone());
-                        runtime.pending_plan = Some(plan);
-                        return Err(prefix_error);
-                    }
-                }
-            }
-        }
-        Err(error) => {
-            runtime.last_issue_code = Some(error.code.clone());
-            runtime.pending_plan = Some(plan);
-            Err(error)
-        }
-    }
 }
 
 fn continuity_gap_plan(
@@ -740,7 +728,7 @@ fn planning_requires_metadata_inventory(plan: &LibraryChangePlanningResult) -> b
         })
 }
 
-impl Drop for LibrarySynchronizationRuntime {
+impl<Reservation> Drop for LibrarySynchronizationRuntime<Reservation> {
     fn drop(&mut self) {
         let _ = self.stop();
     }
@@ -758,8 +746,8 @@ fn source_request(
     }
 }
 
-fn project_root_status(
-    runtime: &RootRuntime,
+fn project_root_status<Reservation>(
+    runtime: &RootRuntime<Reservation>,
     metrics: &LibraryChangeQueueMetrics,
 ) -> LibraryRootSynchronizationStatus {
     let unresolved = metrics
@@ -822,7 +810,10 @@ fn project_root_status(
             CatalogFreshnessCause::PendingChanges,
             LibrarySynchronizationPhase::RetryWait,
         )
-    } else if runtime.root.active_scan_id.is_none() || unresolved > 0 {
+    } else if runtime.root.active_scan_id.is_none()
+        || unresolved > 0
+        || runtime.handoff.has_pending()
+    {
         (
             CatalogFreshnessState::Updating,
             CatalogFreshnessCause::PendingChanges,

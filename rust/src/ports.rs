@@ -8,6 +8,8 @@ mod scan_publication_control;
 pub(crate) use scan_publication_control::ScanPublicationControl;
 mod inventory_cleanup_control;
 pub use inventory_cleanup_control::InventoryCleanupControl;
+mod library_change_ingress;
+pub(crate) use library_change_ingress::LibraryChangeIngress;
 
 use crate::domain::{
     AssetLocationView, CatalogCursor, CatalogDeltaBatch, CatalogDeltaPublication, CatalogSnapshot,

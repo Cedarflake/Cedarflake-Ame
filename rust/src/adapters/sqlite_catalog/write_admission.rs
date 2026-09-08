@@ -37,6 +37,16 @@ impl SqliteWriteAdmission {
         self.acquire_priority(sqlite_write_priority(lane), None)
     }
 
+    pub(super) fn reserve(self: &Arc<Self>, lane: LibraryChangeLane) -> ReservedWrite {
+        let (pending, preempt) = self.register(sqlite_write_priority(lane));
+        if let Some(preempt) = preempt {
+            preempt();
+        }
+        #[cfg(test)]
+        tests::after_registration();
+        ReservedWrite { pending }
+    }
+
     pub(super) fn acquire_preemptible(
         self: &Arc<Self>,
         lane: LibraryChangeLane,
@@ -187,6 +197,31 @@ struct PendingWrite {
     admission: Arc<SqliteWriteAdmission>,
     priority: usize,
     token: Option<Arc<()>>,
+}
+
+pub(super) struct ReservedWrite {
+    pending: PendingWrite,
+}
+
+impl ReservedWrite {
+    pub(super) fn try_acquire(&mut self) -> Option<SqliteWritePermit> {
+        let mut state = self
+            .pending
+            .admission
+            .state
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        if !self.pending.can_admit(&state) {
+            return None;
+        }
+        // The position survives a rolled-back attempt, without retaining an active permit.
+        state.is_active = true;
+        state.active_priority = self.pending.priority;
+        state.active_preempt = None;
+        Some(SqliteWritePermit {
+            admission: Arc::clone(&self.pending.admission),
+        })
+    }
 }
 
 impl PendingWrite {

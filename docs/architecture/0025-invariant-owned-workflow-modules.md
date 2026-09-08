@@ -49,6 +49,14 @@ persistence layers.
   coordinator. Journal baseline opening and closing use different typed work items in
   `journal_baseline.rs`; an opening authority is either an existing root or a first import with a
   required scan identity and start time, so mutually exclusive fields cannot form an invalid job.
+- `library_synchronization/observer_handoff.rs` owns the uncommitted observation plan, partial
+  capacity publication, and its opaque writer reservation through `ports/LibraryChangeIngress`.
+  The runtime cannot overwrite that plan or claim freshness before submission. Adapter-owned
+  `change_queue/ingress.rs` binds reservation identity and owns zero-wait transaction attempts;
+  `write_admission.rs` retains ordering independently from an active permit. Production
+  `catalog_scheduling.rs` owns synchronous follow-up writes and prevents same-poll self-waiting
+  behind any retained ingress reservation. Worker retirement and status projection remain outside
+  that write-admission boundary.
 - `adapters/sqlite_catalog.rs` remains the catalog and write-admission facade. Atomic replacement-
   scan publication and its bounded identity reconciliation live in
   `sqlite_catalog/scan_publication.rs`. Its `validation.rs` owner captures the fixed temporary

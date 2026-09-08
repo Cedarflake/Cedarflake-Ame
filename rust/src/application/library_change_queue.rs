@@ -15,6 +15,14 @@ pub fn enqueue_library_change_plan<Queue>(
 where
     Queue: LibraryChangeQueue,
 {
+    validate_library_change_plan(plan, policy)?;
+    queue.enqueue_library_change_intents(&plan.intents, enqueued_unix_ms, policy)
+}
+
+pub(super) fn validate_library_change_plan(
+    plan: &LibraryChangePlanningResult,
+    policy: LibraryChangeQueuePolicy,
+) -> Result<(), ScanError> {
     if !policy.is_valid() {
         return Err(ScanError::new(
             "change_queue_policy_invalid",
@@ -24,7 +32,7 @@ where
     for intent in &plan.intents {
         validate_intent(plan, intent)?;
     }
-    queue.enqueue_library_change_intents(&plan.intents, enqueued_unix_ms, policy)
+    Ok(())
 }
 
 #[cfg(test)]

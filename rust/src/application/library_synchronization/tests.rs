@@ -25,6 +25,9 @@ use crate::ports::{
 
 use super::{LibrarySynchronizationRuntime, project_root_status};
 
+#[cfg(windows)]
+mod observer_contention;
+
 #[derive(Clone, Default)]
 struct FakeFactory {
     state: Arc<Mutex<FakeState>>,
@@ -728,7 +731,7 @@ fn exhausted_retry_projects_its_durable_failure_after_runtime_recreation() {
     let roots = catalog
         .load_incremental_catalog_roots()
         .expect("load catalog roots");
-    let mut restarted = LibrarySynchronizationRuntime::with_policy(
+    let mut restarted: Runtime = LibrarySynchronizationRuntime::with_policy(
         FakeFactory::default(),
         LibraryChangePlanningLimits::default(),
         crate::domain::LibraryChangeRestartPolicy::default(),
@@ -1314,14 +1317,18 @@ impl RuntimeFixture {
     }
 }
 
-fn runtime(factory: FakeFactory) -> LibrarySynchronizationRuntime {
+type Runtime = LibrarySynchronizationRuntime<
+    <SqliteCatalog as crate::ports::LibraryChangeIngress>::Reservation,
+>;
+
+fn runtime(factory: FakeFactory) -> Runtime {
     runtime_with_recovery_policy(factory, AuthoritativeRecoveryPolicy::default())
 }
 
 fn runtime_with_recovery_policy(
     factory: FakeFactory,
     recovery_policy: AuthoritativeRecoveryPolicy,
-) -> LibrarySynchronizationRuntime {
+) -> Runtime {
     LibrarySynchronizationRuntime::with_policy(
         factory,
         LibraryChangePlanningLimits::default(),
@@ -1336,7 +1343,7 @@ fn runtime_with_recovery_policy(
 }
 
 fn poll_until_synchronized(
-    runtime: &mut LibrarySynchronizationRuntime,
+    runtime: &mut Runtime,
     catalog: &mut SqliteCatalog,
     first_poll_unix_ms: i64,
 ) -> LibrarySynchronizationSnapshot {

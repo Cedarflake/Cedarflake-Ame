@@ -4,6 +4,8 @@ use std::thread;
 
 use super::*;
 
+mod reservations;
+
 thread_local! {
     static AFTER_REGISTRATION: RefCell<Option<Box<dyn FnOnce()>>> = RefCell::new(None);
 }
@@ -12,6 +14,21 @@ pub(super) fn after_registration() {
     let callback = AFTER_REGISTRATION.with(|slot| slot.borrow_mut().take());
     if let Some(callback) = callback {
         callback();
+    }
+}
+
+impl super::super::SqliteCatalog {
+    pub(crate) fn with_recovery_write_for_test<T>(&mut self, action: impl FnOnce() -> T) -> T {
+        let transaction = self
+            .begin_write_in_lane(LibraryChangeLane::Recovery)
+            .expect("hold a real recovery transaction");
+        let result = action();
+        drop(transaction);
+        result
+    }
+
+    pub(crate) fn after_next_write_registration_for_test(callback: impl FnOnce() + 'static) {
+        AFTER_REGISTRATION.with(|slot| *slot.borrow_mut() = Some(Box::new(callback)));
     }
 }
 

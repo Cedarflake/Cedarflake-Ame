@@ -21,6 +21,7 @@ use super::{
 };
 
 mod coalescing;
+mod ingress;
 mod lease_deferral;
 mod metrics;
 mod persistence;

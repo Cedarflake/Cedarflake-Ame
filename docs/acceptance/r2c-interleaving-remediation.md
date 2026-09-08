@@ -1445,6 +1445,77 @@ falls from 14728 to 14584 lines, with 4105 before its inline test module and 104
 its production behavior is unchanged by these extractions. These counts retain the larger
 facade's physical debt rather than claiming repository-wide decomposition.
 
+### Reserved observer ingress under a held writer — 2026-09-09
+
+This is another causal check within fixed closeout item 2, not a new delivery stage. The original
+`observer_poll=1092ms` record has no retained substage trace or matching Static/Rust profiling
+artifact. Its original source already measured root availability; a missing availability timer
+does not explain that record. Neither subsequent green runs nor this counterexample identify its
+unique historical cause.
+
+The current observer calls durable enqueue on the serialized poll thread. That path previously
+joined the shared writer admission's unbounded condition-variable wait before SQLite's separate
+five-second busy timeout. A real temporary-catalog Recovery transaction, actual observer plan,
+and registration signal reproduce the problem independently of machine speed: the poll cannot
+return during the held writer's 100ms control window. The failing run records
+`queue_persistence=108ms`; the writer and observer are released and joined before the assertion.
+Its RED output is retained in
+`build/r2c_interleaving_audit/item2_observer_held_writer_red_20260909.log`.
+
+The correction adds an opaque ingress reservation through a narrow persistence port. Queue
+position survives deferred attempts; transaction and active permit do not. Priority notification
+runs outside the mutex, registered same-priority order remains FIFO, and a queued Recovery relay
+cannot take the place of deferred P0. SQLite enqueue attempts use zero busy wait and restore the
+connection afterward. Catalog identity, root generation, and lane are checked before transaction
+entry. Failed multi-row enqueue rolls back earlier rows. Ordinary worker enqueue, schema
+migrations, source access, bridge contracts, and frontend behavior are unchanged.
+
+The application handoff owns the pending plan and reservation. Writer contention retains both;
+capacity backpressure publishes only a committed prefix and releases admission so consumers can
+run. Non-contention failure releases admission without losing the plan. A later gap cannot
+overwrite pending precise observations; pending ingress cannot appear synchronized. Stop, removed
+or replaced roots, and an unsuccessful production poll retire their admission ownership.
+
+Retained ordering also requires a catalog-wide coordinator boundary: first-import finalization,
+LiveOnly opening persistence, and recovery-control leasing cannot synchronously queue behind the
+same poll's pending P0. These operations share `production/catalog_scheduling.rs`; completed
+worker collection and read-only status projection remain outside it. The actual two-root production
+fixture proves pending A ingress alongside B opening, bounded return while the Recovery writer is
+still held, eventual path publication, B LiveOnly completion, both roots synchronized, unchanged
+source bytes, owned stop, and FULL reopen. Temporarily removing only this scheduling guard makes
+that test fail at the intercepted second writer registration without stranding its thread; the
+guard is restored before final-source checks. Its counterfactual RED evidence is
+`build/r2c_interleaving_audit/item2_observer_self_wait_red_20260909.log`.
+
+Focused checks pass 29 core synchronization cases, nine writer-admission cases, three direct
+ingress transaction/binding cases, and the two-root production counterexample. Independent review
+closed the coordinator self-wait finding and found no further defect in these changed boundaries.
+Final-source checks additionally pass all 115 production synchronization tests: 102 runtime cases
+in 416.43 seconds, six catalog-poll cases in 2.25 seconds, and seven inventory-cleanup cases in
+1.37 seconds. The original mixed-load P95 assertion, complete P1/P2 work, and both connection-lifetime
+arms remain active; ordinary captured output does not provide a fresh numerical P95 measurement.
+All 108 queue tests pass in 40.64 seconds, including the three direct ingress cases already counted
+above; all 13 import-admission cases pass in 8.92 seconds. There are no failures or ignored tests
+in these focused suites. All-target, all-feature Clippy with warnings denied passes in 13.82 seconds;
+Rust formatting, all 14 asynchronous bridge contracts with matching hashes, and whitespace checks
+also pass. Production output is retained in
+`build/r2c_interleaving_audit/item2_observer_production_final_20260909.log`; the remaining gate output
+and explicitly marked terminal summary are retained in
+`build/r2c_interleaving_audit/item2_observer_remaining_final_20260909.log`.
+
+These are local final-source checks for this correction, not a full client acceptance result.
+The preceding head's hosted run `34275384862` passed on `e0a89ff`; it does not validate this later
+product change. New-head hosted gates, historical observer attribution, and the whole item-2 exit
+remain separately open.
+No real-library access, hydration, or Ame desktop process is part of these controlled checks.
+
+Physical ownership is explicit: observer handoff has 119 non-inline lines, ingress port 26,
+SQLite ingress 108, reserved writer owner 310, and catalog scheduling 90. The core runtime is 877
+non-inline lines. The production facade is 14531 lines: 4049 before its inline test module and
+10482 in that region. Its larger physical debt is not closed by this extraction. Dedicated
+admission, reservation, ingress-transaction, observer-contention, and production-contention
+files have 327, 110, 140, 265, and 322 lines respectively; the first includes preexisting tests.
+
 ## Physical ownership review
 
 Counts include whitespace and comments. The non-inline region may contain `cfg(test)` imports,
