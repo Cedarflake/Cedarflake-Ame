@@ -129,9 +129,12 @@ persistence layers.
 - `sqlite_catalog/migrations.rs` remains the ordered migration coordinator while historical steps
   are stable. `migrations/current_schema.rs` owns current-schema proof order and its consistent read
   snapshot: structural checks precede the complete authority-row audit. Process-owned validated
-  sessions reuse that proof; schema markers alone are not row authority. Shared historical SQL
-  validators and shrink-only compatibility repair remain the next physical split, not a completed
-  extraction. Migration order and one-transaction rollback remain centralized.
+  sessions reuse that proof; schema markers alone are not row authority. Spool-row proof lives in
+  `migrations/inventory_spool_rows.rs`: ordered per-run ordinals and
+  once-grouped per-directory entry counts replace correlated recounting, without omitting parent,
+  lifecycle, or foreign-key evidence. Structural proof and snapshot ownership remain upstream.
+  Other historical validators and shrink-only compatibility repair remain the next physical split,
+  not a completed extraction. Migration order and one-transaction rollback remain centralized.
 - `application/preview_health.rs` owns final missing-file and accounting observations for both
   startup recovery and ordinary catalog reads. Its typed persistence port pairs publication
   exclusion with a zero-wait conditional transaction; deferred maintenance cannot block foreground

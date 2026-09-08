@@ -3621,6 +3621,12 @@ query is relaxed, and no rerun replaces that failure. These changes do not deliv
 retirement, historical orphan reclamation, bounded whole-operation cleanup, or performance
 closeout; exact evidence remains in the interleaving remediation record.
 
+The correlated spool-row audit now has a separate invariant owner. Its fixed-shape VM regression
+reproduces quadratic recounting and verifies ordered ordinal proof plus grouped entry counts;
+parent authority, lifecycle, and foreign-key checks remain intact. This is a full-open validation
+cost correction, not bounded raw retirement or closure of the mixed-load tail. Current-diff full
+gates and independent review are tracked separately in the interleaving remediation record.
+
 R2b implementation, deterministic preview-lifecycle correctness, retained-catalog interaction
 Profile, real-library catalog parity, Daily, Windows Release, and bounded source-readable preview
 performance gates are complete. R2b was accepted on 2026-08-13. The former USN-based R2c reached its

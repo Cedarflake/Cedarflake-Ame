@@ -955,6 +955,39 @@ run was rerun to obtain this result. These results establish this source's gate 
 not a causal repair of the prior intermittent latency or historical client incidents.
 Connection reuse has not been implemented, and retained raw-source retirement remains open.
 
+### 2026-09-08 spool-row audit cost
+
+The raw-retirement call-chain review found two independent obligations: immediate parent deletion
+still cascades through the entire raw spool, and full-open row validation repeatedly counts earlier
+directories and each directory's entries. Worker pause is lease return, not terminal retirement;
+neither obligation permits discarding resumable source progress.
+
+An in-memory fixture uses the production schema, two independent active roots/runs, and four raw
+entries per completed directory. After correcting fixture-only SQL type, page-index, and active-root
+constraints, the unchanged extracted validator passes three correctness tests but fails the work
+regression: increasing each run from 64 to 256 directories raises bundled SQLite VM instructions
+from 218671 to 3380527. These are operation counts, not user-library timing measurements.
+
+The replacement uses per-run ordered row numbers and materialized per-run/per-directory counts.
+The same sizes take 23540 and 93044 instructions; all four focused tests pass (3.06 seconds).
+Coverage retains empty and incomplete directories, nullable initial observations, independent runs,
+legacy/current status rules, ordinal gaps/fractions, compensating incorrect counts, retired owners,
+and missing non-null parents. No schema, version, index, threshold, source-media access, or migration
+repair policy changes. Independent read-only review found no actionable defect in this diff's SQL
+equivalence, structural preconditions, or call boundary. It does not establish a fixed temporary-
+storage bound or all skewed-data costs. The current-diff Daily gate remains in progress; focused
+tests and this narrow review do not replace it or constitute whole-project closeout.
+
+The first Daily invocation stopped at Cargo's ordinary `Checking` stderr because the outer
+PowerShell logging pipeline converted that output into `NativeCommandError`. It did not reach
+Rust tests and is not a product-test result. Read-only process inspection confirmed no remaining
+Cargo, Clippy, Rust, Dart, tester, or Ame process before restarting the unchanged gate with native
+stream-preserving transcript capture. The original log remains retained separately.
+
+Raw-data retirement, historical unowned observations, application-wide cleanup draining, and the
+separately observed mixed-load latency remain open. Removing repeated row audits does not establish
+a per-operation reclamation budget or explain the prior connection-close tail.
+
 ## Physical ownership review
 
 Counts include whitespace and comments. The non-inline region may contain `cfg(test)` imports,
@@ -1067,3 +1100,8 @@ lines. Existing poll-stage logging has 87 lines; its shared observation timer ha
 open and retirement instrumentation have 39 and 56 test-only lines and no new test cases. This
 moves one timing helper instead of copying it; it does not claim to decompose runtime lifecycle,
 SQL ownership, or the remaining large test region.
+
+The spool-row checkpoint reduces `migrations.rs` from 15553 to 15486 lines: 10223 before its inline
+test module and 5263 in that module. Its extracted relational validator has 87 non-inline lines and
+212 dedicated-test lines. Historical migration SQL remains oversized; this change moves one real
+proof responsibility, not the whole migration owner or its test region.
