@@ -23,6 +23,8 @@ use super::{
 mod coalescing;
 mod lease_deferral;
 mod persistence;
+pub(super) mod root_retirement;
+mod terminal_cleanup;
 
 use super::metadata_inventory::insert_metadata_inventory_recovery_authority;
 pub(super) use coalescing::normalize_persistent_journal_intents;
@@ -31,15 +33,17 @@ use coalescing::{
     merge_older_evidence, queue_backpressure, validate_failure, validate_intent_batch,
     validate_policy, validate_root_id,
 };
+pub(super) use persistence::activate_root_change_queue;
 pub(super) use persistence::classify_lease_update;
 use persistence::{
-    GenerationDisposition, capacity_deferral_deadline, cleanup_terminal_records,
-    enforce_retry_attempt_limit, establish_root_generation, insert_change, load_active_changes,
-    load_change, load_leased_inventory_control_ids, load_metrics, load_root_metrics,
-    mark_superseded, next_retry_deadline, recover_expired_leases, root_generation_is_current,
+    GenerationDisposition, capacity_deferral_deadline, enforce_retry_attempt_limit,
+    establish_root_generation, insert_change, load_active_changes, load_change,
+    load_leased_inventory_control_ids, load_metrics, load_root_metrics, mark_superseded,
+    next_retry_deadline, recover_expired_leases, root_generation_is_current,
     transfer_catch_up_lineage, update_change,
 };
-pub(super) use persistence::{activate_root_change_queue, retire_root_change_queue};
+pub(super) use root_retirement::retire_root_change_queue;
+use terminal_cleanup::cleanup_terminal_records;
 
 pub(super) const PERSISTENT_JOURNAL_CATCH_UP_SOURCE: &str = "persistent_journal_v1";
 

@@ -25,10 +25,13 @@ use crate::domain::{
 };
 use crate::ports::{MetadataInventoryAbsencePublicationRequest, MetadataInventoryRepository};
 
+use super::spool_retirement::{SpoolOwner, delete_owned_spools};
 use super::{
     SqliteCatalog, database_error, source_revision_token, sqlite_integer, sqlite_unsigned,
     stored_source_revision,
 };
+
+mod lifecycle;
 
 const MAX_PAGE_ENTRIES: u32 = 4_096;
 const MAX_CLEANUP_RUNS: u32 = 128;
@@ -601,12 +604,7 @@ impl MetadataInventoryRepository for SqliteCatalog {
                 ));
             }
         }
-        transaction
-            .execute(
-                "DELETE FROM library_metadata_inventory_spools WHERE run_id = ?1",
-                [&authority.run_id],
-            )
-            .map_err(database_error)?;
+        delete_owned_spools(&transaction, SpoolOwner::Run(&authority.run_id))?;
         let retired = transaction
             .execute(
                 "UPDATE library_recovery_authorities
@@ -638,62 +636,7 @@ impl MetadataInventoryRepository for SqliteCatalog {
         &mut self,
         request: &MetadataInventoryStartRequest,
     ) -> Result<MetadataInventoryRun, ScanError> {
-        validate_start_request(request)?;
-        let transaction = self.begin_write()?;
-        if let Some(existing) = load_run(&transaction, &request.run_id)? {
-            let is_active = matches!(
-                existing.status,
-                MetadataInventoryRunStatus::Running | MetadataInventoryRunStatus::Comparing
-            );
-            if is_active
-                && existing.request.root_id == request.root_id
-                && existing.request.root_generation == request.root_generation
-                && existing.request.scope == request.scope
-            {
-                validate_active_root(&transaction, &existing.request)?;
-                transaction.commit().map_err(database_error)?;
-                return Ok(existing);
-            }
-            return Err(ScanError::new(
-                "metadata_inventory_run_duplicate",
-                "The metadata inventory run identity already exists",
-            ));
-        }
-        let latest_epoch = transaction
-            .query_row(
-                "SELECT MAX(epoch)
-                 FROM library_metadata_inventory_runs
-                 WHERE root_id = ?1 AND root_generation = ?2",
-                params![
-                    request.root_id,
-                    sqlite_integer(
-                        request.root_generation.value(),
-                        "metadata inventory root generation",
-                    )?,
-                ],
-                |row| row.get::<_, Option<i64>>(0),
-            )
-            .map_err(database_error)?
-            .map(|epoch| sqlite_unsigned(epoch, "metadata inventory epoch"))
-            .transpose()?
-            .unwrap_or(0);
-        let epoch = latest_epoch.checked_add(1).ok_or_else(|| {
-            ScanError::new(
-                "metadata_inventory_epoch_overflow",
-                "The metadata inventory epoch exceeded the supported range",
-            )
-        })?;
-        let run_request = MetadataInventoryRunRequest {
-            run_id: request.run_id.clone(),
-            root_id: request.root_id.clone(),
-            root_generation: request.root_generation,
-            epoch,
-            scope: request.scope.clone(),
-            started_unix_ms: request.started_unix_ms,
-        };
-        let run = begin_metadata_inventory_transaction(&transaction, &run_request)?;
-        transaction.commit().map_err(database_error)?;
-        Ok(run)
+        lifecycle::begin_next(self, request)
     }
 
     fn begin_metadata_inventory(
@@ -1572,12 +1515,7 @@ impl MetadataInventoryRepository for SqliteCatalog {
             ));
         }
         let (issue_code, issue_message) = issue.unzip();
-        transaction
-            .execute(
-                "DELETE FROM library_metadata_inventory_spools WHERE run_id = ?1",
-                [run_id],
-            )
-            .map_err(database_error)?;
+        delete_owned_spools(&transaction, SpoolOwner::Run(run_id))?;
         transaction
             .execute(
                 "UPDATE library_metadata_inventory_runs
@@ -1614,88 +1552,7 @@ impl MetadataInventoryRepository for SqliteCatalog {
         entry_limit: u32,
         run_limit: u32,
     ) -> Result<MetadataInventoryCleanupReport, ScanError> {
-        if entry_limit == 0
-            || entry_limit > MAX_PAGE_ENTRIES
-            || run_limit == 0
-            || run_limit > MAX_CLEANUP_RUNS
-        {
-            return Err(ScanError::new(
-                "metadata_inventory_cleanup_limit_invalid",
-                "Metadata inventory cleanup limits exceed the bounded contract",
-            ));
-        }
-        let transaction = self.begin_write()?;
-        let removed_entry_count = transaction
-            .execute(
-                "DELETE FROM library_metadata_inventory_entries
-                 WHERE rowid IN (
-                   SELECT entries.rowid
-                   FROM library_metadata_inventory_entries AS entries
-                   JOIN library_metadata_inventory_runs AS runs ON runs.id = entries.run_id
-                   WHERE runs.status IN ('completed', 'failed', 'cancelled', 'superseded')
-                   ORDER BY runs.updated_unix_ms, runs.id, entries.relative_path
-                   LIMIT ?1
-                 )",
-                [i64::from(entry_limit)],
-            )
-            .map_err(database_error)?;
-        let removed_run_count = transaction
-            .execute(
-                "DELETE FROM library_metadata_inventory_runs
-                 WHERE id IN (
-                   SELECT runs.id
-                   FROM library_metadata_inventory_runs AS runs
-                   WHERE runs.status IN ('completed', 'failed', 'cancelled', 'superseded')
-                     AND runs.updated_unix_ms < ?1
-                     AND NOT EXISTS(
-                       SELECT 1 FROM library_metadata_inventory_entries AS entries
-                       WHERE entries.run_id = runs.id
-                     )
-                   ORDER BY runs.updated_unix_ms, runs.id
-                   LIMIT ?2
-                 )",
-                params![terminal_before_unix_ms, i64::from(run_limit)],
-            )
-            .map_err(database_error)?;
-        let has_more = transaction
-            .query_row(
-                "SELECT
-                   EXISTS(
-                     SELECT 1
-                     FROM library_metadata_inventory_entries AS entries
-                     JOIN library_metadata_inventory_runs AS runs ON runs.id = entries.run_id
-                     WHERE runs.status IN ('completed', 'failed', 'cancelled', 'superseded')
-                   )
-                   OR EXISTS(
-                     SELECT 1
-                     FROM library_metadata_inventory_runs AS runs
-                     WHERE runs.status IN ('completed', 'failed', 'cancelled', 'superseded')
-                       AND runs.updated_unix_ms < ?1
-                       AND NOT EXISTS(
-                         SELECT 1 FROM library_metadata_inventory_entries AS entries
-                         WHERE entries.run_id = runs.id
-                       )
-                   )",
-                [terminal_before_unix_ms],
-                |row| row.get::<_, bool>(0),
-            )
-            .map_err(database_error)?;
-        transaction.commit().map_err(database_error)?;
-        Ok(MetadataInventoryCleanupReport {
-            removed_entry_count: u32::try_from(removed_entry_count).map_err(|_| {
-                ScanError::new(
-                    "metadata_inventory_cleanup_count_overflow",
-                    "Metadata inventory entry cleanup count overflowed",
-                )
-            })?,
-            removed_run_count: u32::try_from(removed_run_count).map_err(|_| {
-                ScanError::new(
-                    "metadata_inventory_cleanup_count_overflow",
-                    "Metadata inventory run cleanup count overflowed",
-                )
-            })?,
-            has_more,
-        })
+        lifecycle::cleanup_terminal(self, terminal_before_unix_ms, entry_limit, run_limit)
     }
 }
 
@@ -2964,12 +2821,7 @@ fn begin_metadata_inventory_transaction(
                 ));
             }
         }
-        transaction
-            .execute(
-                "DELETE FROM library_metadata_inventory_spools WHERE run_id = ?1",
-                [&active_id],
-            )
-            .map_err(database_error)?;
+        delete_owned_spools(transaction, SpoolOwner::Run(&active_id))?;
         transaction
             .execute(
                 "UPDATE library_metadata_inventory_runs
@@ -3097,10 +2949,10 @@ fn load_metadata_inventory_authority_owner_for_run(
 }
 
 fn validate_active_root(
-    transaction: &Transaction<'_>,
+    connection: &Connection,
     request: &MetadataInventoryRunRequest,
 ) -> Result<(), ScanError> {
-    let root = transaction
+    let root = connection
         .query_row(
             "SELECT state.generation, state.is_active,
                     EXISTS(

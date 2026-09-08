@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-09-06
-- Last amended: 2026-09-07
+- Last amended: 2026-09-08
 
 ## Context
 
@@ -58,9 +58,40 @@ persistence layers.
   application command values. `scan_publication/transaction.rs` owns attempt-scoped priority
   preemption, SQLite progress interruption, callback retirement, and the transaction boundary;
   application publication owns retry admission and the pause/cancel/suspend terminal policy.
+- `sqlite_catalog/write_admission.rs` owns writer ordering, preemption notification, waiting
+  registration, and permit retirement. Priority order remains authoritative across lanes; within
+  one priority, admission follows registration order rather than condition-variable wakeup order.
+  Nonblocking acquisition cannot bypass a registered same-priority waiter. A waiting registration
+  retires its own identity on timeout or unwind, without revoking an active permit or consuming
+  another waiter's position. Callbacks run outside the admission mutex; completed-write epochs
+  advance only when the admitted permit retires.
 - `sqlite_catalog/persistent_journal.rs` remains the journal facade. Root-unregistration lineage and
   cleanup live in `persistent_journal/root_unregister.rs` so removal cannot accidentally discard a
   surviving root's cross-root rename evidence.
+- `sqlite_catalog/change_queue/root_retirement.rs` owns queue-generation retirement and the
+  separate proof for retiring removed-root recovery authority. Cancellation and namespace
+  replacement cannot acquire removal authority while a root or run remains. The removal
+  transaction and `migrations/retired_root_authority.rs` share the same strict durable proof;
+  compatibility repair preserves history, validates the complete catalog, and rolls back on failure.
+- `sqlite_catalog/metadata_inventory/lifecycle.rs` owns inventory-start and terminal-cleanup
+  admission. Restoring an existing run reads its frontier and active-root evidence in one short
+  read snapshot; a missing run ends that snapshot before writer admission and epoch allocation.
+  Empty cleanup is a read-only decision. A positive hint never carries deletion authority into the
+  later transaction: that transaction selects again. Caller-owned transactions cannot be silently
+  reused or ended. Raw-spool retirement remains a separate ownership obligation, not proof supplied
+  by the logical-entry cleanup budget.
+- `sqlite_catalog/spool_retirement.rs` owns deletion of run-bound raw observations together with
+  their spool header. A subtree's initial observation has no directory foreign-key parent and
+  therefore requires explicit retirement in the same transaction. Run, removed-root, queue, and
+  exact legacy-terminal selections share this owner. Logical inventory cleanup cannot retire a
+  run or its comparison evidence while a spool still owns source observations. Authority
+  revocation and bounded physical reclamation remain separate obligations; the existing cascade
+  is not evidence of a bounded raw-data budget.
+- `sqlite_catalog/change_queue/terminal_cleanup.rs` owns terminal queue retention and deletion.
+  Candidate ownership, live-gap consumer references, and unretired recovery authority exclude a
+  row before the batch limit, alongside journal and active-scan lineage. A terminal status is not
+  deletion authority over retained dependents. Their owning lifecycle retires those references;
+  queue cleanup must not discard them to avoid a foreign-key failure.
 - Cancelled lease return belongs to `sqlite_catalog/change_queue/lease_deferral.rs`. It owns bounded
   batch admission, exact lease-generation classification, attempt refunds, and atomic rollback;
   incremental workers submit one typed batch rather than orchestrating per-lease transactions.

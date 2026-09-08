@@ -81,6 +81,7 @@ mod poll_diagnostics;
 #[cfg(windows)]
 use poll_diagnostics::{
     ElapsedStageTimer, SynchronizationPollStageTimings, log_synchronization_poll_diagnostic,
+    measure_observation,
 };
 
 #[cfg(windows)]
@@ -1739,16 +1740,26 @@ fn poll_runtime_with_storage_inner(
     drop(catalog_timer);
     timings.stage = "observation";
     let observation_timer = ElapsedStageTimer::new(&mut timings.observation_ms);
-    let mut admissions = super::admission::SynchronizationAdmissions::load(&catalog)?;
-    let mut snapshot = runtime.runtime.poll_internal(
-        &mut catalog,
-        admissions.observing_roots(),
-        poll_unix_ms,
-        |root_path| inspect_root_availability(root_path).availability,
-        false,
-        false,
-    )?;
-    admissions.revalidate(&catalog, &mut runtime.runtime, &mut snapshot)?;
+    let mut admissions = measure_observation("admission_load", || {
+        super::admission::SynchronizationAdmissions::load(&catalog)
+    })?;
+    let mut snapshot = measure_observation("observer_poll", || {
+        runtime.runtime.poll_internal(
+            &mut catalog,
+            admissions.observing_roots(),
+            poll_unix_ms,
+            |root_path| {
+                measure_observation("root_availability", || {
+                    inspect_root_availability(root_path).availability
+                })
+            },
+            false,
+            false,
+        )
+    })?;
+    measure_observation("admission_revalidation", || {
+        admissions.revalidate(&catalog, &mut runtime.runtime, &mut snapshot)
+    })?;
     if runtime.stop_requested.load(Ordering::Acquire) {
         return Err(ScanError::new(
             "library_synchronization_poll_cancelled",
@@ -1868,6 +1879,9 @@ fn poll_runtime_with_storage_inner(
     timings.stage = "retirement";
     let retirement_started = Instant::now();
     drop(admissions);
+    #[cfg(test)]
+    catalog.retire_with_poll_diagnostics();
+    #[cfg(not(test))]
     drop(catalog);
     timings.retirement_ms = Some(retirement_started.elapsed().as_millis());
     timings.stage = "complete";

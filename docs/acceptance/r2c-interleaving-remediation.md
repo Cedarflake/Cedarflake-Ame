@@ -486,11 +486,268 @@ hashes, and whitespace checks pass. These do not erase the original full-gate fa
 process inventory finds no new Ame or fixture process;
 the four Dart tools belong to the editor and are not terminated.
 
+## Inventory admission and remaining closeout findings
+
+The next unchanged mixed-load diagnostic again completes all 25 P0 samples and full P1 work, but
+fails P2 convergence at 9344 of 10000 source entries. P0 sample P50/P95/maximum are 544/704/730
+milliseconds; the complete test remains failed. Stage timing excludes the first 25 rounds because
+their source-read gate deliberately waits for live visibility. In the ungated rounds, worker and
+spool session opening average approximately 95 and 69 milliseconds. Existing-run restoration and
+the two empty cleanup calls consume approximately 3.3 seconds across 49 rounds. Connection lifetime,
+source namespace proof, lease transfer, workload, and deadlines are unchanged.
+
+Two real-catalog regressions first reproduce unnecessary writer admission: resuming the same run
+with its complete frontier, and cleanup containing only active staging, each advances the writer
+epoch from 10 to 11 without a mutation. Root-replacement and strict terminal-expiry controls pass.
+The lifecycle owner now returns matching run/frontier/root evidence from a consistent read snapshot
+and skips empty cleanup without writer admission. Actual epoch allocation and deletion still
+reselect inside the original writer transaction. Additional regressions preserve a caller's active
+transaction when this standalone operation is rejected. Verification is tracked separately from
+the mixed-load and raw-spool findings; this change does not establish complete cleanup correctness.
+
+Hosted `f19e632` run `34137096253` passes every required component except Static and Rust: 1334 Rust
+tests pass, one fails, and 19 explicitly gated cases remain ignored in that invocation. The mixed
+fixture completes all 2048 P1 candidates and enumerates all 10000 P2 entries with 4095 staged entries,
+but P0 P95 is 1.284 seconds. Samples 20, 22, and 24 exceed one second. Existing stage diagnostics
+place their longest polls respectively in observation (1165 milliseconds) and resource retirement
+(998 and 1120 milliseconds). Separate slow polls also expose catalog-open and retirement costs.
+This is not evidence that the whole latency failure belongs to preparation, nor permission to
+weaken its one-second requirement or return before resource ownership is safely retired.
+
+A second Windows message diagnostic writes directly to a fresh isolated file after the original
+stderr experiment produced no hook evidence. Both current-thread hooks report successful installation.
+All 25 recorded `WM_GETOBJECT` entries have matching returns; the longest pair takes 47 milliseconds,
+and the ten populated-application pairs take at most 16 milliseconds. The unchanged native gate
+still times out in the application subtree query. No hook-uninstall or C++ scope-retirement marker
+is recorded; outer primary exit, Job closure, and empty cleanup errors prove owned-tree cleanup,
+not normal C++ destruction. The temporary production hookup is removed afterward. Object acquisition
+and subsequent COM/parent navigation remain distinct unverified boundaries.
+
+Separate read-only timing of the unchanged PowerShell safety audit records 3487 milliseconds for
+native initialization, 9102 for the verified process-boundary audit, and 10 for held-snapshot
+revalidation. Parsing the same source takes 63 milliseconds; its existing AST-budget walk takes
+5325 milliseconds for 9791 nodes. This explains substantial preparation cost within the earlier
+15-second process guard, not a passing child-start/cleanup assertion. No safety audit or timeout is
+removed by this measurement. The node counter now checks the unchanged limit locally and invokes
+the existing diagnostic helper only at the first rejected node. Accepted counts, cumulative source
+budgets, rejection high-water, checked arithmetic, and source-identity audits remain unchanged.
+Known empty/literal and cumulative-budget regressions pass; counting the updated 9812-node source
+takes 601 milliseconds. The complete R2c-R guardrail subsequently passes all 19 cases with its
+original process deadlines and cleanup assertions. Its exact protected-script digest is updated
+for the reviewed extraction of the node-budget tests. The complete lint entrypoint then passes
+its guardrails, formatting, all-target/all-feature Clippy, and Dart analysis on September 8.
+Daily and final-head native/hosted acceptance remain separate obligations.
+
+Independent raw-spool review identifies two further obligations. Terminal completion, termination,
+and epoch replacement delete whole spools through cascading directory/entry foreign keys inside
+one write transaction; the 4096-entry logical-staging cleanup limit does not bound that raw work.
+Subtree initial entries also use a NULL directory component in their only composite foreign key,
+so their relationship is not protected by the directory cascade or foreign-key check. These require
+production-lifecycle regressions and a separate retirement/cleanup design. They must not be described
+as fixed by empty-cleanup admission, nor assumed to explain all historical storage or responsiveness
+reports without reproduction.
+
+### Removed-root recovery authority
+
+The production subtree-spool lifecycle fixture passes full catalog reopen before unregistering
+its root. After the actual unregister transaction, reopen fails with
+`catalog_recovery_execution_contract_unverifiable`: the queue is superseded, its inventory run
+is absent, and its recovery authority still has no retirement timestamp. This is a reproduced
+startup blocker, separate from the NULL raw-entry leak and the P0 Live latency requirement.
+
+The root-removal transaction now retires that authority after root/run deletion and before commit.
+The shared generation-retirement function is moved without semantic changes; retained roots used
+by cancellation or namespace replacement cannot acquire removal authority. The compatibility
+owner uses the same proof: an absent root and run, an inactive matching generation, no matching
+publication namespace, and a matching P2 superseded queue with no lease, retry, or successor.
+Only the retirement timestamp changes, never to a value before its authorization. Schema remains
+v31. Structural validation precedes repair, and complete row validation precedes commit; unrelated
+corruption or a failed update rolls back every repair.
+
+All ten dedicated regressions pass on the current working diff: authorized/running/comparing
+removal, other-root and completed-history preservation, clock rollback, idempotent full reopen,
+eight missing-proof counterexamples, damaged schema, removal rollback, and compatibility rollback.
+These controlled catalogs do not authorize a retained-catalog repair run or prove the separate
+raw-spool cleanup, mixed-load performance, native UIA, or final-head gates.
+
+The existing migration suite also passes all 97 tests. The separate lifecycle suite remains
+27 passing and two failing raw-spool tests: the real unregister regression now passes full reopen
+and source-byte preservation, then fails only its zero-orphan-row assertion. Independent review
+finds no additional P0/P1 blocker in the removal/compatibility slice; it does not audit away those
+explicitly unresolved cleanup failures.
+
+### Current mixed-load measurements
+
+The unchanged controlled workload still fails after the no-op inventory-admission repair.
+Its 25 observed P0 samples have P50 561, P95 679, and maximum 707 milliseconds, with none over one
+second. P1 completes all 2048 candidates. P2 reads all 10000 source entries through one opened
+spool and reaches a ready spool, but stages no logical page before the unchanged 60-second
+post-measurement deadline. Those sample statistics are derived from the failed run's individual
+records, not a passing aggregate report or proof of complete recovery.
+
+New observation measurements separate admission reads, observer polling, root-availability
+inspection, and admission revalidation. The only substage above 100 milliseconds in this local
+run is a 109-millisecond observer poll. Test-only catalog retirement decomposes the original
+field-destruction order without deferring cleanup or retaining a connection. No connection-retirement
+sample crosses 100 milliseconds here. Its connection measurement includes rusqlite cache/hook
+cleanup and SQLite close, not just the FFI call. The hosted long-tail failure remains unclosed;
+this local result cannot establish its cause, or an equal-environment regression comparison.
+
+The failure log contains exactly 80 inventory starts and 79 finishes. Reading 10000 entries with
+the existing 128-entry raw bound takes 79 rounds; even the EOF/ready commit returns `Yielded`.
+The next round must read and stage the first logical page. The failure's staging count and later
+spool snapshot are separate reads, so neither proves repeated ready-state livelock. The next
+measurement correlates EOF commit, preparation readiness, logical-page return, and staging commit
+against the unchanged deadline, with cancellation and worker-completion state captured before
+fixture teardown. It fails earlier at 9984 source entries: the worker is still running, cancellation
+is false, and EOF has not been reached. This excludes a logical-page commit stall as the cause of
+that particular failure.
+
+A subsequent test-only raw-step trace passes the same one-test gate, with P0 P95 597 milliseconds,
+all 2048 P1 candidates, all 10000 P2 entries, and the required 4095-entry logical page. It commits
+that page only 58.775 seconds into the unchanged 60-second post-measurement period. This narrow
+margin, following two failures, is not stable convergence or a current-head CI pass.
+
+| Observed post-measurement interval | Elapsed |
+| --- | ---: |
+| Deadline origin to next P2 source-step entry; log contains seven remaining P1 drains | 25.858 s |
+| 54 source namespace checks | 3.826 s |
+| 54 bounded directory-read steps | 0.178 s |
+| 54 source-spool catalog-open calls, including validation | 4.308 s |
+| 54 raw commits, including their writer admission | 2.967 s |
+| 54 gaps from one raw commit to the next source-step entry | 20.851 s |
+| First logical-page admission through commit | 0.506 s |
+
+These are selected intervals, not a complete additive trace. Across the post-measurement recovery
+writer-admission observations, P95 is 66.668 milliseconds and maximum 188.632 milliseconds. The
+gate logs 187054 competing low-writer operations and retires normally. Its ordering places the
+seven P1 drains before the next P2 source step, but does not separately time every P1 operation.
+Raw reads are therefore not the dominant measured cost; continuation admission, catalog opening,
+and runtime handoff require ownership-level investigation before changing scheduling. Independent
+inspection confirms that the measured same-priority admission permits barging, but these timings
+do not establish barging as the primary cause. Temporary per-step instrumentation is removed after
+capture; the original workload, page sizes, priority requirements, and deadlines are unchanged.
+
+### Same-priority writer retirement and fairness
+
+A real-thread regression parks an older Recovery waiter immediately after its actual queue
+registration, releases the active permit, and attempts a new nonblocking Recovery write. The
+pre-fix implementation admits the newcomer: exactly one regression fails, with both owned threads
+retired before the assertion. This proves overtaking independently of scheduler timing; it does
+not prove the source of the hosted long-tail latency.
+
+Writer admission now has a separate module and FIFO identities within each priority. Both blocking
+and nonblocking acquisition preserve older same-priority registrations. Higher-priority work
+still precedes Recovery, and an active permit is never revoked by a waiting request. Pending
+registration is scope-owned so a timeout or preemption-callback unwind removes only that waiter
+and wakes the next eligible request. No SQLite, source-namespace, batch-size, or deadline policy
+changes accompany the extraction.
+
+The initial admission-filter run passes 60 tests, including five new regressions. After adding the
+same-priority middle-timeout case, the dedicated six-case module passes independently. These are
+overlapping runs, not 66 distinct tests. Coverage includes deliberately reversed wakeup order,
+nonblocking overtaking, higher-priority preference, timeout removal, neighboring waiter identity,
+and both interactive and ordinary callback-unwind paths. Full current-diff lint, mixed-load,
+native UIA, and final-head verification are not established by these focused results.
+Independent review found two weaknesses in the new test evidence: the younger neighbor had not
+yet registered when the alleged interior timeout occurred, and an unconditional join could hang
+after the channel deadline. The corrected six-case run passes with all three actual registrations
+present before middle retirement and bounded thread-completion confirmation before each join.
+Epoch assertions distinguish waiting-request retirement from completed writes. The follow-up
+review finds no remaining issue in that correction scope. Warnings-denied all-target/all-feature
+Clippy also passes for the extracted production owner; this is not a whole-lifecycle audit.
+
+The subsequent unchanged mixed-load test passes on this working diff: 25 samples, P0 P50 271
+milliseconds, P95 323 milliseconds, maximum 333 milliseconds, and no sample over one second.
+P1 completes all 2048 candidates, while P2 reads all 10000 raw entries and stages the required
+4095-entry logical page. Both lanes advance in all 25 sample intervals. The competing writer
+records 149401 operations; the test and its teardown finish normally in 149.19 seconds. This
+single controlled pass does not attribute all improvement to FIFO, establish repeatability,
+or replace the failed hosted head, full current-head gates, or original local UIA acceptance.
+The complete repository lint subsequently exits successfully on the reviewed working diff,
+including its guardrails, unchanged formatting, warnings-denied Clippy, and Dart analysis.
+The complete Daily suite and current-head hosted verification have not been rerun for this slice.
+
+An identity-only replacement for the raw source's fresh namespace binding is not applied. The
+current namespace capability can include ACL-protected ancestors without retained handles, and
+file-ID equality alone does not reproduce its component/reparse validation. Source protection
+must not be weakened to reduce repeated-open cost.
+
+### Nullable raw observations and terminal retention
+
+The original three real-spool regressions now pass after run-bound initial observations are
+explicitly deleted in the same transaction as their header. Previously the nullable composite
+directory foreign key left the subtree's first observation behind after termination or root
+removal. The shared retirement owner covers the three explicit runtime run retirements, root
+unregistration, ordinary terminal queue cleanup, and exact legacy-terminal spool repair. Schema
+31 remains unchanged; this is not the proposed delayed-retirement migration, and it does not
+recover historical orphan entries whose header is already absent.
+
+Expanded real-source coverage checks cancellation, explicit supersession, legacy repair, and a
+failure injected after the initial observation has been deleted but before header deletion.
+Rollback preserves the original run, raw rows, recovery ownership, source bytes, and full reopen.
+The explicit supersession case is not evidence for the separate newer-epoch replacement entrypoint.
+
+Following successful real subtree recovery into terminal queue pruning exposes another failure:
+the current selector attempts to delete an event still referenced by a retained candidate owner
+and receives a foreign-key error. The first eight-case run has seven passes and this one failure;
+completion has already retired all raw observations before that error. The pre-existing selector
+does not account for candidate or live-gap consumer references. Its extracted terminal-cleanup
+owner now excludes those rows and unretired authority before LIMIT, preserving every existing
+journal, successor, and scan-lineage condition. It must not erase the references to make deletion
+succeed. The corrected real completion path preserves candidate ownership during early pruning,
+then retires the run through its existing retention boundary and successfully prunes the released
+events. A separate full-validity fixture proves that a consumed live-gap claim protects its older
+control from deletion; a one-row cleanup first retires the eligible gap and then the released
+control, so protected rows cannot occupy the entire batch limit.
+
+Independent read-only review of the initial spool change finds no new P0/P1 in the exact owner
+selection or rollback boundary, but does not establish all cascade entrypoints. Logical run
+retention and persistent-journal queue pruning require separate reachability checks. The current
+logical cleanup change preserves a still-owned spool instead of cascading through it. Neither
+the row-delete helper nor the entry limit establishes bounded terminal work: the application
+still drains cleanup until completion, and the header still cascades raw directory data. These
+remain open alongside recovery of already unowned legacy rows, native UIA, and final-head gates.
+
+The complete application inventory test module passes 55 tests with no failures or ignored cases
+in 119.58 seconds. It includes eleven spool-lifecycle cases, the actual newer-epoch begin path,
+and two independently imported source roots: retiring one root preserves the other root's raw
+initial observation, run, authority, and source bytes through full reopen. The complete queue
+test module passes 94 tests with no failures or ignored cases in 38.85 seconds. The complete
+migration module passes 97 tests with no failures or ignored cases in 102.63 seconds. These counts
+include their focused regressions and must not be added to overlapping earlier runs. The final
+narrow read-only review finds no additional P0/P1 in the new retention selection, transaction,
+or consistent `has_more` conditions. Full current-diff lint subsequently passes its compiler-free
+guardrails, formatting, all-target/all-feature Clippy, and strict Dart analysis with exit code zero.
+Complete Daily, hosted CI, and original local UIA acceptance remain separate obligations.
+
+### Native parent-call diagnostic
+
+The bounded MSAA experiment returns within the original eight-second probe deadline: 119 proxy
+objects, 118 parent calls, interface releases, and COM teardown complete in a 5128-millisecond
+probe. Root parent retrieval reports no parent. Every parent proxy has a different canonical COM
+pointer from the traversal's earlier parent proxy, which is inconclusive rather than a proven
+semantic-tree defect: Microsoft explicitly warns that interface pointers may differ for the same
+UI element and directs clients to compare accessible properties instead of pointers.
+See [Microsoft's interface-pointer guidance](https://learn.microsoft.com/en-us/windows/win32/winauto/getting-an-accessible-object-interface-pointer).
+
+The experiment deliberately does not accept the application-ready phase. Complete UIA traversal
+and local interaction acceptance remain open. The temporary probe hook is removed; the formal
+probe and native entrypoint have no diff. Captured evidence confirms parent-process exit, owned
+Job closure, no cleanup failures, and retained diagnostic logs; a subsequent process query finds
+neither owned test process. The historical zero-thread/zero-handle record remains present and is
+not relabelled as a running test or a cleared incident.
+
 ## Physical ownership review
 
 Counts include whitespace and comments. The non-inline region may contain `cfg(test)` imports,
 hooks, and helpers; it is not advertised as pure production SLOC. Dedicated-test totals describe
 affected files, including their preexisting cases, not newly written lines.
+
+The writer-fairness extraction leaves `sqlite_catalog.rs` at 5342 lines and moves ordering and
+registration ownership into a 275-line module with no inline tests. Its dedicated test module
+contains 310 lines. The facade still owns connection and transaction composition and remains
+physical decomposition debt; these counts do not claim that the entire catalog adapter is small.
 
 | Rust owner | Total | Non-inline region | Inline-test region |
 | --- | ---: | ---: | ---: |
@@ -556,3 +813,18 @@ test facade has 3773 lines, the extracted race repository helper 394, and the ne
 diagnostic owner has 87 production lines and the dedicated priority suite has 965. The existing
 runtime/lane and test decomposition debt remains open; this repair does not add another scheduling
 policy to that large owner.
+
+At the inventory-admission and removed-root-authority checkpoint, the metadata-inventory facade
+has 3740 lines and its lifecycle owner 220, with no inline-test modules. Its dedicated admission
+and race suites have 203, 106, and 264 lines; the separate raw-spool lifecycle suite has 296 and
+retains its unresolved desired-behavior failures. Root retirement has 118 production lines,
+compatibility repair 30, and current-schema composition 89. Shared queue persistence decreases
+to 1783 lines. The dedicated removal and compatibility suites have 433 and 288 lines. Historical
+migration SQL and facade decomposition remain explicit debt, not closed by these small owners.
+
+At the subsequent nullable-spool/retention checkpoint, raw-spool retirement has 53 production
+lines, terminal queue cleanup 119, and inventory lifecycle 236, with no inline tests. Shared
+queue persistence decreases to 1689 lines and the metadata-inventory facade to 3726. Dedicated
+spool setup/lifecycle, retirement, and scope-isolation suites have 322, 275, and 152 lines;
+the queue-retention suite has 83. The split follows raw ownership, logical retention, queue
+dependency retention, and their separate regression fixtures rather than arbitrary line caps.

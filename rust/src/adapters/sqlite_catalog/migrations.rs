@@ -23,6 +23,7 @@ use super::{
 };
 
 mod current_schema;
+mod retired_root_authority;
 
 use current_schema::{
     ContractValidationDepth, validate_current_schema_contract,
@@ -786,16 +787,10 @@ fn repair_legacy_terminal_metadata_inventory_state_transaction(
         return Ok(());
     }
     if schema_version >= 27 {
-        transaction
-            .execute(
-                "DELETE FROM library_metadata_inventory_spools
-                 WHERE run_id IN (
-                   SELECT id FROM library_metadata_inventory_runs
-                   WHERE status IN ('failed', 'cancelled', 'superseded')
-                 )",
-                [],
-            )
-            .map_err(database_error)?;
+        super::spool_retirement::delete_owned_spools(
+            transaction,
+            super::spool_retirement::SpoolOwner::LegacyTerminalRuns,
+        )?;
     }
     transaction
         .execute(
@@ -1000,7 +995,8 @@ fn repair_and_validate_current_terminal_recovery_state(
     let repair_terminal_inventory =
         legacy_terminal_metadata_inventory_repair_needed(connection, SCHEMA_VERSION)?;
     let repair_retired_live_gap = retired_live_gap_claim_repair_needed(connection, SCHEMA_VERSION)?;
-    if !repair_terminal_inventory && !repair_retired_live_gap {
+    let repair_removed_root_authority = retired_root_authority::repair_needed(connection)?;
+    if !repair_terminal_inventory && !repair_retired_live_gap && !repair_removed_root_authority {
         return validate_current_schema_contract(connection);
     }
     let transaction = connection
@@ -1008,6 +1004,7 @@ fn repair_and_validate_current_terminal_recovery_state(
         .map_err(database_error)?;
     repair_legacy_terminal_metadata_inventory_state_transaction(&transaction, SCHEMA_VERSION)?;
     repair_retired_live_gap_claims_transaction(&transaction, SCHEMA_VERSION)?;
+    retired_root_authority::repair_in_transaction(&transaction)?;
     validate_current_schema_contract_with_source_revision_rows(&transaction)?;
     transaction.commit().map_err(database_error)
 }

@@ -26,6 +26,8 @@ use crate::ports::{CatalogRepository, MetadataInventoryRepository, PersistentJou
 
 use super::*;
 
+mod terminal_cleanup;
+
 #[test]
 fn migrates_v16_without_losing_existing_catalog_rows() {
     let directory = tempdir().expect("temporary directory");

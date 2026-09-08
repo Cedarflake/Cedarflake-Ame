@@ -2,8 +2,8 @@ use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Condvar, Mutex, OnceLock, Weak};
-use std::time::{Duration, Instant};
+use std::sync::{Arc, Mutex, OnceLock, Weak};
+use std::time::Duration;
 
 use rusqlite::types::Value;
 use rusqlite::{
@@ -38,6 +38,8 @@ mod migrations;
     )
 )]
 mod persistent_journal;
+#[cfg(all(test, windows))]
+mod poll_retirement_diagnostics;
 mod preview_recovery;
 mod read_retry;
 mod reclamation;
@@ -45,6 +47,14 @@ mod retained_scan;
 mod scan_lifecycle;
 mod scan_publication;
 mod scan_resumption;
+mod spool_retirement;
+mod write_admission;
+
+#[cfg(test)]
+use write_admission::{SQLITE_MAINTENANCE_PRIORITY, SQLITE_USER_INTERACTIVE_PRIORITY};
+use write_admission::{
+    SqliteWriteAdmission, SqliteWritePermit, SqliteWritePreemptCallback, sqlite_write_priority,
+};
 
 use scan_lifecycle::abandon_scan_transaction;
 
@@ -83,7 +93,6 @@ const MAX_LAYOUT_MANIFEST_CHUNK_ITEMS: u32 = 4_096;
 const MAX_CATALOG_PAGE_ITEMS: u32 = 4_096;
 const LAYOUT_FLAG_DIMENSIONS_KNOWN: u8 = 1;
 const SQLITE_BUSY_TIMEOUT: Duration = Duration::from_secs(5);
-const SQLITE_USER_INTERACTIVE_ADMISSION_TIMEOUT: Duration = Duration::from_secs(5);
 
 static SQLITE_WRITE_ADMISSIONS: OnceLock<Mutex<HashMap<PathBuf, Weak<SqliteWriteAdmission>>>> =
     OnceLock::new();
@@ -93,190 +102,6 @@ static SQLITE_SCHEMA_INITIALIZERS: OnceLock<Mutex<HashMap<PathBuf, Weak<Mutex<()
 #[cfg(test)]
 static SQLITE_FULL_SCHEMA_VALIDATION_COUNTS: OnceLock<Mutex<HashMap<PathBuf, usize>>> =
     OnceLock::new();
-
-type SqliteWritePreemptCallback = Arc<dyn Fn() + Send + Sync>;
-
-#[derive(Default)]
-struct SqliteWriteAdmissionState {
-    is_active: bool,
-    active_priority: usize,
-    active_preempt: Option<SqliteWritePreemptCallback>,
-    waiting: [u64; 5],
-    completed_write_epoch: u64,
-}
-
-struct SqliteWriteAdmission {
-    state: Mutex<SqliteWriteAdmissionState>,
-    ready: Condvar,
-}
-
-impl SqliteWriteAdmission {
-    fn new() -> Self {
-        Self {
-            state: Mutex::new(SqliteWriteAdmissionState::default()),
-            ready: Condvar::new(),
-        }
-    }
-
-    fn acquire(self: &Arc<Self>, lane: LibraryChangeLane) -> SqliteWritePermit {
-        self.acquire_priority(sqlite_write_priority(lane), None)
-    }
-
-    fn acquire_preemptible(
-        self: &Arc<Self>,
-        lane: LibraryChangeLane,
-        preempt: SqliteWritePreemptCallback,
-    ) -> SqliteWritePermit {
-        self.acquire_priority(sqlite_write_priority(lane), Some(preempt))
-    }
-
-    fn acquire_user_interactive(self: &Arc<Self>) -> Option<SqliteWritePermit> {
-        self.acquire_user_interactive_for(SQLITE_USER_INTERACTIVE_ADMISSION_TIMEOUT)
-    }
-
-    fn acquire_user_interactive_for(
-        self: &Arc<Self>,
-        timeout: Duration,
-    ) -> Option<SqliteWritePermit> {
-        let priority = SQLITE_USER_INTERACTIVE_PRIORITY;
-        let deadline = Instant::now() + timeout;
-        let mut state = self.state.lock().unwrap_or_else(|error| error.into_inner());
-        state.waiting[priority] = state.waiting[priority].saturating_add(1);
-        let preempt = preemption_callback(&state, priority);
-        drop(state);
-        if let Some(preempt) = preempt {
-            preempt();
-        }
-        let mut state = self.state.lock().unwrap_or_else(|error| error.into_inner());
-        loop {
-            if !state.is_active && !state.waiting[..priority].iter().any(|count| *count > 0) {
-                state.waiting[priority] = state.waiting[priority].saturating_sub(1);
-                state.is_active = true;
-                state.active_priority = priority;
-                state.active_preempt = None;
-                return Some(SqliteWritePermit {
-                    admission: Arc::clone(self),
-                });
-            }
-            let remaining = deadline.saturating_duration_since(Instant::now());
-            if remaining.is_zero() {
-                state.waiting[priority] = state.waiting[priority].saturating_sub(1);
-                drop(state);
-                self.ready.notify_all();
-                return None;
-            }
-            let (next, _) = self
-                .ready
-                .wait_timeout(state, remaining)
-                .unwrap_or_else(|error| error.into_inner());
-            state = next;
-        }
-    }
-
-    fn acquire_priority(
-        self: &Arc<Self>,
-        priority: usize,
-        active_preempt: Option<SqliteWritePreemptCallback>,
-    ) -> SqliteWritePermit {
-        let mut state = self.state.lock().unwrap_or_else(|error| error.into_inner());
-        state.waiting[priority] = state.waiting[priority].saturating_add(1);
-        let preempt = preemption_callback(&state, priority);
-        drop(state);
-        if let Some(preempt) = preempt {
-            preempt();
-        }
-        let mut state = self.state.lock().unwrap_or_else(|error| error.into_inner());
-        while state.is_active || state.waiting[..priority].iter().any(|count| *count > 0) {
-            state = self
-                .ready
-                .wait(state)
-                .unwrap_or_else(|error| error.into_inner());
-        }
-        state.waiting[priority] = state.waiting[priority].saturating_sub(1);
-        state.is_active = true;
-        state.active_priority = priority;
-        state.active_preempt = active_preempt;
-        drop(state);
-        SqliteWritePermit {
-            admission: Arc::clone(self),
-        }
-    }
-
-    fn completed_write_epoch(&self) -> u64 {
-        self.state
-            .lock()
-            .unwrap_or_else(|error| error.into_inner())
-            .completed_write_epoch
-    }
-
-    fn wait_for_completed_write_after(&self, observed_epoch: u64, timeout: Duration) -> u64 {
-        let deadline = Instant::now() + timeout;
-        let mut state = self.state.lock().unwrap_or_else(|error| error.into_inner());
-        while state.completed_write_epoch == observed_epoch {
-            let remaining = deadline.saturating_duration_since(Instant::now());
-            if remaining.is_zero() {
-                break;
-            }
-            let (next, wait_result) = self
-                .ready
-                .wait_timeout(state, remaining)
-                .unwrap_or_else(|error| error.into_inner());
-            state = next;
-            if wait_result.timed_out() {
-                break;
-            }
-        }
-        state.completed_write_epoch
-    }
-
-    fn try_acquire(self: &Arc<Self>, lane: LibraryChangeLane) -> Option<SqliteWritePermit> {
-        self.try_acquire_priority(sqlite_write_priority(lane), None)
-    }
-
-    fn try_acquire_preemptible_maintenance(
-        self: &Arc<Self>,
-        preempt: SqliteWritePreemptCallback,
-    ) -> Option<SqliteWritePermit> {
-        self.try_acquire_priority(SQLITE_MAINTENANCE_PRIORITY, Some(preempt))
-    }
-
-    fn try_acquire_priority(
-        self: &Arc<Self>,
-        priority: usize,
-        preempt: Option<SqliteWritePreemptCallback>,
-    ) -> Option<SqliteWritePermit> {
-        let mut state = self.state.lock().unwrap_or_else(|error| error.into_inner());
-        if state.is_active || state.waiting[..priority].iter().any(|count| *count > 0) {
-            return None;
-        }
-        state.is_active = true;
-        state.active_priority = priority;
-        state.active_preempt = preempt;
-        Some(SqliteWritePermit {
-            admission: Arc::clone(self),
-        })
-    }
-}
-
-struct SqliteWritePermit {
-    admission: Arc<SqliteWriteAdmission>,
-}
-
-impl Drop for SqliteWritePermit {
-    fn drop(&mut self) {
-        let mut state = self
-            .admission
-            .state
-            .lock()
-            .unwrap_or_else(|error| error.into_inner());
-        state.is_active = false;
-        state.active_priority = 0;
-        state.active_preempt = None;
-        state.completed_write_epoch = state.completed_write_epoch.wrapping_add(1);
-        drop(state);
-        self.admission.ready.notify_all();
-    }
-}
 
 struct PriorityTransaction<'connection> {
     transaction: Option<Transaction<'connection>>,
@@ -307,26 +132,6 @@ impl DerefMut for PriorityTransaction<'_> {
         self.transaction
             .as_mut()
             .expect("priority transaction is present while mutably borrowed")
-    }
-}
-
-const SQLITE_USER_INTERACTIVE_PRIORITY: usize = 0;
-const SQLITE_MAINTENANCE_PRIORITY: usize = 4;
-
-fn preemption_callback(
-    state: &SqliteWriteAdmissionState,
-    waiting_priority: usize,
-) -> Option<SqliteWritePreemptCallback> {
-    (state.is_active && waiting_priority < state.active_priority)
-        .then(|| state.active_preempt.clone())
-        .flatten()
-}
-
-fn sqlite_write_priority(lane: LibraryChangeLane) -> usize {
-    match lane {
-        LibraryChangeLane::Live => 1,
-        LibraryChangeLane::Journal => 2,
-        LibraryChangeLane::Recovery => 3,
     }
 }
 
@@ -4154,6 +3959,10 @@ impl CatalogRepository for SqliteCatalog {
             return Ok(false);
         }
         retire_root_change_queue(&transaction, root_id, unix_time_ms())?;
+        spool_retirement::delete_owned_spools(
+            &transaction,
+            spool_retirement::SpoolOwner::Root(root_id),
+        )?;
         persistent_journal::remove_root_persistent_journal_state(&transaction, root_id)?;
         for table in [
             "scan_directory_frontier",
@@ -4190,6 +3999,10 @@ impl CatalogRepository for SqliteCatalog {
                 "The registered library root could not be removed",
             ));
         }
+        change_queue::root_retirement::retire_removed_root_recovery_authorities(
+            &transaction,
+            root_id,
+        )?;
         delete_root_unregister_orphan_assets(&transaction)?;
         let revision_updated = transaction
             .execute("UPDATE catalog_state SET revision = revision + 1", [])

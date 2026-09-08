@@ -47,6 +47,8 @@ use super::{
     set_before_metadata_inventory_finalization_hook,
 };
 
+mod lifecycle_admission;
+mod spool_lifecycle;
 mod terminal_media;
 
 #[test]

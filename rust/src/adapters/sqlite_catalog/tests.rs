@@ -17,6 +17,8 @@ use crate::ports::{
 
 use super::*;
 
+mod root_unregistration;
+
 const TEST_QUERY_ID: &str = "test-default-query";
 type GalleryQueryFixture<'a> = (&'a str, &'a str, Option<&'a str>, Option<i64>, i64);
 
@@ -946,7 +948,7 @@ fn assert_admission_is_idle(admission: &Arc<SqliteWriteAdmission>) {
             .lock()
             .unwrap_or_else(|error| error.into_inner());
         assert!(!state.is_active);
-        assert!(state.waiting.iter().all(|count| *count == 0));
+        assert!(state.waiting.iter().all(|queue| queue.is_empty()));
         assert!(state.active_preempt.is_none());
     }
     drop(
@@ -972,8 +974,9 @@ fn wait_for_admission_waiter_count(
             .state
             .lock()
             .unwrap_or_else(|error| error.into_inner())
-            .waiting[priority];
-        if waiting >= expected {
+            .waiting[priority]
+            .len();
+        if waiting >= usize::try_from(expected).expect("bounded waiter count") {
             return;
         }
         assert!(
@@ -991,7 +994,8 @@ fn wait_for_user_interactive_admission_waiter(admission: &SqliteWriteAdmission) 
             .state
             .lock()
             .unwrap_or_else(|error| error.into_inner())
-            .waiting[SQLITE_USER_INTERACTIVE_PRIORITY];
+            .waiting[SQLITE_USER_INTERACTIVE_PRIORITY]
+            .len();
         if waiting > 0 {
             return;
         }

@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use rusqlite::{Connection, OptionalExtension, Row, Transaction, params};
 
 use crate::domain::{
@@ -198,7 +196,7 @@ pub(super) fn establish_root_generation(
     })
 }
 
-fn retire_unconsumed_live_gap_claims(
+pub(super) fn retire_unconsumed_live_gap_claims(
     transaction: &Transaction<'_>,
     root_id: &str,
     root_generation: LibraryRootGeneration,
@@ -407,7 +405,7 @@ fn retire_persistent_journal_authority(
     Ok(())
 }
 
-fn retire_root_publication_namespace(
+pub(super) fn retire_root_publication_namespace(
     transaction: &Transaction<'_>,
     root_id: &str,
     generation: i64,
@@ -1688,153 +1686,4 @@ fn invalid_enum(field: &str, value: &str) -> ScanError {
         "change_queue_value_invalid",
         format!("The stored change queue {field} is invalid: {value}"),
     )
-}
-
-pub(super) fn cleanup_terminal_records(
-    transaction: &Transaction<'_>,
-    terminal_before_unix_ms: i64,
-    limit: u32,
-) -> Result<u32, ScanError> {
-    if limit == 0 || limit > LibraryChangeQueuePolicy::MAX_CLEANUP_BATCH {
-        return Err(ScanError::new(
-            "change_queue_cleanup_limit_invalid",
-            "The terminal change cleanup batch exceeds its absolute bound",
-        ));
-    }
-    let change_ids = {
-        let mut statement = transaction
-            .prepare(
-                "SELECT changes.id FROM library_change_queue AS changes
-                 WHERE changes.status IN ('completed', 'superseded')
-                   AND changes.updated_unix_ms <= ?1
-                   AND NOT EXISTS (
-                     SELECT 1
-                     FROM library_persistent_journal_queue_lineage AS ownership
-                     WHERE ownership.change_id = changes.id
-                   )
-                   AND NOT EXISTS (
-                     SELECT 1
-                     FROM library_change_queue AS survivor
-                     WHERE survivor.id = changes.superseded_by_change_id
-                       AND survivor.status IN ('pending', 'leased', 'retry_wait')
-                   )
-                   AND NOT EXISTS (
-                     SELECT 1
-                     FROM library_change_queue_catch_up_lineage AS lineage
-                     JOIN scan_run_catch_up_lineage AS frozen
-                       ON frozen.catch_up_source = lineage.catch_up_source
-                      AND frozen.catch_up_watermark = lineage.catch_up_watermark
-                     JOIN scan_runs AS scans ON scans.id = frozen.scan_id
-                     WHERE lineage.change_id = changes.id
-                       AND scans.status IN ('running', 'paused')
-                   )
-                 ORDER BY changes.updated_unix_ms, changes.id
-                 LIMIT ?2",
-            )
-            .map_err(database_error)?;
-        let rows = statement
-            .query_map(params![terminal_before_unix_ms, i64::from(limit)], |row| {
-                row.get::<_, i64>(0)
-            })
-            .map_err(database_error)?;
-        let mut change_ids = Vec::new();
-        for row in rows {
-            change_ids.push(row.map_err(database_error)?);
-        }
-        change_ids
-    };
-    let mut evidence = HashSet::new();
-    let mut deleted_changes = 0_usize;
-    for change_id in change_ids {
-        let mut statement = transaction
-            .prepare_cached(
-                "SELECT catch_up_source, catch_up_watermark
-                 FROM library_change_queue_catch_up_lineage WHERE change_id = ?1",
-            )
-            .map_err(database_error)?;
-        let rows = statement
-            .query_map([change_id], |row| {
-                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-            })
-            .map_err(database_error)?;
-        for row in rows {
-            evidence.insert(row.map_err(database_error)?);
-        }
-        drop(statement);
-        deleted_changes = deleted_changes.saturating_add(
-            transaction
-                .execute(
-                    "DELETE FROM library_change_queue WHERE id = ?1",
-                    [change_id],
-                )
-                .map_err(database_error)?,
-        );
-    }
-    let mut evidence = evidence.into_iter().collect::<Vec<_>>();
-    evidence.sort_unstable();
-    super::super::catalog_delta::cleanup_terminal_catch_up_handoffs_batch(transaction, &evidence)?;
-    let deleted_changes = u32::try_from(deleted_changes).map_err(|_| {
-        ScanError::new(
-            "change_queue_cleanup_count_invalid",
-            "The terminal change cleanup count exceeds its supported range",
-        )
-    })?;
-    Ok(deleted_changes)
-}
-
-pub(in crate::adapters::sqlite_catalog) fn retire_root_change_queue(
-    transaction: &Transaction<'_>,
-    root_id: &str,
-    now_unix_ms: i64,
-) -> Result<(), ScanError> {
-    let current_generation = transaction
-        .query_row(
-            "SELECT generation FROM library_change_root_state WHERE root_id = ?1",
-            [root_id],
-            |row| row.get::<_, i64>(0),
-        )
-        .optional()
-        .map_err(database_error)?;
-    if let Some(current_generation) = current_generation {
-        if current_generation <= 0 {
-            return Err(ScanError::new(
-                "change_queue_generation_invalid",
-                "The retired root has an invalid stored generation",
-            ));
-        }
-        let parsed_generation =
-            LibraryRootGeneration::new(sqlite_unsigned(current_generation, "root generation")?)
-                .ok_or_else(|| {
-                    ScanError::new(
-                        "change_queue_generation_invalid",
-                        "The retired root has an invalid stored generation",
-                    )
-                })?;
-        retire_unconsumed_live_gap_claims(transaction, root_id, parsed_generation)?;
-        retire_root_publication_namespace(transaction, root_id, current_generation)?;
-        transaction
-            .execute(
-                "UPDATE library_change_root_state
-                 SET is_active = 0, updated_unix_ms = ?1 WHERE root_id = ?2",
-                params![now_unix_ms, root_id],
-            )
-            .map_err(database_error)?;
-    } else {
-        return Err(ScanError::new(
-            "change_queue_generation_missing",
-            "The registered root has no durable generation authority to retire",
-        ));
-    }
-    transaction
-        .execute(
-            "UPDATE library_change_queue
-             SET status = 'superseded', next_retry_unix_ms = NULL,
-                 lease_expires_unix_ms = NULL, superseded_by_change_id = NULL,
-                 updated_unix_ms = ?1
-             WHERE root_id = ?2 AND root_generation = ?3
-               AND status IN ('pending', 'leased', 'retry_wait')",
-            params![now_unix_ms, root_id, current_generation],
-        )
-        .map_err(database_error)?;
-    Ok(())
 }

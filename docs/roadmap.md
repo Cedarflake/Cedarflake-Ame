@@ -3525,6 +3525,59 @@ query client completes a standard Win32 window subtree and retires normally. The
 message/provider path needs further diagnosis; neither that control nor successful MSAA fragment
 traversal verifies Ame's complete bridge or navigation behavior.
 
+The subsequent `f19e632` hosted gate still fails mixed-load P0 latency (P95 1.284 seconds), although
+P1 and the real P2 page complete there. Current stage evidence isolates long observation and catalog
+retirement polls; those owners remain open. Local P2 stage measurements additionally confirm empty
+inventory cleanup and existing-run restoration repeatedly acquire writer admission. Their narrow
+lifecycle owner is repaired against two reproduced no-op writer regressions, without changing batch
+sizes, deadlines, lease transfer, or connection lifetime; full validation remains separate. Raw-spool
+review now requires bounded retirement independent of authority revocation and coverage for NULL
+subtree-entry ownership after completion, cancellation, replacement, and root removal. These are
+not closed by the logical-staging budget or database compaction. The current Windows message trace
+pairs every observed `WM_GETOBJECT` request with a return while the complete UIA query still times
+out; COM/parent navigation and the historical zero-thread process remain unaccepted. The local
+PowerShell guard also needs its measured source-audit overhead resolved without weakening safety
+checks or the owned-process deadline. Its AST counter now avoids repeated successful helper calls,
+and the complete 19-case R2c-R guardrail passes without changing those boundaries; full current-diff
+lint and Daily remain open. All evidence remains in the existing interleaving record.
+
+The raw-spool lifecycle regression additionally reproduces a startup blocker after actual root
+removal: the queue is superseded and its run is deleted, but its recovery authority remains live.
+Removal-only retirement and a strict, history-preserving v31 compatibility repair now pass ten
+dedicated regressions, including full reopen and rollback. The generic generation-retirement
+function is unchanged. Raw-spool orphan/bounded-retirement work, mixed-load latency, original local
+UIA acceptance, and the complete final-head gates remain separate open obligations.
+The subsequent local mixed-load run retains all original requirements and still fails: P0 P95 is
+679 milliseconds and P1 completes, while P2 reaches a ready 10000-entry spool but no required
+4095-entry logical page before the existing deadline. Finer observation/retirement measurements
+do not reproduce the hosted long-tail close in that run; neither the CI failure nor final P2
+progress is accepted by inference from the improved local source-entry count. Complete lint now
+passes. Subsequent unchanged mixed-load probes first fail before EOF at 9984 entries, then pass
+with only 1.225 seconds left in the final deadline. The measured post-period includes 25.858 seconds
+before the next P2 source step and 20.851 seconds between raw-step commits and continuations;
+actual bounded directory reads total only 0.178 seconds. Investigate continuation and connection
+ownership rather than relaxing the workload or treating this marginal pass as stable closeout.
+The next narrow regression proves same-priority writer overtaking independently of that timing:
+an older registered Recovery waiter loses admission to a newcomer. FIFO registration and
+scope-owned timeout/unwind retirement now live in a separate writer-admission module, preserving
+cross-priority order and active permit ownership. Six dedicated regressions pass; mixed-load and
+final-head gates remain separately measured. The unchanged mixed-load test subsequently passes
+once with P0 P95 323 milliseconds, all 2048 P1 candidates, and the required 10000-entry P2 spool
+and 4095-entry logical page. Repeatability and final-head gates remain open. Raw source namespace
+guards remain unchanged. Complete repository lint passes on the reviewed writer-fairness diff;
+the raw-spool retirement and original local UIA obligations remain open.
+
+The next narrow raw-spool correction removes NULL-parent initial observations together with their
+owning header; the original three lifecycle regressions pass. Expanded completion-to-cleanup
+coverage then exposes a pre-existing foreign-key failure when terminal queue pruning encounters
+retained inventory candidate ownership. Queue retention now has a separate owner and excludes
+retained dependents before its limit. The complete inventory, queue, and migration modules pass
+55, 94, and 97 cases respectively, including new two-root, actual epoch replacement, rollback,
+and retained-claim regressions. Narrow independent review finds no additional P0/P1 in this
+retirement/selection boundary; complete current-diff lint passes. Do not treat this
+correction as the delayed-retirement migration: header cascades, the application-wide cleanup
+drain, already unowned legacy rows, and final same-head gates remain unresolved.
+
 R2b implementation, deterministic preview-lifecycle correctness, retained-catalog interaction
 Profile, real-library catalog parity, Daily, Windows Release, and bounded source-readable preview
 performance gates are complete. R2b was accepted on 2026-08-13. The former USN-based R2c reached its

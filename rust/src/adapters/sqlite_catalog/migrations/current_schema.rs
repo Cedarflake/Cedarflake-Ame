@@ -44,6 +44,16 @@ pub(super) fn validate_current_schema_contract_with_source_revision_rows(
 }
 
 fn validate_in_snapshot(connection: &Connection) -> Result<(), ScanError> {
+    validate_current_schema_structure(connection)?;
+
+    // The process session owns reuse. Only its initial validation (or explicit stale renewal)
+    // reaches this full proof; ordinary connections retain bounded identity/schema checks.
+    validate_pre_live_gap_schema_contract(connection, SCHEMA_VERSION)?;
+    validate_live_gap_recovery_contract(connection)?;
+    validate_source_revision_rows(connection)
+}
+
+pub(super) fn validate_current_schema_structure(connection: &Connection) -> Result<(), ScanError> {
     // Reject missing or altered schema before queries interpret any authority rows. Successful
     // DDL markers cannot prove canonical journal payloads, cross-root ownership or generations.
     validate_pre_live_gap_schema_contract_with_depth(
@@ -56,13 +66,7 @@ fn validate_in_snapshot(connection: &Connection) -> Result<(), ScanError> {
         ContractValidationDepth::StructureOnly,
     )?;
     validate_source_revision_structure_contract(connection)?;
-    validate_existing_source_metadata_marker(connection)?;
-
-    // The process session owns reuse. Only its initial validation (or explicit stale renewal)
-    // reaches this full proof; ordinary connections retain bounded identity/schema checks.
-    validate_pre_live_gap_schema_contract(connection, SCHEMA_VERSION)?;
-    validate_live_gap_recovery_contract(connection)?;
-    validate_source_revision_rows(connection)
+    validate_existing_source_metadata_marker(connection)
 }
 
 fn validate_existing_source_metadata_marker(connection: &Connection) -> Result<(), ScanError> {

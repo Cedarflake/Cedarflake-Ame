@@ -690,6 +690,16 @@ fn p0_event_to_visible_p95_stays_below_one_second_with_p1_and_p2_active() {
         {
             break (completed_p1, staged_p2);
         }
+        if std::time::Instant::now() >= progress_deadline {
+            eprintln!(
+                "controlled inventory deadline worker={:?} runtime_stopping={} stop_requested={}",
+                fixture.production.recovery.as_ref().map(|task| {
+                    priority_worker_progress(task.worker.as_ref(), &task.cancelled)
+                }),
+                fixture.production.is_stopping,
+                fixture.production.stop_requested.load(Ordering::Acquire),
+            );
+        }
         assert!(
             std::time::Instant::now() < progress_deadline,
             "P1 did not finish all 2048 candidates or P2 did not publish its real default 4095-entry page: completed_p1={completed_p1} staged_p2={staged_p2} source_reads={} spool_opens={} inventory={:?} queue={:?} active_p1={} active_p2={}",
