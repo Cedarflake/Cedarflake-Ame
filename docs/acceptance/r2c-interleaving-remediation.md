@@ -975,14 +975,42 @@ legacy/current status rules, ordinal gaps/fractions, compensating incorrect coun
 and missing non-null parents. No schema, version, index, threshold, source-media access, or migration
 repair policy changes. Independent read-only review found no actionable defect in this diff's SQL
 equivalence, structural preconditions, or call boundary. It does not establish a fixed temporary-
-storage bound or all skewed-data costs. The current-diff Daily gate remains in progress; focused
-tests and this narrow review do not replace it or constitute whole-project closeout.
+storage bound or all skewed-data costs. Focused tests and this narrow review do not constitute
+whole-project closeout.
 
 The first Daily invocation stopped at Cargo's ordinary `Checking` stderr because the outer
 PowerShell logging pipeline converted that output into `NativeCommandError`. It did not reach
 Rust tests and is not a product-test result. Read-only process inspection confirmed no remaining
 Cargo, Clippy, Rust, Dart, tester, or Ame process before restarting the unchanged gate with native
 stream-preserving transcript capture. The original log remains retained separately.
+
+Fixed-source `23e265a3b60bd240a1dab2b8107c4613508b8800` then completes the serial local Daily gate:
+lint, 1385 main Rust tests (1099.06 seconds; zero failed, 19 existing dedicated cases ignored),
+three broker tests, all Flutter files, controlled Windows scan, ten original whole-window UIA
+phases, bridge contracts, and whitespace checks. Nested child-process test summaries are included
+in the main result, not added to it. The unchanged 25-sample/P1/P2 mixed-load test passes without
+printing a successful numeric P95. This does not explain the earlier hosted long tail.
+
+Scan run `8284c7fd327e45cc90c51d5f3b43c394` finishes in 94290 milliseconds with exit zero and no
+cleanup failures; its fixture remains under the existing retention policy. The native application-
+ready probe traverses 126 elements in 1893 milliseconds. All ten UIA phases complete on first
+attempt, with no run/cleanup error, confirmed process exit and Job closure, and owned scratch
+removal. A subsequent read-only process inventory finds no Ame or Flutter tester process. The
+three changed source files retain their pre-gate SHA-256 values throughout verification.
+
+The ignored local evidence directory `build/r2c_interleaving_audit` retains the PowerShell
+transcript, selected native output captured from the priority-test phase onward, and the complete
+named UIA log. The selected native output is not represented as complete Daily stdout. Hosted run
+`34236045583` completes successfully for the same source, with all ten ordinary jobs passing.
+Static/Rust job `102093901251` reports 1385 passed, zero failed and 19 ignored in 1194.48 seconds,
+plus three broker tests in 2.23 seconds. All four new cases and the unchanged mixed-load gate pass;
+successful numeric P95 is not printed. Selected job evidence is retained separately. The three
+protected-release-only skips do not establish signing or release acceptance. No hosted rerun is
+used to replace a failure.
+
+The related logical-frontier predecessor query remains unchanged; its page admission limits the
+stack to 1025 entries. That distinct path and skewed-data resource costs are not covered by a claim
+that all catalog validation is now linear or has a fixed memory budget.
 
 Raw-data retirement, historical unowned observations, application-wide cleanup draining, and the
 separately observed mixed-load latency remain open. Removing repeated row audits does not establish
