@@ -1532,8 +1532,16 @@ files have 327, 110, 140, 265, and 322 lines respectively; the first includes pr
 
 ### New-head hosted accessibility failure — queued item 3
 
-Run `34280948135` on `7c529b9` does not replace its preceding head's green checks. Job
-`102245297409` fails the unchanged `application-ready` parent deadline after the previous
+Run `34280948135` on `7c529b9` finishes with nine ordinary workers passing, one failing, and a
+failed aggregate gate. Static/Rust reports 1474 passed, zero failed, and 19 explicitly ignored
+main-suite tests in 1265.41 seconds; two nested child summaries are not additional main-suite
+cases. The original mixed-load gate and complete recovery assertions pass without a new numeric
+percentile in hosted captured output. All five synthetic workloads, Flutter tests, controlled
+Windows scan, and unsigned x64 verification pass. The three protected-release-only jobs retain
+their intentional skip conditions. No result is inferred from the preceding head.
+
+The sole failing worker, `102245297409`, exceeds the unchanged `application-ready` parent deadline
+after the previous
 `native-semantics-ready` phase passed. Its last verified probe progress is `loading-uia-client`
 at 201 ms; no completed application-ready UIA traversal is reported. Completion evidence confirms
 primary process exit and owned Job closure, with no cleanup failure. This is a current hosted
