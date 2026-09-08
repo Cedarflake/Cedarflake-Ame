@@ -3265,7 +3265,10 @@ before taking the next item; another verified prerequisite is not completion of 
    green run or diagnostics alone cannot close the historical failure.
    The active connection-lifetime correction removes repeated poll connection creation/retirement
    while preserving per-checkout proof checks and the existing owned stop deadline. Its focused
-   lifecycle evidence is recorded in the acceptance ledger. This is progress within item 2;
+   lifecycle evidence and a same-workload, test-only per-poll/per-epoch lifetime comparison are
+   recorded in the acceptance ledger. The comparison preserves the production latency gate and
+   verifies actual open/close counts; it does not reproduce the old observation delay. This is
+   progress within item 2;
    historical observation-stage attribution and the complete item exit remain outstanding.
 3. **Queued — accumulated workflow review and client verification.** Review the fixed lifecycle
    matrix: first import and final publication; pause/cancel/exit/manual continuation; multi-root

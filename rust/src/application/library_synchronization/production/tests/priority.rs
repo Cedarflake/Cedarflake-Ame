@@ -1,6 +1,8 @@
 use super::*;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
+mod connection_lifetime_control;
+
 struct PriorityFixture<G> {
     production: ProductionSynchronization,
     source_gate: Option<G>,
@@ -128,6 +130,16 @@ fn priority_inventory_progress(
 
 #[test]
 fn p0_event_to_visible_p95_stays_below_one_second_with_p1_and_p2_active() {
+    let p95 = run_priority_workload(poll_runtime_with_storage);
+    assert!(p95 <= Duration::from_secs(1), "P0 P95 was {p95:?}");
+}
+
+fn run_priority_workload(
+    mut poll: impl FnMut(
+        &mut ProductionSynchronization,
+        &crate::application::storage::StoragePaths,
+    ) -> Result<LibrarySynchronizationSnapshot, ScanError>,
+) -> Duration {
     const P1_CANDIDATE_COUNT: usize = 2_048;
     const P2_SOURCE_ENTRIES: usize = 10_000;
     const SAMPLE_COUNT: usize = 25;
@@ -329,8 +341,7 @@ fn p0_event_to_visible_p95_stays_below_one_second_with_p1_and_p2_active() {
         .expect("retained priority progress catalog");
     let cold_enumeration_deadline = std::time::Instant::now() + Duration::from_secs(10);
     loop {
-        poll_runtime_with_storage(&mut fixture.production, &storage)
-            .expect("start the cold P2 source page");
+        poll(&mut fixture.production, &storage).expect("start the cold P2 source page");
         if fixture.production.recovery.is_some()
             && fixture
                 .source_gate()
@@ -404,8 +415,7 @@ fn p0_event_to_visible_p95_stays_below_one_second_with_p1_and_p2_active() {
             {
                 break;
             }
-            poll_runtime_with_storage(&mut fixture.production, &storage)
-                .expect("start the next bounded P2 source page");
+            poll(&mut fixture.production, &storage).expect("start the next bounded P2 source page");
             assert!(
                 std::time::Instant::now() < p2_ready_deadline,
                 "sample {index} did not start a bounded P2 source page"
@@ -438,8 +448,7 @@ fn p0_event_to_visible_p95_stays_below_one_second_with_p1_and_p2_active() {
         );
         let p1_ready_deadline = std::time::Instant::now() + Duration::from_secs(5);
         let pending_p1 = loop {
-            poll_runtime_with_storage(&mut fixture.production, &storage)
-                .expect("publish the next bounded P1 page");
+            poll(&mut fixture.production, &storage).expect("publish the next bounded P1 page");
             let pending_p1: i64 = progress_connection
                 .query_row(
                     "SELECT COUNT(*)
@@ -512,7 +521,7 @@ fn p0_event_to_visible_p95_stays_below_one_second_with_p1_and_p2_active() {
         let mut poll_maximum = Duration::ZERO;
         let location = loop {
             let poll_started = std::time::Instant::now();
-            let poll_result = poll_runtime_with_storage(&mut fixture.production, &storage);
+            let poll_result = poll(&mut fixture.production, &storage);
             let poll_elapsed = poll_started.elapsed();
             poll_count = poll_count.saturating_add(1);
             poll_total = poll_total.saturating_add(poll_elapsed);
@@ -590,7 +599,7 @@ fn p0_event_to_visible_p95_stays_below_one_second_with_p1_and_p2_active() {
         assert!(location.preview_path.is_empty());
         let lane_progress_deadline = std::time::Instant::now() + Duration::from_secs(5);
         let (p1_completed, p2_source_reads) = loop {
-            poll_runtime_with_storage(&mut fixture.production, &storage)
+            poll(&mut fixture.production, &storage)
                 .expect("complete the bounded P1 and P2 sample pages");
             let p1_completed: i64 = progress_connection
                 .query_row(
@@ -662,8 +671,7 @@ fn p0_event_to_visible_p95_stays_below_one_second_with_p1_and_p2_active() {
     fixture.source_gate().release();
     let progress_deadline = std::time::Instant::now() + Duration::from_secs(60);
     let (p1_completed_after, p2_staged_after) = loop {
-        poll_runtime_with_storage(&mut fixture.production, &storage)
-            .expect("drive post-measurement P1 and P2 progress");
+        poll(&mut fixture.production, &storage).expect("drive post-measurement P1 and P2 progress");
         let completed_p1 = progress_connection
             .query_row(
                 "SELECT COUNT(*)
@@ -802,8 +810,8 @@ fn p0_event_to_visible_p95_stays_below_one_second_with_p1_and_p2_active() {
         writer_operations_after > writer_operations_before,
         "the lower-priority writer did not compete during P0 measurement"
     );
-    assert!(p95 <= Duration::from_secs(1), "P0 P95 was {p95:?}");
     assert_eq!(journal_close_count.load(Ordering::Acquire), 1);
+    p95
 }
 
 #[test]

@@ -1238,7 +1238,8 @@ with unchanged sample count, candidates, source entries, page size, deadlines, a
 progressing in all 25 samples. Its retained log is
 `build/r2c_interleaving_audit/item2_reuse_first_20260909.log`. Neither current run contains a slow
 observation substage. These timings alone cannot attribute the historical 1092 ms observer sample;
-that investigation and a controlled causal comparison remain required for item 2's exit.
+that attribution remains required for item 2's exit. The same-workload lifetime comparison below
+separately verifies the removed connection operations.
 
 Focused evidence includes 11 adapter tests for proof drift, dirty connections, diagnostic seam
 order, and maintenance while the idle handle remains alive; real WAL truncation, incremental
@@ -1274,6 +1275,47 @@ with a new unrelated responsibility.
 This remains an internal correction within item 2, not completion of item 2 or R2c. No new workflow
 or unrelated refactor is admitted, and no retained library, source media, or cloud placeholder is
 accessed. No schema, dependency, generated bridge, or presentation contract changes are introduced.
+
+### Same-workload connection-lifetime control
+
+The follow-up changes only the test fixture and its comparison owner. Both arms execute the same
+production poll and original workload generator: 25 P0 samples, 2048 P1 candidates, 10000 P2 entries,
+the 4095-entry logical page, competing lower-priority writes, and the original deadlines. The
+per-poll control retires its actual connection before the outer poll/event-to-visible stopwatch
+returns. The per-epoch arm uses the production lifetime unchanged. Counters observe real opens and
+destruction, not checkout counts. Fixture shutdown must also observe the per-epoch connection's
+single eventual close. The removed policy is not an alternative product acceptance path; both the
+original test and the current per-epoch arm retain P0 P95 at most one second.
+
+The serial workstation comparison on the `3d43a4b` product source passes in 108.14 seconds:
+
+| Lifetime | Polls | Opens during polls | Closes during polls | P0 P50 / P95 / maximum |
+| --- | ---: | ---: | ---: | --- |
+| Per poll, test-only control | 1556 | 1556 | 1556 | 72 / 101 / 103 ms |
+| Per epoch, production | 3671 | 1 | 0 | 61 / 79 / 80 ms |
+
+The control spends 945 ms in cumulative poll retirement; production has no poll retirement and
+closes once at completed stop. Both arms complete all P1 candidates, read all P2 source entries,
+publish the required logical page, and record both lower lanes active and progressing in all 25
+samples. Their poll counts differ because they drive the same gated work at different call costs;
+these are not matched-count microbenchmarks or a universal speedup claim. The retained output is
+`build/r2c_interleaving_audit/item2_lifetime_control_20260909.log`.
+
+Neither arm reproduces the historical 1092 ms observation sample. Its original source lacked the
+later inner-observation measurements, so the old outer duration cannot identify a specific SQL,
+filesystem, or observer operation. Source inspection of the existing Windows SQLite lock and close
+paths supplies hypotheses, not an execution trace or an established dependency defect; no compiler
+flag, driver, timeout, or scheduling policy is changed on that basis.
+
+The original production test separately passes after the fixture extraction in 51.63 seconds,
+with P0 P95 61 ms and unchanged work/progress assertions. All six fixture failure/unwind regressions
+and all-target/all-feature Clippy with warnings denied pass. A narrow independent read-only review
+finds no actionable issue in comparison fidelity, timing boundaries, connection counters, or
+fixture cleanup. This is not another full product audit or evidence of historical attribution.
+The comparison is a non-ignored Rust test already included in the existing Static and Rust gate;
+no duplicate benchmark workflow or relaxed acceptance path is introduced. The shared fixture is
+983 dedicated-test lines, and the separate comparison owner is 103 dedicated-test lines; neither
+adds production behavior or a second workload implementation.
 
 ## Physical ownership review
 
