@@ -1210,6 +1210,71 @@ cleanup has 129 non-inline lines. The production synchronization owner has 14727
 4117/10610; its bounded failure-only reopen evidence is test code, not a new runtime policy.
 These final measurements replace the earlier checkpoint for those owners only.
 
+## Fixed closeout item 2 — mixed-load latency (active)
+
+The item-1 source `150cd64` subsequently passes hosted run `34259927908`, including its ten
+ordinary workers and the aggregate Windows gate. The separate signing/release workflow jobs remain
+intentionally skipped. This verifies that source only, not the following item-2 correction.
+
+On the same workstation, the unchanged original mixed-load fixture at `150cd64` records all 25
+samples with P50 71 ms, P95 90 ms, and maximum 97 ms. It completes all 2048 P1 candidates, reads
+10000 P2 source entries, and stages the required 4095-entry logical page. The retained baseline
+is `build/r2c_interleaving_audit/item2_baseline_150cd64_20260909.log`. It does not reproduce the
+historical 1226 ms P95 failure and is not evidence that the historical cause disappeared.
+
+The serialized poll previously opened and destroyed its SQLite connection on every call. The
+new `PollCatalogOwner` retains exactly one exclusive connection, with RAII checkout/return,
+process-session renewal, and the original bounded identity/WAL/header/schema-cookie proof.
+Transactions, busy statements, and staged publication buffers reject reuse without cleanup that
+could conceal ownership. The close belongs to the existing journal-close worker and original stop
+deadline; it must finish before Empty is published. Failed thread creation leaves ownership in
+the runtime. This removes the repeated operations implicated by the historical 967 ms open and
+1129 ms retirement samples, rather than moving one close per poll outside the measurement.
+The new native poll diagnostic explicitly names the final step `checkout_return_ms`, not
+`retirement_ms`; actual connection destruction remains measured separately at owned stop in tests.
+
+The first reuse candidate records P50 53 ms, P95 68 ms, and maximum 70 ms on the original fixture,
+with unchanged sample count, candidates, source entries, page size, deadlines, and both lower lanes
+progressing in all 25 samples. Its retained log is
+`build/r2c_interleaving_audit/item2_reuse_first_20260909.log`. Neither current run contains a slow
+observation substage. These timings alone cannot attribute the historical 1092 ms observer sample;
+that investigation and a controlled causal comparison remain required for item 2's exit.
+
+Focused evidence includes 11 adapter tests for proof drift, dirty connections, diagnostic seam
+order, and maintenance while the idle handle remains alive; real WAL truncation, incremental
+reclamation, and legacy VACUUM all run without first closing that handle. Production's original
+100-poll regression now also observes exactly one connection open, no close during polling, and
+one close at completed stop. Owner/runtime tests cover error/unwind return, duplicate checkout,
+maintenance proof revocation without a header change, Windows replacement rejection while held,
+replacement after retirement, close failure, and close timeout retaining the Draining epoch.
+
+Independent review identified an install-error path that lost the epoch's catalog binding after
+the old connection was retired. A deterministic negative test first fails when an invalidated
+proof is replaced, the controlled fixture schema changes during retirement, and the failed open
+is followed by a different catalog request. The correction keeps the epoch path in the same
+transition owner independently of its connection state. The regression and all eight owner/runtime
+tests then pass; the bounded review confirms that finding closed. The initial test run also caught
+a fixture that requested a missing replacement file instead of creating a replacement database;
+only that fixture setup was corrected. All-target/all-feature Clippy with warnings denied passes.
+
+The complete production synchronization module passes 111/111 in 125.32 seconds, including the
+unchanged original mixed-load test, the 100-poll open/close assertions, 100 no-change startups,
+real bounded P2 work, epoch races, panic handling, and stop/restart cases. Its log is
+`build/r2c_interleaving_audit/item2_production_first_20260909.log`. The 16 process-session and
+maintenance regressions also pass. These are affected-scope checks, not a replacement for item 4's
+final-source full gates or item 3's client workflow acceptance.
+
+Physical ownership at this correction: the poll owner is 240 lines with no inline test module;
+its dedicated owner/runtime suites are 127 and 74 lines. Adapter revalidation is 72 non-inline
+lines with dedicated proof and maintenance suites of 247 and 132 lines. The catalog facade falls
+from 5355 to 5334 lines. Synchronization production is 14728 lines (4105 before its inline test
+module and 10623 in that module); the existing larger physical debt is not disguised or expanded
+with a new unrelated responsibility.
+
+This remains an internal correction within item 2, not completion of item 2 or R2c. No new workflow
+or unrelated refactor is admitted, and no retained library, source media, or cloud placeholder is
+accessed. No schema, dependency, generated bridge, or presentation contract changes are introduced.
+
 ## Physical ownership review
 
 Counts include whitespace and comments. The non-inline region may contain `cfg(test)` imports,

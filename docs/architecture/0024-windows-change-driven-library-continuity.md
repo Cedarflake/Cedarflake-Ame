@@ -2648,6 +2648,24 @@ retains the per-path owner, rejects an in-flight obsolete validation result, and
 startup recovery while a foreground scan is active. Ordinary maintenance contention retains a
 valid session; it does not trigger another catalog-wide audit for every preview connection.
 
+The serialized production synchronization poll owns one reusable catalog connection per runtime
+epoch. A narrow checkout owner returns it on success, error, and unwind; it is not a pool and is
+never shared with P0, P1, P2, foreground scans, or reclamation workers. Every checkout consults the
+process-session owner and verifies the original identity, WAL mode, schema header and cookie,
+autocommit, absence of active statements, and empty publication buffers. Structural maintenance
+or proof invalidation requires the existing renewal path; ordinary data writes do not. Failed
+validation cannot be bypassed by caching the handle, clearing buffers, or silently rolling back.
+
+The existing owned journal-close worker also retires this connection within the same absolute
+shutdown deadline. Ownership is transferred only after successful thread creation; errors and
+panic still release the handle before the worker is joined. The runtime cannot publish Empty
+while that retirement remains outstanding. On Windows an open catalog prevents same-path file
+replacement; completed shutdown must release that handle before a new epoch validates storage.
+Idle connections must not retain read snapshots or inhibit the existing WAL checkpoint and
+incremental reclamation paths. This removes repeated open/close work from steady polls without
+moving one close per poll beyond the measured operation. Historical observation latency remains
+a separate measured obligation; connection reuse alone does not establish its cause.
+
 Once `begin_scan` succeeds, every unexpected application error attempts transactional abandonment:
 the run becomes failed, explicit foreground claims return to
 `explicit_recovery_required`/`retry_wait`, leased queue ownership is released, and scan frontier,

@@ -44,6 +44,7 @@ mod preview_recovery;
 mod read_retry;
 mod reclamation;
 mod retained_scan;
+mod reusable_connection;
 mod scan_lifecycle;
 mod scan_publication;
 mod scan_resumption;
@@ -452,29 +453,7 @@ impl SqliteCatalogSession {
         let connection = Connection::open(&self.path).map_err(database_error)?;
         configure_catalog_connection(&connection)?;
         before_stage(SqliteCatalogReadStage::Validation)?;
-        let journal_mode = connection
-            .query_row("PRAGMA journal_mode", [], |row| row.get::<_, String>(0))
-            .map_err(database_error)?;
-        let version = connection
-            .query_row("SELECT version FROM schema_info LIMIT 1", [], |row| {
-                row.get::<_, i64>(0)
-            })
-            .map_err(database_error)?;
-        let application_id = catalog_pragma_integer(&connection, "application_id")?;
-        let user_version = catalog_pragma_integer(&connection, "user_version")?;
-        let schema_cookie = catalog_schema_cookie(&connection)?;
-        let after_identity = catalog_database_identity(&self.path)?;
-        if !journal_mode.eq_ignore_ascii_case("wal")
-            || version != SCHEMA_VERSION
-            || application_id != self.application_id
-            || application_id != SQLITE_APPLICATION_ID
-            || user_version != self.user_version
-            || user_version != SCHEMA_VERSION
-            || schema_cookie != self.schema_cookie
-            || before_identity != after_identity
-        {
-            return Err(stale_catalog_session_error());
-        }
+        self.validate_connection_proof(&connection, &before_identity)?;
         Ok(SqliteCatalog {
             path: self.path.clone(),
             connection,

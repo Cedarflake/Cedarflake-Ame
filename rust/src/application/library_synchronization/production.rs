@@ -84,6 +84,12 @@ mod poll_diagnostics;
 mod inventory_cleanup;
 
 #[cfg(windows)]
+mod poll_catalog;
+
+#[cfg(windows)]
+use poll_catalog::PollCatalogOwner;
+
+#[cfg(windows)]
 use inventory_cleanup::InventoryCleanupOwner;
 
 #[cfg(windows)]
@@ -215,6 +221,7 @@ const METADATA_INVENTORY_WORK_PAGE_ENTRIES: u32 = 4_095;
 struct ProductionSynchronization {
     runtime: LibrarySynchronizationRuntime,
     catalog_session: Option<Arc<SqliteCatalogSession>>,
+    poll_catalog: PollCatalogOwner,
     persistent_change_journal_factory: Option<Arc<dyn PersistentChangeJournal>>,
     _persistent_change_journal: PersistentChangeJournalConnection,
     persistent_change_journal_opened: bool,
@@ -1739,7 +1746,9 @@ fn poll_runtime_with_storage_inner(
     timings.stage = "catalog";
     let catalog_timer = ElapsedStageTimer::new(&mut timings.catalog_ms);
     let mut poll_unix_ms = now_unix_ms()?;
-    let mut catalog = runtime.open_catalog(&storage.catalog_path, LibraryChangeLane::Live)?;
+    let mut checkout = runtime.poll_catalog.checkout(&storage.catalog_path)?;
+    runtime.catalog_session = Some(checkout.session());
+    let catalog = &mut *checkout;
     if !runtime.legacy_automatic_scans_retired {
         catalog.retire_legacy_automatic_full_scans(poll_unix_ms)?;
         runtime.legacy_automatic_scans_retired = true;
@@ -1749,11 +1758,11 @@ fn poll_runtime_with_storage_inner(
     timings.stage = "observation";
     let observation_timer = ElapsedStageTimer::new(&mut timings.observation_ms);
     let mut admissions = measure_observation("admission_load", || {
-        super::admission::SynchronizationAdmissions::load(&catalog)
+        super::admission::SynchronizationAdmissions::load(catalog)
     })?;
     let mut snapshot = measure_observation("observer_poll", || {
         runtime.runtime.poll_internal(
-            &mut catalog,
+            catalog,
             admissions.observing_roots(),
             poll_unix_ms,
             |root_path| {
@@ -1766,7 +1775,7 @@ fn poll_runtime_with_storage_inner(
         )
     })?;
     measure_observation("admission_revalidation", || {
-        admissions.revalidate(&catalog, &mut runtime.runtime, &mut snapshot)
+        admissions.revalidate(catalog, &mut runtime.runtime, &mut snapshot)
     })?;
     if runtime.stop_requested.load(Ordering::Acquire) {
         return Err(ScanError::new(
@@ -1788,7 +1797,7 @@ fn poll_runtime_with_storage_inner(
     let journal_mutation_count = runtime.poll_journal();
     let recovered_mutation_count = runtime.poll_recovery(poll_unix_ms)?;
     catalog.finalize_ready_first_import_journal_baseline(poll_unix_ms)?;
-    runtime.prune_recovery_inventory_sources(&catalog)?;
+    runtime.prune_recovery_inventory_sources(catalog)?;
     runtime.cancel_stale_automatic_recovery();
     snapshot.applied_mutation_count = snapshot
         .applied_mutation_count
@@ -1806,10 +1815,10 @@ fn poll_runtime_with_storage_inner(
     let scheduling_timer = ElapsedStageTimer::new(&mut timings.scheduling_ms);
     let change_capture_unix_ms = now_unix_ms()?;
     project_active_recovery_as_updating(runtime.recovery.as_ref(), &mut snapshot);
-    runtime.schedule_next_live_work(&catalog, &snapshot, poll_unix_ms, storage)?;
-    runtime.schedule_next_journal_work(&mut catalog, &snapshot, change_capture_unix_ms, storage)?;
+    runtime.schedule_next_live_work(catalog, &snapshot, poll_unix_ms, storage)?;
+    runtime.schedule_next_journal_work(catalog, &snapshot, change_capture_unix_ms, storage)?;
     if runtime.recovery.is_none()
-        && let Some(work) = ready_recovery_work(runtime, &catalog, &snapshot, poll_unix_ms)?
+        && let Some(work) = ready_recovery_work(runtime, catalog, &snapshot, poll_unix_ms)?
     {
         let root_id = work.root_id().to_owned();
         let root_generation = work.root_generation();
@@ -1880,8 +1889,8 @@ fn poll_runtime_with_storage_inner(
     timings.stage = "projection";
     let projection_timer = ElapsedStageTimer::new(&mut timings.projection_ms);
     project_active_recovery_as_updating(runtime.recovery.as_ref(), &mut snapshot);
-    runtime.project_persistent_journal_continuity(&catalog, &mut snapshot)?;
-    admissions.revalidate(&catalog, &mut runtime.runtime, &mut snapshot)?;
+    runtime.project_persistent_journal_continuity(catalog, &mut snapshot)?;
+    admissions.revalidate(catalog, &mut runtime.runtime, &mut snapshot)?;
     admissions.append_dormant_statuses(&mut snapshot);
     drop(projection_timer);
     runtime.inventory_cleanup.poll(
@@ -1897,14 +1906,11 @@ fn poll_runtime_with_storage_inner(
             .clone(),
         Arc::clone(&runtime.stop_requested),
     )?;
-    timings.stage = "retirement";
-    let retirement_started = Instant::now();
+    timings.stage = "checkout_return";
+    let return_started = Instant::now();
     drop(admissions);
-    #[cfg(test)]
-    catalog.retire_with_poll_diagnostics();
-    #[cfg(not(test))]
-    drop(catalog);
-    timings.retirement_ms = Some(retirement_started.elapsed().as_millis());
+    drop(checkout);
+    timings.checkout_return_ms = Some(return_started.elapsed().as_millis());
     timings.stage = "complete";
     Ok(snapshot)
 }
@@ -1947,6 +1953,7 @@ fn new_production_synchronization_with_factory(
     ProductionSynchronization {
         runtime: LibrarySynchronizationRuntime::new_production(start_source),
         catalog_session: None,
+        poll_catalog: PollCatalogOwner::default(),
         persistent_change_journal_factory,
         _persistent_change_journal: persistent_change_journal,
         persistent_change_journal_opened: journal_opened,
@@ -1982,6 +1989,7 @@ fn new_production_synchronization_with_connection(
     ProductionSynchronization {
         runtime: LibrarySynchronizationRuntime::new_production(start_source),
         catalog_session: None,
+        poll_catalog: PollCatalogOwner::default(),
         persistent_change_journal_factory: None,
         _persistent_change_journal: persistent_change_journal,
         persistent_change_journal_opened: true,
@@ -2027,28 +2035,6 @@ impl ProductionSynchronization {
         let session = crate::application::catalog_session::validated_catalog_session(catalog_path)?;
         self.catalog_session = Some(Arc::clone(&session));
         Ok(session)
-    }
-
-    fn open_catalog(
-        &mut self,
-        catalog_path: &std::path::Path,
-        lane: LibraryChangeLane,
-    ) -> Result<SqliteCatalog, ScanError> {
-        let session = self.validated_catalog_session(catalog_path)?;
-        match session.open_in_lane(lane) {
-            Ok(catalog) => Ok(catalog),
-            Err(error) if error.code == "catalog_validated_session_stale" => {
-                let replacement =
-                    crate::application::catalog_session::refresh_stale_catalog_session(
-                        catalog_path,
-                        &session,
-                    )?;
-                let catalog = replacement.open_in_lane(lane)?;
-                self.catalog_session = Some(replacement);
-                Ok(catalog)
-            }
-            Err(error) => Err(error),
-        }
     }
 
     fn project_persistent_journal_continuity(
@@ -3820,10 +3806,12 @@ impl ProductionSynchronization {
         if !self.journal_closed {
             if self.journal_close.is_none() {
                 let connection = self._persistent_change_journal.clone();
+                let poll_catalog = self.poll_catalog.clone();
                 let (sender, receiver) = mpsc::channel();
                 let worker = thread::Builder::new()
                     .name("ame-persistent-journal-close".to_owned())
                     .spawn(move || {
+                        let catalog_retirement = poll_catalog.retire();
                         let result = connection.close().map_err(|error| {
                             ScanError::new(
                                 "persistent_change_journal_close_failed",
@@ -3832,7 +3820,7 @@ impl ProductionSynchronization {
                                 ),
                             )
                         });
-                        let _ = sender.send(result);
+                        let _ = sender.send(catalog_retirement.and(result));
                     })
                     .map_err(|error| {
                         ScanError::new(
@@ -4118,6 +4106,9 @@ fn unsupported_platform() -> ScanError {
 mod tests {
     #[cfg(windows)]
     mod priority;
+
+    #[cfg(windows)]
+    mod poll_catalog_runtime;
 
     use super::*;
     #[cfg(windows)]
@@ -9292,7 +9283,9 @@ mod tests {
             1,
             "the production epoch must run O(N) schema validation only once"
         );
+        assert_eq!(production.poll_catalog.connection_counts(), (1, 0));
         production.stop().expect("stop production runtime");
+        assert_eq!(production.poll_catalog.connection_counts(), (1, 1));
     }
 
     #[cfg(windows)]
@@ -10206,6 +10199,7 @@ mod tests {
                 crate::ports::erase_library_change_source_factory(HealthyFactory),
             ),
             catalog_session: None,
+            poll_catalog: PollCatalogOwner::default(),
             persistent_change_journal_factory: None,
             _persistent_change_journal: test_live_only_connection(),
             persistent_change_journal_opened: true,
@@ -10454,6 +10448,7 @@ mod tests {
                 crate::ports::erase_library_change_source_factory(HealthyFactory),
             ),
             catalog_session: None,
+            poll_catalog: PollCatalogOwner::default(),
             persistent_change_journal_factory: None,
             _persistent_change_journal: test_live_only_connection(),
             persistent_change_journal_opened: true,
@@ -10535,6 +10530,7 @@ mod tests {
         let mut production = ProductionSynchronization {
             runtime: LibrarySynchronizationRuntime::new_erased(factory),
             catalog_session: None,
+            poll_catalog: PollCatalogOwner::default(),
             persistent_change_journal_factory: None,
             _persistent_change_journal: test_live_only_connection(),
             persistent_change_journal_opened: true,
@@ -10584,6 +10580,7 @@ mod tests {
         let mut production = ProductionSynchronization {
             runtime: LibrarySynchronizationRuntime::new_erased(factory),
             catalog_session: None,
+            poll_catalog: PollCatalogOwner::default(),
             persistent_change_journal_factory: None,
             _persistent_change_journal: test_live_only_connection(),
             persistent_change_journal_opened: true,
@@ -10780,6 +10777,7 @@ mod tests {
         let mut production = ProductionSynchronization {
             runtime: LibrarySynchronizationRuntime::new_erased(factory),
             catalog_session: None,
+            poll_catalog: PollCatalogOwner::default(),
             persistent_change_journal_factory: None,
             _persistent_change_journal: test_live_only_connection(),
             persistent_change_journal_opened: true,
@@ -14228,6 +14226,7 @@ mod tests {
                 crate::ports::erase_library_change_source_factory(HealthyFactory),
             ),
             catalog_session: None,
+            poll_catalog: PollCatalogOwner::default(),
             persistent_change_journal_factory: None,
             _persistent_change_journal: test_live_only_connection(),
             persistent_change_journal_opened: true,
@@ -14618,6 +14617,7 @@ mod tests {
         let mut production = ProductionSynchronization {
             runtime: LibrarySynchronizationRuntime::new_erased(factory),
             catalog_session: None,
+            poll_catalog: PollCatalogOwner::default(),
             persistent_change_journal_factory: None,
             _persistent_change_journal: test_live_only_connection(),
             persistent_change_journal_opened: true,
@@ -14677,6 +14677,7 @@ mod tests {
         let mut production = ProductionSynchronization {
             runtime: LibrarySynchronizationRuntime::new_erased(factory),
             catalog_session: None,
+            poll_catalog: PollCatalogOwner::default(),
             persistent_change_journal_factory: None,
             _persistent_change_journal: test_live_only_connection(),
             persistent_change_journal_opened: true,

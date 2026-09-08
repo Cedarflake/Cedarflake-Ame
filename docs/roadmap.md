@@ -3263,6 +3263,10 @@ before taking the next item; another verified prerequisite is not completion of 
    logical page, and existing deadlines. That page is not proof of complete P2 recovery. Preserve
    failed-run evidence and establish a causal correction with controlled comparisons; a later
    green run or diagnostics alone cannot close the historical failure.
+   The active connection-lifetime correction removes repeated poll connection creation/retirement
+   while preserving per-checkout proof checks and the existing owned stop deadline. Its focused
+   lifecycle evidence is recorded in the acceptance ledger. This is progress within item 2;
+   historical observation-stage attribution and the complete item exit remain outstanding.
 3. **Queued — accumulated workflow review and client verification.** Review the fixed lifecycle
    matrix: first import and final publication; pause/cancel/exit/manual continuation; multi-root
    update and removal; source registration versus cleanup; preview replacement, corrupt/non-media

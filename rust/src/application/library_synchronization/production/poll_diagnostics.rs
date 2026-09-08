@@ -9,8 +9,8 @@ pub(super) struct SynchronizationPollStageTimings {
     pub(super) lanes_ms: u128,
     pub(super) scheduling_ms: u128,
     pub(super) projection_ms: u128,
-    // Early returns still retire local resources, but do not time that retirement separately.
-    pub(super) retirement_ms: Option<u128>,
+    // Early returns still return the checkout, but do not time that return separately.
+    pub(super) checkout_return_ms: Option<u128>,
 }
 
 impl Default for SynchronizationPollStageTimings {
@@ -22,7 +22,7 @@ impl Default for SynchronizationPollStageTimings {
             lanes_ms: 0,
             scheduling_ms: 0,
             projection_ms: 0,
-            retirement_ms: None,
+            checkout_return_ms: None,
         }
     }
 }
@@ -70,7 +70,7 @@ pub(super) fn log_synchronization_poll_diagnostic(
         eprintln!(
             "[Ame sync native] outcome={outcome} code={code} stage={} total_ms={} \
              catalog_ms={} observation_ms={} lanes_ms={} scheduling_ms={} projection_ms={} \
-             retirement_ms={} retirement_measured={} roots={roots} mutations={mutations}",
+             checkout_return_ms={} checkout_return_measured={} roots={roots} mutations={mutations}",
             timings.stage,
             elapsed.as_millis(),
             timings.catalog_ms,
@@ -78,8 +78,8 @@ pub(super) fn log_synchronization_poll_diagnostic(
             timings.lanes_ms,
             timings.scheduling_ms,
             timings.projection_ms,
-            timings.retirement_ms.unwrap_or_default(),
-            timings.retirement_ms.is_some(),
+            timings.checkout_return_ms.unwrap_or_default(),
+            timings.checkout_return_ms.is_some(),
         );
     }
     #[cfg(not(debug_assertions))]
