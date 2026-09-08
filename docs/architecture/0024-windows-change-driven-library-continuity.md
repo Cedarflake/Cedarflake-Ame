@@ -2666,6 +2666,16 @@ incremental reclamation paths. This removes repeated open/close work from steady
 moving one close per poll beyond the measured operation. Historical observation latency remains
 a separate measured obligation; connection reuse alone does not establish its cause.
 
+Root observation metrics must restrict database work to the requested root and generation,
+including explicit-recovery counting and latest exhausted-failure selection. Global and root
+queries share projection semantics, not a nullable-OR filter that scans unrelated queue history.
+The root latest-failure query orders an integer cast of its integer rowid, preserving value order
+without inviting a cross-root reverse-rowid walk to satisfy `LIMIT 1`. Existing root indexes remain
+access-path choices rather than a new hard dependency on one index name. Explicit claims are
+tested by their unique gap reference from the scoped queue, preserving the original join semantics
+without trusting redundant claim root fields. Exact counts remain exact:
+this is root-scoped work, not constant-time work or permission to truncate a large root's history.
+
 Once `begin_scan` succeeds, every unexpected application error attempts transactional abandonment:
 the run becomes failed, explicit foreground claims return to
 `explicit_recovery_required`/`retry_wait`, leased queue ownership is released, and scan frontier,

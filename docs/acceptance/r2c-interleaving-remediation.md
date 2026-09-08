@@ -1317,6 +1317,78 @@ no duplicate benchmark workflow or relaxed acceptance path is introduced. The sh
 983 dedicated-test lines, and the separate comparison owner is 103 dedicated-test lines; neither
 adds production behavior or a second workload implementation.
 
+### Observer work boundary and constrained-scheduling probe
+
+A detached `d533cf9` experiment retains the historical behavior plus its existing observation
+timers. Limiting only the test process to logical-CPU affinity mask 3 is verified on the running
+process. The unchanged original fixture passes in 75.84 seconds, with P0 P95 234 ms and maximum
+264 ms; no slow observation substage appears. A freshly rebuilt `8f4b56b` test launched under the
+same affinity restriction passes in 71.24 seconds, P95 167 ms and maximum 171 ms. Both preserve the
+25 samples, P1/P2 work, logical page, and deadlines. Logs remain in the ignored evidence directory
+as `item2_observer_d533_two_cpu_20260909.log` and `item2_observer_8f4_two_cpu_20260909.log`.
+The `8f4b56b` source also completes hosted run `34267352705` successfully; that result does not
+verify the following observer-metrics correction. This constrained scheduling experiment does not
+reproduce the old sample or establish CPU contention as its cause; no further repetition of that
+experiment is used as a repair.
+
+The experiment also rejects an invalid current-source check: sharing a compiled target directory
+between worktrees let Cargo report a fresh test executable that still listed the historical 1400
+tests. That no-run result was not accepted as current evidence. The named package's rebuildable
+output was removed, current source rebuilt, and the 1474-test list plus new lifetime-control case
+verified before the current-source experiment. No source media or catalog was cleared.
+
+Separate production-port counterexamples establish a real work-boundary defect in `observer_poll`:
+`load_library_change_root_queue_metrics` filters its results correctly but reads unrelated roots
+and generations. Its shared nullable-OR predicate affects the outer aggregate and both scalar
+subqueries. This blocks the active observer-work obligation and is addressed within item 2, not
+used as retrospective attribution of the historical 1092 ms sample.
+
+With target-root data fixed, growing unrelated rows from 256 to 4096 gives these SQLite VM counts:
+
+| Unrelated retained data | Before, 256 / 4096 | After, 256 / 4096 |
+| --- | ---: | ---: |
+| Other-root terminal history | 1200 / 16560 | 211 / 211 |
+| Same-root previous generation | 1712 / 24752 | 209 / 209 |
+| Newer other-root exhausted failures | 2773 / 41173 | 245 / 245 |
+| Other-root explicit recovery claims | 4783 / 73903 | 211 / 211 |
+
+All four regressions fail before the correction and pass afterward. Each also tests an empty
+target root after correction, with 161 / 161 steps, and verifies that global statistics still
+include unrelated data. Latest-failure coverage inserts the other-root failures after the target
+failure so a reverse global rowid walk cannot hide behind an early match.
+
+The extracted metrics owner supplies static root/generation predicates without interpolating
+identifiers or user values. The root latest-failure query sorts an integer cast of its integer
+rowid to avoid a cross-root reverse-rowid walk without a hard dependency on a named index, and
+explicit claims are checked by unique gap reference from the scoped queue. Global behavior and
+all count, failure, and capacity-deferral projections are preserved. No new schema, index,
+dependency, retry policy, deadline, or synchronization lane is added; a large target root still
+requires work proportional to its own retained records.
+
+Independent review first identifies an unsafe new hard index dependency and an incomplete test
+generation transition. A FULL-accepted fixture with a missing eligible index reproduces the
+candidate query failure. Removing the hard dependency preserves readable results for both missing
+and same-name wrong-definition indexes, with 145 and 150 VM steps respectively for an empty target.
+The fixture now uses the existing generation transaction to retire and create journal authority,
+then completes a FULL reopen before every measurement. Repeating both old-query RED and final-query
+GREEN on these valid fixtures produces the table above. Five focused tests pass in 6.95 seconds;
+the earlier incomplete-fixture counters are not substituted for this complete evidence. The final
+valid-fixture logs are `item2_root_metrics_valid_red_20260909.log` and
+`item2_root_metrics_valid_green_20260909.log` in the ignored evidence directory. The final narrow
+review confirms both findings closed without a new schema dependency or projection-semantic change.
+
+Final-source verification passes all 105 queue tests in 38.15 seconds and all 112 production
+synchronization tests in 267.92 seconds, serially with no ignored tests in either selected suite.
+The latter includes the unchanged original mixed-load latency gate and connection-lifetime
+comparison. All-target, all-feature Clippy with warnings denied passes in 22.88 seconds. These
+results supersede intermediate candidate-query runs; they do not close historical observation
+attribution or the remaining item-2 exit obligations.
+
+The new production metrics owner is 227 lines without inline tests; its dedicated work-boundary
+suite is 270 lines. Persistence falls from 1689 to 1486 lines; the queue facade is 2668 lines and its
+existing dedicated test facade is 7039 lines. Those larger owners remain physical debt, not new
+extension points for unrelated work.
+
 ## Physical ownership review
 
 Counts include whitespace and comments. The non-inline region may contain `cfg(test)` imports,

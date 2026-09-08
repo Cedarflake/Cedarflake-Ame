@@ -3268,8 +3268,10 @@ before taking the next item; another verified prerequisite is not completion of 
    lifecycle evidence and a same-workload, test-only per-poll/per-epoch lifetime comparison are
    recorded in the acceptance ledger. The comparison preserves the production latency gate and
    verifies actual open/close counts; it does not reproduce the old observation delay. This is
-   progress within item 2;
-   historical observation-stage attribution and the complete item exit remain outstanding.
+   progress within item 2. Deterministic observer-metrics counterexamples also require bounding
+   the outer aggregate, explicit-claim count, and latest failure to the requested root/generation;
+   their correction and verification remain part of this same item, not a new delivery stage.
+   Historical observation-stage attribution and the complete item exit remain outstanding.
 3. **Queued — accumulated workflow review and client verification.** Review the fixed lifecycle
    matrix: first import and final publication; pause/cancel/exit/manual continuation; multi-root
    update and removal; source registration versus cleanup; preview replacement, corrupt/non-media
