@@ -1504,9 +1504,23 @@ and explicitly marked terminal summary are retained in
 `build/r2c_interleaving_audit/item2_observer_remaining_final_20260909.log`.
 
 These are local final-source checks for this correction, not a full client acceptance result.
-The preceding head's hosted run `34275384862` passed on `e0a89ff`; it does not validate this later
-product change. New-head hosted gates, historical observer attribution, and the whole item-2 exit
-remain separately open.
+The unchanged complete production workload on committed source `7c529b9` subsequently passes in
+200.28 seconds: 25 samples, P50/P95/maximum 77/91/182 ms, no sample over one second, all 2048 P1
+candidates, and 10000 P2 entries through the original 4095-entry first-page boundary. Both lower
+lanes progress in every sample. The full-publication tail takes 128629 ms and verifies all 10000
+completed owners, completed control/run/baseline, retired authority, current checkpoint/root, owned
+stop, FULL reopen, and source-byte preservation. Its numerical evidence is retained in
+`build/r2c_interleaving_audit/item2_final_numeric_7c529b9_20260909.log`; the file explicitly marks
+one truncated intermediate output chunk, while the aggregate and final result remain intact.
+The complete local `quality_lint.ps1` also passes on this product source, including compiler-free
+guardrails, unchanged formatting, all-target/all-feature Clippy, and strict Dart analysis. Its
+output is retained in `build/r2c_interleaving_audit/item2_lint_7c529b9_20260909.log`.
+Historical observer attribution and the whole item-2 exit remain separately open.
+An exit-evidence review separates this gap from the verified current defects: the original run's
+seven retained artifacts contain no Static/Rust profiling trace, and its outer observer duration
+cannot distinguish internal operations. Repeating the lifetime comparison, constrained-CPU probe,
+or controlled writer hold would add no historical discrimination. The fixed queue still requires
+that attribution; it is not silently satisfied by these counterexamples or a later successful run.
 No real-library access, hydration, or Ame desktop process is part of these controlled checks.
 
 Physical ownership is explicit: observer handoff has 119 non-inline lines, ingress port 26,
@@ -1515,6 +1529,19 @@ non-inline lines. The production facade is 14531 lines: 4049 before its inline t
 10482 in that region. Its larger physical debt is not closed by this extraction. Dedicated
 admission, reservation, ingress-transaction, observer-contention, and production-contention
 files have 327, 110, 140, 265, and 322 lines respectively; the first includes preexisting tests.
+
+### New-head hosted accessibility failure — queued item 3
+
+Run `34280948135` on `7c529b9` does not replace its preceding head's green checks. Job
+`102245297409` fails the unchanged `application-ready` parent deadline after the previous
+`native-semantics-ready` phase passed. Its last verified probe progress is `loading-uia-client`
+at 201 ms; no completed application-ready UIA traversal is reported. Completion evidence confirms
+primary process exit and owned Job closure, with no cleanup failure. This is a current hosted
+acceptance failure, not a new synchronization assertion, an AXTree diagnostic, or proof of a
+particular assembly-loading cause. The original 400-line job log is retained untruncated as
+`build/r2c_interleaving_audit/ci_7c529b9_uia_102245297409.log`. No rerun is used to replace it.
+The finding belongs to the already queued native/client verification item and blocks final-head
+readiness; it does not authorize changing the fixed implementation order or extending its timeout.
 
 ## Physical ownership review
 
