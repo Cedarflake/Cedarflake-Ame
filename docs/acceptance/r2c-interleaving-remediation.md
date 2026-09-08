@@ -929,6 +929,32 @@ not an interruptible busy-timeout wall-clock guarantee. These are candidate wait
 identified stacks from the failed samples. The narrow independent investigation does not
 attribute the failure to checkpointing, change timeout policy, or claim an application fix.
 
+### 2026-09-08 diagnostic-source verification
+
+Fixed source `d533cf917b4cbd47d30241a7a18e96644063d1b7` completes local Daily with
+exit zero. Main Rust reports 1381 passed, zero failed, and 19 ignored in 1035.65 seconds;
+the nested child summaries are not additional cases. Broker integration passes three cases
+in 2.42 seconds, every Flutter test file passes, and the final 14 asynchronous bridge
+contracts and whitespace gate pass. The unchanged mixed-load test passes, but default
+successful output supplies no numeric P95 for this full run.
+
+Controlled Windows scan reports passed in 96716 milliseconds, exit zero, and no cleanup
+failure; its generated storage is retained under the existing evidence-only cleanup policy.
+Original full-window UIA passes all ten phases, including application-ready with 126 elements
+in 1422 milliseconds. Its completion proves primary process exit, owned Job closure, and
+scratch removal. A post-Daily process query finds no Ame or Flutter tester process. Local
+evidence is retained in ignored `build/r2c_interleaving_audit/` as
+`daily_d533cf9_native_capture_20260908.log` and `uia_d533cf9_20260908.log`.
+
+Hosted [run 34228475245](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/34228475245)
+on that same source completes successfully. Static/Rust reports 1381 passed, zero failed,
+and 19 ignored in 1243.23 seconds; its original mixed-load case passes without printing
+a numeric P95. All ten ordinary component jobs pass. Three protected-release-only jobs
+retain their existing skip conditions; they are not signed-release acceptance. No failed
+run was rerun to obtain this result. These results establish this source's gate execution,
+not a causal repair of the prior intermittent latency or historical client incidents.
+Connection reuse has not been implemented, and retained raw-source retirement remains open.
+
 ## Physical ownership review
 
 Counts include whitespace and comments. The non-inline region may contain `cfg(test)` imports,
