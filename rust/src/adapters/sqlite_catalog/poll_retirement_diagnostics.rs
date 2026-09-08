@@ -17,8 +17,12 @@ impl SqliteCatalog {
         } = self;
         let started = Instant::now();
         drop(path);
+        let autocommit = connection.is_autocommit();
+        let cache_started = Instant::now();
+        connection.flush_prepared_statement_cache();
+        let cache_elapsed = cache_started.elapsed();
         let connection_started = Instant::now();
-        // Includes rusqlite statement-cache/hook disposal and sqlite3_close, not only the FFI call.
+        // The cache is already flushed; this still includes hook/lock disposal, not only the FFI call.
         drop(connection);
         let connection_elapsed = connection_started.elapsed();
         let identity_started = Instant::now();
@@ -36,10 +40,12 @@ impl SqliteCatalog {
         let elapsed = started.elapsed();
         if elapsed >= Duration::from_millis(100) {
             eprintln!(
-                "[Ame sync catalog retirement] total_ms={} connection_drop_ms={} \
+                "[Ame sync catalog retirement] total_ms={} statement_cache_ms={} \
+                 connection_drop_ms={} autocommit={autocommit} \
                  identity_guard_ms={} identity_guard_present={had_identity_guard} \
                  session_admission_ms={} pending_buffers_ms={}",
                 elapsed.as_millis(),
+                cache_elapsed.as_millis(),
                 connection_elapsed.as_millis(),
                 identity_elapsed.as_millis(),
                 session_elapsed.as_millis(),

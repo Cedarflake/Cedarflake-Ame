@@ -4,7 +4,7 @@ Status: active delivery plan
 
 Last confirmed with the user: 2026-09-06
 
-Last implementation-status synchronization: 2026-09-07
+Last implementation-status synchronization: 2026-09-08
 
 Repository: this repository root
 
@@ -3611,9 +3611,15 @@ The next prerequisite reproduces stale retained-source append and ready-page rea
 handoff. Raw operations now require an adapter-owned immutable execution identity, with same-
 transaction write validation and consistent read snapshots. Legitimate retained continuation
 explicitly rebinds its current lease without resetting source iteration. Raw reading and writing
-move out of the long inventory facade. Focused and full current-diff verification are in progress;
-these changes do not deliver delayed header retirement, historical orphan reclamation, or bounded
-whole-operation cleanup.
+move out of the long inventory facade. Fixed-source `67971f3` completes the local Daily sequence,
+including the unchanged mixed-load test and ten native UIA phases with clean process retirement.
+Its hosted run `34222730066` fails the same mixed-load latency gate at P95 1226 milliseconds even
+though P1 completes and P2 supplies the required 10000-entry spool and 4095-entry page. The slow
+samples separately identify catalog open, observation, and connection retirement; finer operation
+evidence precedes any connection or scheduling change. No workload, threshold, or original client
+query is relaxed, and no rerun replaces that failure. These changes do not deliver delayed header
+retirement, historical orphan reclamation, bounded whole-operation cleanup, or performance
+closeout; exact evidence remains in the interleaving remediation record.
 
 R2b implementation, deterministic preview-lifecycle correctness, retained-catalog interaction
 Profile, real-library catalog parity, Daily, Windows Release, and bounded source-readable preview

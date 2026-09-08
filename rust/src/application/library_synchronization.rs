@@ -27,7 +27,10 @@ use super::{
 mod admission;
 #[cfg(windows)]
 mod journal_baseline;
+mod observation_diagnostics;
 mod production;
+
+use observation_diagnostics::measure_observation;
 
 #[cfg(test)]
 #[path = "../../test_support/production_synchronization_cadence.rs"]
@@ -195,8 +198,10 @@ impl LibrarySynchronizationRuntime {
                 "The library synchronization runtime has already stopped",
             ));
         }
-        self.reap_retiring_observers()?;
-        self.reconcile_roots(&catalog_roots)?;
+        measure_observation("observer_retirement", || self.reap_retiring_observers())?;
+        measure_observation("root_reconciliation", || {
+            self.reconcile_roots(&catalog_roots)
+        })?;
 
         let mut statuses = Vec::with_capacity(catalog_roots.len());
         let mut newly_retiring = Vec::new();
@@ -233,13 +238,15 @@ impl LibrarySynchronizationRuntime {
                     .chain(newly_retiring.iter())
                     .any(|retiring| retiring.root_id == root.root_id);
                 if runtime.observer.is_none() && !has_retiring_observer {
-                    match LibraryChangeObserver::start_erased(
-                        self.start_source.clone(),
-                        source_request(&root, self.ingress_capacity),
-                        self.planning_limits,
-                        self.restart_policy,
-                        now_unix_ms,
-                    ) {
+                    match measure_observation("observer_start", || {
+                        LibraryChangeObserver::start_erased(
+                            self.start_source.clone(),
+                            source_request(&root, self.ingress_capacity),
+                            self.planning_limits,
+                            self.restart_policy,
+                            now_unix_ms,
+                        )
+                    }) {
                         Ok(observer) => {
                             runtime.observer = Some(observer);
                             runtime.source_health = LibraryChangeSourceHealth::Starting;
@@ -253,7 +260,7 @@ impl LibrarySynchronizationRuntime {
             }
 
             if can_drain_observer && let Some(observer) = runtime.observer.as_mut() {
-                match observer.poll(now_unix_ms) {
+                match measure_observation("observer_drain", || observer.poll(now_unix_ms)) {
                     Ok(poll) => {
                         runtime.source_health = poll.source_health;
                         if let Some(code) = poll.last_source_error_code {
@@ -338,12 +345,14 @@ impl LibrarySynchronizationRuntime {
                         )
                     })?;
             }
-            let metrics = repository.load_library_change_root_queue_metrics(
-                &root.root_id,
-                root.root_generation,
-                now_unix_ms,
-                self.queue_policy,
-            )?;
+            let metrics = measure_observation("queue_metrics", || {
+                repository.load_library_change_root_queue_metrics(
+                    &root.root_id,
+                    root.root_generation,
+                    now_unix_ms,
+                    self.queue_policy,
+                )
+            })?;
             if root_has_converged(runtime, &metrics) {
                 runtime.blocking_issue_code = None;
             }
@@ -573,7 +582,9 @@ fn persist_pending_plan_for_poll<Repository>(
 where
     Repository: LibraryChangeQueue,
 {
-    match persist_pending_plan(runtime, repository, now_unix_ms, queue_policy) {
+    match measure_observation("queue_persistence", || {
+        persist_pending_plan(runtime, repository, now_unix_ms, queue_policy)
+    }) {
         Ok(()) => {
             runtime.persistence_contention_started_unix_ms = None;
             if runtime.blocking_issue_code.is_none()

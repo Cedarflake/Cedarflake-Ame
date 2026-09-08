@@ -860,8 +860,8 @@ the non-durable enumerator. The test now enables and reads the existing durable-
 That failed test observation is not a demonstrated product re-enumeration defect. The fresh
 20-case spool lifecycle suite passes in 18.05 seconds, and the separate caller-transaction case
 passes. Complete current-diff lint then passes, including formatting, all-target/all-feature
-Clippy with warnings denied, and the Dart analyzer. Full same-source Daily remains the next gate;
-these focused counts overlap it and must not be added together.
+Clippy with warnings denied, and the Dart analyzer. These focused counts overlap the subsequent
+same-source Daily and must not be added together.
 
 Independent read-only review of the execution token, raw API extraction, source adapter, and
 application continuation finds no actionable defect in that boundary. It does not run builds,
@@ -869,6 +869,65 @@ replace the new regressions, or audit delayed retirement. The preceding `e253cbc
 `34218414939` passes all ordinary jobs and the aggregate without a rerun; its three protected
 release jobs retain their existing skip conditions. That earlier head is not verification of this
 new execution fence.
+
+### Same-source verification checkpoint: 67971f3
+
+The fixed source subsequently completes the local Daily sequence through its final bridge and
+whitespace boundary. The main Rust suite reports 1381 passed, zero failed, and 19 ignored in
+1052.07 seconds; two nested child summaries are not additional cases. The unchanged mixed-load
+test passes locally, but successful default Rust output supplies no fresh numeric P95. Broker
+binary integration passes three cases, and every Flutter test file passes. Controlled Windows
+scan completes in 103951 milliseconds with exit zero and no cleanup failure; its generated
+storage is retained under the existing evidence-only cleanup policy. The original full-window
+UIA sequence passes all ten phases, with application-ready at 1419 milliseconds and 126 elements.
+Native accessibility records exit zero, confirmed primary exit, closed owned Job, and successful
+scratch removal. A post-run process query finds no Ame or Flutter tester process. Logs remain in
+ignored `build/r2c_interleaving_audit/daily_67971f3_native_capture_20260908.log` and
+`uia_67971f3_20260908.log`. This is not attribution of the historical client incidents.
+
+Hosted run `34222730066` on the same source fails Static/Rust with 1380 passed, one failed, and
+19 ignored. Its sole failure is the unchanged 25-sample mixed-load requirement: visible P95 is
+1226 milliseconds, P50 112 milliseconds, maximum 1239 milliseconds, and three samples exceed
+one second. P1 completes 2048 candidates; P2 consumes 10000 source entries and stages the required
+4095-entry page. Both lanes progress in all 25 samples. Other ordinary jobs pass; the aggregate
+fails and the three protected-release-only jobs keep their existing skip conditions. No rerun is
+requested to replace this failure.
+
+The three measured slow samples identify distinct poll boundaries: sample 15 takes 1116
+milliseconds with 967 milliseconds in catalog opening; sample 20 takes 1226 milliseconds with
+1092 milliseconds in observer polling; sample 22 takes 1239 milliseconds with 1129 milliseconds
+in actual connection retirement. Longer diagnostic polls outside those samples are not assigned
+to them. The exact failure is retained in
+`build/r2c_interleaving_audit/ci_67971f3_mixed_load_102049431306.log`. The connection measurement
+includes rusqlite cache/hook cleanup and SQLite close, not just the FFI call. It does not prove a
+last-connection checkpoint while the fixture still retains other catalog connections.
+
+The next diagnostic separates observer retirement, root reconciliation, observer start/drain,
+pending-plan persistence, and queue metrics under the existing debug-only slow-stage threshold.
+It changes neither invocation order nor retry, cadence, workload, lane progress, or acceptance
+limits. These measurements are not a latency fix. Current-head performance closeout remains open
+independently of the verified retained-source execution fence and pending raw retirement work.
+
+The instrumented local mixed-load run passes in 123.05 seconds: 25 samples, P50/P95/maximum
+173/199/204 milliseconds, no sample above one second, all 2048 P1 candidates completed, and the
+10000-entry P2 source plus 4095-entry logical page completed. Both lanes progress in all samples.
+No new 100-millisecond slow-stage record is emitted, so that run does not reproduce or explain
+the hosted stalls. Six existing validated-session identity/schema/reuse regressions also pass.
+A preceding mistyped harness option was rejected before any test ran and supplies no test result.
+The test-only catalog timers additionally separate initial identity checks, open/configuration,
+the validation/return tail, and statement-cache disposal from the remaining connection close.
+Retirement still occurs inside the same measured poll; no timer moves work outside the gate.
+Complete lint passes, including formatting, all-target/all-feature warnings-denied Clippy, and
+the Dart analyzer. Narrow independent review finds no change to invocation count, destruction
+order, error propagation, or measured poll ownership. Full new-source and hosted gates remain
+separate; review does not establish a cause for the hosted latency.
+
+Pinned SQLite source inspection confirms that a non-final WAL connection still closes its own
+shared-memory handle and takes Windows VFS global/node mutexes. With the repository's existing
+`SQLITE_ENABLE_SETLK_TIMEOUT` build flag, pending overlapped file-lock I/O also has a wait that is
+not an interruptible busy-timeout wall-clock guarantee. These are candidate wait paths, not
+identified stacks from the failed samples. The narrow independent investigation does not
+attribute the failure to checkpointing, change timeout policy, or claim an application fix.
 
 ## Physical ownership review
 
@@ -975,3 +1034,10 @@ and read-transaction test/support files contain 129, 182, and 98 lines. The exis
 facade has 3909 lines and shared spool fixture 344. These counts are a new checkpoint, not additions
 to preceding totals. Migration validation, the remaining inventory facade, and larger physical
 decomposition remain debt; the split removes raw SQL responsibility rather than forwarding it.
+
+The poll diagnostic checkpoint leaves the runtime at 4092 non-inline and 10502 inline-test lines,
+the core observer coordinator at 886 non-inline lines, and the catalog facade at 5355 non-inline
+lines. Existing poll-stage logging has 87 lines; its shared observation timer has 21. Catalog
+open and retirement instrumentation have 39 and 56 test-only lines and no new test cases. This
+moves one timing helper instead of copying it; it does not claim to decompose runtime lifecycle,
+SQL ownership, or the remaining large test region.

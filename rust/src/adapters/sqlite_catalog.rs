@@ -47,6 +47,8 @@ mod retained_scan;
 mod scan_lifecycle;
 mod scan_publication;
 mod scan_resumption;
+#[cfg(test)]
+mod session_open_diagnostics;
 mod spool_retirement;
 mod write_admission;
 
@@ -376,6 +378,11 @@ impl SqliteCatalogSession {
     }
 
     pub(crate) fn open_in_lane(&self, lane: LibraryChangeLane) -> Result<SqliteCatalog, ScanError> {
+        #[cfg(test)]
+        {
+            self.open_in_lane_with_diagnostics(lane)
+        }
+        #[cfg(not(test))]
         self.open_in_lane_with_read_stage(lane, |_| Ok(()))
     }
 

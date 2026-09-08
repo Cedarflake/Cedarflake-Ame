@@ -39,6 +39,8 @@ use crate::domain::{
 
 #[cfg(windows)]
 use super::LibrarySynchronizationRuntime;
+#[cfg(windows)]
+use super::observation_diagnostics::measure_observation;
 #[cfg(all(test, windows))]
 use super::production_synchronization_cadence::ProductionSynchronizationCadence;
 #[cfg(windows)]
@@ -81,7 +83,6 @@ mod poll_diagnostics;
 #[cfg(windows)]
 use poll_diagnostics::{
     ElapsedStageTimer, SynchronizationPollStageTimings, log_synchronization_poll_diagnostic,
-    measure_observation,
 };
 
 #[cfg(windows)]
