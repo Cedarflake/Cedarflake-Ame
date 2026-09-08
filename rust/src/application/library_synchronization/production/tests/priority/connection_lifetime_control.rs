@@ -89,11 +89,17 @@ impl ConnectionControl {
 #[test]
 fn same_mixed_load_controls_poll_connection_lifetime_without_relaxing_the_product_gate() {
     let mut per_poll = ConnectionControl::new(ConnectionLifetime::PerPoll);
-    let per_poll_p95 = run_priority_workload(|runtime, storage| per_poll.poll(runtime, storage));
+    let per_poll_p95 = run_priority_workload(
+        |runtime, storage| per_poll.poll(runtime, storage),
+        CompletionBoundary::FirstPage,
+    );
     per_poll.assert_lifetime_and_report(per_poll_p95);
 
     let mut per_epoch = ConnectionControl::new(ConnectionLifetime::PerEpoch);
-    let per_epoch_p95 = run_priority_workload(|runtime, storage| per_epoch.poll(runtime, storage));
+    let per_epoch_p95 = run_priority_workload(
+        |runtime, storage| per_epoch.poll(runtime, storage),
+        CompletionBoundary::FirstPage,
+    );
     per_epoch.assert_lifetime_and_report(per_epoch_p95);
     // The removed policy is a measured control, not an alternative product acceptance path.
     assert!(

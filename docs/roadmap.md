@@ -3271,6 +3271,10 @@ before taking the next item; another verified prerequisite is not completion of 
    progress within item 2. Deterministic observer-metrics counterexamples also require bounding
    the outer aggregate, explicit-claim count, and latest failure to the requested root/generation;
    their correction and verification remain part of this same item, not a new delivery stage.
+   The same mixed-load production fixture now also proves all 10000 P2 candidate results,
+   nonempty journal closing coverage, final baseline publication, synchronized state, and FULL
+   reopen after owned stop. Original samples and first-page deadlines remain intact; this closes
+   the controlled complete-recovery evidence gap, not historical observer attribution.
    Historical observation-stage attribution and the complete item exit remain outstanding.
 3. **Queued — accumulated workflow review and client verification.** Review the fixed lifecycle
    matrix: first import and final publication; pause/cancel/exit/manual continuation; multi-root

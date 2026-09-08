@@ -4108,6 +4108,9 @@ mod tests {
     mod priority;
 
     #[cfg(windows)]
+    mod priority_journal;
+
+    #[cfg(windows)]
     mod poll_catalog_runtime;
 
     use super::*;
@@ -4115,6 +4118,8 @@ mod tests {
     use crate::domain::{LibraryChangeQueueHealth, ScanRequest};
     #[cfg(windows)]
     use crate::ports::{CatalogRepository, LibraryChangeQueue};
+    #[cfg(windows)]
+    use priority_journal::PriorityJournalSession;
     #[cfg(windows)]
     use rusqlite::OptionalExtension;
 
@@ -4201,16 +4206,6 @@ mod tests {
         query_count: Arc<std::sync::atomic::AtomicUsize>,
         shared_read_count: Arc<std::sync::atomic::AtomicUsize>,
         read_release: Arc<AtomicBool>,
-        close_count: Arc<std::sync::atomic::AtomicUsize>,
-    }
-
-    #[cfg(windows)]
-    struct PriorityJournalSession {
-        p1_root_id: String,
-        first_usn: i64,
-        published_next_usn: Arc<std::sync::atomic::AtomicI64>,
-        candidate_count: usize,
-        shared_read_count: Arc<std::sync::atomic::AtomicUsize>,
         close_count: Arc<std::sync::atomic::AtomicUsize>,
     }
 
@@ -4501,145 +4496,6 @@ mod tests {
                     pending_renames: Vec::new(),
                 },
                 release: Arc::clone(&self.read_release),
-            }))
-        }
-
-        fn close(&self) -> Result<(), PersistentChangeJournalOperationError> {
-            self.close_count.fetch_add(1, Ordering::AcqRel);
-            Ok(())
-        }
-    }
-
-    #[cfg(windows)]
-    impl PersistentChangeJournalSession for PriorityJournalSession {
-        fn register_root(
-            &self,
-            _request: RegisterRootRequest,
-        ) -> Result<RootCapability, PersistentChangeJournalOperationError> {
-            Ok(RootCapability([9; 32]))
-        }
-
-        fn query_journal(
-            &self,
-            request: QueryJournalRequest,
-        ) -> Result<BrokerResponse, PersistentChangeJournalOperationError> {
-            let next_usn = if request.root.root_id == self.p1_root_id {
-                self.published_next_usn.load(Ordering::Acquire)
-            } else {
-                self.first_usn
-            };
-            Ok(BrokerResponse::Journal {
-                request_id: 1,
-                binding: crate::journal_broker::ResponseBinding::from_request(
-                    &request.caller,
-                    &request.root,
-                ),
-                capability: JournalCapability::Supported,
-                journal_id: Some(44),
-                first_usn: Some(1),
-                next_usn: Some(next_usn),
-            })
-        }
-
-        fn begin_read_range(
-            &self,
-            _request: ReadJournalRangeRequest,
-        ) -> Result<Box<dyn PersistentChangeJournalRead>, PersistentChangeJournalOperationError>
-        {
-            Err(PersistentChangeJournalOperationError::InvalidRequest)
-        }
-
-        fn begin_read_volume(
-            &self,
-            request: ReadJournalVolumeRequest,
-        ) -> Result<Box<dyn PersistentChangeJournalRead>, PersistentChangeJournalOperationError>
-        {
-            self.shared_read_count.fetch_add(1, Ordering::AcqRel);
-            let outcomes = request
-                .roots
-                .iter()
-                .map(|root| {
-                    let available_count = request
-                        .end_usn
-                        .saturating_sub(root.start_usn)
-                        .try_into()
-                        .unwrap_or(usize::MAX);
-                    let first_index = if root.root.root_id == self.p1_root_id {
-                        usize::try_from(root.start_usn.saturating_sub(self.first_usn))
-                            .unwrap_or(usize::MAX)
-                            .min(self.candidate_count)
-                    } else {
-                        0
-                    };
-                    let candidate_count = if root.root.root_id == self.p1_root_id {
-                        self.candidate_count
-                            .saturating_sub(first_index)
-                            .min(available_count)
-                            .min(request.max_records as usize)
-                    } else {
-                        0
-                    };
-                    let candidates = (0..candidate_count)
-                        .map(|page_index| {
-                            let candidate_index = first_index
-                                .checked_add(page_index)
-                                .expect("candidate index range");
-                            let sequence = root
-                                .start_usn
-                                .checked_add(i64::try_from(page_index).expect("candidate sequence"))
-                                .expect("candidate sequence range");
-                            crate::journal_broker::BrokerCandidate {
-                                scope: crate::journal_broker::CandidateScope::RelativePath(
-                                    format!("journal-{candidate_index:04}.png"),
-                                ),
-                                previous_scope: None,
-                                file_reference: u64::try_from(candidate_index + 1)
-                                    .expect("candidate file reference")
-                                    .to_le_bytes()
-                                    .to_vec(),
-                                usn: sequence,
-                                kind: crate::journal_broker::CandidateKind::Path,
-                                is_directory: false,
-                            }
-                        })
-                        .collect();
-                    let covered_until_usn = root
-                        .start_usn
-                        .checked_add(i64::try_from(candidate_count).expect("covered count"))
-                        .expect("covered USN range");
-                    crate::journal_broker::SharedJournalRootOutcome {
-                        binding: crate::journal_broker::ResponseBinding::from_request(
-                            &request.caller,
-                            &root.root,
-                        ),
-                        requested_start_usn: root.start_usn,
-                        covered_until_usn: Some(covered_until_usn),
-                        is_complete: covered_until_usn == request.end_usn,
-                        candidates,
-                        failure: None,
-                    }
-                })
-                .collect();
-            Ok(Box::new(CompletedJournalRead {
-                response: BrokerResponse::ReadVolume {
-                    request_id: 1,
-                    client_instance: request.caller.client_instance,
-                    volume_id: request
-                        .roots
-                        .first()
-                        .ok_or(PersistentChangeJournalOperationError::InvalidRequest)?
-                        .root
-                        .volume_id
-                        .clone(),
-                    journal_id: request.journal_id,
-                    requested_end_usn: request.end_usn,
-                    max_records: request.max_records,
-                    max_evidence_bytes: request.max_evidence_bytes,
-                    outcomes,
-                    handoffs: Vec::new(),
-                    pending_renames: Vec::new(),
-                },
-                release: Arc::new(AtomicBool::new(true)),
             }))
         }
 

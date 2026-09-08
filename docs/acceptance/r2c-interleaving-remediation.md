@@ -1389,6 +1389,62 @@ suite is 270 lines. Persistence falls from 1689 to 1486 lines; the queue facade 
 existing dedicated test facade is 7039 lines. Those larger owners remain physical debt, not new
 extension points for unrelated work.
 
+### Complete mixed-load recovery verification
+
+The production P0 latency case now continues its existing runtime beyond the first P2 logical
+page. Its 25 measured samples, P95 limit, 2048 P1 candidates, 10000 raw entries, 4095-entry page,
+per-sample limits, 60-second first-page deadline, and two-second stop deadline remain unchanged.
+The two connection-lifetime control arms still end at that original page boundary. Only the
+production gate adds the complete-recovery tail, using a creation-to-reopen budget of 300 seconds
+with the same clock origin as the existing 4096-file complete-recovery fixture. This new tail is
+not included in event-to-visible latency samples and does not renew any earlier deadline.
+
+Completion evidence follows the original returned recovery control ID through its exact run,
+authority, baseline, checkpoint, root state, and candidate owners. All 10000 owners must complete,
+the baseline must publish, execution authority must retire, and the production root snapshot must
+be synchronized. After owned stop, the full-schema counter must prove a new FULL validation.
+Bounded 256-path windows then verify every terminal-media location and matching evidence, retain
+the 25 prior visible P0 results, and compare all controlled P2 source bytes. The P2 payload remains
+the original malformed JPEG fixture, not 10000 successfully decoded images. Retired raw storage
+may remain for its existing cleanup owner but cannot still be executable.
+
+An intermediate run with the original journal simulator completes in 177.97 seconds, with P0 P95
+71 ms and a 116061 ms completion tail. That simulator gives two roots on the same volume different
+journal ends, allowing P2 to close an empty window despite P1's new records. This is a fixture
+fidelity gap, not evidence of a production failure. The intermediate log remains at
+`build/r2c_interleaving_audit/item2_completion_empty_window_intermediate_20260909.log`; it does not
+verify the subsequent shared-volume correction, nonempty closing-window assertion, or final
+source.
+
+The journal simulator is now one shared test owner for all three existing consumers. Both roots
+report the same published volume end, and an empty P2 candidate result covers that requested
+nonempty interval. Focused contracts also retain P1's page size, cursor, candidate paths, and
+read/close counts. The final complete-recovery assertion requires closing USN greater than opening
+USN, so a return to the old empty-window shortcut cannot pass. Narrow independent review reports
+no blocker in the exact-control evidence, same-workload boundaries, deadline preservation, or
+fixture retirement; it does not attribute the historical observation sample.
+
+The corrected final source passes both new journal contracts, then all 114 production
+synchronization tests in 412.17 seconds with zero failures or ignored tests. This includes the
+complete production P0 case, both original first-page lifetime arms, all six extracted fixture
+failure/unwind cases, and both additional legacy-capacity users of the shared journal simulator.
+The complete case proves the nonempty closing window, synchronized snapshot, FULL validation,
+persisted per-path terminal evidence, unchanged source bytes, and retention of prior P0 results.
+Its original one-second P95 assertion remains active; this ordinary captured suite result does
+not supply a fresh numerical P95 for a benchmark table. These are complete controlled-recovery
+checks, not retained-library, UI, or historical latency attribution evidence.
+All-target, all-feature Clippy with warnings denied also passes in 18.33 seconds. The captured
+test/Clippy stream is retained as
+`build/r2c_interleaving_audit/item2_completion_final_gates_20260909.log`; only its initial
+compilation-only chunk is omitted.
+
+The priority workload owner falls from 983 to 782 dedicated-test lines. Its unchanged retirement
+owner and six failure/unwind tests are now 238 lines; full recovery verification owns 233 lines,
+the shared journal fixture and its tests 291, and lifetime comparison 109. The production facade
+falls from 14728 to 14584 lines, with 4105 before its inline test module and 10479 in that region;
+its production behavior is unchanged by these extractions. These counts retain the larger
+facade's physical debt rather than claiming repository-wide decomposition.
+
 ## Physical ownership review
 
 Counts include whitespace and comments. The non-inline region may contain `cfg(test)` imports,
