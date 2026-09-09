@@ -1,6 +1,9 @@
 # R2c closeout execution
 
-Status: **planned; execution has not started**.
+Status: **active; discovery complete, repair batch frozen, mixed-load diagnosis first**.
+
+The [cycle evidence](../acceptance/r2c-closeout-cycle.md) records the frozen source, selected
+variants, execution budgets, findings, and verification. Its status does not accept R2c.
 
 This document supplies execution details for the
 [canonical roadmap's closeout queue](../roadmap.md#current-execution-queue), not a second product

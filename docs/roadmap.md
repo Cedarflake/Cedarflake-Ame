@@ -97,7 +97,7 @@ repair admission, review, verification, stopping rules, and safety cautions.
    invalidate affected evidence and return to their owning queue item. Documentation alone does
    not require another heavy product gate. No known core-workflow S0/S1 may be waived for readiness.
 
-The execution plan is **planned, not started**. Its fixed scope is eight journeys with at most
+The execution plan is **active: discovery complete, two-family repair batch frozen**. Its fixed scope is eight journeys with at most
 three variants each, one repair batch of at most three root-cause families, and a 16-hour cumulative
 active-engineering ceiling. Tool runtimes remain separately bounded and recorded. It permits one
 independent review plus one scoped recheck. Budget exhaustion, a fourth blocking family, or a

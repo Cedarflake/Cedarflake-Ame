@@ -12,9 +12,48 @@ commands and asynchronous registration, and viewer/cache ownership after an oper
 It does not infer safety from isolated green tests or claim that every possible defect is excluded.
 
 Reproductions use generated disposable sources, isolated catalogs, and controlled application
-ports. No retained source root, live user catalog, cloud placeholder, installed service, or original
-media is accessed or modified. Real-library and signed/installed-service acceptance remain separate.
+ports. Those controlled reproductions do not access retained source roots, live user catalogs,
+cloud placeholders, installed services or original media. A later same-folder count diagnostic
+reads the existing catalog and source directory names/attributes only, as recorded in the
+[cycle evidence](r2c-closeout-cycle.md#same-folder-count-discrepancy-follow-up). It modifies neither
+catalog nor source and is not real-library or signed/installed-service acceptance.
 The active delivery order remains in [the canonical roadmap](../roadmap.md).
+
+The active [controlled closeout cycle](r2c-closeout-cycle.md) freezes 24 variants and records their
+baseline, observation costs and client coverage. Discovery is complete and the single repair batch
+is frozen to these two existing blocker families, with R2C-C01 first:
+
+| ID | Scenario / severity | Evidence and owning obligation | Blocked exit |
+| --- | --- | --- | --- |
+| R2C-C01 | UX-07A/B / S1 | The original 300-second incomplete recovery and earlier hosted P0 latency failures remain open. Controlled full-load probes identify 32.658 seconds in live scheduling, 27.193 in journal scheduling and 54.612 in root metrics. A FULL-valid fixture with only completed records reproduces linear idle-readiness work: 256/4096 rows require 4495/69775 VM steps for live and journal path checks. Metrics require 14230/225430 steps. Diagnose and remove unnecessary terminal-row eligibility/projection work at the queue read owners, preserving exact counts, current lease/retry semantics and optional-index compatibility. Historical outliers are not uniquely attributed by this reproduction. | Item 2, candidate readiness |
+| R2C-C02 | UX-08B / S1 | The recorded hosted `application-ready` timeout remains unexplained despite later local UIA success. Owner: native accessibility process/probe lifecycle. Preserve the original ten-phase whole-window test and existing parent deadline; do not replace it with static/partial evidence. | Item 3, candidate readiness |
+
+Current C01 checkpoint `dd3f556` removes the reproduced terminal-history projection/eligibility
+work. All 113 queue cases and ten priority cases pass; the unchanged complete mixed workload
+retains P95 109 ms and all 10000 P2 results through FULL reopen. Clippy and Dart analysis pass.
+The applicable lint is blocked by a newly observed `File.Replace` failure in C02's progress-record
+guardrail. Its narrow diagnostic interruption and preserved failure are recorded in the
+[cycle evidence](r2c-closeout-cycle.md#applicable-lint-interruption). Hosted verification remains
+required before C01 exit; neither this local checkpoint nor the earlier green baseline accepts it.
+
+Missing EXE-restart, safe Release-client and connected multi-root-overlap evidence is tracked against
+the frozen variants. Those gaps are not new diagnosed defects or additional admitted repair families.
+No third repair family is admitted. The missing EXE/Release paths remain mandatory coverage work
+under item 3, not waived cases. Current diagnosis pass 1 for R2C-C01 has a 60-minute active ceiling:
+test the hypothesis that eligibility checks traverse completed history and exact metrics evaluate
+active-state projections on terminal rows. Use query VM-work regressions and unchanged full-load
+before/after evidence; no schema, new index dependency, workload or deadline change is admitted.
+Establish the typed queue-read boundary before changing the oversized queue facade. Item 3 repair
+waits for item 2's controlled and hosted exit. Later local success cannot close unexplained hosted
+failures, and a failed diagnostic hypothesis cannot create another implicit investigation round.
+
+The additional same-folder count report remains a UX-02A/UX-03A correctness investigation with
+severity and repair admission pending evidence. The metadata-only census reconciles 49685 files
+against 48624 catalog locations: no currently supported-extension path is omitted, while 42 paths
+use unsupported image formats, 960 are videos and 59 are other or unidentified files. The completed
+scan's 48605 source-revision-change issues require separate admission analysis. This report must
+receive an explicit disposition before readiness; it neither silently adds format expansion to
+the batch nor becomes a reason to dismiss a proven core-workflow defect.
 
 ## Owning invariants
 
