@@ -39,13 +39,17 @@ record guardrail. Its narrow diagnostic interruption and preserved failure are r
 [cycle evidence](r2c-closeout-cycle.md#applicable-lint-interruption). Hosted run `34338261070`
 then fails both priority connection-control and full mixed-load cases: production P95 is 1806 ms,
 and only 9152 P2 owners finish within 300 seconds. Hosted lint/native gates pass. C01's second and
-final diagnostic pass targets measured catalog-identity revalidation cost with all original source-
-replacement admission invariant intact. Retained-connection checkpoint `8745198` passes all 16 owner and
+final diagnostic pass targets catalog-identity revalidation cost while preserving the source-
+replacement admission invariant. Retained-connection checkpoint `8745198` passes all 16 owner and
 six caller cases, the original ten-test priority group and complete applicable lint; its local full
 mixed-load P95 is 112 ms with complete recovery and FULL reopen. The unchanged file guardrail also
 passes in this invocation, without explaining the earlier failures. Independent review and its
-scoped documentation recheck complete with no new actionable S0/S1 defect. Current hosted evidence
-is still required; local success and the earlier green baseline do not close C01.
+scoped documentation recheck complete with no new actionable S0/S1 defect. Current hosted run
+`34347019582` then passes production full recovery at P95 163 ms but fails the required PerPoll
+control at sample index 15: fresh identity takes 7975 ms and visibility exceeds five seconds.
+The PerEpoch control arm does not start. Rust reports 1496 passed, one failed and 19 ignored;
+the nine other workers pass. C01's final diagnostic pass ends unresolved; no third pass or
+unchanged retry is admitted. The cycle record owns the retained logs and bounded next-scope decision.
 
 Missing EXE-restart, safe Release-client and connected multi-root-overlap evidence is tracked against
 the frozen variants. Those gaps are not new diagnosed defects or additional admitted repair families.

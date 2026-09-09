@@ -8,10 +8,10 @@ Current implementation checkpoints: `d91580d` adds the connected root-interleavi
 Their focused checks pass. The subsequent retained-connection candidate passes focused owner,
 caller, complete priority-group and applicable lint checks. Independent review finds no new
 actionable S0/S1 code defect; its one documentation correction passes the scoped recheck.
-The earlier hosted mixed-load and local native-probe failures remain unresolved. The first complete
+The current hosted control and local native-probe failures remain unresolved. The first complete
 Daily fails in the existing R2c-R guardrail before Rust/Flutter tests, introducing a post-review
-verification blocker. Further repair is paused at the plan's scope-review boundary while the
-already dispatched hosted run completes. The same-folder count follow-up does not change this disposition.
+verification blocker. The dispatched hosted run also fails its required control. Further repair
+is paused at the plan's scope-review boundary. The count follow-up does not change this disposition.
 
 This record implements the [bounded execution plan](../plans/r2c-closeout.md). The canonical
 [roadmap](../roadmap.md) retains stage and queue authority. Findings belong in the existing
@@ -407,8 +407,38 @@ code changes follow the review, and known C01/C02 and client/final-source blocke
 
 Candidate source is frozen at `fa1eff03a18d6329f0231a83ac94216420e8eac7`, which is confirmed equal
 to remote `codex/r2c`. No new branch is created. Hosted run
-[34347019582](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/34347019582) is running on
-that head. Freezing this candidate does not close the known C01/C02 or client coverage obligations.
+[34347019582](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/34347019582) completes with
+failure on that head. Freezing this candidate does not close the known C01/C02 or client obligations.
+
+Nine hosted partitions complete successfully. The actual PR
+checkout is `af962aacfd97c46c8cbec193dc02664da36d78df`. Flutter's 71 passing file processes match
+the current 71-file inventory exactly and sum to 565 passing tests. The controlled Windows scan
+exits zero with no cleanup failure. Accessibility passes all ten phases, with 126 elements at
+application-ready in 2189 ms, and confirms native exit/Job closure. The unsigned worker and all
+five synthetic workloads pass; each synthetic log proves exactly one executed, nonignored test.
+Seven-format evidence retains unchanged sources and reused caches; the 50000-identity publication
+has one commit, 96 overlapping polls and no partial observation. The full readout and exact retained
+log hashes are under `build/diagnostics/r2c-hosted-34347019582-*`. These partitions do not replace
+the failed complete local Daily or establish the missing EXE/Release interaction variants.
+
+Static/Rust finishes at 12:17:50 UTC with 1496 passing tests, one failure and 19 ignored in
+1427.08 seconds. The required connection-lifetime control fails in its PerPoll arm at sample
+index 15's original five-second visibility bound: fresh end-of-proof identity costs 7975 ms,
+catalog open totals 7980 ms and the P0 row remains pending. The PerEpoch arm never starts.
+The separate production full-recovery case passes with P0 P95 163 ms, maximum 461 ms and no
+sample over one second. Its unchanged completion path requires all 2048 P1 and 10000 P2 results,
+closing publication, synchronized state, authority retirement and FULL reopen. Its detailed tail
+timing is captured output, so no exact hosted tail duration is inferred. The incomplete two-arm
+control remains a failed required gate; it is not a production PerEpoch failure and is not waived.
+The complete log and SHA-256 are retained in the hosted readout. No unchanged replay follows.
+
+C01's second and final diagnostic pass closes at 48 active minutes. The queue and identity work
+reductions have passing causal work bounds, owner/caller regressions and local complete workload
+evidence, but fresh identity operations still show multi-second stalls and the required hosted
+control remains unresolved. There is no third diagnostic pass, lower workload, longer deadline or
+weaker identity proof. Further C01 scope requires a bounded revised plan; the proposed C02/C03
+diagnostic supplement does not reopen it. Documentation-only heads retain this failed product-
+source evidence; a routine CI run triggered by recording it cannot erase the failure.
 
 The local unsigned Windows gate passes on the clean candidate, from 11:44:18 to 11:52:17 UTC.
 It builds the Release application, verifies all three engine-free native window cases and both
@@ -473,9 +503,9 @@ concurrent inspection during a tool run still counts as active work. A handoff d
 | --- | --- | --- |
 | Baseline and discovery | 4 h | 176 min charged; original discovery complete, plus the explicitly requested 26-minute desktop count comparison |
 | Triage | 1 h | 54 min charged, including count/admission analysis, the generated first-read probe and read-only preservation of the post-review gate failure; two repair families remain admitted |
-| Diagnosis and repair | 8 h | C01 pass 1 closes at 55 min with hosted failure; pass 2 has 40 min charged at this checkpoint, including delegated proof inspection, with its original 60 min maximum. C02 pass 1 has 26 min charged and is paused; the failed context-comparison replay remains retained |
+| Diagnosis and repair | 8 h | C01 pass 1 closes at 55 min and final pass 2 closes at 48 min with the required hosted control still failing. C02 pass 1 has 26 min charged and is paused; the failed context-comparison replay remains retained |
 | Independent review and scoped recheck | 2 h | 11 active minutes total: one 10-minute review plus the one-minute scoped recheck; both complete and both invocation allowances exhausted |
-| Closeout recording | 1 h | 8 min charged for source freeze, verification results and unresolved checkpoint preparation |
+| Closeout recording | 1 h | 16 min charged for source freeze, verified log collection, results and unresolved checkpoint preparation |
 
 Final complete Daily invocations: 1 failed. Unchanged diagnostic replays: 1 executed; allowance exhausted.
 Independent final reviews: 1 completed; the one scoped recheck is also complete. No further round is admitted.

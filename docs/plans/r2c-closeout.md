@@ -13,9 +13,9 @@ promise that all possible defects have been found or that R2c's external accepta
 
 The first complete Daily on candidate `fa1eff0` fails after the independent review and its scoped
 recheck, in the existing R2c-R owned-fixture cleanup guardrail. The cycle record owns the exact
-failure and retained evidence. Already dispatched hosted checks may finish; further repair is
-paused under the stopping rule for additional blocking findings after review. No invocation or
-active-time budget is reset.
+failure and retained evidence. The dispatched hosted run also fails its connection-lifetime control;
+the separate production full recovery passes. C01's two diagnostic passes are exhausted, and
+further repair is paused under the stopping rules. No invocation or active-time budget is reset.
 
 ### Proposed diagnostic supplement — not yet admitted
 
