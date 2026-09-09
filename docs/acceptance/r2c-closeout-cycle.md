@@ -1,6 +1,6 @@
 # R2c controlled closeout cycle
 
-Status: active bounded repair supplement; 24-variant roster and original failures retained.
+Status: unresolved supplement checkpoint; second complete local Daily fails full recovery.
 
 Current implementation checkpoints: `d91580d` adds the connected root-interleaving regressions;
 `dd3f556` contains the queue-readiness correction, work bounds and observation measurements;
@@ -8,10 +8,11 @@ Current implementation checkpoints: `d91580d` adds the connected root-interleavi
 Their focused checks pass. The subsequent retained-connection candidate passes focused owner,
 caller, complete priority-group and applicable lint checks. Independent review finds no new
 actionable S0/S1 code defect; its one documentation correction passes the scoped recheck.
-The current hosted control and local native-probe failures remain unresolved. The first complete
-Daily fails in the existing R2c-R guardrail before Rust/Flutter tests, introducing a post-review
-verification blocker. The dispatched hosted run also fails its required control. Further repair
-resumes only under the explicit parallel supplement below. The count follow-up does not change readiness.
+The first complete Daily fails in the existing R2c-R guardrail before Rust/Flutter tests. The
+supplement repairs that owner, passes its review and guardrails, and obtains passing hosted checks.
+The second complete local Daily instead fails C01's full recovery. Earlier native-probe and
+File.Replace failures remain unexplained. The supplement has reached its stopping boundary;
+further execution requires bounded replanning. The count follow-up does not change readiness.
 
 This record implements the [bounded execution plan](../plans/r2c-closeout.md). The canonical
 [roadmap](../roadmap.md) retains stage and queue authority. Findings belong in the existing
@@ -149,6 +150,23 @@ minutes. Supplement review/recheck totals ten minutes; with the old 11 minutes t
 review charge is 21 minutes. Both supplement review invocations are now consumed. Final-source
 Daily, hosted C01 causality and the unexplained UIA/1175 boundary remain open.
 
+The reviewed native repair is committed as `932ee17`; test-only SQL stage attribution is a separate
+rollback boundary at `6903d79`. Evidence head `d9ac57a` is verified equal to remote `codex/r2c`.
+Run `34363028969` carries that frozen source. Its push supersedes the earlier timing run after
+the required UIA result was retained; the cancelled Static/Rust job is not a passing result.
+The complete cancelled-job log proves its Rust command had finished before cancellation: 1497
+library tests and three binary integration tests pass, with 19 library cases ignored. Its PerPoll
+and PerEpoch controls both finish, at P95 591/674 ms respectively; the separate complete production
+fixture records P95 561 ms. This valid test evidence is distinct from the cancelled whole-job status
+and cannot erase the earlier failures or establish their cause. Log:
+`r2c-hosted-34358832952-static-cancelled.log`, SHA-256
+`A0B0D4A23F7212B8AD30F196C57B57F7CC4A783E035C86D012C4232B9DB08E4A`.
+The second and final allowed complete local Daily starts on this corrected source. Admission is
+the proven C03 namespace-retirement repair and completed independent recheck, not an unchanged
+replay or closure of C01. This can verify the accumulated local candidate while C01's hosted
+operation attribution remains open; it cannot advance the queue or waive either earlier failure.
+Output and outcome are `r2c-d9ac57a-final-daily-2.log` and its `-2-outcome.json`.
+
 Hosted UIA job `102490296029` on `d3f46af` completes successfully at 13:50:20 UTC in run `34358832952`.
 Both Flutter cases, all ten ordered native phases, process exit, Job closure and scratch removal pass.
 The first application phase takes 2788 ms: 1094 ms loading UIA Client, 549 ms locating the window,
@@ -157,6 +175,66 @@ The first application phase takes 2788 ms: 1094 ms loading UIA Client, 549 ms lo
 failure or File.Replace 1175; no causal UIA repair is claimed. Complete log:
 `r2c-hosted-34358832952-accessibility.log`, SHA-256
 `F851A9F503E6A508C9C6583D1D5FF1217B67FEA2896757C199CDF407B5523C1C`.
+
+### Final supplement result
+
+All ten applicable hosted jobs pass on `d9ac57a` in
+[run 34363028969](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/34363028969).
+Static/Rust records 1497 passing library tests, 19 ignored, and three passing binary integration
+tests. The two lifetime arms record P95 478/461 ms; the separate complete production recovery
+records P95 413 ms, maximum 415 ms, and passes its unchanged full completion/reopen assertions.
+The SQL substage probe records no operation at or above its 100 ms reporting threshold in that
+job; it does not explain the earlier SQL-proof stall. The complete Static/Rust log is
+`r2c-hosted-34363028969-static-rust.log`, SHA-256
+`377247402B3E629E729EC74FA900EEC13A8A34E655E447A802A9691B1C2E82F9`.
+
+Hosted Flutter executes 71 file processes with 565 passing tests. All five synthetic jobs each
+execute their one required, nonignored test; unsigned Windows builds and catalog-free Release
+bridge smoke pass. Native accessibility completes all phases and confirms process exit, Job
+closure and scratch removal. Controlled scan completes successfully and deliberately retains its
+fixture evidence without an owned cleanup proof. Complete logs, markers and hashes are retained
+under `r2c-hosted-34363028969-*`, including `-completed-readout.json`. These are controlled gates,
+not real-library, signed installed-service or real Cloud Files acceptance.
+
+The second local complete Daily runs from 14:22:36.987 to 14:54:34.661 UTC (1917695 ms) and fails.
+Its complete lint, including the repaired 19-case R2c-R guardrail, format, Clippy and Dart analysis,
+passes. Rust records 1496 passing tests, one failure and 19 ignored in 1646.12 seconds. Cargo's
+failure stops the Daily before its Flutter, native scan/accessibility and final bridge phases;
+passing hosted partitions do not substitute for that missing complete local result.
+
+Both local lifetime controls pass at P95 248/172 ms. The failed separate full recovery has P0 P95
+163 ms, maximum 169 ms and all 2048 P1 items completed. At the unchanged 300-second
+creation-to-reopen bound it has staged 10000 entries, produced 9216 candidates/owners and completed
+8960 owners; 64 are leased and 193 P2 rows remain pending, including the recovery control row.
+The run remains comparing, control pending, authority unretired and root/checkpoint recovery-required.
+It has neither final publication nor FULL reopen. This is a reproduced C01 completion failure,
+not the earlier single-operation visibility stall and not a C03 cleanup failure.
+
+The failed run records 12738 polls costing 175.028 seconds in total. Nested counters include
+45.487 seconds in queue metrics, 39.345 in root availability and 25.265 in catalog revalidation;
+these overlap parent totals and cannot be added together. Maximum poll cost is 114.169 ms and
+maximum revalidation cost is 68.149 ms, so this trace does not reproduce the prior multi-second
+identity operation. Cumulative polling/worker-progress attribution remains a next-scope hypothesis,
+not a proven cause or permission to weaken polling/workload assertions.
+
+PowerShell's transcript does not capture the entire native-output prefix. Subsequent output is
+preserved in `r2c-d9ac57a-final-daily-2-native-continuation.log`; its final large failure report also
+contains an explicit tool truncation. The decisive completion assertion, exact state/queue counts,
+aggregate observation totals and final Rust failure summary are retained. Neither file is described
+as a lossless complete native transcript. Transcript SHA-256 is
+`7149D52792A4EA6F19CF8A771ABCE77E5ABE61FB8C9CC919F7BAAE7A34C3734C`; continuation SHA-256 is
+`A82BEE6A750DC0191E9A6B64309D3195D2F57778DCAC8D994B0D2C4E4A595472`.
+The structured outcome separately preserves command failure and start/end times. No replay is used
+to replace the failure or repair the output gap.
+
+The primary supplement allowance is conservatively charged at its 90-minute ceiling; the file
+lane retains its 61-minute charge. Cumulative diagnosis/repair charge is 280 minutes of eight hours,
+review/recheck is 21 minutes, and closeout recording is 26 minutes of one hour. Original discovery
+and triage remain 176/54 minutes. Both complete Daily invocations have failed, the unchanged replay
+allowance remains exhausted, and both supplement review invocations are complete. The bounded
+supplement therefore stops at this unresolved checkpoint. C03's owner repair is reviewed and
+current-source verified at its guardrail/lint boundary; C01, unexplained C02 and overall candidate
+readiness remain open. Original media and real-library state were not mutation inputs.
 
 ## Baseline
 
@@ -543,7 +621,7 @@ code changes follow the review, and known C01/C02 and client/final-source blocke
 
 ## Execution accounting
 
-### Candidate verification checkpoint
+### Original candidate verification checkpoint
 
 Candidate source is frozen at `fa1eff03a18d6329f0231a83ac94216420e8eac7`, which is confirmed equal
 to remote `codex/r2c`. No new branch is created. Hosted run

@@ -1,6 +1,6 @@
 # R2c closeout execution
 
-Status: **active bounded repair supplement; both verification blockers remain unresolved**.
+Status: **unresolved checkpoint after the bounded supplement; further execution requires replanning**.
 
 The [cycle evidence](../acceptance/r2c-closeout-cycle.md) records the frozen source, selected
 variants, execution budgets, findings, and verification. Its status does not accept R2c.
@@ -15,12 +15,24 @@ The first complete Daily on candidate `fa1eff0` fails after the independent revi
 recheck, in the existing R2c-R owned-fixture cleanup guardrail. The cycle record owns the exact
 failure and retained evidence. The dispatched hosted run also fails its connection-lifetime control;
 the separate production full recovery passes. The original two C01 diagnostic passes and original
-review/recheck are exhausted. The supplement below resumes these blockers; historical failures,
-invocation counts and active time remain charged.
+review/recheck are exhausted. The supplement below has now reached its own stopping boundary.
+The owned-fixture repair is reviewed and passes current-source guardrails and lint; the second
+complete local Daily fails C01's full recovery at the unchanged 300-second bound. Current hosted
+checks pass, but do not replace that failure or explain the earlier C01/C02 outliers. Both complete
+Daily invocations and both supplement review invocations are consumed. Historical failures,
+invocation counts and active time remain charged; no unchanged replay or new repair round is admitted.
 
-### Admitted parallel repair supplement
+The smallest next scope to decide is C01's remaining P2 completion cost, using the retained failed
+local run and passing hosted run before another experiment. Distinguish cumulative polling and
+worker-progress costs; the current counters overlap and cannot be summed as independent time.
+Any new execution needs an explicit bounded diagnostic hypothesis, complete native-output capture,
+and revised review/final-gate allowances inside the original phase ceilings. It must preserve the
+existing workloads, deadlines and source-identity proofs, and retain C02's unexplained UIA/1175
+boundary. This is a replanning checkpoint, not authorization for those additional runs.
 
-The current direction admits concurrent diagnosis and causal repair of both named blockers on
+### Supplement scope and consumed allowances
+
+The latest admitted supplement covers concurrent diagnosis and causal repair of both named blockers on
 `codex/r2c`, replacing the earlier unadmitted 45-minute diagnosis-only proposal. This narrow exception
 to the original serial family order covers C01 and C02/C03 file-lifecycle failures only. The complete
 outcome is passing unchanged synchronization workload/control and reliable owned-fixture evidence
