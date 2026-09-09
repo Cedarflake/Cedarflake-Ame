@@ -6,6 +6,7 @@ mod bounded_reset;
 mod bounded_retirement;
 mod execution_admission;
 mod retirement;
+mod root_reregistration;
 mod scope_isolation;
 mod source_execution;
 mod stale_source;
@@ -210,6 +211,12 @@ fn begin_named_spool(
     scope: MetadataInventoryScope,
     run_id: &str,
 ) -> (MetadataInventoryRun, LeasedLibraryChange) {
+    let root_generation = fixture
+        .catalog
+        .load_incremental_catalog_root(&fixture.root_id)
+        .expect("load current inventory root")
+        .expect("registered inventory root")
+        .root_generation;
     let (kind, change_scope, relative_path) = match &scope {
         MetadataInventoryScope::Root => (
             LibraryChangeIntentKind::FreshnessUnknown,
@@ -227,7 +234,7 @@ fn begin_named_spool(
         .enqueue_library_change_intents(
             &[LibraryChangeIntent {
                 root_id: fixture.root_id.clone(),
-                root_generation: LibraryRootGeneration::initial(),
+                root_generation,
                 kind,
                 scope: change_scope,
                 relative_path,
@@ -247,7 +254,7 @@ fn begin_named_spool(
         .catalog
         .lease_authoritative_library_change(
             &fixture.root_id,
-            LibraryRootGeneration::initial(),
+            root_generation,
             4_000,
             queue_policy(),
         )
@@ -263,7 +270,7 @@ fn begin_named_spool(
         .begin_next_metadata_inventory(&MetadataInventoryStartRequest {
             run_id: run_id.to_owned(),
             root_id: fixture.root_id.clone(),
-            root_generation: LibraryRootGeneration::initial(),
+            root_generation,
             scope: scope.clone(),
             started_unix_ms: 4_000,
         })
@@ -292,8 +299,33 @@ fn stage_opened_spool_with_execution(
     MetadataInventorySpoolExecution,
 ) {
     let run_id = &run.request.run_id;
+    let (mut source, execution) = prepare_opened_spool(fixture, scope, &run, &leased);
+    let page = source
+        .next_page(4_095, &AtomicBool::new(false))
+        .expect("read real spool page");
+    assert!(page.is_complete);
+    assert_eq!(page.entries.len(), 2);
+    let run = fixture
+        .catalog
+        .stage_metadata_inventory_page(run_id, &page, 5_000)
+        .expect("stage real durable page");
+    assert!(run.enumeration_complete);
+    let rows = spool_rows(&fixture.catalog, run_id);
+    assert_eq!((rows.spools, rows.entries), (1, 2));
+    (run, leased, execution)
+}
+
+fn prepare_opened_spool(
+    fixture: &mut InventoryFixture,
+    scope: &MetadataInventoryScope,
+    run: &MetadataInventoryRun,
+    leased: &LeasedLibraryChange,
+) -> (
+    Box<dyn MetadataInventorySource>,
+    MetadataInventorySpoolExecution,
+) {
     let cancellation = AtomicBool::new(false);
-    let mut source = open_inventory_source(fixture, scope, &run, &leased);
+    let mut source = open_inventory_source(fixture, scope, run, leased);
     let mut ready = false;
     for _ in 0..8 {
         if matches!(
@@ -312,30 +344,20 @@ fn stage_opened_spool_with_execution(
     );
     let identity = fixture
         .catalog
-        .load_metadata_inventory_root_identity(run_id)
+        .load_metadata_inventory_root_identity(&run.request.run_id)
         .expect("read ready source identity")
         .expect("ready source identity");
     let execution = fixture
         .catalog
-        .initialize_metadata_inventory_spool(&run, &leased, &identity, None, None, 5_000)
+        .initialize_metadata_inventory_spool(run, leased, &identity, None, None, 5_000)
         .expect("capture the current ready execution before logical publication");
     fixture
         .catalog
         .validate_metadata_inventory_spool_execution(&execution)
         .expect("the original execution is current");
-    let page = source
-        .next_page(4_095, &cancellation)
-        .expect("read real spool page");
-    assert!(page.is_complete);
-    assert_eq!(page.entries.len(), 2);
-    let run = fixture
-        .catalog
-        .stage_metadata_inventory_page(run_id, &page, 5_000)
-        .expect("stage real durable page");
-    assert!(run.enumeration_complete);
-    let rows = spool_rows(&fixture.catalog, run_id);
+    let rows = spool_rows(&fixture.catalog, &run.request.run_id);
     assert_eq!((rows.spools, rows.entries), (1, 2));
-    (run, leased, execution)
+    (source, execution)
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

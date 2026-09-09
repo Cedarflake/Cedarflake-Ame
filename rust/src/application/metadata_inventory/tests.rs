@@ -3856,7 +3856,7 @@ fn authorize_leased_containment_recovery(
             change_id: leased.change.id,
             run_id: run_id.to_owned(),
             root_id: fixture.root_id.clone(),
-            root_generation: LibraryRootGeneration::initial(),
+            root_generation: leased.change.intent.root_generation,
             reason: LibraryRecoveryAuthorityReason::ContainmentFailure,
             opening_boundary: None,
             authorized_unix_ms: observed_unix_ms,

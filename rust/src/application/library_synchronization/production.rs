@@ -4060,6 +4060,9 @@ mod tests {
     #[cfg(windows)]
     mod ingress_reservation;
 
+    #[cfg(windows)]
+    mod root_availability;
+
     use super::*;
     #[cfg(windows)]
     use crate::domain::{LibraryChangeQueueHealth, ScanRequest};
