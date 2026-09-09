@@ -21,6 +21,7 @@ use super::{StoragePaths, storage_paths};
 
 mod failure;
 use failure::{FailureDisposition, apply_failure};
+mod source_reconciliation;
 pub(super) mod store_admission;
 #[cfg(test)]
 pub(crate) use store_admission::active_preview_store;
@@ -49,6 +50,7 @@ struct PreviewStageTimings {
     store_ms: u128,
     catalog_ms: u128,
     source_ms: u128,
+    source_issue_code: Option<String>,
     materialize_ms: u128,
     commit_ms: u128,
     reclaim_ms: u128,
@@ -73,6 +75,7 @@ impl Default for PreviewStageTimings {
             store_ms: 0,
             catalog_ms: 0,
             source_ms: 0,
+            source_issue_code: None,
             materialize_ms: 0,
             commit_ms: 0,
             reclaim_ms: 0,
@@ -191,12 +194,20 @@ fn materialize_preview_attempt(
         &expected,
         std::path::Path::new(&stored_source_root_path),
         expected_root_identity.as_ref(),
-    )
-    .map_err(preview_source_open_error);
+    );
     timings.source_ms = timings
         .source_ms
         .saturating_add(source_started.elapsed().as_millis());
-    let opened_source = opened_source?;
+    let opened_source = opened_source.map_err(|issue| {
+        timings.source_issue_code = Some(issue.code.clone());
+        source_reconciliation::recover_source_mismatch(
+            storage,
+            &request,
+            &location,
+            expected_root_generation,
+            issue,
+        )
+    })?;
     let source_root_path = opened_source
         .source_root_path
         .to_string_lossy()
@@ -494,7 +505,7 @@ fn log_preview_diagnostic(
             eprintln!(
                 "[Ame preview] outcome={outcome} code={code} retry={is_retry} total_ms={} \
                  access_ms={} store_ms={} catalog_ms={} source_ms={} materialize_ms={} \
-                 commit_ms={} reclaim_ms={} publish_ms={} materialization={} location_id={location_id}",
+                 commit_ms={} reclaim_ms={} publish_ms={} materialization={} source_issue={} location_id={location_id}",
                 elapsed.as_millis(),
                 timings.access_ms,
                 timings.store_ms,
@@ -505,6 +516,7 @@ fn log_preview_diagnostic(
                 timings.reclaim_ms,
                 timings.publish_ms,
                 timings.materialization,
+                timings.source_issue_code.as_deref().unwrap_or("none"),
             );
         }
     }
@@ -514,18 +526,6 @@ fn log_preview_diagnostic(
 
 fn source_superseded(issue: ScanIssue) -> ScanError {
     ScanError::new("preview_request_superseded", issue.message)
-}
-
-fn preview_source_open_error(issue: ScanIssue) -> ScanError {
-    if matches!(
-        issue.code.as_str(),
-        "preview_root_unavailable"
-            | "preview_root_identity_unproven"
-            | "preview_root_identity_changed"
-    ) {
-        return ScanError::new(issue.code, issue.message);
-    }
-    source_superseded(issue)
 }
 
 fn validate_request(request: &PreviewRequest) -> Result<(), ScanError> {
@@ -615,6 +615,8 @@ mod tests {
     mod cache_namespace;
     #[cfg(windows)]
     mod failure;
+    #[cfg(windows)]
+    mod source_reconciliation;
     #[cfg(windows)]
     pub(super) mod store_reacquisition;
     use std::fs;
@@ -1379,7 +1381,7 @@ mod tests {
         };
         let scan_id = format!("preview-{suffix}-scan");
         let root_id = format!("preview-{suffix}-root");
-        let location_id = format!("preview-{suffix}-location");
+        let location_id = super::super::scan_library::stable_location_id(&root_id, "source.png");
         let request = ScanRequest {
             scan_id: scan_id.clone(),
             root_path: root_path.clone(),

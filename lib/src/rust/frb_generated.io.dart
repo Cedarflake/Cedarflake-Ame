@@ -13,6 +13,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:ffi' as ffi;
 import 'domain.dart';
+import 'domain/gallery_query_snapshot.dart';
 import 'domain/library_change.dart';
 import 'domain/library_change_queue.dart';
 import 'domain/library_synchronization.dart';
@@ -101,6 +102,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   GalleryQuery dco_decode_box_autoadd_gallery_query(dynamic raw);
+
+  @protected
+  GalleryQueryAnchor dco_decode_box_autoadd_gallery_query_anchor(dynamic raw);
 
   @protected
   GalleryTimeAnchor dco_decode_box_autoadd_gallery_time_anchor(dynamic raw);
@@ -207,6 +211,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   GalleryQuery dco_decode_gallery_query(dynamic raw);
 
   @protected
+  GalleryQueryAnchor dco_decode_gallery_query_anchor(dynamic raw);
+
+  @protected
+  GalleryQuerySnapshot dco_decode_gallery_query_snapshot(dynamic raw);
+
+  @protected
   GallerySortDirection dco_decode_gallery_sort_direction(dynamic raw);
 
   @protected
@@ -243,6 +253,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   LibraryFolderPage dco_decode_library_folder_page(dynamic raw);
+
+  @protected
+  LibraryFolderPageDisposition dco_decode_library_folder_page_disposition(
+    dynamic raw,
+  );
 
   @protected
   LibraryFolderView dco_decode_library_folder_view(dynamic raw);
@@ -334,6 +349,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   GalleryLocationAnchorResolution?
   dco_decode_opt_box_autoadd_gallery_location_anchor_resolution(dynamic raw);
+
+  @protected
+  GalleryQueryAnchor? dco_decode_opt_box_autoadd_gallery_query_anchor(
+    dynamic raw,
+  );
 
   @protected
   int? dco_decode_opt_box_autoadd_i_16(dynamic raw);
@@ -510,6 +530,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  GalleryQueryAnchor sse_decode_box_autoadd_gallery_query_anchor(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   GalleryTimeAnchor sse_decode_box_autoadd_gallery_time_anchor(
     SseDeserializer deserializer,
   );
@@ -642,6 +667,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   GalleryQuery sse_decode_gallery_query(SseDeserializer deserializer);
 
   @protected
+  GalleryQueryAnchor sse_decode_gallery_query_anchor(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  GalleryQuerySnapshot sse_decode_gallery_query_snapshot(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   GallerySortDirection sse_decode_gallery_sort_direction(
     SseDeserializer deserializer,
   );
@@ -688,6 +723,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   LibraryFolderPage sse_decode_library_folder_page(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  LibraryFolderPageDisposition sse_decode_library_folder_page_disposition(
     SseDeserializer deserializer,
   );
 
@@ -801,6 +841,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   GalleryLocationAnchorResolution?
   sse_decode_opt_box_autoadd_gallery_location_anchor_resolution(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  GalleryQueryAnchor? sse_decode_opt_box_autoadd_gallery_query_anchor(
     SseDeserializer deserializer,
   );
 
@@ -1008,6 +1053,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_gallery_query_anchor(
+    GalleryQueryAnchor self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_gallery_time_anchor(
     GalleryTimeAnchor self,
     SseSerializer serializer,
@@ -1173,6 +1224,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_gallery_query(GalleryQuery self, SseSerializer serializer);
 
   @protected
+  void sse_encode_gallery_query_anchor(
+    GalleryQueryAnchor self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_gallery_query_snapshot(
+    GalleryQuerySnapshot self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_gallery_sort_direction(
     GallerySortDirection self,
     SseSerializer serializer,
@@ -1232,6 +1295,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_library_folder_page(
     LibraryFolderPage self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_library_folder_page_disposition(
+    LibraryFolderPageDisposition self,
     SseSerializer serializer,
   );
 
@@ -1370,6 +1439,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_gallery_location_anchor_resolution(
     GalleryLocationAnchorResolution? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_gallery_query_anchor(
+    GalleryQueryAnchor? self,
     SseSerializer serializer,
   );
 

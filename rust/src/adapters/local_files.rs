@@ -6273,6 +6273,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
 
     const DOMAIN_MODULE_CONTRACTS: &[AvailabilityModuleContract] = &[
         AvailabilityModuleContract {
+            name: "gallery_query_snapshot",
+            visibility: "pub",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
             name: "library_catalog_delta",
             visibility: "",
             attributes: &[],
@@ -6317,6 +6323,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
     ];
 
     const LOCAL_MODULE_CONTRACTS: &[AvailabilityModuleContract] = &[
+        AvailabilityModuleContract {
+            name: "catalog_identity",
+            visibility: "",
+            attributes: &[],
+            is_inline: false,
+        },
         AvailabilityModuleContract {
             name: "preview_cache_namespace",
             visibility: "",

@@ -26,6 +26,7 @@ class LibraryFolderBranchKey {
 
 class LibraryFolderBranch {
   const LibraryFolderBranch({
+    this.revision,
     this.folders = const [],
     this.nextCursor,
     this.isLoading = false,
@@ -35,6 +36,7 @@ class LibraryFolderBranch {
 
   static const Object _unchanged = Object();
 
+  final BigInt? revision;
   final List<LibraryFolder> folders;
   final LibraryFolderCursor? nextCursor;
   final bool isLoading;
@@ -51,6 +53,7 @@ class LibraryFolderBranch {
     Object? errorMessage = _unchanged,
   }) {
     return LibraryFolderBranch(
+      revision: revision,
       folders: folders ?? this.folders,
       nextCursor: nextCursor == _unchanged
           ? this.nextCursor
@@ -90,6 +93,11 @@ class LibraryFolderController extends Notifier<LibraryFolderTreeState> {
     bool loadMore = false,
     bool force = false,
   }) async {
+    final invalidationRevision = state.revision;
+    if (invalidationRevision != null &&
+        catalogRevision < invalidationRevision) {
+      return;
+    }
     _synchronizeRevision(catalogRevision);
     final key = LibraryFolderBranchKey(
       rootId: rootId,
@@ -99,7 +107,7 @@ class LibraryFolderController extends Notifier<LibraryFolderTreeState> {
     if (current.isLoading || (!force && !loadMore && current.hasLoaded)) {
       return;
     }
-    if (loadMore && current.nextCursor == null) {
+    if (loadMore && current.hasLoaded && current.nextCursor == null) {
       return;
     }
 
@@ -116,7 +124,8 @@ class LibraryFolderController extends Notifier<LibraryFolderTreeState> {
       if (state.revision != catalogRevision) {
         return;
       }
-      if (page.revision != catalogRevision) {
+      if (page.revision < catalogRevision ||
+          (current.revision != null && page.revision < current.revision!)) {
         throw const LibraryCatalogFailure(
           code: "catalog_folder_revision_changed",
           message: "图库已更新，请重新展开文件夹",
@@ -129,12 +138,31 @@ class LibraryFolderController extends Notifier<LibraryFolderTreeState> {
           message: "目录范围已变化，请重新展开文件夹",
         );
       }
-      final folders = loadMore
+      final shouldAppend =
+          page.disposition == LibraryFolderPageDisposition.append;
+      if (shouldAppend && (!loadMore || page.revision != current.revision)) {
+        throw const LibraryCatalogFailure(
+          code: "catalog_folder_page_inconsistent",
+          message: "目录分页版本不一致，请重新展开文件夹",
+        );
+      }
+      final cursor = page.nextCursor;
+      if (cursor != null &&
+          (cursor.revision != page.revision ||
+              cursor.rootId != rootId ||
+              cursor.parentRelativePath != parentRelativePath)) {
+        throw const LibraryCatalogFailure(
+          code: "catalog_folder_cursor_inconsistent",
+          message: "目录分页范围不一致，请重新展开文件夹",
+        );
+      }
+      final folders = shouldAppend
           ? _mergeFolders(current.folders, page.folders)
           : page.folders;
       _replaceBranch(
         key,
         LibraryFolderBranch(
+          revision: page.revision,
           folders: folders,
           nextCursor: page.nextCursor,
           hasLoaded: true,

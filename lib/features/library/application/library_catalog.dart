@@ -2,14 +2,24 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../src/rust/api/catalog.dart" as rust_api;
 import "../../../src/rust/domain.dart" as rust_domain;
+import "../../../src/rust/domain/gallery_query_snapshot.dart" as rust_query;
 import "../domain/library_folder_models.dart";
 import "../domain/library_models.dart";
+import "../domain/library_query_snapshot.dart";
+
+export "../domain/library_query_snapshot.dart";
 
 const libraryCatalogWindow = 500;
 const libraryTimelineWindow = 160;
 const libraryFolderWindow = 200;
 
 abstract interface class LibraryCatalog {
+  Future<LibraryQuerySnapshot> loadQuerySnapshot({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    LibraryQueryAnchor? anchor,
+  });
+
   Future<LibrarySnapshot> load({
     required int maxItems,
     required LibraryGalleryQuery query,
@@ -72,6 +82,33 @@ class RustLibraryCatalog
   const RustLibraryCatalog();
 
   @override
+  Future<LibraryQuerySnapshot> loadQuerySnapshot({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    LibraryQueryAnchor? anchor,
+  }) async {
+    try {
+      final result = await rust_api.loadLibraryQuerySnapshot(
+        maxItems: maxItems,
+        query: _mapQuery(query),
+        anchor: anchor == null
+            ? null
+            : rust_query.GalleryQueryAnchor(
+                requestedLocationId: anchor.requestedLocationId,
+                assetId: anchor.assetId,
+                fallbackOrdinal: BigInt.from(anchor.fallbackGlobalItemIndex),
+              ),
+      );
+      return LibraryQuerySnapshot(
+        snapshot: _mapSnapshot(result.snapshot),
+        timeline: _mapTimeline(result.timeline),
+      );
+    } on Object catch (error) {
+      throw _mapFailure(error, "bridge_query_snapshot_load_failed");
+    }
+  }
+
+  @override
   Future<LibrarySnapshot> load({
     required int maxItems,
     required LibraryGalleryQuery query,
@@ -119,20 +156,7 @@ class RustLibraryCatalog
       final timeline = await rust_api.loadLibraryGalleryTimeline(
         query: _mapQuery(query),
       );
-      return LibraryTimeline(
-        revision: timeline.revision,
-        queryId: timeline.queryId,
-        totalItems: timeline.totalItems.toInt(),
-        buckets: List.unmodifiable(
-          timeline.buckets.map(
-            (bucket) => LibraryTimeBucket(
-              monthKey: bucket.monthKey,
-              itemCount: bucket.itemCount.toInt(),
-              aspectRatioSum: bucket.aspectRatioMilliSum.toInt() / 1000,
-            ),
-          ),
-        ),
-      );
+      return _mapTimeline(timeline);
     } on Object catch (error) {
       throw _mapFailure(error, "bridge_timeline_load_failed");
     }
@@ -166,6 +190,12 @@ class RustLibraryCatalog
         revision: page.revision,
         rootId: page.rootId,
         parentRelativePath: page.parentRelativePath,
+        disposition: switch (page.disposition) {
+          rust_domain.LibraryFolderPageDisposition.replace =>
+            LibraryFolderPageDisposition.replace,
+          rust_domain.LibraryFolderPageDisposition.append =>
+            LibraryFolderPageDisposition.append,
+        },
         folders: List.unmodifiable(
           page.folders.map(
             (folder) => LibraryFolder(
@@ -302,6 +332,23 @@ class RustLibraryCatalog
                   .windowStartOrdinal
                   .toInt(),
             ),
+    );
+  }
+
+  LibraryTimeline _mapTimeline(rust_domain.GalleryTimeline timeline) {
+    return LibraryTimeline(
+      revision: timeline.revision,
+      queryId: timeline.queryId,
+      totalItems: timeline.totalItems.toInt(),
+      buckets: List.unmodifiable(
+        timeline.buckets.map(
+          (bucket) => LibraryTimeBucket(
+            monthKey: bucket.monthKey,
+            itemCount: bucket.itemCount.toInt(),
+            aspectRatioSum: bucket.aspectRatioMilliSum.toInt() / 1000,
+          ),
+        ),
+      ),
     );
   }
 

@@ -14,11 +14,11 @@ use rusqlite::{
 use crate::domain::{
     AssetLocationView, CaptureTimeEvidence, CaptureTimeSource, CatalogCursor, CatalogSnapshot,
     ExpectedFileState, FileIdentityEvidence, GalleryLayoutDateGroup, GalleryLayoutManifestChunk,
-    GalleryLayoutManifestCursor, GalleryQuery, GallerySortKey, GalleryTimeAnchor,
-    GalleryTimeBucket, GalleryTimeline, LibraryChangeLane, LibraryChangeQueuePolicy,
-    LibraryFolderCursor, LibraryFolderPage, LibraryRootAvailability, LibraryRootGeneration,
-    LibraryRootView, PreviewArtifact, PreviewReclamationCandidate, PreviewRequest, PreviewStatus,
-    RecoverableScan, ScanCheckpoint, ScanError, ScanIssue, ScanRequest, SourceRevisionEvidence,
+    GalleryLayoutManifestCursor, GalleryQuery, GalleryTimeAnchor, GalleryTimeline,
+    LibraryChangeLane, LibraryChangeQueuePolicy, LibraryFolderCursor, LibraryFolderPage,
+    LibraryRootAvailability, LibraryRootGeneration, LibraryRootView, PreviewArtifact,
+    PreviewReclamationCandidate, PreviewRequest, PreviewStatus, RecoverableScan, ScanCheckpoint,
+    ScanError, ScanIssue, ScanRequest, SourceRevisionEvidence,
 };
 use crate::ports::CatalogRepository;
 
@@ -28,6 +28,7 @@ use super::{
 
 mod folders;
 mod gallery;
+mod gallery_snapshot;
 mod metadata_inventory;
 mod migrations;
 mod operation_diagnostics;
@@ -64,10 +65,7 @@ use scan_lifecycle::abandon_scan_transaction;
 
 use change_queue::{activate_root_change_queue, retire_root_change_queue};
 use gallery::{
-    GalleryAssetAnchor, build_gallery_asset_query, build_gallery_count_query,
-    build_gallery_layout_manifest_query, build_gallery_timeline_query, gallery_cursor_for_asset,
-    resolve_gallery_anchor_cursor, resolve_gallery_asset_anchor, resolve_gallery_location_anchor,
-    validate_gallery_query,
+    build_gallery_count_query, build_gallery_layout_manifest_query, validate_gallery_query,
 };
 pub(crate) use metadata_inventory::MetadataInventorySpoolExecution;
 use migrations::{migrate_schema, prepare_fresh_catalog_auto_vacuum};
@@ -3451,136 +3449,15 @@ impl CatalogRepository for SqliteCatalog {
         before: Option<&CatalogCursor>,
         anchor: Option<&GalleryTimeAnchor>,
     ) -> Result<CatalogSnapshot, ScanError> {
-        if max_items == 0 || max_items > MAX_CATALOG_PAGE_ITEMS {
-            return Err(ScanError::new(
-                "catalog_page_limit_invalid",
-                format!(
-                    "The catalog page limit must be between 1 and {MAX_CATALOG_PAGE_ITEMS} items"
-                ),
-            ));
-        }
-        validate_gallery_query(query)?;
-        if usize::from(after.is_some())
-            + usize::from(before.is_some())
-            + usize::from(anchor.is_some())
-            > 1
-        {
-            return Err(ScanError::new(
-                "catalog_query_invalid",
-                "A gallery request accepts only one page cursor or anchor",
-            ));
-        }
-
-        let catalog_path = self.path.to_string_lossy().into_owned();
-        let transaction = self.connection.transaction().map_err(database_error)?;
-        let revision = load_catalog_revision(&transaction)?;
-        if after.is_some_and(|cursor| cursor.revision != revision || cursor.query_id != query_id) {
-            return Err(ScanError::new(
-                "catalog_cursor_stale",
-                "The catalog or gallery query changed after this page cursor was created",
-            ));
-        }
-        if before.is_some_and(|cursor| cursor.revision != revision || cursor.query_id != query_id) {
-            return Err(ScanError::new(
-                "catalog_cursor_stale",
-                "The catalog or gallery query changed after this page cursor was created",
-            ));
-        }
-        if anchor.is_some_and(|value| value.revision != revision || value.query_id != query_id) {
-            return Err(ScanError::new(
-                "catalog_cursor_stale",
-                "The catalog or gallery query changed after this time anchor was created",
-            ));
-        }
-
-        let roots = load_root_views(&transaction)?;
-
-        let requested = usize::try_from(max_items).map_err(|_| {
-            ScanError::new(
-                "catalog_page_limit_invalid",
-                "The catalog page limit is outside the supported range",
-            )
-        })?;
-        let sql_limit = i64::from(max_items).saturating_add(1);
-        let resolved_anchor_cursor = anchor
-            .filter(|value| value.item_offset > 0)
-            .map(|value| {
-                resolve_gallery_anchor_cursor(&transaction, revision, query, query_id, value)
-            })
-            .transpose()?;
-        let effective_after = after.or(resolved_anchor_cursor.as_ref());
-        let effective_anchor = if resolved_anchor_cursor.is_some() {
-            None
-        } else {
-            anchor
-        };
-        let built =
-            build_gallery_asset_query(query, effective_after, before, effective_anchor, sql_limit)?;
-        let mut asset_statement = transaction.prepare(&built.sql).map_err(database_error)?;
-        let mut asset_rows = asset_statement
-            .query(params_from_iter(built.parameters.iter()))
-            .map_err(database_error)?;
-        let mut stored_assets = Vec::new();
-        while let Some(row) = asset_rows.next().map_err(database_error)? {
-            let stored = read_stored_asset(row).map_err(database_error)?;
-            stored_assets.push(stored_asset_view(stored)?);
-        }
-        drop(asset_rows);
-        drop(asset_statement);
-
-        let has_more = stored_assets.len() > requested;
-        stored_assets.truncate(requested);
-        if before.is_some() {
-            stored_assets.reverse();
-        }
-        let previous_cursor = if before.is_some() && has_more {
-            stored_assets
-                .first()
-                .map(|asset| {
-                    gallery_cursor_for_asset(&transaction, revision, query_id, query, asset)
-                })
-                .transpose()?
-        } else if effective_after.is_some() || anchor.is_some() {
-            stored_assets
-                .first()
-                .map(|asset| {
-                    gallery_cursor_for_asset(&transaction, revision, query_id, query, asset)
-                })
-                .transpose()?
-        } else {
-            None
-        };
-        let next_cursor = if before.is_some() {
-            stored_assets
-                .last()
-                .map(|asset| {
-                    gallery_cursor_for_asset(&transaction, revision, query_id, query, asset)
-                })
-                .transpose()?
-        } else if has_more {
-            stored_assets
-                .last()
-                .map(|asset| {
-                    gallery_cursor_for_asset(&transaction, revision, query_id, query, asset)
-                })
-                .transpose()?
-        } else {
-            None
-        };
-        let assets = stored_assets;
-
-        transaction.commit().map_err(database_error)?;
-
-        Ok(CatalogSnapshot {
-            catalog_path,
-            revision,
-            query_id: query_id.to_owned(),
-            roots,
-            assets,
-            previous_cursor,
-            next_cursor,
-            query_anchor_resolution: None,
-        })
+        let read = gallery_snapshot::GalleryReadTransaction::begin(
+            &mut self.connection,
+            &self.path,
+            query,
+            query_id,
+        )?;
+        let snapshot = read.load_snapshot(max_items, after, before, anchor)?;
+        read.commit()?;
+        Ok(snapshot)
     }
 
     fn load_snapshot_around_location(
@@ -3590,41 +3467,22 @@ impl CatalogRepository for SqliteCatalog {
         query_id: &str,
         anchor_location_id: &str,
     ) -> Result<CatalogSnapshot, ScanError> {
-        if max_items == 0 || max_items > MAX_CATALOG_PAGE_ITEMS {
-            return Err(ScanError::new(
-                "catalog_page_limit_invalid",
-                format!(
-                    "The catalog page limit must be between 1 and {MAX_CATALOG_PAGE_ITEMS} items"
-                ),
-            ));
-        }
-        validate_gallery_query(query)?;
-        for _ in 0..3 {
-            let transaction = self.connection.transaction().map_err(database_error)?;
-            let revision = load_catalog_revision(&transaction)?;
-            let (resolution, predecessor) = resolve_gallery_location_anchor(
-                &transaction,
-                revision,
-                query,
-                query_id,
-                anchor_location_id,
-                max_items,
-            )?;
-            transaction.commit().map_err(database_error)?;
-            match self.load_snapshot(max_items, query, query_id, predecessor.as_ref(), None, None) {
-                Ok(mut snapshot) if snapshot.revision == revision => {
-                    snapshot.query_anchor_resolution = Some(resolution);
-                    return Ok(snapshot);
-                }
-                Ok(_) => continue,
-                Err(error) if error.code == "catalog_cursor_stale" => continue,
-                Err(error) => return Err(error),
-            }
-        }
-        Err(ScanError::new(
-            "catalog_cursor_stale",
-            "The catalog kept changing while the gallery location anchor was resolved",
-        ))
+        let read = gallery_snapshot::GalleryReadTransaction::begin(
+            &mut self.connection,
+            &self.path,
+            query,
+            query_id,
+        )?;
+        let snapshot = read.load_anchored_snapshot(
+            max_items,
+            &crate::domain::GalleryQueryAnchor {
+                requested_location_id: anchor_location_id.to_owned(),
+                asset_id: None,
+                fallback_ordinal: 0,
+            },
+        )?;
+        read.commit()?;
+        Ok(snapshot)
     }
 
     fn load_snapshot_around_asset(
@@ -3636,45 +3494,22 @@ impl CatalogRepository for SqliteCatalog {
         anchor_asset_id: &str,
         fallback_ordinal: u64,
     ) -> Result<CatalogSnapshot, ScanError> {
-        if max_items == 0 || max_items > MAX_CATALOG_PAGE_ITEMS {
-            return Err(ScanError::new(
-                "catalog_page_limit_invalid",
-                format!(
-                    "The catalog page limit must be between 1 and {MAX_CATALOG_PAGE_ITEMS} items"
-                ),
-            ));
-        }
-        validate_gallery_query(query)?;
-        for _ in 0..3 {
-            let transaction = self.connection.transaction().map_err(database_error)?;
-            let revision = load_catalog_revision(&transaction)?;
-            let (resolution, predecessor) = resolve_gallery_asset_anchor(
-                &transaction,
-                revision,
-                query,
-                query_id,
-                max_items,
-                GalleryAssetAnchor {
-                    requested_location_id,
-                    asset_id: anchor_asset_id,
-                    fallback_ordinal,
-                },
-            )?;
-            transaction.commit().map_err(database_error)?;
-            match self.load_snapshot(max_items, query, query_id, predecessor.as_ref(), None, None) {
-                Ok(mut snapshot) if snapshot.revision == revision => {
-                    snapshot.query_anchor_resolution = Some(resolution);
-                    return Ok(snapshot);
-                }
-                Ok(_) => continue,
-                Err(error) if error.code == "catalog_cursor_stale" => continue,
-                Err(error) => return Err(error),
-            }
-        }
-        Err(ScanError::new(
-            "catalog_cursor_stale",
-            "The catalog kept changing while the gallery asset anchor was resolved",
-        ))
+        let read = gallery_snapshot::GalleryReadTransaction::begin(
+            &mut self.connection,
+            &self.path,
+            query,
+            query_id,
+        )?;
+        let snapshot = read.load_anchored_snapshot(
+            max_items,
+            &crate::domain::GalleryQueryAnchor {
+                requested_location_id: requested_location_id.to_owned(),
+                asset_id: Some(anchor_asset_id.to_owned()),
+                fallback_ordinal,
+            },
+        )?;
+        read.commit()?;
+        Ok(snapshot)
     }
 
     fn load_gallery_timeline(
@@ -3682,52 +3517,16 @@ impl CatalogRepository for SqliteCatalog {
         query: &GalleryQuery,
         query_id: &str,
     ) -> Result<GalleryTimeline, ScanError> {
-        validate_gallery_query(query)?;
-        let transaction = self.connection.transaction().map_err(database_error)?;
-        let revision = load_catalog_revision(&transaction)?;
-        let built = build_gallery_timeline_query(query);
-        let mut statement = transaction.prepare(&built.sql).map_err(database_error)?;
-        let rows = statement
-            .query_map(params_from_iter(built.parameters.iter()), |row| {
-                Ok((
-                    row.get::<_, Option<String>>(0)?,
-                    row.get::<_, i64>(1)?,
-                    row.get::<_, i64>(2)?,
-                ))
-            })
-            .map_err(database_error)?;
-        let mut total_items = 0_u64;
-        let mut buckets = Vec::new();
-        for row in rows {
-            let (month_key, item_count, aspect_ratio_milli_sum) = row.map_err(database_error)?;
-            let item_count = sqlite_unsigned(item_count, "timeline bucket item count")?;
-            let aspect_ratio_milli_sum =
-                sqlite_unsigned(aspect_ratio_milli_sum, "timeline bucket aspect ratio sum")?;
-            total_items = total_items.checked_add(item_count).ok_or_else(|| {
-                ScanError::new(
-                    "catalog_timeline_count_invalid",
-                    "The gallery timeline item count exceeds the supported range",
-                )
-            })?;
-            if !matches!(query.sort_key, GallerySortKey::FileName) {
-                buckets.push(GalleryTimeBucket {
-                    month_key,
-                    item_count,
-                    aspect_ratio_milli_sum,
-                });
-            }
-        }
-        drop(statement);
-        transaction.commit().map_err(database_error)?;
-
-        Ok(GalleryTimeline {
-            revision,
-            query_id: query_id.to_owned(),
-            total_items,
-            buckets,
-        })
+        let read = gallery_snapshot::GalleryReadTransaction::begin(
+            &mut self.connection,
+            &self.path,
+            query,
+            query_id,
+        )?;
+        let timeline = read.load_timeline()?;
+        read.commit()?;
+        Ok(timeline)
     }
-
     fn load_gallery_layout_manifest_chunk(
         &mut self,
         max_items: u32,

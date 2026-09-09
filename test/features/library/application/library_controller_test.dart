@@ -16,6 +16,8 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../support/library_query_snapshot_fixture.dart";
+
 void main() {
   test(
     "synchronization refresh uses the stable asset anchor without blanking",
@@ -3284,6 +3286,7 @@ class _FakeLibraryScanner implements LibraryScanner {
 }
 
 class _QueryAnchorLibraryCatalog
+    with LibraryQuerySnapshotFixture
     implements LibraryCatalog, LibraryQueryAnchorCatalog {
   _QueryAnchorLibraryCatalog({
     required List<Future<LibrarySnapshot>> aroundResponses,
@@ -3326,6 +3329,7 @@ class _QueryAnchorLibraryCatalog
 }
 
 class _StableAnchorLibraryCatalog
+    with LibraryQuerySnapshotFixture
     implements LibraryCatalog, LibraryStableQueryAnchorCatalog {
   _StableAnchorLibraryCatalog({required this.response, required this.revision});
 
@@ -3378,7 +3382,9 @@ class _StableAnchorLibraryCatalog
   Future<bool> unregisterRoot(String rootId) async => false;
 }
 
-class _FakeLibraryCatalog implements LibraryCatalog {
+class _FakeLibraryCatalog
+    with LibraryQuerySnapshotFixture
+    implements LibraryCatalog {
   _FakeLibraryCatalog(LibrarySnapshot snapshot)
     : _responses = [snapshot],
       _lastRevision = snapshot.revision,

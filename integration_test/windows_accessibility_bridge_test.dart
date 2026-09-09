@@ -29,6 +29,8 @@ import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:integration_test/integration_test.dart";
 
+import "../test/features/library/support/library_query_snapshot_fixture.dart";
+
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   final nativeUiaProbe = _WindowsUiaProbe.fromEnvironment();
@@ -765,7 +767,9 @@ LibraryGalleryLayoutManifest _manifest(int itemCount) {
   return builder.build();
 }
 
-class _StaticCatalog implements LibraryCatalog {
+class _StaticCatalog
+    with LibraryQuerySnapshotFixture
+    implements LibraryCatalog {
   const _StaticCatalog(this.snapshot, this.timeline);
 
   final LibrarySnapshot snapshot;
@@ -794,7 +798,9 @@ class _StaticCatalog implements LibraryCatalog {
   Future<bool> unregisterRoot(String rootId) async => false;
 }
 
-class _ControlledWindowCatalog implements LibraryCatalog {
+class _ControlledWindowCatalog
+    with LibraryQuerySnapshotFixture
+    implements LibraryCatalog {
   _ControlledWindowCatalog({
     required this.initialSnapshot,
     required this.timeline,

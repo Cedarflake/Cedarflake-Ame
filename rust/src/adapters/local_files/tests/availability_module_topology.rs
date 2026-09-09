@@ -1,5 +1,5 @@
 use super::{
-    CRATE_PARENT_MODULE_CONTRACTS, LOCAL_MODULE_CONTRACTS,
+    CRATE_PARENT_MODULE_CONTRACTS, DOMAIN_MODULE_CONTRACTS, LOCAL_MODULE_CONTRACTS,
     assert_availability_exact_source_contract_with_environment,
 };
 
@@ -12,6 +12,7 @@ const CRATE_SOURCE: &str = include_str!("../../../lib.rs");
 #[test]
 fn root_availability_admitted_modules_preserve_exact_source_loading_contracts() {
     for module_name in [
+        "catalog_identity",
         "media_signature",
         "file_admission",
         "preview_cache_namespace",
@@ -25,6 +26,14 @@ fn root_availability_admitted_modules_preserve_exact_source_loading_contracts() 
         assert!(contracts[0].attributes.is_empty());
         assert!(!contracts[0].is_inline);
     }
+    let query_snapshot = DOMAIN_MODULE_CONTRACTS
+        .iter()
+        .filter(|contract| contract.name == "gallery_query_snapshot")
+        .collect::<Vec<_>>();
+    assert_eq!(query_snapshot.len(), 1);
+    assert_eq!(query_snapshot[0].visibility, "pub");
+    assert!(query_snapshot[0].attributes.is_empty());
+    assert!(!query_snapshot[0].is_inline);
     let fixtures = CRATE_PARENT_MODULE_CONTRACTS
         .iter()
         .filter(|contract| contract.name == "media_fixtures")
@@ -143,6 +152,61 @@ fn root_availability_admitted_modules_reject_alternate_generated_or_broader_load
             };
             let error = assert_contract(local, parent)
                 .expect_err("changing an admitted module must still fail closed");
+            assert!(
+                error.contains(&format!("availability module topology source {source_key}")),
+                "the exact loading owner must reject {replacement:?}: {error}"
+            );
+        }
+    }
+}
+
+#[test]
+fn root_availability_catalog_modules_reject_alternate_generated_or_broader_loading() {
+    for (source_key, source, declaration, alternate_visibility) in [
+        (
+            "local",
+            LOCAL_SOURCE,
+            "mod catalog_identity;",
+            "pub mod catalog_identity;",
+        ),
+        (
+            "domain",
+            DOMAIN_SOURCE,
+            "pub mod gallery_query_snapshot;",
+            "pub(crate) mod gallery_query_snapshot;",
+        ),
+    ] {
+        assert!(
+            source.contains(declaration),
+            "the exact {source_key} fixture must match the current source"
+        );
+        for replacement in [
+            String::new(),
+            format!("{declaration}\n{declaration}"),
+            alternate_visibility.to_owned(),
+            format!("#[cfg(test)]\n{declaration}"),
+            format!("#[path = \"alternate.rs\"]\n{declaration}"),
+            format!("#[cfg_attr(not(test), path = \"alternate.rs\")]\n{declaration}"),
+            format!("#[adversarial_loader]\n{declaration}"),
+            declaration.replace(';', " { mod generated {} }"),
+            "include!(\"alternate.rs\");".to_owned(),
+            format!("{declaration}\nmod unknown_catalog_module;"),
+        ] {
+            let mutated = source.replacen(declaration, &replacement, 1);
+            assert_ne!(mutated, source, "the {source_key} mutation must be real");
+            let (local, domain) = if source_key == "local" {
+                (mutated.as_str(), DOMAIN_SOURCE)
+            } else {
+                (LOCAL_SOURCE, mutated.as_str())
+            };
+            let error = assert_availability_exact_source_contract_with_environment(
+                local,
+                Some(domain),
+                Some(METADATA_SOURCE),
+                Some(ADAPTERS_SOURCE),
+                Some(CRATE_SOURCE),
+            )
+            .expect_err("changing an admitted catalog module must still fail closed");
             assert!(
                 error.contains(&format!("availability module topology source {source_key}")),
                 "the exact loading owner must reject {replacement:?}: {error}"

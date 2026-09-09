@@ -2,7 +2,7 @@
 
 - Status: Accepted for validation
 - Date: 2026-08-09
-- Last amended: 2026-09-05
+- Last amended: 2026-09-09
 - Amends: ADR 0010 and ADR 0011
 
 ## Context
@@ -73,6 +73,18 @@ The manifest is invalidated by query identity or catalog revision. A newer revis
 separately and published atomically; a partial manifest never replaces the last trustworthy one.
 
 ### Deterministic layout snapshot
+
+Initial and replacement gallery queries return their bounded detail window, optional stable-anchor
+resolution, and timeline in one typed `GalleryQuerySnapshot` from one SQLite read transaction.
+Flutter validates and publishes this coherent result once. Ordinary paging and the immediate page
+after catalog removal remain bounded reads without timeline aggregation. A deferred removal
+timeline that observes a later revision uses the existing committed-refresh coordinator and
+revalidates its original publication before requesting one coherent replacement snapshot.
+
+Folder branches own their data revision separately from the gallery invalidation revision. A
+scope-matching first folder page may be newer than the gallery. A current cursor yields an explicit
+`Append`; an obsolete cursor in the same scope yields a complete first window with `Replace`, all
+inside one read transaction. Cross-scope cursors and mixed-revision append results remain errors.
 
 `GalleryLayoutSnapshot` derives all row geometry from one manifest, viewport width, selected layout,
 and density setting. It records row membership, item rectangles, cumulative row offsets, date

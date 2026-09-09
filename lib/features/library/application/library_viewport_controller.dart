@@ -8,6 +8,7 @@ import "library_catalog.dart";
 import "library_catalog_publication.dart";
 import "library_page_operation.dart";
 import "library_query_refresh.dart";
+import "library_query_snapshot_reader.dart";
 
 export "library_query_refresh.dart" show LibraryQueryUpdateOutcome;
 
@@ -72,6 +73,7 @@ class LibraryViewportController {
   final _publications = LibraryCatalogPublicationCoordinator();
   final _pages = LibraryPageOperation();
   late final _queryRefresh = LibraryQueryRefreshCoordinator(_publications);
+  late final _querySnapshots = LibraryQuerySnapshotReader(_catalog);
 
   _PendingTimeNavigation? _pendingTimeNavigation;
   _PendingTimeNavigation? _activeTimeNavigation;
@@ -260,58 +262,19 @@ class LibraryViewportController {
       errorMessage: null,
     );
     try {
-      final stableAnchorCatalog = _catalog is LibraryStableQueryAnchorCatalog
-          ? _catalog as LibraryStableQueryAnchorCatalog
-          : null;
-      final anchorCatalog = _catalog is LibraryQueryAnchorCatalog
-          ? _catalog as LibraryQueryAnchorCatalog
-          : null;
-      Future<LibrarySnapshot> loadSnapshot() {
-        if (anchorLocationId != null &&
-            anchorAssetId != null &&
-            stableAnchorCatalog != null) {
-          return stableAnchorCatalog.loadAroundAsset(
-            maxItems: libraryCatalogWindow,
-            query: normalized,
-            requestedLocationId: anchorLocationId,
-            anchorAssetId: anchorAssetId,
-            fallbackGlobalItemIndex: fallbackGlobalItemIndex ?? 0,
-          );
-        }
-        if (anchorLocationId != null && anchorCatalog != null) {
-          return anchorCatalog.loadAroundLocation(
-            maxItems: libraryCatalogWindow,
-            query: normalized,
-            anchorLocationId: anchorLocationId,
-          );
-        }
-        return _catalog.load(maxItems: libraryCatalogWindow, query: normalized);
-      }
-
-      var snapshot = await loadSnapshot();
-      final timeline = await _catalog.loadTimeline(normalized);
-      if (minimumCatalogRevision != null &&
-          snapshot.revision < minimumCatalogRevision) {
-        snapshot = await loadSnapshot();
-      }
-      if (snapshot.revision != timeline.revision ||
-          snapshot.queryId != timeline.queryId) {
-        snapshot = await loadSnapshot();
-        if (snapshot.revision != timeline.revision ||
-            snapshot.queryId != timeline.queryId) {
-          throw const LibraryCatalogFailure(
-            code: "catalog_timeline_stale",
-            message: "The catalog changed while its timeline was loading",
-          );
-        }
-      }
-      if (minimumCatalogRevision != null &&
-          snapshot.revision < minimumCatalogRevision) {
-        throw const LibraryCatalogFailure(
-          code: "catalog_revision_stale",
-          message: "The catalog revision has not reached the requested refresh",
-        );
-      }
+      final result = await _querySnapshots.load(
+        query: normalized,
+        anchor: anchorLocationId == null
+            ? null
+            : LibraryQueryAnchor(
+                requestedLocationId: anchorLocationId,
+                assetId: anchorAssetId,
+                fallbackGlobalItemIndex: fallbackGlobalItemIndex ?? 0,
+              ),
+        minimumRevision: minimumCatalogRevision,
+      );
+      final snapshot = result.snapshot;
+      final timeline = result.timeline;
       if (_cannotPublish || requestGeneration != _publicationGeneration) {
         return LibraryQueryUpdateOutcome.superseded;
       }
@@ -1333,25 +1296,9 @@ class LibraryViewportController {
   Future<bool> reloadFirstCatalogPage() async {
     final generation = _publicationGeneration;
     final query = _state.query;
-    var snapshot = await _catalog.load(
-      maxItems: libraryCatalogWindow,
-      query: query,
-    );
-    final timeline = await _catalog.loadTimeline(query);
-    if (snapshot.revision != timeline.revision ||
-        snapshot.queryId != timeline.queryId) {
-      snapshot = await _catalog.load(
-        maxItems: libraryCatalogWindow,
-        query: query,
-      );
-      if (snapshot.revision != timeline.revision ||
-          snapshot.queryId != timeline.queryId) {
-        throw const LibraryCatalogFailure(
-          code: "catalog_timeline_stale",
-          message: "The catalog changed while its timeline was loading",
-        );
-      }
-    }
+    final result = await _querySnapshots.load(query: query);
+    final snapshot = result.snapshot;
+    final timeline = result.timeline;
     if (!_canPublishGeneration(generation)) {
       return false;
     }
@@ -1412,11 +1359,19 @@ class LibraryViewportController {
         return;
       }
       if (timeline.revision != revision || timeline.queryId != queryId) {
-        _state = _state.copyWith(
-          isLoadingTimeline: false,
-          timeNavigationErrorMessage:
-              "The catalog changed while its timeline was loading",
-        );
+        await _queryRefresh.refreshCommitted(() async {
+          if (!_canPublishBackgroundTimeline(
+            generation: generation,
+            query: query,
+            revision: revision,
+            queryId: queryId,
+          )) {
+            return LibraryQueryUpdateOutcome.superseded;
+          }
+          return await reloadFirstCatalogPage()
+              ? LibraryQueryUpdateOutcome.applied
+              : LibraryQueryUpdateOutcome.superseded;
+        });
         return;
       }
       _state = _state.copyWith(

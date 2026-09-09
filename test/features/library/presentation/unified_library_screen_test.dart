@@ -32,6 +32,8 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../support/library_query_snapshot_fixture.dart";
+
 void main() {
   testWidgets("shows the unified empty library shell", (tester) async {
     tester.view.physicalSize = const Size(1280, 800);
@@ -3459,7 +3461,9 @@ class _ControlledLibraryPreviewer implements LibraryPreviewer {
   }
 }
 
-class _RecordingQueryCatalog implements LibraryCatalog {
+class _RecordingQueryCatalog
+    with LibraryQuerySnapshotFixture
+    implements LibraryCatalog {
   _RecordingQueryCatalog(this.snapshot, {this.previousSnapshot});
 
   final LibrarySnapshot snapshot;
@@ -3510,7 +3514,9 @@ class _RecordingQueryCatalog implements LibraryCatalog {
   Future<bool> unregisterRoot(String rootId) async => true;
 }
 
-class _DeferredScreenRemovalCatalog implements LibraryCatalog {
+class _DeferredScreenRemovalCatalog
+    with LibraryQuerySnapshotFixture
+    implements LibraryCatalog {
   _DeferredScreenRemovalCatalog(this.state, {this.onUnregister});
 
   final LibraryState state;
@@ -3565,7 +3571,9 @@ class _DeferredScreenRemovalCatalog implements LibraryCatalog {
   }
 }
 
-class _ImmediateScreenRemovalCatalog implements LibraryCatalog {
+class _ImmediateScreenRemovalCatalog
+    with LibraryQuerySnapshotFixture
+    implements LibraryCatalog {
   _ImmediateScreenRemovalCatalog({required this.afterRemoval});
 
   final LibrarySnapshot afterRemoval;
@@ -3609,7 +3617,9 @@ class _ImmediateScreenRemovalCatalog implements LibraryCatalog {
   }
 }
 
-class _BlockingTimeQueryCatalog implements LibraryCatalog {
+class _BlockingTimeQueryCatalog
+    with LibraryQuerySnapshotFixture
+    implements LibraryCatalog {
   _BlockingTimeQueryCatalog({required this.snapshot, required this.timeline});
 
   final LibrarySnapshot snapshot;
@@ -3650,6 +3660,7 @@ class _BlockingTimeQueryCatalog implements LibraryCatalog {
 }
 
 class _AnchorResolvingQueryCatalog
+    with LibraryQuerySnapshotFixture
     implements LibraryCatalog, LibraryQueryAnchorCatalog {
   _AnchorResolvingQueryCatalog(this.initialSnapshot);
 

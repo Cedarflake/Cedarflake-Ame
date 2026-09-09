@@ -1,3 +1,5 @@
+import "dart:async";
+
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_folder_controller.dart";
 import "package:cedarflake_ame/features/library/domain/library_folder_models.dart";
@@ -5,6 +7,265 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  test(
+    "accepts a coherent folder window newer than the displayed gallery",
+    () async {
+      final cursor = LibraryFolderCursor(
+        revision: BigInt.two,
+        rootId: "root-1",
+        parentRelativePath: "",
+        relativePath: "Album",
+      );
+      final catalog = _ScriptedFolderCatalog([
+        LibraryFolderPage(
+          revision: BigInt.two,
+          rootId: "root-1",
+          parentRelativePath: "",
+          folders: const [_album],
+          nextCursor: cursor,
+        ),
+        LibraryFolderPage(
+          revision: BigInt.two,
+          rootId: "root-1",
+          parentRelativePath: "",
+          folders: const [_other],
+          disposition: LibraryFolderPageDisposition.append,
+        ),
+      ]);
+      final container = ProviderContainer(
+        overrides: [libraryFolderCatalogProvider.overrideWithValue(catalog)],
+      );
+      addTearDown(container.dispose);
+      final controller = container.read(
+        libraryFolderControllerProvider.notifier,
+      );
+      await controller.loadBranch(
+        catalogRevision: BigInt.one,
+        rootId: "root-1",
+        parentRelativePath: "",
+      );
+      expect(
+        container
+            .read(libraryFolderControllerProvider)
+            .branch("root-1", "")
+            .errorMessage,
+        isNull,
+      );
+      await controller.loadBranch(
+        catalogRevision: BigInt.one,
+        rootId: "root-1",
+        parentRelativePath: "",
+        loadMore: true,
+      );
+      final branch = container
+          .read(libraryFolderControllerProvider)
+          .branch("root-1", "");
+      expect(branch.revision, BigInt.two);
+      expect(branch.folders, const [_album, _other]);
+      expect(catalog.requests.last.after, same(cursor));
+    },
+  );
+
+  test(
+    "replaces a changed folder window without merging obsolete folders",
+    () async {
+      final catalog = _ScriptedFolderCatalog([
+        LibraryFolderPage(
+          revision: BigInt.one,
+          rootId: "root-1",
+          parentRelativePath: "",
+          folders: const [_album],
+          nextCursor: LibraryFolderCursor(
+            revision: BigInt.one,
+            rootId: "root-1",
+            parentRelativePath: "",
+            relativePath: "Album",
+          ),
+        ),
+        LibraryFolderPage(
+          revision: BigInt.two,
+          rootId: "root-1",
+          parentRelativePath: "",
+          folders: const [_other],
+        ),
+      ]);
+      final container = ProviderContainer(
+        overrides: [libraryFolderCatalogProvider.overrideWithValue(catalog)],
+      );
+      addTearDown(container.dispose);
+      final controller = container.read(
+        libraryFolderControllerProvider.notifier,
+      );
+      await controller.loadBranch(
+        catalogRevision: BigInt.one,
+        rootId: "root-1",
+        parentRelativePath: "",
+      );
+      await controller.loadBranch(
+        catalogRevision: BigInt.one,
+        rootId: "root-1",
+        parentRelativePath: "",
+        loadMore: true,
+      );
+      final branch = container
+          .read(libraryFolderControllerProvider)
+          .branch("root-1", "");
+      expect(branch.revision, BigInt.two);
+      expect(branch.folders, const [_other]);
+      expect(branch.errorMessage, isNull);
+    },
+  );
+
+  test(
+    "a gallery invalidation restarts load-more at a complete first window",
+    () async {
+      final catalog = _ScriptedFolderCatalog([
+        LibraryFolderPage(
+          revision: BigInt.one,
+          rootId: "root-1",
+          parentRelativePath: "",
+          folders: const [_album],
+        ),
+        LibraryFolderPage(
+          revision: BigInt.two,
+          rootId: "root-1",
+          parentRelativePath: "",
+          folders: const [_other],
+        ),
+      ]);
+      final container = ProviderContainer(
+        overrides: [libraryFolderCatalogProvider.overrideWithValue(catalog)],
+      );
+      addTearDown(container.dispose);
+      final controller = container.read(
+        libraryFolderControllerProvider.notifier,
+      );
+      await controller.loadBranch(
+        catalogRevision: BigInt.one,
+        rootId: "root-1",
+        parentRelativePath: "",
+      );
+      await controller.loadBranch(
+        catalogRevision: BigInt.two,
+        rootId: "root-1",
+        parentRelativePath: "",
+        loadMore: true,
+      );
+      final branch = container
+          .read(libraryFolderControllerProvider)
+          .branch("root-1", "");
+      expect(catalog.requests, hasLength(2));
+      expect(catalog.requests.last.after, isNull);
+      expect(branch.revision, BigInt.two);
+      expect(branch.folders, const [_other]);
+    },
+  );
+
+  test(
+    "a late branch response cannot replace a newer invalidation generation",
+    () async {
+      final oldPage = Completer<LibraryFolderPage>();
+      final catalog = _ScriptedFolderCatalog([
+        oldPage.future,
+        LibraryFolderPage(
+          revision: BigInt.two,
+          rootId: "root-1",
+          parentRelativePath: "",
+          folders: const [_other],
+        ),
+      ]);
+      final container = ProviderContainer(
+        overrides: [libraryFolderCatalogProvider.overrideWithValue(catalog)],
+      );
+      addTearDown(container.dispose);
+      final controller = container.read(
+        libraryFolderControllerProvider.notifier,
+      );
+      final old = controller.loadBranch(
+        catalogRevision: BigInt.one,
+        rootId: "root-1",
+        parentRelativePath: "",
+      );
+      await controller.loadBranch(
+        catalogRevision: BigInt.two,
+        rootId: "root-1",
+        parentRelativePath: "",
+      );
+      oldPage.complete(
+        LibraryFolderPage(
+          revision: BigInt.one,
+          rootId: "root-1",
+          parentRelativePath: "",
+          folders: const [_album],
+        ),
+      );
+      await old;
+      await controller.loadBranch(
+        catalogRevision: BigInt.one,
+        rootId: "root-1",
+        parentRelativePath: "",
+      );
+      expect(
+        container
+            .read(libraryFolderControllerProvider)
+            .branch("root-1", "")
+            .folders,
+        const [_other],
+      );
+      expect(catalog.requests, hasLength(2));
+    },
+  );
+
+  test(
+    "rejects cross-revision append responses while preserving the loaded branch",
+    () async {
+      final catalog = _ScriptedFolderCatalog([
+        LibraryFolderPage(
+          revision: BigInt.one,
+          rootId: "root-1",
+          parentRelativePath: "",
+          folders: const [_album],
+          nextCursor: LibraryFolderCursor(
+            revision: BigInt.one,
+            rootId: "root-1",
+            parentRelativePath: "",
+            relativePath: "Album",
+          ),
+        ),
+        LibraryFolderPage(
+          revision: BigInt.two,
+          rootId: "root-1",
+          parentRelativePath: "",
+          folders: const [_other],
+          disposition: LibraryFolderPageDisposition.append,
+        ),
+      ]);
+      final container = ProviderContainer(
+        overrides: [libraryFolderCatalogProvider.overrideWithValue(catalog)],
+      );
+      addTearDown(container.dispose);
+      final controller = container.read(
+        libraryFolderControllerProvider.notifier,
+      );
+      await controller.loadBranch(
+        catalogRevision: BigInt.one,
+        rootId: "root-1",
+        parentRelativePath: "",
+      );
+      await controller.loadBranch(
+        catalogRevision: BigInt.one,
+        rootId: "root-1",
+        parentRelativePath: "",
+        loadMore: true,
+      );
+      final branch = container
+          .read(libraryFolderControllerProvider)
+          .branch("root-1", "");
+      expect(branch.folders, const [_album]);
+      expect(branch.errorMessage, contains("catalog_folder_page_inconsistent"));
+    },
+  );
+
   test("caches a loaded branch and appends bounded folder pages", () async {
     final firstCursor = LibraryFolderCursor(
       revision: BigInt.from(7),
@@ -25,6 +286,7 @@ void main() {
         rootId: "root-1",
         parentRelativePath: "",
         folders: const [_other],
+        disposition: LibraryFolderPageDisposition.append,
       ),
     ]);
     final container = ProviderContainer(
@@ -216,6 +478,9 @@ class _ScriptedFolderCatalog implements LibraryFolderCatalog {
       ),
     );
     final response = responses.removeAt(0);
+    if (response is Future<LibraryFolderPage>) {
+      return response;
+    }
     if (response is Exception) {
       throw response;
     }

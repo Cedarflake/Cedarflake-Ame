@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-07
-- Last updated: 2026-09-07
+- Last updated: 2026-09-09
 - Related: ADR 0006, ADR 0014
 
 ## Context
@@ -133,6 +133,19 @@ installing the artifact and committing the exact SQLite lease. A source-state ch
 handle, inactive scan, mismatched root or location, generation change, or revision change makes the
 work superseded. Superseded work removes only its staged output and never writes a `failed` preview
 state. No preview operation recalls an offline placeholder.
+
+When initial source validation proves that a still-current catalog location has changed, the
+application may reconcile that one catalog path before returning the obsolete preview request.
+The admission transaction rechecks the exact root generation, active scan, location, source
+generation, revision, and relative path. It admits a bounded `ConsistencyAudit` path lease using
+the existing recovery-lane capacity policy. Existing path work, retry state, broader recovery
+authorities, and inventory ownership remain untouched; admission never expands to a subtree or
+root. The existing guarded incremental application use case inspects the path and atomically
+publishes the source change, derived-evidence invalidation, and lease completion. A new catalog
+revision then supplies a fresh preview demand. Publication conflicts remain durable queue work.
+Source-open failures retain their original issue codes, and source-validation diagnostics record
+the original cause even when successful reconciliation supersedes the request. This recovery does
+not weaken source revision checks or authorize a source write or placeholder recall.
 
 The current cache namespace is `ame-jpeg-thumbnail-v3-source-revision`; its key includes both source
 revision and source generation. An explicit `ForceRegenerate` request bypasses compatible-cache

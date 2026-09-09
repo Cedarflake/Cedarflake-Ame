@@ -146,41 +146,37 @@ void main() {
   );
 
   test(
-    "revision churn across separate reads remains a refresh failure until a stable retry",
+    "an inconsistent query snapshot fails without extra reads until an explicit retry",
     () async {
       final fixture = _Fixture();
       addTearDown(fixture.dispose);
-      fixture.catalog.deferTimelines = true;
       fixture.updates.startUpdates(["a"]);
       fixture.catalog.committed = true;
       await fixture.scanner.complete("C:\\a");
       await _until(() => fixture.catalog.reads.length == 1);
       expect(fixture.catalog.reads.single.snapshot.revision, BigInt.two);
       fixture.catalog.revisionOverride = BigInt.from(3);
-      fixture.catalog.complete(0);
-      await _until(() => fixture.catalog.timelineReads.length == 1);
-      expect(
-        fixture.catalog.timelineReads.single.timeline.revision,
-        BigInt.from(3),
+      fixture.catalog.reads.single.result.complete(
+        LibraryQuerySnapshot(
+          snapshot: fixture.catalog.reads.single.snapshot,
+          timeline: fixture.catalog.timeline(const LibraryGalleryQuery()),
+        ),
       );
-      fixture.catalog.revisionOverride = BigInt.from(4);
-      fixture.catalog.completeTimeline(0);
-      await _until(() => fixture.catalog.reads.length == 2);
-      expect(fixture.catalog.reads.last.snapshot.revision, BigInt.from(4));
-      fixture.catalog.complete(1);
       await _until(() => !fixture.tasks.single.isActive);
       expect(fixture.tasks.single.phase, LibraryRootUpdatePhase.refreshFailed);
+      expect(fixture.tasks.single.errorMessage, isNotEmpty);
       expect(fixture.state.catalogRevision, BigInt.one);
-      expect(fixture.catalog.reads, hasLength(2));
-      expect(fixture.catalog.timelineReads, hasLength(1));
+      expect(fixture.state.isLoadingTimeline, isFalse);
+      expect(fixture.catalog.reads, hasLength(1));
+      fixture.catalog.revisionOverride = BigInt.from(4);
       fixture.updates.retry("a");
-      await _until(() => fixture.catalog.reads.length == 3);
-      fixture.catalog.complete(2);
-      await _until(() => fixture.catalog.timelineReads.length == 2);
-      fixture.catalog.completeTimeline(1);
+      await _until(() => fixture.catalog.reads.length == 2);
+      fixture.catalog.complete(1);
       await _until(() => !fixture.tasks.single.isActive);
       expect(fixture.tasks.single.phase, LibraryRootUpdatePhase.completed);
       expect(fixture.state.catalogRevision, BigInt.from(4));
+      expect(fixture.state.timeline?.revision, BigInt.from(4));
+      expect(fixture.catalog.reads, hasLength(2));
       expect(fixture.scanner.started, ["C:\\a"]);
     },
   );
@@ -220,24 +216,17 @@ class _Fixture {
 }
 
 class _Read {
-  _Read(this.query, this.snapshot);
+  _Read(this.query, this.snapshot, this.timeline);
   final LibraryGalleryQuery query;
   final LibrarySnapshot snapshot;
-  final Completer<LibrarySnapshot> result = Completer();
-}
-
-class _TimelineRead {
-  _TimelineRead(this.timeline);
   final LibraryTimeline timeline;
-  final Completer<LibraryTimeline> result = Completer();
+  final Completer<LibraryQuerySnapshot> result = Completer();
 }
 
 class _Catalog implements LibraryCatalog {
   bool committed = false;
-  bool deferTimelines = false;
   BigInt? revisionOverride;
   final List<_Read> reads = [];
-  final List<_TimelineRead> timelineReads = [];
   BigInt get revision =>
       revisionOverride ?? (committed ? BigInt.two : BigInt.one);
 
@@ -286,10 +275,23 @@ class _Catalog implements LibraryCatalog {
     totalItems: query.rootId == null ? 2 : 1,
     buckets: const [],
   );
-  void complete(int index) =>
-      reads[index].result.complete(reads[index].snapshot);
-  void completeTimeline(int index) =>
-      timelineReads[index].result.complete(timelineReads[index].timeline);
+  void complete(int index) => reads[index].result.complete(
+    LibraryQuerySnapshot(
+      snapshot: reads[index].snapshot,
+      timeline: reads[index].timeline,
+    ),
+  );
+
+  @override
+  Future<LibraryQuerySnapshot> loadQuerySnapshot({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    LibraryQueryAnchor? anchor,
+  }) {
+    final read = _Read(query, snapshot(query), timeline(query));
+    reads.add(read);
+    return read.result.future;
+  }
 
   @override
   Future<LibrarySnapshot> load({
@@ -297,22 +299,11 @@ class _Catalog implements LibraryCatalog {
     required LibraryGalleryQuery query,
     LibraryCatalogCursor? after,
     LibraryCatalogCursor? before,
-  }) {
-    final read = _Read(query, snapshot(query));
-    reads.add(read);
-    return read.result.future;
-  }
+  }) => throw StateError("Refresh must use one coherent query snapshot");
 
   @override
-  Future<LibraryTimeline> loadTimeline(LibraryGalleryQuery query) {
-    final snapshot = timeline(query);
-    if (!deferTimelines) {
-      return Future.value(snapshot);
-    }
-    final read = _TimelineRead(snapshot);
-    timelineReads.add(read);
-    return read.result.future;
-  }
+  Future<LibraryTimeline> loadTimeline(LibraryGalleryQuery query) =>
+      throw StateError("Refresh must use one coherent query snapshot");
 
   @override
   Future<LibrarySnapshot> loadAtTime({

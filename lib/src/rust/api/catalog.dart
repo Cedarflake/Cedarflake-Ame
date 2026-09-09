@@ -4,6 +4,7 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import '../domain.dart';
+import '../domain/gallery_query_snapshot.dart';
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
@@ -25,6 +26,16 @@ Future<CatalogSnapshot> loadLibraryCatalog({
   query: query,
   after: after,
   before: before,
+);
+
+Future<GalleryQuerySnapshot> loadLibraryQuerySnapshot({
+  required int maxItems,
+  required GalleryQuery query,
+  GalleryQueryAnchor? anchor,
+}) => RustLib.instance.api.crateApiCatalogLoadLibraryQuerySnapshot(
+  maxItems: maxItems,
+  query: query,
+  anchor: anchor,
 );
 
 Future<GalleryTimeline> loadLibraryGalleryTimeline({

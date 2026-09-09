@@ -16,6 +16,8 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../support/library_query_snapshot_fixture.dart";
+
 void main() {
   test("buckets preview decode widths across small layout changes", () {
     expect(libraryPreviewDecodeWidth(40, 1), 128);
@@ -512,7 +514,7 @@ class _UnprovenRootPreviewer implements LibraryPreviewer {
   }
 }
 
-class _FakeCatalog implements LibraryCatalog {
+class _FakeCatalog with LibraryQuerySnapshotFixture implements LibraryCatalog {
   const _FakeCatalog(this.snapshot);
 
   final LibrarySnapshot snapshot;

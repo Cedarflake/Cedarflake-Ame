@@ -2077,8 +2077,8 @@ fn failed_preview_requires_an_explicit_retry_before_reading_source_again() {
         },
         storage_paths,
     )
-    .expect_err("stale retry is superseded");
-    assert_eq!(retry_error.code, "preview_request_superseded");
+    .expect_err("explicit retry reports the missing source");
+    assert_eq!(retry_error.code, "preview_source_open_failed");
 }
 
 #[test]

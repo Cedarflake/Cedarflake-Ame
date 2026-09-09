@@ -26,6 +26,7 @@ mod lease_deferral;
 mod metrics;
 mod persistence;
 pub(super) mod root_retirement;
+mod source_reconciliation;
 mod terminal_cleanup;
 
 use super::metadata_inventory::insert_metadata_inventory_recovery_authority;

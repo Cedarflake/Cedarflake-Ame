@@ -19,6 +19,8 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../support/library_query_snapshot_fixture.dart";
+
 void main() {
   testWidgets("preserves gallery position after closing the image viewer", (
     tester,
@@ -1717,6 +1719,7 @@ class _TestLibrarySynchronization implements LibrarySynchronization {
 }
 
 class _SynchronizationViewerCatalog
+    with LibraryQuerySnapshotFixture
     implements
         LibraryCatalog,
         LibraryStableQueryAnchorCatalog,
@@ -1802,7 +1805,9 @@ class _SynchronizationViewerCatalog
   }
 }
 
-class _FailingSynchronizationCatalog implements LibraryCatalog {
+class _FailingSynchronizationCatalog
+    with LibraryQuerySnapshotFixture
+    implements LibraryCatalog {
   int loadCount = 0;
 
   @override
@@ -1840,7 +1845,9 @@ class _FailingSynchronizationCatalog implements LibraryCatalog {
   Future<bool> unregisterRoot(String rootId) => throw UnimplementedError();
 }
 
-class _HeldFailureSynchronizationCatalog implements LibraryCatalog {
+class _HeldFailureSynchronizationCatalog
+    with LibraryQuerySnapshotFixture
+    implements LibraryCatalog {
   _HeldFailureSynchronizationCatalog(this.snapshot);
 
   final LibrarySnapshot snapshot;
@@ -1882,7 +1889,9 @@ class _HeldFailureSynchronizationCatalog implements LibraryCatalog {
   void failHeldLoad() => _heldLoad.complete();
 }
 
-class _FailOnceSynchronizationCatalog implements LibraryCatalog {
+class _FailOnceSynchronizationCatalog
+    with LibraryQuerySnapshotFixture
+    implements LibraryCatalog {
   _FailOnceSynchronizationCatalog(this.snapshot);
 
   final LibrarySnapshot snapshot;

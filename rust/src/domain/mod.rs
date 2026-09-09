@@ -1,5 +1,8 @@
 use std::fmt::{Display, Formatter};
 
+pub mod gallery_query_snapshot;
+pub use gallery_query_snapshot::{GalleryQueryAnchor, GalleryQuerySnapshot};
+
 mod library_catalog_delta;
 pub(crate) mod library_change;
 mod library_change_catch_up;
@@ -517,6 +520,13 @@ pub struct LibraryFolderPage {
     pub parent_relative_path: String,
     pub folders: Vec<LibraryFolderView>,
     pub next_cursor: Option<LibraryFolderCursor>,
+    pub disposition: LibraryFolderPageDisposition,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum LibraryFolderPageDisposition {
+    Replace,
+    Append,
 }
 
 #[derive(Clone, Debug)]

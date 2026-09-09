@@ -9,6 +9,8 @@ import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "library_query_snapshot_fixture.dart";
+
 Future<void> flushRetainedScanMicrotasks() async {
   await Future<void>.delayed(Duration.zero);
   await Future<void>.delayed(Duration.zero);
@@ -215,7 +217,9 @@ class RetainedScanScanner implements LibraryScanner {
   }
 }
 
-class RetainedScanCatalog implements LibraryCatalog {
+class RetainedScanCatalog
+    with LibraryQuerySnapshotFixture
+    implements LibraryCatalog {
   RetainedScanCatalog(this.scanner);
   final RetainedScanScanner scanner;
   final List<LibraryRoot> roots = [retainedScanRoot, otherPublishedRoot];

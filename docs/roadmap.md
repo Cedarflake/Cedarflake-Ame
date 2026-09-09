@@ -3239,6 +3239,12 @@ R3 is paused; no R3 implementation belongs in this work.
 
 #### Fixed closeout execution queue — 2026-09-08
 
+The 2026-09-09 browsing regression takes immediate implementation priority within item 2:
+preview source-version recovery, coherent gallery refresh, and folder pagination during catalog
+publication. It does not advance a delivery stage or replace the mixed-load exit criteria.
+Its scoped verification and remaining limitations belong in
+`docs/acceptance/synchronization-browsing-recovery.md`.
+
 This queue orders the existing closeout obligations below; it adds no product scope and does not
 reopen accepted work. Only one implementation item is active. Complete its end-to-end exit criteria
 before taking the next item; another verified prerequisite is not completion of its parent item.

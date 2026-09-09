@@ -21,6 +21,7 @@ class AmeAsyncBridgeContract {
 
 function Get-AmeAsyncBridgeContracts {
     $rows = @(
+        @("catalog", "load_library_query_snapshot", "loadLibraryQuerySnapshot", "crateApiCatalogLoadLibraryQuerySnapshot", "GalleryQuerySnapshot", ""),
         @("catalog", "load_library_folder_page", "loadLibraryFolderPage", "crateApiCatalogLoadLibraryFolderPage", "LibraryFolderPage", ""),
         @("catalog", "load_recoverable_library_scan", "loadRecoverableLibraryScan", "crateApiCatalogLoadRecoverableLibraryScan", "RecoverableScan?", ""),
         @("catalog", "load_paused_library_scan", "loadPausedLibraryScan", "crateApiCatalogLoadPausedLibraryScan", "RecoverableScan?", ""),

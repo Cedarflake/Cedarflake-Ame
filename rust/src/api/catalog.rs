@@ -65,6 +65,14 @@ pub fn load_library_catalog(
     load_catalog(max_items, query, after, before)
 }
 
+pub fn load_library_query_snapshot(
+    max_items: u32,
+    query: GalleryQuery,
+    anchor: Option<crate::domain::GalleryQueryAnchor>,
+) -> Result<crate::domain::GalleryQuerySnapshot, ScanError> {
+    crate::application::load_catalog_query_snapshot(max_items, query, anchor)
+}
+
 pub fn load_library_gallery_timeline(query: GalleryQuery) -> Result<GalleryTimeline, ScanError> {
     load_gallery_timeline(query)
 }

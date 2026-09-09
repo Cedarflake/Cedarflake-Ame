@@ -49,8 +49,9 @@ pub use library_change_queue::enqueue_library_change_plan;
 pub(crate) use library_change_queue::prepare_library_change_catch_up_plan;
 pub use load_catalog::{
     load_catalog, load_catalog_around_asset, load_catalog_around_location,
-    load_catalog_asset_by_id, load_catalog_at_time, load_gallery_layout_manifest_chunk,
-    load_gallery_timeline, load_library_folders, unregister_library_root,
+    load_catalog_asset_by_id, load_catalog_at_time, load_catalog_query_snapshot,
+    load_gallery_layout_manifest_chunk, load_gallery_timeline, load_library_folders,
+    unregister_library_root,
 };
 pub(crate) use metadata_inventory::{
     MetadataInventoryProgressPhase, MetadataInventoryRecoveryExecution,

@@ -673,6 +673,7 @@ class LibraryFolderPage {
   final String parentRelativePath;
   final List<LibraryFolderView> folders;
   final LibraryFolderCursor? nextCursor;
+  final LibraryFolderPageDisposition disposition;
 
   const LibraryFolderPage({
     required this.revision,
@@ -680,6 +681,7 @@ class LibraryFolderPage {
     required this.parentRelativePath,
     required this.folders,
     this.nextCursor,
+    required this.disposition,
   });
 
   @override
@@ -688,7 +690,8 @@ class LibraryFolderPage {
       rootId.hashCode ^
       parentRelativePath.hashCode ^
       folders.hashCode ^
-      nextCursor.hashCode;
+      nextCursor.hashCode ^
+      disposition.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -699,8 +702,11 @@ class LibraryFolderPage {
           rootId == other.rootId &&
           parentRelativePath == other.parentRelativePath &&
           folders == other.folders &&
-          nextCursor == other.nextCursor;
+          nextCursor == other.nextCursor &&
+          disposition == other.disposition;
 }
+
+enum LibraryFolderPageDisposition { replace, append }
 
 class LibraryFolderView {
   final String rootId;

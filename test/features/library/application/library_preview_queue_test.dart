@@ -7,6 +7,46 @@ import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  test(
+    "preserves typed source failures and accepts a refreshed generation",
+    () async {
+      final previewer = _ControlledPreviewer();
+      final results = <LibraryAsset>[];
+      final queue = LibraryPreviewQueue(
+        previewer: previewer,
+        previewEdge: 512,
+        maxActive: 1,
+        onResult: results.add,
+      );
+      final outcome = queue.retry(_asset("changed"));
+      previewer.fail(
+        "changed",
+        const LibraryPreviewFailure(
+          code: "source_revision_changed_during_scan",
+          message: "The source revision changed",
+        ),
+      );
+      expect(await outcome, LibraryPreviewRequestOutcome.failed);
+      expect(
+        results.single.previewIssueCode,
+        "source_revision_changed_during_scan",
+      );
+      expect(results.single.previewIssueMessage, "The source revision changed");
+      queue.request(results.single);
+      expect(previewer.requests, ["changed"]);
+      final refreshed = _asset("changed", sourceGeneration: BigInt.from(2));
+      queue.request(refreshed);
+      previewer.succeed(
+        "changed",
+        _readyAsset("changed", sourceGeneration: BigInt.from(2)),
+      );
+      await _flushAsyncWork();
+      expect(results.last.previewStatus, LibraryPreviewStatus.ready);
+      expect(results.last.sourceGeneration, BigInt.from(2));
+      queue.dispose();
+    },
+  );
+
   test("bounds preview work and advances the queue", () async {
     final previewer = _ControlledPreviewer();
     final results = <LibraryAsset>[];

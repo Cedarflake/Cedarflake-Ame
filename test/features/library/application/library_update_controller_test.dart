@@ -11,6 +11,8 @@ import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../support/library_query_snapshot_fixture.dart";
+
 void main() {
   for (final duringCommittedReload in [false, true]) {
     test(
@@ -120,6 +122,10 @@ void main() {
         expect(state.query.rootId, isNull);
         expect(state.roots.map((root) => root.id), ["root-a", "root-b"]);
         expect(state.assets.first.sourceGeneration, BigInt.two);
+        expect(state.timeline?.revision, state.catalogRevision);
+        expect(state.timeline?.queryId, state.queryId);
+        expect(state.isLoadingTimeline, isFalse);
+        expect(state.timeNavigationErrorMessage, isNull);
         expect(
           publishedAfterCommit.every(
             (state) => state.roots.every((root) => root.id != "root-c"),
@@ -816,7 +822,9 @@ LibraryRoot _root(
   );
 }
 
-class _RemovingUpdateCatalog implements LibraryCatalog {
+class _RemovingUpdateCatalog
+    with LibraryQuerySnapshotFixture
+    implements LibraryCatalog {
   _RemovingUpdateCatalog(this.roots);
 
   List<LibraryRoot> roots;

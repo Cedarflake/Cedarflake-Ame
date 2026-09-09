@@ -7,7 +7,7 @@ use crate::domain::{
     GalleryLayoutManifestCursor, GalleryQuery, GalleryTimeAnchor, GalleryTimeline,
     IncrementalCatalogRoot, LibraryFolderCursor, LibraryFolderPage, ScanError,
 };
-use crate::ports::{CatalogRepository, IncrementalCatalogRepository};
+use crate::ports::{CatalogRepository, GalleryQueryRepository, IncrementalCatalogRepository};
 
 #[cfg(test)]
 use super::WatcherRecoveryObservation;
@@ -295,6 +295,18 @@ impl SqliteCatalogReadExecutor {
     ) -> Result<CatalogSnapshot, ScanError> {
         self.execute_read(CatalogReadRetryOperation::CatalogSnapshot, |catalog| {
             catalog.load_snapshot(max_items, query, query_id, after, before, anchor)
+        })
+    }
+
+    pub(crate) fn load_query_snapshot(
+        &self,
+        max_items: u32,
+        query: &GalleryQuery,
+        query_id: &str,
+        anchor: Option<&crate::domain::GalleryQueryAnchor>,
+    ) -> Result<crate::domain::GalleryQuerySnapshot, ScanError> {
+        self.execute_read(CatalogReadRetryOperation::CatalogSnapshot, |catalog| {
+            catalog.load_query_snapshot(max_items, query, query_id, anchor)
         })
     }
 

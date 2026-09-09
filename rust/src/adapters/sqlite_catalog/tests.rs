@@ -7,8 +7,8 @@ use std::time::{Duration, Instant};
 use tempfile::tempdir;
 
 use crate::domain::{
-    GallerySortDirection, LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeOrigin,
-    LibraryChangeQueueHealth, LibraryChangeScope,
+    GallerySortDirection, GallerySortKey, GalleryTimeBucket, LibraryChangeIntent,
+    LibraryChangeIntentKind, LibraryChangeOrigin, LibraryChangeQueueHealth, LibraryChangeScope,
 };
 use crate::ports::{
     CatalogMaintenanceAttempt, CatalogMaintenanceControl, CatalogSpaceRepository,
@@ -18,6 +18,7 @@ use crate::ports::{
 use super::migrations::downgrade_source_revision_contract_to_v30_for_test;
 use super::*;
 
+mod query_snapshot;
 mod root_unregistration;
 
 const TEST_QUERY_ID: &str = "test-default-query";
@@ -5201,10 +5202,19 @@ fn folder_pages_are_bounded_scoped_and_revision_safe() {
         "C:\\Other",
         "other-location",
     );
-    let stale = catalog
+    let replacement = catalog
         .load_folder_page("folder-root", "", 1, Some(&cursor))
-        .expect_err("published changes invalidate folder cursors");
-    assert_eq!(stale.code, "catalog_folder_cursor_stale");
+        .expect("published changes replace the folder window");
+    assert_eq!(replacement.folders[0].relative_path, "Album");
+    assert_eq!(
+        replacement.disposition,
+        crate::domain::LibraryFolderPageDisposition::Replace
+    );
+    assert!(replacement.revision > cursor.revision);
+    let wrong_scope = catalog
+        .load_folder_page("folder-root", "Album", 1, Some(&cursor))
+        .expect_err("a cursor cannot cross folder scopes");
+    assert_eq!(wrong_scope.code, "catalog_folder_cursor_stale");
 }
 
 #[test]

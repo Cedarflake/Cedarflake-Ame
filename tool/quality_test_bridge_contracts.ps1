@@ -103,7 +103,14 @@ if ($masked.Length -ne $rustLiteral.Length -or $masked -match 'literal|comment')
 }
 Get-AmeBridgeClosingDelimiter $masked ($masked.IndexOf('{')) '{' '}' | Out-Null
 $contracts = @(Get-AmeAsyncBridgeContracts)
-if ($contracts.Count -ne 14 -or @($contracts | Where-Object Module -eq "viewer_source").Count -ne 3) {
+if ($contracts.Count -ne 15 -or @($contracts | Where-Object Module -eq "viewer_source").Count -ne 3) {
     throw "The complete asynchronous bridge contract roster changed unexpectedly"
+}
+$queryContracts = @($contracts | Where-Object {
+    $_.Module -eq "catalog" -and $_.RustName -eq "load_library_query_snapshot" -and
+    $_.ReturnType -eq "GalleryQuerySnapshot"
+})
+if ($queryContracts.Count -ne 1) {
+    throw "The atomic gallery query must retain its asynchronous bridge contract"
 }
 Write-Output "Bridge method-boundary guardrails passed."

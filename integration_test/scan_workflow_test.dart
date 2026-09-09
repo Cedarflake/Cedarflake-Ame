@@ -284,10 +284,14 @@ void main() {
 
     const catalog = RustLibraryCatalog();
     const query = LibraryGalleryQuery();
-    final restoredSnapshot = await catalog.load(
+    final restoredQuery = await catalog.loadQuerySnapshot(
       maxItems: libraryCatalogWindow,
       query: query,
     );
+    final restoredSnapshot = restoredQuery.snapshot;
+    expect(restoredQuery.timeline.revision, restoredSnapshot.revision);
+    expect(restoredQuery.timeline.queryId, restoredSnapshot.queryId);
+    expect(restoredQuery.timeline.totalItems, 1);
     final restoredState = LibraryState.fromSnapshot(
       restoredSnapshot,
       query: query,

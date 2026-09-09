@@ -426,8 +426,12 @@ class LibraryPreviewQueue {
         width: request.asset.width,
         height: request.asset.height,
         previewStatus: LibraryPreviewStatus.failed,
-        previewIssueCode: "preview_request_failed",
-        previewIssueMessage: error.toString(),
+        previewIssueCode: error is LibraryPreviewFailure
+            ? error.code
+            : "preview_request_failed",
+        previewIssueMessage: error is LibraryPreviewFailure
+            ? error.message
+            : error.toString(),
       );
       final rejection = _rejectionOutcome(request, failed);
       if (rejection != null) {

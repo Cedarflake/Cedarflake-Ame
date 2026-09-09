@@ -23,6 +23,24 @@ pub fn load_catalog(
     load_catalog_window(max_items, query, after, before, None, None)
 }
 
+pub fn load_catalog_query_snapshot(
+    max_items: u32,
+    query: GalleryQuery,
+    anchor: Option<crate::domain::GalleryQueryAnchor>,
+) -> Result<crate::domain::GalleryQuerySnapshot, ScanError> {
+    let query = normalize_gallery_query(query);
+    let query_id = gallery_query_identity(&query);
+    let storage = storage_paths()?;
+    let mut result = prepare_catalog_reader(&storage.catalog_path)?.load_query_snapshot(
+        max_items,
+        &query,
+        &query_id,
+        anchor.as_ref(),
+    )?;
+    finish_loaded_snapshot(&storage, &mut result.snapshot)?;
+    Ok(result)
+}
+
 fn load_catalog_window(
     max_items: u32,
     query: GalleryQuery,
