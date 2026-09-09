@@ -3288,6 +3288,13 @@ before taking the next item; another verified prerequisite is not completion of 
    current failures remain within this item and require operation-level discrimination; neither
    the preceding hosted pass nor a subsequent local pass closes them. Historical observation-stage
    attribution and the complete item exit remain outstanding.
+   The next captured head (`1513eab`, run `34289089508`) passes the hosted gate but identifies a
+   1259 ms current-path identity query inside a 1387 ms production sample, plus a 4214 ms identity
+   query outside the sample window. The bounded correction pairs final path and file ID through
+   one fresh handle per observation, removing duplicate path opens without caching identity or
+   weakening before/after proof. Junction-retarget and replacement regressions preserve the
+   stale-session boundary. Its focused result is internal progress only; the operation's hosted
+   latency and the unchanged mixed-load exit must still be evaluated before advancing this item.
 3. **Queued — accumulated workflow review and client verification.** Review the fixed lifecycle
    matrix: first import and final publication; pause/cancel/exit/manual continuation; multi-root
    update and removal; source registration versus cleanup; preview replacement, corrupt/non-media

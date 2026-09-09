@@ -77,11 +77,13 @@ use crate::domain::{
     SourceRevisionEvidence,
 };
 
+mod catalog_identity;
 mod file_admission;
 mod media_signature;
 mod preview_cache_namespace;
 #[cfg(windows)]
 mod viewer_source_guard;
+pub(crate) use catalog_identity::{open_catalog_identity_guard, read_catalog_identity};
 pub use file_admission::{FileVisit, FileVisitOutcome};
 pub(crate) use preview_cache_namespace::PreviewCacheNamespace;
 #[cfg(windows)]
@@ -2530,39 +2532,9 @@ fn file_identity(path: &Path) -> std::io::Result<Option<FileIdentityEvidence>> {
     file_identity_from_handle(&file)
 }
 
+#[cfg(test)]
 pub(crate) fn file_identity_evidence(path: &Path) -> std::io::Result<Option<FileIdentityEvidence>> {
     file_identity(path)
-}
-
-#[cfg(windows)]
-pub(crate) fn open_catalog_identity_guard(
-    path: &Path,
-) -> std::io::Result<(File, Option<FileIdentityEvidence>)> {
-    let file = OpenOptions::new()
-        .access_mode(FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE)
-        .share_mode(FILE_SHARE_READ | FILE_SHARE_WRITE)
-        .custom_flags(
-            FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_NO_RECALL | FILE_FLAG_OPEN_REPARSE_POINT,
-        )
-        .open(path)?;
-    let metadata = file.metadata()?;
-    if !metadata.is_file() || metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0 {
-        return Err(std::io::Error::new(
-            std::io::ErrorKind::InvalidData,
-            "catalog identity guard requires a non-reparse regular file",
-        ));
-    }
-    let identity = file_identity_from_handle(&file)?;
-    Ok((file, identity))
-}
-
-#[cfg(not(windows))]
-pub(crate) fn open_catalog_identity_guard(
-    path: &Path,
-) -> std::io::Result<(File, Option<FileIdentityEvidence>)> {
-    let file = File::open(path)?;
-    let identity = file_identity(path)?;
-    Ok((file, identity))
 }
 
 #[cfg(windows)]

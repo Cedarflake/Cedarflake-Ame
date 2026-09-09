@@ -1219,6 +1219,18 @@ hash, signature, or pipe I/O. The runtime registry uses short epoch and ownershi
 stop can cancel and join while those slow operations are blocked and late results cannot install
 into a replacement epoch.
 
+Windows catalog revalidation obtains the normalized final path and complete file ID from one
+fresh attribute-only handle, instead of canonicalizing the path with one open and querying identity
+with another. The existing no-follow/no-recall and read/write-without-delete sharing flags remain
+unchanged. Both observations around the SQL proof still reopen the configured path; no retained
+identity or SQLite handle substitutes for current path binding when an ancestor junction changes.
+`GetFinalPathNameByHandleW` uses its normalized DOS-path form, without case folding or namespace
+stripping, consistent with the session's canonical path. Held read guards and their terminal
+regular-file/reparse checks, registry revocation, schema checks, and destruction order remain
+independent requirements. This removes a redundant open per observation, not the possibility of
+Windows file operations stalling. The existing safe handle-query helpers supply this evidence;
+the catalog-specific composition and guard live in `local_files/catalog_identity.rs`.
+
 P1 requests at most 64 records per broker page, yields at that boundary, checks cancellation between
 roots and broker operations, and persists reset, trim, reconstruction, containment, and
 broker-after-current failures as typed per-root recovery transitions without checkpoint advancement.

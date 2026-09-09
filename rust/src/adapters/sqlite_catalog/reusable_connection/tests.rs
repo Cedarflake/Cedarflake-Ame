@@ -8,6 +8,8 @@ use super::super::{
 use super::{SqliteCatalog, SqliteCatalogSession};
 
 mod maintenance;
+#[cfg(windows)]
+mod path_identity;
 
 fn fixture() -> (TempDir, SqliteCatalogSession, SqliteCatalog) {
     let directory = tempdir().expect("catalog directory");

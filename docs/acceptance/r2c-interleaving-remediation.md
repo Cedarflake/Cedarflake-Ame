@@ -1586,6 +1586,61 @@ The timing owner is 45 lines with no production clock/log state. Affected non-in
 timings, and 25 for observation timings. Dedicated priority/lifetime tests have 796/115 lines.
 This instrumentation does not close the previously recorded facade or large-fixture physical debt.
 
+### Current-path identity work — active item 2
+
+Hosted run `34289089508` on `1513eab` passes all ten ordinary workers and the aggregate, with
+1474 main Rust tests passing, zero failing, and 19 ignored. Protected-release conditions remain
+unchanged. The same-workload production arm has 25 samples, P95 227 ms, maximum 1387 ms, and one
+sample above one second. It retains all 2048 P1 candidates, all 10000 P2 source entries, the
+4095-entry page, lower-lane progress in every sample, and one open with zero closes in 4734 polls.
+Sample 20 contains a 1259 ms `reusable_identity_before` operation inside its 1306 ms queue-admission
+interval. A separate `proof_identity_after` takes 4214 ms after the measured sample window; it
+must not be assigned to sample 20. The complete comparison is retained in
+`build/r2c_interleaving_audit/ci_1513eab_mixed_case_102271350680.log`.
+
+The timed identity operation previously did `fs::canonicalize(path)` and then separately opened
+the path for FileIdInfo. The correction obtains the normalized final path and ID from the same
+fresh attribute-only handle. Windows flags, both observations around the SQL proof, schema/header
+checks, process-registry revocation, held read guards, and their release order are unchanged. No
+source media, database schema, dependency, workload, timeout, or percentile rule changes. The
+platform behavior is documented by Microsoft's
+[GetFinalPathNameByHandleW contract](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfinalpathnamebyhandlew).
+This removes one redundant open/close per identity observation, not all synchronous filesystem
+latency. The current timer does not distinguish open, final-path query, FileIdInfo, and close, so
+neither this reduction nor a green run uniquely attributes the older failures.
+
+Three direct identity tests pass for Chinese and long paths (including the larger final-path
+buffer), ordinary replacement, missing-file refusal, and temporary-handle release. All twelve
+reusable-connection tests pass, including the new two-FULL-valid-catalog junction counterexample:
+identical schema/header proof cannot authorize the old connection after the configured ancestor
+redirects to B; the retained handle still reads A, revalidation is stale, a freshly validated
+session reads B, and both revisions remain unchanged. The after-proof observation is independently
+required to reject the same retarget with the previously valid before-proof identity.
+All eight poll-owner/lifecycle tests also pass. These are focused adapter/owner results, not Windows
+UI or final-head acceptance.
+The 33 typed-read/retry tests pass with the extracted guard, including terminal reparse rejection,
+replacement and ABA refusal, no database creation after deletion, and release-before-backoff.
+The strengthened junction test is rerun by its complete exact name and passes both before- and
+after-proof rejection.
+
+The unchanged same-workload lifetime comparison passes in 280.34 seconds. Per-poll P95 is 282 ms;
+production per-epoch P95/maximum are 161/207 ms with no sample above one second, one connection
+open and zero poll-time closes in 4450 polls. Both arms retain all workload and lane-progress
+assertions. Its complete stream is retained in
+`build/r2c_interleaving_audit/item2_single_handle_identity_20260909.log`. An independently started
+`flutter run -d windows` remained active on this workstation and was not terminated; these numbers
+are not an isolated before/after performance comparison. The narrow independent static review
+found no blocking defect in the changed identity helper and facade composition; that review does
+not close the latency item's outstanding hosted evidence.
+The complete standard `quality_lint.ps1` gate passes on the corrected source, including format
+checks, all-target/all-feature Clippy with warnings denied, and Dart analysis. The former standalone
+file-ID export now exists only for its remaining test callers; no warning suppression is added.
+
+The catalog-specific filesystem owner contains 75 lines without inline tests, its direct tests
+55 lines, and the separate junction suite 173 lines. The local-files facade decreases to 7466
+lines (4058 before its inline test region and 3408 within it); the SQLite facade decreases to
+5328 non-inline lines. Existing physical decomposition debt is not closed by this extraction.
+
 ### New-head hosted accessibility failure — queued item 3
 
 Run `34280948135` on `7c529b9` finishes with nine ordinary workers passing, one failing, and a

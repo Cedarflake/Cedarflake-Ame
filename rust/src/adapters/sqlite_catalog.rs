@@ -23,7 +23,7 @@ use crate::domain::{
 use crate::ports::CatalogRepository;
 
 use super::{
-    file_identity_evidence, open_catalog_identity_guard, revalidate_file_state, user_visible_path,
+    open_catalog_identity_guard, read_catalog_identity, revalidate_file_state, user_visible_path,
 };
 
 mod folders;
@@ -571,27 +571,20 @@ fn catalog_pragma_integer(connection: &Connection, name: &str) -> Result<i64, Sc
 }
 
 fn catalog_database_identity(path: &Path) -> Result<SqliteDatabaseIdentity, ScanError> {
-    let canonical_path = fs::canonicalize(path).map_err(|error| {
+    let identity = read_catalog_identity(path).map_err(|error| {
         ScanError::new(
             "catalog_identity_unavailable",
-            format!("Could not canonicalize the catalog identity: {error}"),
+            format!("Could not inspect the catalog identity: {error}"),
         )
     })?;
-    let file_identity = file_identity_evidence(path)
-        .map_err(|error| {
-            ScanError::new(
-                "catalog_identity_unavailable",
-                format!("Could not inspect the catalog identity: {error}"),
-            )
-        })?
-        .ok_or_else(|| {
-            ScanError::new(
-                "catalog_identity_unavailable",
-                "The catalog file identity is unavailable",
-            )
-        })?;
+    let file_identity = identity.file_identity.ok_or_else(|| {
+        ScanError::new(
+            "catalog_identity_unavailable",
+            "The catalog file identity is unavailable",
+        )
+    })?;
     Ok(SqliteDatabaseIdentity {
-        canonical_path,
+        canonical_path: identity.canonical_path,
         file_identity,
     })
 }

@@ -24,13 +24,13 @@ pub use local_files::{
 };
 pub(crate) use local_files::{
     PreviewCacheNamespace, PreviewPublicationGuard, PublicationGuardedFileDiscovery,
-    file_identity_evidence, open_catalog_identity_guard, open_preview_publication_guard,
-    open_preview_source, revalidate_open_preview_source, user_visible_path,
+    open_catalog_identity_guard, open_preview_publication_guard, open_preview_source,
+    read_catalog_identity, revalidate_open_preview_source, user_visible_path,
 };
 #[cfg(test)]
 pub(crate) use local_files::{
-    canonical_source_root_path, configured_root_open_count, gate_source_enumeration,
-    reset_configured_root_open_instrumentation,
+    canonical_source_root_path, configured_root_open_count, file_identity_evidence,
+    gate_source_enumeration, reset_configured_root_open_instrumentation,
     reset_root_availability_metadata_probe_instrumentation,
     reset_source_content_open_instrumentation, reset_source_enumeration_instrumentation,
     root_availability_metadata_probe_count, source_content_open_count,
