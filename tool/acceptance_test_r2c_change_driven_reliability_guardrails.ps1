@@ -1,7 +1,9 @@
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "quality_common.ps1")
 . (Join-Path $PSScriptRoot "acceptance_r2c_change_driven_reliability_common.ps1")
+. (Join-Path $PSScriptRoot "acceptance_r2c_fixture_cleanup.ps1")
 . (Join-Path $PSScriptRoot "acceptance_r2c_deletion_audit_budget_tests.ps1")
+. (Join-Path $PSScriptRoot "acceptance_r2c_fixture_lifetime_tests.ps1")
 
 function Assert-Contains {
     param([Parameter(Mandatory = $true)][string]$Value, [Parameter(Mandatory = $true)][string]$Expected)
@@ -124,27 +126,32 @@ if ($null -ne ("AmeR2cRNative" -as [type])) {
 
 Initialize-AmeR2cRNativeTypes -RepositoryRoot $repositoryRoot
 $ordinaryAuditState = $null
-$ordinaryAuditSnapshot = $null
+$ordinaryAuditSnapshots = @()
 try {
     $ordinaryAuditState = Assert-AmeR2cRDeletionSafetySource `
         -SourceText $null `
         -SourcePath $commonPath `
         -Label "ordinary audited-script identity" `
         -RetainSnapshots
-    if ($ordinaryAuditState.Sources.Count -ne 1 -or
-        [string]$ordinaryAuditState.Sources[0].Identity -notmatch
-            '^[0-9A-F]{8}:[0-9A-F]{8}:[0-9A-F]{8}$') {
+    $ordinarySourceNames = @($ordinaryAuditState.Sources | ForEach-Object {
+        [IO.Path]::GetFileName([string]$_.Path)
+    } | Sort-Object)
+    if (($ordinarySourceNames -join ",") -cne
+        "acceptance_r2c_change_driven_reliability_common.ps1,acceptance_r2c_fixture_cleanup.ps1" -or
+        @($ordinaryAuditState.Sources | Where-Object {
+            [string]$_.Identity -notmatch '^[0-9A-F]{8}:[0-9A-F]{8}:[0-9A-F]{8}$'
+        }).Count -ne 0) {
         throw "R2c-R ordinary audited-script identity was not bound"
     }
-    $ordinaryAuditSnapshot = $ordinaryAuditState.Sources[0].Snapshot
+    $ordinaryAuditSnapshots = @($ordinaryAuditState.Sources | ForEach-Object { $_.Snapshot })
     Assert-AmeR2cRDeletionAuditSnapshotsHeld -State $ordinaryAuditState
 } finally {
     if ($null -ne $ordinaryAuditState) {
         Close-AmeR2cRDeletionAuditState -State $ordinaryAuditState
     }
 }
-if ($null -eq $ordinaryAuditSnapshot -or
-    -not [bool]$ordinaryAuditSnapshot.AllHandlesClosedForGuardrail) {
+if ($ordinaryAuditSnapshots.Count -ne 2 -or
+    @($ordinaryAuditSnapshots | Where-Object { -not [bool]$_.AllHandlesClosedForGuardrail }).Count -ne 0) {
     throw "R2c-R ordinary audited-script identity handles did not close"
 }
 
@@ -1178,6 +1185,8 @@ Assert-AmeR2cRCaseResult -Label "one-test" -Lines @(
     "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 872 filtered out;"
 ) -ExitCode 0
 
+Invoke-AmeR2cRFixtureLifetimeTests -ToolPath $toolPath
+
 $anchorAttackFixture = $null
 $anchorAttackFixturePath = $null
 $anchorSentinelFixture = $null
@@ -1187,6 +1196,8 @@ $anchorSentinelChildLeaf = $null
 $anchorSentinelChildPath = $null
 $anchorSentinelChildIdentity = $null
 $junctionResources = @()
+$anchorCleanup = New-AmeR2cRFixtureCleanup
+$anchorFailure = $null
 try {
     $anchorAttackFixture = New-AmeR2cRGuardrailDisposableRoot `
         -AnchorPath $toolPath `
@@ -1232,7 +1243,7 @@ try {
         $candidate = Join-Path ([string]$anchorAttackFixture.Path) $leaf
         New-Item -ItemType Junction -Path $candidate -Target $anchorSentinelChildPath | Out-Null
         $identity = $anchorAttackFixture.CaptureGuardrailChildDirectoryIdentity($leaf, $true)
-        $junctionResources += [pscustomobject]@{ Leaf = $leaf; Identity = $identity }
+        $junctionResources += [pscustomobject]@{ Leaf = $leaf; Identity = $identity; IsReparse = $true }
         try {
             [AmeR2cRNative]::AssertDirectoryAnchor($candidate)
             throw "R2c-R unexpectedly trusted the internal junction candidate"
@@ -1261,6 +1272,7 @@ try {
     $junctionResources += [pscustomobject]@{
         Leaf = $ancestorLeaf
         Identity = $ancestorIdentity
+        IsReparse = $true
     }
     $knownFolderAttackPath = Join-Path $ancestorPath $anchorSentinelChildLeaf
     try {
@@ -1276,29 +1288,21 @@ try {
         ($sentinelBefore -join "`n")) {
         throw "R2c-R KnownFolder ancestor rejection wrote before physical binding"
     }
+} catch {
+    $anchorFailure = Get-AmeR2cRFixturePrimaryFailure -ErrorRecord $_
 } finally {
-    if ($null -ne $anchorAttackFixture) {
-        foreach ($resource in @($junctionResources)) {
-            $anchorAttackFixture.DeleteGuardrailChildDirectoryForCleanup(
-                [string]$resource.Leaf,
-                [string]$resource.Identity,
-                $true
-            )
-        }
-        Remove-AmeR2cRDisposableRoot -Fixture $anchorAttackFixture
+    Close-AmeR2cRGuardrailFixture -Cleanup $anchorCleanup -Label "anchor-attack" `
+        -Fixture $anchorAttackFixture -Children $junctionResources
+    $sentinelChildren = @()
+    if (-not [string]::IsNullOrEmpty($anchorSentinelChildIdentity)) {
+        $sentinelChildren = @([pscustomobject]@{
+            Leaf = $anchorSentinelChildLeaf; Identity = $anchorSentinelChildIdentity; IsReparse = $false
+        })
     }
-    if ($null -ne $anchorSentinelStream) { $anchorSentinelStream.Dispose() }
-    if ($null -ne $anchorSentinelFixture) {
-        if (-not [string]::IsNullOrEmpty($anchorSentinelChildIdentity)) {
-            $anchorSentinelFixture.DeleteGuardrailChildDirectoryForCleanup(
-                $anchorSentinelChildLeaf,
-                $anchorSentinelChildIdentity,
-                $false
-            )
-        }
-        Remove-AmeR2cRDisposableRoot -Fixture $anchorSentinelFixture
-    }
+    Close-AmeR2cRGuardrailFixture -Cleanup $anchorCleanup -Label "anchor-sentinel" `
+        -Fixture $anchorSentinelFixture -Children $sentinelChildren -Stream $anchorSentinelStream
 }
+Complete-AmeR2cRFixtureCleanup -Cleanup $anchorCleanup -PrimaryFailure $anchorFailure
 if ($null -ne $anchorAttackFixturePath -and [IO.Directory]::Exists($anchorAttackFixturePath)) {
     throw "R2c-R anchor-attack guardrail left a disposable-root residue"
 }
@@ -1868,10 +1872,10 @@ try {
             Sort-Object -Descending |
             Select-Object -First 1
     )
-    if ($runnerClosureState.Sources.Count -ne 3 -or
+    if ($runnerClosureState.Sources.Count -ne 4 -or
         $runnerDepth.Count -ne 1 -or
-        [uint64]$runnerDepth[0] -ne 1) {
-        throw "R2c-R real closure lost its three-source, depth-one budget evidence"
+        [uint64]$runnerDepth[0] -ne 2) {
+        throw "R2c-R real closure lost its four-source, depth-two budget evidence"
     }
 } finally {
     if ($null -ne $runnerClosureState) {
@@ -1884,6 +1888,11 @@ Assert-AmeR2cRDeletionSafetySource `
     -Label "guardrail"
 
 $sixthReviewDeletionAuditBadFixtures = @(
+    [pscustomobject]@{
+        Label = "fixture evidence serializer module spoof"
+        Source = 'Microsoft.PowerShell.Management\ConvertTo-Json @{ retained = $true }'
+        Expected = "expected 'Microsoft.PowerShell.Utility'"
+    },
     [pscustomobject]@{
         Label = "top-level call-operator variable"
         Source = '$command = "Write-Output"; & $command "owned"'

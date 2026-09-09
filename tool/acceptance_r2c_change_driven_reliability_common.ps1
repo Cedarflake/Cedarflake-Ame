@@ -46,8 +46,8 @@ $script:AmeR2cRCompilerFaultOwnerForGuardrail = $null
 $script:AmeR2cRVerifiedProcessBoundaryDigest = "c4702c1005217d99cb2d0558c7de0c341d98ab8f3e33160677065da7f266b6e7"
 $script:AmeR2cRNativeProcessBoundaryDigest = "4e58cf525fd2f628a38bfefb4b1728fbf6e66632b3c03220d67a2249c3e55860"
 $script:AmeR2cRAuditedScriptSnapshotDigest = "165355dcd5dedbf01a73953547f1b71a7f9503ff3b02ed0d8c9eb15e7e54a0cf"
-$script:AmeR2cRNativeDefinitionDigest = "2da77861b8b5fb1a65ab474d8e9f22406fa3c049ec771d88288587bb7e579259"
-$script:AmeR2cRGuardrailMoveSourceDigest = "2df1ff9fdfc1b0a61c48eae7842bd24e01ff13bfe9d37464ff3da34377cb91a1"
+$script:AmeR2cRNativeDefinitionDigest = "07e3aaaa4d257669682568a10c9bbb4fb3230c479d501102c6f8d7fe22312426"
+$script:AmeR2cRGuardrailMoveSourceDigest = "4ef40255e3cedbac7609f4ec42593ae08f5339d8aa298e807319e81086cdf79c"
 $script:AmeR2cRDeletionAuditBudgetLimits = [ordered]@{
     "source-count" = [uint64]8
     "dot-source-depth" = [uint64]8
@@ -61,6 +61,7 @@ $script:AmeR2cRDeletionAuditBudgetLimits = [ordered]@{
 $script:AmeR2cRAllowedCmdlets = @{
     "Add-Type" = "Microsoft.PowerShell.Utility"
     "ConvertFrom-Json" = "Microsoft.PowerShell.Utility"
+    "ConvertTo-Json" = "Microsoft.PowerShell.Utility"
     "ForEach-Object" = "Microsoft.PowerShell.Core"
     "Get-Command" = "Microsoft.PowerShell.Core"
     "Get-Content" = "Microsoft.PowerShell.Management"
@@ -1423,9 +1424,10 @@ public sealed class AmeR2cRDisposableRoot : IDisposable
 
     private static void DeleteEmptyDirectoryHandle(SafeFileHandle handle)
     {
-        FILE_DISPOSITION_INFO disposition = new FILE_DISPOSITION_INFO();
-        disposition.DeleteFile = true;
-        if (!SetFileInformationByHandle(handle, 4, ref disposition, (uint)Marshal.SizeOf(typeof(FILE_DISPOSITION_INFO)))) throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not delete the exact failed or completed R2c-R root by held handle");
+        FILE_DISPOSITION_INFO_EX disposition = new FILE_DISPOSITION_INFO_EX();
+        // Retire the proved name when this delete handle closes, even while metadata observers remain.
+        disposition.Flags = 0x00000001 | 0x00000002 | 0x00000004;
+        if (!SetFileInformationByHandle(handle, 21, ref disposition, (uint)Marshal.SizeOf(typeof(FILE_DISPOSITION_INFO_EX)))) throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not delete the exact failed or completed R2c-R root by held handle");
     }
 
     private static void AssertNonReparseDirectory(SafeFileHandle handle, string label)
@@ -1523,7 +1525,7 @@ public sealed class AmeR2cRDisposableRoot : IDisposable
     [StructLayout(LayoutKind.Sequential)]
     private struct IO_STATUS_BLOCK { public IntPtr Status; public UIntPtr Information; }
     [StructLayout(LayoutKind.Sequential)]
-    private struct FILE_DISPOSITION_INFO { [MarshalAs(UnmanagedType.Bool)] public bool DeleteFile; }
+    private struct FILE_DISPOSITION_INFO_EX { public uint Flags; }
     [StructLayout(LayoutKind.Sequential)]
     private struct FILE_CASE_SENSITIVE_INFO { public uint Flags; }
 
@@ -1531,7 +1533,7 @@ public sealed class AmeR2cRDisposableRoot : IDisposable
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)] private static extern SafeFileHandle CreateFileW(string fileName, uint desiredAccess, uint shareMode, IntPtr securityAttributes, uint creationDisposition, uint flagsAndAttributes, IntPtr templateFile);
     [DllImport("kernel32.dll", SetLastError = true)] private static extern bool GetFileInformationByHandle(SafeFileHandle file, out BY_HANDLE_FILE_INFORMATION information);
     [DllImport("kernel32.dll", SetLastError = true)] private static extern bool GetFileInformationByHandleEx(SafeFileHandle file, uint informationClass, out FILE_CASE_SENSITIVE_INFO information, uint bufferSize);
-    [DllImport("kernel32.dll", SetLastError = true)] private static extern bool SetFileInformationByHandle(SafeFileHandle file, uint informationClass, ref FILE_DISPOSITION_INFO information, uint bufferSize);
+    [DllImport("kernel32.dll", SetLastError = true)] private static extern bool SetFileInformationByHandle(SafeFileHandle file, uint informationClass, ref FILE_DISPOSITION_INFO_EX information, uint bufferSize);
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)] private static extern uint GetFinalPathNameByHandleW(SafeFileHandle file, StringBuilder filePath, uint filePathLength, uint flags);
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] private static extern uint GetDriveTypeW(string rootPathName);
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)] private static extern bool GetVolumeInformationByHandleW(SafeFileHandle file, StringBuilder volumeNameBuffer, uint volumeNameSize, out uint volumeSerialNumber, out uint maximumComponentLength, out uint fileSystemFlags, StringBuilder fileSystemNameBuffer, uint fileSystemNameSize);
@@ -2157,6 +2159,8 @@ function New-AmeR2cRGuardrailDisposableRoot {
     return [AmeR2cRDisposableRoot]::CreateForGuardrail($AnchorPath, $Nonce)
 }
 
+. (Join-Path $PSScriptRoot "acceptance_r2c_fixture_cleanup.ps1")
+
 function Remove-AmeR2cRDisposableRoot {
     param(
         [Parameter(Mandatory = $true)][psobject]$Fixture,
@@ -2164,55 +2168,7 @@ function Remove-AmeR2cRDisposableRoot {
         [switch]$ReleaseRootBlockerOnlyForGuardrail,
         [switch]$DeleteReleasedRootForGuardrail
     )
-    if (($ReleaseRootBlockerOnlyForGuardrail -or $DeleteReleasedRootForGuardrail) -and
-        -not $RetainFixtureOnFailureForGuardrail) {
-        throw "R2c-R cleanup race phases are available only to retained internal guardrails"
-    }
-    if ($ReleaseRootBlockerOnlyForGuardrail -and $DeleteReleasedRootForGuardrail) {
-        throw "R2c-R cleanup race phases must be selected one at a time"
-    }
-    $cleanupFailure = $null
-    $rootPath = [string]$Fixture.Path
-    $rootIdentity = [string]$Fixture.RootIdentityToken
-    $shouldDispose = -not $ReleaseRootBlockerOnlyForGuardrail
-    try {
-        if ([IO.Path]::GetFileName($rootPath) -cne [string]$Fixture.RootName -or
-            [string]$Fixture.RootName -notmatch '^Cedarflake-Ame-R2c-R-[0-9a-f]{32}-[0-9a-f]{32}$') {
-            throw "R2c-R refused to clean a disposable root with the wrong owned name"
-        }
-        if ($DeleteReleasedRootForGuardrail) {
-            $Fixture.DeleteReleasedRootForCleanup()
-        } else {
-            $Fixture.ValidateHeldIdentity()
-            $entries = @([IO.DirectoryInfo]::new($rootPath).EnumerateFileSystemInfos())
-            if ($entries.Count -ne 0) {
-                throw (
-                    "R2c-R safe cleanup found a non-empty owned root and retained it " +
-                    "without traversing unknown children"
-                )
-            }
-            if ($ReleaseRootBlockerOnlyForGuardrail) {
-                $Fixture.ReleaseRootHandleForCleanup()
-            } else {
-                $Fixture.DeleteEmptyRootForCleanup()
-            }
-        }
-    } catch {
-        $cleanupFailure = $_
-    } finally {
-        if ($shouldDispose -and
-            ($null -eq $cleanupFailure -or -not $RetainFixtureOnFailureForGuardrail)) {
-            $Fixture.Dispose()
-        }
-    }
-    if ($null -ne $cleanupFailure) {
-        throw (
-            "R2c-R safe cleanup failed and retained the owned root for investigation; " +
-            "no path fallback was attempted; owned_leaf=$($Fixture.RootName); " +
-            "expected_identity=$rootIdentity; original_path=$rootPath; " +
-            $cleanupFailure.Exception.Message
-        )
-    }
+    Invoke-AmeR2cRDisposableRootCleanup @PSBoundParameters
 }
 
 function Get-AmeR2cRCaseArguments {

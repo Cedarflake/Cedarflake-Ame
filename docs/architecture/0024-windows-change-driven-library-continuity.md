@@ -1201,6 +1201,23 @@ repair of V1 and a distinct-hash same-publisher upgrade to V2 before its restart
 - every controlled run verifies source bytes and entries unchanged, no placeholder hydration, and
   no journal configuration change.
 
+### Owned native fixture retirement
+
+The R2c-R fixture boundary binds each deletion to the held parent, exact child identity and expected
+reparse kind. Empty-directory retirement uses `SetFileInformationByHandle(FileDispositionInfoEx)`
+with `DELETE | POSIX_SEMANTICS | FORCE_IMAGE_SECTION_CHECK`. Closing that deletion handle removes
+the proved name from the visible namespace even while a metadata observer retains its earlier
+handle. Legacy delete-pending success alone cannot establish the empty-parent cleanup precondition.
+This follows the documented [Windows disposition semantics](https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/ns-ntddk-_file_disposition_information_ex).
+
+The boundary keeps DELETE access, existing sharing, identity, no-follow, volume and empty-directory
+checks. It does not ignore read-only attributes, retry a failed deletion, follow junction targets,
+or fall back to path deletion. Unsupported disposition or a native refusal remains an error.
+This decision concerns owned test fixtures only; it grants no source-media mutation authority.
+Controlled tests must prove ordinary and junction-name retirement while a metadata handle remains
+open, plus unchanged data-sharing, nonempty, identity and reparse refusals. A reproduced lifetime
+mechanism does not identify the observer responsible for an earlier uninstrumented failure.
+
 ## Implementation checkpoint
 
 The 2026-08-30 working tree has an R2c-Q remediation checkpoint behind schema v29. Production starts

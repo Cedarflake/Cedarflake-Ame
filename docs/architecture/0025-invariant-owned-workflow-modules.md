@@ -324,6 +324,16 @@ persistence layers.
 
 ### Native verification boundaries
 
+`acceptance_r2c_fixture_cleanup.ps1` owns R2c-R fixture retirement, bounded immediate remaining-entry
+evidence and first-error preservation. Each known child, metadata handle, stream and root retires independently;
+one failure cannot skip a later owned resource. Unknown children are retained without traversal.
+Metadata evidence opens at most 64 immediate entries without following reparses or recalling content,
+records truncation, and grants no new deletion authority. The common facade retains native identity
+primitives and includes the module in its exact audited source closure. Dedicated fixture-lifetime
+tests exercise real handles and rejection paths independently of the full acceptance runner.
+The first failure retains its original exception, PowerShell error text and script stack even
+when later cleanup also fails; the regressions themselves use that same retirement boundary.
+
 `integration_windows_accessibility_cleanup.ps1` owns independent process/job disposal, bounded exit
 confirmation, exact environment restoration, and evidence-safe scratch disposition. Failure at one
 stage cannot bypass later resource release; unconfirmed exit or failed output capture retains the
@@ -338,6 +348,13 @@ must validate before a successful record can return. The runner persists that re
 acknowledgement and records phase success only after acknowledgement. Successful traversal metrics
 must survive scratch cleanup, just as failed traversal evidence does; neither can replace the
 ordered native interaction assertions.
+
+`integration_windows_accessibility_timing.ps1` owns monotonic accounting and validation for the fixed
+internal probe stages. Evidence records preserve accumulated stage durations and publication time;
+the process owner records parent wall time on failure. Stage totals include their progress-write
+cost, which is also accumulated separately. The final record cannot include its own write or process
+exit, so child timing alone never proves compliance with the parent deadline. Timing is diagnostic
+only and does not change phase identity, completion, process retirement or acceptance assertions.
 
 ### Review and roadmap rule
 
