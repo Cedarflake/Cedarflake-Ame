@@ -1,6 +1,6 @@
 # R2c closeout execution
 
-Status: **unresolved checkpoint after the bounded supplement; further execution requires replanning**.
+Status: **P2 follow-up stopped without a causal correction; candidate remains unresolved**.
 
 The [cycle evidence](../acceptance/r2c-closeout-cycle.md) records the frozen source, selected
 variants, execution budgets, findings, and verification. Its status does not accept R2c.
@@ -20,7 +20,8 @@ The owned-fixture repair is reviewed and passes current-source guardrails and li
 complete local Daily fails C01's full recovery at the unchanged 300-second bound. Current hosted
 checks pass, but do not replace that failure or explain the earlier C01/C02 outliers. Both complete
 Daily invocations and both supplement review invocations are consumed. Historical failures,
-invocation counts and active time remain charged; no unchanged replay or new repair round is admitted.
+invocation counts and active time remain charged. The explicitly approved P2 follow-up below has
+also stopped; no unchanged replay allowance is renewed.
 
 The smallest next scope to decide is C01's remaining P2 completion cost, using the retained failed
 local run and passing hosted run before another experiment. Distinguish cumulative polling and
@@ -28,13 +29,23 @@ worker-progress costs; the current counters overlap and cannot be summed as inde
 Any new execution needs an explicit bounded diagnostic hypothesis, complete native-output capture,
 and revised review/final-gate allowances inside the original phase ceilings. It must preserve the
 existing workloads, deadlines and source-identity proofs, and retain C02's unexplained UIA/1175
-boundary. This is a replanning checkpoint, not authorization for those additional runs.
+boundary. The approved follow-up below retains its executed scope and stopping result.
 
-### Proposed P2 completion follow-up — not admitted
+### Approved P2 completion follow-up — unresolved result
 
-This proposal requires confirmation before its new diagnosis, repair, review or gate executions.
+The 2026-09-09 approval admits the following diagnosis, repair, review and gate executions.
 It does not reset prior usage, reopen discovery, accept the candidate or remove C02/client blockers.
 The existing branch and original 16-hour total and phase ceilings remain binding.
+
+The capture prerequisite passes, but the one selected differential experiment returns identical
+plans, exact values and VM instruction counts for the original query and owner-first alternative
+on its controlled relational projection. This rejects that proposed correction on the projection;
+it does not explain the original full recovery timeout or rule out other query/production costs.
+No causal repair is admitted from this result. Experimental Rust changes are removed after
+retaining their source and raw output. No focused full workload, new C02 run or conditional third
+Daily is started. Further experimentation requires a new bounded decision; unused time is not
+another experiment allowance. The [cycle record](../acceptance/r2c-closeout-cycle.md#approved-p2-follow-up)
+owns the exact results, limitations and charged time.
 
 **Question to resolve.** In the retained failed local run, the tail lasts 196185 ms across 6375
 iterations: application polling accounts for 113671 ms and the test's separate exact-evidence
@@ -74,11 +85,11 @@ original one-hour allowance. Use the existing 24-variant roster and at most one 
 delegate, without nested delegation. Unknown causality, an exceeded allowance or a materially
 different repair ends execution at an unresolved checkpoint. C02's historical UIA/1175 failures,
 missing client evidence and external acceptance remain explicit blockers, with no new C02 run
-authorized by this P2 proposal. The full goal remains incomplete until its original exits close.
+authorized by this P2 follow-up. The full goal remains incomplete until its original exits close.
 
 ### Supplement scope and consumed allowances
 
-The latest admitted supplement covers concurrent diagnosis and causal repair of both named blockers on
+The preceding consumed supplement covered concurrent diagnosis and causal repair of both named blockers on
 `codex/r2c`, replacing the earlier unadmitted 45-minute diagnosis-only proposal. This narrow exception
 to the original serial family order covers C01 and C02/C03 file-lifecycle failures only. The complete
 outcome is passing unchanged synchronization workload/control and reliable owned-fixture evidence

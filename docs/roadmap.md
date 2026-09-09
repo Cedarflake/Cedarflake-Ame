@@ -69,7 +69,8 @@ correction. A documentation reorganization does not change any of these acceptan
 The 2026-09-09 direction requires one organized discovery pass across items 2–3 **before further
 product fixes**. Item 2 remains active. The concurrent repair supplement has reached an unresolved
 checkpoint: owned-fixture retirement is repaired and reviewed, but the second complete local Daily
-fails full recovery despite passing hosted checks. Further execution requires bounded replanning. Use the complete
+fails full recovery despite passing hosted checks. The bounded P2 follow-up has stopped without
+a causal correction; C01, C02 and client blockers remain open. Use the complete
 [R2c closeout execution plan](plans/r2c-closeout.md) for scenario selection, investigation budgets,
 repair admission, review, verification, stopping rules, and safety cautions.
 
@@ -99,8 +100,8 @@ repair admission, review, verification, stopping rules, and safety cautions.
    invalidate affected evidence and return to their owning queue item. Documentation alone does
    not require another heavy product gate. No known core-workflow S0/S1 may be waived for readiness.
 
-The execution plan retains the **completed bounded supplement and its unresolved verification
-checkpoint** after the final Daily and hosted control failures. Its scope is eight journeys with at most
+The execution plan retains the **consumed supplement and unresolved P2 follow-up** without
+discarding prior local and hosted failures. Its scope is eight journeys with at most
 three variants each, one repair batch of at most three root-cause families, and a 16-hour cumulative
 active-engineering ceiling. Tool runtimes remain separately bounded and recorded. It permits one
 independent review plus one scoped recheck in the original cycle; the supplement explicitly records

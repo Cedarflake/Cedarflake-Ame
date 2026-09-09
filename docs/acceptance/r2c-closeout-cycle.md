@@ -1,6 +1,6 @@
 # R2c controlled closeout cycle
 
-Status: unresolved supplement checkpoint; second complete local Daily fails full recovery.
+Status: P2 follow-up stopped without causal correction; local Daily failure remains unresolved.
 
 Current implementation checkpoints: `d91580d` adds the connected root-interleaving regressions;
 `dd3f556` contains the queue-readiness correction, work bounds and observation measurements;
@@ -12,12 +12,90 @@ The first complete Daily fails in the existing R2c-R guardrail before Rust/Flutt
 supplement repairs that owner, passes its review and guardrails, and obtains passing hosted checks.
 The second complete local Daily instead fails C01's full recovery. Earlier native-probe and
 File.Replace failures remain unexplained. The supplement has reached its stopping boundary;
-further execution requires bounded replanning. The count follow-up does not change readiness.
+the approved P2 follow-up below also stops without a causal correction. The count follow-up does
+not change readiness.
 
 This record implements the [bounded execution plan](../plans/r2c-closeout.md). The canonical
 [roadmap](../roadmap.md) retains stage and queue authority. Findings belong in the existing
 [interleaving ledger](r2c-interleaving-remediation.md); this record maps the fixed journeys to
 evidence and records execution budgets rather than introducing another issue backlog.
+
+## Approved P2 follow-up
+
+The follow-up starts from clean `856d230` on `codex/r2c` on 2026-09-09 at 15:11 UTC.
+The approved 90 active diagnosis/repair minutes and 25 review minutes remain inside the original
+phase ceilings; one additional complete Daily is conditional on causal correction, focused
+verification and lint. Prior failures and invocation counts remain charged. Capture verification
+uses one bounded delegate; P2 SQL and application ownership remain with the primary executor.
+No new C02, retained-library or unchanged full-workload replay is admitted.
+
+The single differential experiment compares the unchanged exact-evidence SQL with an owner-first
+join on the same fixed relational projection and pinned SQLite engine. It records query plans,
+VM instruction counts and all ten result fields at 0, 1, 4095, 8960 and 10000 completed owners,
+retaining 10000 candidate owners and 2048 completed P1 rows. The only alternative is forcing the
+owned-candidate input before queue lookup. Equal evidence and a causal work reduction are required;
+elapsed time alone or merely passing the original workload is not admission evidence. This query
+projection does not establish a valid publishable catalog or replace application verification.
+
+### P2 follow-up result
+
+Raw output capture passes before the SQL experiment. The existing native accessibility Job and
+cleanup owners supervise a fixed diagnostic PowerShell child through the repository's existing
+`cmd` redirection pattern. Each stream has a monitored 64 MiB limit and a caller-supplied parent
+deadline. The compiler-free fixture writes all byte values plus distinct tails: stdout is
+6291487 bytes and stderr is 6291473 bytes; both SHA-256 comparisons match exactly. Exit 37 remains
+the primary failure after an injected later cleanup failure; process exit and Job closure are
+confirmed. The first capture attempt exits 1 with empty streams because its pre-held writable
+output handles conflict with redirection; that failed attempt is retained. The corrected capture
+holds read handles with read/write sharing. These ignored diagnostic scripts do not modify or
+replace a public quality entrypoint.
+
+The sole SQL differential completes one test, zero failures/ignored cases and 1516 filtered cases
+in 0.50 seconds; compilation is 29.45 seconds and the owned command takes 31758 ms. Raw output,
+exit zero, process exit and Job closure are retained. On this projection both queries already
+search candidate owners by run and then look up queue rows by integer primary key. The exact
+ten-field result and VM instruction count agree at every selected completion state:
+
+| Completed owners | Original VM instructions | Owner-first VM instructions |
+| --- | --- | --- |
+| 0 | 100092 | 100092 |
+| 1 | 100093 | 100093 |
+| 4095 | 104187 | 104187 |
+| 8960 | 109052 | 109052 |
+| 10000 | 110092 | 110092 |
+
+This is a negative result for the chosen join-order hypothesis on the projection, not a recovery
+pass or proof of every production-catalog query plan. The projection omits catalog-wide
+constraints, row payloads and concurrent workers; it cannot apportion the retained 66329 ms,
+certify full publication or prove complete-state semantic equivalence. Application polling
+remains separately measured at 113671 ms in that failed tail. Neither total proves the cause of
+missing completion by the creation-to-FULL-reopen deadline. No product fix, count suppression,
+polling change or extra experiment follows. The temporary SQL constant and probe module are
+removed from the Rust tree after retaining their exact source. Consequently no new lint, focused
+full workload or Daily is warranted for this documentation-only final diff; the conditional third
+Daily is unstarted, not passed. C01/C02, the 24-variant gaps and external/client exits remain.
+
+Ignored evidence is retained under `build/diagnostics`: capture verification
+`r2c_p2_raw_capture_verification_2.json`, SQL source `r2c-p2-query-experiment`, and complete command
+output `r2c-p2-raw-08f21cc15a154be48f90fd8ecee95a7e`. The source SHA-256 values are
+`4D6A055A74808F4ECD68EAA29B1AD562FD6CE8B79B9B2C290D0E4EC6A0BEC1D7` (completion owner) and
+`DA2FC85ED9D7E3973E6F9796AC2EE6ED049D8CBB9A889ECEE1F5F4F7667AA26E` (probe). Output SHA-256 values
+are `A8D89C266A442254C6AB3D8A3E6DF3C2971E196DCF7C4A980E3A333A174DD1E1` (stdout) and
+`1069FC269AEC65C4FED5361899EEE8C868ADF2848D901D7ECC4874231E79EDEC` (stderr). Raw paths and
+machine identities remain untracked. No real root or original media is accessed by this follow-up.
+
+Diagnosis is conservatively charged at 26 active minutes (17 primary and 9 capture delegate),
+within the approved 60-minute diagnostic pass and 90-minute follow-up allowance. Cumulative
+diagnosis/repair is 306/480 minutes; no repair allowance is consumed. The sole differential
+experiment allowance is consumed. Stopping follows the missing causal correction and experiment
+limit, not exhaustion of the active-minute ceiling. Independent review takes two active minutes
+(23/120 cumulative), confirms the limited negative conclusion and that conditional verification
+is not triggered. Final recording is conservatively charged at six further minutes (42/60
+cumulative). Discovery and triage remain 176/54 minutes; total active charge is 601/960 minutes.
+The capture child attempts take 123 ms and 1285 ms; the SQL parent takes 31758 ms including
+compilation. These bounded runtimes are distinct from active work. The follow-up checkpoint is
+recorded at 15:34 UTC, 23 minutes after its start; the original cycle began at 05:07 UTC.
+No time or invocation counter resets.
 
 ## Parallel supplement checkpoint
 
