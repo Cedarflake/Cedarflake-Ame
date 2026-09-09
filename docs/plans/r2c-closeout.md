@@ -8,6 +8,10 @@ stage or independent priority list. Its outcome is one reviewed candidate with e
 fixed workflows below, plus an explicit disposition of every discovered issue. It does not
 promise that all possible defects have been found or that R2c's external acceptance is complete.
 
+Use the existing `codex/r2c` branch for this closeout, including fixes, investigation planning, and
+documentation organization. Separate rollback boundaries with commits; do not create another branch
+for each follow-up. This scope-specific workflow does not authorize merging into `main`.
+
 The unit of work is an **owning invariant and its complete user workflow**, not an error message,
 individual widget, or file. The gray preview, failed gallery refresh, and folder-reload symptoms
 remain regression seeds; they do not justify speculative changes to every nearby component.
