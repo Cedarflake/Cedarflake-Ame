@@ -30,6 +30,52 @@ and revised review/final-gate allowances inside the original phase ceilings. It 
 existing workloads, deadlines and source-identity proofs, and retain C02's unexplained UIA/1175
 boundary. This is a replanning checkpoint, not authorization for those additional runs.
 
+### Proposed P2 completion follow-up — not admitted
+
+This proposal requires confirmation before its new diagnosis, repair, review or gate executions.
+It does not reset prior usage, reopen discovery, accept the candidate or remove C02/client blockers.
+The existing branch and original 16-hour total and phase ceilings remain binding.
+
+**Question to resolve.** In the retained failed local run, the tail lasts 196185 ms across 6375
+iterations: application polling accounts for 113671 ms and the test's separate exact-evidence
+queries account for 66329 ms. `recovery_completion.rs` currently reads that evidence after each
+poll, followed by a two-millisecond sleep. These non-overlapping tail measurements are distinct
+from the nested, whole-fixture counters. They justify testing whether exact-evidence query work
+materially delays recovery; they do not prove that cause or excuse a production bottleneck.
+
+1. **Make capture reliable before a workload.** Use the existing owned-process boundary with raw
+   stdout/stderr redirected to separate files, retaining child exit and cleanup results. Prove
+   complete capture and original failure propagation with a bounded compiler-free output fixture
+   larger than the prior tool-output limit. Keep logs in ignored derived storage. No full workload
+   is replayed merely to replace a missing transcript.
+2. **One diagnostic pass, at most 60 active minutes.** Inspect the existing exact-evidence query,
+   its query plan/work counts and P2 comparison/publication owner using controlled catalog data.
+   Compare equal input states and exact returned evidence; distinguish query work from worker
+   waiting and progress. Admit at most one controlled differential experiment, chosen and recorded
+   before execution. Keep production behavior unchanged until it yields a causal counterexample.
+   A passing rerun, machine-speed difference or a smaller observation total alone is insufficient.
+3. **One causal repair, at most 30 further active minutes.** Correct the proved owner and add its
+   boundary regression. A test-oracle correction must preserve the same coherent completion proof
+   and establish semantic equivalence; a product defect requires a product-owner correction.
+   Do not choose an easier test-only fix without that evidence. Preserve the 25 P0 samples, both
+   connection-lifetime arms, 2048 P1 items, 10000 P2 entries, 4095-entry page, two-millisecond tail
+   interval, original creation-to-reopen deadline and every final publication/reopen assertion.
+   No deadline increase, source-proof weakening, skipped count/result, new schema strategy or
+   broad refactor is covered. Run one focused unchanged full-workload validation after correction.
+4. **Review and verify once.** Permit one independent review of this correction plus one scoped
+   recheck, at most 25 active minutes combined. After causal regression, focused workload and lint
+   pass, freeze the source and permit one additional complete Daily plus applicable existing
+   hosted/unsigned gates. All local heavy work remains serial. A failed final gate is preserved
+   and ends this follow-up; it grants no further replay. Documentation alone adds no heavy gate.
+
+This adds at most 90 diagnosis/repair minutes and 25 review minutes: cumulative phase charges
+would be at most 370/480 and 46/120 minutes respectively. Preparation/closeout stays within its
+original one-hour allowance. Use the existing 24-variant roster and at most one independent
+delegate, without nested delegation. Unknown causality, an exceeded allowance or a materially
+different repair ends execution at an unresolved checkpoint. C02's historical UIA/1175 failures,
+missing client evidence and external acceptance remain explicit blockers, with no new C02 run
+authorized by this P2 proposal. The full goal remains incomplete until its original exits close.
+
 ### Supplement scope and consumed allowances
 
 The latest admitted supplement covers concurrent diagnosis and causal repair of both named blockers on

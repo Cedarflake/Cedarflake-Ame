@@ -236,6 +236,14 @@ supplement therefore stops at this unresolved checkpoint. C03's owner repair is 
 current-source verified at its guardrail/lint boundary; C01, unexplained C02 and overall candidate
 readiness remain open. Original media and real-library state were not mutation inputs.
 
+Post-checkpoint preparation reads the already retained failure output without executing another
+test. Its tail-only summary is 196185 ms, 6375 polls, 113671 ms in application polling and 66329 ms
+in separate exact-evidence SQL reads. The current completion owner performs that SQL after each
+poll and sleeps two milliseconds. This refines the next diagnostic hypothesis without establishing
+causality or reopening execution. The execution plan contains a separate, unadmitted proposal.
+Preparation and closeout are now conservatively charged at 36 of the original 60 active minutes;
+diagnosis, review and consumed run counts are unchanged.
+
 ## Baseline
 
 - Started: 2026-09-09 05:07 UTC. Branch: `codex/r2c`.
