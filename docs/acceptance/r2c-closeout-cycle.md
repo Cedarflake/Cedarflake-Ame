@@ -3,10 +3,13 @@
 Status: discovery complete; 24-variant roster retained; two-family repair batch frozen.
 
 Current implementation checkpoints: `d91580d` adds the connected root-interleaving regressions;
-`dd3f556` contains the queue-readiness correction, work bounds and observation measurements.
-Their focused checks pass. Applicable lint is interrupted at the separate native probe evidence
-owner; hosted and final-source verification remain open. The same-folder count follow-up below
-does not change this disposition.
+`dd3f556` contains the queue-readiness correction, work bounds and observation measurements;
+`8745198` contains the reviewed retained-connection proof adjustment and boundary regressions.
+Their focused checks pass. The subsequent retained-connection candidate passes focused owner,
+caller, complete priority-group and applicable lint checks. Independent review finds no new
+actionable S0/S1 code defect; its one documentation correction passes the scoped recheck.
+The earlier hosted mixed-load and local native-probe failures remain unresolved, and final-source
+verification remains open. The same-folder count follow-up does not change this disposition.
 
 This record implements the [bounded execution plan](../plans/r2c-closeout.md). The canonical
 [roadmap](../roadmap.md) retains stage and queue authority. Findings belong in the existing
@@ -278,41 +281,13 @@ or erases the separately recorded intermittent native-accessibility failure.
 
 ## Same-folder count discrepancy follow-up
 
-A newly reported recurring count mismatch is checked against the already registered folder by
-reading the existing catalog and enumerating names/attributes only. This diagnostic is separate from
-retained-library client acceptance. It opens no image content, follows no reparse directory, launches
-no client scan and changes neither catalog nor source. Its limits are 150000 directory entries and
-60 seconds, with private path-level results retained only in Git-ignored local diagnostic storage.
-
-The single census completes in 5.681 seconds: 50515 directory entries comprise 830 directories and
-49685 files. The published catalog contains 48624 distinct locations/assets. No supported-extension
-file is missing, no catalog path lacks a current file, and there are no skipped reparse directories
-or enumeration errors. Root modification time is unchanged; this metadata check is not a byte-level
-integrity or placeholder-hydration acceptance result.
-
-The 1061 paths absent from the catalog comprise 960 videos (925 MP4, 34 MOV, one MKV), 42 other
-image-format paths (23 SVG, nine AVIF, nine HEIC, one PSD), and 59 other or unidentified files.
-Extensions establish classification candidates only; the diagnostic does not inspect their bytes.
-All 48605 paths with the nine currently supported extensions are present. Nineteen additional
-signature-admitted paths account for the remaining catalog entries. The unsupported-format gap is
-therefore visible in this collection, while arbitrary supported-extension omission is not observed.
-The comparison application's exact total remains unavailable, so parity with it is not established.
-
-The retained completed foreground scan reports 48514 accepted items, 48624 published assets and
-48899 issues. Its 104 unsupported-decoder and six invalid-decoder issues match active failure-code
-totals of 104 and six. A subsequent read-only join confirms every one of those 110 exact issue paths
-has the same failure code in the active catalog. Another 48605 historical issues report `source_revision_changed_during_scan`,
-exactly the supported-extension population. That pattern requires investigation at discovery/source
-revision admission; it does not prove that all those files changed or were omitted. The catalog also
-retains one comparing inventory and 449 pending queue rows. No scan reset, automatic full rescan,
-new codec dependency or count-only presentation workaround is admitted by this evidence.
-
-A four-file generated first-read probe compares fresh and seven-day-aged PNG bytes under `.png`
-and `.data` names. Identity, modification time, ChangeTime and bytes remain unchanged through
-content open, header read, close and whole-file read; access time changes. This rejects ordinary
-Win32 content reading as a sufficient explanation on the fixture volume. It does not exercise the
-production root-relative NtCreateFile/inspector sequence or explain the retained historical events.
-Output: `build/diagnostics/r2c-revision-first-read.log`; no real source content was accessed.
+The dedicated [count reconciliation record](library-count-reconciliation.md) now owns the complete
+metadata census, generated first-read probes and separately requested desktop comparison. The
+original observations were transferred there, with subsequent results and their scope boundaries;
+they were not dropped. Current same-directory totals are 48663 Photos pictures and 48624 Ame
+entries. All supported-extension paths are present, while 42 other image-format candidates are
+absent. The 110-entry foreground/incremental difference and historical revision anomalies remain
+explicit. The older Release comparison is not final-source client acceptance or convergence proof.
 
 ## Applicable lint interruption
 
@@ -336,6 +311,94 @@ issues. A first direct invocation was interrupted by PowerShell treating ordinar
 as a terminating error; no Cargo/rustc process remained before the corrected invocation checked
 both real exit codes. These scoped checks do not replace the incomplete applicable lint gate.
 
+The two compiler-free evidence probes consume 11 minutes of C02 pass 1. The exact nine-stage
+write/read protocol fails on the second write with Win32 1175 (`0x80070497`), preserving both old
+JSON and new draft. A held non-delete-sharing reader instead yields Win32 32; a production read
+followed by an exclusive open/dispose succeeds. No owned reader leak or parent polling overlap is
+established. Ordinary inherited Allow ACLs and Archive attributes do not prove absence of external
+filesystem interference. The original lint exception contains no retained HRESULT, so the probe's
+code must not be represented as its recovered value. Private evidence and limitations are in
+`build/diagnostics/r2c-uia-file-protocol-diagnosis.md`.
+
+The sole unchanged diagnostic replay uses the original lint's approved execution context to test
+the ordinary-sandbox explanation. It also fails with Win32 1175, on write four after 341 ms; both
+old record and new draft remain. Output:
+`build/diagnostics/r2c-uia-serial-d8e3b6a98ef84ed6a31673d2633946c3/results.json`.
+This rejects an ordinary-sandbox-only explanation. That diagnostic does not rerun complete lint or
+retry replacement. The responsible filesystem actor remains unknown; changing permissions or adding reader
+sharing is not justified. C02 pass 1 retains its original 60-minute active ceiling.
+
+Hosted run `34338261070` at head `a03a1c8` subsequently completes with one failed worker and its
+failed aggregate. Nine workers pass and three intentionally skip. Native accessibility passes both
+cases and all ten phases with application-ready 2566 ms and owned cleanup. Hosted lint also passes,
+including the sequential-file guardrail; it does not explain the retained local failures.
+
+Static/Rust fails with 1490 passed, two failed and 19 ignored in 1536.59 seconds. The connection
+lifetime control fails in its PerEpoch arm at sample 18's original five-second P2 page-start bound;
+its earlier PerPoll 173 ms P95 is not the production result. The full mixed-load test records
+P95 1806 ms, maximum 2545 ms and two samples above one second. At its original 300-second deadline,
+all 2048 P1 candidates and 10000 staged P2 entries exist, but only 9152 of 9216 admitted P2 owners
+are completed. Sixty-four remain leased, the inventory is comparing, authority remains active and
+the root requires recovery. No closing publication or FULL reopen is proved. The original log is
+`build/diagnostics/r2c-hosted-34338261070-static-rust-completed.log`.
+
+C01 pass 1 closes with 55 minutes charged and an unresolved hosted exit. Its second and final
+diagnostic pass begins at 10:53 UTC with the unchanged 60-minute active ceiling. The next hypothesis
+is unnecessary repeated catalog-file identity acquisition within a reusable session: the failed
+run attributes 135.260 seconds to catalog revalidation, including multi-second identity operations.
+Inspect that proof's owning boundary and all namespace-replacement callers, establish a bounded
+operation counterexample before any change, and preserve exact identity/replacement safety.
+Neither caching by path/time nor skipping proof, changing workloads/deadlines or another unchanged
+replay is admitted. C02 remains paused at its recorded evidence checkpoint while C01 is active.
+
+The operation-count regression fails before the second repair: 32 successful reuse proofs perform
+64 fresh identity acquisitions. Its first compile attempt used an unavailable stable-library
+helper and ran no tests; replacing that test-only helper preserves both logs. The actual failing
+result is `build/diagnostics/r2c-c01-identity-before-2.log` (one executed failure, 0.44 seconds).
+
+The retained-connection owner now collects typed read-only schema evidence and always performs
+fresh namespace/file identity validation before returning, including on SQL failure. Initial
+connection opens retain both identity observations. Sixteen owner tests pass in 12.25 seconds,
+including all original maintenance, schema, active-statement and pending-publication cases and new
+within-proof retarget, unreadable-old-schema, and same-file/different-WAL-namespace fixtures.
+The 32-proof operation bound now passes without retaining an identity cache. Output:
+`build/diagnostics/r2c-c01-identity-after.log`.
+
+The unchanged complete priority group passes all ten tests in 426.34 seconds. Its PerPoll control
+records P95 177 ms and 1787 opens/closes; PerEpoch records P95 127 ms, one open and no premature
+close across 5853 polls. The production full-recovery case records P0 P95 112 ms, maximum 113 ms,
+all 2048 P1 candidates and all 10000 P2 staged entries, candidates, owners and completions. Its
+151.336-second recovery tail reaches completed inventory/control, retired authority, current root
+and checkpoint, closing publication and FULL reopen under the original creation-to-reopen bound.
+Output: `build/diagnostics/r2c-c01-identity-mixed-after.log`. These local timings are not a paired
+comparison with the failed hosted machine and do not close the hosted prerequisite.
+
+All six process-owned poll-catalog caller tests also pass with all features in 2.92 seconds,
+including proof revocation, failed replacement, unwinding and retirement of file constraints.
+Output: `build/diagnostics/r2c-c01-identity-caller.log`. The applicable complete lint then exits zero:
+PowerShell guardrails, unchanged formatting, all-target/all-feature Clippy with warnings denied and
+Dart analysis pass. Its sequential native probe guardrail passes this time, without a change to
+that owner; the earlier File.Replace failures remain unexplained. Transcript:
+`build/diagnostics/r2c-c01-identity-lint.log`. This is repair lint, not a final complete Daily.
+
+The proof owner is 105 lines including its test-module declaration, with 266 dedicated general-test
+and 279 dedicated namespace-test lines. Catalog identity is 89 lines including 14 new test-only
+counter lines; no production path cache or additional native API is introduced. The large local-
+files facade gains only a two-line test-counter re-export, with no new production responsibility;
+it remains 7480 lines, comprising 4061 lines before its inline suite and 3419 suite/module lines.
+All original schema, session, lease, transaction, statement and publication-buffer checks remain.
+
+The single independent review covers baseline `228403f` through `ca7dcce` plus the candidate diff.
+It finds no new actionable S0/S1 code defect after examining namespace admission, pinned SQLite
+WAL lifetime, queue semantics, causal evidence and missing coverage. The retained-connection
+change stays within the existing admission invariant; it does not make two time samples equivalent
+for every transient namespace history. Its safety rationale does not assume a permanently held
+writable identity guard. The review identifies one S2 documentation ambiguity: ADR 0024's earlier
+checkpoint describes two observations while ADR 0025 describes current reuse. An explicit link and
+historical-scope clarification resolve that ambiguity. The one scoped recheck confirms the
+correction and finds no new contradiction, using one additional active minute. No product
+code changes follow the review, and known C01/C02 and client/final-source blockers remain open.
+
 ## Execution accounting
 
 Discovery closes with the two connected persistence/production cases above and explicit unresolved
@@ -352,8 +415,9 @@ safety defect or confirmed search-input defect was found. Missing client evidenc
 original blocked variants and does not become an invented third defect family. R2C-C01 diagnostic
 pass 1 begins at 09:17 UTC with a 60-minute active ceiling: verify the measured terminal-history
 query work at its adapter owner, add a failing work-bound regression, establish the typed readiness
-boundary, and compare the unchanged full workload after a causal correction. Its second pass is
-unused. No further whole-load discovery run is admitted; production queries were unchanged at
+boundary, and compare the unchanged full workload after a causal correction. This is the historical
+pass-1 admission; the second and final pass is recorded above. No further whole-load discovery run
+is admitted; production queries were unchanged at
 pass admission. The subsequent work-bound regressions fail on that source before repair:
 256 terminal rows require 14,230 metric VM steps against a 7,168 counting-work ceiling and 4,495
 live-readiness steps against the fixed 1,024 idle-work ceiling. Output:
@@ -366,11 +430,12 @@ concurrent inspection during a tool run still counts as active work. A handoff d
 
 | Phase | Ceiling | Used at last checkpoint |
 | --- | --- | --- |
-| Baseline and discovery | 4 h | 150 min charged; complete, including delegated work, failed fixture attempts and final query-cost measurement |
-| Triage | 1 h | 35 min charged, including the new same-folder report, code inspection and bounded read-only comparison; two repair families remain admitted |
-| Diagnosis and repair | 8 h | 45 min charged to R2C-C01 pass 1; query correction, focused queue/mixed-load tests and static analysis pass; lint/hosted exit pending. R2C-C02 pass 1 began 09:55 UTC for the newly observed active-gate interruption |
-| Independent review and scoped recheck | 2 h | Not started |
+| Baseline and discovery | 4 h | 176 min charged; original discovery complete, plus the explicitly requested 26-minute desktop count comparison |
+| Triage | 1 h | 48 min charged, including count/admission analysis and the generated production first-read probe; two repair families remain admitted |
+| Diagnosis and repair | 8 h | C01 pass 1 closes at 55 min with hosted failure; pass 2 has 40 min charged at this checkpoint, including delegated proof inspection, with its original 60 min maximum. C02 pass 1 has 26 min charged and is paused; the failed context-comparison replay remains retained |
+| Independent review and scoped recheck | 2 h | 11 active minutes total: one 10-minute review plus the one-minute scoped recheck; both complete and both invocation allowances exhausted |
 | Closeout recording | 1 h | Not started |
 
-Final complete Daily invocations: 0. Unchanged diagnostic replays: 0. Independent final reviews: 0.
+Final complete Daily invocations: 0. Unchanged diagnostic replays: 1 executed; allowance exhausted.
+Independent final reviews: 1 completed; the one scoped recheck is also complete. No further round is admitted.
 The controlled cycle and the separately authorized external/client acceptance remain open.

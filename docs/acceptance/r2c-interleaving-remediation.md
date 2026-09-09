@@ -13,10 +13,12 @@ It does not infer safety from isolated green tests or claim that every possible 
 
 Reproductions use generated disposable sources, isolated catalogs, and controlled application
 ports. Those controlled reproductions do not access retained source roots, live user catalogs,
-cloud placeholders, installed services or original media. A later same-folder count diagnostic
-reads the existing catalog and source directory names/attributes only, as recorded in the
-[cycle evidence](r2c-closeout-cycle.md#same-folder-count-discrepancy-follow-up). It modifies neither
-catalog nor source and is not real-library or signed/installed-service acceptance.
+cloud placeholders, installed services or original media. A later same-folder diagnostic reads
+catalog and directory metadata; a separately requested desktop comparison also opens the existing
+Release client and permits its normal derived-state work. The
+[count record](library-count-reconciliation.md) preserves these distinct scopes, artifact identities,
+private-path boundary and source-verification limitations. Neither is final retained-library or
+signed/installed-service acceptance.
 The active delivery order remains in [the canonical roadmap](../roadmap.md).
 
 The active [controlled closeout cycle](r2c-closeout-cycle.md) freezes 24 variants and records their
@@ -31,29 +33,37 @@ is frozen to these two existing blocker families, with R2C-C01 first:
 Current C01 checkpoint `dd3f556` removes the reproduced terminal-history projection/eligibility
 work. All 113 queue cases and ten priority cases pass; the unchanged complete mixed workload
 retains P95 109 ms and all 10000 P2 results through FULL reopen. Clippy and Dart analysis pass.
-The applicable lint is blocked by a newly observed `File.Replace` failure in C02's progress-record
-guardrail. Its narrow diagnostic interruption and preserved failure are recorded in the
-[cycle evidence](r2c-closeout-cycle.md#applicable-lint-interruption). Hosted verification remains
-required before C01 exit; neither this local checkpoint nor the earlier green baseline accepts it.
+An earlier applicable lint is blocked by a newly observed `File.Replace` failure in C02's progress-
+record guardrail. Its narrow diagnostic interruption and preserved failure are recorded in the
+[cycle evidence](r2c-closeout-cycle.md#applicable-lint-interruption). Hosted run `34338261070`
+then fails both priority connection-control and full mixed-load cases: production P95 is 1806 ms,
+and only 9152 P2 owners finish within 300 seconds. Hosted lint/native gates pass. C01's second and
+final diagnostic pass targets measured catalog-identity revalidation cost with all original source-
+replacement admission invariant intact. Retained-connection checkpoint `8745198` passes all 16 owner and
+six caller cases, the original ten-test priority group and complete applicable lint; its local full
+mixed-load P95 is 112 ms with complete recovery and FULL reopen. The unchanged file guardrail also
+passes in this invocation, without explaining the earlier failures. Independent review and its
+scoped documentation recheck complete with no new actionable S0/S1 defect. Current hosted evidence
+is still required; local success and the earlier green baseline do not close C01.
 
 Missing EXE-restart, safe Release-client and connected multi-root-overlap evidence is tracked against
 the frozen variants. Those gaps are not new diagnosed defects or additional admitted repair families.
 No third repair family is admitted. The missing EXE/Release paths remain mandatory coverage work
-under item 3, not waived cases. Current diagnosis pass 1 for R2C-C01 has a 60-minute active ceiling:
-test the hypothesis that eligibility checks traverse completed history and exact metrics evaluate
-active-state projections on terminal rows. Use query VM-work regressions and unchanged full-load
-before/after evidence; no schema, new index dependency, workload or deadline change is admitted.
-Establish the typed queue-read boundary before changing the oversized queue facade. Item 3 repair
+under item 3, not waived cases. Pass 1 for R2C-C01 was admitted with a 60-minute active ceiling to
+test whether eligibility checks traverse completed history and exact metrics evaluate active-state
+projections on terminal rows. Its query VM-work regressions and full-load comparison preserve the
+schema, optional-index contract, workload and deadlines; the typed readiness owner precedes the
+facade change. The cycle record owns current pass-2 accounting. Item 3 repair
 waits for item 2's controlled and hosted exit. Later local success cannot close unexplained hosted
 failures, and a failed diagnostic hypothesis cannot create another implicit investigation round.
 
-The additional same-folder count report remains a UX-02A/UX-03A correctness investigation with
-severity and repair admission pending evidence. The metadata-only census reconciles 49685 files
-against 48624 catalog locations: no currently supported-extension path is omitted, while 42 paths
-use unsupported image formats, 960 are videos and 59 are other or unidentified files. The completed
-scan's 48605 source-revision-change issues require separate admission analysis. This report must
-receive an explicit disposition before readiness; it neither silently adds format expansion to
-the batch nor becomes a reason to dismiss a proven core-workflow defect.
+The additional UX-02A/UX-03A [count investigation](library-count-reconciliation.md) now reproduces
+48663 Photos pictures versus 48624 Ame entries in the same directory, with videos counted separately.
+Its census finds 42 absent image-format candidates and no missing currently supported-extension
+path. The retained successful-scan count is another 110 lower, matching exact terminal-failure paths
+later published by incremental reconciliation. Retained revision issues remain unexplained; the
+earlier larger-gap estimate was withdrawn as unreliable. Severity and repair admission remain pending the owning-policy
+disposition; neither format expansion nor a third repair family is silently admitted.
 
 ## Owning invariants
 

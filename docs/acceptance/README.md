@@ -12,6 +12,7 @@ recorded local checkpoint does not establish that the current product source pas
 | [Library continuity contract](library-continuity.md) | R2c safety, ownership, queue, reconciliation, failure, lifecycle, and acceptance requirements |
 | [Interleaving remediation](r2c-interleaving-remediation.md) | Current accumulated runtime findings, bounded retirement, mixed-load failures, native evidence, and source-specific results |
 | [Browsing recovery](synchronization-browsing-recovery.md) | The 2026-09-09 source-version, query-snapshot, and folder recovery correction and its verification limits |
+| [Library count reconciliation](library-count-reconciliation.md) | Same-directory Photos/Ame totals, metadata path census, admission differences and unresolved historical revision evidence |
 | [Runtime lifecycle audit](r2c-runtime-lifecycle-audit.md) | Cross-workflow findings and ownership/physical-size evidence |
 | [Media and publication audit](r2c-media-and-publication-audit.md) | Real media encodings, publication boundaries, and related audit evidence |
 | [Gallery foundation](gallery-foundation.md) | Historical R0/R1/R2a/R2b acceptance, frozen interaction comparison, and retained preview/geometry requirements |
