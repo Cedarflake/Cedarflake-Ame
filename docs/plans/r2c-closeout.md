@@ -1,6 +1,6 @@
 # R2c closeout execution
 
-Status: **active; discovery complete, repair batch frozen, mixed-load diagnosis first**.
+Status: **unresolved verification checkpoint; further repair awaits bounded scope revision**.
 
 The [cycle evidence](../acceptance/r2c-closeout-cycle.md) records the frozen source, selected
 variants, execution budgets, findings, and verification. Its status does not accept R2c.
@@ -10,6 +10,28 @@ This document supplies execution details for the
 stage or independent priority list. Its outcome is one reviewed candidate with evidence for the
 fixed workflows below, plus an explicit disposition of every discovered issue. It does not
 promise that all possible defects have been found or that R2c's external acceptance is complete.
+
+The first complete Daily on candidate `fa1eff0` fails after the independent review and its scoped
+recheck, in the existing R2c-R owned-fixture cleanup guardrail. The cycle record owns the exact
+failure and retained evidence. Already dispatched hosted checks may finish; further repair is
+paused under the stopping rule for additional blocking findings after review. No invocation or
+active-time budget is reset.
+
+### Proposed diagnostic supplement — not yet admitted
+
+The smallest next decision is one additional diagnostic scope, limited to 45 active minutes within
+the existing eight-hour diagnosis/repair ceiling. It examines C02/C03's derived-file lifetime and
+cleanup evidence owners, without assuming a shared cause. Prepare one bounded owned-fixture run
+that records the original exception, immediate child names/identities and owned handle retirement;
+stop at the first unexpected failure and retain scratch. Reuse existing native safety primitives.
+Do not repeat the unchanged nine-stage probe, rerun full Daily, alter delete sharing/permissions,
+add retries, install tracing software, or access real libraries. This supplement admits no product
+repair or additional independent review. Its output is a causal finding or an explicit unresolved
+report and a concrete repair/review proposal. C01 keeps its existing final diagnostic-pass limit;
+this supplement cannot reopen it or turn a failed hosted result into acceptance.
+
+Accepting that supplement changes diagnostic scope only. Any later repair and the additional review
+it would require need a bounded revised plan; neither follows automatically from this proposal.
 
 Use the existing `codex/r2c` branch for this closeout, including fixes, investigation planning, and
 documentation organization. Separate rollback boundaries with commits; do not create another branch

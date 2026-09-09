@@ -1,6 +1,6 @@
 # R2c controlled closeout cycle
 
-Status: discovery complete; 24-variant roster retained; two-family repair batch frozen.
+Status: unresolved verification checkpoint; 24-variant roster retained; original two-family repair batch preserved.
 
 Current implementation checkpoints: `d91580d` adds the connected root-interleaving regressions;
 `dd3f556` contains the queue-readiness correction, work bounds and observation measurements;
@@ -8,8 +8,10 @@ Current implementation checkpoints: `d91580d` adds the connected root-interleavi
 Their focused checks pass. The subsequent retained-connection candidate passes focused owner,
 caller, complete priority-group and applicable lint checks. Independent review finds no new
 actionable S0/S1 code defect; its one documentation correction passes the scoped recheck.
-The earlier hosted mixed-load and local native-probe failures remain unresolved, and final-source
-verification remains open. The same-folder count follow-up does not change this disposition.
+The earlier hosted mixed-load and local native-probe failures remain unresolved. The first complete
+Daily fails in the existing R2c-R guardrail before Rust/Flutter tests, introducing a post-review
+verification blocker. Further repair is paused at the plan's scope-review boundary while the
+already dispatched hosted run completes. The same-folder count follow-up does not change this disposition.
 
 This record implements the [bounded execution plan](../plans/r2c-closeout.md). The canonical
 [roadmap](../roadmap.md) retains stage and queue authority. Findings belong in the existing
@@ -401,6 +403,45 @@ code changes follow the review, and known C01/C02 and client/final-source blocke
 
 ## Execution accounting
 
+### Candidate verification checkpoint
+
+Candidate source is frozen at `fa1eff03a18d6329f0231a83ac94216420e8eac7`, which is confirmed equal
+to remote `codex/r2c`. No new branch is created. Hosted run
+[34347019582](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/34347019582) is running on
+that head. Freezing this candidate does not close the known C01/C02 or client coverage obligations.
+
+The local unsigned Windows gate passes on the clean candidate, from 11:44:18 to 11:52:17 UTC.
+It builds the Release application, verifies all three engine-free native window cases and both
+Debug-engine retirement cases, builds the broker and passes the isolated Release bridge smoke.
+Native process exit and Job closure are confirmed with no cleanup failure. The payload contains
+19 files, 79425956 bytes and 172 Rust source dependencies; the packaged Rust DLL SHA-256 is
+`4d8eb022f5e7021340c6dfac08b959c2dec2d7fb33aaf9d061464dbad60ac14c`.
+It accesses no catalog and is not signing, installation or real-library client acceptance.
+Output and copied evidence are `build/diagnostics/r2c-fa1eff0-unsigned.log` and
+`build/diagnostics/r2c-fa1eff0-unsigned-evidence.json`.
+
+The first complete serial Daily runs after the unsigned command and exits one at 11:54:28 UTC.
+It stops in lint's existing R2c-R guardrail: safe cleanup sees a nonempty owned fixture root and
+refuses traversal/deletion. Rust tests, Flutter tests, both native integrations and final bridge
+checks do not execute in this Daily. The original transcript is
+`build/diagnostics/r2c-fa1eff0-final-daily-1.log`, SHA-256
+`09A90CD17AEF0A1C6FBD6913027B1974377AA45ABECC2E654B21EC42372B4FC2`.
+
+This new R2C-C03 verification finding is S1 for the required gate, with root-cause and repair
+admission unresolved. It is not evidence of source-media deletion or a third proven independent
+product defect. The guard correctly retains the scratch root. The log places failure after the
+zero-test rejection and before the anchor/junction fixture completes; it contains neither the
+failing instant's child inventory nor the original exception if a finally-cleanup failure masked
+one. A post-failure metadata observation at 11:56:23 UTC finds the same path empty, without proving
+physical identity continuity or the earlier child's lifetime. It does not justify a cleanup retry,
+an external-interference attribution or grouping this with C02's File.Replace failure.
+
+The root and logs remain untouched after read-only inspection. Private metadata evidence is
+`build/diagnostics/r2c-fa1eff0-daily-retained-root.json`. No unchanged replay or second Daily is run.
+The post-review finding invokes the plan's bounded replanning rule; the one further complete Daily
+still requires a causal correction or verified execution-environment remedy. Passing hosted
+partitions cannot replace this failed complete invocation.
+
 Discovery closes with the two connected persistence/production cases above and explicit unresolved
 EXE/Release interaction evidence. It does not declare all 24 variants accepted. The last query-cost
 fixture passes FULL validation and confirms exact idle results while measuring avoidable work:
@@ -431,11 +472,11 @@ concurrent inspection during a tool run still counts as active work. A handoff d
 | Phase | Ceiling | Used at last checkpoint |
 | --- | --- | --- |
 | Baseline and discovery | 4 h | 176 min charged; original discovery complete, plus the explicitly requested 26-minute desktop count comparison |
-| Triage | 1 h | 48 min charged, including count/admission analysis and the generated production first-read probe; two repair families remain admitted |
+| Triage | 1 h | 54 min charged, including count/admission analysis, the generated first-read probe and read-only preservation of the post-review gate failure; two repair families remain admitted |
 | Diagnosis and repair | 8 h | C01 pass 1 closes at 55 min with hosted failure; pass 2 has 40 min charged at this checkpoint, including delegated proof inspection, with its original 60 min maximum. C02 pass 1 has 26 min charged and is paused; the failed context-comparison replay remains retained |
 | Independent review and scoped recheck | 2 h | 11 active minutes total: one 10-minute review plus the one-minute scoped recheck; both complete and both invocation allowances exhausted |
-| Closeout recording | 1 h | Not started |
+| Closeout recording | 1 h | 8 min charged for source freeze, verification results and unresolved checkpoint preparation |
 
-Final complete Daily invocations: 0. Unchanged diagnostic replays: 1 executed; allowance exhausted.
+Final complete Daily invocations: 1 failed. Unchanged diagnostic replays: 1 executed; allowance exhausted.
 Independent final reviews: 1 completed; the one scoped recheck is also complete. No further round is admitted.
 The controlled cycle and the separately authorized external/client acceptance remain open.
