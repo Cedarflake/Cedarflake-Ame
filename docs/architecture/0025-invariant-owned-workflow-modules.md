@@ -81,6 +81,15 @@ persistence layers.
   replacement cannot acquire removal authority while a root or run remains. The removal
   transaction and `migrations/retired_root_authority.rs` share the same strict durable proof;
   compatibility repair preserves history, validates the complete catalog, and rolls back on failure.
+- `sqlite_catalog/change_queue/readiness.rs` owns read-only lane eligibility and recovery
+  readiness. Its typed query context binds root, generation, time and policy while preserving
+  the original input-validation requirements of each operation. Eligibility filters exclude
+  terminal queue history before evaluating due work; retry, expired-lease, recovery-affinity and lineage checks remain part of
+  their original query. Readiness is a scheduling hint, never a replacement for transactional
+  lease admission. `change_queue/metrics.rs` separately owns exact observation totals: terminal
+  records are counted without evaluating active-state projections, in the same SQL statement and
+  snapshot as active counts and failure evidence. Neither owner depends on one hard-coded index
+  name or discards retained history to reduce observation cost.
 - `sqlite_catalog/metadata_inventory/lifecycle.rs` owns inventory-start and terminal-cleanup
   admission. Restoring an existing run reads its frontier and active-root evidence in one short
   read snapshot; a missing run ends that snapshot before writer admission and epoch allocation.

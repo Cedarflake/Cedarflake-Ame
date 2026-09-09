@@ -14,11 +14,19 @@ impl ProductionSynchronization {
         if self.runtime.has_reserved_ingress() {
             return Ok(());
         }
-        catalog.finalize_ready_first_import_journal_baseline(poll_unix_ms)?;
-        self.schedule_next_live_work(catalog, snapshot, poll_unix_ms, storage)?;
-        self.schedule_next_journal_work(catalog, snapshot, change_capture_unix_ms, storage)?;
+        measure_observation("scheduling_first_import_completion", || {
+            catalog.finalize_ready_first_import_journal_baseline(poll_unix_ms)
+        })?;
+        measure_observation("scheduling_live", || {
+            self.schedule_next_live_work(catalog, snapshot, poll_unix_ms, storage)
+        })?;
+        measure_observation("scheduling_journal", || {
+            self.schedule_next_journal_work(catalog, snapshot, change_capture_unix_ms, storage)
+        })?;
         if self.recovery.is_none()
-            && let Some(work) = ready_recovery_work(self, catalog, snapshot, poll_unix_ms)?
+            && let Some(work) = measure_observation("scheduling_recovery_selection", || {
+                ready_recovery_work(self, catalog, snapshot, poll_unix_ms)
+            })?
         {
             let root_id = work.root_id().to_owned();
             let root_generation = work.root_generation();

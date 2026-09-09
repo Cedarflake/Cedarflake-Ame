@@ -1,12 +1,17 @@
 #[cfg(debug_assertions)]
 use std::io::Write;
-#[cfg(debug_assertions)]
+#[cfg(any(debug_assertions, test))]
 use std::time::{Duration, Instant};
 
+#[cfg(test)]
+pub(super) mod capture;
+
 pub(super) fn measure_observation<T>(stage: &'static str, operation: impl FnOnce() -> T) -> T {
-    #[cfg(debug_assertions)]
+    #[cfg(any(debug_assertions, test))]
     let started = Instant::now();
     let result = operation();
+    #[cfg(test)]
+    capture::record(stage, started.elapsed());
     #[cfg(debug_assertions)]
     {
         let elapsed = started.elapsed();

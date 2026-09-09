@@ -27,6 +27,7 @@ use crate::ports::{CatalogRepository, MetadataInventoryRepository, PersistentJou
 use super::*;
 
 mod metrics;
+mod readiness;
 mod terminal_cleanup;
 
 #[test]

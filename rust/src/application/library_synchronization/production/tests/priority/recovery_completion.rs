@@ -25,6 +25,25 @@ struct Evidence {
     root: String,
 }
 
+#[derive(Default)]
+struct ObservationTiming {
+    polls: u64,
+    poll_wall: Duration,
+    evidence_wall: Duration,
+}
+
+impl ObservationTiming {
+    fn report(&self, elapsed: Duration) {
+        eprintln!(
+            "controlled recovery observation elapsed_ms={} polls={} poll_ms={} evidence_ms={}",
+            elapsed.as_millis(),
+            self.polls,
+            self.poll_wall.as_millis(),
+            self.evidence_wall.as_millis(),
+        );
+    }
+}
+
 impl Evidence {
     fn completed(total: usize) -> Self {
         let total = i64::try_from(total).expect("fixture total");
@@ -99,21 +118,37 @@ pub(super) fn drive_to_publication(
     ) -> Result<LibrarySynchronizationSnapshot, ScanError>,
 ) {
     let started = Instant::now();
+    let mut timing = ObservationTiming::default();
+    let mut next_report = Duration::from_secs(10);
     loop {
+        if Instant::now() >= target.deadline {
+            timing.report(started.elapsed());
+        }
         assert!(
             Instant::now() < target.deadline,
             "full recovery exceeded its creation-to-reopen budget: {:?}; queue={:?}",
             evidence(connection, target),
             priority_queue_progress(connection),
         );
+        let poll_started = Instant::now();
         let snapshot =
             poll(production, storage).expect("continue the original mixed-load recovery");
+        timing.poll_wall += poll_started.elapsed();
+        timing.polls += 1;
+        let evidence_started = Instant::now();
         let current = evidence(connection, target);
+        timing.evidence_wall += evidence_started.elapsed();
+        if started.elapsed() >= next_report {
+            timing.report(started.elapsed());
+            eprintln!("controlled recovery progress evidence={current:?}");
+            next_report = started.elapsed() + Duration::from_secs(10);
+        }
         let synchronized = snapshot.roots.iter().any(|root| {
             root.root_id == target.root_id
                 && root.freshness == crate::domain::CatalogFreshnessState::Synchronized
         });
         if current == Evidence::completed(target.entry_count) && synchronized {
+            timing.report(started.elapsed());
             eprintln!(
                 "controlled mixed-load full recovery tail_ms={} entries={} evidence={current:?}",
                 started.elapsed().as_millis(),

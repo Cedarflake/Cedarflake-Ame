@@ -84,8 +84,10 @@ fn load_filtered_metrics(
                COALESCE(SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END), 0),
                COALESCE(SUM(CASE WHEN status = 'leased' THEN 1 ELSE 0 END), 0),
                COALESCE(SUM(CASE WHEN status = 'retry_wait' THEN 1 ELSE 0 END), 0),
-               COALESCE(SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END), 0),
-               COALESCE(SUM(CASE WHEN status = 'superseded' THEN 1 ELSE 0 END), 0),
+               (SELECT COUNT(*) FROM library_change_queue
+                WHERE {root_predicate} AND status = 'completed'),
+               (SELECT COUNT(*) FROM library_change_queue
+                WHERE {root_predicate} AND status = 'superseded'),
                COALESCE(SUM(CASE WHEN
                  (status = 'pending' AND ready_unix_ms <= ?1 AND attempt_count < ?2)
                  OR
@@ -150,7 +152,7 @@ fn load_filtered_metrics(
                 ORDER BY {exhausted_order}
                 LIMIT 1)
              FROM library_change_queue
-             WHERE {root_predicate}"
+             WHERE {root_predicate} AND status IN ('pending', 'leased', 'retry_wait')"
             ),
             params![
                 now_unix_ms,

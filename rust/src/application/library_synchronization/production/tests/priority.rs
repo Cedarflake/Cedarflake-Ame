@@ -73,6 +73,7 @@ fn priority_inventory_progress(
 
 #[test]
 fn p0_event_to_visible_p95_stays_below_one_second_with_p1_and_p2_active() {
+    let _observations = crate::application::library_synchronization::observation_diagnostics::capture::ObservationCapture::start();
     let p95 = run_priority_workload(
         poll_runtime_with_storage,
         CompletionBoundary::PublishedBaseline,

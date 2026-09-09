@@ -54,6 +54,28 @@ pub(super) fn log_synchronization_poll_diagnostic(
     timings: &SynchronizationPollStageTimings,
     result: &Result<LibrarySynchronizationSnapshot, ScanError>,
 ) {
+    #[cfg(test)]
+    {
+        use super::super::observation_diagnostics::capture::record;
+
+        record("poll_total", elapsed);
+        for (stage, milliseconds) in [
+            ("poll_catalog", timings.catalog_ms),
+            ("poll_observation", timings.observation_ms),
+            ("poll_lanes", timings.lanes_ms),
+            ("poll_scheduling", timings.scheduling_ms),
+            ("poll_projection", timings.projection_ms),
+            (
+                "poll_checkout_return",
+                timings.checkout_return_ms.unwrap_or_default(),
+            ),
+        ] {
+            record(
+                stage,
+                Duration::from_millis(u64::try_from(milliseconds).expect("poll duration")),
+            );
+        }
+    }
     #[cfg(debug_assertions)]
     {
         const SLOW_POLL: Duration = Duration::from_millis(500);

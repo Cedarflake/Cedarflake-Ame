@@ -5,6 +5,8 @@ use std::sync::{
 
 use super::*;
 
+mod retained_history;
+
 #[derive(Clone, Copy, Debug)]
 enum UnrelatedHistory {
     OtherRootTerminal,
