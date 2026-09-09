@@ -97,6 +97,16 @@ try {
         Assert-AmeUiaProbeEvidence ($roundTrip.$field -ceq $result.$field) "success lost $field"
     }
 
+    $timed = $baseline.Clone()
+    $timed.StageMilliseconds = [ordered]@{ "loading-uia-client" = 7400L; "finding-elements" = 200L }
+    $timed.EvidenceWriteMilliseconds = 30L
+    Write-AmeWindowsUiaProbeRecord @timed
+    $timedResult = Complete-AmeWindowsUiaProbe @request -Cleanup (New-AmeWindowsAccessibilityCleanup)
+    $timedLine = Format-AmeWindowsUiaProbeTranscript -Record $timedResult
+    $timedRoundTrip = $timedLine.Substring($prefix.Length) | ConvertFrom-Json
+    Assert-AmeUiaProbeEvidence ($timedRoundTrip.stageMilliseconds.'loading-uia-client' -eq 7400) "stage timing was lost in real record publication"
+    Assert-AmeUiaProbeEvidence ($timedRoundTrip.evidenceWriteMilliseconds -eq 30) "evidence publication timing was lost"
+
     $mainPath = Join-Path $PSScriptRoot "integration_test_windows_accessibility.ps1"
     $mainAst = [Management.Automation.Language.Parser]::ParseFile($mainPath, [ref]$null, [ref]$null)
     $phaseAssignment = @($mainAst.EndBlock.Statements | Where-Object {

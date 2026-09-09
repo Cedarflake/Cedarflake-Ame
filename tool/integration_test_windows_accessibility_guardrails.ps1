@@ -6,6 +6,7 @@ $ErrorActionPreference = "Stop"
 & (Join-Path $PSScriptRoot "integration_test_windows_accessibility_cleanup.ps1")
 & (Join-Path $PSScriptRoot "integration_test_windows_accessibility_cache_scope.ps1")
 & (Join-Path $PSScriptRoot "integration_test_windows_accessibility_probe_evidence.ps1")
+& (Join-Path $PSScriptRoot "integration_test_windows_accessibility_timing.ps1")
 
 $repositoryRoot = Get-AmeRepositoryRoot
 $buildRoot = [System.IO.Path]::GetFullPath((Join-Path $repositoryRoot "build"))

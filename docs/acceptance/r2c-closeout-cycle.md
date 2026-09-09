@@ -32,6 +32,49 @@ resolve the hosted failure. The first instrumentation build fails Rust borrow ch
 fixture executes; that log is retained. The corrected build detaches the optional identity result
 from its path result before returning either error.
 
+The corrected instrumentation builds in 59.68 seconds and its unchanged two-arm fixture passes
+one test in 347.76 seconds (1515 library cases filtered, no ignored selected case). PerPoll records
+1759 opens/closes and P95 516 ms; PerEpoch records one open, the required final retirement, and
+P95 261 ms. Both retain 25 P0 samples, all 2048 P1 completions and the original first-page control
+boundary. This is not the separate full-recovery gate. Nine identity observations exceed 25 ms:
+the maximum individual open/path/ID/close observations are 64105/354/30/26929 microseconds. No
+eight-second local stall is reproduced. Evidence: `r2c-c01-native-stages-before-2.log`.
+The same test-only instrumentation is dispatched as `84f2f21` in hosted run `34353739432` to resolve
+the original environment's missing operation attribution. Product behavior remains unchanged.
+
+That Static/Rust job ends failed at 13:35:28 UTC: 1496 pass, one fails and 19 remain ignored in
+1764.17 seconds. The PerPoll control fails at sample 24 after 5215 ms total polling; one journal-mode
+proof takes 3420 ms and a recovery worker reports 5868 ms in the same proof. Sample 24 has no
+fresh-identity observation above the 25 ms instrumentation threshold. Earlier PerPoll samples do
+show 537/687 ms identity calls dominated by handle closure. The separate full production case passes
+with 25 P0 samples, P95 197 ms, maximum 775 ms, all P1/P2 results and its required final reopen.
+Across later cases, identity-handle closure repeatedly costs 1–4 seconds, with one 8154323 us close
+while its open/path/ID cost 37/103/7 us. That largest close belongs to the separate 4096-file case,
+not the failed control. The result establishes a native retirement stall and a separate SQL-proof
+stall; it does not identify one common OS actor or justify weakening either proof. Complete log:
+`r2c-hosted-34353739432-static-rust.log`, SHA-256
+`47F2512A53270871AB092C22D4EA32DF5858EA0C89F576FBB122D54BDBDF2E37`.
+
+That run also reproduces C02's existing native deadline failure in job `102473233415`: the first
+native phase succeeds in 909 ms; `application-ready` exceeds its eight-second parent deadline.
+Retained post-cleanup evidence is complete on attempt one with 126 elements and 7650 ms child time;
+the native process exits and its Job closes without cleanup failure. This is not a File.Replace
+failure. The log is `r2c-hosted-34353739432-accessibility.log`. A bounded timing owner now records
+the fixed ten internal stages, cumulative evidence-publication cost and parent elapsed time on
+failure. The existing record format, atomic file replacement, acceptance assertions and deadlines
+are unchanged. In-memory repeated-stage conservation, malformed timing and backwards-clock checks
+pass; native operation attribution still requires the single admitted stage-timed gate execution.
+
+The stage-timed local native gate passes on the unchanged product and instrumented probe: Debug
+build 51.5 seconds, both Flutter cases and all ten ordered native phases pass, with process exit,
+Job closure and scratch removal confirmed. `application-ready` takes 2271 ms, including 1529 ms in
+element finding and 281 ms accumulated evidence publication. The nine other phases take 564–1860 ms.
+The final record excludes its own publication and process exit; successful parent enforcement is
+separate evidence. Output: `r2c-uia-native-stage-timing.log` and
+`r2c-uia-native-stage-timing-output.log`. No eight-second or File.Replace failure is reproduced
+locally; neither historical failure is closed by this pass. Full probe guardrails also pass,
+including the owned child timeout that retains its original failure and parent elapsed time.
+
 ## Baseline
 
 - Started: 2026-09-09 05:07 UTC. Branch: `codex/r2c`.

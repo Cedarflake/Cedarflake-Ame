@@ -1,4 +1,5 @@
 . (Join-Path $PSScriptRoot "integration_windows_accessibility_cleanup.ps1")
+. (Join-Path $PSScriptRoot "integration_windows_accessibility_timing.ps1")
 
 function Write-AmeWindowsUiaProbeRecord {
     param(
@@ -15,7 +16,9 @@ function Write-AmeWindowsUiaProbeRecord {
         [ValidateRange(0, 2147483647)] [int]$ElementCount = 0,
         [ValidateRange(0, 2147483647)] [int]$ElapsedMilliseconds = 0,
         [AllowNull()] [string]$LastMismatch,
-        [AllowNull()] [string]$Failure
+        [AllowNull()] [string]$Failure,
+        [AllowNull()] [System.Collections.IDictionary]$StageMilliseconds,
+        [ValidateRange(0, 2147483647)] [long]$EvidenceWriteMilliseconds = 0
     )
 
     $record = [ordered]@{
@@ -33,8 +36,12 @@ function Write-AmeWindowsUiaProbeRecord {
         lastMismatch = $(if ($LastMismatch) { $LastMismatch } else { $null })
         failure = $(if ($Failure) { $Failure } else { $null })
     }
+    if ($null -ne $StageMilliseconds) {
+        $record.stageMilliseconds = $StageMilliseconds
+        $record.evidenceWriteMilliseconds = $EvidenceWriteMilliseconds
+    }
     $utf8 = [System.Text.UTF8Encoding]::new($false)
-    $payload = $record | ConvertTo-Json -Compress
+    $payload = $record | ConvertTo-Json -Compress -Depth 4
     if ($utf8.GetByteCount($payload) -gt 65536) {
         throw "Windows UIA probe evidence exceeds its bounded record size"
     }
@@ -93,6 +100,7 @@ function Read-AmeWindowsUiaProbeRecord {
             throw "Windows UIA probe evidence has an invalid diagnostic field"
         }
     }
+    Assert-AmeWindowsUiaTimingRecord -Record $record
     return $record
 }
 
@@ -156,7 +164,7 @@ function Complete-AmeWindowsUiaProbe {
 function Format-AmeWindowsUiaProbeTranscript {
     param([Parameter(Mandatory = $true)] [object]$Record)
 
-    return "AME_WINDOWS_UIA_PROBE_RESULT $($Record | ConvertTo-Json -Compress)"
+    return "AME_WINDOWS_UIA_PROBE_RESULT $($Record | ConvertTo-Json -Compress -Depth 4)"
 }
 
 function Get-AmeWindowsAccessibilityCompletionOutput {
@@ -185,6 +193,11 @@ function Get-AmeWindowsAccessibilityCompletionOutput {
         )
         probeProgress = $(
             if ($null -ne $RunFailure) { $RunFailure.Data["ameWindowsUiaProbeProgress"] } else { $null }
+        )
+        probeParentElapsedMilliseconds = $(
+            if ($null -ne $RunFailure) {
+                $RunFailure.Data["ameWindowsUiaProbeParentElapsedMilliseconds"]
+            } else { $null }
         )
         probeCleanupFailure = $(
             if ($null -ne $RunFailure) { $RunFailure.Data["ameWindowsUiaProbeCleanupFailure"] } else { $null }

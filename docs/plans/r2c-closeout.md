@@ -40,6 +40,10 @@ and teardown, with original failures preserved and applicable final-source check
   diagnostic experiments per lane; every experiment must produce new evidence. Focused regressions
   and one post-correction workload validation are separate bounded verification. No unchanged replay
   allowance is renewed. Unknown causality at the limit produces an unresolved finding.
+- The current hosted recurrence of C02's original eight-second UIA timeout additionally warrants
+  one stage-timed execution of the unchanged native gate, within these same active-time ceilings.
+  Timing records separate existing stage work from evidence publication and parent wall time;
+  they do not relax the deadline, phase roster, complete-result proof or owned-process retirement.
 - Admit one independent review of the supplement and one scoped correction recheck, together at most
   60 active minutes inside the existing review ceiling. Earlier invocations stay recorded. Each
   implementation must be reviewed by an executor independent of that change.

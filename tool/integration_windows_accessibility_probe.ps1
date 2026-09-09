@@ -15,6 +15,7 @@ $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "integration_windows_accessibility_activation.ps1")
 . (Join-Path $PSScriptRoot "integration_windows_accessibility_assemblies.ps1")
 $probeElapsed = [System.Diagnostics.Stopwatch]::StartNew()
+$script:probeTiming = New-AmeWindowsUiaTiming
 
 $script:probeRecord = @{
     ResultPath = $ResultPath
@@ -34,9 +35,17 @@ $script:probeRecord = @{
 function Publish-AmeWindowsUiaProbeProgress {
     param([Parameter(Mandatory = $true)] [string]$Stage)
 
+    $now = $probeElapsed.ElapsedMilliseconds
+    Set-AmeWindowsUiaTimingStage -Timing $script:probeTiming -Stage $Stage -ElapsedMilliseconds $now
     $script:probeRecord.Stage = $Stage
-    $script:probeRecord.ElapsedMilliseconds = $probeElapsed.ElapsedMilliseconds
-    Write-AmeWindowsUiaProbeRecord @script:probeRecord
+    $script:probeRecord.ElapsedMilliseconds = $now
+    $script:probeRecord.StageMilliseconds = $script:probeTiming.StageMilliseconds
+    $script:probeRecord.EvidenceWriteMilliseconds = $script:probeTiming.EvidenceWriteMilliseconds
+    try {
+        Write-AmeWindowsUiaProbeRecord @script:probeRecord
+    } finally {
+        $script:probeTiming.EvidenceWriteMilliseconds += $probeElapsed.ElapsedMilliseconds - $now
+    }
 }
 
 $updateLibraryName = -join [char[]](0x66F4, 0x65B0, 0x56FE, 0x5E93)

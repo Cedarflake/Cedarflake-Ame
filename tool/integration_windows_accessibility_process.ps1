@@ -366,6 +366,7 @@ function Invoke-AmeWindowsAccessibilityProbe {
         $exitCode = $job.PrimaryExitCode
     } catch {
         $probeFailure = $_.Exception
+        $probeFailure.Data["ameWindowsUiaProbeParentElapsedMilliseconds"] = $elapsed.ElapsedMilliseconds
     } finally {
         Close-AmeWindowsAccessibilityProcess -Cleanup $cleanup -Job $job -Process $process
         $elapsed.Stop()
