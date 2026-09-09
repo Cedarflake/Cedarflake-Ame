@@ -1,6 +1,6 @@
 # R2c controlled closeout cycle
 
-Status: unresolved verification checkpoint; 24-variant roster retained; original two-family repair batch preserved.
+Status: active bounded repair supplement; 24-variant roster and original failures retained.
 
 Current implementation checkpoints: `d91580d` adds the connected root-interleaving regressions;
 `dd3f556` contains the queue-readiness correction, work bounds and observation measurements;
@@ -11,12 +11,26 @@ actionable S0/S1 code defect; its one documentation correction passes the scoped
 The current hosted control and local native-probe failures remain unresolved. The first complete
 Daily fails in the existing R2c-R guardrail before Rust/Flutter tests, introducing a post-review
 verification blocker. The dispatched hosted run also fails its required control. Further repair
-is paused at the plan's scope-review boundary. The count follow-up does not change this disposition.
+resumes only under the explicit parallel supplement below. The count follow-up does not change readiness.
 
 This record implements the [bounded execution plan](../plans/r2c-closeout.md). The canonical
 [roadmap](../roadmap.md) retains stage and queue authority. Findings belong in the existing
 [interleaving ledger](r2c-interleaving-remediation.md); this record maps the fixed journeys to
 evidence and records execution budgets rather than introducing another issue backlog.
+
+## Parallel supplement checkpoint
+
+The admitted supplement starts from clean `098a19f` on `codex/r2c` on 2026-09-09 at 12:40 UTC.
+It admits concurrent C01 and C02/C03 diagnosis and causal repair, keeping local heavy tools serial.
+It preserves all earlier failed gates and charged budgets. The plan owns the additional limits.
+
+C01's first experiment decomposes fresh identity into handle open, normalized path, full file ID,
+and handle close without changing production behavior or the original two-arm workload. The
+hypotheses are a native namespace-query stall, fresh-handle open/close cost, or interference outside
+those operations. Stage durations distinguish these possibilities; an isolated pass alone does not
+resolve the hosted failure. The first instrumentation build fails Rust borrow checking before any
+fixture executes; that log is retained. The corrected build detaches the optional identity result
+from its path result before returning either error.
 
 ## Baseline
 

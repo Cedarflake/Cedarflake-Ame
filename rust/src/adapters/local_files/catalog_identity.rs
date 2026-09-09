@@ -31,11 +31,18 @@ pub(crate) fn catalog_identity_read_count() -> usize {
 pub(crate) fn read_catalog_identity(path: &Path) -> io::Result<CatalogFileIdentity> {
     #[cfg(test)]
     IDENTITY_READ_COUNT.set(IDENTITY_READ_COUNT.get() + 1);
-    let file = open_validation_handle(path)?;
-    identity_from_handle(&file)
+    #[cfg(test)]
+    {
+        diagnostics::read(path)
+    }
+    #[cfg(not(test))]
+    {
+        let file = open_validation_handle(path)?;
+        identity_from_handle(&file)
+    }
 }
 
-#[cfg(windows)]
+#[cfg(all(windows, not(test)))]
 fn identity_from_handle(file: &File) -> io::Result<CatalogFileIdentity> {
     // The path and ID must describe one fresh object, even if an ancestor junction changes.
     Ok(CatalogFileIdentity {
@@ -87,3 +94,6 @@ pub(crate) fn open_catalog_identity_guard(
 
 #[cfg(all(test, windows))]
 mod tests;
+
+#[cfg(all(test, windows))]
+mod diagnostics;

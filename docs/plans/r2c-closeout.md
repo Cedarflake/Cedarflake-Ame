@@ -1,6 +1,6 @@
 # R2c closeout execution
 
-Status: **unresolved verification checkpoint; further repair awaits bounded scope revision**.
+Status: **active bounded repair supplement; both verification blockers remain unresolved**.
 
 The [cycle evidence](../acceptance/r2c-closeout-cycle.md) records the frozen source, selected
 variants, execution budgets, findings, and verification. Its status does not accept R2c.
@@ -14,24 +14,42 @@ promise that all possible defects have been found or that R2c's external accepta
 The first complete Daily on candidate `fa1eff0` fails after the independent review and its scoped
 recheck, in the existing R2c-R owned-fixture cleanup guardrail. The cycle record owns the exact
 failure and retained evidence. The dispatched hosted run also fails its connection-lifetime control;
-the separate production full recovery passes. C01's two diagnostic passes are exhausted, and
-further repair is paused under the stopping rules. No invocation or active-time budget is reset.
+the separate production full recovery passes. The original two C01 diagnostic passes and original
+review/recheck are exhausted. The supplement below resumes these blockers; historical failures,
+invocation counts and active time remain charged.
 
-### Proposed diagnostic supplement — not yet admitted
+### Admitted parallel repair supplement
 
-The smallest next decision is one additional diagnostic scope, limited to 45 active minutes within
-the existing eight-hour diagnosis/repair ceiling. It examines C02/C03's derived-file lifetime and
-cleanup evidence owners, without assuming a shared cause. Prepare one bounded owned-fixture run
-that records the original exception, immediate child names/identities and owned handle retirement;
-stop at the first unexpected failure and retain scratch. Reuse existing native safety primitives.
-Do not repeat the unchanged nine-stage probe, rerun full Daily, alter delete sharing/permissions,
-add retries, install tracing software, or access real libraries. This supplement admits no product
-repair or additional independent review. Its output is a causal finding or an explicit unresolved
-report and a concrete repair/review proposal. C01 keeps its existing final diagnostic-pass limit;
-this supplement cannot reopen it or turn a failed hosted result into acceptance.
+The current direction admits concurrent diagnosis and causal repair of both named blockers on
+`codex/r2c`, replacing the earlier unadmitted 45-minute diagnosis-only proposal. This narrow exception
+to the original serial family order covers C01 and C02/C03 file-lifecycle failures only. The complete
+outcome is passing unchanged synchronization workload/control and reliable owned-fixture evidence
+and teardown, with original failures preserved and applicable final-source checks complete.
 
-Accepting that supplement changes diagnostic scope only. Any later repair and the additional review
-it would require need a bounded revised plan; neither follows automatically from this proposal.
+- C01: inspect native operations inside the fresh-identity stall, distinguish operation cost from
+  workload/harness interference, and repair the proven owner. Preserve both lifetime arms, original
+  visible deadlines, 25 samples, full production recovery and all identity safeguards.
+- C02/C03: capture the original exception, immediate remaining child identities and owned handle
+  retirement. Investigate evidence replacement and fixture teardown separately until shared causality
+  is proved. Reuse existing native safety primitives and retain the first unexpected failure.
+- One primary implementation lane and one delegated implementation lane may proceed independently;
+  neither delegates further. File ownership is disjoint. All local compilation, stress, native
+  integration and full quality runs remain serial and coordinated through the repository lock.
+- Each lane has at most 90 additional active minutes for diagnosis/repair, charged inside the existing
+  eight-hour phase ceiling. Start with distinct written hypotheses and at most two new controlled
+  diagnostic experiments per lane; every experiment must produce new evidence. Focused regressions
+  and one post-correction workload validation are separate bounded verification. No unchanged replay
+  allowance is renewed. Unknown causality at the limit produces an unresolved finding.
+- Admit one independent review of the supplement and one scoped correction recheck, together at most
+  60 active minutes inside the existing review ceiling. Earlier invocations stay recorded. Each
+  implementation must be reviewed by an executor independent of that change.
+- After causal correction and focused checks, use the one remaining complete Daily invocation and
+  applicable unsigned/hosted gates on frozen source. No unchanged reruns until green. Another failure
+  is retained and assessed against this scope and remaining budgets.
+- No new dependency/schema strategy, retry loop, relaxed deadline/workload/assertion, identity or
+  deletion-guard weakening, tracing-software installation, real-library access, source mutation or
+  hydration is admitted. No main merge or release. An unexpected safety incident stops its lane;
+  another independent blocker or exhausted phase requires a documented bounded checkpoint.
 
 Use the existing `codex/r2c` branch for this closeout, including fixes, investigation planning, and
 documentation organization. Separate rollback boundaries with commits; do not create another branch

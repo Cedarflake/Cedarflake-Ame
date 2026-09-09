@@ -23,7 +23,8 @@ The active delivery order remains in [the canonical roadmap](../roadmap.md).
 
 The active [controlled closeout cycle](r2c-closeout-cycle.md) freezes 24 variants and records their
 baseline, observation costs and client coverage. Discovery is complete and the single repair batch
-is frozen to these two existing blocker families, with R2C-C01 first:
+is frozen to the existing blockers below. The currently admitted supplement permits C01 and the
+C02/C03 file-lifecycle investigation to proceed concurrently under separate ownership:
 
 | ID | Scenario / severity | Evidence and owning obligation | Blocked exit |
 | --- | --- | --- | --- |
@@ -48,8 +49,9 @@ scoped documentation recheck complete with no new actionable S0/S1 defect. Curre
 `34347019582` then passes production full recovery at P95 163 ms but fails the required PerPoll
 control at sample index 15: fresh identity takes 7975 ms and visibility exceeds five seconds.
 The PerEpoch control arm does not start. Rust reports 1496 passed, one failed and 19 ignored;
-the nine other workers pass. C01's final diagnostic pass ends unresolved; no third pass or
-unchanged retry is admitted. The cycle record owns the retained logs and bounded next-scope decision.
+the nine other workers pass. The original C01 final diagnostic pass ends unresolved. The explicit
+parallel supplement now admits bounded causal repair; it does not renew unchanged replay allowance.
+The cycle record owns the retained logs and supplement evidence.
 
 Missing EXE-restart, safe Release-client and connected multi-root-overlap evidence is tracked against
 the frozen variants. Those gaps are not new diagnosed defects or additional admitted repair families.
@@ -59,7 +61,8 @@ test whether eligibility checks traverse completed history and exact metrics eva
 projections on terminal rows. Its query VM-work regressions and full-load comparison preserve the
 schema, optional-index contract, workload and deadlines; the typed readiness owner precedes the
 facade change. The cycle record owns current pass-2 accounting. Item 3 repair
-waits for item 2's controlled and hosted exit. Later local success cannot close unexplained hosted
+otherwise waits for item 2's controlled and hosted exit; the supplement permits only the existing
+file-lifecycle blocker repair concurrently. Later local success cannot close unexplained hosted
 failures, and a failed diagnostic hypothesis cannot create another implicit investigation round.
 
 The additional UX-02A/UX-03A [count investigation](library-count-reconciliation.md) now reproduces

@@ -67,7 +67,8 @@ correction. A documentation reorganization does not change any of these acceptan
 ## Current execution queue
 
 The 2026-09-09 direction requires one organized discovery pass across items 2–3 **before further
-product fixes**. Implementation still follows this queue with item 2 active. Use the complete
+product fixes**. Item 2 remains active, with concurrent repair of the existing file-lifecycle
+verification blockers admitted by the current bounded supplement. Use the complete
 [R2c closeout execution plan](plans/r2c-closeout.md) for scenario selection, investigation budgets,
 repair admission, review, verification, stopping rules, and safety cautions.
 
@@ -97,11 +98,12 @@ repair admission, review, verification, stopping rules, and safety cautions.
    invalidate affected evidence and return to their owning queue item. Documentation alone does
    not require another heavy product gate. No known core-workflow S0/S1 may be waived for readiness.
 
-The execution plan is at an **unresolved verification checkpoint: the first final Daily failed
-after review; further repair requires bounded scope revision**. Its fixed scope is eight journeys with at most
+The execution plan has an **active bounded supplement for concurrent repair of the two existing
+verification blockers** after the first final Daily and hosted control failures. Its scope is eight journeys with at most
 three variants each, one repair batch of at most three root-cause families, and a 16-hour cumulative
 active-engineering ceiling. Tool runtimes remain separately bounded and recorded. It permits one
-independent review plus one scoped recheck. Budget exhaustion, a fourth blocking family, or a
+independent review plus one scoped recheck in the original cycle; the supplement explicitly records
+its additional diagnosis, repair and review allowances without resetting prior usage. Budget exhaustion, a fourth blocking family, or a
 materially different architecture requires an unresolved checkpoint and replanning, not automatic
 expansion. Any known core-workflow S0/S1 still blocks readiness even outside the selected roster.
 
