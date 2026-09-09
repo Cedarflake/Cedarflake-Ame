@@ -73,9 +73,16 @@ struct ConnectionSchemaProof {
 impl ConnectionSchemaProof {
     fn read(connection: &Connection) -> Result<Self, ScanError> {
         let journal_mode = measure("proof_journal_mode", || {
-            connection
-                .query_row("PRAGMA journal_mode", [], |row| row.get::<_, String>(0))
-                .map_err(database_error)
+            #[cfg(test)]
+            {
+                diagnostics::read_journal_mode(connection)
+            }
+            #[cfg(not(test))]
+            {
+                connection
+                    .query_row("PRAGMA journal_mode", [], |row| row.get::<_, String>(0))
+                    .map_err(database_error)
+            }
         })?;
         let version = measure("proof_schema_info", || {
             connection
@@ -103,3 +110,6 @@ impl ConnectionSchemaProof {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod diagnostics;
