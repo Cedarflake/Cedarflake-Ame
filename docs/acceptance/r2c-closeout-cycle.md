@@ -75,6 +75,89 @@ separate evidence. Output: `r2c-uia-native-stage-timing.log` and
 locally; neither historical failure is closed by this pass. Full probe guardrails also pass,
 including the owned child timeout that retains its original failure and parent elapsed time.
 
+C03's controlled directory experiment proves that legacy deletion can return success while a
+metadata-only observer keeps the name visible; it disappears after that observer closes. The
+original three-junction control without an extra observer passes, so the earlier failing observer
+remains unidentified. The regression fails before correction with `ordinary deletion returned
+before namespace retirement`. The native owner now retires the proved name when its deletion
+handle closes, using the disposition contract in ADR 0024. Existing data-sharing refusal (32),
+nonempty refusal (145), identity and reparse guards remain enforced, with sentinel bytes unchanged.
+
+The extracted cleanup owner retires known resources independently and retains the original error,
+cleanup errors, handle-retirement evidence and at most 64 immediately observed child identities.
+Unknown children are not traversed; disappearance or attribute failure is observation evidence.
+The public facade preserves its four parameters. The exact audited closure now contains two
+common-owner sources and four runner sources at depth two; every held identity and close is checked.
+The sole new cmdlet admission binds the pure JSON serializer to `Microsoft.PowerShell.Utility`,
+with a wrong-module rejection fixture. No deletion or command-resolution guard is bypassed.
+
+Focused native lifetime, original-error, truncated inventory, disappearing-entry and current-source
+audit checks pass. The complete R2c-R guardrail passes 19 cases in 117970 ms, preserving replacement
+races, junction rejection, held script identity and bounded audit checks. Evidence:
+`r2c-c03-fixture-lifetime-guardrail-6.log` and its `-6-outcome.json`. Earlier integration refusals are
+retained: stale native digest, obsolete exact source count, non-GUID test leaf, unresolved extracted
+public helper and missing serializer admission. Each subsequent invocation changes that diagnosed
+integration defect; none is an unchanged retry. This is focused verification, pending independent
+review and the remaining complete Daily invocation.
+
+Affected tool-owner size is common 3137 lines and cleanup 195 lines, with zero inline tests;
+dedicated guardrail and lifetime suites are 2107 and 232 lines. The existing native primitive stays
+in the common facade; no unrelated ownership is added there. The root timing owners are identity
+99 lines plus 35 test-only diagnostic lines and 55 dedicated test lines; UIA evidence/probe/process
+owners are 256/555/378 lines, with 57 timing-owner lines and 37/183 dedicated timing/evidence tests.
+Larger physical decomposition retains the roadmap's existing debt boundary.
+
+C02's file experiment does not reproduce error 1175. A mapping without delete sharing produces 32;
+an explicit delete-shared mapping allows File.Replace. MoveFileEx fails with native error 5 while
+metadata or mapped holders remain and is rejected as a replacement. No evidence-publication
+protocol change follows. The directory finding does not establish shared causality with either
+File.Replace or the native UIA timeout.
+
+Supplement accounting at this checkpoint: the file-lifecycle lane conservatively charges 61 active
+minutes, including six minutes of subsequent read-only C01 source analysis and its tool/wait time.
+The primary lane charges 70 active minutes; actual heavy-tool runtime is additionally retained in
+the cited logs. These supplement charges do not reset earlier phase usage. C01 experiment two
+separates the unchanged query's prepare, execute-and-reset and statement retirement. SQLite marks
+the journal-mode pragma as requiring schema preparation, so the previous outer timing cannot
+attribute the stall to reading the mode alone. Production behavior, both workload arms and all
+deadlines stay unchanged; no VFS replacement, busy-handler change or schema-proof weakening follows.
+
+The complete applicable lint passes the C03 correction and UIA instrumentation, including the
+native guardrails, format, warnings-denied Clippy and Dart analysis. Log:
+`r2c-supplement-applicable-lint.log`. Subsequent test-only SQL substage instrumentation passes format
+and all 16 retained-proof owner tests (1500 filtered) in 16.45 seconds after an 89-second build.
+The unchanged two-arm control passes in 282.68 seconds: PerPoll records 1735 opens/closes and P95
+257 ms; PerEpoch records 6422 polls, one open, no premature close and P95 175 ms. Both retain their
+25 samples and all P1 completions; this first-page control does not replace full P2 recovery.
+No measured journal-proof substage reaches 100 ms locally. All-target/all-feature Clippy with
+warnings denied passes in 27.83 seconds. Original PowerShell UTF-16 logs remain untouched; explicit
+UTF-8 readout copies are `r2c-c01-sql-stages-owner-tests.utf8.log` and
+`r2c-c01-sql-stages-control.utf8.log`. Hosted operation attribution remains pending.
+
+The independent supplement review consumes eight active minutes and finds one S2 correction,
+with no new S0/S1: the new regressions' own sequential finally cleanup could mask their first
+assertion error or skip remaining resources. All four affected fixture paths now use the same
+independent cleanup owner. It also preserves the original PowerShell error text and script stack
+alongside the original exception. The focused real-native lifetime and current-source audit checks
+pass after correction in `r2c-c03-review-focused.log`. The complete guardrail script then passes all
+19 cases in 246893 ms (`r2c-c03-review-full-guardrail.log`). Its outer ad hoc command exits one after
+the completed transcript because it supplies the wrong named parameter to the tool-lock release;
+that wrapper error is retained separately and is not a guardrail failure or a successful whole
+command. A corrected lock-only check confirms acquisition and release after that process exits;
+the guardrail is not replayed. The one scoped recheck closes S2 with no new S0/S1 in two active
+minutes. Supplement review/recheck totals ten minutes; with the old 11 minutes the cumulative
+review charge is 21 minutes. Both supplement review invocations are now consumed. Final-source
+Daily, hosted C01 causality and the unexplained UIA/1175 boundary remain open.
+
+Hosted UIA job `102490296029` on `d3f46af` completes successfully at 13:50:20 UTC in run `34358832952`.
+Both Flutter cases, all ten ordered native phases, process exit, Job closure and scratch removal pass.
+The first application phase takes 2788 ms: 1094 ms loading UIA Client, 549 ms locating the window,
+857 ms finding elements and 68 ms accumulated evidence publication. Later application phases take
+225–976 ms. This execution does not reproduce the earlier 7650 ms child / eight-second parent
+failure or File.Replace 1175; no causal UIA repair is claimed. Complete log:
+`r2c-hosted-34358832952-accessibility.log`, SHA-256
+`F851A9F503E6A508C9C6583D1D5FF1217B67FEA2896757C199CDF407B5523C1C`.
+
 ## Baseline
 
 - Started: 2026-09-09 05:07 UTC. Branch: `codex/r2c`.
@@ -565,5 +648,7 @@ concurrent inspection during a tool run still counts as active work. A handoff d
 | Closeout recording | 1 h | 16 min charged for source freeze, verified log collection, results and unresolved checkpoint preparation |
 
 Final complete Daily invocations: 1 failed. Unchanged diagnostic replays: 1 executed; allowance exhausted.
-Independent final reviews: 1 completed; the one scoped recheck is also complete. No further round is admitted.
+At the original checkpoint, one independent review and its scoped recheck were complete and their
+allowances exhausted. The subsequent parallel supplement's separate review allowance is recorded
+above; it does not reset these original counts or time.
 The controlled cycle and the separately authorized external/client acceptance remain open.
