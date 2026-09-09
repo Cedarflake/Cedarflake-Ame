@@ -15,9 +15,21 @@ This layout keeps product ownership visible while preserving Flutter, Rust, and
 | `test` | Tests arranged to mirror their owning Dart source area |
 | `integration_test` | Cross-layer Flutter and Windows integration workflows plus their private support files |
 | `tool` | Stable repository command entrypoints used by contributors, agents, and CI |
-| `docs` | Architecture decisions, acceptance contracts, and development documentation |
+| `docs` | Roadmap index, product contracts, scoped execution plans, architecture, acceptance evidence, and development documentation |
 | `rust_builder` | Tracked Flutter/Rust build scaffold required by the local path dependency; vendored Cargokit sources are outside Ame-owned Dart linting |
 | `windows` | Flutter Windows runner and generated plugin registration |
+
+## Documentation ownership
+
+- `docs/roadmap.md` is the sole stage, priority, blocker, and exit-decision index.
+- `docs/product` owns stable user workflows and product requirements, not implementation status.
+- `docs/plans` owns detailed execution of a roadmap-linked scope, not an independent stage queue.
+- `docs/architecture` owns accepted technical decisions and replacement boundaries.
+- `docs/acceptance` owns verification contracts, dated results, failures, and historical provenance.
+- `docs/development` owns contributor workflows and repository/tool organization.
+
+Keep the roadmap and documentation index as discovery entrypoints. Link to the owning record instead
+of copying its complete implementation history into the roadmap.
 
 ## Dart ownership
 

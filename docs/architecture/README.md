@@ -40,3 +40,4 @@ Recorded decisions:
 - [ADR 0023: Reconcile continuity without privileged journal access](0023-non-usn-library-continuity-reconciliation.md)
 - [ADR 0024: Drive Windows continuity from notifications and the USN journal](0024-windows-change-driven-library-continuity.md)
 - [ADR 0025: Keep workflows thin through invariant-owned modules](0025-invariant-owned-workflow-modules.md)
+- [ADR 0026: Separate hosted workload coverage from release authority](0026-hosted-synthetic-and-unsigned-build-gates.md)

@@ -26,6 +26,13 @@ conversation. Do not create a competing roadmap copy. If the file is unavailable
 continuity gap before changing product scope or stage order. The roadmap remains lower authority
 than the user's current instruction, this contract, accepted ADRs, and verified live implementation.
 
+Keep the roadmap focused on stage order, current scope, blockers, required decomposition, and exit
+decisions. Stable product requirements belong in `docs/product`, detailed scoped execution in
+`docs/plans`, and verification requirements, results, and historical provenance in `docs/acceptance`.
+Before executing a roadmap scope, read its linked active execution plan as well. That plan is
+subordinate to the roadmap and must not maintain a competing stage order or acceptance status.
+Do not append implementation diaries, test transcripts, or repeated architecture text to the roadmap.
+
 Tracked files refer to the two real large-library roots only as `local-primary` and
 `cloud-primary`. Their machine-specific paths belong in the Git-ignored
 `.agents/local-context.toml`, whose tracked shape is documented by
