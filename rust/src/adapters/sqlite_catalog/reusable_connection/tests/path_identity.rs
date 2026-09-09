@@ -1,6 +1,10 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+
+use rusqlite::hooks::{AuthAction, AuthContext, Authorization};
 
 use super::{
     Connection, LibraryChangeLane, SqliteCatalogSession, assert_rejected,
@@ -170,4 +174,106 @@ fn reusable_connection_rejects_junction_retarget_while_original_sqlite_handle_is
     directory
         .close()
         .expect("remove disposable catalog fixture");
+}
+
+#[test]
+fn retained_proof_checks_retarget_even_when_the_old_database_schema_is_unreadable() {
+    let directory = tempfile::tempdir().unwrap();
+    let target_a = directory.path().join("catalog-a");
+    let target_b = directory.path().join("catalog-b");
+    fs::create_dir(&target_a).unwrap();
+    fs::create_dir(&target_b).unwrap();
+    let path_a = target_a.join("catalog.sqlite3");
+    let path_b = target_b.join("catalog.sqlite3");
+    let _session_a = seed_catalog(&path_a, 11);
+    let _session_b = seed_catalog(&path_b, 29);
+    let junction = FixtureJunction::new(directory.path(), &target_a);
+    let session = SqliteCatalogSession::validate(junction.path.join("catalog.sqlite3")).unwrap();
+    let catalog = session.open_in_lane(LibraryChangeLane::Live).unwrap();
+    catalog
+        .connection
+        .execute_batch("DROP TABLE schema_info")
+        .unwrap();
+    junction.retarget(&target_b);
+    assert_rejected(&session, &catalog, "catalog_validated_session_stale");
+    assert_eq!(revision(&path_b), 29);
+}
+
+#[test]
+fn retained_proof_rejects_namespace_changes_during_successful_or_failed_sql_observation() {
+    for deny_sql in [false, true] {
+        let directory = tempfile::tempdir().unwrap();
+        let target_a = directory.path().join("catalog-a");
+        let target_b = directory.path().join("catalog-b");
+        fs::create_dir(&target_a).unwrap();
+        fs::create_dir(&target_b).unwrap();
+        let path_a = target_a.join("catalog.sqlite3");
+        let path_b = target_b.join("catalog.sqlite3");
+        let _session_a = seed_catalog(&path_a, 11);
+        let _session_b = seed_catalog(&path_b, 29);
+        let junction = Arc::new(FixtureJunction::new(directory.path(), &target_a));
+        let session =
+            SqliteCatalogSession::validate(junction.path.join("catalog.sqlite3")).unwrap();
+        let catalog = session.open_in_lane(LibraryChangeLane::Live).unwrap();
+        let changed = Arc::new(AtomicBool::new(false));
+        let during_sql = Arc::clone(&changed);
+        let during_junction = Arc::clone(&junction);
+        catalog
+            .connection
+            .authorizer(Some(move |context: AuthContext<'_>| {
+                if matches!(
+                    context.action,
+                    AuthAction::Read {
+                        table_name: "schema_info",
+                        ..
+                    }
+                ) && !during_sql.swap(true, Ordering::AcqRel)
+                {
+                    during_junction.retarget(&target_b);
+                    if deny_sql {
+                        return Authorization::Deny;
+                    }
+                }
+                Authorization::Allow
+            }))
+            .unwrap();
+        assert_rejected(&session, &catalog, "catalog_validated_session_stale");
+        assert!(
+            changed.load(Ordering::Acquire),
+            "retarget occurred inside SQL proof"
+        );
+        assert_eq!(
+            catalog
+                .connection
+                .query_row("SELECT revision FROM catalog_state", [], |row| row
+                    .get::<_, i64>(0))
+                .unwrap(),
+            11
+        );
+        assert_eq!(revision(&path_b), 29);
+    }
+}
+
+#[test]
+fn retained_proof_rejects_a_different_wal_namespace_with_the_same_database_file_id() {
+    let directory = tempfile::tempdir().unwrap();
+    let target_a = directory.path().join("catalog-a");
+    let target_b = directory.path().join("catalog-b");
+    fs::create_dir(&target_a).unwrap();
+    fs::create_dir(&target_b).unwrap();
+    let path_a = target_a.join("catalog.sqlite3");
+    let path_b = target_b.join("catalog.sqlite3");
+    let _session_a = seed_catalog(&path_a, 11);
+    fs::hard_link(&path_a, &path_b).unwrap();
+    let original = crate::adapters::read_catalog_identity(&path_a).unwrap();
+    let alias = crate::adapters::read_catalog_identity(&path_b).unwrap();
+    assert_eq!(original.file_identity, alias.file_identity);
+    assert_ne!(original.canonical_path, alias.canonical_path);
+    let junction = FixtureJunction::new(directory.path(), &target_a);
+    let session = SqliteCatalogSession::validate(junction.path.join("catalog.sqlite3")).unwrap();
+    let catalog = session.open_in_lane(LibraryChangeLane::Live).unwrap();
+    junction.retarget(&target_b);
+    assert_rejected(&session, &catalog, "catalog_validated_session_stale");
+    assert!(!target_b.join("catalog.sqlite3-wal").exists());
+    assert!(!target_b.join("catalog.sqlite3-shm").exists());
 }

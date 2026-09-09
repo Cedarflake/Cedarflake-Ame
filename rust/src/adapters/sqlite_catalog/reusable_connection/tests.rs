@@ -55,6 +55,23 @@ fn reusable_connection_observes_committed_data_without_full_revalidation() {
 }
 
 #[test]
+fn retained_connection_requires_one_fresh_identity_observation_per_proof() {
+    let (_directory, session, catalog) = fixture();
+    let before = crate::adapters::local_files::catalog_identity_read_count();
+    for _ in 0..32 {
+        session
+            .revalidate_connection(&catalog)
+            .expect("retain current namespace and schema proof");
+    }
+    assert_eq!(
+        crate::adapters::local_files::catalog_identity_read_count() - before,
+        32,
+        "reuse must collect current identity once per proof without retaining a path cache",
+    );
+    assert_eq!(full_schema_validation_count(session.path()), 1);
+}
+
+#[test]
 fn reusable_connection_rejects_schema_and_header_drift() {
     for sql in [
         "CREATE TABLE unexpected_runtime_table(value INTEGER)",

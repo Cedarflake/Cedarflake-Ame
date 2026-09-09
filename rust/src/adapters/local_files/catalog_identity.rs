@@ -17,8 +17,20 @@ pub(crate) struct CatalogFileIdentity {
     pub(crate) file_identity: Option<FileIdentityEvidence>,
 }
 
+#[cfg(test)]
+thread_local! {
+    static IDENTITY_READ_COUNT: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
+#[cfg(test)]
+pub(crate) fn catalog_identity_read_count() -> usize {
+    IDENTITY_READ_COUNT.get()
+}
+
 #[cfg(windows)]
 pub(crate) fn read_catalog_identity(path: &Path) -> io::Result<CatalogFileIdentity> {
+    #[cfg(test)]
+    IDENTITY_READ_COUNT.set(IDENTITY_READ_COUNT.get() + 1);
     let file = open_validation_handle(path)?;
     identity_from_handle(&file)
 }
@@ -34,6 +46,8 @@ fn identity_from_handle(file: &File) -> io::Result<CatalogFileIdentity> {
 
 #[cfg(not(windows))]
 pub(crate) fn read_catalog_identity(path: &Path) -> io::Result<CatalogFileIdentity> {
+    #[cfg(test)]
+    IDENTITY_READ_COUNT.set(IDENTITY_READ_COUNT.get() + 1);
     Ok(CatalogFileIdentity {
         canonical_path: std::fs::canonicalize(path)?,
         file_identity: super::file_identity(path)?,

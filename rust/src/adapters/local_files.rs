@@ -83,6 +83,8 @@ mod media_signature;
 mod preview_cache_namespace;
 #[cfg(windows)]
 mod viewer_source_guard;
+#[cfg(test)]
+pub(crate) use catalog_identity::catalog_identity_read_count;
 pub(crate) use catalog_identity::{open_catalog_identity_guard, read_catalog_identity};
 pub use file_admission::{FileVisit, FileVisitOutcome};
 pub(crate) use preview_cache_namespace::PreviewCacheNamespace;

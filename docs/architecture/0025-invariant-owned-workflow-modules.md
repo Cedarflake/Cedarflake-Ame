@@ -168,6 +168,15 @@ persistence layers.
   transition mutex before the operation and wakes waiters on success, failure, interruption, and
   unwind. Checkpointing remains outside structural invalidation. The reclamation facade selects
   these contracts rather than maintaining a second active-scan flag or invalidation protocol.
+- `sqlite_catalog/reusable_connection.rs` owns retained-connection proof. Object/session identity,
+  write-admission ownership, autocommit, active statements and pending publication are checked before
+  reuse. Typed schema observations remain separate from fresh namespace identity. A retained
+  connection observes its already opened database; before returning, one fresh path-and-file-ID
+  observation must match the validated session, even if SQL proof failed. Namespace replacement
+  takes stale-session precedence over errors from the retired database so the application can renew
+  the session. A newly opened writable connection retains its before-open and after-proof identity
+  checks. No path/time cache or assumption of a permanent writable identity guard substitutes for
+  fresh evidence; same-file hardlinks in different WAL namespaces remain distinct.
 - `sqlite_catalog/migrations.rs` remains the ordered migration coordinator while historical steps
   are stable. `migrations/current_schema.rs` owns current-schema proof order and its consistent read
   snapshot: structural checks precede the complete authority-row audit. Process-owned validated

@@ -30,13 +30,7 @@ impl SqliteCatalogSession {
                 "The catalog connection still owns a transaction, active statement, or pending publication",
             ));
         }
-        let before_identity = measure("reusable_identity_before", || {
-            catalog_database_identity(&self.path)
-        })?;
-        if before_identity != self.database_identity {
-            return Err(stale_catalog_session_error());
-        }
-        self.validate_connection_proof(&catalog.connection, &before_identity)
+        self.validate_connection_proof(&catalog.connection, &self.database_identity)
     }
 
     pub(super) fn validate_connection_proof(
@@ -44,6 +38,40 @@ impl SqliteCatalogSession {
         connection: &Connection,
         before_identity: &SqliteDatabaseIdentity,
     ) -> Result<(), ScanError> {
+        let schema_proof = ConnectionSchemaProof::read(connection);
+        // A retained connection still addresses its opened database. Resolve the current
+        // namespace before returning, including when the old database's SQL proof failed.
+        let after_identity = measure("proof_identity_after", || {
+            catalog_database_identity(&self.path)
+        })?;
+        if before_identity != &after_identity {
+            return Err(stale_catalog_session_error());
+        }
+        let proof = schema_proof?;
+        if !proof.journal_mode.eq_ignore_ascii_case("wal")
+            || proof.version != SCHEMA_VERSION
+            || proof.application_id != self.application_id
+            || proof.application_id != SQLITE_APPLICATION_ID
+            || proof.user_version != self.user_version
+            || proof.user_version != SCHEMA_VERSION
+            || proof.schema_cookie != self.schema_cookie
+        {
+            return Err(stale_catalog_session_error());
+        }
+        Ok(())
+    }
+}
+
+struct ConnectionSchemaProof {
+    journal_mode: String,
+    version: i64,
+    application_id: i64,
+    user_version: i64,
+    schema_cookie: i64,
+}
+
+impl ConnectionSchemaProof {
+    fn read(connection: &Connection) -> Result<Self, ScanError> {
         let journal_mode = measure("proof_journal_mode", || {
             connection
                 .query_row("PRAGMA journal_mode", [], |row| row.get::<_, String>(0))
@@ -63,21 +91,13 @@ impl SqliteCatalogSession {
             catalog_pragma_integer(connection, "user_version")
         })?;
         let schema_cookie = measure("proof_schema_cookie", || catalog_schema_cookie(connection))?;
-        let after_identity = measure("proof_identity_after", || {
-            catalog_database_identity(&self.path)
-        })?;
-        if !journal_mode.eq_ignore_ascii_case("wal")
-            || version != SCHEMA_VERSION
-            || application_id != self.application_id
-            || application_id != SQLITE_APPLICATION_ID
-            || user_version != self.user_version
-            || user_version != SCHEMA_VERSION
-            || schema_cookie != self.schema_cookie
-            || before_identity != &after_identity
-        {
-            return Err(stale_catalog_session_error());
-        }
-        Ok(())
+        Ok(Self {
+            journal_mode,
+            version,
+            application_id,
+            user_version,
+            schema_cookie,
+        })
     }
 }
 

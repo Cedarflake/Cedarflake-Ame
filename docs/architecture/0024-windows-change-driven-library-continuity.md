@@ -1231,6 +1231,13 @@ independent requirements. This removes a redundant open per observation, not the
 Windows file operations stalling. The existing safe handle-query helpers supply this evidence;
 the catalog-specific composition and guard live in `local_files/catalog_identity.rs`.
 
+That paragraph describes the earlier implementation checkpoint. Initial writable connection opens
+still retain both observations. The current retained-connection proof is owned by
+[ADR 0025](0025-invariant-owned-workflow-modules.md): it reads the already bound SQLite connection
+and always obtains fresh namespace/file identity before admission, including after failed SQL.
+This preserves the connection-admission invariant, not identical rejection of every transient
+namespace history; neither implementation continuously pins ancestor junctions.
+
 P1 requests at most 64 records per broker page, yields at that boundary, checks cancellation between
 roots and broker operations, and persists reset, trim, reconstruction, containment, and
 broker-after-current failures as typed per-root recovery transitions without checkpoint advancement.
