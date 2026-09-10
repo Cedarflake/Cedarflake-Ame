@@ -165,3 +165,43 @@ and store (248/173) retain their existing ownership and are not extended. There 
 schema, bridge, source-media or licensing change. The instrumented Debug artifact predates the
 repair. A repaired native replay, full Daily and complete browsing acceptance remain unverified;
 the original blank wall, transient whole-wall failures, rail and viewer observations remain open.
+
+## Final hosted source checkpoint
+
+Run [34443329392](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/34443329392)
+targets product commit `8cf120ffca611b8d96d10322f3daf8a7c8286f2d` and finishes with failure.
+Nine verification jobs pass and Windows Accessibility fails; the aggregate gate also fails.
+Three signing/release jobs are conditionally skipped, not accepted external evidence.
+
+The complete Flutter log proves 71 files and 570 passing tests. The Rust main suite reports
+1503 passed, zero failed and 19 ignored, followed by three passing documentation tests; nested
+child-process test summaries are not counted again. The production mixed-load case passes and
+reports 25 P0 samples with P95 442 ms. Its separate connection-lifetime control reports PerPoll
+P95 1230 ms and PerEpoch P95 477 ms; the diagnostic PerPoll arm is not the production latency gate.
+These hosted results do not explain or erase the earlier failed complete local Daily.
+
+All five synthetic jobs execute exactly one selected test with zero failures and zero ignored:
+high-resolution JPEG, 10000-image scan, seven formats, million journal records and 50000-identity
+publication. Windows Scan and the unsigned Windows Release job pass. These workloads are distinct
+from the frozen mixed-size, historical-date client and do not prove its native browsing path.
+
+Accessibility repeats C02's `application-ready` parent deadline failure. The probe records 126
+elements, internal completion in 7570 ms and evidence writing in 71 ms, but the parent records
+8018 ms against its unchanged 8000 ms deadline. Loading the UIA client accounts for 4928 ms of the
+probe's stage timing. Native process exit and owned Job closure are verified with no cleanup
+failure. This remains a failed required gate, not a successful probe with an excused deadline,
+proof of ordinary input failure, or proof that the local Computer Use refusal shares its cause.
+No workflow rerun, deadline change or new C01/C02 investigation follows.
+
+Complete raw logs remain under ignored `build/diagnostics/r2c-c05-hosted-*-34443329392.log`.
+The final run JSON SHA-256 is `919F431CFC3A54BA60CA26EAEAD138003CCCCE270D5A72774E542E8BD264FEF4`;
+the Rust log is `E5741F891898EC8ED7F3304B7566001379D8F9C8DDBAE51ADD936F8D937711DA`, and the
+accessibility log is `118563E0F646ADD8CA45E1A45F9B29D4B0D27CF695CE0DA7023833B9F07EF51B`.
+The CLI initially refuses a completed job's log while its overall run is active; direct job-log
+retrieval preserves the completed jobs. The running Rust log is unavailable until terminal state.
+Waiting uses the same live run and existing 60-minute hosted limit, not a replacement execution.
+
+The single final evidence recheck finds no actionable discrepancy and takes 2.3 active minutes.
+Source safety, build/test evidence and the incomplete native replay remain accurately separated.
+Current source has focused verification and partial hosted verification; candidate readiness,
+usable native browsing and complete R2c acceptance remain blocked.

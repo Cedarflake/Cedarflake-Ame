@@ -412,6 +412,20 @@ does not extend the consumed native deadline, exhausted diagnosis or failed fina
 The coordinator correction has 100 passing focused tests, full lint and an independent code
 review; native incident causality and final-source acceptance remain open.
 
+The final C05 evidence recheck adds 2.3 independent minutes and 4.7 conservative primary inspection
+minutes: 1066 total, with C05 at 118/120 and its pivot at 75/76. The subsequent final hosted-source
+readout uses three minutes of the original remaining verification-review balance, not another
+C05 diagnostic or review invocation. Cumulative usage is discovery **420/420**, triage **70/70**,
+repair **433/435**, review **60/69**, recording **86/86**: **1069/1080 active minutes**.
+Pure waiting on the same live hosted run is recorded separately. No unused total or phase balance
+renews an exhausted diagnosis, native session, independent-review invocation or Daily attempt.
+
+Run `34443329392` on product `8cf120f` is terminal: nine verification jobs pass, Accessibility
+fails C02's unchanged parent deadline, and the aggregate gate fails. Its
+[source checkpoint](r2c-browsing-diagnosis.md#final-hosted-source-checkpoint) records 570 Flutter
+tests, the 1503-pass/19-ignored Rust main suite, all five executed synthetic cases, the exact
+failure and retained raw logs. No unchanged rerun follows and no native browsing exit is inferred.
+
 ## Approved P2 follow-up
 
 The follow-up starts from clean `856d230` on `codex/r2c` on 2026-09-09 at 15:11 UTC.

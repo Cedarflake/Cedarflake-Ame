@@ -1,6 +1,6 @@
 # R2c closeout execution
 
-Status: **C04 evidence recorded; C05 preview-demand correction focused-verified, native browsing unresolved**.
+Status: **C05 correction recorded; native browsing and the final hosted C02 failure block closeout**.
 
 The [cycle evidence](../acceptance/r2c-closeout-cycle.md) records the frozen source, selected
 variants, execution budgets, findings, and verification. Its status does not accept R2c.
@@ -359,6 +359,42 @@ do not restart the expired session, infer a repaired replay, or spend unused rep
 deferred presentation defects. The next unresolved action is one bounded native replay of the
 corrected candidate once usable input is available, with the same frozen data and source/resource
 guards; this checkpoint does not grant a new lifetime or renew C01/C02/Daily allowances.
+
+### Proposed native browsing closure — not admitted
+
+The corrected source's hosted run has now ended: nine verification jobs pass, Accessibility
+fails C02's existing deadline and the aggregate gate fails. The current evidence checkpoint is
+1069 active minutes of the approved 1080. The previous native session and diagnostic allowances
+are consumed; continuing the goal does not silently renew them.
+
+The next proposed scope is at most 60 additional active minutes and a cumulative ceiling of
+19 hours: ten preparation/diagnosis, 25 causal repair, fifteen client verification, five scoped
+independent review and five recording. All earlier usage and failures remain charged. Reallocate
+phase ceilings explicitly to discovery 430, triage 70, repair 476, review 69 and recording 95;
+the proposed work would reach at most 1129 active minutes. This proposal requires a new decision.
+
+- Use the existing Windows integration-test entry and real Rust catalog/preview adapters to drive
+  the real controls and inspect rendered tiles. Framework-injected input must be identified as
+  such; it does not replace the separate OS-level ten-phase UIA gate or establish its latency.
+  This changes the blocked input method without another unchanged Computer Use retry.
+- Reuse only the frozen generated 10000 mixed-size/historical-date sources and separate owned
+  12/2012/512 stimulus. Preserve previous catalogs. Keep exact path/source oracles, the 300-second
+  bulk bound, 4 GiB launch preflight, 2 GiB client ceiling, 2 GiB reserve and bounded logs.
+- Allow at most two fresh owned client lifetimes, each with its own fixed fifteen-wall-minute
+  deadline: one observation and, only after a causal correction, one repaired replay. Neither
+  resets the expired C05 session. Require owned retirement for each before another heavy command.
+- Cover direct top/middle/bottom jumps without wheel input, surviving-anchor continuity during
+  +2000/-1500 publication, and pending-to-current-pixels or actionable-failure convergence.
+  Keep frozen mixed sizes and historical dates. Accept no current persistent blank/gray viewport.
+- Admit at most one further proven S1 cause within C05's existing two-cause cap. Preserve the
+  coordinator regression and all identity/publication guards. Stop if the method cannot produce
+  evidence in its diagnostic allowance, a further cause is needed, a resource guard fails or the
+  repaired replay fails. Do not substitute cosmetic rail/viewer fixes for the blocked workflow.
+
+No new C01/C02 experiment, complete local Daily, installed-service/retained-library run, real-source
+mutation, dependency, schema or release work is included. Successful browsing verification would
+close only its proven workflow obligations; it cannot alone accept R2c or guarantee complete R2c
+acceptance within this proposed budget. C02 and the existing final/external gates remain explicit.
 
 ### Approved P2 completion follow-up — unresolved result
 
