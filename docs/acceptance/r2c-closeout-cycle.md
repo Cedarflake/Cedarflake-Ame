@@ -395,6 +395,23 @@ The proposed 76-minute native-evidence pivot fits within the remaining supplemen
 requires replacement diagnostic admission and the explicit phase transfer in the execution plan.
 The unused original review balance does not authorize another experiment or lifetime.
 
+The renewed instruction admits that pivot. Its [C05 record](r2c-browsing-diagnosis.md#renewed-native-observation-and-preview-demand-correction)
+separates the blocked native session from the subsequently proven application demand defect.
+The fixed 30-minute session expires without a successful input action; the user confirms no manual
+window operation. Its parent deadline and clean retirement are retained, not attributed to Ame
+sync/preview failure. No bulk stimulus, repaired replay or new session executes.
+
+Conservatively charge the full 35-minute renewed diagnosis boundary (15 discovery and 20 repair,
+including five delegated fixture-preparation minutes and the failed input attempts), 23
+repair/verification minutes, four independent inspection/review minutes and six recording minutes.
+Tool runtimes and the gap awaiting input are separate from active work. Cumulative charged usage
+is discovery **420/420**, triage **70/70**, repair **433/435**, review **50/69**, recording
+**86/86**: **1059/1080 active minutes**. The pivot consumes 68 of its 76-minute ceiling; the
+original C05 diagnosis remains charged, for 111 of the supplement's 120 minutes. Residual time
+does not extend the consumed native deadline, exhausted diagnosis or failed final-gate allowances.
+The coordinator correction has 100 passing focused tests, full lint and an independent code
+review; native incident causality and final-source acceptance remain open.
+
 ## Approved P2 follow-up
 
 The follow-up starts from clean `856d230` on `codex/r2c` on 2026-09-09 at 15:11 UTC.

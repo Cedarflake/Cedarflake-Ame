@@ -1,6 +1,6 @@
 # R2c closeout execution
 
-Status: **C04 evidence recorded; C05 diagnosis stopped at its approved unknown-cause boundary**.
+Status: **C04 evidence recorded; C05 preview-demand correction focused-verified, native browsing unresolved**.
 
 The [cycle evidence](../acceptance/r2c-closeout-cycle.md) records the frozen source, selected
 variants, execution budgets, findings, and verification. Its status does not accept R2c.
@@ -313,10 +313,14 @@ requires its existing final-source, Release, installed-journal and retained-libr
 
 The first C05 diagnosis has reached its 30-active-minute boundary. The
 [browsing diagnosis record](../acceptance/r2c-browsing-diagnosis.md) preserves two reproducible
-presentation defects and the unresolved native blank/gray observations. No C05 product repair,
-rebuilt client, or repaired replay has executed. Unused repair time does not override this stop.
+presentation defects and the unresolved native blank/gray observations. At that first checkpoint,
+no C05 product repair, rebuilt client or repaired replay has executed. Unused repair time does not
+override that stop; the renewed instruction below admits the replacement method.
 
-### Proposed C05 native evidence pivot — awaiting decision
+### Approved C05 native evidence pivot
+
+The 2026-09-10 instruction to proceed with the experience-blocking defects resumes this bounded
+native method from the recorded 991-minute checkpoint. The earlier failed diagnosis remains charged.
 
 Keep the 1080-minute cumulative ceiling and all charged work. Replace only the exhausted
 diagnostic method: use one instrumented, owned Debug session to trace the actual catalog/manifest,
@@ -325,7 +329,7 @@ pending-preview widget fixture as evidence of native preview convergence.
 
 Reallocate the remaining C05 allowance to at most 35 diagnostic minutes (20 preparation/analysis,
 15 native observation), 23 causal repair minutes, 12 review/recheck minutes and six recording
-minutes. Transfer six unused review minutes to recording; phase ceilings would become discovery
+minutes. Transfer six unused review minutes to recording; phase ceilings become discovery
 420, triage 70, repair 435, review 69 and recording 86. This is at most 76 additional minutes,
 not a new 120-minute supplement. No previous charge, failed gate or lifetime resets.
 
@@ -342,7 +346,19 @@ not a new 120-minute supplement. No previous charge, failed gate or lifetime res
    the repair allowance on them merely because they are easier to reproduce. Unknown cause at the
    new diagnostic boundary, a third admitted cause, resource breach or failed repaired replay
    ends this pivot without further experimentation. All original safety and final-gate exclusions
-   remain. This replacement diagnosis requires an explicit decision before execution.
+   remain. The renewed instruction admits this replacement diagnosis within the same total ceiling.
+
+The pivot's native session is now consumed: inspection succeeds but Computer Use refuses every
+input, and the owned process retires at its fixed deadline without a functional interaction.
+The user confirms no manual window operation; the tool error does not establish interference.
+Remaining diagnosis instead proves cancelled/rejected preview-demand loss at its application owner.
+The narrow coordinator correction passes focused regressions and lint, as recorded in the
+[C05 evidence](../acceptance/r2c-browsing-diagnosis.md#renewed-native-observation-and-preview-demand-correction).
+It does not establish the native screenshot's cause. Stop further diagnosis at the renewed bound;
+do not restart the expired session, infer a repaired replay, or spend unused repair time on the
+deferred presentation defects. The next unresolved action is one bounded native replay of the
+corrected candidate once usable input is available, with the same frozen data and source/resource
+guards; this checkpoint does not grant a new lifetime or renew C01/C02/Daily allowances.
 
 ### Approved P2 completion follow-up — unresolved result
 

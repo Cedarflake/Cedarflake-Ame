@@ -121,10 +121,9 @@ class LibraryPreviewCoordinator {
     addRequests(guard, LibraryPreviewPriority.guard);
     addRequests(nearDirection, LibraryPreviewPriority.nearDirection);
     addRequests(visible, LibraryPreviewPriority.visible);
-    if (_hasSameGalleryDemand(requests)) {
-      return;
-    }
     _galleryDemand = requests;
+    // Unchanged visibility can outlive cancelled or rejected work. The queue
+    // owns request deduplication against actual pending, active and stored state.
     _applyDemand();
   }
 
@@ -180,28 +179,6 @@ class LibraryPreviewCoordinator {
     _galleryDemand = const {};
     _verifiedSizes.clear();
     _viewerDemand = null;
-  }
-
-  bool _hasSameGalleryDemand(Map<String, _LibraryPreviewDemand> next) {
-    if (_galleryDemand.length != next.length) {
-      return false;
-    }
-    final currentEntries = _galleryDemand.entries.iterator;
-    final nextEntries = next.entries.iterator;
-    while (currentEntries.moveNext() && nextEntries.moveNext()) {
-      final current = currentEntries.current;
-      final candidate = nextEntries.current;
-      if (current.key != candidate.key ||
-          current.value.priority != candidate.value.priority ||
-          current.value.previewEdge != candidate.value.previewEdge ||
-          !libraryPreviewSourcesAreCompatible(
-            current.value.asset,
-            candidate.value.asset,
-          )) {
-        return false;
-      }
-    }
-    return true;
   }
 
   void _applyDemand() {

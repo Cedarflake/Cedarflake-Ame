@@ -64,6 +64,69 @@ void main() {
     );
   });
 
+  test(
+    "readmits unchanged visible demand after a rejected completion",
+    () async {
+      final previewer = _ControlledPreviewer();
+      var canPublish = false;
+      final published = <String>[];
+      final coordinator = LibraryPreviewCoordinator(
+        previewer: previewer,
+        defaultPreviewEdge: 512,
+        maxActive: 1,
+        canPublish: (_) => canPublish,
+        onPublished: (asset) => published.add(asset.locationId),
+      );
+      addTearDown(coordinator.dispose);
+      final pending = _asset("returning", LibraryPreviewStatus.pending);
+      coordinator.updateGalleryDemand(visible: [pending]);
+      previewer.succeed(pending.locationId, _readyAsset("returning"));
+      await _flushAsyncWork();
+      expect(published, isEmpty);
+
+      canPublish = true;
+      coordinator.updateGalleryDemand(visible: [pending]);
+      expect(previewer.requests, [pending.locationId, pending.locationId]);
+      previewer.succeed(
+        pending.locationId,
+        _readyAsset("returning"),
+        attempt: 1,
+      );
+      await _flushAsyncWork();
+      expect(
+        coordinator.resolve(pending).previewStatus,
+        LibraryPreviewStatus.ready,
+      );
+      expect(published, [pending.locationId]);
+    },
+  );
+
+  test("readmits cancelled pending demand after viewport retention", () async {
+    final previewer = _ControlledPreviewer();
+    final coordinator = LibraryPreviewCoordinator(
+      previewer: previewer,
+      defaultPreviewEdge: 512,
+      maxActive: 1,
+      canPublish: (_) => true,
+      onPublished: (_) {},
+    );
+    addTearDown(coordinator.dispose);
+    final active = _asset("active", LibraryPreviewStatus.pending);
+    final pending = _asset("pending", LibraryPreviewStatus.pending);
+    coordinator.updateGalleryDemand(visible: [active, pending]);
+    coordinator.retainPending([active.locationId]);
+    coordinator.updateGalleryDemand(visible: [active, pending]);
+    previewer.succeed(active.locationId, _readyAsset("active"));
+    await _flushAsyncWork();
+    expect(previewer.requests, [active.locationId, pending.locationId]);
+    previewer.succeed(pending.locationId, _readyAsset("pending"));
+    await _flushAsyncWork();
+    expect(
+      coordinator.resolve(pending).previewStatus,
+      LibraryPreviewStatus.ready,
+    );
+  });
+
   test("does not repeat a verified viewer bucket", () async {
     final previewer = _ControlledPreviewer();
     final ready = _readyAsset("viewer");
@@ -91,6 +154,97 @@ void main() {
     coordinator.updateViewerDemand(ready);
     expect(previewer.previewEdges, [128, 512]);
   });
+
+  test(
+    "unchanged demand does not duplicate active, pending or ready work",
+    () async {
+      final previewer = _ControlledPreviewer();
+      final published = <String>[];
+      final coordinator = LibraryPreviewCoordinator(
+        previewer: previewer,
+        defaultPreviewEdge: 512,
+        maxActive: 1,
+        canPublish: (_) => true,
+        onPublished: (asset) => published.add(asset.locationId),
+      );
+      addTearDown(coordinator.dispose);
+      final active = _asset("active", LibraryPreviewStatus.pending);
+      final pending = _asset("pending", LibraryPreviewStatus.pending);
+
+      for (var index = 0; index < 20; index++) {
+        coordinator.updateGalleryDemand(visible: [active, pending]);
+      }
+      expect(previewer.requests, [active.locationId]);
+      previewer.succeed(active.locationId, _readyAsset("active"));
+      await _flushAsyncWork();
+      expect(previewer.requests, [active.locationId, pending.locationId]);
+      previewer.succeed(pending.locationId, _readyAsset("pending"));
+      await _flushAsyncWork();
+
+      for (var index = 0; index < 20; index++) {
+        coordinator.updateGalleryDemand(visible: [active, pending]);
+      }
+      await _flushAsyncWork();
+      expect(previewer.requests, [active.locationId, pending.locationId]);
+      expect(published, [active.locationId, pending.locationId]);
+    },
+  );
+
+  for (final code in ["preview_decode_failed", "preview_root_unavailable"]) {
+    test(
+      "unchanged demand preserves actionable $code without retrying",
+      () async {
+        final previewer = _ControlledPreviewer();
+        final published = <String>[];
+        final coordinator = LibraryPreviewCoordinator(
+          previewer: previewer,
+          defaultPreviewEdge: 512,
+          maxActive: 1,
+          canPublish: (_) => true,
+          onPublished: (asset) => published.add(asset.locationId),
+        );
+        addTearDown(coordinator.dispose);
+        final pending = _asset("failed", LibraryPreviewStatus.pending);
+        var notifications = 0;
+        final subscription = coordinator.watch(pending.locationId).listen((_) {
+          notifications++;
+        });
+        addTearDown(subscription.cancel);
+
+        coordinator.updateGalleryDemand(visible: [pending]);
+        previewer.fail(
+          pending.locationId,
+          LibraryPreviewFailure(code: code, message: "controlled failure"),
+        );
+        await _flushAsyncWork();
+        for (var index = 0; index < 20; index++) {
+          coordinator.updateGalleryDemand(visible: [pending]);
+        }
+        await _flushAsyncWork();
+        expect(previewer.requests, [pending.locationId]);
+        expect(published, [pending.locationId]);
+        expect(notifications, 1);
+        expect(
+          coordinator.resolve(pending).previewStatus,
+          LibraryPreviewStatus.failed,
+        );
+        expect(coordinator.resolve(pending).previewIssueCode, code);
+
+        final outcome = coordinator.retry(pending);
+        expect(previewer.requests, [pending.locationId, pending.locationId]);
+        previewer.succeed(
+          pending.locationId,
+          _readyAsset("failed"),
+          attempt: 1,
+        );
+        expect(await outcome, LibraryPreviewRequestOutcome.ready);
+        expect(
+          coordinator.resolve(pending).previewStatus,
+          LibraryPreviewStatus.ready,
+        );
+      },
+    );
+  }
 
   test("reorders pending work when the gallery center changes", () async {
     final previewer = _ControlledPreviewer();

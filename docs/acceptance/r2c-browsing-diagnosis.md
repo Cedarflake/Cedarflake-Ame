@@ -1,11 +1,11 @@
 # C05 browsing diagnosis
 
-Status: bounded diagnosis stopped; core blank/gray browsing cause unresolved.
+Status: preview-demand correction has focused evidence; native blank/gray browsing remains unresolved.
 
-## Source and outcome
+## First diagnosis: source and outcome
 
 The 2026-09-10 diagnosis starts from `507db08f897839aeafb2dc011ef7332ad50fadfa` on
-`codex/r2c`, after the approved 120-minute supplement. Product source remains unchanged.
+`codex/r2c`, after the approved 120-minute supplement. Product source is unchanged at that checkpoint.
 The [execution plan](../plans/r2c-closeout.md#approved-browsing-continuation) owns the scope and
 30-active-minute unknown-cause stop. Earlier [native observations](r2c-live-gap-recovery.md#c05-browsing-findings--unresolved)
 remain valid observations; the controlled widget results below do not disprove them.
@@ -13,7 +13,7 @@ remain valid observations; the controlled widget results below do not disprove t
 | Observation | Current evidence | Disposition |
 | --- | --- | --- |
 | Entire wall blank after a timeline click until another scroll | Preserved native capture and pre-removal catalog; controlled direct clicks and delayed-manifest interleaving both materialize visible target tiles | S1 unresolved; no causal repair |
-| Persistent gray cards without retry after deletion/jump | Reported native observation; detail slots and pending previews both produce gray surfaces | S1 unresolved; no proof yet of which owner failed |
+| Persistent gray cards without retry after deletion/jump | Preview-demand re-admission now has a failing-before/passing-after application regression; detail slots and pending previews both produce gray surfaces | Native incident unresolved; application correction below does not establish screenshot causality |
 | Transient whole-wall thumbnail errors after deletion | Reported native observation; retained logs do not identify all visible requests at that instant | Unresolved; do not infer harmlessness or decode failure |
 | Time rail disappears during publication | Deterministic first-frame failure when only catalog revision changes | S2 presentation defect recorded; no proved connection to persistent blank/gray |
 | Layout flashes after closing the viewer | Hidden gallery width changes from 940 to 1020 logical pixels at a fixed 1280 by 800 viewport | S2 presentation defect recorded; no proved connection to persistent blank/gray |
@@ -75,7 +75,7 @@ its relative support import requires that original location. It is retained outs
 test inventory because its two unresolved assertions intentionally fail, not disabled or marked
 passing. There are no C05 production changes or committed test exclusions.
 
-No C05 native client, source mutation, decoder run, Debug rebuild, lint or full Daily is claimed.
+At this first checkpoint no C05 native client, source mutation, decoder run, Debug rebuild, lint or full Daily is claimed.
 Only synthetic in-memory assets were used in the widget runs. Frozen source files and all retained
 C04 catalogs remain untouched. The stopped C04 client lifetimes are not reused or extended.
 
@@ -88,7 +88,80 @@ lower-impact presentation defects separately. Counts and passing controlled navi
 establish usable native browsing. A replacement native-evidence method is proposed in the execution
 plan; it does not become authorized merely because repair time remains.
 
-The independent evidence review uses two active minutes and confirms this limited conclusion.
+The first independent evidence review uses two active minutes and confirms this limited conclusion.
 The width assertion stops at hidden frame zero before the return assertions execute; the rail
 assertion also stops at its first failing frame. Neither test proves the duration of the reported
 native symptom. A final scoped documentation check is recorded in the cycle accounting.
+
+## Renewed native observation and preview-demand correction
+
+The renewed functional instruction admits the execution plan's 76-minute pivot from `4b02218`.
+The owned Debug entry copies the production bootstrap and delegates to real Rust catalog,
+manifest and preview ports, adding bounded request and visible-tile observations. It is an
+instrumented entry, not an unchanged performance baseline. Build capture
+`r2c-p2-raw-8403e029003c4a3880f0b605b701b765` passes in 39340 ms. A read-only SQLite backup of
+the closed C04 catalog creates a separate C05 catalog; previous catalogs and caches are preserved.
+A separate generated twelve-image stimulus is prepared but never imported.
+
+The one admitted session runs from 04:27:26.907 to its fixed 04:57:26.907 UTC deadline.
+Computer Use can inspect the window but rejects every click as simultaneous input, including
+fresh screenshot, fresh accessibility element and one runtime reset. The user confirms no window
+operation. The tool's underlying cause is unproved; no user interference or product-input failure
+is inferred. No root removal, stimulus import, timeline jump or bulk change executes. Startup
+records 50 real preview completions and twenty visible tiles with image pixels; this does not
+exercise the incident sequence.
+
+Run `c59c2edaf6a64bdfaa32443f440829bf` ends at the parent's 1800-second deadline, after 1800518 ms,
+with its process retired, Job closed and no cleanup failure. This is a blocked observation,
+not a failed repaired replay. Memory monitoring retains 6782 samples, sampled peak private bytes
+333885440, kernel peak commit 350994432 and minimum available system memory 5483483136; its
+monitor reports no resource failure. The second lifetime cannot be started after the shared
+deadline. Client receipts, trace, preparation provenance and session lock remain in the ignored
+C05 fixture identified by `build/diagnostics/r2c-c05-client-root.txt`.
+
+Remaining diagnostic work uses finite preview completions at the application boundary. A real
+timeline publication first trims pending preview work and replaces `state.assets`; visible demand
+arrives after layout. A second navigation or query can restore the same visible assets before
+that demand is published. A pending request may already have been cancelled, or an active result
+may have been correctly rejected while its asset was absent. The coordinator nevertheless skips
+an identical demand description, so the current tile remains pending without a queued request.
+These production call sites establish reachability, not causality for the captured native frame.
+
+Two focused tests fail on the prior source: cancelled pending work never starts again, and a
+rejected completion prevents unchanged visible demand from loading again. Five existing tests
+pass. Capture `r2c-p2-raw-3941f3f13c724ad7903af29fc55207c9` preserves both failures, exit one,
+9322 ms and successful owned retirement. The correction removes coordinator-level description
+deduplication. Each actual demand publication reaches the existing queue, which alone knows
+whether compatible pending/active work or a stored result satisfies it. No timer, forced retry,
+cache reset, concurrency increase or source/publication-guard weakening is added.
+
+The final focused capture `r2c-p2-raw-cdc61fc7e61f450282bbb4d49051a6c2` passes all 100 tests:
+controller 56, coordinator 10, queue 29 and store five, in 29534 ms, with empty stderr and clean
+retirement. New negative cases submit unchanged demand twenty times and retain one active/pending
+decode, no repeated ready decode, and one notification for decode/root-unavailable failure.
+Explicit Retry still reaches ready. Existing queue cases preserve source-generation rejection
+and concurrency bounds. Independent causal inspection and code review each take two active
+minutes and find no blocking issue in this narrow correction.
+
+Full lint capture `r2c-p2-raw-1f14669dc83949f899784020e4cf3327` passes in 152668 ms, including
+format checking, repository guardrails, Clippy and Dart analysis. Its process retires and Job
+closes with no cleanup failure; stderr contains only Cargo's successful completion message.
+The corrected normal `lib/main.dart` Debug entry also builds successfully in 35196 ms, capture
+`r2c-p2-raw-a319ba37ec8140508e6b785fe64e17bb`, with empty stderr and clean retirement. Its Dart
+kernel SHA-256 is `42F3BE3E9B45E0E54D9FA9674E2A5438CF753EB97F9A1D85F6EC2324F424CF92`.
+This replaces the scratch diagnostic executable payload; no new application lifetime is launched.
+
+After native retirement, a full read-only source check verifies all 10000 frozen files against
+their exact path roster, SHA-256, file identity, size, creation/modification times and date
+distribution. The retained C04 512 files and newly prepared C05 twelve files also match their
+identity/hash/size/modification-time ledgers. The C05 copied catalog still publishes exactly
+10000 and 512, has SQLite integrity `ok` and no foreign-key violation. Evidence is the new
+fixture's `c05-final-integrity.json`; no old evidence is overwritten. This proves fixture
+preservation and structural integrity, not an application FULL reopen or successful navigation.
+
+The changed production coordinator shrinks from 277 to 254 lines, with zero inline-test lines;
+its dedicated tests grow from 231 to 385 lines. Queue (700 production/1061 dedicated-test lines)
+and store (248/173) retain their existing ownership and are not extended. There is no dependency,
+schema, bridge, source-media or licensing change. The instrumented Debug artifact predates the
+repair. A repaired native replay, full Daily and complete browsing acceptance remain unverified;
+the original blank wall, transient whole-wall failures, rail and viewer observations remain open.

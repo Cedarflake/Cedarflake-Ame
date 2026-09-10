@@ -72,8 +72,9 @@ verification** for fresh bulk changes and recovery of retained terminal work. It
 is preserved in the [C04 record](acceptance/r2c-live-gap-recovery.md). **R2C-C05 blocks browsing**:
 direct timeline navigation leaves a blank wall, and reported removal/navigation sequences leave
 unresolved thumbnails; rail and viewer-return instability also require causal assessment. The
-approved browsing diagnosis has stopped at its unknown-cause boundary; the execution plan contains
-a proposed native-evidence pivot within the same total ceiling. Correct counts
+renewed diagnosis corrects a proven preview-demand re-admission defect with focused evidence.
+Its native session is exhausted after the input tool refused every action, so the reported
+blank/gray workflow and a repaired client replay remain unresolved. Correct counts
 do not establish usable browsing or complete synchronization acceptance. C01's mixed-load recovery
 failure and C02's automation/evidence failures are recorded for final verification; their current
 evidence does not establish a highest-priority user incident. Deferral changes execution order,
