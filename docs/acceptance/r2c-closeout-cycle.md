@@ -376,7 +376,24 @@ The approval turn runs from 02:10:56 UTC through this closeout on 2026-09-10. Fi
 1527369 ms within the fixed 30-minute session. Intermediate tool waits remain in the retained raw
 captures. These elapsed tool times are not new active-engineering allowances. The execution plan's
 proposed 120-minute browsing continuation and 1080-minute cumulative ceiling await a scope decision;
-they are not already charged or authorized. C04 evidence does not accept the candidate or all R2c.
+they are not already charged or authorized at that checkpoint. C04 evidence does not accept the candidate or all R2c.
+
+The subsequent explicit approval activates the browsing continuation at approximately 03:38 UTC,
+starting from `507db08` and the 948-minute checkpoint. Its additional limits and stopping rules
+are owned by the execution plan; no prior failed experiment or final gate is reset.
+
+The [C05 diagnosis record](r2c-browsing-diagnosis.md) preserves the two passing controlled navigation
+cases, two failing presentation cases, corrected test assumptions and unresolved native blank/gray
+cause. The 30-active-minute diagnosis boundary is consumed. No product correction or new client
+lifetime executes before the stopping decision.
+
+Charge 30 diagnosis minutes (10 triage and 20 repair, including five delegated inspection minutes),
+two evidence-review minutes, one scoped final check minute and the full ten recording minutes.
+Cumulative usage is discovery **405/420**, triage **70/70**, repair **390/435**, review **46/75**,
+recording **80/80**: **991/1080 active minutes**. C05 consumes 43 of its 120-minute supplement.
+The proposed 76-minute native-evidence pivot fits within the remaining supplement and total but
+requires replacement diagnostic admission and the explicit phase transfer in the execution plan.
+The unused original review balance does not authorize another experiment or lifetime.
 
 ## Approved P2 follow-up
 

@@ -72,7 +72,8 @@ verification** for fresh bulk changes and recovery of retained terminal work. It
 is preserved in the [C04 record](acceptance/r2c-live-gap-recovery.md). **R2C-C05 blocks browsing**:
 direct timeline navigation leaves a blank wall, and reported removal/navigation sequences leave
 unresolved thumbnails; rail and viewer-return instability also require causal assessment. The
-execution plan contains a bounded browsing continuation awaiting a scope decision. Correct counts
+approved browsing diagnosis has stopped at its unknown-cause boundary; the execution plan contains
+a proposed native-evidence pivot within the same total ceiling. Correct counts
 do not establish usable browsing or complete synchronization acceptance. C01's mixed-load recovery
 failure and C02's automation/evidence failures are recorded for final verification; their current
 evidence does not establish a highest-priority user incident. Deferral changes execution order,
@@ -115,7 +116,8 @@ independent review plus one scoped recheck in the original cycle; the supplement
 its additional diagnosis, repair and review allowances without resetting prior usage. Budget exhaustion, a fourth blocking family, or a
 materially different architecture requires an unresolved checkpoint and replanning, not automatic
 expansion. Any known core-workflow S0/S1 still blocks readiness even outside the selected roster.
-The approved C04 exception is consumed; the proposed C05 extension is not active until accepted.
+The C04 exception is consumed. The approved C05 extension adds at most 120 active minutes and
+raises the cumulative ceiling to 18 hours; all earlier charges and failed-gate limits remain.
 
 New findings enter the existing ledger with reproduction, severity, owning invariant, and blocked
 exit. Only a source/data-safety incident or a proven active-exit blocker interrupts order, with the

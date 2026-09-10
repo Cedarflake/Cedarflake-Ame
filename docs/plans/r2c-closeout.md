@@ -1,6 +1,6 @@
 # R2c closeout execution
 
-Status: **C04 focused and generated-client verification recorded; browsing failures unresolved**.
+Status: **C04 evidence recorded; C05 diagnosis stopped at its approved unknown-cause boundary**.
 
 The [cycle evidence](../acceptance/r2c-closeout-cycle.md) records the frozen source, selected
 variants, execution budgets, findings, and verification. Its status does not accept R2c.
@@ -258,7 +258,7 @@ The C04 implementation, review and two admitted client lifetimes have ended. The
 [C04 verification record](../acceptance/r2c-live-gap-recovery.md) owns final-source evidence and
 its limitations. Newly observed browsing failures are not covered by the C04 causal correction.
 
-### Proposed browsing continuation — awaiting scope decision
+### Approved browsing continuation
 
 R2C-C05 records the reported rail disappearance, direct-jump blank viewport, transient thumbnail
 errors after removal, persistent gray cards without recovery, and viewer-return layout flash.
@@ -267,12 +267,12 @@ unrecoverable current images are S1 and take priority over deferred validation-o
 position change after removed dates is assessed against the surviving visible asset and its local
 offset; the normalized thumb fraction alone cannot prove a jump defect.
 
-The existing fourth-family approval does not admit further causal families or another native
-lifetime. This proposal adds at most 120 active minutes and changes the cumulative ceiling from
+The 2026-09-10 explicit approval admits this browsing continuation after the C04 checkpoint.
+It adds at most 120 active minutes and changes the cumulative ceiling from
 960 to 1080 minutes without resetting charged work: 30 minutes diagnosis (10 triage, 20 repair),
 45 repair, 15 native observation, 20 independent review/recheck, and 10 recording. Phase ceilings
-would be discovery 420, triage 70, repair 435, review 75 and recording 80. Tool waits remain
-separate and bounded. This extension requires a decision before product changes or another run.
+are discovery 420, triage 70, repair 435, review 75 and recording 80. Tool waits remain
+separate and bounded. Prior charges, failed results and unrelated invocation limits remain binding.
 
 1. Freeze the current source and retained 2012/512 reproduction evidence. Map query revision,
    gallery manifest/layout generation, visible asset/range demand, preview request generation and
@@ -310,6 +310,39 @@ installed-service work, Release storage override or source mutation outside the 
 is included. No C01/C02 experiment, complete Daily invocation or acceptance claim is renewed.
 Completion of this proposal requires the admitted browsing invariants to pass; full R2c still
 requires its existing final-source, Release, installed-journal and retained-library gates.
+
+The first C05 diagnosis has reached its 30-active-minute boundary. The
+[browsing diagnosis record](../acceptance/r2c-browsing-diagnosis.md) preserves two reproducible
+presentation defects and the unresolved native blank/gray observations. No C05 product repair,
+rebuilt client, or repaired replay has executed. Unused repair time does not override this stop.
+
+### Proposed C05 native evidence pivot — awaiting decision
+
+Keep the 1080-minute cumulative ceiling and all charged work. Replace only the exhausted
+diagnostic method: use one instrumented, owned Debug session to trace the actual catalog/manifest,
+visible detail demand and preview completion at the blank or gray viewport. Do not repeat the
+pending-preview widget fixture as evidence of native preview convergence.
+
+Reallocate the remaining C05 allowance to at most 35 diagnostic minutes (20 preparation/analysis,
+15 native observation), 23 causal repair minutes, 12 review/recheck minutes and six recording
+minutes. Transfer six unused review minutes to recording; phase ceilings would become discovery
+420, triage 70, repair 435, review 69 and recording 86. This is at most 76 additional minutes,
+not a new 120-minute supplement. No previous charge, failed gate or lifetime resets.
+
+1. Prepare Debug-entrypoint-only delegating probes around real catalog/manifest/preview ports.
+   Record bounded request identities, revisions, ordinals, completion status and monotonic times;
+   do not read source bytes for diagnostics or replace production results with fakes.
+2. Consume the original C05 session allowance: one fixed 30-wall-minute session, at most two
+   lifetimes, the unchanged frozen 10000 plus generated 12/2012/512 workload, original resource
+   guards and source oracles. Capture top/middle/bottom jumps without wheel input and the removal
+   transition. Distinguish missing asset detail, unrequested preview, retired completion and actual
+   failure at the first affected frame. At most one observation pass and one causal repaired replay.
+3. Admit at most two proven S1 causes for correction. The two confirmed rail/viewer presentation
+   defects remain deferred S2 unless this evidence connects them to blocked browsing. Do not spend
+   the repair allowance on them merely because they are easier to reproduce. Unknown cause at the
+   new diagnostic boundary, a third admitted cause, resource breach or failed repaired replay
+   ends this pivot without further experimentation. All original safety and final-gate exclusions
+   remain. This replacement diagnosis requires an explicit decision before execution.
 
 ### Approved P2 completion follow-up — unresolved result
 
