@@ -1,6 +1,7 @@
 # R2c controlled closeout cycle
 
-Status: functional-first continuation active; C01/C02 and local Daily failure remain unresolved.
+Status: core synchronization discovery found C04; its bounded repair decision is pending.
+C01/C02 and local Daily failure remain unresolved.
 
 Current implementation checkpoints: `d91580d` adds the connected root-interleaving regressions;
 `dd3f556` contains the queue-readiness correction, work bounds and observation measurements;
@@ -224,6 +225,135 @@ Ignored provenance is `build/diagnostics/r2c-mixed-generation.json`, `r2c-mixed-
 `r2c-mixed-resume-session.json`, both GUID fixture roots' process/memory receipts and oracle JSON,
 and `build/diagnostics/r2c_mixed_fixture.rs`. The oracle additionally rejects duplicate/missing
 catalog paths, unhealthy databases and unfinished scans; mere total-count agreement cannot pass.
+
+### Restart audit and remaining-controls proposal
+
+The subsequent goal continuation starts from clean `e04daeb` on `codex/r2c`. The preceding turn
+is progress: it adds actual client/source evidence and publishes the reviewed checkpoint. The
+current audit compares the original 24-variant roster with those results and verifies the live
+Release storage boundary in `rust/src/application/storage.rs`: the test root remains Debug-only.
+No new process, experiment, source access or test invocation is started. The existing Release
+executable's presence does not prove admissible isolated storage or final-source client acceptance.
+
+At this checkpoint a remaining-controls proposal is prepared without execution. It retains
+revision interleavings, pending-call restart, Release and C01/C02 as separate unresolved
+obligations. Charge four discovery minutes conservatively, including one delegated coverage-map
+minute, and four recording minutes for this audit/proposal: discovery 330/330, triage 54/60,
+diagnosis/repair 306/390, review 24/120 and recording 56/60. Total charged time is 770/960 minutes.
+The proposed transfer is not applied to these counters until approved. Further discovery cannot
+consume an unrelated phase or infer permission from the remaining total. The complete goal stays
+unachieved; this decision checkpoint neither resets budgets nor accepts missing evidence.
+
+The subsequent explicit direction prioritizes core image synchronization and bulk additions/
+removals. It supersedes the unexecuted controls proposal with the execution plan's core-sync pass:
+the 10000-image background stays frozen; single-file changes and a 2000-add/1500-remove burst
+occur only in a separately owned generated root. Discovery receives 60 unused repair minutes,
+and recording receives five unused review minutes; the cumulative ceiling stays 960. C01's
+failed full-load/replay and C02 allowances remain consumed. Current source confirms that the
+public 19-case R2c-R runner includes C01's stopped workload, so that complete runner is not used
+as a shortcut for this native-client observation. Portable LiveOnly and installed journal
+downtime catch-up remain distinct acceptance claims.
+
+### Core image synchronization and bulk changes
+
+The pass reuses the unchanged Debug artifacts and second isolated mixed-media catalog on source
+`e04daeb`. The original 10000-file source is frozen. A separate owned root starts with twelve
+textured images spanning every dimension and JPEG/PNG; mutations are recorded before execution.
+Copies have independent file identities. There are no retained-root reads, service changes,
+source-tree caches, manual refreshes or product-code changes in this pass.
+
+The actual client runs from 01:38:12 UTC for 1240375 ms on 2026-09-10, inside the original
+30-minute session deadline. Its real picker import publishes the twelve baseline images. The
+baseline wait includes the still-open picker before final Import confirmation, so its 28147 ms
+does not measure product import latency. Subsequent observations use actual filesystem changes
+and a read-only exact-path/catalog oracle, not direct queue insertion.
+
+| Stimulus | Expected root count | Observed outcome |
+| --- | ---: | --- |
+| One JPEG added | 13 | Exact paths/count publish automatically; visible new thumbnail |
+| In-place rewrite | 13 | Source generation advances from 10001 to 10014 with unchanged physical file identity; visible pixels update in place |
+| Rename to another directory | 13 | Old path disappears; asset and physical identity remain stable; new path is exposed by the client |
+| Delete that added JPEG | 12 | Exact removal/count publish automatically; no refresh |
+| Add 2000 files, 1800 JPEG/200 PNG | 2012 | Exact 2012 paths, no duplicates, original root still 10000, completed scan with zero issues and no unresolved queue entries |
+| Delete 1500 manifest-listed bulk files | 512 | **Fails:** physical source is 512, but catalog and client remain 2012 after the fixed 300-second check |
+
+The bulk addition writes 2746430688 bytes across all twelve dimensions. Its final oracle settles
+25148 ms after the post-copy observation begins; this is a diagnostic observation, not P95 or
+event-to-visible latency. The pass includes a completed root-scoped metadata recovery following
+live watcher input, so this result is not exclusively per-path P0 processing. A separate successful
+background-browsing observation during additions is not established by the attempted input.
+
+During bulk removal, the other root remains visibly browseable at 10000, and an actual
+7680 x 4320 original opens correctly and returns to its gallery. Deletion checks every listed
+file's path chain, identity and SHA256 before removing it; the mutation completes after 21377 ms.
+The one convergence wait ends failed at 300310 ms, without a SQLite observation error. The UI
+shows 2012 and an update-blocked notification whose message says automatic directory rechecking
+is occurring. All 1500 removed paths remain in the published set; no new inventory consumes them.
+The new root has twelve `live_notification` / `reconcile` / `subtree` tasks, each at attempt eight,
+with `next_retry_unix_ms=NULL` and `metadata_inventory_required`. The original root remains intact.
+
+This is R2C-C04, a distinct S1 functional blocker. The twelve old catalog subtrees contain 150 or
+170 locations each, beyond P0's 128-path bound, while their physical contents have fallen to 25 or
+45. `authoritative_library_changes.rs` therefore requests metadata inventory when merging old
+catalog locations. The queue promotion owner allows journal-free recovery for a root freshness
+gap, but its subtree path retries when an opening journal boundary is unavailable. No new P2
+authority or inventory is created. Exhausted rows are also excluded from normal leasing, so merely
+changing promotion would not repair already persisted debt. The existing LiveOnly subtree test
+explicitly expects this blocked state; a causal correction must replace that expectation and
+cover both fresh and exhausted gaps. ADR 0024's declared-scope recovery rule provides the intended
+boundary; Supported mode with missing proof must retain its refusal. This mechanism is independently
+reviewed, but a corrected regression/client counterfactual has not run. It does not explain C01.
+
+After the failed check, the client closes normally: exit zero, process retired, Job closed,
+no cleanup failure. The memory observer records 4512 samples over 1196053 ms, peak working set
+1169080320 bytes, sampled peak private memory 1292091392 bytes, kernel peak commit 1337954304
+bytes, and minimum sampled system-available memory 4815736832 bytes. No observed memory bound
+is breached; the observer's startup gap remains explicit. Final stdout is 96791 bytes and stderr
+is empty. The log-cap monitor inspected the stimulus directory while client logs were in the
+separate derived-storage directory; final size is bounded, but continuous enforcement is unproved.
+Bind that check to actual client logs before another admitted run.
+
+Post-exit source verification passes all 10000 frozen SHA256 hashes, sizes, physical identities,
+creation/modification dates and historical day counts. It independently passes the 512 remaining
+stimulus files' exact path set, identities, hashes, sizes and mtimes, totaling 704935470 bytes.
+Exactly two roots remain. The original root's exact catalog paths, dimensions, bytes, capture/
+fallback dates and day counts match; the other root intentionally retains the failed 2012-item
+publication. SQLite integrity is `ok` with no foreign-key violations. Source-safety success is
+separate from, and does not waive, the failed synchronization result.
+
+The initial combined verification script completes source hashing, then incorrectly compares
+catalog integers with manifest decimal strings. That script failure is retained; a corrected
+comparison uses the existing oracle's numeric/date normalization and completes both proofs.
+It does not weaken the path, dimension, date or source assertions. The old single-root
+`verified-oracle.json` is preserved; its exact-one-root rule is not reused for the expected two-root
+state. Interrupted/stale UI actions remain unexecuted; notifications observed after intervening
+user input are not attributed to an automated notification click.
+
+Offline addition, restart catch-up and explicit Update are unexecuted after C04. The fixture and
+failed catalog are retained without reset, manual repair or another run. Portable LiveOnly does
+not prove automatic closed-process journal catch-up. C01/C02, Release and other frozen workflow
+gaps remain open. The next action is the execution plan's explicit fourth-family repair decision.
+
+Ignored evidence is discoverable through `build/diagnostics/r2c-core-sync-root.txt` and
+`r2c-mixed-resume-root.txt`: exclusive stage intent/ledger files, successful and failed observation
+JSON, `bulk-remove-blocked-detail.json`, `final-source-integrity.json`,
+`final-source-and-old-root-oracle.json`, actual client stdout/stderr and process/memory receipts.
+The blocked-detail SHA256 is `4BA3601AD96B795065C2439005AB9A834529DFECE9ECFAECCB243F1AB73EC595`;
+the normal-exit receipt is `B3D882B37AFC18C6F8AA1AA3126356E8342224AB0465FD3E1E888B26BAEEC027`.
+The memory receipt is `085D616FF57EBE8A1762AEB0D44B48585D398BBDAF01AF00A662D19A715B18DA`.
+
+Conservatively charge the full 60-minute core discovery allowance, including fixture construction,
+all delegated preparation/inspection, actual UI observations and source-oracle work. Add one
+triage minute, four causal owner-inspection minutes, four independent-review minutes and nine
+recording minutes. Discovery is now 390/390, triage 55/60, repair 310/330, review 28/115 and
+recording 65/65: **848/960 active minutes before scoped evidence review**. Tool waits and the
+1240375-ms client lifetime remain separate. No additional lifetime or failed-gate replay is
+created by unused total time; the proposed fourth-family transfer has not been applied.
+
+The one-minute scoped evidence review confirms those distinctions and finds no required document
+correction. Review reaches 29/115 and cumulative use reaches **849/960 active minutes**. Owned
+documentation links and `git diff --check` pass. Product source and artifacts remain unchanged;
+this evidence checkpoint does not require another heavy gate or accept C04.
 
 ## Approved P2 follow-up
 

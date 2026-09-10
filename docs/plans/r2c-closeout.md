@@ -1,6 +1,6 @@
 # R2c closeout execution
 
-Status: **functional-first continuation active; C01/C02 deferred and candidate remains unresolved**.
+Status: **functional synchronization pass found C04; bounded repair decision pending, candidate unresolved**.
 
 The [cycle evidence](../acceptance/r2c-closeout-cycle.md) records the frozen source, selected
 variants, execution budgets, findings, and verification. Its status does not accept R2c.
@@ -156,6 +156,102 @@ additional-root oracle failure. The resumed exact source/catalog/date oracle pas
 viewer observations span all twelve dimensions, but unfinished client observations remain gaps
 in the cycle record. The 90-minute mixed-media discovery allowance is consumed. No additional
 client lifetime, higher deadline or unchanged final-gate replay is admitted by this result.
+
+### Core synchronization continuation
+
+The 2026-09-10 direction explicitly prioritizes image synchronization and bulk additions/removals.
+It replaces the unexecuted controls proposal. Keep the same 24 variants and 960-active-minute
+ceiling: transfer 60 unused repair minutes to discovery and five unused review minutes to recording.
+Ceilings are discovery 390, triage 60, repair 330, review 115 and recording 65 minutes. Start this
+pass from the recorded 770-minute checkpoint, with at most 60 active discovery minutes including
+preparation, delegated work, observation and analysis. No C01/C02 or Daily replay allowance renews.
+
+Reuse the unchanged Debug client and the second mixed-media catalog's 10000-image background.
+Verify the exact one-root baseline and artifacts before launching; exclude the first catalog with
+the manually added real root. Introduce a separate generated stimulus root with 12 baseline images,
+using manifest-identified textured copies covering the existing dimensions and both formats.
+All writes, renames and removals target only this new owned root. Keep the frozen 10000 sources
+unchanged, and record intentional stimuli separately from before/after source-integrity checks.
+
+Use at most two client lifetimes inside one 30-minute session deadline, without resetting the
+clock on restart. Require at least 4 GiB available physical memory before launch, a 2 GiB client
+ceiling, 2 GiB system reserve, 8 GiB additional source-storage ceiling and 64 MiB logs. Retain the
+repository lock, exact process/Job identity, memory samples and original failure precedence.
+Capture observation before test stimuli; missing startup reserve evidence must stay explicit.
+
+1. Import the stimulus root through the actual picker. Verify its 12 exact paths and usable
+   previews alongside the unchanged 10000-image background, then prove live observation is active.
+2. External single-file add, in-place rewrite, rename and removal: record each intentional state,
+   require matching final catalog paths, source generations/content, counts and client pixels.
+   Allow at most 30 seconds for each diagnostic convergence check; computer-use timing does not
+   replace the existing one-second P95 contract. No refresh/rescan is a live-synchronization pass.
+3. Add 2000 independently copied mixed-size JPEG/PNG files in one burst. Require the exact 2012
+   stimulus paths and 12012 total locations, no duplicates or unexplained issues, and usable
+   background browsing while work proceeds. Record first/final publication and settled state.
+4. Delete exactly 1500 listed bulk files after verifying their owned path chain, file identity and
+   bytes. Require the exact 512 remaining stimulus paths and 10512 total, no removed thumbnails
+   remaining selectable, no unrelated removals, and settled truthful feedback. Each bulk phase has
+   one 300-second diagnostic convergence deadline; retain failures without shrinking the burst.
+5. Close normally, prove process retirement, add one separately recorded file while closed, and
+   reopen inside the shared deadline. Inspect actual capability first. Supported journal mode must
+   catch up through journal evidence; portable LiveOnly must not claim downtime completeness or
+   silently enumerate. In LiveOnly, verify the stale baseline and explicit Update's exact 513-root/
+   10513-total completion; record automatic downtime catch-up as untested, not passed.
+6. Retire the client and compare every remaining stimulus path/hash/identity with its expected
+   ledger plus the frozen 10000-source oracle. Distinguish deliberate deletions from unintended
+   mutations. Preserve the catalog, issue/queue state, stdout/stderr and owned retirement receipts.
+
+The public 19-case R2c-R runner includes the stopped C01 mixed-load case; do not run that complete
+entrypoint as an unrelated synchronization check or weaken its exact-matrix guard. This new client
+pass exercises real filesystem notifications and product publication, not a replacement journal.
+If a core failure reproduces, retain the first failed stage and diagnose its owner within remaining
+admitted repair limits; do not patch feedback or add retries to make the observation pass.
+Release decoding/input, real signed broker/downtime catch-up, pending-call shutdown and other frozen
+interleavings retain their own exits. Ordinary Release storage excludes the Debug override, so
+launching it on the user's configured catalog requires separately prepared current authorization.
+
+The core session ends normally after its 300-second bulk-removal assertion fails. C04 is a
+distinct functional finding: 1500 expected removals remain published, with twelve exhausted
+LiveOnly subtree tasks and no new P2 inventory. Do not merge it into C01's unexplained performance
+failure to avoid the three-family limit. Restart/offline-add is unexecuted, and the original failed
+catalog is retained without a manual update or reset. The cycle record owns the exact evidence.
+
+### Proposed C04 functional repair — pending scope decision
+
+Admit only this fourth family, ahead of deferred C01/C02. The outcome is automatic, bounded
+convergence of proven live subtree gaps in LiveOnly, including already persisted exhausted tasks,
+without false journal continuity, source mutation, manual refresh or an unconditional startup scan.
+The proposal does not authorize implementation until the fourth-family and phase-transfer decision.
+
+Keep the cumulative 960-minute ceiling and prior charges. Transfer 60 unused review minutes:
+40 to repair, 15 to discovery and five to recording. Proposed ceilings become discovery 405,
+triage 60, repair 370, review 55 and recording 70. Within the remaining balances, allow at most
+60 repair minutes, 15 active native-observation minutes, 20 independent review/recheck minutes
+and five recording minutes. Tool runtimes stay separately bounded. No C01/C02 experiment,
+complete Daily, installed-service or retained-library allowance is renewed.
+
+1. Freeze a failing owner regression for LiveOnly `Reconcile/Subtree` over the bounded P0 page
+   and a second case with the retained eight-attempt terminal debt. Verify ADR 0024's allowed
+   authority and closing-proof rules before changing behavior; record any material decision
+   conflict before implementation. An unavailable root must never authorize absence.
+2. Extract the watcher-gap promotion and durable-consumer ownership from the large queue adapter
+   into a cohesive typed owner before extending it. Preserve atomic lineage transfer, scope/root
+   generation and namespace identity, reserved admission, cancellation, absence authority and
+   final publication. Establish an eligible consumer for existing proven terminal gaps without
+   raising retry limits or reviving unrelated failures. Record production and test-owner sizes.
+3. Verify narrow regressions for root/subtree with and without journal continuity, capacity
+   rejection/rollback, root replacement/unavailability, final removal publication, retained debt
+   and reopen. Run applicable formatting and lint serially; retain the first unexpected failure.
+4. After causal regressions pass, use at most two owned Debug lifetimes inside one fixed
+   30-minute client session: reopen the preserved 2012-versus-512 catalog to prove recovery of
+   existing debt; separately replay the unchanged 12/2012/512 generated workload with the frozen
+   10000-image background. Each bulk phase retains its 300-second bound and exact path oracle.
+   Keep the 2 GiB client/2 GiB system reserve, source limits and source-integrity proofs. Bind the
+   log monitor to the actual client-log directory before launch. Preserve the failed original
+   evidence and identify corrected-artifact evidence separately.
+5. Perform one independent review and at most one scoped recheck. Stop this repair on unknown
+   authority, budget exhaustion, a new family or failed validation; record the narrow next
+   decision. Passing C04 would not close C01/C02, full Daily, Release or installed-journal exits.
 
 ### Approved P2 completion follow-up — unresolved result
 

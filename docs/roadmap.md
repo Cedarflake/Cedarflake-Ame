@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-09-09
+Last planning update: 2026-09-10
 
 This file owns product delivery order, the current focus, blocking obligations, and stage exit
 decisions. Only one stage is active. Detailed product contracts, execution procedures, architecture,
@@ -66,9 +66,12 @@ correction. A documentation reorganization does not change any of these acceptan
 
 ## Current execution queue
 
-The current 2026-09-09 direction prioritizes defects that directly impair functions and user
-experience. Item 3 is active for the remaining frozen client journeys, including mixed-size,
-large-image and historical-date coverage requested for realistic client behavior. C01's mixed-load recovery
+The current direction prioritizes defects that directly impair functions and user experience.
+Item 3 selects core image synchronization. Its generated-source client pass verifies single-file
+changes and 2000 additions, but 1500 removals leave the displayed/catalog count at 2012 instead of
+512: **R2C-C04 is a reproduced S1 functional blocker**. The failed session is preserved; a bounded
+fourth-family repair proposal awaits a scope decision in the execution plan. Import and viewer
+evidence do not establish synchronization acceptance. C01's mixed-load recovery
 failure and C02's automation/evidence failures are recorded for final verification; their current
 evidence does not establish a highest-priority user incident. Deferral changes execution order,
 not their unresolved acceptance status. Source/durable-data harm or reproduced blocked, misleading
