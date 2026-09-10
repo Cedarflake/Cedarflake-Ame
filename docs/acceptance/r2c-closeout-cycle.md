@@ -1,6 +1,6 @@
 # R2c controlled closeout cycle
 
-Status: core synchronization discovery found C04; its bounded repair decision is pending.
+Status: C04 has focused and generated-client evidence; C05 browsing failures and candidate gates remain unresolved.
 C01/C02 and local Daily failure remain unresolved.
 
 Current implementation checkpoints: `d91580d` adds the connected root-interleaving regressions;
@@ -354,6 +354,29 @@ The one-minute scoped evidence review confirms those distinctions and finds no r
 correction. Review reaches 29/115 and cumulative use reaches **849/960 active minutes**. Owned
 documentation links and `git diff --check` pass. Product source and artifacts remain unchanged;
 this evidence checkpoint does not require another heavy gate or accept C04.
+
+## C04 repair checkpoint and newly observed browsing failures
+
+The [C04 record](r2c-live-gap-recovery.md) owns the causal correction, extracted ownership,
+133 focused tests, complete applicable lint, Debug build, retained-task recovery, fresh +2000/-1500
+client replay, memory/process receipts, source oracles and their limitations. The first wrapper's
+monitor-exit capture error remains explicit; the second lifetime exits cleanly. No complete Daily,
+C01/C02 experiment or third client lifetime was run. C05's blank wall, thumbnail-state and layout
+observations remain unresolved and block functional acceptance.
+
+Apply the approved C04 phase transfer, preserving all earlier charges. Conservatively charge the
+full 60 repair and 15 discovery allowances, five triage minutes, five recording minutes and 14
+review/recheck minutes (13 causal review/checks plus one final evidence reconciliation). Cumulative
+usage is discovery **405/405**, triage **60/60**, repair **370/370**, review **43/55**, recording
+**70/70**: **948/960 active minutes**. This accounting includes delegated work and failed attempts;
+12 unused review minutes do not authorize another diagnostic pass or native lifetime.
+
+The approval turn runs from 02:10:56 UTC through this closeout on 2026-09-10. Final owned tools take
+293011 ms for focused checks/lint and 62374 ms for the build; native lifetimes take 116625 and
+1527369 ms within the fixed 30-minute session. Intermediate tool waits remain in the retained raw
+captures. These elapsed tool times are not new active-engineering allowances. The execution plan's
+proposed 120-minute browsing continuation and 1080-minute cumulative ceiling await a scope decision;
+they are not already charged or authorized. C04 evidence does not accept the candidate or all R2c.
 
 ## Approved P2 follow-up
 

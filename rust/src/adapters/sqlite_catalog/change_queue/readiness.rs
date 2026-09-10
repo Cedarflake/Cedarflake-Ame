@@ -12,7 +12,7 @@ pub(super) struct ReadinessQuery<'a> {
     root_id: &'a str,
     root_generation: LibraryRootGeneration,
     now_unix_ms: i64,
-    max_attempts: i64,
+    policy: LibraryChangeQueuePolicy,
 }
 
 impl<'a> ReadinessQuery<'a> {
@@ -31,7 +31,7 @@ impl<'a> ReadinessQuery<'a> {
             root_id,
             root_generation,
             now_unix_ms,
-            max_attempts: i64::from(policy.max_attempts),
+            policy,
         })
     }
 
@@ -61,7 +61,7 @@ impl<'a> ReadinessQuery<'a> {
                 params![
                     self.root_id,
                     sqlite_integer(self.root_generation.value(), "root generation")?,
-                    self.max_attempts,
+                    i64::from(self.policy.max_attempts),
                     self.now_unix_ms,
                 ],
                 |row| row.get::<_, bool>(0),
@@ -95,7 +95,7 @@ impl<'a> ReadinessQuery<'a> {
                 params![
                     self.root_id,
                     sqlite_integer(self.root_generation.value(), "root generation")?,
-                    self.max_attempts,
+                    i64::from(self.policy.max_attempts),
                     self.now_unix_ms,
                 ],
                 |row| row.get::<_, bool>(0),
@@ -138,7 +138,7 @@ impl<'a> ReadinessQuery<'a> {
                 params![
                     self.root_id,
                     sqlite_integer(self.root_generation.value(), "root generation")?,
-                    self.max_attempts,
+                    i64::from(self.policy.max_attempts),
                     self.now_unix_ms,
                 ],
                 |row| row.get::<_, bool>(0),
@@ -209,7 +209,7 @@ impl<'a> ReadinessQuery<'a> {
                 params![
                     self.root_id,
                     sqlite_integer(self.root_generation.value(), "root generation")?,
-                    self.max_attempts,
+                    i64::from(self.policy.max_attempts),
                     self.now_unix_ms,
                 ],
                 |row| row.get::<_, bool>(0),
@@ -261,7 +261,7 @@ impl<'a> ReadinessQuery<'a> {
                 params![
                     self.root_id,
                     sqlite_integer(self.root_generation.value(), "root generation")?,
-                    self.max_attempts,
+                    i64::from(self.policy.max_attempts),
                     self.now_unix_ms,
                     affinity_change_id,
                 ],
@@ -271,7 +271,8 @@ impl<'a> ReadinessQuery<'a> {
     }
 
     pub(super) fn has_ready_live_authoritative_library_change(&self) -> Result<bool, ScanError> {
-        self.connection
+        let ready = self
+            .connection
             .query_row(
                 "SELECT EXISTS(
                    SELECT 1
@@ -301,12 +302,22 @@ impl<'a> ReadinessQuery<'a> {
                 params![
                     self.root_id,
                     sqlite_integer(self.root_generation.value(), "root generation")?,
-                    self.max_attempts,
+                    i64::from(self.policy.max_attempts),
                     self.now_unix_ms,
                 ],
                 |row| row.get::<_, bool>(0),
             )
-            .map_err(database_error)
+            .map_err(database_error)?;
+        if ready {
+            return Ok(true);
+        }
+        Ok(super::gap_promotion::retained_candidate(
+            self.connection,
+            self.root_id,
+            self.root_generation,
+            self.policy,
+        )?
+        .is_some())
     }
 }
 

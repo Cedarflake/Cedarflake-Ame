@@ -64,6 +64,37 @@ fn load_filtered_metrics(
                  WHERE claim.consumer_kind = 'explicit_recovery_required'",
             )
         };
+    let capacity_shape = super::gap_promotion::shape_predicate("library_change_queue");
+    let exhausted_capacity_shape = super::gap_promotion::shape_predicate("exhausted_change");
+    let may_transfer_retained = connection
+        .query_row(
+            &format!(
+                "SELECT EXISTS(SELECT 1 FROM library_change_queue WHERE {root_predicate}
+          AND (?3 IS NULL OR (root_id = ?3 AND root_generation = ?4))
+          AND status = 'retry_wait' AND attempt_count >= ?2
+          AND last_failure_code = 'metadata_inventory_required' AND scope = 'subtree')"
+            ),
+            params![
+                now_unix_ms,
+                i64::from(policy.max_attempts),
+                root_id,
+                root_generation
+                    .map(|generation| sqlite_integer(generation.value(), "root generation"))
+                    .transpose()?
+            ],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?;
+    let retained_debt = if may_transfer_retained {
+        super::gap_promotion::eligible_query("queue.id = library_change_queue.id", "?2")
+    } else {
+        "SELECT NULL WHERE 0".to_owned()
+    };
+    let exhausted_retained_debt = if may_transfer_retained {
+        super::gap_promotion::eligible_query("queue.id = exhausted_change.id", "?2")
+    } else {
+        "SELECT NULL WHERE 0".to_owned()
+    };
     let (
         pending,
         leased,
@@ -99,21 +130,8 @@ fn load_filtered_metrics(
                COALESCE(SUM(CASE WHEN status = 'retry_wait' AND attempt_count >= ?2
                  AND NOT (
                    COALESCE(last_failure_code = ?5, 0)
-                   AND origin = 'live_notification'
-                   AND intent_kind = 'freshness_unknown'
-                   AND scope = 'root'
-                   AND relative_path = ''
-                   AND previous_relative_path IS NULL
-                   AND EXISTS(
-                     SELECT 1 FROM library_change_queue_lanes AS capacity_lane
-                     WHERE capacity_lane.change_id = library_change_queue.id
-                       AND capacity_lane.lane = 'p0_live'
-                   )
-                   AND NOT EXISTS(
-                     SELECT 1 FROM library_live_gap_recovery_claims AS capacity_claim
-                     WHERE capacity_claim.gap_change_id = library_change_queue.id
-                   )
-                 ) THEN 1 ELSE 0 END), 0),
+                   AND {capacity_shape}
+                 ) AND NOT EXISTS({retained_debt}) THEN 1 ELSE 0 END), 0),
                COALESCE(SUM(CASE WHEN intent_kind = 'freshness_unknown'
                   AND status IN ('pending', 'leased', 'retry_wait') THEN 1 ELSE 0 END), 0),
                ({explicit_count}),
@@ -133,21 +151,9 @@ fn load_filtered_metrics(
                   AND exhausted_change.attempt_count >= ?2
                   AND NOT (
                     exhausted_change.last_failure_code = ?5
-                    AND exhausted_change.origin = 'live_notification'
-                    AND exhausted_change.intent_kind = 'freshness_unknown'
-                    AND exhausted_change.scope = 'root'
-                    AND exhausted_change.relative_path = ''
-                    AND exhausted_change.previous_relative_path IS NULL
-                    AND EXISTS(
-                      SELECT 1 FROM library_change_queue_lanes AS capacity_lane
-                      WHERE capacity_lane.change_id = exhausted_change.id
-                        AND capacity_lane.lane = 'p0_live'
-                    )
-                    AND NOT EXISTS(
-                      SELECT 1 FROM library_live_gap_recovery_claims AS capacity_claim
-                      WHERE capacity_claim.gap_change_id = exhausted_change.id
-                    )
+                    AND {exhausted_capacity_shape}
                   )
+                  AND NOT EXISTS({exhausted_retained_debt})
                   AND exhausted_change.last_failure_code IS NOT NULL
                 ORDER BY {exhausted_order}
                 LIMIT 1)

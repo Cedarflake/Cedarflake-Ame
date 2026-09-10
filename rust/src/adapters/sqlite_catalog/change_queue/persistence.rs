@@ -1,4 +1,5 @@
-use rusqlite::{Connection, OptionalExtension, Row, Transaction, params};
+use super::gap_promotion::is_typed_capacity_deferred_live_gap;
+use rusqlite::{OptionalExtension, Row, Transaction, params};
 
 use crate::domain::{
     DurableLibraryChange, LibraryChangeCapacityDeferral, LibraryChangeCatchUpEvidence,
@@ -669,39 +670,6 @@ pub(super) fn enforce_retry_attempt_limit(
             .map_err(database_error)?;
     }
     Ok(())
-}
-
-pub(super) fn is_typed_capacity_deferred_live_gap(
-    connection: &Connection,
-    change_id: LibraryChangeId,
-) -> Result<bool, ScanError> {
-    connection
-        .query_row(
-            "SELECT EXISTS(
-               SELECT 1
-               FROM library_change_queue AS queue
-               JOIN library_change_queue_lanes AS lane ON lane.change_id = queue.id
-               WHERE queue.id = ?1
-                 AND queue.status IN ('leased', 'retry_wait')
-                 AND queue.origin = 'live_notification'
-                 AND queue.intent_kind = 'freshness_unknown'
-                 AND queue.scope = 'root'
-                 AND queue.relative_path = ''
-                 AND queue.previous_relative_path IS NULL
-                 AND queue.last_failure_code = ?2
-                 AND lane.lane = 'p0_live'
-                 AND NOT EXISTS(
-                   SELECT 1 FROM library_live_gap_recovery_claims AS claim
-                   WHERE claim.gap_change_id = queue.id
-                 )
-             )",
-            params![
-                sqlite_integer(change_id.value(), "change ID")?,
-                LibraryChangeCapacityDeferral::MetadataInventoryLane.failure_code(),
-            ],
-            |row| row.get(0),
-        )
-        .map_err(database_error)
 }
 
 pub(in crate::adapters::sqlite_catalog) fn classify_lease_update(

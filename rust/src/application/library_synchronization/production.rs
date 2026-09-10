@@ -4050,6 +4050,8 @@ fn unsupported_platform() -> ScanError {
 mod tests {
     #[cfg(windows)]
     mod priority;
+    #[cfg(windows)]
+    mod retained_gap;
 
     #[cfg(windows)]
     mod priority_journal;

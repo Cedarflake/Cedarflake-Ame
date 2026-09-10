@@ -21,6 +21,7 @@ use super::{
 };
 
 mod coalescing;
+mod gap_promotion;
 mod ingress;
 mod lease_deferral;
 mod metrics;
@@ -37,6 +38,7 @@ use coalescing::{
     merge_older_evidence, queue_backpressure, validate_failure, validate_intent_batch,
     validate_policy, validate_root_id,
 };
+pub(super) use gap_promotion::wake_metadata_inventory_capacity_deferrals;
 use metrics::{load_metrics, load_root_metrics};
 pub(super) use persistence::activate_root_change_queue;
 pub(super) use persistence::classify_lease_update;
@@ -245,48 +247,6 @@ fn metadata_inventory_recovery_affinity_corrupt() -> ScanError {
         "metadata_inventory_recovery_affinity_corrupt",
         "The catalog cannot prove the exact metadata recovery authority owner",
     )
-}
-
-pub(super) fn wake_metadata_inventory_capacity_deferrals(
-    transaction: &Transaction<'_>,
-    root_id: &str,
-    root_generation: LibraryRootGeneration,
-    released_unix_ms: i64,
-) -> Result<u32, ScanError> {
-    let updated = transaction
-        .execute(
-            "UPDATE library_change_queue
-             SET next_retry_unix_ms = ?1, updated_unix_ms = ?1
-             WHERE root_id = ?2 AND root_generation = ?3
-               AND status = 'retry_wait'
-               AND last_failure_code = ?4
-               AND intent_kind = 'freshness_unknown' AND scope = 'root'
-               AND relative_path = '' AND previous_relative_path IS NULL
-               AND origin = 'live_notification'
-               AND EXISTS(
-                 SELECT 1 FROM library_change_queue_lanes AS lane
-                 WHERE lane.change_id = library_change_queue.id
-                   AND lane.lane = 'p0_live'
-               )
-               AND NOT EXISTS(
-                 SELECT 1 FROM library_live_gap_recovery_claims AS claim
-                 WHERE claim.gap_change_id = library_change_queue.id
-               )
-               AND (next_retry_unix_ms IS NULL OR next_retry_unix_ms > ?1)",
-            params![
-                released_unix_ms,
-                root_id,
-                sqlite_integer(root_generation.value(), "root generation")?,
-                LibraryChangeCapacityDeferral::MetadataInventoryLane.failure_code(),
-            ],
-        )
-        .map_err(database_error)?;
-    u32::try_from(updated).map_err(|_| {
-        ScanError::new(
-            "change_queue_capacity_wake_count_invalid",
-            "The number of woken capacity deferrals exceeds the supported range",
-        )
-    })
 }
 
 pub(super) fn insert_persistent_journal_recovery_control(
@@ -923,261 +883,14 @@ impl LibraryChangeQueue for SqliteCatalog {
         promoted_unix_ms: i64,
         policy: LibraryChangeQueuePolicy,
     ) -> Result<LibraryChangeLeaseUpdateOutcome, ScanError> {
-        validate_policy(policy)?;
-        validate_failure(failure)?;
-        let transaction = self.begin_write_in_lane(LibraryChangeLane::Live)?;
-        let outcome = classify_lease_update(&transaction, change_id, lease_generation, None)?;
-        if outcome != LibraryChangeLeaseUpdateOutcome::Applied {
-            transaction.commit().map_err(database_error)?;
-            return Ok(outcome);
-        }
-
-        let current = load_change(
-            &transaction,
-            sqlite_integer(change_id.value(), "change ID")?,
-        )?;
-        if current.intent.origin != LibraryChangeOrigin::LiveNotification
-            || current.intent.scope == LibraryChangeScope::Path
-            || failure.code != "metadata_inventory_required"
-        {
-            return Err(ScanError::new(
-                "change_queue_recovery_promotion_invalid",
-                "Only a proven bounded P0 watcher gap can create P2 metadata recovery",
-            ));
-        }
-        let is_root_live_gap = current.intent.kind == LibraryChangeIntentKind::FreshnessUnknown
-            && current.intent.scope == LibraryChangeScope::Root
-            && current.intent.relative_path.is_empty()
-            && current.intent.previous_relative_path.is_none();
-        if is_root_live_gap {
-            match super::persistent_journal::load_current_recovery_opening_boundary(
-                &transaction,
-                &current.intent.root_id,
-                current.intent.root_generation,
-            ) {
-                Ok(opening_boundary) => {
-                    insert_pending_live_gap_journal_claim(
-                        &transaction,
-                        change_id,
-                        &current.intent,
-                        &opening_boundary,
-                        promoted_unix_ms,
-                    )?;
-                    retry_leased_change_in_transaction(
-                        &transaction,
-                        change_id,
-                        lease_generation,
-                        &LibraryChangeFailure {
-                            code: "live_gap_waiting_for_journal_range".to_owned(),
-                            message: "The P0 live gap is durably waiting for continuous P1 journal ownership"
-                                .to_owned(),
-                        },
-                        promoted_unix_ms,
-                        policy,
-                    )?;
-                    transaction.commit().map_err(database_error)?;
-                    return Ok(LibraryChangeLeaseUpdateOutcome::Applied);
-                }
-                Err(error) if error.code == "persistent_journal_recovery_boundary_unavailable" => {
-                    let mut recovery_intent = current.intent.clone();
-                    recovery_intent.origin = LibraryChangeOrigin::MetadataInventory;
-                    let recovery_change_id = insert_persistent_journal_recovery_control(
-                        &transaction,
-                        &recovery_intent,
-                        promoted_unix_ms,
-                        policy,
-                    )?;
-                    transaction
-                        .execute(
-                            "UPDATE library_change_queue
-                             SET last_failure_code = ?1, last_failure_message = ?2,
-                                 updated_unix_ms = ?3
-                             WHERE id = ?4 AND status = 'pending'",
-                            params![
-                                failure.code,
-                                failure.message,
-                                promoted_unix_ms,
-                                sqlite_integer(recovery_change_id.value(), "recovery change ID")?,
-                            ],
-                        )
-                        .map_err(database_error)?;
-                    transfer_catch_up_lineage(&transaction, [change_id], recovery_change_id)?;
-                    insert_metadata_inventory_recovery_authority(
-                        &transaction,
-                        &LibraryRecoveryAuthority {
-                            change_id: recovery_change_id,
-                            run_id: format!("watcher-gap-promotion-{}", recovery_change_id.value()),
-                            root_id: recovery_intent.root_id.clone(),
-                            root_generation: recovery_intent.root_generation,
-                            reason: LibraryRecoveryAuthorityReason::WatcherUncoveredGap,
-                            opening_boundary: None,
-                            authorized_unix_ms: promoted_unix_ms,
-                            retired_unix_ms: None,
-                        },
-                    )?;
-                    insert_live_gap_metadata_recovery_claim(
-                        &transaction,
-                        change_id,
-                        &current.intent,
-                        recovery_change_id,
-                        promoted_unix_ms,
-                    )?;
-                    transaction
-                        .execute(
-                            "UPDATE library_change_queue
-                             SET last_failure_code = ?1, last_failure_message = ?2,
-                                 updated_unix_ms = ?3
-                             WHERE id = ?4 AND status = 'leased'
-                               AND lease_generation = ?5",
-                            params![
-                                failure.code,
-                                failure.message,
-                                promoted_unix_ms,
-                                sqlite_integer(change_id.value(), "change ID")?,
-                                sqlite_integer(lease_generation, "lease generation")?,
-                            ],
-                        )
-                        .map_err(database_error)?;
-                    if mark_superseded(
-                        &transaction,
-                        [change_id],
-                        Some(recovery_change_id),
-                        promoted_unix_ms,
-                    )? != 1
-                    {
-                        return Err(ScanError::new(
-                            "change_queue_recovery_promotion_conflict",
-                            "The P0 live gap changed before P2 recovery could be published",
-                        ));
-                    }
-                    transaction.commit().map_err(database_error)?;
-                    return Ok(LibraryChangeLeaseUpdateOutcome::Applied);
-                }
-                Err(error) => return Err(error),
-            }
-        }
-        let opening_boundary =
-            match super::persistent_journal::load_current_recovery_opening_boundary(
-                &transaction,
-                &current.intent.root_id,
-                current.intent.root_generation,
-            ) {
-                Ok(boundary) => boundary,
-                Err(error) if error.code == "persistent_journal_recovery_boundary_unavailable" => {
-                    super::persistent_journal::mark_persistent_journal_recovery_required(
-                        &transaction,
-                        &current.intent.root_id,
-                        current.intent.root_generation,
-                        &error.code,
-                        &error.message,
-                        promoted_unix_ms,
-                    )?;
-                    retry_leased_change_in_transaction(
-                        &transaction,
-                        change_id,
-                        lease_generation,
-                        failure,
-                        promoted_unix_ms,
-                        policy,
-                    )?;
-                    transaction.commit().map_err(database_error)?;
-                    return Ok(LibraryChangeLeaseUpdateOutcome::Applied);
-                }
-                Err(error) => return Err(error),
-            };
-        let active = load_active_changes(
-            &transaction,
-            &current.intent.root_id,
-            current.intent.root_generation,
-            policy.max_unresolved_changes,
-        )?;
-        let remaining = active
-            .iter()
-            .filter(|change| change.id != change_id)
-            .cloned()
-            .collect::<Vec<_>>();
-        let admitted_counts = active_lane_counts(&remaining).adding(LibraryChangeLane::Recovery, 1);
-        if !lane_admission_allows(policy, LibraryChangeLane::Recovery, admitted_counts) {
-            return Err(queue_backpressure());
-        }
-
-        let mut recovery_intent = current.intent.clone();
-        recovery_intent.origin = LibraryChangeOrigin::MetadataInventory;
-        validate_intent_batch(std::slice::from_ref(&recovery_intent), &recovery_intent)?;
-        let recovery_change_id = insert_change(
-            &transaction,
-            &recovery_intent,
-            promoted_unix_ms,
-            current.catalog_revision_at_enqueue,
-            None,
-            policy,
-        )?;
-        transaction
-            .execute(
-                "UPDATE library_change_queue
-                 SET last_failure_code = ?1, last_failure_message = ?2,
-                     updated_unix_ms = ?3
-                 WHERE id = ?4 AND status = 'pending'",
-                params![
-                    failure.code,
-                    failure.message,
-                    promoted_unix_ms,
-                    sqlite_integer(recovery_change_id.value(), "recovery change ID")?,
-                ],
-            )
-            .map_err(database_error)?;
-        transfer_catch_up_lineage(&transaction, [change_id], recovery_change_id)?;
-        insert_metadata_inventory_recovery_authority(
-            &transaction,
-            &LibraryRecoveryAuthority {
-                change_id: recovery_change_id,
-                run_id: format!("watcher-gap-promotion-{}", recovery_change_id.value()),
-                root_id: recovery_intent.root_id.clone(),
-                root_generation: recovery_intent.root_generation,
-                reason: LibraryRecoveryAuthorityReason::WatcherUncoveredGap,
-                opening_boundary: Some(opening_boundary.clone()),
-                authorized_unix_ms: promoted_unix_ms,
-                retired_unix_ms: None,
-            },
-        )?;
-        super::persistent_journal::insert_watcher_gap_recovery_window(
-            &transaction,
-            recovery_change_id,
-            &recovery_intent.root_id,
-            recovery_intent.root_generation,
-            &opening_boundary,
+        gap_promotion::promote(
+            self,
+            change_id,
+            lease_generation,
             failure,
             promoted_unix_ms,
-        )?;
-        transaction
-            .execute(
-                "UPDATE library_change_queue
-                 SET last_failure_code = ?1, last_failure_message = ?2,
-                     updated_unix_ms = ?3
-                 WHERE id = ?4 AND status = 'leased' AND lease_generation = ?5",
-                params![
-                    failure.code,
-                    failure.message,
-                    promoted_unix_ms,
-                    sqlite_integer(change_id.value(), "change ID")?,
-                    sqlite_integer(lease_generation, "lease generation")?,
-                ],
-            )
-            .map_err(database_error)?;
-        let superseded = mark_superseded(
-            &transaction,
-            [change_id],
-            Some(recovery_change_id),
-            promoted_unix_ms,
-        )?;
-        if superseded != 1 {
-            return Err(ScanError::new(
-                "change_queue_recovery_promotion_conflict",
-                "The P0 watcher gap changed before P2 recovery could be published",
-            ));
-        }
-        transaction.commit().map_err(database_error)?;
-        Ok(LibraryChangeLeaseUpdateOutcome::Applied)
+            policy,
+        )
     }
 
     fn defer_library_change_for_capacity(
@@ -1188,73 +901,14 @@ impl LibraryChangeQueue for SqliteCatalog {
         deferred_unix_ms: i64,
         policy: LibraryChangeQueuePolicy,
     ) -> Result<LibraryChangeLeaseUpdateOutcome, ScanError> {
-        validate_policy(policy)?;
-        let transaction = self.begin_write_in_lane(LibraryChangeLane::Live)?;
-        let outcome = classify_lease_update(&transaction, change_id, lease_generation, None)?;
-        if outcome != LibraryChangeLeaseUpdateOutcome::Applied {
-            transaction.commit().map_err(database_error)?;
-            return Ok(outcome);
-        }
-        let current = load_change(
-            &transaction,
-            sqlite_integer(change_id.value(), "change ID")?,
-        )?;
-        let is_root_live_gap = current.intent.origin == LibraryChangeOrigin::LiveNotification
-            && current.intent.kind == LibraryChangeIntentKind::FreshnessUnknown
-            && current.intent.scope == LibraryChangeScope::Root
-            && current.intent.relative_path.is_empty()
-            && current.intent.previous_relative_path.is_none();
-        let has_exact_unclaimed_live_ownership = transaction
-            .query_row(
-                "SELECT
-                   EXISTS(
-                     SELECT 1 FROM library_change_queue_lanes AS lane
-                     WHERE lane.change_id = ?1 AND lane.lane = 'p0_live'
-                   )
-                   AND NOT EXISTS(
-                     SELECT 1 FROM library_live_gap_recovery_claims AS claim
-                     WHERE claim.gap_change_id = ?1
-                   )",
-                [sqlite_integer(change_id.value(), "change ID")?],
-                |row| row.get::<_, bool>(0),
-            )
-            .map_err(database_error)?;
-        if !is_root_live_gap
-            || !has_exact_unclaimed_live_ownership
-            || deferral != LibraryChangeCapacityDeferral::MetadataInventoryLane
-        {
-            return Err(ScanError::new(
-                "change_queue_capacity_deferral_invalid",
-                "Only a leased P0 root live gap may wait for P2 metadata-inventory capacity",
-            ));
-        }
-        let updated = transaction
-            .execute(
-                "UPDATE library_change_queue
-                 SET status = 'retry_wait', attempt_count = CASE
-                       WHEN attempt_count > 0 THEN attempt_count - 1 ELSE 0 END,
-                     next_retry_unix_ms = ?1, lease_expires_unix_ms = NULL,
-                     last_failure_code = ?2, last_failure_message = ?3,
-                     updated_unix_ms = ?4
-                 WHERE id = ?5 AND status = 'leased' AND lease_generation = ?6",
-                params![
-                    capacity_deferral_deadline(deferred_unix_ms, policy),
-                    deferral.failure_code(),
-                    deferral.failure_message(),
-                    deferred_unix_ms,
-                    sqlite_integer(change_id.value(), "change ID")?,
-                    sqlite_integer(lease_generation, "lease generation")?,
-                ],
-            )
-            .map_err(database_error)?;
-        if updated != 1 {
-            return Err(ScanError::new(
-                "change_queue_capacity_deferral_raced",
-                "The leased live gap changed before capacity deferral could be persisted",
-            ));
-        }
-        transaction.commit().map_err(database_error)?;
-        Ok(LibraryChangeLeaseUpdateOutcome::Applied)
+        gap_promotion::defer_for_capacity(
+            self,
+            change_id,
+            lease_generation,
+            deferral,
+            deferred_unix_ms,
+            policy,
+        )
     }
 
     fn defer_library_changes(
@@ -2055,6 +1709,9 @@ impl SqliteCatalog {
             policy,
             LeaseSelection::LiveAuthoritative,
         )?;
+        if leased.is_empty() {
+            gap_promotion::transfer_retained(self, root_id, root_generation, now_unix_ms, policy)?;
+        }
         Ok(leased.pop())
     }
 

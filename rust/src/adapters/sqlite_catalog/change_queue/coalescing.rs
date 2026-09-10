@@ -1,3 +1,4 @@
+use super::gap_promotion::is_typed_capacity_deferred_live_gap;
 use rusqlite::Transaction;
 
 use crate::domain::{
@@ -8,8 +9,8 @@ use crate::domain::{
 };
 
 use super::persistence::{
-    ActiveChange, insert_change, is_typed_capacity_deferred_live_gap, load_active_changes,
-    mark_superseded, transfer_catch_up_lineage, update_change,
+    ActiveChange, insert_change, load_active_changes, mark_superseded, transfer_catch_up_lineage,
+    update_change,
 };
 
 const MAX_FAILURE_CODE_BYTES: usize = 128;
@@ -143,7 +144,7 @@ pub(super) fn enqueue_one(
             },
         );
     }
-    if has_ambiguous_leased_overlap(&active, incoming) {
+    if has_ambiguous_leased_overlap(&active, incoming, &capacity_deferred_gap_ids) {
         if !allow_scope_degradation {
             return Err(metadata_inventory_backpressure());
         }
@@ -878,9 +879,18 @@ fn has_conflicting_rename(active: &[ActiveChange], incoming: &LibraryChangeInten
     })
 }
 
-fn has_ambiguous_leased_overlap(active: &[ActiveChange], incoming: &LibraryChangeIntent) -> bool {
+fn has_ambiguous_leased_overlap(
+    active: &[ActiveChange],
+    incoming: &LibraryChangeIntent,
+    capacity_deferred_gap_ids: &[LibraryChangeId],
+) -> bool {
     active.iter().any(|change| {
         change.status == LibraryChangeQueueStatus::Leased
+            && !capacity_deferred_gap_preserves_precise_work(
+                change,
+                incoming,
+                capacity_deferred_gap_ids,
+            )
             && affected_paths_overlap(&change.intent, incoming)
             && !intent_covers(&change.intent, incoming)
             && !intent_covers(incoming, &change.intent)

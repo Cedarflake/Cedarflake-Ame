@@ -940,11 +940,27 @@ only then supersedes the P0 row. The P2 row starts pending with no P0 lease or w
 lower-lane admission is unavailable, that transaction creates nothing and the original P0 evidence
 remains retryable; queue size or slow work alone never performs this promotion.
 
+For an explicitly `LiveOnly` root, that declared scope may be a subtree whose published locations
+exceed the bounded P0 reconstruction window after a live change. Its independent P2 control keeps
+the same scope and `WatcherUncoveredGap` authority without inventing a journal boundary. Source
+namespace revalidation and complete scoped inventory still precede absence publication; partial,
+cancelled or unavailable work preserves the prior catalog. This does not establish closed-process
+continuity or permit startup enumeration without persisted live-gap evidence. Supported roots with
+missing journal proof retain their fail-closed boundary.
+
+An exhausted, unclaimed LiveOnly subtree gap carrying `metadata_inventory_required` may transfer
+to that same consumer through the P0 scheduler, at most one per turn. Readiness and transactional
+admission use the same current-generation, published-namespace, capability and capacity proof.
+The atomic transfer preserves original retry evidence; it does not revive general exhausted work.
+Absent evidence or unavailable lower-lane capacity creates no new consumer or busy retry loop.
+
 For a baseline or continuity gap, production starts or keeps the watcher first, captures a journal
 boundary, performs one metadata-only inventory, and then replays journal changes that occurred
 during the inventory. P0 remains reserved and publishes throughout recovery. Positive candidates
-may publish after final-state revalidation; removals require complete scope authority plus the
-closing journal boundary. A cancelled, partial, failed, raced, or unavailable inventory preserves
+may publish after final-state revalidation; in journal-supported mode, removals require complete
+scope authority plus the closing journal boundary. The explicit LiveOnly live-gap exception above
+retains complete scope and current source proof without claiming journal continuity.
+A cancelled, partial, failed, raced, or unavailable inventory preserves
 the last trustworthy catalog and cannot publish mass absence. Successful completion atomically
 establishes the new checkpoint and retires the recovery authority.
 

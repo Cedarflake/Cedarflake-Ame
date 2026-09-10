@@ -1,6 +1,6 @@
 # R2c closeout execution
 
-Status: **functional synchronization pass found C04; bounded repair decision pending, candidate unresolved**.
+Status: **C04 focused and generated-client verification recorded; browsing failures unresolved**.
 
 The [cycle evidence](../acceptance/r2c-closeout-cycle.md) records the frozen source, selected
 variants, execution budgets, findings, and verification. Its status does not accept R2c.
@@ -216,15 +216,16 @@ LiveOnly subtree tasks and no new P2 inventory. Do not merge it into C01's unexp
 failure to avoid the three-family limit. Restart/offline-add is unexecuted, and the original failed
 catalog is retained without a manual update or reset. The cycle record owns the exact evidence.
 
-### Proposed C04 functional repair — pending scope decision
+### Approved C04 functional repair
 
 Admit only this fourth family, ahead of deferred C01/C02. The outcome is automatic, bounded
 convergence of proven live subtree gaps in LiveOnly, including already persisted exhausted tasks,
 without false journal continuity, source mutation, manual refresh or an unconditional startup scan.
-The proposal does not authorize implementation until the fourth-family and phase-transfer decision.
+The 2026-09-10 approval admits this fourth family and the following phase transfer; prior failed
+evidence and unrelated stopping boundaries remain binding.
 
 Keep the cumulative 960-minute ceiling and prior charges. Transfer 60 unused review minutes:
-40 to repair, 15 to discovery and five to recording. Proposed ceilings become discovery 405,
+40 to repair, 15 to discovery and five to recording. Current ceilings become discovery 405,
 triage 60, repair 370, review 55 and recording 70. Within the remaining balances, allow at most
 60 repair minutes, 15 active native-observation minutes, 20 independent review/recheck minutes
 and five recording minutes. Tool runtimes stay separately bounded. No C01/C02 experiment,
@@ -252,6 +253,63 @@ complete Daily, installed-service or retained-library allowance is renewed.
 5. Perform one independent review and at most one scoped recheck. Stop this repair on unknown
    authority, budget exhaustion, a new family or failed validation; record the narrow next
    decision. Passing C04 would not close C01/C02, full Daily, Release or installed-journal exits.
+
+The C04 implementation, review and two admitted client lifetimes have ended. The
+[C04 verification record](../acceptance/r2c-live-gap-recovery.md) owns final-source evidence and
+its limitations. Newly observed browsing failures are not covered by the C04 causal correction.
+
+### Proposed browsing continuation — awaiting scope decision
+
+R2C-C05 records the reported rail disappearance, direct-jump blank viewport, transient thumbnail
+errors after removal, persistent gray cards without recovery, and viewer-return layout flash.
+These are observations in UX-03/04/05/08, not proof of one shared root cause. Persistent blank or
+unrecoverable current images are S1 and take priority over deferred validation-only work. A rail
+position change after removed dates is assessed against the surviving visible asset and its local
+offset; the normalized thumb fraction alone cannot prove a jump defect.
+
+The existing fourth-family approval does not admit further causal families or another native
+lifetime. This proposal adds at most 120 active minutes and changes the cumulative ceiling from
+960 to 1080 minutes without resetting charged work: 30 minutes diagnosis (10 triage, 20 repair),
+45 repair, 15 native observation, 20 independent review/recheck, and 10 recording. Phase ceilings
+would be discovery 420, triage 70, repair 435, review 75 and recording 80. Tool waits remain
+separate and bounded. This extension requires a decision before product changes or another run.
+
+1. Freeze the current source and retained 2012/512 reproduction evidence. Map query revision,
+   gallery manifest/layout generation, visible asset/range demand, preview request generation and
+   viewer return anchor through their existing owners. Add only bounded test probes needed to
+   distinguish no demand, obsolete completion, actual decode failure and geometry replacement.
+   Establish a failing deterministic boundary case before repair. Use frame-by-frame widget
+   observations for the brief return flash; a missed screenshot is not a passing observation.
+2. Select at most two proven causal families within this browsing workflow. Preserve distinct
+   symptom status until common causality is demonstrated. Correct the owning lifecycle and all
+   affected callers; extract that responsibility before extending an oversized owner. No forced
+   wheel event, delayed rebuild, blanket retry, cache wipe or hidden error substitution may stand
+   in for a current-generation visible-demand or layout invariant.
+3. Verify direct clicks to top/middle/bottom and immediate reversal without subsequent wheel input;
+   unchanged-root/background publication; deletion spanning dates while anchored in the middle;
+   and viewer open/close on the same asset at cold and warm pages. Assert consistent count,
+   manifest and geometry, stable surviving-asset/local offset, and automatic visible demand after
+   layout. A removed anchor selects a deterministic surviving neighbour. Pending work must settle
+   to current pixels or the existing actionable failure state; no permanent silent gray cards.
+   Include delayed/stale completion and a genuine decode failure as distinct negative cases.
+4. Run focused Flutter/application regressions and applicable lint serially, followed by one
+   rebuilt Debug client session of at most 30 wall minutes and two owned lifetimes. Reuse the
+   frozen 10000 mixed-size, historical-date sources unchanged. Reconstruct only a separate owned
+   12-image stimulus and the recorded +2000/-1500 sequence, preserving the failed catalogs and
+   independent full-path/source oracles. Permit one pass of each transition and one repaired
+   replay; no repeated unchanged runs until green. Keep the original 300-second bulk deadline,
+   4 GiB launch preflight, 2 GiB client ceiling, 2 GiB reserve and bounded logs. Record both sampled
+   and kernel peak memory; the last C04 session approached the client commitment ceiling.
+5. Use one independent review plus one scoped recheck, within 20 active minutes. Record per-symptom
+   reproduction and results, source identity and owned retirement. Unknown cause at 30 diagnosis
+   minutes, a third independent cause, failed repaired replay, resource breach or phase exhaustion
+   stops expansion and produces a bounded unresolved checkpoint. Keep S2 items deferred.
+
+No new branch, dependency/schema strategy, framework redesign, real-root access, hydration,
+installed-service work, Release storage override or source mutation outside the generated stimulus
+is included. No C01/C02 experiment, complete Daily invocation or acceptance claim is renewed.
+Completion of this proposal requires the admitted browsing invariants to pass; full R2c still
+requires its existing final-source, Release, installed-journal and retained-library gates.
 
 ### Approved P2 completion follow-up — unresolved result
 

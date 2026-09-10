@@ -32,6 +32,9 @@ use crate::ports::{
 
 use super::*;
 
+#[cfg(windows)]
+mod live_only_bulk;
+
 #[test]
 fn recovery_policy_rejects_unbounded_or_zero_limits() {
     assert!(AuthoritativeRecoveryPolicy::default().is_valid());
