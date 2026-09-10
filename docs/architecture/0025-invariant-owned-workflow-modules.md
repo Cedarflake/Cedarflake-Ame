@@ -1,0 +1,409 @@
+# ADR 0025: Keep workflows thin through invariant-owned modules
+
+- Status: Accepted
+- Date: 2026-09-06
+- Last amended: 2026-09-09
+
+## Context
+
+Phase 34 crossed several real ownership boundaries at once: retained-catalog migration repair,
+foreground scan finalization, atomic publication, root removal, physical database reclamation,
+preview replacement, and multi-root presentation state. The reported defects required coordinated
+changes, but repeatedly extending the existing top-level files also exposed structural debt.
+
+The largest files are not automatically wrong. Some contain stable schema history or extensive
+tests. The actionable problem is responsibility growth: a controller, adapter, or orchestrator that
+already coordinates several subsystems should not acquire another issue-specific flag, retry loop,
+SQL block, or presentation guard. Such patches obscure the owning invariant and make a local fix
+silently change unrelated workflows.
+
+## Decision
+
+Top-level workflow files are composition boundaries. They may translate inputs, select a typed use
+case, sequence owned collaborators, and publish a typed outcome. They do not own the detailed state
+machine or persistence contract of every collaborator.
+
+New behavior is placed in an invariant-owned module when any of these conditions applies:
+
+- the existing owner already coordinates two or more independent state machines;
+- the change needs its own cancellation, retry, transaction, or stale-publication rules;
+- the same owner has accumulated fixes for unrelated user-visible symptoms in the current phase;
+- the behavior can be tested through a narrower contract than the top-level workflow.
+
+Extraction must move real responsibility. A forwarding wrapper with shared mutable flags or SQL
+left in the original file does not establish a boundary. Each extracted module exposes typed inputs
+and outcomes, owns its invariants, and has focused tests for success, cancellation, stale work, and
+the relevant race or rollback boundary. Issue-specific error codes may describe an invariant
+failure; they must not become an alternate control plane spanning presentation, application, and
+persistence layers.
+
+### Rust boundaries
+
+- `application/scan_library.rs` remains the scan command facade. Scan execution, terminal source
+  reconciliation, P0 handoff, and publication waiting live behind dedicated application modules.
+  `scan_library/execution_registry.rs` owns process-local execution registration and revocable
+  first-import capture leases. `library_synchronization/admission.rs` distinguishes a published
+  baseline, a currently owned first import, and a root that requires first import. A persisted
+  checkpoint is recovery data, never proof that an execution is still alive.
+- `application/library_synchronization/production.rs` remains the priority and worker-lifecycle
+  coordinator. Journal baseline opening and closing use different typed work items in
+  `journal_baseline.rs`; an opening authority is either an existing root or a first import with a
+  required scan identity and start time, so mutually exclusive fields cannot form an invalid job.
+- `library_synchronization/observer_handoff.rs` owns the uncommitted observation plan, partial
+  capacity publication, and its opaque writer reservation through `ports/LibraryChangeIngress`.
+  The runtime cannot overwrite that plan or claim freshness before submission. Adapter-owned
+  `change_queue/ingress.rs` binds reservation identity and owns zero-wait transaction attempts;
+  `write_admission.rs` retains ordering independently from an active permit. Production
+  `catalog_scheduling.rs` owns synchronous follow-up writes and prevents same-poll self-waiting
+  behind any retained ingress reservation. Worker retirement and status projection remain outside
+  that write-admission boundary.
+- `adapters/sqlite_catalog.rs` remains the catalog and write-admission facade. Atomic replacement-
+  scan publication and its bounded identity reconciliation live in
+  `sqlite_catalog/scan_publication.rs`. Its `validation.rs` owner captures the fixed temporary
+  validation roster and verifies typed per-item outcomes against the complete staged/live payload
+  in that same publication transaction; the facade does not carry opaque exception flags.
+  `ports/scan_publication_control.rs` exposes read-only scan interruption evidence without exporting
+  application command values. `scan_publication/transaction.rs` owns attempt-scoped priority
+  preemption, SQLite progress interruption, callback retirement, and the transaction boundary;
+  application publication owns retry admission and the pause/cancel/suspend terminal policy.
+- `sqlite_catalog/write_admission.rs` owns writer ordering, preemption notification, waiting
+  registration, and permit retirement. Priority order remains authoritative across lanes; within
+  one priority, admission follows registration order rather than condition-variable wakeup order.
+  Nonblocking acquisition cannot bypass a registered same-priority waiter. A waiting registration
+  retires its own identity on timeout or unwind, without revoking an active permit or consuming
+  another waiter's position. Callbacks run outside the admission mutex; completed-write epochs
+  advance only when the admitted permit retires.
+- `sqlite_catalog/persistent_journal.rs` remains the journal facade. Root-unregistration lineage and
+  cleanup live in `persistent_journal/root_unregister.rs` so removal cannot accidentally discard a
+  surviving root's cross-root rename evidence.
+- `sqlite_catalog/change_queue/root_retirement.rs` owns queue-generation retirement and the
+  separate proof for retiring removed-root recovery authority. Cancellation and namespace
+  replacement cannot acquire removal authority while a root or run remains. The removal
+  transaction and `migrations/retired_root_authority.rs` share the same strict durable proof;
+  compatibility repair preserves history, validates the complete catalog, and rolls back on failure.
+- `sqlite_catalog/change_queue/readiness.rs` owns read-only lane eligibility and recovery
+  readiness. Its typed query context binds root, generation, time and policy while preserving
+  the original input-validation requirements of each operation. Eligibility filters exclude
+  terminal queue history before evaluating due work; retry, expired-lease, recovery-affinity and lineage checks remain part of
+  their original query. Readiness is a scheduling hint, never a replacement for transactional
+  lease admission. `change_queue/metrics.rs` separately owns exact observation totals: terminal
+  records are counted without evaluating active-state projections, in the same SQL statement and
+  snapshot as active counts and failure evidence. Neither owner depends on one hard-coded index
+  name or discards retained history to reduce observation cost.
+- `sqlite_catalog/metadata_inventory/lifecycle.rs` owns inventory-start and terminal-cleanup
+  admission. Restoring an existing run reads its frontier and active-root evidence in one short
+  read snapshot; a missing run ends that snapshot before writer admission and epoch allocation.
+  Empty cleanup is a read-only decision. A positive hint never carries deletion authority into the
+  later transaction: that transaction selects again. Caller-owned transactions cannot be silently
+  reused or ended. Raw-spool retirement remains a separate ownership obligation, not proof supplied
+  by the logical-entry cleanup budget.
+- `sqlite_catalog/metadata_inventory/spool_initialization.rs` owns source initialization and
+  incomplete-directory reset. Its write transaction revalidates the persisted run identity and
+  status, active root, exact current queue lease, and matching unretired recovery owner before
+  creating or resetting raw storage. A caller's earlier `Running` snapshot is not authority after
+  cancellation or lease handoff. Normal progress fields are not immutable identity, and a current
+  continuation may still reset incomplete directories while preserving completed ones. This
+  initialization returns the adapter-owned execution identity used by later source operations.
+- `sqlite_catalog/metadata_inventory/spool_execution.rs` owns the immutable run request and exact
+  current queue lease for raw source access. Readiness, directory selection, and ordered paging
+  share authority validation and their data reads in one short, independently owned read snapshot.
+  Directory start, append, and completion revalidate that same execution inside their write
+  transaction. Caller-owned transactions cannot supply or receive implicit read ownership.
+  `spool_read.rs` and `spool_write.rs` own those queries and mutations; the inventory facade does
+  not keep duplicate run-id-only raw APIs. A retained application continuation explicitly accepts
+  its new lease through the source port without resetting its iterator or completed directories.
+  Failed rebinding preserves the previous token, which remains subject to current authority checks.
+  Active enumeration checks admission before advancing its iterator and again before committing;
+  a failed attempt is discarded by the application before reconstruction. No database transaction
+  spans source I/O. This execution fence does not replace generation-specific delayed retirement.
+- `sqlite_catalog/spool_retirement.rs` owns monotonic retirement of run-bound raw observations.
+  Schema v32 separates their storage lifetime from run/root/recovery-authority lifetime. Retired
+  headers carry historical binding only, never execution, replay, or absence authority. Parent
+  retirement/deletion and storage retirement share a transaction; worker pause and valid lease
+  handoff do not retire storage. Reopening an interrupted raw enumerator marks only its incomplete
+  directories as `resetting`; source preparation clears a bounded page per turn before returning
+  them to `pending`. Completed directories and the initial subtree observation remain intact, and
+  stale leases cannot reset or consume either generation. A recovery authority may bind its next
+  epoch while earlier storage is still retired; uniqueness applies only to executable storage, not
+  historical headers. Physical cleanup selects again under its own bounded transaction,
+  removes entries before empty directories and headers, and includes historical NULL-parent
+  observations without inventing missing source authority. It never drains the full debt inside
+  completion, cancellation, removal, or a single application call. Restart and idle maintenance
+  retain responsibility for later batches. The v31-to-v32 migration copies legitimate active raw
+  data before replacing foreign-key ownership, validates the complete resulting catalog before
+  commit, and rolls back on failure; its one-time schema-copy cost is separate from runtime batch
+  bounds. Current implementation and verification of this decision remain roadmap evidence.
+- `metadata_inventory/spool_cleanup.rs` and `candidate_cleanup.rs` own bounded physical selection.
+  Entry queries select a limited owner set before indexed payload paging; empty-directory/header
+  selection limits inspected metadata before testing emptiness. A final SQL `LIMIT` after a payload
+  sort is not a bounded-work contract. The empty-debt hint uses the schema-owned partial initial-
+  observation index and short-circuits retired storage; idle maintenance cannot traverse active raw
+  file payload. `cleanup_transaction.rs` owns nonblocking maintenance
+  admission, zero SQLite busy wait, read/write progress interruption, and callback retirement before
+  rollback. `ports/InventoryCleanupControl` carries read-only runtime cancellation; it does not grant
+  source or execution authority. `production/inventory_cleanup.rs` retains the single batch worker
+  and later cleanup obligation independently of roots, including idle rechecks and the existing
+  absolute shutdown deadline. Cancellation preserves committed debt for a later owner.
+- `sqlite_catalog/change_queue/terminal_cleanup.rs` owns terminal queue retention and deletion.
+  Candidate ownership, live-gap consumer references, and unretired recovery authority exclude a
+  row before the batch limit, alongside journal and active-scan lineage. A terminal status is not
+  deletion authority over retained dependents. Their owning lifecycle retires those references;
+  queue cleanup must not discard them to avoid a foreign-key failure.
+  Baseline history is retired as a per-root/generation prefix: a retained earlier window protects
+  its successor from deletion, including when the same batch releases the earlier window's last
+  dependency. Later batches advance the prefix without leaving a historical journal transition
+  unprovable on reopen.
+- Cancelled lease return belongs to `sqlite_catalog/change_queue/lease_deferral.rs`. It owns bounded
+  batch admission, exact lease-generation classification, attempt refunds, and atomic rollback;
+  incremental workers submit one typed batch rather than orchestrating per-lease transactions.
+- Database page reclamation remains a separate application operation and persistence adapter. It
+  is lower priority than foreground and ordinary recovery publication, is preemptible at SQLite
+  progress boundaries, and carries a generation-specific request so cancellation cannot consume a
+  later cleanup request. `catalog_reclamation/operation_registry.rs` owns atomic request admission,
+  worker retirement, pending-request handoff, run identity, and attempt control. The worker consumes
+  typed transitions instead of separately reading status and appending work that may have lost its
+  executor. Its terminal status cannot be overwritten by a delayed preemption notification.
+- `catalog_session/maintenance.rs` owns structural-maintenance admission and retirement alongside
+  the session cache's validation and foreground-scan protection transitions. It releases the
+  transition mutex before the operation and wakes waiters on success, failure, interruption, and
+  unwind. Checkpointing remains outside structural invalidation. The reclamation facade selects
+  these contracts rather than maintaining a second active-scan flag or invalidation protocol.
+- `sqlite_catalog/reusable_connection.rs` owns retained-connection proof. Object/session identity,
+  write-admission ownership, autocommit, active statements and pending publication are checked before
+  reuse. Typed schema observations remain separate from fresh namespace identity. A retained
+  connection observes its already opened database; before returning, one fresh path-and-file-ID
+  observation must match the validated session, even if SQL proof failed. Namespace replacement
+  takes stale-session precedence over errors from the retired database so the application can renew
+  the session. A newly opened writable connection retains its before-open and after-proof identity
+  checks. No path/time cache or assumption of a permanent writable identity guard substitutes for
+  fresh evidence; same-file hardlinks in different WAL namespaces remain distinct.
+- `sqlite_catalog/migrations.rs` remains the ordered migration coordinator while historical steps
+  are stable. `migrations/current_schema.rs` owns current-schema proof order and its consistent read
+  snapshot: structural checks precede the complete authority-row audit. Process-owned validated
+  sessions reuse that proof; schema markers alone are not row authority. Spool-row proof lives in
+  `migrations/inventory_spool_rows.rs`: ordered per-run ordinals and
+  once-grouped per-directory entry counts replace correlated recounting, without omitting parent,
+  lifecycle, or foreign-key evidence. Structural proof and snapshot ownership remain upstream.
+  Other historical validators and shrink-only compatibility repair remain the next physical split,
+  not a completed extraction. Migration order and one-transaction rollback remain centralized.
+- `migrations/persistent_journal_baseline.rs` owns structural and row proof for recovery windows.
+  A completed window is historical coverage, not a demand to freeze the current checkpoint at its
+  closing cursor. Later progress requires compatible identity and retained range evidence; a later
+  recovery requires its own exact authority and window. History cannot authorize a regressed
+  checkpoint, an unrelated namespace or journal, or an unfinished window's premature completion.
+  This validator remains inside the current-schema owner's consistent read snapshot and preserves
+  the narrow historical migration exception rather than adding startup retry or repair policy.
+- `application/preview_health.rs` owns final missing-file and accounting observations for both
+  startup recovery and ordinary catalog reads. Its typed persistence port pairs publication
+  exclusion with a zero-wait conditional transaction; deferred maintenance cannot block foreground
+  publication or downgrade a newer same-key artifact. The recovery worker owns traversal, not a
+  second invalidation protocol.
+- `preview/store_admission.rs` selects the active store only after obtaining generation or
+  reclamation access and owns both for the admitted lifetime. The preview facade carries storage
+  configuration, not a previously selected store, across a capacity-reclamation gap.
+- `local_files/file_admission.rs` owns supported, terminal, and retryable file discovery after
+  local-availability checks. `scan_library/inspection_failure.rs` owns the shared retained-location
+  and precise-retry checkpoint rules for discovery and decoder failures. Incremental terminal-media
+  classification lives in `incremental_library_changes/terminal_media.rs`, not in the worker loop.
+  Evidence-only completion does not create a gallery location. `rename_change.rs` owns paired-path
+  composition while preserving the current lease's terminal-evidence boundary and both paths'
+  source revalidation; it does not invent a second persistence contract.
+- `incremental_library_changes/preparation_catalog.rs` owns the bounded read set used to decide
+  whether a prepared delta survives an unrelated catalog revision. It preserves every original
+  path and global identity lookup, including negative results and ordered catch-up lineage.
+  `preparation_rebase.rs` requires matching root context, complete catalog observations, and current
+  source-version evidence before reuse; otherwise it retires the old proof before preparing again.
+  Every observed file is revalidated even when it produces no mutation. An absent path acquiring
+  terminal media is a new observation, not equivalent absence. Reuse never replaces the final
+  transaction's revision, root, lease, or preview guards. The authoritative path-set workflow uses
+  the same preparation and source checks without retaining an unused rebase read set.
+- `application/storage/preview_activation.rs` owns the cross-database restart obligation for
+  switch-and-regenerate. Target initialization and idempotent catalog reset precede pending-intent
+  retirement. The storage facade selects this use case; it does not carry compensating SQL or a
+  second crash-recovery state machine. Its dedicated tests exercise both commit boundaries and
+  source-safe fallback independently of ordinary settings tests.
+- `storage/catalog_admission.rs` owns process-local arbitration between configuration persistence
+  and scan registration. `storage/configuration_update.rs` owns complete settings validation and
+  save. The scan facade calls the typed admission boundary only around registration; it does not
+  duplicate storage policy or hold a configuration permit during enumeration.
+- `storage/source_cleanup_admission.rs` owns the shared resolved-scope reservation between source
+  registration and destructive preview cleanup. Its typed permits exclude conflicting operations
+  without retaining a registry lock during registration commits, callbacks, or deletion.
+- `local_files/preview_cache_namespace.rs` owns the operation-scoped capability over the existing
+  Windows namespace proof. A missing-root cleanup cannot acquire later deletion authority; a bound
+  operation retains root and ancestor guards through generation, capacity handoffs, and cleanup.
+  Idle accounting retains identity evidence only. `preview_cache/preparation.rs` distinguishes
+  unavailable write capability from failed inventory so cache limitations cannot abort catalog
+  startup or retire an incomplete migration. `preview_cache/staging_encoding.rs` owns exclusive
+  temporary-file creation, held-handle encoding, flush, and cleanup of its own failed output.
+
+### Dart boundaries
+
+- `LibraryController` is the presentation-facing composition facade. The primary-scan lifecycle
+  owner contains picker admission, serialized start, run identity, subscription, terminal
+  reconciliation, pause, resume, cancellation, and shutdown. Its immutable task snapshot is separate
+  from gallery query and loading state: a retained task cannot reserve the viewport, and a gallery
+  refresh cannot overwrite its checkpoint identity or progress. Active-run delivery and task
+  projection may have separate cohesive owners; moving the entire old controller into another
+  multi-responsibility file is not an extraction. `library_scan_execution.dart` remains only the
+  mutual-exclusion boundary between a running primary scan and per-root updates. Multi-root update
+  selection, bounded scheduling, retry, and cancellation live in `library_update_controller.dart`.
+- `library_scan_control.dart` owns per-run ordered control intent and native registration replay.
+  `library_scan_run.dart` owns stream identity and drain, including protocol failures; a visible
+  error is not permission to release a still-running native task.
+- `library_viewer_session.dart` owns viewer selection, navigation requests, stable-asset lookups,
+  and preview demand. Closing or reopening creates a new selection identity even for the same
+  asset. Old continuations, error handlers, finalizers, and post-frame callbacks cannot change the
+  new session; the screen composes existing viewer controls rather than owning those state machines.
+- `library_scan_restoration.dart` owns the ordered, read-only checkpoint lookup and its stale-result
+  guards. Startup restores an unfinished first import as paused; only the existing explicit user
+  continuation executes it. Restoration does not own scan commands or subscriptions. Cancelling a
+  retained task uses the asynchronous application command and clears its task snapshot only after
+  commit; the active-run cancellation token cannot substitute for durable checkpoint cancellation.
+- Viewport/query ownership and committed root-removal refresh live in dedicated application
+  coordinators. The viewport has one query-generation and revision owner for retained pages, time
+  navigation, and directly requested visible ranges. Root removal distinguishes the one database
+  unregister command from display-only refresh retries. Gallery widgets consume immutable state
+  and may not compensate for an unresolved catalog or task-lifecycle invariant.
+- `library_page_operation.dart` owns cursor-read completion independently of viewer selection.
+  Same-direction requests share the current read; opposite directions wait only for predecessors
+  registered earlier in the same query generation. A new generation does not wait for old reads,
+  and superseded queued work cannot execute. The viewport revalidates query, revision, and cursor
+  before a queued read; the viewer alone decides whether a completed page may change selection.
+  Retired navigation remains silent, while a current explicit action with no target reports failure.
+- `LibraryQueryActivity` is a sealed idle/loading/failed projection owned by the viewport. Failure
+  retains its requested query separately from the still-visible gallery and primary task error.
+  Primary scan publication separately distinguishes uncommitted work, committed display reload,
+  and visible completion. A superseded reload is not visible completion, and a committed task retry
+  cannot regain source-scan authority. Task-surface selection composes primary and per-root work;
+  it does not serialize their visibility or infer execution from a retained checkpoint.
+- `library_query_refresh.dart` owns admission for user queries, passive synchronization reads,
+  and committed display-refresh obligations. User queries may supersede an attempt; passive reads
+  defer while an attempt or committed obligation exists. Committed refresh waits for the latest
+  query and exclusive publication owner before reading the current scope. It continues only after
+  proven supersession, not after an arbitrary failure or unchanged busy result. Disposal settles
+  every in-flight waiter, including replaced attempts. Catalog revision disagreement remains a
+  genuine read failure, and retry cannot repeat the committed source scan.
+- Visible root removal admits an opaque, single-use prepared operation before awaiting the feedback
+  frame. The application coordinator owns execution, abandonment, and disposal invalidation; the
+  widget supplies only the rendered-frame boundary. A committed unregister clears selection even
+  when the subsequent display refresh fails.
+- Root removal reserves the viewport's catalog-publication boundary through its terminal state.
+  Independent root scans continue; their display refresh waits for release and reads the current
+  query, rather than superseding the removal generation or restoring a pre-removal transition base.
+  Reservation release is explicit on completion, failure, abandonment, and disposal.
+- `CatalogReclamationController` owns reclamation presentation state, polling, command epochs,
+  ordered full-storage snapshots, and terminal usage refresh. A snapshot started before or during a
+  newer command cannot replace that command's result. Settings persistence and preview cleanup
+  remain separate workflows; neither keeps another copy of the reclamation state machine.
+  Accepted full snapshots publish storage usage and reclamation phase together. Configuration-save
+  receipts have independent typed merge authority over configuration only; stale accompanying usage
+  cannot replace a newer measurement, and a read begun before a confirmed save preserves that save.
+  Retired-preview ownership is lifecycle evidence, not a configuration field: only ordered full
+  status reads replace that list. Save completion re-reads full status to reconcile backend ownership
+  changes without deriving cleanup policy from configured paths. A failed post-save refresh retains
+  confirmed configuration and retries the read independently; it never repeats the successful save.
+  `StorageSnapshotCoordinator` separately owns full-read scheduling and completion: same-version
+  requests share one in-flight read; epoch or configuration changes coalesce one latest follow-up.
+  Commands suspend, rather than discard, required refreshes and wake them after settlement. Disposal
+  settles waiting callers without waiting for a stale backend read. Snapshot acceptance and
+  configuration policy remain in the presentation controller, not the scheduling module.
+- `LibrarySourceImage` composes the installed Flutter SDK's immutable-buffer and image-decoder
+  primitives through the application-owned source-reader port. The scheduler owns bounded latest
+  intent and read completion; the image provider owns source-lease cache identity and the native
+  buffer-copy lifetime. `application/viewer_source.rs` owns catalog admission and lease capacity,
+  while `library_source_image_stream.dart` owns retired stream errors and late codec/frame resource
+  release without replacing Flutter's decoding or animation scheduler.
+  `local_files/viewer_source_guard.rs` owns the held Windows namespace. Opaque bridge methods
+  only translate acquisition and idempotent close. A same-path edit with unchanged size and restored
+  modification time must resolve a different stream when its source generation changes.
+  Preview-only updates do not invalidate the viewer's source stream, and superseded source streams
+  cannot publish into the current image widget. No layer may fall back to an unchecked source path.
+- Menus, loading feedback, task live regions, and startup orchestration use repository-owned shared
+  components so one defect fix does not create a second interaction contract.
+
+### Native verification boundaries
+
+`acceptance_r2c_fixture_cleanup.ps1` owns R2c-R fixture retirement, bounded immediate remaining-entry
+evidence and first-error preservation. Each known child, metadata handle, stream and root retires independently;
+one failure cannot skip a later owned resource. Unknown children are retained without traversal.
+Metadata evidence opens at most 64 immediate entries without following reparses or recalling content,
+records truncation, and grants no new deletion authority. The common facade retains native identity
+primitives and includes the module in its exact audited source closure. Dedicated fixture-lifetime
+tests exercise real handles and rejection paths independently of the full acceptance runner.
+The first failure retains its original exception, PowerShell error text and script stack even
+when later cleanup also fails; the regressions themselves use that same retirement boundary.
+
+`integration_windows_accessibility_cleanup.ps1` owns independent process/job disposal, bounded exit
+confirmation, exact environment restoration, and evidence-safe scratch disposition. Failure at one
+stage cannot bypass later resource release; unconfirmed exit or failed output capture retains the
+owned scratch evidence. The public runner composes acquisition and cleanup, while the evidence
+owner persists structured stage failures without replacing the original run error. Cleanup tests
+inject exceptional outcomes without starting Flutter or substituting for the native UIA gate.
+Only an owned process tree grants termination authority; an unrelated process name or a retained
+zero-thread process record does not.
+
+Probe completion belongs to the evidence owner: identity, process exit, complete status, and cleanup
+must validate before a successful record can return. The runner persists that record before
+acknowledgement and records phase success only after acknowledgement. Successful traversal metrics
+must survive scratch cleanup, just as failed traversal evidence does; neither can replace the
+ordered native interaction assertions.
+
+`integration_windows_accessibility_timing.ps1` owns monotonic accounting and validation for the fixed
+internal probe stages. Evidence records preserve accumulated stage durations and publication time;
+the process owner records parent wall time on failure. Stage totals include their progress-write
+cost, which is also accumulated separately. The final record cannot include its own write or process
+exit, so child timing alone never proves compliance with the parent deadline. Timing is diagnostic
+only and does not change phase identity, completion, process retirement or acceptance assertions.
+
+### Review and roadmap rule
+
+Content-signature admission and decoder failure classification have small adapter owners, separate
+from filesystem traversal and metadata extraction. Generated media fixtures, format adapter
+contracts, application replacement lifecycles, and performance workloads have distinct test modules.
+Negative source observations belong to a version-bound validation roster, not diagnostic strings.
+First-import journal completion owns read-only readiness selection and transactional revalidation;
+an empty maintenance poll must not acquire priority write authority and interrupt useful work.
+The scan publication receipt carries the count established by its committing transaction; an
+enumeration counter cannot replace the published result after concurrent reconciliation. Cursor
+queries retain strict keyset range selection independently of whether the requested page is first.
+
+File length is evidence for investigation, not an automatic rewrite trigger. Review records the
+responsibilities changed and the narrow owner of every new invariant. If a complete extraction
+would materially broaden the active fix, the current change establishes the typed seam, records the
+physical split in `docs/roadmap.md`, and adds no further behavior to that debt area until the split
+is completed.
+
+## Rejected alternatives
+
+### Continue appending focused patches to the current owner
+
+Rejected. A patch can be locally correct while making cancellation, transaction, and stale-state
+rules impossible to reason about together.
+
+### Enforce a universal line-count limit
+
+Rejected. Generated bridge files, schema history, and test fixtures have different reasons for
+size. A line cap rewards cosmetic splitting and does not prove ownership.
+
+### Rewrite all large files during the runtime repair
+
+Rejected. That would mix behavior changes with broad churn, weaken reviewability, and risk the
+accepted gallery and continuity contracts.
+
+## Consequences
+
+- Runtime fixes require a small amount of explicit composition code and more focused modules.
+- Persistence and application races can be tested at their owning boundary instead of only through
+  end-to-end fixtures.
+- Some historical large files remain. Their staged splits are roadmap work, not hidden claims of
+  completion.
+- Future changes that extend a recorded debt owner without first establishing its boundary violate
+  this decision and the repository contract.
+
+## Verification
+
+- focused tests cover every extracted invariant and its reported race;
+- the complete serial Daily gate and Windows integrations pass after extraction;
+- an independent final audit checks behavior, layering, duplicate state machines, and regressions;
+- `git diff --check` and hosted PR checks pass before Phase 34 closes.

@@ -1,5 +1,80 @@
 use std::fmt::{Display, Formatter};
 
+pub mod gallery_query_snapshot;
+pub use gallery_query_snapshot::{GalleryQueryAnchor, GalleryQuerySnapshot};
+
+mod library_catalog_delta;
+pub(crate) mod library_change;
+mod library_change_catch_up;
+pub(crate) mod library_change_queue;
+mod library_metadata_inventory;
+pub(crate) mod library_synchronization;
+pub(crate) mod persistent_journal;
+
+pub use library_catalog_delta::{
+    CatalogDeltaBatch, CatalogDeltaMutation, CatalogDeltaPublication,
+    CatalogDeltaPublicationStatus, IncrementalCatalogRoot, IncrementalLibraryChangeReport,
+    LibraryChangeCompletion, RetainedPreviewExpectation, TerminalMediaEvidence,
+    TerminalMediaEvidenceUpdate,
+};
+pub use library_change::{
+    CatalogFreshnessCause, CatalogFreshnessState, DerivedEvidenceDisposition,
+    IncrementalReconciliationDecision, IncrementalReconciliationOutcome, LibraryChangeIntent,
+    LibraryChangeIntentKind, LibraryChangeLane, LibraryChangeObservation,
+    LibraryChangeObservationKind, LibraryChangeObserverPoll, LibraryChangeOrigin,
+    LibraryChangePlanningContext, LibraryChangePlanningError, LibraryChangePlanningIssue,
+    LibraryChangePlanningLimits, LibraryChangePlanningResult, LibraryChangeRestartPolicy,
+    LibraryChangeScope, LibraryChangeSourceBatch, LibraryChangeSourceError,
+    LibraryChangeSourceHealth, LibraryChangeSourceStopReport, LibraryRootGeneration,
+    ReconciliationFileEvidence, ReconciliationObservedState,
+};
+pub use library_change_catch_up::LibraryChangeCatchUpEvidence;
+#[cfg(test)]
+pub use library_change_catch_up::{
+    LibraryChangeCatchUpBatch, LibraryChangeCatchUpCheckpoint, LibraryChangeCatchUpCompletedRoot,
+    LibraryChangeCatchUpLimits, LibraryChangeCatchUpQueueBatch, LibraryChangeCatchUpReport,
+    LibraryChangeCatchUpRootResult,
+};
+pub use library_change_queue::{
+    DurableLibraryChange, LeasedLibraryChange, LibraryChangeCapacityDeferral,
+    LibraryChangeEnqueueReport, LibraryChangeFailure, LibraryChangeId, LibraryChangeLeaseIdentity,
+    LibraryChangeLeaseUpdateOutcome, LibraryChangeQueueHealth, LibraryChangeQueueMetrics,
+    LibraryChangeQueuePolicy, LibraryChangeQueueStatus,
+};
+pub use library_metadata_inventory::{
+    LibraryRecoveryAuthority, LibraryRecoveryAuthorityReason, LibraryRecoveryOpeningBoundary,
+    MetadataInventoryCleanupReport, MetadataInventoryComparisonStatus,
+    MetadataInventoryComparisonUpdate, MetadataInventoryEntry, MetadataInventoryEntryKind,
+    MetadataInventoryFrontierEntry, MetadataInventoryFrontierState, MetadataInventoryPage,
+    MetadataInventoryPlaceholderState, MetadataInventoryReport, MetadataInventoryRun,
+    MetadataInventoryRunRequest, MetadataInventoryRunStatus, MetadataInventoryScope,
+    MetadataInventoryStartRequest,
+};
+pub use library_synchronization::{
+    LibraryRootSynchronizationStatus, LibrarySynchronizationPhase, LibrarySynchronizationSnapshot,
+};
+pub use persistent_journal::{
+    JournalFileReference, JournalIdentifier, JournalUsn, PERSISTENT_JOURNAL_CONTRACT_VERSION,
+    PersistentJournalBaseline, PersistentJournalBaselineClosingBoundary,
+    PersistentJournalBaselinePhase, PersistentJournalBaselineStartRequest,
+    PersistentJournalCapability, PersistentJournalCapabilityState, PersistentJournalCheckpoint,
+    PersistentJournalContinuityState, PersistentJournalCrossRootLineage,
+    PersistentJournalEnrollmentBatch, PersistentJournalEnrollmentReport, PersistentJournalFailure,
+    PersistentJournalLineageState, PersistentJournalPendingRename, PersistentJournalRangeState,
+    PersistentJournalReadFailure, PersistentJournalRootFailure, PersistentJournalRootFailureKind,
+    PersistentJournalRootReadOutcome, PersistentJournalSourceRange, PersistentJournalVolumeBatch,
+    PersistentJournalVolumeIdentity, PersistentJournalVolumePage, persistent_journal_batch_id,
+    persistent_journal_batch_id_from_payload, persistent_journal_batch_payload,
+    persistent_journal_batch_payload_contains_lineage,
+    persistent_journal_batch_payload_contains_pending_lineage_source,
+    persistent_journal_batch_payload_matches_source_range, persistent_journal_pending_rename_id,
+};
+pub(crate) use persistent_journal::{
+    PersistentJournalBatchPayloadChildren, persistent_journal_batch_payload_children,
+    persistent_journal_canonical_intent_entry, persistent_journal_canonical_lineage_entry,
+    persistent_journal_pending_rename_from_payload_entry,
+};
+
 #[derive(Clone, Debug)]
 pub struct ScanRequest {
     pub scan_id: String,
@@ -28,6 +103,7 @@ pub struct ScanCheckpoint {
     pub visited_entries: u64,
     pub accepted_items: u64,
     pub issue_count: u64,
+    pub requires_previous_snapshot: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -49,8 +125,98 @@ pub struct StorageStatus {
     pub preview_budget_bytes: u64,
     pub preview_used_bytes: u64,
     pub catalog_used_bytes: u64,
+    pub catalog_live_bytes: u64,
+    pub catalog_reclaimable_bytes: u64,
+    pub catalog_reclamation: CatalogReclamationSnapshot,
     pub requires_restart: bool,
     pub retired_preview_roots: Vec<RetiredPreviewRootView>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CatalogReclamationPhase {
+    Idle,
+    Queued,
+    Inspecting,
+    WaitingForIdle,
+    CheckingCapacity,
+    Converting,
+    Reclaiming,
+    Completed,
+    Cancelled,
+    Failed,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CatalogReclamationSnapshot {
+    pub operation_id: Option<String>,
+    pub phase: CatalogReclamationPhase,
+    pub catalog_file_bytes: u64,
+    pub live_bytes: u64,
+    pub reclaimable_bytes: u64,
+    pub reclaimed_bytes: u64,
+    pub required_temporary_bytes: Option<u64>,
+    pub available_temporary_bytes: Option<u64>,
+    pub error_code: Option<String>,
+    pub error_message: Option<String>,
+}
+
+impl CatalogReclamationSnapshot {
+    pub fn idle() -> Self {
+        Self {
+            operation_id: None,
+            phase: CatalogReclamationPhase::Idle,
+            catalog_file_bytes: 0,
+            live_bytes: 0,
+            reclaimable_bytes: 0,
+            reclaimed_bytes: 0,
+            required_temporary_bytes: None,
+            available_temporary_bytes: None,
+            error_code: None,
+            error_message: None,
+        }
+    }
+
+    pub fn is_active(&self) -> bool {
+        matches!(
+            self.phase,
+            CatalogReclamationPhase::Queued
+                | CatalogReclamationPhase::Inspecting
+                | CatalogReclamationPhase::WaitingForIdle
+                | CatalogReclamationPhase::CheckingCapacity
+                | CatalogReclamationPhase::Converting
+                | CatalogReclamationPhase::Reclaiming
+        )
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum CatalogAutoVacuumMode {
+    None,
+    Full,
+    Incremental,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct CatalogSpaceUsage {
+    pub page_size: u64,
+    pub page_count: u64,
+    pub freelist_count: u64,
+    pub auto_vacuum: CatalogAutoVacuumMode,
+}
+
+impl CatalogSpaceUsage {
+    pub fn catalog_file_bytes(self) -> u64 {
+        self.page_count.saturating_mul(self.page_size)
+    }
+
+    pub fn reclaimable_bytes(self) -> u64 {
+        self.freelist_count.saturating_mul(self.page_size)
+    }
+
+    pub fn live_bytes(self) -> u64 {
+        self.catalog_file_bytes()
+            .saturating_sub(self.reclaimable_bytes())
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -72,11 +238,20 @@ pub struct FileIdentityEvidence {
     pub value: String,
 }
 
-#[derive(Clone, Debug)]
+/// Filesystem-owned evidence that the bytes reachable through a file identity may have changed.
+/// Windows ChangeTime is cheap change evidence, not a content fingerprint.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SourceRevisionEvidence {
+    pub scheme: String,
+    pub value: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AssetLocationView {
     pub asset_id: String,
     pub location_id: String,
     pub root_id: String,
+    pub scan_id: String,
     pub absolute_path: String,
     pub display_path: String,
     pub relative_path: String,
@@ -85,6 +260,8 @@ pub struct AssetLocationView {
     pub created_unix_ms: Option<i64>,
     pub modified_unix_ms: i64,
     pub file_identity: Option<FileIdentityEvidence>,
+    pub source_revision: Option<SourceRevisionEvidence>,
+    pub source_generation: u64,
     pub width: u32,
     pub height: u32,
     pub preview_status: PreviewStatus,
@@ -95,14 +272,14 @@ pub struct AssetLocationView {
     pub capture_time: Option<CaptureTimeEvidence>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PreviewStatus {
     Pending,
     Ready,
     Failed,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CaptureTimeEvidence {
     pub local_time: String,
     pub offset_minutes: Option<i16>,
@@ -110,7 +287,7 @@ pub struct CaptureTimeEvidence {
     pub raw_value: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum CaptureTimeSource {
     Original,
     Digitized,
@@ -162,7 +339,12 @@ pub struct MediaInspection {
 #[derive(Clone, Debug)]
 pub struct PreviewRequest {
     pub location_id: String,
+    pub expected_root_id: String,
+    pub expected_scan_id: String,
+    pub expected_source_revision: Option<SourceRevisionEvidence>,
+    pub expected_source_generation: u64,
     pub preview_edge: u32,
+    /// An explicit retry is a force-regenerate request, not merely permission to retry a failure.
     pub retry_failed: bool,
     pub protected_location_ids: Vec<String>,
 }
@@ -180,7 +362,7 @@ pub struct LibraryRootView {
     pub availability_message: Option<String>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LibraryRootAvailability {
     Unknown,
     Available,
@@ -338,6 +520,13 @@ pub struct LibraryFolderPage {
     pub parent_relative_path: String,
     pub folders: Vec<LibraryFolderView>,
     pub next_cursor: Option<LibraryFolderCursor>,
+    pub disposition: LibraryFolderPageDisposition,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum LibraryFolderPageDisposition {
+    Replace,
+    Append,
 }
 
 #[derive(Clone, Debug)]
@@ -451,6 +640,37 @@ pub enum PreviewCleanupEvent {
 pub struct ScanError {
     pub code: String,
     pub message: String,
+    pub retry_details: Option<CatalogReadRetryDetails>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CatalogReadRetryDetails {
+    pub operation: CatalogReadRetryOperation,
+    pub attempts: u32,
+    pub elapsed_ms: u64,
+    pub cause: CatalogReadRetryCause,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CatalogReadRetryOperation {
+    SessionValidation,
+    CatalogSnapshot,
+    CatalogSnapshotAroundLocation,
+    CatalogSnapshotAroundAsset,
+    GalleryTimeline,
+    GalleryLayoutManifest,
+    LibraryFolders,
+    CatalogAssetById,
+    WatcherGapAuthorityCount,
+    ActiveInventoryRunCount,
+    ActiveWatcherGapAuthority,
+    IncrementalLocation,
+    CompletedPersistentJournalRange,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CatalogReadRetryCause {
+    FileLockingProtocolFailed,
 }
 
 impl ScanError {
@@ -458,7 +678,13 @@ impl ScanError {
         Self {
             code: code.into(),
             message: message.into(),
+            retry_details: None,
         }
+    }
+
+    pub(crate) fn with_retry_details(mut self, details: CatalogReadRetryDetails) -> Self {
+        self.retry_details = Some(details);
+        self
     }
 }
 
@@ -472,12 +698,16 @@ impl std::error::Error for ScanError {}
 
 #[derive(Clone, Debug)]
 pub struct DiscoveredFile {
+    pub source_root_path: String,
     pub absolute_path: String,
     pub relative_path: String,
     pub file_size: u64,
     pub created_unix_ms: Option<i64>,
     pub modified_unix_ms: i64,
     pub file_identity: Option<FileIdentityEvidence>,
+    pub source_revision: Option<SourceRevisionEvidence>,
+    /// Zero until a catalog publication allocates a catalog-wide generation.
+    pub source_generation: u64,
     pub issues: Vec<ScanIssue>,
 }
 
@@ -501,6 +731,7 @@ pub(crate) struct PreviewMaterialization {
     pub artifact: PreviewArtifact,
     pub staged_path: Option<String>,
     pub reserved_bytes: u64,
+    pub replace_existing: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -515,4 +746,5 @@ pub struct ExpectedFileState {
     pub file_size: u64,
     pub modified_unix_ms: i64,
     pub file_identity: Option<FileIdentityEvidence>,
+    pub source_revision: Option<SourceRevisionEvidence>,
 }

@@ -8,8 +8,12 @@ import "library_catalog.dart";
 abstract interface class LibraryPreviewer {
   Future<LibraryAsset> materialize({
     required String locationId,
+    required String expectedRootId,
+    required String expectedScanId,
+    required LibrarySourceRevisionEvidence? expectedSourceRevision,
+    required BigInt expectedSourceGeneration,
     required int previewEdge,
-    bool retry = false,
+    bool force = false,
     Iterable<String> protectedLocationIds = const [],
   });
 }
@@ -20,16 +24,29 @@ class RustLibraryPreviewer implements LibraryPreviewer {
   @override
   Future<LibraryAsset> materialize({
     required String locationId,
+    required String expectedRootId,
+    required String expectedScanId,
+    required LibrarySourceRevisionEvidence? expectedSourceRevision,
+    required BigInt expectedSourceGeneration,
     required int previewEdge,
-    bool retry = false,
+    bool force = false,
     Iterable<String> protectedLocationIds = const [],
   }) async {
     try {
       final asset = await rust_api.materializeLibraryPreview(
         request: rust_domain.PreviewRequest(
           locationId: locationId,
+          expectedRootId: expectedRootId,
+          expectedScanId: expectedScanId,
+          expectedSourceRevision: expectedSourceRevision == null
+              ? null
+              : rust_domain.SourceRevisionEvidence(
+                  scheme: expectedSourceRevision.scheme,
+                  value: expectedSourceRevision.value,
+                ),
+          expectedSourceGeneration: expectedSourceGeneration,
           previewEdge: previewEdge,
-          retryFailed: retry,
+          retryFailed: force,
           protectedLocationIds: protectedLocationIds.toList(growable: false),
         ),
       );

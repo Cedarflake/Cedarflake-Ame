@@ -1,7 +1,9 @@
 use crate::application::{
-    cancel_scan, load_catalog, load_catalog_around_location, load_catalog_at_time,
+    cancel_retained_scan, cancel_scan, load_catalog, load_catalog_around_asset,
+    load_catalog_around_location, load_catalog_asset_by_id, load_catalog_at_time,
     load_gallery_layout_manifest_chunk, load_gallery_timeline, load_library_folders,
-    load_paused_scan, load_recoverable_scan, pause_scan, run_scan, unregister_library_root,
+    load_paused_scan, load_recoverable_scan, pause_scan, resume_scan, run_scan, suspend_scan,
+    unregister_library_root,
 };
 use crate::domain::{
     CatalogCursor, CatalogSnapshot, GalleryLayoutManifestChunk, GalleryLayoutManifestCursor,
@@ -15,6 +17,17 @@ pub fn scan_library(request: ScanRequest, sink: StreamSink<ScanEvent>) -> Result
         request,
         |event| sink.add(event).is_ok(),
         |request, publish| run_scan(request, publish),
+    )
+}
+
+pub fn resume_library_scan(
+    request: ScanRequest,
+    sink: StreamSink<ScanEvent>,
+) -> Result<(), ScanError> {
+    scan_library_with(
+        request,
+        |event| sink.add(event).is_ok(),
+        |request, publish| resume_scan(request, publish),
     )
 }
 
@@ -52,7 +65,14 @@ pub fn load_library_catalog(
     load_catalog(max_items, query, after, before)
 }
 
-#[flutter_rust_bridge::frb(sync)]
+pub fn load_library_query_snapshot(
+    max_items: u32,
+    query: GalleryQuery,
+    anchor: Option<crate::domain::GalleryQueryAnchor>,
+) -> Result<crate::domain::GalleryQuerySnapshot, ScanError> {
+    crate::application::load_catalog_query_snapshot(max_items, query, anchor)
+}
+
 pub fn load_library_gallery_timeline(query: GalleryQuery) -> Result<GalleryTimeline, ScanError> {
     load_gallery_timeline(query)
 }
@@ -65,7 +85,6 @@ pub fn load_library_gallery_layout_manifest_chunk(
     load_gallery_layout_manifest_chunk(max_items, query, after)
 }
 
-#[flutter_rust_bridge::frb(sync)]
 pub fn load_library_folder_page(
     root_id: String,
     parent_relative_path: String,
@@ -91,17 +110,37 @@ pub fn load_library_catalog_around_location(
     load_catalog_around_location(max_items, query, anchor_location_id)
 }
 
-#[flutter_rust_bridge::frb(sync)]
+pub fn load_library_catalog_around_asset(
+    max_items: u32,
+    query: GalleryQuery,
+    requested_location_id: String,
+    anchor_asset_id: String,
+    fallback_ordinal: u64,
+) -> Result<CatalogSnapshot, ScanError> {
+    load_catalog_around_asset(
+        max_items,
+        query,
+        requested_location_id,
+        anchor_asset_id,
+        fallback_ordinal,
+    )
+}
+
+pub fn load_library_asset_by_id(
+    asset_id: String,
+    preferred_location_id: Option<String>,
+) -> Result<Option<crate::domain::AssetLocationView>, ScanError> {
+    load_catalog_asset_by_id(asset_id, preferred_location_id)
+}
+
 pub fn remove_library_root(root_id: String) -> Result<bool, ScanError> {
     unregister_library_root(root_id)
 }
 
-#[flutter_rust_bridge::frb(sync)]
 pub fn load_recoverable_library_scan() -> Result<Option<RecoverableScan>, ScanError> {
     load_recoverable_scan()
 }
 
-#[flutter_rust_bridge::frb(sync)]
 pub fn load_paused_library_scan() -> Result<Option<RecoverableScan>, ScanError> {
     load_paused_scan()
 }
@@ -111,9 +150,18 @@ pub fn cancel_library_scan(scan_id: String) -> bool {
     cancel_scan(&scan_id)
 }
 
+pub fn cancel_retained_library_scan(scan_id: String) -> Result<(), ScanError> {
+    cancel_retained_scan(&scan_id)
+}
+
 #[flutter_rust_bridge::frb(sync)]
 pub fn pause_library_scan(scan_id: String) -> bool {
     pause_scan(&scan_id)
+}
+
+#[flutter_rust_bridge::frb(sync)]
+pub fn suspend_library_scan(scan_id: String) -> bool {
+    suspend_scan(&scan_id)
 }
 
 #[cfg(test)]
@@ -146,6 +194,7 @@ mod tests {
                         asset_id: "asset".to_owned(),
                         location_id: "location".to_owned(),
                         root_id: "root".to_owned(),
+                        scan_id: "scan-failure".to_owned(),
                         absolute_path: "C:\\Pictures\\asset.png".to_owned(),
                         display_path: "C:\\Pictures\\asset.png".to_owned(),
                         relative_path: "asset.png".to_owned(),
@@ -154,6 +203,8 @@ mod tests {
                         created_unix_ms: None,
                         modified_unix_ms: 1,
                         file_identity: None,
+                        source_revision: None,
+                        source_generation: 1,
                         width: 1,
                         height: 1,
                         preview_status: PreviewStatus::Pending,

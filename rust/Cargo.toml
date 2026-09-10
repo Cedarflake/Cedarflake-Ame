@@ -4,7 +4,15 @@ version = "0.1.0"
 edition = "2024"
 
 [lib]
-crate-type = ["cdylib", "staticlib"]
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[features]
+broker-acceptance-client = []
+
+[[bin]]
+name = "cedarflake_ame_broker_acceptance_client"
+path = "src/bin/cedarflake_ame_broker_acceptance_client.rs"
+required-features = ["broker-acceptance-client"]
 
 [dependencies]
 blake3 = "1.8.6"
@@ -13,7 +21,7 @@ flutter_rust_bridge = "=2.12.0"
 image = { version = "0.25", default-features = false, features = ["bmp", "gif", "ico", "jpeg", "png", "tiff", "webp"] }
 jpeg-decoder = { version = "=0.3.2", default-features = false }
 kamadak-exif = "=0.6.1"
-rusqlite = { version = "0.40.1", features = ["bundled"] }
+rusqlite = { version = "0.40.1", features = ["bundled", "hooks"] }
 thiserror = "2.0.19"
 
 [lints.rust]
@@ -24,8 +32,37 @@ dbg_macro = "deny"
 todo = "deny"
 
 [target."cfg(windows)".dependencies]
-windows-sys = { version = "0.61.2", features = ["Win32_Storage_FileSystem"] }
+notify = { version = "=8.2.0", default-features = false }
+windows-sys = { version = "0.61.2", features = [
+  "Wdk_Foundation",
+  "Wdk_Storage_FileSystem",
+  "Win32_Foundation",
+  "Win32_Globalization",
+  "Win32_Security",
+  "Win32_Security_Authorization",
+  "Win32_Security_Cryptography",
+  "Win32_Security_Cryptography_Catalog",
+  "Win32_Security_Cryptography_Sip",
+  "Win32_Security_WinTrust",
+  "Win32_Storage_CloudFilters",
+  "Win32_Storage_FileSystem",
+  "Win32_System_IO",
+  "Win32_System_Com",
+  "Win32_System_Ioctl",
+  "Win32_System_JobObjects",
+  "Win32_System_Pipes",
+  "Win32_System_RemoteDesktop",
+  "Win32_System_Services",
+  "Win32_System_SystemServices",
+  "Win32_System_Threading",
+  "Win32_UI_Shell",
+] }
+
+[patch.crates-io]
+notify = { path = "vendor/notify" }
 
 [dev-dependencies]
+quote = "=1.0.47"
 rusqlite = { version = "0.40.1", features = ["backup", "bundled"] }
+syn = { version = "=2.0.119", features = ["full", "visit"] }
 tempfile = "3.27.0"

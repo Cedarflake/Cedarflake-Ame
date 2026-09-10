@@ -68,8 +68,14 @@ the supervised worker boundary remains unimplemented.
 - Image default features are disabled. Only BMP, GIF, ICO, JPEG, PNG, TIFF, and WebP are compiled
   into the R0 adapter.
 - jpeg-decoder default features are disabled so its optional Rayon pool cannot introduce nested
-  preview concurrency; unsupported color models and decode failures fall back to the existing
-  `image` path.
+  preview concurrency. The existing `image` path provides color conversion only after a supported
+  source has been successfully decoded; a JPEG decoder error is not permission to retry through
+  a tolerant decoder that fills missing pixels.
+
+Common-format fixtures use the pinned encoders to produce actual JPEG, PNG, WebP, GIF, BMP, TIFF,
+and ICO content. Extension mismatch, empty/non-image content, malformed headers, and invalid pixel
+payloads must be exercised through real adapters, not by changing filenames on a single PNG.
+These fixtures add no codec, dependency, or source-format admission.
 
 ## Validation evidence
 

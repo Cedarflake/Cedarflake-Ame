@@ -2,65 +2,62 @@ class GallerySelection {
   const GallerySelection._({
     required this.queryId,
     required this.isAllMatching,
-    required this.includedLocationIds,
-    required this.excludedLocationIds,
+    required this.includedAssetIds,
+    required this.excludedAssetIds,
   });
 
   factory GallerySelection.empty(String queryId) {
     return GallerySelection._(
       queryId: queryId,
       isAllMatching: false,
-      includedLocationIds: const {},
-      excludedLocationIds: const {},
+      includedAssetIds: const {},
+      excludedAssetIds: const {},
     );
   }
 
   final String queryId;
   final bool isAllMatching;
-  final Set<String> includedLocationIds;
-  final Set<String> excludedLocationIds;
+  final Set<String> includedAssetIds;
+  final Set<String> excludedAssetIds;
 
-  bool get isEmpty => !isAllMatching && includedLocationIds.isEmpty;
+  bool get isEmpty => !isAllMatching && includedAssetIds.isEmpty;
 
   int selectedCount(int totalMatching) {
     if (isAllMatching) {
-      return (totalMatching - excludedLocationIds.length).clamp(
-        0,
-        totalMatching,
-      );
+      return (totalMatching - excludedAssetIds.length).clamp(0, totalMatching);
     }
-    return includedLocationIds.length;
+    return includedAssetIds.length;
   }
 
-  bool contains(String locationId) {
+  bool contains(String assetId) {
     if (isAllMatching) {
-      return !excludedLocationIds.contains(locationId);
+      return !excludedAssetIds.contains(assetId);
     }
-    return includedLocationIds.contains(locationId);
+    return includedAssetIds.contains(assetId);
   }
 
-  GallerySelection toggle(String locationId) {
+  GallerySelection toggle(String assetId) {
     if (isAllMatching) {
-      final exclusions = {...excludedLocationIds};
-      if (!exclusions.add(locationId)) {
-        exclusions.remove(locationId);
+      final exclusions = {...excludedAssetIds};
+      if (!exclusions.add(assetId)) {
+        exclusions.remove(assetId);
       }
       return GallerySelection._(
         queryId: queryId,
         isAllMatching: true,
-        includedLocationIds: const {},
-        excludedLocationIds: Set.unmodifiable(exclusions),
+        includedAssetIds: const {},
+        excludedAssetIds: Set.unmodifiable(exclusions),
       );
     }
-    final inclusions = {...includedLocationIds};
-    if (!inclusions.add(locationId)) {
-      inclusions.remove(locationId);
+    final inclusions = {...includedAssetIds};
+    if (!inclusions.add(assetId)) {
+      inclusions.remove(assetId);
     }
     return GallerySelection._(
       queryId: queryId,
       isAllMatching: false,
-      includedLocationIds: Set.unmodifiable(inclusions),
-      excludedLocationIds: const {},
+      includedAssetIds: Set.unmodifiable(inclusions),
+      excludedAssetIds: const {},
     );
   }
 
@@ -68,10 +65,22 @@ class GallerySelection {
     return GallerySelection._(
       queryId: queryId,
       isAllMatching: true,
-      includedLocationIds: const {},
-      excludedLocationIds: const {},
+      includedAssetIds: const {},
+      excludedAssetIds: const {},
     );
   }
 
   GallerySelection clear() => GallerySelection.empty(queryId);
+
+  GallerySelection rebind(String nextQueryId) {
+    if (isAllMatching) {
+      return GallerySelection.empty(nextQueryId);
+    }
+    return GallerySelection._(
+      queryId: nextQueryId,
+      isAllMatching: false,
+      includedAssetIds: includedAssetIds,
+      excludedAssetIds: const {},
+    );
+  }
 }

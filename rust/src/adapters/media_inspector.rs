@@ -1,15 +1,26 @@
+use std::io::{BufReader, Seek, SeekFrom};
 use std::path::Path;
 
 use image::{ImageDecoder, ImageReader, Limits};
 
 use crate::domain::{DiscoveredFile, ImageOrientation, MediaInspection, ScanIssue};
-use crate::ports::{MediaInspector, MetadataExtractor};
+use crate::ports::{
+    MediaInspectionFailure, MediaInspectionFailureKind, MediaInspector, MetadataExtractor,
+};
 
 use super::exif_metadata::KamadakExifExtractor;
 use super::image_orientation::from_image_orientation;
+#[cfg(test)]
+use super::local_files::canonical_source_root_path;
+use super::local_files::{FileDiscovery, open_source_file};
+
+mod decoder_failure;
+use decoder_failure::classify_decoder_error;
 
 const MAX_SOURCE_DIMENSION: u32 = 100_000;
 const MAX_DECODER_ALLOCATION: u64 = 256 * 1024 * 1024;
+const INSPECTION_ENGINE_ID: &str = "ame-image-inspection";
+const INSPECTION_ENGINE_VERSION: u32 = 2;
 
 #[flutter_rust_bridge::frb(opaque)]
 pub struct LocalMediaInspector {
@@ -22,42 +33,97 @@ impl LocalMediaInspector {
             metadata: KamadakExifExtractor,
         }
     }
-}
 
-impl MediaInspector for LocalMediaInspector {
-    #[flutter_rust_bridge::frb(ignore)]
-    fn metadata_engine_id(&self) -> &'static str {
-        self.metadata.engine_id()
+    pub(crate) fn inspect_with_discovery(
+        &self,
+        discovery: &FileDiscovery,
+        file: &DiscoveredFile,
+    ) -> Result<MediaInspection, MediaInspectionFailure> {
+        #[cfg(windows)]
+        {
+            let source = discovery
+                .open_pinned_source_file(&file.relative_path)
+                .map_err(|error| {
+                    media_failure(
+                        file,
+                        MediaInspectionFailureKind::Retryable,
+                        "image_open_failed",
+                        error,
+                    )
+                })?;
+            self.inspect_source(file, source)
+        }
+        #[cfg(not(windows))]
+        {
+            let _ = discovery;
+            self.inspect(file)
+        }
     }
 
-    #[flutter_rust_bridge::frb(ignore)]
-    fn metadata_engine_version(&self) -> &'static str {
-        self.metadata.engine_version()
+    pub(crate) fn inspect_open_source(
+        &self,
+        file: &DiscoveredFile,
+        source: &std::fs::File,
+    ) -> Result<MediaInspection, MediaInspectionFailure> {
+        let mut source = source.try_clone().map_err(|error| {
+            media_failure(
+                file,
+                MediaInspectionFailureKind::Retryable,
+                "image_open_failed",
+                error,
+            )
+        })?;
+        source.seek(SeekFrom::Start(0)).map_err(|error| {
+            media_failure(
+                file,
+                MediaInspectionFailureKind::Retryable,
+                "image_open_failed",
+                error,
+            )
+        })?;
+        self.inspect_source(file, source)
     }
 
-    #[flutter_rust_bridge::frb(ignore)]
-    fn inspect(&self, file: &DiscoveredFile) -> Result<MediaInspection, ScanIssue> {
-        let source_path = Path::new(&file.absolute_path);
-        let mut reader = ImageReader::open(source_path)
-            .and_then(|reader| reader.with_guessed_format())
-            .map_err(|error| media_issue(file, "image_open_failed", error))?;
+    fn inspect_source(
+        &self,
+        file: &DiscoveredFile,
+        source: std::fs::File,
+    ) -> Result<MediaInspection, MediaInspectionFailure> {
+        let reader = ImageReader::new(BufReader::new(source))
+            .with_guessed_format()
+            .map_err(|error| {
+                media_failure(
+                    file,
+                    MediaInspectionFailureKind::Retryable,
+                    "image_header_read_failed",
+                    error,
+                )
+            })?;
+        self.inspect_reader(file, reader)
+    }
+
+    fn inspect_reader(
+        &self,
+        file: &DiscoveredFile,
+        mut reader: ImageReader<BufReader<std::fs::File>>,
+    ) -> Result<MediaInspection, MediaInspectionFailure> {
         let mut limits = Limits::default();
         limits.max_image_width = Some(MAX_SOURCE_DIMENSION);
         limits.max_image_height = Some(MAX_SOURCE_DIMENSION);
         limits.max_alloc = Some(MAX_DECODER_ALLOCATION);
         reader.limits(limits);
-        let mut decoder = reader
-            .into_decoder()
-            .map_err(|error| media_issue(file, "image_dimensions_failed", error))?;
+        let mut decoder = reader.into_decoder().map_err(|error| {
+            let (kind, code) = classify_decoder_error(&error);
+            media_failure(file, kind, code, error)
+        })?;
         let (pixel_width, pixel_height) = decoder.dimensions();
         if pixel_width > MAX_SOURCE_DIMENSION || pixel_height > MAX_SOURCE_DIMENSION {
-            return Err(ScanIssue {
-                path: Some(file.absolute_path.clone()),
-                code: "image_dimensions_exceeded".to_owned(),
-                message: format!(
-                    "Image dimensions {pixel_width}x{pixel_height} exceed the supported limit"
-                ),
-            });
+            return Err(media_failure(
+                file,
+                MediaInspectionFailureKind::Terminal,
+                "image_dimensions_exceeded",
+                format!("Image dimensions {pixel_width}x{pixel_height} exceed the supported limit"),
+            ));
         }
 
         let (orientation, orientation_read_issue) = match decoder.orientation() {
@@ -90,11 +156,60 @@ impl MediaInspector for LocalMediaInspector {
     }
 }
 
+impl MediaInspector for LocalMediaInspector {
+    #[flutter_rust_bridge::frb(ignore)]
+    fn metadata_engine_id(&self) -> &'static str {
+        self.metadata.engine_id()
+    }
+
+    #[flutter_rust_bridge::frb(ignore)]
+    fn metadata_engine_version(&self) -> &'static str {
+        self.metadata.engine_version()
+    }
+
+    #[flutter_rust_bridge::frb(ignore)]
+    fn inspection_engine_id(&self) -> &'static str {
+        INSPECTION_ENGINE_ID
+    }
+
+    #[flutter_rust_bridge::frb(ignore)]
+    fn inspection_engine_version(&self) -> u32 {
+        INSPECTION_ENGINE_VERSION
+    }
+
+    #[flutter_rust_bridge::frb(ignore)]
+    fn inspect(&self, file: &DiscoveredFile) -> Result<MediaInspection, MediaInspectionFailure> {
+        let source_path = Path::new(&file.absolute_path);
+        let source =
+            open_source_file(source_path, Path::new(&file.source_root_path)).map_err(|error| {
+                media_failure(
+                    file,
+                    MediaInspectionFailureKind::Retryable,
+                    "image_open_failed",
+                    error,
+                )
+            })?;
+        self.inspect_source(file, source)
+    }
+}
+
 fn media_issue(file: &DiscoveredFile, code: &str, error: impl std::fmt::Display) -> ScanIssue {
     ScanIssue {
         path: Some(file.absolute_path.clone()),
         code: code.to_owned(),
         message: error.to_string(),
+    }
+}
+
+fn media_failure(
+    file: &DiscoveredFile,
+    kind: MediaInspectionFailureKind,
+    code: &str,
+    error: impl std::fmt::Display,
+) -> MediaInspectionFailure {
+    MediaInspectionFailure {
+        kind,
+        issue: media_issue(file, code, error),
     }
 }
 
@@ -135,12 +250,18 @@ mod tests {
         let path = directory.path().join("capture.jpg");
         std::fs::write(&path, &jpeg).expect("write JPEG");
         let file = DiscoveredFile {
+            source_root_path: canonical_source_root_path(directory.path())
+                .expect("canonical root")
+                .to_string_lossy()
+                .into_owned(),
             absolute_path: path.to_string_lossy().into_owned(),
             relative_path: "capture.jpg".to_owned(),
             file_size: u64::try_from(jpeg.len()).expect("JPEG size"),
             created_unix_ms: None,
             modified_unix_ms: 0,
             file_identity: None,
+            source_revision: None,
+            source_generation: 0,
             issues: Vec::new(),
         };
 
@@ -197,12 +318,18 @@ mod tests {
                 .join(format!("orientation-{orientation}.jpg"));
             std::fs::write(&path, &jpeg).expect("write JPEG");
             let file = DiscoveredFile {
+                source_root_path: canonical_source_root_path(directory.path())
+                    .expect("canonical root")
+                    .to_string_lossy()
+                    .into_owned(),
                 absolute_path: path.to_string_lossy().into_owned(),
                 relative_path: format!("orientation-{orientation}.jpg"),
                 file_size: u64::try_from(jpeg.len()).expect("JPEG size"),
                 created_unix_ms: None,
                 modified_unix_ms: 0,
                 file_identity: None,
+                source_revision: None,
+                source_generation: 0,
                 issues: Vec::new(),
             };
 

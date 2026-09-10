@@ -1,10 +1,12 @@
 import "dart:convert";
 import "dart:io";
 
-import "package:cedarflake_ame/features/library/adapters/directory_picker.dart";
 import "package:cedarflake_ame/app/ame_app.dart";
+import "package:cedarflake_ame/app/bootstrap/library_synchronization_lifecycle_owner.dart";
+import "package:cedarflake_ame/features/library/adapters/directory_picker.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
+import "package:cedarflake_ame/features/library/application/library_synchronization.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
@@ -17,6 +19,10 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:integration_test/integration_test.dart";
+
+import "support/library_management_workflow.dart";
+import "support/retained_import_workflow.dart";
+import "support/viewer_source_workflow.dart";
 
 const _fixturePng =
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
@@ -38,25 +44,52 @@ class _InitialDirectoryPicker implements DirectoryPicker {
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  setUpAll(() {
+  late final RustLibrarySynchronization synchronization;
+  late final LibrarySynchronizationLifecycleOwner synchronizationLifecycle;
+
+  setUpAll(() async {
     final libraryPath = File(
       "${Directory.current.path}${Platform.pathSeparator}build"
       "${Platform.pathSeparator}windows${Platform.pathSeparator}x64"
       "${Platform.pathSeparator}runner${Platform.pathSeparator}Debug"
       "${Platform.pathSeparator}rust_lib_cedarflake_ame.dll",
     ).absolute.path;
-    return RustLib.init(
+    await RustLib.init(
       externalLibrary: ExternalLibrary.open(
         libraryPath,
         debugInfo: "Windows integration Debug library",
       ),
     );
+    synchronization = RustLibrarySynchronization.production();
+    synchronizationLifecycle = LibrarySynchronizationLifecycleOwner(
+      synchronization,
+    );
+    synchronizationLifecycle.startInBackground();
+    final startResult = await synchronizationLifecycle.startOperation;
+    if (startResult != LibrarySynchronizationStartResult.started) {
+      throw TestFailure(
+        "Production synchronization failed to start: "
+        "result=${startResult?.name ?? 'missing'} "
+        "error=${synchronization.current.lastErrorCode ?? '-'}",
+      );
+    }
   });
+
+  tearDownAll(() => synchronizationLifecycle.close());
+
+  registerRetainedImportWorkflowTests(() => synchronization);
 
   testWidgets("opens and cancels the production Windows directory picker", (
     tester,
   ) async {
-    await tester.pumpWidget(const ProviderScope(child: AmeApp()));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          librarySynchronizationProvider.overrideWithValue(synchronization),
+        ],
+        child: const AmeApp(),
+      ),
+    );
 
     final pickerAutomation = await _startPickerCancellationAutomation();
     final output = pickerAutomation.stdout
@@ -107,8 +140,11 @@ void main() {
       "${Platform.pathSeparator}integration-fixture-"
       "${DateTime.now().microsecondsSinceEpoch}",
     ).create(recursive: true);
+    final nestedSourceDirectory = await Directory(
+      "${sourceDirectory.path}${Platform.pathSeparator}本地图片",
+    ).create();
     final validSource = File(
-      "${sourceDirectory.path}${Platform.pathSeparator}像素.data",
+      "${nestedSourceDirectory.path}${Platform.pathSeparator}像素.data",
     );
     final corruptSource = File(
       "${sourceDirectory.path}${Platform.pathSeparator}损坏.jpg",
@@ -143,6 +179,7 @@ void main() {
           directoryPickerProvider.overrideWithValue(
             _InitialDirectoryPicker(sourceDirectory.path),
           ),
+          librarySynchronizationProvider.overrideWithValue(synchronization),
         ],
         child: const AmeApp(),
       ),
@@ -184,6 +221,13 @@ void main() {
           container.read(libraryControllerProvider).status ==
           LibraryStatus.completed,
       timeout: const Duration(seconds: 30),
+      timeoutDetails: () {
+        final current = container.read(libraryControllerProvider);
+        return "status=${current.status.name} task=${current.taskKind?.name} "
+            "phase=${current.scanPhase.name} visited=${current.visitedEntries} "
+            "staged=${current.stagedAssetCount} issues=${current.issueCount} "
+            "error=${current.errorMessage ?? '-'}";
+      },
     );
 
     await _pumpUntil(tester, () {
@@ -226,6 +270,7 @@ void main() {
     expect(await validSource.readAsBytes(), validBytes);
     expect(await corruptSource.readAsBytes(), corruptBytes);
     expect(await sourceDirectory.list().length, 2);
+    expect(await nestedSourceDirectory.list().length, 1);
 
     final storageStatus = await const RustStorageSettingsGateway().load();
     expect(storageStatus.activeCatalogPath, catalogPath);
@@ -239,10 +284,14 @@ void main() {
 
     const catalog = RustLibraryCatalog();
     const query = LibraryGalleryQuery();
-    final restoredSnapshot = await catalog.load(
+    final restoredQuery = await catalog.loadQuerySnapshot(
       maxItems: libraryCatalogWindow,
       query: query,
     );
+    final restoredSnapshot = restoredQuery.snapshot;
+    expect(restoredQuery.timeline.revision, restoredSnapshot.revision);
+    expect(restoredQuery.timeline.queryId, restoredSnapshot.queryId);
+    expect(restoredQuery.timeline.totalItems, 1);
     final restoredState = LibraryState.fromSnapshot(
       restoredSnapshot,
       query: query,
@@ -262,6 +311,7 @@ void main() {
           ),
           libraryCatalogProvider.overrideWithValue(catalog),
           initialLibraryStateProvider.overrideWithValue(restoredState),
+          librarySynchronizationProvider.overrideWithValue(synchronization),
         ],
         child: const AmeApp(),
       ),
@@ -350,6 +400,31 @@ void main() {
     );
     expect(secondRestoredState.roots, hasLength(2));
     expect(secondRestoredState.assets, hasLength(2));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(secondRestoredState),
+          librarySynchronizationProvider.overrideWithValue(synchronization),
+        ],
+        child: const AmeApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await verifyViewerSourceWorkflow(tester);
+    await verifyLibraryManagementWorkflow(
+      tester,
+      ProviderScope.containerOf(
+        tester.element(find.byType(UnifiedLibraryScreen)),
+      ),
+    );
+    expect(await validSource.readAsBytes(), validBytes);
+    expect(await corruptSource.readAsBytes(), corruptBytes);
+    expect(await secondValidSource.readAsBytes(), validBytes);
+    expect(await sourceDirectory.list().length, 2);
+    expect(await nestedSourceDirectory.list().length, 1);
+    expect(await secondSourceDirectory.list().length, 1);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
   });
 }
 
@@ -357,14 +432,20 @@ Future<void> _pumpUntil(
   WidgetTester tester,
   bool Function() condition, {
   required Duration timeout,
+  String Function()? timeoutDetails,
 }) async {
   final deadline = DateTime.now().add(timeout);
   while (!condition()) {
     if (DateTime.now().isAfter(deadline)) {
-      throw TestFailure("Timed out waiting for the library scan to complete");
+      final details = timeoutDetails?.call();
+      throw TestFailure(
+        "Timed out waiting for the library scan to complete"
+        "${details == null ? '' : ': $details'}",
+      );
     }
     await tester.pump(const Duration(milliseconds: 50));
   }
+  await tester.pump();
 }
 
 bool _isWithin(String rootPath, String candidatePath) {

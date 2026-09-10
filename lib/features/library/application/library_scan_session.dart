@@ -9,7 +9,7 @@ class LibraryScanTransition {
     this.shouldReloadCatalog = false,
   });
 
-  final LibraryState state;
+  final LibraryPrimaryScanSnapshot state;
   final bool shouldReloadCatalog;
 }
 
@@ -34,7 +34,10 @@ class LibraryScanSession {
     _pausedScan = scan;
   }
 
-  LibraryScanTransition apply(LibraryState state, LibraryScanUpdate update) {
+  LibraryScanTransition apply(
+    LibraryPrimaryScanSnapshot state,
+    LibraryScanUpdate update,
+  ) {
     switch (update) {
       case LibraryScanStarted(
         :final scanId,
@@ -119,16 +122,15 @@ class LibraryScanSession {
       case LibraryScanCompleted(
         :final assetCount,
         :final issueCount,
-        :final catalogPath,
         :final wasLimited,
       ):
         _clearActive();
         return LibraryScanTransition(
           state: state.copyWith(
             status: LibraryStatus.refreshing,
+            publication: LibraryScanPublication.reloadPending,
             stagedAssetCount: assetCount,
             issueCount: issueCount,
-            catalogPath: catalogPath,
             isScanLimited: wasLimited,
             isResumingScan: false,
           ),
@@ -196,7 +198,10 @@ class LibraryScanSession {
     }
   }
 
-  LibraryState fail(LibraryState state, Object error) {
+  LibraryPrimaryScanSnapshot fail(
+    LibraryPrimaryScanSnapshot state,
+    Object error,
+  ) {
     _clearActive();
     return state.copyWith(
       status: LibraryStatus.failed,
@@ -205,7 +210,7 @@ class LibraryScanSession {
     );
   }
 
-  LibraryState finish(LibraryState state) {
+  LibraryPrimaryScanSnapshot finish(LibraryPrimaryScanSnapshot state) {
     if (state.status != LibraryStatus.scanning &&
         state.status != LibraryStatus.pausing &&
         state.status != LibraryStatus.cancelling) {
@@ -239,6 +244,11 @@ class LibraryScanSession {
       acceptedItems: acceptedItems,
       issueCount: issueCount,
     );
+  }
+
+  void clear() {
+    _clearActive();
+    _pausedScan = null;
   }
 
   void _clearActive() {

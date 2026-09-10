@@ -11,6 +11,7 @@ import "package:cedarflake_ame/features/library/application/library_layout_manif
 import "package:cedarflake_ame/features/library/application/library_platform_actions.dart";
 import "package:cedarflake_ame/features/library/application/library_previewer.dart";
 import "package:cedarflake_ame/features/library/application/library_scanner.dart";
+import "package:cedarflake_ame/features/library/application/library_update_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_view_preferences.dart";
 import "package:cedarflake_ame/features/library/domain/gallery_layout_manifest.dart";
 import "package:cedarflake_ame/features/library/domain/library_folder_models.dart";
@@ -30,6 +31,8 @@ import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:material_symbols_icons/symbols.dart";
+
+import "../support/library_query_snapshot_fixture.dart";
 
 void main() {
   testWidgets("shows the unified empty library shell", (tester) async {
@@ -63,9 +66,24 @@ void main() {
       find.byKey(const Key("library-global-bar")),
     );
     final closeCenter = tester.getCenter(find.byKey(const Key("window-close")));
+    final minimizeCenter = tester.getCenter(
+      find.byKey(const Key("window-minimize")),
+    );
+    final notificationCenter = tester.getCenter(
+      find.byKey(const Key("notification-history-button")),
+    );
     expect(searchCenter.dy, closeTo(globalBarCenter.dy, 0.1));
     expect(tester.getSize(find.byKey(const Key("library-search"))).height, 44);
     expect(closeCenter.dy, closeTo(globalBarCenter.dy, 0.1));
+    expect(notificationCenter.dx, lessThan(minimizeCenter.dx));
+    expect(
+      notificationCenter.dx,
+      greaterThan(
+        tester.getTopRight(find.byKey(const Key("library-search"))).dx,
+      ),
+    );
+    expect(find.byKey(const Key("notification-read-icon")), findsOneWidget);
+    expect(find.text("通知历史"), findsNothing);
     expect(
       find.ancestor(
         of: find.byKey(const Key("library-search")),
@@ -104,6 +122,9 @@ void main() {
             assetId: "asset-$index",
             locationId: "location-$index",
             rootId: "root-1",
+            activeScanId: "scan-1",
+            sourceRevision: null,
+            sourceGeneration: BigInt.one,
             sourcePath: "C:\\Pictures\\$index.jpg",
             displayPath: "C:\\Pictures\\$index.jpg",
             relativePath: "$index.jpg",
@@ -303,6 +324,9 @@ void main() {
             assetId: "asset-$index",
             locationId: "location-$index",
             rootId: "root-1",
+            activeScanId: "scan-1",
+            sourceRevision: null,
+            sourceGeneration: BigInt.one,
             sourcePath: "C:\\Pictures\\$index.jpg",
             displayPath: "C:\\Pictures\\$index.jpg",
             relativePath: "$index.jpg",
@@ -372,17 +396,32 @@ void main() {
       slider.onChangeEnd?.call(0.8);
       for (var attempt = 0; attempt < 12; attempt += 1) {
         await tester.pump(const Duration(milliseconds: 16));
-        if (scrollPosition.pixels > initialPixels + 100 &&
-            previewer.requests.length > 2) {
+        if (scrollPosition.pixels > initialPixels + 100) {
           break;
         }
       }
 
       expect(scrollPosition.pixels, greaterThan(initialPixels + 100));
       expect(
+        previewer.requests,
+        hasLength(2),
+        reason: "obsolete active previews must not exceed the hard limit",
+      );
+      for (final locationId in previewer.requests.toList()) {
+        previewer.succeed(locationId, width: 400, height: 400);
+      }
+      for (var attempt = 0; attempt < 12; attempt += 1) {
+        await tester.pump(const Duration(milliseconds: 16));
+        if (previewer.requests.length > 2) {
+          break;
+        }
+      }
+      expect(
         previewer.requests.length,
         greaterThan(2),
-        reason: "a timeline jump must replace the visible preview demand",
+        reason:
+            "a timeline jump must replace the visible preview demand when "
+            "the bounded queue releases capacity",
       );
 
       final targetLocation = previewer.requests.firstWhere(
@@ -664,6 +703,151 @@ void main() {
     expect(progress.value, closeTo(128 / 48384, 0.000001));
   });
 
+  testWidgets("reuses the gallery loading bar for a distant visible range", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(
+            _populatedState(
+              totalItems: 64,
+            ).copyWith(isLoadingVisibleRange: true),
+          ),
+        ],
+        child: const AmeApp(),
+      ),
+    );
+    await tester.pump();
+
+    final loadingBar = find.byKey(const Key("library-top-loading"));
+    expect(loadingBar, findsOneWidget);
+    expect(tester.widget<LinearProgressIndicator>(loadingBar).minHeight, 2);
+    expect(
+      find.byKey(const Key("library-visible-range-loading")),
+      findsNothing,
+    );
+  });
+
+  testWidgets(
+    "square direct jump shows the top loading line before its manifest",
+    (tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final initialState = _populatedState(totalItems: 4000);
+      final snapshot = LibrarySnapshot(
+        catalogPath: initialState.catalogPath ?? "",
+        revision: initialState.catalogRevision ?? BigInt.zero,
+        queryId: initialState.queryId,
+        roots: initialState.roots,
+        assets: initialState.assets,
+      );
+      final catalog = _BlockingTimeQueryCatalog(
+        snapshot: snapshot,
+        timeline: initialState.timeline!,
+      );
+      final manifestLoader = _ControlledLayoutManifestLoader();
+      addTearDown(catalog.complete);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            initialLibraryStateProvider.overrideWithValue(initialState),
+            initialLibraryViewPreferencesProvider.overrideWithValue(
+              const LibraryViewPreferences(
+                layoutShape: GalleryLayoutShape.square,
+              ),
+            ),
+            libraryCatalogProvider.overrideWithValue(catalog),
+            libraryGalleryLayoutManifestLoaderProvider.overrideWithValue(
+              manifestLoader,
+            ),
+          ],
+          child: const AmeApp(),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      final scrollPosition = _galleryScrollPosition(tester);
+      scrollPosition.jumpTo(scrollPosition.maxScrollExtent * 0.8);
+      await tester.pump();
+
+      expect(catalog.timeAnchors, isNotEmpty);
+      expect(catalog.timeAnchors.last.itemOffset, greaterThan(80));
+      final loadingBar = find.byKey(const Key("library-top-loading"));
+      expect(loadingBar, findsOneWidget);
+      expect(tester.widget<LinearProgressIndicator>(loadingBar).minHeight, 2);
+      expect(
+        find.byKey(const Key("library-visible-range-loading")),
+        findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
+    "shows the restored top loading line on the first unloaded timeline frame",
+    (tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final initialState = _populatedState(totalItems: 120);
+      final catalog = _BlockingTimeQueryCatalog(
+        snapshot: LibrarySnapshot(
+          catalogPath: initialState.catalogPath ?? "",
+          revision: initialState.catalogRevision ?? BigInt.zero,
+          queryId: initialState.queryId,
+          roots: initialState.roots,
+          assets: initialState.assets,
+        ),
+        timeline: initialState.timeline!,
+      );
+      addTearDown(catalog.complete);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            initialLibraryStateProvider.overrideWithValue(initialState),
+            libraryCatalogProvider.overrideWithValue(catalog),
+          ],
+          child: const AmeApp(),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      final slider = tester.widget<Slider>(
+        find.byKey(const Key("timeline-slider")),
+      );
+      slider.onChangeStart?.call(slider.value);
+      slider.onChanged?.call(0.2);
+      slider.onChangeEnd?.call(0.2);
+      await tester.pump();
+
+      expect(catalog.timeAnchors, hasLength(1));
+      expect(catalog.timeAnchors.single.itemOffset, greaterThan(0));
+      final loadingBar = find.byKey(const Key("library-top-loading"));
+      expect(loadingBar, findsOneWidget);
+      expect(tester.widget<LinearProgressIndicator>(loadingBar).minHeight, 2);
+      expect(
+        find.byKey(const Key("library-visible-range-loading")),
+        findsNothing,
+      );
+
+      catalog.complete();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+    },
+  );
+
   testWidgets("keeps completed import feedback until it is acknowledged", (
     tester,
   ) async {
@@ -721,6 +905,121 @@ void main() {
     expect(find.byKey(const Key("library-task-dismiss-button")), findsNothing);
   });
 
+  testWidgets("active main task takes priority over terminal update feedback", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final populated = _populatedState(totalItems: 1);
+    final root = populated.roots.single;
+    final state = populated.copyWith(
+      status: LibraryStatus.scanning,
+      scanId: "scan-import",
+      rootPath: "C:\\NewPictures",
+      displayRootPath: "C:\\NewPictures",
+      taskKind: LibraryTaskKind.import,
+      visitedEntries: 12,
+      stagedAssetCount: 4,
+    );
+    final terminalUpdates = LibraryUpdateState(
+      tasksByRootId: {
+        root.id: LibraryRootUpdateTask(
+          root: root,
+          scanId: "scan-update",
+          phase: LibraryRootUpdatePhase.completed,
+          acceptedItems: 1,
+        ),
+      },
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(state),
+          libraryScannerProvider.overrideWithValue(const _NoopLibraryScanner()),
+          libraryUpdateControllerProvider.overrideWith(
+            () => _FixedLibraryUpdateController(terminalUpdates),
+          ),
+        ],
+        child: const AmeApp(),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byKey(const Key("library-task-surface")), findsOneWidget);
+    expect(find.text("正在添加文件夹“NewPictures”…"), findsOneWidget);
+    expect(find.byKey(const Key("library-update-task-surface")), findsNothing);
+  });
+
+  testWidgets("root removal keeps another root update and its cancel action", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final populated = _populatedState(totalItems: 1);
+    final updatingRoot = populated.roots.single;
+    const removingRoot = LibraryRoot(
+      id: "root-b",
+      path: "D:\\Archive",
+      displayPath: "D:\\Archive",
+      activeScanId: "scan-b",
+      createdUnixMs: 2,
+      assetCount: 1,
+      issueCount: 0,
+      availability: LibraryRootAvailability.available,
+    );
+    final state = populated.copyWith(
+      roots: [...populated.roots, removingRoot],
+      status: LibraryStatus.removing,
+      taskKind: LibraryTaskKind.remove,
+      removingRootId: removingRoot.id,
+      removingRootDisplayPath: removingRoot.displayPath,
+    );
+    final activeUpdates = LibraryUpdateState(
+      tasksByRootId: {
+        updatingRoot.id: LibraryRootUpdateTask(
+          root: updatingRoot,
+          scanId: "scan-update-a",
+          phase: LibraryRootUpdatePhase.discovering,
+          visitedEntries: 12,
+          acceptedItems: 1,
+        ),
+      },
+    );
+    final updateController = _FixedLibraryUpdateController(activeUpdates);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(state),
+          libraryScannerProvider.overrideWithValue(const _NoopLibraryScanner()),
+          libraryUpdateControllerProvider.overrideWith(() => updateController),
+        ],
+        child: const AmeApp(),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byKey(const Key("library-task-surface")), findsOneWidget);
+    expect(
+      find.byKey(const Key("library-update-task-surface")),
+      findsOneWidget,
+    );
+    final updateCancel = find.descendant(
+      of: find.byKey(Key("library-update-task-${updatingRoot.id}")),
+      matching: find.text("取消"),
+    );
+    expect(updateCancel, findsOneWidget);
+
+    await tester.tap(updateCancel);
+    await tester.pump();
+    expect(updateController.cancelledRootId, updatingRoot.id);
+  });
+
   testWidgets("connects source search and Material sort to one gallery query", (
     tester,
   ) async {
@@ -760,7 +1059,8 @@ void main() {
     expect(catalog.loadQueries.last.searchText, "one");
     expect(catalog.loadQueries.last.rootId, "root-1");
 
-    await tester.tap(find.byKey(const Key("library-sort-menu")));
+    final sortMenuButton = find.byKey(const Key("library-sort-menu"));
+    await tester.tap(sortMenuButton);
     await tester.pumpAndSettle();
     _expectSelectedMenuChoice(
       tester,
@@ -777,11 +1077,11 @@ void main() {
       label: LibraryStrings.fileName,
       icon: Symbols.text_fields_rounded,
     );
-    await tester.tap(find.byKey(const Key("library-sort-menu")));
+    await tester.tapAt(tester.getCenter(sortMenuButton));
     await tester.pumpAndSettle();
     expect(find.text(LibraryStrings.createdDate), findsNothing);
 
-    await tester.tap(find.byKey(const Key("library-sort-menu")));
+    await tester.tap(sortMenuButton);
     await tester.pumpAndSettle();
     await tester.tap(find.text(LibraryStrings.fileName).last);
     await tester.pumpAndSettle();
@@ -812,19 +1112,17 @@ void main() {
     await tester.pump();
 
     final button = find.byKey(const Key("library-sort-menu"));
-    final sortAnchor = find.ancestor(
-      of: button,
-      matching: find.byType(MenuAnchor),
-    );
     expect(button, findsOneWidget);
-    expect(sortAnchor, findsOneWidget);
-    final controller = tester.widget<MenuAnchor>(sortAnchor).controller;
-    expect(controller?.isOpen, isFalse);
+    expect(find.byType(MenuAnchor), findsNothing);
     final viewRect = Offset.zero & tester.view.physicalSize;
     expect(viewRect.contains(tester.getCenter(button)), isTrue);
     await tester.tap(button);
-    await tester.pump(const Duration(milliseconds: 300));
-    expect(controller?.isOpen, isTrue);
+    await tester.pump();
+    final route = ModalRoute.of(
+      tester.element(find.text(LibraryStrings.fileName).last),
+    );
+    expect(route?.transitionDuration, AmeMenuTransition.duration);
+    await tester.pumpAndSettle();
 
     for (final label in const [
       LibraryStrings.captureDate,
@@ -849,8 +1147,8 @@ void main() {
       lessThanOrEqualTo(viewRect.bottom - AmeMenuMetrics.viewportPadding),
     );
     await tester.tapAt(itemRect.center);
-    await tester.pump();
-    expect(controller?.isOpen, isFalse);
+    await tester.pumpAndSettle();
+    expect(find.text(LibraryStrings.fileName), findsNothing);
   });
 
   testWidgets(
@@ -942,8 +1240,7 @@ void main() {
       final deepScrollPixels = scrollPosition.pixels;
 
       final fileNameItem = await _openSortMenu(tester, LibraryStrings.fileName);
-      await tester.tapAt(tester.getCenter(fileNameItem));
-      await tester.pump();
+      await _selectPopupMenuItem(tester, fileNameItem);
 
       expect(catalog.requestedLocationIds, hasLength(1));
       expect(
@@ -976,8 +1273,7 @@ void main() {
         tester,
         LibraryStrings.createdDate,
       );
-      await tester.tapAt(tester.getCenter(createdDateItem));
-      await tester.pump();
+      await _selectPopupMenuItem(tester, createdDateItem);
 
       expect(catalog.requestedLocationIds, hasLength(2));
       expect(catalog.lastSnapshot?.queryAnchorResolution, isNull);
@@ -1089,8 +1385,7 @@ void main() {
     }
 
     final fileNameItem = await _openSortMenu(tester, LibraryStrings.fileName);
-    await tester.tapAt(tester.getCenter(fileNameItem));
-    await tester.pump();
+    await _selectPopupMenuItem(tester, fileNameItem);
     expect(catalog.requestedLocationIds, hasLength(1));
     final frozenLocationId = catalog.requestedLocationIds.single;
     final frozenFinder = find.byKey(ValueKey(frozenLocationId));
@@ -1100,8 +1395,7 @@ void main() {
       tester,
       LibraryStrings.captureDate,
     );
-    await tester.tapAt(tester.getCenter(captureDateItem));
-    await tester.pump();
+    await _selectPopupMenuItem(tester, captureDateItem);
     expect(container.read(libraryControllerProvider).queryId, snapshot.queryId);
     await tester.pump();
 
@@ -1198,7 +1492,7 @@ void main() {
 
       final squareItem = await _openLayoutMenu(tester, LibraryStrings.square);
       final squareAnchor = _viewportCenterRowAnchor(tester, assets);
-      await tester.tapAt(tester.getCenter(squareItem));
+      await _selectPopupMenuItem(tester, squareItem);
       await _pumpUntilGalleryGeometry(
         tester,
         previousShape: GalleryLayoutShape.equalHeight,
@@ -1227,7 +1521,7 @@ void main() {
 
       final largeItem = await _openLayoutMenu(tester, LibraryStrings.large);
       final largeAnchor = _viewportCenterRowAnchor(tester, assets);
-      await tester.tapAt(tester.getCenter(largeItem));
+      await _selectPopupMenuItem(tester, largeItem);
       await _pumpUntilGalleryGeometry(
         tester,
         previousShape: GalleryLayoutShape.square,
@@ -1295,7 +1589,8 @@ void main() {
     );
     await tester.pump();
 
-    await tester.tap(find.byKey(const Key("library-layout-menu")));
+    final layoutMenuButton = find.byKey(const Key("library-layout-menu"));
+    await tester.tap(layoutMenuButton);
     await tester.pumpAndSettle();
     expect(find.byType(AmeMenuItemContent), findsNWidgets(5));
     _expectSelectedMenuChoice(
@@ -1308,15 +1603,15 @@ void main() {
       label: LibraryStrings.large,
       icon: Symbols.crop_square_rounded,
     );
-    await tester.tap(find.byKey(const Key("library-layout-menu")));
+    await tester.tapAt(tester.getCenter(layoutMenuButton));
     await tester.pumpAndSettle();
     expect(find.text(LibraryStrings.equalHeight), findsNothing);
 
-    await tester.tap(find.byKey(const Key("library-layout-menu")));
+    await tester.tap(layoutMenuButton);
     await tester.pumpAndSettle();
     await tester.tap(find.text(LibraryStrings.equalHeight));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key("library-layout-menu")));
+    await tester.tap(layoutMenuButton);
     await tester.pumpAndSettle();
     await tester.tap(find.text(LibraryStrings.small));
     await tester.pumpAndSettle();
@@ -1431,6 +1726,101 @@ void main() {
     },
   );
 
+  testWidgets(
+    "starts a selected folder at the top instead of reusing the prior time anchor",
+    (tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final assets = [
+        for (var index = 0; index < 120; index++)
+          _galleryAsset(
+            id: "folder-scope-$index",
+            captureLocalTime: "2026-08-05T00:00:00.000000000",
+          ),
+      ];
+      final initialSnapshot = LibrarySnapshot(
+        catalogPath: "C:\\AmeData\\ame.sqlite3",
+        revision: BigInt.one,
+        queryId: "folder-scope-initial",
+        roots: const [
+          LibraryRoot(
+            id: "root-1",
+            path: "C:\\Pictures",
+            displayPath: "C:\\Pictures",
+            activeScanId: "scan-1",
+            createdUnixMs: 1,
+            assetCount: 120,
+            issueCount: 0,
+            availability: LibraryRootAvailability.available,
+          ),
+        ],
+        assets: assets,
+      );
+      final initialState = LibraryState.fromSnapshot(initialSnapshot).copyWith(
+        timeline: LibraryTimeline(
+          revision: BigInt.one,
+          queryId: initialSnapshot.queryId,
+          totalItems: assets.length,
+          buckets: const [
+            LibraryTimeBucket(
+              monthKey: "2026-08",
+              itemCount: 120,
+              aspectRatioSum: 160,
+            ),
+          ],
+        ),
+      );
+      final catalog = _AnchorResolvingQueryCatalog(initialSnapshot);
+      final folderCatalog = _RecordingFolderCatalog();
+      final container = ProviderContainer(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(initialState),
+          initialLibraryViewPreferencesProvider.overrideWithValue(
+            const LibraryViewPreferences(
+              layoutShape: GalleryLayoutShape.square,
+              thumbnailSize: GalleryThumbnailSize.medium,
+            ),
+          ),
+          libraryCatalogProvider.overrideWithValue(catalog),
+          libraryFolderCatalogProvider.overrideWithValue(folderCatalog),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(container: container, child: const AmeApp()),
+      );
+      await tester.pump();
+
+      final scrollPosition = _galleryScrollPosition(tester);
+      scrollPosition.jumpTo(scrollPosition.maxScrollExtent * 0.55);
+      await tester.pump();
+      await tester.pump();
+      expect(scrollPosition.pixels, greaterThan(0));
+
+      await tester.tap(find.byKey(const ValueKey("source-expand-root-1")));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey("folder-title-root-1-Album")));
+      await tester.pumpAndSettle();
+
+      expect(catalog.requestedLocationIds, isEmpty);
+      expect(
+        container.read(libraryControllerProvider).query.folderRelativePath,
+        "Album",
+      );
+      expect(
+        scrollPosition.pixels,
+        closeTo(scrollPosition.minScrollExtent, 0.01),
+      );
+      expect(
+        tester.widget<Slider>(find.byKey(const Key("timeline-slider"))).value,
+        1,
+      );
+    },
+  );
+
   testWidgets("aligns a pending source with existing source rows", (
     tester,
   ) async {
@@ -1529,6 +1919,9 @@ void main() {
             assetId: "asset-1",
             locationId: "location-1",
             rootId: "root-1",
+            activeScanId: "scan-1",
+            sourceRevision: null,
+            sourceGeneration: BigInt.one,
             sourcePath: "C:\\Pictures\\one.png",
             displayPath: "C:\\Pictures\\one.png",
             relativePath: "one.png",
@@ -1603,6 +1996,9 @@ void main() {
           assetId: "asset-1",
           locationId: "location-1",
           rootId: "root-1",
+          activeScanId: "scan-1",
+          sourceRevision: null,
+          sourceGeneration: BigInt.one,
           sourcePath: "C:\\Pictures\\one.png",
           displayPath: "C:\\Pictures\\one.png",
           relativePath: "one.png",
@@ -1618,6 +2014,9 @@ void main() {
           assetId: "asset-2",
           locationId: "location-2",
           rootId: "root-1",
+          activeScanId: "scan-1",
+          sourceRevision: null,
+          sourceGeneration: BigInt.one,
           sourcePath: "C:\\Pictures\\two.png",
           displayPath: "C:\\Pictures\\two.png",
           relativePath: "two.png",
@@ -1632,6 +2031,9 @@ void main() {
           assetId: "asset-3",
           locationId: "location-3",
           rootId: "root-1",
+          activeScanId: "scan-1",
+          sourceRevision: null,
+          sourceGeneration: BigInt.one,
           sourcePath: "C:\\Pictures\\fallback.png",
           displayPath: "C:\\Pictures\\fallback.png",
           relativePath: "fallback.png",
@@ -1847,7 +2249,7 @@ void main() {
     expect(find.byType(AmeMenuItemContent), findsNWidgets(3));
     final updateMenuItem = find.ancestor(
       of: find.text("更新图库"),
-      matching: find.byType(MenuItemButton),
+      matching: find.byWidgetPredicate((widget) => widget is PopupMenuItem),
     );
     expect(
       tester.getRect(updateMenuItem).right,
@@ -1862,6 +2264,326 @@ void main() {
     await tester.tap(find.text("Pictures"), buttons: kSecondaryMouseButton);
     await tester.pumpAndSettle();
     expect(find.text("从 Ame 中移除"), findsOneWidget);
+  });
+
+  testWidgets("shows root removal feedback while deferred catalog work runs", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final initialState = _populatedState(totalItems: 1);
+    var feedbackWasLaidOutBeforeCatalogEntry = false;
+    final catalog = _DeferredScreenRemovalCatalog(
+      initialState,
+      onUnregister: () {
+        final feedback = find.text("正在从 Ame 中移除“Pictures”…");
+        feedbackWasLaidOutBeforeCatalogEntry =
+            feedback.evaluate().length == 1 &&
+            tester.getSize(feedback).height > 0;
+      },
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(initialState),
+          libraryCatalogProvider.overrideWithValue(catalog),
+        ],
+        child: const AmeApp(),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key("library-more-menu")));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text("全选"));
+    await tester.pumpAndSettle();
+    expect(find.text("已选择 1 个项目"), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey("source-more-root-1")));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(LibraryStrings.removeFromAme));
+    await tester.pumpAndSettle();
+    expect(find.text("从 Ame 中移除文件夹？"), findsOneWidget);
+
+    await tester.tap(find.text(LibraryStrings.removeFromAme));
+    expect(catalog.unregisteredRootIds, isEmpty);
+    await tester.pump();
+
+    expect(find.byKey(const Key("library-task-surface")), findsOneWidget);
+    expect(find.text("正在从 Ame 中移除“Pictures”…"), findsOneWidget);
+    expect(find.text("正在清理该文件夹的图库记录。磁盘上的文件夹和图片不会被删除或修改。"), findsOneWidget);
+    expect(catalog.unregisteredRootIds, ["root-1"]);
+    expect(feedbackWasLaidOutBeforeCatalogEntry, isTrue);
+
+    catalog.completeRemoval(false);
+    await tester.pumpAndSettle();
+    expect(find.textContaining("已选择"), findsNothing);
+    expect(
+      tester
+          .widget<LibraryGalleryHeader>(find.byType(LibraryGalleryHeader))
+          .isSelecting,
+      isFalse,
+    );
+  });
+
+  testWidgets(
+    "disposal before removal feedback cancels prepared catalog work",
+    (tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final initialState = _populatedState(totalItems: 1);
+      final catalog = _DeferredScreenRemovalCatalog(initialState);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            initialLibraryStateProvider.overrideWithValue(initialState),
+            libraryCatalogProvider.overrideWithValue(catalog),
+          ],
+          child: const AmeApp(),
+        ),
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey("source-more-root-1")));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(LibraryStrings.removeFromAme));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(LibraryStrings.removeFromAme));
+      expect(catalog.unregisteredRootIds, isEmpty);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+
+      expect(catalog.unregisteredRootIds, isEmpty);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    "clears selection when root removal and first-page reload finish together",
+    (tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final baseState = _populatedState(totalItems: 2);
+      const remainingRoot = LibraryRoot(
+        id: "root-2",
+        path: "D:\\Archive",
+        displayPath: "D:\\Archive",
+        activeScanId: "scan-2",
+        createdUnixMs: 2,
+        assetCount: 1,
+        issueCount: 0,
+        availability: LibraryRootAvailability.available,
+      );
+      final remainingAsset = _assetForRoot(root: remainingRoot, ordinal: 2);
+      final initialState = baseState.copyWith(
+        roots: [...baseState.roots, remainingRoot],
+        assets: [...baseState.assets, remainingAsset],
+        timeline: LibraryTimeline(
+          revision: baseState.catalogRevision ?? BigInt.one,
+          queryId: baseState.queryId,
+          totalItems: 2,
+          buckets: const [LibraryTimeBucket(itemCount: 2, aspectRatioSum: 2)],
+        ),
+      );
+      final catalog = _ImmediateScreenRemovalCatalog(
+        afterRemoval: LibrarySnapshot(
+          catalogPath: initialState.catalogPath ?? "catalog.sqlite3",
+          revision: BigInt.from(2),
+          queryId: "query-after-removal",
+          roots: const [remainingRoot],
+          assets: [remainingAsset],
+        ),
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            initialLibraryStateProvider.overrideWithValue(initialState),
+            libraryCatalogProvider.overrideWithValue(catalog),
+          ],
+          child: const AmeApp(),
+        ),
+      );
+      await tester.pump();
+
+      await tester.tap(find.byKey(const Key("library-more-menu")));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text("全选"));
+      await tester.pumpAndSettle();
+      expect(find.text("已选择 2 个项目"), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey("source-more-root-1")));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(LibraryStrings.removeFromAme));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(LibraryStrings.removeFromAme));
+      await tester.pumpAndSettle();
+
+      final header = tester.widget<LibraryGalleryHeader>(
+        find.byType(LibraryGalleryHeader),
+      );
+      expect(catalog.unregisteredRootIds, ["root-1"]);
+      expect(header.isSelecting, isFalse);
+      expect(header.selectedCount, 0);
+      expect(find.byKey(const Key("library-selection-toolbar")), findsNothing);
+      expect(find.textContaining("已选择"), findsNothing);
+      expect(find.text("Archive"), findsOneWidget);
+    },
+  );
+
+  testWidgets("removal replaces unacknowledged import feedback", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final state = _populatedState(totalItems: 1).copyWith(
+      scanId: "scan-completed",
+      rootPath: "C:\\Pictures",
+      displayRootPath: "C:\\Pictures",
+      taskKind: LibraryTaskKind.import,
+      visitedEntries: 128,
+      stagedAssetCount: 1,
+    );
+    final catalog = _ImmediateScreenRemovalCatalog(
+      afterRemoval: LibrarySnapshot(
+        catalogPath: state.catalogPath ?? "catalog.sqlite3",
+        revision: BigInt.from(2),
+        queryId: "query-after-removal",
+        roots: const [],
+        assets: const [],
+      ),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(state),
+          libraryCatalogProvider.overrideWithValue(catalog),
+          libraryScannerProvider.overrideWithValue(const _NoopLibraryScanner()),
+        ],
+        child: const AmeApp(),
+      ),
+    );
+    await tester.pump();
+    expect(find.text("导入完成"), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey("source-more-root-1")));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(LibraryStrings.removeFromAme));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(LibraryStrings.removeFromAme));
+    await tester.pumpAndSettle();
+
+    expect(catalog.unregisteredRootIds, ["root-1"]);
+    expect(find.text("导入完成"), findsNothing);
+    expect(find.byKey(const Key("library-task-surface")), findsNothing);
+    expect(find.text("已从 Ame 中移除，原图片未作任何修改"), findsOneWidget);
+  });
+
+  testWidgets("routes source update to the configured-root selection dialog", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(
+            _populatedState(totalItems: 1),
+          ),
+        ],
+        child: const AmeApp(),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const ValueKey("source-more-root-1")));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text("更新图库"));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key("library-update-dialog")), findsOneWidget);
+    expect(
+      tester
+          .widget<CheckboxListTile>(
+            find.byKey(const ValueKey("library-update-root-root-1")),
+          )
+          .value,
+      isTrue,
+    );
+  });
+
+  testWidgets("submits two configured roots from one source update action", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final baseState = _populatedState(totalItems: 2);
+    final secondRoot = LibraryRoot(
+      id: "root-2",
+      path: "D:\\Archive",
+      displayPath: "D:\\Archive",
+      activeScanId: "scan-2",
+      createdUnixMs: 2,
+      assetCount: 1,
+      issueCount: 0,
+      availability: LibraryRootAvailability.available,
+    );
+    final scanner = _RecordingUpdateScanner();
+    addTearDown(scanner.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(
+            baseState.copyWith(roots: [...baseState.roots, secondRoot]),
+          ),
+          libraryScannerProvider.overrideWithValue(scanner),
+        ],
+        child: const AmeApp(),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const ValueKey("source-more-root-1")));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(LibraryStrings.updateLibrary));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey("library-update-root-root-2")));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key("library-update-confirm")));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 250));
+
+    expect(scanner.startedRootPaths, ["C:\\Pictures", "D:\\Archive"]);
+    expect(
+      find.byKey(const Key("library-update-task-surface")),
+      findsOneWidget,
+    );
+    expect(find.text("正在更新 2 个图库文件夹…"), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey("library-update-task-root-1")),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey("library-update-task-root-2")),
+      findsOneWidget,
+    );
+    expect(find.textContaining("正在添加文件夹"), findsNothing);
   });
 
   testWidgets("select all covers the complete query instead of loaded tiles", (
@@ -1889,7 +2611,7 @@ void main() {
     expect(find.text("不选择任何项目"), findsNothing);
     final selectAllMenuItem = find.ancestor(
       of: find.text("全选"),
-      matching: find.byType(MenuItemButton),
+      matching: find.byWidgetPredicate((widget) => widget is PopupMenuItem),
     );
     final shortcutFinder = find.text("Ctrl+A");
     final shortcut = tester.widget<Text>(shortcutFinder);
@@ -2027,9 +2749,10 @@ void main() {
         ),
       );
       await tester.pump();
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 250));
 
       expect(_galleryScrollPosition(tester).pixels, greaterThan(0));
+      expect(find.byKey(const Key("library-top-loading")), findsNothing);
       expect(
         find.byKey(ValueKey(initialState.assets.single.locationId)),
         findsOneWidget,
@@ -2054,6 +2777,9 @@ void main() {
           assetId: "asset-$index",
           locationId: "location-$index",
           rootId: "root-1",
+          activeScanId: "scan-1",
+          sourceRevision: null,
+          sourceGeneration: BigInt.one,
           sourcePath: "C:\\Pictures\\$index.png",
           displayPath: "C:\\Pictures\\$index.png",
           relativePath: "$index.png",
@@ -2299,6 +3025,9 @@ LibraryAsset _galleryAsset({
     assetId: "asset-$id",
     locationId: id,
     rootId: "root-1",
+    activeScanId: "scan-1",
+    sourceRevision: null,
+    sourceGeneration: BigInt.one,
     sourcePath: "C:\\Pictures\\$id.png",
     displayPath: "C:\\Pictures\\$id.png",
     relativePath: "$id.png",
@@ -2360,7 +3089,7 @@ void _expectUnselectedMenuChoice(
 Finder _menuItem(String label) {
   return find.ancestor(
     of: find.text(label).last,
-    matching: find.byType(MenuItemButton),
+    matching: find.byWidgetPredicate((widget) => widget is PopupMenuItem),
   );
 }
 
@@ -2368,13 +3097,16 @@ Future<Finder> _openSortMenu(WidgetTester tester, String expectedItem) async {
   await tester.pump(const Duration(milliseconds: 300));
   var item = _activeMenuItemOrNull(tester, expectedItem);
   if (item != null) {
-    return item;
+    return _menuChoiceTarget(expectedItem);
   }
   final button = find.byKey(const Key("library-sort-menu"));
   await tester.ensureVisible(button);
   await tester.tap(button);
-  await tester.pump(const Duration(milliseconds: 300));
-  return _activeMenuItem(tester, expectedItem);
+  await tester.pump();
+  await tester.pump(AmeMenuTransition.duration);
+  await tester.pump();
+  _activeMenuItem(tester, expectedItem);
+  return _menuChoiceTarget(expectedItem);
 }
 
 Future<Finder> _openLayoutMenu(WidgetTester tester, String expectedItem) async {
@@ -2382,7 +3114,21 @@ Future<Finder> _openLayoutMenu(WidgetTester tester, String expectedItem) async {
   await tester.ensureVisible(button);
   await tester.tap(button);
   await tester.pump();
-  return _activeMenuItem(tester, expectedItem);
+  await tester.pump(AmeMenuTransition.duration);
+  await tester.pump();
+  _activeMenuItem(tester, expectedItem);
+  return _menuChoiceTarget(expectedItem);
+}
+
+Finder _menuChoiceTarget(String label) {
+  return find.descendant(of: _menuItem(label), matching: find.byType(InkWell));
+}
+
+Future<void> _selectPopupMenuItem(WidgetTester tester, Finder item) async {
+  await tester.tap(item);
+  await tester.pump();
+  await tester.pump(AmeMenuTransition.duration);
+  await tester.pump();
 }
 
 ({String locationId, double itemFraction, double viewportCenterY})
@@ -2462,7 +3208,7 @@ Finder _activeMenuItem(WidgetTester tester, String label) {
 Finder? _activeMenuItemOrNull(WidgetTester tester, String label) {
   final candidates = find.ancestor(
     of: find.text(label),
-    matching: find.byType(MenuItemButton),
+    matching: find.byWidgetPredicate((widget) => widget is PopupMenuItem),
   );
   if (candidates.evaluate().length != 1) {
     return null;
@@ -2477,32 +3223,11 @@ Finder? _activeMenuItemOrNull(WidgetTester tester, String label) {
       .evaluate()
       .map((element) => element.widget as IgnorePointer);
   expect(ignoringAncestors.every((widget) => !widget.ignoring), isTrue);
-  final itemElement = candidates.evaluate().single;
-  final hitPath = tester.hitTestOnBinding(tester.getCenter(candidates)).path;
-  expect(
-    hitPath.any((entry) {
-      final target = entry.target;
-      if (target is! RenderObject) {
-        return false;
-      }
-      final creator = target.debugCreator;
-      if (creator is! DebugCreator) {
-        return false;
-      }
-      var belongsToItem = false;
-      void visit(Element element) {
-        if (identical(element, creator.element)) {
-          belongsToItem = true;
-          return;
-        }
-        element.visitChildElements(visit);
-      }
-
-      itemElement.visitChildElements(visit);
-      return belongsToItem || identical(creator.element, itemElement);
-    }),
-    isTrue,
+  final choiceSemantics = find.descendant(
+    of: candidates,
+    matching: find.byKey(ValueKey("menu-choice-$label")),
   );
+  expect(choiceSemantics, findsOneWidget);
   return candidates;
 }
 
@@ -2553,6 +3278,9 @@ LibraryState _populatedState({
         assetId: "asset-1",
         locationId: "location-1",
         rootId: "root-1",
+        activeScanId: "scan-1",
+        sourceRevision: null,
+        sourceGeneration: BigInt.one,
         sourcePath: "C:\\Pictures\\one.png",
         displayPath: "C:\\Pictures\\one.png",
         relativePath: "one.png",
@@ -2576,6 +3304,25 @@ LibraryState _populatedState({
         ),
       ],
     ),
+  );
+}
+
+LibraryAsset _assetForRoot({required LibraryRoot root, required int ordinal}) {
+  return LibraryAsset(
+    assetId: "asset-$ordinal",
+    locationId: "location-$ordinal",
+    rootId: root.id,
+    activeScanId: root.activeScanId ?? "scan-$ordinal",
+    sourceRevision: null,
+    sourceGeneration: BigInt.one,
+    sourcePath: "${root.path}\\image-$ordinal.png",
+    displayPath: "${root.displayPath}\\image-$ordinal.png",
+    relativePath: "image-$ordinal.png",
+    previewPath: "C:\\Missing\\image-$ordinal.jpg",
+    fileSize: BigInt.one,
+    modifiedUnixMs: ordinal,
+    width: 4,
+    height: 3,
   );
 }
 
@@ -2686,8 +3433,12 @@ class _ControlledLibraryPreviewer implements LibraryPreviewer {
   @override
   Future<LibraryAsset> materialize({
     required String locationId,
+    required String expectedRootId,
+    required String expectedScanId,
+    required LibrarySourceRevisionEvidence? expectedSourceRevision,
+    required BigInt expectedSourceGeneration,
     required int previewEdge,
-    bool retry = false,
+    bool force = false,
     Iterable<String> protectedLocationIds = const [],
   }) {
     requests.add(locationId);
@@ -2710,7 +3461,9 @@ class _ControlledLibraryPreviewer implements LibraryPreviewer {
   }
 }
 
-class _RecordingQueryCatalog implements LibraryCatalog {
+class _RecordingQueryCatalog
+    with LibraryQuerySnapshotFixture
+    implements LibraryCatalog {
   _RecordingQueryCatalog(this.snapshot, {this.previousSnapshot});
 
   final LibrarySnapshot snapshot;
@@ -2761,7 +3514,153 @@ class _RecordingQueryCatalog implements LibraryCatalog {
   Future<bool> unregisterRoot(String rootId) async => true;
 }
 
+class _DeferredScreenRemovalCatalog
+    with LibraryQuerySnapshotFixture
+    implements LibraryCatalog {
+  _DeferredScreenRemovalCatalog(this.state, {this.onUnregister});
+
+  final LibraryState state;
+  final VoidCallback? onUnregister;
+  final List<String> unregisteredRootIds = [];
+  final Completer<bool> _removal = Completer<bool>();
+
+  @override
+  Future<LibrarySnapshot> load({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    LibraryCatalogCursor? after,
+    LibraryCatalogCursor? before,
+  }) async => _snapshot;
+
+  @override
+  Future<LibrarySnapshot> loadAtTime({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    required LibraryTimeAnchor anchor,
+  }) async => _snapshot;
+
+  @override
+  Future<LibraryTimeline> loadTimeline(LibraryGalleryQuery query) async {
+    return LibraryTimeline(
+      revision: state.catalogRevision ?? BigInt.one,
+      queryId: state.queryId,
+      totalItems: state.assets.length,
+      buckets: const [],
+    );
+  }
+
+  @override
+  Future<bool> unregisterRoot(String rootId) {
+    onUnregister?.call();
+    unregisteredRootIds.add(rootId);
+    return _removal.future;
+  }
+
+  LibrarySnapshot get _snapshot => LibrarySnapshot(
+    catalogPath: state.catalogPath ?? "catalog.sqlite3",
+    revision: state.catalogRevision ?? BigInt.one,
+    queryId: state.queryId,
+    roots: state.roots,
+    assets: state.assets,
+    previousCursor: state.previousCursor,
+    nextCursor: state.nextCursor,
+  );
+
+  void completeRemoval(bool removed) {
+    _removal.complete(removed);
+  }
+}
+
+class _ImmediateScreenRemovalCatalog
+    with LibraryQuerySnapshotFixture
+    implements LibraryCatalog {
+  _ImmediateScreenRemovalCatalog({required this.afterRemoval});
+
+  final LibrarySnapshot afterRemoval;
+  final List<String> unregisteredRootIds = [];
+
+  @override
+  Future<LibrarySnapshot> load({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    LibraryCatalogCursor? after,
+    LibraryCatalogCursor? before,
+  }) async => afterRemoval;
+
+  @override
+  Future<LibrarySnapshot> loadAtTime({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    required LibraryTimeAnchor anchor,
+  }) async => afterRemoval;
+
+  @override
+  Future<LibraryTimeline> loadTimeline(LibraryGalleryQuery query) async {
+    return LibraryTimeline(
+      revision: afterRemoval.revision,
+      queryId: afterRemoval.queryId,
+      totalItems: afterRemoval.assets.length,
+      buckets: [
+        if (afterRemoval.assets.isNotEmpty)
+          LibraryTimeBucket(
+            itemCount: afterRemoval.assets.length,
+            aspectRatioSum: afterRemoval.assets.length.toDouble(),
+          ),
+      ],
+    );
+  }
+
+  @override
+  Future<bool> unregisterRoot(String rootId) async {
+    unregisteredRootIds.add(rootId);
+    return true;
+  }
+}
+
+class _BlockingTimeQueryCatalog
+    with LibraryQuerySnapshotFixture
+    implements LibraryCatalog {
+  _BlockingTimeQueryCatalog({required this.snapshot, required this.timeline});
+
+  final LibrarySnapshot snapshot;
+  final LibraryTimeline timeline;
+  final List<LibraryTimeAnchor> timeAnchors = [];
+  final Completer<LibrarySnapshot> _timeResult = Completer();
+
+  @override
+  Future<LibrarySnapshot> load({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    LibraryCatalogCursor? after,
+    LibraryCatalogCursor? before,
+  }) async => snapshot;
+
+  @override
+  Future<LibrarySnapshot> loadAtTime({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    required LibraryTimeAnchor anchor,
+  }) {
+    timeAnchors.add(anchor);
+    return _timeResult.future;
+  }
+
+  @override
+  Future<LibraryTimeline> loadTimeline(LibraryGalleryQuery query) async =>
+      timeline;
+
+  @override
+  Future<bool> unregisterRoot(String rootId) async => true;
+
+  void complete() {
+    if (!_timeResult.isCompleted) {
+      _timeResult.complete(snapshot);
+    }
+  }
+}
+
 class _AnchorResolvingQueryCatalog
+    with LibraryQuerySnapshotFixture
     implements LibraryCatalog, LibraryQueryAnchorCatalog {
   _AnchorResolvingQueryCatalog(this.initialSnapshot);
 
@@ -2867,7 +3766,27 @@ class _AnchorResolvingQueryCatalog
   }
 }
 
+class _FixedLibraryUpdateController extends LibraryUpdateController {
+  _FixedLibraryUpdateController(this.initialState);
+
+  final LibraryUpdateState initialState;
+  String? cancelledRootId;
+
+  @override
+  LibraryUpdateState build() => initialState;
+
+  @override
+  void cancel(String rootId) {
+    cancelledRootId = rootId;
+  }
+}
+
 class _NoopLibraryScanner implements LibraryScanner {
+  @override
+  Future<void> cancelRetainedScan(String scanId) async {
+    throw StateError("This fixture has no retained cancellation command");
+  }
+
   const _NoopLibraryScanner();
 
   @override
@@ -2883,6 +3802,9 @@ class _NoopLibraryScanner implements LibraryScanner {
   bool pause(String scanId) => false;
 
   @override
+  bool suspend(String scanId) => false;
+
+  @override
   Stream<LibraryScanUpdate> scan({
     required String scanId,
     required String rootPath,
@@ -2891,6 +3813,76 @@ class _NoopLibraryScanner implements LibraryScanner {
     required int previewEdge,
   }) {
     return const Stream.empty();
+  }
+
+  @override
+  Stream<LibraryScanUpdate> resume({
+    required String scanId,
+    required String rootPath,
+    required int? itemLimit,
+    required int? entryLimit,
+    required int previewEdge,
+  }) {
+    return const Stream.empty();
+  }
+}
+
+class _RecordingUpdateScanner implements LibraryScanner {
+  @override
+  Future<void> cancelRetainedScan(String scanId) async {
+    throw StateError("This fixture has no retained cancellation command");
+  }
+
+  final List<String> startedRootPaths = [];
+  final Map<String, StreamController<LibraryScanUpdate>> _controllers = {};
+
+  @override
+  bool cancel(String scanId) => _controllers.containsKey(scanId);
+
+  @override
+  Future<RecoverableLibraryScan?> loadPausedScan() async => null;
+
+  @override
+  Future<RecoverableLibraryScan?> loadRecoverableScan() async => null;
+
+  @override
+  bool pause(String scanId) => false;
+
+  @override
+  bool suspend(String scanId) => _controllers.containsKey(scanId);
+
+  @override
+  Stream<LibraryScanUpdate> scan({
+    required String scanId,
+    required String rootPath,
+    required int? itemLimit,
+    required int? entryLimit,
+    required int previewEdge,
+  }) {
+    startedRootPaths.add(rootPath);
+    // The controller is closed by the scanner teardown registered by this test.
+    // ignore: close_sinks
+    final controller = StreamController<LibraryScanUpdate>();
+    _controllers[scanId] = controller;
+    controller.add(LibraryScanStarted(scanId: scanId, rootPath: rootPath));
+    return controller.stream;
+  }
+
+  @override
+  Stream<LibraryScanUpdate> resume({
+    required String scanId,
+    required String rootPath,
+    required int? itemLimit,
+    required int? entryLimit,
+    required int previewEdge,
+  }) {
+    throw UnimplementedError();
+  }
+
+  Future<void> dispose() async {
+    final controllers = _controllers.values.toList(growable: false);
+    _controllers.clear();
+    await Future.wait(controllers.map((controller) => controller.close()));
   }
 }
 

@@ -6,10 +6,12 @@ import "package:cedarflake_ame/features/library/application/library_controller.d
 import "package:cedarflake_ame/features/library/domain/library_folder_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
+import "package:cedarflake_ame/features/library/domain/library_synchronization_models.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_folder_navigation_tile.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_navigation.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_photo_tile.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_source_navigation_tile.dart";
 import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
@@ -42,6 +44,8 @@ void main() {
             ),
           ),
         );
+        expect(find.text(LibraryStrings.synchronized), findsOneWidget);
+        expect(find.byType(MenuAnchor), findsNothing);
 
         seedColor.value = const Color(0xFF8E4D92);
         await tester.pumpAndSettle();
@@ -69,7 +73,8 @@ void main() {
         await tester.tap(find.byKey(const ValueKey("source-more-root-1")));
         await tester.pumpAndSettle();
         expect(find.text("更新图库"), findsOneWidget);
-        await tester.tap(find.byKey(const ValueKey("source-more-root-1")));
+        expect(find.byType(MenuAnchor), findsNothing);
+        await tester.sendKeyEvent(LogicalKeyboardKey.escape);
         await tester.pumpAndSettle();
 
         await tester.tap(find.byKey(const ValueKey("source-expand-root-1")));
@@ -158,6 +163,193 @@ void main() {
     expect(openedRevisions, [0]);
   });
 
+  testWidgets("keeps busy source actions disabled in the shared popup route", (
+    tester,
+  ) async {
+    var updateCount = 0;
+    var openCount = 0;
+    var removeCount = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildAmeTheme(),
+        home: Scaffold(
+          body: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: 320,
+              child: LibrarySourceNavigationTile(
+                root: const LibraryRoot(
+                  id: "busy-root",
+                  path: "C:\\Pictures",
+                  displayPath: "C:\\Pictures",
+                  createdUnixMs: 1,
+                  assetCount: 1,
+                  issueCount: 0,
+                  availability: LibraryRootAvailability.available,
+                ),
+                isCompact: false,
+                isSelected: true,
+                isExpanded: false,
+                isBrowseDisabled: true,
+                onSelect: _noop,
+                onToggleExpansion: _noop,
+                onUpdate: () => updateCount += 1,
+                onOpen: () => openCount += 1,
+                onRemove: () => removeCount += 1,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey("source-more-busy-root")));
+    await tester.pumpAndSettle();
+
+    Finder menuItem(String label) => find.ancestor(
+      of: find.text(label),
+      matching: find.byWidgetPredicate(
+        (widget) => widget is PopupMenuItem<Object?>,
+      ),
+    );
+
+    expect(find.byType(MenuAnchor), findsNothing);
+    expect(
+      tester
+          .widget<PopupMenuItem<Object?>>(
+            menuItem(LibraryStrings.updateLibrary),
+          )
+          .enabled,
+      isFalse,
+    );
+    expect(
+      tester
+          .widget<PopupMenuItem<Object?>>(
+            menuItem(LibraryStrings.openInExplorer),
+          )
+          .enabled,
+      isTrue,
+    );
+    expect(
+      tester
+          .widget<PopupMenuItem<Object?>>(
+            menuItem(LibraryStrings.removeFromAme),
+          )
+          .enabled,
+      isFalse,
+    );
+    await tester.tap(
+      find.text(LibraryStrings.updateLibrary),
+      warnIfMissed: false,
+    );
+    await tester.pump();
+    expect(updateCount, 0);
+    expect(openCount, 0);
+    expect(removeCount, 0);
+    expect(find.text(LibraryStrings.openInExplorer), findsOneWidget);
+
+    await tester.tap(find.text(LibraryStrings.openInExplorer));
+    await tester.pumpAndSettle();
+    expect(updateCount, 0);
+    expect(openCount, 1);
+    expect(removeCount, 0);
+  });
+
+  testWidgets("moves focus after removing the focused source", (tester) async {
+    const firstRoot = LibraryRoot(
+      id: "root-1",
+      path: "C:\\Pictures",
+      displayPath: "C:\\Pictures",
+      createdUnixMs: 1,
+      assetCount: 1,
+      issueCount: 0,
+      availability: LibraryRootAvailability.available,
+    );
+    const secondRoot = LibraryRoot(
+      id: "root-2",
+      path: "D:\\Archive",
+      displayPath: "D:\\Archive",
+      createdUnixMs: 2,
+      assetCount: 1,
+      issueCount: 0,
+      availability: LibraryRootAvailability.available,
+    );
+    final roots = ValueNotifier<List<LibraryRoot>>([firstRoot, secondRoot]);
+    addTearDown(roots.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildAmeTheme(),
+        home: Scaffold(
+          body: ValueListenableBuilder<List<LibraryRoot>>(
+            valueListenable: roots,
+            builder: (context, currentRoots, child) => LibraryNavigation(
+              isCompact: false,
+              width: 320,
+              isSettingsSelected: false,
+              roots: currentRoots,
+              selectedRootId: currentRoots.isEmpty
+                  ? null
+                  : currentRoots.first.id,
+              selectedFolderRelativePath: null,
+              transientRootPath: null,
+              folderTree: const LibraryFolderTreeState(),
+              isBusy: false,
+              onSelectLibrary: _noop,
+              onSelectRoot: (_) {},
+              onSelectFolder: (_, _) {},
+              onExpandFolder: (_, _) async {},
+              onLoadMoreFolders: (_, _) async {},
+              onAddSource: _noop,
+              onOpenSettings: _noop,
+              onUpdateRoot: (_) {},
+              onOpenRoot: (_) {},
+              onOpenFolder: (_, _) {},
+              onRemoveRoot: (root) {
+                roots.value = [
+                  for (final currentRoot in roots.value)
+                    if (currentRoot.id != root.id) currentRoot,
+                ];
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    LibrarySourceNavigationTile sourceTile(String rootId) =>
+        tester.widget<LibrarySourceNavigationTile>(
+          find.byWidgetPredicate(
+            (widget) =>
+                widget is LibrarySourceNavigationTile &&
+                widget.root.id == rootId,
+          ),
+        );
+
+    sourceTile(firstRoot.id).focusNode!.requestFocus();
+    await tester.pump();
+    expect(sourceTile(firstRoot.id).focusNode!.hasPrimaryFocus, isTrue);
+
+    await tester.tap(find.byKey(const ValueKey("source-more-root-1")));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(LibraryStrings.removeFromAme));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey("source-title-root-1")), findsNothing);
+    expect(sourceTile(secondRoot.id).focusNode!.hasPrimaryFocus, isTrue);
+
+    await tester.tap(find.byKey(const ValueKey("source-more-root-2")));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(LibraryStrings.removeFromAme));
+    await tester.pumpAndSettle();
+
+    final libraryEntry = tester.widget<ListTile>(
+      find.byKey(const Key("library-sidebar-library")),
+    );
+    expect(libraryEntry.focusNode!.hasPrimaryFocus, isTrue);
+  });
+
   testWidgets("keeps adjacent list tooltips reachable", (tester) async {
     final semanticsHandle = tester.ensureSemantics();
     try {
@@ -207,6 +399,146 @@ void main() {
     } finally {
       semanticsHandle.dispose();
     }
+  });
+
+  testWidgets("shows reconciliation when startup fails before root status", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: _buildNavigation(
+            hasSynchronizationFailure: true,
+            includeRootStatus: false,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text(LibraryStrings.needsReconciliation), findsOneWidget);
+    expect(find.text(LibraryStrings.synchronizing), findsNothing);
+  });
+
+  testWidgets("shows an unfinished import without claiming source failure", (
+    tester,
+  ) async {
+    final status = LibraryRootSynchronizationStatus(
+      rootId: "root-1",
+      rootGeneration: BigInt.one,
+      availability: LibraryRootAvailability.unknown,
+      freshness: LibraryCatalogFreshness.needsReconciliation,
+      freshnessCause: LibraryCatalogFreshnessCause.pendingChanges,
+      continuity: LibraryContinuityState.baselineRequired,
+      phase: LibrarySynchronizationPhase.blocked,
+      phaseStartedAt: DateTime.utc(2026, 9, 6),
+      sourceStatus: LibraryChangeSourceStatus.stopped,
+      pendingChangeCount: BigInt.zero,
+      retryWaitCount: BigInt.zero,
+      freshnessUnknownCount: BigInt.zero,
+      lastIssueCode: "library_first_import_required",
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: _buildNavigation(statusOverride: status)),
+      ),
+    );
+
+    expect(find.text(LibraryStrings.firstImportIncomplete), findsOneWidget);
+    expect(find.text(LibraryStrings.sourceUnknown), findsNothing);
+    expect(find.text(LibraryStrings.needsReconciliation), findsNothing);
+    expect(find.text(LibraryStrings.synchronizing), findsNothing);
+    expect(find.text(LibraryStrings.continuityBaselineRequired), findsNothing);
+  });
+
+  testWidgets("keeps healthy live-only capability out of expanded rows", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: _buildNavigation(continuity: LibraryContinuityState.liveOnly),
+        ),
+      ),
+    );
+
+    expect(find.text(LibraryStrings.continuityLiveOnly), findsNothing);
+    expect(find.text(LibraryStrings.synchronized), findsNothing);
+  });
+
+  testWidgets("keeps an abnormal live-only status visible", (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: _buildNavigation(
+            continuity: LibraryContinuityState.liveOnly,
+            freshness: LibraryCatalogFreshness.needsReconciliation,
+            phase: LibrarySynchronizationPhase.blocked,
+            recoveryBlocked: true,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text(LibraryStrings.needsReconciliation), findsOneWidget);
+    expect(find.text(LibraryStrings.continuityLiveOnly), findsNothing);
+  });
+
+  testWidgets("prioritizes a manual update over live-only capability", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: _buildNavigation(
+            continuity: LibraryContinuityState.liveOnly,
+            updatingRootIds: const {"root-1"},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text(LibraryStrings.synchronizing), findsOneWidget);
+    expect(find.text(LibraryStrings.continuityLiveOnly), findsNothing);
+    expect(find.text(LibraryStrings.continuityLiveOnlyDetail), findsNothing);
+  });
+
+  testWidgets("prioritizes updating freshness over live-only capability", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: _buildNavigation(
+            continuity: LibraryContinuityState.liveOnly,
+            freshness: LibraryCatalogFreshness.updating,
+            phase: LibrarySynchronizationPhase.fullScan,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text(LibraryStrings.synchronizing), findsOneWidget);
+    expect(find.text(LibraryStrings.continuityLiveOnly), findsNothing);
+  });
+
+  testWidgets("keeps unblocked live-only reconciliation compact", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: _buildNavigation(
+            continuity: LibraryContinuityState.liveOnly,
+            freshness: LibraryCatalogFreshness.needsReconciliation,
+            phase: LibrarySynchronizationPhase.reconciliation,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text(LibraryStrings.needsReconciliation), findsOneWidget);
+    expect(find.text(LibraryStrings.continuityLiveOnly), findsNothing);
+    expect(find.text(LibraryStrings.continuityLiveOnlyDetail), findsNothing);
   });
 
   testWidgets("keeps the populated application semantics reachable", (
@@ -269,12 +601,14 @@ void main() {
         Key("library-layout-menu"),
         Key("library-more-menu"),
       ]) {
-        await tester.tap(find.byKey(key));
+        final button = find.byKey(key);
+        final buttonCenter = tester.getCenter(button);
+        await tester.tap(button);
         await tester.pumpAndSettle();
         RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
           trace: "application-overlay-trace menu-open=$key",
         );
-        await tester.tap(find.byKey(key));
+        await tester.tapAt(buttonCenter);
         await tester.pumpAndSettle();
         RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
           trace: "application-overlay-trace menu-close=$key",
@@ -291,7 +625,6 @@ void main() {
       RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
         trace: "application-overlay-trace timeline-slider",
       );
-
       final tile = find.byType(LibraryPhotoTile).hitTestable().first;
       final tileRect = tester.getRect(tile);
       await tester.tapAt(tileRect.topLeft + const Offset(16, 16));
@@ -320,8 +653,8 @@ void main() {
       for (final finder in [
         find.byKey(const Key("viewer-back-button")),
         find.byKey(const Key("viewer-more-menu")),
-        find.byTooltip("缩小（- / Ctrl+-）"),
-        find.byTooltip("放大（+ / Ctrl++）"),
+        find.byKey(const Key("viewer-zoom-out")),
+        find.byKey(const Key("viewer-zoom-in")),
       ]) {
         await mouse.moveTo(tester.getCenter(finder));
         await tester.pump();
@@ -332,13 +665,15 @@ void main() {
         viewerHoverStep += 1;
       }
 
-      await tester.tap(find.byKey(const Key("viewer-more-menu")));
+      final viewerMore = find.byKey(const Key("viewer-more-menu"));
+      final viewerMoreCenter = tester.getCenter(viewerMore);
+      await tester.tap(viewerMore);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
       RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
         trace: "application-overlay-trace viewer-menu-open",
       );
-      await tester.tap(find.byKey(const Key("viewer-more-menu")));
+      await tester.tapAt(viewerMoreCenter);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
       RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
@@ -404,6 +739,9 @@ LibraryState _populatedLibraryState() {
         assetId: "asset-1",
         locationId: "location-1",
         rootId: "root-1",
+        activeScanId: "scan-1",
+        sourceRevision: null,
+        sourceGeneration: BigInt.one,
         sourcePath: "C:\\Pictures\\one.png",
         displayPath: "C:\\Pictures\\one.png",
         relativePath: "one.png",
@@ -425,7 +763,16 @@ LibraryState _populatedLibraryState() {
   );
 }
 
-Widget _buildNavigation() {
+Widget _buildNavigation({
+  LibraryRootSynchronizationStatus? statusOverride,
+  bool hasSynchronizationFailure = false,
+  bool includeRootStatus = true,
+  LibraryContinuityState continuity = LibraryContinuityState.current,
+  LibraryCatalogFreshness freshness = LibraryCatalogFreshness.synchronized,
+  LibrarySynchronizationPhase phase = LibrarySynchronizationPhase.synchronized,
+  bool recoveryBlocked = false,
+  Set<String> updatingRootIds = const {},
+}) {
   const folderPath = "Long album name that needs a path tooltip";
   return Align(
     alignment: Alignment.topLeft,
@@ -445,6 +792,29 @@ Widget _buildNavigation() {
           availability: LibraryRootAvailability.available,
         ),
       ],
+      rootSynchronizationStatuses: includeRootStatus
+          ? {
+              "root-1":
+                  statusOverride ??
+                  LibraryRootSynchronizationStatus(
+                    rootId: "root-1",
+                    rootGeneration: BigInt.one,
+                    availability: LibraryRootAvailability.available,
+                    freshness: freshness,
+                    freshnessCause:
+                        LibraryCatalogFreshnessCause.noPendingChanges,
+                    continuity: continuity,
+                    phase: phase,
+                    phaseStartedAt: DateTime.utc(2026, 8, 21),
+                    sourceStatus: LibraryChangeSourceStatus.healthy,
+                    pendingChangeCount: BigInt.zero,
+                    retryWaitCount: BigInt.zero,
+                    freshnessUnknownCount: BigInt.zero,
+                    recoveryBlocked: recoveryBlocked,
+                  ),
+            }
+          : const {},
+      hasSynchronizationFailure: hasSynchronizationFailure,
       selectedRootId: "root-1",
       selectedFolderRelativePath: null,
       transientRootPath: null,
@@ -469,6 +839,7 @@ Widget _buildNavigation() {
         },
       ),
       isBusy: false,
+      updatingRootIds: updatingRootIds,
       onSelectLibrary: _noop,
       onSelectRoot: (_) {},
       onSelectFolder: (_, _) {},

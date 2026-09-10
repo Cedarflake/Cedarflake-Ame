@@ -26,6 +26,13 @@ conversation. Do not create a competing roadmap copy. If the file is unavailable
 continuity gap before changing product scope or stage order. The roadmap remains lower authority
 than the user's current instruction, this contract, accepted ADRs, and verified live implementation.
 
+Keep the roadmap focused on stage order, current scope, blockers, required decomposition, and exit
+decisions. Stable product requirements belong in `docs/product`, detailed scoped execution in
+`docs/plans`, and verification requirements, results, and historical provenance in `docs/acceptance`.
+Before executing a roadmap scope, read its linked active execution plan as well. That plan is
+subordinate to the roadmap and must not maintain a competing stage order or acceptance status.
+Do not append implementation diaries, test transcripts, or repeated architecture text to the roadmap.
+
 Tracked files refer to the two real large-library roots only as `local-primary` and
 `cloud-primary`. Their machine-specific paths belong in the Git-ignored
 `.agents/local-context.toml`, whose tracked shape is documented by
@@ -109,6 +116,17 @@ decision. Never fill missing context with a convenient assumption merely to keep
 ## 4. Scope and delivery discipline
 
 - Stay aligned with the user's named problem. Do not add adjacent product ideas without approval.
+- Delegation is demand-driven and quota-aware. The primary agent works directly by default; do not
+  start a group of subagents when a task begins or automatically fan out an audit. Delegate only a
+  concrete, bounded subtask whose independence and expected benefit justify its context and token
+  cost. Simple edits, lookups, and coordination remain with the primary agent.
+- Default to at most one active delegated subtask. Reuse an existing suitable subagent when needed
+  and sequence implementation and independent review. Additional concurrent subagents require an
+  explicit user request; otherwise keep the work serial. Available concurrency slots are not a
+  reason to fill them.
+- Give each delegation only the relevant context and a narrow deliverable. Avoid duplicate
+  investigations, unnecessary full-history copies, idle speculative assignments, and repeated
+  review rounds that have no new evidence to examine.
 - A delegated subagent must complete its assigned work itself and must not create another subagent,
   child task, peer task, or delegated execution chain unless the user explicitly authorizes nested
   delegation for the current task. The parent agent must state this restriction in every delegation
@@ -119,6 +137,20 @@ decision. Never fill missing context with a convenient assumption merely to keep
   completed user workflow.
 - Diagnose root causes before replacing architecture or adding compensating layers.
 - Keep changes narrow. Avoid incidental cleanup and unrelated refactors.
+- Do not implement a bug fix by appending issue-specific flags, branches, callbacks, or SQL to an
+  already multi-responsibility owner. Before materially extending a long controller, orchestrator,
+  adapter, migration validator, or workflow script, map the owning invariant and extract the
+  affected responsibility behind a typed, independently testable boundary as part of the change.
+  File length alone does not justify churn, but repeated growth across unrelated responsibilities
+  is a stop signal: preserve a narrow facade, record any larger physical split in the roadmap, and
+  do not add further behavior to that debt area until its boundary is established.
+- Review physical size as well as responsibility count. Record production, inline-test, and
+  dedicated-test line counts for large affected owners; cohesive logic or a large test proportion
+  does not by itself make an oversized file easy to review. Prefer meaningful module and test-suite
+  boundaries, not arbitrary line caps, forwarding fragments, or moving the same monolith unchanged.
+- Fixes must remove the cause at its owning layer and add a focused regression at that boundary.
+  Presentation-only guards, retry loops, status text, or broad catch-and-continue behavior must not
+  compensate for an unresolved application, persistence, or platform invariant.
 - Make assumptions only when they are reversible and do not materially change product behavior.
 - Unattended work does not broaden authorization or permit external publication, source-media
   mutation, large downloads, or destructive repository operations.
@@ -423,9 +455,20 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
 
 - `./tool/quality_format.ps1` applies `rustfmt` and `dart format` to repository-owned Rust and Dart trees.
 - `./tool/quality_format.ps1 -Check` is the non-mutating formatting gate.
-- `./tool/quality_lint.ps1` validates repository PowerShell and JSON configuration, runs the formatting
-  gate, runs Clippy for all targets and features with warnings denied, and runs the pinned Dart
-  analyzer with warnings and informational lints treated as failures.
+- `./tool/quality_generate_library_synchronization_policy.ps1` reads the canonical positive-decimal
+  poll interval from `tool/library_synchronization_poll_interval_ms.txt` and deterministically writes
+  the Dart policy source. Values above `9223372036854775` milliseconds fail before output changes so
+  Dart's signed 64-bit microsecond `Duration` representation cannot overflow. Its `-Check` mode
+  compares exact UTF-8/LF bytes without writing.
+- `./tool/quality_test_library_synchronization_policy.ps1` proves policy drift and malformed input
+  plus the exact Dart microsecond boundary fail closed without changing generated output.
+- `./tool/quality_test_windows_powershell_compatibility.ps1` loads the compiler-free R2c-R common
+  surface and proves exact boolean platform binding under Windows PowerShell 5.1 and PowerShell 7.
+  It does not replace the complete R2c-R guardrail or initialize its native compiler bootstrap.
+- `./tool/quality_lint.ps1` validates repository PowerShell and JSON configuration, runs the policy
+  generator guardrail and non-mutating generation check before the formatting gate, runs Clippy for
+  all targets and features with warnings denied, and runs the pinned Dart analyzer with warnings and
+  informational lints treated as failures.
 - `./tool/quality_lint_workflows.ps1 -ActionlintPath <path>` validates all hosted workflows with a
   caller-provided `actionlint` executable. Hosted CI supplies a fixed version with a verified
   checksum; the daily workstation gate does not silently download tools.
@@ -439,15 +482,100 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   sharing Flutter, Cargo, or build state.
 - `./tool/integration_test_windows_accessibility.ps1` runs a semantics-enabled virtual-gallery
   stress sequence in the native Windows runner and fails when engine stderr reports an invalid
-  `ui::AXTree` update.
+  `ui::AXTree` update. Run and cleanup failures persist current Flutter output, verified native
+  phases, and failure metadata before returning the original run error, replacing prior evidence.
+- `./tool/integration_test_windows.ps1` runs controlled scan interactions in an owned process tree
+  with a parent deadline. GUID-isolated logs and completion evidence survive failures; nonempty
+  fixture storage is retained rather than recursively deleted without cleanup authority.
+  `./tool/integration_test_windows_scan_guardrails.ps1` verifies its compiler-free lifecycle protocol
+  in lint, including original-failure precedence and independent environment restoration.
+- `./tool/integration_test_windows_runner.ps1` builds and executes three engine-free native window
+  cases and two real Debug-engine retirement cases, using an explicit `-CMakePath` or the current
+  Flutter CMake cache. The latter require prepared, matching SDK artifacts and assemble only an
+  isolated dependency-free no-op Dart package offline; they never use the application package or
+  Release engine payload. Their CTest cases have 30-second deadlines inside a 75-second owned Job
+  lifetime. Fresh exact three-case and two-case JUnit reports are required; the engine suite also
+  requires native exit and Job closure evidence and retains its logs. The unsigned Windows gate must
+  invoke both internal owners after its fresh Release build under its existing lock.
+  `./tool/integration_test_windows_runner_guardrails.ps1`
+  includes the compiler-free engine guardrail and checks inputs, exact execution evidence, fresh
+  results, command failure propagation, cleanup, and lock composition without building an engine.
 - `./tool/quality_verify_git_range.ps1` checks committed whitespace over an explicit Git revision
   range so a clean hosted checkout does not turn `git diff HEAD --check` into an empty gate.
+- `./tool/quality_verify_bridge_contracts.ps1` checks generated bridge hash identity and exact
+  asynchronous API and wire method bodies without building. `./tool/quality_test_bridge_contracts.ps1`
+  runs compiler-free negative fixtures against that boundary, including cross-method false matches.
 - `./tool/performance_benchmark_synthetic_library.ps1` is the explicit performance gate. It creates 10,000
   temporary images and records cold, warm, pause, resume, memory, and storage evidence.
+- `./tool/performance_run_synthetic.ps1` runs the fixed JPEG, 10,000-image scan, million-record
+  parser, seven-format cold/warm preview, and 50,000-identity concurrent publication catalog with
+  exact execution and bounded resource evidence. Hosted CI runs its cases on isolated workers;
+  workstation use remains explicit and serial. Its focused guardrail runs in lint.
+  `./tool/performance_test_synthetic_media.ps1` verifies the exact per-format resource, source, and
+  cache evidence without decoding media; the synthetic protocol guardrail invokes it in lint.
+  `./tool/performance_test_synthetic_publication.ps1` rejects incomplete scale, overlap, atomic
+  publication, and pending-change evidence through the same compiler-free protocol gate.
+- `./tool/quality_verify_unsigned_windows.ps1` builds and verifies the credential-free x64 application
+  and broker plus an isolated Release-DLL/native-channel smoke. It never loads a retained catalog or
+  replaces signed candidate, installation, or Windows 11 client acceptance. Payload guardrails run
+  in lint; hosted CI requires the complete unsigned job.
 - `./tool/acceptance_run_read_only_library.ps1` and `./tool/acceptance_verify_read_only_catalog.ps1` are the
   real-library gate. They require current authorization, explicit roots, and storage outside source
   trees; they never become part of unattended daily verification.
-- `./tool/release_verify_windows.ps1` is the Windows packaging and release-bridge gate. Run it when
+- `./tool/acceptance_run_r2c_reliability.ps1` is the R2c-H closeout gate. It first exercises the
+  production Windows observer against a disposable source root, then backs up the retained catalog
+  into pre-created empty isolated storage and measures catch-up against both explicitly authorized
+  roots without publishing authoritative work or reading cloud-placeholder content.
+- `./tool/acceptance_test_r2c_reliability_guardrails.ps1` verifies the R2c-H authorization token,
+  cloud acknowledgement, path-separation, and fresh-storage boundary without accessing a real
+  library.
+- `./tool/acceptance_run_r2c_replacement_reliability.ps1` is the R2c-M replacement closeout gate.
+  It measures production watcher operations against a disposable root, then backs up the retained
+  catalog into isolated storage and measures per-root metadata-only continuity without opening
+  media content or publishing a full scan. The retained-root phase requires current explicit
+  authorization.
+- `./tool/acceptance_test_r2c_replacement_guardrails.ps1` verifies the R2c-M authorization token,
+  cloud acknowledgement, physical path separation, and fresh-storage boundary without accessing a
+  real library.
+- `./tool/acceptance_run_r2c_change_driven_reliability.ps1` is the R2c-R non-external controlled
+  local reliability gate for Windows 11 x64 client workstations. Its common module performs no
+  dynamic compilation while being loaded; explicit initialization uses an in-memory native identity
+  surface to bind and retain every existing logical and physical repository-tool path component,
+  rejecting reparse or volume transitions before it creates the compiler bootstrap relative to the
+  final physical handle. It cleans only an empty identity-matching bootstrap and retains unknown or
+  replaced state without traversal. The runner executes
+  exactly counted production-path tests as an ordinary user inside one fixed-NTFS KnownFolder tree.
+  Before any root write, both the logical `SHGetKnownFolderPath` result and its physical filter-
+  redirected path are bound component by component through no-follow, same-volume, identity-held
+  handles. A high-entropy root is then created relative to the final physical LocalApplicationData
+  handle, verified as its non-reparse same-volume direct child, and kept replacement-blocked for the
+  complete runner lifecycle until cleanup begins. Parent-relative opens honor the live per-directory
+  Windows case-sensitivity flag; object identity is never inferred from case-folded path text. The
+  gate refuses caller-supplied source paths, catalogs, worker environment aliases, elevation,
+  reparse/volume escape, and filtered-only results, and applies parent wall-clock deadlines through
+  an owned process-tree Job Object.
+- `./tool/acceptance_test_r2c_change_driven_reliability_guardrails.ps1` verifies the R2c-R platform,
+  privilege, fresh-process hostile-temporary bootstrap, compiler failure, active bootstrap and
+  two-stage cleanup replacement races, held physical storage, intermediate and terminal internal
+  junction/sentinel rejection, identity-bound teardown, process-timeout, malicious NT leaves,
+  cleanup retention, path/environment-alias, exact-matrix, an actually executed exact report-tamper
+  test, default-deny source/call-closure coverage of every common/runner/guardrail scope and exact
+  dot-source under fixed source/depth/byte/AST/function/scope/queue budgets with bounded non-
+  materializing AST-node traversal, one digest-locked process boundary that audits each final
+  Command/EncodedCommand/File payload before launch, no-follow same-volume parent/terminal identity
+  retention, post-open volume/file-ID source deduplication, immediate pre-transfer revalidation for
+  every file source, immediate pre-initialization native handle ownership, and the macro- and module-
+  topology-closed exact item/call-closure Rust availability source contract without running the manual
+  reliability scenarios or accessing a real library. Expected runner refusals use flushed stable
+  reason tokens rather than PowerShell's formatted exception text. On a supported Windows 11 x64
+  ordinary-user host, the guardrail requires the exact ValidationOnly success report; on another
+  Windows host, it requires the unchanged production execution-context gate to reject that report.
+  Cross-version environment deletion uses PowerShell `NullString.Value` and proves every protected
+  name is absent before creating a runner process; an empty value is not treated as deletion.
+  The lint and Daily paths run only this lightweight guardrail, not the R2c-R acceptance runner.
+- `./tool/release_verify_windows.ps1` is the immutable signed Windows bundle and release-bridge
+  gate. It also proves that a packaged process rejects a same-user duplicate before runtime
+  initialization and that a replacement starts after the original process exits. Run it when
   desktop integration, native packaging, generated bridge loading, or release behavior changes.
 - `./tool/release_verify_candidate.ps1` is the release-candidate orchestrator. It runs the daily, Windows
   release, and synthetic performance gates in order, and adds retained real-library validation only
@@ -458,12 +586,22 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   as a versioned portable ZIP after release verification.
 - `./tool/release_verify_portable_archive.ps1` verifies the portable ZIP filename, single-root
   layout, safe entry paths, and required Flutter and Rust runtime payload without extracting it.
+- `./tool/release_test_portable_publication.ps1` tests the workflow-owned attachment identity
+  decision using controlled API fixtures: missing attachments may upload, matching SHA-256 digests
+  skip publication, and conflicting, unprovable, or failed lookups fail closed. It runs in lint
+  without network access or publication permission.
+- `./tool/release_verify_portable_signatures.ps1` performs that structural gate, extracts into
+  fresh bounded scratch storage, revalidates the application and broker signature, exact publisher,
+  x64 machine, and broker protocol, then confirms scratch cleanup.
 
 Hosted workflow ownership is:
 
 - `.github/workflows/quality_ci.yml` for pushes to `main`, pull requests, merge queues, and manual
   daily-gate runs;
 - `.github/workflows/quality_gate_windows.yml` for the shared Windows daily or release gate;
+- `.github/workflows/quality_gate_synthetic_windows.yml` and
+  `.github/workflows/quality_gate_unsigned_windows.yml` for mandatory isolated workload and unsigned
+  build evidence in ordinary quality CI, without publication or signing authority;
 - `.github/workflows/release_candidate_windows.yml` for version-tag and manual release candidates,
   followed by portable ZIP publication;
 - `.github/workflows/release_verify_published.yml` for post-publication attachment verification.
@@ -547,6 +685,18 @@ completion tracker.
   operations.
 - Stage explicit files rather than broad paths when committing.
 - Use concise English Conventional Commit messages with a summary no longer than 20 words.
+- Write pull-request bodies as neutral technical summaries of the modifications in the current
+  head. State only what changed; do not turn the body into a user-facing announcement, release
+  note, maintainer narrative, bug-fix diary, or reviewer instruction. Omit verification results,
+  test and CI counts, performance measurements, audit verdicts and severity counts, zero-finding
+  claims, approval or merge-readiness claims, merge status, review iterations, debugging history,
+  descriptions of bugs that were fixed, agent actions, and conversation history. Keep verification
+  and audit evidence in their owning checks, acceptance records, or reviews rather than the
+  pull-request body.
+- When a pull request implements a named roadmap stage, include a concise `Roadmap scope` section
+  that links the canonical roadmap and maps its slices to the delivered modifications. This section
+  describes scope only; it must not restate completion claims, verification evidence, audit
+  outcomes, or merge readiness.
 - Split unrelated themes into separate commits so each rollback boundary remains coherent.
 - Do not commit generated caches, model files, local catalogs, source-media samples, build outputs,
   secrets, or external reference repositories.

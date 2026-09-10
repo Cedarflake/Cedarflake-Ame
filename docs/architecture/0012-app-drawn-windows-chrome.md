@@ -2,6 +2,7 @@
 
 - Status: Accepted for validation
 - Date: 2026-08-08
+- Last amended: 2026-09-07
 
 ## Context
 
@@ -79,18 +80,55 @@ Admit `window_manager` 0.5.2 behind `AmeWindowActions`.
   state. Presentation consumes an Ame-owned action contract and a `ValueListenable<bool>`.
 - The application retains the native resize frame, window shadow, taskbar entry, keyboard focus, and
   platform window lifecycle. It does not call `setAsFrameless`.
-- Ame does not intercept native close requests. Window placement is saved from bounded move, resize,
-  maximize, and restore events; the close button delegates directly to the platform so preference
-  persistence can never delay or block application exit.
+- Ame enables `setPreventClose(true)` and routes both the app-drawn close button and native close
+  request through one idempotent shutdown operation. The visible window is hidden immediately, all
+  admitted foreground library updates and their queued roots are cancelled and drained through the
+  application-owned shutdown coordinator, and the native window is destroyed after completion or a
+  six-second maximum. Placement debounce and new placement writes are frozen when closing begins;
+  any best-effort preference I/O already in flight is not a prerequisite for hide, drain, timeout,
+  or destruction. Repeated close requests reuse the same operation and cannot start parallel drains.
 - Startup awaits `waitUntilReadyToShow` without an asynchronous callback, then restores normal
-  bounds, restores maximized state, and shows the window in that order. `window_manager` 0.5.2
-  declares the optional ready callback as `VoidCallback` and does not await a returned `Future`, so
-  placement work must not be scheduled inside that callback.
+  bounds and maximized state while the native window remains hidden. After either the normal app or
+  bootstrap-failure shell is mounted, startup waits for Flutter's first rasterized frame and only
+  then shows and focuses the window exactly once. If Flutter fails to report that frame within five
+  seconds, the already mounted application or failure shell is shown as a bounded fail-visible
+  fallback rather than leaving an invisible process indefinitely. `window_manager` 0.5.2 declares
+  the optional ready callback as `VoidCallback` and does not await a returned `Future`, so placement
+  work must not be scheduled inside that callback.
+- The native HWND can receive messages before Flutter controller creation and after controller
+  retirement. `WM_FONTCHANGE` therefore reloads fonts only while the current controller and engine
+  exist. This check follows plugin dispatch; it must not retain an engine pointer across a callback
+  that can change window lifetime. Default Win32 processing and normal initialized font refresh
+  remain unchanged. This belongs in the native message owner, not a Dart startup delay or retry.
+- Native scope exit explicitly retires the theme channel and controller in the `FlutterWindow`
+  destructor body. Resetting the owning controller clears the dispatch-visible pointer before
+  destroying its view; relying on member destruction instead leaves that pointer visible while
+  child HWND destruction synchronously notifies the parent. The same retirement operation remains
+  idempotent for explicit destruction and failed creation. The window, project, and engine leave
+  scope before the successful COM initialization is balanced; failed COM initialization does not
+  enter the window loop or call `CoUninitialize`.
 
 ## Validation gates
 
 - widget tests prove that each visible caption control invokes the matching Ame action, the maximize
   or restore presentation follows adapter state, and the normal library has only one top bar;
+- startup-order tests prove hidden placement, first-frame ordering, the bounded fail-visible
+  fallback, and one show/focus sequence shared by both application shells;
+- close-path tests prove immediate hide, one idempotent coordinator drain, native-close parity, the
+  six-second destruction bound, and that placement debounce cannot hold the window open;
+- an independent native fixture uses a hidden real HWND and the production message dispatcher to
+  send font changes during creation and destruction without starting an engine. Separate ordinary,
+  startup, and teardown processes must all exit normally and retire their HWND; dispatch and return
+  counters prevent a swallowed native exception from satisfying the assertion. This is not dynamic
+  coverage of an initialized engine, failed engine initialization, or historical crash attribution;
+- two separate native processes use the prepared SDK's real Debug engine and an isolated,
+  dependency-free no-op Dart kernel to exercise explicit destruction and natural scope exit through
+  the production window owner. Both must prove engine start, child HWND destruction notification,
+  completed retirement without an access violation, and COM release after window scope. Fresh exact
+  JUnit evidence and owned process/Job retirement are required, with 30-second case and 75-second
+  parent deadlines. Offline SDK/package preflight rejects missing inputs; application plugins and
+  catalogs remain outside this fixture. These cases complement rather than replace the three
+  engine-free cases and are mandatory in ordinary unsigned hosted verification;
 - Flutter analysis and the existing gallery widget suite pass;
 - a Windows Release build completes with the generated plugin registration;
 - runtime inspection confirms there is no native blue title bar, the app-drawn drag region works,

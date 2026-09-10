@@ -1,38 +1,36 @@
 import "library_models.dart";
+import "library_primary_scan_snapshot.dart";
+import "library_query_activity.dart";
 
-enum LibraryScanPhase { discovering, finalizing }
+export "library_primary_scan_snapshot.dart";
+export "library_query_activity.dart";
 
-enum LibraryStatus {
-  empty,
-  choosingDirectory,
-  scanning,
-  pausing,
-  cancelling,
-  refreshing,
-  completed,
-  cancelled,
-  paused,
-  stale,
-  failed,
-}
-
+/// Gallery data with a read-only projection of the independently owned scan task.
+/// Flat task arguments seed initial snapshots; catalog publishers cannot update
+/// an attached primary snapshot through these compatibility fields.
 class LibraryState {
   const LibraryState({
-    this.status = LibraryStatus.empty,
-    this.scanId,
-    this.rootPath,
-    this.displayRootPath,
+    this._status = LibraryStatus.empty,
+    this._scanId,
+    this._rootPath,
+    this._displayRootPath,
+    this._taskKind,
+    this.removingRootId,
+    this.removingRootDisplayPath,
+    this.isRemovalCommitted = false,
+    this.completedRemovalRootId,
+    this.rootRemovalCompletionSequence = 0,
     this.roots = const [],
     this.assets = const [],
-    this.recentIssues = const [],
-    this.visitedEntries = 0,
-    this.stagedAssetCount = 0,
-    this.scanPhase = LibraryScanPhase.discovering,
-    this.validatedAssetCount = 0,
-    this.validationAssetCount = 0,
-    this.issueCount = 0,
-    this.itemLimit,
-    this.entryLimit,
+    this._recentIssues = const [],
+    this._visitedEntries = 0,
+    this._stagedAssetCount = 0,
+    this._scanPhase = LibraryScanPhase.discovering,
+    this._validatedAssetCount = 0,
+    this._validationAssetCount = 0,
+    this._issueCount = 0,
+    this._itemLimit,
+    this._entryLimit,
     this.catalogPath,
     this.catalogRevision,
     this.query = const LibraryGalleryQuery(),
@@ -43,35 +41,85 @@ class LibraryState {
     this.timeline,
     this.activeTimeAnchor,
     this.queryAnchorResolution,
-    this.isScanLimited = false,
-    this.isResumingScan = false,
+    this._isScanLimited = false,
+    this._isResumingScan = false,
     this.isLoadingPage = false,
     this.isLoadingPreviousPage = false,
     this.isLoadingTimeline = false,
     this.isLoadingTimeAnchor = false,
+    this.isLoadingVisibleRange = false,
+    this.queryActivity = const LibraryQueryIdle(),
+    this.primaryScan,
     this.pageErrorMessage,
     this.previousPageErrorMessage,
     this.timeNavigationErrorMessage,
-    this.errorMessage,
+    this._errorMessage,
   });
 
   static const Object _unchanged = Object();
 
-  final LibraryStatus status;
-  final String? scanId;
-  final String? rootPath;
-  final String? displayRootPath;
+  final LibraryStatus _status;
+  LibraryStatus get status => _taskKind == LibraryTaskKind.remove
+      ? _status
+      : isRefreshingQuery && !(primaryScan?.hasFeedback ?? false)
+      ? LibraryStatus.refreshing
+      : primaryScan != null &&
+            !primaryScan!.hasFeedback &&
+            (primaryScan!.status == LibraryStatus.empty ||
+                primaryScan!.status == LibraryStatus.completed)
+      ? (roots.isEmpty ? LibraryStatus.empty : LibraryStatus.completed)
+      : primaryScan?.status ?? _status;
+  final String? _scanId;
+  String? get scanId => _usesPrimaryProjection ? primaryScan!.scanId : _scanId;
+  final String? _rootPath;
+  String? get rootPath =>
+      _usesPrimaryProjection ? primaryScan!.rootPath : _rootPath;
+  final String? _displayRootPath;
+  String? get displayRootPath =>
+      _usesPrimaryProjection ? primaryScan!.displayRootPath : _displayRootPath;
+  final LibraryTaskKind? _taskKind;
+  LibraryTaskKind? get taskKind => _taskKind == LibraryTaskKind.remove
+      ? _taskKind
+      : primaryScan == null
+      ? _taskKind
+      : primaryScan!.taskKind;
+  final String? removingRootId;
+  final String? removingRootDisplayPath;
+  final bool isRemovalCommitted;
+  final String? completedRemovalRootId;
+  final int rootRemovalCompletionSequence;
   final List<LibraryRoot> roots;
   final List<LibraryAsset> assets;
-  final List<LibraryIssue> recentIssues;
-  final int visitedEntries;
-  final int stagedAssetCount;
-  final LibraryScanPhase scanPhase;
-  final int validatedAssetCount;
-  final int validationAssetCount;
-  final int issueCount;
-  final int? itemLimit;
-  final int? entryLimit;
+  final List<LibraryIssue> _recentIssues;
+  List<LibraryIssue> get recentIssues =>
+      _usesPrimaryProjection ? primaryScan!.recentIssues : _recentIssues;
+  final int _visitedEntries;
+  int get visitedEntries =>
+      _usesPrimaryProjection ? primaryScan!.visitedEntries : _visitedEntries;
+  final int _stagedAssetCount;
+  int get stagedAssetCount => _usesPrimaryProjection
+      ? primaryScan!.stagedAssetCount
+      : _stagedAssetCount;
+  final LibraryScanPhase _scanPhase;
+  LibraryScanPhase get scanPhase =>
+      _usesPrimaryProjection ? primaryScan!.scanPhase : _scanPhase;
+  final int _validatedAssetCount;
+  int get validatedAssetCount => _usesPrimaryProjection
+      ? primaryScan!.validatedAssetCount
+      : _validatedAssetCount;
+  final int _validationAssetCount;
+  int get validationAssetCount => _usesPrimaryProjection
+      ? primaryScan!.validationAssetCount
+      : _validationAssetCount;
+  final int _issueCount;
+  int get issueCount =>
+      _usesPrimaryProjection ? primaryScan!.issueCount : _issueCount;
+  final int? _itemLimit;
+  int? get itemLimit =>
+      _usesPrimaryProjection ? primaryScan!.itemLimit : _itemLimit;
+  final int? _entryLimit;
+  int? get entryLimit =>
+      _usesPrimaryProjection ? primaryScan!.entryLimit : _entryLimit;
   final String? catalogPath;
   final BigInt? catalogRevision;
   final LibraryGalleryQuery query;
@@ -82,16 +130,68 @@ class LibraryState {
   final LibraryTimeline? timeline;
   final LibraryTimeAnchor? activeTimeAnchor;
   final LibraryQueryAnchorResolution? queryAnchorResolution;
-  final bool isScanLimited;
-  final bool isResumingScan;
+  final bool _isScanLimited;
+  bool get isScanLimited =>
+      _usesPrimaryProjection ? primaryScan!.isScanLimited : _isScanLimited;
+  final bool _isResumingScan;
+  bool get isResumingScan =>
+      _usesPrimaryProjection ? primaryScan!.isResumingScan : _isResumingScan;
   final bool isLoadingPage;
   final bool isLoadingPreviousPage;
   final bool isLoadingTimeline;
   final bool isLoadingTimeAnchor;
+  final bool isLoadingVisibleRange;
+  final LibraryQueryActivity queryActivity;
+  bool get isRefreshingQuery => queryActivity is LibraryQueryLoading;
+  final LibraryPrimaryScanSnapshot? primaryScan;
+
+  bool get _usesPrimaryProjection =>
+      primaryScan != null && _taskKind != LibraryTaskKind.remove;
+
+  LibraryPrimaryScanSnapshot get primaryScanSnapshot =>
+      primaryScan ??
+      LibraryPrimaryScanSnapshot(
+        status: _status,
+        scanId: _scanId,
+        rootPath: _rootPath,
+        displayRootPath: _displayRootPath,
+        taskKind: _taskKind,
+        recentIssues: _recentIssues,
+        visitedEntries: _visitedEntries,
+        stagedAssetCount: _stagedAssetCount,
+        scanPhase: _scanPhase,
+        validatedAssetCount: _validatedAssetCount,
+        validationAssetCount: _validationAssetCount,
+        issueCount: _issueCount,
+        itemLimit: _itemLimit,
+        entryLimit: _entryLimit,
+        isScanLimited: _isScanLimited,
+        isResumingScan: _isResumingScan,
+        errorMessage: _errorMessage,
+      );
+
+  bool get hasRetainedScan => primaryScanSnapshot.hasRetainedScan;
+
+  String? get retainedScanRootId {
+    if (!hasRetainedScan) {
+      return null;
+    }
+    final task = primaryScanSnapshot;
+    for (final root in roots) {
+      if (root.path == task.rootPath ||
+          root.displayPath == task.displayRootPath) {
+        return root.id;
+      }
+    }
+    return null;
+  }
+
   final String? pageErrorMessage;
   final String? previousPageErrorMessage;
   final String? timeNavigationErrorMessage;
-  final String? errorMessage;
+  final String? _errorMessage;
+  String? get errorMessage =>
+      _usesPrimaryProjection ? primaryScan!.errorMessage : _errorMessage;
 
   bool get isScanning =>
       status == LibraryStatus.scanning ||
@@ -101,10 +201,22 @@ class LibraryState {
   bool get isProcessing =>
       status == LibraryStatus.choosingDirectory ||
       isScanning ||
-      status == LibraryStatus.refreshing;
+      status == LibraryStatus.removing ||
+      status == LibraryStatus.refreshing ||
+      isRefreshingQuery;
+
+  bool get isTaskProcessing =>
+      status == LibraryStatus.choosingDirectory ||
+      isScanning ||
+      status == LibraryStatus.removing ||
+      status == LibraryStatus.refreshing ||
+      status == LibraryStatus.discarding;
+
+  bool get isCommittedRemovalReloadPending =>
+      taskKind == LibraryTaskKind.remove && isRemovalCommitted;
 
   bool get isBusy =>
-      isProcessing || status == LibraryStatus.paused || isLoadingTimeAnchor;
+      isProcessing || isLoadingTimeAnchor || isCommittedRemovalReloadPending;
 
   bool get hasMoreAssets => nextCursor != null;
 
@@ -140,6 +252,12 @@ class LibraryState {
     Object? scanId = _unchanged,
     Object? rootPath = _unchanged,
     Object? displayRootPath = _unchanged,
+    Object? taskKind = _unchanged,
+    Object? removingRootId = _unchanged,
+    Object? removingRootDisplayPath = _unchanged,
+    bool? isRemovalCommitted,
+    Object? completedRemovalRootId = _unchanged,
+    int? rootRemovalCompletionSequence,
     List<LibraryRoot>? roots,
     List<LibraryAsset>? assets,
     List<LibraryIssue>? recentIssues,
@@ -167,6 +285,9 @@ class LibraryState {
     bool? isLoadingPreviousPage,
     bool? isLoadingTimeline,
     bool? isLoadingTimeAnchor,
+    bool? isLoadingVisibleRange,
+    LibraryQueryActivity? queryActivity,
+    Object? primaryScan = _unchanged,
     Object? pageErrorMessage = _unchanged,
     Object? previousPageErrorMessage = _unchanged,
     Object? timeNavigationErrorMessage = _unchanged,
@@ -179,6 +300,21 @@ class LibraryState {
       displayRootPath: displayRootPath == _unchanged
           ? this.displayRootPath
           : displayRootPath as String?,
+      taskKind: taskKind == _unchanged
+          ? this.taskKind
+          : taskKind as LibraryTaskKind?,
+      removingRootId: removingRootId == _unchanged
+          ? this.removingRootId
+          : removingRootId as String?,
+      removingRootDisplayPath: removingRootDisplayPath == _unchanged
+          ? this.removingRootDisplayPath
+          : removingRootDisplayPath as String?,
+      isRemovalCommitted: isRemovalCommitted ?? this.isRemovalCommitted,
+      completedRemovalRootId: completedRemovalRootId == _unchanged
+          ? this.completedRemovalRootId
+          : completedRemovalRootId as String?,
+      rootRemovalCompletionSequence:
+          rootRemovalCompletionSequence ?? this.rootRemovalCompletionSequence,
       roots: roots ?? this.roots,
       assets: assets ?? this.assets,
       recentIssues: recentIssues ?? this.recentIssues,
@@ -224,6 +360,12 @@ class LibraryState {
           isLoadingPreviousPage ?? this.isLoadingPreviousPage,
       isLoadingTimeline: isLoadingTimeline ?? this.isLoadingTimeline,
       isLoadingTimeAnchor: isLoadingTimeAnchor ?? this.isLoadingTimeAnchor,
+      isLoadingVisibleRange:
+          isLoadingVisibleRange ?? this.isLoadingVisibleRange,
+      queryActivity: queryActivity ?? this.queryActivity,
+      primaryScan: primaryScan == _unchanged
+          ? this.primaryScan
+          : primaryScan as LibraryPrimaryScanSnapshot?,
       pageErrorMessage: pageErrorMessage == _unchanged
           ? this.pageErrorMessage
           : pageErrorMessage as String?,

@@ -9,34 +9,45 @@ import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_popup_menu_position.dart";
 import "../../../../app/presentation/ame_typography.dart";
 import "../../domain/library_models.dart";
+import "../../domain/library_synchronization_models.dart";
 import "../library_strings.dart";
 import "library_path_text.dart";
 
 class LibrarySourceNavigationTile extends StatefulWidget {
   const LibrarySourceNavigationTile({
     required this.root,
+    this.synchronizationStatus,
+    this.hasSynchronizationFailure = false,
     required this.isCompact,
     required this.isSelected,
     required this.isExpanded,
-    required this.isBusy,
+    required this.isBrowseDisabled,
+    this.isUpdateDisabled = false,
+    this.isUpdating = false,
     required this.onSelect,
     required this.onToggleExpansion,
     required this.onUpdate,
     required this.onOpen,
     required this.onRemove,
+    this.focusNode,
     super.key,
   });
 
   final LibraryRoot root;
+  final LibraryRootSynchronizationStatus? synchronizationStatus;
+  final bool hasSynchronizationFailure;
   final bool isCompact;
   final bool isSelected;
   final bool isExpanded;
-  final bool isBusy;
+  final bool isBrowseDisabled;
+  final bool isUpdateDisabled;
+  final bool isUpdating;
   final VoidCallback onSelect;
   final VoidCallback onToggleExpansion;
   final VoidCallback onUpdate;
   final VoidCallback onOpen;
   final VoidCallback onRemove;
+  final FocusNode? focusNode;
 
   @override
   State<LibrarySourceNavigationTile> createState() =>
@@ -45,25 +56,42 @@ class LibrarySourceNavigationTile extends StatefulWidget {
 
 class _LibrarySourceNavigationTileState
     extends State<LibrarySourceNavigationTile> {
-  final FocusNode _focusNode = FocusNode(debugLabel: "Library source");
-  final MenuController _buttonMenuController = MenuController();
+  late FocusNode _focusNode;
+  late bool _ownsFocusNode;
+  final GlobalKey _moreButtonAnchorKey = GlobalKey(
+    debugLabel: "Library source more button",
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = widget.focusNode ?? FocusNode(debugLabel: "Library source");
+    _ownsFocusNode = widget.focusNode == null;
+  }
+
+  @override
+  void didUpdateWidget(covariant LibrarySourceNavigationTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (identical(oldWidget.focusNode, widget.focusNode)) {
+      return;
+    }
+    if (_ownsFocusNode) {
+      _focusNode.dispose();
+    }
+    _focusNode = widget.focusNode ?? FocusNode(debugLabel: "Library source");
+    _ownsFocusNode = widget.focusNode == null;
+  }
 
   @override
   void dispose() {
-    _focusNode.dispose();
+    if (_ownsFocusNode) {
+      _focusNode.dispose();
+    }
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final buttonMenuWidth = amePopupMenuContentWidth(
-      context: context,
-      labels: const [
-        LibraryStrings.updateLibrary,
-        LibraryStrings.openInExplorer,
-        LibraryStrings.removeFromAme,
-      ],
-    );
     final icon = switch (widget.root.availability) {
       LibraryRootAvailability.available ||
       LibraryRootAvailability.unknown => Symbols.folder_rounded,
@@ -71,13 +99,28 @@ class _LibrarySourceNavigationTileState
       LibraryRootAvailability.inaccessible => Symbols.lock_rounded,
       LibraryRootAvailability.offline => Symbols.cloud_off_rounded,
     };
+    final statusLabel = _statusLabel(
+      widget.root,
+      widget.synchronizationStatus,
+      widget.hasSynchronizationFailure,
+      widget.isUpdating,
+    );
+    final expandedSubtitle =
+        !widget.isUpdating &&
+            _isHealthyLiveOnlySynchronization(
+              widget.root,
+              widget.synchronizationStatus,
+              widget.hasSynchronizationFailure,
+            )
+        ? null
+        : statusLabel;
     final tile = widget.isCompact
         ? AmeTooltip(
-            message: widget.root.displayPath,
+            message: [widget.root.displayPath, statusLabel].join("\n"),
             child: IconButton(
               focusNode: _focusNode,
               isSelected: widget.isSelected,
-              onPressed: widget.isBusy ? null : widget.onSelect,
+              onPressed: widget.isBrowseDisabled ? null : widget.onSelect,
               icon: Icon(icon),
             ),
           )
@@ -88,10 +131,7 @@ class _LibrarySourceNavigationTileState
             title: librarySourceName(widget.root.displayPath),
             path: widget.root.displayPath,
             titleKey: ValueKey("source-title-${widget.root.id}"),
-            subtitle:
-                widget.root.availability == LibraryRootAvailability.available
-                ? null
-                : _availabilityLabel(widget.root.availability),
+            subtitle: expandedSubtitle,
             isSelected: widget.isSelected,
             trailing: SizedBox(
               width: 96,
@@ -112,50 +152,19 @@ class _LibrarySourceNavigationTileState
                       ),
                     ),
                   ),
-                  AmeMenuAnchor(
-                    controller: _buttonMenuController,
-                    style: ameFixedWidthMenuStyle(buttonMenuWidth),
-                    alignmentOffset: ameMenuBelowEndAlignment(
-                      menuWidth: buttonMenuWidth,
-                    ),
-                    menuChildren: [
-                      ameFixedWidthMenuItem(
-                        width: buttonMenuWidth,
-                        child: MenuItemButton(
-                          onPressed: widget.isBusy ? null : widget.onUpdate,
-                          child: const AmeMenuItemContent(
-                            icon: Symbols.refresh_rounded,
-                            label: LibraryStrings.updateLibrary,
-                          ),
-                        ),
-                      ),
-                      ameFixedWidthMenuItem(
-                        width: buttonMenuWidth,
-                        child: MenuItemButton(
-                          onPressed: widget.onOpen,
-                          child: const AmeMenuItemContent(
-                            icon: Symbols.folder_open_rounded,
-                            label: LibraryStrings.openInExplorer,
-                          ),
-                        ),
-                      ),
-                      const Divider(height: AmeMenuMetrics.dividerHeight),
-                      ameFixedWidthMenuItem(
-                        width: buttonMenuWidth,
-                        child: MenuItemButton(
-                          onPressed: widget.isBusy ? null : widget.onRemove,
-                          child: const AmeMenuItemContent(
-                            icon: Symbols.remove_circle_rounded,
-                            label: LibraryStrings.removeFromAme,
-                          ),
-                        ),
-                      ),
-                    ],
-                    builder: (context, controller, child) => AmeTooltip(
-                      message: LibraryStrings.more,
+                  AmeTooltip(
+                    message: LibraryStrings.more,
+                    child: SizedBox(
+                      key: _moreButtonAnchorKey,
                       child: IconButton(
                         key: ValueKey("source-more-${widget.root.id}"),
-                        onPressed: () => toggleAmeMenu(controller),
+                        onPressed: () {
+                          final anchorContext =
+                              _moreButtonAnchorKey.currentContext;
+                          if (anchorContext != null) {
+                            unawaited(_showMenuAtAnchor(anchorContext));
+                          }
+                        },
                         icon: const Icon(Symbols.more_vert_rounded),
                       ),
                     ),
@@ -163,7 +172,7 @@ class _LibrarySourceNavigationTileState
                 ],
               ),
             ),
-            onTap: widget.isBusy ? null : widget.onSelect,
+            onTap: widget.isBrowseDisabled ? null : widget.onSelect,
           );
     return CallbackShortcuts(
       bindings: {
@@ -224,7 +233,10 @@ class _LibrarySourceNavigationTileState
       items: [
         PopupMenuItem(
           value: _LibrarySourceMenuAction.update,
-          enabled: !widget.isBusy,
+          enabled:
+              !widget.isBrowseDisabled &&
+              !widget.isUpdating &&
+              !widget.isUpdateDisabled,
           child: const AmeMenuItemContent(
             icon: Symbols.refresh_rounded,
             label: LibraryStrings.updateLibrary,
@@ -240,7 +252,7 @@ class _LibrarySourceNavigationTileState
         const PopupMenuDivider(height: AmeMenuMetrics.dividerHeight),
         PopupMenuItem(
           value: _LibrarySourceMenuAction.remove,
-          enabled: !widget.isBusy,
+          enabled: !widget.isBrowseDisabled && !widget.isUpdating,
           child: const AmeMenuItemContent(
             icon: Symbols.remove_circle_rounded,
             label: LibraryStrings.removeFromAme,
@@ -261,14 +273,105 @@ class _LibrarySourceNavigationTileState
     }
   }
 
-  static String _availabilityLabel(LibraryRootAvailability availability) {
-    return switch (availability) {
-      LibraryRootAvailability.available => "可用",
-      LibraryRootAvailability.missing => "文件夹不存在",
-      LibraryRootAvailability.inaccessible => "无法访问",
-      LibraryRootAvailability.offline => "当前离线",
-      LibraryRootAvailability.unknown => "状态未知",
+  static String _statusLabel(
+    LibraryRoot root,
+    LibraryRootSynchronizationStatus? synchronizationStatus,
+    bool hasSynchronizationFailure,
+    bool isUpdating,
+  ) {
+    if (synchronizationStatus?.isAwaitingFirstImport == true) {
+      return LibraryStrings.firstImportIncomplete;
+    }
+    if (root.availability != LibraryRootAvailability.available) {
+      return switch (root.availability) {
+        LibraryRootAvailability.available => LibraryStrings.sourceAvailable,
+        LibraryRootAvailability.missing => LibraryStrings.sourceMissing,
+        LibraryRootAvailability.inaccessible =>
+          LibraryStrings.sourceInaccessible,
+        LibraryRootAvailability.offline => LibraryStrings.sourceOffline,
+        LibraryRootAvailability.unknown => LibraryStrings.sourceUnknown,
+      };
+    }
+    if (synchronizationStatus case final status?
+        when status.availability != LibraryRootAvailability.available) {
+      return switch (status.availability) {
+        LibraryRootAvailability.available => LibraryStrings.sourceAvailable,
+        LibraryRootAvailability.missing => LibraryStrings.sourceMissing,
+        LibraryRootAvailability.inaccessible =>
+          LibraryStrings.sourceInaccessible,
+        LibraryRootAvailability.offline => LibraryStrings.sourceOffline,
+        LibraryRootAvailability.unknown => LibraryStrings.sourceUnknown,
+      };
+    }
+    if (synchronizationStatus?.freshness ==
+        LibraryCatalogFreshness.unavailable) {
+      return LibraryStrings.sourceUnavailable;
+    }
+    if (synchronizationStatus?.continuity ==
+        LibraryContinuityState.unavailable) {
+      return LibraryStrings.continuityUnavailable;
+    }
+    if (isUpdating ||
+        synchronizationStatus?.freshness == LibraryCatalogFreshness.updating) {
+      return LibraryStrings.synchronizing;
+    }
+    if (hasSynchronizationFailure ||
+        synchronizationStatus?.recoveryBlocked == true ||
+        synchronizationStatus?.freshness ==
+            LibraryCatalogFreshness.needsReconciliation ||
+        synchronizationStatus?.sourceStatus ==
+            LibraryChangeSourceStatus.degraded ||
+        synchronizationStatus?.sourceStatus ==
+            LibraryChangeSourceStatus.failed) {
+      return LibraryStrings.needsReconciliation;
+    }
+    return switch (synchronizationStatus?.continuity) {
+      LibraryContinuityState.baselineRequired =>
+        LibraryStrings.continuityBaselineRequired,
+      LibraryContinuityState.catchingUp => LibraryStrings.continuityCatchingUp,
+      LibraryContinuityState.recoveryRequired =>
+        LibraryStrings.continuityRecoveryRequired,
+      LibraryContinuityState.liveOnly => LibraryStrings.continuityLiveOnly,
+      LibraryContinuityState.unavailable =>
+        LibraryStrings.continuityUnavailable,
+      LibraryContinuityState.current => switch (synchronizationStatus
+          ?.freshness) {
+        LibraryCatalogFreshness.synchronized => LibraryStrings.synchronized,
+        LibraryCatalogFreshness.updating => LibraryStrings.synchronizing,
+        LibraryCatalogFreshness.needsReconciliation =>
+          LibraryStrings.needsReconciliation,
+        LibraryCatalogFreshness.unavailable => LibraryStrings.sourceUnavailable,
+        null => LibraryStrings.synchronizing,
+      },
+      null =>
+        hasSynchronizationFailure
+            ? LibraryStrings.needsReconciliation
+            : LibraryStrings.synchronizing,
     };
+  }
+
+  static bool _isHealthyLiveOnlySynchronization(
+    LibraryRoot root,
+    LibraryRootSynchronizationStatus? synchronizationStatus,
+    bool hasSynchronizationFailure,
+  ) {
+    return !hasSynchronizationFailure &&
+        root.availability == LibraryRootAvailability.available &&
+        synchronizationStatus?.availability ==
+            LibraryRootAvailability.available &&
+        synchronizationStatus?.freshness ==
+            LibraryCatalogFreshness.synchronized &&
+        synchronizationStatus?.freshnessCause ==
+            LibraryCatalogFreshnessCause.noPendingChanges &&
+        synchronizationStatus?.continuity == LibraryContinuityState.liveOnly &&
+        synchronizationStatus?.phase ==
+            LibrarySynchronizationPhase.synchronized &&
+        synchronizationStatus?.sourceStatus ==
+            LibraryChangeSourceStatus.healthy &&
+        synchronizationStatus?.pendingChangeCount == BigInt.zero &&
+        synchronizationStatus?.retryWaitCount == BigInt.zero &&
+        synchronizationStatus?.freshnessUnknownCount == BigInt.zero &&
+        synchronizationStatus?.recoveryBlocked == false;
   }
 }
 
@@ -315,7 +418,7 @@ class PendingLibrarySourceTile extends StatelessWidget {
       title: librarySourceName(path),
       path: path,
       titleKey: const Key("pending-source-title"),
-      subtitle: "正在添加",
+      subtitle: LibraryStrings.addingSource,
       trailing: const SizedBox(
         width: 96,
         child: Align(

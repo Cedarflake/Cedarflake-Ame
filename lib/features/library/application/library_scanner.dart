@@ -18,9 +18,21 @@ abstract interface class LibraryScanner {
     required int previewEdge,
   });
 
+  Stream<LibraryScanUpdate> resume({
+    required String scanId,
+    required String rootPath,
+    required int? itemLimit,
+    required int? entryLimit,
+    required int previewEdge,
+  });
+
   bool cancel(String scanId);
 
+  Future<void> cancelRetainedScan(String scanId);
+
   bool pause(String scanId);
+
+  bool suspend(String scanId);
 }
 
 class RustLibraryScanner implements LibraryScanner {
@@ -43,11 +55,11 @@ class RustLibraryScanner implements LibraryScanner {
   }
 
   Future<RecoverableLibraryScan?> _loadStoredScan(
-    rust_domain.RecoverableScan? Function() load,
+    Future<rust_domain.RecoverableScan?> Function() load,
     String fallbackCode,
   ) async {
     try {
-      final scan = load();
+      final scan = await load();
       if (scan == null) {
         return null;
       }
@@ -78,26 +90,62 @@ class RustLibraryScanner implements LibraryScanner {
     required int? entryLimit,
     required int previewEdge,
   }) {
-    return rust_api
-        .scanLibrary(
-          request: rust_domain.ScanRequest(
-            scanId: scanId,
-            rootPath: rootPath,
-            maxItems: itemLimit,
-            maxEntries: entryLimit,
-            previewEdge: previewEdge,
-          ),
-        )
-        .map((event) => _mapEvent(event, scanId))
-        .handleError((Object error) {
-          if (error case rust_domain.ScanError(:final code, :final message)) {
-            throw LibraryScanFailure(code: code, message: message);
-          }
-          throw LibraryScanFailure(
-            code: "bridge_scan_failed",
-            message: error.toString(),
-          );
-        });
+    return _runScan(
+      rust_api.scanLibrary,
+      scanId: scanId,
+      rootPath: rootPath,
+      itemLimit: itemLimit,
+      entryLimit: entryLimit,
+      previewEdge: previewEdge,
+    );
+  }
+
+  @override
+  Stream<LibraryScanUpdate> resume({
+    required String scanId,
+    required String rootPath,
+    required int? itemLimit,
+    required int? entryLimit,
+    required int previewEdge,
+  }) {
+    return _runScan(
+      rust_api.resumeLibraryScan,
+      scanId: scanId,
+      rootPath: rootPath,
+      itemLimit: itemLimit,
+      entryLimit: entryLimit,
+      previewEdge: previewEdge,
+    );
+  }
+
+  Stream<LibraryScanUpdate> _runScan(
+    Stream<rust_domain.ScanEvent> Function({
+      required rust_domain.ScanRequest request,
+    })
+    run, {
+    required String scanId,
+    required String rootPath,
+    required int? itemLimit,
+    required int? entryLimit,
+    required int previewEdge,
+  }) {
+    return run(
+      request: rust_domain.ScanRequest(
+        scanId: scanId,
+        rootPath: rootPath,
+        maxItems: itemLimit,
+        maxEntries: entryLimit,
+        previewEdge: previewEdge,
+      ),
+    ).map((event) => _mapEvent(event, scanId)).handleError((Object error) {
+      if (error case rust_domain.ScanError(:final code, :final message)) {
+        throw LibraryScanFailure(code: code, message: message);
+      }
+      throw LibraryScanFailure(
+        code: "bridge_scan_failed",
+        message: error.toString(),
+      );
+    });
   }
 
   @override
@@ -106,8 +154,28 @@ class RustLibraryScanner implements LibraryScanner {
   }
 
   @override
+  Future<void> cancelRetainedScan(String scanId) async {
+    try {
+      await rust_api.cancelRetainedLibraryScan(scanId: scanId);
+    } on Object catch (error) {
+      if (error case rust_domain.ScanError(:final code, :final message)) {
+        throw LibraryScanFailure(code: code, message: message);
+      }
+      throw LibraryScanFailure(
+        code: "bridge_retained_scan_cancel_failed",
+        message: error.toString(),
+      );
+    }
+  }
+
+  @override
   bool pause(String scanId) {
     return rust_api.pauseLibraryScan(scanId: scanId);
+  }
+
+  @override
+  bool suspend(String scanId) {
+    return rust_api.suspendLibraryScan(scanId: scanId);
   }
 
   LibraryScanUpdate _mapEvent(

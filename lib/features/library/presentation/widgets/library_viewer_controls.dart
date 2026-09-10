@@ -27,10 +27,6 @@ class LibraryViewerTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final moreMenuWidth = amePopupMenuContentWidth(
-      context: context,
-      labels: const [LibraryStrings.copyPath, LibraryStrings.openInExplorer],
-    );
     return Material(
       key: const Key("viewer-window-bar"),
       color: Theme.of(context).colorScheme.surfaceContainerLow,
@@ -85,39 +81,40 @@ class LibraryViewerTopBar extends StatelessWidget {
                 icon: const Icon(Symbols.info_rounded),
               ),
             ),
-            AmeMenuAnchor(
-              style: ameFixedWidthMenuStyle(moreMenuWidth),
-              alignmentOffset: ameMenuBelowEndAlignment(
-                menuWidth: moreMenuWidth,
-              ),
-              reservedPadding: const EdgeInsets.fromLTRB(12, 12, 16, 12),
-              menuChildren: [
-                ameFixedWidthMenuItem(
-                  width: moreMenuWidth,
-                  child: MenuItemButton(
-                    onPressed: onCopyPath,
-                    child: const AmeMenuItemContent(
-                      icon: Symbols.content_copy_rounded,
-                      label: LibraryStrings.copyPath,
-                    ),
+            AmePopupMenuButton<_ViewerMenuAction>(
+              labels: const [
+                LibraryStrings.copyPath,
+                LibraryStrings.openInExplorer,
+              ],
+              items: const [
+                PopupMenuItem(
+                  value: _ViewerMenuAction.copyPath,
+                  child: AmeMenuItemContent(
+                    icon: Symbols.content_copy_rounded,
+                    label: LibraryStrings.copyPath,
                   ),
                 ),
-                ameFixedWidthMenuItem(
-                  width: moreMenuWidth,
-                  child: MenuItemButton(
-                    onPressed: onRevealFile,
-                    child: const AmeMenuItemContent(
-                      icon: Symbols.folder_open_rounded,
-                      label: LibraryStrings.openInExplorer,
-                    ),
+                PopupMenuItem(
+                  value: _ViewerMenuAction.openInExplorer,
+                  child: AmeMenuItemContent(
+                    icon: Symbols.folder_open_rounded,
+                    label: LibraryStrings.openInExplorer,
                   ),
                 ),
               ],
-              builder: (context, controller, child) => AmeTooltip(
+              onSelected: (action) {
+                switch (action) {
+                  case _ViewerMenuAction.copyPath:
+                    onCopyPath();
+                  case _ViewerMenuAction.openInExplorer:
+                    onRevealFile();
+                }
+              },
+              builder: (context, openMenu) => AmeTooltip(
                 message: LibraryStrings.more,
                 child: IconButton(
                   key: const Key("viewer-more-menu"),
-                  onPressed: () => toggleAmeMenu(controller),
+                  onPressed: openMenu,
                   icon: const Icon(Symbols.more_horiz_rounded),
                 ),
               ),
@@ -129,6 +126,8 @@ class LibraryViewerTopBar extends StatelessWidget {
     );
   }
 }
+
+enum _ViewerMenuAction { copyPath, openInExplorer }
 
 class LibraryViewerNavigationButton extends StatelessWidget {
   const LibraryViewerNavigationButton.previous({
@@ -231,6 +230,7 @@ class LibraryViewerZoomControls extends StatelessWidget {
               AmeTooltip(
                 message: "缩小（- / Ctrl+-）",
                 child: IconButton(
+                  key: const Key("viewer-zoom-out"),
                   onPressed: canZoomOut ? onZoomOut : null,
                   icon: const Icon(Symbols.remove_rounded),
                 ),
@@ -255,6 +255,7 @@ class LibraryViewerZoomControls extends StatelessWidget {
               AmeTooltip(
                 message: "放大（+ / Ctrl++）",
                 child: IconButton(
+                  key: const Key("viewer-zoom-in"),
                   onPressed: canZoomIn ? onZoomIn : null,
                   icon: const Icon(Symbols.add_rounded),
                 ),

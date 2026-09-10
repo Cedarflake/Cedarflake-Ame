@@ -1,14 +1,18 @@
 use std::path::Path;
 
-use crate::adapters::{SqliteCatalog, inspect_root_availability, is_current_preview_artifact};
+#[cfg(test)]
+use crate::adapters::SqliteCatalog;
+use crate::adapters::{SqliteCatalogReadExecutor, inspect_root_availability};
 use crate::domain::{
-    CatalogCursor, CatalogSnapshot, GalleryLayoutManifestChunk, GalleryLayoutManifestCursor,
-    GalleryQuery, GallerySortDirection, GallerySortKey, GalleryTimeAnchor, GalleryTimeline,
-    LibraryFolderCursor, LibraryFolderPage, PreviewStatus, ScanError,
+    AssetLocationView, CatalogCursor, CatalogSnapshot, GalleryLayoutManifestChunk,
+    GalleryLayoutManifestCursor, GalleryQuery, GallerySortDirection, GallerySortKey,
+    GalleryTimeAnchor, GalleryTimeline, LibraryChangeLane, LibraryFolderCursor, LibraryFolderPage,
+    PreviewStatus, ScanError,
 };
 use crate::ports::CatalogRepository;
 
-use super::{storage::resolved_path_is_within, storage_paths};
+use super::preview_health::reconcile_snapshot_previews;
+use super::storage_paths;
 
 pub fn load_catalog(
     max_items: u32,
@@ -17,6 +21,24 @@ pub fn load_catalog(
     before: Option<CatalogCursor>,
 ) -> Result<CatalogSnapshot, ScanError> {
     load_catalog_window(max_items, query, after, before, None, None)
+}
+
+pub fn load_catalog_query_snapshot(
+    max_items: u32,
+    query: GalleryQuery,
+    anchor: Option<crate::domain::GalleryQueryAnchor>,
+) -> Result<crate::domain::GalleryQuerySnapshot, ScanError> {
+    let query = normalize_gallery_query(query);
+    let query_id = gallery_query_identity(&query);
+    let storage = storage_paths()?;
+    let mut result = prepare_catalog_reader(&storage.catalog_path)?.load_query_snapshot(
+        max_items,
+        &query,
+        &query_id,
+        anchor.as_ref(),
+    )?;
+    finish_loaded_snapshot(&storage, &mut result.snapshot)?;
+    Ok(result)
 }
 
 fn load_catalog_window(
@@ -30,21 +52,45 @@ fn load_catalog_window(
     let query = normalize_gallery_query(query);
     let query_id = gallery_query_identity(&query);
     let storage = storage_paths()?;
-    let mut catalog = SqliteCatalog::open(storage.catalog_path.clone())?;
+    let reader = prepare_catalog_reader(&storage.catalog_path)?;
     let mut snapshot = match anchor_location_id.as_deref() {
         Some(location_id) => {
-            catalog.load_snapshot_around_location(max_items, &query, &query_id, location_id)?
+            reader.load_snapshot_around_location(max_items, &query, &query_id, location_id)
         }
-        None => catalog.load_snapshot(
+        None => reader.load_snapshot(
             max_items,
             &query,
             &query_id,
             after.as_ref(),
             before.as_ref(),
             anchor.as_ref(),
-        )?,
-    };
-    reconcile_snapshot_previews(&mut catalog, &storage.preview_root, &mut snapshot)?;
+        ),
+    }?;
+    finish_loaded_snapshot(&storage, &mut snapshot)?;
+    Ok(snapshot)
+}
+
+fn finish_loaded_snapshot(
+    storage: &super::StoragePaths,
+    snapshot: &mut CatalogSnapshot,
+) -> Result<(), ScanError> {
+    finish_loaded_preview_state(storage, snapshot)?;
+    super::preview_recovery::start_preview_recovery(storage.clone());
+    for root in &mut snapshot.roots {
+        let evidence = inspect_root_availability(&root.path);
+        root.availability = evidence.availability;
+        root.availability_message = evidence.message;
+    }
+    Ok(())
+}
+
+fn finish_loaded_preview_state(
+    storage: &super::StoragePaths,
+    snapshot: &mut CatalogSnapshot,
+) -> Result<(), ScanError> {
+    let mut catalog =
+        super::catalog_session::open_catalog(&storage.catalog_path, LibraryChangeLane::Recovery)?;
+    reconcile_snapshot_previews(&mut catalog, &storage.preview_root, snapshot)?;
     let visible_preview_artifacts = snapshot
         .assets
         .iter()
@@ -54,51 +100,14 @@ fn load_catalog_window(
         .map(|asset| (asset.location_id.clone(), asset.preview_path.clone()))
         .collect::<Vec<_>>();
     catalog.touch_preview_artifacts(&visible_preview_artifacts)?;
-    drop(catalog);
-    super::preview_recovery::start_preview_recovery(storage.clone());
-    for root in &mut snapshot.roots {
-        let evidence = inspect_root_availability(&root.path);
-        root.availability = evidence.availability;
-        root.availability_message = evidence.message;
-    }
-    Ok(snapshot)
-}
-
-fn reconcile_snapshot_previews(
-    catalog: &mut SqliteCatalog,
-    active_preview_root: &Path,
-    snapshot: &mut CatalogSnapshot,
-) -> Result<(), ScanError> {
-    for asset in &mut snapshot.assets {
-        let is_active = is_active_preview_artifact(&asset.preview_path, active_preview_root)?;
-        if matches!(asset.preview_status, PreviewStatus::Ready) && !is_active {
-            asset.preview_path.clear();
-            asset.preview_status = PreviewStatus::Pending;
-            asset.preview_issue_code = None;
-            asset.preview_issue_message = None;
-            catalog.update_active_preview(asset, None)?;
-        }
-    }
     Ok(())
-}
-
-fn is_active_preview_artifact(path: &str, active_preview_root: &Path) -> Result<bool, ScanError> {
-    let path = Path::new(path);
-    if path.as_os_str().is_empty()
-        || !path.is_file()
-        || !is_current_preview_artifact(&path.to_string_lossy())
-    {
-        return Ok(false);
-    }
-    resolved_path_is_within(path, active_preview_root)
 }
 
 pub fn load_gallery_timeline(query: GalleryQuery) -> Result<GalleryTimeline, ScanError> {
     let query = normalize_gallery_query(query);
     let query_id = gallery_query_identity(&query);
     let storage = storage_paths()?;
-    let mut catalog = SqliteCatalog::open(storage.catalog_path)?;
-    catalog.load_gallery_timeline(&query, &query_id)
+    prepare_catalog_reader(&storage.catalog_path)?.load_gallery_timeline(&query, &query_id)
 }
 
 pub fn load_gallery_layout_manifest_chunk(
@@ -109,8 +118,12 @@ pub fn load_gallery_layout_manifest_chunk(
     let query = normalize_gallery_query(query);
     let query_id = gallery_query_identity(&query);
     let storage = storage_paths()?;
-    let mut catalog = SqliteCatalog::open(storage.catalog_path)?;
-    catalog.load_gallery_layout_manifest_chunk(max_items, &query, &query_id, after.as_ref())
+    prepare_catalog_reader(&storage.catalog_path)?.load_gallery_layout_manifest_chunk(
+        max_items,
+        &query,
+        &query_id,
+        after.as_ref(),
+    )
 }
 
 pub fn load_library_folders(
@@ -120,8 +133,7 @@ pub fn load_library_folders(
     after: Option<LibraryFolderCursor>,
 ) -> Result<LibraryFolderPage, ScanError> {
     let storage = storage_paths()?;
-    let mut catalog = SqliteCatalog::open(storage.catalog_path)?;
-    catalog.load_folder_page(
+    prepare_catalog_reader(&storage.catalog_path)?.load_folder_page(
         &root_id,
         &normalize_relative_folder(&parent_relative_path),
         max_items,
@@ -137,8 +149,15 @@ pub fn unregister_library_root(root_id: String) -> Result<bool, ScanError> {
         ));
     }
     let storage = storage_paths()?;
-    let mut catalog = SqliteCatalog::open(storage.catalog_path)?;
-    catalog.unregister_root(&root_id)
+    super::preempt_catalog_reclamation(&storage.catalog_path);
+    let mut catalog =
+        super::catalog_session::open_catalog(&storage.catalog_path, LibraryChangeLane::Recovery)?;
+    let removed = catalog.unregister_root(&root_id)?;
+    drop(catalog);
+    if removed {
+        super::schedule_catalog_reclamation(storage.catalog_path);
+    }
+    Ok(removed)
 }
 
 pub fn load_catalog_at_time(
@@ -161,6 +180,57 @@ pub fn load_catalog_around_location(
         ));
     }
     load_catalog_window(max_items, query, None, None, None, Some(anchor_location_id))
+}
+
+pub fn load_catalog_around_asset(
+    max_items: u32,
+    query: GalleryQuery,
+    requested_location_id: String,
+    anchor_asset_id: String,
+    fallback_ordinal: u64,
+) -> Result<CatalogSnapshot, ScanError> {
+    if requested_location_id.trim().is_empty() || anchor_asset_id.trim().is_empty() {
+        return Err(ScanError::new(
+            "catalog_asset_anchor_invalid",
+            "A gallery asset anchor requires stable location and asset identifiers",
+        ));
+    }
+    let query = normalize_gallery_query(query);
+    let query_id = gallery_query_identity(&query);
+    let storage = storage_paths()?;
+    let mut snapshot = prepare_catalog_reader(&storage.catalog_path)?.load_snapshot_around_asset(
+        max_items,
+        &query,
+        &query_id,
+        &requested_location_id,
+        &anchor_asset_id,
+        fallback_ordinal,
+    )?;
+    finish_loaded_snapshot(&storage, &mut snapshot)?;
+    Ok(snapshot)
+}
+
+pub fn load_catalog_asset_by_id(
+    asset_id: String,
+    preferred_location_id: Option<String>,
+) -> Result<Option<AssetLocationView>, ScanError> {
+    if asset_id.trim().is_empty()
+        || preferred_location_id
+            .as_deref()
+            .is_some_and(|location_id| location_id.trim().is_empty())
+    {
+        return Err(ScanError::new(
+            "catalog_asset_identity_invalid",
+            "A stable asset lookup requires a non-empty asset and optional location identifier",
+        ));
+    }
+    let storage = storage_paths()?;
+    prepare_catalog_reader(&storage.catalog_path)?
+        .load_active_location_by_asset_id(&asset_id, preferred_location_id.as_deref())
+}
+
+fn prepare_catalog_reader(path: &Path) -> Result<SqliteCatalogReadExecutor, ScanError> {
+    super::catalog_session::open_catalog_reader(path)
 }
 
 fn normalize_gallery_query(mut query: GalleryQuery) -> GalleryQuery {
@@ -208,10 +278,23 @@ mod tests {
     use std::collections::HashSet;
     use std::fs;
     use std::path::PathBuf;
+    use std::process::Command;
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+    use std::sync::mpsc;
+    use std::thread;
+    use std::time::Duration;
 
     use tempfile::tempdir;
 
-    use crate::domain::{AssetLocationView, LibraryRootAvailability, PreviewStatus, ScanRequest};
+    use crate::adapters::{
+        PREVIEW_ALGORITHM_ID, PREVIEW_ALGORITHM_VERSION, PREVIEW_CACHE_VERSION,
+        PREVIEW_ORIENTATION_CONTRACT,
+    };
+    use crate::domain::{
+        AssetLocationView, LibraryRootAvailability, PreviewArtifact, PreviewStatus, ScanRequest,
+        SourceRevisionEvidence,
+    };
 
     use super::*;
 
@@ -259,6 +342,142 @@ mod tests {
     }
 
     #[test]
+    fn current_catalog_read_preparation_validates_once_then_reuses_the_session() {
+        let storage = tempdir().expect("storage");
+        let catalog_path = storage.path().join("catalog").join("ame.sqlite3");
+        drop(SqliteCatalog::open(catalog_path.clone()).expect("initialize catalog"));
+        super::super::catalog_session::reset_catalog_session(&catalog_path);
+        crate::adapters::reset_full_schema_validation_count(&catalog_path);
+
+        let reader = prepare_catalog_reader(&catalog_path).expect("read executor");
+        let timeline = reader
+            .load_gallery_timeline(&GalleryQuery::default(), "current-schema-query")
+            .expect("current catalog read");
+        let second_reader = prepare_catalog_reader(&catalog_path).expect("reused read executor");
+        let second_timeline = second_reader
+            .load_gallery_timeline(&GalleryQuery::default(), "second-current-schema-query")
+            .expect("second current catalog read");
+
+        assert!(timeline.buckets.is_empty());
+        assert!(second_timeline.buckets.is_empty());
+        assert_eq!(
+            crate::adapters::full_schema_validation_count(&catalog_path),
+            1,
+            "gallery reads must share one process-owned schema validation",
+        );
+    }
+
+    #[test]
+    fn consecutive_loaded_snapshot_finishes_share_one_validated_catalog_session() {
+        let directory = tempdir().expect("storage");
+        let storage = super::super::StoragePaths {
+            catalog_path: directory.path().join("catalog").join("ame.sqlite3"),
+            preview_root: directory.path().join("previews"),
+            preview_budget_bytes: 64 * 1024 * 1024,
+            settings_path: directory.path().join("settings").join("storage.sqlite3"),
+        };
+        drop(SqliteCatalog::open(storage.catalog_path.clone()).expect("initialize catalog"));
+        super::super::catalog_session::reset_catalog_session(&storage.catalog_path);
+        crate::adapters::reset_full_schema_validation_count(&storage.catalog_path);
+        let mut snapshot = CatalogSnapshot {
+            catalog_path: storage.catalog_path.to_string_lossy().into_owned(),
+            revision: 0,
+            query_id: "session-cache-query".to_owned(),
+            roots: Vec::new(),
+            assets: Vec::new(),
+            previous_cursor: None,
+            next_cursor: None,
+            query_anchor_resolution: None,
+        };
+
+        finish_loaded_preview_state(&storage, &mut snapshot).expect("first finish");
+        finish_loaded_preview_state(&storage, &mut snapshot).expect("second finish");
+
+        assert_eq!(
+            crate::adapters::full_schema_validation_count(&storage.catalog_path),
+            1,
+            "repeated loaded-snapshot writes must reuse one validated catalog session",
+        );
+    }
+
+    #[test]
+    fn public_catalog_reads_remain_available_during_a_concurrent_wal_writer() {
+        const CHILD_TEST: &str = "application::load_catalog::tests::public_catalog_read_wal_child";
+        let storage = tempdir().expect("storage");
+        let catalog_path = storage.path().join("catalog").join("ame.sqlite3");
+        drop(SqliteCatalog::open(catalog_path.clone()).expect("initialize catalog"));
+        let stop = Arc::new(AtomicBool::new(false));
+        let writes = Arc::new(AtomicUsize::new(0));
+        let writer_stop = Arc::clone(&stop);
+        let writer_count = Arc::clone(&writes);
+        let (ready_sender, ready_receiver) = mpsc::sync_channel(1);
+        let writer = thread::spawn(move || -> Result<(), String> {
+            let connection = rusqlite::Connection::open(catalog_path)
+                .map_err(|error| format!("WAL writer open: {error}"))?;
+            connection
+                .busy_timeout(Duration::from_secs(5))
+                .map_err(|error| format!("writer busy timeout: {error}"))?;
+            ready_sender
+                .send(())
+                .map_err(|error| format!("writer readiness: {error}"))?;
+            while !writer_stop.load(Ordering::Acquire) {
+                connection
+                    .execute_batch(
+                        "BEGIN IMMEDIATE;
+                         UPDATE catalog_state SET revision = revision + 1;
+                         COMMIT;",
+                    )
+                    .map_err(|error| format!("WAL writer transaction: {error}"))?;
+                writer_count.fetch_add(1, Ordering::Release);
+            }
+            Ok(())
+        });
+        ready_receiver
+            .recv_timeout(Duration::from_secs(5))
+            .expect("WAL writer readiness");
+        while writes.load(Ordering::Acquire) == 0 && !writer.is_finished() {
+            thread::yield_now();
+        }
+
+        let status = Command::new(std::env::current_exe().expect("current test executable"))
+            .args([
+                "--exact",
+                CHILD_TEST,
+                "--ignored",
+                "--nocapture",
+                "--test-threads=1",
+            ])
+            .env("CEDARFLAKE_AME_TEST_STORAGE_ROOT", storage.path())
+            .env("CEDARFLAKE_AME_PUBLIC_WAL_READ_CHILD", "1")
+            .status()
+            .expect("public catalog read child");
+        stop.store(true, Ordering::Release);
+        writer
+            .join()
+            .expect("WAL writer join")
+            .expect("WAL writer completion");
+
+        assert!(
+            status.success(),
+            "public catalog reads failed under WAL writes"
+        );
+        assert!(writes.load(Ordering::Acquire) >= 2);
+    }
+
+    #[test]
+    #[ignore = "subprocess helper for the concurrent public catalog-read regression"]
+    fn public_catalog_read_wal_child() {
+        assert_eq!(
+            std::env::var("CEDARFLAKE_AME_PUBLIC_WAL_READ_CHILD").as_deref(),
+            Ok("1"),
+        );
+        for _ in 0..256 {
+            load_gallery_timeline(GalleryQuery::default())
+                .expect("production public catalog timeline read");
+        }
+    }
+
+    #[test]
     fn changed_preview_root_resets_the_location_without_deleting_the_old_artifact() {
         let storage = tempdir().expect("storage");
         let catalog_path = storage.path().join("catalog").join("ame.sqlite3");
@@ -266,10 +485,8 @@ mod tests {
         let new_preview_root = storage.path().join("new-previews");
         fs::create_dir_all(&old_preview_root).expect("old preview root");
         fs::create_dir_all(&new_preview_root).expect("new preview root");
-        let old_artifact = old_preview_root.join(format!(
-            "ame-jpeg-thumbnail-v2-orientation-{}.jpg",
-            "a".repeat(64)
-        ));
+        let old_artifact =
+            old_preview_root.join(format!("{PREVIEW_CACHE_VERSION}-{}.jpg", "a".repeat(64)));
         fs::write(&old_artifact, b"owned derived artifact").expect("old artifact");
         let mut catalog = SqliteCatalog::open(catalog_path).expect("catalog");
         let request = ScanRequest {
@@ -283,6 +500,9 @@ mod tests {
             .begin_scan(&request, "preview-root", &request.root_path)
             .expect("begin scan");
         catalog
+            .prove_live_only_first_import_handoff_for_test(&request.scan_id)
+            .expect("prove preview-root fixture first-import handoff");
+        catalog
             .stage_location(
                 &request.scan_id,
                 "preview-root",
@@ -290,6 +510,7 @@ mod tests {
                     asset_id: "preview-root-asset".to_owned(),
                     location_id: "preview-root-location".to_owned(),
                     root_id: "preview-root".to_owned(),
+                    scan_id: request.scan_id.clone(),
                     absolute_path: storage
                         .path()
                         .join("source")
@@ -298,14 +519,19 @@ mod tests {
                         .into_owned(),
                     display_path: "source\\one.png".to_owned(),
                     relative_path: "one.png".to_owned(),
-                    preview_path: old_artifact.to_string_lossy().into_owned(),
+                    preview_path: String::new(),
                     file_size: 100,
                     created_unix_ms: Some(10),
                     modified_unix_ms: 20,
                     file_identity: None,
+                    source_revision: Some(SourceRevisionEvidence {
+                        scheme: "windows-file-change-time-100ns-v1".to_owned(),
+                        value: "0000000000000001".to_owned(),
+                    }),
+                    source_generation: 0,
                     width: 4_032,
                     height: 3_024,
-                    preview_status: PreviewStatus::Ready,
+                    preview_status: PreviewStatus::Pending,
                     preview_issue_code: None,
                     preview_issue_message: None,
                     metadata_engine_id: "fixture".to_owned(),
@@ -317,6 +543,33 @@ mod tests {
         catalog
             .publish_scan(&request.scan_id, "preview-root", 1, 0)
             .expect("publish scan");
+        let mut location = catalog
+            .load_active_location("preview-root-location")
+            .expect("active preview location query")
+            .expect("active preview location");
+        location.preview_path = old_artifact.to_string_lossy().into_owned();
+        location.preview_status = PreviewStatus::Ready;
+        catalog
+            .update_active_preview(
+                &location,
+                Some(&PreviewArtifact {
+                    artifact_key: "preview-root-artifact".to_owned(),
+                    algorithm_id: PREVIEW_ALGORITHM_ID.to_owned(),
+                    algorithm_version: PREVIEW_ALGORITHM_VERSION,
+                    orientation_contract: PREVIEW_ORIENTATION_CONTRACT.to_owned(),
+                    size_bucket: 512,
+                    path: location.preview_path.clone(),
+                    byte_size: fs::metadata(&old_artifact)
+                        .expect("old artifact metadata")
+                        .len(),
+                    encoded_width: 512,
+                    encoded_height: 384,
+                    width: location.width,
+                    height: location.height,
+                }),
+                None,
+            )
+            .expect("publish preview artifact");
         let mut snapshot = catalog
             .load_snapshot(
                 10,

@@ -92,6 +92,85 @@ void main() {
     expect(controller.previewDemandRequests, isNotEmpty);
   });
 
+  testWidgets(
+    "square direct jump requests the unloaded range before a manifest arrives",
+    (tester) async {
+      final state = _boundaryState(
+        itemCount: 4000,
+        windowStart: 0,
+        windowEnd: 80,
+        hasPrevious: false,
+        hasNext: true,
+      );
+      final controller = _RecordingGalleryController();
+      final scrollController = ScrollController();
+      addTearDown(scrollController.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: SizedBox(
+              width: 900,
+              height: 600,
+              child: LibraryGalleryWall(
+                state: state,
+                controller: controller,
+                scrollController: scrollController,
+                layoutShape: GalleryLayoutShape.square,
+                thumbnailSize: GalleryThumbnailSize.medium,
+                selection: GallerySelection.empty(state.queryId),
+                isSelecting: false,
+                onOpen: (_) {},
+                onToggleSelection: (_) {},
+                onViewInformation: (_) {},
+                onCopyPath: (_) {},
+                onRevealFile: (_) {},
+                onVisiblePositionChanged: (_) {},
+                onVisibleRangeChanged: (_) {},
+                onLoadPrevious: () async {},
+                onLayoutChanged: (_, _) {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      controller.visibleRangeRequests.clear();
+
+      scrollController.jumpTo(scrollController.position.maxScrollExtent * 0.8);
+      await tester.pump();
+
+      expect(controller.visibleRangeRequests, isNotEmpty);
+      expect(controller.visibleRangeRequests.last.start, greaterThan(80));
+      expect(
+        find.descendant(
+          of: find.byKey(const Key("library-trailing-placeholder")),
+          matching: find.byType(CustomPaint),
+        ),
+        findsNothing,
+      );
+    },
+  );
+
+  test("square manifest produces query-wide fixed-cell geometry", () {
+    final manifest = _manifest(1200);
+    final snapshot = LibraryGalleryLayoutSnapshot.build(
+      manifest: manifest,
+      availableWidth: 860,
+      thumbnailSize: GalleryThumbnailSize.medium,
+      layoutShape: GalleryLayoutShape.square,
+      sortKey: LibraryGallerySortKey.captureTime,
+    );
+
+    expect(snapshot.layoutShape, GalleryLayoutShape.square);
+    expect(snapshot.metrics.isQueryWide, isTrue);
+    expect(snapshot.metrics.itemOffsets, hasLength(1200));
+    expect(snapshot.entries.where((entry) => entry.isPhotoRow), isNotEmpty);
+    for (final entry in snapshot.entries.where((entry) => entry.isPhotoRow)) {
+      expect(entry.cellWidths, everyElement(closeTo(entry.rowHeight, 0.01)));
+    }
+  });
+
   testWidgets("preserves a deep logical anchor through a latest-only resize", (
     tester,
   ) async {
@@ -824,6 +903,14 @@ void main() {
 
       expect(previousController.visibleRangeRequests, isNotEmpty);
       expect(previousController.previewDemandRequests, isNotEmpty);
+      final unloadedSlot = find.byKey(ValueKey("location-$rowStart"));
+      expect(unloadedSlot, findsOneWidget);
+      expect(tester.widget(unloadedSlot), isNot(isA<LibraryPhotoTile>()));
+      expect(unloadedSlot.hitTestable(), findsNothing);
+      expect(
+        find.descendant(of: unloadedSlot, matching: find.byType(DecoratedBox)),
+        findsNothing,
+      );
       expect(
         previousController.previewDemandRequests.last.visible,
         containsAll([
@@ -1215,6 +1302,9 @@ LibraryAsset _asset(int index, String previewIssueMessage) {
     assetId: "asset-$index",
     locationId: "location-$index",
     rootId: "root-1",
+    activeScanId: "scan-1",
+    sourceRevision: null,
+    sourceGeneration: BigInt.one,
     sourcePath: "C:\\Pictures\\$index.jpg",
     displayPath: "C:\\Pictures\\$index.jpg",
     relativePath: "$index.jpg",

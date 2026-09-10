@@ -4,18 +4,81 @@ import "package:cedarflake_ame/features/library/adapters/directory_picker.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_previewer.dart";
+import "package:cedarflake_ame/features/library/application/library_scan_execution.dart";
+import "package:cedarflake_ame/features/library/application/library_scan_shutdown.dart";
 import "package:cedarflake_ame/features/library/application/library_scanner.dart";
 import "package:cedarflake_ame/features/library/domain/gallery_layout_manifest.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_task_surface.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
+import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../support/library_query_snapshot_fixture.dart";
+
 void main() {
+  test(
+    "synchronization refresh uses the stable asset anchor without blanking",
+    () async {
+      final pending = Completer<LibrarySnapshot>();
+      final initial = _snapshot(assets: [_asset(suffix: "before")]);
+      final catalog = _StableAnchorLibraryCatalog(
+        response: pending.future,
+        revision: BigInt.two,
+      );
+      final container = ProviderContainer(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(
+            LibraryState.fromSnapshot(initial),
+          ),
+          libraryCatalogProvider.overrideWithValue(catalog),
+        ],
+      );
+      addTearDown(container.dispose);
+      final controller = container.read(libraryControllerProvider.notifier);
+
+      final refresh = controller.refreshFromSynchronization(
+        catalogRevision: BigInt.two,
+        anchorLocationId: "location-before",
+        anchorAssetId: "asset-before",
+        fallbackGlobalItemIndex: 79,
+      );
+      await Future<void>.delayed(Duration.zero);
+      var state = container.read(libraryControllerProvider);
+      expect(state.assets.single.locationId, "location-before");
+      expect(state.status, isNot(LibraryStatus.refreshing));
+
+      pending.complete(
+        _snapshot(
+          revision: BigInt.two,
+          assets: [_renamedAsset()],
+          queryAnchorResolution: const LibraryQueryAnchorResolution(
+            requestedLocationId: "location-before",
+            locationId: "location-after",
+            ordinal: 0,
+            windowStartItemOffset: 0,
+          ),
+        ),
+      );
+
+      expect(await refresh, LibraryQueryUpdateOutcome.applied);
+      state = container.read(libraryControllerProvider);
+      expect(state.catalogRevision, BigInt.two);
+      expect(state.assets.single.assetId, "asset-before");
+      expect(state.assets.single.locationId, "location-after");
+      expect(catalog.requestedLocationId, "location-before");
+      expect(catalog.anchorAssetId, "asset-before");
+      expect(catalog.fallbackGlobalItemIndex, 79);
+    },
+  );
+
   test(
     "keeps the old query visible until an anchored query publishes",
     () async {
+      final scanner = _FakeLibraryScanner();
+      addTearDown(scanner.dispose);
       final pending = Completer<LibrarySnapshot>();
       final initial = _snapshot(assets: [_asset(suffix: "old")]);
       final catalog = _QueryAnchorLibraryCatalog(
@@ -24,6 +87,7 @@ void main() {
       );
       final container = ProviderContainer(
         overrides: [
+          libraryScannerProvider.overrideWithValue(scanner),
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(initial),
           ),
@@ -187,6 +251,137 @@ void main() {
     expect(container.read(libraryControllerProvider).isScanning, isTrue);
   });
 
+  test(
+    "old-query failure clears superseded pagination and ignores its late result",
+    () async {
+      final nextCursor = _cursor(suffix: "query-race");
+      final stalePage = Completer<LibrarySnapshot>();
+      final initial = _snapshot(
+        assets: [_asset(suffix: "initial")],
+        nextCursor: nextCursor,
+      );
+      final oldQueryResult = _snapshot(
+        queryId: initial.queryId,
+        assets: [_asset(suffix: "wrong-query")],
+      );
+      final catalog = _QueryAnchorLibraryCatalog(
+        aroundResponses: [
+          stalePage.future,
+          Future.value(oldQueryResult),
+          Future.value(oldQueryResult),
+        ],
+        timeline: _timeline(queryId: "query-replacement", totalItems: 1),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(
+            LibraryState.fromSnapshot(initial),
+          ),
+          libraryCatalogProvider.overrideWithValue(catalog),
+        ],
+      );
+      addTearDown(container.dispose);
+      final controller = container.read(libraryControllerProvider.notifier);
+
+      final pageLoad = controller.loadNextPage();
+      await Future<void>.delayed(Duration.zero);
+      expect(container.read(libraryControllerProvider).isLoadingPage, isTrue);
+
+      expect(
+        await controller.updateQuery(
+          const LibraryGalleryQuery(sortKey: LibraryGallerySortKey.fileName),
+        ),
+        isFalse,
+      );
+      var state = container.read(libraryControllerProvider);
+      expect(state.query, const LibraryGalleryQuery());
+      expect(state.isLoadingPage, isFalse);
+      expect(state.isLoadingVisibleRange, isFalse);
+      expect(state.assets.single.locationId, "location-initial");
+
+      stalePage.complete(_snapshot(assets: [_asset(suffix: "obsolete-page")]));
+      await pageLoad;
+
+      state = container.read(libraryControllerProvider);
+      expect(state.isLoadingPage, isFalse);
+      expect(state.pageErrorMessage, isNull);
+      expect(state.assets.single.locationId, "location-initial");
+    },
+  );
+
+  test(
+    "active visible range is superseded by sort source and search queries",
+    () async {
+      const queries = [
+        LibraryGalleryQuery(sortKey: LibraryGallerySortKey.fileName),
+        LibraryGalleryQuery(rootId: "root-filter"),
+        LibraryGalleryQuery(searchText: "needle"),
+      ];
+
+      for (var index = 0; index < queries.length; index++) {
+        const bucket = LibraryTimeBucket(
+          monthKey: "2024-05",
+          itemCount: 100,
+          aspectRatioSum: 100,
+        );
+        final staleRange = Completer<LibrarySnapshot>();
+        final initial = _snapshot(assets: [_asset(suffix: "initial-$index")]);
+        final catalog = _FakeLibraryCatalog.sequence([
+          staleRange.future,
+          _snapshot(assets: [_asset(suffix: "query-$index")]),
+        ], initialRevision: initial.revision);
+        final container = ProviderContainer(
+          overrides: [
+            initialLibraryStateProvider.overrideWithValue(
+              LibraryState.fromSnapshot(initial).copyWith(
+                timeline: LibraryTimeline(
+                  revision: initial.revision,
+                  queryId: initial.queryId,
+                  totalItems: 100,
+                  buckets: const [bucket],
+                ),
+              ),
+            ),
+            libraryCatalogProvider.overrideWithValue(catalog),
+          ],
+        );
+        addTearDown(container.dispose);
+        final controller = container.read(libraryControllerProvider.notifier);
+
+        controller.ensureVisibleRange(
+          startItemOffset: 70,
+          endItemOffsetExclusive: 75,
+        );
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+        expect(catalog.anchors, hasLength(1));
+        expect(
+          container.read(libraryControllerProvider).isLoadingTimeAnchor,
+          isTrue,
+        );
+
+        expect(await controller.updateQuery(queries[index]), isTrue);
+        var state = container.read(libraryControllerProvider);
+        expect(state.query, queries[index]);
+        expect(state.assets.single.locationId, "location-query-$index");
+        expect(state.isLoadingTimeAnchor, isFalse);
+        expect(state.isLoadingVisibleRange, isFalse);
+
+        staleRange.complete(
+          _snapshot(assets: [_asset(suffix: "obsolete-range-$index")]),
+        );
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+
+        state = container.read(libraryControllerProvider);
+        expect(state.query, queries[index]);
+        expect(state.assets.single.locationId, "location-query-$index");
+        expect(state.windowStartItemOffset, 0);
+        expect(state.isLoadingVisibleRange, isFalse);
+      }
+    },
+  );
+
   test("publishes streamed assets only after a completed scan event", () async {
     final scanner = _FakeLibraryScanner();
     final catalog = _FakeLibraryCatalog.dynamic(
@@ -224,6 +419,10 @@ void main() {
       container.read(libraryControllerProvider).status,
       LibraryStatus.scanning,
     );
+    expect(
+      container.read(libraryControllerProvider).taskKind,
+      LibraryTaskKind.import,
+    );
     expect(scanner.startedItemLimit, isNull);
     expect(scanner.startedEntryLimit, isNull);
     final scanId = scanner.startedScanId ?? fail("scan did not start");
@@ -235,12 +434,18 @@ void main() {
           assetId: "asset-1",
           locationId: "location-1",
           rootId: "root-1",
+          activeScanId: scanId,
           sourcePath: "C:\\Pictures\\one.png",
           displayPath: "C:\\Pictures\\one.png",
           relativePath: "one.png",
           previewPath: "C:\\AmeCache\\one.jpg",
           fileSize: BigInt.from(128),
           modifiedUnixMs: 42,
+          sourceRevision: const LibrarySourceRevisionEvidence(
+            scheme: "windows-file-change-time-100ns-v1",
+            value: "0000000000000001",
+          ),
+          sourceGeneration: BigInt.one,
           width: 320,
           height: 240,
         ),
@@ -282,13 +487,56 @@ void main() {
     expect(state.scanId, scanId);
     expect(state.visitedEntries, 1);
     expect(state.stagedAssetCount, 1);
+    expect(state.taskKind, LibraryTaskKind.import);
 
-    controller.dismissCompletedImport();
+    controller.dismissTaskFeedback();
     final dismissedState = container.read(libraryControllerProvider);
     expect(dismissedState.status, LibraryStatus.completed);
     expect(dismissedState.scanId, isNull);
+    expect(dismissedState.taskKind, isNull);
     expect(dismissedState.assets.single.relativePath, "1.png");
   });
+
+  for (final published in [false, true]) {
+    test(
+      "classifies a configured empty root by its published baseline ($published)",
+      () async {
+        final scanner = _FakeLibraryScanner();
+        final initialSnapshot = _snapshot(
+          roots: [
+            LibraryRoot(
+              id: "root-1",
+              path: r"\\?\C:\Pictures",
+              displayPath: r"C:\Pictures",
+              activeScanId: published ? "completed-empty-baseline" : null,
+              createdUnixMs: 1,
+              assetCount: 0,
+              issueCount: 0,
+            ),
+          ],
+        );
+        final container = ProviderContainer(
+          overrides: [
+            initialLibraryStateProvider.overrideWithValue(
+              LibraryState.fromSnapshot(initialSnapshot),
+            ),
+            libraryScannerProvider.overrideWithValue(scanner),
+          ],
+        );
+        addTearDown(container.dispose);
+        addTearDown(scanner.dispose);
+
+        await container
+            .read(libraryControllerProvider.notifier)
+            .scanDirectory(r"C:\Pictures");
+
+        expect(
+          container.read(libraryControllerProvider).taskKind,
+          published ? LibraryTaskKind.update : LibraryTaskKind.import,
+        );
+      },
+    );
+  }
 
   test("forwards cancellation to the active Rust scan", () async {
     final scanner = _FakeLibraryScanner();
@@ -308,7 +556,7 @@ void main() {
 
     final controller = container.read(libraryControllerProvider.notifier);
     await controller.chooseDirectoryAndScan();
-    controller.cancelScan();
+    await controller.cancelScan();
 
     expect(scanner.cancelledScanId, isNotNull);
     expect(
@@ -316,6 +564,45 @@ void main() {
       LibraryStatus.cancelling,
     );
   });
+
+  test(
+    "shutdown checkpoints an active foreground scan without cancelling it",
+    () async {
+      final scanner = _FakeLibraryScanner();
+      final shutdownCoordinator = LibraryScanShutdownCoordinator();
+      final container = ProviderContainer(
+        overrides: [
+          libraryScannerProvider.overrideWithValue(scanner),
+          libraryScanShutdownCoordinatorProvider.overrideWithValue(
+            shutdownCoordinator,
+          ),
+          libraryCatalogProvider.overrideWithValue(
+            _FakeLibraryCatalog(_snapshot()),
+          ),
+        ],
+      );
+      addTearDown(scanner.dispose);
+
+      final controller = container.read(libraryControllerProvider.notifier);
+      await controller.scanDirectory("C:\\Pictures");
+      final scanId = scanner.startedScanId ?? fail("scan did not start");
+      var didFinishShutdown = false;
+      final shutdown = shutdownCoordinator.suspend().then((_) {
+        didFinishShutdown = true;
+      });
+      await Future<void>.delayed(Duration.zero);
+
+      expect(scanner.suspendedScanId, scanId);
+      expect(didFinishShutdown, isFalse);
+
+      await scanner.close();
+      await shutdown;
+      container.dispose();
+
+      expect(didFinishShutdown, isTrue);
+      expect(scanner.cancelledScanId, isNull);
+    },
+  );
 
   test("keeps source changes distinct from generic failures", () async {
     final scanner = _FakeLibraryScanner();
@@ -574,44 +861,84 @@ void main() {
     },
   );
 
-  test("automatically resumes a persisted interrupted scan", () async {
-    final scanner = _FakeLibraryScanner(
-      recoverableScan: const RecoverableLibraryScan(
-        scanId: "scan-recover",
-        rootPath: r"\\?\C:\Pictures",
-        displayRootPath: "C:\\Pictures",
-        itemLimit: 500,
-        entryLimit: 2000,
-        previewEdge: 512,
-        visitedEntries: 128,
-        acceptedItems: 40,
-        issueCount: 3,
-      ),
-    );
-    final container = ProviderContainer(
-      overrides: [
-        libraryScannerProvider.overrideWithValue(scanner),
-        libraryCatalogProvider.overrideWithValue(
-          _FakeLibraryCatalog(_snapshot()),
+  testWidgets(
+    "restores an interrupted import and waits for explicit continue",
+    (tester) async {
+      final scanner = _FakeLibraryScanner(
+        recoverableScan: const RecoverableLibraryScan(
+          scanId: "scan-recover",
+          rootPath: r"\\?\C:\Pictures",
+          displayRootPath: "C:\\Pictures",
+          itemLimit: 500,
+          entryLimit: 2000,
+          previewEdge: 512,
+          visitedEntries: 128,
+          acceptedItems: 40,
+          issueCount: 3,
         ),
-      ],
-    );
-    addTearDown(container.dispose);
-    addTearDown(scanner.dispose);
+      );
+      final container = ProviderContainer(
+        overrides: [
+          libraryScannerProvider.overrideWithValue(scanner),
+          libraryCatalogProvider.overrideWithValue(
+            _FakeLibraryCatalog(_snapshot()),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      addTearDown(scanner.dispose);
 
-    container.read(libraryControllerProvider);
-    await Future<void>.delayed(Duration.zero);
-    await Future<void>.delayed(Duration.zero);
+      final controller = container.read(libraryControllerProvider.notifier);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: Scaffold(
+              body: Consumer(
+                builder: (context, ref, child) => LibraryTaskSurface(
+                  state: ref.watch(libraryControllerProvider),
+                  onPause: controller.pauseScan,
+                  onCancel: controller.cancelScan,
+                  onResume: controller.resumePausedScan,
+                  onRetry: controller.retry,
+                  onDismiss: controller.dismissTaskFeedback,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
 
-    final state = container.read(libraryControllerProvider);
-    expect(state.status, LibraryStatus.scanning);
-    expect(state.isResumingScan, isTrue);
-    expect(state.scanId, "scan-recover");
-    expect(state.visitedEntries, 128);
-    expect(state.stagedAssetCount, 40);
-    expect(state.issueCount, 3);
-    expect(scanner.startedScanId, "scan-recover");
-  });
+      var state = container.read(libraryControllerProvider);
+      expect(state.status, LibraryStatus.paused);
+      expect(state.taskKind, LibraryTaskKind.import);
+      expect(state.isResumingScan, isFalse);
+      expect(state.scanId, "scan-recover");
+      expect(state.visitedEntries, 128);
+      expect(state.stagedAssetCount, 40);
+      expect(state.issueCount, 3);
+      expect(scanner.startedScanId, isNull);
+      expect(scanner.scanCallCount, 0);
+      expect(scanner.resumeCallCount, 0);
+      expect(find.text("已暂停添加文件夹"), findsOneWidget);
+      expect(find.byKey(const Key("library-resume-button")), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key("library-resume-button")));
+      await tester.pump();
+      state = container.read(libraryControllerProvider);
+      expect(state.status, LibraryStatus.scanning);
+      expect(state.isResumingScan, isTrue);
+      expect(state.taskKind, LibraryTaskKind.import);
+      expect(scanner.startedScanId, "scan-recover");
+      expect(scanner.startedItemLimit, 500);
+      expect(scanner.startedEntryLimit, 2000);
+      expect(scanner.resumeCallCount, 1);
+
+      await controller.resumePausedScan();
+      expect(scanner.resumeCallCount, 1);
+    },
+  );
 
   test("restores a paused scan without starting it until resume", () async {
     final scanner = _FakeLibraryScanner(
@@ -652,6 +979,8 @@ void main() {
     expect(state.status, LibraryStatus.scanning);
     expect(state.isResumingScan, isTrue);
     expect(scanner.startedScanId, "scan-paused");
+    expect(scanner.scanCallCount, 0);
+    expect(scanner.resumeCallCount, 1);
   });
 
   test("forwards pause and keeps the staged scan private", () async {
@@ -1097,6 +1426,241 @@ void main() {
     expect(state.assets.single.locationId, "location-visible-target");
   });
 
+  test(
+    "publishes visible-range loading before disjoint catalog work",
+    () async {
+      const bucket = LibraryTimeBucket(
+        monthKey: "2024-05",
+        itemCount: 100,
+        aspectRatioSum: 100,
+      );
+      final initialSnapshot = _snapshot(assets: [_asset(suffix: "initial")]);
+      final response = Completer<LibrarySnapshot>();
+      final catalog = _FakeLibraryCatalog.sequence([
+        response.future,
+      ], initialRevision: initialSnapshot.revision);
+      final container = ProviderContainer(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(
+            LibraryState.fromSnapshot(initialSnapshot).copyWith(
+              timeline: LibraryTimeline(
+                revision: initialSnapshot.revision,
+                queryId: initialSnapshot.queryId,
+                totalItems: 100,
+                buckets: const [bucket],
+              ),
+            ),
+          ),
+          libraryCatalogProvider.overrideWithValue(catalog),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final controller = container.read(libraryControllerProvider.notifier);
+      controller.ensureVisibleRange(
+        startItemOffset: 70,
+        endItemOffsetExclusive: 75,
+      );
+
+      expect(
+        container.read(libraryControllerProvider).isLoadingVisibleRange,
+        isTrue,
+      );
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      expect(catalog.anchors.map((anchor) => anchor.itemOffset), [70]);
+
+      response.complete(_snapshot(assets: [_asset(suffix: "target")]));
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      final state = container.read(libraryControllerProvider);
+      expect(state.isLoadingVisibleRange, isFalse);
+      expect(state.windowStartItemOffset, 70);
+      expect(state.assets.single.locationId, "location-target");
+    },
+  );
+
+  test(
+    "publishes visible-range loading before a distant timeline jump drains",
+    () async {
+      const bucket = LibraryTimeBucket(
+        monthKey: "2024-05",
+        itemCount: 100,
+        aspectRatioSum: 100,
+      );
+      final initialSnapshot = _snapshot(assets: [_asset(suffix: "initial")]);
+      final response = Completer<LibrarySnapshot>();
+      final catalog = _FakeLibraryCatalog.sequence([
+        response.future,
+      ], initialRevision: initialSnapshot.revision);
+      final container = ProviderContainer(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(
+            LibraryState.fromSnapshot(initialSnapshot).copyWith(
+              timeline: LibraryTimeline(
+                revision: initialSnapshot.revision,
+                queryId: initialSnapshot.queryId,
+                totalItems: 100,
+                buckets: const [bucket],
+              ),
+            ),
+          ),
+          libraryCatalogProvider.overrideWithValue(catalog),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final controller = container.read(libraryControllerProvider.notifier);
+      final jump = controller.jumpToTime(bucket, itemOffset: 70);
+
+      var state = container.read(libraryControllerProvider);
+      expect(state.isLoadingVisibleRange, isTrue);
+      expect(state.isLoadingTimeAnchor, isFalse);
+
+      await Future<void>.delayed(Duration.zero);
+      state = container.read(libraryControllerProvider);
+      expect(state.isLoadingVisibleRange, isTrue);
+      expect(state.isLoadingTimeAnchor, isTrue);
+      expect(catalog.anchors.map((anchor) => anchor.itemOffset), [70]);
+
+      response.complete(_snapshot(assets: [_asset(suffix: "target")]));
+      expect(await jump, isTrue);
+
+      state = container.read(libraryControllerProvider);
+      expect(state.isLoadingVisibleRange, isFalse);
+      expect(state.isLoadingTimeAnchor, isFalse);
+      expect(state.windowStartItemOffset, 70);
+    },
+  );
+
+  test(
+    "requeues the same visible range after its passive request is cancelled",
+    () async {
+      const bucket = LibraryTimeBucket(
+        monthKey: "2024-05",
+        itemCount: 100,
+        aspectRatioSum: 100,
+      );
+      final initialSnapshot = _snapshot(assets: [_asset(suffix: "initial")]);
+      final cancelledResponse = Completer<LibrarySnapshot>();
+      final replacementResponse = Completer<LibrarySnapshot>();
+      final catalog = _FakeLibraryCatalog.sequence([
+        cancelledResponse.future,
+        replacementResponse.future,
+      ], initialRevision: initialSnapshot.revision);
+      final container = ProviderContainer(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(
+            LibraryState.fromSnapshot(initialSnapshot).copyWith(
+              timeline: LibraryTimeline(
+                revision: initialSnapshot.revision,
+                queryId: initialSnapshot.queryId,
+                totalItems: 100,
+                buckets: const [bucket],
+              ),
+            ),
+          ),
+          libraryCatalogProvider.overrideWithValue(catalog),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final controller = container.read(libraryControllerProvider.notifier);
+      controller.ensureVisibleRange(
+        startItemOffset: 70,
+        endItemOffsetExclusive: 75,
+      );
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      expect(catalog.anchors.map((anchor) => anchor.itemOffset), [70]);
+
+      controller.cancelTimeNavigation();
+      controller.ensureVisibleRange(
+        startItemOffset: 70,
+        endItemOffsetExclusive: 75,
+      );
+      expect(
+        container.read(libraryControllerProvider).isLoadingVisibleRange,
+        isTrue,
+      );
+
+      cancelledResponse.complete(
+        _snapshot(assets: [_asset(suffix: "cancelled")]),
+      );
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(catalog.anchors.map((anchor) => anchor.itemOffset), [70, 70]);
+      var state = container.read(libraryControllerProvider);
+      expect(state.windowStartItemOffset, 0);
+      expect(state.assets.single.locationId, "location-initial");
+      expect(state.isLoadingVisibleRange, isTrue);
+
+      replacementResponse.complete(
+        _snapshot(assets: [_asset(suffix: "replacement")]),
+      );
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      state = container.read(libraryControllerProvider);
+      expect(state.windowStartItemOffset, 70);
+      expect(state.assets.single.locationId, "location-replacement");
+      expect(state.isLoadingVisibleRange, isFalse);
+    },
+  );
+
+  for (final fails in [false, true]) {
+    test(
+      "disposed visible range ignores late completion (fails: $fails)",
+      () async {
+        const bucket = LibraryTimeBucket(
+          monthKey: "2024-05",
+          itemCount: 100,
+          aspectRatioSum: 100,
+        );
+        final initialSnapshot = _snapshot(assets: [_asset(suffix: "initial")]);
+        final response = Completer<LibrarySnapshot>();
+        final catalog = _FakeLibraryCatalog.sequence([
+          response.future,
+        ], initialRevision: initialSnapshot.revision);
+        final container = ProviderContainer(
+          overrides: [
+            initialLibraryStateProvider.overrideWithValue(
+              LibraryState.fromSnapshot(initialSnapshot).copyWith(
+                timeline: LibraryTimeline(
+                  revision: initialSnapshot.revision,
+                  queryId: initialSnapshot.queryId,
+                  totalItems: 100,
+                  buckets: const [bucket],
+                ),
+              ),
+            ),
+            libraryCatalogProvider.overrideWithValue(catalog),
+          ],
+        );
+        final controller = container.read(libraryControllerProvider.notifier);
+        controller.ensureVisibleRange(
+          startItemOffset: 70,
+          endItemOffsetExclusive: 75,
+        );
+        await Future<void>.delayed(Duration.zero);
+        expect(catalog.anchors.map((anchor) => anchor.itemOffset), [70]);
+
+        container.dispose();
+        if (fails) {
+          response.completeError(StateError("late catalog failure"));
+        } else {
+          response.complete(_snapshot(assets: [_asset(suffix: "late")]));
+        }
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+        expect(catalog.anchors, hasLength(1));
+      },
+    );
+  }
+
   test("stale visible ranges cannot replace the latest time target", () async {
     const bucket = LibraryTimeBucket(
       monthKey: "2024-05",
@@ -1541,12 +2105,15 @@ void main() {
     );
     final initialSnapshot = _snapshot(
       roots: const [removedRoot, keptRoot],
-      assets: [_asset()],
+      assets: [
+        _asset(suffix: "removed", rootId: removedRoot.id),
+        _asset(suffix: "kept-local", rootId: keptRoot.id),
+      ],
     );
     final refreshedSnapshot = _snapshot(
       revision: BigInt.two,
       roots: const [keptRoot],
-      assets: [_asset(suffix: "kept")],
+      assets: [_asset(suffix: "kept", rootId: keptRoot.id)],
     );
     final catalog = _FakeLibraryCatalog.sequence([
       refreshedSnapshot,
@@ -1571,6 +2138,441 @@ void main() {
     expect(state.roots, const [keptRoot]);
     expect(state.assets.single.locationId, "location-kept");
     expect(state.catalogRevision, BigInt.two);
+    expect(state.completedRemovalRootId, removedRoot.id);
+    expect(state.rootRemovalCompletionSequence, 1);
+  });
+
+  test("treats an already absent root as committed and reloads", () async {
+    final scanner = _FakeLibraryScanner();
+    addTearDown(scanner.dispose);
+    const removedRoot = LibraryRoot(
+      id: "root-already-absent",
+      path: "C:\\AlreadyAbsent",
+      displayPath: "C:\\AlreadyAbsent",
+      activeScanId: "scan-already-absent",
+      createdUnixMs: 1,
+      assetCount: 1,
+      issueCount: 0,
+    );
+    const keptRoot = LibraryRoot(
+      id: "root-kept-after-absent",
+      path: "C:\\KeptAfterAbsent",
+      displayPath: "C:\\KeptAfterAbsent",
+      activeScanId: "scan-kept-after-absent",
+      createdUnixMs: 2,
+      assetCount: 1,
+      issueCount: 0,
+    );
+    final refreshedSnapshot = _snapshot(
+      revision: BigInt.two,
+      roots: const [keptRoot],
+      assets: [_asset(suffix: "kept-after-absent", rootId: keptRoot.id)],
+    );
+    final catalog = _DeferredUnregisterLibraryCatalog(refreshedSnapshot);
+    final container = ProviderContainer(
+      overrides: [
+        libraryScannerProvider.overrideWithValue(scanner),
+        initialLibraryStateProvider.overrideWithValue(
+          LibraryState.fromSnapshot(
+            _snapshot(
+              roots: const [removedRoot, keptRoot],
+              assets: [
+                _asset(suffix: "already-absent", rootId: removedRoot.id),
+              ],
+            ),
+          ),
+        ),
+        libraryCatalogProvider.overrideWithValue(catalog),
+      ],
+    );
+    addTearDown(container.dispose);
+    final controller = container.read(libraryControllerProvider.notifier);
+
+    final removal = controller.unregisterRoot(removedRoot);
+    await Future<void>.delayed(Duration.zero);
+    catalog.completeRemoval(false);
+
+    expect(await removal, isTrue);
+    final completed = container.read(libraryControllerProvider);
+    expect(catalog.unregisteredRootIds, [removedRoot.id]);
+    expect(completed.status, LibraryStatus.completed);
+    expect(completed.roots, const [keptRoot]);
+    expect(completed.assets.single.rootId, keptRoot.id);
+    expect(completed.isRemovalCommitted, isFalse);
+  });
+
+  test("does not await the full timeline after committed removal", () async {
+    const removedRoot = LibraryRoot(
+      id: "root-remove-before-timeline",
+      path: "C:\\RemoveBeforeTimeline",
+      displayPath: "C:\\RemoveBeforeTimeline",
+      activeScanId: "scan-remove-before-timeline",
+      createdUnixMs: 1,
+      assetCount: 1,
+      issueCount: 0,
+    );
+    const keptRoot = LibraryRoot(
+      id: "root-keep-before-timeline",
+      path: "C:\\KeepBeforeTimeline",
+      displayPath: "C:\\KeepBeforeTimeline",
+      activeScanId: "scan-keep-before-timeline",
+      createdUnixMs: 2,
+      assetCount: 1,
+      issueCount: 0,
+    );
+    final refreshedSnapshot = _snapshot(
+      revision: BigInt.two,
+      queryId: "query-after-removal",
+      roots: const [keptRoot],
+      assets: [_asset(suffix: "kept-before-timeline", rootId: keptRoot.id)],
+    );
+    final catalog = _DeferredTimelineLibraryCatalog(refreshedSnapshot);
+    final initialState =
+        LibraryState.fromSnapshot(
+          _snapshot(
+            roots: const [removedRoot, keptRoot],
+            assets: [
+              _asset(suffix: "remove-before-timeline", rootId: removedRoot.id),
+            ],
+          ),
+        ).copyWith(
+          timeline: LibraryTimeline(
+            revision: BigInt.one,
+            queryId: "query-1",
+            totalItems: 2,
+            buckets: const [],
+          ),
+        );
+    final container = ProviderContainer(
+      overrides: [
+        initialLibraryStateProvider.overrideWithValue(initialState),
+        libraryCatalogProvider.overrideWithValue(catalog),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final removal = container
+        .read(libraryControllerProvider.notifier)
+        .unregisterRoot(removedRoot);
+
+    expect(await removal, isTrue);
+    final beforeTimeline = container.read(libraryControllerProvider);
+    expect(catalog.timelineLoadCount, 1);
+    expect(beforeTimeline.timeline, isNull);
+    expect(beforeTimeline.isLoadingTimeline, isTrue);
+    expect(beforeTimeline.roots, const [keptRoot]);
+
+    catalog.completeTimeline(
+      LibraryTimeline(
+        revision: BigInt.two,
+        queryId: "query-after-removal",
+        totalItems: 1,
+        buckets: const [],
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    final completed = container.read(libraryControllerProvider);
+    expect(completed.timeline?.totalItems, 1);
+    expect(completed.isLoadingTimeline, isFalse);
+  });
+
+  test(
+    "publishes removal feedback before awaiting commit and blocks duplicates",
+    () async {
+      const removedRoot = LibraryRoot(
+        id: "root-remove-deferred",
+        path: "C:\\RemoveDeferred",
+        displayPath: "C:\\RemoveDeferred",
+        activeScanId: "scan-remove-deferred",
+        createdUnixMs: 1,
+        assetCount: 1,
+        issueCount: 0,
+      );
+      const keptRoot = LibraryRoot(
+        id: "root-keep-deferred",
+        path: "C:\\KeepDeferred",
+        displayPath: "C:\\KeepDeferred",
+        activeScanId: "scan-keep-deferred",
+        createdUnixMs: 2,
+        assetCount: 1,
+        issueCount: 0,
+      );
+      final initialSnapshot = _snapshot(
+        roots: const [removedRoot, keptRoot],
+        assets: [_asset(suffix: "removed", rootId: removedRoot.id)],
+      );
+      final refreshedSnapshot = _snapshot(
+        revision: BigInt.two,
+        roots: const [keptRoot],
+        assets: [_asset(suffix: "kept-deferred", rootId: keptRoot.id)],
+      );
+      final catalog = _DeferredUnregisterLibraryCatalog(refreshedSnapshot);
+      final container = ProviderContainer(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(
+            LibraryState.fromSnapshot(initialSnapshot).copyWith(
+              scanId: "stale-import-scan",
+              rootPath: removedRoot.path,
+              displayRootPath: removedRoot.displayPath,
+              taskKind: LibraryTaskKind.import,
+              visitedEntries: 230400,
+              stagedAssetCount: 8740,
+              validatedAssetCount: 8740,
+              validationAssetCount: 8740,
+              itemLimit: 250000,
+              entryLimit: 300000,
+              isScanLimited: true,
+            ),
+          ),
+          libraryCatalogProvider.overrideWithValue(catalog),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final controller = container.read(libraryControllerProvider.notifier);
+      final prepared = controller.prepareRootRemoval(removedRoot);
+      expect(prepared, isNotNull);
+      expect(catalog.unregisteredRootIds, isEmpty);
+      expect(controller.prepareRootRemoval(removedRoot), isNull);
+      controller.abandonRootRemoval(prepared!);
+      expect(await controller.executeRootRemoval(prepared), isFalse);
+      expect(catalog.unregisteredRootIds, isEmpty);
+      final replacement = controller.prepareRootRemoval(removedRoot);
+      expect(replacement, isNotNull);
+      final removal = controller.executeRootRemoval(replacement!);
+      expect(await controller.executeRootRemoval(replacement), isFalse);
+
+      final removing = container.read(libraryControllerProvider);
+      expect(removing.status, LibraryStatus.removing);
+      expect(removing.taskKind, LibraryTaskKind.remove);
+      expect(removing.removingRootId, removedRoot.id);
+      expect(removing.removingRootDisplayPath, removedRoot.displayPath);
+      expect(catalog.unregisteredRootIds, [removedRoot.id]);
+      expect(await controller.unregisterRoot(removedRoot), isFalse);
+
+      expect(catalog.unregisteredRootIds, [removedRoot.id]);
+      catalog.completeRemoval(true);
+      expect(await removal, isTrue);
+
+      final completed = container.read(libraryControllerProvider);
+      expect(completed.status, LibraryStatus.completed);
+      expect(completed.scanId, isNull);
+      expect(completed.rootPath, isNull);
+      expect(completed.displayRootPath, isNull);
+      expect(completed.taskKind, isNull);
+      expect(completed.removingRootId, isNull);
+      expect(completed.visitedEntries, 0);
+      expect(completed.stagedAssetCount, 0);
+      expect(completed.validatedAssetCount, 0);
+      expect(completed.validationAssetCount, 0);
+      expect(completed.itemLimit, isNull);
+      expect(completed.entryLimit, isNull);
+      expect(completed.isScanLimited, isFalse);
+      expect(completed.roots, const [keptRoot]);
+    },
+  );
+
+  test("retries a failed removal for the exact retained root", () async {
+    const removedRoot = LibraryRoot(
+      id: "root-remove-retry",
+      path: "C:\\RemoveRetry",
+      displayPath: "C:\\RemoveRetry",
+      activeScanId: "scan-remove-retry",
+      createdUnixMs: 1,
+      assetCount: 1,
+      issueCount: 0,
+    );
+    const keptRoot = LibraryRoot(
+      id: "root-keep-retry",
+      path: "C:\\KeepRetry",
+      displayPath: "C:\\KeepRetry",
+      activeScanId: "scan-keep-retry",
+      createdUnixMs: 2,
+      assetCount: 1,
+      issueCount: 0,
+    );
+    final initialSnapshot = _snapshot(roots: const [removedRoot, keptRoot]);
+    final refreshedSnapshot = _snapshot(
+      revision: BigInt.two,
+      roots: const [keptRoot],
+      assets: [_asset(suffix: "kept-retry", rootId: keptRoot.id)],
+    );
+    final catalog = _FailThenSucceedUnregisterLibraryCatalog(refreshedSnapshot);
+    final container = ProviderContainer(
+      overrides: [
+        initialLibraryStateProvider.overrideWithValue(
+          LibraryState.fromSnapshot(initialSnapshot),
+        ),
+        libraryCatalogProvider.overrideWithValue(catalog),
+      ],
+    );
+    addTearDown(container.dispose);
+    final controller = container.read(libraryControllerProvider.notifier);
+
+    expect(await controller.unregisterRoot(removedRoot), isFalse);
+    final failed = container.read(libraryControllerProvider);
+    expect(failed.status, LibraryStatus.failed);
+    expect(failed.taskKind, LibraryTaskKind.remove);
+    expect(failed.removingRootId, removedRoot.id);
+
+    await controller.retry();
+
+    expect(catalog.unregisteredRootIds, [removedRoot.id, removedRoot.id]);
+    final completed = container.read(libraryControllerProvider);
+    expect(completed.status, LibraryStatus.completed);
+    expect(completed.roots, const [keptRoot]);
+    expect(completed.removingRootId, isNull);
+  });
+
+  test(
+    "retries only the reload after root removal already committed",
+    () async {
+      const removedRoot = LibraryRoot(
+        id: "root-remove-committed",
+        path: "C:\\RemoveCommitted",
+        displayPath: "C:\\RemoveCommitted",
+        activeScanId: "scan-remove-committed",
+        createdUnixMs: 1,
+        assetCount: 1,
+        issueCount: 0,
+      );
+      const keptRoot = LibraryRoot(
+        id: "root-keep-committed",
+        path: "C:\\KeepCommitted",
+        displayPath: "C:\\KeepCommitted",
+        activeScanId: "scan-keep-committed",
+        createdUnixMs: 2,
+        assetCount: 1,
+        issueCount: 0,
+      );
+      final initialSnapshot = _snapshot(
+        roots: const [removedRoot, keptRoot],
+        assets: [
+          _asset(suffix: "removed-committed", rootId: removedRoot.id),
+          _asset(suffix: "kept-local-committed", rootId: keptRoot.id),
+        ],
+      );
+      final refreshedSnapshot = _snapshot(
+        revision: BigInt.two,
+        roots: const [keptRoot],
+        assets: [_asset(suffix: "kept-committed", rootId: keptRoot.id)],
+      );
+      final catalog = _FakeLibraryCatalog.sequence([
+        StateError("injected removal reload failure"),
+        refreshedSnapshot,
+      ], initialRevision: initialSnapshot.revision);
+      final container = ProviderContainer(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(
+            LibraryState.fromSnapshot(
+              initialSnapshot,
+              query: const LibraryGalleryQuery(rootId: "root-remove-committed"),
+            ).copyWith(
+              timeline: LibraryTimeline(
+                revision: BigInt.one,
+                queryId: "query-1",
+                totalItems: 2,
+                buckets: const [],
+              ),
+            ),
+          ),
+          libraryCatalogProvider.overrideWithValue(catalog),
+        ],
+      );
+      addTearDown(container.dispose);
+      final controller = container.read(libraryControllerProvider.notifier);
+
+      expect(await controller.unregisterRoot(removedRoot), isFalse);
+      final failed = container.read(libraryControllerProvider);
+      expect(failed.status, LibraryStatus.failed);
+      expect(failed.isRemovalCommitted, isTrue);
+      expect(failed.isBusy, isTrue);
+      expect(failed.roots, const [keptRoot]);
+      expect(failed.assets.single.locationId, "location-kept-local-committed");
+      expect(failed.query.rootId, isNull);
+      expect(failed.timeline, isNull);
+      expect(catalog.unregisteredRootIds, [removedRoot.id]);
+
+      controller.dismissTaskFeedback();
+      final retainedFailure = container.read(libraryControllerProvider);
+      expect(retainedFailure.status, LibraryStatus.failed);
+      expect(retainedFailure.isRemovalCommitted, isTrue);
+      expect(retainedFailure.removingRootId, removedRoot.id);
+
+      await controller.retry();
+
+      expect(catalog.unregisteredRootIds, [removedRoot.id]);
+      final completed = container.read(libraryControllerProvider);
+      expect(completed.status, LibraryStatus.completed);
+      expect(completed.roots, const [keptRoot]);
+      expect(completed.isRemovalCommitted, isFalse);
+      expect(completed.completedRemovalRootId, removedRoot.id);
+      expect(completed.rootRemovalCompletionSequence, 1);
+    },
+  );
+
+  test("does not unregister a root reserved by a queued update", () async {
+    const root = LibraryRoot(
+      id: "root-update",
+      path: "C:\\Update",
+      displayPath: "C:\\Update",
+      activeScanId: "scan-update",
+      createdUnixMs: 1,
+      assetCount: 1,
+      issueCount: 0,
+    );
+    final initialSnapshot = _snapshot(roots: const [root]);
+    final catalog = _FakeLibraryCatalog(initialSnapshot);
+    final execution = LibraryScanExecutionCoordinator();
+    expect(execution.tryAcquireUpdate(root.id), isTrue);
+    final container = ProviderContainer(
+      overrides: [
+        initialLibraryStateProvider.overrideWithValue(
+          LibraryState.fromSnapshot(initialSnapshot),
+        ),
+        libraryCatalogProvider.overrideWithValue(catalog),
+        libraryScanExecutionCoordinatorProvider.overrideWithValue(execution),
+      ],
+    );
+    addTearDown(container.dispose);
+    addTearDown(() => execution.releaseUpdate(root.id));
+
+    final didRemove = await container
+        .read(libraryControllerProvider.notifier)
+        .unregisterRoot(root);
+
+    expect(didRemove, isFalse);
+    expect(catalog.unregisteredRootIds, isEmpty);
+  });
+
+  test("does not start a primary scan while an update lease exists", () async {
+    final scanner = _FakeLibraryScanner();
+    final execution = LibraryScanExecutionCoordinator();
+    expect(execution.tryAcquireUpdate("root-update"), isTrue);
+    final container = ProviderContainer(
+      overrides: [
+        libraryScannerProvider.overrideWithValue(scanner),
+        libraryScanExecutionCoordinatorProvider.overrideWithValue(execution),
+      ],
+    );
+    addTearDown(container.dispose);
+    addTearDown(scanner.dispose);
+    addTearDown(() => execution.releaseUpdate("root-update"));
+
+    await container
+        .read(libraryControllerProvider.notifier)
+        .scanDirectory("C:\\Incoming");
+    expect(
+      container.read(libraryControllerProvider).status,
+      LibraryStatus.failed,
+    );
+    expect(
+      container.read(libraryControllerProvider).errorMessage,
+      contains("其他图库更新正在运行"),
+    );
+
+    expect(scanner.startedScanId, isNull);
   });
 
   test("refreshes the first page when a keyset cursor becomes stale", () async {
@@ -1713,12 +2715,7 @@ void main() {
               previewLoadingSpeed: PreviewLoadingSpeed.large,
             ),
           );
-      expect(previewer.requests, [
-        "location-1",
-        "location-2",
-        "location-3",
-        "location-4",
-      ]);
+      expect(previewer.requests, ["location-1", "location-2", "location-3"]);
 
       await container
           .read(amePreferencesControllerProvider.notifier)
@@ -1837,7 +2834,7 @@ void main() {
         visible: [assets.first],
         guard: assets.sublist(2),
       );
-      expect(previewer.requests, ["location-3", "location-4", "location-1"]);
+      expect(previewer.requests, ["location-3", "location-4"]);
       previewer.succeed("location-3", _asset(suffix: "3"));
       await Future<void>.delayed(Duration.zero);
       await Future<void>.delayed(Duration.zero);
@@ -2006,33 +3003,81 @@ void main() {
   );
 }
 
-LibraryAsset _asset({String suffix = "1", String? previewPath}) {
+LibraryAsset _asset({
+  String suffix = "1",
+  String rootId = "root-1",
+  String? previewPath,
+  String activeScanId = "scan-1",
+  LibrarySourceRevisionEvidence? sourceRevision =
+      const LibrarySourceRevisionEvidence(
+        scheme: "windows-file-change-time-100ns-v1",
+        value: "0000000000000001",
+      ),
+  BigInt? sourceGeneration,
+}) {
   return LibraryAsset(
     assetId: "asset-$suffix",
     locationId: "location-$suffix",
-    rootId: "root-1",
+    rootId: rootId,
+    activeScanId: activeScanId,
     sourcePath: "C:\\Pictures\\$suffix.png",
     displayPath: "C:\\Pictures\\$suffix.png",
     relativePath: "$suffix.png",
     previewPath: previewPath ?? "C:\\AmeCache\\$suffix.jpg",
     fileSize: BigInt.from(128),
     modifiedUnixMs: 42,
+    sourceRevision: sourceRevision,
+    sourceGeneration: sourceGeneration ?? BigInt.one,
     width: 320,
     height: 240,
   );
 }
 
-LibraryAsset _pendingAsset(String suffix) {
+LibraryAsset _renamedAsset() {
+  return LibraryAsset(
+    assetId: "asset-before",
+    locationId: "location-after",
+    rootId: "root-1",
+    activeScanId: "scan-1",
+    sourcePath: "C:\\Pictures\\after.png",
+    displayPath: "C:\\Pictures\\after.png",
+    relativePath: "after.png",
+    previewPath: "C:\\AmeCache\\before.jpg",
+    fileSize: BigInt.from(128),
+    modifiedUnixMs: 42,
+    sourceRevision: const LibrarySourceRevisionEvidence(
+      scheme: "windows-file-change-time-100ns-v1",
+      value: "0000000000000001",
+    ),
+    sourceGeneration: BigInt.one,
+    width: 320,
+    height: 240,
+  );
+}
+
+LibraryAsset _pendingAsset(
+  String suffix, {
+  String activeScanId = "scan-1",
+  LibrarySourceRevisionEvidence? sourceRevision =
+      const LibrarySourceRevisionEvidence(
+        scheme: "windows-file-change-time-100ns-v1",
+        value: "0000000000000001",
+      ),
+  BigInt? sourceGeneration,
+}) {
   return LibraryAsset(
     assetId: "asset-$suffix",
     locationId: "location-$suffix",
     rootId: "root-1",
+    activeScanId: activeScanId,
     sourcePath: "C:\\Pictures\\$suffix.png",
     displayPath: "C:\\Pictures\\$suffix.png",
     relativePath: "$suffix.png",
     previewPath: "",
     fileSize: BigInt.from(128),
     modifiedUnixMs: 42,
+    sourceRevision: sourceRevision,
+    sourceGeneration: sourceGeneration ?? BigInt.one,
     width: 320,
     height: 240,
     previewStatus: LibraryPreviewStatus.pending,
@@ -2044,12 +3089,18 @@ LibraryAsset _unknownDimensionAsset(String suffix) {
     assetId: "asset-$suffix",
     locationId: "location-$suffix",
     rootId: "root-1",
+    activeScanId: "scan-1",
     sourcePath: "C:\\Pictures\\$suffix.png",
     displayPath: "C:\\Pictures\\$suffix.png",
     relativePath: "$suffix.png",
     previewPath: "",
     fileSize: BigInt.from(128),
     modifiedUnixMs: 42,
+    sourceRevision: const LibrarySourceRevisionEvidence(
+      scheme: "windows-file-change-time-100ns-v1",
+      value: "0000000000000001",
+    ),
+    sourceGeneration: BigInt.one,
     width: 0,
     height: 0,
     previewStatus: LibraryPreviewStatus.pending,
@@ -2132,6 +3183,11 @@ class _FakeDirectoryPicker implements DirectoryPicker {
 }
 
 class _FakeLibraryScanner implements LibraryScanner {
+  @override
+  Future<void> cancelRetainedScan(String scanId) async {
+    throw StateError("This fixture has no retained cancellation command");
+  }
+
   _FakeLibraryScanner({
     this.recoverableScan,
     this.pausedScan,
@@ -2144,10 +3200,12 @@ class _FakeLibraryScanner implements LibraryScanner {
   final bool throwFirstScan;
   String? cancelledScanId;
   String? pausedScanId;
+  String? suspendedScanId;
   String? startedScanId;
   int? startedItemLimit;
   int? startedEntryLimit;
   int scanCallCount = 0;
+  int resumeCallCount = 0;
 
   void add(LibraryScanUpdate update) {
     _controller.add(update);
@@ -2188,6 +3246,12 @@ class _FakeLibraryScanner implements LibraryScanner {
   }
 
   @override
+  bool suspend(String scanId) {
+    suspendedScanId = scanId;
+    return true;
+  }
+
+  @override
   Stream<LibraryScanUpdate> scan({
     required String scanId,
     required String rootPath,
@@ -2204,9 +3268,25 @@ class _FakeLibraryScanner implements LibraryScanner {
     startedEntryLimit = entryLimit;
     return _controller.stream;
   }
+
+  @override
+  Stream<LibraryScanUpdate> resume({
+    required String scanId,
+    required String rootPath,
+    required int? itemLimit,
+    required int? entryLimit,
+    required int previewEdge,
+  }) {
+    resumeCallCount += 1;
+    startedScanId = scanId;
+    startedItemLimit = itemLimit;
+    startedEntryLimit = entryLimit;
+    return _controller.stream;
+  }
 }
 
 class _QueryAnchorLibraryCatalog
+    with LibraryQuerySnapshotFixture
     implements LibraryCatalog, LibraryQueryAnchorCatalog {
   _QueryAnchorLibraryCatalog({
     required List<Future<LibrarySnapshot>> aroundResponses,
@@ -2248,7 +3328,63 @@ class _QueryAnchorLibraryCatalog
   Future<bool> unregisterRoot(String rootId) async => false;
 }
 
-class _FakeLibraryCatalog implements LibraryCatalog {
+class _StableAnchorLibraryCatalog
+    with LibraryQuerySnapshotFixture
+    implements LibraryCatalog, LibraryStableQueryAnchorCatalog {
+  _StableAnchorLibraryCatalog({required this.response, required this.revision});
+
+  final Future<LibrarySnapshot> response;
+  final BigInt revision;
+  String? requestedLocationId;
+  String? anchorAssetId;
+  int? fallbackGlobalItemIndex;
+
+  @override
+  Future<LibrarySnapshot> loadAroundAsset({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    required String requestedLocationId,
+    required String anchorAssetId,
+    required int fallbackGlobalItemIndex,
+  }) {
+    this.requestedLocationId = requestedLocationId;
+    this.anchorAssetId = anchorAssetId;
+    this.fallbackGlobalItemIndex = fallbackGlobalItemIndex;
+    return response;
+  }
+
+  @override
+  Future<LibrarySnapshot> load({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    LibraryCatalogCursor? after,
+    LibraryCatalogCursor? before,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<LibrarySnapshot> loadAtTime({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    required LibraryTimeAnchor anchor,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<LibraryTimeline> loadTimeline(LibraryGalleryQuery query) async {
+    return LibraryTimeline(
+      revision: revision,
+      queryId: "query-1",
+      totalItems: 1,
+      buckets: const [],
+    );
+  }
+
+  @override
+  Future<bool> unregisterRoot(String rootId) async => false;
+}
+
+class _FakeLibraryCatalog
+    with LibraryQuerySnapshotFixture
+    implements LibraryCatalog {
   _FakeLibraryCatalog(LibrarySnapshot snapshot)
     : _responses = [snapshot],
       _lastRevision = snapshot.revision,
@@ -2338,7 +3474,64 @@ class _FakeLibraryCatalog implements LibraryCatalog {
   }
 }
 
+class _DeferredUnregisterLibraryCatalog extends _FakeLibraryCatalog {
+  _DeferredUnregisterLibraryCatalog(super.snapshot);
+
+  final Completer<bool> _removal = Completer<bool>();
+
+  @override
+  Future<bool> unregisterRoot(String rootId) {
+    unregisteredRootIds.add(rootId);
+    return _removal.future;
+  }
+
+  void completeRemoval(bool removed) {
+    _removal.complete(removed);
+  }
+}
+
+class _DeferredTimelineLibraryCatalog extends _FakeLibraryCatalog {
+  _DeferredTimelineLibraryCatalog(super.snapshot);
+
+  final Completer<LibraryTimeline> _timeline = Completer<LibraryTimeline>();
+  var timelineLoadCount = 0;
+
+  @override
+  Future<LibraryTimeline> loadTimeline(LibraryGalleryQuery query) {
+    timelineLoadCount += 1;
+    return _timeline.future;
+  }
+
+  void completeTimeline(LibraryTimeline timeline) {
+    _timeline.complete(timeline);
+  }
+}
+
+class _FailThenSucceedUnregisterLibraryCatalog extends _FakeLibraryCatalog {
+  _FailThenSucceedUnregisterLibraryCatalog(super.snapshot);
+
+  var _attempts = 0;
+
+  @override
+  Future<bool> unregisterRoot(String rootId) async {
+    unregisteredRootIds.add(rootId);
+    _attempts += 1;
+    if (_attempts == 1) {
+      throw const LibraryCatalogFailure(
+        code: "injected_root_unregister_failure",
+        message: "Injected root unregister failure",
+      );
+    }
+    return true;
+  }
+}
+
 class _DelayedDoneLibraryScanner implements LibraryScanner {
+  @override
+  Future<void> cancelRetainedScan(String scanId) async {
+    throw StateError("This fixture has no retained cancellation command");
+  }
+
   final List<StreamController<LibraryScanUpdate>> _controllers = [];
   final List<String> startedScanIds = [];
 
@@ -2369,6 +3562,9 @@ class _DelayedDoneLibraryScanner implements LibraryScanner {
   bool pause(String scanId) => true;
 
   @override
+  bool suspend(String scanId) => true;
+
+  @override
   Stream<LibraryScanUpdate> scan({
     required String scanId,
     required String rootPath,
@@ -2381,6 +3577,23 @@ class _DelayedDoneLibraryScanner implements LibraryScanner {
     _controllers.add(controller);
     return controller.stream;
   }
+
+  @override
+  Stream<LibraryScanUpdate> resume({
+    required String scanId,
+    required String rootPath,
+    required int? itemLimit,
+    required int? entryLimit,
+    required int previewEdge,
+  }) {
+    return scan(
+      scanId: scanId,
+      rootPath: rootPath,
+      itemLimit: itemLimit,
+      entryLimit: entryLimit,
+      previewEdge: previewEdge,
+    );
+  }
 }
 
 class _FakeLibraryPreviewer implements LibraryPreviewer {
@@ -2392,12 +3605,16 @@ class _FakeLibraryPreviewer implements LibraryPreviewer {
   @override
   Future<LibraryAsset> materialize({
     required String locationId,
+    required String expectedRootId,
+    required String expectedScanId,
+    required LibrarySourceRevisionEvidence? expectedSourceRevision,
+    required BigInt expectedSourceGeneration,
     required int previewEdge,
-    bool retry = false,
+    bool force = false,
     Iterable<String> protectedLocationIds = const [],
   }) {
     requests.add(locationId);
-    retryRequests.add(retry);
+    retryRequests.add(force);
     previewEdges.add(previewEdge);
     final completer = Completer<LibraryAsset>();
     _attempts.putIfAbsent(locationId, () => []).add(completer);

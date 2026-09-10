@@ -1,5 +1,25 @@
 abstract final class LibraryStrings {
   static const appName = "Ame";
+  static const synchronized = "已同步";
+  static const synchronizing = "正在更新图库";
+  static const needsReconciliation = "更新受阻";
+  static const continuityBaselineRequired = "正在建立连续更新";
+  static const continuityCatchingUp = "正在补齐近期变化";
+  static const continuityRecoveryRequired = "需要重新核对";
+  static const continuityLiveOnly = "仅在 Ame 打开时自动更新";
+  static const continuityUnavailable = "连续更新暂不可用";
+  static const continuityLiveOnlyDetail = "关闭 Ame 期间发生的变化需要手动更新图库。";
+  static const sourceUnavailable = "目录不可用";
+  static const sourceAvailable = "可用";
+  static const sourceMissing = "文件夹不存在";
+  static const sourceInaccessible = "无法访问";
+  static const sourceOffline = "当前离线";
+  static const sourceUnknown = "状态未知";
+  static const addingSource = "正在添加";
+  static const firstImportIncomplete = "尚未完成添加";
+  static const firstImportAwaitingUser = "等待手动继续或重新添加";
+  static const firstImportRequiredDetail =
+      "此文件夹尚未完成首次添加，Ame 不会自动继续扫描。有可恢复任务时，请在任务面板点击“继续”；已取消的任务需要重新添加文件夹。";
   static const library = "图库";
   static const import = "导入";
   static const searchHint = "在图库中搜索";
@@ -29,6 +49,13 @@ abstract final class LibraryStrings {
   static const openInExplorer = "在文件资源管理器中打开";
   static const updateLibrary = "更新图库";
   static const removeFromAme = "从 Ame 中移除";
+  static const removeFolderFailed = "移除文件夹失败";
+  static const removedFolderRefreshFailed = "文件夹已移除，刷新显示失败";
+  static String refreshingAfterRemoval(String sourceName) =>
+      "已从 Ame 中移除“$sourceName”，正在刷新显示…";
+  static const removingFolderDetail = "正在清理该文件夹的图库记录。磁盘上的文件夹和图片不会被删除或修改。";
+  static const refreshingAfterRemovalDetail =
+      "移除已经完成。正在加载最新图库显示，磁盘上的文件夹和图片未被删除或修改。";
   static const expandFolder = "展开文件夹";
   static const collapseFolder = "折叠文件夹";
   static const loadingFolders = "正在加载文件夹…";
@@ -36,14 +63,58 @@ abstract final class LibraryStrings {
   static const retryFolders = "重新加载文件夹";
   static const unknownCaptureDate = "拍摄日期未知";
   static const retryPreview = "重试预览";
+  static const retryingPreview = "正在重试预览…";
+
+  static String removingFromAme(String sourceName) =>
+      "正在从 Ame 中移除“$sourceName”…";
+  static const previewUpdateRequired = "请先更新图库，再重试预览。";
   static const retryLoading = "重试加载";
   static const noFolder = "还没有添加文件夹";
   static const emptyLibraryTitle = "建立你的图片图库";
   static const emptyLibraryBody = "选择要在 Ame 中一起浏览的文件夹。";
   static const updatingLibrary = "正在更新图库…";
+  static const synchronizationRefreshFailureTitle = "无法显示最新图库内容";
+  static const synchronizationRefreshFailureMessage = "图库已经发生变化，但当前页面刷新失败。";
+  static const synchronizationSourceUnhealthy = "目录监控已中断，Ame 将重新核对可能遗漏的变化。";
+  static const synchronizationEvidenceGap = "检测到无法确认的文件变化，Ame 正在自动重新核对该目录。";
+  static const synchronizationCapacityExceeded = "短时间内的文件变化过多，Ame 正在自动重新核对该目录。";
+  static const synchronizationMonitoringAccessDenied =
+      "Windows 拒绝了目录监控访问。Ame 会保留上次可信内容，并在恢复后重新核对。";
+  static const synchronizationMonitoringPathUnavailable =
+      "监控中的目录暂时不可用。Ame 会保留上次可信内容，并在目录恢复后重新核对。";
+  static const synchronizationMonitoringCapacityExceeded =
+      "短时间内的文件变化超出监控可确认范围，Ame 正在重新核对该目录。";
+  static const synchronizationMonitoringEventIncomplete =
+      "Windows 提供的文件变化信息不完整，Ame 正在重新核对可能受影响的内容。";
+  static const synchronizationMonitoringFailed =
+      "Windows 目录监控发生错误。Ame 正在重启监控，并会重新核对可能遗漏的变化。";
+  static const synchronizationRecoveryFailed = "图库重新核对未能完成，Ame 将自动重试。";
+  static const synchronizationPersistenceFailed = "图库更新记录保存失败，Ame 将自动重试。";
+  static const synchronizationNeedsReconciliation = "Ame 无法证明当前图库与目录完全一致。";
+  static const synchronizationLegacyRecoveryAuthorityMissing =
+      "旧版本留下的核对记录缺少可信授权。请手动更新图库以重新建立连续更新。";
+  static const synchronizationExplicitRecoveryRequired =
+      "此图库包含无法自动确认的历史变化，需要手动更新图库后才能恢复连续更新。";
+  static const synchronizationPhaseWatcherStartup = "启动目录监控";
+  static const synchronizationPhaseInventoryEnumeration = "枚举目录元数据";
+  static const synchronizationPhaseInventoryComparison = "比较目录元数据";
+  static const synchronizationPhaseQueuePublication = "发布图库更新";
+  static const synchronizationPhaseRetryWait = "等待自动重试";
+  static const synchronizationPhaseReconciliation = "核对受影响内容";
+  static const synchronizationPhaseFullScan = "执行全量扫描";
+  static const synchronizationPhaseBlocked = "等待故障恢复";
+  static const synchronizationPhaseSynchronized = "同步完成";
+  static const synchronizationPhaseUnavailable = "等待目录恢复";
+  static const retry = "重试";
   static const noSearchResults = "没有找到匹配的图片";
   static const noSearchResultsHint = "请尝试其他名称或路径。";
   static const noSourceResults = "此文件夹中没有可显示的图片";
   static const noSourceResultsHint = "可以选择其他文件夹或返回全部图库。";
   static const backToLibrary = "返回图库";
+
+  static String synchronizationReconciliationTitle(String rootName) =>
+      "“$rootName”更新受阻";
+
+  static String firstImportRequiredTitle(String rootName) =>
+      "“$rootName”尚未完成添加";
 }

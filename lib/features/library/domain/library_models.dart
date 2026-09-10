@@ -3,12 +3,15 @@ class LibraryAsset {
     required this.assetId,
     required this.locationId,
     required this.rootId,
+    required this.activeScanId,
     required this.sourcePath,
     required this.displayPath,
     required this.relativePath,
     required this.previewPath,
     required this.fileSize,
     required this.modifiedUnixMs,
+    required this.sourceRevision,
+    required this.sourceGeneration,
     required this.width,
     required this.height,
     this.previewStatus = LibraryPreviewStatus.ready,
@@ -24,6 +27,7 @@ class LibraryAsset {
   final String assetId;
   final String locationId;
   final String rootId;
+  final String activeScanId;
   final String sourcePath;
   final String displayPath;
   final String relativePath;
@@ -31,6 +35,8 @@ class LibraryAsset {
   final BigInt fileSize;
   final int? createdUnixMs;
   final int modifiedUnixMs;
+  final LibrarySourceRevisionEvidence? sourceRevision;
+  final BigInt sourceGeneration;
   final int width;
   final int height;
   final LibraryPreviewStatus previewStatus;
@@ -53,6 +59,7 @@ class LibraryAsset {
       assetId: assetId,
       locationId: locationId,
       rootId: rootId,
+      activeScanId: activeScanId,
       sourcePath: sourcePath,
       displayPath: displayPath,
       relativePath: relativePath,
@@ -60,6 +67,8 @@ class LibraryAsset {
       fileSize: fileSize,
       createdUnixMs: createdUnixMs,
       modifiedUnixMs: modifiedUnixMs,
+      sourceRevision: sourceRevision,
+      sourceGeneration: sourceGeneration,
       width: width,
       height: height,
       previewStatus: previewStatus,
@@ -81,6 +90,26 @@ class LibraryFileIdentityEvidence {
 
   final String scheme;
   final String value;
+}
+
+class LibrarySourceRevisionEvidence {
+  const LibrarySourceRevisionEvidence({
+    required this.scheme,
+    required this.value,
+  });
+
+  final String scheme;
+  final String value;
+
+  @override
+  bool operator ==(Object other) {
+    return other is LibrarySourceRevisionEvidence &&
+        other.scheme == scheme &&
+        other.value == value;
+  }
+
+  @override
+  int get hashCode => Object.hash(scheme, value);
 }
 
 enum LibraryPreviewStatus { pending, ready, failed }
