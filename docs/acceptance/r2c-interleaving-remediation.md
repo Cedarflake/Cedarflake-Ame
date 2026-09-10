@@ -22,15 +22,28 @@ signed/installed-service acceptance.
 The active delivery order remains in [the canonical roadmap](../roadmap.md).
 
 The active [controlled closeout cycle](r2c-closeout-cycle.md) freezes 24 variants and records their
-baseline, observation costs and client coverage. Discovery is complete and the single repair batch
-is frozen to the existing blockers below. The concurrent supplement and subsequent bounded P2
-follow-up have stopped at unresolved checkpoints:
+baseline, observation costs and client coverage. The original discovery is complete and the single repair batch
+is frozen to the existing blockers below. The latest direction resumes the remaining functional
+journeys first. C01/C02 remain unresolved final-verification obligations; their current evidence
+does not establish a highest-priority user incident. C01 has potential recovery impact and is not
+classified harmless. C02's known failures are in automation/evidence handling. A reproduced direct
+functional or source-safety failure takes priority immediately. The preceding supplement and P2
+follow-up retain their unresolved checkpoints and consumed experiment limits:
 
 | ID | Scenario / severity | Evidence and owning obligation | Blocked exit |
 | --- | --- | --- | --- |
 | R2C-C01 | UX-07A/B / S1 | Queue-work and retained-proof corrections pass their causal bounds and focused regressions. Current hosted controls and full recovery pass, but the second complete local Daily fails the unchanged 300-second full-recovery bound with 8960/10000 owners completed; authority, final publication and FULL reopen remain incomplete. Both local lifetime controls pass. The P2 follow-up proves future raw output capture, then finds identical plans/work/results for its original versus owner-first SQL projection; no causal correction is supported and conditional Daily is unstarted. Earlier native-retirement and SQL-proof outliers remain unexplained. The cycle record retains exact state, limits of this negative result and the original native-output gap. Further experimentation requires bounded replanning. | Item 2, candidate readiness |
 | R2C-C02 | UX-08B / S1 | The hosted `application-ready` eight-second timeout recurs before stage instrumentation. Instrumented local and hosted ten-phase UIA runs pass, with exact completion and owned-process retirement; the earlier timeout and File.Replace error 1175 remain unexplained. Controlled file-sharing experiments do not reproduce 1175 and reject MoveFileEx as a replacement. Preserve the original protocol, complete whole-window path and deadline; C03 does not establish shared causality. | Item 3, candidate readiness |
 | R2C-C03 | Final-source gate / S1 finding, owner repair verified | The supplement reproduces legacy delete-pending namespace retention under a metadata observer and corrects the native owner. Focused regressions, independent review/recheck, current-source 19-case guardrails, full lint and hosted checks pass. Cleanup preserves the original error and independently retires known resources, with bounded remaining-entry evidence. The second complete local Daily passes this boundary and later fails C01. The original observer remains unidentified; this repair does not explain C02 or make the whole candidate ready. | Owner boundary verified; overall Daily/readiness blocked by C01/C02 |
+
+The [mixed-media observation](r2c-closeout-cycle.md#mixed-large-image-and-historical-date-observation)
+verifies exact 10000-file inventory/source preservation and historical dates, with actual original
+opens spanning twelve dimensions. Its continuation ends at the fixed deadline with coverage gaps;
+it does not establish a new product defect or close C01/C02. A bottom-rail input discrepancy is
+unverified and deferred under UX-08A: the owning boundary is time-rail hit mapping, projection and
+seek/viewport alignment. The current evidence does not distinguish a product failure from tool
+coordinates; require a deterministic reproduction before any correction. The manually added
+non-fixture root in the first catalog is accounted for separately and is not a registration bug.
 
 Current C01 checkpoint `dd3f556` removes the reproduced terminal-history projection/eligibility
 work. All 113 queue cases and ten priority cases pass; the unchanged complete mixed workload

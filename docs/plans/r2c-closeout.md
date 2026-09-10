@@ -1,6 +1,6 @@
 # R2c closeout execution
 
-Status: **P2 follow-up stopped without a causal correction; candidate remains unresolved**.
+Status: **functional-first continuation active; C01/C02 deferred and candidate remains unresolved**.
 
 The [cycle evidence](../acceptance/r2c-closeout-cycle.md) records the frozen source, selected
 variants, execution budgets, findings, and verification. Its status does not accept R2c.
@@ -23,13 +23,139 @@ Daily invocations and both supplement review invocations are consumed. Historica
 invocation counts and active time remain charged. The explicitly approved P2 follow-up below has
 also stopped; no unchanged replay allowance is renewed.
 
-The smallest next scope to decide is C01's remaining P2 completion cost, using the retained failed
-local run and passing hosted run before another experiment. Distinguish cumulative polling and
-worker-progress costs; the current counters overlap and cannot be summed as independent time.
-Any new execution needs an explicit bounded diagnostic hypothesis, complete native-output capture,
-and revised review/final-gate allowances inside the original phase ceilings. It must preserve the
-existing workloads, deadlines and source-identity proofs, and retain C02's unexplained UIA/1175
-boundary. The approved follow-up below retains its executed scope and stopping result.
+The latest instruction changes execution order: complete directly user-facing functional work
+before returning to C01/C02's remaining validation obligations. It supersedes the earlier requirement
+that item 2 exit before item 3 starts, and the earlier stop on all work after the P2 experiment.
+It does not authorize another C01/C02 experiment or turn their failed gates into passing results.
+
+### Functional-first continuation
+
+Treat the requested highest-priority P0 defects separately from synchronization's P0/P1/P2 lanes.
+Source/durable-data harm, wrong results, crashes, blocked normal workflows and unusable browsing
+take precedence. C01 retains potential background-recovery impact without a proven current normal-
+use incident; C02 currently has automation/evidence failure evidence without a reproduced ordinary
+user-input defect. Both remain recorded final-verification obligations. Any newly reproduced direct
+impact brings the owning issue forward immediately; deferral is not a severity waiver.
+
+Continue the same 24 variants, using existing passing boundary evidence where source still matches.
+The next connected observation is UX-01C/02B: create a paused first import through the real Rust
+scanner, retire that process, launch the actual Debug client on the same isolated catalog, verify
+paused restoration and usable navigation, and require explicit Continue before publication. Check
+real previews, folder/query navigation and viewer actions while using this same fixture. A completed
+scan that outruns Pause does not count as interrupted-import evidence.
+
+Admit one additional controlled desktop session of at most 30 minutes, with its prepared seed
+process and at most three actual client lifetimes inside the same session deadline. Reuse the
+existing owned-process, Debug-only storage marker and production application entrypoint. Use only
+generated sources and derived storage outside them; no retained-library or Release storage bypass.
+Confirm every owned exit, paused/completed checkpoint, exact counts and fixture-byte integrity.
+Keep builds/tests serial and retain raw output. Do not repeat unrelated passing heavy suites.
+
+Preparation, the bounded observation and result inspection stay inside the original remaining
+discovery allowance (64 active minutes before this continuation); no phase counter resets. At most
+one independent delegate prepares the fixture without running concurrent heavy tools. Repair only
+a reproduced functional defect at its owner, with its focused regression and applicable gates.
+Do not consume the conditional complete Daily for an unrelated observation; final-source readiness
+still requires resolution of C01/C02 and all original acceptance exits. Low-impact and unproved
+tool symptoms are registered and deferred rather than stopping independent functional work.
+
+### Representative mixed-media and historical-date discovery
+
+The latest requested coverage adds a representative workload to UX-03A/04A/05A/08A; it does not
+create more than 24 journey variants or replace their existing interleaving assertions. The earlier
+1x1 PNG session proves only process restoration, explicit continuation and exact publication.
+The existing 10000-file benchmark uses 2x2 PNGs; the large JPEG and seven-format cases remain
+separate adapter evidence. None establishes mixed large-image desktop usability.
+
+Keep the cumulative 16-hour ceiling. Explicitly reallocate 90 minutes from unspent diagnosis/repair
+to discovery: discovery is now at most 330 minutes and diagnosis/repair 390 minutes; triage,
+review and recording retain their original ceilings. This requested extension admits one pass of
+at most 90 active minutes including preparation, delegated work, observation and result analysis.
+It does not renew C01/C02 experiment or Daily allowances. Record actual charges and stop the
+affected lane on its fixed resource/deadline boundary; do not retry until green.
+
+Freeze exactly 10000 independently created source files, 9000 JPEG and 1000 PNG. Each row has
+10 percent PNG. Use three deterministic textured templates per size/format, recording the 72
+templates and repeated-content limitation rather than calling them unique real photographs.
+Do not use hardlinks or preload all decoded images. Every file has a manifest identity, dimensions,
+encoding, source bytes, hash, effective historical date and metadata provenance.
+
+| Dimensions | Files |
+| --- | ---: |
+| 640 x 480 | 700 |
+| 800 x 1200 | 700 |
+| 1024 x 1024 | 600 |
+| 3840 x 2160 | 2000 |
+| 2160 x 3840 | 1500 |
+| 4000 x 3000 | 1500 |
+| 7680 x 4320 | 1000 |
+| 4320 x 7680 | 1000 |
+| 6000 x 4000 | 500 |
+| 12000 x 1500 | 150 |
+| 1500 x 12000 | 150 |
+| 8000 x 8000 | 200 |
+
+Distribute dates across January 2010 through September 2026, with multiple days per month and
+dimensions interleaved across dates. Cover EXIF original-capture dates on a JPEG subset and
+filesystem-date fallback on other files. ADR 0008 selects creation time before modification time
+when capture evidence is absent. During fixture preparation, set non-EXIF creation time and mtime
+to the planned historical date; keeping only an old mtime with a new creation time would not
+exercise historical default groups. For the EXIF subset, give source files recent copy-time
+creation and modification dates distinct from capture time, then verify that capture-time ordering uses the owning metadata
+contract. Compute expected year/month/day counts from the fixture manifest before import; current
+date, copy order or an observed UI count is not the independent oracle. Unsupported fixture
+construction must be reported before execution, never silently replaced with one common date.
+
+Use the existing Debug-only isolated-storage client and owned-process boundary with real Rust
+catalog, preview and viewer adapters. No retained roots, user catalog, source hydration, signing,
+installed-service changes, new dependency, or Release storage bypass is included. Data stays in a
+fresh GUID fixture outside all original source trees. No source mutation is permitted after the
+fixture and expected-date manifest are frozen; stimulus files for synchronization are prepared
+separately and recorded before they are intentionally introduced.
+
+Resource limits: require at least 64 GiB free on the fixture volume, 3 GiB available physical
+memory before generation and 4 GiB before client observation. The initial combined 6 GiB preflight
+refuses execution when the workstation has approximately 5 GiB available; no workload runs in that
+attempt. Separate the serial phases with stricter process ceilings: generation at most 1 GiB and
+the client at most 2 GiB, each preserving the 2 GiB system reserve. This changes no source count,
+image size or existing gate. Cap generated source storage at 24 GiB, template storage at 2 GiB,
+generation at 900 seconds, and the one desktop session at 30 minutes. Retain the existing owned
+Job and repository lock, raw stdout/stderr and exact executable/DLL/kernel hashes. Observe the
+client's working set and private memory; stop its owned process on more than 2 GiB, available
+system memory below 2 GiB, a crash, or the session deadline. A limit breach is a failed observation,
+not authority to shrink the corpus, hide evidence or raise the threshold. Logs remain bounded.
+
+Execute one cold import through the real picker; require exact completed inventory, no unpublished
+partial replacement and truthful per-file issues. Observe cold first-screen demand, forward/reverse
+scrolling, distant year/month jumps, at least 12 large-image opens spanning every dimension, rapid
+viewer direction changes and return anchors, then repeat the observed pages warm. Check root,
+search and chronology counts against the manifest. Include one bounded generated-source update
+during browsing if the earlier observations remain safe; isolate this stimulus from byte-integrity
+proof. Record visible failures, responsiveness, preview convergence and memory, with timestamps.
+Debug and computer-use timings are diagnostic observations, not Release frame-rate acceptance.
+
+Exit requires preserved raw failures, exact source-byte integrity, metadata/date oracles, owned
+retirement and a disposition for each observation. Bring a reproduced blocked or misleading core
+workflow forward for an owning-layer correction. Tool-only, cosmetic and unproved symptoms remain
+registered for final work. An incomplete observation remains a coverage gap. Do not call all R2c
+accepted, skip the Release/client requirements or replace C01/C02 with this workload.
+
+The 2026-09-10 continuation after the account-quota interruption admits one additional client
+lifetime of at most 20 minutes to complete the unfinished observations. Charge its preparation,
+observation and analysis to the same 90-minute mixed-media allowance and 330-minute discovery
+ceiling; retain the first lifetime and its wall time rather than resetting either counter. The
+first catalog subsequently contains an additional non-fixture root and is preserved without
+relaunch. Reuse the unchanged frozen 10000 source files with fresh GUID-isolated derived storage;
+repeat import only to establish that uncontaminated catalog. Keep all dimensions, counts, date
+oracles and memory limits. Record the interrupted action as unexecuted and the additional-root
+provenance separately; no real-root reads are admitted by this continuation.
+
+Both mixed-media lifetimes have ended. The first is interrupted by tool quota; the continuation
+reaches its fixed parent deadline. Preserve their distinct process receipts and the original
+additional-root oracle failure. The resumed exact source/catalog/date oracle passes and actual
+viewer observations span all twelve dimensions, but unfinished client observations remain gaps
+in the cycle record. The 90-minute mixed-media discovery allowance is consumed. No additional
+client lifetime, higher deadline or unchanged final-gate replay is admitted by this result.
 
 ### Approved P2 completion follow-up — unresolved result
 

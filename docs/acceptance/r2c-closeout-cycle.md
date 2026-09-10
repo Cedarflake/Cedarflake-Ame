@@ -1,6 +1,6 @@
 # R2c controlled closeout cycle
 
-Status: P2 follow-up stopped without causal correction; local Daily failure remains unresolved.
+Status: functional-first continuation active; C01/C02 and local Daily failure remain unresolved.
 
 Current implementation checkpoints: `d91580d` adds the connected root-interleaving regressions;
 `dd3f556` contains the queue-readiness correction, work bounds and observation measurements;
@@ -19,6 +19,211 @@ This record implements the [bounded execution plan](../plans/r2c-closeout.md). T
 [roadmap](../roadmap.md) retains stage and queue authority. Findings belong in the existing
 [interleaving ledger](r2c-interleaving-remediation.md); this record maps the fixed journeys to
 evidence and records execution budgets rather than introducing another issue backlog.
+
+## Functional-first continuation
+
+The current instruction authorizes advancing the directly user-facing frozen journeys while
+registering C01/C02 for final verification. Start from clean `37c0928` on `codex/r2c`; no code
+correction or failed-gate waiver is inferred from this priority change. The execution plan owns
+the additional bounded client observation. Its first target is real-process paused-import
+restoration with usable browsing and explicit continuation, using generated fixtures only.
+Current charges before this continuation remain discovery 176, triage 54, diagnosis/repair 306,
+review 23 and recording 42 active minutes.
+
+### Paused-import process observation
+
+The controlled session runs from 15:57:00 to 16:09:35 UTC, inside its 30-minute deadline, on
+unchanged product source `37c0928`. A real Rust scan completes 32 one-pixel PNGs in root B, then
+pauses the first import of root A's 1024 PNGs after Started. The seed confirms 32 ready previews,
+unpublished A, a durable paused checkpoint, drained scan streams and stopped synchronization.
+Seed PID 86476 exits zero and its owned Job closes without cleanup failure.
+
+The first actual client is launched in the default execution sandbox: logs preserve the paused
+state but computer use cannot discover its window. Its exact owned PID 21460 is intentionally
+terminated; exit -1 and successful Job closure are retained as an unsuccessful desktop attempt.
+Launching the same artifacts on the interactive desktop resolves discoverability. PID 93884 shows
+32 items and a paused task, supports Settings, root navigation, original-image open, Right and Esc,
+then exits normally without Continue. PID 99672 reopens the same catalog with the task still paused
+and exactly 32 visible items. Explicit Continue completes all 1024 entries; the gallery shows 1056
+and root A shows 1024. Both roots report synchronized and the second client exits normally.
+The two interactive process receipts have zero exit, retired processes, closed Jobs and no cleanup
+errors. This strengthens UX-01C and the interruption/continuation path; it does not prove UX-01B's
+pending-poll shutdown or UX-02B's pre-registration Pause/Cancel race.
+
+Source manifest verification after all processes checks all 1056 files byte for byte. Read-only
+SQLite inspection reports integrity `ok`, no foreign-key violation, both published scans completed,
+counts 32/1024 and no unfinished scan. Ninety-two previews are ready and 964 unrequested previews
+remain pending; no full-library decode is claimed. SQLite integrity is not application FULL-reopen
+validation. A source timestamp-preservation assertion is not inferred from the byte-only manifest.
+
+Exact Debug SHA256 identities are EXE
+`DEE7E6CD4E0A621D310ED75FE7165C366556855ED473D357DE30A89EB6F510FA`, DLL
+`6A6716C7CA02703CDC5670B1CF9912257EF6011B7A45450FE869903A7F75A632`, and Dart kernel
+`9B42FEDD8AA98BEB15D247F8FDEDDCC519DFED133EACB5037137C8621D747BBC`.
+Ignored evidence lives in `build/diagnostics/r2c-functional-result.json`,
+`r2c-functional-artifacts.json`, `r2c-functional-session.json`, the prepared fixture's seed manifest
+and four process receipts. The two serial builds pass with complete raw output in their GUID
+`r2c-p2-raw-*` directories (51672 ms and 27153 ms, no stderr or cleanup failures).
+
+One accessibility element index expires before input. Screenshot-coordinate actions work; the
+automation tree can lag the changed screenshot. Text transport does not inject `1023`, whereas a
+physical `1` key enters text and Return submits it. All 1056 matches are consistent with the
+current absolute-path search contract because the fixture parent contains `1`; this is not an
+exact filename-filter proof. These tool observations do not establish an ordinary-input defect
+or close C02's independent whole-window gate.
+
+The fixture is deliberately 1x1 and monochrome: it provides lifecycle/count evidence, no useful
+mixed-resolution, historical-date, realistic decode-cost or Release-performance conclusion. The
+latest request adds that missing coverage through the execution plan's representative workload.
+Charge 55 active discovery minutes conservatively for this continuation and coverage preparation,
+including the seed delegate's 14 minutes and four-minute existing-workload inspection. Discovery
+is now 231 minutes; no diagnosis/repair or final Daily was consumed. Subsequent representative
+work is charged separately under the explicitly revised phase allocation.
+
+### Mixed large-image and historical-date observation
+
+The frozen source contains exactly 10000 independent files, 9000 JPEG and 1000 PNG, with the
+execution plan's twelve dimension quotas, including 200 images at 8000 x 8000. Seventy-two textured
+templates repeat across the files; this is not 10000 unique photographs. Total source bytes are
+10921494393. The manifest covers 201 months from 2010-01 through 2026-09 and 585 effective dates.
+Three thousand JPEGs carry original EXIF capture time 2012-03-04 09:10:11 with recent filesystem
+dates. The remaining files have historical creation and modification times, matching ADR 0008's
+creation-before-modification fallback. Expected path sets, dimensions, bytes, file identities,
+timestamps and year/month/day counts are frozen before import.
+
+The existing dependency stack builds the temporary generator in 135937 ms and generates/verifies
+the complete corpus in 151884 ms. The generator's kernel peak working set is 212029440 bytes,
+below its 1 GiB ceiling. Its post-generation full reread proves source BLAKE3 and timestamps;
+the independent oracle freezes SHA256 evidence. Continuous system-available-memory evidence was
+not captured during generation; preflight and post-generation samples cannot prove that entire
+interval's 2 GiB reserve. No generator rerun is used to replace that missing evidence.
+Initial resource refusals, raw build/generation output and the archived generator remain in
+ignored diagnostics. No dependency or product source change is introduced.
+
+The first actual client starts at 16:41:17 UTC on 2026-09-09, using the unchanged Debug artifact
+identities above. Import visibly completes with 10000 images and real first-screen previews.
+Distant timeline navigation loads historical previews without another scroll; a 1024-square image
+opens and returns to its gallery anchor. A bottom-rail click/drag discrepancy remains unclassified.
+The 8000-square folder shows 200 images, but the attempted image-open action is rejected by the
+tool's account-usage limit and is not executed. Later state is not attributed to those actions.
+
+On resumption, the process is gone. Its receipt records exit zero, 1425144 ms lifetime, retired
+process and closed Job with no cleanup failure; the cause of that unobserved exit is not inferred.
+The observer records 3989 samples, kernel peak working set 486322176 bytes, kernel peak commit
+591966208 bytes and minimum sampled available memory 4212379648 bytes, without a limit breach.
+Observation begins before import, after initial startup; it does not prove a continuously sampled
+system reserve before that observer began.
+
+The retained catalog subsequently contains another non-fixture root, with 48514 published items.
+The additional root was manually imported during the interruption, as confirmed on resumption;
+it is not an unexplained program registration. The complete original-catalog oracle correctly fails
+the exact path-set/count/scan assertions: combined count is 58514. All frozen 10000 source files
+still match byte SHA256, size, creation/modification times and physical file identity. The fixture
+date counts match, SQLite integrity is `ok` and no foreign-key violations are observed. This is
+not an uncontaminated workload pass, source-safety proof for the additional root, or real-library
+acceptance. Its private catalog/logs remain ignored and are not relaunched for continuation.
+
+The 2026-09-10 request resumes only unfinished observations in a new isolated catalog, reusing
+the frozen sources and unchanged artifacts. The one additional lifetime is limited to 20 minutes
+with the original memory/count/dimension limits. Import repetition establishes uncontaminated
+derived storage rather than replacing the failed original oracle. The additional root is never
+opened by the resumed client. Result analysis and all delegated preparation remain charged to
+the existing mixed-media allowance; no C01/C02 or complete-Daily allowance is renewed.
+
+The resumed client runs from 00:51:42 to 01:11:42 UTC on 2026-09-10. A real picker import
+again visibly publishes exactly 10000 images. The following original-image observations cover
+all twelve dimensions across the two lifetimes; each completed open shows the correct image
+identity and textured pixels after loading, followed by Escape back to its folder gallery.
+
+| Dimensions | Folder count | Observed original | Lifetime |
+| --- | ---: | --- | --- |
+| 640 x 480 | 700 | `03452-640x480-0328.jpg` | Resumed |
+| 800 x 1200 | 700 | `03435-800x1200-0326.jpg` | Resumed |
+| 1024 x 1024 | 600 | `03436-1024x1024-0326.jpg` | First |
+| 3840 x 2160 | 2000 | `06890-3840x2160-0778.jpg` | Resumed |
+| 2160 x 3840 | 1500 | `06891-2160x3840-0778.jpg` | Resumed |
+| 4000 x 3000 | 1500 | `06892-4000x3000-0778.jpg` | Resumed |
+| 7680 x 4320 | 1000 | `06893-7680x4320-0778.jpg` | Resumed |
+| 4320 x 7680 | 1000 | `06884-4320x7680-0776.jpg` | Resumed |
+| 6000 x 4000 | 500 | `03442-6000x4000-0326.jpg` | Resumed |
+| 12000 x 1500 | 150 | `01797-12000x1500-0149.jpg` | Resumed |
+| 1500 x 12000 | 150 | `01798-1500x12000-0149.jpg` | Resumed |
+| 8000 x 8000 | 200 | `02279-8000x8000-0197.jpg` | Resumed |
+
+In the 8000-square viewer, Right, Right and Left during loading settle on the second item with
+the matching original pixels; Escape preserves the gallery viewport. Folder returns display
+their warm previews. These are actual Debug client observations with real media adapters, not
+Release latency/FPS measurements or a full-library decode. All explicitly verified originals
+above are JPEG; PNG original-viewer coverage is not inferred from PNG catalog or gallery entries.
+
+The final sort menu opens, but the attempt to select modification-date ordering reaches the fixed
+parent deadline. Input is rejected after the process has retired. The original process receipt
+is a timeout failure at 1200139 ms, with the process retired, Job closed and no cleanup failure;
+stderr is empty. This is owned deadline retirement, not evidence of an application crash or
+normal user-initiated shutdown. No further client lifetime replaces this incomplete observation.
+
+The resumed observer records 4401 samples over 1164014 ms, peak working set 946176000 bytes,
+sampled peak private memory 1324380160 bytes, kernel peak commit 1409355776 bytes, and minimum
+sampled available system memory 4874543104 bytes. No observed memory limit is breached. The
+observer starts about 36 seconds after launch and before import; kernel process peaks cover the
+process lifetime, whereas continuous available-memory evidence excludes that startup interval.
+
+After owned retirement, the full independent oracle passes: all 10000 source SHA256 hashes,
+sizes, creation/modification times and physical identities match the frozen manifest; the catalog
+has exactly the expected path set without duplicates, matching dimensions/bytes/capture and
+fallback dates, and all expected day counts. Its one scan is completed with 10000 items and zero
+issues; SQLite integrity is `ok` and foreign-key violations are empty. There are 120 ready previews
+and 9880 pending previews; the latter count does not establish visible loading failures. This
+read-only SQLite check does not replace application FULL reopen after interrupted recovery.
+
+The pass strengthens mixed-size import, preview/viewer and historical-metadata evidence without
+closing the complete mixed-media observation. Remaining gaps are alternate-date sorting, exact
+search results, a separately repeated warm-page sequence, an intentional live update during
+browsing, the unexplained bottom-rail input discrepancy, and normal shutdown for the resumed
+lifetime. Frozen sources are unchanged; no live-update stimulus was introduced. Real Release
+decoding/input, the other frozen transitions, C01/C02 and external acceptance remain required.
+No new product root-cause family is admitted solely from these incomplete or tool observations.
+
+One subsequent check runs the two existing `annotated_time_rail_test.dart` and
+`library_time_navigation_test.dart` suites serially through `quality_test_flutter.ps1 -NoPub`.
+All 9 rail and 11 navigation tests pass, including bottom-of-unloaded-content addressing,
+displaced-year marker mapping, query-wide row alignment and stale-seek suppression. These fixed
+fixtures do not reproduce the desktop's exact 201-month distribution and pointer coordinates,
+so their passing result does not resolve that unclassified desktop symptom. No test or product
+behavior is changed. Raw output is `build/diagnostics/r2c-mixed-timeline-tests.log`.
+
+Conservatively charge the mixed-media allowance's full 90 active discovery minutes, including
+fixture/oracle preparation, both lifetimes' active observation, resumption and result analysis,
+and 16 delegated preparation/inspection minutes. Quota interruption and unattended process time
+do not become active engineering. Discovery reaches 321/330 minutes; triage remains 54/60,
+diagnosis/repair 306/390, review 23/120 and recording 42/60 before this checkpoint's final recording.
+The summed charge is 746/960 minutes. The first 1425144 ms and resumed 1200139 ms client lifetimes,
+build/generation runtimes and oracle/test waits remain separately recorded above or in raw output.
+The mixed-media allowance and both admitted client lifetimes are consumed; unused phase time
+does not authorize another client attempt or renew any failed gate's replay allowance.
+
+The subsequent existing-test selection and result inspection add five discovery minutes,
+bringing discovery to 326/330. Final evidence/document recording adds ten minutes, bringing
+recording to 52/60. Before the scoped evidence review, the cumulative charge is 761/960 minutes.
+These charges do not create another mixed-media pass. The original budget table later in this
+record is historical; this continuation and its revised phase allocation are the current ledger.
+
+The scoped evidence review finds no mismatch among the resumed oracle, resource/process receipts
+and the three owning records, and no incomplete observation presented as a pass. Charge one review
+minute: review is now 24/120 and the cumulative ledger is 762/960 active minutes. This is a check
+of the new evidence record, not another product audit or acceptance waiver. Owned documentation
+links and `git diff --check` pass; unchanged product source does not require another heavy gate.
+
+The resumed oracle SHA256 is
+`3F38AFE471A5F19796A77FF17E9E231CDD1885B01D97AC14D419AA063FE0071A`;
+the memory receipt is `9C36D70485E5BCC9F5DA7B7EF85A6DA90BC0E3DB471B7405C9538202DC51E211`,
+and the failed deadline receipt is
+`C3EFCF4698E9B2B8905645E5CA7AB62BA1CED438E12F8E4F48CE04665B429060`.
+
+Ignored provenance is `build/diagnostics/r2c-mixed-generation.json`, `r2c-mixed-session.json`,
+`r2c-mixed-resume-session.json`, both GUID fixture roots' process/memory receipts and oracle JSON,
+and `build/diagnostics/r2c_mixed_fixture.rs`. The oracle additionally rejects duplicate/missing
+catalog paths, unhealthy databases and unfinished scans; mere total-count agreement cannot pass.
 
 ## Approved P2 follow-up
 

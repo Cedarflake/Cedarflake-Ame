@@ -66,11 +66,13 @@ correction. A documentation reorganization does not change any of these acceptan
 
 ## Current execution queue
 
-The 2026-09-09 direction requires one organized discovery pass across items 2–3 **before further
-product fixes**. Item 2 remains active. The concurrent repair supplement has reached an unresolved
-checkpoint: owned-fixture retirement is repaired and reviewed, but the second complete local Daily
-fails full recovery despite passing hosted checks. The bounded P2 follow-up has stopped without
-a causal correction; C01, C02 and client blockers remain open. Use the complete
+The current 2026-09-09 direction prioritizes defects that directly impair functions and user
+experience. Item 3 is active for the remaining frozen client journeys, including mixed-size,
+large-image and historical-date coverage requested for realistic client behavior. C01's mixed-load recovery
+failure and C02's automation/evidence failures are recorded for final verification; their current
+evidence does not establish a highest-priority user incident. Deferral changes execution order,
+not their unresolved acceptance status. Source/durable-data harm or reproduced blocked, misleading
+or unusable core behavior takes immediate priority. Use the complete
 [R2c closeout execution plan](plans/r2c-closeout.md) for scenario selection, investigation budgets,
 repair admission, review, verification, stopping rules, and safety cautions.
 
@@ -79,7 +81,7 @@ repair admission, review, verification, stopping rules, and safety cautions.
    The local lifecycle, rollback, stale-execution, complete recovery, reopen, and independent-review
    checkpoint is recorded in the interleaving ledger. Final-source and client acceptance remain
    owned by items 3–4; do not reimplement this completed local prerequisite without new evidence.
-2. **Active — mixed-load convergence and latency.** Diagnose the recorded catalog-open,
+2. **Deferred until functional work is complete — mixed-load convergence and latency.** Diagnose the recorded catalog-open,
    observation, publication, and retirement costs through their owning operations. Preserve the
    original 25 P0 samples, P95 at most one second, all 2048 P1 candidates, 10000 P2 source entries,
    4095-entry logical page, and existing deadlines. Exit requires complete P2 results, closing
@@ -87,7 +89,7 @@ repair admission, review, verification, stopping rules, and safety cautions.
    together with causal correction and the required controlled/hosted latency evidence. Neither
    a first page, diagnostic instrumentation, a later isolated pass, nor a preceding green revision
    closes a failed gate. Historical unexplained attribution stays explicit in the evidence ledger.
-3. **Queued — accumulated workflow and Windows client verification.** Cover import/publication,
+3. **Active — functional workflows and Windows client verification.** Cover import/publication,
    interruption/continuation, query/folder consistency, previews/viewer, multi-root update/removal,
    cleanup/registration overlap, and direct navigation/feedback using the frozen eight-scenario
    matrix. Add negative cases for uncovered transitions and preserve the original ten-phase local
@@ -100,7 +102,7 @@ repair admission, review, verification, stopping rules, and safety cautions.
    invalidate affected evidence and return to their owning queue item. Documentation alone does
    not require another heavy product gate. No known core-workflow S0/S1 may be waived for readiness.
 
-The execution plan retains the **consumed supplement and unresolved P2 follow-up** without
+The execution plan retains the **functional-first continuation, consumed supplement and unresolved P2 follow-up** without
 discarding prior local and hosted failures. Its scope is eight journeys with at most
 three variants each, one repair batch of at most three root-cause families, and a 16-hour cumulative
 active-engineering ceiling. Tool runtimes remain separately bounded and recorded. It permits one
