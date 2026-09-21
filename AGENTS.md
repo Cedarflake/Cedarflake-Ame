@@ -4,153 +4,86 @@ Status: binding repository instructions
 
 ## 1. Purpose and document boundaries
 
-This file defines durable project rules for agents and contributors. It owns:
+This contract owns durable engineering, architecture, dependency, data-safety, verification, and Git
+rules, including continuity across sessions. Change it only for a project-wide constraint, never
+for a temporary implementation choice, milestone, schedule, experiment, priority, or status diary.
 
-- project-wide engineering standards;
-- architecture and dependency boundaries;
-- data, filesystem, and media safety rules;
-- testing, verification, documentation, and Git discipline;
-- constraints that must survive session changes and context compaction.
+[docs/roadmap.md](docs/roadmap.md) is the sole delivery plan: stage order, scope, blockers,
+decomposition, and exit decisions. After recovering the relevant original conversation, read it
+completely before a new project session, resumed material work, stage planning/status, or delegation.
+Read its active execution plan before executing that scope. If unavailable, report the exact gap
+before changing scope/order. Plans cannot override current user instructions, this contract,
+accepted ADRs, or verified implementation, nor maintain competing acceptance status.
 
-This file must not contain a product roadmap. Do not record milestones, feature order, schedules,
-temporary priorities, completion percentages, active experiments, or current implementation status
-here. Delivery plans belong in a separate roadmap document. Accepted technical decisions belong in
-architecture decision records. Current implementation status is established from the working tree
-and verification evidence.
+Stable requirements belong in `docs/product`, scoped execution in `docs/plans`, decisions in
+`docs/architecture`, and verification/provenance in `docs/acceptance`. The roadmap links these owners;
+it must not copy their architecture, transcripts, or implementation diaries. Current status requires
+live source and evidence.
 
-The canonical active delivery plan is the repository-owned `docs/roadmap.md`.
-This relative path is a discovery pointer, not roadmap content. Before planning a stage, reporting roadmap
-status, resuming material product work after compaction, starting a new project session, or
-delegating product work, read that file completely after recovering the latest relevant original
-conversation. Do not create a competing roadmap copy. If the file is unavailable, report the exact
-continuity gap before changing product scope or stage order. The roadmap remains lower authority
-than the user's current instruction, this contract, accepted ADRs, and verified live implementation.
-
-Keep the roadmap focused on stage order, current scope, blockers, required decomposition, and exit
-decisions. Stable product requirements belong in `docs/product`, detailed scoped execution in
-`docs/plans`, and verification requirements, results, and historical provenance in `docs/acceptance`.
-Before executing a roadmap scope, read its linked active execution plan as well. That plan is
-subordinate to the roadmap and must not maintain a competing stage order or acceptance status.
-Do not append implementation diaries, test transcripts, or repeated architecture text to the roadmap.
-
-Tracked files refer to the two real large-library roots only as `local-primary` and
-`cloud-primary`. Their machine-specific paths belong in the Git-ignored
-`.agents/local-context.toml`, whose tracked shape is documented by
-`.agents/local-context.example.toml`. When a task requires real-root discovery, read the local
-mapping if it exists, but never copy its paths, account labels, or machine identity into tracked
-files, test snapshots, logs intended for commit, commit messages, or user-facing documentation.
-The mapping is discovery data only: its presence does not grant source mutation, cloud hydration,
-or authorization for a new real-library acceptance run. If it is absent, retain the two logical
-roots in planning and report that exact local execution is unavailable.
-
-Do not turn a temporary implementation choice into a permanent rule in this file. Amend this
-contract only when a project-wide constraint has genuinely changed.
+Use only `local-primary` and `cloud-primary` for real roots in tracked or user-facing documentation,
+snapshots, publishable logs, and commits. For needed discovery read ignored `.agents/local-context.toml`
+(shape: `.agents/local-context.example.toml`); never copy its paths, account labels, or machine identity.
+The mapping grants no source mutation, hydration, or new real-library run. If missing, retain logical
+names and report exact local execution unavailable.
 
 ## 2. Project context
 
-Cedarflake Ame is a local-first desktop application for understanding and organizing very large
-personal image libraries. It is intended to work safely with multiple local and cloud-backed
-directories without requiring a second full copy of the source collection.
+Ame is a local-first desktop workbench for very large image libraries across local/cloud-backed
+directories, without a second full source copy. Ame owns workflow, domain, catalog, orchestration,
+user decisions, and presentation; specialized engines sit behind replaceable adapters.
 
-The project owns its product workflow, domain model, catalog, task orchestration, user decisions,
-and presentation. Mature external libraries may provide specialized capabilities through adapters,
-but Ame must remain maintainable when an engine or UI technology is replaced.
-
-Original media is irreplaceable user data. Cataloging, browsing, and analysis must not modify it.
-Move, copy, rename, recycle-bin, and delete capabilities remain in product scope as later, separate
-workflows with explicit authorization, current-state revalidation, operation history, and recovery
-safeguards where applicable. Convenience never justifies silently changing or downloading source
-files.
+Original media is irreplaceable. Cataloging, browsing, and analysis cannot modify it. Move, copy,
+rename, recycle, and delete remain separate later workflows requiring explicit authorization,
+current-state revalidation, history, and applicable recovery. Never silently change or download sources.
 
 ## 3. Instruction and decision precedence
 
-Apply instructions in this order:
+Precedence: current explicit user instruction, this contract, accepted `docs/architecture` ADRs,
+repository tool/language configuration, active plan/roadmap, then general conventions.
 
-1. the user's current explicit instruction;
-2. this repository contract;
-3. accepted architecture decision records under `docs/architecture/`;
-4. repository-owned tool, formatter, linter, and language configuration;
-5. the current task plan or roadmap;
-6. general conventions.
-
-Before changing code:
-
-1. read this file completely;
-2. inspect the working tree and preserve unrelated or user-owned changes;
-3. read the architecture records that own the affected area;
-4. inspect the live implementation instead of trusting an old status description;
-5. state the smallest complete user-visible outcome being changed;
-6. identify safety, migration, licensing, and performance risks.
-
-If the user instruction, this contract, an architecture record, and the implementation disagree,
-do not resolve a material conflict silently. Report the conflict before changing product scope,
-data safety, licensing, or a stable architecture boundary.
+Before code changes, read this whole contract and owning ADRs, inspect live source/status, preserve
+unrelated/user edits, state the smallest complete user outcome, and identify safety, migration,
+licensing, and performance risks. Report material conflicts before changing scope, data safety,
+licensing, or stable architecture; do not silently choose an old status over live evidence.
 
 ### 3.1 Context compaction and continuity
 
-After context compaction, a resumed task, or a new session, do not continue solely from memory, a
-compressed summary, an old handoff, or an agent's previous narration. These sources are discovery
-hints, not authoritative evidence of the user's latest intent or the implementation state.
+After compaction, resumption, or a new session, query the current task's recent original history
+before material work. Recover explicit decisions, corrections, rejected approaches, and unresolved
+questions; compare them and referenced screenshots with current instructions, live source, owning
+ADRs, and verification. Report conflicts affecting scope, safety, licensing, or architecture.
 
-Before resuming material work:
-
-1. query the current task's most recent available conversation history using the provided task or
-   thread-history tools;
-2. identify the user's latest explicit decisions, corrections, rejected approaches, and unresolved
-   questions from the original messages rather than relying on a paraphrased recollection;
-3. inspect the live working tree, relevant architecture records, and verification results;
-4. compare the recovered conversation with the current files and report any contradiction that
-   would change scope, safety, licensing, or architecture;
-5. resume from verified evidence without recreating completed work or treating an unchecked status
-   claim as completion.
-
-Do not edit product code whose behavior depends on pre-compaction decisions until this history
-check is complete. A compressed summary may help locate evidence, but it is never decision
-authority. Reconcile the original messages with the current explicit instruction, referenced
-screenshots, accepted architecture records, and live working tree before acting.
-
-Prefer recent task-specific history over general memory. If the necessary history is unavailable,
-state the exact gap and request direction before making an irreversible or materially different
-decision. Never fill missing context with a convenient assumption merely to keep work moving.
+Memory, summaries, handoffs, and prior narration are discovery hints, not decision authority or
+completion evidence. Do not edit behavior dependent on earlier decisions until this check is complete
+or recreate completed work. Prefer task-specific originals over general memory. If required history
+is unavailable, state the exact gap and seek direction before an irreversible or materially different
+decision; do not fill it with assumptions.
 
 ## 4. Scope and delivery discipline
 
 - Stay aligned with the user's named problem. Do not add adjacent product ideas without approval.
-- Delegation is demand-driven and quota-aware. The primary agent works directly by default; do not
-  start a group of subagents when a task begins or automatically fan out an audit. Delegate only a
-  concrete, bounded subtask whose independence and expected benefit justify its context and token
-  cost. Simple edits, lookups, and coordination remain with the primary agent.
-- Default to at most one active delegated subtask. Reuse an existing suitable subagent when needed
-  and sequence implementation and independent review. Additional concurrent subagents require an
-  explicit user request; otherwise keep the work serial. Available concurrency slots are not a
-  reason to fill them.
-- Give each delegation only the relevant context and a narrow deliverable. Avoid duplicate
-  investigations, unnecessary full-history copies, idle speculative assignments, and repeated
-  review rounds that have no new evidence to examine.
-- A delegated subagent must complete its assigned work itself and must not create another subagent,
-  child task, peer task, or delegated execution chain unless the user explicitly authorizes nested
-  delegation for the current task. The parent agent must state this restriction in every delegation
-  prompt, keep the active delegation count bounded, and stop replaced or duplicate executors.
-- When a new requirement appears, evaluate the architecture and ownership boundaries first, then implement the smallest maintainable slice; split responsibilities early so a single file does not grow into an unmaintainable monolith.
-- Prefer a small end-to-end vertical slice over disconnected backend, UI, or placeholder work.
-- Do not count navigation shells, mocked data, screenshots, compilation, or code existence as a
-  completed user workflow.
-- Diagnose root causes before replacing architecture or adding compensating layers.
-- Keep changes narrow. Avoid incidental cleanup and unrelated refactors.
-- Do not implement a bug fix by appending issue-specific flags, branches, callbacks, or SQL to an
-  already multi-responsibility owner. Before materially extending a long controller, orchestrator,
-  adapter, migration validator, or workflow script, map the owning invariant and extract the
-  affected responsibility behind a typed, independently testable boundary as part of the change.
-  File length alone does not justify churn, but repeated growth across unrelated responsibilities
-  is a stop signal: preserve a narrow facade, record any larger physical split in the roadmap, and
-  do not add further behavior to that debt area until its boundary is established.
-- Review physical size as well as responsibility count. Record production, inline-test, and
-  dedicated-test line counts for large affected owners; cohesive logic or a large test proportion
-  does not by itself make an oversized file easy to review. Prefer meaningful module and test-suite
-  boundaries, not arbitrary line caps, forwarding fragments, or moving the same monolith unchanged.
-- Fixes must remove the cause at its owning layer and add a focused regression at that boundary.
-  Presentation-only guards, retry loops, status text, or broad catch-and-continue behavior must not
-  compensate for an unresolved application, persistence, or platform invariant.
+- Work directly by default. Delegate only an independent, bounded task whose benefit justifies its
+  context/quota cost; simple edits, lookups, and coordination stay local. No automatic audit fan-out.
+  Default to one active delegate, reuse suitable agents, and sequence implementation/review.
+  Additional concurrent agents require explicit user request, regardless of available slots.
+- Give only relevant context and a narrow deliverable; avoid duplicate investigations, speculative
+  idle work, full-history copies without need, or repeat reviews without new evidence. Every
+  delegation must prohibit nested agents/tasks/execution chains unless explicitly authorized for
+  this task. The parent enforces that limit and stops replaced or duplicate executors.
+- Evaluate ownership before implementing the smallest maintainable end-to-end slice. Shells,
+  mocked data, screenshots, compilation, and code existence do not complete a user workflow.
+- Diagnose the owning cause before architectural replacement or compensating layers. Keep fixes
+  narrow; a readability finding does not authorize unrelated cleanup or a repository-wide refactor.
+- Before extending a multi-responsibility controller, orchestrator, adapter, migration validator,
+  or workflow script, map its invariant and extract the affected responsibility into a typed,
+  independently testable owner. Do not append issue-specific flags, callbacks, branches, or SQL.
+  Preserve a narrow facade; record a larger split in the roadmap and add no further behavior to
+  that debt area until its boundary exists. Repeated unrelated growth is a stop signal.
+- Record production, inline-test, and dedicated-test line counts for large affected owners.
+  Cohesion or many tests does not excuse poor physical reviewability. File length alone does not
+  justify churn, arbitrary caps, forwarding fragments, or relocating the same monolith.
+- Remove the cause at its layer and add a focused boundary regression. Presentation guards, retries,
+  status text, or catch-and-continue must not conceal unresolved application/persistence/platform rules.
 - Make assumptions only when they are reversible and do not materially change product behavior.
 - Unattended work does not broaden authorization or permit external publication, source-media
   mutation, large downloads, or destructive repository operations.
@@ -161,23 +94,17 @@ decision. Never fill missing context with a convenient assumption merely to keep
 
 ### 5.1 Layer ownership
 
-Keep the system separated into these conceptual layers:
+Preserve these owners:
 
-- **Domain**: stable entities, invariants, value objects, and error semantics.
-- **Application**: use cases, task orchestration, transactions, and policy.
-- **Ports**: narrow contracts for persistence, media analysis, filesystem access, and platform
-  capabilities.
-- **Adapters**: replaceable implementations for databases, image libraries, metadata tools,
-  duplicate engines, classifiers, operating-system integration, and desktop bridges.
-- **Presentation**: UI state and rendering based on Ame-owned application contracts.
+- **Domain**: stable entities, invariants, value objects, and errors.
+- **Application**: use cases, orchestration, transactions, and policy.
+- **Ports**: narrow persistence, analysis, filesystem, and platform contracts.
+- **Adapters**: replaceable database, media/metadata, comparison/classification, OS, and bridge engines.
+- **Presentation**: state/rendering through Ame-owned application contracts.
 
-The Rust domain and application core must not depend on a desktop UI framework, generated bridge
-code, webview API, widget toolkit, or operating-system UI API. Platform commands and FFI or IPC
-bindings must remain thin translations around application use cases.
-
-The presentation layer must not own catalog policy, scan directories directly, perform analysis, or
-depend on third-party engine structures. It must not access the catalog database as an informal
-shortcut around the application layer.
+Rust domain/application cannot depend on UI frameworks, generated bridges, webview/widget/OS UI
+APIs. Platform/FFI/IPC commands are thin application translations. Presentation cannot own catalog
+policy, scan directories, perform analysis, use engine structures, or directly access the catalog DB.
 
 ### 5.2 Stable contracts
 
@@ -201,12 +128,10 @@ adapter into Ame's domain, persistence schema, desktop bridge, or presentation c
 
 ### 5.3 Replaceability without speculative abstraction
 
-Create a port where replacement pressure is credible: media decoding, metadata extraction, exact or
-perceptual comparison, classification, embeddings, persistence, and platform integration. Do not
-introduce interfaces around ordinary internal code merely to satisfy a pattern.
-
-An adapter must be independently testable with fixed fixtures and contract tests. Replacing one
-adapter must not require a catalog rewrite or presentation rewrite.
+Create ports for credible replacement pressure: decoding, metadata, exact/perceptual comparison,
+classification, embeddings, persistence, and platform integration. Do not wrap ordinary internal
+code for pattern compliance. Adapters need fixed-fixture contract tests and independent replacement
+without catalog or presentation rewrites.
 
 ### 5.4 Background work
 
@@ -256,56 +181,33 @@ desktop application.
 
 ## 8. Dependency and open-source policy
 
-Ame should integrate mature capabilities instead of reimplementing specialized algorithms without
-a measured reason. A dependency or engine must be evaluated for:
+Ame uses mature specialized capabilities unless measurement justifies reimplementation. Evaluate:
 
-- license and distribution compatibility;
-- real-world adoption and credible maintainership;
-- release activity, issue quality, documentation, and upgrade cost;
-- stable library API or narrow process protocol;
-- Windows support and predictable packaging;
-- behavior with Chinese and long paths, multiple volumes, damaged files, and cloud placeholders;
-- performance, memory use, cache size, cancellation latency, and failure isolation;
-- testability behind an Ame-owned contract.
+- licensing/distribution, adoption, maintainership, releases, issues, documentation, and upgrade cost;
+- stable API/narrow protocol, Windows packaging, Chinese/long paths, volumes, damaged/cloud files;
+- performance, memory/cache bounds, cancellation latency, failure isolation, and contract testability.
 
-GitHub stars alone are not admission evidence. Reject or isolate dependencies with unclear licenses,
-abandoned maintenance, UI-bound core behavior, undocumented global state, unbounded mutation, or
-unacceptable operational risk.
-
-Lap and other GPL applications may be inspected as external product and implementation references.
-Do not copy their source code, components, assets, schema, or other copyrightable implementation
-into Ame. Reference repositories must remain outside Ame's Git history.
-
-Record accepted technology and dependency choices in architecture decision records, including
-version, license, alternatives, consequences, and replacement strategy. Do not encode the current
-dependency list in this contract.
+Stars alone prove nothing. Reject or isolate unclear licensing, abandonment, UI-bound core behavior,
+undocumented globals, unbounded mutation, or unacceptable risk. Lap/GPL applications may be inspected
+as external references; never copy code, components, assets, schema, or copyrightable implementation.
+Keep reference repos outside Git history. ADRs own accepted version, license, alternatives,
+consequences, and replacement strategy; this contract is not a dependency inventory.
 
 ## 9. Frontend and presentation engineering
 
-The selected UI framework and design system must be recorded in an architecture decision, not
-assumed from a prototype or reference application.
+An ADR selects framework/design system, never a prototype or reference screenshot.
 
-Regardless of framework:
-
-- admit UI building blocks in this order: framework and design-system components already in the
-  selected stack, repository-owned shared components, mature external packages, then the smallest
-  necessary custom layer;
-- for every new or substantially redesigned Flutter UI control, inspect the official Material 3
-  component catalog at `https://m3.material.io/components`, then verify the corresponding API and
-  implementation in the repository-pinned Flutter SDK before writing code; Material design
-  availability does not prove that the installed Flutter version exposes every variant or
-  configuration;
-- record the official component selected, the installed SDK capability that was verified, and any
-  remaining product-specific gap in the owning UI decision or task evidence; do not rely only on a
-  screenshot, memory, a prototype, or visual similarity;
-- before implementing a custom control, record which existing components were evaluated and the
-  concrete behavior they could not provide; do not reimplement scrolling, selection, menus,
-  dialogs, focus, input, or accessibility behavior already owned by the framework;
-- do not admit a third-party UI package merely because it resembles the target design. Apply the
-  dependency policy in section 8 and reject stale, low-adoption, poorly documented, or
-  difficult-to-replace packages;
-- when a product-specific visualization has no complete existing component, compose it around the
-  framework primitive that owns interaction and accessibility rather than replacing that primitive;
+- Prefer installed framework/design-system components, shared repository components, mature
+  packages, then minimal custom code, in that order.
+- Before a new/substantially redesigned Flutter control, inspect `https://m3.material.io/components`
+  and its API/implementation in the pinned SDK. Record the official component, verified installed
+  capability, and product gap in its decision/evidence. Design availability, memory, and visual
+  similarity do not establish SDK support.
+- Before custom controls, record evaluated components and missing behavior. Do not replace framework
+  scrolling, selection, menus, dialogs, focus, input, or accessibility. Compose product-specific
+  visualizations around the owning framework primitive.
+- Apply section 8 to UI packages; appearance does not justify stale, low-adoption, poorly documented,
+  or difficult-to-replace dependencies.
 - render large libraries with virtualization or lazy slivers;
 - keep thumbnail decoding and cache use bounded;
 - preserve stable item identity and scroll position across incremental updates;
@@ -316,7 +218,7 @@ Regardless of framework:
 - avoid sending full-resolution images or unbounded result sets across the desktop bridge;
 - organize components as behavior first, structure second, and presentation last.
 
-## 10. File encoding
+## 10. Language and toolchain rules
 
 - Read, write, and create text files using UTF-8 consistently; do not rely on the system default encoding.
 
@@ -349,7 +251,7 @@ Framework-specific defaults apply only when that framework is present:
   same scoped repository command with the required sandbox approval. Do not delete the SDK lock
   file or infer that an unrelated Dart process owns it without an exclusive-open check.
 
-## 10. Rust engineering
+### 10.2 Rust engineering
 
 - Use stable Rust and follow the workspace edition and minimum supported version once declared.
 - Keep domain errors structured and actionable. Do not panic on user-controlled files or paths.
@@ -365,20 +267,12 @@ Framework-specific defaults apply only when that framework is present:
 
 Repository configuration takes precedence over these defaults.
 
-The canonical formatting and lint configuration is:
-
-- `.gitattributes` for repository line-ending normalization and binary classification;
-- `.editorconfig` for encoding, line endings, final newlines, and editor-neutral whitespace;
-- `analysis_options.yaml` for Dart analyzer language strictness and lints;
-- `rustfmt.toml` for Rust formatting;
-- the `[lints]` tables in `rust/Cargo.toml` for Rust and Clippy policy;
-- `.vscode/settings.json` only for editor integration, never as the sole quality gate.
-
-Do not duplicate these rules in a second formatter or editor-only configuration. When a rule needs
-to change, update its owning configuration and the repository quality commands in the same change.
-Generated Flutter Rust Bridge Dart sources and transient build output may be excluded from style
-analysis only through the narrow paths recorded in `analysis_options.yaml`; they remain subject to
-compilation, tests, bridge-hash verification, and release packaging checks.
+Canonical owners are `.gitattributes` (line endings/binaries), `.editorconfig` (encoding/whitespace),
+`analysis_options.yaml` (Dart), `rustfmt.toml`, and `rust/Cargo.toml` `[lints]` (Rust/Clippy).
+`.vscode/settings.json` is editor integration, never the sole gate. Do not duplicate these rules;
+change the owning configuration and quality commands together. Only narrow generated FRB Dart/build
+paths in `analysis_options.yaml` may skip style analysis, never compilation, tests, bridge hashes,
+or release packaging.
 
 - Use UTF-8.
 - Use two-space indentation outside Rust and standard `rustfmt` formatting in Rust.
@@ -392,6 +286,27 @@ compilation, tests, bridge-hash verification, and release packaging checks.
   reasons. Do not narrate obvious code behavior.
 - Comments and documentation must not mention AI generation, prompts, conversations, or agent
   identity.
+
+### 11.1 Human-readable implementation
+
+These rules cover new or materially changed handwritten source, tests, SQL, workflows, and diagnostic
+scripts. Only reproducible generator output qualifies for generated-code treatment.
+
+- Optimize for understanding and maintenance, not character, line, or token count. Use normal
+  formatting and domain names; short local loop/coordinate names are acceptable when unambiguous.
+- A simple two-way conditional is acceptable. Express ordered policies and multiple business
+  outcomes as explicit branches or switches; do not compress them into nested ternaries or boolean
+  chains. Preserve evaluation order, short-circuiting, side effects, errors, and resource lifetimes.
+- Extract named decisions with cohesive inputs/outcomes, not forwarding chains or generic mutable
+  state bags. Use named records/types when boundary values have distinct meanings; avoid wrappers
+  with no invariant. Follow ADR 0025 before expanding an existing multi-responsibility owner.
+- Keep query, publication, source, root, run, and lease identities distinct. Async operations must
+  expose result-admission authority, loading ownership, and terminal cleanup. A stale completion or
+  `finally` cannot clear a newer operation. Fewer fields are not proof of a simpler state machine.
+- Format SQL by its relational decisions; preserve NULL semantics, transaction/identity checks,
+  bounded reads, and query-plan costs. Do not introduce per-item queries for cosmetic clarity.
+- Explain non-obvious invariants, not surface syntax. Never remove guards, swallow errors, add
+  retries, weaken assertions, or change behavior silently under a readability label.
 
 ## 12. Testing and verification
 
@@ -422,284 +337,93 @@ the strongest safe alternative and state the exact unverified gap.
 
 ### 12.1 Repository quality commands
 
-Run quality commands from PowerShell. The scripts resolve Cargo from `PATH` or the user's Rustup
-installation and resolve Flutter and Dart from `PATH` or the pinned local SDK location in section
-10.1.
+Before selecting, changing, or running verification, read the applicable definitions and
+[command reference](docs/acceptance/quality-gates.md#repository-command-reference). That document
+owns tool parameters, guardrails, environment requirements, and hosted workflow ownership.
+Use its canonical PowerShell entrypoints and ownership-prefixed script/workflow names; update
+callers and documentation together when an entrypoint changes. Do not create a second canonical alias.
 
-Tool scripts use `snake_case` filenames beginning with an ownership category. Do not name a script
-only after its immediate action, such as `format.ps1`, `lint.ps1`, `verify.ps1`, or `generate.ps1`.
-Use these prefixes:
-
-- `quality_*` for formatting, linting, daily verification, and shared quality implementation;
-- `integration_*` for device-backed integration workflows;
-- `acceptance_*` for authorization-bound acceptance checks and their guardrail tests;
-- `performance_*` for explicit benchmarks and performance evidence;
-- `release_*` for packaging and release-candidate verification;
-- `bridge_*` for generated bridge maintenance.
-
-GitHub Actions workflow files under `.github/workflows` follow the same `snake_case` ownership
-prefixes. Do not add generic names such as `ci.yml`, `build.yml`, `test.yml`, or `release.yml`.
-Workflow display names and job IDs must retain the same ownership boundary so branch-protection
-checks remain understandable and stable. Reusable workflows are named for the gate they own, not
-only for the fact that they are reusable.
-
-Repository workflows must use the narrowest required `GITHUB_TOKEN` permissions, must not use
-`pull_request_target` to execute untrusted pull-request code, and must pin external actions to full
-commit SHAs. Normal push and pull-request CI may use dependency caches but must not restore compiled
-application or library output as trusted build evidence. Authorization-bound real-library paths,
-tokens, catalogs, and scans never enter GitHub-hosted workflows.
-
-Choose the narrowest existing category before introducing another one. When a public script is
-added or renamed, update its callers, repository instructions, and documentation in the same
-change. Do not retain an undocumented alias that creates two canonical entrypoints.
-
-- `./tool/quality_format.ps1` applies `rustfmt` and `dart format` to repository-owned Rust and Dart trees.
-- `./tool/quality_format.ps1 -Check` is the non-mutating formatting gate.
-- `./tool/quality_generate_library_synchronization_policy.ps1` reads the canonical positive-decimal
-  poll interval from `tool/library_synchronization_poll_interval_ms.txt` and deterministically writes
-  the Dart policy source. Values above `9223372036854775` milliseconds fail before output changes so
-  Dart's signed 64-bit microsecond `Duration` representation cannot overflow. Its `-Check` mode
-  compares exact UTF-8/LF bytes without writing.
-- `./tool/quality_test_library_synchronization_policy.ps1` proves policy drift and malformed input
-  plus the exact Dart microsecond boundary fail closed without changing generated output.
-- `./tool/quality_test_windows_powershell_compatibility.ps1` loads the compiler-free R2c-R common
-  surface and proves exact boolean platform binding under Windows PowerShell 5.1 and PowerShell 7.
-  It does not replace the complete R2c-R guardrail or initialize its native compiler bootstrap.
-- `./tool/quality_lint.ps1` validates repository PowerShell and JSON configuration, runs the policy
-  generator guardrail and non-mutating generation check before the formatting gate, runs Clippy for
-  all targets and features with warnings denied, and runs the pinned Dart analyzer with warnings and
-  informational lints treated as failures.
-- `./tool/quality_lint_workflows.ps1 -ActionlintPath <path>` validates all hosted workflows with a
-  caller-provided `actionlint` executable. Hosted CI supplies a fixed version with a verified
-  checksum; the daily workstation gate does not silently download tools.
-- `./tool/quality_test_flutter.ps1` expands the requested widget-test paths and runs each test file
-  in its own `flutter test --concurrency=1` process while holding the repository tool lock.
-- `./tool/quality_verify_daily.ps1` is the daily gate. It runs the lint gate, Rust tests, Flutter tests, the
-  controlled Windows scan integration, the native Windows accessibility integration, generated
-  bridge compatibility, and whitespace validation for the complete tracked diff. With no arguments
-  it remains serial for workstation safety. The shared hosted workflow may invoke its validated
-  `-Component` partitions on isolated runners so the same evidence is collected in parallel without
-  sharing Flutter, Cargo, or build state.
-- `./tool/integration_test_windows_accessibility.ps1` runs a semantics-enabled virtual-gallery
-  stress sequence in the native Windows runner and fails when engine stderr reports an invalid
-  `ui::AXTree` update. Run and cleanup failures persist current Flutter output, verified native
-  phases, and failure metadata before returning the original run error, replacing prior evidence.
-- `./tool/integration_test_windows.ps1` runs controlled scan interactions in an owned process tree
-  with a parent deadline. GUID-isolated logs and completion evidence survive failures; nonempty
-  fixture storage is retained rather than recursively deleted without cleanup authority.
-  `./tool/integration_test_windows_scan_guardrails.ps1` verifies its compiler-free lifecycle protocol
-  in lint, including original-failure precedence and independent environment restoration.
-- `./tool/integration_test_windows_runner.ps1` builds and executes three engine-free native window
-  cases and two real Debug-engine retirement cases, using an explicit `-CMakePath` or the current
-  Flutter CMake cache. The latter require prepared, matching SDK artifacts and assemble only an
-  isolated dependency-free no-op Dart package offline; they never use the application package or
-  Release engine payload. Their CTest cases have 30-second deadlines inside a 75-second owned Job
-  lifetime. Fresh exact three-case and two-case JUnit reports are required; the engine suite also
-  requires native exit and Job closure evidence and retains its logs. The unsigned Windows gate must
-  invoke both internal owners after its fresh Release build under its existing lock.
-  `./tool/integration_test_windows_runner_guardrails.ps1`
-  includes the compiler-free engine guardrail and checks inputs, exact execution evidence, fresh
-  results, command failure propagation, cleanup, and lock composition without building an engine.
-- `./tool/quality_verify_git_range.ps1` checks committed whitespace over an explicit Git revision
-  range so a clean hosted checkout does not turn `git diff HEAD --check` into an empty gate.
-- `./tool/quality_verify_bridge_contracts.ps1` checks generated bridge hash identity and exact
-  asynchronous API and wire method bodies without building. `./tool/quality_test_bridge_contracts.ps1`
-  runs compiler-free negative fixtures against that boundary, including cross-method false matches.
-- `./tool/performance_benchmark_synthetic_library.ps1` is the explicit performance gate. It creates 10,000
-  temporary images and records cold, warm, pause, resume, memory, and storage evidence.
-- `./tool/performance_run_synthetic.ps1` runs the fixed JPEG, 10,000-image scan, million-record
-  parser, seven-format cold/warm preview, and 50,000-identity concurrent publication catalog with
-  exact execution and bounded resource evidence. Hosted CI runs its cases on isolated workers;
-  workstation use remains explicit and serial. Its focused guardrail runs in lint.
-  `./tool/performance_test_synthetic_media.ps1` verifies the exact per-format resource, source, and
-  cache evidence without decoding media; the synthetic protocol guardrail invokes it in lint.
-  `./tool/performance_test_synthetic_publication.ps1` rejects incomplete scale, overlap, atomic
-  publication, and pending-change evidence through the same compiler-free protocol gate.
-- `./tool/quality_verify_unsigned_windows.ps1` builds and verifies the credential-free x64 application
-  and broker plus an isolated Release-DLL/native-channel smoke. It never loads a retained catalog or
-  replaces signed candidate, installation, or Windows 11 client acceptance. Payload guardrails run
-  in lint; hosted CI requires the complete unsigned job.
-- `./tool/acceptance_run_read_only_library.ps1` and `./tool/acceptance_verify_read_only_catalog.ps1` are the
-  real-library gate. They require current authorization, explicit roots, and storage outside source
-  trees; they never become part of unattended daily verification.
-- `./tool/acceptance_run_r2c_reliability.ps1` is the R2c-H closeout gate. It first exercises the
-  production Windows observer against a disposable source root, then backs up the retained catalog
-  into pre-created empty isolated storage and measures catch-up against both explicitly authorized
-  roots without publishing authoritative work or reading cloud-placeholder content.
-- `./tool/acceptance_test_r2c_reliability_guardrails.ps1` verifies the R2c-H authorization token,
-  cloud acknowledgement, path-separation, and fresh-storage boundary without accessing a real
-  library.
-- `./tool/acceptance_run_r2c_replacement_reliability.ps1` is the R2c-M replacement closeout gate.
-  It measures production watcher operations against a disposable root, then backs up the retained
-  catalog into isolated storage and measures per-root metadata-only continuity without opening
-  media content or publishing a full scan. The retained-root phase requires current explicit
-  authorization.
-- `./tool/acceptance_test_r2c_replacement_guardrails.ps1` verifies the R2c-M authorization token,
-  cloud acknowledgement, physical path separation, and fresh-storage boundary without accessing a
-  real library.
-- `./tool/acceptance_run_r2c_change_driven_reliability.ps1` is the R2c-R non-external controlled
-  local reliability gate for Windows 11 x64 client workstations. Its common module performs no
-  dynamic compilation while being loaded; explicit initialization uses an in-memory native identity
-  surface to bind and retain every existing logical and physical repository-tool path component,
-  rejecting reparse or volume transitions before it creates the compiler bootstrap relative to the
-  final physical handle. It cleans only an empty identity-matching bootstrap and retains unknown or
-  replaced state without traversal. The runner executes
-  exactly counted production-path tests as an ordinary user inside one fixed-NTFS KnownFolder tree.
-  Before any root write, both the logical `SHGetKnownFolderPath` result and its physical filter-
-  redirected path are bound component by component through no-follow, same-volume, identity-held
-  handles. A high-entropy root is then created relative to the final physical LocalApplicationData
-  handle, verified as its non-reparse same-volume direct child, and kept replacement-blocked for the
-  complete runner lifecycle until cleanup begins. Parent-relative opens honor the live per-directory
-  Windows case-sensitivity flag; object identity is never inferred from case-folded path text. The
-  gate refuses caller-supplied source paths, catalogs, worker environment aliases, elevation,
-  reparse/volume escape, and filtered-only results, and applies parent wall-clock deadlines through
-  an owned process-tree Job Object.
-- `./tool/acceptance_test_r2c_change_driven_reliability_guardrails.ps1` verifies the R2c-R platform,
-  privilege, fresh-process hostile-temporary bootstrap, compiler failure, active bootstrap and
-  two-stage cleanup replacement races, held physical storage, intermediate and terminal internal
-  junction/sentinel rejection, identity-bound teardown, process-timeout, malicious NT leaves,
-  cleanup retention, path/environment-alias, exact-matrix, an actually executed exact report-tamper
-  test, default-deny source/call-closure coverage of every common/runner/guardrail scope and exact
-  dot-source under fixed source/depth/byte/AST/function/scope/queue budgets with bounded non-
-  materializing AST-node traversal, one digest-locked process boundary that audits each final
-  Command/EncodedCommand/File payload before launch, no-follow same-volume parent/terminal identity
-  retention, post-open volume/file-ID source deduplication, immediate pre-transfer revalidation for
-  every file source, immediate pre-initialization native handle ownership, and the macro- and module-
-  topology-closed exact item/call-closure Rust availability source contract without running the manual
-  reliability scenarios or accessing a real library. Expected runner refusals use flushed stable
-  reason tokens rather than PowerShell's formatted exception text. On a supported Windows 11 x64
-  ordinary-user host, the guardrail requires the exact ValidationOnly success report; on another
-  Windows host, it requires the unchanged production execution-context gate to reject that report.
-  Cross-version environment deletion uses PowerShell `NullString.Value` and proves every protected
-  name is absent before creating a runner process; an empty value is not treated as deletion.
-  The lint and Daily paths run only this lightweight guardrail, not the R2c-R acceptance runner.
-- `./tool/release_verify_windows.ps1` is the immutable signed Windows bundle and release-bridge
-  gate. It also proves that a packaged process rejects a same-user duplicate before runtime
-  initialization and that a replacement starts after the original process exits. Run it when
-  desktop integration, native packaging, generated bridge loading, or release behavior changes.
-- `./tool/release_verify_candidate.ps1` is the release-candidate orchestrator. It runs the daily, Windows
-  release, and synthetic performance gates in order, and adds retained real-library validation only
-  when explicitly requested with all authorization-bound paths.
-- `./tool/release_validate_version.ps1` requires a `v`-prefixed semantic version and verifies that
-  the tag, Flutter application version, and Rust package version agree before a release gate runs.
-- `./tool/release_package_portable_windows.ps1` packages the complete Windows x64 Release directory
-  as a versioned portable ZIP after release verification.
-- `./tool/release_verify_portable_archive.ps1` verifies the portable ZIP filename, single-root
-  layout, safe entry paths, and required Flutter and Rust runtime payload without extracting it.
-- `./tool/release_test_portable_publication.ps1` tests the workflow-owned attachment identity
-  decision using controlled API fixtures: missing attachments may upload, matching SHA-256 digests
-  skip publication, and conflicting, unprovable, or failed lookups fail closed. It runs in lint
-  without network access or publication permission.
-- `./tool/release_verify_portable_signatures.ps1` performs that structural gate, extracts into
-  fresh bounded scratch storage, revalidates the application and broker signature, exact publisher,
-  x64 machine, and broker protocol, then confirms scratch cleanup.
-
-Hosted workflow ownership is:
-
-- `.github/workflows/quality_ci.yml` for pushes to `main`, pull requests, merge queues, and manual
-  daily-gate runs;
-- `.github/workflows/quality_gate_windows.yml` for the shared Windows daily or release gate;
-- `.github/workflows/quality_gate_synthetic_windows.yml` and
-  `.github/workflows/quality_gate_unsigned_windows.yml` for mandatory isolated workload and unsigned
-  build evidence in ordinary quality CI, without publication or signing authority;
-- `.github/workflows/release_candidate_windows.yml` for version-tag and manual release candidates,
-  followed by portable ZIP publication;
-- `.github/workflows/release_verify_published.yml` for post-publication attachment verification.
-
-The complete gate definitions and commands are recorded in `docs/acceptance/quality-gates.md`.
-
-Do not replace these entrypoints with remembered command fragments in normal work. A focused test
-may be run directly for fast feedback, but it does not replace the applicable repository gate.
+Keep local heavy work serial under the repository lock. Focused tests do not replace applicable
+Daily, native, performance, release, or acceptance gates. Real-library runs require current explicit
+authorization, roots, and isolated derived storage; they never join unattended Daily verification.
+Hosted workflows use minimal token permissions, full-SHA action pins, no untrusted
+`pull_request_target` execution, and no restored compiled output as trusted build evidence.
+Real-library paths, tokens, catalogs, and scans never enter hosted workflows.
 
 ### 12.2 Required engineering workflow
 
-For every material code or configuration change:
+For every material code/configuration change:
 
-1. Re-establish scope from the current instruction, recent history when required, `git status`, the
-   live implementation, and owning architecture records.
-2. Identify unrelated working-tree changes and choose explicit files that this task owns. Never
-   mutate, format, stage, or revert another task's files merely to make a gate pass.
-3. State the smallest complete outcome, affected layers, safety constraints, and the focused test
-   that will prove the behavior before editing.
-4. Implement the narrowest maintainable change and add or update tests in the same boundary.
-5. Format agent-owned files. Run `./tool/quality_format.ps1` only when the working tree is clean or every
-   file it can rewrite belongs to the current task. In a dirty shared tree, format explicit owned
-   files with the underlying language formatter, then use `./tool/quality_format.ps1 -Check` as evidence.
-6. Run focused tests for the changed behavior, followed by `./tool/quality_lint.ps1`.
-7. Run `./tool/quality_verify_daily.ps1` before declaring the change complete. Add the Windows release gate when
-   required by section 12.1 and any task-specific integration or acceptance checks.
-8. Inspect `git diff --check`, the final diff, generated files, and `git status`. Report exact checks,
-   ignored tests, unavailable gates, remaining risks, and unrelated preserved changes.
+1. Recover scope, history, live source, owning ADRs, and `git status`; identify explicit owned files.
+   Never mutate, format, stage, or revert unrelated work to pass a gate.
+2. State the smallest complete outcome, affected layers, safety constraints, and proving test;
+   implement the narrow change with its boundary regressions.
+3. Format owned files. Use `quality_format.ps1` only with a clean or wholly owned target tree;
+   otherwise format explicit files and run `quality_format.ps1 -Check`.
+4. Run focused tests, `quality_lint.ps1`, then `quality_verify_daily.ps1` before completion, plus
+   applicable Windows release, integration, and acceptance gates from section 12.1.
+5. Inspect the final diff, generated files, `git diff --check`, and status. Report exact checks,
+   ignored tests, unavailable gates, risks, and preserved unrelated changes.
 
-Warnings are failures. Do not weaken a repository rule, add broad exclusions, use ignore comments,
-or hand-edit generated output to make a gate pass. Fix the cause, use the narrowest justified
-suppression when the rule is genuinely inapplicable, and record non-obvious exceptions next to the
-owning configuration. A quality-tool change must prove both a passing case and that the configured
-gate rejects a representative violation where practical.
+Warnings fail. Never weaken rules, add broad exclusions/ignore comments, or hand-edit generated
+output to pass. Fix the cause; a genuinely inapplicable rule permits only a narrow, explained
+suppression at its owning configuration. Quality-tool changes must demonstrate passing and
+representative rejecting cases where practical. Documentation-only edits use proportionate document
+checks; they neither require a new heavy product run nor establish a functional pass.
+
+### 12.3 Reviewability and behavior-preserving changes
+
+- State whether a change fixes behavior or only clarifies it. For policy rewrites, enumerate branch
+  precedence, ties, nulls, and fallbacks before editing; use boundary examples, not tests mirroring
+  the new implementation. Refactoring alone does not close a reported runtime defect.
+- Review async ownership across success, failure, cancellation, disposal, supersession, and late
+  completion. Retain independent generations and prove the changed boundary's relevant races.
+- For scan/persistence extraction, account for checkpoints, old-record preservation, identity and
+  metadata reuse, atomic publication, rollback, and source safety. Do not mix broad cleanup with a fix.
+- Distinguish maintenance findings from reproduced functional failures. Record affected responsibility,
+  causal evidence, behavior risks, focused verification, and unverified paths. Formatting/analyzer
+  success alone does not prove readability or behavioral equivalence. New quality gates require
+  positive and negative checks; do not add blanket complexity limits or suppress existing warnings.
+
+## Code Review Rules
+
+Flag obscured policy precedence, unclear async authority, and unrelated responsibility growth with
+their concrete maintenance or correctness impact. Separate reproducible bugs from readability risks;
+do not infer causality from length or authorship. Exclude genuine generated output from handwritten
+style findings. Preserve guards and bounded costs; leave routine formatting enforcement to tooling.
 
 ## 13. Architecture documentation
 
-Use architecture decision records for decisions that constrain future implementation, including UI
-frameworks, desktop bridges, database technology, engine selection, process isolation, cache layout,
-and packaging.
-
-Each decision record should contain:
-
-- status and date;
-- context and decision drivers;
-- considered options;
-- accepted decision;
-- consequences and risks;
-- validation evidence;
-- replacement or rollback strategy.
-
-Architecture records explain accepted choices. They must not be used as a feature roadmap or a
-completion tracker.
+ADRs own constraining choices: UI, bridge, database, engines, process isolation, cache, and packaging.
+Include status/date, context/drivers, options, decision, consequences/risks, validation, and
+replacement/rollback strategy. They explain accepted choices, never stage order or completion status.
 
 ## 14. Git discipline
 
-- Inspect the working tree before editing and preserve unrelated changes.
-- Classify the requested change as small or large before editing. Scope and rollback risk determine
-  the classification; line count alone does not.
-- A large change must start on a dedicated `codex/<topic>` branch created before product edits.
-  Large changes include work that crosses multiple architectural layers or independent subsystems,
-  changes schemas or migrations, changes generated bridge or public application contracts, performs
-  a broad refactor, materially changes release or infrastructure behavior, changes an accepted
-  architecture boundary, or otherwise needs an isolated rollback boundary. Commit and push large
-  changes to that branch. Do not merge the branch into `main` without an explicit user request.
-- A small change stays on `main`; do not create a branch for it. After proportionate validation,
-  stage only the owned files, create a Conventional Commit, and push `main` directly. This is
-  standing authorization to commit and push a requested small repository change unless the user
-  explicitly says not to commit or not to push.
-- If the current checkout is on the wrong branch, has unrelated changes, or cannot switch safely,
-  resolve that state without moving, committing, or discarding unrelated work before applying the
-  branch rule.
-- When the current task is only to package already-validated working-tree changes into commits,
-  keep commit-time verification lightweight. Inspect the staged boundary, run `git diff --check`,
-  and add only a focused test when required evidence is missing. Do not rerun daily, release,
-  performance, acceptance, or other heavyweight gates merely because a commit is being created.
-  A commit request does not invalidate successful verification already obtained for the same diff.
-- Do not use destructive reset or checkout operations unless explicitly requested.
-- Do not rewrite history or create releases without explicit authorization. The small- and
-  large-change workflows above provide authorization only for their stated branch, commit, and push
-  operations.
-- Stage explicit files rather than broad paths when committing.
-- Use concise English Conventional Commit messages with a summary no longer than 20 words.
-- Write pull-request bodies as neutral technical summaries of the modifications in the current
-  head. State only what changed; do not turn the body into a user-facing announcement, release
-  note, maintainer narrative, bug-fix diary, or reviewer instruction. Omit verification results,
-  test and CI counts, performance measurements, audit verdicts and severity counts, zero-finding
-  claims, approval or merge-readiness claims, merge status, review iterations, debugging history,
-  descriptions of bugs that were fixed, agent actions, and conversation history. Keep verification
-  and audit evidence in their owning checks, acceptance records, or reviews rather than the
-  pull-request body.
-- When a pull request implements a named roadmap stage, include a concise `Roadmap scope` section
-  that links the canonical roadmap and maps its slices to the delivered modifications. This section
-  describes scope only; it must not restate completion claims, verification evidence, audit
-  outcomes, or merge readiness.
-- Split unrelated themes into separate commits so each rollback boundary remains coherent.
-- Do not commit generated caches, model files, local catalogs, source-media samples, build outputs,
-  secrets, or external reference repositories.
+- Inspect status, preserve unrelated work, and classify scope/rollback risk before editing; line
+  count alone is not the classification. Follow an explicit user branch instruction first.
+- Large changes start on `codex/<topic>` before product edits and are committed/pushed there:
+  cross-layer/subsystem work, schema/migrations, generated bridge/public contracts, broad refactors,
+  material release/infrastructure/architecture changes, or another isolated rollback need.
+  Never merge into `main` without explicit request.
+- Small changes stay on `main` without a new branch. Proportionate validation, staging owned files,
+  a Conventional Commit, and direct push are authorized unless the user says not to commit/push.
+  Resolve wrong-branch/dirty-checkout conflicts without moving, committing, or discarding unrelated work.
+- For packaging already-validated edits, inspect staged scope and `git diff --check`; run a focused
+  test only for missing evidence. Commit creation alone invalidates no passing evidence and does
+  not justify another heavy Daily/release/performance/acceptance run.
+- Destructive reset/checkout, history rewriting, and releases require explicit authorization;
+  ordinary branch/commit/push authority grants none of these.
+- Stage explicit files. Use English Conventional Commits, summaries at most 20 words, and separate
+  unrelated themes into coherent rollback commits. Never commit caches, models, local catalogs,
+  source-media samples, build outputs, secrets, or external reference repositories.
+- PR bodies are neutral descriptions of current-head modifications, not announcements, release
+  notes, narratives, repair diaries, or reviewer instructions. Omit fixed-bug descriptions,
+  debugging/conversation history, agent actions, review rounds, verification/test/CI/performance
+  results, audit/severity/zero-finding verdicts, approvals, merge status, and readiness claims.
+  Evidence belongs in checks, acceptance records, or reviews.
+- Named-stage PRs include a concise `Roadmap scope` linking the canonical roadmap and mapping
+  slices to modifications, without completion, evidence, audit, or readiness claims.
 
 ## 15. Definition of engineering completion
 
@@ -707,6 +431,8 @@ A change is complete only when:
 
 - its user-visible behavior is connected end to end;
 - its owning domain and adapter boundaries remain intact;
+- changed handwritten code exposes its decisions and lifecycle ownership, with appropriate
+  behavior-preservation or regression evidence;
 - applicable tests and repository quality gates pass;
 - failure, cancellation, empty, and stale states are handled where relevant;
 - data and source-media safety have been verified;

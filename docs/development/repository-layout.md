@@ -73,7 +73,9 @@ lib/
 ## Stable tool entrypoints
 
 Quality and acceptance scripts stay directly under `tool` because their paths are public repository
-commands documented in `AGENTS.md` and acceptance contracts. Internal helpers may move into a
+commands indexed by `AGENTS.md` and defined in the
+[quality command reference](../acceptance/quality-gates.md#repository-command-reference).
+Internal helpers may move into a
 support directory when more than one helper exists, but entrypoint paths must remain stable.
 
 Script names begin with an ownership category so related commands sort together:

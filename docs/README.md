@@ -13,6 +13,7 @@ only the contracts, execution details, and evidence that own the task.
 | What must be proved, what actually ran, and what remains unverified? | [Acceptance index](acceptance/README.md) and [quality gates](acceptance/quality-gates.md) |
 | Where do implementation and tool files belong? | [Repository layout](development/repository-layout.md) |
 | Which durable engineering and safety rules apply? | [Repository contract](../AGENTS.md) |
+| Where did the reorganized rules move, and how was their loading checked? | [Rule organization evidence](acceptance/engineering-rules-organization.md) |
 
 Keep stable requirements separate from dated observations. Update an obsolete roadmap status instead
 of appending another repair story. Put execution variants and budgets in the linked plan; results,
