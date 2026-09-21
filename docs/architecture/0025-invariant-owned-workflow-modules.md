@@ -374,7 +374,13 @@ would materially broaden the active fix, the current change establishes the type
 physical split in `docs/roadmap.md`, and adds no further behavior to that debt area until the split
 is completed.
 
+The preview-publication adapter owns typed request/source/root authority, artifact registration,
+the conditional location update, and effective-time invalidation in one transaction. Its catalog
+facade delegates that complete use case. Artifact publication and metadata publication remain named
+operations under the same commit/rollback boundary; no source read or decode enters the transaction.
+
 ## Rejected alternatives
+
 
 ### Continue appending focused patches to the current owner
 

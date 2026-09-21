@@ -72,6 +72,12 @@ materializing every asset record.
 The manifest is invalidated by query identity or catalog revision. A newer revision is assembled
 separately and published atomically; a partial manifest never replaces the last trustworthy one.
 
+Preview decoding may recover capture metadata that changes the effective chronological key.
+Publishing such metadata advances the catalog revision in the same transaction as the guarded
+location update. Old time anchors, cursors and manifests then lose authority together. An unchanged
+effective time key does not advance the revision merely because preview bytes, dimensions or engine
+evidence changed; dimension recovery retains the separate geometry-evidence contract below.
+
 ### Deterministic layout snapshot
 
 Initial and replacement gallery queries return their bounded detail window, optional stable-anchor

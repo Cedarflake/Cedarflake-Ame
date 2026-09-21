@@ -18,8 +18,10 @@ use crate::ports::{
 use super::migrations::downgrade_source_revision_contract_to_v30_for_test;
 use super::*;
 
+mod preview_publication;
 mod query_snapshot;
 mod root_unregistration;
+mod time_anchor_window;
 
 const TEST_QUERY_ID: &str = "test-default-query";
 type GalleryQueryFixture<'a> = (&'a str, &'a str, Option<&'a str>, Option<i64>, i64);

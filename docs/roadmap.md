@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-09-10
+Last planning update: 2026-09-22
 
 This file owns product delivery order, the current focus, blocking obligations, and stage exit
 decisions. Only one stage is active. Detailed product contracts, execution procedures, architecture,
@@ -67,15 +67,18 @@ correction. A documentation reorganization does not change any of these acceptan
 ## Current execution queue
 
 The current direction prioritizes defects that directly impair functions and user experience.
+The requested rule/document organization is verified. C05 continuation now has an owning-layer
+correction and generated-client functional evidence; the execution plan retains the remaining exits.
+This adds no product stage or broad refactor.
 Item 3 selects functional synchronization and browsing. **R2C-C04 now has focused and generated-client
 verification** for fresh bulk changes and recovery of retained terminal work. Its original failure
-is preserved in the [C04 record](acceptance/r2c-live-gap-recovery.md). **R2C-C05 blocks browsing**:
-direct timeline navigation leaves a blank wall, and reported removal/navigation sequences leave
-unresolved thumbnails; rail and viewer-return instability also require causal assessment. The
-renewed diagnosis corrects a proven preview-demand re-admission defect with focused evidence.
-Its native session is exhausted after the input tool refused every action, so the reported
-blank/gray workflow and a repaired client replay remain unresolved. Correct counts
-do not establish usable browsing or complete synchronization acceptance. C01's mixed-load recovery
+is preserved in the [C04 record](acceptance/r2c-live-gap-recovery.md). **R2C-C05 remains open for final
+verification and remaining presentation defects.** Preview-demand and recovered-date publication
+have causal corrections. Mixed large-image navigation and bulk-add/remove browsing assertions pass
+across separate native runs; failed overall replays remain failed. The
+[C05 record](acceptance/r2c-browsing-diagnosis.md) owns those boundaries, the cleanup-only pass and
+remaining transient-error, rail/viewer and full-client obligations. Correct counts or separate
+passing assertions do not establish complete synchronization acceptance. C01's mixed-load recovery
 failure and C02's automation/evidence failures are recorded for final verification; their current
 evidence does not establish a highest-priority user incident. Deferral changes execution order,
 not their unresolved acceptance status. Source/durable-data harm or reproduced blocked, misleading
@@ -109,16 +112,14 @@ repair admission, review, verification, stopping rules, and safety cautions.
    invalidate affected evidence and return to their owning queue item. Documentation alone does
    not require another heavy product gate. No known core-workflow S0/S1 may be waived for readiness.
 
-The execution plan retains the **functional-first continuation, consumed supplement and unresolved P2 follow-up** without
-discarding prior local and hosted failures. Its scope is eight journeys with at most
-three variants each, one repair batch of at most three root-cause families, and a 16-hour cumulative
-active-engineering ceiling. Tool runtimes remain separately bounded and recorded. It permits one
-independent review plus one scoped recheck in the original cycle; the supplement explicitly records
-its additional diagnosis, repair and review allowances without resetting prior usage. Budget exhaustion, a fourth blocking family, or a
-materially different architecture requires an unresolved checkpoint and replanning, not automatic
-expansion. Any known core-workflow S0/S1 still blocks readiness even outside the selected roster.
-The C04 exception is consumed. The approved C05 extension adds at most 120 active minutes and
-raises the cumulative ceiling to 18 hours; all earlier charges and failed-gate limits remain.
+The execution plan owns the eight-journey/three-variant roster, cumulative accounting, consumed
+repair and review allowances, fixed deadlines and failed-replay limits. It preserves the original
+cycle and every admitted supplement without resetting prior usage. Historical budget figures and
+run records belong there and in acceptance evidence, not in this stage queue. Standing authorization
+allows bounded functional follow-ups after recording their scope, method, limits and verification,
+without repeated per-issue approval. Consumed allowances or changed causes still require an explicit
+checkpoint and revised method; they do not permit unchanged retries or automatic scope growth.
+Any known core-workflow S0/S1 continues to block readiness, including outside the selected roster.
 
 New findings enter the existing ledger with reproduction, severity, owning invariant, and blocked
 exit. Only a source/data-safety incident or a proven active-exit blocker interrupts order, with the

@@ -1,6 +1,148 @@
 # R2c closeout execution
 
-Status: **C05 correction recorded; native browsing and the final hosted C02 failure block closeout**.
+Status: **C05 capture-time correction has focused and native functional evidence; full replay,
+remaining presentation issues and final gates still block closeout**.
+
+### Rule organization before C05 continuation
+
+The 2026-09-22 direction first organizes durable rules and verification documentation, then resumes
+C05. Move the detailed command catalog to its existing quality-gate owner, retain safety/Git/testing
+constraints with a clause map, and add concrete readability and behavior-preservation standards.
+Verify document links, command preservation, byte budget, and fresh instruction assembly. The
+[organization record](../acceptance/engineering-rules-organization.md) owns this evidence; no new
+roadmap, whole-repository refactor, or product acceptance status is created. Leave the optional
+status-getter and queue-comparator readability examples outside this slice.
+
+Resume C05 from the retained native failure: ten visible current images receive no preview request
+after bulk addition and a bottom timeline jump. Verify its cause before admitting the next bounded
+repair. Keep the frozen large-image/historical-date workload, original failures, source/resource
+guards, and the functional-first order below. Documentation work does not consume a repaired client
+replay or renew unrelated failed-gate allowances.
+
+### Standing authorization for functional closeout
+
+The 2026-09-10 standing authorization admits newly found functional and experience-blocking defects
+without another per-issue approval. Record severity, reproduction, owning invariant, bounded next
+method, verification and resource limits before proceeding on `codex/r2c`. Continue the existing
+functional-first queue; register localized recoverable issues for later work. A consumed allowance
+requires a recorded checkpoint and a concrete revised method, not another approval request or an
+unchanged replay. Preserve cumulative time, failed evidence and all acceptance criteria.
+
+This instruction supersedes earlier per-issue decision requirements in this plan. It admits the
+native browsing closure below. It does not waive source safety, expand real-root access, authorize
+cloud hydration, introduce releases/main merges or turn failed gates into passing evidence.
+
+### C05 continuation after rule organization
+
+At resumption, the checkout no longer contained `build`, including the previous native fixture, diagnostics,
+and raw logs. Original task outputs retain the failed observation and owned-retirement receipt,
+but do not replace the lost full source-integrity evidence. Do not claim a new native pass, launch
+a retained real catalog, or recreate the missing corpus with smaller files under the old run identity.
+
+Admit one bounded owner investigation/correction under the standing authorization: at most 30 active
+minutes to distinguish catalog ordinal, retained-window, and preview-demand ownership with a
+deterministic production-boundary case; 30 minutes for a proved repair; 15 for focused verification;
+15 for one independent review/recheck; and 10 for evidence. Tool runs remain serial with explicit
+deadlines. Unknown cause or failed repaired verification ends this pass with an unresolved checkpoint.
+No compensating manifest lookup, retry, or clamped offset may hide an incoherent catalog window.
+Only the existing C05 cause family is admitted; rail/viewer polish and C01/C02 remain deferred.
+
+For cumulative accounting, retain the last exact 1069-minute checkpoint and reserve the entire
+previous 60-minute native allowance conservatively: its final active-time charge was not recovered.
+Reserve 60 minutes for this rule/continuity organization and 100 for this C05 pass, giving a maximum
+1289-minute envelope (21 hours 29 minutes), not a claim of exact elapsed work. Keep the uncertainty
+explicit instead of resetting history. Reconstructing the full mixed-media native fixture and its
+runner requires a separately recorded bounded preparation method under the same standing authority;
+the original 10000-image, dimension/date, bulk-change, memory, source, and deadline criteria remain.
+
+The first boundary checks preserve the complete 2012-item order for time anchors, reverse pages,
+and restored query anchors (including tied keys and ascending/descending order). They pass without
+a production change and do not reproduce the retained native failure. The historical last frame
+reports start 1508 plus 514 loaded items against a 2012-item timeline; treat this as a lead requiring
+fresh request/window evidence, not a proved database or rendering defect.
+
+Admit up to 60 additional active minutes to restore native test capability: 20 to recover and review
+the old generated-fixture/test sources as data, 20 to reconstruct an isolated corpus and its fresh
+integrity oracle, and 20 to prepare the owned Debug runner and verify inputs. This raises the reserved
+envelope to 1349 minutes (22 hours 29 minutes), without changing earlier usage or replay counts.
+Use a new fixture/run identity and the original 10000-image size/date distribution; never substitute
+a retained real catalog or claim identity with the missing corpus. Record any unrecoverable generator
+or oracle boundary before changing the method. Allow one observation under the original native
+deadline and, only after a causal repair, one repaired replay; the original failed run remains failed.
+Preserve the 12/2012/512 bulk counts, 300-second batch deadline, 30-second visible-pixel deadline,
+2 GiB client ceiling and 2 GiB system reserve. Log requested month/offset, returned first/last identity,
+timeline revision, retained-window bounds and visible preview demand to locate the first divergence.
+Builds remain serial. Preparation failure ends this method with evidence; no repeated blind rebuilds.
+
+The restored generator's corrected launch and fresh source oracle now pass. The first launch-path
+failure remains recorded. The first new native observation passes mixed-library and added-library
+bottom pixels, then stops on a top-endpoint input timeout before deletion. A focused real-control
+test proves that its exact rotated padding-edge coordinate receives no input, whereas one logical
+pixel inside does. No production behavior changed and the historical ten-item discrepancy remains
+unexplained. The [C05 evidence](../acceptance/r2c-browsing-diagnosis.md) owns both results.
+
+Under standing authorization, admit a 30-active-minute harness continuation: 10 minutes to correct
+and review pointer admission, 10 to inspect one continuation, and 10 for evidence. The reserved
+envelope becomes 1379 minutes (22 hours 59 minutes); this is not exact consumed time. Preserve the
+failed native receipt and source oracle. Start once on its retained generated-only 2012-item catalog,
+assert that baseline, deliver in-bounds control input, then complete the unexecuted deletion and
+navigation phases. Keep the 900-second process, 300-second batch, 30-second pixels, memory and source
+limits unchanged. This is a harness-corrected continuation, not a product repair or an erased failure;
+it does not authorize another unchanged full workload or consume the conditional causal-repair replay.
+
+The continuation reproduces a ten-item window displacement and a 30-second top-pixel failure after
+reopening, with valid delivered pointer input. Inspection identifies preview metadata publication:
+recovered capture time changes gallery ordering without advancing the catalog revision. A focused
+transaction-boundary regression fails on the original source and passes with atomic revision
+invalidation. This is the admitted C05 owner correction; do not add a viewport workaround. Extract
+preview publication from the large catalog facade, preserve its exact source/root/authority guards,
+and verify unchanged metadata and rejected stale-source transactions. The already admitted repaired
+replay uses new generated-only client/stimulus roots and the same frozen 10000-image corpus, completes
+12/2012/512 plus navigation, and retains the original deadlines and failures. No additional native
+observation is admitted by this causal checkpoint.
+
+The repaired lifetime now passes the mixed corpus, addition to 2012 and all four added-library
+jumps, with no observed same-revision window mismatch. It stops during generated-file deletion on
+Windows sharing violation 32; no 512-item or post-removal pass is claimed. Preserve the incomplete
+deletion intent and verify that only its authorized subset is absent and every survivor is unchanged.
+The source adapter intentionally pins publication against deletion; the exact holder of the failed
+file was not captured. Do not weaken that guard or attribute the incident to another process.
+
+Under standing authorization, admit one 45-active-minute removal continuation: 15 minutes for failure
+reconciliation and a narrowly bounded generated-fixture deletion owner, 10 for its positive/negative
+checks and scoped review, 10 for the continuation, and 10 for evidence. The reserved envelope becomes
+1424 minutes (23 hours 44 minutes), not exact consumed time. Retain all prior failed lifetimes.
+The fixture owner may wait only on Windows sharing violation 32, at most two seconds per file and
+inside one 300-second whole-batch deadline, revalidating root, path, identity and hash before every
+attempt. Other failures and changed sources stop immediately. This is test-stimulus handling, not
+product retries. Prove lock release, lock timeout and changed-source rejection before use.
+
+Use the earlier intact, verified generated-only 2012-item stimulus and its retained client; its
+removal intent must still be absent. Start that client once with the corrected product, verify the
+2012 baseline and navigation, delete the complete original 1500-item roster, then require 512 items,
+current pixels and top/middle/bottom jumps without wheel input. No repeat of import/addition or the
+partial failed deletion is admitted. Keep the frozen 10000-item background, dimensions/dates,
+900-second process lifetime, 30-second pixels and 2 GiB client/system limits. A failed continuation
+ends this method; it does not count as a complete repaired replay or renew C01/C02 allowances.
+
+The removal continuation completes all functional assertions and exact 512-item source/catalog
+verification, then fails in harness shutdown: the installed Flutter test binding unmounts a passing
+test's providers before `tearDownAll`, so reading synchronization there uses a disposed container.
+Preserve exit one and the failed overall result. Use at most 15 remaining active minutes of the
+existing 45-minute allowance for one cleanup-only method: move the awaited, ten-second-bounded stop
+into the test body's `finally`, before framework unmount; then launch the retained generated-only
+512-item catalog once with a 120-second owned lifetime, no source mutations, and explicit stop/result
+evidence. This does not repeat or upgrade the completed functional run, create a new full-workload
+allowance, increase the reserved envelope, or authorize a production shutdown change. Failure ends
+this final harness method with an unresolved verification checkpoint.
+
+The cleanup-only probe passes with explicit synchronization stop before unmount, exit zero and
+clean owned retirement. Product Rust is unchanged from the repaired/continuation runs. Record the
+selected browsing assertions as verified across those separate runs; preserve both failed overall
+results and the remaining full-workload, UIA/Release, transient-error, rail/viewer and C01/C02 exits.
+Do not run another unchanged full workload or equate a corrected test exit with stage acceptance.
+One independent review and its scoped recheck consumed 11 active minutes in total. The 1424-minute
+reserved envelope and its historical accounting uncertainty remain; it is not exact elapsed usage.
 
 The [cycle evidence](../acceptance/r2c-closeout-cycle.md) records the frozen source, selected
 variants, execution budgets, findings, and verification. Its status does not accept R2c.
@@ -360,18 +502,26 @@ deferred presentation defects. The next unresolved action is one bounded native 
 corrected candidate once usable input is available, with the same frozen data and source/resource
 guards; this checkpoint does not grant a new lifetime or renew C01/C02/Daily allowances.
 
-### Proposed native browsing closure — not admitted
+### Admitted native browsing closure
 
 The corrected source's hosted run has now ended: nine verification jobs pass, Accessibility
 fails C02's existing deadline and the aggregate gate fails. The current evidence checkpoint is
 1069 active minutes of the approved 1080. The previous native session and diagnostic allowances
 are consumed; continuing the goal does not silently renew them.
 
-The next proposed scope is at most 60 additional active minutes and a cumulative ceiling of
+The standing authorization admits at most 60 additional active minutes and a cumulative ceiling of
 19 hours: ten preparation/diagnosis, 25 causal repair, fifteen client verification, five scoped
 independent review and five recording. All earlier usage and failures remain charged. Reallocate
 phase ceilings explicitly to discovery 430, triage 70, repair 476, review 69 and recording 95;
-the proposed work would reach at most 1129 active minutes. This proposal requires a new decision.
+the admitted work would reach at most 1129 active minutes. Record a bounded revised method under
+the standing authorization if this allowance is consumed; do not reset earlier usage or evidence.
+
+Native-entry preparation requires the guarded fixture/runner and independent review of that
+ownership. Before launching, transfer the proposed 25 repair minutes to preparation: this pass
+now permits 35 preparation/diagnosis, fifteen client verification, five review and five recording.
+Phase ceilings become discovery 455, triage 70, repair 451, review 69 and recording 95. The same
+60-minute supplement and 19-hour cumulative ceiling remain; any proved new product repair receives
+its own bounded allocation under the standing authorization before implementation.
 
 - Use the existing Windows integration-test entry and real Rust catalog/preview adapters to drive
   the real controls and inspect rendered tiles. Framework-injected input must be identified as
