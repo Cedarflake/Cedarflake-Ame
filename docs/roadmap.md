@@ -79,8 +79,10 @@ is preserved in the [C04 record](acceptance/r2c-live-gap-recovery.md). **R2C-C05
 browsing workload and transient Retry feedback checks now pass; remaining client variants and final
 gates stay open.** Preview demand, recovered dates and missing-source request retirement have
 owning-layer corrections. The [C05 record](acceptance/r2c-browsing-diagnosis.md) retains the failed
-lifetimes, observer correction and current combined pixel/rail/viewer/feedback evidence. Actual OS
-picker, keyboard, interrupted EXE restart and Release paths retain their separate frozen duties;
+lifetimes, observer correction and current combined pixel/rail/viewer/feedback evidence. The
+[process-lifecycle record](acceptance/r2c-process-lifecycle.md) verifies selected pending-call close
+paths and preserves the incomplete desktop-input run. Actual OS picker, keyboard, interrupted EXE
+continuation and Release paths retain their separate frozen duties;
 this generated-client result does not establish complete synchronization acceptance. C01's mixed-load recovery
 failure and C02's automation/evidence failures are recorded for final verification; their current
 evidence does not establish a highest-priority user incident. Deferral changes execution order,

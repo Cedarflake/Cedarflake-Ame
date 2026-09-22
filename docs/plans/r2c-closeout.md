@@ -89,6 +89,103 @@ mechanism, source access, persistence strategy or retry policy is admitted.
 
 ### Complete scope and retained readability findings
 
+#### Remaining process-lifecycle and input method
+
+After the C05 generated-native pass, continue the frozen UX-01/02/08 gaps on the accumulated
+candidate. Reserve 150 active minutes: 35 preparation, 25 focused boundary verification, 45 native
+client/input work, 20 evidence analysis, 15 independent review/recheck and 10 records. Conservatively
+charge the earlier 2414-minute reservation in full; the envelope becomes 2564 minutes, not measured
+elapsed work. This does not reset C01/C02 failures, admit Release storage bypass, or expand R2c.
+
+Use the existing frozen 10000-image mixed-size/historical corpus read-only and a fresh GUID-owned
+small baseline root and derived store. Seed a real paused first import with a nonzero durable
+checkpoint after publishing the small root. Keep the seed distinct from user-input evidence.
+Permit one ordered set of five owned lifetimes: seed, close during native start, close during native
+poll, interactive restore without Continue, and interactive Continue to complete publication.
+Every phase must have a fresh PID, immutable phase admission and retained result/process evidence;
+the same catalog/checkpoint connects the phases. A failed phase ends the set until a changed causal
+method is recorded; do not repeat it unchanged or discard the preceding fixture.
+
+The start/poll probes dispatch the real bridge calls with real native tickets and stop fences and
+initiate the existing window-close action while the returned call is still pending. They may record
+ordering but cannot delay results, substitute a fake snapshot, change the poll interval, weaken
+lifecycle generations, or replace normal shutdown with process termination. Verify observed pending
+call ownership, stopped synchronization, no late running publication and the original six-second
+window shutdown bound. Parent cleanup remains a separate safety action, never a successful close.
+
+The two interactive lifetimes use the actual Windows app and keyboard: inspect the paused task,
+open settings/gallery/viewer and a menu, close without Continue, then reopen the same checkpoint
+and explicitly continue. Verify usable baseline pixels, no implicit scan, exact final membership
+and counts, current pixels and normal process exit. Preserve actual picker and pre-registration
+Pause/Cancel as separate obligations unless their exact actions are independently observed. Run
+the owning lifecycle/control/retained-interaction boundary tests; remounts do not prove EXE recovery.
+
+Keep client memory at most 2 GiB, system reserve at least 2 GiB, at least 4 GiB free before launch,
+each parent lifetime at most 900 seconds and the complete interactive set at most 30 minutes from
+first interactive launch. Source verification covers exact membership, bytes, identity and frozen
+timestamps before and after the set. No real-root mutation/hydration, source deletion, service,
+certificate, signing, release or main-branch action is admitted. Record tool/input failures distinctly
+from product defects and preserve every failed result. Later native UIA and Release gates remain.
+
+The first seed lifetime ended before enumeration with `first_import_continuity_preflight_timeout`:
+the diagnostic entry invoked the first scan before starting the production synchronization runtime.
+The existing first-import owner correctly refused an unobserved source boundary. Preserve that
+failed process, preparation, artifacts and source checks. Within the same 150-minute reservation,
+admit one corrected ordered set using a fresh derived store and generated 12-image baseline while
+retaining the failed stores. Start and await the real synchronization lifecycle before seed scanning;
+do not change the 15-second preflight, synchronization cadence, source-boundary guards or workload.
+The following start/poll-close and interactive phases retain the production startup order.
+
+The independent preparation review identified two evidence obligations: name memory records by
+run identity with create-new semantics and verify run/PID/parent identity, and inspect the complete
+structured process log after normal exit. Require the target native call's natural settlement, a
+stopped final state, no subsequent running publication and no late diagnostic failure before the
+parent accepts a phase. A call still unresolved at exit does not supply late-result evidence.
+An initially stopped state need not emit a duplicate stopped notification; read its actual final
+state after lifecycle disposal instead of requiring a transition that the application suppresses.
+This post-exit validation adds no wait to the production close path. Retain the original six-second
+close and require distinct PIDs across the corrected ordered set. One changed-method replay and
+one scoped review recheck remain; any further failed phase requires another causal checkpoint.
+
+The corrected seed passed with a 151-item durable checkpoint. The scoped recheck then showed that
+closed watch streams cannot prove the actual state after a late completion. Before StartClose,
+add one next-event-turn read after the target bridge future's application microtask drain; require
+that evidence and reject a running state after native stop even if no broadcast occurs. This only
+observes and never holds a result or shutdown open. Add missing-observation and silent-state-change
+negative fixtures. Preserve the successful seed and record a single diagnostic-only kernel change
+before the four remaining phases, proving every native artifact and production source unchanged.
+All four remaining phases use the resulting identical artifacts. The prior review/recheck consumed
+7 minutes 20 seconds; reserve one final two-minute review of this newly established observation
+boundary within the original 15-minute review allocation. It does not restart any native phase or
+extend the 150-minute block. The live generated poll policy remains 250 milliseconds.
+
+The corrected Seed, StartClose and PollClose phases passed. Restore confirmed the paused task and
+baseline pixels, but its desktop input driver rejected screenshot bindings and coordinate geometry;
+the attempted Tab was not observed by the client. Stop input, retire only the verified owned process,
+retain its failed receipt and checkpoint, and leave Restore/Continue incomplete. No replacement
+widget or direct-callback interaction may close those real-input duties. Their next execution needs
+a changed input method demonstrated on a harmless test surface before another Ame admission.
+
+#### Current preview contract CI follow-up
+
+Hosted run 35695913794 on `2004baf` reports three Rust test failures: two strict availability module
+contracts omit the newly extracted private `preview_source` module; the explicit-retry regression
+still expects a terminal open error after confirmed source removal. All nine other required jobs
+passed. This is an actual current-candidate gate failure and precedes another full local gate.
+Reserve 60 active minutes: 15 diagnosis and contract mapping, 15 narrow correction, 20 focused
+verification, 5 independent review and 5 records. The conservative envelope becomes 2624 minutes;
+it is not reconstructed measured effort and does not reset C01/C02 or the failed desktop lifetime.
+
+Admit only the exact private module topology with existing declaration/attribute/visibility and
+unknown-module rejection rules; add adversarial cases for that module. Keep the explicit-retry
+test's no-source-read-before-retry proof and require that retry retires the missing location while
+preserving its configured root. Preserve metadata-only availability call closures and all source,
+identity, lease and publication guards. No production policy change is planned; if a failing test
+exposes a distinct runtime invariant, record that cause before modifying its owner. Run the complete
+availability, preview and scan namespaces, formatting and warnings-denied Rust lint; retain the CI
+failure and verify the next pushed head instead of re-running this head unchanged. Complete Daily,
+C01/C02, real input and the remaining frozen acceptance exits stay open.
+
 #### C05 transient preview feedback method
 
 The latest generated-only lifetime passes the complete mixed-media and bulk-change assertions, but
