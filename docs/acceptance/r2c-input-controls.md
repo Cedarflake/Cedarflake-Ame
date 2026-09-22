@@ -1,6 +1,7 @@
 # R2c picker and task controls
 
-Status: **C06/C07 focused corrections verified; native task input remains incomplete**.
+Status: **C06/C07 focused corrections verified; screenshot-based native picker and raw keyboard
+delivery verified; focused Retry and Pause-Cancel remain incomplete**.
 
 This record covers the [actual picker and task-control method](../plans/r2c-closeout.md#actual-picker-and-task-control-method)
 on 2026-09-22. Its source starts at `ef4eee27ca47c1c7e6d3b97e986f9d73da6ded7a`, with the C06
@@ -292,3 +293,67 @@ process/memory receipts, raw application logs and both full source checks. Charg
 handoff reservation conservatively in full. Actual focused-Enter Retry and pre-registration
 Pause/Cancel remain unproved. Another native input lifetime needs an available input interface
 and a recorded changed method; no unchanged launch or successful-input claim follows this check.
+
+### Renewed interface availability
+
+The explicitly renewed check uses lifetime `2a2d8d4dc200412387295c807981aa69`, fresh isolated storage
+and the same verified artifacts. Discovery, screenshot and the indexed Import control are available;
+the first click repeats `element 31 is not available in cached app state for cedarflake_ame.exe`.
+The trace again contains no picker, source scan or keyboard event. No second input route is tried.
+Exact process revalidation precedes deliberate retirement: exit -1 after 94273 ms, process exit
+and Job closure, with no cleanup failures. This is a failed availability check, not normal shutdown.
+
+All 10004 sources pass before/after integrity in 47.222/42.615 seconds. Across 349 resource samples,
+peak working set is 355926016 bytes, sampled private memory 296370176, kernel peak commitment
+317149184 and minimum system availability 4966293504; the original bounds hold. Ignored
+`.build/r2c-input-availability/` and its GUID-owned fixture retain the exact admission, separate
+tool-response transcription, raw trace, process/resource receipts and source checks. Charge the
+30-minute reservation in full. Input remains unavailable; repeat discovery or an unchanged launch
+cannot close actual keyboard, task-control or candidate acceptance.
+
+### Tool recovery and delivered input
+
+The 2026-09-23 tool-only diagnosis uses the installed Computer Use plugin `26.915.31029` and
+`@oai/sky` runtime `0.7.1`. Session and turn identifiers remain consistent across calls. The
+installed host closes its helper when its last pipe connection closes, but no measurement proves
+that teardown caused the earlier failure. A native Explorer control works across separate calls:
+an indexed View menu opens, Escape closes it, and subsequent observation confirms dismissal.
+The first text-only attempt reports `coordinate input geometry is unavailable`; screenshot plus
+accessibility resolves that control's geometry. The previously minimized window is restored to
+its original minimized state. Calculator approval times out without a delivered action.
+
+Ame lifetime `8c23b1be071145bb80f15b6ecc32a80a` uses a fresh isolated catalog and byte-identical
+prepared artifacts. Explicit activation and a fresh screenshot/accessibility observation still
+produce `element 907 is not available in cached app state for cedarflake_ame.exe`. The preserved
+indexed failure is followed by the admitted screenshot-only comparison, using the actual returned
+screenshot identifier and an observed coordinate. That action opens the native picker at 110209 ms.
+Its observed confirmation returns the exact small fixture directory at 150721 ms. One real scan
+publishes the three expected assets and the controlled post-commit display-read failure occurs
+exactly once. That displayed failure is the existing diagnostic injection, not a new tool defect.
+
+Fourteen native key-down records contain six Tab events, four Shift Left events and four unlabeled
+events accompanying Shift-Tab. Key-up and pressed-key state are not recorded by this observer;
+modifier release cannot be inferred. These records confirm delivery but do not prove
+focused task activation: no Enter on `library-retry-button`, admitted retry read, second picker,
+Pause or Cancel is recorded. A read-only `ext.flutter.debugDumpFocusTree` snapshot reports the
+screen-level Focus as primary rather than a task button. A further read-only keyboard-state
+expression cannot compile because this launched debug process has no compilation service; no
+expression executes. These observations leave focus progression unexplained and do not establish
+whether application focus or injected-key handling owns it. No programmatic focus or retry action
+substitutes for native input. Screenshot-based pointer input is usable; indexed Flutter controls
+and the complete keyboard/task-control journey are not accepted.
+
+The process is deliberately retired after 702395 ms with exit -1, process exit and Job closure,
+without cleanup failures. This is not normal-close acceptance. All 10004 generated sources pass
+identity/byte checks before and after in 43.625/42.777 seconds. Across 2647 samples, peak working
+set is 446103552 bytes, sampled private memory 331612160, kernel peak commitment 352149504 and
+minimum system availability 5270708224. No real-library run, tool-permission change, installed
+binary patch or product-code change occurs. The native trace SHA-256 is
+`560E0A20939FFF2C1EEFC9FE7DF14726B37E6EC377A0ED28DFD44A8EDC47E4EA`.
+Ignored `.build/r2c-input-tool-recovery/` and its GUID-owned fixture retain admission, trace,
+resource/process receipts and complete integrity evidence. Charge the 70-minute reservation in
+full. Any further focus investigation needs a changed, bounded observation method, preserving the
+required focused Enter and pre-registration controls instead of accepting raw key delivery.
+That method must distinguish input from observation effects with before/after focus ownership,
+physical/logical key identities, key-down/up and pressed modifiers. Repeating Tab without those
+observations cannot discriminate a traversal failure from injected-key or activation behavior.

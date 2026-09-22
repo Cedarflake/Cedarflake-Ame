@@ -4,7 +4,8 @@ Status: **The accumulated C05 generated-native workload passes pixels, counts, t
 feedback and owned retirement; other frozen variants and final gates remain open**.
 
 The [accumulated candidate hosted checkpoint](../acceptance/r2c-closeout-cycle.md#accumulated-candidate-hosted-checkpoint)
-passes all required jobs on `9c584a0`. It does not resolve the preserved C01/C02 failures, remaining
+passes all required jobs on `9c584a0`; the later `aac68ed` run repeats C01's connection-lifetime
+control failure. Neither result resolves the preserved C01/C02 failures, remaining
 actual client paths, complete local gate, final review or external acceptance prerequisites.
 
 ### Completion goal and required deliveries
@@ -92,6 +93,50 @@ standalone scheduler test does not substitute for that client path. No new UI co
 mechanism, source access, persistence strategy or retry policy is admitted.
 
 ### Complete scope and retained readability findings
+
+#### Current input availability check
+
+Reserve 30 active minutes for the explicitly renewed input-availability check: ten for existing
+artifact/source and process checks, 15 for one native lifetime, and five for results. Cumulative
+reservation becomes 3629 minutes. Start a fresh isolated catalog only after confirming no retained
+Ame process and exact executable/kernel/DLL hashes. Check current Computer Use discovery, then one
+observed control and keyboard delivery against the native trace. A discovery or screenshot alone
+does not prove input. If delivery works, finish the unchanged picker / focused-Enter Retry /
+pre-registration Pause-Cancel sequence within its existing 900-second parent and original resource,
+source, 120-second registration and six-second close limits. Otherwise preserve the exact failure,
+retire the owned lifetime and do not retry another input route inside this admission.
+
+The [renewed check](../acceptance/r2c-input-controls.md#renewed-interface-availability) reaches the
+same cached-control failure without delivered input. The owned process/Job retire and all generated
+sources remain unchanged. Charge 30 minutes in full; this admission is closed without an input pass.
+
+#### Computer Use recovery boundary
+
+Reserve 70 active minutes for the tool blocker: 45 for local runtime/configuration and harmless
+native-control diagnosis, 15 for one isolated Ame lifetime, and ten for records. Cumulative
+reservation becomes 3699 minutes. Preserve previous failures and all source, resource, registration,
+parent-lifetime and shutdown limits. Do not rerun product gates, change application permissions,
+patch installed tool binaries, or replace guarded input with a custom automation transport.
+
+The changed method first verifies a native application's observed menu click and keyboard dismissal
+across separate calls. The text-only Explorer capture lacks usable input geometry; capture
+both screenshot and accessibility after explicit activation and fresh window selection. For Ame,
+verify exact prepared artifact hashes and fresh source integrity, then use that sequence before
+one observed Import click. Continue the unchanged Retry / Pause-Cancel workflow only if delivery
+is proved by the native trace. The indexed control fails again for Ame after the native Explorer
+control succeeds. This narrows the diagnostic question to indexed accessibility versus input:
+within the same 900-second lifetime, admit one freshly observed screenshot-coordinate Import action
+through the documented API. Preserve the indexed failure separately; do not fake indexes, screenshot
+IDs or window bindings. A coordinate binding failure ends the lifetime without further input.
+Connection teardown remains a hypothesis until measured; a successful control in another application
+does not establish Ame acceptance. Keep tool evidence separate from product behavior and retain
+no unrelated window content in tracked records.
+
+The [tool recovery result](../acceptance/r2c-input-controls.md#tool-recovery-and-delivered-input)
+proves screenshot-based native picker input and raw key delivery. Indexed Ame controls still fail;
+focused Retry and the subsequent Pause-Cancel sequence are not completed. The owned lifetime ends,
+all generated source checks pass, and the 70-minute reservation is charged in full. Do not replace
+the remaining native focus/activation evidence with pointer activation or direct controller calls.
 
 #### C01 owned-thread observation calibration
 

@@ -828,6 +828,21 @@ failure or C02's local evidence-publication failure. No unchanged local gate is 
 Actual remaining input/Release paths, complete local Daily, accumulated independent review and
 signed/installed-service/journal/cloud/retained-library acceptance remain separate obligations.
 
+Hosted [35734783744](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/35734783744), on
+`aac68edd022e248e1e929cf45af484d3952d817c`, subsequently fails Static/Rust and the aggregate gate;
+nine required jobs pass and three conditional release jobs skip. The library suite records
+1518 passed, one failed and 19 ignored in 1335.13 seconds. The failing connection-lifetime control
+reports a P0 location absent after five seconds, a leased queue entry, 215.1184 ms queue admission,
+214.1665 ms worker admission, and 61 polls totaling 5.4634599 seconds with a 5.2622367-second maximum.
+Live and journal lanes are active; recovery is inactive at this failure. This recurrence preserves
+C01's unresolved causal obligation and supersedes any description of the latest completed hosted
+run as green. It does not by itself identify the slow operation's cause. No unchanged rerun follows.
+
+The retained run receipt and failed log are `ci-35734783744-complete.json` and
+`ci-35734783744-failed.log` under the same ignored evidence directory. Their SHA-256 values are
+`A82F14ADC52D163E3FEC8409B95AF2A41347A236CD3A35EC091A056B0BB048C4` and
+`5B1E57B669181FE9710AE27541D30AAD2714BDBF6B89D0DE92DE527196A4955B` respectively.
+
 ### Startup, query, folder and recovery evidence
 
 The 2026-09-22 documentation check matches exact assertions and retained output from production
