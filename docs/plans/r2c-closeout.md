@@ -168,6 +168,61 @@ membership/pixels, source integrity and normal exit. Charge both reservations in
 input route no longer blocks those selected Debug duties; remaining variants and final gates retain
 their separate obligations. Do not reopen the consumed tool diagnosis without a new failure.
 
+#### Native query interaction during publication
+
+Reserve 90 active minutes (including admission inspection): 30 for a narrow generated-fixture
+diagnostic, 15 for one native lifetime, 20 for evidence analysis, 15 for independent review and ten
+for records. The cumulative reservation becomes 3864 minutes. Reuse a read-only-validated backup
+of the retained generated catalog containing 10000 mixed images and 512 stimulus images; never
+admit an unexpected root. Keep those source trees immutable. Add one new GUID-owned source with
+24 baseline images, then 180 paced additions copied from the frozen twelve-dimension corpus.
+Record intended additions separately and verify all original and generated sources afterward.
+
+Use actual native pointer/keyboard actions to select roots and folders, change search and sorting,
+and cross a gallery window while the production watcher publishes additions. Read-only frame and
+catalog observers must prove query/count/timeline/manifest identity, unique page membership,
+visible current pixels and completed source convergence. No controller-driven input, artificial
+publication delay, automatic retry, real-library access or product change is admitted by this
+evidence slice. Retain the 900-second parent, 300-second post-stimulus convergence, six-second close,
+2 GiB client and 2 GiB system reserve, and use existing owned-process and resource guards.
+
+This targets UX-03A and folder selection within UX-03B. It does not close the separate 200-child
+folder-page revision transition, committed-removal Retry or Release input. Preserve a failed run;
+an observer defect or functional failure requires a recorded correction before a changed replay.
+
+The first native lifetime reaches final 204-source convergence but its observer rejects a valid
+absolute-path search at 228499 ms: the catalog searches absolute or relative paths, while the new
+diagnostic checks only relative paths. Preserve the failed lifetime and its incomplete frame record.
+Admit one 45-minute correction/replay reservation (cumulative 3909 minutes): extract the diagnostic
+scope predicate, prove absolute-path matches and wrong-root/folder/nonmatch rejection, then use a
+fresh generated source and unchanged workload/limits. Select native search text through observed
+key events, and perform large-window navigation first within the same paced publication interval.
+No product search policy or acceptance assertion is weakened.
+
+The corrected lifetime preserves a second diagnostic failure at 625954 ms: the observer assumes
+every timeline contains date buckets. The production snapshot deliberately retains the total and
+returns no buckets for filename sorting. Its 180 additions and final 204/512/10000 memberships pass;
+current pixels prove search and a page offset of 676 during publication. Sorting occurs after the
+paced additions, and folder selection is not reached, so the combined interaction remains open.
+Preserve that failed result and its 657509-ms normal process lifetime.
+
+Reserve 40 active minutes for this explicit method correction (cumulative 3949 minutes): ten for a
+typed diagnostic timeline validator and positive/negative cases covering all chronological sorts,
+filename sorting, count and identity; fifteen for one fresh native lifetime; ten for independent
+recheck and five for records. Before starting the unchanged 180 additions at one per second,
+establish the native search and sort controls and expand the baseline folders. During publication,
+change sorting, select the baseline folder, switch roots and scroll across a window; these actions
+must still produce current pixels while additions are active. Preserve all earlier failures and
+the same workload, convergence, parent, memory and close limits. No further replay is admitted
+without another causal checkpoint; do not change product timeline semantics to fit the observer.
+
+The corrected run completes the native search/sort/folder/root/window interaction during the same
+180-image addition interval, final exact 204/512/10000 membership, source integrity and normal close.
+The [query interaction record](../acceptance/r2c-query-interactions.md) owns the failed lifetimes,
+corrected validator, actual-action timestamps, current-pixel evidence and remaining limits.
+Charge the reservation through 3949 minutes without reopening these completed selected Debug cases.
+The frozen folder cursor/revision, removal Retry and Release obligations remain next in their scope.
+
 #### C01 owned-thread observation calibration
 
 While actual input is unavailable, reserve 40 active minutes: 15 for a process-scoped sampler,
