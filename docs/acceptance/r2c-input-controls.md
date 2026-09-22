@@ -1,6 +1,6 @@
 # R2c picker and task controls
 
-Status: **C06 focused correction verified; native input lifetime incomplete**.
+Status: **C06/C07 focused corrections verified; native task input remains incomplete**.
 
 This record covers the [actual picker and task-control method](../plans/r2c-closeout.md#actual-picker-and-task-control-method)
 on 2026-09-22. Its source starts at `ef4eee27ca47c1c7e6d3b97e986f9d73da6ded7a`, with the C06
@@ -227,6 +227,39 @@ controller entrypoint and asynchronous scope, clearing inherited committed conte
 entry. Four attribution cases pass, including both ordering directions and nested/late context;
 three existing keyboard-token rejection/acceptance cases also pass. Preserve the preceding failed
 predicate and scope runs, which exposed the product race rather than proving an input failure.
-These seven diagnostic tests do not establish delivered native keyboard input. A fresh reserved
-graphical lifetime and final-source gates remain pending; the unresolved C02 local gate is not
-restarted unchanged. All work so far uses controlled ports without accessing original media.
+These seven diagnostic tests do not establish delivered native keyboard input. The fresh reserved
+graphical lifetime is retained below without delivered input; final-source gates remain pending.
+The unresolved C02 local gate is not restarted unchanged. All focused work uses controlled ports
+without accessing original media.
+
+## Read-attribution native checkpoint
+
+Product source `935961800893862a2a2d0cf50ce6f31673ce3f12` builds the scoped diagnostic in 29.5 seconds;
+formatting, Dart analysis and PowerShell syntax pass. A one-minute independent preparation review
+confirms that asynchronous attribution preserves the original calls and input assertions. The
+fixture, native picker and process owners remain byte-identical to the preceding graphical method.
+
+Lifetime `f3ad386cb58449399ff9fa39c218fae3` reveals the empty native client and returns a populated
+accessibility tree, but screenshot input reports `unknown screenshotId screenshot-0` and indexed
+input reports `call get_window_state before using this window`. Fresh selection and one JavaScript
+reset preserve the same screenshot-binding failure. A coordinate action without the optional
+screenshot ID and a Shift-Tab call return without error, but no native picker or application
+keyboard event appears in the trace. Their tool responses are not delivered-input evidence.
+The attempt ends before an accepted directory, scan, injected read failure or task Retry.
+
+After PID, parent, executable and start-time revalidation, the owned application is terminated.
+Its 327864 ms receipt records exit -1, process exit and Job closure with no cleanup failure;
+this is not a normal-close or input pass. Across 1231 samples, peak working set is 342024192 bytes,
+sampled private memory 297041920, kernel peak commit 330420224 and minimum system availability
+5087272960. All four prepared files and all 10000 frozen files pass full identity, membership,
+content and timestamp checks before/after in 71.769/49.600 seconds. The EXE and Rust DLL retain
+their earlier hashes; the diagnostic kernel is
+`C28AFEF55A2F420046AB971D1F0F07A12F5A3784C040817F3EB37CD714F40FF7`.
+
+Ignored `.build/r2c-input-retry-scope/` and its GUID-owned fixture retain original negative
+regressions, passing focused logs, preparation, admission, interface failure and source/process/
+memory receipts. Conservatively charge the 60-minute attribution and 90-minute C07 reservations
+in full, including their recorded reviews; 3359 minutes is a cumulative reservation, not measured
+elapsed work. Stop this graphical binding route until its missing input capability is corrected
+or a separately prepared changed method can prove delivery. The C07 focused correction remains
+valid, while actual task controls, Release and the separate local complete gates remain open.

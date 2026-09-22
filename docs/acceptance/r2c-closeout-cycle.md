@@ -1,6 +1,6 @@
 # R2c controlled closeout cycle
 
-Status: C04/C05 have selected generated-client evidence; C06 has focused correction evidence.
+Status: C04/C05 have selected generated-client evidence; C06/C07 have focused correction evidence.
 Native picker/task input and candidate gates remain unresolved.
 C01/C02 and local Daily failure remain unresolved.
 
@@ -782,23 +782,23 @@ their actual passing output and unchanged source; the final complete Daily remai
 | UX-01A | Warm existing catalog starts with usable content; no-change continuity enumerates/opens no source and creates no inventory | Startup/lifecycle; `library_synchronization_lifecycle_owner_test.dart`; Rust `one_hundred_no_change_startups_complete_the_production_observer_path_without_scanning`; mapped, combined client observation pending |
 | UX-01B | Close while start/poll is pending, then launch the same fixture catalog; old PID exits within the existing bound and old epoch cannot publish | Window shutdown and synchronization epoch; `window_manager_actions_test.dart`, `library_synchronization_test.dart`; [native close and same-catalog relaunch verified](r2c-process-lifecycle.md); actual late-after-stop completion remains covered by controlled races |
 | UX-01C | Launch with interrupted first import; display paused checkpoint, require explicit Continue, preserve truthful portable capability | Scan restoration; `library_controller_test.dart`, `library_viewer_position_test.dart`; [real paused restoration and explicit continuation verified](r2c-process-lifecycle.md#recovered-real-input-pair); portable-capability assertion remains open |
-| UX-02A | Import through the actual picker with Chinese paths, wrong-extension PNG and damaged input; exact count/issues and unchanged source | Primary scan, media admission; controlled picker case mapped; [actual picker opened but directory input failed](r2c-input-controls.md#retained-failed-native-lifetime), current native import remains open |
+| UX-02A | Import through the actual picker with Chinese paths, wrong-extension PNG and damaged input; exact count/issues and unchanged source | Primary scan, media admission; [graphical lifetime reaches three accepted images and one issue](r2c-input-controls.md#graphical-input-and-read-attribution), but the complete control lifetime and exact issue oracle remain open; current-source input binding fails separately |
 | UX-02B | Pause then cancel before native Started/registration; cancel wins, late Started does not regress feedback, execution retires | Scan control and task surface; [C06 connected regression and correction pass](r2c-input-controls.md#c06-cancellation-while-pause-is-pending), current native control path remains open |
 | UX-02C | Cancel replacement before commit or fail display after commit; preserve previous baseline or retry display exactly once without rescan | Publication control, committed refresh; Rust `accepted_cancel_before_projection_commit_preserves_the_published_baseline`, `library_primary_scan_workflow_test.dart`; mapped, [prepared native retry was not reached](r2c-input-controls.md) |
 | UX-03A | Switch root/search/sort and cross a page while publication proceeds; latest query owns coherent page/count/timeline | Query snapshot and viewport; `library_query_snapshot_reader_test.dart`, `library_controller_test.dart`; mapped, Release input pending |
 | UX-03B | Expand a folder, change revision, load another folder page; replace obsolete window and append only at the same revision | Folder paging; `library_folder_controller_test.dart`; mapped, Release input pending |
-| UX-03C | Fail display after committed removal/update, replace query and explicitly retry; retain page, settle loading and never repeat source action | Query refresh/removal; `library_query_snapshot_reader_test.dart`, `library_update_refresh_test.dart`; mapped |
+| UX-03C | Fail display after committed removal/update, replace query and explicitly retry; retain page, settle loading and never repeat source action | [Controlled query/removal transitions pass](#controlled-query-source-and-viewer-evidence); actual native Retry remains open |
 | UX-04A | Materialize cold then warm actual media previews; verify pixels, source version, cache ownership and unchanged source | Preview store/media adapters; `media_format_tests.rs`, existing seven-format acceptance; mapped, Release decoding pending |
-| UX-04B | Rewrite fixture with identical size/ID/mtime while the old request is pending; reconcile one path and show new pixels, reject old publication | Source reconciliation/lease; `preview/tests/source_reconciliation.rs`, `preview/tests/failure.rs`; mapped, interleaving evidence to verify |
-| UX-04C | Hold source exclusively or present corrupt bytes, then recover; preserve precise failure, valid source retries and no stale ready publication | Preview failure; `source_open_failure_keeps_its_cause_and_does_not_enqueue_reconciliation`, `explicit_retry_of_same_version_corrupt_source_retires_legacy_ready_ownership`; mapped |
+| UX-04B | Rewrite fixture with identical size/ID/mtime while the old request is pending; reconcile one path and show new pixels, reject old publication | [Post-decode same-metadata replacement passes](#controlled-query-source-and-viewer-evidence), including recovery on a subsequent ordinary demand; automatic client delivery remains open |
+| UX-04C | Hold source exclusively or present corrupt bytes, then recover; preserve precise failure, valid source retries and no stale ready publication | [Exclusive-open, corruption and newer-source recovery cases pass](#controlled-query-source-and-viewer-evidence); actual watcher/client delivery remains open |
 | UX-05A | Open original, navigate both ways and return; actual decode, correct anchor and released source slots | Viewer/source reader; `integration_test/support/viewer_source_workflow.dart`, `library_viewer_position_test.dart`; Debug decode mapped, Release pending |
-| UX-05B | Close/reopen while paging or buffer copy is pending; old completion/errors remain retired and new navigation works | Viewer session/source lifetime; `library_viewer_navigation_lifecycle_test.dart`, `library_source_read_lifecycle_test.dart`; mapped |
+| UX-05B | Close/reopen while paging or buffer copy is pending; old completion/errors remain retired and new navigation works | [Connected viewer and source-lifetime cases pass](#controlled-query-source-and-viewer-evidence); native Release remains open |
 | UX-05C | Same-path source rewrite, then authoritative rename/removal; newest pixels and stable asset until authoritative removal | Viewer source generation; `library_viewer_image_test.dart`, `library_viewer_position_test.dart`; mapped, Release input pending |
 | UX-06A | A/B update while queued C is cancelled; independent progress and only C is cancelled | [Connected task-surface cancellation passes](#multi-root-current-evidence), including both completions, refresh callbacks and execution release; scanner and catalog-refresh ports are controlled |
 | UX-06B | Remove C while A publishes and B continues, then register C while old cleanup remains; no repeated unregister, stale root or cleanup authority | [Connected controller and persistence cases pass](#multi-root-current-evidence); deterministic scan interleaving and old/new spool authority are covered, native UI overlap and physical file reclamation are not |
 | UX-06C | Make fixture A unavailable then restore it while B updates; preserve A's catalog and B's progress | [Connected production recovery case passes](#multi-root-current-evidence), including B publication during A recovery and FULL reopen; notifications are injected, not real watcher delivery |
 | UX-07A | Original 25-sample P0/P1/P2 workload through complete P2 publication, authority retirement, synchronized state and FULL reopen | `production/tests/priority.rs` and `priority/recovery_completion.rs`; original 300-second failure remains S1, discovery observation timing added |
-| UX-07B | Same workload with per-poll versus per-epoch connection lifetime; preserve proof and production P95 bound | `priority/connection_lifetime_control.rs`; existing two-arm evidence mapped, no full-recovery substitution |
+| UX-07B | Same workload with per-poll versus per-epoch connection lifetime; preserve proof and production P95 bound | `priority/connection_lifetime_control.rs`; [current hosted P0 timeout retained](r2c-interleaving-remediation.md#hosted-mixed-load-recurrence-on-9359618), earlier passing controls do not close it |
 | UX-07C | Interrupt/reopen exact leases and exhaust recovery retry; retain durable failure/lineage and keep other roots eligible | Production restart/stop and queue retry owners; `production_restart_recovers_an_expired_live_gap_lease_and_retains_its_consumer_lineage`, `exhausted_recovery_candidate_prevents_authority_completion`; mapped |
 | UX-08A | Jump by scrollbar/time rail then reverse before completion; immediate visible demand and no old seek rollback | Gallery visible range/time navigation; `library_time_navigation_test.dart`; mapped, Release input pending |
 | UX-08B | Original ten-phase populated whole-window UIA sequence and native process exit; no invalid AXTree | `integration_test/windows_accessibility_bridge_test.dart` and existing public runner; prior local pass and hosted timeout both retained |
@@ -807,6 +807,61 @@ their actual passing output and unchanged source; the final complete Daily remai
 Flutter filenames above are under their existing `test/app` or `test/features/library` owners;
 Rust test owners are under `rust/src`. This is one fixed cross-layer discovery pass, not a full
 repository audit. No UI redesign, source operation feature, dependency or schema change is admitted.
+
+### Controlled query, source and viewer evidence
+
+This 2026-09-22 check matches actual assertions and exact test output on production source
+`935961800893862a2a2d0cf50ce6f31673ce3f12`. Controlled transitions retain their client limitations:
+
+- **UX-03C:** `library_update_refresh_test.dart` preserves user-query success/failure while a
+  committed refresh follows the accepted query. Genuine or inconsistent catalog reads retain the
+  previous coherent page, settle loading and wait for explicit Retry. The removal case in
+  `library_controller_test.dart` retains committed removal feedback after a failed display read,
+  then retries only that read: one unregister and one completion sequence remain. The deferred
+  refresh failure in `library_query_snapshot_reader_test.dart` retains the published revision-8
+  removal page when the revision-9 read fails. These cases cover distinct transitions, not every
+  possible ordering of all actions or native keyboard delivery.
+- **UX-04B:** the new `same_metadata_rewrite_after_decode_rejects_old_pixels_and_recovers_preview`
+  rewrites a generated PNG after decode revalidation with the same identity, byte length and
+  modification time. The final guard rejects the old request, leaves its exact catalog/Ready
+  ownership and artifact bytes intact, and removes staged work. A subsequent ordinary non-forced
+  request enters the real initial-open reconciliation owner. Exactly one path reconciliation
+  completes, source revision/generation advances, the obsolete request remains rejected, and the
+  new generation produces the expected new pixel color. No private reconciliation call or manual
+  database mutation advances that generation. Automatic Flutter demand and watcher delivery are
+  not proved by explicitly supplying this subsequent request.
+- **UX-04C:** an exclusive Windows source handle produces the precise open error with no catalog
+  or queue change; release followed by explicit Retry succeeds. Same-generation corrupt input
+  retains its decode failure, retires legacy Ready ownership and cannot silently become usable.
+  A valid replacement published during the old corruption result survives that obsolete result;
+  its unique Ready owner and new pixels remain current. Original media is not used.
+- **UX-05B:** the three connected viewer-navigation cases hold real application paging across
+  close/reopen; late completion cannot navigate the new session, and a newly requested boundary
+  navigation joins pending paging once. Seven source-read cases cover pending admission/copy,
+  release ordering, replacement and precise Retry. Five image-stream cases cover late error/frame,
+  disposed codecs and current visible errors. These are controlled Flutter paths with application
+  owners, not a native Release input or original-file I/O acceptance run.
+
+Hosted [35721552835](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/35721552835) supplies
+the unchanged Flutter output at `.build/r2c-controlled-evidence/ci-35721552835-flutter.log`,
+SHA-256 `EDCEC9A725E3737F6DA99F500E7D1014F49632454BF9E2979D7CD799C8F2D368`.
+The passing job contains query/removal evidence at lines 582, 773–779 and 905–909, source-stream/read
+evidence at 1090–1104, and connected viewer paging at 1165–1167. Its Rust log records the existing
+preview cases at 2395–2417, but the full Rust job and aggregate fail the independent mixed-load
+case recorded in the interleaving ledger; this is not an overall hosted pass.
+
+The new test's first run passes seven cases and fails its own immediate-reconciliation expectation:
+late guard rejection does not reconcile in that same call or retain the initial-open error prefix.
+Preserve `source-reconciliation-direct.log`; do not weaken production or discard that failure.
+The corrected three-stage oracle passes **8/8** in **7.50 seconds** after a **49.94-second** compile.
+Its exact output is `.build/r2c-controlled-evidence/source-reconciliation-corrected.log`, SHA-256
+`41DB2A09986BDB8729B45E7A6469E0F81148AFF61FE77AF89DF1C0B882986D8B`.
+Rust format and all-target/all-feature warnings-denied Clippy pass; Clippy takes 12.58 seconds.
+Production and inline-test changes are zero; the dedicated reconciliation suite is 439 lines.
+Independent oracle review and final evidence review take four active minutes in total and find no
+remaining blocking issue. Conservatively charge the 45-minute block in full: the cumulative
+reservation is 3404 minutes, not measured elapsed time. Compilation/test wall time is separate.
+Local complete lint/Daily, automatic client recovery, native input and external gates remain open.
 
 ### Multi-root current evidence
 

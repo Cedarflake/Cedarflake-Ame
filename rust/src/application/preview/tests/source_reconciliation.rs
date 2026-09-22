@@ -124,7 +124,24 @@ fn source_reconciliation_preserves_existing_authority_and_rejects_stale_admissio
 
 #[test]
 fn source_revision_mismatch_reconciles_one_path_and_recovers_preview() {
+    verify_source_revision_mismatch(false);
+}
+
+#[test]
+fn same_metadata_rewrite_after_decode_rejects_old_pixels_and_recovers_preview() {
+    verify_source_revision_mismatch(true);
+}
+
+fn verify_source_revision_mismatch(after_decode: bool) {
     let (fixture, ready) = ready_source_fixture("source-reconciliation");
+    let original_preview = fs::read(&ready.preview_path).expect("original preview bytes");
+    let preview_entries = || {
+        fs::read_dir(&fixture.storage.preview_root)
+            .expect("preview directory")
+            .map(|entry| entry.expect("preview entry").path())
+            .collect::<std::collections::BTreeSet<_>>()
+    };
+    let original_entries = preview_entries();
     let modified = fixture
         .source_path
         .metadata()
@@ -137,16 +154,50 @@ fn source_revision_mismatch_reconciles_one_path_and_recovers_preview() {
         .expect("replacement PNG");
     let replacement = replacement.into_inner();
     assert_eq!(replacement.len() as u64, ready.file_size);
-    fs::write(&fixture.source_path, &replacement).expect("replace fixture content");
-    fs::OpenOptions::new()
-        .write(true)
-        .open(&fixture.source_path)
-        .expect("fixture handle")
-        .set_times(fs::FileTimes::new().set_modified(modified))
-        .expect("restore modification time");
-    let old_request = preview_request_for(&ready, 256, false);
+    let changed_path = fixture.source_path.clone();
+    let changed_bytes = replacement.clone();
+    let rewrite_source = move || {
+        fs::write(&changed_path, changed_bytes).expect("replace fixture content");
+        fs::OpenOptions::new()
+            .write(true)
+            .open(changed_path)
+            .expect("fixture handle")
+            .set_times(fs::FileTimes::new().set_modified(modified))
+            .expect("restore modification time");
+    };
+    if after_decode {
+        install_preview_test_hook(
+            &AFTER_PREVIEW_REVALIDATION_HOOKS,
+            &ready.location_id,
+            rewrite_source,
+        );
+    } else {
+        rewrite_source();
+    }
+    let old_request = preview_request_for(&ready, 256, after_decode);
     let error = materialize_preview_with_storage(old_request.clone(), fixture.storage.clone())
-        .expect_err("old source request is superseded after reconciliation");
+        .expect_err("changed source supersedes the old preview request");
+    assert_eq!(error.code, "preview_request_superseded");
+    let error = if after_decode {
+        assert_eq!(active_location(&fixture), ready);
+        assert_eq!(
+            fs::read(&ready.preview_path).expect("retained preview bytes"),
+            original_preview
+        );
+        assert_eq!(preview_entries(), original_entries);
+        assert_unique_ready_preview_owner(
+            &fixture.storage.catalog_path,
+            &ready.location_id,
+            &ready.preview_path,
+        );
+        materialize_preview_with_storage(
+            preview_request_for(&active_location(&fixture), 256, false),
+            fixture.storage.clone(),
+        )
+        .expect_err("next ordinary demand reconciles the changed source")
+    } else {
+        error
+    };
     assert_eq!(error.code, "preview_request_superseded");
     assert!(
         error

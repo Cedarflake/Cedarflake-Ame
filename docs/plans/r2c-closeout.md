@@ -89,6 +89,45 @@ mechanism, source access, persistence strategy or retry policy is admitted.
 
 ### Complete scope and retained readability findings
 
+#### Preview demand after source supersession
+
+Reserve 60 active minutes after controlled evidence completion: ten for the delivery boundary,
+20 for a connected regression, 15 for an owning correction only if a causal failure is reproduced,
+ten for focused verification and one independent review, and five for records. Conservatively
+reserved cumulative work becomes 3464 minutes; no failed native or full-gate allowance resets.
+
+Connect the actual gallery, preview coordinator and query refresh to controlled synchronization
+and catalog ports. Keep the gallery stationary while an old preview request ends as superseded
+and a new catalog generation arrives, covering both result/publication orders and authoritative
+removal. Assert current generation demand, no transient Retry feedback, no removed-item resurrection
+and bounded requests. A valid generated preview must reach the image widget; a ready data value
+alone is insufficient. Do not drive recovery through scrolling, manual Retry or direct demand calls.
+
+Keep native source observation outside this controlled proof and retain its separate evidence.
+The existing sync publication path owns refreshed catalog delivery. Do not add UI retry loops,
+weaken source identity, merge generations or conceal an unchanged-read failure. Any reproduced
+defect must be corrected at its owning boundary with the original failed oracle retained.
+
+#### Controlled interleaving evidence completion
+
+With native input delivery unavailable, reserve 45 active minutes within item 3: 15 to inspect
+the exact UX-03C, UX-04B/C and UX-05B owners and their existing assertions, 15 for any missing
+focused proof, ten independent evidence review and five records. The conservative cumulative
+reservation becomes 3404 minutes. This does not renew any failed native, C01/C02 or full-gate run.
+
+Match committed-action display retry, same-identity source replacement, corrupt/locked-source
+recovery and retired viewer completion to exact current passing output. Reuse previous output only
+after checking unchanged owning source, workload and contract. A mapped filename or passing job
+without its relevant assertions is insufficient. Add a narrowly owned regression only for a
+concrete uncovered transition; a new functional failure needs its causal disposition before repair.
+Keep actual native input, Windows watcher delivery, Release and external acceptance open. This
+block changes evidence coverage, not the frozen roster, delivery order or production architecture.
+
+The [controlled evidence checkpoint](../acceptance/r2c-closeout-cycle.md#controlled-query-source-and-viewer-evidence)
+passes its corrected eight-case source suite and exact existing query/viewer transitions, with
+four minutes of independent review. Charge this 45-minute reservation in full; native/client limits
+and the newly retained hosted C01 failure remain open. The delivery check above owns the next slice.
+
 #### C07 primary publication refresh admission
 
 The read-attribution regression exposes a separate product race: primary task display reloads
@@ -115,7 +154,7 @@ C02 local gate is not restarted unchanged, and no workload, deadline or external
 The [focused correction](../acceptance/r2c-input-controls.md#primary-committed-refresh-admission)
 passes its three originally failing races and existing primary/query cases, with independent
 review and scoped recheck. Native task input and final-source obligations remain separate exits;
-the next lifetime uses the already reserved read-attribution method below.
+the read-attribution method below retains its consumed native attempt.
 
 #### Committed retry read attribution
 
@@ -140,6 +179,12 @@ Use one fresh isolated Debug admission with the same four generated files, froze
 requirements. Keep all Windows input in Computer Use, using current screenshot observations for
 main and owned-dialog controls. Preserve tool-binding errors separately from application failures;
 an assertion failure ends the admission. No C01/C02, Release, real-root or external allowance resets.
+
+The [read-attribution checkpoint](../acceptance/r2c-input-controls.md#read-attribution-native-checkpoint)
+consumes that fresh lifetime without delivered input: the tool repeatedly loses screenshot/control
+binding, including after one reset. Source and owned-process checks pass, but no task input does.
+Do not launch another unchanged graphical attempt. Preserve the independent focused C07 correction
+and continue only work that does not depend on that unavailable input route.
 
 #### Graphical input continuation
 
