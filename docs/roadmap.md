@@ -89,8 +89,8 @@ keyboard controls and Release paths retain their separate frozen duties;
 this generated-client result does not establish complete synchronization acceptance. The
 [query interaction record](acceptance/r2c-query-interactions.md) verifies selected native Debug
 search/sort/root/folder/window interaction during publication, folder-window replacement/append,
-and the corrected continuous search input. Sidebar position continuity, committed-removal Retry,
-Release and final-source gates remain open. C01's mixed-load recovery
+the corrected continuous search input and committed-removal display Retry. Sidebar position
+continuity, remaining client variants, Release and final-source gates remain open. C01's mixed-load recovery
 failure and C02's automation/evidence failures are recorded for final verification; their current
 evidence does not establish a highest-priority user incident. Deferral changes execution order,
 not their unresolved acceptance status. Source/durable-data harm or reproduced blocked, misleading

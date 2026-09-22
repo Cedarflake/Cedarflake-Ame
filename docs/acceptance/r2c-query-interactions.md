@@ -170,8 +170,22 @@ full lint invocation reaches successful Clippy output but PowerShell 5.1's outer
 native stderr into an exception. It is a failed command, not a completed lint pass. The canonical
 unredirected run passes all guardrails, formatting and Clippy, then rejects one redundant import
 in the new connected test. That import is removed; the complete Daily's full lint component now
-passes guardrails, formatting, Clippy and fatal-info analysis. The remaining Daily components are
-running at this checkpoint.
+passes guardrails, formatting, Clippy and fatal-info analysis. The complete canonical Daily then
+reaches its final bridge and whitespace checks on production commit
+`7144a1954cd6c6ce18c022df956cee87b8f3bb55`: 1519 Rust tests pass with 19 intentional ignores,
+three broker binary integration cases pass, and all 650 Flutter cases in 82 files pass. Controlled
+Windows scan run `35d3ca7201284773afb29312bdaf37c6` exits zero in 56515 ms. The native accessibility
+run completes all ten original phases, exits zero and retires its owned process and Job without
+cleanup failure. All 15 asynchronous bridge contracts and content hashes pass; the final tracked
+whitespace check also passes.
+
+The outer timer records 1900064 ms but its child exit-code field is null. Preserve that receipt
+limitation: component results and native exit receipts provide the evidence; null is not a proven
+zero exit code. No unchanged heavy rerun is used to replace the missing wrapper field. Original
+C01/C02 failures remain unresolved by this later pass. Retained stdout and stderr SHA-256 values are
+`F519F447BF1FFDEF37371BBB0E208A5CE1A9DBC22EF00A90CEC5228AB1D52963` and
+`9E2FA01C07C7BC793C3215D545982044C6DAA0FF61E4CEA0C1CD8A5B63337001`; the saved native accessibility
+log is `65FF7C5A7D399202C08F1ED77432C9FED347660A996C07A13D3779FABE85C9FF`.
 
 Affected owners contain 15 production lines for availability and 134 for the global bar, with no
 inline tests; dedicated new tests contain 150 and 129 lines. The 2327-line screen receives only an
@@ -206,3 +220,53 @@ DLL retain the preceding hashes; the corrected diagnostic kernel is
 Independent scoped review accepts the input, pixel, source and retirement evidence, preserving
 C09 and all final/Release duties. Charge the 120-minute reservation in full, bringing the cumulative
 reservation to 4144 minutes; serial verification wall time is separate.
+
+## Native committed-removal display Retry
+
+The [80-minute method](../plans/r2c-closeout.md#native-committed-removal-display-retry) uses production
+commit `7144a1954cd6c6ce18c022df956cee87b8f3bb55` and fresh isolated derived storage. Run
+`3966373b8aad4aa297f9f530516b0bb6`, app PID 35436 and parent 41052, retains the generated 10000/512
+catalog. Native input selects the mixed root, opens the other root's actual source menu and confirms
+removal from Ame. Rust performs the real unregister; the diagnostic catalog adapter injects only
+the first subsequent display-read failure. This is controlled error injection, not evidence of a
+spontaneous backend failure.
+
+| Observed boundary | Time (ms) | Result |
+| --- | ---: | --- |
+| Retained mixed-root baseline | 26567 | Current decoded content and the complete 10000-item timeline |
+| Real unregister committed | 92749 | Removed-root command executes exactly once |
+| First display read | 92751 | Explicit `native_fixture_display_failure` |
+| Failed display feedback | 92838 | Same retained page, 12 current decoded images, actionable Retry and command exclusion |
+| Focused Enter Retry read | 754812 | Real key event targets `library-retry-button`; exactly one display retry |
+| Successful display read | 754908 | One remaining root at revision 620; no second unregister or scan |
+| Recovered gallery | 755269 | Loading settles, completion publishes once and 21 current decoded images are visible |
+| Native Library navigation and search | 830101 | Search `mixed` retains exactly 10000 items and current decoded pixels |
+
+One earlier Enter opens an image because its actual focus differs from the immediately returned
+UIA focus observation. That action is not counted as Retry. After returning, a harmless key event
+confirms the actual application focus before the passing Enter; the read-admission proof checks
+that same focused button and its native key event. Notification opening, focus traversal and the
+incidental viewer visit remain in the trace. This proves successful native Retry, not a minimal
+focus route or that an immediate UIA snapshot is always current.
+
+Final observation records 53450 frames: 51966 contain retained failed-state pixels and 1209 contain
+current query/timeline pixels. Remaining transition/viewer frames are not asserted to contain a
+gallery. No diagnostic or thumbnail Retry failure is recorded. The parent exits zero after
+878454 ms, below its unchanged 900-second limit; normal close takes 338.1687 ms, with owned-process
+exit, Job closure and no cleanup failures. The 3309 memory samples record 730562560-byte peak working
+set, 778539008-byte sampled private peak, 956981248-byte kernel peak commit and 5314347008-byte
+minimum system availability.
+
+Full source checks pass before and after in 68.966 and 55.231 seconds. All 10512 generated source
+files preserve their expected bytes, identities and dates, while exact active catalog membership
+changes from 10000/512 to 10000. The two diagnostic boundary tests reject missing rendered evidence
+and use outside a committed display failure. Formatting and fatal-info analysis pass; the Debug
+build takes 28.4 seconds. The EXE and Rust DLL retain the preceding hashes; this diagnostic kernel is
+`0816B439A172F8FB4F242E65E6A2E590D71D255FA0F5DCEADC647AD18AB60F55`.
+
+This closes the selected generated Debug removal-side Retry path. Update/query supersession remains
+controlled-test evidence; Release, simultaneous multi-root operations, C09 and final acceptance
+retain their separate duties. No product-code correction is made by this verification slice.
+Independent method and result review accepts these exact boundaries, including the disclosed focus
+observation mismatch and C08 Daily receipt limitation. Charge the 80-minute reservation in full,
+bringing the cumulative reservation to 4224 minutes.

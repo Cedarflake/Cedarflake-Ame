@@ -282,8 +282,9 @@ Release/external duty. Stop unchanged reruns if causality or the corrected bound
 The [C08 result](../acceptance/r2c-query-interactions.md#c08-uninterrupted-search-input) passes 17
 focused regressions and actual continuous native input without refocusing, with current pixels,
 full generated-source integrity, owned exit and scoped independent review. Charge the reservation
-through 4144 minutes. Preserve both initial lint failures. Complete Daily's full lint now passes;
-its remaining components and the Release/client duties stay open. C09 remains a separate follow-up.
+through 4144 minutes. Preserve both initial lint failures. All canonical Daily components now pass;
+the result records the outer timer's missing child exit code separately from native exit evidence.
+Release/client duties and historical C01/C02 failures stay open. C09 remains a separate follow-up.
 
 #### Native committed-removal display Retry
 
@@ -311,6 +312,52 @@ source verification must preserve all 10512 images even though active catalog me
 A failed observer or product boundary requires a recorded cause and changed method before replay.
 C09 remains registered for the later S2 pass; Release, multi-root overlap and external gates are
 not implied by this lifetime. No product-code change is admitted by this verification method.
+
+The [native result](../acceptance/r2c-query-interactions.md#native-committed-removal-display-retry)
+passes real catalog removal, retained failure pixels, application-confirmed Enter Retry, subsequent
+navigation/search, full source preservation and owned retirement. Charge the 80-minute reservation
+through 4224 minutes. Preserve the incidental viewer action caused by the mismatched immediate
+focus observation; it is not counted as Retry or hidden by the passing final sequence.
+
+#### Native preview replacement and unavailable-source recovery
+
+Reserve 120 active minutes after the removal result: 35 for generated fixture and typed preview
+barriers, 20 for positive/negative observer and source guardrails, 15 for one native lifetime,
+20 for result checks, 15 for one independent method/result review and 15 for records. The cumulative
+reservation becomes 4344 minutes; serial build and full-integrity wall time stays separate. This
+completes the pending generated native portions of UX-04B/C, using their existing source/preview
+contracts. It does not admit a product-code change, a new branch or another real-library run.
+
+Keep the verified 10000/512 generated sources immutable. Back up their catalog into fresh derived
+storage and create two manifest-owned PNGs outside those roots: landscape and portrait large images
+with distinct pixel colors and historical modification dates. Import them through the actual picker
+and select their root. Only these two new files may change; record their exact identity, bytes and
+timestamps before every mutation. Use real Rust scans, preview materialization, production LiveOnly
+watcher delivery and ordinary catalog publication. Never change catalog rows, source generations,
+preview state or controller state directly to manufacture the expected result.
+
+For replacement, hold one actual Rust preview result at the Dart preview-port return boundary.
+Rewrite that same manifest-owned PNG with a valid different-color payload of identical length,
+preserving file identity and modification time. Require watcher publication of the newer source
+generation before releasing the held result. The queue must reject the old completion and actual
+rendered pixels must resolve to the new generation and expected color. This is a delayed Dart result;
+the existing Rust post-decode revalidation test remains separate evidence for its internal boundary.
+
+For unavailability, hold the other first preview request before its real Rust read, acquire an exact
+file handle with `FileShare.None`, then admit the read. Require its precise source-open failure and
+actionable thumbnail Retry. Release only that owned handle and activate Retry through native input;
+the original unchanged file must decode correctly and the source operation must not become a scan.
+The handle helper has its own 180-second deadline and `finally` disposal, records PID/identity, and
+must retire before client close. Existing corruption/late-error controlled tests retain their scope;
+this native lifetime selects the exclusive-open branch of UX-04C.
+
+Reuse current frame/source-identity evidence and add only the needed decoded-color oracle and
+barrier attribution. Reject stale generations, fabricated pixels, missing failures and unexpected
+extra reads rather than weakening an assertion. Keep the 900-second parent, six-second close,
+2 GiB client limit and 2 GiB system reserve. Before/after verification must prove all 10512 background
+sources unchanged and both new sources match their manifest's expected final state. Preserve failed
+lifetimes; any causal change or replay requires a recorded revised method. C09 remains in the later
+S2 pass, while Release, simultaneous multi-root operations and external acceptance stay separate.
 
 #### C01 owned-thread observation calibration
 
