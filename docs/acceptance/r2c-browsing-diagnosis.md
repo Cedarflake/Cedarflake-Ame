@@ -1,8 +1,8 @@
 # C05 browsing diagnosis
 
-Status: preview-demand, capture-time publication and presentation corrections have focused evidence;
-selected native browsing and read-only presentation checks pass. Overall workload replay failures,
-transient deletion errors and final acceptance remain open.
+Status: preview-demand, capture-time publication, presentation and transient Retry corrections have
+focused and complete generated-native evidence. Prior failed lifetimes remain failed; other frozen
+client variants, final-source gates and external acceptance remain open.
 
 ## Retained bulk-removal error classification
 
