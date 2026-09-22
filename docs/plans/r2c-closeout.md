@@ -1,7 +1,82 @@
 # R2c closeout execution
 
-Status: **C05 capture-time correction has focused and native functional evidence; full replay,
-remaining presentation issues and final gates still block closeout**.
+Status: **C05 capture-time and rail/viewer corrections have focused and selected native evidence;
+transient deletion errors, full workload replay, other frozen variants and final gates remain open**.
+
+### Complete scope and retained readability findings
+
+The instruction to organize rules first and then continue C05 selects the immediate order. It does
+not close, cancel or replace the other findings in the submitted readability assessment. A C05
+checkpoint is one part of the functional-first cycle, never its new definition of completion.
+
+| Work or original finding | Verified disposition and next boundary |
+| --- | --- |
+| Instruction loading and durable readability rules | Repository rule migration and the installed CLI's complete root loading are verified in the [organization record](../acceptance/engineering-rules-organization.md). Global/other launch-context loading is not proved by that probe. No claim of completed legacy-code remediation follows. |
+| `LibraryState.status` / `taskKind` policy density | Still unchanged from the assessed source. Retain a distinct deferred behavior-preserving slice: enumerate removal/refresh/scan-feedback/root precedence, copy/update projections and busy-state consequences, then expand decisions and compare the cases. Do not replace the state model. |
+| Preview `_nextPending()` policy density | Still unchanged. Retain a separate deferred comparison-policy slice covering priority, missing/equal ranks, sequence and active-location exclusion. Preserve concurrency, cancellation, source/generation guards and the queue algorithm. |
+| Viewport asynchronous ownership | Remains an ongoing obligation of affected functional fixes: identify initiator, query/publication/navigation identity, result acceptance, loading owner and terminal cleanup; test slow A / fast B, late cleanup, disposal and committed-action reload failure. Do not merge generations or create a second mutable state machine. No full controller audit is claimed. |
+| Long scan, production synchronization and historical migration owners | Structural debt remains under ADR 0025 and the roadmap's decomposition obligations. The assessed scan function is still unchanged. A relevant functional repair must establish its necessary boundary and preserve checkpoints, prior records, source identity, transactions and measured per-item cost; broad physical decomposition is not implemented by this cycle. |
+| R2c functional repair and acceptance | Continue the complete frozen [24-variant roster](../acceptance/r2c-closeout-cycle.md#frozen-discovery-roster), including all eight journeys below. C04/C05 evidence, real-process restart, large/differently sized/historical media, live/bulk changes, failure races, multi-root overlap, keyboard/UIA and Release/client gaps each retain their own proof requirements. |
+
+The two small readability examples are registered follow-ups, not silently discarded optional work
+and not claims of reproduced functional bugs. Keep them separate from C05 changes and record their
+bounded implementation/verification method when selected, under the existing user priority and
+authorization. Direct-use defects retain precedence. No whole-repository rewrite, new lint product,
+source mutation, migration or bridge change is admitted by this scope map.
+
+After each checkpoint, reconcile the complete roster and these retained findings with current
+evidence before choosing the next slice. C01/C02, complete final-source gates, original whole-window
+UIA, Release input/decoding and separately authorized retained-library/service/journal/cloud gates
+remain required where applicable. Never reduce this queue to the last few reported screenshots,
+infer that mapped tests have run, or call the project accepted from a focused or partial pass.
+
+### C05 presentation continuation
+
+The next-step instruction admits the two previously reproduced S2 presentation defects under the
+standing authorization: the rail disappears while replacement revision geometry is pending, and
+opening the viewer removes the rail's width from the retained gallery. Work on `codex/r2c` only.
+Establish failing frame-by-frame regressions, then repair the owner of presentation continuity.
+Retained visual geometry must not authorize navigation against another revision or query. Preserve
+the sole gallery controller, logical anchor, current-query checks and the Windows Slider semantics
+retirement boundary. Cover changed queries, empty results, delayed geometry, and actual resizing.
+Do not add compensating retries, timed hiding, source mutations, or a new scrolling implementation.
+
+Reserve at most 120 active minutes: 25 diagnosis/regressions, 40 repair, 25 focused/native verification,
+20 for one independent review and one scoped recheck, and 10 evidence/closeout. The conservative
+cumulative envelope becomes 1544 minutes (25 hours 44 minutes); the earlier 1424-minute reservation
+and its unknown exact consumption remain explicit. Serial command wall time is recorded separately.
+If diagnosis or a repaired replay fails, preserve the failure and record a revised bounded method
+before any extension; no unchanged retry or new issue family is admitted by this allowance.
+
+Use the retained generated-only 10000-image mixed-size/historical-date corpus and 512-item stimulus
+read-only for one native presentation session, at most 900 seconds. Record first-frame rail presence,
+gallery width/anchor before, during and after viewer transitions, and usable pixels without wheel
+input. Keep 30-second visible-pixel limits, a 2 GiB client ceiling, a 2 GiB system reserve, source
+integrity oracles and owned process retirement. Verify the affected native accessibility path as
+well; widget geometry alone cannot close that obligation. No new bulk mutation/full-workload replay,
+real-root access, C01/C02 experiment or unchanged Daily rerun is authorized by this presentation pass.
+
+Hosted run 35665640336 at `0fa23ff` passed nine verification jobs, including Flutter, Windows scan,
+accessibility, five synthetic partitions and unsigned Windows. Static/Rust failed its existing
+mixed-load P0 visibility test (1507 passed, one failed, 19 ignored). The observed 4.927-second catalog
+revalidation, 4.932-second maximum poll and 5.090-second queue admission are retained C01 evidence, not a proved diagnosis or
+a passing final gate. Do not hide this failure behind successful presentation verification.
+
+The admitted presentation pass now has six publication/gesture and two viewer geometry regressions,
+the affected existing suites, complete lint, the original ten-phase native accessibility path and
+one passing read-only mixed-media client lifetime. Its full pre/post source-integrity checks pass.
+The [browsing evidence](../acceptance/r2c-browsing-diagnosis.md#rail-publication-and-viewer-geometry-correction)
+owns exact checks, artifact identities, resource observations and limitations. Native refresh does
+not replace the deterministic revision-gap case; Debug input does not prove Release acceptance.
+Preserve the earlier overall workload failures, transient deletion-error observation and all other
+frozen variants. The complete scope map above remains the next-slice selection boundary.
+
+Close this pass with its whole 120-minute reservation conservatively charged, including unused
+capacity, instead of reconstructing exact phase usage from interrupted task output. Independent
+review and the scoped evidence recheck charge eleven active minutes within that reservation. The cumulative 1544-minute figure
+remains a conservative accounting envelope, not measured active or elapsed time. Known serial
+native wall times are recorded with the evidence. No leftover phase allocation or passing native
+result renews a failed-workload allowance.
 
 ### Rule organization before C05 continuation
 
@@ -10,8 +85,8 @@ C05. Move the detailed command catalog to its existing quality-gate owner, retai
 constraints with a clause map, and add concrete readability and behavior-preservation standards.
 Verify document links, command preservation, byte budget, and fresh instruction assembly. The
 [organization record](../acceptance/engineering-rules-organization.md) owns this evidence; no new
-roadmap, whole-repository refactor, or product acceptance status is created. Leave the optional
-status-getter and queue-comparator readability examples outside this slice.
+roadmap, whole-repository refactor, or product acceptance status is created. The status-getter and
+queue-comparator examples remain separate deferred slices in the complete scope map above.
 
 Resume C05 from the retained native failure: ten visible current images receive no preview request
 after bulk addition and a bottom timeline jump. Verify its cause before admitting the next bounded

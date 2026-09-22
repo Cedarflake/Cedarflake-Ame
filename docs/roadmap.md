@@ -67,17 +67,19 @@ correction. A documentation reorganization does not change any of these acceptan
 ## Current execution queue
 
 The current direction prioritizes defects that directly impair functions and user experience.
-The requested rule/document organization is verified. C05 continuation now has an owning-layer
-correction and generated-client functional evidence; the execution plan retains the remaining exits.
-This adds no product stage or broad refactor.
+The requested rule/document organization is verified. The execution plan's
+[complete scope map](plans/r2c-closeout.md#complete-scope-and-retained-readability-findings) retains
+the separate status/queue readability examples, async ownership obligations, structural debt and
+all 24 functional variants. Rule organization does not complete those findings. C05 continuation
+has owning-layer corrections and selected generated-client evidence, with the remaining exits below.
 Item 3 selects functional synchronization and browsing. **R2C-C04 now has focused and generated-client
 verification** for fresh bulk changes and recovery of retained terminal work. Its original failure
-is preserved in the [C04 record](acceptance/r2c-live-gap-recovery.md). **R2C-C05 remains open for final
-verification and remaining presentation defects.** Preview-demand and recovered-date publication
+is preserved in the [C04 record](acceptance/r2c-live-gap-recovery.md). **R2C-C05 remains open for transient
+deletion errors, complete workload verification and final gates.** Preview-demand and recovered-date publication
 have causal corrections. Mixed large-image navigation and bulk-add/remove browsing assertions pass
 across separate native runs; failed overall replays remain failed. The
-[C05 record](acceptance/r2c-browsing-diagnosis.md) owns those boundaries, the cleanup-only pass and
-remaining transient-error, rail/viewer and full-client obligations. Correct counts or separate
+[C05 record](acceptance/r2c-browsing-diagnosis.md) owns those boundaries, the cleanup-only pass,
+verified rail/viewer continuity and remaining transient-error and full-client obligations. Correct counts or separate
 passing assertions do not establish complete synchronization acceptance. C01's mixed-load recovery
 failure and C02's automation/evidence failures are recorded for final verification; their current
 evidence does not establish a highest-priority user incident. Deferral changes execution order,

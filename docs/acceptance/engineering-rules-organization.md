@@ -43,8 +43,9 @@ identities, and preserved SQL/resource semantics. §12.3 requires behavior-prese
 appropriate to the changed owner. `Code Review Rules` separates demonstrated bugs from maintenance
 risks. §4 prevents these standards from becoming permission for unrelated refactoring.
 
-The status/task-kind getter and preview queue comparator remain possible small future examples.
-They are not rewritten in this documentation slice. Scan and viewport workflow complexity requires
+The status/task-kind getter and preview queue comparator remain distinct deferred examples in the
+[complete scope map](../plans/r2c-closeout.md#complete-scope-and-retained-readability-findings).
+They are not rewritten or closed by this documentation slice. Scan and viewport workflow complexity requires
 owning-boundary analysis under ADR 0025, not blanket shortening, merged generations, or format churn.
 No new lint framework, universal function-size limit, analyzer suppression, schema, bridge, or
 business-code change is introduced here.
