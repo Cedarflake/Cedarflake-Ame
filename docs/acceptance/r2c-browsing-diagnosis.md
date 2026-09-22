@@ -625,8 +625,16 @@ three-file scope; it does not replace accumulated-change review.
 Serial, lock-owned all-target/all-feature Rust verification passes 9 availability, 34 preview and
 95 scan tests (138 total); the two manual scan acceptance cases remain ignored. Rust formatting and
 all-target/all-feature Clippy with warnings denied pass. The native preview evidence above remains
-applicable because production behavior is unchanged. The next current-head hosted gate, full local
-Daily and the recorded C01/C02 obligations remain separate.
+applicable because production behavior is unchanged.
+
+Hosted run `35701651170` on `16c215e4d05b8f5ba53ae82fab8cd6db1f45c76c` passes all ten required
+verification jobs and the aggregate Windows gate. Static/Rust records 1518 passing library tests,
+19 ignored cases and three passing binary integration tests; its library suite takes 1308.36
+seconds. The nine other jobs cover Flutter, Windows scan/accessibility, unsigned Release and five
+synthetic workloads. Three signing-only jobs are skipped as required for this PR. The complete
+run receipt and Static/Rust log remain under `.build/r2c-process-lifecycle-ready`; the log's SHA-256
+is `6EF3FC3CEE6BFD4D1209CEB0149DCD0E5488C28DE91378C84A99BC64E0A7C4C8`. Full local Daily and the
+recorded C01/C02 obligations remain separate; hosted success does not close their local failures.
 
 Physical size remains explicit: `local_files.rs` is 7417 lines, with 3426 in its bottom test module
 including the conditional attribute; the preceding 3991 still mix implementation and test support.

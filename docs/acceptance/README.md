@@ -15,7 +15,8 @@ recorded local checkpoint does not establish that the current product source pas
 | [LiveOnly subtree recovery](r2c-live-gap-recovery.md) | C04 causal repair, retained/fresh bulk client evidence, source/resource limits and unresolved C05 browsing observations |
 | [Browsing diagnosis](r2c-browsing-diagnosis.md) | C05 recovered-date publication correction, mixed-image/bulk native functional checks, retained replay failures and remaining presentation/final-gate limits |
 | [Maintenance deliveries](r2c-maintainability.md) | Required state, queue, scan and viewport responsibility changes and their behavior-preservation evidence |
-| [Process lifecycle](r2c-process-lifecycle.md) | Pending native-call close, real paused checkpoint, retained preparation/input failures and incomplete actual-input continuation |
+| [Process lifecycle](r2c-process-lifecycle.md) | Pending native-call close, actual paused-checkpoint restoration and explicit continuation, retained failures and remaining input limits |
+| [Evidence publication](r2c-evidence-publication.md) | C02 native file-replacement attribution, controlled holder/mapping cases and unresolved local gate failure |
 | [Library count reconciliation](library-count-reconciliation.md) | Same-directory Photos/Ame totals, metadata path census, admission differences and unresolved historical revision evidence |
 | [Runtime lifecycle audit](r2c-runtime-lifecycle-audit.md) | Cross-workflow findings and ownership/physical-size evidence |
 | [Media and publication audit](r2c-media-and-publication-audit.md) | Real media encodings, publication boundaries, and related audit evidence |

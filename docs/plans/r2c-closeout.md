@@ -166,6 +166,26 @@ retain its failed receipt and checkpoint, and leave Restore/Continue incomplete.
 widget or direct-callback interaction may close those real-input duties. Their next execution needs
 a changed input method demonstrated on a harmless test surface before another Ame admission.
 
+The input recovery uses a fresh Computer Use JavaScript session and a disposable, catalog-free
+native test window with visible click/key counters and append-only received-input evidence. Keep
+this driver check within 15 active minutes of the existing preparation/interaction allowance and a
+180-second owned-process deadline. Use only the supported Computer Use input APIs, one observed
+action at a time. A fresh snapshot may use the documented coordinate overload without an explicit
+screenshot ID to distinguish stale screenshot binding from failed geometry. Both click and key
+receipt must be demonstrated before another Ame lifetime; no unobserved success or alternate
+PowerShell input injection qualifies. Retain the failed real Restore run and its checkpoint.
+
+The disposable driver check proves a delivered click, key and normal close. Admit one new pair
+of Restore/Continue lifetimes against the retained catalog/checkpoint, with separate create-new
+admissions that cannot overwrite the failed pair. Reuse the already proved Seed/StartClose/PollClose
+results rather than replaying them; require the failed Restore process and monitor retired and
+retain its PID in the no-reuse check. Keep the identical native/Dart artifacts and all source,
+memory, pixel, no-implicit-resume, exact membership and close assertions. The pair shares a fresh
+30-minute interactive deadline, each lifetime at most 900 seconds. Reserve 60 additional active
+minutes: 15 preparation, 25 interaction/observation, 5 independent admission review and 15 evidence/
+records. The conservative cumulative reservation becomes 2774 minutes, including the 90-minute
+C02 attribution below. This does not renew C02 experiments or admit an unchanged input retry.
+
 #### Current preview contract CI follow-up
 
 Hosted run 35695913794 on `2004baf` reports three Rust test failures: two strict availability module
@@ -185,6 +205,38 @@ exposes a distinct runtime invariant, record that cause before modifying its own
 availability, preview and scan namespaces, formatting and warnings-denied Rust lint; retain the CI
 failure and verify the next pushed head instead of re-running this head unchanged. Complete Daily,
 C01/C02, real input and the remaining frozen acceptance exits stay open.
+
+#### C02 native replacement attribution
+
+The preview correction's full lint reproduces the retained evidence-file replacement failure.
+The older raw `build/diagnostics` directory is unavailable in the current checkout; preserve that
+provenance gap and use its tracked findings together with the current retained lint transcript.
+Do not present the old error code as freshly recovered from the current message-only transcript.
+
+Reserve 90 active minutes: 25 diagnosis, 30 causal correction if supported, 20 focused verification,
+10 independent review and 5 records. The conservative reservation becomes 2714 minutes, not measured
+effort. This is a new attribution method, not another unchanged lint, Daily or desktop-input replay.
+Compare the production .NET replacement with direct `ReplaceFileW` on fresh generated-only records,
+capturing the immediate Win32 and native status before later API calls can overwrite them. At a
+failure, retain both byte versions and query current file users through Restart Manager's read-only
+list API. A controlled held-reader case verifies the observer; never stop or restart listed users.
+Use at most two bounded experiments, at most 30 small record writes per arm and 60 seconds per
+experiment. A missing reproduction or vanished holder remains inconclusive, not environmental blame.
+
+No tracing software, filesystem filter, service, permission or source-media change is admitted.
+Do not weaken atomic evidence publication, identity/complete-result checks, original deadlines or
+first-error retention, and do not add retries or substitute a different file operation merely to
+avoid the unexplained failure. A proven evidence-publication correction needs owning regressions,
+positive/rejecting fixtures and the complete compiler-free accessibility guardrails before another
+full local gate is considered. The independent eight-second UIA failure remains a separate claim.
+
+Experiment two changes the independent variable to an explicitly held memory-mapped view, with
+and without its original file/mapping handles, and compares the same owned files after releasing
+the view. This bounded controlled release is attribution only, never a retry policy. Use the
+existing retained-handle exit property and do not repeat the 30-record arms. Both attribution
+experiments are now consumed; their [record](../acceptance/r2c-evidence-publication.md) retains
+the reproduced native failure, rejected mapping hypothesis and preparation failures. The cause
+remains unknown, so no evidence-protocol repair or full-gate replay follows from this block.
 
 #### C05 transient preview feedback method
 

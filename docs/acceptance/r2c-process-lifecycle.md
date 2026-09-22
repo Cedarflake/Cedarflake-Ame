@@ -1,11 +1,13 @@
 # R2c process lifecycle verification
 
-Status: **Pending native start/poll close verified; real-input restore and continuation incomplete**.
+Status: **Selected pending-call close, real-input checkpoint restoration and explicit continuation verified**.
 
 This record covers the 2026-09-22 generated-only method in the
 [active execution plan](../plans/r2c-closeout.md#remaining-process-lifecycle-and-input-method).
 Production source was `2004bafa56eec9c58c7fe6e3fd4f4f876cde5db6`. It adds no product behavior,
 changes no acceptance threshold, and does not establish complete UX-01/02/08 or R2c acceptance.
+The recovered input pair uses the same native/Dart artifacts on `16c215e`; the intervening changes
+affect test contracts and documentation only.
 
 ## Boundary verification and preparation
 
@@ -84,7 +86,7 @@ does. No source mutation, hydration or real-library access was part of these lif
 | PollClose | 6 | 385294336 | 329330688 | 451608576 | 8172642304 |
 | Restore | 1138 | 489881600 | 462151680 | 468815872 | 7592394752 |
 
-## Remaining input and final-gate limits
+## Initial desktop-input failure
 
 The desktop tool returned `unknown screenshotId screenshot-0` twice, including after fresh window
 selection, and `coordinate input geometry is unavailable` for the accessibility-targeted click.
@@ -93,12 +95,68 @@ belonged to another application. Input was stopped; only the verified test execu
 and admission-time process was retired. The test process and monitor exited, its Job closed, and
 cleanup reported no failures. No further input was sent to other applications.
 
-Restore cannot claim settings/menu/viewer keyboard interaction, an unchanged checkpoint after a
-normal interactive close, or explicit continuation. Continue, actual OS picker/pre-registration
-actions, the full local UIA path and Release input remain open. Demonstrate a corrected driver on a
-harmless surface before another admitted interactive lifetime; do not replay this set unchanged.
+This failed Restore cannot claim settings/menu/viewer keyboard interaction, an unchanged checkpoint
+after a normal interactive close, or explicit continuation. It remains failed after the later pair
+passes; its admission, process and source evidence are retained.
+
+## Recovered real-input pair
+
+A fresh Computer Use session delivers a click, the A key and normal Alt+F4 close to a disposable,
+catalog-free native window. Its visible counters and append-only received-input log agree; the owned
+process exits zero and its Job closes without cleanup failures. The corrected method uses a freshly
+selected window and the documented coordinate overload without an explicit screenshot ID. It does
+not inject input through PowerShell. The probe is retained under ignored
+`.build/input-driver-probe/e9e59f3694bb4030b941159d35a05d64`.
+
+New create-new admissions reuse the successful Seed/StartClose/PollClose results and the retained
+paused catalog. They reject the retired failed Restore PID, wrong fixtures, missing preceding
+results and already consumed admissions. One actual admission check and six rejecting fixtures
+pass. Independent review identifies a deadline race at process exit; the corrected parent checks
+the retained process exit time against both lifetime and shared interactive deadlines. Two accepted
+and two rejected deadline fixtures pass. Review and its scoped recheck consume about 1 minute
+55 seconds, with no remaining blocking finding in this admission boundary.
+
+| Phase | Run identity | PID | Result |
+| --- | --- | --- | --- |
+| Recovered Restore | `fba0dd1d63594e86aeac4f24d2aeca19` | 23844 | Passed; actual settings, gallery, menu, two original-image previews, Right/Escape input and normal close; checkpoint and 12-image baseline unchanged |
+| Recovered Continue | `01a1969711b849a58bad708ecbf43c5a` | 34820 | Passed; actual Continue click resumes the same checkpoint and publishes exactly 10000 corpus images plus the original 12 baseline locations |
+
+Restore observes 760 frames, 537 with current gallery pixels and 71 with a menu. It records settings,
+paused feedback, two distinct viewer locations and returned gallery pixels, without implicit resume
+or any visible Retry frame. Before and after, the checkpoint retains 163 visited entries, 151
+accepted images, zero issues and catalog revision 1. The original previews include 8000 × 8000 and
+1500 × 12000 fixtures.
+
+Continue begins with that same checkpoint. Its 648 observed frames retain current baseline pixels
+with no visible Retry control. A complete bounded traversal reads 32 pages, each at most 320 items,
+at catalog revision 2: 10012 distinct locations, exactly all 10000 frozen relative paths and all 12
+original baseline identities. Membership verification completes 117681 ms after native startup.
+This proves complete membership and baseline usability, not decoding every one of the 10000 images.
+
+Both phases exit zero through the actual title-bar close action. Parent lifetimes are 195632 and
+166147 ms; close-to-exit times are 438.2255 and 352.5795 ms. Their complete traces contain one native
+stop, one stopped final state, no pending calls at audit and zero later running publications.
+Both processes exit, Jobs close and monitors retire without cleanup failures.
+
+| Phase | Samples | Peak working set bytes | Sampled peak private bytes | Kernel peak commit bytes | Minimum system available bytes |
+| --- | --- | --- | --- | --- | --- |
+| Recovered Restore | 727 | 904667136 | 1028005888 | 1374281728 | 4693176320 |
+| Recovered Continue | 619 | 433717248 | 370167808 | 384323584 | 5349814272 |
+
+Full before/after source checks pass in 49.394/48.772 seconds against the same frozen 10000-image
+corpus and 12-image baseline. The timestamp limitation described above is unchanged. Raw results,
+complete membership, source receipts, process traces and memory records remain in the existing
+GUID-derived store named by `.build/r2c-process-lifecycle-ready` admissions. No source file was
+modified and no real-root or cloud content was accessed.
+
+## Remaining final-gate limits
+
+These results close the selected interrupted-EXE restoration and explicit-continuation path. Actual
+OS picker, pre-registration Pause/Cancel, task Retry/Cancel keyboard interaction, truthful portable
+capability, the complete local UIA path and Release input retain their separate frozen obligations.
 
 The [preview contract correction](r2c-browsing-diagnosis.md#preview-contract-ci-correction) retains
 the concurrent hosted failure and focused follow-up. Its test-only changes do not invalidate these
-native production artifacts. The next current-head hosted gate, complete local Daily, C01/C02 and
-externally gated acceptance remain separate obligations.
+native production artifacts. Hosted run `35701651170` on `16c215e` passes all ten required jobs and
+its aggregate gate. Complete local Daily, C01/C02 and externally gated acceptance remain separate
+obligations; that hosted success does not erase their retained local failures.
