@@ -89,6 +89,53 @@ mechanism, source access, persistence strategy or retry policy is admitted.
 
 ### Complete scope and retained readability findings
 
+#### Actual picker and task-control method
+
+After the recovered process pair, cover the remaining selected UX-02A/B/C and UX-08C input duties
+with one fresh generated-only native lifetime. Reserve 120 active minutes: 35 preparation, 30
+interaction/observation, 25 boundary verification, 20 independent review/recheck and 10 records.
+The conservative cumulative reservation becomes 2894 minutes; earlier failed attempts and C01/C02
+allowances remain consumed. This is a missing-path test, not another replay of passed bulk work.
+
+Use the production Windows folder picker and actual Computer Use input. Prepare one Chinese-named
+source with two valid encodings, one valid image with the wrong extension and one damaged input;
+freeze its exact path/byte/identity oracle before launch. Verify exact admitted images and issues.
+After its real commit, inject one named query-read failure at the existing catalog port to expose
+the committed-display retry. Activate the task retry with real keyboard input and require a single
+display retry, unchanged scan count and current pixels. The injected read failure proves control
+ownership, not a naturally reproduced storage defect or native read latency.
+
+Next select the existing frozen 10000-image corpus through the actual picker. A diagnostic scanner
+decorator holds only the second command before native dispatch, for at most 120 seconds, so actual
+Pause then Cancel can reach the pre-registration boundary. Both initial native controls must report
+not registered. Release the original command after Cancel; forward every real native event and
+verify the late Started replays only Cancel, cancellation becomes terminal, execution retires and
+the preceding published baseline survives. This controlled delay is disclosed and supplies no
+production timing claim. It cannot substitute fake scan events or invoke presentation callbacks.
+
+Keep the existing Debug storage marker, owned Job, repository lock, one 900-second parent lifetime,
+six-second normal close, 4 GiB startup availability, 2 GiB client ceiling and 2 GiB system reserve.
+Require before/after source checks, actual delivered-input records, current preview observations,
+complete result and owned process/monitor retirement. Keep genuine thumbnail errors separate from
+the intentionally failed task. Preserve any failed admission/lifetime and stop on a failed assertion;
+no unchanged replay, full local gate, Release storage bypass or real-root access follows from it.
+
+Preparation identifies a concrete blocker in the selected control path: the existing task surface
+removes Cancel while status is `pausing`, although the application control owner allows Cancel to
+supersede Pause. Preserve this as R2C-C06 and establish a failing connected widget regression before
+changing the existing button admission. Admit a bounded 45-minute correction within the same frozen
+workflow: 10 diagnosis/regression, 10 presentation repair, 15 focused verification, five independent
+review and five records. The cumulative reservation becomes 2939 minutes. Keep native cancellation,
+registration replay, task ownership and all deadlines unchanged; do not add a new control policy,
+polling loop or backend workaround. The previously admitted native lifetime follows only after its
+preparation and this correction pass their focused checks. Full local Daily remains blocked by C02.
+
+The [input-control checkpoint](../acceptance/r2c-input-controls.md) records the focused correction
+and consumed native lifetime. Actual directory selection failed in the input tool before any scan;
+no native task-control pass follows. Preserve that lifetime and require a changed, bounded input
+method before another admission. Charge both reservations conservatively in full without calling
+them measured work or resetting any previous allowance.
+
 #### Remaining process-lifecycle and input method
 
 After the C05 generated-native pass, continue the frozen UX-01/02/08 gaps on the accumulated

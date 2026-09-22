@@ -82,8 +82,9 @@ owning-layer corrections. The [C05 record](acceptance/r2c-browsing-diagnosis.md)
 lifetimes, observer correction and current combined pixel/rail/viewer/feedback evidence. The
 [process-lifecycle record](acceptance/r2c-process-lifecycle.md) verifies selected pending-call close,
 actual paused-checkpoint restoration and explicit continuation while preserving failed attempts.
-Actual OS picker, pre-registration actions, remaining keyboard controls and Release paths retain
-their separate frozen duties;
+The [input-control record](acceptance/r2c-input-controls.md) retains the focused pending-pause Cancel
+correction and unsuccessful actual-picker input lifetime. Pre-registration actions, remaining
+keyboard controls and Release paths retain their separate frozen duties;
 this generated-client result does not establish complete synchronization acceptance. C01's mixed-load recovery
 failure and C02's automation/evidence failures are recorded for final verification; their current
 evidence does not establish a highest-priority user incident. Deferral changes execution order,

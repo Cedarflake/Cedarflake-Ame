@@ -16,6 +16,7 @@ recorded local checkpoint does not establish that the current product source pas
 | [Browsing diagnosis](r2c-browsing-diagnosis.md) | C05 recovered-date publication correction, mixed-image/bulk native functional checks, retained replay failures and remaining presentation/final-gate limits |
 | [Maintenance deliveries](r2c-maintainability.md) | Required state, queue, scan and viewport responsibility changes and their behavior-preservation evidence |
 | [Process lifecycle](r2c-process-lifecycle.md) | Pending native-call close, actual paused-checkpoint restoration and explicit continuation, retained failures and remaining input limits |
+| [Picker and task controls](r2c-input-controls.md) | C06 pending-pause Cancel correction, focused regressions and retained unsuccessful native input attempt |
 | [Evidence publication](r2c-evidence-publication.md) | C02 native file-replacement attribution, controlled holder/mapping cases and unresolved local gate failure |
 | [Library count reconciliation](library-count-reconciliation.md) | Same-directory Photos/Ame totals, metadata path census, admission differences and unresolved historical revision evidence |
 | [Runtime lifecycle audit](r2c-runtime-lifecycle-audit.md) | Cross-workflow findings and ownership/physical-size evidence |

@@ -106,8 +106,10 @@ class LibraryTaskSurface extends StatelessWidget {
                   const Icon(Symbols.info_rounded, size: 20),
                   const SizedBox(width: 12),
                   Expanded(child: Text(title)),
-                  if (state.status == LibraryStatus.scanning) ...[
-                    if (!isLibraryUpdate)
+                  if (state.status == LibraryStatus.scanning ||
+                      state.status == LibraryStatus.pausing) ...[
+                    if (state.status == LibraryStatus.scanning &&
+                        !isLibraryUpdate)
                       TextButton(
                         key: const Key("library-pause-button"),
                         onPressed: onPause,
