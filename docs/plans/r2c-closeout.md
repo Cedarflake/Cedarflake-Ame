@@ -89,6 +89,57 @@ mechanism, source access, persistence strategy or retry policy is admitted.
 
 ### Complete scope and retained readability findings
 
+#### Semantics-enabled native input diagnostic
+
+The [native preflight checkpoint](../acceptance/r2c-input-controls.md#native-automation-preflight-checkpoint)
+retains the second input lifetime with no delivered controls. Reserve 60 further active minutes:
+15 for explicit semantics and raw-view preparation, ten scoped review/boundary checks, 20 for one
+native lifetime and source checks, and 15 recording/attribution. The cumulative reservation becomes
+3149 minutes; the prior 90-minute block remains charged in full.
+
+Match the established accessibility fixture by holding one framework semantics handle throughout
+the diagnostic lifetime and collecting current UIA elements under a raw-view cache scope. Record
+framework/platform semantics state; retain exact process binding and the application's independent
+keyboard Retry proof. These changes establish input-test prerequisites, not a production fix or proof
+of automatic screen-reader activation. No application control may be invoked from Dart diagnostics.
+
+Use one fresh generated-only lifetime with the same four inputs, frozen 10000 sources, native
+picker, failed committed read, registration barrier, pixel checks and all existing deadlines and
+resource limits. First require native controls before any source action. If absent, retire and keep
+the diagnostic result without attempting another input path in that lifetime. No unchanged replay,
+real-root/Release access or C01/C02 allowance is renewed. A passing run must still prove native
+selection, actual focused Enter, pause/cancel ordering, baseline preservation and owned retirement.
+
+The [negative semantics diagnostic](../acceptance/r2c-input-controls.md#semantics-enabled-negative-diagnostic)
+consumes this lifetime without delivered input: framework/platform semantics are enabled but the
+native tree still exposes no controls. The native-provider input route is stopped. Preserve the
+complete result and resource/source checks; select a different observed input interface before any
+new admission, without weakening task, keyboard or publication assertions.
+
+#### Native task controls through the existing picker boundary
+
+After the failed modal-input lifetime, reserve 90 active minutes: 25 to prepare a changed input
+method, 15 boundary checks, 20 for one native lifetime and source verification, 20 independent
+review/recheck and ten records. Conservatively reserved cumulative work becomes 3089 minutes.
+Preserve the consumed lifetime and every existing resource, source, state, pixel and timing oracle.
+
+Use the same Windows `file_selector` dialog with an explicit initial fixture directory, as in the
+existing controlled scan integration. Confirm its native button through the existing picker helper;
+the returned path must still match the exact ordered fixture admission. This verifies native dialog
+selection, not arbitrary path typing or Computer Use tooling. Operate Ame's import/Pause/Cancel
+controls through current UI Automation elements belonging to the exact owned process. Verify
+foreground and focused control before sending actual keyboard Enter for committed-display Retry;
+the existing Dart keyboard evidence must independently accept the focused Retry key event.
+Never call presentation callbacks or change the failed-read/registration-barrier semantics.
+
+Use fresh marked Debug storage and one 900-second owned lifetime, the unchanged four-file Chinese
+fixture and read-only 10000-file corpus, a 120-second registration hold, six-second close, 4 GiB
+startup availability, 2 GiB client limit and 2 GiB system reserve. Bound native automation helpers
+to their exact process identities and deadlines; inability to identify or focus a control stops
+input. Preserve the old admission and use a new create-only admission, before/after integrity,
+artifact identities, delivered-input records and owned retirement. A failed native assertion ends
+this attempt; no unchanged replay or new Release, real-root, C01/C02 or full local gate is admitted.
+
 #### Multi-root evidence completion
 
 Reserve 60 active minutes after the input-control checkpoint: 15 to match live source and exact

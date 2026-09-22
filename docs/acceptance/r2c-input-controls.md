@@ -92,3 +92,75 @@ checkpoint. It cannot replace this failure, loosen the input oracle or launch ag
 The [C05 bulk preview pass](r2c-browsing-diagnosis.md#accumulated-candidate-and-transient-preview-feedback) remains separate:
 C06 changes task-button visibility, not preview materialization or retirement. Actual picker/task
 input, complete focus assertions, Release paths and the final accumulated gates remain open.
+
+## Native automation preflight checkpoint
+
+The changed native-button method on production head `4a5987b` uses the same real picker with an
+explicit initial fixture directory, as in the controlled Windows scan integration. Static review
+took 5 minutes 30 seconds. A helper error-recording weakness was corrected before launch so receipt
+or log IO cannot replace an earlier helper failure. Dart analysis, the 31.0-second Debug build,
+PowerShell syntax, x64 keyboard input layout and rejection of an invalid target pass. Preparation
+also retained an initial missing-import analyzer failure; that import was restored without changing
+the application. The original keyboard and registration-barrier assertions remain unchanged.
+
+Lifetime `6510b7c9d5e048e3894b13641a9f2763` starts successfully but its native automation tree exposes
+only the correct `FLUTTER_RUNNER_WIN32_WINDOW` and one `FLUTTERVIEW` pane. No buttons or edit controls
+appear after activation and refresh; the third read records the exact window identity and node
+types. All three snapshot helpers exit zero with their Jobs closed. No control action, picker
+selection or source scan is delivered. The main process is stopped after identity revalidation;
+its 170669 ms receipt records exit -1, process exit and Job closure with no cleanup failure. This
+is an incomplete input attempt, not a passing native workflow or a diagnosed scan defect.
+
+All four generated inputs and 10000 frozen sources retain exact membership, bytes, IDs, sizes and
+timestamps in before/after checks taking 61.847/58.847 seconds. Across 637 samples, peak working set
+is 372527104 bytes, sampled private memory 306688000, kernel peak commit 324825088 and minimum system
+availability 4691898368. EXE and Rust DLL hashes match the preceding failed-input lifetime; the new
+Dart kernel hash is `DE3079BCCA2170CB8D15BBCF29F0A9B90ED18305B9D3340DD9D8D8F066FB2519`.
+Ignored `.build/r2c-input-native-actions/` and its GUID-owned fixture retain the admission, helper
+requests/results, native logs, memory/process receipts and source verification. The 90-minute
+reservation is charged conservatively in full; no unchanged replay is admitted.
+
+Inspection identifies two preparation differences from the established accessibility integration:
+that fixture explicitly holds a Flutter semantics handle and its native probe uses a raw-view cache
+request. This input harness did neither. The pinned SDK's `ensureSemantics` keeps semantics enabled
+while its handle lives; Microsoft documents the cache filter's default as
+[ControlViewCondition](https://learn.microsoft.com/en-us/dotnet/api/system.windows.automation.cacherequest.treefilter).
+These differences justify a changed diagnostic method, but do not yet establish why native automatic
+activation returned no controls. No product accessibility correction or native input pass is claimed.
+
+Hosted [35710919997](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/35710919997) on
+`4a5987b4f955e8750ae30da1e1e3e5a365d1e114` subsequently passes all ten required jobs and the aggregate;
+three signing-only jobs remain skipped. This is current hosted evidence for the C06 product change,
+separate from both failed local input attempts and C02's unresolved local complete gate.
+
+## Semantics-enabled negative diagnostic
+
+Lifetime `b946720e7c794644840a75339e821eea` tests explicit semantics ownership plus raw-view querying.
+The 34.0-second Debug build and Dart analysis pass; native lifecycle, fixture, picker and keyboard
+owners remain unchanged. Two narrow reviews take one minute each. The second checks a discovered
+helper-recording collision: the cleanup function's `$Action` parameter had shadowed the caller's
+action name inside receipt serialization. The new helper uses `$NativeAction` with the same external
+alias. The old malformed fields remain; their separate immutable requests identify all three old
+actions as Snapshot, and their exit/Job/process fields remain valid. A direct scope check confirms
+the distinct name survives that same cleanup owner.
+
+The application reports framework semantics **true before and after** acquiring its diagnostic
+handle, with platform semantics also true. Nevertheless the first raw-view snapshot exposes only
+the main window and `FLUTTERVIEW`, with zero controls. Thus merely omitting an explicit semantics
+handle does not explain this diagnostic's native visibility gap. The cause of the provider/input
+gap remains unproved; the two changed prerequisites do not establish separate causal effects.
+
+No input or scan is delivered. The exact owned process is retired after 141373 ms with exit -1,
+confirmed process exit and Job closure, and no cleanup failure. The snapshot helper's corrected
+receipt identifies Snapshot and confirms exit zero, process exit and Job closure. All 10004 sources
+pass exact before/after checks in 81.861/48.740 seconds. Across 524 samples, peak working set is
+381800448 bytes, sampled private and kernel peak commit are both 332316672, and minimum system
+availability is 4411379712. EXE/Rust DLL hashes remain unchanged; the kernel is
+`DD2653A63503CDDF2F3BD314B1CC3D8898988A5BC406AE35384B8B92605701E1`.
+
+Ignored `.build/r2c-input-semantics/` and its GUID-owned fixture retain this separate admission,
+negative framework/native observations, corrected helper receipt and source/process/memory evidence.
+Charge the 60-minute reservation in full. Stop this native-provider input route; do not repeat it
+under another unchanged accessibility flag. Actual task inputs remain open, as do automatic native
+accessibility activation, Release and the separate full local gate. A later input method must use
+an observed, available interface and retain the original application-level input assertions.
