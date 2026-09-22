@@ -3,6 +3,10 @@
 Status: **The accumulated C05 generated-native workload passes pixels, counts, transient Retry
 feedback and owned retirement; other frozen variants and final gates remain open**.
 
+The [accumulated candidate hosted checkpoint](../acceptance/r2c-closeout-cycle.md#accumulated-candidate-hosted-checkpoint)
+passes all required jobs on `9c584a0`. It does not resolve the preserved C01/C02 failures, remaining
+actual client paths, complete local gate, final review or external acceptance prerequisites.
+
 ### Completion goal and required deliveries
 
 The 2026-09-22 direction explicitly requires completion of the existing R2c plan and all four
@@ -88,6 +92,61 @@ standalone scheduler test does not substitute for that client path. No new UI co
 mechanism, source access, persistence strategy or retry policy is admitted.
 
 ### Complete scope and retained readability findings
+
+#### C01 owned-thread observation calibration
+
+While actual input is unavailable, reserve 40 active minutes: 15 for a process-scoped sampler,
+ten for positive/negative calibration, five independent method review and ten for records.
+The conservative reservation becomes 3599 minutes. Admit one calibration process with a 30-second
+parent deadline, at most three owned competing threads on one permitted processor for at most
+1.5 seconds, and one bounded wait control. Retain only this process's native thread IDs, states,
+wait reasons, CPU deltas and timestamp/collection-cost observations. Do not start ETW, inspect
+unrelated processes, access a library/catalog or replay the failed mixed workload.
+
+Use fresh `Process` snapshots and read WaitReason only for Wait state. Bind samples to the process
+creation time and native OS TIDs established inside each worker. Validate a known kernel wait and
+a known runnable competition separately; missing targets, unknown states, gaps over 200 ms or
+insufficient samples must remain inconclusive. CPU deltas alone cannot distinguish either state.
+This establishes point observations and collection overhead, not continuous scheduling history,
+an I/O stack or driver attribution. Any later C01 interval observation needs its own bounded
+admission and native-thread mapping without weakening the original workload or gate.
+
+The [admission review](../acceptance/r2c-interleaving-remediation.md#owned-thread-calibration-admission)
+rejects this implementation before execution: the installed .NET Framework acquires a system-wide
+process snapshot before applying its PID predicate. Preserve the original acquisition boundary;
+do not substitute output filtering. No calibration is run, the parent is admission-blocked, and
+the 40-minute reservation is charged in full. This method is closed without a C01 result.
+
+#### Actual task-input handoff
+
+The repeated Computer Use binding failures leave the focused-Enter Retry and pre-registration
+Pause/Cancel sequence unobserved. Reserve at most 45 active minutes for a prepared human-input
+handoff: ten for artifact/source and isolation checks, 20 for one existing diagnostic lifetime,
+five for result inspection and ten for records. The conservative cumulative reservation becomes
+3559 minutes. This is a different input route, not another replay through the failed binding.
+
+Reuse the unchanged application/diagnostic artifact only after checking its exact hashes and
+unchanged compiled source. Prepare a new GUID-owned derived catalog and four-file Chinese-path
+fixture; keep the frozen 10000-file corpus and full before/after source checks. Keep the 900-second
+parent, 120-second registration hold, six-second close and original 4/2/2 GiB resource requirements.
+Do not launch until a person is available to provide the actual input. No Computer Use input,
+native automation helper, direct presentation callback or programmatic focus assignment joins it.
+
+The concrete sequence is: choose the prepared small directory in the actual picker; after the
+intentional post-commit display failure, focus Retry with Tab and press Enter; choose the prepared
+large directory; press Pause then Cancel while registration is held; close through the native
+window after final verification is ready. Existing observers must independently prove the exact
+returned directories, one retry read without rescan, native Pause/Cancel ordering, three published
+images plus the precise damaged-file issue, current pixels and complete process/Job retirement.
+A missing action, wrong selection, failed assertion or expired deadline ends this one admission.
+Human input does not waive any oracle or establish Release, signed-service or real-library proof.
+While input is unavailable, continue independent causal work; do not start a window merely to wait.
+
+The handoff is suspended before any manual input. The separate
+[capability checkpoint](../acceptance/r2c-input-controls.md#deferred-manual-input-and-current-capability-check)
+contains no delivered input: one current automatic action still fails cached-control binding;
+the empty owned client is retired and all generated sources remain unchanged. The 45-minute
+reservation is charged in full. Actual task inputs remain open, without another unchanged launch.
 
 #### Remaining controlled evidence reconciliation
 

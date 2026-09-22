@@ -808,6 +808,26 @@ Flutter filenames above are under their existing `test/app` or `test/features/li
 Rust test owners are under `rust/src`. This is one fixed cross-layer discovery pass, not a full
 repository audit. No UI redesign, source operation feature, dependency or schema change is admitted.
 
+### Accumulated candidate hosted checkpoint
+
+Hosted [35727071315](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/35727071315), on
+`9c584a05e5469cd6888ab54dbe7d8b1384efe3c0`, completes successfully with all ten required jobs and
+the aggregate Windows gate passing. Three signing-only jobs are skipped. The current source
+includes the primary committed-refresh admission correction and both strengthened preview suites.
+Static/Rust records **1519 passing library tests, 19 ignored cases and three passing binary
+integration tests**; the library suite takes **1601.72 seconds**. The connection-lifetime control,
+complete P0/P1/P2 recovery and post-decode same-metadata preview regression all pass in this run.
+The other jobs cover Flutter, native scan/accessibility, unsigned Release and five synthetic loads.
+
+The full run receipt and Rust log remain under `.build/r2c-controlled-evidence/` as
+`ci-35727071315-complete.json` and `ci-35727071315-static-rust.log`. Their SHA-256 values are
+`6270D041DA0F219CE24A05CF39631D22B108324CD1C7E223EFCF4AB5C7BCA2F3` and
+`820CAA7DE51B6B1992E4B061D4B5EC3123DC656A252DD29C7DD85C831F1C4327` respectively.
+This establishes this candidate's hosted gate, not a causal explanation for the preceding C01
+failure or C02's local evidence-publication failure. No unchanged local gate is replayed.
+Actual remaining input/Release paths, complete local Daily, accumulated independent review and
+signed/installed-service/journal/cloud/retained-library acceptance remain separate obligations.
+
 ### Startup, query, folder and recovery evidence
 
 The 2026-09-22 documentation check matches exact assertions and retained output from production

@@ -263,3 +263,32 @@ in full, including their recorded reviews; 3359 minutes is a cumulative reservat
 elapsed work. Stop this graphical binding route until its missing input capability is corrected
 or a separately prepared changed method can prove delivery. The C07 focused correction remains
 valid, while actual task controls, Release and the separate local complete gates remain open.
+
+## Deferred manual input and current capability check
+
+Lifetime `55dddd3e449344a592f111488e235f10` reuses the preceding EXE, kernel, Rust DLL and picker /
+fixture / process owners after exact hash verification. No production-compiled source changes
+between `9359618` and the accumulated `9c584a0` candidate; the only Rust change is test-only.
+A fresh GUID-owned catalog and four-file source are prepared, and all 10004 generated sources
+pass the full integrity check before launch. The window is revealed, but no manual input occurs.
+
+A current Computer Use capability check returns the correct native window, its empty-gallery
+screenshot and indexed Import button. Clicking that observed button immediately returns
+`element 31 is not available in cached app state for cedarflake_ame.exe`. The application trace
+contains no picker opening, accepted source, keyboard event or dispatched scan. This remains an
+automation state-binding failure; it does not establish an application input or scan defect.
+The failed binding route is not retried and no helper or direct presentation callback replaces it.
+
+The exact PID, parent, executable and process creation time are revalidated before deliberate
+retirement. The parent receipt records exit -1 after 306218 ms, process exit and Job closure with
+no cleanup failure. This is an incomplete input lifetime, not a normal-close pass. Across 1149
+resource samples, peak working set is 357912576 bytes, sampled private memory 302141440, kernel
+peak commit 319229952 and minimum available system memory 4721377280; the original bounds hold.
+Full before/after source checks pass in 48.720/39.826 seconds for exact membership, content, IDs,
+sizes and timestamps of four small files and 10000 frozen files totaling 10921494393 bytes.
+
+Ignored `.build/r2c-input-manual/` and its GUID-owned fixture retain admission, preparation,
+process/memory receipts, raw application logs and both full source checks. Charge the 45-minute
+handoff reservation conservatively in full. Actual focused-Enter Retry and pre-registration
+Pause/Cancel remain unproved. Another native input lifetime needs an available input interface
+and a recorded changed method; no unchanged launch or successful-input claim follows this check.
