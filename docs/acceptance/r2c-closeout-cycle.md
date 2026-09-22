@@ -838,7 +838,7 @@ The exact Rust cases pass in hosted run
 `16c215e4d05b8f5ba53ae82fab8cd6db1f45c76c`. Their retained Static/Rust output appears at lines 2721
 and 2591 respectively in `.build/r2c-process-lifecycle-ready/ci-35701651170-static-rust.log`
 (SHA-256 `6EF3FC3CEE6BFD4D1209CEB0149DCD0E5488C28DE91378C84A99BC64E0A7C4C8`).
-The Rust tree is unchanged through production head `4a5987b`; no new Rust run is claimed here.
+The Rust tree is unchanged through `c62c3bb`, so this exact-case output remains applicable.
 
 Focused Flutter verification passes **22 cases**: 16 update-controller cases, the connected
 cancellation case and five existing task-surface cases. Initial preparation incorrectly expected
@@ -853,8 +853,15 @@ The shared scanner body is unchanged apart from its public class name. Dedicated
 are 885 lines for the controller suite, 163 for the connected presentation suite and 117 for the
 scanner helper; production and inline-test changes are zero. Full Dart analysis, repository format
 check (230 files, no changes) and whitespace checks pass. One independent review took about three
-active minutes and found no blocking issue. Local full lint/Daily remains blocked by C02; these
-focused and reused results do not close other frozen client variants or final acceptance.
+active minutes and found no blocking issue.
+
+Hosted [35714183280](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/35714183280) on
+`c62c3bb1e579824db804b74c4c8cd95cc3845940` passes all ten required jobs and their aggregate;
+three signing-only jobs are skipped. The completed raw receipt is
+`.build/r2c-input-controls/ci-35714183280-complete.json`, SHA-256
+`8D050E4E28BCBA66F6B2B485CB58DF62F2CB0BCA63FC6FBA9E4F0DF3C32DD1C6`.
+Local full lint/Daily remains blocked by C02; focused, reused and hosted results do not close
+other frozen client variants or final acceptance.
 
 ### Observation preparation
 
