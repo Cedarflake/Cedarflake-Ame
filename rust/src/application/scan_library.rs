@@ -8,13 +8,12 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use blake3::Hasher;
 
-use crate::adapters::{
-    FileDiscovery, FileVisitOutcome, LocalMediaInspector, SqliteCatalog,
-    is_current_preview_artifact, user_visible_path,
-};
+use crate::adapters::{FileDiscovery, LocalMediaInspector, SqliteCatalog, user_visible_path};
+#[cfg(test)]
+use crate::domain::{AssetLocationView, PreviewStatus};
 use crate::domain::{
-    AssetLocationView, DiscoveredFile, LibraryChangeLane, PreviewStatus, RecoverableScan,
-    ScanCheckpoint, ScanError, ScanEvent, ScanIssue, ScanRequest,
+    LibraryChangeLane, RecoverableScan, ScanCheckpoint, ScanError, ScanEvent, ScanIssue,
+    ScanRequest,
 };
 #[cfg(test)]
 use crate::domain::{
@@ -23,14 +22,16 @@ use crate::domain::{
 };
 #[cfg(test)]
 use crate::ports::PersistentJournalRepository;
-use crate::ports::{CatalogRepository, IncrementalCatalogRepository, MediaInspector};
+use crate::ports::{CatalogRepository, IncrementalCatalogRepository};
 
 use super::storage::catalog_admission::with_scan_start;
 use super::{StoragePaths, storage_paths};
 
 #[cfg(test)]
 mod admission_tests;
+mod entry_processing;
 mod execution_registry;
+mod file_preparation;
 mod finalization;
 mod inspection_failure;
 #[cfg(all(test, windows))]
@@ -39,6 +40,7 @@ mod publication;
 #[cfg(test)]
 mod resumption_tests;
 mod retained_cancellation;
+mod traversal;
 
 #[cfg(test)]
 pub(crate) use execution_registry::hold_first_import_capture;
@@ -55,14 +57,12 @@ pub use execution_registry::{cancel_scan, pause_scan, suspend_scan};
 pub use retained_cancellation::cancel_retained_scan;
 
 use finalization::{FinalizationContext, FinalizationMode, FinalizationPlan};
-use inspection_failure::{FailedFileContext, record_failed_file};
 use publication::{
     ForegroundPublicationContext, ForegroundPublicationOutcome, publish_foreground_scan,
 };
+use traversal::{ScanTraversalContext, ScanTraversalOutcome, traverse_scan};
 
 const CHECKPOINT_INTERVAL: u64 = 128;
-const DIRECTORY_ENTRY_BATCH: usize = 256;
-const DIRECTORY_ENTRY_WINDOW: u32 = 256;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum FullScanReason {
@@ -374,525 +374,29 @@ fn run_scan_with_storage_reason(
             }
         }
 
-        let mut visited_entries = checkpoint.visited_entries;
-        let mut accepted_items = checkpoint.accepted_items;
-        let mut was_limited = false;
-        'traversal: loop {
-            if finish_if_controlled(
-                control.load(Ordering::Relaxed),
-                &mut catalog,
-                &request,
-                &checkpoint,
-                issue_count,
-                &mut publish,
+        let ScanTraversalOutcome::Traversed {
+            visited_entries,
+            mut accepted_items,
+            was_limited,
+        } = traverse_scan(
+            &mut catalog,
+            &mut finalization,
+            ScanTraversalContext {
+                request: &request,
+                control: &control,
+                discovery: &discovery,
+                inspector: &media_inspector,
+                root_id: &root_id,
                 had_published_root,
-            )? {
-                return Ok(());
-            }
-            let Some(relative_directory) = catalog.claim_next_directory(&request.scan_id)? else {
-                break;
-            };
-            if !catalog.is_current_directory_enumerated(&request.scan_id, &relative_directory)? {
-                let entries = match discovery.entry_paths_in_directory(&relative_directory) {
-                    Ok(entries) => entries,
-                    Err(issue) => {
-                        issue_count += 1;
-                        catalog.record_issue(&request.scan_id, &issue)?;
-                        checkpoint.last_visited_relative_path = None;
-                        checkpoint.issue_count = issue_count;
-                        if !publish(ScanEvent::Issue {
-                            scan_id: request.scan_id.clone(),
-                            issue: user_visible_issue(issue),
-                        }) {
-                            retain_detached_scan(
-                                &mut catalog,
-                                control.load(Ordering::Relaxed),
-                                &request,
-                                &checkpoint,
-                                issue_count,
-                                had_published_root,
-                            )?;
-                            return Ok(());
-                        }
-                        if had_published_root {
-                            catalog.abandon_scan(&request.scan_id, "stale", issue_count)?;
-                            publish(ScanEvent::Stale {
-                                scan_id: request.scan_id.clone(),
-                                accepted_items,
-                                issue_count,
-                            });
-                            return Ok(());
-                        }
-                        catalog.complete_directory(&request.scan_id, &checkpoint)?;
-                        continue;
-                    }
-                };
-                let mut batch = Vec::with_capacity(DIRECTORY_ENTRY_BATCH);
-                for relative_path in entries {
-                    batch.push(relative_path);
-                    if batch.len() == DIRECTORY_ENTRY_BATCH {
-                        catalog.stage_directory_entries(
-                            &request.scan_id,
-                            &relative_directory,
-                            &batch,
-                        )?;
-                        batch.clear();
-                        if finish_if_controlled(
-                            control.load(Ordering::Relaxed),
-                            &mut catalog,
-                            &request,
-                            &checkpoint,
-                            issue_count,
-                            &mut publish,
-                            had_published_root,
-                        )? {
-                            return Ok(());
-                        }
-                    }
-                }
-                catalog.stage_directory_entries(&request.scan_id, &relative_directory, &batch)?;
-                catalog.complete_directory_enumeration(&request.scan_id, &relative_directory)?;
-            }
-
-            if let Some(saved_path) = checkpoint.last_visited_relative_path.as_deref()
-                && !catalog.has_directory_entry(
-                    &request.scan_id,
-                    &relative_directory,
-                    saved_path,
-                )?
-            {
-                let issue = ScanIssue {
-                    path: checkpoint.last_visited_relative_path.clone(),
-                    code: "scan_checkpoint_unavailable".to_owned(),
-                    message: "The saved position no longer exists in the current directory"
-                        .to_owned(),
-                };
-                issue_count += 1;
-                catalog.record_issue(&request.scan_id, &issue)?;
-                publish(ScanEvent::Issue {
-                    scan_id: request.scan_id.clone(),
-                    issue: user_visible_issue(issue),
-                });
-                catalog.abandon_scan(&request.scan_id, "stale", issue_count)?;
-                publish(ScanEvent::Stale {
-                    scan_id: request.scan_id.clone(),
-                    accepted_items,
-                    issue_count,
-                });
-                return Ok(());
-            }
-
-            if request
-                .max_entries
-                .is_some_and(|limit| visited_entries >= u64::from(limit))
-                || request
-                    .max_items
-                    .is_some_and(|limit| accepted_items >= u64::from(limit))
-            {
-                was_limited = true;
-                break 'traversal;
-            }
-
-            loop {
-                let relative_paths = catalog.load_directory_entry_window(
-                    &request.scan_id,
-                    &relative_directory,
-                    checkpoint.last_visited_relative_path.as_deref(),
-                    DIRECTORY_ENTRY_WINDOW,
-                )?;
-                if relative_paths.is_empty() {
-                    break;
-                }
-
-                for relative_path in relative_paths {
-                    if finish_if_controlled(
-                        control.load(Ordering::Relaxed),
-                        &mut catalog,
-                        &request,
-                        &checkpoint,
-                        issue_count,
-                        &mut publish,
-                        had_published_root,
-                    )? {
-                        return Ok(());
-                    }
-
-                    let visit = discovery.visit_relative_path(&relative_path);
-
-                    visited_entries = visited_entries.checked_add(1).ok_or_else(|| {
-                        ScanError::new(
-                            "entry_count_overflow",
-                            "The directory entry count exceeded the supported range",
-                        )
-                    })?;
-                    if request
-                        .max_entries
-                        .is_some_and(|limit| visited_entries > u64::from(limit))
-                    {
-                        was_limited = true;
-                        break 'traversal;
-                    }
-
-                    let mut discovered_event = None;
-                    match visit.outcome {
-                        FileVisitOutcome::Directory => {
-                            catalog.enqueue_directory(&request.scan_id, &visit.relative_path)?;
-                        }
-                        FileVisitOutcome::Ignored => {}
-                        FileVisitOutcome::TerminalMedia {
-                            file,
-                            issue,
-                            report_issue,
-                        } => {
-                            let known_media = finalization
-                                .has_retained_rejection(&file.relative_path)
-                                || has_active_locations
-                                    && catalog
-                                        .load_incremental_location_by_relative_path(
-                                            &root_id,
-                                            &file.relative_path,
-                                        )?
-                                        .is_some();
-                            if known_media {
-                                finalization.record_rejected_input(&catalog, &file)?;
-                            }
-                            if report_issue || known_media {
-                                issue_count += 1;
-                                catalog.record_issue(&request.scan_id, &issue)?;
-                                discovered_event = Some(ScanEvent::Issue {
-                                    scan_id: request.scan_id.clone(),
-                                    issue: user_visible_issue(issue),
-                                });
-                            }
-                        }
-                        FileVisitOutcome::Issue(issue) => {
-                            issue_count += 1;
-                            catalog.record_issue(&request.scan_id, &issue)?;
-                            if had_published_root {
-                                if let Some(prior) = catalog
-                                    .load_incremental_location_by_relative_path(
-                                        &root_id,
-                                        &visit.relative_path,
-                                    )?
-                                {
-                                    catalog.stage_location(&request.scan_id, &root_id, &prior)?;
-                                    accepted_items =
-                                    accepted_items.checked_add(1).ok_or_else(|| {
-                                        ScanError::new(
-                                            "accepted_item_count_overflow",
-                                            "The accepted item count exceeded the supported range",
-                                        )
-                                    })?;
-                                }
-                                checkpoint.accepted_items = accepted_items;
-                                checkpoint.issue_count = issue_count;
-                                checkpoint.requires_previous_snapshot = true;
-                                catalog.checkpoint_scan(&request.scan_id, &checkpoint)?;
-                            }
-                            discovered_event = Some(ScanEvent::Issue {
-                                scan_id: request.scan_id.clone(),
-                                issue: user_visible_issue(issue),
-                            });
-                        }
-                        FileVisitOutcome::RetryableFile { file, issue } => {
-                            let prior = if had_published_root {
-                                catalog.load_incremental_location_by_relative_path(
-                                    &root_id,
-                                    &file.relative_path,
-                                )?
-                            } else {
-                                None
-                            };
-                            let (accepted, issue) = record_failed_file(
-                                &mut catalog,
-                                &mut finalization,
-                                FailedFileContext {
-                                    scan_id: &request.scan_id,
-                                    root_id: &root_id,
-                                    file: &file,
-                                    preservation_prior: prior.as_ref(),
-                                    had_published_root,
-                                    accepted_items,
-                                },
-                                crate::ports::MediaInspectionFailure {
-                                    kind: crate::ports::MediaInspectionFailureKind::Retryable,
-                                    issue,
-                                },
-                                &mut checkpoint,
-                                &mut issue_count,
-                            )?;
-                            accepted_items = accepted;
-                            discovered_event = Some(ScanEvent::Issue {
-                                scan_id: request.scan_id.clone(),
-                                issue: user_visible_issue(issue),
-                            });
-                        }
-                        FileVisitOutcome::File(file) => {
-                            for issue in &file.issues {
-                                issue_count += 1;
-                                catalog.record_issue(&request.scan_id, issue)?;
-                                if !publish(ScanEvent::Issue {
-                                    scan_id: request.scan_id.clone(),
-                                    issue: user_visible_issue(issue.clone()),
-                                }) {
-                                    retain_detached_scan(
-                                        &mut catalog,
-                                        control.load(Ordering::Relaxed),
-                                        &request,
-                                        &checkpoint,
-                                        issue_count,
-                                        had_published_root,
-                                    )?;
-                                    return Ok(());
-                                }
-                            }
-                            let path_prior = has_active_locations
-                                .then(|| {
-                                    catalog.load_incremental_location_by_relative_path(
-                                        &root_id,
-                                        &file.relative_path,
-                                    )
-                                })
-                                .transpose()?
-                                .flatten();
-                            let location_id = path_prior.as_ref().map_or_else(
-                                || stable_location_id(&root_id, &file.relative_path),
-                                |prior| prior.location_id.clone(),
-                            );
-                            let candidate_asset_id = file.file_identity.as_ref().map_or_else(
-                                || {
-                                    stable_id(
-                                        "asset-v1",
-                                        &format!("{}\0{location_id}", request.scan_id),
-                                    )
-                                },
-                                |identity| {
-                                    stable_id(
-                                        "asset-file-identity-v1",
-                                        &format!(
-                                            "{}\0{}\0{}",
-                                            request.scan_id, identity.scheme, identity.value
-                                        ),
-                                    )
-                                },
-                            );
-                            let identity_prior =
-                                if file.file_identity.as_ref().is_some_and(|identity| {
-                                    path_prior
-                                        .as_ref()
-                                        .and_then(|prior| prior.file_identity.as_ref())
-                                        == Some(identity)
-                                }) {
-                                    path_prior.clone()
-                                } else {
-                                    file.file_identity
-                                        .as_ref()
-                                        .map(|identity| {
-                                            catalog.load_scan_location_by_file_identity(
-                                                &request.scan_id,
-                                                identity,
-                                            )
-                                        })
-                                        .transpose()?
-                                        .flatten()
-                                };
-                            let path_is_unchanged = path_prior.as_ref().is_some_and(|prior| {
-                                same_file_state(prior, &file)
-                                    && (file.file_identity.is_none()
-                                        || prior.file_identity.is_none()
-                                        || prior.file_identity == file.file_identity)
-                            });
-                            let asset_id = identity_prior
-                                .as_ref()
-                                .map(|prior| prior.asset_id.clone())
-                                .or_else(|| {
-                                    path_is_unchanged
-                                        .then(|| {
-                                            path_prior.as_ref().map(|prior| prior.asset_id.clone())
-                                        })
-                                        .flatten()
-                                })
-                                .unwrap_or(candidate_asset_id);
-                            let preservation_prior =
-                                identity_prior.clone().or_else(|| path_prior.clone());
-                            let prior = identity_prior
-                                .filter(|prior| same_file_state(prior, &file))
-                                .or_else(|| path_is_unchanged.then_some(path_prior).flatten());
-                            let compatible_metadata = prior.as_ref().filter(|prior| {
-                                prior.metadata_engine_id == media_inspector.metadata_engine_id()
-                                    && prior.metadata_engine_version
-                                        == media_inspector.metadata_engine_version()
-                            });
-                            let inspection = if let Some(prior) = compatible_metadata {
-                                Ok(crate::domain::MediaInspection {
-                                    width: prior.width,
-                                    height: prior.height,
-                                    metadata: crate::domain::MetadataInspection {
-                                        engine_id: prior.metadata_engine_id.clone(),
-                                        engine_version: prior.metadata_engine_version.clone(),
-                                        capture_time: prior.capture_time.clone(),
-                                        issues: Vec::new(),
-                                    },
-                                })
-                            } else {
-                                media_inspector.inspect(&file)
-                            };
-                            match inspection {
-                                Ok(inspection) => {
-                                    for issue in inspection.metadata.issues {
-                                        issue_count += 1;
-                                        catalog.record_issue(&request.scan_id, &issue)?;
-                                        if !publish(ScanEvent::Issue {
-                                            scan_id: request.scan_id.clone(),
-                                            issue: user_visible_issue(issue),
-                                        }) {
-                                            retain_detached_scan(
-                                                &mut catalog,
-                                                control.load(Ordering::Relaxed),
-                                                &request,
-                                                &checkpoint,
-                                                issue_count,
-                                                had_published_root,
-                                            )?;
-                                            return Ok(());
-                                        }
-                                    }
-                                    let (preview_path, preview_status) = prior
-                                        .as_ref()
-                                        .filter(|prior| {
-                                            compatible_metadata.is_some()
-                                                && matches!(
-                                                    prior.preview_status,
-                                                    PreviewStatus::Ready
-                                                )
-                                                && !prior.preview_path.is_empty()
-                                                && Path::new(&prior.preview_path).is_file()
-                                                && is_current_preview_artifact(&prior.preview_path)
-                                        })
-                                        .map(|prior| {
-                                            (prior.preview_path.clone(), PreviewStatus::Ready)
-                                        })
-                                        .unwrap_or_else(|| (String::new(), PreviewStatus::Pending));
-                                    let source_generation = prior
-                                        .as_ref()
-                                        .filter(|prior| same_file_state(prior, &file))
-                                        .map_or(0, |prior| prior.source_generation);
-                                    let asset = AssetLocationView {
-                                        asset_id,
-                                        location_id,
-                                        root_id: root_id.clone(),
-                                        scan_id: request.scan_id.clone(),
-                                        display_path: user_visible_path(&file.absolute_path),
-                                        absolute_path: file.absolute_path,
-                                        relative_path: file.relative_path,
-                                        preview_path,
-                                        file_size: file.file_size,
-                                        created_unix_ms: file.created_unix_ms,
-                                        modified_unix_ms: file.modified_unix_ms,
-                                        file_identity: file.file_identity,
-                                        source_revision: file.source_revision,
-                                        source_generation,
-                                        width: inspection.width,
-                                        height: inspection.height,
-                                        preview_status,
-                                        preview_issue_code: None,
-                                        preview_issue_message: None,
-                                        metadata_engine_id: inspection.metadata.engine_id,
-                                        metadata_engine_version: inspection.metadata.engine_version,
-                                        capture_time: inspection.metadata.capture_time,
-                                    };
-                                    catalog.stage_location(&request.scan_id, &root_id, &asset)?;
-                                    accepted_items += 1;
-                                    discovered_event = Some(ScanEvent::AssetDiscovered {
-                                        scan_id: request.scan_id.clone(),
-                                        asset: Box::new(asset),
-                                    });
-                                }
-                                Err(failure) => {
-                                    let (accepted, issue) = record_failed_file(
-                                        &mut catalog,
-                                        &mut finalization,
-                                        FailedFileContext {
-                                            scan_id: &request.scan_id,
-                                            root_id: &root_id,
-                                            file: &file,
-                                            preservation_prior: preservation_prior.as_ref(),
-                                            had_published_root,
-                                            accepted_items,
-                                        },
-                                        failure,
-                                        &mut checkpoint,
-                                        &mut issue_count,
-                                    )?;
-                                    accepted_items = accepted;
-                                    discovered_event = Some(ScanEvent::Issue {
-                                        scan_id: request.scan_id.clone(),
-                                        issue: user_visible_issue(issue),
-                                    });
-                                }
-                            }
-                        }
-                    }
-
-                    checkpoint.last_visited_relative_path = Some(visit.relative_path);
-                    checkpoint.visited_entries = visited_entries;
-                    checkpoint.accepted_items = accepted_items;
-                    checkpoint.issue_count = issue_count;
-                    if visited_entries.is_multiple_of(CHECKPOINT_INTERVAL) {
-                        catalog.checkpoint_scan(&request.scan_id, &checkpoint)?;
-                    }
-
-                    let did_accept_asset =
-                        matches!(&discovered_event, Some(ScanEvent::AssetDiscovered { .. }));
-                    if discovered_event.is_some_and(|event| !publish(event)) {
-                        retain_detached_scan(
-                            &mut catalog,
-                            control.load(Ordering::Relaxed),
-                            &request,
-                            &checkpoint,
-                            issue_count,
-                            had_published_root,
-                        )?;
-                        return Ok(());
-                    }
-                    let should_publish_progress = visited_entries == 1
-                        || visited_entries.is_multiple_of(CHECKPOINT_INTERVAL)
-                        || did_accept_asset
-                            && accepted_items > 0
-                            && accepted_items.is_multiple_of(25);
-                    if should_publish_progress
-                        && !publish(ScanEvent::Progress {
-                            scan_id: request.scan_id.clone(),
-                            visited_entries,
-                            accepted_items,
-                            issue_count,
-                        })
-                    {
-                        retain_detached_scan(
-                            &mut catalog,
-                            control.load(Ordering::Relaxed),
-                            &request,
-                            &checkpoint,
-                            issue_count,
-                            had_published_root,
-                        )?;
-                        return Ok(());
-                    }
-                    if request
-                        .max_items
-                        .is_some_and(|limit| accepted_items >= u64::from(limit))
-                    {
-                        was_limited = true;
-                        break 'traversal;
-                    }
-                }
-            }
-
-            checkpoint.last_visited_relative_path = None;
-            catalog.complete_directory(&request.scan_id, &checkpoint)?;
-        }
-
-        catalog.checkpoint_scan(&request.scan_id, &checkpoint)?;
+                has_active_locations,
+            },
+            &mut checkpoint,
+            &mut issue_count,
+            &mut publish,
+        )?
+        else {
+            return Ok(());
+        };
 
         if checkpoint.requires_previous_snapshot {
             catalog.abandon_scan(&request.scan_id, "stale", issue_count)?;
@@ -1218,13 +722,6 @@ pub(super) fn stable_id(namespace: &str, value: &str) -> String {
 
 pub(super) fn stable_location_id(root_id: &str, relative_path: &str) -> String {
     stable_id("asset-location-v1", &format!("{root_id}\0{relative_path}"))
-}
-
-fn same_file_state(prior: &AssetLocationView, file: &DiscoveredFile) -> bool {
-    prior.file_size == file.file_size
-        && prior.modified_unix_ms == file.modified_unix_ms
-        && prior.source_revision.is_some()
-        && prior.source_revision == file.source_revision
 }
 
 #[cfg(test)]

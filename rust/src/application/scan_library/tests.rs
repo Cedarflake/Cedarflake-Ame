@@ -16,7 +16,7 @@ use tempfile::tempdir;
 
 #[cfg(windows)]
 use crate::adapters::force_publication_namespace_guard_failure_for_test;
-use crate::adapters::remove_persistent_journal_v22_contract_for_test;
+use crate::adapters::{FileVisitOutcome, remove_persistent_journal_v22_contract_for_test};
 use crate::domain::{
     GalleryQuery, LibraryChangeCatchUpEvidence, LibraryChangeCatchUpQueueBatch,
     LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeOrigin, LibraryChangeQueuePolicy,
