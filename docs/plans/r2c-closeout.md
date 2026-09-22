@@ -89,6 +89,25 @@ mechanism, source access, persistence strategy or retry policy is admitted.
 
 ### Complete scope and retained readability findings
 
+#### Multi-root evidence completion
+
+Reserve 60 active minutes after the input-control checkpoint: 15 to match live source and exact
+passing outputs, 15 for the missing connected cancellation assertion, 15 focused verification,
+10 independent review and five records. The conservative cumulative reservation becomes 2999
+minutes; count inspection already performed in this reservation rather than restarting its clock.
+
+UX-06A must exercise the existing task-surface Cancel for queued C while A/B remain active, then
+observe independent progress, both terminal completions, exact display-refresh callbacks and released
+execution leases. Reuse the existing controlled scanner in a shared test support owner; do not
+change production scheduling or expand the controller. Match UX-06B/C's existing connected Rust
+tests to their exact hosted passing output and unchanged owning source before updating the roster.
+Do not infer Windows watcher delivery, Release input or physical database reclamation from those
+fixtures. Preserve remaining client obligations and C01/C02 failures. This block admits no further
+picker lifetime, real-root run or unchanged full local gate.
+
+The [current multi-root evidence](../acceptance/r2c-closeout-cycle.md#multi-root-current-evidence)
+records the connected cancellation test, precise reused Rust cases and their remaining client limits.
+
 #### Actual picker and task-control method
 
 After the recovered process pair, cover the remaining selected UX-02A/B/C and UX-08C input duties

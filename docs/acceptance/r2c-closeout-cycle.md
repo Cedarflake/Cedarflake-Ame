@@ -794,9 +794,9 @@ their actual passing output and unchanged source; the final complete Daily remai
 | UX-05A | Open original, navigate both ways and return; actual decode, correct anchor and released source slots | Viewer/source reader; `integration_test/support/viewer_source_workflow.dart`, `library_viewer_position_test.dart`; Debug decode mapped, Release pending |
 | UX-05B | Close/reopen while paging or buffer copy is pending; old completion/errors remain retired and new navigation works | Viewer session/source lifetime; `library_viewer_navigation_lifecycle_test.dart`, `library_source_read_lifecycle_test.dart`; mapped |
 | UX-05C | Same-path source rewrite, then authoritative rename/removal; newest pixels and stable asset until authoritative removal | Viewer source generation; `library_viewer_image_test.dart`, `library_viewer_position_test.dart`; mapped, Release input pending |
-| UX-06A | A/B update while queued C is cancelled; independent progress and only C is cancelled | Multi-root update; `library_update_controller_test.dart`; mapped |
-| UX-06B | Remove C while A publishes and B continues, then register C while old cleanup remains; no repeated unregister, stale root or cleanup authority | Root removal, publication and cleanup; `library_update_controller_test.dart`, queue registration/retention regressions; exact connected overlap pending |
-| UX-06C | Make fixture A unavailable then restore it while B updates; preserve A's catalog and B's progress | Root availability/scheduling; production offline/available and R2c-R isolation cases; mapped, connected overlap pending |
+| UX-06A | A/B update while queued C is cancelled; independent progress and only C is cancelled | [Connected task-surface cancellation passes](#multi-root-current-evidence), including both completions, refresh callbacks and execution release; scanner and catalog-refresh ports are controlled |
+| UX-06B | Remove C while A publishes and B continues, then register C while old cleanup remains; no repeated unregister, stale root or cleanup authority | [Connected controller and persistence cases pass](#multi-root-current-evidence); deterministic scan interleaving and old/new spool authority are covered, native UI overlap and physical file reclamation are not |
+| UX-06C | Make fixture A unavailable then restore it while B updates; preserve A's catalog and B's progress | [Connected production recovery case passes](#multi-root-current-evidence), including B publication during A recovery and FULL reopen; notifications are injected, not real watcher delivery |
 | UX-07A | Original 25-sample P0/P1/P2 workload through complete P2 publication, authority retirement, synchronized state and FULL reopen | `production/tests/priority.rs` and `priority/recovery_completion.rs`; original 300-second failure remains S1, discovery observation timing added |
 | UX-07B | Same workload with per-poll versus per-epoch connection lifetime; preserve proof and production P95 bound | `priority/connection_lifetime_control.rs`; existing two-arm evidence mapped, no full-recovery substitution |
 | UX-07C | Interrupt/reopen exact leases and exhaust recovery retry; retain durable failure/lineage and keep other roots eligible | Production restart/stop and queue retry owners; `production_restart_recovers_an_expired_live_gap_lease_and_retains_its_consumer_lineage`, `exhausted_recovery_candidate_prevents_authority_completion`; mapped |
@@ -807,6 +807,54 @@ their actual passing output and unchanged source; the final complete Daily remai
 Flutter filenames above are under their existing `test/app` or `test/features/library` owners;
 Rust test owners are under `rust/src`. This is one fixed cross-layer discovery pass, not a full
 repository audit. No UI redesign, source operation feature, dependency or schema change is admitted.
+
+### Multi-root current evidence
+
+The 2026-09-22 checkpoint replaces the roster's stale mapping gaps without changing production
+scheduling. The older preparation failures and subsequent results below remain historical evidence.
+
+- **UX-06A:** `library_update_cancellation_test.dart` connects the actual task surface to the real
+  update controller and execution coordinator. Tapping queued C's Cancel leaves A/B's scanner
+  streams untouched; their distinct progress survives, both complete independently, exactly two
+  refresh callbacks occur, and all execution reservations retire. A shared controlled scanner and
+  refresh callback spy establish control ownership, not native scanning or actual catalog refresh.
+- **UX-06B:** both `independent update refresh waits for root removal` controller variants pass with
+  one unregister, no C resurrection, coherent refreshed query state and B still active. The Rust
+  `removed_root_reregistration_preserves_new_generation_while_old_spool_drains` case connects real
+  A/B scans through deterministic nested callbacks, C removal, FULL reopen, C's later registration,
+  old-generation cleanup and preserved new-generation source/lease authority. It checks source
+  bytes and modification times. This is not a parallel-thread race, native UI duplicate-removal
+  test, automatic-cleanup scheduling proof or database-file space-reclamation measurement.
+- **UX-06C:** `production_offline_root_recovery_preserves_catalog_while_peer_changes_publish`
+  renames the generated A directory away and restores it. A's completed catalog survives while B
+  publishes once during unavailability and again while A's recovery enumeration is held. Releasing
+  the gate yields synchronized roots, retired recovery authority and FULL reopen with stable asset
+  and location identities. Source bytes and modification times match the expected stimulus. The
+  production pipeline uses injected notifications; Windows watcher/device/Release behavior is not
+  established by this fixture.
+
+The exact Rust cases pass in hosted run
+[35701651170](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/35701651170) on
+`16c215e4d05b8f5ba53ae82fab8cd6db1f45c76c`. Their retained Static/Rust output appears at lines 2721
+and 2591 respectively in `.build/r2c-process-lifecycle-ready/ci-35701651170-static-rust.log`
+(SHA-256 `6EF3FC3CEE6BFD4D1209CEB0149DCD0E5488C28DE91378C84A99BC64E0A7C4C8`).
+The Rust tree is unchanged through production head `4a5987b`; no new Rust run is claimed here.
+
+Focused Flutter verification passes **22 cases**: 16 update-controller cases, the connected
+cancellation case and five existing task-surface cases. Initial preparation incorrectly expected
+queued C to hold no execution reservation; the actual contract reserves it before scheduling and
+releases it on cancellation. The corrected assertion checks both sides of that transition; the
+failed preparation output remains in
+`.build/r2c-input-controls/multi-root-reservation-expectation-failure.log`. Passing outputs are
+`multi-root-focused.log` (its 16-case controller partition) and `multi-root-presentation-after.log`
+under the same ignored directory. The latter contains the corrected 1+5-case result.
+
+The shared scanner body is unchanged apart from its public class name. Dedicated test/support sizes
+are 885 lines for the controller suite, 163 for the connected presentation suite and 117 for the
+scanner helper; production and inline-test changes are zero. Full Dart analysis, repository format
+check (230 files, no changes) and whitespace checks pass. One independent review took about three
+active minutes and found no blocking issue. Local full lint/Daily remains blocked by C02; these
+focused and reused results do not close other frozen client variants or final acceptance.
 
 ### Observation preparation
 

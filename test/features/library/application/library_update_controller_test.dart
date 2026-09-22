@@ -11,6 +11,7 @@ import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../support/concurrent_library_scanner.dart";
 import "../support/library_query_snapshot_fixture.dart";
 
 void main() {
@@ -23,7 +24,7 @@ void main() {
           _root("root-b", "C:\\B"),
           _root("root-c", "C:\\C"),
         ];
-        final scanner = _ConcurrentLibraryScanner();
+        final scanner = ConcurrentLibraryScanner();
         final catalog = _RemovingUpdateCatalog(roots);
         final initial = catalog.snapshot;
         final container = ProviderContainer(
@@ -165,7 +166,7 @@ void main() {
   });
 
   test("updates different roots with bounded independent scan runs", () async {
-    final scanner = _ConcurrentLibraryScanner();
+    final scanner = ConcurrentLibraryScanner();
     var catalogRefreshCount = 0;
     final roots = [
       _root("root-a", "C:\\A"),
@@ -272,40 +273,8 @@ void main() {
     expect(catalogRefreshCount, 1);
   });
 
-  test("cancels a queued root without touching an active scan", () {
-    final scanner = _ConcurrentLibraryScanner();
-    final roots = [
-      _root("root-a", "C:\\A"),
-      _root("root-b", "C:\\B"),
-      _root("root-c", "C:\\C"),
-    ];
-    final container = ProviderContainer(
-      overrides: [
-        libraryScannerProvider.overrideWithValue(scanner),
-        libraryUpdateConfiguredRootsProvider.overrideWithValue(roots),
-        libraryUpdatePrimaryBusyProvider.overrideWithValue(false),
-        libraryUpdateCatalogRefreshProvider.overrideWithValue(() async {}),
-      ],
-    );
-    addTearDown(container.dispose);
-    addTearDown(scanner.dispose);
-    final controller = container.read(libraryUpdateControllerProvider.notifier);
-
-    controller.startUpdates(roots.map((root) => root.id));
-    controller.cancel("root-c");
-
-    expect(scanner.cancelledScanIds, isEmpty);
-    expect(
-      container
-          .read(libraryUpdateControllerProvider)
-          .tasksByRootId["root-c"]
-          ?.phase,
-      LibraryRootUpdatePhase.cancelled,
-    );
-  });
-
   test("does not schedule unavailable roots", () {
-    final scanner = _ConcurrentLibraryScanner();
+    final scanner = ConcurrentLibraryScanner();
     final root = _root(
       "root-offline",
       "E:\\Offline",
@@ -334,7 +303,7 @@ void main() {
   });
 
   test("resolves requested ids through the current configured roots", () {
-    final scanner = _ConcurrentLibraryScanner();
+    final scanner = ConcurrentLibraryScanner();
     final root = _root("root-a", "C:\\Current");
     final container = ProviderContainer(
       overrides: [
@@ -360,7 +329,7 @@ void main() {
   });
 
   test("revalidates a queued root before starting its scan", () async {
-    final scanner = _ConcurrentLibraryScanner();
+    final scanner = ConcurrentLibraryScanner();
     final roots = [
       _root("root-a", "C:\\A"),
       _root("root-b", "C:\\B"),
@@ -403,7 +372,7 @@ void main() {
   });
 
   test("does not admit updates while the primary scan owns execution", () {
-    final scanner = _ConcurrentLibraryScanner();
+    final scanner = ConcurrentLibraryScanner();
     final root = _root("root-a", "C:\\A");
     final execution = LibraryScanExecutionCoordinator();
     final primaryOwner = Object();
@@ -433,7 +402,7 @@ void main() {
   });
 
   test("reissues an early cancellation after the native start event", () async {
-    final scanner = _ConcurrentLibraryScanner(delayedRegistration: true);
+    final scanner = ConcurrentLibraryScanner(delayedRegistration: true);
     final root = _root("root-a", "C:\\A");
     final container = ProviderContainer(
       overrides: [
@@ -496,7 +465,7 @@ void main() {
   });
 
   test("retains ownership after a stream error until native release", () async {
-    final scanner = _ConcurrentLibraryScanner();
+    final scanner = ConcurrentLibraryScanner();
     final root = _root("root-a", "C:\\A");
     final container = ProviderContainer(
       overrides: [
@@ -542,7 +511,7 @@ void main() {
   test(
     "reports catalog refresh failure and retries without rescanning",
     () async {
-      final scanner = _ConcurrentLibraryScanner();
+      final scanner = ConcurrentLibraryScanner();
       var refreshAttempts = 0;
       final root = _root("root-a", "C:\\A");
       final container = ProviderContainer(
@@ -605,7 +574,7 @@ void main() {
   test(
     "exposes failure retry only after the terminal stream releases",
     () async {
-      final scanner = _ConcurrentLibraryScanner();
+      final scanner = ConcurrentLibraryScanner();
       final root = _root("root-a", "C:\\A");
       final container = ProviderContainer(
         overrides: [
@@ -662,7 +631,7 @@ void main() {
   );
 
   test("quick refresh exposes completion only after scan release", () async {
-    final scanner = _ConcurrentLibraryScanner();
+    final scanner = ConcurrentLibraryScanner();
     var refreshCount = 0;
     final root = _root("root-a", "C:\\A");
     final container = ProviderContainer(
@@ -718,7 +687,7 @@ void main() {
   });
 
   test("shutdown cancels and drains every active root update", () async {
-    final scanner = _ConcurrentLibraryScanner(completeCancellation: true);
+    final scanner = ConcurrentLibraryScanner(completeCancellation: true);
     final coordinator = LibraryScanShutdownCoordinator();
     final roots = [
       _root("root-a", "C:\\A"),
@@ -757,7 +726,7 @@ void main() {
   test(
     "shutdown reissues cancellation after delayed native registration",
     () async {
-      final scanner = _ConcurrentLibraryScanner(
+      final scanner = ConcurrentLibraryScanner(
         completeCancellation: true,
         delayedRegistration: true,
       );
@@ -913,117 +882,4 @@ class _RemovingUpdateCatalog
     required LibraryGalleryQuery query,
     required LibraryTimeAnchor anchor,
   }) => throw UnimplementedError();
-}
-
-class _ConcurrentLibraryScanner implements LibraryScanner {
-  @override
-  Future<void> cancelRetainedScan(String scanId) async {
-    throw StateError("This fixture has no retained cancellation command");
-  }
-
-  _ConcurrentLibraryScanner({
-    this.completeCancellation = false,
-    this.delayedRegistration = false,
-  });
-
-  final bool completeCancellation;
-  final bool delayedRegistration;
-  final Map<String, StreamController<LibraryScanUpdate>> _controllers = {};
-  final Map<String, String> _rootPathsByScanId = {};
-  final Set<String> _registeredScanIds = {};
-  final List<String> startedRootPaths = [];
-  final List<String> cancelledScanIds = [];
-
-  Iterable<String> get activeScanIds => _controllers.keys;
-
-  String scanIdForRootPath(String rootPath) {
-    return _rootPathsByScanId.entries
-        .singleWhere((entry) => entry.value == rootPath)
-        .key;
-  }
-
-  void add(String scanId, LibraryScanUpdate update) {
-    if (update is LibraryScanStarted) {
-      _registeredScanIds.add(scanId);
-    }
-    _controllers[scanId]?.add(update);
-  }
-
-  void addError(String scanId, Object error) {
-    _controllers[scanId]?.addError(error);
-  }
-
-  Future<void> close(String scanId) async {
-    _registeredScanIds.remove(scanId);
-    await _controllers.remove(scanId)?.close();
-  }
-
-  void dispose() {
-    for (final controller in _controllers.values) {
-      unawaited(controller.close());
-    }
-    _controllers.clear();
-    _registeredScanIds.clear();
-  }
-
-  @override
-  bool cancel(String scanId) {
-    if (!_registeredScanIds.contains(scanId)) {
-      return false;
-    }
-    cancelledScanIds.add(scanId);
-    if (completeCancellation) {
-      scheduleMicrotask(() {
-        add(
-          scanId,
-          const LibraryScanCancelled(acceptedItems: 0, issueCount: 0),
-        );
-        unawaited(close(scanId));
-      });
-    }
-    return true;
-  }
-
-  @override
-  Future<RecoverableLibraryScan?> loadPausedScan() async => null;
-
-  @override
-  Future<RecoverableLibraryScan?> loadRecoverableScan() async => null;
-
-  @override
-  bool pause(String scanId) => false;
-
-  @override
-  Stream<LibraryScanUpdate> resume({
-    required String scanId,
-    required String rootPath,
-    required int? itemLimit,
-    required int? entryLimit,
-    required int previewEdge,
-  }) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Stream<LibraryScanUpdate> scan({
-    required String scanId,
-    required String rootPath,
-    required int? itemLimit,
-    required int? entryLimit,
-    required int previewEdge,
-  }) {
-    // Every controller is closed by the registered scanner teardown.
-    // ignore: close_sinks
-    final controller = StreamController<LibraryScanUpdate>();
-    _controllers[scanId] = controller;
-    _rootPathsByScanId[scanId] = rootPath;
-    startedRootPaths.add(rootPath);
-    if (!delayedRegistration) {
-      _registeredScanIds.add(scanId);
-    }
-    return controller.stream;
-  }
-
-  @override
-  bool suspend(String scanId) => _controllers.containsKey(scanId);
 }
