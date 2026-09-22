@@ -445,6 +445,48 @@ pass. The unexpected-display-error oracle is strengthened before the sole lifeti
 90-minute reservation in full through 4534 minutes, retaining the separate spool/Release and other
 named obligations.
 
+#### Native unavailable-root restoration during peer update
+
+Reserve 100 active minutes for UX-06C: 25 for the scoped directory owner and read-only observer,
+ten for boundary checks, 20 for one native lifetime, 15 for source/catalog checks, 15 for one
+independent method/result review and 15 for records. Cumulative reservation becomes 4634 minutes;
+serial build and full-source integrity wall time remain separate. Keep the existing 10514 generated
+sources immutable and clone only their derived catalog. Create one additional two-image root in
+the new GUID-owned fixture, using copies of the generated PNGs. Only this new directory may move.
+
+Import and select that root through the actual native picker, establish two current decoded images
+and healthy production synchronization, then request the existing 10000-image root's update through
+its native controls. Hold that single scanner invocation at the port until a scoped helper has
+renamed the new two-image directory to its checked sibling and production synchronization reports
+it unavailable. Preserve its catalog membership and cached gallery pixels. Release the real peer
+scan, require real advancing progress while the selected root remains unavailable, then restore
+the exact directory identity through the same helper. No synthetic watcher events, direct
+controller actions, manual recovery scan, catalog edits or invented completion join the lifetime.
+
+Require restored availability while the real peer still owns an active update, automatic production
+convergence with healthy source and no pending/retry work, exactly two retained images, the peer's
+complete 10000-image result and independent execution retirement. Record every synchronization
+transition so an unavailable interval cannot be inferred merely from filesystem operations.
+Compare all source identities, bytes and timestamps and exact catalog members before/after.
+The helper has an immutable run identity, bounded waits, an abort signal and unconditional guarded
+restoration; prove its exit before normal client close. Keep the 900-second parent, 180-second
+admission bound, 300-second convergence bound from peer release, six-second normal close, 2 GiB
+client ceiling and 2 GiB system reserve. A missed overlap or failed recovery is retained as a failed
+lifetime and requires a causal method change before replay. This generated directory-loss case
+does not establish physical-device, signed-service, real Journal, Cloud Files or Release acceptance.
+
+Before launch, independent method review identifies that failed child-content validation must not
+prevent restoring the directory. The helper now restores using canonical endpoints, exact directory
+identity and an unoccupied original target, then verifies content while retaining any original
+failure. Three independent failure-boundary cases cover changed children, an occupied target and
+a foreign directory identity. The separate three synchronization/peer-admission cases also pass.
+
+The [native result](../acceptance/r2c-closeout-cycle.md#native-directory-loss-and-automatic-restoration)
+passes real unavailable observation, retained cached images, advancing peer execution, guarded
+directory restoration and automatic convergence. Exact 10000/512/2/2 membership, full source
+integrity and helper/client retirement pass. Charge the 100-minute reservation in full through
+4634 minutes; remaining frozen variants, Release, C01/C02 and external gates retain their scope.
+
 #### C01 owned-thread observation calibration
 
 While actual input is unavailable, reserve 40 active minutes: 15 for a process-scoped sampler,

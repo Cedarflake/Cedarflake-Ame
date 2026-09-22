@@ -796,7 +796,7 @@ their actual passing output and unchanged source; the final complete Daily remai
 | UX-05C | Same-path source rewrite, then authoritative rename/removal; newest pixels and stable asset until authoritative removal | Viewer source generation; `library_viewer_image_test.dart`, `library_viewer_position_test.dart`; mapped, Release input pending |
 | UX-06A | A/B update while queued C is cancelled; independent progress and only C is cancelled | [Native queued cancellation and real updates pass](#native-queued-cancellation-and-real-updates), with exact 10000/512 completions, unchanged C, real catalog refresh and independent execution release; the command-admission interval is controlled |
 | UX-06B | Remove C while A publishes and B continues, then register C while old cleanup remains; no repeated unregister, stale root or cleanup authority | [Native removal/publication and reimport pass](#native-removal-during-publication-and-reimport); [controlled old/new spool authority](#multi-root-current-evidence) remains separate from physical file reclamation and Release |
-| UX-06C | Make fixture A unavailable then restore it while B updates; preserve A's catalog and B's progress | [Connected production recovery case passes](#multi-root-current-evidence), including B publication during A recovery and FULL reopen; notifications are injected, not real watcher delivery |
+| UX-06C | Make fixture A unavailable then restore it while B updates; preserve A's catalog and B's progress | [Native directory loss and automatic restoration pass](#native-directory-loss-and-automatic-restoration); the [controlled peer-change/recovery case](#multi-root-current-evidence) remains separate from physical devices, Journal, Cloud Files and Release |
 | UX-07A | Original 25-sample P0/P1/P2 workload through complete P2 publication, authority retirement, synchronized state and FULL reopen | `production/tests/priority.rs` and `priority/recovery_completion.rs`; original 300-second failure remains S1, discovery observation timing added |
 | UX-07B | Same workload with per-poll versus per-epoch connection lifetime; preserve proof and production P95 bound | `priority/connection_lifetime_control.rs`; [current hosted P0 timeout retained](r2c-interleaving-remediation.md#hosted-mixed-load-recurrence-on-9359618), earlier passing controls do not close it |
 | UX-07C | Interrupt/reopen exact leases and exhaust recovery retry; retain durable failure/lineage and keep other roots eligible | [Controlled runtime restart, exhausted-candidate barrier and peer eligibility pass](#startup-query-folder-and-recovery-evidence); simulated persisted lease expiry and separate boundary cases do not establish one real EXE-crash lifetime |
@@ -1148,6 +1148,68 @@ establish unmodified backend latency, arbitrary concurrency coverage or full R2c
 Independent read-only result review confirms the scoped overlap, command counts, exact membership,
 source integrity, process/resource evidence and document mappings without a remaining blocker.
 Charge this 90-minute reservation in full through 4534 minutes.
+
+### Native directory loss and automatic restoration
+
+The 2026-09-23 continuation adds native UX-06C evidence on documentation head
+`52dc04e5fd550090fdba66ec48edc0e8e212e219` and unchanged product source. It retains the existing
+10514 generated sources with a fresh derived catalog copy, then imports two copied generated PNGs into a new
+GUID-owned root through the actual picker. Only this new directory is temporarily renamed to its
+checked sibling and restored. Real production synchronization observes availability; no watcher
+events, controller actions or recovery scans are injected. One actual 10000-image update waits at
+the scanner port until the selected two-image root is unavailable with cached pixels retained.
+
+Before the sole lifetime, method review finds an unsafe diagnostic recovery dependency: a child
+content-check failure could prevent directory restoration by repeating that same check first.
+The corrected restoration owner verifies canonical endpoints, directory identity and the vacant
+original target, restores the directory, then checks content without erasing the original failure.
+Three Python cases pass for changed children, occupied target and foreign directory identity;
+three Dart cases cover unavailable/converged status and advancing owned peer execution. Initial
+analysis rejects two missing statement braces, which are corrected. Seven Dart files then pass
+format and fatal-info analysis; the Debug build takes 28.8 seconds. Diagnostic Dart sizes are 169
+startup, 305 observation, 138 scanner, 61 catalog, 111 run and 32 boundary lines, with 99 dedicated
+test lines; there are no production or inline-test changes.
+
+Lifetime `fdd8e052b66c49f7a510a3d723ca5c87` records the connected outcome:
+
+- The real picker import completes two images with zero issues at 66639 ms. Selecting that root
+  establishes two current decoded images, exact location identities and healthy synchronized
+  production status at 87933 ms. The actual update dialog selects only the 10000-image peer.
+- The peer command enters at 125452 ms. Production reports the selected root missing/unavailable
+  at 125626 ms; the rendered observer records both cached images at 125664 ms and releases the
+  actual Rust scan. At 125778 ms that scan has accepted 25 images from 37 entries while the root
+  remains unavailable with both images visible. Four unavailable frames contain current pixels.
+- The guarded helper restores the directory, preserving its identity. At 125903 ms restored
+  availability overlaps the still-reserved peer update, which has reached 100 accepted images.
+  Production proceeds through queue publication, metadata inventory and reconciliation; a transient
+  `catalog_database_busy` issue retains updating state and clears. By 127882 ms the restored root
+  is healthy and synchronized with zero pending, retry or unknown work and no blocked recovery.
+  Its original two location identities remain present; no manual rescan or Retry is used.
+- The peer completes exactly 10000 images with zero issues at 157598 ms. Ready at 157658 ms requires
+  its completed task, independent execution retirement, both roots synchronized, two current
+  selected images and exact 10516 total membership. Exactly two real scan commands occur: initial
+  two-image import and the 10000-image update. The final observer has 8466 frames, 8429 current-pixel
+  frames and seven production synchronization transitions without a latched diagnostic failure.
+- Normal close takes 395.8089 ms. The 186412 ms parent exits zero with its owned process, Job and
+  monitor retired and no cleanup failure. The directory helper exits 58885.6033 ms before close.
+  Across 694 memory samples, peak working set is 505028608 bytes, sampled private memory 412897280,
+  kernel peak commitment 426303488 and minimum system availability 5148241920 bytes.
+- Full pre/post integrity checks pass in 73.048/57.276 seconds. All 10516 generated images preserve
+  exact file identity, content and timestamps. The restored directory retains its original identity,
+  and complete active catalog relative paths match 10000/512/2/2, with SQLite quick-check passing.
+
+Ignored `.build/r2c-recovery-native/` owns the diagnostic implementation, boundary tests and artifact
+admission. `build/integration-storage-e84f07c4443e4008b0c71381991477a4/` owns the isolated derived
+catalog, new generated source, helper/source receipts, milestones, trace and process evidence.
+The Debug kernel SHA-256 is
+`122F9413C26834D5F951088E8C9F3C937EDFDEF8284758C4F08331AEA529E8F7`; native stdout is
+`BA94D3759357F06253FEB01688DB954B3E716418B2758647567CC6F7283BFC16`.
+This establishes the selected Debug directory-loss/recovery overlap and production availability observation,
+not unmodified backend latency, physical-device reconnection, signed-service, real Journal, Cloud
+Files, Release or complete R2c acceptance. The other frozen variants and final gates remain open.
+Independent read-only result review confirms the same lifetime's 39 structured events, exact source
+and catalog integrity, helper/process/resource evidence and all three document mappings without a
+remaining blocker. Charge the full 100-minute reservation through 4634 minutes.
 
 ### Observation preparation
 
