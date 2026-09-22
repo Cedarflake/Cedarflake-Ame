@@ -89,6 +89,30 @@ mechanism, source access, persistence strategy or retry policy is admitted.
 
 ### Complete scope and retained readability findings
 
+#### Graphical input continuation
+
+After the negative native-provider checkpoint, reserve 60 active minutes: ten preparation and
+interface discovery, ten focused review/checks, 25 for one native lifetime and source checks, and
+15 evidence/recording. The conservative cumulative reservation becomes 3209 minutes. Begin only
+in a continuation that has not used direct PowerShell UI Automation; keep all application input
+within Computer Use's returned-window, observe/action/refresh protocol and bounded recovery rules.
+Read the available interface before admitting a new lifetime; missing interface capability is not
+permission to launch or replay an unchanged input helper.
+
+Reuse the verified native picker with its explicit initial fixture directories and existing strict
+returned-path, keyboard Retry, registration-barrier and current-pixel observers. Confirm the selected
+native directory through observed graphical/keyboard input, avoiding the earlier unverified path
+typing. Identify task controls through current screenshots/accessibility observations; obtain Retry
+focus through actual input and retain the independent focused-Enter requirement. Do not invoke
+presentation callbacks, programmatically assign framework focus or call the native UIA helpers.
+
+Allow one fresh marked Debug lifetime and the original four-file/10000-file workload, 900-second
+parent, 120-second hold, six-second close, 4 GiB startup availability, 2 GiB client and 2 GiB system
+reserve. Process launch, read-only evidence and source checks retain their existing non-UI owners.
+Require actual task results and owned retirement, not a tool success response alone. Preserve all
+failed attempts; a failed assertion ends this admission without renewing other gates or real-root,
+Release, signing or source-mutation authority.
+
 #### Semantics-enabled native input diagnostic
 
 The [native preflight checkpoint](../acceptance/r2c-input-controls.md#native-automation-preflight-checkpoint)
