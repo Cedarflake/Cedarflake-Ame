@@ -9,10 +9,10 @@ import "library_catalog_publication.dart";
 import "library_page_operation.dart";
 import "library_query_refresh.dart";
 import "library_query_snapshot_reader.dart";
+import "library_time_navigation_requests.dart";
 
 export "library_query_refresh.dart" show LibraryQueryUpdateOutcome;
 
-const _timeNavigationRetryDelay = Duration(milliseconds: 120);
 const _maxVisibleRangePageLoads = 2;
 const _retainedDetailHighWatermark = 5000;
 const _retainedDetailLowWatermark = 3500;
@@ -29,23 +29,6 @@ class _RetainedCatalogPage {
   final int startItemOffset;
   final LibraryCatalogCursor? previousCursor;
   final LibraryCatalogCursor? nextCursor;
-}
-
-class _PendingTimeNavigation {
-  _PendingTimeNavigation({
-    required this.generation,
-    required this.query,
-    required this.timeline,
-    required this.anchor,
-    required this.globalItemOffset,
-  });
-
-  final int generation;
-  final LibraryGalleryQuery query;
-  final LibraryTimeline timeline;
-  final LibraryTimeAnchor anchor;
-  final int globalItemOffset;
-  final Completer<bool> completion = Completer<bool>();
 }
 
 typedef _VisibleRangeRequest = ({
@@ -75,14 +58,14 @@ class LibraryViewportController {
   late final _queryRefresh = LibraryQueryRefreshCoordinator(_publications);
   late final _querySnapshots = LibraryQuerySnapshotReader(_catalog);
 
-  _PendingTimeNavigation? _pendingTimeNavigation;
-  _PendingTimeNavigation? _activeTimeNavigation;
-  _PendingTimeNavigation? _timeNavigationOwner;
-  Timer? _timeNavigationRetryTimer;
-  bool _isRunningTimeNavigation = false;
-  int _timeNavigationGeneration = 0;
-  int? _loadingTimeNavigationGeneration;
-  int? _visibleRangeTimeNavigationGeneration;
+  late final _timeNavigation = LibraryTimeNavigationRequests(
+    cannotPublish: () => _cannotPublish,
+    isBlocked: () => _isTimeNavigationBlocked,
+    isCompatible: _isCompatibleTimeNavigation,
+    load: _loadTimeNavigation,
+    onVisibleRangeLoading: _setVisibleRangeLoading,
+    onTimeAnchorLoadingReleased: _releaseTimeNavigationLoading,
+  );
   int _queryGeneration = 0;
   int _publicationGeneration = 0;
   _VisibleRangeRequest? _pendingVisibleRange;
@@ -116,21 +99,9 @@ class LibraryViewportController {
     _isDisposed = true;
     _queryRefresh.dispose();
     _publications.dispose();
-    _timeNavigationRetryTimer?.cancel();
-    _timeNavigationRetryTimer = null;
+    _timeNavigation.dispose();
     _pendingVisibleRange = null;
     _activeVisibleRange = null;
-    final pending = _pendingTimeNavigation;
-    _pendingTimeNavigation = null;
-    if (pending != null && !pending.completion.isCompleted) {
-      pending.completion.complete(false);
-    }
-    final active = _activeTimeNavigation;
-    _activeTimeNavigation = null;
-    _timeNavigationOwner = null;
-    if (active != null && !active.completion.isCompleted) {
-      active.completion.complete(false);
-    }
   }
 
   void supersedeExternalRequests() {
@@ -636,9 +607,6 @@ class LibraryViewportController {
     if (timeline == null) {
       return Future.value(false);
     }
-    if (!ownsVisibleRange && _hasCompatibleTimeNavigationOwner()) {
-      return Future.value(false);
-    }
     if (ownsVisibleRange) {
       _pendingVisibleRange = null;
     }
@@ -661,128 +629,14 @@ class LibraryViewportController {
     final needsVisibleRangeLoading =
         ownsVisibleRange &&
         (globalItemOffset < loadedStart || globalItemOffset >= loadedEnd);
-    final pending = _pendingTimeNavigation;
-    if (pending != null &&
-        _matchesTimeNavigationTarget(
-          pending,
-          timeline,
-          _state.query,
-          globalItemOffset,
-        )) {
-      if (ownsVisibleRange) {
-        _timeNavigationOwner = pending;
-        _setTimeNavigationVisibleRangeLoading(
-          pending,
-          needsVisibleRangeLoading,
-        );
-      }
-      return pending.completion.future;
-    }
-    final active = _activeTimeNavigation;
-    if (active != null &&
-        active.generation == _timeNavigationGeneration &&
-        _matchesTimeNavigationTarget(
-          active,
-          timeline,
-          _state.query,
-          globalItemOffset,
-        )) {
-      if (ownsVisibleRange) {
-        _timeNavigationOwner = active;
-        _setTimeNavigationVisibleRangeLoading(active, needsVisibleRangeLoading);
-      }
-      return active.completion.future;
-    }
-    final generation = ++_timeNavigationGeneration;
-    final request = _PendingTimeNavigation(
-      generation: generation,
+    return _timeNavigation.request(
       query: _state.query,
       timeline: timeline,
       anchor: anchor,
       globalItemOffset: globalItemOffset,
+      ownsVisibleRange: ownsVisibleRange,
+      needsVisibleRangeLoading: needsVisibleRangeLoading,
     );
-    final previousPending = _pendingTimeNavigation;
-    _pendingTimeNavigation = request;
-    if (ownsVisibleRange) {
-      _timeNavigationOwner = request;
-      _setTimeNavigationVisibleRangeLoading(request, needsVisibleRangeLoading);
-    }
-    if (previousPending != null && !previousPending.completion.isCompleted) {
-      previousPending.completion.complete(false);
-    }
-    _scheduleTimeNavigationDrain();
-    return request.completion.future;
-  }
-
-  bool _matchesTimeNavigationTarget(
-    _PendingTimeNavigation request,
-    LibraryTimeline timeline,
-    LibraryGalleryQuery query,
-    int globalItemOffset,
-  ) {
-    return request.query == query &&
-        request.timeline.revision == timeline.revision &&
-        request.timeline.queryId == timeline.queryId &&
-        request.globalItemOffset == globalItemOffset;
-  }
-
-  void _scheduleTimeNavigationDrain() {
-    if (_cannotPublish || _isRunningTimeNavigation) {
-      return;
-    }
-    _timeNavigationRetryTimer?.cancel();
-    _timeNavigationRetryTimer = null;
-    unawaited(Future<void>.microtask(_drainTimeNavigation));
-  }
-
-  Future<void> _drainTimeNavigation() async {
-    if (_cannotPublish || _isRunningTimeNavigation) {
-      return;
-    }
-    final request = _pendingTimeNavigation;
-    if (request == null) {
-      return;
-    }
-    if (!_isCompatibleTimeNavigation(request)) {
-      _pendingTimeNavigation = null;
-      _releaseTimeNavigationVisibleRangeLoading(request);
-      if (identical(_timeNavigationOwner, request)) {
-        _timeNavigationOwner = null;
-      }
-      if (!request.completion.isCompleted) {
-        request.completion.complete(false);
-      }
-      _scheduleTimeNavigationDrain();
-      return;
-    }
-    if (_isTimeNavigationBlocked) {
-      _timeNavigationRetryTimer ??= Timer(
-        _timeNavigationRetryDelay,
-        _scheduleTimeNavigationDrain,
-      );
-      return;
-    }
-
-    _pendingTimeNavigation = null;
-    _isRunningTimeNavigation = true;
-    _activeTimeNavigation = request;
-    try {
-      final didLoad = await _loadTimeNavigation(request);
-      final isLatest = request.generation == _timeNavigationGeneration;
-      if (!didLoad && identical(_timeNavigationOwner, request)) {
-        _timeNavigationOwner = null;
-      }
-      if (!request.completion.isCompleted) {
-        request.completion.complete(didLoad && isLatest);
-      }
-    } finally {
-      _releaseTimeNavigationVisibleRangeLoading(request);
-      if (identical(_activeTimeNavigation, request)) {
-        _activeTimeNavigation = null;
-      }
-      _isRunningTimeNavigation = false;
-      _scheduleTimeNavigationDrain();
-    }
   }
 
   bool get _isTimeNavigationBlocked =>
@@ -791,7 +645,7 @@ class LibraryViewportController {
       _state.isLoadingPreviousPage ||
       _state.isLoadingTimeAnchor;
 
-  bool _isCompatibleTimeNavigation(_PendingTimeNavigation request) {
+  bool _isCompatibleTimeNavigation(LibraryTimeNavigationRequest request) {
     final timeline = _state.timeline;
     return timeline != null &&
         timeline.revision == request.timeline.revision &&
@@ -799,9 +653,9 @@ class LibraryViewportController {
         _state.query == request.query;
   }
 
-  Future<bool> _loadTimeNavigation(_PendingTimeNavigation request) async {
+  Future<bool> _loadTimeNavigation(LibraryTimeNavigationRequest request) async {
     final generation = ++_publicationGeneration;
-    _loadingTimeNavigationGeneration = request.generation;
+    _timeNavigation.beginLoading(request);
     _state = _state.copyWith(
       isLoadingTimeAnchor: true,
       timeNavigationErrorMessage: null,
@@ -874,24 +728,19 @@ class LibraryViewportController {
       }
       return false;
     } finally {
-      _releaseTimeNavigationLoading(request);
+      _timeNavigation.releaseLoading(request);
     }
   }
 
   bool _canPublishTimeNavigation(
-    _PendingTimeNavigation request,
+    LibraryTimeNavigationRequest request,
     int generation,
   ) {
     return _canPublishGeneration(generation) &&
-        request.generation == _timeNavigationGeneration &&
-        _isCompatibleTimeNavigation(request);
+        _timeNavigation.accepts(request);
   }
 
-  void _releaseTimeNavigationLoading(_PendingTimeNavigation request) {
-    if (_loadingTimeNavigationGeneration != request.generation) {
-      return;
-    }
-    _loadingTimeNavigationGeneration = null;
+  void _releaseTimeNavigationLoading() {
     if (!_cannotPublish && _state.isLoadingTimeAnchor) {
       _state = _state.copyWith(isLoadingTimeAnchor: false);
     }
@@ -901,31 +750,12 @@ class LibraryViewportController {
     if (_cannotPublish) {
       return;
     }
-    final pending = _pendingTimeNavigation;
-    final active = _activeTimeNavigation;
-    final owner = _timeNavigationOwner;
-    final hasPendingRequest =
-        pending != null && !pending.completion.isCompleted;
-    final hasActiveRequest = active != null && !active.completion.isCompleted;
-    if (!hasPendingRequest && !hasActiveRequest && owner == null) {
+    if (!_timeNavigation.cancel()) {
       if (_state.activeTimeAnchor != null) {
         _state = _state.copyWith(activeTimeAnchor: null);
       }
       return;
     }
-    _timeNavigationGeneration += 1;
-    _pendingTimeNavigation = null;
-    _timeNavigationOwner = null;
-    _visibleRangeTimeNavigationGeneration = null;
-    _timeNavigationRetryTimer?.cancel();
-    _timeNavigationRetryTimer = null;
-    if (pending != null && !pending.completion.isCompleted) {
-      pending.completion.complete(false);
-    }
-    if (active != null && !active.completion.isCompleted) {
-      active.completion.complete(false);
-    }
-    _loadingTimeNavigationGeneration = null;
     if (_state.isLoadingTimeAnchor || _state.activeTimeAnchor != null) {
       _state = _state.copyWith(
         activeTimeAnchor: null,
@@ -958,11 +788,17 @@ class LibraryViewportController {
       end: end,
     );
     if (!_ownsVisibleRangeRequest(request) ||
-        !_visibleRangeRetainsNavigationOwner(request)) {
+        !_timeNavigation.retainsVisibleRange(
+          start: request.start,
+          end: request.end,
+        )) {
       return;
     }
-    if (_timeNavigationOwner == null) {
-      _retainPassiveTimeNavigationForVisibleRange(request);
+    if (!_timeNavigation.hasVisibleRangeOwner) {
+      _timeNavigation.retainPassiveInRange(
+        start: request.start,
+        end: request.end,
+      );
     }
     final loadedStart = _state.windowStartItemOffset;
     final loadedEnd = loadedStart + _state.assets.length;
@@ -984,61 +820,6 @@ class LibraryViewportController {
         request.generation == _queryGeneration &&
         request.queryId == _state.queryId &&
         request.revision == _state.catalogRevision;
-  }
-
-  bool _visibleRangeRetainsNavigationOwner(_VisibleRangeRequest request) {
-    final owner = _timeNavigationOwner;
-    if (owner == null) {
-      return true;
-    }
-    if (!_isCompatibleTimeNavigation(owner)) {
-      _timeNavigationOwner = null;
-      return true;
-    }
-    return owner.globalItemOffset >= request.start &&
-        owner.globalItemOffset < request.end;
-  }
-
-  bool _hasCompatibleTimeNavigationOwner() {
-    final owner = _timeNavigationOwner;
-    if (owner == null) {
-      return false;
-    }
-    if (_isCompatibleTimeNavigation(owner)) {
-      return true;
-    }
-    _timeNavigationOwner = null;
-    return false;
-  }
-
-  void _retainPassiveTimeNavigationForVisibleRange(
-    _VisibleRangeRequest rangeRequest,
-  ) {
-    bool contains(_PendingTimeNavigation navigationRequest) {
-      return navigationRequest.globalItemOffset >= rangeRequest.start &&
-          navigationRequest.globalItemOffset < rangeRequest.end;
-    }
-
-    final pending = _pendingTimeNavigation;
-    if (pending != null && !contains(pending)) {
-      if (pending.generation == _timeNavigationGeneration) {
-        _timeNavigationGeneration += 1;
-      }
-      _pendingTimeNavigation = null;
-      if (!pending.completion.isCompleted) {
-        pending.completion.complete(false);
-      }
-    }
-    final active = _activeTimeNavigation;
-    if (active != null &&
-        !contains(active) &&
-        active.generation == _timeNavigationGeneration) {
-      _timeNavigationGeneration += 1;
-    }
-    if (_pendingTimeNavigation == null) {
-      _timeNavigationRetryTimer?.cancel();
-      _timeNavigationRetryTimer = null;
-    }
   }
 
   void _scheduleVisibleRangeDrain() {
@@ -1097,31 +878,11 @@ class LibraryViewportController {
         isLoading ||
         _pendingVisibleRange != null ||
         _activeVisibleRange != null ||
-        _visibleRangeTimeNavigationGeneration != null;
+        _timeNavigation.hasVisibleRangeLoading;
     if (_cannotPublish || _state.isLoadingVisibleRange == shouldShowLoading) {
       return;
     }
     _state = _state.copyWith(isLoadingVisibleRange: shouldShowLoading);
-  }
-
-  void _setTimeNavigationVisibleRangeLoading(
-    _PendingTimeNavigation request,
-    bool isLoading,
-  ) {
-    _visibleRangeTimeNavigationGeneration = isLoading
-        ? request.generation
-        : null;
-    _setVisibleRangeLoading(isLoading);
-  }
-
-  void _releaseTimeNavigationVisibleRangeLoading(
-    _PendingTimeNavigation request,
-  ) {
-    if (_visibleRangeTimeNavigationGeneration != request.generation) {
-      return;
-    }
-    _visibleRangeTimeNavigationGeneration = null;
-    _setVisibleRangeLoading(false);
   }
 
   Future<void> _loadVisibleRange(_VisibleRangeRequest request) async {
@@ -1129,7 +890,10 @@ class LibraryViewportController {
       if (_cannotPublish ||
           _state.assets.isEmpty ||
           !_ownsVisibleRangeRequest(request) ||
-          !_visibleRangeRetainsNavigationOwner(request)) {
+          !_timeNavigation.retainsVisibleRange(
+            start: request.start,
+            end: request.end,
+          )) {
         return;
       }
       final loadedStart = _state.windowStartItemOffset;
@@ -1447,24 +1211,7 @@ class LibraryViewportController {
     _queryGeneration += 1;
     _pendingVisibleRange = null;
     _activeVisibleRange = null;
-    _visibleRangeTimeNavigationGeneration = null;
-
-    final pending = _pendingTimeNavigation;
-    final active = _activeTimeNavigation;
-    if (pending != null || active != null) {
-      _timeNavigationGeneration += 1;
-    }
-    _pendingTimeNavigation = null;
-    _timeNavigationOwner = null;
-    _timeNavigationRetryTimer?.cancel();
-    _timeNavigationRetryTimer = null;
-    _loadingTimeNavigationGeneration = null;
-    if (pending != null && !pending.completion.isCompleted) {
-      pending.completion.complete(false);
-    }
-    if (active != null && !active.completion.isCompleted) {
-      active.completion.complete(false);
-    }
+    _timeNavigation.supersedeQuery();
 
     if (!_cannotPublish &&
         (_state.isLoadingPage ||
