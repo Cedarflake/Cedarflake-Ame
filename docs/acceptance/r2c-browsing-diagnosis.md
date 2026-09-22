@@ -1,7 +1,8 @@
 # C05 browsing diagnosis
 
-Status: preview-demand and capture-time publication corrections have focused evidence; reconstructed
-native browsing assertions pass in separate runs. Overall replay failures and final acceptance remain open.
+Status: preview-demand, capture-time publication and presentation corrections have focused evidence;
+selected native browsing and read-only presentation checks pass. Overall workload replay failures,
+transient deletion errors and final acceptance remain open.
 
 ## First diagnosis: source and outcome
 
@@ -16,8 +17,8 @@ remain valid observations; the controlled widget results below do not disprove t
 | Entire wall blank after a timeline click until another scroll | Preserved original capture; controlled clicks and reconstructed native top/interior/bottom checks materialize current pixels without wheel input | Native functional checks pass for selected variants; complete replay and original-screenshot causality remain distinct |
 | Persistent gray cards without retry after deletion/jump | Preview-demand and recovered-date publication each have boundary regressions; the latter reproduces the native ten-item mismatch and gray failure | Causal correction has native addition/navigation and removal/navigation evidence below; no claim that all screenshots share one cause |
 | Transient whole-wall thumbnail errors after deletion | Reported native observation; retained logs do not identify all visible requests at that instant | Unresolved; do not infer harmlessness or decode failure |
-| Time rail disappears during publication | Deterministic first-frame failure when only catalog revision changes | S2 presentation defect recorded; no proved connection to persistent blank/gray |
-| Layout flashes after closing the viewer | Hidden gallery width changes from 940 to 1020 logical pixels at a fixed 1280 by 800 viewport | S2 presentation defect recorded; no proved connection to persistent blank/gray |
+| Time rail disappears during publication | Deterministic first-frame revision-gap regression passes after correction; native refresh retains the rail in all checked frames | Focused and native presentation checks pass; native refresh is not a forced revision-gap proof; no proved connection to persistent blank/gray |
+| Layout flashes after closing the viewer | Hidden gallery width changes from 940 to 1020 logical pixels at a fixed 1280 by 800 viewport; fixed-width reservation and frame regressions below | Focused resize checks and 96 native open/return frames pass; Release acceptance remains separate; no proved connection to persistent blank/gray |
 
 ## Controlled boundary evidence
 
@@ -344,7 +345,7 @@ probe use the same Rust DLL SHA-256:
 Their per-run artifacts, receipts, logs, pointer files and final source hashes remain in ignored local
 evidence. None of the original failed runs or their raw records is replaced.
 
-## Current verification and scope
+## Capture-time correction verification and scope
 
 `quality_lint.ps1` passes on the corrected product, including formatting, Clippy with warnings denied,
 Dart analysis and repository script/bridge/policy guardrails. The native Debug build and scoped
@@ -358,3 +359,106 @@ owner has 469 production lines and zero inline tests; its dedicated publication 
 and the time/query-window suite has 207. The existing aggregate catalog test file remains 8002 lines
 with 112 test cases and adds only module registrations. Its broader decomposition remains debt.
 No further unrelated behavior is added to that aggregate or facade in this repair.
+
+## Rail publication and viewer geometry correction
+
+This bounded continuation starts from `0fa23ff`; it changes Flutter presentation only. The
+[complete scope map](../plans/r2c-closeout.md#complete-scope-and-retained-readability-findings)
+retains the other readability findings and all 24 R2c variants. These two presentation corrections
+do not close the transient post-deletion thumbnail observation or the complete acceptance cycle.
+
+The new publication regression fails before the fix because the rail is absent in the first frame
+of revision two without replacement metrics. The viewer regression fails on its first hidden frame:
+the wall's width changes from 940 to 1020 at a 1280-wide window. The correction keeps the rail's
+80-pixel allocation while removing its controls during viewer display, preserving existing Windows
+semantics retirement. At initial widths 1280 and 1000, repeated open/return and a real 20-pixel
+resize while open preserve the gallery's resulting width, center-card identity/rectangle and scroll
+offset on every checked return frame. The resize stays within one sidebar mode.
+
+`LibraryTimeRailPresentation` owns only a retained painted projection/value and input lifetime.
+An incompatible query, layout shape, controller or empty timeline clears it. Across a newer revision,
+the prior frame is passive until geometry arrives; it never supplies old metrics to navigation.
+Same-revision navigation retains the original stable metrics/virtual geometry/window tuple and its
+active target semantics. An initial implementation accidentally froze that target display while a
+seek hid metrics; two existing tests detected it. Restoring the same-revision tuple corrects that
+regression without weakening the cross-revision boundary.
+
+Independent review identifies an additional interaction boundary within this correction: Flutter
+retains an active Slider drag across disabled/enabled updates. A real pointer regression presses in
+revision one, disables during revision two, restores geometry and releases the original pointer.
+Before input retirement, the gallery jumps from the required 1000 offset to 3250. A `KeyedSubtree`
+bound to revision/query/layout/controller now retires that gesture; the original release preserves
+1000 and a new pointer still navigates. The retained frame continues painting through the change.
+
+The [official Material Slider catalog](https://m3.material.io/components/sliders/overview) remains
+the component choice. The installed Flutter source confirms `Slider.onChanged: null` disables its
+framework input/semantics, while the render object's disable setter does not itself end a drag.
+The existing first-party Slider/IconButton and subtree lifecycle solve those boundaries; no custom
+gesture implementation, dependency, source operation, schema or bridge change is introduced.
+
+Focused evidence includes six publication/gesture cases, eleven existing time-navigation cases,
+two viewer geometry/resize cases, twelve gallery resize cases, nine rail cases, the retained gallery
+semantics case, three viewer navigation lifecycle cases and 42 unified-screen cases. The original
+failure logs and intermediate failures remain under ignored `.build/c05-presentation/`; the first
+resize-test attempt incorrectly assumed fixed sidebar width across a compact-mode threshold and
+selected the first visible card instead of the center anchor. Its corrected test geometry is not a
+product workaround. Independent review consumes eight active minutes and reports no remaining
+actionable blocker in the corrected scope; native/client and final gates retain separate authority.
+
+`quality_lint.ps1` passes, including warnings-denied Clippy, full Dart analysis and formatting.
+An earlier redirected Windows PowerShell 5.1 invocation stopped on normal Clippy stderr despite
+the command succeeding; the complete unredirected gate passes. Native Windows accessibility passes
+both integration cases and all original ten whole-window UIA phases, with zero exit, owned process
+retirement, Job closure and no cleanup failure. The stored transcript is
+`.build/c05-presentation/windows-accessibility.log`. This is current native semantics evidence;
+real mixed-media presentation is recorded below; Release input and complete Daily remain separate
+obligations.
+The settings-menu-open probe succeeds on its existing second attempt and retains the first
+attempt's evidence-file replacement error in `lastMismatch`. This passing gate does not erase that
+observation or establish a causal correction for the historical C02 failure.
+
+Physical size, including blank lines, remains visible: screen 2321 to 2326; navigation 703 to 699;
+annotated rail 487 to 506; vertical Material adapter 86 to 94; new presentation owner 127 production
+lines. These owners contain zero inline tests. Dedicated new suites have 198 publication and 193
+viewer lines. The screen only preserves a composition constraint; it does not acquire another
+workflow. Broader controller/screen decomposition remains outside this correction.
+
+### Read-only mixed-media presentation session
+
+The one admitted Presentation lifetime `db57ec939e7943caaec6360587f381da` passes in the actual
+Windows Debug client with real Rust/catalog/preview/source adapters and framework-pointer input.
+It uses the retained generated 10000-file corpus and the exact 512-item post-removal stimulus;
+it performs no additions, removals or source rewrites. The parent lifetime is 30591 ms, exit zero,
+with confirmed process retirement, Job closure and no cleanup failure. Synchronization stops in
+16 ms before framework unmount. Original failed workload lifetimes remain failed.
+
+Each root is selected through the source control, then jumped to normalized positions 0.5 and 0.9
+without wheel input. Each position has two viewer open/return cycles, checking six frames per
+transition: all 96 frames preserve the wall rectangle, center-card identity/rectangle and exact
+scroll offset. All eight viewer opens show decoded original-source pixels with the expected
+location identity. Sixteen visible-gallery observations contain 12 to 20 current decoded tiles,
+with no unresolved visible slot. Each root's passive refresh retains the rail for six checked frames.
+Those refresh observations use revisions 256 and 258 respectively; they are not a deliberately
+delayed cross-revision publication. The deterministic publication/old-pointer tests own that proof.
+Actual resize is covered by the focused widget tests, not this fixed-size native session.
+
+The 109 resource samples report 650809344 peak working-set bytes, 980844544 sampled private bytes,
+1207881728 kernel peak commitment and 5545291776 minimum system-available bytes. These satisfy the
+unchanged 2 GiB client ceiling and 2 GiB system reserve. Full pre/post integrity passes in 48.641
+and 48.406 seconds for all 10000 frozen files (10921494393 bytes) and 512 stimulus survivors
+(704936782 bytes). Both checks cover exact membership, hashes, sizes and file identities. Frozen
+files also match their baseline creation/modification timestamps. Stimulus modification time is
+checked for stability during each read, not against its baseline; baseline timestamp preservation
+for those survivors is not established by this oracle.
+
+Artifact SHA-256 identities are executable
+`2A24C91530C05D88B29ACC4E6FCF73199C237DEB04159B232A9FD7E43BD98DCE`, Dart kernel
+`8EC3E64243F25382A1A5BB480DAC332091BDCEA36859D29BAE2621858EF0F33B` and unchanged Rust DLL
+`43B5AB01FC2A8AF58F8A0B48384B8ADA589F741219B61D2361F6B01E2A0A8AEF`.
+The admission, source hashes, raw output, result, process and memory receipts remain under ignored
+`.build/c05-fixture/` and its GUID-owned `build/integration-storage-*` directory. This session
+supports the selected UX-03/04/05/08 presentation paths; it does not replace the 24-variant roster,
+a complete bulk replay, post-deletion transient-error diagnosis, Release or final-source gates.
+The scoped evidence recheck charges three further review minutes (eleven total) and narrows the
+stimulus timestamp statement to the oracle's actual proof. It finds no remaining material mismatch;
+it does not repeat product review or admit another native run.

@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-08
-- Last amended: 2026-08-09
+- Last amended: 2026-09-22
 - Supersedes: the earlier dual-level navigation and annotation-cluster experiments
 
 ## Context
@@ -131,6 +131,22 @@ without introducing a second scroll state.
   pinned SDK require focused verification of its rotated hit testing, keyboard direction, focus,
   and semantics behavior.
 - Source media remains read-only; this decision changes presentation and navigation only.
+
+### Publication and hidden-gallery continuity
+
+The rail's presentation owner may retain its last painted projection/value while a newer catalog
+revision awaits layout geometry, only within the same query, layout shape and gallery controller.
+That retained frame is display data; it cannot supply metrics, offsets or navigation authority.
+Material Slider and arrow inputs are disabled until current geometry exists. Query/layout/controller
+replacement and an empty timeline discard the retained frame. Same-revision in-flight seeking keeps
+its existing stable geometry and active target contract.
+
+Input lifetime follows revision, query, layout shape and gallery controller. A new lifetime retires
+the old Material subtree even if its visual frame remains: the pinned SDK retains an active drag
+across an enabled/disabled update, so an old pointer-up must not commit into a newer revision.
+Viewer activation still removes the timeline controls from the hidden gallery for native semantics
+safety, but reserves their existing width. Returning recreates controls without resizing the wall;
+an actual window resize continues to use the normal gallery geometry/anchor owner.
 
 ## Validation evidence
 

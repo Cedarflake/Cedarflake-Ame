@@ -26,6 +26,7 @@ import "gallery_selection.dart";
 import "library_strings.dart";
 import "library_task_surface_selection.dart";
 import "library_viewer_session.dart";
+import "widgets/annotated_time_rail.dart";
 import "widgets/library_asset_information_sheet.dart";
 import "widgets/library_gallery_header.dart";
 import "widgets/library_gallery_layout.dart";
@@ -1383,32 +1384,36 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
             positionResolver: _galleryPositionResolver,
           ),
         ),
-        if (_viewer.assetId == null)
-          ValueListenableBuilder<_LibraryGalleryLayoutSnapshot?>(
-            valueListenable: _galleryLayoutSnapshot,
-            builder: (context, snapshot, child) {
-              final activeSnapshot = snapshot?.matches(state) ?? false
-                  ? snapshot
-                  : null;
-              return LibraryTimeNavigation(
-                key: ValueKey<int>(_timelineSemanticsGeneration),
-                isLoading: state.isLoadingTimeline,
-                scrollController: _galleryScrollController,
-                layoutMetrics: activeSnapshot?.metrics,
-                timeline: state.timeline,
-                layoutShape: _layoutShape,
-                virtualGeometry: activeSnapshot?.virtualGeometry,
-                windowStartItemOffset: state.windowStartItemOffset,
-                loadedItemCount: state.assets.length,
-                onSeek: (bucket, itemOffset) =>
-                    _seekTimeline(controller, bucket, itemOffset),
-                onBeginNavigation: _beginTimelineNavigation,
-                onCancelSeek: controller.cancelTimeNavigation,
-                onPrefetch: (bucket, itemOffset) =>
-                    controller.prefetchTime(bucket, itemOffset: itemOffset),
-              );
-            },
-          ),
+        SizedBox(
+          width: AnnotatedTimeRail.width,
+          child: _viewer.assetId == null
+              ? ValueListenableBuilder<_LibraryGalleryLayoutSnapshot?>(
+                  valueListenable: _galleryLayoutSnapshot,
+                  builder: (context, snapshot, child) {
+                    final activeSnapshot = snapshot?.matches(state) ?? false
+                        ? snapshot
+                        : null;
+                    return LibraryTimeNavigation(
+                      key: ValueKey<int>(_timelineSemanticsGeneration),
+                      isLoading: state.isLoadingTimeline,
+                      scrollController: _galleryScrollController,
+                      layoutMetrics: activeSnapshot?.metrics,
+                      timeline: state.timeline,
+                      layoutShape: _layoutShape,
+                      virtualGeometry: activeSnapshot?.virtualGeometry,
+                      windowStartItemOffset: state.windowStartItemOffset,
+                      loadedItemCount: state.assets.length,
+                      onSeek: (bucket, itemOffset) =>
+                          _seekTimeline(controller, bucket, itemOffset),
+                      onBeginNavigation: _beginTimelineNavigation,
+                      onCancelSeek: controller.cancelTimeNavigation,
+                      onPrefetch: (bucket, itemOffset) => controller
+                          .prefetchTime(bucket, itemOffset: itemOffset),
+                    );
+                  },
+                )
+              : null,
+        ),
       ],
     );
   }

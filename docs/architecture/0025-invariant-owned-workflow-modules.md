@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-09-06
-- Last amended: 2026-09-09
+- Last amended: 2026-09-22
 
 ## Context
 
@@ -321,6 +321,10 @@ persistence layers.
   cannot publish into the current image widget. No layer may fall back to an unchecked source path.
 - Menus, loading feedback, task live regions, and startup orchestration use repository-owned shared
   components so one defect fix does not create a second interaction contract.
+- `library_time_rail_presentation.dart` owns the retained painted rail frame and its Material input
+  lifetime. It retains only projection/value data within compatible presentation context, never
+  catalog authority or stale layout metrics. `LibraryTimeNavigation` retains seek scheduling and
+  same-revision geometry; the screen retains gallery/viewer composition and the rail's width.
 
 ### Native verification boundaries
 

@@ -6,8 +6,8 @@ import "package:flutter/scheduler.dart";
 
 import "../../domain/library_models.dart";
 import "../gallery_view_options.dart";
-import "annotated_time_rail.dart";
 import "library_gallery_layout.dart";
+import "library_time_rail_presentation.dart";
 import "library_timeline_projection.dart";
 import "library_virtual_gallery_geometry.dart";
 
@@ -98,6 +98,7 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
     final didChangeTimeline =
         oldWidget.timeline?.revision != widget.timeline?.revision ||
         oldWidget.timeline?.queryId != widget.timeline?.queryId ||
+        oldWidget.scrollController != widget.scrollController ||
         oldWidget.layoutShape != widget.layoutShape;
     if (didChangeTimeline) {
       _timelineGeneration += 1;
@@ -139,60 +140,55 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
 
   @override
   Widget build(BuildContext context) {
-    final timeline = widget.timeline;
-    if (widget.isLoading && timeline == null) {
-      return const SizedBox(
-        width: AnnotatedTimeRail.width,
-        child: Center(
-          child: SizedBox.square(
-            dimension: 24,
-            child: CircularProgressIndicator(strokeWidth: 3),
-          ),
-        ),
-      );
-    }
     _rememberStableLayout();
     final metrics = widget.layoutMetrics ?? _stableLayoutMetrics;
-    if (timeline == null ||
-        timeline.buckets.isEmpty ||
-        metrics == null ||
-        metrics.dateAnchors.isEmpty) {
-      return const SizedBox(width: AnnotatedTimeRail.width);
-    }
     final globalProjection = _projectionForCurrentTimeline();
-    if (globalProjection == null) {
-      return const SizedBox(width: AnnotatedTimeRail.width);
-    }
     return AnimatedBuilder(
       animation: widget.scrollController,
       builder: (context, child) {
         final position = widget.scrollController.hasClients
             ? widget.scrollController.position
             : null;
-        final derivedValue = _valueFromGallery(
-          globalProjection,
-          position,
-          metrics,
-          geometry: widget.layoutMetrics == null
-              ? _stableVirtualGeometry
-              : widget.virtualGeometry,
-          windowStartItemOffset: widget.layoutMetrics == null
-              ? _stableWindowStartItemOffset
-              : widget.windowStartItemOffset,
-          loadedItemCount: widget.layoutMetrics == null
-              ? _stableLoadedItemCount
-              : widget.loadedItemCount,
-        );
-        return AnnotatedTimeRail(
-          key: const Key("library-time-rail"),
-          value: _interactiveValue ?? derivedValue,
-          maximumScrollOffset: globalProjection.maximumOffset,
-          buckets: globalProjection.railBuckets,
-          projection: globalProjection.projection,
+        LibraryTimeRailFrame? frame;
+        if (globalProjection != null &&
+            metrics != null &&
+            metrics.dateAnchors.isNotEmpty) {
+          frame = LibraryTimeRailFrame(
+            projection: globalProjection,
+            value:
+                _interactiveValue ??
+                _valueFromGallery(
+                  globalProjection,
+                  position,
+                  metrics,
+                  geometry: widget.layoutMetrics == null
+                      ? _stableVirtualGeometry
+                      : widget.virtualGeometry,
+                  windowStartItemOffset: widget.layoutMetrics == null
+                      ? _stableWindowStartItemOffset
+                      : widget.windowStartItemOffset,
+                  loadedItemCount: widget.layoutMetrics == null
+                      ? _stableLoadedItemCount
+                      : widget.loadedItemCount,
+                ),
+          );
+        }
+        return LibraryTimeRailPresentation(
+          timeline: widget.timeline,
+          layoutShape: widget.layoutShape,
+          scrollController: widget.scrollController,
+          frame: frame,
+          isLoading: widget.isLoading,
           onChangeStart: _beginInteraction,
-          onChanged: (value) => _handleChanged(globalProjection, value),
-          onChangeEnd: (value) => _finishInteraction(globalProjection, value),
-          onStep: (direction) => _moveOneRow(metrics, direction),
+          onChanged: globalProjection == null
+              ? null
+              : (value) => _handleChanged(globalProjection, value),
+          onChangeEnd: globalProjection == null
+              ? null
+              : (value) => _finishInteraction(globalProjection, value),
+          onStep: metrics == null
+              ? null
+              : (direction) => _moveOneRow(metrics, direction),
         );
       },
     );
