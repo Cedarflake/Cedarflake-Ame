@@ -4,6 +4,23 @@ Status: preview-demand, capture-time publication and presentation corrections ha
 selected native browsing and read-only presentation checks pass. Overall workload replay failures,
 transient deletion errors and final acceptance remain open.
 
+## Retained bulk-removal error classification
+
+Read-only classification of the retained run `251298f9605f49e1b65fddbba4276e9a` matches native preview
+events to the archived catalog identities and pre/post-removal manifests. All 128 source-open
+failures refer to the 1500 deliberately removed files; none refers to the surviving 512 items or an
+unknown identity. All 13 visible items before deletion belonged to the removed set. Five later
+superseded requests refer to surviving items and retain their ordinary stale-result disposition.
+The settled frame has 15 current visible images and zero noncurrent images, 59.905 seconds after
+the recorded pre-removal frame and within the unchanged 300-second bound.
+
+This identifies the retained errors as deleted source locations awaiting authoritative catalog
+publication. It does not prove that every original screenshot has the same cause, make the visible
+transition instantaneous, or turn that run's failed overall retirement into a complete pass. Do not
+hide missing-source errors or publish absence before authoritative evidence. The full final-candidate
+batch replay must still verify deletion convergence, surviving pixels, source integrity and clean
+process retirement together. Raw classifier output and original logs remain in ignored local evidence.
+
 ## First diagnosis: source and outcome
 
 The 2026-09-10 diagnosis starts from `507db08f897839aeafb2dc011ef7332ad50fadfa` on

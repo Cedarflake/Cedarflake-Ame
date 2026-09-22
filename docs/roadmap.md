@@ -69,8 +69,9 @@ correction. A documentation reorganization does not change any of these acceptan
 The current direction prioritizes defects that directly impair functions and user experience.
 The requested rule/document organization is verified. The execution plan's
 [complete scope map](plans/r2c-closeout.md#complete-scope-and-retained-readability-findings) retains
-the separate status/queue readability examples, async ownership obligations, structural debt and
-all 24 functional variants. Rule organization does not complete those findings. C05 continuation
+the four required state/queue/scan/viewport maintenance deliveries and all 24 functional variants.
+The explicit completion goal admits their bounded implementation and verification within R2c;
+rule organization does not complete them. C05 continuation
 has owning-layer corrections and selected generated-client evidence, with the remaining exits below.
 Item 3 selects functional synchronization and browsing. **R2C-C04 now has focused and generated-client
 verification** for fresh bulk changes and recovery of retained terminal work. Its original failure
@@ -107,7 +108,9 @@ repair admission, review, verification, stopping rules, and safety cautions.
    matrix. Add negative cases for uncovered transitions and preserve the original ten-phase local
    whole-window UIA path and owned-process exit. Real EXE restart and Release decoding/input
    evidence cannot be inferred from widget remounts, static previews, MSAA, or unsigned bridge smoke.
-   Use one independent reviewer; unrelated physical decomposition remains tracked debt.
+   Complete the four named maintenance deliveries with behavior and lifecycle evidence, preserving
+   functional-incident priority. Use one independent reviewer; unrelated physical decomposition
+   remains tracked debt.
 4. **Queued — final-source gates and readiness decision.** Freeze the candidate, resolve admitted
    findings, and complete applicable local Daily/Windows and hosted PR gates. Record implemented,
    focused-verified, final-source-verified, and client-accepted separately. Later behavior changes

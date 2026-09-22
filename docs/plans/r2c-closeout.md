@@ -3,7 +3,119 @@
 Status: **C05 capture-time and rail/viewer corrections have focused and selected native evidence;
 transient deletion errors, full workload replay, other frozen variants and final gates remain open**.
 
+### Completion goal and required deliveries
+
+The 2026-09-22 direction explicitly requires completion of the existing R2c plan and all four
+assessed maintainability items. It supersedes their earlier indefinite deferral. The scope is
+R2c and those four named owners, not implementation of R3 through R10. Keep one delivery order in
+the roadmap and use the existing 24-variant roster as the functional evidence index.
+
+| Delivery | Required exit |
+| --- | --- |
+| M01 state projection | Explicit `status`/`taskKind` precedence; independent expected cases for removal, refresh, absent/feedback scans, roots, copy/update and dependent busy flags; no state-model or UI-policy change hidden as refactoring |
+| M02 preview selection | A named comparison policy for priority, optional demand rank and sequence; active-location exclusion and current queue/cancellation/source protections retained; boundary and before/after policy equivalence evidence |
+| M03 scan responsibility | The long scan facade delegates cohesive single-file admission/prior-selection/inspection work to typed owners with real input/output contracts; preserve checkpoint/progress, retained records, identity/metadata/preview reuse, cancellation and final atomic publication; record same-workload costs and owner/test sizes |
+| M04 viewport ownership | Explicit independent query/publication/navigation authority and operation-owned loading/cleanup; move a complete independently testable lifecycle out of the multi-responsibility controller where needed; verify success, failure, cancellation, replacement, disposal and late completion without merging generations or duplicating mutable state |
+| Functional completion | Every frozen UX variant has current or explicitly justified reused passing evidence; C05 transient errors and full batch/source/date/pixel assertions have a disposition; no known core S0/S1 remains |
+| Final verification | Resolve C01/C02's remaining obligations, freeze the candidate, perform the required serial local and hosted gates and independent accumulated-change review, then complete applicable Release/client and separately authorized external acceptance |
+
+Deliver M01/M02 as distinct reversible policy changes. M03/M04 must include implementation and
+verification: a responsibility diagram, new rules, file moves or a list of debt cannot close them.
+Direct functional incidents remain first. Reuse existing ownership modules and keep source identity,
+leases, transaction boundaries, original workload sizes and deadlines unchanged. No dependency,
+schema or bridge strategy change is implied by this maintenance scope.
+
+The first execution block reserves at most 120 active minutes beyond the prior conservative
+1544-minute envelope: 30 for current evidence and the retained C05 error path, 60 for the two pure
+policy slices, 20 for one independent review/recheck and 10 for recording. Record later M03/M04,
+remaining functional and final-gate methods before their execution; the completion goal authorizes
+that continuation without repeated scope approval, but does not reset failed-run allowances.
+Each block ends with evidence and the next bounded method; unknown causality requires a changed
+diagnostic method, never unchanged retries or a completion claim. Earlier accounting uncertainty
+and original failures remain. External prerequisites are prepared as concrete reviewable runs;
+unavailable signing, service, journal, cloud or real-root authority does not block independent work
+and does not convert a controlled test into external acceptance.
+
+Hosted run 35682898100 on `22c5a0c` now passes all ten required verification jobs and its aggregate
+gate; signing-only release jobs are correctly skipped on this PR. This closes that head's hosted
+gate only. The earlier mixed-load and UIA failures remain evidence needing their planned disposition.
+
+#### M03 bounded implementation method
+
+After the two policy slices, reserve at most 180 active minutes: 30 for ownership and baseline,
+85 for extraction, 35 for focused verification, 20 for one independent review/recheck, and 10 for
+records. Conservatively charge the preceding 120-minute block in full; the combined reservation
+envelope is 1844 minutes, not measured elapsed work. Verification process wall time is recorded
+separately. Do not restart a failed performance workload unchanged.
+
+Split observed-entry application and file identity/metadata/preview reuse from directory traversal;
+then let the scan command compose traversal, validation and publication. Each owner must expose a
+typed outcome, including detached observation, and keep its existing checkpoint/error order. Keep
+path-prior, identity-prior, preservation-prior and reusable-prior evidence distinct, and retain
+source-revision, metadata-engine and preview-artifact checks. No new catalog reads per file,
+transaction, dependency, schema, bridge or media writes are admitted. Do not weaken source failure
+or cancellation rules to simplify the extraction.
+
+Run the existing generated 10000-file cold/warm/pause/resume/cancel benchmark once before and once
+after, with its unchanged thresholds and 512 MiB process working-set ceiling; these small images
+measure scan costs only and do not replace mixed large-image client acceptance. Add focused boundary
+cases for identity selection, retained failures and metadata reuse as needed, and run the complete
+existing scan test namespace. Record production/inline/dedicated-test sizes and query/inspection
+counts. A failed assertion or changed cost path requires diagnosis before further runs. Real roots
+and the frozen mixed-media client corpus remain untouched by this extraction.
+
+#### M04 bounded implementation method
+
+Reserve at most 180 active minutes after M03: 40 for authority mapping, 75 for one complete lifecycle
+extraction, 35 for focused verification, 20 for one independent review/recheck, and 10 for records.
+Conservatively reserved cumulative work becomes 2024 minutes; this is an envelope, not reconstructed
+time consumption. Known performance failures remain open and do not justify repeated unchanged runs.
+
+Extract the complete time-navigation scheduling lifecycle: pending/active requests, target reuse,
+latest intent, passive-versus-explicit ownership, blocked retry scheduling, disposal and matching
+loading release. The viewport retains query/publication authority, catalog reading, immutable
+gallery projection and retained pages. The new owner must reject obsolete request completion and
+must not clear a newer loading owner; it cannot acquire query or catalog-publication authority.
+Keep query, publication, navigation and query-transition identities distinct and document their
+acceptance conjunction. Preserve physical read serialization and the existing bounded retry delay.
+
+Use deterministic delayed results for replacement, cancellation, blocked admission, late success,
+late failure and disposal. Verify passive visible-range requests cannot replace an explicit jump;
+same-target callers share work; old cleanup cannot clear new loading. Run the existing controller,
+bidirectional paging, query refresh, primary workflow and time-navigation presentation regressions.
+Full candidate native/frame/pixel and final Daily evidence follows all maintenance changes; a
+standalone scheduler test does not substitute for that client path. No new UI control, scrolling
+mechanism, source access, persistence strategy or retry policy is admitted.
+
 ### Complete scope and retained readability findings
+
+#### Accumulated-candidate native method
+
+After M01–M04, reserve 180 active minutes for one accumulated-candidate client pass: 45 preparation,
+60 connected-workflow work, 30 evidence analysis, 30 independent review/recheck and 15 recording.
+Conservatively charge the preceding reservations in full, yielding a 2204-minute envelope rather
+than reconstructed elapsed consumption. Run process wall time remains separately recorded.
+
+Use the unchanged frozen 10000-image, 10921494393-byte, 12-size, 201-month generated corpus read-only.
+Allocate fresh GUID-owned derived storage and a fresh generated stimulus with the same 12 baseline,
+2000 added and 1500 removed files. Retain every old ledger and failed run; do not reset its allowance.
+The new lifetime combines the already corrected date-publication, rail-retention, viewer-width and
+shutdown paths with the four maintenance changes. It adds no product behavior. Record exact artifact
+identities and the prior causal evidence before admission. One new run identity is permitted.
+
+In one native lifetime, import both roots, verify real current pixels at top/middle/bottom historical
+targets, perform bulk addition and removal, then repeat navigation and viewer round trips with
+frame-by-frame width/anchor/rail checks. Observe publication transitions and classify any preview
+failure against the committed deletion roster; no missing surviving image or stuck demand is waived.
+Keep each original 300-second bulk deadline, 30-second visible-pixel deadline, 900-second parent
+deadline, 2 GiB client ceiling, 2 GiB system reserve and complete source-integrity checks. The native
+runner must retire its owned process and synchronization before reporting completion.
+
+This fresh connected replay is admitted because prior overall failures have distinct input,
+publication and teardown corrections with focused passing evidence. It does not erase those failed
+runs or authorize an unchanged retry after another failure. A failure requires retained evidence and
+a revised causal method. The picker override/framework input remain explicit limitations; actual
+OS picker, keyboard, interrupted EXE restart and Release paths retain their separate frozen duties.
 
 The instruction to organize rules first and then continue C05 selects the immediate order. It does
 not close, cancel or replace the other findings in the submitted readability assessment. A C05
@@ -12,16 +124,15 @@ checkpoint is one part of the functional-first cycle, never its new definition o
 | Work or original finding | Verified disposition and next boundary |
 | --- | --- |
 | Instruction loading and durable readability rules | Repository rule migration and the installed CLI's complete root loading are verified in the [organization record](../acceptance/engineering-rules-organization.md). Global/other launch-context loading is not proved by that probe. No claim of completed legacy-code remediation follows. |
-| `LibraryState.status` / `taskKind` policy density | Still unchanged from the assessed source. Retain a distinct deferred behavior-preserving slice: enumerate removal/refresh/scan-feedback/root precedence, copy/update projections and busy-state consequences, then expand decisions and compare the cases. Do not replace the state model. |
-| Preview `_nextPending()` policy density | Still unchanged. Retain a separate deferred comparison-policy slice covering priority, missing/equal ranks, sequence and active-location exclusion. Preserve concurrency, cancellation, source/generation guards and the queue algorithm. |
-| Viewport asynchronous ownership | Remains an ongoing obligation of affected functional fixes: identify initiator, query/publication/navigation identity, result acceptance, loading owner and terminal cleanup; test slow A / fast B, late cleanup, disposal and committed-action reload failure. Do not merge generations or create a second mutable state machine. No full controller audit is claimed. |
-| Long scan, production synchronization and historical migration owners | Structural debt remains under ADR 0025 and the roadmap's decomposition obligations. The assessed scan function is still unchanged. A relevant functional repair must establish its necessary boundary and preserve checkpoints, prior records, source identity, transactions and measured per-item cost; broad physical decomposition is not implemented by this cycle. |
+| `LibraryState.status` / `taskKind` policy density | M01 now has explicit branches, original-baseline and focused behavior evidence, full lint and independent review in the [maintenance record](../acceptance/r2c-maintainability.md); final candidate/client gates remain. |
+| Preview `_nextPending()` policy density | M02 now has a pure named comparator, independent cases and original-policy equivalence evidence, existing queue regressions, full lint and independent review in the same maintenance record; final candidate/client gates remain. |
+| Viewport asynchronous ownership | M04 now delegates the complete time-navigation lifecycle to one owner, with 93 application and 29 presentation/preview regression passes and independent review. Final candidate/native evidence remains; this is not a full controller audit. |
+| Long scan, production synchronization and historical migration owners | M03 now separates traversal, observed-entry application and file preparation, with 89 existing and six new passing cases plus independent review. The failed original-source cost baseline and final gates remain open. Other synchronization/migration physical splits retain their existing roadmap order and do not silently join this four-owner change. |
 | R2c functional repair and acceptance | Continue the complete frozen [24-variant roster](../acceptance/r2c-closeout-cycle.md#frozen-discovery-roster), including all eight journeys below. C04/C05 evidence, real-process restart, large/differently sized/historical media, live/bulk changes, failure races, multi-root overlap, keyboard/UIA and Release/client gaps each retain their own proof requirements. |
 
-The two small readability examples are registered follow-ups, not silently discarded optional work
-and not claims of reproduced functional bugs. Keep them separate from C05 changes and record their
-bounded implementation/verification method when selected, under the existing user priority and
-authorization. Direct-use defects retain precedence. No whole-repository rewrite, new lint product,
+The four findings are required deliveries under the completion goal, not claims of reproduced
+functional bugs. Keep maintenance changes separate from causal C05 corrections, with their own
+implementation and verification evidence. Direct-use defects retain precedence. No whole-repository rewrite, new lint product,
 source mutation, migration or bridge change is admitted by this scope map.
 
 After each checkpoint, reconcile the complete roster and these retained findings with current
@@ -86,7 +197,7 @@ constraints with a clause map, and add concrete readability and behavior-preserv
 Verify document links, command preservation, byte budget, and fresh instruction assembly. The
 [organization record](../acceptance/engineering-rules-organization.md) owns this evidence; no new
 roadmap, whole-repository refactor, or product acceptance status is created. The status-getter and
-queue-comparator examples remain separate deferred slices in the complete scope map above.
+queue-comparator examples remain separate slices, now required by the completion goal above.
 
 Resume C05 from the retained native failure: ten visible current images receive no preview request
 after bulk addition and a bottom timeline jump. Verify its cause before admitting the next bounded

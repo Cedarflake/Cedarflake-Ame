@@ -45,6 +45,13 @@ persistence layers.
   first-import capture leases. `library_synchronization/admission.rs` distinguishes a published
   baseline, a currently owned first import, and a root that requires first import. A persisted
   checkpoint is recovery data, never proof that an execution is still alive.
+- `scan_library/traversal.rs` owns directory/window iteration and its existing checkpoint,
+  cancellation and progress order. `entry_processing.rs` applies one typed discovery outcome and
+  reports either accepted work or detached observation. `file_preparation.rs` owns path/identity
+  lookup, preservation-prior selection and metadata/preview reuse. Preservation evidence stays
+  distinct from reuse evidence; source revision, metadata engine and artifact checks remain
+  mandatory. The facade composes traversal, final validation and atomic publication. None of these
+  boundaries adds per-file catalog reads or grants source mutation.
 - `application/library_synchronization/production.rs` remains the priority and worker-lifecycle
   coordinator. Journal baseline opening and closing use different typed work items in
   `journal_baseline.rs`; an opening authority is either an existing root or a first import with a
@@ -271,6 +278,17 @@ persistence layers.
   and superseded queued work cannot execute. The viewport revalidates query, revision, and cursor
   before a queued read; the viewer alone decides whether a completed page may change selection.
   Retired navigation remains silent, while a current explicit action with no target reports failure.
+- `library_time_navigation_requests.dart` owns pending/active target reuse, latest navigation
+  intent, explicit visible-range ownership, blocked retry and operation-matched loading release.
+  The viewport retains query compatibility, publication generation, query-transition authority,
+  catalog reads and immutable page projection. A result needs both current publication authority
+  and acceptance by the navigation owner; those generations are not interchangeable. Query
+  replacement and disposal settle waiters without letting an old finalizer clear newer loading.
+  Physical reads remain serialized, and passive demand cannot replace a compatible explicit jump.
+- `library_preview_order.dart` owns the pure priority, optional demand-rank and arrival comparison.
+  The queue owns active-location exclusion, demand/source validity, bounded execution and result
+  acceptance; selection order cannot confer publication authority. `LibraryState` separately
+  projects explicit removal, query-refresh and primary-scan precedence without owning execution.
 - `LibraryQueryActivity` is a sealed idle/loading/failed projection owned by the viewport. Failure
   retains its requested query separately from the still-visible gallery and primary task error.
   Primary scan publication separately distinguishes uncommitted work, committed display reload,
