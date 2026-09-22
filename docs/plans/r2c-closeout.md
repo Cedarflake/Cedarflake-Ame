@@ -89,6 +89,58 @@ mechanism, source access, persistence strategy or retry policy is admitted.
 
 ### Complete scope and retained readability findings
 
+#### C07 primary publication refresh admission
+
+The read-attribution regression exposes a separate product race: primary task display reloads
+bypass the query-refresh coordinator, so passive synchronization can supersede a pending Retry.
+Reserve 90 active minutes: 20 causal/boundary checks, 40 repair and focused verification, 20 one
+independent review/recheck, and ten records. The conservative reservation becomes 3359 minutes.
+This functional defect takes priority over the next graphical lifetime within the same R2c scope.
+
+Route primary first-publication and explicit display Retry through the existing committed-refresh
+owner. Keep raw first-page reads separate: other callers already hold committed admission, and
+wrapping those again would deadlock their queue. ADR 0025 requires committed refresh to follow a
+proven user-query replacement; the older primary-workflow assertion expecting failure after that
+replacement must be reconciled with that accepted contract. Actual read failure still reports
+failure and requires Retry; no source scan is repeated. Preserve query, publication and disposal
+authority, bounded result windows and the original passive/committed scheduler policies.
+
+Prove initial and retry reads reject competing passive admission, queued committed work waits for
+an existing passive read, and explicit user-query replacement finishes on the latest query. Retain
+the original failing regressions and cover cancellation/disposal and true read errors through the
+existing primary/query suites. Perform focused format/analyzer checks and independent review before
+using the already reserved fresh graphical admission. Applicable final gates remain required; the
+C02 local gate is not restarted unchanged, and no workload, deadline or external authority changes.
+
+The [focused correction](../acceptance/r2c-input-controls.md#primary-committed-refresh-admission)
+passes its three originally failing races and existing primary/query cases, with independent
+review and scoped recheck. Native task input and final-source obligations remain separate exits;
+the next lifetime uses the already reserved read-attribution method below.
+
+#### Committed retry read attribution
+
+The [graphical checkpoint](../acceptance/r2c-input-controls.md#graphical-input-and-read-attribution)
+reaches a real import but rejects a passive synchronization read as keyboard Retry. Reserve 60
+active minutes: 15 attribution/regressions, ten preparation/review, 25 for one native lifetime and
+source checks, and ten recording. Conservatively reserved cumulative work becomes 3269 minutes.
+Preserve the failed lifetime; this is a changed diagnostic method, not an unchanged replay.
+
+The task's pending publication alone does not identify a committed task reload. The real task reload
+can overlap a passive read, so task status is not sufficient either. Attribute reads through the
+existing controller's committed-reload and passive-refresh entrypoints, preserving each superclass
+call and its error/return behavior. Keep context per asynchronous call and clear inherited committed
+context at passive entry. Prove both overlap directions and nested/late context isolation without
+counting passive reads as keyboard retries. The separate C07 repair owns the reproduced production
+admission defect; this diagnostic change cannot conceal its failure or replace its regression.
+Keep the actual focused-Enter token, single successful task-retry read, source scan counts and all
+registration/pixel assertions. A pointer retry or unrelated key must still fail independently.
+
+Use one fresh isolated Debug admission with the same four generated files, frozen 10000 sources,
+900-second parent, 120-second registration hold, six-second close and existing 4/2/2 GiB resource
+requirements. Keep all Windows input in Computer Use, using current screenshot observations for
+main and owned-dialog controls. Preserve tool-binding errors separately from application failures;
+an assertion failure ends the admission. No C01/C02, Release, real-root or external allowance resets.
+
 #### Graphical input continuation
 
 After the negative native-provider checkpoint, reserve 60 active minutes: ten preparation and

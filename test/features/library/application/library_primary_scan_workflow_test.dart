@@ -236,11 +236,19 @@ void main() {
     await flushRetainedScanMicrotasks();
     expect(fixture.state.status, LibraryStatus.failed);
     expect(
+      fixture.state.errorMessage,
+      contains("published display read failed"),
+    );
+    expect(
       fixture.state.primaryScan!.publication,
       LibraryScanPublication.reloadPending,
     );
     await fixture.controller.retry();
     expect(fixture.state.status, LibraryStatus.failed);
+    expect(
+      fixture.state.errorMessage,
+      contains("published display read failed"),
+    );
     expect(fixture.scanner.startedRoots, ["C:\\Other"]);
     fixture.catalog.loadFailure = null;
     await fixture.controller.retry();
@@ -254,7 +262,7 @@ void main() {
   });
 
   test(
-    "superseded publication reload cannot report completion or repeat a scan",
+    "superseded publication reload follows the latest query without repeating a scan",
     () async {
       final fixture = RetainedScanFixture();
       await fixture.restore();
@@ -271,20 +279,34 @@ void main() {
         ),
         isTrue,
       );
+      final readsBeforeReplacement = fixture.catalog.firstLoads;
+      final replacement = fixture.catalog.pendingLoad =
+          Completer<LibrarySnapshot>();
       reload.complete(fixture.catalog.snapshot(const LibraryGalleryQuery()));
       await flushRetainedScanMicrotasks();
-      expect(fixture.state.status, LibraryStatus.failed);
-      expect(
-        fixture.state.errorMessage,
-        contains("catalog_publication_view_superseded"),
+      final stateWhileReplacementLoads = fixture.state;
+      final readsWhileReplacementLoads = fixture.catalog.firstLoads;
+      replacement.complete(
+        fixture.catalog.snapshot(const LibraryGalleryQuery(rootId: "retained")),
       );
+      await flushRetainedScanMicrotasks();
+
+      expect(readsWhileReplacementLoads, readsBeforeReplacement + 1);
+      expect(stateWhileReplacementLoads.status, LibraryStatus.refreshing);
       expect(
-        fixture.state.primaryScan!.publication,
+        stateWhileReplacementLoads.primaryScan!.publication,
         LibraryScanPublication.reloadPending,
       );
-      await fixture.controller.retry();
+      expect(stateWhileReplacementLoads.query.rootId, "retained");
+      expect(stateWhileReplacementLoads.queryId, "query-retained");
       expect(fixture.state.status, LibraryStatus.completed);
+      expect(fixture.state.errorMessage, isNull);
+      expect(
+        fixture.state.primaryScan!.publication,
+        LibraryScanPublication.visible,
+      );
       expect(fixture.state.query.rootId, "retained");
+      expect(fixture.state.queryId, "query-retained");
       expect(fixture.scanner.startedRoots, ["C:\\Other"]);
       expect(fixture.scanner.resumedIds, isEmpty);
     },

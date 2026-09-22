@@ -164,3 +164,69 @@ Charge the 60-minute reservation in full. Stop this native-provider input route;
 under another unchanged accessibility flag. Actual task inputs remain open, as do automatic native
 accessibility activation, Release and the separate full local gate. A later input method must use
 an observed, available interface and retain the original application-level input assertions.
+
+## Graphical input and read attribution
+
+Lifetime `67c06061452b4b3ea55bf3fb70c22dd4` uses the same entry, native picker, fixture and process
+owners byte-for-byte; only the build target changes. Preparation passes Dart analysis, PowerShell
+syntax and a 30.3-second Debug build. A two-minute independent static review finds no blocking
+preparation difference. The available Computer Use interface returns the native application tree.
+Initial indexed input reports missing window state, and a recovery query reports an active helper
+request. Fresh observation and screenshot input then open the real picker. Its observed initial
+directory is confirmed through the owned modal screenshot; no path is typed or substituted.
+
+The actual picker returns the exact prepared Chinese directory. The native scan completes with
+three accepted items and one issue. At 235241 ms, before recorded application keyboard input, the
+diagnostic rejects a query as lacking focused Enter. The retained stack enters through
+`refreshFromSynchronization` and `runPassive`, not the task retry command. Its predicate checks only
+`reloadPending`, which also remains true while the failed task coexists with passive refresh.
+This establishes an attribution gap in the diagnostic; it does not prove a production Retry defect
+or a passing keyboard path. The second source selection and pause/cancel sequence are not executed.
+
+The attempted graphical close reports an unknown current screenshot ID. After exact PID, parent,
+executable and start-time revalidation, only the owned application is terminated. The 378395 ms
+receipt records exit -1, process exit and Job closure with no cleanup failure. Across 1422 samples,
+peak working set is 349302784 bytes, sampled private memory 316522496, kernel peak commit 334422016,
+and minimum system availability 4207874048. All 10004 sources pass exact before/after integrity in
+52.450/48.970 seconds. EXE/Rust DLL hashes remain unchanged; the kernel hash is
+`116D76835899090D276EA7C2077E90034522B3D95EA016B4D45CE6E0E0F1702C`.
+
+Ignored `.build/r2c-input-graphical/` and its GUID-owned fixture retain the preparation comparison,
+admission, raw trace, failed input and process/memory/source receipts. The 60-minute reservation is
+charged in full. Narrow the read classifier only after proving passive-versus-task behavior with
+the real controller; actual keyboard, pause/cancel and complete native acceptance remain open.
+
+## Primary committed refresh admission
+
+The attribution regressions reproduce a separate application defect, C07: primary first-publication
+and Retry call the raw first-page reader without entering the existing query-refresh coordinator.
+A passive synchronization read can replace their publication generation and produce
+`catalog_publication_view_superseded`; in the reverse order, Retry reads before the held passive
+read completes. All three new real-controller regressions fail before the correction.
+
+`LibraryController.reloadPrimaryScanCatalog` now delegates to the viewport's
+`refreshPrimaryScanCatalog`, which composes the existing committed-refresh admission with the raw
+reader. Raw reads remain separate for callers that already hold admission; wrapping those would
+queue an obligation behind itself. This adds no scheduler state, retry policy, schema, dependency,
+source read or media write. Original read exceptions propagate unchanged. ADR 0025 requires a
+committed obligation to follow a proven user-query replacement, so the obsolete test expecting
+failure after that replacement now proves rejection of the old result and completion on the latest
+query. A separately held replacement read must remain `refreshing/reloadPending` before completion.
+
+Focused verification passes 23 production-boundary cases: three initial/Retry/passive interleavings,
+15 primary-workflow cases and five query-coordinator cases. These retain true read-error text,
+no repeated scan/resume, cancellation, disposal and late-result ownership. Explicit-file formatting
+and warnings-fatal Dart analysis pass. Independent review takes nine active minutes and its scoped
+recheck one minute; the recheck closes the missing intermediate-state assertion. Physical sizes are
+354 controller and 1350 viewport production lines, zero inline-test lines, with the unchanged
+130-line query owner; dedicated suites contain 108/390/134 lines respectively. The viewport gains
+only admission composition, not a second lifecycle owner.
+
+The separate ignored `r2c-input-retry-scope` diagnostic attributes each read through the actual
+controller entrypoint and asynchronous scope, clearing inherited committed context at passive
+entry. Four attribution cases pass, including both ordering directions and nested/late context;
+three existing keyboard-token rejection/acceptance cases also pass. Preserve the preceding failed
+predicate and scope runs, which exposed the product race rather than proving an input failure.
+These seven diagnostic tests do not establish delivered native keyboard input. A fresh reserved
+graphical lifetime and final-source gates remain pending; the unresolved C02 local gate is not
+restarted unchanged. All work so far uses controlled ports without accessing original media.

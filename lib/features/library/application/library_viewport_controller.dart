@@ -138,6 +138,12 @@ class LibraryViewportController {
     ),
   );
 
+  Future<bool> refreshPrimaryScanCatalog() => _queryRefresh.refreshCommitted(
+    () async => await reloadFirstCatalogPage()
+        ? LibraryQueryUpdateOutcome.applied
+        : LibraryQueryUpdateOutcome.superseded,
+  );
+
   Future<bool> updateQuery(
     LibraryGalleryQuery query, {
     String? anchorLocationId,

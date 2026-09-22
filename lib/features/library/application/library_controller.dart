@@ -68,7 +68,8 @@ class LibraryController extends Notifier<LibraryState>
   void preparePrimaryScanExecution() => _viewport.supersedeExternalRequests();
 
   @override
-  Future<bool> reloadPrimaryScanCatalog() => _viewport.reloadFirstCatalogPage();
+  Future<bool> reloadPrimaryScanCatalog() =>
+      _viewport.refreshPrimaryScanCatalog();
 
   LibraryViewportController get _viewport =>
       _viewportController ??= LibraryViewportController(
