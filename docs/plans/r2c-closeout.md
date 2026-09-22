@@ -108,6 +108,12 @@ The existing sync publication path owns refreshed catalog delivery. Do not add U
 weaken source identity, merge generations or conceal an unchanged-read failure. Any reproduced
 defect must be corrected at its owning boundary with the original failed oracle retained.
 
+The [stationary gallery checkpoint](../acceptance/r2c-closeout-cycle.md#stationary-gallery-preview-delivery)
+passes both explicitly ordered replacement cases and authoritative removal with actual decoded
+pixels and no Retry feedback. Its three-minute independent review/recheck closes an ordering-oracle
+gap. No new product correction was required; charge the 60-minute reservation in full. Native
+observation/input, C01/C02 and final-source/external exits remain open.
+
 #### Controlled interleaving evidence completion
 
 With native input delivery unavailable, reserve 45 active minutes within item 3: 15 to inspect

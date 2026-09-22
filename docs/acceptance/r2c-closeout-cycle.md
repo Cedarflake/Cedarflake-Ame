@@ -789,7 +789,7 @@ their actual passing output and unchanged source; the final complete Daily remai
 | UX-03B | Expand a folder, change revision, load another folder page; replace obsolete window and append only at the same revision | Folder paging; `library_folder_controller_test.dart`; mapped, Release input pending |
 | UX-03C | Fail display after committed removal/update, replace query and explicitly retry; retain page, settle loading and never repeat source action | [Controlled query/removal transitions pass](#controlled-query-source-and-viewer-evidence); actual native Retry remains open |
 | UX-04A | Materialize cold then warm actual media previews; verify pixels, source version, cache ownership and unchanged source | Preview store/media adapters; `media_format_tests.rs`, existing seven-format acceptance; mapped, Release decoding pending |
-| UX-04B | Rewrite fixture with identical size/ID/mtime while the old request is pending; reconcile one path and show new pixels, reject old publication | [Post-decode same-metadata replacement passes](#controlled-query-source-and-viewer-evidence), including recovery on a subsequent ordinary demand; automatic client delivery remains open |
+| UX-04B | Rewrite fixture with identical size/ID/mtime while the old request is pending; reconcile one path and show new pixels, reject old publication | [Post-decode same-metadata replacement passes](#controlled-query-source-and-viewer-evidence); [stationary gallery automatically loads the published replacement](#stationary-gallery-preview-delivery) through controlled synchronization; native observation remains separate |
 | UX-04C | Hold source exclusively or present corrupt bytes, then recover; preserve precise failure, valid source retries and no stale ready publication | [Exclusive-open, corruption and newer-source recovery cases pass](#controlled-query-source-and-viewer-evidence); actual watcher/client delivery remains open |
 | UX-05A | Open original, navigate both ways and return; actual decode, correct anchor and released source slots | Viewer/source reader; `integration_test/support/viewer_source_workflow.dart`, `library_viewer_position_test.dart`; Debug decode mapped, Release pending |
 | UX-05B | Close/reopen while paging or buffer copy is pending; old completion/errors remain retired and new navigation works | [Connected viewer and source-lifetime cases pass](#controlled-query-source-and-viewer-evidence); native Release remains open |
@@ -862,6 +862,34 @@ Independent oracle review and final evidence review take four active minutes in 
 remaining blocking issue. Conservatively charge the 45-minute block in full: the cumulative
 reservation is 3404 minutes, not measured elapsed time. Compilation/test wall time is separate.
 Local complete lint/Daily, automatic client recovery, native input and external gates remain open.
+
+### Stationary gallery preview delivery
+
+`library_preview_synchronization_test.dart` adds three connected cases through the actual AmeApp,
+query refresh, controller, gallery and preview queue, with only synchronization/catalog/materialize
+ports controlled. It supplies a new catalog version after an obsolete preview, and before that
+preview ends. The latter first proves the real controller has accepted revision 2 and source
+generation 2 while the old materialization is still pending. Both cases automatically request
+generation 2 in ordinary mode, decode a generated PNG through the real image widget and verify
+its RGBA pixel `[18, 104, 212, 255]`. Exactly two materialization calls and one query read occur;
+no scroll, pointer, keyboard Retry or direct demand call drives recovery.
+
+The removal case publishes an empty current catalog before an old Ready result arrives. The tile
+stays absent, the controller keeps zero assets and no new materialization starts. Every observed
+transition frame asserts no Retry label or Flutter exception. These tests prove delivery after
+an injected authoritative synchronization revision; they do not prove the Windows watcher produces
+that revision, or add another native/Release large-library acceptance result. The earlier combined
+generated-native bulk result retains its own source, pixel, resource and lifetime evidence.
+
+The initial three-case pass is retained as `preview-synchronization.log`. Review found that waiting
+only for the catalog read did not independently establish the second ordering. The strengthened
+controller-state oracle passes **3/3** in the scoped repository Flutter runner; strict Dart analysis,
+owned-file format and whitespace checks also pass. Its final log is
+`.build/r2c-controlled-evidence/preview-synchronization-ordered.log`, SHA-256
+`C073246655564E834BC392B779CEC58607A3EFE845C634A2465F4775EAE35531`.
+The dedicated test file is 383 lines; production/inline changes are zero. Independent review takes
+two active minutes and its recheck one minute. Conservatively charge the 60-minute reservation in
+full, making 3464 reserved minutes; this is not measured elapsed time and does not waive any gate.
 
 ### Multi-root current evidence
 

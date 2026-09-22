@@ -50,7 +50,13 @@ one failed and 19 ignored in 1217.40 seconds. The failing
 five-second P0 visibility assertion with pending queue state, 15.2246139-second queue admission,
 15.223581-second worker admission and three polls totaling 15.2192941 seconds; the slowest poll is
 14.6684127 seconds. All three lanes are active. A recorded Live catalog open takes 14631 ms,
-including 14630 ms after identity/open configuration. These observations do not isolate the cause.
+including 14630 ms after identity/open configuration. Direct diagnostic output identifies
+the failing arm as `PerPoll`, sample 20, thread 1740: identity open/path/ID take 34/62/7 microseconds,
+while the interval around validation-handle retirement takes 14625644 microseconds. The same thread's
+`proof_identity_after` interval is 14625 ms. The PerEpoch arm is not reached in this test; the
+subsequent production full-recovery test is a separate passing case. These wall-clock intervals
+localize the observation but cannot distinguish native blocking from thread descheduling or name
+a filesystem driver. No causal code correction is inferred.
 
 Preserve `.build/r2c-controlled-evidence/ci-35721552835-static-rust.log`, SHA-256
 `6DAF73C2EDEF697CFF7899DEFB66F7A947BB5BD60C0C26348E4CEEFD50A43DAD`, and the complete run receipt
