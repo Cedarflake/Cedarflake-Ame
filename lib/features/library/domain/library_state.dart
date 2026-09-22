@@ -59,16 +59,25 @@ class LibraryState {
   static const Object _unchanged = Object();
 
   final LibraryStatus _status;
-  LibraryStatus get status => _taskKind == LibraryTaskKind.remove
-      ? _status
-      : isRefreshingQuery && !(primaryScan?.hasFeedback ?? false)
-      ? LibraryStatus.refreshing
-      : primaryScan != null &&
-            !primaryScan!.hasFeedback &&
-            (primaryScan!.status == LibraryStatus.empty ||
-                primaryScan!.status == LibraryStatus.completed)
-      ? (roots.isEmpty ? LibraryStatus.empty : LibraryStatus.completed)
-      : primaryScan?.status ?? _status;
+  LibraryStatus get status {
+    if (_taskKind == LibraryTaskKind.remove) {
+      return _status;
+    }
+    final scan = primaryScan;
+    if (isRefreshingQuery && !(scan?.hasFeedback ?? false)) {
+      return LibraryStatus.refreshing;
+    }
+    if (scan == null) {
+      return _status;
+    }
+    if (!scan.hasFeedback &&
+        (scan.status == LibraryStatus.empty ||
+            scan.status == LibraryStatus.completed)) {
+      return roots.isEmpty ? LibraryStatus.empty : LibraryStatus.completed;
+    }
+    return scan.status;
+  }
+
   final String? _scanId;
   String? get scanId => _usesPrimaryProjection ? primaryScan!.scanId : _scanId;
   final String? _rootPath;
@@ -78,11 +87,17 @@ class LibraryState {
   String? get displayRootPath =>
       _usesPrimaryProjection ? primaryScan!.displayRootPath : _displayRootPath;
   final LibraryTaskKind? _taskKind;
-  LibraryTaskKind? get taskKind => _taskKind == LibraryTaskKind.remove
-      ? _taskKind
-      : primaryScan == null
-      ? _taskKind
-      : primaryScan!.taskKind;
+  LibraryTaskKind? get taskKind {
+    if (_taskKind == LibraryTaskKind.remove) {
+      return _taskKind;
+    }
+    final scan = primaryScan;
+    if (scan == null) {
+      return _taskKind;
+    }
+    return scan.taskKind;
+  }
+
   final String? removingRootId;
   final String? removingRootDisplayPath;
   final bool isRemovalCommitted;
