@@ -405,6 +405,46 @@ exact 10000/512/2 membership, full source integrity and normal owned-process clo
 corrects the peer-reservation oracle before the sole native lifetime. Charge this 100-minute
 reservation in full through 4444 minutes; the remaining named variants and final gates stay open.
 
+#### Native removal during peer publication and reimport
+
+Reserve the next 90 active minutes for the remaining native overlap in UX-06B: 25 for typed
+scanner/catalog barriers and read-only observations, ten for boundary checks, 15 for one native
+lifetime, ten for source/catalog checks, 15 for one independent method/result review and 15 for
+records. Cumulative reservation becomes 4534 minutes; serial build and full-source integrity wall
+time remains separate. Reuse a fresh derived copy of the verified 10000/512/2 catalog and keep all
+10514 generated source files immutable. No real-root run or product-code change is admitted.
+
+Select the 10000-image root for retained browsing. Through the actual update dialog start its
+update and the 512-image update, leaving the two-image C root unselected. Hold both actual Rust
+scan invocations only until the native C removal command enters the catalog port. Start both real
+scans then hold C's actual unregister until the 512-image scan has published and its controller is
+waiting to refresh while the 10000-image peer remains active with real progress. Record that exact
+overlap and each execution reservation before allowing one real C unregister and ordinary refresh.
+No fabricated events or controller actions may establish it. The port barriers control ordering;
+they do not establish unmodified backend latency or arbitrary concurrency coverage.
+
+Require one removal, no C resurrection during either peer's refresh, exact 10000/512 completions,
+current retained gallery pixels and independent slot retirement. Reimport C through the actual
+picker only after both update leases and removal display work retire; require one real C scan,
+the original source membership and current decoded pixels. Compare complete per-root active paths
+and generated-source identities, bytes and times before/after. Keep the existing controlled
+old-spool/new-registration persistence proof separate: this native lifetime does not manufacture
+retired spool rows or claim physical database space reclamation.
+
+Keep the 900-second parent, at most 180 seconds from held commands to native removal, the original
+300-second real-work completion bound after release, at most 180 seconds for the subsequent native
+reimport, six-second normal close and 2 GiB client/system-reserve limits. A missing overlap, stale
+root, failed decode, unexpected command or tool misdelivery fails this lifetime and requires a
+recorded causal method change before replay. UX-06C, complete focus return, C09/C10, Release,
+C01/C02 and final/external acceptance remain separate duties.
+
+The [native result](../acceptance/r2c-closeout-cycle.md#native-removal-during-publication-and-reimport)
+passes the real publication/removal overlap, preserved peer execution, single unregister, ordinary
+refresh, native reimport and exact restored membership. Full source integrity and owned normal close
+pass. The unexpected-display-error oracle is strengthened before the sole lifetime. Charge the
+90-minute reservation in full through 4534 minutes, retaining the separate spool/Release and other
+named obligations.
+
 #### C01 owned-thread observation calibration
 
 While actual input is unavailable, reserve 40 active minutes: 15 for a process-scoped sampler,

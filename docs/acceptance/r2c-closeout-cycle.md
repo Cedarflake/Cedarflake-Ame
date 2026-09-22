@@ -795,7 +795,7 @@ their actual passing output and unchanged source; the final complete Daily remai
 | UX-05B | Close/reopen while paging or buffer copy is pending; old completion/errors remain retired and new navigation works | [Connected viewer and source-lifetime cases pass](#controlled-query-source-and-viewer-evidence); native Release remains open |
 | UX-05C | Same-path source rewrite, then authoritative rename/removal; newest pixels and stable asset until authoritative removal | Viewer source generation; `library_viewer_image_test.dart`, `library_viewer_position_test.dart`; mapped, Release input pending |
 | UX-06A | A/B update while queued C is cancelled; independent progress and only C is cancelled | [Native queued cancellation and real updates pass](#native-queued-cancellation-and-real-updates), with exact 10000/512 completions, unchanged C, real catalog refresh and independent execution release; the command-admission interval is controlled |
-| UX-06B | Remove C while A publishes and B continues, then register C while old cleanup remains; no repeated unregister, stale root or cleanup authority | [Connected controller and persistence cases pass](#multi-root-current-evidence); deterministic scan interleaving and old/new spool authority are covered, native UI overlap and physical file reclamation are not |
+| UX-06B | Remove C while A publishes and B continues, then register C while old cleanup remains; no repeated unregister, stale root or cleanup authority | [Native removal/publication and reimport pass](#native-removal-during-publication-and-reimport); [controlled old/new spool authority](#multi-root-current-evidence) remains separate from physical file reclamation and Release |
 | UX-06C | Make fixture A unavailable then restore it while B updates; preserve A's catalog and B's progress | [Connected production recovery case passes](#multi-root-current-evidence), including B publication during A recovery and FULL reopen; notifications are injected, not real watcher delivery |
 | UX-07A | Original 25-sample P0/P1/P2 workload through complete P2 publication, authority retirement, synchronized state and FULL reopen | `production/tests/priority.rs` and `priority/recovery_completion.rs`; original 300-second failure remains S1, discovery observation timing added |
 | UX-07B | Same workload with per-poll versus per-epoch connection lifetime; preserve proof and production P95 bound | `priority/connection_lifetime_control.rs`; [current hosted P0 timeout retained](r2c-interleaving-remediation.md#hosted-mixed-load-recurrence-on-9359618), earlier passing controls do not close it |
@@ -1087,6 +1087,67 @@ remain separate. No product change or new full Daily is implied by this diagnost
 Independent read-only method/result review confirms the revised reservation checks, native input,
 real completions, source/member integrity, process/resource receipts and scoped document mappings
 without a remaining blocker. Charge the 100-minute reservation in full through 4444 minutes.
+
+### Native removal during publication and reimport
+
+The 2026-09-23 continuation adds native UI overlap to UX-06B on the same product source and
+documentation head `14a0f1f7ad336f449590e1a3be50689fd6a18654`. The actual two-root update dialog,
+third-root removal confirmation and subsequent reimport picker drive production controllers.
+Two real Rust scan calls wait at the scanner port until native removal enters the catalog port.
+The actual unregister then waits for the 512-image publisher to reach display refresh while the
+10000-image peer still advances. This controlled ordering uses real events and catalog operations;
+no source mutation, fake progress/completion or direct controller input joins it.
+
+Before execution, independent method review closes a read-error oracle gap: catalog first-page,
+query-snapshot and timeline exceptions are permanently recorded and rethrown, and the frame
+observer rejects task/query/page display errors. A subsequent Retry cannot erase a failed normal
+refresh. Final reimport also requires release of the primary scan slot. Three focused positive/
+negative cases cover valid overlap, missing reservations, an already completed peer, zero progress,
+unrelated removal and a queued publisher. Seven Dart files pass format and fatal-info analysis;
+preparation/final Debug builds take 29.3/23.6 seconds. Diagnostic owners contain 164 startup,
+282 observation, 171 scanner, 96 catalog, 112 run and 21 boundary lines, plus 50 dedicated test
+lines. Production and inline-test changes are zero.
+
+Lifetime `f7f64408dff24cc38c6177949e2b5269` records the connected sequence:
+
+- The 10000-image retained gallery has current pixels before the two updates. Actual C removal
+  enters at 129370 ms and releases both real scans at 129372 ms. The 512-image scan completes with
+  zero issues at 132872 ms. At 132926 ms its controller is refreshing while C removal is pending,
+  both peers retain their execution reservations, and the other real scan has accepted 1012 images
+  from 1024 visited entries without completing.
+- One real unregister commits at 132975 ms; C is absent in the rendered catalog at 133053 ms.
+  The 512-image controller completion and released slot are observed at 133619 ms. The other scan
+  completes 10000 images with zero issues at 163766 ms, and its controller retires at 164092 ms.
+  C remains absent through peer refreshes. Exact completed entry counts are 526 and 10012.
+- Reimport becomes eligible at 164289 ms after both update leases and removal display work retire.
+  The real picker already points to the admitted two-image source; Import starts one C scan at
+  221244 ms, which completes two images with zero issues at 221328 ms. Selecting C produces current
+  decoded images and ready at 238165 ms. Final root counts are 10000/512/2, with one unregister and
+  exactly three real scans across the lifetime. No Retry or additional update is used.
+- Final observation records 12547 frames and 12418 current-pixel frames without a latched failure.
+  Normal close takes 403.7967 ms; the 265740 ms parent exits zero and its process, Job and monitor
+  retire without cleanup failure. Across 996 samples, peak working set is 517623808 bytes, sampled
+  private memory 427925504, kernel peak commitment 449241088 and minimum system availability
+  5125750784 bytes.
+- Full before/after integrity checks pass in 56.440/57.743 seconds. All 10514 generated sources
+  preserve exact membership, identity, content and timestamps; the derived catalog's complete
+  per-root active relative paths remain 10000/512/2, and SQLite quick-check passes.
+
+Ignored `.build/r2c-overlap-native/` retains the sources, boundary tests and artifact admission;
+`build/integration-storage-eba9b07350404c76a559476cea6afed0/` retains trace, milestones, result,
+resource/process and source receipts. The executable and Rust DLL retain the preceding native
+result's hashes. The Debug kernel SHA-256 is
+`8B11AC3B9DCCDCB9375B5F9BC0E0FC771F94A7B1D59DB6290FE7D1D3AE2B6188`, and native stdout is
+`22BC0A0EA8C5CEE6C49824A9EA876065166BD2B157D879EFD7DF40492188F638`.
+
+The native result establishes this removal/publication/UI-refresh overlap and subsequent real
+reimport. Existing controlled old-spool/new-registration evidence remains separate: no retired
+raw-spool rows are fabricated, and physical database reclamation is not measured. UX-06C, complete
+focus return, C09/C10, Release, C01/C02 and final/external acceptance remain open. This does not
+establish unmodified backend latency, arbitrary concurrency coverage or full R2c acceptance.
+Independent read-only result review confirms the scoped overlap, command counts, exact membership,
+source integrity, process/resource evidence and document mappings without a remaining blocker.
+Charge this 90-minute reservation in full through 4534 minutes.
 
 ### Observation preparation
 
