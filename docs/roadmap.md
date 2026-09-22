@@ -87,7 +87,9 @@ actual paused-checkpoint restoration and explicit continuation while preserving 
 The [input-control record](acceptance/r2c-input-controls.md) retains the focused pending-pause Cancel
 correction, primary committed-refresh admission correction and the selected native picker,
 focused Enter Retry and pre-registration Pause-Cancel pass. Remaining focus-return variants,
-keyboard controls and Release paths retain their separate frozen duties;
+keyboard controls and Release paths retain their separate frozen duties. The
+[multi-root record](acceptance/r2c-closeout-cycle.md#native-queued-cancellation-and-real-updates)
+adds queued-task keyboard Cancel followed by two real update completions;
 this generated-client result does not establish complete synchronization acceptance. The
 [query interaction record](acceptance/r2c-query-interactions.md) verifies selected native Debug
 search/sort/root/folder/window interaction during publication, folder-window replacement/append,

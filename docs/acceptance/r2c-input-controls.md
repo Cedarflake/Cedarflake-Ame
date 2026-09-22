@@ -421,3 +421,8 @@ An independent read-only review confirms the picker, focused-Enter admission, ex
 ordering, rendered cancellation, observer retirement, membership, source and process receipts.
 It finds no blocker within this selected Debug sequence. Keyboard Cancel, complete focus return,
 Release and real-library acceptance remain outside this result; the review does not rerun them.
+
+The later [native multi-root result](r2c-closeout-cycle.md#native-queued-cancellation-and-real-updates)
+adds the queued-task keyboard Cancel portion: observed traversal and Enter cancel only the queued
+third root while its two peers retain execution ownership and complete real scans. This is selected
+Debug keyboard activation evidence; the complete focus-return and Release variants remain open.

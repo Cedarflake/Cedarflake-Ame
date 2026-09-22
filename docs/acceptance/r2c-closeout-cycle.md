@@ -794,7 +794,7 @@ their actual passing output and unchanged source; the final complete Daily remai
 | UX-05A | Open original, navigate both ways and return; actual decode, correct anchor and released source slots | Viewer/source reader; `integration_test/support/viewer_source_workflow.dart`, `library_viewer_position_test.dart`; Debug decode mapped, Release pending |
 | UX-05B | Close/reopen while paging or buffer copy is pending; old completion/errors remain retired and new navigation works | [Connected viewer and source-lifetime cases pass](#controlled-query-source-and-viewer-evidence); native Release remains open |
 | UX-05C | Same-path source rewrite, then authoritative rename/removal; newest pixels and stable asset until authoritative removal | Viewer source generation; `library_viewer_image_test.dart`, `library_viewer_position_test.dart`; mapped, Release input pending |
-| UX-06A | A/B update while queued C is cancelled; independent progress and only C is cancelled | [Connected task-surface cancellation passes](#multi-root-current-evidence), including both completions, refresh callbacks and execution release; scanner and catalog-refresh ports are controlled |
+| UX-06A | A/B update while queued C is cancelled; independent progress and only C is cancelled | [Native queued cancellation and real updates pass](#native-queued-cancellation-and-real-updates), with exact 10000/512 completions, unchanged C, real catalog refresh and independent execution release; the command-admission interval is controlled |
 | UX-06B | Remove C while A publishes and B continues, then register C while old cleanup remains; no repeated unregister, stale root or cleanup authority | [Connected controller and persistence cases pass](#multi-root-current-evidence); deterministic scan interleaving and old/new spool authority are covered, native UI overlap and physical file reclamation are not |
 | UX-06C | Make fixture A unavailable then restore it while B updates; preserve A's catalog and B's progress | [Connected production recovery case passes](#multi-root-current-evidence), including B publication during A recovery and FULL reopen; notifications are injected, not real watcher delivery |
 | UX-07A | Original 25-sample P0/P1/P2 workload through complete P2 publication, authority retirement, synchronized state and FULL reopen | `production/tests/priority.rs` and `priority/recovery_completion.rs`; original 300-second failure remains S1, discovery observation timing added |
@@ -802,7 +802,7 @@ their actual passing output and unchanged source; the final complete Daily remai
 | UX-07C | Interrupt/reopen exact leases and exhaust recovery retry; retain durable failure/lineage and keep other roots eligible | [Controlled runtime restart, exhausted-candidate barrier and peer eligibility pass](#startup-query-folder-and-recovery-evidence); simulated persisted lease expiry and separate boundary cases do not establish one real EXE-crash lifetime |
 | UX-08A | Jump by scrollbar/time rail then reverse before completion; immediate visible demand and no old seek rollback | Gallery visible range/time navigation; `library_time_navigation_test.dart`; mapped, Release input pending |
 | UX-08B | Original ten-phase populated whole-window UIA sequence and native process exit; no invalid AXTree | `integration_test/windows_accessibility_bridge_test.dart` and existing public runner; prior local pass and hosted timeout both retained |
-| UX-08C | Keyboard menus and task Retry/Cancel; correct focus return, immediate feedback and one committed action | [Actual menu Escape and viewer keyboard verified](r2c-process-lifecycle.md#recovered-real-input-pair); [focused keyboard Retry and pointer Pause-Cancel pass](r2c-input-controls.md#complete-native-input-and-rendered-feedback); keyboard Cancel and the complete focus-return variants remain open |
+| UX-08C | Keyboard menus and task Retry/Cancel; correct focus return, immediate feedback and one committed action | [Actual menu Escape and viewer keyboard verified](r2c-process-lifecycle.md#recovered-real-input-pair); [focused keyboard Retry and pointer Pause-Cancel pass](r2c-input-controls.md#complete-native-input-and-rendered-feedback); [queued-task keyboard Cancel passes](#native-queued-cancellation-and-real-updates); complete focus-return variants remain open |
 
 Flutter filenames above are under their existing `test/app` or `test/features/library` owners;
 Rust test owners are under `rust/src`. This is one fixed cross-layer discovery pass, not a full
@@ -1021,6 +1021,72 @@ three signing-only jobs are skipped. The completed raw receipt is
 `8D050E4E28BCBA66F6B2B485CB58DF62F2CB0BCA63FC6FBA9E4F0DF3C32DD1C6`.
 Local full lint/Daily remains blocked by C02; focused, reused and hosted results do not close
 other frozen client variants or final acceptance.
+
+### Native queued cancellation and real updates
+
+The 2026-09-23 continuation verifies selected Debug UX-06A and the queued-task keyboard Cancel
+portion of UX-08C on product source through `7144a1954cd6c6ce18c022df956cee87b8f3bb55` and
+documentation head `4d04ae3cb118225f28c8af4b7d0ebe5e4e81a1dd`. A fresh derived catalog retains
+the verified generated roots with 10000, 512 and two images. All 10514 source files remain immutable.
+The actual update dialog selects all three in their existing configured order. Two scanner-port
+commands occupy the production controller's two execution slots, with their real Rust invocation
+held until native keyboard cancellation of the queued third root. No fake progress, completion,
+controller action, catalog row or preview state drives the result.
+
+Method review identifies and closes an oracle gap before the sole native lifetime: cancelling C
+must preserve both A/B reservations before the command gate opens, and each active peer must retain
+its reservation through completion. Checking only final empty slots could have accepted premature
+release of all reservations. The diagnostic permanently records unexpected third-root scanning,
+active cancellation, resume, stale keyboard attribution and failed frame invariants. Three focused
+tests cover accepted Enter, wrong/stale attribution and pointer revocation. Seven diagnostic Dart
+files pass formatting and fatal-info analysis. An initial missing-brace lint and a read-only inline
+Python quoting failure are preparation failures, both corrected before native execution. Builds
+take 30.0 and 22.6 seconds; the second includes the reviewed reservation assertions. Diagnostic
+owners contain 164 startup, 222 observation, 136 scanner, 110 run, 65 native-input and 29 admission
+lines, plus 50 dedicated test lines; production and inline-test changes are zero.
+
+Native lifetime `b39d28a64f1a40128f6cb67440590d6f` records:
+
+- The selected two-image gallery has current decoded pixels before updates. Both commands are held
+  at 80043 ms, and the queued C task is rendered at 80101 ms. Three observed Shift-Tab actions reach
+  C's Cancel; a harmless F6 observation identifies that exact root/control before activation.
+- Enter reaches the focused C Cancel at 148999 ms. Keyboard attribution is admitted at 149060 ms,
+  independent cancellation is verified at 149063 ms, and the gate opens at 149068 ms. C's reserved
+  execution retires while A/B retain theirs. No third scanner call or active cancel occurs.
+- Actual A/B Rust calls begin at 149071/149077 ms and emit Started at 149102/149107 ms. Both emit real
+  progress. B completes with 512 images and zero issues at 153954 ms, then its controller completion
+  and released reservation are observed at 154049 ms. A completes with 10000 and zero issues at
+  185237 ms, followed by its controller completion and released reservation at 185337 ms.
+- Ready is traced at 185340 ms, 36272 ms after gate release: all execution slots and task loading
+  retire, the primary operation becomes eligible, C stays cancelled with two catalog items and
+  current pixels, and the three roots total 10514. B's last periodic Progress reports 500 images /
+  514 entries; its distinct Completed/controller result is 512 images / 526 entries. A's final
+  controller result reports 10000 images / 10012 entries. Progress is not used as a completion count.
+- The final observer records 14547 frames and 14541 current-pixel frames, with no latched failure.
+  An observed close exits normally in 347.8156 ms. The 218696 ms parent exits zero; the process,
+  Job and monitor retire with no cleanup failure. Across 817 memory samples, peak working set is
+  453619712 bytes, sampled private memory 389156864, kernel peak commitment 405131264 and minimum
+  system availability 5321584640 bytes.
+- Full before/after source verification passes in 65.255/57.428 seconds. Every generated source
+  retains its expected identity, content and timestamps; the new catalog's exact per-root relative
+  paths remain 10000/512/2, and SQLite quick-check passes.
+
+Ignored `.build/r2c-update-native/` retains the method, input boundary tests and immutable artifact
+admission. `build/integration-storage-51f8dee23c7449b990d2f1f1455b9fd0/` retains source receipts,
+milestones, native trace, final result and owned process/resource evidence. SHA-256 identities are:
+
+- Executable: `2A24C91530C05D88B29ACC4E6FCF73199C237DEB04159B232A9FD7E43BD98DCE`.
+- Rust DLL: `77B193EA7CA1B5CEEC033038E3806490890E5DBB3E818AAD72B062D0A46F50C2`.
+- Debug kernel: `FBB6B93F4FCD89BE336BB1D88DAEEF60732F8A7E277C59CC110688174E9C1959`.
+- Native stdout: `E5318C8C469EE658863A18F59E11B554D2CC616AF39D416FCBFDD96BB6394351`.
+
+This proves queued ownership and native activation followed by real scan/catalog completion.
+The intentionally held command interval is not production scan latency or a backend concurrency
+benchmark. UX-06B/C, complete focus return, C09/C10, Release, C01/C02 and final/external acceptance
+remain separate. No product change or new full Daily is implied by this diagnostic-only slice.
+Independent read-only method/result review confirms the revised reservation checks, native input,
+real completions, source/member integrity, process/resource receipts and scoped document mappings
+without a remaining blocker. Charge the 100-minute reservation in full through 4444 minutes.
 
 ### Observation preparation
 

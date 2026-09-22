@@ -399,6 +399,12 @@ all sources, and exact active catalog paths must remain 10000/512/2. Observer fa
 misdelivery are retained; they require a cause and changed method before replay. UX-06B/C, remaining
 keyboard/focus variants, C09/C10, Release, C01/C02 and final/external acceptance remain separate.
 
+The [native result](../acceptance/r2c-closeout-cycle.md#native-queued-cancellation-and-real-updates)
+passes focused queued Cancel, preserved peer reservations, both real scan/catalog completions,
+exact 10000/512/2 membership, full source integrity and normal owned-process close. Method review
+corrects the peer-reservation oracle before the sole native lifetime. Charge this 100-minute
+reservation in full through 4444 minutes; the remaining named variants and final gates stay open.
+
 #### C01 owned-thread observation calibration
 
 While actual input is unavailable, reserve 40 active minutes: 15 for a process-scoped sampler,
