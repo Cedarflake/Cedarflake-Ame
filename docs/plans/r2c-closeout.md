@@ -359,6 +359,46 @@ sources unchanged and both new sources match their manifest's expected final sta
 lifetimes; any causal change or replay requires a recorded revised method. C09 remains in the later
 S2 pass, while Release, simultaneous multi-root operations and external acceptance stay separate.
 
+The [native result](../acceptance/r2c-browsing-diagnosis.md#native-replacement-and-exclusive-source-recovery)
+passes the admitted old-result/new-generation boundary and exclusive-open/native Retry recovery,
+full generated-source verification and owned process retirement. Charge this 120-minute reservation
+in full through 4344 minutes. Method review corrections precede the sole native lifetime. Preserve
+the indexed picker-input tool rejection and the newly reproduced narrow-thumbnail feedback C10;
+the latter joins C09 in the later S2 pass without interrupting remaining functional variants.
+
+#### Native queued-root cancellation and real update completion
+
+Reserve the next 100 active minutes for UX-06A and the queued-task keyboard Cancel portion of
+UX-08C: 30 for the typed command barrier and read-only native observer, ten for boundary checks,
+15 for one native lifetime, 15 for exact source/catalog checks, 15 for one independent method/result
+review and 15 for records. Cumulative reservation becomes 4444 minutes. Serial build and full-source
+integrity wall time remains separate. No product change, real-root run or source modification joins
+this verification method.
+
+Back up the just-verified generated 10000/512/2 catalog into fresh derived storage. Keep all 10514
+source files immutable. Select the two-image root for a short, usable focus route, then use the
+actual update dialog to select all three roots in their current configured order. The first two
+commands occupy the production controller's existing two execution slots; hold their actual Rust
+command invocation at the scanner port until the queued third task is cancelled. No fake scan
+progress, completed event, root mutation or controller invocation may drive the UI.
+
+Use real keyboard traversal and Enter on the queued third task's observed Cancel button. Record
+the actual focused control/key event and cancellation transition; require no third scanner call,
+no cancellation of the first two commands and retirement of the queued execution reservation.
+Release the two admitted commands only after that proof, then forward every real Rust event and
+ordinary catalog refresh. Require both exact-count completions, distinct unchanged root membership,
+independent execution retirement, cleared task loading and current decoded gallery pixels. Record
+actual native scan start/progress/complete ordering without inferring backend concurrency from the
+two held UI slots. This deliberately controlled command-admission interval proves queued ownership
+and native activation, not production scan latency or the distinct UX-06B/C publication races.
+
+Retain the 900-second native parent, at most 180 seconds from both held commands to the admitted
+Cancel, the existing 300-second post-release completion bound, six-second normal close and original
+2 GiB client/system-reserve limits. Full pre/post identity, content and time checks must preserve
+all sources, and exact active catalog paths must remain 10000/512/2. Observer failures and tool
+misdelivery are retained; they require a cause and changed method before replay. UX-06B/C, remaining
+keyboard/focus variants, C09/C10, Release, C01/C02 and final/external acceptance remain separate.
+
 #### C01 owned-thread observation calibration
 
 While actual input is unavailable, reserve 40 active minutes: 15 for a process-scoped sampler,

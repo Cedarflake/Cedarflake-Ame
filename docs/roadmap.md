@@ -79,7 +79,9 @@ is preserved in the [C04 record](acceptance/r2c-live-gap-recovery.md). **R2C-C05
 browsing workload and transient Retry feedback checks now pass; remaining client variants and final
 gates stay open.** Preview demand, recovered dates and missing-source request retirement have
 owning-layer corrections. The [C05 record](acceptance/r2c-browsing-diagnosis.md) retains the failed
-lifetimes, observer correction and current combined pixel/rail/viewer/feedback evidence. The
+lifetimes, observer correction, combined pixel/rail/viewer/feedback evidence and selected native
+replacement/exclusive-source Retry verification. Deferred sidebar and narrow-thumbnail feedback
+findings remain in the S2 correction pass. The
 [process-lifecycle record](acceptance/r2c-process-lifecycle.md) verifies selected pending-call close,
 actual paused-checkpoint restoration and explicit continuation while preserving failed attempts.
 The [input-control record](acceptance/r2c-input-controls.md) retains the focused pending-pause Cancel

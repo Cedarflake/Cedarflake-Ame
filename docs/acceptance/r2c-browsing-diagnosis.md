@@ -640,3 +640,86 @@ Physical size remains explicit: `local_files.rs` is 7417 lines, with 3426 in its
 including the conditional attribute; the preceding 3991 still mix implementation and test support.
 The dedicated topology suite is 245 lines and the scan suite 5459. This six-line test-contract
 addition does not complete the facade's remaining decomposition.
+
+## Native replacement and exclusive-source recovery
+
+The [bounded method](../plans/r2c-closeout.md#native-preview-replacement-and-unavailable-source-recovery)
+selects generated Debug UX-04B and the exclusive-open branch of UX-04C. Product source remains
+`7144a1954cd6c6ce18c022df956cee87b8f3bb55`; `991d93d` adds documentation only. No product correction is
+made by this slice. The diagnostic uses real Rust import/materialization, production LiveOnly
+watcher publication, actual picker/root selection/Retry input and decoded rendered images.
+
+The original 10000/512 generated sources remain immutable. Two new manifest-owned RGB PNGs are
+4096×1024 and 1024×4096, with 2012 and 2020 modification dates. Their creation dates are current;
+the observed creation-date grouping is not evidence of historical timeline navigation. Replacement
+changes only the first PNG's color, retaining file ID, length, modification and creation times.
+The second PNG is read through an exact `FileShare.None` handle and is never rewritten.
+
+Before launch, six source/handle boundary tests and two decoded-pixel oracle tests pass. They reject
+wrong identity, wrong size, an outside child, wrong color, transparency and a stale generation;
+the exclusive-handle test proves reads fail while held and succeed after disposal. Formatting and
+fatal-info analysis of nine diagnostic Dart files pass. Independent method review identifies
+missing permanent admission-failure recording, unconstrained replacement requests and incomplete
+helper-retirement proof. These are corrected before launch: failures remain latched, each image
+allows exactly two prescribed requests, replacement generation/edge and Retry force/input are
+checked, and the source helper's actual zero exit must precede client close. Win32 path
+normalization and removal of an unused unsafe process-existence probe also precede launch; that
+probe is never executed. The final Debug diagnostic build takes 21.8 seconds.
+
+Native lifetime `27a2cccc0a1d47409a1cdb5c91140ee0` passes:
+
+| Milestone | Elapsed ms | Evidence |
+| --- | ---: | --- |
+| Old real preview held at Dart return | 185408 | Replacement generation 14610; edge 512 |
+| New source publication | 186596 | Same identity/size/mtime, generation 14611; one-path live change |
+| Old result released | 186597 | Production queue retires the old request as superseded |
+| New rendered replacement | 213477 | Current 512×128 decoded image; center RGBA 32,145,225,255 against expected 32,144,224 |
+| Exclusive read failure | 213653 | Real `preview_source_open_failed`, Windows sharing violation 32 |
+| Actionable Retry visible | 213664 | Original location and generation 14609 retained |
+| Native pointer activation | 244734 | Pointer lands inside the observed Retry control |
+| Retry read admitted | 244772 | Exactly second request, force true, edge 256, original generation |
+| Recovered rendered image | 245156 | Current 64×256 decoded image; RGBA 49,200,97,255 against expected 48,200,96 |
+
+The delayed result is held after Rust materialization, before Dart queue publication. It does not
+replace the separate Rust post-decode revalidation regression. Each image has exactly two requests;
+only the initial picker import calls scan, and neither replacement nor Retry adds a scan. Pixel
+admission checks current query/layout/source generation and the resolved preview artifact's
+`RenderImage` label before reading its decoded bytes. The exclusive pixel milestone's source asset
+still has an empty persisted preview path; the rendered artifact comes from the checked preview
+coordinator result, not that field. No placeholder or injected pixel is accepted.
+
+The source helper exits zero and its PID is absent at 21:24:14.8009775 UTC, before close starts at
+21:25:06.059556 UTC. The parent exits zero after 266419 ms; normal close takes 397.4886 ms, with
+process/Job retirement and no cleanup failure. Final observation records 17705 frames, 17671 with
+current gallery pixels, both selected colors and no diagnostic failure. Other transition frames
+are not claimed to contain current pixels. The 998 resource samples record 521162752-byte peak
+working set, 412069888-byte sampled private peak, 455041024-byte kernel peak commitment and
+5168701440-byte minimum system availability, within the retained limits.
+
+Full before/after integrity checks pass in 55.394/56.672 seconds. All 10512 background files retain
+their exact roster, bytes, IDs and baseline dates; both new images match their expected final
+manifest. Exact active catalog memberships become 10000/512/2. The source helper and client are
+retired before the final read-only verification. EXE and Rust DLL hashes remain those of the
+preceding native run; the diagnostic kernel is
+`36870E731111C9F91E32B506C7DE4D4ACBEC38F8B2A30618B83180B33D0C1404`.
+The retained stdout SHA-256 is
+`A8725D3456C1A9967F998ED690A57373ABC89842814B5A46C4A5BC95EC50F66A`.
+Method files and admission remain under `.build/r2c-preview-native/`; the GUID-owned fixture
+retains input traces, exact colors, source manifests, resource and exit receipts.
+
+The picker exposes the existing stale UIA control-cache issue: indexed set-value is rejected before
+input. Screenshot-backed input and the native directory shortcut/type path complete the real picker.
+That rejected tool action is not a product failure or a successful indexed-input claim.
+Release decoding/input, the corruption alternative, simultaneous multi-root overlap, C01/C02 and
+final/external acceptance remain separate. The selected generated Debug UX-04B/C portions pass.
+Independent result review verifies the corrected method, native request/input/color sequence,
+exact source/catalog receipts and owned retirement without a blocking finding. The full reserved
+120 minutes are charged in the execution plan, bringing cumulative reservation to 4344 minutes.
+
+### Deferred narrow-thumbnail feedback finding
+
+C10 is a reproduced S2 presentation issue: in the 48-pixel-wide portrait tile, Retry and retrying
+text wrap vertically and are difficult to read. The enabled target and one-click recovery above
+work; no blocked operation, stale result or data loss is observed. Preserve the narrow-tile case
+for the later S2 correction pass alongside C09. Do not change preview admission, enlarge this
+verification slice or claim the feedback presentation corrected from its functional pass.

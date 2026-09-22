@@ -187,6 +187,14 @@ C01/C02 failures remain unresolved by this later pass. Retained stdout and stder
 `9E2FA01C07C7BC793C3215D545982044C6DAA0FF61E4CEA0C1CD8A5B63337001`; the saved native accessibility
 log is `65FF7C5A7D399202C08F1ED77432C9FED347660A996C07A13D3779FABE85C9FF`.
 
+Hosted [35778908456](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/35778908456), on
+`7144a1954cd6c6ce18c022df956cee87b8f3bb55`, subsequently completes all ten required jobs and the
+aggregate Windows gate successfully. Three signing-only jobs skip. The complete receipt is
+`.build/r2c-search-focus-native/ci-35778908456-complete.json`, SHA-256
+`DC528861D05321B72168B272F660E121EE42111A8FF6A8BA2C4E8A5B57D94703`.
+This hosted checkpoint does not supply the missing local wrapper field or resolve historical
+C01/C02 causality, remaining client variants or external acceptance.
+
 Affected owners contain 15 production lines for availability and 134 for the global bar, with no
 inline tests; dedicated new tests contain 150 and 129 lines. The 2327-line screen receives only an
 import and policy composition call; no search lifecycle is added to it. The shared test catalog gains
