@@ -138,6 +138,36 @@ focused Retry and the subsequent Pause-Cancel sequence are not completed. The ow
 all generated source checks pass, and the 70-minute reservation is charged in full. Do not replace
 the remaining native focus/activation evidence with pointer activation or direct controller calls.
 
+#### Complete keyboard delivery and focus
+
+Reserve 45 active minutes for a changed input method: ten for bounded read-only keyboard/focus
+observation, ten for preparation and focused checks, 15 for one native lifetime, and ten for
+review and records. Cumulative reservation becomes 3744 minutes. Use the updated Computer Use
+plugin and the verified screenshot-coordinate path. Keep the existing focused-Enter retry oracle,
+registration barrier, generated sources, resource limits, 900-second parent and six-second close.
+
+The diagnostic records physical/logical identity, down/up, synthesized events, pressed keys,
+focus changes and application lifecycle without consuming input or requesting focus. Observe a
+plain Tab before importing; compare focus before and after screenshot observation. Once the small
+import exposes its controlled display error, use observed keyboard traversal to Retry and continue
+the existing Pause-Cancel sequence if delivery is correct. Do not repeat failed indexes or blind
+Tab input. A keyboard failure must identify a changed method or owning correction before another
+lifetime; raw delivery alone remains insufficient. No product behavior or permission change is
+admitted merely to make automation pass.
+
+The first lifetime proves focused Enter and native Pause-Cancel ordering, but the 250 ms frame
+sampler misses the cancelling projection between dispatch at 191946 ms and terminal cancellation
+at 191992 ms. Preserve this failed evidence. Admit a 30-minute correction and one changed replay
+(cumulative 3774 minutes): observe every rendered frame using the existing C05 post-frame method,
+prove short-lived feedback and observer retirement with focused widget tests, then repeat the
+unchanged input assertions. Do not delay cancellation, reduce the roster or weaken the oracle.
+
+The [complete native checkpoint](../acceptance/r2c-input-controls.md#complete-native-input-and-rendered-feedback)
+passes focused Enter, both actual pickers, exact Pause-Cancel replay, rendered feedback, retained
+membership/pixels, source integrity and normal exit. Charge both reservations in full. The tool
+input route no longer blocks those selected Debug duties; remaining variants and final gates retain
+their separate obligations. Do not reopen the consumed tool diagnosis without a new failure.
+
 #### C01 owned-thread observation calibration
 
 While actual input is unavailable, reserve 40 active minutes: 15 for a process-scoped sampler,

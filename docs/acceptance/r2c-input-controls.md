@@ -1,11 +1,13 @@
 # R2c picker and task controls
 
-Status: **C06/C07 focused corrections verified; screenshot-based native picker and raw keyboard
-delivery verified; focused Retry and Pause-Cancel remain incomplete**.
+Status: **Selected Debug native picker, focused Enter Retry, pre-registration Pause-Cancel,
+rendered feedback, preserved baseline and normal exit verified**.
 
-This record covers the [actual picker and task-control method](../plans/r2c-closeout.md#actual-picker-and-task-control-method)
-on 2026-09-22. Its source starts at `ef4eee27ca47c1c7e6d3b97e986f9d73da6ded7a`, with the C06
-presentation correction and regression below. It does not accept UX-02A/B/C, UX-08C or all of R2c.
+This record covers the [actual picker and task-control method](../plans/r2c-closeout.md#actual-picker-and-task-control-method).
+The initial 2026-09-22 source starts at `ef4eee27ca47c1c7e6d3b97e986f9d73da6ded7a`, with the C06
+presentation correction and regression below. The [complete native checkpoint](#complete-native-input-and-rendered-feedback)
+uses unchanged product source at `4787c84`. It closes the selected Debug input duties, not Release,
+every UX-08C focus-return variant or all of R2c.
 
 ## C06: cancellation while pause is pending
 
@@ -357,3 +359,65 @@ required focused Enter and pre-registration controls instead of accepting raw ke
 That method must distinguish input from observation effects with before/after focus ownership,
 physical/logical key identities, key-down/up and pressed modifiers. Repeating Tab without those
 observations cannot discriminate a traversal failure from injected-key or activation behavior.
+
+### Complete native input and rendered feedback
+
+The 2026-09-23 continuation uses Computer Use `26.915.31945`, current screenshot-coordinate input
+and observed keyboard focus. A separate diagnostic records key-down/up, physical/logical identity,
+pressed keys, focus and lifecycle without consuming input or requesting focus. Tab and Shift-Tab
+move focus; Enter reaches `library-retry-button`. Immediate accessibility snapshots can lag the
+painted focus; a fresh observation confirms the target before activation. No product behavior,
+permission, installed tool binary, retry oracle or native cancellation delay is changed. These
+observations establish a usable input route, not the cause of earlier indexed-control failures or
+proof that a plugin update alone resolved them.
+
+The first lifetime `24fbe4c35a374c7bb67ccd89fa84c4ce` delivers the complete input ordering, but
+the 250 ms observer misses cancelling between control dispatch at 191946 ms and the terminal event
+at 191992 ms. Its failed result remains under the GUID-owned generated fixture, with exit zero,
+225826 ms parent lifetime, retired Job/monitor and no cleanup failure. Full source checks pass
+before/after in 45.748/42.488 seconds. This lifetime is not accepted as a complete pass.
+
+The corrected diagnostic observes each rendered frame through a persistent/post-frame callback,
+using the existing C05 method. It also requires rendered, nonempty Pause/Cancel label bounds.
+Two focused widget cases pass for feedback shorter than 250 ms and retirement before a queued
+observation. The single-use frame owner has 23 lines, its dedicated tests 38, and the composing
+observation file 216; there are no inline tests or production changes. Formatting and fatal-info
+Dart analysis pass; the final Debug build takes 26.6 seconds. The original focused-Enter,
+registration barrier, exact native-event ordering, membership and source oracles remain intact.
+
+Lifetime `d96c95f4411b4e7ebb25f7dba2061ea1` then passes the complete selected sequence:
+
+- The actual picker imports exactly the three expected Chinese-named images, including PNG bytes
+  under a `.jpg` name, and reports the damaged PNG with `image_decode_invalid`.
+- Observed Shift-Tab traversal focuses Retry; Enter admits one committed display read at 119031 ms.
+  No source rescan or resume occurs, and the task returns to visible completion.
+- The second actual picker selects the frozen 10000-image corpus. Pause and Cancel both report
+  not registered; late Started replays only Cancel, then the native stream drains as cancelled.
+- Rendered Pause and Cancel labels are recorded at 150964/164787 ms. Ready-to-close at 164870 ms
+  verifies exact original membership, no paused/recoverable checkpoint and current baseline pixels.
+  Final observation records 11737 frames, 9934 baseline-pixel frames, 4220 cancelled-pixel frames
+  and zero thumbnail Retry frames.
+- The observed close button exits normally in 326.241 ms. The 195166 ms parent lifetime, process
+  exit, Job closure and monitor retirement pass with no failure. Across 730 samples, peak working
+  set is 443981824 bytes, sampled private bytes 343273472, kernel peak commitment 357355520 and
+  minimum system availability 6164078592 bytes.
+- Full source checks before/after pass in 45.387/42.360 seconds: four small files and all 10000
+  frozen files (10921494393 bytes) preserve exact membership, bytes, identities and timestamps.
+
+Ignored `.build/r2c-input-focus-frames/` retains the diagnostic sources and immutable admission;
+`build/integration-storage-8174d9c28f104ac19f8a5df4d1c5cada/` retains the result, membership, trace,
+process, memory and source receipts. SHA-256 identities are:
+
+- Debug kernel: `C7FB879DA04BC19EB8872E082236380FEB3DD48A7332D448EE619FA89621437F`.
+- Trace: `81FCC16B55864407F28072CE028E737B733B7C2BFD9B5B1972940E5F3DF71119`.
+- Result: `59FB9887B0FB06B7166185821F79E384293D70B70AE4F654606C1E8BAE07DADA`.
+- Observer: `077FACC6FECD81B64AC5369E9C0669010CEFD2696F65148DBFA9B1815539328B`.
+
+The executable and Rust DLL retain their earlier recorded identities. The two reservations are
+charged in full, bringing the conservative envelope to 3774 minutes. No real source, complete
+large-library rescan, Release acceptance or full Daily is implied by this selected input pass.
+
+An independent read-only review confirms the picker, focused-Enter admission, exact native control
+ordering, rendered cancellation, observer retirement, membership, source and process receipts.
+It finds no blocker within this selected Debug sequence. Keyboard Cancel, complete focus return,
+Release and real-library acceptance remain outside this result; the review does not rerun them.

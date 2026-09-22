@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-09-22
+Last planning update: 2026-09-23
 
 This file owns product delivery order, the current focus, blocking obligations, and stage exit
 decisions. Only one stage is active. Detailed product contracts, execution procedures, architecture,
@@ -83,9 +83,8 @@ lifetimes, observer correction and current combined pixel/rail/viewer/feedback e
 [process-lifecycle record](acceptance/r2c-process-lifecycle.md) verifies selected pending-call close,
 actual paused-checkpoint restoration and explicit continuation while preserving failed attempts.
 The [input-control record](acceptance/r2c-input-controls.md) retains the focused pending-pause Cancel
-correction, primary committed-refresh admission correction and partial native-picker/key delivery.
-Focused task activation and Pause-Cancel acceptance remain open.
-Pre-registration actions, remaining
+correction, primary committed-refresh admission correction and the selected native picker,
+focused Enter Retry and pre-registration Pause-Cancel pass. Remaining focus-return variants,
 keyboard controls and Release paths retain their separate frozen duties;
 this generated-client result does not establish complete synchronization acceptance. C01's mixed-load recovery
 failure and C02's automation/evidence failures are recorded for final verification; their current
