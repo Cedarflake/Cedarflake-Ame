@@ -64,6 +64,43 @@ under `.build/r2c-input-retry-scope/`. This is another C01 failure, not a passin
 that the preceding Dart admission correction caused it; the Rust tree is unchanged from the
 previous passing head. No unchanged retry is admitted and all original deadlines remain.
 
+### Identity-retirement observation preparation
+
+The 2026-09-22 read-only preparation matches the retained interval to the ephemeral validation
+handle in `local_files/catalog_identity/diagnostics.rs`. It opens with zero desired access, read/write
+sharing and backup-semantics/no-recall/open-reparse-point flags, observes canonical path and file ID,
+then drops that same handle. This is distinct from the separately held catalog identity guard.
+The printed Rust `ThreadId(1740)` is not a native Windows thread ID. Neither the elapsed interval
+nor the fast preceding identity queries establish whether the caller was blocked or descheduled.
+
+Installed WPR 10.0.26100 exposes `CPU.Light.Memory`, including global context-switch/ready-thread
+collection with 808 system buffers of 1024 KiB. Exporting that definition starts no recording.
+Adding `ProcessExeFilter` to its `SystemProvider` is rejected by the installed read-only
+`-profiledetails` parser with `0xc00ce015`: the attribute is outside that element's schema.
+Microsoft documents this filter on [EventProvider](https://learn.microsoft.com/en-us/windows-hardware/test/wpt/eventprovider),
+not [SystemProvider](https://learn.microsoft.com/en-us/windows-hardware/test/wpt/systemprovider).
+The [scope-filter contract](https://learn.microsoft.com/en-us/windows/win32/api/evntprov/ns-evntprov-event_filter_descriptor)
+also limits its stated PID filtering support to user-mode providers. Moving the same attribute
+or descriptor does not establish process-scoped kernel scheduling evidence.
+
+Keep the exported profile and rejected probe under ignored `.build/r2c-controlled-evidence/`,
+with SHA-256 `FE71719F55D212256454A323973E881ED35F64D6FBEDA48FF2492B909C9BA621` and
+`539573C7991464621DA5ABD5EF965977BEE6E6AAD4C8E03E7A0FC7CAD7EC148A`. The concise original rejection
+is `c01-profile-validation.log`, SHA-256
+`EEC4D9A7069B0E32529786F5975893352D1CC7280213F1062C3C25FA015D952B`.
+No recording, benchmark replay, service/filter change or source-library access occurs. This
+particular WPR method lacks a verified owned-process scope; it is not evidence that all scoped
+diagnostics are impossible, nor a causal correction or a new passing C01 result.
+
+Independent method review takes three minutes and 20 seconds and finds no blocking interpretation
+issue. Charge the 30-minute preparation reservation in full, making 3494 conservatively reserved
+minutes; this is not reconstructed elapsed work. Any next observation must first establish native
+thread identity and its exact run/process lifetime. CPU-time deltas alone do not distinguish
+blocking from runnable descheduling, and a wait-reason bitmap lacks interval ordering/durations.
+Neither is sufficient by itself to attribute the retained delay.
+
+### Earlier mixed-load and functional evidence
+
 The [mixed-media observation](r2c-closeout-cycle.md#mixed-large-image-and-historical-date-observation)
 verifies exact 10000-file inventory/source preservation and historical dates, with actual original
 opens spanning twelve dimensions. Its continuation ends at the fixed deadline with coverage gaps;

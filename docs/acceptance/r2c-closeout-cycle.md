@@ -779,14 +779,14 @@ their actual passing output and unchanged source; the final complete Daily remai
 
 | Variant | Fixed action and expected result | Owning boundary and evidence path |
 | --- | --- | --- |
-| UX-01A | Warm existing catalog starts with usable content; no-change continuity enumerates/opens no source and creates no inventory | Startup/lifecycle; `library_synchronization_lifecycle_owner_test.dart`; Rust `one_hundred_no_change_startups_complete_the_production_observer_path_without_scanning`; mapped, combined client observation pending |
+| UX-01A | Warm existing catalog starts with usable content; no-change continuity enumerates/opens no source and creates no inventory | [Controlled lifecycle and 100 no-change starts pass](#startup-query-folder-and-recovery-evidence); the lifecycle fixture uses a cached-content stand-in, so combined populated-client observation remains open |
 | UX-01B | Close while start/poll is pending, then launch the same fixture catalog; old PID exits within the existing bound and old epoch cannot publish | Window shutdown and synchronization epoch; `window_manager_actions_test.dart`, `library_synchronization_test.dart`; [native close and same-catalog relaunch verified](r2c-process-lifecycle.md); actual late-after-stop completion remains covered by controlled races |
-| UX-01C | Launch with interrupted first import; display paused checkpoint, require explicit Continue, preserve truthful portable capability | Scan restoration; `library_controller_test.dart`, `library_viewer_position_test.dart`; [real paused restoration and explicit continuation verified](r2c-process-lifecycle.md#recovered-real-input-pair); portable-capability assertion remains open |
+| UX-01C | Launch with interrupted first import; display paused checkpoint, require explicit Continue, preserve truthful portable capability | [Real paused restoration and explicit continuation verified](r2c-process-lifecycle.md#recovered-real-input-pair); [controlled portable-capability mapping and notification pass](#startup-query-folder-and-recovery-evidence), their combined native lifetime remains open |
 | UX-02A | Import through the actual picker with Chinese paths, wrong-extension PNG and damaged input; exact count/issues and unchanged source | Primary scan, media admission; [graphical lifetime reaches three accepted images and one issue](r2c-input-controls.md#graphical-input-and-read-attribution), but the complete control lifetime and exact issue oracle remain open; current-source input binding fails separately |
 | UX-02B | Pause then cancel before native Started/registration; cancel wins, late Started does not regress feedback, execution retires | Scan control and task surface; [C06 connected regression and correction pass](r2c-input-controls.md#c06-cancellation-while-pause-is-pending), current native control path remains open |
 | UX-02C | Cancel replacement before commit or fail display after commit; preserve previous baseline or retry display exactly once without rescan | Publication control, committed refresh; Rust `accepted_cancel_before_projection_commit_preserves_the_published_baseline`, `library_primary_scan_workflow_test.dart`; mapped, [prepared native retry was not reached](r2c-input-controls.md) |
-| UX-03A | Switch root/search/sort and cross a page while publication proceeds; latest query owns coherent page/count/timeline | Query snapshot and viewport; `library_query_snapshot_reader_test.dart`, `library_controller_test.dart`; mapped, Release input pending |
-| UX-03B | Expand a folder, change revision, load another folder page; replace obsolete window and append only at the same revision | Folder paging; `library_folder_controller_test.dart`; mapped, Release input pending |
+| UX-03A | Switch root/search/sort and cross a page while publication proceeds; latest query owns coherent page/count/timeline | [Controlled query/page ownership cases pass](#startup-query-folder-and-recovery-evidence); actual combined interaction and Release input remain open |
+| UX-03B | Expand a folder, change revision, load another folder page; replace obsolete window and append only at the same revision | [Eight folder-controller cases pass](#startup-query-folder-and-recovery-evidence); actual folder-control and Release input remain open |
 | UX-03C | Fail display after committed removal/update, replace query and explicitly retry; retain page, settle loading and never repeat source action | [Controlled query/removal transitions pass](#controlled-query-source-and-viewer-evidence); actual native Retry remains open |
 | UX-04A | Materialize cold then warm actual media previews; verify pixels, source version, cache ownership and unchanged source | Preview store/media adapters; `media_format_tests.rs`, existing seven-format acceptance; mapped, Release decoding pending |
 | UX-04B | Rewrite fixture with identical size/ID/mtime while the old request is pending; reconcile one path and show new pixels, reject old publication | [Post-decode same-metadata replacement passes](#controlled-query-source-and-viewer-evidence); [stationary gallery automatically loads the published replacement](#stationary-gallery-preview-delivery) through controlled synchronization; native observation remains separate |
@@ -799,7 +799,7 @@ their actual passing output and unchanged source; the final complete Daily remai
 | UX-06C | Make fixture A unavailable then restore it while B updates; preserve A's catalog and B's progress | [Connected production recovery case passes](#multi-root-current-evidence), including B publication during A recovery and FULL reopen; notifications are injected, not real watcher delivery |
 | UX-07A | Original 25-sample P0/P1/P2 workload through complete P2 publication, authority retirement, synchronized state and FULL reopen | `production/tests/priority.rs` and `priority/recovery_completion.rs`; original 300-second failure remains S1, discovery observation timing added |
 | UX-07B | Same workload with per-poll versus per-epoch connection lifetime; preserve proof and production P95 bound | `priority/connection_lifetime_control.rs`; [current hosted P0 timeout retained](r2c-interleaving-remediation.md#hosted-mixed-load-recurrence-on-9359618), earlier passing controls do not close it |
-| UX-07C | Interrupt/reopen exact leases and exhaust recovery retry; retain durable failure/lineage and keep other roots eligible | Production restart/stop and queue retry owners; `production_restart_recovers_an_expired_live_gap_lease_and_retains_its_consumer_lineage`, `exhausted_recovery_candidate_prevents_authority_completion`; mapped |
+| UX-07C | Interrupt/reopen exact leases and exhaust recovery retry; retain durable failure/lineage and keep other roots eligible | [Controlled runtime restart, exhausted-candidate barrier and peer eligibility pass](#startup-query-folder-and-recovery-evidence); simulated persisted lease expiry and separate boundary cases do not establish one real EXE-crash lifetime |
 | UX-08A | Jump by scrollbar/time rail then reverse before completion; immediate visible demand and no old seek rollback | Gallery visible range/time navigation; `library_time_navigation_test.dart`; mapped, Release input pending |
 | UX-08B | Original ten-phase populated whole-window UIA sequence and native process exit; no invalid AXTree | `integration_test/windows_accessibility_bridge_test.dart` and existing public runner; prior local pass and hosted timeout both retained |
 | UX-08C | Keyboard menus and task Retry/Cancel; correct focus return, immediate feedback and one committed action | Shared menu/task surfaces; [actual menu Escape and viewer keyboard verified](r2c-process-lifecycle.md#recovered-real-input-pair); [C06 focused correction and failed input lifetime retained](r2c-input-controls.md); native task Retry/Cancel and complete focus assertions remain open |
@@ -807,6 +807,47 @@ their actual passing output and unchanged source; the final complete Daily remai
 Flutter filenames above are under their existing `test/app` or `test/features/library` owners;
 Rust test owners are under `rust/src`. This is one fixed cross-layer discovery pass, not a full
 repository audit. No UI redesign, source operation feature, dependency or schema change is admitted.
+
+### Startup, query, folder and recovery evidence
+
+The 2026-09-22 documentation check matches exact assertions and retained output from production
+source `935961800893862a2a2d0cf50ce6f31673ce3f12`. Through `9c584a0`, only the preview-source and
+stationary-gallery test files change under `lib`, `rust/src` and `test`; these owners/tests remain
+unchanged. No new workload is run for this check.
+
+- **UX-01A:** the lifecycle test shows a `cached library` text fixture while native start is held,
+  closes immediately and rejects its late completion. This is a responsiveness boundary, not a
+  populated gallery. The separate production test performs 100 real observer startups against a
+  controlled no-change journal session. It checks zero media-content opens, source enumeration,
+  spool/inventory creation or added scan rows, with one watcher handle per start and 200–300
+  metadata-only availability probes. Observer handle creation is not zero filesystem activity.
+- **UX-01C:** all six Rust continuity values map independently of healthy live freshness. The
+  connected AmeApp test displays the live-only notice with its explicit closed-process limitation,
+  deduplicates four subsequent snapshots and yields to an actual blocked-root notification.
+  These controlled snapshots are separate from the verified native paused-import relaunch.
+- **UX-03A:** sort, root and search queries retire a held visible-range result; late completion
+  cannot restore its page or loading state. Separate cases retain the old page until anchored
+  publication, reject stale query/pagination results, and read one coherent page/timeline snapshot.
+  This covers ownership transitions, not a single native interaction combining every stimulus.
+- **UX-03B:** eight folder cases cover coherent newer windows, complete replacement on revision
+  change, cursor reset after invalidation, late-response rejection, bounded same-revision append,
+  cross-revision append rejection, cache invalidation and retained folders on page failure.
+- **UX-07C:** runtime restart consumes a deliberately persisted expired Live lease and retains
+  its P2 consumer lineage without an automatic full scan. The exhausted-candidate test leaves
+  recovery Comparing, its control leased and authority unretired. Separate retry tests retain
+  failure/degraded state and exclude exhausted scheduling. The peer test leases ready-root debt
+  once while blocked-root attempts remain zero, then restores eligibility after an injected
+  unblock. SQL-seeded expiry and injected root status are explicit controls, not an EXE crash or
+  one combined exhaustion/restart/peer lifetime.
+
+The retained Flutter log and hash are identified in the following controlled-evidence section.
+Exact passing output occurs at lines 435 (startup), 536–542/773–779 (query), 596–604 (folder),
+827 (continuity mapping) and 1184 (capability notification). The retained Static/Rust log records
+no-change startup at 1652, restart at 2219, exhaustion at 829/843/844 and peer eligibility at 2223.
+Its unrelated C01 failure still prevents an overall job pass. Rechecking the existing hashes and
+unchanged owning source validates reuse; it does not renew native or final-gate evidence.
+Charge the 20-minute documentation reservation in full: 3514 conservatively reserved minutes,
+not measured elapsed work. Native input/Release, C01/C02, final review and external exits remain.
 
 ### Controlled query, source and viewer evidence
 

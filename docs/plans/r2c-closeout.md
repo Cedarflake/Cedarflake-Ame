@@ -89,6 +89,46 @@ mechanism, source access, persistence strategy or retry policy is admitted.
 
 ### Complete scope and retained readability findings
 
+#### Remaining controlled evidence reconciliation
+
+Reserve 20 active minutes after C01 observation preparation: ten to match the remaining startup,
+portable-capability, folder/query and recovery-lineage roster entries to their actual assertions,
+five to match unchanged source to retained passing output, and five for records and document checks.
+The conservative cumulative reservation becomes 3514 minutes. This documentation-only block admits
+no new workload, product correction, UI input, source access or gate replay. Record separate
+controlled proofs and missing connected/native observations; do not compose separate tests into a
+single claimed client lifetime or mark a frozen variant complete merely because its tests exist.
+
+The [reconciliation record](../acceptance/r2c-closeout-cycle.md#startup-query-folder-and-recovery-evidence)
+matches exact passing output and unchanged owners for all five selected entries. It retains the
+cached-content stand-in, injected capability, SQL-seeded lease expiry and separate peer test limits.
+No new test or product change was needed; charge the 20-minute reservation in full. Actual native
+input/Release, C01/C02, final accumulated review and external prerequisites remain open.
+
+#### C01 identity-retirement diagnostic preparation
+
+With the preview delivery slice verified and native input blocked, reserve 30 active minutes for
+read-only preparation of the deferred C01 exit: ten to match the latest failing interval to its
+exact arm/source/handle lifetime, ten to inspect available process-scoped observation capabilities,
+five for one independent method review and five for records. The conservative cumulative
+reservation becomes 3494 minutes. This admits no benchmark replay, tracing session, filter/service
+change, new dependency, source access or product correction.
+
+Distinguish time spent inside native retirement from descheduling of its calling thread; a
+wall-clock interval around `drop(file)` cannot establish which occurred. Preserve the failed
+PerPoll control and unexecuted PerEpoch arm separately from production full-recovery evidence.
+Prepare a bounded, reviewable next experiment only if the installed tools can observe the exact
+owned process without collecting unrelated application data. Do not weaken any original deadline,
+skip namespace proof, defer resource cleanup or introduce a compensating retry merely to pass.
+If that observation cannot be scoped, record the missing capability and continue unaffected work.
+
+The [preparation checkpoint](../acceptance/r2c-interleaving-remediation.md#identity-retirement-observation-preparation)
+confirms that the proposed installed WPR profile cannot supply the required owned-process scope.
+No tracing or workload replay was started. Independent method review takes three minutes and
+20 seconds; charge the 30-minute reservation in full. A later method must first prove native
+thread identity, scope, bounded overhead and an explicit inconclusive outcome. CPU time or a
+wait-reason bitmap alone cannot attribute the complete interval. C01 remains unresolved.
+
 #### Preview demand after source supersession
 
 Reserve 60 active minutes after controlled evidence completion: ten for the delivery boundary,
