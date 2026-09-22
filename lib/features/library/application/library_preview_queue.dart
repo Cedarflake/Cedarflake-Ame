@@ -3,10 +3,11 @@ import "dart:async";
 import "package:flutter/foundation.dart";
 
 import "../domain/library_models.dart";
+import "library_preview_order.dart";
 import "library_preview_store.dart";
 import "library_previewer.dart";
 
-enum LibraryPreviewPriority { idle, guard, nearDirection, visible, viewer }
+export "library_preview_order.dart" show LibraryPreviewPriority;
 
 enum LibraryPreviewRequestOutcome {
   ready,
@@ -364,18 +365,18 @@ class LibraryPreviewQueue {
         continue;
       }
       final current = best;
-      final requestRank = _demandRanks[request.asset.locationId];
-      final currentRank = current == null
-          ? null
-          : _demandRanks[current.asset.locationId];
-      if (current == null ||
-          request.priority.index > current.priority.index ||
-          (request.priority == current.priority &&
-              requestRank != null &&
-              (currentRank == null || requestRank < currentRank)) ||
-          (request.priority == current.priority &&
-              requestRank == currentRank &&
-              request.sequence < current.sequence)) {
+      if (current == null) {
+        best = request;
+        continue;
+      }
+      if (isPreviewRequestPreferred(
+        priority: request.priority,
+        demandRank: _demandRanks[request.asset.locationId],
+        sequence: request.sequence,
+        currentPriority: current.priority,
+        currentDemandRank: _demandRanks[current.asset.locationId],
+        currentSequence: current.sequence,
+      )) {
         best = request;
       }
     }
