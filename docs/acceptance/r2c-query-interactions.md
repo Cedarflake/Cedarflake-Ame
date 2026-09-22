@@ -1,6 +1,6 @@
 # R2c native query interactions
 
-Status: selected native Debug interaction passes; Release and folder-page revision acceptance remain open
+Status: selected native Debug query, folder membership and continuous search paths pass; final gates and remaining client variants are open
 
 ## Scope and invariant
 
@@ -107,3 +107,102 @@ times, current-pixel milestones, exact source/catalog membership and matching ru
 receipts. It retains every limitation above and does not accept all of R2c. Documentation checks
 confirm valid UTF-8, existing local link targets, unchanged admitted artifact hashes and clean
 `git diff --check`. No new heavy product gate is claimed for these documentation-only changes.
+
+## Native folder window across publication
+
+The [75-minute method](../plans/r2c-closeout.md#native-folder-paging-across-publication) runs on
+production source `144ceade532610e6be9aedf13d5bdf73fb6ade55`. Run
+`3541d7e32d124d6cb34c47a7c18bfe24`, app PID 33004 and parent 9748, imports 201 generated images in
+201 child folders. One subsequent generated image creates `a-new`, before every initial folder.
+Both native Show More actions use production catalog and folder-controller behavior.
+
+| Observed boundary | Time (ms) | Result |
+| --- | ---: | --- |
+| First expanded branch | 122512 | Exactly 200 children at revision 620, cursor `folder-199` |
+| Synchronized addition | 139396 | Exactly 202 images; later catalog revision settles at 622 |
+| First native Show More | 188899 | Revision 622 replaces the old 200 with `a-new` through `folder-198` |
+| Second native Show More | 225461 | Same revision appends only `folder-199/200`; exactly 202 and no remaining cursor |
+| Root search `200` | 340428 | Exactly one matching asset with current decoded pixels |
+| Select `folder-200` | 379210 | Same single asset under the selected folder and current query identity |
+
+The replacement request has `after=null`: the controller invalidates the old branch before reading.
+This proves the native UI's cross-publication replacement and same-revision append. The separate
+Rust old-cursor fallback remains covered by its existing controlled tests, not by this request.
+Four diagnostic boundary cases reject wrong replacement members, duplicate/missing append members,
+cross-revision append and invalid cursors. Search/timeline predicates are byte-identical to the
+previously verified helpers. The Debug build passes formatting/fatal-info analysis in 23.5 seconds.
+
+All 7843 observed frames are free of diagnostic failure; 7773 contain current decoded pixels.
+Normal close takes 320.9521 ms; the 391386-ms parent exits zero, closes its Job and records no cleanup
+failure. Full source checks take 49.082 seconds before and 54.187 seconds after. Exact final active
+catalog memberships are 202, 512 and 10000; every expected source hash, identity and date is retained.
+The 1473 memory samples record 705155072-byte peak working set, 638349312-byte sampled private peak,
+662622208-byte kernel peak commit and 5016555520-byte minimum system availability.
+
+The Debug EXE and Rust DLL hashes match the preceding query run. The diagnostic kernel hash is
+`72C76315FC5F1B9A6AE80BDEA2D80AE95147F6DF4ADD7D1A48FBA178ECED76DF`. Independent method and result
+reviews accept only these exact membership, revision, pixel, source and lifetime boundaries.
+The full 75-minute reservation is conservatively charged, bringing the reservation to 4024 minutes.
+
+Two interaction findings remain explicit. The first Show More resets the sidebar to the top, so
+another scroll is needed before the second action (C09). Search requires refocusing between
+characters once each debounced query starts (C08). The one-image result proves matching membership,
+not uninterrupted typing. Neither interaction is accepted by the passing folder data assertions.
+
+## C08: uninterrupted search input
+
+The [bounded correction](../plans/r2c-closeout.md#search-focus-during-query-refresh) targets a direct
+input defect. `LibraryGlobalBar` derived SearchBar editability from aggregate `isBusy`, which becomes
+true during ordinary query loading. Material's disabled field loses focus, including after a failed
+query. Two connected tests fail on those focus assertions before the production change.
+
+Search editability now has one read-only presentation policy. Ordinary query reads can be replaced
+without disabling the editor; primary execution, time-navigation and committed-removal exclusions
+remain. Query generations, late-result admission, native source commands and focus mechanics are
+unchanged. Independent review finds and corrects an overbroad removal-kind condition: an uncommitted
+unregister failure releases publication and must allow further search. A connected command-failure
+case and a policy boundary cover that terminal state.
+
+Three connected focus tests, six availability tests and eight existing retained-task interaction
+tests pass. The initial test compilation referenced the wrong diagnostic field; correcting it exposes
+the two actual pre-fix failures rather than treating compilation as behavioral evidence. The first
+full lint invocation reaches successful Clippy output but PowerShell 5.1's outer redirection turns
+native stderr into an exception. It is a failed command, not a completed lint pass. The canonical
+unredirected run passes all guardrails, formatting and Clippy, then rejects one redundant import
+in the new connected test. That import is removed; the complete Daily's full lint component now
+passes guardrails, formatting, Clippy and fatal-info analysis. The remaining Daily components are
+running at this checkpoint.
+
+Affected owners contain 15 production lines for availability and 134 for the global bar, with no
+inline tests; dedicated new tests contain 150 and 129 lines. The 2327-line screen receives only an
+import and policy composition call; no search lifecycle is added to it. The shared test catalog gains
+one pre-commit failure injection. No schema, dependency, bridge, source-media or licensing change is
+introduced. C09 retains a separate correction duty; Release and complete R2c acceptance stay open.
+
+### Native continuous-search result
+
+Run `1a746f1a564b4826a69b2c66d24ebede` uses the corrected production source, app PID 12524 and
+parent 26900. A fresh generated-only catalog repeats the 201-child import, one-image addition,
+200-child replacement and same-revision append. One pointer action focuses SearchBar, followed by
+physical `2`, `0`, `0` keys without refocusing. The observed text changes at 506493, 516831 and
+524587 ms; both gaps exceed the unchanged 250 ms debounce. All 166 focus-observation frames retain
+focus. Each text starts and completes its own query; `200` settles to one current decoded image at
+524928 ms. Selecting `folder-200` then retains that exact asset at 556181 ms.
+
+The ready marker records 9763 frames and 9711 current-pixel frames. Observation continues until
+normal close, giving final totals of 9936 and 9884 with no diagnostic or Retry failures. This
+lifetime verifies uninterrupted native input after settled query reads; superseded and failed reads
+retain their connected-test evidence rather than being inferred from this native sequence.
+
+The process exits zero after 590975 ms; close-to-exit is 349.9711 ms and its Job closes without
+cleanup failure. The 2225 memory samples record 699211776-byte peak working set, 672264192-byte
+sampled private peak, 673009664-byte kernel peak commit and 5259980800-byte minimum system availability.
+Full source checks pass before and after in 49.236 and 48.849 seconds, with exact final active
+memberships 202/512/10000 and unchanged expected bytes, identities and dates.
+
+The Debug build completes in 26.1 seconds after format and fatal-info analysis. Its EXE and Rust
+DLL retain the preceding hashes; the corrected diagnostic kernel is
+`65FFE4E1CA3361B1F55B7AC2575A854C0390431C9A96924EA111C1F3B969AC01`.
+Independent scoped review accepts the input, pixel, source and retirement evidence, preserving
+C09 and all final/Release duties. Charge the 120-minute reservation in full, bringing the cumulative
+reservation to 4144 minutes; serial verification wall time is separate.

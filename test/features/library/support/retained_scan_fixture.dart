@@ -228,6 +228,7 @@ class RetainedScanCatalog
   bool failAfterRemoval = false;
   Object? loadFailure;
   Object? timelineFailure;
+  Object? unregisterFailure;
   int firstLoads = 0;
   int afterLoads = 0;
   int beforeLoads = 0;
@@ -308,6 +309,9 @@ class RetainedScanCatalog
 
   @override
   Future<bool> unregisterRoot(String rootId) async {
+    if (unregisterFailure case final failure?) {
+      throw failure;
+    }
     removedIds.add(rootId);
     roots.removeWhere((root) => root.id == rootId);
     if (rootId == "retained") {

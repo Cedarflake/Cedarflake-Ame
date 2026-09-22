@@ -223,6 +223,95 @@ corrected validator, actual-action timestamps, current-pixel evidence and remain
 Charge the reservation through 3949 minutes without reopening these completed selected Debug cases.
 The frozen folder cursor/revision, removal Retry and Release obligations remain next in their scope.
 
+#### Native folder paging across publication
+
+Reserve 75 active minutes: 25 for an isolated fixture/observer, ten for diagnostic boundary cases,
+15 for one native lifetime, 15 for independent method/result review and ten for records. Cumulative
+reservation becomes 4024 minutes. This is the remaining UX-03B native folder window/revision path,
+with one selective search check supporting UX-03A. Keep the retained 10000/512 generated sources
+immutable and back up only their derived catalog into a fresh GUID-owned directory.
+
+Import 201 generated images in 201 direct child folders through the real picker. Expand the root
+and prove its first 200-item branch, cursor, counts and rendered children. Add exactly one generated
+image under `a-new`, sorting before all initial children; preserve immutable mutation intent and
+source receipts. After production watcher publication reaches 202 images, activate the actual
+Show More control. The new 200-item window must replace the old one, include `a-new` and exclude
+the old boundary member. A second native Show More must append only the remaining two children at
+the same revision, with exact order, no duplicates/gaps, no cursor and no folder error. Search the
+root for `200` to show its single matching image, then select `folder-200` and prove current pixels.
+Preparation rejects an enclosing path containing the search token so it cannot match every file.
+
+Use production controllers and catalog behavior, with read-only query/folder/frame observation.
+Do not drive presentation callbacks, substitute pages, delay publication, change the 200-item page
+size or reset catalog state. Reuse the existing owned Job, 900-second parent, 300-second convergence,
+six-second close, 2 GiB client and 2 GiB system reserve. Verify all source hashes, identities and
+dates before/after and exact final 202/512/10000 catalog membership. Preserve failed lifetimes; an
+observer or product failure requires a causal checkpoint and changed method before another run.
+Release, committed-removal Retry and external acceptance remain separate duties.
+
+The [native folder result](../acceptance/r2c-query-interactions.md#native-folder-window-across-publication)
+passes exact replacement/append membership, pixels, source integrity and owned normal exit. The
+replacement request begins without a cursor after controller invalidation; do not mislabel it as
+native Rust old-cursor fallback coverage. Charge the full reservation through 4024 minutes. Retain
+C08 search-focus loss and C09 sidebar position separately from the passing folder-data assertions.
+
+#### Search focus during query refresh
+
+Reserve 120 active minutes after the native folder run: 20 for a failing connected regression and
+policy boundary, 30 for correction, 25 for focused verification and a native lifetime, 20 for one
+independent review, and 25 for records and final-gate preparation. Cumulative reservation becomes
+4144 minutes. Serial gate/build wall time remains separately recorded. The existing goal admits
+this directly observed UX-03A input failure without a new branch or renewed permission request.
+
+The native folder run requires refocusing between search characters: `LibraryGlobalBar` disables
+the Material SearchBar whenever query loading contributes to `isBusy`. Prove that causal boundary
+with a held query response and focus/continued-input assertions before editing production code.
+Separate search editability from aggregate busy state; preserve picker, active scan, time-navigation
+and committed-removal exclusions. Keep query generation, admission, publication and late-result
+guards unchanged. Do not add focus restoration, timers, retries or a second query owner.
+
+Use the existing Material SearchBar and an independently testable read-only availability policy.
+Cover pending and completed refresh, a newer query replacing an older one, and the preserved task
+exclusions. Then use actual native keystrokes separated by more than the existing debounce without
+refocusing, verify the final query and decoded image, normal exit and unchanged generated sources.
+Record the observed folder sidebar jump separately as a bounded UX-03B follow-up; it does not erase
+the exact native folder membership/revision evidence or join this search correction. Run focused
+tests, full lint/Daily and the affected client check serially; retain every failure and remaining
+Release/external duty. Stop unchanged reruns if causality or the corrected boundary fails.
+
+The [C08 result](../acceptance/r2c-query-interactions.md#c08-uninterrupted-search-input) passes 17
+focused regressions and actual continuous native input without refocusing, with current pixels,
+full generated-source integrity, owned exit and scoped independent review. Charge the reservation
+through 4144 minutes. Preserve both initial lint failures. Complete Daily's full lint now passes;
+its remaining components and the Release/client duties stay open. C09 remains a separate follow-up.
+
+#### Native committed-removal display Retry
+
+After the C08 code checkpoint, reserve 80 active minutes: 25 for a narrow fixture and read-failure
+observer, ten for its positive/negative checks, 15 for one native lifetime, 15 for independent
+method/result review and 15 for records. The cumulative reservation becomes 4224 minutes. Prepare
+while serial gates run, but do not build or launch another client before their owned processes exit.
+This targets the missing removal side of UX-03C; it does not reopen completed import Retry cases.
+
+Back up the verified generated-only 10000/512 catalog into fresh isolated derived storage. Select
+the retained mixed root through native input, then use the actual source menu and confirmation to
+remove only the 512-image root from that derived catalog. All source files stay untouched. Wrap
+the existing Rust catalog port to fail exactly the first post-commit display read; the unregister
+operation itself remains real and must be observed exactly once. Preserve the retained page,
+truthful committed failure, actionable Retry and the existing command exclusions. Activate Retry
+with observed keyboard focus and Enter. Require one successful display reload, no second unregister
+or scan, cleared loading, exact remaining root/count/timeline identity and decoded pixels.
+
+After successful Retry, use native search/root navigation to prove browsing is usable. Do not
+enable query replacement during a committed-removal exclusion merely to meet the fixture; the
+existing update/query supersession cases retain their controlled evidence. Use the existing
+900-second parent, six-second normal close, 2 GiB client and 2 GiB system reserve. Full before/after
+source verification must preserve all 10512 images even though active catalog membership becomes
+10000. Keep diagnostic failure injection explicit and separate from real backend error provenance.
+A failed observer or product boundary requires a recorded cause and changed method before replay.
+C09 remains registered for the later S2 pass; Release, multi-root overlap and external gates are
+not implied by this lifetime. No product-code change is admitted by this verification method.
+
 #### C01 owned-thread observation calibration
 
 While actual input is unavailable, reserve 40 active minutes: 15 for a process-scoped sampler,

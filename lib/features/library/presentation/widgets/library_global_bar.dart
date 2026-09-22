@@ -11,7 +11,7 @@ import "../library_strings.dart";
 
 class LibraryGlobalBar extends StatelessWidget {
   const LibraryGlobalBar({
-    required this.isBusy,
+    required this.isSearchEnabled,
     required this.searchController,
     required this.onSearchChanged,
     required this.notifications,
@@ -20,7 +20,7 @@ class LibraryGlobalBar extends StatelessWidget {
     super.key,
   });
 
-  final bool isBusy;
+  final bool isSearchEnabled;
   final TextEditingController searchController;
   final ValueChanged<String> onSearchChanged;
   final AmeNotificationState notifications;
@@ -87,7 +87,7 @@ class LibraryGlobalBar extends StatelessWidget {
                           maxHeight: 44,
                         ),
                         controller: searchController,
-                        enabled: !isBusy,
+                        enabled: isSearchEnabled,
                         hintText: LibraryStrings.searchHint,
                         leading: const Icon(Symbols.search_rounded),
                         trailing: [

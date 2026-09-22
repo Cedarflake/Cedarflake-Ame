@@ -24,6 +24,7 @@ import "../domain/library_state.dart";
 import "../domain/library_synchronization_models.dart";
 import "gallery_selection.dart";
 import "library_strings.dart";
+import "library_search_availability.dart";
 import "library_task_surface_selection.dart";
 import "library_viewer_session.dart";
 import "widgets/annotated_time_rail.dart";
@@ -814,7 +815,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                   Column(
                     children: [
                       LibraryGlobalBar(
-                        isBusy: state.isBusy,
+                        isSearchEnabled: canEditLibrarySearch(state),
                         searchController: _searchController,
                         onSearchChanged: _onSearchChanged,
                         notifications: notifications,
