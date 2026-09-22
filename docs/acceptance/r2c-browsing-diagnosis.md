@@ -479,3 +479,129 @@ a complete bulk replay, post-deletion transient-error diagnosis, Release or fina
 The scoped evidence recheck charges three further review minutes (eleven total) and narrows the
 stimulus timestamp statement to the oracle's actual proof. It finds no remaining material mismatch;
 it does not repeat product review or admit another native run.
+
+## Accumulated candidate and transient preview feedback
+
+Native lifetime `c2f1c0bf7edf407fa57989dc53505062` on `fbc69fe` passes the complete generated-only
+10000-image import, 12-item baseline, 2000 additions, 1500 removals, historical-date navigation and
+eight viewer round trips. Its 299586 ms parent lifetime exits zero with confirmed process/Job
+retirement and no cleanup failure; synchronization stops in 22 ms before framework unmount.
+All 32 pixel observations contain current decoded images (12 to 21 visible tiles), all 96 viewer
+transition frames and 12 refresh frames pass, and no same-revision manifest mismatch is observed.
+Addition-to-visible has a 94129 ms upper bound; deletion-to-final-pixels takes 60968 ms.
+
+The 1121 resource samples record 769011712 peak working-set bytes, 1163280384 sampled private bytes,
+1235021824 kernel peak commitment and 5003214848 minimum system-available bytes. Full source checks
+pass before/after in 46.843/41.909 seconds for the frozen 10000 files (10921494393 bytes) and all
+512 stimulus survivors (704936782 bytes). They prove exact membership, hashes, size and file identity;
+the frozen corpus also preserves baseline timestamps. Stimulus timestamps retain the earlier
+stability-during-read limitation. Receipts remain in ignored `.build/c05-candidate/` and its owned
+storage. The executable/kernel/Rust DLL SHA-256 values are respectively
+`2A24C91530C05D88B29ACC4E6FCF73199C237DEB04159B232A9FD7E43BD98DCE`,
+`20122DFEF3D403E2BF16BF80057B67B64E48B723BE0775CAC25BD7FFC27D8FBB` and
+`058993390BE5C37E35F391912ABE9F4A4050D9604361D1DDA293B7D70E52DB7F`.
+
+This successful lifetime does not close transient feedback. Its 127 materialization exceptions all
+occur after removal, report Windows file-not-found through `preview_source_open_failed`, and match
+the exact deleted roster. All 700 returned materializations are ready: 110 initial, 281 addition and
+309 removal. The trace does not observe Flutter artifact-read/decode errors, so no generation-phase
+feedback pass follows from those totals. The follow-up uses a visible Retry-control frame oracle.
+
+The deletion regressions fail on the original source: missing files are treated like generic I/O
+failure both with and without existing path work. Four front-end regressions also fail: three
+command errors downgrade a ready artifact, and an already-removed active location becomes failed.
+The correction classifies missing children only after root admission and invokes the existing
+guarded exact-path reconciliation. A queued path keeps its owner; recreated files and offline roots
+cannot be removed from the earlier missing observation. The front end preserves ready artifacts on
+command errors while accepting source-authorized failed artifacts and retiring obsolete requests.
+
+Initial focused results are 34 passing Rust preview cases and 54 passing queue/coordinator/tile
+cases. Independent review finds a new repeat-attempt risk in preserving ready artifacts; a focused
+coordinator test reproduces it. The correction extracts size-attempt ownership, distinguishing a
+verified size from a failed same-source/size attempt. Changed demand, source, explicit retry and
+authority reset preserve re-admission; root availability keeps its existing cooldown. Client
+evidence for this correction remains separate from the initial results. The final focused
+set passes all 34 Rust preview cases and 52 Dart coordinator/projection/queue cases (13/10/29).
+It includes the failed-attempt regression, actual request-size completion, explicit retry, changed
+source/demand and the original root cooldown. The independent review and its single scoped recheck
+consume 295 seconds in total; the repeat-attempt finding is closed with no remaining blocker in
+that reviewed scope. This does not constitute final accumulated-change review.
+
+The first full lint attempt stops in the existing C02 `Write-AmeWindowsUiaProbeRecord`/`File.Replace`
+path (`integration_test_windows_accessibility_guardrails.ps1:326`, unable to remove the file being
+replaced). Preserve `.build/c05-preview-feedback/lint-transcript.log` and the failed gate. This is
+not a passing lint result or permission for an unchanged rerun; unaffected static partitions and
+the owning C02 causal work retain their separate obligations. The separate format check (228 Dart
+files, zero changes), all-target/all-feature Clippy with warnings denied, full Dart analysis, native
+diagnostic analysis and whitespace check pass. Their transcript is
+`.build/c05-preview-feedback/static-partitions.log`; these results do not replace the failed lint
+or a complete Daily. The diagnostic Windows Debug build then passes in 38.9 seconds.
+
+The first feedback lifetime, `2c67a1fc6b5a4e6987d0441220807972`, fails overall with exit one in
+269485 ms. The new post-frame observer calls the guarded `WidgetTester.getRect` during another
+active `pump` scope, producing `Guarded function conflict`. It records **zero valid feedback
+frames**; an empty Retry list therefore proves nothing. The existing workload reaches its final
+assertions, but does not convert this failed lifetime into a pass. Process/Job retirement succeeds,
+shutdown takes 13 ms, and no cleanup failure occurs. The 1009 memory samples stay within the original
+limits. The post-run full source check passes in 41.409 seconds for all 10000 frozen images and
+512 stimulus survivors. Original source, logs, artifacts and receipts remain under
+`.build/c05-preview-feedback/` and its owned storage.
+
+The revised diagnostic method reads laid-out `RenderBox` geometry and widget state without guarded
+test actions. Its positive/negative test detects a visible Retry control while excluding clipped
+and offstage controls; its second test verifies all three explicitly scheduled post-frame reads
+during guarded pumps and safely rejects an unmounted element. Both tests pass. The first version
+of the second fixture schedules only one frame and fails its unchanged three-frame assertion;
+explicit frame scheduling corrects that fixture. An unnecessary import is also removed after
+analysis rejects it. Product source hashes remain identical to the reviewed correction. One fresh
+native replay retains every original source, count, timing, memory and pixel assertion and now
+also requires nonzero feedback observations in each initial/addition/removal phase.
+
+The changed handwritten owners retain explicit physical-size accounting:
+
+| Owner | Production lines | Inline tests | Dedicated tests |
+| --- | ---: | ---: | ---: |
+| `library_preview_queue.dart` | 712 | 0 | Existing queue suite plus 176-line failure-projection suite |
+| `library_preview_coordinator.dart` | 273 | 0 | 523-line coordinator suite |
+| `library_preview_failure.dart` / `library_preview_sizing.dart` | 35 / 81 | 0 | Projection/coordinator suites above |
+| `local_files/preview_source.rs` | 90 | 0 | Application source-reconciliation suite below |
+| `preview/source_reconciliation.rs` | 124 | 0 | 388-line source-reconciliation suite |
+
+The reduced `local_files.rs` facade still has 7411 total lines: 3420 belong to the bottom inline
+test module including its conditional attribute, and the preceding 3991 mix adapter implementation
+with conditional test support. The latter is not a pure production-line count. This correction
+extracts initial preview-source admission; the remaining physical decomposition stays in its
+existing roadmap order and is not claimed complete.
+
+The observer-corrected lifetime `640bb9d18c8f482bb8f2a9b2f6e1ea8a` **passes** with the unchanged
+reviewed product candidate. The Debug diagnostic build takes 26.5 seconds. The native parent runs
+361355 ms, exits zero and confirms process/Job retirement with no cleanup failure; synchronization
+stops in 18 ms. All 32 pixel observations have current decoded pixels (12 to 21 visible tiles),
+all 96 viewer frames across eight round trips and 12 refresh frames pass, and no manifest mismatch
+or guarded-test conflict is recorded. The addition-to-visible upper bound is 106829 ms; deletion
+to final pixels is 98902 ms, both within their unchanged 300-second batch bounds.
+
+The frame oracle observes 755 initial, 1791 addition and 1960 removal frames: **4506 valid frames,
+zero visible Retry controls**. It covers both failed-asset controls and artifact-decode controls.
+The 710 returned materializations are ready (109/308/293 by phase); initial and addition phases
+have no materialization exception. Removal records 908 superseded requests and 499 already-inactive
+location requests on the exact deleted roster. Six other old requests for surviving locations are
+superseded by source-context or preview-publication guards; surviving visible pixels and complete
+source checks pass. These terminal traces remain evidence, not a claim that no request retired.
+
+All 1356 resource samples stay within the original ceilings: peak working set 1202683904 bytes,
+sampled private bytes 1573122048, kernel peak commitment 1664065536 and minimum system availability
+4681211904. Full pre/post source checks pass in 59.471/48.021 seconds: the frozen 10000 files remain
+10921494393 bytes with exact membership, content hashes, IDs, sizes and baseline timestamps; all
+512 generated survivors match their 704936782-byte roster and identities. The stimulus timestamp
+limitation remains stability during each read, not proof against baseline timestamps.
+
+Executable, Dart kernel and Rust DLL SHA-256 values are respectively
+`2A24C91530C05D88B29ACC4E6FCF73199C237DEB04159B232A9FD7E43BD98DCE`,
+`4D77AA136CA63E566CA1AFD714D00FEAF9B42F18B9B6C71C2FD4FB6B590D0439` and
+`A60FBD0AE3E4AF89257D76FDE2F5511AD0BE7EDBF4614D25D576F12992CA622F`.
+The admission, corrected observer/tests, immutable product source hashes and summary remain in
+`.build/c05-preview-observer/`; GUID-owned storage retains raw logs, results and integrity receipts.
+This closes the selected generated-only transient Retry reproduction and full C05 workload on
+this candidate. It does not close C02's failed lint, the complete Daily, other frozen variants,
+actual OS picker/keyboard/interrupted-process/Release paths, or external acceptance.

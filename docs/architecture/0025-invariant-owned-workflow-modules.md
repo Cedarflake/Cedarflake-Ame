@@ -208,6 +208,11 @@ persistence layers.
 - `preview/store_admission.rs` selects the active store only after obtaining generation or
   reclamation access and owns both for the admitted lifetime. The preview facade carries storage
   configuration, not a previously selected store, across a capacity-reclamation gap.
+- `local_files/preview_source.rs` owns initial root-bound source opening and classifies a missing
+  child separately from root unavailability and other I/O failures. This observation retires stale
+  preview work, never grants catalog-removal authority. `preview/source_reconciliation.rs` uses the
+  existing exact-source admission and guarded path-set reconciliation; an existing path owner keeps
+  its lease and work. Recreated sources and root identity are revalidated before any catalog delta.
 - `local_files/file_admission.rs` owns supported, terminal, and retryable file discovery after
   local-availability checks. `scan_library/inspection_failure.rs` owns the shared retained-location
   and precise-retry checkpoint rules for discovery and decoder failures. Incremental terminal-media
@@ -289,6 +294,14 @@ persistence layers.
   The queue owns active-location exclusion, demand/source validity, bounded execution and result
   acceptance; selection order cannot confer publication authority. `LibraryState` separately
   projects explicit removal, query-refresh and primary-scan precedence without owning execution.
+- `library_preview_failure.dart` distinguishes failed materialization commands from failed
+  artifacts. A command exception cannot revoke an existing ready artifact; a source-authorized
+  failed asset can. Queue completion still reports the command outcome and validates publication
+  authority. A missing active catalog location retires the old request without publishing failure.
+  `library_preview_sizing.dart` separately owns verified sizes and failed exact-source/size attempts
+  retained only for current demand. Request completion carries the actual attempted size; failure
+  is never successful size verification. Changed demand/source, explicit retry or authority reset
+  releases failed attempts. Root availability retains its separate queue-owned cooldown.
 - `LibraryQueryActivity` is a sealed idle/loading/failed projection owned by the viewport. Failure
   retains its requested query separately from the still-visible gallery and primary task error.
   Primary scan publication separately distinguishes uncommitted work, committed display reload,

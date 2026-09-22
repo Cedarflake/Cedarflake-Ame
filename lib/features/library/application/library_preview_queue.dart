@@ -3,6 +3,7 @@ import "dart:async";
 import "package:flutter/foundation.dart";
 
 import "../domain/library_models.dart";
+import "library_preview_failure.dart";
 import "library_preview_order.dart";
 import "library_preview_store.dart";
 import "library_previewer.dart";
@@ -19,12 +20,20 @@ enum LibraryPreviewRequestOutcome {
   disposed,
 }
 
+typedef LibraryPreviewCompletion = ({
+  LibraryAsset asset,
+  int previewEdge,
+  LibraryPreviewRequestOutcome outcome,
+  LibraryPreviewFailure? failure,
+});
+
 class LibraryPreviewQueue {
   factory LibraryPreviewQueue({
     required LibraryPreviewer previewer,
     required int previewEdge,
     required int maxActive,
     required void Function(LibraryAsset asset) onResult,
+    void Function(LibraryPreviewCompletion completion)? onCompleted,
     bool Function(LibraryAsset asset)? canPublishResult,
     Duration rootUnavailableCooldown = const Duration(seconds: 5),
   }) {
@@ -43,6 +52,7 @@ class LibraryPreviewQueue {
       previewEdge,
       maxActive,
       onResult,
+      onCompleted,
       canPublishResult,
       rootUnavailableCooldown,
     );
@@ -53,6 +63,7 @@ class LibraryPreviewQueue {
     this._defaultPreviewEdge,
     this._maxActive,
     this._onResult,
+    this._onCompleted,
     this._canPublishResult,
     this._rootUnavailableCooldown,
   );
@@ -61,6 +72,7 @@ class LibraryPreviewQueue {
   final int _defaultPreviewEdge;
   int _maxActive;
   final void Function(LibraryAsset asset) _onResult;
+  final void Function(LibraryPreviewCompletion completion)? _onCompleted;
   final bool Function(LibraryAsset asset)? _canPublishResult;
   final Duration _rootUnavailableCooldown;
   final Stopwatch _rootFailureClock = Stopwatch()..start();
@@ -413,7 +425,8 @@ class LibraryPreviewQueue {
         );
         return;
       }
-      if (error is LibraryPreviewFailure && _isRootContextFailure(error)) {
+      if (error is LibraryPreviewFailure &&
+          isLibraryPreviewRootFailure(error)) {
         final rejection = _rejectionOutcome(request, request.asset);
         if (rejection != null) {
           _completeRequest(request, rejection);
@@ -422,26 +435,26 @@ class LibraryPreviewQueue {
         }
         return;
       }
-      final failed = request.asset.withPreview(
-        previewPath: request.asset.previewPath,
-        width: request.asset.width,
-        height: request.asset.height,
-        previewStatus: LibraryPreviewStatus.failed,
-        previewIssueCode: error is LibraryPreviewFailure
-            ? error.code
-            : "preview_request_failed",
-        previewIssueMessage: error is LibraryPreviewFailure
-            ? error.message
-            : error.toString(),
-      );
-      final rejection = _rejectionOutcome(request, failed);
+      final failed = failedLibraryPreviewReplacement(request.asset, error);
+      final rejection = _rejectionOutcome(request, request.asset);
       if (rejection != null) {
         _completeRequest(request, rejection);
-      } else if (_canPublishResult?.call(failed) ?? true) {
-        _onResult(failed);
-        _completeRequest(request, LibraryPreviewRequestOutcome.failed);
-      } else {
+      } else if (!(_canPublishResult?.call(failed ?? request.asset) ?? true)) {
         _completeRequest(request, LibraryPreviewRequestOutcome.superseded);
+      } else {
+        if (failed != null) {
+          _onResult(failed);
+        }
+        _completeRequest(
+          request,
+          LibraryPreviewRequestOutcome.failed,
+          failure: error is LibraryPreviewFailure
+              ? error
+              : LibraryPreviewFailure(
+                  code: "preview_request_failed",
+                  message: error.toString(),
+                ),
+        );
       }
     } finally {
       _completeRequest(
@@ -470,7 +483,7 @@ class LibraryPreviewQueue {
     );
     _publishBlockedAsset(request.asset, failure);
     final outcome = _rootFailureOutcome(failure);
-    _completeRequest(request, outcome);
+    _completeRequest(request, outcome, failure: failure);
 
     final blockedPending = _pending.values
         .where(
@@ -484,7 +497,7 @@ class LibraryPreviewQueue {
         continue;
       }
       _publishBlockedAsset(pending.asset, failure);
-      _completeRequest(pending, outcome);
+      _completeRequest(pending, outcome, failure: failure);
       _cleanupGeneration(pending.asset.locationId);
     }
   }
@@ -557,14 +570,21 @@ class LibraryPreviewQueue {
 
   void _completeRequest(
     _PreviewRequest request,
-    LibraryPreviewRequestOutcome outcome,
-  ) {
+    LibraryPreviewRequestOutcome outcome, {
+    LibraryPreviewFailure? failure,
+  }) {
     if (request.terminalOutcome != null) {
       return;
     }
     request.terminalOutcome = outcome;
     request.lifetime.stop();
     _logTerminalRequest(request, outcome);
+    _onCompleted?.call((
+      asset: request.asset,
+      previewEdge: request.previewEdge,
+      outcome: outcome,
+      failure: failure,
+    ));
     final completions = request.completions.toList(growable: false);
     request.completions.clear();
     for (final completion in completions) {
@@ -596,20 +616,11 @@ class LibraryPreviewQueue {
       return null;
     }
     return switch (error.code) {
-      "preview_request_superseded" => LibraryPreviewRequestOutcome.superseded,
+      "preview_request_superseded" ||
+      "preview_location_not_found" => LibraryPreviewRequestOutcome.superseded,
       "preview_request_context_invalid" =>
         LibraryPreviewRequestOutcome.contextInvalidated,
       _ => null,
-    };
-  }
-
-  static bool _isRootContextFailure(LibraryPreviewFailure failure) {
-    return switch (failure.code) {
-      "preview_root_unavailable" ||
-      "preview_root_identity_unproven" ||
-      "preview_root_identity_changed" ||
-      "preview_root_not_found" => true,
-      _ => false,
     };
   }
 

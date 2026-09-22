@@ -127,6 +127,46 @@ void main() {
     );
   });
 
+  test(
+    "retains ready pixels without repeating a failed unchanged size attempt",
+    () async {
+      final previewer = _ControlledPreviewer();
+      final ready = _readyAsset("retained");
+      final coordinator = LibraryPreviewCoordinator(
+        previewer: previewer,
+        defaultPreviewEdge: 512,
+        maxActive: 1,
+        canPublish: (_) => true,
+        onPublished: (_) {},
+      );
+      addTearDown(coordinator.dispose);
+      coordinator.updateGalleryDemand(visible: [ready]);
+      previewer.fail(
+        ready.locationId,
+        const LibraryPreviewFailure(
+          code: "preview_source_open_failed",
+          message: "Locked source",
+        ),
+      );
+      await _flushAsyncWork();
+      for (var update = 0; update < 20; update++) {
+        coordinator.updateGalleryDemand(visible: [ready]);
+        await _flushAsyncWork();
+      }
+      expect(previewer.requests, [ready.locationId]);
+      expect(
+        coordinator.resolve(ready).previewStatus,
+        LibraryPreviewStatus.ready,
+      );
+      final retry = coordinator.retry(ready);
+      expect(previewer.requests, [ready.locationId, ready.locationId]);
+      previewer.succeed(ready.locationId, ready, attempt: 1);
+      expect(await retry, LibraryPreviewRequestOutcome.ready);
+      coordinator.updateGalleryDemand(visible: [ready]);
+      expect(previewer.requests, hasLength(2));
+    },
+  );
+
   test("does not repeat a verified viewer bucket", () async {
     final previewer = _ControlledPreviewer();
     final ready = _readyAsset("viewer");
@@ -153,6 +193,96 @@ void main() {
 
     coordinator.updateViewerDemand(ready);
     expect(previewer.previewEdges, [128, 512]);
+  });
+
+  test(
+    "changed size, source and demand can readmit a retained preview",
+    () async {
+      final previewer = _ControlledPreviewer();
+      final coordinator = LibraryPreviewCoordinator(
+        previewer: previewer,
+        defaultPreviewEdge: 512,
+        maxActive: 1,
+        canPublish: (_) => true,
+        onPublished: (_) {},
+      );
+      addTearDown(coordinator.dispose);
+      final first = _readyAsset("changing");
+      final replacement = _readyAsset("changing", sourceGeneration: BigInt.two);
+      final demands = [
+        (asset: first, edge: 512),
+        (asset: first, edge: 256),
+        (asset: replacement, edge: 256),
+      ];
+      for (final (attempt, demand) in demands.indexed) {
+        coordinator.updateGalleryDemand(
+          visible: [demand.asset],
+          previewEdges: {demand.asset.locationId: demand.edge},
+        );
+        expect(previewer.requests, hasLength(attempt + 1));
+        previewer.fail(
+          demand.asset.locationId,
+          const LibraryPreviewFailure(
+            code: "preview_write_failed",
+            message: "Storage pressure",
+          ),
+          attempt: attempt,
+        );
+        await _flushAsyncWork();
+        coordinator.updateGalleryDemand(
+          visible: [demand.asset],
+          previewEdges: {demand.asset.locationId: demand.edge},
+        );
+        expect(previewer.requests, hasLength(attempt + 1));
+      }
+      coordinator.updateGalleryDemand();
+      coordinator.updateGalleryDemand(
+        visible: [replacement],
+        previewEdges: {replacement.locationId: 256},
+      );
+      expect(previewer.previewEdges, [512, 256, 256, 256]);
+      previewer.succeed(replacement.locationId, replacement, attempt: 3);
+      await _flushAsyncWork();
+      coordinator.updateViewerDemand(replacement);
+      expect(previewer.previewEdges, [512, 256, 256, 256, 512]);
+      previewer.succeed(replacement.locationId, replacement, attempt: 4);
+      await _flushAsyncWork();
+      coordinator.updateViewerDemand(replacement);
+      expect(previewer.requests, hasLength(5));
+    },
+  );
+
+  test("an offline root retains its existing automatic cooldown", () async {
+    final previewer = _ControlledPreviewer();
+    final ready = _readyAsset("offline-ready");
+    final coordinator = LibraryPreviewCoordinator(
+      previewer: previewer,
+      defaultPreviewEdge: 512,
+      maxActive: 1,
+      canPublish: (_) => true,
+      onPublished: (_) {},
+    );
+    addTearDown(coordinator.dispose);
+    coordinator.updateGalleryDemand(visible: [ready]);
+    previewer.fail(
+      ready.locationId,
+      const LibraryPreviewFailure(
+        code: "preview_root_unavailable",
+        message: "Offline root",
+      ),
+    );
+    await _flushAsyncWork();
+    coordinator.updateGalleryDemand(visible: [ready]);
+    expect(previewer.requests, hasLength(1));
+    await Future<void>.delayed(const Duration(milliseconds: 5100));
+    coordinator.updateGalleryDemand(visible: [ready]);
+    expect(previewer.requests, hasLength(2));
+    previewer.succeed(ready.locationId, ready, attempt: 1);
+    await _flushAsyncWork();
+    expect(
+      coordinator.resolve(ready).previewStatus,
+      LibraryPreviewStatus.ready,
+    );
   });
 
   test(
@@ -315,7 +445,11 @@ void main() {
   );
 }
 
-LibraryAsset _asset(String suffix, LibraryPreviewStatus previewStatus) {
+LibraryAsset _asset(
+  String suffix,
+  LibraryPreviewStatus previewStatus, {
+  BigInt? sourceGeneration,
+}) {
   return LibraryAsset(
     assetId: "asset-$suffix",
     locationId: "location-$suffix",
@@ -331,15 +465,19 @@ LibraryAsset _asset(String suffix, LibraryPreviewStatus previewStatus) {
       scheme: "windows-file-change-time-100ns-v1",
       value: "0000000000000001",
     ),
-    sourceGeneration: BigInt.one,
+    sourceGeneration: sourceGeneration ?? BigInt.one,
     width: 320,
     height: 240,
     previewStatus: previewStatus,
   );
 }
 
-LibraryAsset _readyAsset(String suffix) {
-  return _asset(suffix, LibraryPreviewStatus.ready).withPreview(
+LibraryAsset _readyAsset(String suffix, {BigInt? sourceGeneration}) {
+  return _asset(
+    suffix,
+    LibraryPreviewStatus.ready,
+    sourceGeneration: sourceGeneration,
+  ).withPreview(
     previewPath: "C:\\AmeCache\\$suffix.jpg",
     width: 320,
     height: 240,

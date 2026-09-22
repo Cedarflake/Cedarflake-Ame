@@ -81,6 +81,7 @@ mod catalog_identity;
 mod file_admission;
 mod media_signature;
 mod preview_cache_namespace;
+mod preview_source;
 #[cfg(windows)]
 mod viewer_source_guard;
 #[cfg(test)]
@@ -88,6 +89,7 @@ pub(crate) use catalog_identity::catalog_identity_read_count;
 pub(crate) use catalog_identity::{open_catalog_identity_guard, read_catalog_identity};
 pub use file_admission::{FileVisit, FileVisitOutcome};
 pub(crate) use preview_cache_namespace::PreviewCacheNamespace;
+pub(crate) use preview_source::open_preview_source;
 #[cfg(windows)]
 pub(crate) use viewer_source_guard::open_viewer_source_guard;
 
@@ -2270,12 +2272,6 @@ pub fn revalidate_file_state(expected: &ExpectedFileState) -> Result<(), ScanIss
     revalidate_file_state_with_metadata(expected, path, &evidence)
 }
 
-pub(crate) struct OpenedPreviewSource {
-    pub(crate) file: File,
-    pub(crate) source_revision: Option<SourceRevisionEvidence>,
-    pub(crate) source_root_path: PathBuf,
-}
-
 pub(crate) struct PreviewPublicationGuard {
     source_file: File,
     #[cfg(windows)]
@@ -2288,71 +2284,6 @@ impl PreviewPublicationGuard {
     pub(crate) fn source_file(&self) -> &File {
         &self.source_file
     }
-}
-
-pub(crate) fn open_preview_source(
-    expected: &ExpectedFileState,
-    source_root: &Path,
-    expected_root_identity: Option<&FileIdentityEvidence>,
-) -> Result<OpenedPreviewSource, ScanIssue> {
-    let path = Path::new(&expected.absolute_path);
-
-    #[cfg(windows)]
-    let (file, source_root_path) = {
-        let expected_root_identity = expected_root_identity.ok_or_else(|| ScanIssue {
-            path: Some(expected.absolute_path.clone()),
-            code: "preview_root_identity_unproven".to_owned(),
-            message: "The preview source root lacks durable Windows identity evidence".to_owned(),
-        })?;
-        let (root_proof, canonical_root) =
-            WindowsDirectoryRootProof::open_configured(source_root, true).map_err(|error| {
-                ScanIssue {
-                    path: Some(expected.absolute_path.clone()),
-                    code: "preview_root_unavailable".to_owned(),
-                    message: format!("The preview source root cannot be resolved safely: {error}"),
-                }
-            })?;
-        if &root_proof.identity != expected_root_identity {
-            return Err(ScanIssue {
-                path: Some(expected.absolute_path.clone()),
-                code: "preview_root_identity_changed".to_owned(),
-                message: "The preview source root no longer matches its publication identity"
-                    .to_owned(),
-            });
-        }
-        let file = open_source_file_with_root_proof(path, &canonical_root, &root_proof, || {})
-            .map_err(|error| ScanIssue {
-                path: Some(expected.absolute_path.clone()),
-                code: "preview_source_open_failed".to_owned(),
-                message: error.to_string(),
-            })?;
-        (file, canonical_root)
-    };
-
-    #[cfg(not(windows))]
-    let (file, source_root_path) = {
-        let source_root_path =
-            canonical_source_root_path(source_root).map_err(|error| ScanIssue {
-                path: Some(expected.absolute_path.clone()),
-                code: "preview_root_unavailable".to_owned(),
-                message: format!("The preview source root cannot be resolved safely: {error}"),
-            })?;
-        let file = open_source_file(path, &source_root_path).map_err(|error| ScanIssue {
-            path: Some(expected.absolute_path.clone()),
-            code: "preview_source_open_failed".to_owned(),
-            message: error.to_string(),
-        })?;
-        (file, source_root_path)
-    };
-
-    #[cfg(not(windows))]
-    let _ = expected_root_identity;
-    let source_revision = revalidate_open_preview_source(&file, expected)?;
-    Ok(OpenedPreviewSource {
-        file,
-        source_revision,
-        source_root_path,
-    })
 }
 
 pub(crate) fn revalidate_open_preview_source(

@@ -1,7 +1,7 @@
 # R2c closeout execution
 
-Status: **C05 capture-time and rail/viewer corrections have focused and selected native evidence;
-transient deletion errors, full workload replay, other frozen variants and final gates remain open**.
+Status: **The accumulated C05 generated-native workload passes pixels, counts, transient Retry
+feedback and owned retirement; other frozen variants and final gates remain open**.
 
 ### Completion goal and required deliveries
 
@@ -88,6 +88,66 @@ standalone scheduler test does not substitute for that client path. No new UI co
 mechanism, source access, persistence strategy or retry policy is admitted.
 
 ### Complete scope and retained readability findings
+
+#### C05 transient preview feedback method
+
+The latest generated-only lifetime passes the complete mixed-media and bulk-change assertions, but
+its endpoint checks do not validate feedback during mutations. A reported `Retry preview` flash is
+an active browsing defect, not closed by eventual pixels. Preserve that distinction and the failed
+older lifetimes. The current trace contains 127 source-open errors, all after deletion and on the
+exact removed roster; addition has no traced materialization error. Flutter artifact-decoding
+errors are a separate path and were not captured by that trace.
+
+Reserve 150 active minutes under standing authorization: 30 diagnosis, 60 owning-layer repair,
+30 focused/client verification, 20 independent review/recheck and 10 records. Conservatively charge
+the prior 2204-minute reservation in full; the envelope becomes 2354 minutes, not measured elapsed
+work. Handle at most two confirmed causes in this pass. A failed repaired replay requires preserved
+evidence and a changed diagnostic method; it grants no unchanged replay or C01/C02 retry.
+
+Classify source absence separately from sharing/permission failure, source replacement, root loss
+and damaged preview artifacts. First prove failing production-boundary cases. Exact-path source
+reconciliation must retain current root, source generation, lease and atomic publication authority;
+an open error alone cannot delete catalog rows. Preserve usable current previews during valid
+work, keep genuine unrecoverable errors actionable, and prevent cancelled or superseded requests
+from becoming false failures. Do not hide all failures while synchronization is running, add broad
+retries, weaken source guards or let presentation infer filesystem absence.
+
+Verify pending and ready previews, existing queued changes, restored/replaced sources, locked files,
+offline roots, stale completion and failed repair as applicable. Add a frame-level retry-control
+oracle to one fresh generated-only client replay after a causal fix. Retain the frozen 10000-image
+corpus, fresh 12/2012/512 stimulus, 300-second batches, 30-second pixels, 900-second parent lifetime,
+2 GiB client ceiling, 2 GiB system reserve and complete source-integrity checks. Record addition
+and deletion phases separately. No new schema, dependency, source writes outside owned generated
+stimuli, real-root run, service operation or signing action is admitted.
+
+##### Frame-observer correction after the failed feedback lifetime
+
+The first feedback lifetime reports `Guarded function conflict`: the new post-frame observer calls
+`WidgetTester.getRect` while an awaited `pump` owns another async test scope. This is a diagnostic
+failure, not evidence of a product Retry button. Retain that entire lifetime and source, and perform
+its post-run source check. Endpoint assertions cannot turn its failed overall result into a pass.
+
+Reserve 60 further active minutes for a changed observation method: 15 for ownership/correction,
+15 for positive/negative observer tests, 20 for one fresh client replay, five for analysis and five
+for records. Charge the preceding reservation in full; the cumulative envelope becomes 2414 minutes,
+not reconstructed elapsed work. This does not reopen product root-cause or C01/C02 retry allowances.
+
+The callback may only inspect laid-out render objects and immutable widget/source state. Remove
+guarded test actions from that callback; do not suppress framework exceptions, skip observed
+frames or weaken the Retry/pixel/geometry assertions. Prove a visible Retry button is detected,
+an offscreen button is excluded, and post-frame observation during a guarded pump completes without
+conflict. Keep the product candidate unchanged, create a fresh GUID stimulus and derived store,
+and preserve all original corpus, deadlines, resource and source-integrity rules. Admit at most one
+new lifetime after these tests pass; a further failure requires retained evidence and a changed
+method, not another unchanged replay.
+
+The corrected observer's two focused cases and the single fresh lifetime now pass. Initial,
+addition and removal each have nonzero frame observations, with no visible Retry control and all
+original batch/pixel/geometry assertions intact. The failed observer lifetime remains failed.
+The [browsing record](../acceptance/r2c-browsing-diagnosis.md) owns exact counts, timing, artifact,
+source and retirement evidence. Charge this 60-minute reservation conservatively in full; neither
+that charge nor the pass admits another replay. C05 final-source/client limitations and the complete
+24-variant roster remain in the canonical queue.
 
 #### Accumulated-candidate native method
 

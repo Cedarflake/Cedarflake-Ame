@@ -202,6 +202,156 @@ fn source_revision_mismatch_reconciles_one_path_and_recovers_preview() {
 }
 
 #[test]
+fn missing_source_reconciles_absence_without_publishing_preview_failure() {
+    for has_preview in [false, true] {
+        let fixture = preview_fixture("missing-source");
+        let location = if has_preview {
+            materialize_preview_with_storage(fixture.request.clone(), fixture.storage.clone())
+                .expect("initial preview")
+        } else {
+            active_location(&fixture)
+        };
+        fs::remove_file(&fixture.source_path).expect("remove owned fixture source");
+        let error = materialize_preview_with_storage(
+            preview_request_for(&location, 256, false),
+            fixture.storage.clone(),
+        )
+        .expect_err("removed source cannot generate a preview");
+        assert_eq!(error.code, "preview_request_superseded");
+        let catalog = SqliteCatalog::open(fixture.storage.catalog_path.clone()).expect("catalog");
+        assert!(
+            catalog
+                .load_active_location(&location.location_id)
+                .expect("location lookup")
+                .is_none(),
+            "only authoritative path reconciliation publishes absence"
+        );
+        assert!(fixture.source_path.parent().expect("root").is_dir());
+        assert!(!fixture.source_path.exists());
+    }
+}
+
+#[test]
+fn missing_source_preserves_existing_path_work_and_retires_preview_request() {
+    let (fixture, ready) = ready_source_fixture("missing-source-owned-path");
+    let mut catalog = SqliteCatalog::open(fixture.storage.catalog_path.clone()).expect("catalog");
+    let root = catalog
+        .load_incremental_catalog_root(&ready.root_id)
+        .expect("root query")
+        .expect("root");
+    let intent = LibraryChangeIntent {
+        root_id: ready.root_id.clone(),
+        root_generation: root.root_generation,
+        kind: LibraryChangeIntentKind::Reconcile,
+        scope: LibraryChangeScope::Path,
+        relative_path: ready.relative_path.clone(),
+        previous_relative_path: None,
+        origin: LibraryChangeOrigin::MetadataInventory,
+        first_observed_unix_ms: 100,
+        most_recent_observed_unix_ms: 100,
+        first_sequence: 0,
+        most_recent_sequence: 0,
+        coalesced_observation_count: 1,
+    };
+    catalog
+        .enqueue_library_change_intents(&[intent], 100, LibraryChangeQueuePolicy::default())
+        .expect("existing path work");
+    let connection = Connection::open(&fixture.storage.catalog_path).expect("catalog");
+    let id = connection
+        .query_row("SELECT MAX(id) FROM library_change_queue", [], |row| {
+            row.get(0)
+        })
+        .expect("queue ID");
+    drop(connection);
+    drop(catalog);
+    let before = queue_row(&fixture.storage.catalog_path, id);
+    fs::remove_file(&fixture.source_path).expect("remove owned fixture source");
+    let error = materialize_preview_with_storage(
+        preview_request_for(&ready, 256, false),
+        fixture.storage.clone(),
+    )
+    .expect_err("removed source request retires");
+    assert_eq!(error.code, "preview_request_superseded");
+    assert_eq!(active_location(&fixture), ready);
+    assert_eq!(queue_row(&fixture.storage.catalog_path, id), before);
+    let connection = Connection::open(&fixture.storage.catalog_path).expect("catalog");
+    let count: i64 = connection
+        .query_row("SELECT COUNT(*) FROM library_change_queue", [], |row| {
+            row.get(0)
+        })
+        .expect("queue count");
+    assert_eq!(
+        count, 1,
+        "preview cannot duplicate or consume existing path work"
+    );
+}
+
+#[test]
+fn missing_source_observation_revalidates_a_recreated_file_before_catalog_removal() {
+    let (fixture, ready) = ready_source_fixture("missing-source-recreated");
+    let bytes = fs::read(&fixture.source_path).expect("fixture source bytes");
+    let root = SqliteCatalog::open(fixture.storage.catalog_path.clone())
+        .expect("catalog")
+        .load_incremental_catalog_root(&ready.root_id)
+        .expect("root query")
+        .expect("root");
+    fs::remove_file(&fixture.source_path).expect("remove owned fixture source");
+    let issue = ScanIssue {
+        path: Some(ready.absolute_path.clone()),
+        code: "preview_source_missing".to_owned(),
+        message: "Observed missing before path reconciliation".to_owned(),
+    };
+    fs::write(&fixture.source_path, &bytes).expect("recreate owned fixture source");
+    let error = super::super::source_reconciliation::recover_source_mismatch(
+        &fixture.storage,
+        &preview_request_for(&ready, 256, false),
+        &ready,
+        root.root_generation,
+        issue,
+    );
+    assert_eq!(error.code, "preview_request_superseded");
+    let current = active_location(&fixture);
+    assert_eq!(current.relative_path, ready.relative_path);
+    assert_ne!(current.source_generation, ready.source_generation);
+    assert_eq!(current.preview_status, PreviewStatus::Pending);
+    assert_eq!(
+        fs::read(&fixture.source_path).expect("current bytes"),
+        bytes
+    );
+    let regenerated = materialize_preview_with_storage(
+        preview_request_for(&current, 256, false),
+        fixture.storage.clone(),
+    )
+    .expect("current source preview");
+    assert_eq!(regenerated.preview_status, PreviewStatus::Ready);
+}
+
+#[test]
+fn unavailable_root_is_not_evidence_of_a_missing_source() {
+    let (fixture, ready) = ready_source_fixture("missing-root");
+    let source_root = fixture.source_path.parent().expect("source root");
+    let unavailable_root = source_root.with_extension("offline");
+    fs::rename(source_root, &unavailable_root).expect("detach owned fixture root");
+    let result = materialize_preview_with_storage(
+        preview_request_for(&ready, 256, false),
+        fixture.storage.clone(),
+    );
+    fs::rename(&unavailable_root, source_root).expect("restore owned fixture root");
+    assert_eq!(
+        result.expect_err("root is unavailable").code,
+        "preview_root_unavailable"
+    );
+    assert_eq!(active_location(&fixture), ready);
+    let connection = Connection::open(&fixture.storage.catalog_path).expect("catalog");
+    let count: i64 = connection
+        .query_row("SELECT COUNT(*) FROM library_change_queue", [], |row| {
+            row.get(0)
+        })
+        .expect("queue count");
+    assert_eq!(count, 0);
+}
+
+#[test]
 fn source_open_failure_keeps_its_cause_and_does_not_enqueue_reconciliation() {
     let (fixture, ready) = ready_source_fixture("source-locked");
     let locked = fs::OpenOptions::new()

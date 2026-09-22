@@ -26,6 +26,7 @@ pub(super) fn recover_source_mismatch(
         "source_changed_during_scan"
             | "source_replaced_during_scan"
             | "source_revision_changed_during_scan"
+            | "preview_source_missing"
     ) {
         return ScanError::new(issue.code, issue.message);
     }
@@ -36,6 +37,10 @@ pub(super) fn recover_source_mismatch(
                 "{}: source context was superseded during reconciliation",
                 issue.code
             ),
+        ),
+        Ok(false) if issue.code == "preview_source_missing" => ScanError::new(
+            "preview_request_superseded",
+            "The preview source is missing; catalog reconciliation retains its existing authority",
         ),
         Ok(false) => ScanError::new(issue.code, issue.message),
         Err(error) => ScanError::new(

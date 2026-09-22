@@ -75,13 +75,13 @@ rule organization does not complete them. C05 continuation
 has owning-layer corrections and selected generated-client evidence, with the remaining exits below.
 Item 3 selects functional synchronization and browsing. **R2C-C04 now has focused and generated-client
 verification** for fresh bulk changes and recovery of retained terminal work. Its original failure
-is preserved in the [C04 record](acceptance/r2c-live-gap-recovery.md). **R2C-C05 remains open for transient
-deletion errors, complete workload verification and final gates.** Preview-demand and recovered-date publication
-have causal corrections. Mixed large-image navigation and bulk-add/remove browsing assertions pass
-across separate native runs; failed overall replays remain failed. The
-[C05 record](acceptance/r2c-browsing-diagnosis.md) owns those boundaries, the cleanup-only pass,
-verified rail/viewer continuity and remaining transient-error and full-client obligations. Correct counts or separate
-passing assertions do not establish complete synchronization acceptance. C01's mixed-load recovery
+is preserved in the [C04 record](acceptance/r2c-live-gap-recovery.md). **R2C-C05's generated-only complete
+browsing workload and transient Retry feedback checks now pass; remaining client variants and final
+gates stay open.** Preview demand, recovered dates and missing-source request retirement have
+owning-layer corrections. The [C05 record](acceptance/r2c-browsing-diagnosis.md) retains the failed
+lifetimes, observer correction and current combined pixel/rail/viewer/feedback evidence. Actual OS
+picker, keyboard, interrupted EXE restart and Release paths retain their separate frozen duties;
+this generated-client result does not establish complete synchronization acceptance. C01's mixed-load recovery
 failure and C02's automation/evidence failures are recorded for final verification; their current
 evidence does not establish a highest-priority user incident. Deferral changes execution order,
 not their unresolved acceptance status. Source/durable-data harm or reproduced blocked, misleading

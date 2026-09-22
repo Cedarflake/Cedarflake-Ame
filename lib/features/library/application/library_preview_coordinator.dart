@@ -1,7 +1,9 @@
 import "dart:async";
 
 import "../domain/library_models.dart";
+import "library_preview_failure.dart";
 import "library_preview_queue.dart";
+import "library_preview_sizing.dart";
 import "library_preview_store.dart";
 import "library_previewer.dart";
 
@@ -34,6 +36,7 @@ class LibraryPreviewCoordinator {
       previewEdge: defaultPreviewEdge,
       maxActive: maxActive,
       onResult: _publish,
+      onCompleted: _completed,
       canPublishResult: _canPublish,
     );
   }
@@ -44,8 +47,7 @@ class LibraryPreviewCoordinator {
   final LibraryPreviewStore _store = LibraryPreviewStore();
   late final LibraryPreviewQueue _queue;
   Map<String, _LibraryPreviewDemand> _galleryDemand = const {};
-  final Map<String, ({LibraryPreviewSourceIdentity source, int previewEdge})>
-  _verifiedSizes = {};
+  final LibraryPreviewSizing _sizing = LibraryPreviewSizing();
   LibraryAsset? _viewerDemand;
   bool _isDisposed = false;
 
@@ -78,6 +80,7 @@ class LibraryPreviewCoordinator {
     if (_isDisposed) {
       return Future.value(LibraryPreviewRequestOutcome.disposed);
     }
+    _sizing.allowRetry(asset.locationId);
     return _queue.retry(
       _store.resolve(asset),
       priority: priority,
@@ -154,7 +157,7 @@ class LibraryPreviewCoordinator {
     _queue.invalidateAll();
     _store.clear();
     _galleryDemand = const {};
-    _verifiedSizes.clear();
+    _sizing.clear();
     _viewerDemand = null;
   }
 
@@ -164,9 +167,7 @@ class LibraryPreviewCoordinator {
     }
     _queue.clearBlockedRoot(rootId);
     _store.invalidateRoot(rootId);
-    _verifiedSizes.removeWhere(
-      (_, verified) => verified.source.rootId == rootId,
-    );
+    _sizing.invalidateRoot(rootId);
   }
 
   void dispose() {
@@ -177,7 +178,7 @@ class LibraryPreviewCoordinator {
     _queue.dispose();
     _store.dispose();
     _galleryDemand = const {};
-    _verifiedSizes.clear();
+    _sizing.clear();
     _viewerDemand = null;
   }
 
@@ -191,9 +192,13 @@ class LibraryPreviewCoordinator {
         previewEdge: defaultPreviewEdge,
       );
     }
-    _verifiedSizes.removeWhere(
-      (locationId, _) => !requests.containsKey(locationId),
-    );
+    _sizing.retainDemand({
+      for (final entry in requests.entries)
+        entry.key: (
+          asset: entry.value.asset,
+          previewEdge: entry.value.previewEdge,
+        ),
+    });
     _store.retain(requests.keys);
     final priorities = {
       for (final MapEntry(key: locationId, value: request) in requests.entries)
@@ -211,16 +216,12 @@ class LibraryPreviewCoordinator {
               asset: _store.resolve(request.asset),
               priority: request.priority,
               previewEdge: request.previewEdge,
-              ensureSize: !_isSizeVerified(request.asset, request.previewEdge),
+              ensureSize: _sizing.needsVerification(
+                request.asset,
+                request.previewEdge,
+              ),
             ),
     ]);
-  }
-
-  bool _isSizeVerified(LibraryAsset asset, int previewEdge) {
-    final verified = _verifiedSizes[asset.locationId];
-    return verified != null &&
-        verified.previewEdge >= previewEdge &&
-        verified.source.isCompatibleWith(asset);
   }
 
   void _publish(LibraryAsset replacement) {
@@ -228,22 +229,40 @@ class LibraryPreviewCoordinator {
       return;
     }
     _store.publish(replacement);
-    if (replacement.previewStatus == LibraryPreviewStatus.ready) {
-      var requestedEdge = _galleryDemand[replacement.locationId]?.previewEdge;
-      if (_viewerDemand?.locationId == replacement.locationId &&
-          (requestedEdge == null || defaultPreviewEdge > requestedEdge)) {
-        requestedEdge = defaultPreviewEdge;
-      }
-      if (requestedEdge != null) {
-        _verifiedSizes[replacement.locationId] = (
-          source: LibraryPreviewSourceIdentity.fromAsset(replacement),
-          previewEdge: requestedEdge,
-        );
-      }
-    } else {
-      _verifiedSizes.remove(replacement.locationId);
+    if (replacement.previewStatus != LibraryPreviewStatus.ready) {
+      _sizing.invalidate(replacement.locationId);
     }
     _onPublished(replacement);
+  }
+
+  void _completed(LibraryPreviewCompletion completion) {
+    if (_isDisposed || !_canPublish(completion.asset)) {
+      return;
+    }
+    final locationId = completion.asset.locationId;
+    final viewer = _viewerDemand;
+    final gallery = _galleryDemand[locationId];
+    final LibraryPreviewSizeDemand current;
+    if (viewer != null && viewer.locationId == locationId) {
+      current = (asset: viewer, previewEdge: defaultPreviewEdge);
+    } else if (gallery != null) {
+      current = (asset: gallery.asset, previewEdge: gallery.previewEdge);
+    } else {
+      return;
+    }
+    if (!libraryPreviewSourcesAreCompatible(completion.asset, current.asset)) {
+      return;
+    }
+    final failure = completion.failure;
+    if (completion.outcome == LibraryPreviewRequestOutcome.ready) {
+      _sizing.recordVerified(completion.asset, completion.previewEdge);
+    } else if (completion.outcome == LibraryPreviewRequestOutcome.failed &&
+        failure != null &&
+        !isLibraryPreviewRootFailure(failure) &&
+        completion.asset.previewStatus == LibraryPreviewStatus.ready &&
+        completion.previewEdge == current.previewEdge) {
+      _sizing.recordFailure(completion.asset, completion.previewEdge);
+    }
   }
 }
 
