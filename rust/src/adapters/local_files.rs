@@ -6269,6 +6269,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
             is_inline: false,
         },
         AvailabilityModuleContract {
+            name: "preview_source",
+            visibility: "",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
             name: "file_admission",
             visibility: "",
             attributes: &[],

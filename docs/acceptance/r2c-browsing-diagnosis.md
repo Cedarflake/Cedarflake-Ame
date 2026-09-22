@@ -605,3 +605,30 @@ The admission, corrected observer/tests, immutable product source hashes and sum
 This closes the selected generated-only transient Retry reproduction and full C05 workload on
 this candidate. It does not close C02's failed lint, the complete Daily, other frozen variants,
 actual OS picker/keyboard/interrupted-process/Release paths, or external acceptance.
+
+### Preview contract CI correction
+
+Hosted run `35695913794` on `2004baf` passes nine required verification jobs but fails Static and
+Rust: 1515 tests pass, three fail and 19 are ignored. Two availability topology tests reject the
+new private `preview_source` module because its exact declaration is absent from the test-owned
+contract. The third test still expects `preview_source_open_failed` after an explicit retry of a
+confirmed deleted source, while the current application correctly returns `preview_request_superseded`.
+The original job log remains in `.build/r2c-process-lifecycle-ready/ci-35695913794-static-rust.log`.
+
+The correction changes test contracts only. It admits exactly the private external module and
+adds ten rejected declaration variants, preserving the metadata-only availability call closure.
+The explicit-retry regression retains its no-read-before-retry assertion, then requires removal
+of the absent location, preservation of the configured root and a zero published asset count.
+Independent review consumes about 1 minute 50 seconds and reports no blocking finding in this
+three-file scope; it does not replace accumulated-change review.
+
+Serial, lock-owned all-target/all-feature Rust verification passes 9 availability, 34 preview and
+95 scan tests (138 total); the two manual scan acceptance cases remain ignored. Rust formatting and
+all-target/all-feature Clippy with warnings denied pass. The native preview evidence above remains
+applicable because production behavior is unchanged. The next current-head hosted gate, full local
+Daily and the recorded C01/C02 obligations remain separate.
+
+Physical size remains explicit: `local_files.rs` is 7417 lines, with 3426 in its bottom test module
+including the conditional attribute; the preceding 3991 still mix implementation and test support.
+The dedicated topology suite is 245 lines and the scan suite 5459. This six-line test-contract
+addition does not complete the facade's remaining decomposition.

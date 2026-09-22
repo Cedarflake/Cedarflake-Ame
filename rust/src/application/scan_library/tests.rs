@@ -2075,10 +2075,15 @@ fn failed_preview_requires_an_explicit_retry_before_reading_source_again() {
             retry_failed: true,
             protected_location_ids: Vec::new(),
         },
-        storage_paths,
+        storage_paths.clone(),
     )
     .expect_err("explicit retry reports the missing source");
-    assert_eq!(retry_error.code, "preview_source_open_failed");
+    assert_eq!(retry_error.code, "preview_request_superseded");
+    let reconciled = load_test_snapshot(&storage_paths);
+    assert!(reconciled.assets.is_empty());
+    assert_eq!(reconciled.roots.len(), 1);
+    assert_eq!(reconciled.roots[0].root_id, location.root_id);
+    assert_eq!(reconciled.roots[0].asset_count, 0);
 }
 
 #[test]

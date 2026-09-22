@@ -16,6 +16,7 @@ fn root_availability_admitted_modules_preserve_exact_source_loading_contracts() 
         "media_signature",
         "file_admission",
         "preview_cache_namespace",
+        "preview_source",
     ] {
         let contracts = LOCAL_MODULE_CONTRACTS
             .iter()
@@ -59,6 +60,24 @@ fn root_availability_admitted_modules_reject_alternate_generated_or_broader_load
         "pub(crate) mod media_fixtures;"
     );
     for (source, declaration, replacements, source_key, module_name) in [
+        (
+            LOCAL_SOURCE,
+            "mod preview_source;",
+            vec![
+                "".to_owned(),
+                "mod preview_source;\nmod preview_source;".to_owned(),
+                "pub mod preview_source;".to_owned(),
+                "#[cfg(test)]\nmod preview_source;".to_owned(),
+                "#[path = \"alternate.rs\"]\nmod preview_source;".to_owned(),
+                "#[cfg_attr(not(test), path = \"alternate.rs\")]\nmod preview_source;".to_owned(),
+                "#[adversarial_loader]\nmod preview_source;".to_owned(),
+                "mod preview_source { mod generated {} }".to_owned(),
+                "include!(\"alternate.rs\");".to_owned(),
+                "mod preview_source;\nmod unknown_preview_source;".to_owned(),
+            ],
+            "local",
+            "preview_source",
+        ),
         (
             LOCAL_SOURCE,
             "mod preview_cache_namespace;",
