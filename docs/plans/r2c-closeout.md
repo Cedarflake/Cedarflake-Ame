@@ -713,6 +713,53 @@ no functional variant is accepted. Charge the full reservation through 4949 minu
 this preparation/input sequence unchanged; revise pacing and retirement admission before another
 Release focus attempt. Unchanged product source needs no new build or Daily for this record.
 
+#### Release pointer-first menu schedule
+
+Reserve 45 active minutes: five preparation, 15 for one native lifetime, ten source/catalog checks,
+five independent result review and ten records; cumulative reservation becomes 4994 minutes.
+Keep the unchanged payload, 10000-source workload, guest/host memory limits, 300-second import,
+900-second parent and six-second close requirements. Reuse the reviewed harness byte-for-byte.
+Prepare the complete native action helper before launch. Use observed pointer navigation through
+the actual picker instead of another text-input attempt. Confirm import only before 240 elapsed
+seconds, preserving its full 300-second allowance. If that admission is missed, cancel and retire.
+During the live window perform only picker, search-focus traversal and the three menu sequences;
+defer document/history/tool investigation until after retirement. Observe each action separately.
+Stop optional input by 540 seconds and begin normal close, retaining 360 seconds for source checks
+and native Sandbox disposal. A missing or slow interaction remains unaccepted. This is one changed
+schedule, not permission for an unchanged replay or lower workload/deadline. Require complete
+closed-catalog membership, both source oracles and independent result review as before.
+
+The pointer-first lifetime reaches the correct child at 245.786 seconds, after the 240-second
+import-admission boundary. Cancel and normal close preserve the reserve; no import or menu evidence
+is accepted. Full retirement, both source checks and the expected empty catalog are retained in
+the [Release record](../acceptance/r2c-release-native.md#pointer-first-schedule-checkpoint).
+Charge the 45-minute reservation through 4994 minutes. The failed schedule is not replayed.
+
+#### Directly visible guest fixture
+
+Reserve 45 active minutes: five for fixture preparation and method review, 15 for one native
+lifetime, ten source/catalog checks, five result review and ten records; cumulative reservation
+becomes 5039 minutes. Place the same complete generated corpus in the fresh guest's ordinary
+Documents/mixed directory, visible in the actual picker's initial location. This changes only
+guest fixture placement; do not change Ame, native picker behavior, source content, host mappings,
+or Release storage resolution. Verify the guest Known Folder is the expected ordinary directory,
+the mixed child is new, and the exact NTFS source hashes/dates survive before/after execution.
+Use two observed picker clicks to select and confirm the child. Keep the 240-second import
+admission, 300-second import bound, 540-second optional cutoff, 900-second parent and all memory
+and close requirements. Prepare all helpers before launch and retain only the final observed
+screenshot from each action in the interactive transcript; every input still has a fresh capture.
+Keep the original unsuccessful schedules. If this placement does not permit the planned keyboard
+menu sequence, close normally and retain the gap rather than adding another automatic UI lifetime.
+
+The [result](../acceptance/r2c-release-native.md#direct-fixture-admission-missed) reaches the empty
+Release gallery, but input orchestration does not resume before the 240-second import admission.
+No picker or menu input is sent. Normal app-close input at 395.019 seconds and complete host
+retirement at 507063 ms preserve the bounds; full guest/host source checks pass. The required
+10000-member catalog check fails against the correctly empty catalog. Charge the reservation
+through 5039 minutes. End this Release-menu method series without another automatic UI lifetime;
+retain UX-08C's unaccepted Release sequence and continue independent frozen obligations. A future
+menu method must resolve the scheduling failure before requesting another live admission.
+
 #### C01 owned-thread observation calibration
 
 While actual input is unavailable, reserve 40 active minutes: 15 for a process-scoped sampler,

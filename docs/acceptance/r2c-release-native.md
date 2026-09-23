@@ -208,6 +208,66 @@ Release decoding/lifecycle evidence and every failed attempt. UX-08C's Release f
 open. Another attempt must change the preparation/input pacing and provide a feasible retirement
 schedule before launch; repeating this unsuccessful sequence unchanged is not admitted.
 
+## Pointer-first schedule checkpoint
+
+The next preparation is complete, although its caller incorrectly treats PowerShell's unrelated
+`LASTEXITCODE` as the script result. Exact prepared configuration/artifact checks pass without
+rerunning consumed preparation. Admission `d91b926403f6487f8261127c3a848a0b` then independently
+rejects insufficient entry memory in 601 ms, before any Sandbox launch. Its unsampled memory
+sentinel is not a measurement. After resetting the completed JavaScript test session, fresh
+admission `84b63ca33a0e4324b7eaa70cb49ee323` passes with 7519236096 bytes available. This sequence
+does not assign the fluctuating host memory to one cause or change the 7 GiB entry requirement.
+
+All six observed pointer actions succeed: open picker, navigate upward, enter the local drive
+through This PC, enter the generated parent and select `mixed`. Selection arrives at 245.786
+elapsed seconds, after the 240-second import-admission boundary. Import and menu keys are not sent.
+The picker is cancelled and normal app-close input is sent at 296.966 seconds, preserving the normal
+retirement reserve. This is another unsuccessful interaction schedule, not a product import or
+menu failure. The complete required membership verifier retains exit one; the copied catalog's
+read-only quick-check passes with zero roots/locations, consistent with the cancelled picker.
+
+The same-host close upper bound is 2082.8556 ms. The app exits zero, its Job retires and the parent
+finishes in 401434 ms with no surviving Sandbox processes or cleanup failure. The 10000-file
+NTFS pre/post checks preserve all bytes and dates in 123410/65717 ms. Across 484 guest samples,
+peak working set/private/paged memory are 163287040/110030848/110555136 bytes; minimum host
+availability is 3214307328 bytes. Complete host verification passes in 54.575 seconds for all
+10516 generated files and the original 10000/512/2/2 catalogs. Charge the full reservation through
+4994 minutes. The next method changes fixture placement to the actual picker's initial directory;
+it cannot lower the workload, resource limits, import bound or retirement requirements.
+
+## Direct fixture admission missed
+
+Lifetime `9e53f68fb38a4512ae7e0ff9e57b7f23` places the unchanged generated corpus in the fresh
+guest's ordinary Documents directory. The guarded Known Folder/destination check and method
+review pass. Entry availability is 7570956288 bytes; the 10000-file, 10921494393-byte NTFS
+copy verifies hashes and dates in 127788 ms. The actual Release client starts with an empty
+catalog. Input orchestration does not resume before the 240-second import admission, so neither
+the picker nor a menu sequence is attempted. This is an unsuccessful test schedule, without
+evidence of a product import or menu defect. The changed placement itself remains unexercised
+through the picker.
+
+Normal app-close input is sent at 03:42:12.896 UTC, 395.019 seconds after host admission. The
+matching host exit observation at 03:42:14.5232567 UTC gives a 1627.2567 ms close upper bound.
+The app exits zero and its Job retires. The guest verifies all source hashes and dates again
+in 67316 ms before copying the closed catalog. Native Sandbox disposal then completes the parent
+in 507063 ms, with no surviving Sandbox process, failure or cleanup error. The post-disposal
+capture has no screenshot target; the independent parent receipt proves complete retirement.
+
+Across 755 guest samples, peak working set/private/paged memory are
+117903360/100196352/101543936 bytes; minimum host availability is 3485118464 bytes. All existing
+resource bounds hold. The required imported-membership verifier exits one with
+`Unexpected root or root count`. Separate read-only inspection confirms quick-check passes with
+zero roots/locations, which does not accept the required imported corpus. Complete host integrity
+verification passes in 55.303 seconds for all 10516 generated files and the original
+10000/512/2/2 catalogs.
+
+Charge the full reservation through 5039 minutes. Stop this Release-menu method series without
+another automatic lifetime. UX-08C's remaining Release sequence stays open alongside the other
+frozen duties; prior selected Release decoding and normal-lifetime evidence remains separate.
+
+Independent result review confirms the matching receipts and hashes, failed interaction and
+membership result, exact close bound, complete source checks and stopped method series.
+
 ## Local provenance
 
 Ignored `.build/r2c-release-native/` owns the scoped guest preparation, process/source validators,
@@ -258,3 +318,28 @@ The unsuccessful menu attempt is retained under
 Its complete host post-check is
 `build/integration-storage-e84f07c4443e4008b0c71381991477a4/source-integrity-1790132958956675200.json`,
 SHA-256 `00A058FF4249907E909924261A0563C57A5FD617BC503DE012878A17416BAD21`.
+
+The pointer-first checkpoint is under
+`build/integration-storage-84b63ca33a0e4324b7eaa70cb49ee323/`. Its `host-result.json`,
+`output/native-actions.json` and `native-close.json` hashes are respectively
+`54C102E94F2722DC9DFDDBEED48CE997F620EB1D1A5FDA2E804DF3502A8B7E57`,
+`B423479544FA5ED062707D1C90532550D38D69DAC40F2115BC6770FADF70496B` and
+`64A91474BF2AE1CD67C443D1F07FD0AE9ADD7816A46A988CB7F02965F3DAC13E`.
+Its complete host post-check is
+`build/integration-storage-e84f07c4443e4008b0c71381991477a4/source-integrity-1790134158551346200.json`,
+SHA-256 `8E27EC0D1F351B9287B268AD5A7BE4C7A2956CC20452709CA224B9AB606ADDF7`.
+
+The direct-fixture attempt is retained under
+`build/integration-storage-9e53f68fb38a4512ae7e0ff9e57b7f23/`:
+
+| Receipt | SHA-256 |
+| --- | --- |
+| `host-result.json` | `DE699C2E9AE7278AB43414D51ED245F588378DD1710E2C4F34BDDF2EC3C76C06` |
+| `output/guest-result.json` | `8ACDB4B6FD350ECEB10FEC043368B02BB22AF9C218BC945A0F2B37BF89FF817E` |
+| `output/native-actions.json` | `7E0A5F48B1466951D75B773006BF051E433E2E9B77A6D4057B68D1FDCF44F95D` |
+| `native-close.json` | `86C053A831448C0D4185AE47836AA42F713A71CD3AA37227DF793C7033E9106B` |
+| `unimported-catalog-observation.json` | `9E954E33ED6843DEEE51EDFE81CD4E461722E3D13FB31D7CC1A92B22AFE9AF00` |
+
+Its complete host post-check is
+`build/integration-storage-e84f07c4443e4008b0c71381991477a4/source-integrity-1790135178678719000.json`,
+SHA-256 `99B7F3DEA6031817D747C6AF14A7861CE8A1FDCC8749E81DD0CAED0435959435`.
