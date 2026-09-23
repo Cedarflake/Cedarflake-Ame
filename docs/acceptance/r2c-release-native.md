@@ -496,3 +496,163 @@ retain their independent obligations.
 Independent result review verifies structured receipt hashes, bounds, source checks and the
 preserved capture failure. It does not independently rejudge the original screenshots' pixels,
 geometry or focus. No blocking discrepancy remains within that reviewed evidence scope.
+
+## Release bulk addition and unreached removal
+
+Run `e1963049cd3f4c969f3c18f4225142bc` reuses the exact current unsigned Release payload whose
+evidence hash is `A052ED73ECEAE0364242B7FB762B82357B7318378E2CE77E9B542B51AEFC8506`.
+The live branch is `codex/r2c` at `b1d31d0`; product/toolchain inputs remain identical to its
+recorded build source `f66d2a6`, including C11's `a1c165b` product changes. Only documentation
+and ignored diagnostic files change. The normal storage resolver, generated corpus, memory
+limits, source protection and 900-second parent remain enabled.
+
+The new guest stimulus owns twelve baseline copies and 2000 added copies from the frozen corpus.
+Only the first 1500 added names are eligible for removal after matching path, content and date
+checks. A held process/Job owner retires the helper independently of the application. Preflight
+review corrects partial receipt publication, a normal-stop race, omission of the legal 128-pixel
+preview bucket, publication-boundary timing, missing complete-import evidence and cross-VM close
+time subtraction. The first process-owner guard exposes an unpinned process-handle exit result;
+the corrected owner retains the handle and all three lifecycle cases retire. Seventeen source/
+stop checks, four receipt/cache checks, eight input checks, sixteen Python oracle checks and the
+three native helper cases pass. The source metadata oracle additionally matches all 10000 rows
+in the previous closed Release catalog. This calibration is separate from this run's acceptance.
+The final 23-file diagnostic source manifest is
+`2BE4C51D1DEC73711283EC508C2767B73FF9BEE935DADC0F915808F668ECBA1F`; all remain unchanged afterward.
+
+Guest preparation copies and verifies 10000 images / 10921494393 bytes on ordinary NTFS in
+90087 ms. Real picker confirmations occur at 165.407 and 226.592 elapsed seconds. The twelve
+baseline images display before the second picker. Background completion feedback reports 10000
+imported images, and the gallery displays a combined 12012 images. The background completion
+observation is recorded within 109.134 seconds of its confirmation, below the 300-second bound.
+
+The +2000 command is admitted at 236.573 elapsed seconds; its guarded physical copy takes 65706
+ms. The selected `bulk` gallery subsequently displays exactly 2012 images and decoded thumbnails,
+without a manual refresh. Its recorded completion observation is 117.270 seconds after command
+admission. This is a conservative observation interval, not an exact synchronization latency.
+A rail click at 353.849 elapsed seconds shows December 2012 rows, first with loading placeholders
+and then with decoded thumbnails on the next inspected capture, without wheel input. These are
+point observations; they do not establish continuous absence of blank frames or transient Retry.
+
+**The complete bulk variant fails to execute.** No removal request is written. The addition's
+own physical-copy time extends beyond the 240-second command-admission cutoff, before its
+required visible completion can authorize removal. Both commands sharing that deadline was an
+infeasible schedule for the measured preparation, input and copy costs. The 300-second product
+convergence bound is not relaxed. At normal shutdown the helper correctly rejects `state=added`,
+`added=2000`, `removed=0` and exits with failure. Its required final 512-file postcheck, cache
+inventory and closed catalog copy are unreached. The final oracle rejects the failed run; no
+catalog-membership, preview-ownership or complete bulk-acceptance pass is claimed.
+
+The remaining layout keyboard sequence is also incomplete. A pointer opens layout at 379.955
+seconds and Escape closes it at 394.572. After an absent-menu capture, Return at 422.154 does not
+reopen it in the following captures. This setup does not establish the visibly focused keyboard
+trigger required by the retained menu method. Tool delivery and pointer hover do not prove that
+focus. No product root cause is assigned, no second Enter is repeated, and More is not exercised.
+
+Normal app-close input starts at 449.012 elapsed seconds. Its matching app-exit receipt has PID
+3208, exit zero and app/Job retirement; the same-host first observation bounds close by
+1483.2008 ms. Every original guest image passes its hash/date postcheck in 48500 ms. The helper
+returns its explicit incomplete-sequence failure, and independent cleanup records no failures.
+Native Sandbox Close and confirmation dispose the guest; the post-disposal screenshot reports
+an unusable window, retained as an observation error rather than a failed close input. No Sandbox
+process remains. The parent ends in 540717 ms with `processBoundaryPassed=false` because the
+required guest sequence failed, not because an app or VM remained alive.
+
+Application stderr is empty. Entry host availability is 7920062464 bytes, minimum availability
+3522043904 bytes, and across 1186 samples peak working set/private/paged memory are respectively
+442646528/379502592/410300416 bytes. Host source checks preserve all 10516 files before and after
+in 47.932/62.336 seconds. The post receipt is `source-integrity-1790200788009942100.json`, SHA-256
+`0CEA2FB02513F562ED2F51B7950BAA8CEA1CC2507393AE20062D436F48229B49`. No real source root is used.
+
+Receipts remain in `build/integration-storage-e1963049cd3f4c969f3c18f4225142bc/`:
+
+| Receipt | SHA-256 |
+| --- | --- |
+| `host-result.json` | `C21CE67F4555BDEBCAB67A23DDA0E0DFF9218F86DCAF760A52B893ECB6B0313B` |
+| `output/guest-result.json` | `8E6307F84335486CF9B1195CC0C0EDABA9F0B964994C7BA7AF92019AE59F3935` |
+| `output/batch-result.json` | `7E26E99F887D0BAA4908D8431894E4846ED6FE113FAFE8928E924F8108B28F1A` |
+| `output/batch-add.done.json` | `9D9F6C6F4A4C6F4D97FD82E51B3B607F257DBBFBB33B850ADE87226B57833B68` |
+| `output/batch-add.observed.json` | `4533652F3CF941A8A6B27E4522A9DFC14176A625A44C4799ADC680ADCA90181E` |
+| `output/native-action-events.jsonl` | `36ADC0794843CC210D803A8488E17934460634E2DC7CB8453C8D171949AA0C32` |
+| `output/native-observations.jsonl` | `54049D483412FC351790787D01AA882A50F58360D30698C2F58440BAAC6E7612` |
+| `output/guest-source-post.json` | `B4F0EE391C9CF58E788950ED1B022886CC230B75B0F34353C1946F6C050E7734` |
+
+Charge the 120-minute reservation through 7414. The failed method ends here; the separately
+recorded measured-reserve method must pass its preflight before another lifetime. Remaining bulk
+deletion, menu return, other frozen variants, C01/C02 and final/external gates remain open.
+
+## Release bulk background preparation cutoff
+
+The revised schedule is also **incomplete**, run `df1597c0b4d34fc998e0eb55c5fddd1f`, with unchanged
+product source and payload. It retains the 240-second import/add cutoff, 390-second removal cutoff,
+690-second optional-input cutoff, each 300-second convergence bound and the 900-second parent.
+The method's input outcome owner distinguishes failed input from capture failure after input
+returns. Its oracle rejects missing/mismatched before/after pairs, unknown input, foreign windows
+and runs, and nonfinal or unproved disposal. Eleven Node, 17 input-evidence and ten catalog checks
+pass; all copied PowerShell sources parse. Independent method review closes a trailing unpaired
+input gap before launch. These checks do not establish functional acceptance.
+
+The full guest copy/hash/date preparation takes 123385 ms. Native baseline confirmation occurs
+at 228.165 seconds, with twelve decoded images subsequently observed. The second picker cannot
+complete before 240 seconds; neither batch request is published. The original sequential method
+therefore still lacks enough admission reserve. This is a test-preparation failure, not a reproduced
+product synchronization failure, and no batch performance result is claimed.
+
+The client exits normally with code zero and closed Job; the conservative same-host native-close
+upper bound is 1182.1271 ms. Peak working set is 453124096 bytes, sampled private bytes 378507264,
+and peak paged memory 408133632 across 285 samples. Host availability starts at 7847137280 bytes
+and remains at least 3737616384. The complete guest background postcheck passes in 65683 ms.
+The stimulus helper correctly exits with failure because its full sequence was never admitted;
+its required final-512 verification, cache inventory and catalog copy are unreached. The parent
+retains `processBoundaryPassed=false`, finishing in 379317 ms with no remaining Sandbox process.
+Final confirmation records returned input followed by the expected unusable-window capture error;
+the failed parent gate cannot be waived by that expected capture outcome.
+
+All 10516 host source files pass the 52.902-second postcheck. No real root is accessed. The complete
+Release bulk variant remains open. Preserve this failed run and its 25-source/38-input manifest
+unchanged; its 60-minute reservation is charged through cumulative 7474. The next plan changes the
+preparation dependency, rather than extending another deadline or replaying this sequence.
+
+Evidence under `build/integration-storage-df1597c0b4d34fc998e0eb55c5fddd1f`:
+
+| Receipt | SHA-256 |
+| --- | --- |
+| `host-result.json` | `AA5DD5247B44B8531096004FBB3C7B0A638EDED1980E4819899E08632258B4CD` |
+| `output/guest-result.json` | `D94803BB3CEB34729AE627F24B6565546B9B8EBA4551344DAA7B0B3CBD01AEB5` |
+| `output/batch-result.json` | `69B38C3899FB90D320B69E41397BB4080A29288BD6EDBF1DF6B63BC26ECFDCC5` |
+| `output/guest-source-copy.json` | `8188463A6F825B633D86062E54082628FB436C8C851661E20400EB1259D1F502` |
+| `output/guest-source-post.json` | `D62D33BB438FBFA81CABBA6ED5E027F6C0002FAF9D97FEDEE6F212F8D2B77441` |
+| `output/native-action-events.jsonl` | `95883BAAC1716ECAEE6A8FDA34DEE8475169DB323B32B4634B004F45CE5B4996` |
+| `output/native-observations.jsonl` | `FF5423C0F6B9935D92AAB7C96083FF28DFC18BBD4858A947EAF58FA76AEDF7E8` |
+| `run-assessment.json` | `C449388A309BDCA165216239D56B421AED117F5899CB604CA9BD403A4E9D32FC` |
+
+The immutable helper manifest is `.build/r2c-release-bulk-scheduled/reviewed-source-manifest.json`,
+SHA-256 `41BDC1DC42E96741D6CD209FB5E3395D11B9245294A5F861874AE1BC38B617EA`.
+The complete host postcheck is `source-integrity-1790202365475602100.json` in the retained generated
+fixture, SHA-256 `14A4A3B9F033EE60F21289D8A4CF2CDD7E05C66741ADE47430F285885563A3B5`.
+
+## Release bulk independent preparation preflight
+
+The next method has a fresh single-use fixture `2952b5cb20ce48caaf46d7387e1bdb7d` and unchanged
+verified Release payload. The baseline is independently copied and checked from the read-only
+mapping. A separate source-preparation owner holds its child/Job until complete background byte/
+date verification and successful exit; only its matching retired receipt admits the second picker
+confirmation. Native input checks the deadline again immediately before sending that confirmation.
+The baseline and background remain distinct prerequisites.
+
+Fourteen Node cases, 31 Python oracle cases, 17 source-protection checks and six actual preparation
+process cases pass. The latter cover complete, foreign-run, wrong-PID, partial-source, failed and
+pending preparation, with owned retirement in every case. Independent method review identifies
+and closes the read-to-input deadline race; the actual session regression crosses 240 seconds
+during receipt reads and proves zero input, no acknowledgement and no additional capture.
+All PowerShell sources parse. This is diagnostic-method verification, not a product or native pass.
+
+Diagnostic production/inline-test/dedicated-test sizes are 74/0/72 for the preparation owner and
+its guard process, 20/0/0 for the guest preparation entrypoint, 184/0/0 for the guest composition,
+165/0/96 for the native session, 11/0/22 for readiness and 14/0/36 for the offline preparation
+oracle. The native-session tests use simulated input only for the admission guard; real input
+acceptance still requires the fresh lifetime.
+
+The immutable manifest is `.build/r2c-release-bulk-pipelined/reviewed-source-manifest.json`, SHA-256
+`59F318CF084A593365C550E1A99A6799921BAB712C2C10E8235A557D96AC69D5`, with 33 source and 40 input files.
+Preparation and review are complete. Native launch remains pending the retained seven-GiB host
+entry requirement; no host-start or runtime result is present for this fixture yet.

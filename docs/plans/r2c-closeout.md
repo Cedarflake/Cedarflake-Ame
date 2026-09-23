@@ -1593,6 +1593,116 @@ retains the original timestamp failure, calibration, precision limitation and ex
 Charge the correction reservation through 7294 minutes; no product change or native replay follows.
 Release ownership and final-candidate duties remain queued independently.
 
+#### Release bulk synchronization and settled browsing
+
+Reserve 120 active minutes, cumulative 7414: 45 for guest fixture/stimulus and closed-catalog
+oracles, 15 for focused guards and payload binding, 15 for one native lifetime, 15 for complete
+source/catalog/retirement checks, 15 for independent method/result review and 15 for records.
+This extends the completed Debug C04 workload to the optimized production client, rather than
+replaying a menu-only session. Reuse the passing unsigned payload only after matching its exact
+files and proving no product/toolchain input changed since its build; otherwise rebuild through
+the canonical gate before admission. Preserve the earlier input-coverage failures.
+
+Use the same 10000-file, 10921494393-byte mixed-size/historical corpus on ordinary guest NTFS,
+normal Known Folders storage and an additional run-owned `bulk` root. Its twelve baseline images
+and 2000 added images are distinct physical copies from the frozen generated corpus, with content
+and historical dates preserved. The original corpus remains unchanged. Import the twelve-image
+root first, then admit the complete background through the real picker. The bulk stimulus may
+overlap its scan, while final acceptance still requires all 10000 background members. A separate
+owned guest process performs
+one unthrottled +2000 burst and then removes exactly 1500 of those newly created files only after
+the addition is visibly complete. No original baseline file is eligible for removal. Each command
+requires matching run identity, explicit phase, exact owned paths and source-byte/date checks;
+out-of-order, duplicate, foreign, reparse or changed-source requests fail closed without retry.
+
+Observe exact selected-root counts 12, 2012 and 512, with 10000 unchanged background members,
+actual settled thumbnails and nonzero historical rail navigation around the changes. Each batch
+retains its original 300-second convergence bound, measured conservatively from the host's command
+admission. No manual refresh may repair synchronization. Preserve any blank wall or transient
+Retry observation; point screenshots do not establish absence across unobserved frames. Exercise
+the remaining layout/more keyboard return sequences if the same lifetime has sufficient input
+reserve, without pointer refocus within a return sequence or blind key batches.
+
+Retain seven-GiB host admission, 3072-MiB guest, two-GiB client ceiling/host reserve, both import
+confirmations before 240 seconds, 540-second optional-input cutoff, 900-second parent and six-second
+normal app close. Finish history, helper, source and exit preparation before launch. Stop new
+stimulus by 240 elapsed seconds unless the complete 300-second observation reserve remains before
+the input cutoff; record any unreachable phase instead of extending a bound. Every stimulus
+process must retire through its held Job/process owner. After normal exit, require exact two-root
+catalog membership, active source and preview ownership, complete original guest/host hashes/dates,
+and the exact retained 512-image stimulus roster. One failed lifetime ends this method. No real
+library, installed service, signing, production instrumentation, source-storage bypass or new
+dependency is admitted; final-source and external duties remain separate.
+
+The [result](../acceptance/r2c-release-native.md#release-bulk-addition-and-unreached-removal)
+reaches both picker confirmations within 240 seconds, the complete background import, visible
+2012-member automatic addition and decoded historical navigation. Removal is never admitted:
+the addition command begins at 236.573 seconds and its guarded physical copy takes 65706 ms,
+so a dependent observed removal cannot fit the same 240-second admission cutoff. This is a
+preparation/scheduling defect in the method, not evidence of failed product deletion. The helper
+correctly fails its incomplete sequence on normal shutdown. Catalog/cache copying follows that
+required helper postcheck and is therefore unreached; the complete variant remains unaccepted.
+The pointer-open/Escape/Enter layout observation does not establish an initially focused keyboard
+trigger and cannot close the retained keyboard-return duty or establish its root cause.
+All original guest and 10516 host sources pass postchecks; app/Job/VM retire and failed receipts
+remain. Charge the 120-minute reservation through 7414. End this method without an unchanged replay.
+
+#### Release bulk sequence with measured phase reserves
+
+Reserve 60 active minutes, cumulative 7474: ten for the revised schedule and independent method
+review, ten for deadline/retirement guards, 15 for one native lifetime, ten for source/catalog
+postchecks, five for independent result review and ten for records. Keep the exact workload,
+normal production storage, source protections, resource limits, six-second app-close bound,
+300-second import and per-batch convergence bounds, and 900-second parent. The revised internal
+schedule keeps imports and addition admission before 240 seconds, permits removal only before
+390 seconds after visible addition completion, and closes optional observation/input at 690
+seconds. The 210-second retirement reserve exceeds the measured 48500-ms full guest source
+postcheck plus bounded helper postcheck and native disposal; parent timeout remains authoritative.
+This changes an internal scheduling allowance, not a passing result or a product latency limit.
+Reject a command immediately before publication, retain any publication-boundary failure, and
+independently verify each phase's admission and observation times after shutdown.
+
+Prepare one fresh configuration and reviewed immutable helper closure before launch. Retain the
+preceding failed run byte-for-byte. Focus this lifetime on both bulk phases and their settled
+historical thumbnails; do not spend its reserve on layout/more traversal. Those duties require
+their own demonstrated native keyboard focus and remain in the frozen roster. Preserve complete
+source, exact two-root/catalog, current-preview ownership and all retirement requirements.
+If addition is not visibly complete before removal admission, retire normally and record that
+gap; do not enlarge another deadline or replay this method unchanged. No new product change,
+real source, service, signing or release authority follows from this schedule correction.
+
+The [scheduled result](../acceptance/r2c-release-native.md#release-bulk-background-preparation-cutoff)
+does not reach the second picker or either batch: full guest preparation takes 123385 ms, and
+serial preparation plus native baseline input consumes the 240-second admission window. Only
+the twelve-image baseline is observed. Source postchecks and normal app/VM retirement complete;
+the helper correctly rejects its unstarted sequence and the complete gate remains failed.
+Charge this reservation through 7474 and end this serial preparation method without replay.
+
+#### Release bulk preparation with independent readiness
+
+Reserve 90 active minutes, cumulative 7564: 30 for the independent preparation owner and admission
+boundary, ten for focused guards, ten for independent method/result review, 15 for one native
+lifetime, ten for complete source/catalog postchecks and 15 for records. Preserve both failed
+serial lifetimes and their immutable helpers. Do not increase 240/390/690-second phase cutoffs,
+300-second import/batch bounds, 900-second parent, six-second close, source counts, or resource limits.
+
+Prepare and byte/date-verify the twelve baseline files directly from the existing read-only
+generated mapping. A separate held Job/process owner then prepares the full ordinary-NTFS
+background corpus while native baseline import proceeds. This only overlaps disposable fixture
+preparation with the twelve-image client path; it introduces no second host build/test command,
+real-root access or source mutation. The application memory/abort monitor remains active.
+The background source helper has a bounded lifetime and must exit successfully with a matching
+run/PID, complete 10000-file/10921494393-byte source receipt and independently closed Job before
+the second picker confirmation is admitted. A prepared baseline cannot stand in for complete
+background readiness. No source phase starts until both real imports are confirmed.
+
+Keep source preparation, stimulus and application process ownership independent. Test incomplete,
+failed, foreign and unacknowledged preparation plus disposal, including input rejected before
+background readiness. Freeze one fresh configuration/closure after review. Run the same
+12→2012→512 sequence and settled historical browsing without menu work. An unavailable readiness
+or timing reserve ends the run normally; no unchanged replay or further deadline growth follows.
+All final catalog/preview ownership, full guest/host source postchecks and retirement duties remain.
+
 #### Current Release gallery stability and remaining menu return
 
 Reserve 90 active minutes, cumulative 6964: 20 preparation, ten focused admission checks, 15 one
