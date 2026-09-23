@@ -487,6 +487,139 @@ directory restoration and automatic convergence. Exact 10000/512/2/2 membership,
 integrity and helper/client retirement pass. Charge the 100-minute reservation in full through
 4634 minutes; remaining frozen variants, Release, C01/C02 and external gates retain their scope.
 
+#### Isolated Release client and native navigation
+
+Reserve the next 100 active minutes: 30 for isolated guest admission and artifact/fixture preparation,
+20 for native decoder/navigation observations, 15 for source/catalog/process checks, 20 for one
+independent method/result review and 15 for records. Cumulative reservation becomes 4734 minutes;
+serial builds and full-source verification wall time remain separate. This is a combined native
+Release path for cold/warm previews, historical-date navigation, actual viewer decode and return,
+and keyboard/menu focus. Map evidence to the existing frozen rows; do not invent new variants or
+infer all Release races from one successful normal sequence.
+
+The optimized Rust storage owner excludes `CEDARFLAKE_AME_TEST_STORAGE_ROOT`, and its pinned Windows
+directory adapter uses Known Folders rather than process environment aliases. Do not run the Release
+client against the workstation's ordinary profile or modify that profile's storage settings.
+Read-only CIM confirms the existing Windows Sandbox feature is installed. Use its documented
+[configuration and mapped-folder interface](https://learn.microsoft.com/en-us/windows/security/application-security/application-isolation/windows-sandbox/windows-sandbox-configure-using-wsb-file)
+to obtain a fresh guest profile. No feature installation, host security setting, administrator
+account creation, real-root access or service installation is admitted.
+
+First prove one bounded Sandbox start/stop and its output receipt before the media lifetime. Map
+only the exact generated source directories and verified unsigned Release payload as read-only;
+grant write access solely to the new run's output directory. Disable guest networking, clipboard,
+audio, video and printer redirection. Cap guest memory at 3072 MiB, retain at least 2 GiB available
+on the host and the original 2 GiB application ceiling, and admit only with at least 5 GiB host
+availability. Existing Sandbox sessions are never reused or terminated. Any missing input binding,
+mapping, runtime dependency, clean profile or owned shutdown evidence fails admission and requires
+a documented method change before media execution.
+
+Build with the canonical unsigned Windows entrypoint and retain its artifact manifest. The guest
+runs the actual optimized application and DLL using normal profile-owned storage. Drive picker,
+root/search/sort, time rail, viewer navigation/return and keyboard menus only through observed
+native input. Keep the original 10000-image mixed-size/historical corpus unchanged; require exact
+catalog paths/counts, visible decoded images at selected positions, usable warm return and no
+unexpected failure feedback. Read-only guest evidence may inspect the derived catalog and process,
+but cannot invoke product controllers or substitute media results. Retain the 900-second media
+parent, 300-second scan/convergence and six-second application-close bounds. Preserve guest results
+before its owned shutdown, then verify source integrity and host resource retirement. VM evidence
+does not establish host GPU performance, physical-device/Journal/Cloud Files behavior, installed
+signed-service acceptance or final R2c readiness.
+
+The first empty guest proves its fresh profile, read-only input (access-denied code 5), output
+receipt and subsequent complete Sandbox retirement. Its host run nevertheless fails: entry
+availability is 5630590976 bytes and the minimum reaches 2032762880 bytes, below the retained 2 GiB
+floor. Preserve that failed receipt; do not call the admission passing or start media from it.
+Within this same reservation, revise entry availability to **7 GiB** while retaining the 3072 MiB
+guest cap and every existing runtime/application bound. The fresh empty admission subsequently
+passes with complete retirement. No application, real profile or source was opened in the failed
+lifetime. The initial application-specific capture permission times out; subsequent observed native
+input works. Preserve the failed attempt without inferring input delivery from that timeout.
+The local-only guest payload may include copies of the three already installed, Microsoft-signed
+MSVC runtime DLLs required by the runner's import table. Record their hashes, signatures and versions
+separately from the unchanged verified product manifest; this is no installation, release payload
+change or redistribution. Reuse the repository's owned-process job and memory-query boundaries for
+guest retirement, then inspect only the closed, copied derived catalog for exact source membership.
+
+The first media lifetime reaches the actual picker and Release import, but the Sandbox redirected
+source rejects the production directory-identity query with `root_identity_unavailable` / Windows
+error 50 before publication. This is a failed environment method, not decoding acceptance. During
+retirement the native tool loses its target after a minimized-window recovery; stop coordinate
+input and use the existing matching-run abort/owned Job shutdown. Preserve both failures and prove
+all test processes retired before continuing.
+
+Use the remaining reservation for one changed source method: copy only the unchanged generated
+10000-image corpus from the read-only mapping into a fresh directory on the disposable guest's
+NTFS disk. Keep the mapping read-only and all workstation originals intact. Require at least 20 GiB
+guest disk headroom, one serial copy/verification within 300 seconds, exact paths/bytes/SHA-256 and
+creation/modified timestamps, and no product identity bypass. The 900-second whole lifetime,
+300-second actual scan and six-second actual close bounds are unchanged. The guest-copy preparation
+cannot install anything, inspect real roots or reuse the failed catalog. Observe a fresh matching
+Sandbox screenshot before any input; a wrong-window image admits no coordinates. Text-entry/key
+delivery remains an observed tool boundary, not an inferred application pass.
+
+The [Release result](../acceptance/r2c-release-native.md) records actual 10000-image import,
+cold/warm pixels, historical rail navigation, viewer Left/Right/Escape and two stable observed
+returns. Exact catalog membership and full guest/host source integrity pass; actual app close is
+bounded by a 1300.6344 ms same-host-clock observation. The complete lifetime nevertheless fails:
+guest shutdown leaves a host connection-lost feedback dialog past the unchanged 900-second parent.
+The observed dialog is declined and all Sandbox processes subsequently retire. Charge the full
+100-minute reservation through 4734 minutes; no full-lifetime or complete UX-variant pass follows.
+
+#### Native Sandbox retirement calibration
+
+Reserve 25 active minutes after that failure: ten for the changed diagnostic method, five for one
+empty native lifetime, five for focused review and five for records. Cumulative reservation becomes
+4759 minutes. This admits no application, source corpus, catalog, build or media replay. The guest
+finishes the same fresh-profile/read-only-mapping checks and writes its flushed receipt, then exits
+its helper without calling guest shutdown. Close the observed Sandbox host window normally and
+confirm disposal of this empty guest if prompted. Verify all owned Sandbox processes end within
+the unchanged 180-second empty admission deadline. Use a fresh GUID, 7 GiB host entry, 2 GiB host
+floor and 3072 MiB guest cap; retain any failure. No force-kill, unrelated window or feedback
+submission is admitted. Only a passing changed retirement method can admit a subsequent separately
+bounded media lifetime; neither calibration nor later success rewrites the failed parent above.
+
+The [empty calibration](../acceptance/r2c-release-native.md#normal-host-close-calibration) passes
+in 112801 ms with all Sandbox processes retired. Method review corrects late-completion acceptance
+and original-receipt overwrite before launch; an actual consumed-admission rejection preserves the
+passing receipt and starts no process. Independent result review confirms that limited conclusion.
+Charge 25 minutes in full through 4759 minutes.
+
+#### Complete normal Release lifetime with native host close
+
+Reserve 60 active minutes: 15 for adapting the verified retirement boundary, 20 for one native
+media lifetime, ten for exact source/catalog/process checks, five independent method/result review
+and ten for records. Cumulative reservation becomes 4819 minutes. Reuse the unchanged verified
+Release payload, frozen 10000-image corpus and passed empty host-close admission. Create one fresh
+guest/profile/catalog and apply the same NTFS-copy pre/post hashes and dates, read-only mappings,
+resource floors, 300-second copy/scan, six-second app-close and 900-second parent limits.
+
+The guest writes complete app-retirement, source-integrity and copied-catalog receipts, then ends
+its helper without guest shutdown. Only after that matching receipt, close the observed Sandbox
+host window and confirm disposal. Final host completion must validate all receipts, absence of
+Sandbox processes and the original stopwatch deadline; consumed configurations and existing result
+files must be rejected without overwriting evidence. Actual picker, cold/warm rail and viewer
+Left/Right/Escape observations belong to this one complete lifetime. Include native menu dismissal
+and focus return when observable, retaining any uncovered race or focus variant as open. No real
+source, product change, new build, service or signing step joins the run. A failed invariant ends
+this admission; no unchanged media replay is permitted.
+
+The changed ending passes independent method review. The first entry is nevertheless rejected
+before any Sandbox launch when fresh availability falls below 7 GiB; preserve its 637 ms failure
+receipt. No media lifetime occurs. Prepare a fresh configuration only after memory recovers with
+headroom (approximately 8 GiB requested), keep the original 7 GiB hard admission threshold and
+all other limits, and consume this same 60-minute reservation. Never reuse the failed configuration
+or treat the earlier preflight value as current entry evidence.
+
+The fresh resource-admitted lifetime now passes its unchanged 900-second parent in 840953 ms,
+with app/Job and all Sandbox processes retired. Exact guest membership, hashes/dates and the
+complete host source oracle pass. Native rail, viewer Right/Escape and stable observed return add
+selected Release evidence. Sort-menu Escape succeeds but subsequent Return does not reopen it;
+retain that negative focus sequence without assigning an unobserved cause. The
+[complete result](../acceptance/r2c-release-native.md#complete-native-lifetime-with-normal-host-close)
+does not accept every UX variant or supersede the failed earlier lifetimes. Charge 60 minutes in
+full through 4819 minutes; no product change or new build is introduced.
+
 #### C01 owned-thread observation calibration
 
 While actual input is unavailable, reserve 40 active minutes: 15 for a process-scoped sampler,

@@ -95,7 +95,10 @@ this generated-client result does not establish complete synchronization accepta
 [query interaction record](acceptance/r2c-query-interactions.md) verifies selected native Debug
 search/sort/root/folder/window interaction during publication, folder-window replacement/append,
 the corrected continuous search input and committed-removal display Retry. Sidebar position
-continuity, remaining client variants, Release and final-source gates remain open. C01's mixed-load recovery
+continuity and remaining client/final-source gates remain open. The
+[isolated Release record](acceptance/r2c-release-native.md) adds actual optimized-client decoding,
+rail navigation, viewer return and a complete normal lifetime, while retaining the earlier failed
+host retirement. Menu focus return and remaining Release variants retain their frozen duties. C01's mixed-load recovery
 failure and C02's automation/evidence failures are recorded for final verification; their current
 evidence does not establish a highest-priority user incident. Deferral changes execution order,
 not their unresolved acceptance status. Source/durable-data harm or reproduced blocked, misleading
