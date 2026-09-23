@@ -8,6 +8,7 @@ import "../../application/library_source_read_scheduler.dart";
 import "../../domain/library_models.dart";
 import "library_loading_indicator.dart";
 import "library_source_image.dart";
+import "library_viewer_source_scope.dart";
 
 class LibraryViewerImage extends StatefulWidget {
   const LibraryViewerImage({
@@ -27,17 +28,31 @@ class LibraryViewerImage extends StatefulWidget {
 
 class _LibraryViewerImageState extends State<LibraryViewerImage> {
   late LibrarySourceImage _sourceImage;
+  LibraryViewerSourceScope? _sourceScope;
   int _retryGeneration = 0;
 
   @override
   void initState() {
     super.initState();
+    _sourceScope = context
+        .getInheritedWidgetOfExactType<LibraryViewerSourceScope>();
     _sourceImage = _createSourceImage();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _sourceScope = LibraryViewerSourceScope.maybeOf(context);
+    _updateSourceImage();
   }
 
   @override
   void didUpdateWidget(covariant LibraryViewerImage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    _updateSourceImage();
+  }
+
+  void _updateSourceImage() {
     final nextImage = _createSourceImage();
     if (_sourceImage != nextImage) {
       _sourceImage.cancel();
@@ -143,8 +158,8 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
   LibrarySourceImage _createSourceImage() => LibrarySourceImage(
     widget.asset,
     retryGeneration: _retryGeneration,
-    scheduler: widget.sourceReadScheduler,
-    bufferLoader: widget.sourceBufferLoader,
+    scheduler: widget.sourceReadScheduler ?? _sourceScope?.scheduler,
+    bufferLoader: widget.sourceBufferLoader ?? _sourceScope?.bufferLoader,
   );
 
   void _retry() {

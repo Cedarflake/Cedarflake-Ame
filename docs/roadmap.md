@@ -103,8 +103,8 @@ lifetime timing and remaining final-source gates remain open. The
 pending time-rail reversal now has exact current-target and stale-result retirement evidence;
 its one-pixel loading-row movement is registered as C11/S2 for the final minor-repair batch,
 with the failed stability requirement retained. Native viewer close/reopen during pending paging
-now preserves the new selection and original pixels through old-page completion and normal exit;
-native source-copy and remaining Release boundaries stay open. The
+and an admitted source-copy future now preserves the new selection and original pixels through
+old-work retirement and normal exit; remaining Release boundaries stay open. The
 [isolated Release record](acceptance/r2c-release-native.md) adds actual optimized-client decoding,
 rail navigation, viewer return and a complete normal lifetime, while retaining the earlier failed
 host retirement. Menu focus return and remaining Release variants retain their frozen duties. C01's mixed-load recovery

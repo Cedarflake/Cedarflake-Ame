@@ -582,3 +582,79 @@ native Debug paging/input/original-I/O evidence. A held native source-buffer-cop
 UX-07 crash recovery, C01/C02 and remaining final/external gates are not accepted by this lifetime.
 Independent result review verifies the raw interaction, normal retirement and complete post-check
 receipts and confirms those same evidence limits.
+
+## Native viewer replacement during pending source copy
+
+The production change exposes the existing source scheduler and buffer loader through immutable
+`LibraryViewerSourceScope`. Explicit widget dependencies still win, and an absent scope still uses
+the existing Rust reader and Flutter file-buffer defaults. Effective dependency changes retire the
+old provider under its existing copy-completion lifetime. This is a dependency-boundary refactor;
+it does not change read admission, cancellation, errors, retry, source guards or catalog policy.
+The affected production owners contain 177 lines (`LibraryViewerImage`) and 24 lines (scope), with
+no inline tests; the dedicated source-read lifecycle file contains 435 lines and 12 cases.
+
+All 26 focused source-scheduler, stream, image and lifecycle cases pass, including unchanged
+dependencies, explicit precedence, independent scheduler/loader replacement and scope removal.
+Eight diagnostic cases exercise native-input evidence, missing viewer presence, ordered source
+retirement, stale selection, notification errors, deadline and stable return. Independent method
+review requires permanent failure latching at assertion/acquire/copy/close boundaries and rejects
+any missing replacement-viewer frame except the stable second Escape's normal down/up transition.
+Those changes and their focused checks precede the one native lifetime. Diagnostic analysis passes;
+the Debug build takes 25.5 seconds. A first lint wrapper incorrectly promoted Cargo's successful
+stderr status line to a PowerShell error; direct invocation of the canonical lint entrypoint passes.
+
+Run `b069f8453350487282a3932e332c13db` uses base `02a8f1c1c8df8f7e98cce30697294920d0dbecfb`
+plus these scope changes. Ignored `.build/r2c-source-copy-native/source-manifest.json` records the
+exact product/test/diagnostic hashes; native admission records executable, kernel and DLL hashes.
+The fresh derived backup has exact 10000/512/2/2 membership and uses 10516 immutable generated
+originals. The complete Ame gallery/viewer, Rust source admission and engine buffer copy run in
+the native EXE. The first admitted loader future waits before invoking
+`ui.ImmutableBuffer.fromFilePath`; its real Rust lease remains held. This is an application
+copy-future boundary, not proof that an OS read was executing when Escape arrived, and not a delay
+of an already completed copy. No widget, controller, focus or scroll action is injected.
+
+| Actual transition | Application time |
+| --- | --- |
+| First native tile opens a 6000 by 4000 original; native lease acquired | 39088 / 39233 ms |
+| Source copy held; pending viewer observed | 39238 / 39247 ms |
+| Native Escape down/up; gallery returns while source copy remains held | 55226 / 55306 / 55324 ms |
+| Different native tile opens a replacement viewer while still held | 70397 ms |
+| Old actual file copy completes, then its real native close completes | 70405 / 70406 ms |
+| Replacement native source acquired, copied and closed | 70431 / 70433 / 70434 ms |
+| Old real buffer disposal and exact ordered retirement verified | 70443 ms |
+| Current 7680 by 4320 original pixels observed; ten-second stability reached | 70669 / 80702 ms |
+| Second native Escape down/up; both original gallery identities have current pixels | 135055 / 135058 / 135126 ms |
+
+The observer measures **267 ms from release invocation to current original pixels**; its event
+timestamp also includes receipt-writing time. Both actual copies occur exactly once, both native
+closes complete exactly once, and A close completes before B admission. Old-buffer disposal is
+proved independently; the method does not impose an unsupported dispose-before-B-admission order.
+Location, scan, source revision and generation match the current viewer, with matching original
+dimensions and image label. Across 3252 observed frames there is no stale selection, unexplained
+viewer disappearance, original-image error or notification error. Return establishes valid visible
+gallery identities and pixels; exact gallery geometry and C11 remain separate duties.
+
+The application and parent pass, stderr is empty, and actual title-bar Close reaches native exit
+in **329.4253 ms**, exit zero. The owned Job and memory observer retire without cleanup failures;
+the complete parent lifetime is 160621 ms. Across 600 resource samples, peak working set is
+730832896 bytes, sampled private memory is 692469760, kernel peak commitment is 860717056 and
+minimum host availability is 5391339520. The complete source pre-check takes 61.149 seconds;
+the post-check takes 58.134 seconds and preserves all 10516 source identities, bytes and timestamps.
+Exact four-root catalog membership also remains unchanged. The final source receipt is
+`source-integrity-1790154832569229500.json` under the retained recovery fixture.
+
+The fresh `build/integration-storage-4cf26f2e1f8f4eb7855959036f0663d1/` retains these receipts:
+
+| Receipt | SHA-256 |
+| --- | --- |
+| Native stdout | `7923CF3B5F7578DD7ED07ECFC8386C776F8505E4558D9E11D87B2CBA5089A5D4` |
+| Passing application result | `4D5CC113B5B13B716572AB7987A804045874F2F0AA3E0127D37B8077844B7B13` |
+| Passing parent result | `F5B268FA935DC1FBF52CD1CA15540F398A5299BB81199E30FFEE9D3319537558` |
+
+Charge the admitted 120-minute reservation conservatively in full through 5824 minutes. This is
+selected Debug native source-copy and close/reopen evidence. It does not accept all UX-05 variants,
+Release input, C11, C01/C02, complete Daily or the remaining final/external R2c gates.
+Independent result review confirms the event ordering, source/member receipts, normal retirement,
+three retained hashes and those evidence limits. Final direct lint and whitespace checks pass;
+116 local document targets and the unique new evidence anchor resolve, and the captured product,
+test and diagnostic source hashes still match the verified native build.

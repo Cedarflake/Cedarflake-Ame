@@ -7,10 +7,144 @@ import "package:cedarflake_ame/features/library/application/library_source_reade
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_source_image.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_image.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_source_scope.dart";
 import "package:flutter/material.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  testWidgets("inherited source dependencies keep an unchanged read alive", (
+    tester,
+  ) async {
+    final fixture = _Fixture();
+    await tester.pumpWidget(fixture.scopedViewer("first"));
+    await tester.pump();
+    await tester.pumpWidget(fixture.scopedViewer("first"));
+    expect(fixture.reader.opened, ["first"]);
+    expect(fixture.buffers.keys, ["approved-first"]);
+    expect(fixture.reader.leases.single.closed, 0);
+    await tester.runAsync(() => fixture.finishBuffer("approved-first"));
+    await _waitForImage(tester);
+    expect(fixture.reader.leases.single.closed, 1);
+    await tester.pumpWidget(const SizedBox.shrink());
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets("explicit source dependencies take precedence over the scope", (
+    tester,
+  ) async {
+    final inherited = _Fixture();
+    final explicit = _Fixture();
+    await tester.pumpWidget(
+      inherited.scopedViewer("first", overrides: explicit),
+    );
+    await tester.pump();
+    expect(inherited.reader.opened, isEmpty);
+    expect(inherited.buffers, isEmpty);
+    expect(explicit.reader.opened, ["first"]);
+    await tester.runAsync(() => explicit.finishBuffer("approved-first"));
+    await _waitForImage(tester);
+    expect(explicit.reader.leases.single.closed, 1);
+    await tester.pumpWidget(const SizedBox.shrink());
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets("a changed inherited scheduler resolves the same source afresh", (
+    tester,
+  ) async {
+    final fixture = _Fixture();
+    final replacement = _Fixture();
+    await tester.pumpWidget(fixture.scopedViewer("first"));
+    await tester.runAsync(() => fixture.finishBuffer("approved-first"));
+    await _waitForImage(tester);
+    await tester.pumpWidget(
+      fixture.scopedViewer("first", inheritedScheduler: replacement.scheduler),
+    );
+    await tester.pump();
+    expect(fixture.reader.opened, ["first"]);
+    expect(fixture.reader.leases.single.closed, 1);
+    expect(replacement.reader.opened, ["first"]);
+    expect(replacement.reader.leases.single.closed, 0);
+    await tester.runAsync(() => fixture.finishBuffer("approved-first"));
+    await _waitForImage(tester);
+    expect(replacement.reader.leases.single.closed, 1);
+    await tester.pumpWidget(const SizedBox.shrink());
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets("scope replacement retires a pending copy without early close", (
+    tester,
+  ) async {
+    final fixture = _Fixture();
+    final replacement = _Fixture();
+    await tester.pumpWidget(fixture.scopedViewer("first"));
+    await tester.pump();
+    final retired = _sourceCompleter(tester);
+    await tester.pumpWidget(
+      fixture.scopedViewer("first", loader: replacement.loadBuffer),
+    );
+    await _pumpRetirement(tester);
+    expect(retired.keepAlive, throwsStateError);
+    expect(fixture.reader.opened, ["first"]);
+    expect(fixture.reader.leases.single.closed, 0);
+    final oldBuffer = await tester.runAsync(
+      () => fixture.finishBuffer("approved-first"),
+    );
+    await tester.pump();
+    expect(oldBuffer!.debugDisposed, isTrue);
+    expect(fixture.reader.leases.first.closed, 1);
+    expect(fixture.reader.opened, ["first", "first"]);
+    expect(replacement.buffers.keys, ["approved-first"]);
+    await tester.runAsync(() => replacement.finishBuffer("approved-first"));
+    await _waitForImage(tester);
+    expect(fixture.reader.leases.last.closed, 1);
+    expect(find.text("无法打开原图"), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    "removing the scope restores defaults and preserves explicit admission",
+    (tester) async {
+      final fixture = _Fixture()..reader.gate = Completer();
+      final key = GlobalKey();
+      Widget viewer() => LibraryViewerImage(
+        key: key,
+        asset: _asset("first"),
+        sourceReadScheduler: fixture.scheduler,
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: LibraryViewerSourceScope(
+            scheduler: fixture.scheduler,
+            bufferLoader: fixture.loadBuffer,
+            child: viewer(),
+          ),
+        ),
+      );
+      await tester.pump();
+      expect(
+        _sourceProvider(tester),
+        LibrarySourceImage(
+          _asset("first"),
+          scheduler: fixture.scheduler,
+          bufferLoader: fixture.loadBuffer,
+        ),
+      );
+      await tester.pumpWidget(MaterialApp(home: viewer()));
+      expect(
+        _sourceProvider(tester),
+        LibrarySourceImage(_asset("first"), scheduler: fixture.scheduler),
+      );
+      expect(fixture.reader.opened, ["first"]);
+      expect(fixture.buffers, isEmpty);
+      await tester.pumpWidget(const SizedBox.shrink());
+      fixture.reader.gate!.complete();
+      await tester.pump();
+      expect(fixture.reader.leases.single.closed, 1);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets("buffer reads only the approved path and waits for admission", (
     tester,
   ) async {
@@ -178,19 +312,39 @@ class _Fixture {
     ),
   );
 
+  Widget scopedViewer(
+    String id, {
+    _Fixture? overrides,
+    LibrarySourceBufferLoader? loader,
+    LibrarySourceReadScheduler? inheritedScheduler,
+  }) => MaterialApp(
+    home: LibraryViewerSourceScope(
+      scheduler: inheritedScheduler ?? scheduler,
+      bufferLoader: loader ?? loadBuffer,
+      child: Scaffold(
+        body: LibraryViewerImage(
+          asset: _asset(id),
+          sourceReadScheduler: overrides?.scheduler,
+          sourceBufferLoader: overrides?.loadBuffer,
+        ),
+      ),
+    ),
+  );
+
   Future<ui.ImmutableBuffer> loadBuffer(String path) {
     final completion = Completer<ui.ImmutableBuffer>();
     buffers[path] = completion;
     return completion.future;
   }
 
-  Future<void> finishBuffer(String path) async {
+  Future<ui.ImmutableBuffer> finishBuffer(String path) async {
     final buffer = await ui.ImmutableBuffer.fromUint8List(
       base64Decode(
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
       ),
     );
     buffers[path]!.complete(buffer);
+    return buffer;
   }
 }
 
@@ -242,15 +396,19 @@ Future<void> _waitForImage(WidgetTester tester) async {
 }
 
 ImageStreamCompleter _sourceCompleter(WidgetTester tester) {
-  final image = tester
-      .widgetList<Image>(find.byType(Image))
-      .singleWhere((image) => image.image is LibrarySourceImage);
-  final stream = image.image.resolve(ImageConfiguration.empty);
+  final stream = _sourceProvider(tester).resolve(ImageConfiguration.empty);
   final completer = stream.completer;
   if (completer == null) {
     throw StateError("The source image stream has not been admitted");
   }
   return completer;
+}
+
+LibrarySourceImage _sourceProvider(WidgetTester tester) {
+  final image = tester
+      .widgetList<Image>(find.byType(Image))
+      .singleWhere((image) => image.image is LibrarySourceImage);
+  return image.image as LibrarySourceImage;
 }
 
 Future<void> _pumpRetirement(WidgetTester tester) async {

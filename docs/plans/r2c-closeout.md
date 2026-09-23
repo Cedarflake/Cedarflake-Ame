@@ -923,6 +923,50 @@ gallery return and 408.23 ms normal exit. Method review corrects request admissi
 latching and notification observation before launch. Charge the 60-minute reservation in full;
 the source-copy, Release, crash, C11 and candidate boundaries remain separate.
 
+#### Native viewer replacement while source copying remains pending
+
+Reserve 120 active minutes for the remaining UX-05B source lifetime: 45 for the narrow dependency
+boundary and diagnostic, 20 for focused verification, 15 for one native lifetime, 15 for integrity
+checks, 15 for one independent method/result review and ten for records. Cumulative reservation
+becomes 5824 minutes. Serial quality/build/source-oracle wall time is separate; the previously
+verified pending-page and executing-lease methods are not replayed.
+
+Expose the existing source scheduler/buffer-loader dependency pair through an immutable inherited
+scope at `LibraryViewerImage`; preserve its explicit constructor overrides and current defaults.
+This permits the complete existing gallery/viewer to use the real Rust source reader with a
+diagnostic loader, without widget-tree mutation, a global test switch or UI action injection.
+Prove absent-scope equivalence, dependency replacement and pending-copy retirement at the existing
+source-image owner; do not change source admission, queueing, cancellation, error or retry policy.
+
+Use a fresh four-root derived backup and all 10516 immutable generated originals. In one Debug
+EXE, actual input opens A and reaches the loader while its genuine native source lease is held.
+Hold the admitted buffer-copy future before invoking the real Flutter file-copy primitive. Actual
+Escape closes A and an actual different-tile click opens B while that future remains pending.
+Only then release the gate and perform the real old-source copy. Require no early native lease
+close, exactly-once completion/close, old-buffer disposal, serialized admission of B, correct B
+original pixels within 30 seconds, ten seconds of stable selection without old errors, valid
+gallery return and normal native close within six seconds. The hold is at the application copy
+boundary; it does not claim an OS read was already executing or use a completed-copy delay as proof.
+
+Keep the 600-second parent, 4 GiB entry and 2 GiB client/system-reserve bounds, exact pre/post
+source and catalog oracles, complete owned retirement and latched diagnostic failures. Reuse native
+input/frame observers; add no new automation framework or product flags. Run focused source/viewer
+tests and applicable lint, retaining final-source Daily/Release obligations. Failure stops this
+method for a causal checkpoint; no unchanged replay, source mutation, Release substitution or
+complete candidate claim is admitted.
+
+The single generated Debug lifetime now verifies pending-copy close/reopen with 6000 by 4000 and
+7680 by 4320 originals. Both native leases close exactly once in serialized order, the old real
+buffer is disposed, the replacement's original pixels appear in the observed 267 ms interval and
+remain current for ten seconds, and both gallery identities return. Normal native exit takes
+329.4253 ms with complete owned retirement. All 10516 generated originals and exact catalog
+members pass their post-check. The inherited dependency boundary has 26 focused product cases;
+eight diagnostic cases reject missing presence, retirement, input and deadline evidence.
+Independent review's error-latching and continuous-presence corrections precede launch.
+Charge the 120-minute reservation conservatively in full through 5824 minutes. Retain the exact
+method and evidence limits in the [query interaction record](../acceptance/r2c-query-interactions.md#native-viewer-replacement-during-pending-source-copy);
+no unchanged replay or complete UX-05/Release/Daily acceptance follows from this result.
+
 #### Native reversal while a time request remains pending
 
 Reserve 75 active minutes for the outstanding UX-08A race: 25 for the scoped observer and boundary

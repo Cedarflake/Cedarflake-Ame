@@ -361,6 +361,10 @@ persistence layers.
   modification time must resolve a different stream when its source generation changes.
   Preview-only updates do not invalidate the viewer's source stream, and superseded source streams
   cannot publish into the current image widget. No layer may fall back to an unchecked source path.
+  `LibraryViewerSourceScope` supplies the existing scheduler/buffer-loader pair through an immutable
+  inherited dependency boundary. Explicit image-widget dependencies take precedence; absent scope
+  preserves the production defaults. Only effective dependency changes retire the provider, without
+  changing source admission, cancellation or the copy-completion release boundary.
 - Menus, loading feedback, task live regions, and startup orchestration use repository-owned shared
   components so one defect fix does not create a second interaction contract.
 - `library_time_rail_presentation.dart` owns the retained painted rail frame and its Material input
