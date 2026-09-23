@@ -393,11 +393,65 @@ notification still says Ame is automatically checking the directory and one item
 The durable row has no next retry and restart preserves that state. C13 is S1 because this message
 can leave someone waiting for recovery that will not occur. The message therefore cannot
 establish truthful recovery feedback, despite the instrumented functional/lifetime pass.
-`_synchronizationNotificationMessage` falls back from the unrecognized `directory_unreadable`
-issue to the generic evidence-gap message, while detail formatting calls every retry-wait item
-awaiting retry. The affected responsibility is synchronization feedback policy and its scheduling
+At the preceding product source, `_synchronizationNotificationMessage` falls back from the
+unrecognized `directory_unreadable` issue to the generic evidence-gap message, while detail
+formatting calls every retry-wait item awaiting retry. The affected responsibility is
+synchronization feedback policy and its scheduling
 evidence; a longer timeout or new automatic retry is not a correction.
 
-This result establishes the selected real exhaustion/restart/peer-publication and source/lifetime
-boundaries. C13 remains an explicit feedback acceptance gap. Exact source read counts, Release,
-complete UX-07C, C01/C02, C11/C12, final candidate gates and external acceptance remain open.
+#### Correction and retained-state verification
+
+The correction following documentation checkpoint `f27908f457887a23114ce01566737108fae0b2b9`
+extracts `LibrarySynchronizationFeedback`, a pure immutable presentation policy. First import and
+the two existing manual-recovery explanations retain precedence. `recoveryBlocked` then overrides
+automatic-progress promises from issue/cause fallback; its retry-wait total is described as
+unfinished work rather than a scheduled attempt. Existing manual-action admission, severity,
+root/generation notification lifetime and scan authority are preserved. The generic blocked
+explanation points to error details and the existing folder menu after the cause is resolved;
+ordinary persistence failures do not gain a new scan action. The policy performs no catalog I/O
+or task execution and changes no Rust, persistence, migration, dependency or generated bridge.
+
+The screen decreases from 2327 to 2188 production lines. The new policy has 178 production lines,
+zero inline-test lines and a dedicated 272-line/eight-case test file. The unchanged 20-case
+viewer/notification suite also passes, including first-import, explicit-manual, persistence-error,
+generation retirement and convergence behavior. Independent code review finds no blocker.
+The first lint invocation is interrupted because its outer PowerShell logging pipeline converts
+Cargo's successful stderr completion message to a terminating `NativeCommandError`. That failed
+invocation is retained; direct canonical `quality_lint.ps1` passes all guardrails, formatting,
+Clippy and Dart analysis without changing rules or error policy. Fresh complete Daily remains a
+candidate obligation. The diagnostic Debug build passes in 25.9 seconds.
+
+One new native lifetime, `e44a71f358324802af3c9bcb1f374bdc`, uses the original exhausted catalog with
+the corrected product. It adds no source image, repeats no directory fault and executes no scan.
+Ame PID 13476 and parent 30884 show the corrected message, one unfinished update and both cached
+images at application 2799 ms. Actual pointer input opens the failure-root menu and its existing
+update dialog, then cancels before execution. Actual peer selection shows all four current images;
+101 database samples over 10.076432 seconds retain the exact original control, error, timestamp,
+claim and eleven scan projections. Continuous current pixels and feedback pass at 81799 ms.
+The original failed recovery is preserved, not repaired by the observation or by a manual scan.
+
+Normal title-bar Close exits zero in 296.2919 ms from application dispatch; native-input-before to
+process exit is bounded by 410.4389 ms. The 111702-ms parent, helper and Job retire successfully.
+The app records 556 pixel frames, no latched failure and empty engine stderr. There are 414 memory
+samples: peak working set 414076928 bytes, sampled private peak 341962752, kernel peak commit
+364621824, and minimum system availability 7528861696 bytes. The new read-only probe also rejects
+late/wrong-run/partial peer receipts in three focused cases; receipt admission rechecks both the
+240-second deadline and current catalog state after reading the receipt.
+
+Own sources and exact six-root membership pass after exit in 0.157 seconds
+(`integrity-1790167248470167100.json`). The complete unchanged 10516-file background oracle passes
+in 51.850 seconds (`source-integrity-1790167306334705500.json`). Diagnostic and handwritten-source
+hashes are in ignored `.build/r2c-blocked-feedback/preparation-evidence.json`; lifetime receipts
+remain in the same isolated fixture. Independent result review verifies these selected boundaries
+without a new blocker. Receipt SHA-256 values are:
+
+| Receipt | SHA-256 |
+| --- | --- |
+| Corrected-feedback parent | `9EA7EB9DED4722E1BCF237FCF6262D9B03F97949E185B26111ACE4B1F9AB0DA9` |
+| Actual blocked message and cached pixels | `B27856E987DC685287F0A5D6CB8BF73FC4AB68736F4731C5E671A55D8EEF0DC6` |
+| Preserved exhausted-control stability | `EEC6B0236C233590AAA42DCD5C6E96A60B51DBEB7ED7EFD0FF5970F5E5A2BAF5` |
+
+The combined records establish selected real exhaustion/restart/peer-publication, corrected Debug
+feedback and source/lifetime boundaries. C13 has focused and selected native correction evidence;
+final-source acceptance remains open. Exact source read counts, Release, complete UX-07C,
+C01/C02, C11/C12, final candidate gates and external acceptance remain open.

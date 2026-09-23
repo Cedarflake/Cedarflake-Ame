@@ -367,6 +367,12 @@ persistence layers.
   changing source admission, cancellation or the copy-completion release boundary.
 - Menus, loading feedback, task live regions, and startup orchestration use repository-owned shared
   components so one defect fix does not create a second interaction contract.
+- `library_synchronization_feedback.dart` owns the immutable message, detail, severity and existing
+  manual-action projection of synchronization status. First-import and explicit-manual decisions
+  remain distinct; blocked recovery takes precedence over automatic-progress explanations. A
+  retry-wait total includes exhausted work and cannot establish a scheduled retry. The screen owns
+  notification identity/lifetime and composes the existing user-confirmed update flow; the feedback
+  policy neither restarts work nor converts ordinary persistence failures into scan authorization.
 - `library_time_rail_presentation.dart` owns the retained painted rail frame and its Material input
   lifetime. It retains only projection/value data within compatible presentation context, never
   catalog authority or stale layout metrics. `LibraryTimeNavigation` retains seek scheduling and

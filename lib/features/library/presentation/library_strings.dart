@@ -89,6 +89,8 @@ abstract final class LibraryStrings {
   static const synchronizationMonitoringFailed =
       "Windows 目录监控发生错误。Ame 正在重启监控，并会重新核对可能遗漏的变化。";
   static const synchronizationRecoveryFailed = "图库重新核对未能完成，Ame 将自动重试。";
+  static const synchronizationRecoveryBlocked =
+      "自动核对已受阻，Ame 已保留上次图库内容。请检查错误详情，解决后可在文件夹菜单中手动更新图库。";
   static const synchronizationPersistenceFailed = "图库更新记录保存失败，Ame 将自动重试。";
   static const synchronizationNeedsReconciliation = "Ame 无法证明当前图库与目录完全一致。";
   static const synchronizationLegacyRecoveryAuthorityMissing =

@@ -24,6 +24,7 @@ import "../domain/library_state.dart";
 import "../domain/library_synchronization_models.dart";
 import "gallery_selection.dart";
 import "library_strings.dart";
+import "library_synchronization_feedback.dart";
 import "library_search_availability.dart";
 import "library_task_surface_selection.dart";
 import "library_viewer_session.dart";
@@ -346,9 +347,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       final root = roots[rootId];
       final priorKey = _synchronizationNotificationKeys[rootId];
       final currentGenerationKey = _synchronizationNotificationKey(status);
-      final requiresManualLibraryUpdate = _requiresManualLibraryUpdate(status);
       switch (status.freshness) {
         case LibraryCatalogFreshness.needsReconciliation:
+          final feedback = LibrarySynchronizationFeedback.fromStatus(status);
           final key = _synchronizationNotificationKey(status);
           if (priorKey != null && priorKey != key) {
             _notificationController.resolve(priorKey);
@@ -363,17 +364,17 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                   : LibraryStrings.synchronizationReconciliationTitle(
                       _notificationRootName(root, rootId),
                     ),
-              message: _synchronizationNotificationMessage(status),
-              severity: _synchronizationNotificationSeverity(status),
+              message: feedback.message,
+              severity: feedback.severity,
               dedupeKey: key,
-              detail: _synchronizationNotificationDetail(status),
+              detail: feedback.detail,
               elapsedStartedAt: status.phaseStartedAt,
               sourcePath: root?.displayPath,
               technicalCode: status.lastIssueCode,
-              actionId: requiresManualLibraryUpdate
+              actionId: feedback.requiresManualLibraryUpdate
                   ? _refreshBlockedRootNotificationAction
                   : null,
-              actionLabel: requiresManualLibraryUpdate
+              actionLabel: feedback.requiresManualLibraryUpdate
                   ? LibraryStrings.updateLibrary
                   : null,
               isPersistent: true,
@@ -441,146 +442,6 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     LibraryRootSynchronizationStatus status,
   ) {
     return "library.rootReconciliation:${status.rootId}:${status.rootGeneration}";
-  }
-
-  bool _requiresManualLibraryUpdate(LibraryRootSynchronizationStatus status) {
-    return status.lastIssueCode == "legacy_recovery_authority_missing" ||
-        (status.recoveryBlocked &&
-            status.lastIssueCode == "live_gap_v30_explicit_recovery_required");
-  }
-
-  String _synchronizationNotificationMessage(
-    LibraryRootSynchronizationStatus status,
-  ) {
-    if (status.isAwaitingFirstImport) {
-      return LibraryStrings.firstImportRequiredDetail;
-    }
-    final issueMessage = _synchronizationIssueMessage(status.lastIssueCode);
-    if (issueMessage != null) {
-      return issueMessage;
-    }
-    return switch (status.freshnessCause) {
-      LibraryCatalogFreshnessCause.changeSourceUnhealthy =>
-        LibraryStrings.synchronizationSourceUnhealthy,
-      LibraryCatalogFreshnessCause.evidenceGap =>
-        LibraryStrings.synchronizationEvidenceGap,
-      LibraryCatalogFreshnessCause.boundedCapacityExceeded =>
-        LibraryStrings.synchronizationCapacityExceeded,
-      LibraryCatalogFreshnessCause.noPendingChanges ||
-      LibraryCatalogFreshnessCause.pendingChanges ||
-      LibraryCatalogFreshnessCause.rootUnavailable =>
-        LibraryStrings.synchronizationNeedsReconciliation,
-    };
-  }
-
-  String? _synchronizationIssueMessage(String? issueCode) {
-    final message = switch (issueCode) {
-      "change_source_callback_access_denied" ||
-      "change_source_start_access_denied" ||
-      "change_source_watch_access_denied" =>
-        LibraryStrings.synchronizationMonitoringAccessDenied,
-      "change_source_callback_path_unavailable" ||
-      "change_source_root_removed" ||
-      "change_source_root_unavailable" =>
-        LibraryStrings.synchronizationMonitoringPathUnavailable,
-      "change_source_callback_capacity_exceeded" ||
-      "change_source_ingress_overflow" ||
-      "change_source_rescan_required" ||
-      "change_source_start_capacity_exceeded" ||
-      "change_source_watch_capacity_exceeded" =>
-        LibraryStrings.synchronizationMonitoringCapacityExceeded,
-      "change_source_event_incomplete" || "change_source_rename_incomplete" =>
-        LibraryStrings.synchronizationMonitoringEventIncomplete,
-      "legacy_recovery_authority_missing" =>
-        LibraryStrings.synchronizationLegacyRecoveryAuthorityMissing,
-      "live_gap_v30_explicit_recovery_required" =>
-        LibraryStrings.synchronizationExplicitRecoveryRequired,
-      "change_source_callback_failed" ||
-      "change_source_callback_invalid_configuration" ||
-      "change_source_callback_io_failed" ||
-      "change_source_callback_watch_missing" ||
-      "change_source_ingress_disconnected" ||
-      "change_source_state_unavailable" ||
-      "change_source_start_failed" ||
-      "change_source_start_invalid_configuration" ||
-      "change_source_watch_invalid_configuration" ||
-      "change_source_watch_failed" =>
-        LibraryStrings.synchronizationMonitoringFailed,
-      _ => null,
-    };
-    if (message != null || issueCode == null) {
-      return message;
-    }
-    if (issueCode.startsWith("authoritative_") ||
-        issueCode.startsWith("library_reconciliation_")) {
-      return LibraryStrings.synchronizationRecoveryFailed;
-    }
-    if (issueCode.startsWith("catalog_") ||
-        issueCode.startsWith("change_queue_") ||
-        issueCode.startsWith("database_")) {
-      return LibraryStrings.synchronizationPersistenceFailed;
-    }
-    return null;
-  }
-
-  String? _synchronizationNotificationDetail(
-    LibraryRootSynchronizationStatus status,
-  ) {
-    if (status.isAwaitingFirstImport) {
-      return LibraryStrings.firstImportAwaitingUser;
-    }
-    final details = <String>["阶段：${_synchronizationPhaseLabel(status.phase)}"];
-    if (status.pendingChangeCount > BigInt.zero) {
-      details.add("${status.pendingChangeCount} 项等待处理");
-    }
-    if (status.retryWaitCount > BigInt.zero) {
-      details.add("${status.retryWaitCount} 项等待重试");
-    }
-    if (status.freshnessUnknownCount > BigInt.zero) {
-      details.add("${status.freshnessUnknownCount} 项状态尚未确认");
-    }
-    return details.join(" · ");
-  }
-
-  String _synchronizationPhaseLabel(LibrarySynchronizationPhase phase) {
-    return switch (phase) {
-      LibrarySynchronizationPhase.watcherStartup =>
-        LibraryStrings.synchronizationPhaseWatcherStartup,
-      LibrarySynchronizationPhase.inventoryEnumeration =>
-        LibraryStrings.synchronizationPhaseInventoryEnumeration,
-      LibrarySynchronizationPhase.inventoryComparison =>
-        LibraryStrings.synchronizationPhaseInventoryComparison,
-      LibrarySynchronizationPhase.queuePublication =>
-        LibraryStrings.synchronizationPhaseQueuePublication,
-      LibrarySynchronizationPhase.retryWait =>
-        LibraryStrings.synchronizationPhaseRetryWait,
-      LibrarySynchronizationPhase.reconciliation =>
-        LibraryStrings.synchronizationPhaseReconciliation,
-      LibrarySynchronizationPhase.fullScan =>
-        LibraryStrings.synchronizationPhaseFullScan,
-      LibrarySynchronizationPhase.blocked =>
-        LibraryStrings.synchronizationPhaseBlocked,
-      LibrarySynchronizationPhase.synchronized =>
-        LibraryStrings.synchronizationPhaseSynchronized,
-      LibrarySynchronizationPhase.unavailable =>
-        LibraryStrings.synchronizationPhaseUnavailable,
-    };
-  }
-
-  AmeNotificationSeverity _synchronizationNotificationSeverity(
-    LibraryRootSynchronizationStatus status,
-  ) {
-    if (status.isAwaitingFirstImport) {
-      return AmeNotificationSeverity.info;
-    }
-    final issueCode = status.lastIssueCode;
-    if (status.sourceStatus == LibraryChangeSourceStatus.failed ||
-        issueCode?.startsWith("catalog_") == true ||
-        issueCode?.startsWith("change_queue_") == true ||
-        issueCode?.startsWith("database_") == true) {
-      return AmeNotificationSeverity.error;
-    }
-    return AmeNotificationSeverity.warning;
   }
 
   String _notificationRootName(LibraryRoot? root, String rootId) {

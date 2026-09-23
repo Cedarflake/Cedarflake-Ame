@@ -965,7 +965,8 @@ The first-import and existing explicit-manual cases retain precedence and action
 `recoveryBlocked` must prevent automatic-progress or scheduled-retry promises, including when an
 unrecognized issue otherwise falls back to evidence-gap text. A retry-wait count alone is not a
 count of scheduled attempts. Keep the issue code available in details and preserve notification
-deduplication, root/generation action checks, ordinary-error action exclusions and scan admission.
+deduplication, root/generation notification ownership, ordinary-error action exclusions and scan
+admission.
 Do not change the retry budget, queue, persistence, generated bridge or source-access policy.
 
 Prove blocked filesystem and persistence errors, unrecognized issue/cause combinations, active
@@ -977,6 +978,18 @@ directory fault or eight-attempt replay is needed. Retain the 600-second parent,
 exit, 4 GiB entry and 2 GiB client/system-reserve bounds, complete generated-source checks and
 owned retirement. If this fails, preserve the first failure and stop this method for a causal
 checkpoint. Focused/native success still leaves final Daily, Release and candidate gates open.
+
+The correction now has eight focused policy/connected cases, 20 preserved notification/viewer
+cases, complete direct canonical lint and independent implementation/result review. The first
+lint's outer-pipeline failure remains explicit. One retained-state native lifetime displays correct
+blocked guidance with cached two/peer four current images, opens and cancels the existing manual
+update dialog, and preserves the exact failed control, claims and eleven scan projections.
+Ten-second stability and normal exit pass; dispatch-to-exit is 296.2919 ms, with actual-input-before
+to exit bounded by 410.4389 ms. Complete generated-source postchecks pass. Charge the 100-minute
+reservation in full and return to the remaining functional roster; no manual recovery execution,
+fresh complete Daily, Release or whole-variant acceptance is claimed. Preserve the
+[C13 record](../acceptance/r2c-process-lifecycle.md#correction-and-retained-state-verification)
+and its original failed feedback. Do not replay this completed observation unchanged.
 
 #### Native viewer replacement while previous-page loading remains pending
 
