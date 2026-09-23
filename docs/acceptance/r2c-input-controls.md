@@ -533,3 +533,31 @@ interaction and validation receipts have SHA-256 values
 The host post-check is `source-integrity-1790131451656500100.json` under the retained generated
 fixture `integration-storage-e84f07c4443e4008b0c71381991477a4`, SHA-256
 `2C05CA384583BB04D02DB66037382CF7DB123E81706F8B7AF70A322A1B4C99D9`.
+
+### Pointer menu focus return
+
+The unchanged Debug observer in lifetime `a5d6f1544529407c9e9283db6d836807` displays all 10516
+generated images and decoded pixels. Pointer-open/Escape restores the preceding screen focus
+`cfed2`, not the sort trigger. Tab reaches a different node and Shift+Tab returns to `cfed2`;
+neither establishes a named toolbar trigger. The chord also records synthesized modifier/repair
+events, retained separately from the earlier nonsynthesized paired-key proof. Stop after those
+two traversal actions. The complete menu sequence is unperformed, with `passed: false`; this
+observation neither proves a product keyboard defect nor accepts the unobserved Release focus owner.
+
+Normal close input returns at 03:59:08.200 UTC. Its subsequent capture reports an unusable window,
+while the independently observed process exit is 03:59:08.5502492 UTC, 479.2492 ms after input began.
+The parent completes in 126486 ms, exit zero, with app/Job/monitor retired and no cleanup error.
+Across 469 samples, peak working set/private/commit are 404062208/350236672/368062464 bytes and
+minimum host availability is 6918316032 bytes. Exact copied membership and the complete host
+source oracle pass, the latter in 54.407 seconds. Charge 30 minutes through 5069 minutes.
+Independent result review confirms these boundaries, matching receipts and hashes.
+
+The fixture is `build/integration-storage-6d67321a38d44be293ecc95030199cbd/`. For the run ID above,
+the `.stdout.log`, `.process.json`, `.interaction.json` and `.close.json` SHA-256 values are:
+`30AC0609D8637B96153A8FB567B784375928059AB3AD26E1C754D7E686CCED39`,
+`169314C1792C3711619ED6E954236F314180ACE3BA17BB63045150DB6C86EF3D`,
+`7E6B087A2BCE6E5BD5AE77CF729B10FFE6D1BDBE55CF8019BD5D4684C7FC6B2B` and
+`1A871F8AE42A3C9C5E802F567192E37F8DCC0E7E53B8E0F0901FBFBBCE05A3C9` respectively.
+The full host oracle is `source-integrity-1790136060171064500.json` under the retained generated
+fixture `integration-storage-e84f07c4443e4008b0c71381991477a4`, SHA-256
+`D5813C16C931FCD7CF8EDC6DCD3D590A16DB555428B79E0DF1C208F889A97E0D`.

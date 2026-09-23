@@ -677,6 +677,29 @@ not show a product shutdown defect. Exact catalog and complete source checks pas
 methods must reserve retirement time before the unchanged deadline; selected Debug focus evidence
 does not waive Release, full-lifetime or other frozen obligations.
 
+#### Complete Debug menu lifetime from the toolbar
+
+Reserve 30 active minutes: five preparation, ten native observation, five exact source/catalog
+checks, five independent review and five records; cumulative reservation becomes 5069 minutes.
+Retain the unsuccessful Release schedules and the earlier 600-second Debug timeout. Reuse the
+unchanged Debug observer/build and a fresh backup of the complete 10000/512/2/2 generated catalog.
+This changes focus acquisition, not product behavior, fixture size or the 128-key observation cap.
+Open the observed sort trigger by pointer, dismiss it, and inspect the recorded focus. Use at most
+four Tab/Shift+Tab actions to obtain a named toolbar trigger; stop if that cannot be established.
+Then observe native Enter/Escape/Enter/Escape on sort, layout and more, inspecting delivery and
+restored trigger identity after each action. Do not select values, request framework focus or
+invoke commands directly. Preserve the 600-second parent, six-second close, 4 GiB entry, 2 GiB
+host reserve/app ceiling and full pre/post source oracles. Stop optional input at 360 seconds and
+close normally, even if a sequence is incomplete. Prepare the action recorder before launch and
+retain only the final screenshot per action. One complete passing lifetime can close the selected
+Debug focus sequence only; Release, whole-window UIA and other frozen duties remain independent.
+
+The [toolbar observation](../acceptance/r2c-input-controls.md#pointer-menu-focus-return) establishes
+that pointer-open/Escape restores the preceding screen focus, not the trigger. Two traversal
+actions do not establish a named trigger; stop there without claiming the complete key sequence.
+Normal close and exact source/catalog checks pass. Charge 30 minutes through 5069 minutes; no
+further menu lifetime is admitted by this result or inferred product focus repair is required.
+
 #### Release keyboard menu return
 
 Reserve 50 active minutes for the remaining Release input boundary: five for fresh admission,
