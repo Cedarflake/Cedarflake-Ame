@@ -426,3 +426,110 @@ The later [native multi-root result](r2c-closeout-cycle.md#native-queued-cancell
 adds the queued-task keyboard Cancel portion: observed traversal and Enter cancel only the queued
 third root while its two peers retain execution ownership and complete real scans. This is selected
 Debug keyboard activation evidence; the complete focus-return and Release variants remain open.
+
+### Menu focus observation boundary
+
+The subsequent keyboard-focused lifetime uses documentation head `ab2053b`, unchanged product
+source, the real `lib/main.dart` startup, in-memory presentation preferences and the Debug-only
+isolated storage boundary. Its read-only observer records physical/logical down/up/repeat events,
+pressed keys and primary-focus ancestors, returns `ignored`, and never requests focus or activates
+a product command. A fresh SQLite backup preserves all 10000/512/2/2 generated-root members.
+Preparation initially rejects the Windows extended-path prefix; normalizing that prefix retains
+ordinary-directory and generated-tree containment checks. A separate LF-marker mismatch is rejected
+before admission and corrected without launching an app. Fatal-info analysis and the 30.7-second
+Debug build pass after one brace-style correction. Method review finds no launch blocker.
+
+Lifetime `162d952d20854c7390cf8946e1814e0f` starts the actual app with 10516 displayed images and
+decoded generated pixels. The attempted Tab at 02:17:50.323 UTC returns
+`foreground window did not report a process id`. A local missing-observation guard blocks another
+attempt before its input call. After fresh window capture, the planned pointer action is rejected
+with `user input was detected in this window; call get_window_state before continuing`.
+None of these errors establishes the requested menu activation or its focus return.
+
+The diagnostic records the first actual Tab down/up at 02:18:33.725799/33.793972 UTC, then further
+Tab and repeat events. At 02:18:57.823696 UTC it reaches the existing **128-key-event cap**;
+focus-change records continue afterward but cannot prove unrecorded key identity or release.
+At capture time the input source is unresolved. The subsequent operator confirmation reports manual
+Tab input during this lifetime; it establishes mixed input, not attribution of every recorded event.
+No sort/layout/more menu focus sequence is accepted, and the mixed sequence does not establish a
+product or tool defect. This is an unsuccessful interaction observation, retained separately from
+process success; its original receipt remains unchanged.
+
+Normal close is delivered at 02:20:33.903 UTC and the same-host process exit is
+02:20:34.6782036 UTC: 775.2036 ms, below six seconds. The parent finishes in 235513 ms with exit zero,
+retired app/Job/monitor and no cleanup failure. Across 878 samples, peak working set is 702566400
+bytes, sampled private bytes 684695552, kernel peak commitment 684744704 and minimum available
+system memory 7440752640; the original resource bounds hold. Exact isolated catalog membership
+passes after exit. The complete post-run source oracle passes in 55.402 seconds for all 10516
+generated files and their original catalogs, preserving bytes, identities and dates.
+
+Ignored `.build/r2c-menu-focus/` owns the 63-line entry, 70-line fixture owner, 144-line process
+runner and 24-line build entrypoint; the existing key observer is reused without changing its cap.
+The GUID-owned fixture is `build/integration-storage-f2005ecbfbcd4377b00584b870f6e623/`.
+Its separate `.interaction.json` records `passed: false`; the successful `.process.json` cannot
+override it. No original media, ordinary profile, tracked product code or Release artifact changes.
+Charge the 50-minute reservation in full through 4869 minutes. Another input lifetime requires a
+recorded method that separates manual input from the observed sequence; no unchanged replay follows.
+Independent result review confirms the unsuccessful interaction, passing retirement/integrity
+receipts and retained UX boundaries without a new blocker.
+
+The trace, process and unsuccessful interaction receipts have SHA-256 values
+`1AFC35AAE3F790B551C8F8EE35395C15129C7B5929EB0668D939D3B388139B90`,
+`6F7CB43CD852BF5D51EC95BFCF187D62780407BA0531CE22E2CBA5057630FA72` and
+`81ED51F4EC1B43EAB7022E3712A3127544DDD190B9407B1A46F185C233C90A2D` respectively.
+The full host post-check is `source-integrity-1790130153213400100.json` under the retained generated
+fixture `integration-storage-e84f07c4443e4008b0c71381991477a4`, SHA-256
+`F9660B4BD0B0BB2D2E18F6CC82614426F611871A922344DE43E602D482B0D4F0`.
+
+### Exclusive menu focus observation
+
+After the operator confirms manual Tab input in the preceding lifetime, a separate generated
+catalog backup and single-use admission isolate the next sequence. The same Debug EXE, kernel
+and DLL hashes are checked before launch; product code and the observer's 128-key cap are unchanged.
+Lifetime `c43a5fe9e77e4ee3aa57217e158573c7` displays the same 10516 images and decoded pixels.
+One native search-field click establishes the focus start, followed by observed Tab traversal.
+
+Thirty-five successful key actions correspond to exactly 70 ordered, nonsynthesized down/up
+records. Each release leaves both logical and physical pressed sets empty; no repeated key is
+recorded. Delivery falls between its requested input and the next input attempt. An initial
+timestamp comparison incorrectly assumes the native event is processed before the tool call
+returns: the first call returns at 02:32:52.540 UTC, before down/up at
+02:32:52.550572/52.587817 UTC. The final check uses successive action boundaries and event order,
+not the invalid synchronous-return assumption.
+
+| Menu | Actual observed sequence | Focus evidence |
+| --- | --- | --- |
+| Sort | Tab, Enter opens, Escape dismisses, Enter reopens, Escape dismisses | Original trigger `a71d4` restored on both dismissals; key sequences 43–52 |
+| Layout | Tab, Enter opens, Escape dismisses, Enter reopens, Escape dismisses | Original trigger `546b8` restored on both dismissals; key sequences 53–62 |
+| More | Tab, Enter opens, Escape dismisses, Enter reopens | Original trigger `ad262` restored before reopening; key sequences 63–70 |
+
+These selected sequences provide actual Debug menu-focus evidence. They do not establish the
+unobserved focus owner in the earlier Release pointer sequence or a complete passing lifetime.
+The last successful input occurs at 02:41:36 UTC. The 600-second parent expires before final menu
+dismissal and normal close, then retires the owned Job/app. The later Escape attempt at
+02:41:49.996 UTC reports no foreground process, with no matching key record. The process receipt
+retains **failure**, 600337 ms and forced ownership cleanup; there is no normal-close timing claim.
+This is test-controller pacing failure, not evidence that Ame could not close. Both complete
+interaction and process acceptance remain failed; no original receipt is overwritten.
+
+All 2260 memory samples remain within bounds: peak working set 411070464 bytes, sampled private
+347193344, kernel peak commitment 371666944 and minimum host availability 7514136576. Cleanup
+reports no error or surviving owned process. Exact 10000/512/2/2 catalog membership passes, followed
+by the full 10516-file identity/byte/date oracle in 53.682 seconds. Charge the 30-minute reservation
+in full through 4899 minutes. No unchanged focus lifetime is repeated; future client methods must
+reserve explicit retirement time within their existing deadline and retain the unfinished Release
+and other frozen duties.
+
+Independent result review confirms the paired delivery, selected focus returns, retained failed
+lifetime, exact membership and source hashes without a new finding.
+
+Ignored `.build/r2c-menu-focus-exclusive/` reuses the unchanged fixture and process owners. Under
+`build/integration-storage-d6fbac2a34594655911c4a69ff73b0ec/`, the matching trace, process,
+interaction and validation receipts have SHA-256 values
+`C8DFBCCC31882142A47D0625F35372064DC32EB702EFC631EA859929C028B397`,
+`D0087C6F9DCA0B12314CB16EB47A33CCA4AFD501F82812C711488AB6C0538599`,
+`C027F8FCF527C18DB81BDFD515BDBD0E1684EF73825DD1D4A2260CD3A00DBED6` and
+`42A75D10748B2B4B94CF1BBE75D31A1313C9248F72C27C7684BD2E969E1A4E10` respectively.
+The host post-check is `source-integrity-1790131451656500100.json` under the retained generated
+fixture `integration-storage-e84f07c4443e4008b0c71381991477a4`, SHA-256
+`2C05CA384583BB04D02DB66037382CF7DB123E81706F8B7AF70A322A1B4C99D9`.

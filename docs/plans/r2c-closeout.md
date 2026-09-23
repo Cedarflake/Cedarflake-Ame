@@ -620,6 +620,63 @@ retain that negative focus sequence without assigning an unobserved cause. The
 does not accept every UX variant or supersede the failed earlier lifetimes. Charge 60 minutes in
 full through 4819 minutes; no product change or new build is introduced.
 
+#### Native keyboard menu focus ownership
+
+Reserve 50 active minutes: 15 for the observation-only diagnostic and fixture admission, ten for
+one native lifetime, ten for source/catalog/process checks, five for independent method/result
+review and ten for records. Cumulative reservation becomes 4869 minutes. This follows UX-08C's
+unproved Release pointer-open/Escape/Return sequence with a changed, discriminating method; it
+does not repeat the same unobserved focus assumption or replace Release acceptance with Debug.
+
+Use the actual application startup and menu components in one Debug process, with a read-only
+key/focus observer. Record physical/logical key down/up, pressed modifiers, primary focus and
+owning widget ancestors without requesting focus, consuming input or invoking product commands.
+Use in-memory presentation preferences so the ordinary host profile is neither read nor written.
+Back up only the closed generated-fixture catalog into a fresh isolated derived root, retain exact
+10000/512/2/2 membership and unchanged generated sources, and use the Debug-only storage boundary.
+No scan, source mutation, fault injection, real profile, service or cloud root joins this scope.
+
+Observe native Tab traversal to a named menu trigger before Enter, then Escape and Enter again;
+cover sort, layout and more-menu dismissal/return if the trace proves the target. Compare the
+retained pointer sequence with actual focus ownership. Preserve decoded gallery usability and
+catalog membership. Keep a 600-second owned parent, six-second normal-close bound, 4 GiB entry,
+2 GiB host reserve and 2 GiB app ceiling, plus pre/post source integrity. A missing focus trace,
+wrong window, unexplained input or failed lifetime is retained and stops unchanged repetition.
+Any proved product defect needs a separate causal repair boundary; no speculative focus patch,
+full Daily replay or expansion of C01/C02 follows from a negative observation.
+
+The [focus observation](../acceptance/r2c-input-controls.md#menu-focus-observation-boundary) reaches
+the real gallery but does not prove the selected menu sequence. The first input returns a foreground
+binding error; later continuous Tab/repeat events reach the retained 128-key cap and the tool reports
+other input. The subsequent operator confirmation establishes manual Tab input during the lifetime,
+without identifying every event. Normal close, owned retirement and exact catalog/source
+checks pass, while the separate interaction result stays failed. Charge 50 minutes in full through
+4869 minutes. This family stops unchanged repetition pending a discriminating input-source method;
+other frozen duties remain active and no product focus correction is inferred.
+
+The confirmed mixed input admits one changed observation, reserved at 30 active minutes: five for
+fixture/artifact admission, ten for native input, five for source/catalog/process verification,
+five for independent result review and five for records. Cumulative reservation becomes 4899
+minutes. Retain the failed lifetime and all resource, source and 600-second parent bounds. Reuse
+the byte-identical Debug build and read-only observer in a fresh generated-catalog backup; do not
+raise the 128-key cap or change product focus behavior. Prepare separate single-use admission and
+receipts. During this test, the operator leaves the window input to the test controller. Record
+each native input timestamp and inspect its matching down/up, pressed-key and focus records before
+issuing the next action. Use explicit persistent-state ownership in the tool helper and stop on
+mixed input, missing focus, an unpaired key or a second binding failure. Bound traversal to the
+named sort/layout/more triggers, verify Enter/Escape/Enter focus return where reachable, and close
+normally with the same exact membership and complete source-integrity checks. No Release or
+unrelated frozen obligation is accepted by this diagnostic result.
+
+The [exclusive-input result](../acceptance/r2c-input-controls.md#exclusive-menu-focus-observation)
+records all three selected Enter/Escape/Enter sequences and restored trigger focus, with 70 paired
+key events and no repeats. However, sequential observation consumes the parent deadline before
+normal close. Preserve the 600337 ms failed lifetime and forced owned retirement; the result does
+not show a product shutdown defect. Exact catalog and complete source checks pass. Charge the
+30-minute reservation through 4899 minutes and stop this unchanged focus method. Later client
+methods must reserve retirement time before the unchanged deadline; selected Debug focus evidence
+does not waive Release, full-lifetime or other frozen obligations.
+
 #### C01 owned-thread observation calibration
 
 While actual input is unavailable, reserve 40 active minutes: 15 for a process-scoped sampler,
