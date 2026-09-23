@@ -167,6 +167,47 @@ bound, exact membership, source checks and retirement without a new blocker. It 
 unproved focus return, unmeasured scan latency and separate interaction-variant boundaries.
 Charge the complete 60-minute reservation through 4819 minutes. Product source is unchanged.
 
+## Release menu attempt without import
+
+Lifetime `ee618de8ac42428195336fb7a0899d73` reuses the unchanged Release payload and reviewed
+NTFS-copy/normal-host-close method. Entry availability is 8013615104 bytes. Guest preparation
+verifies all 10000 generated files and 10921494393 bytes, including hashes and dates, in 126141 ms.
+The actual picker opens, but two text-input calls return without visible text in its folder field.
+Observed pointer navigation reaches and selects `mixed`; import is never confirmed. No cause is
+assigned to the absent text delivery, and no menu key sequence is attempted.
+
+The last optional action is at 03:01:04.260 UTC. No further optional input is sent after the
+600-second cutoff at 03:03:09.4468475 UTC. Retirement nevertheless starts late: picker Cancel is
+sent at 03:04:29.216 UTC, followed by normal Ame close at 03:04:38.725 UTC. The intended full
+300-second retirement reserve is therefore **not achieved**. This controller pacing failure and
+the unperformed import/menu sequence leave the complete interaction attempt unsuccessful.
+
+The matching app-exit receipt is first observed on the host at 03:04:40.3123003 UTC, giving a
+1587.3003 ms close upper bound on one host clock. The app exits zero and its owned Job retires.
+The first native-action receipt truncates that interval to 1587 ms through JavaScript date parsing;
+the separate precision receipt retains the exact value without overwriting the original. The
+complete guest source post-check passes in 71956 ms before copying the closed derived catalog.
+Native input then closes the Sandbox and confirms its disposable-guest closure at 03:06:27.351 UTC.
+The post-close capture reports no screenshot target; the matching host receipt independently
+confirms no remaining Sandbox processes and no cleanup failure. The parent completes in 800253 ms,
+within the unchanged 900-second deadline.
+
+Across 1786 guest samples, peak working set is 166203392 bytes, sampled peak private memory
+112742400 and kernel peak paged memory 113143808. Minimum host availability is 3315232768 bytes;
+the existing resource bounds hold. The required 10000-member catalog verifier correctly exits one
+with `Unexpected root or root count`. A separate read-only observation confirms SQLite quick-check
+passes with zero roots and zero locations after cancelling the picker; this empty state is not
+import acceptance. Full host verification subsequently passes in 65.421 seconds for all 10516
+generated files and the unchanged 10000/512/2/2 original test catalogs.
+
+Scoped independent result review confirms the unsuccessful interaction, late retirement start,
+exact close-time correction, preserved source/catalog checks and published receipt hashes.
+
+Charge the full 50-minute reservation through 4949 minutes. Preserve the earlier successful
+Release decoding/lifecycle evidence and every failed attempt. UX-08C's Release focus return remains
+open. Another attempt must change the preparation/input pacing and provide a feasible retirement
+schedule before launch; repeating this unsuccessful sequence unchanged is not admitted.
+
 ## Local provenance
 
 Ignored `.build/r2c-release-native/` owns the scoped guest preparation, process/source validators,
@@ -201,3 +242,19 @@ The completed normal lifetime is retained under
 Its complete host post-check is
 `build/integration-storage-e84f07c4443e4008b0c71381991477a4/source-integrity-1790128633352623300.json`,
 SHA-256 `5474BBD93A9553831560E8D2A823E42DB77367C86DC4FE1D03F9F8C2A54C849C`.
+
+The unsuccessful menu attempt is retained under
+`build/integration-storage-ee618de8ac42428195336fb7a0899d73/`:
+
+| Receipt | SHA-256 |
+| --- | --- |
+| `host-result.json` | `B9B864FD49AE3A4A19763EFB807359AFB0646BAA375AEE264A26FDE9E6E66020` |
+| `output/guest-result.json` | `1C40F44E5EFC32AE90726CDEB28400278FED2E1FC9DAF438379F96AE9560D18D` |
+| `output/guest-source-post.json` | `A51B84C4D089BDD3312AB1CCD88C458AAF941B1A410DA1D9AA477E55E255D0E3` |
+| `output/native-actions.json` | `00203CE2A4A7C08DF68586DF70C7278D61CD1BA8D7258786A5A89B482306BE04` |
+| `native-close-precision.json` | `E5FE6DF6B0947065B01AF3AB41543BD20AFB8D63CA1074C81426C0939705A54E` |
+| `unimported-catalog-observation.json` | `2CFF79B9469BB95F02C01AFDFF85B3185BBEAFF9314C4F34B716C5CB105DE75C` |
+
+Its complete host post-check is
+`build/integration-storage-e84f07c4443e4008b0c71381991477a4/source-integrity-1790132958956675200.json`,
+SHA-256 `00A058FF4249907E909924261A0563C57A5FD617BC503DE012878A17416BAD21`.

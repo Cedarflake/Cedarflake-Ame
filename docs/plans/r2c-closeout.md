@@ -677,6 +677,42 @@ not show a product shutdown defect. Exact catalog and complete source checks pas
 methods must reserve retirement time before the unchanged deadline; selected Debug focus evidence
 does not waive Release, full-lifetime or other frozen obligations.
 
+#### Release keyboard menu return
+
+Reserve 50 active minutes for the remaining Release input boundary: five for fresh admission,
+15 for one native lifetime, ten for complete source/catalog/process checks, five for independent
+result review and 15 for records. Cumulative reservation becomes 4949 minutes. Reuse the unchanged
+verified optimized payload, reviewed guest NTFS-copy and normal-host-close harness, and frozen
+10000-file mixed-size/historical corpus. Keep the 900-second parent, 300-second import observation,
+7 GiB entry, 3072 MiB guest, 2 GiB host reserve/app ceilings and six-second app-close bound.
+Use a new single-use configuration and fresh guest profile; the existing host mappings stay
+read-only and the normal Release storage resolver remains enabled.
+
+Prioritize actual keyboard menu return after the real picker import. One root reduces incidental
+sidebar traversal. Establish the native search-field focus, follow observed Tab to the sort,
+layout and more triggers, and observe Enter/Escape/Enter followed by dismissal. Do not select
+new sort/layout values or add unrelated viewer scenarios. Capture and inspect each action result;
+no direct focus request, framework invocation or indexed-input workaround is admitted. This
+Release path uses visible focus and menu behavior, with the prior Debug trace remaining separate.
+
+The input helper checks the host admission time before each action and stops optional interaction
+at 600 seconds, leaving 300 seconds for normal app exit, full guest source checking, catalog copy
+and native Sandbox disposal. It reports remaining time with each observation. If a sequence has
+not completed by that boundary, retain that gap and close normally instead of running to the
+watchdog. Tool binding failure receives only the documented fresh-window recovery; unexplained
+input stops the sequence. Keep all preceding failed lifetimes and current-source final/external
+gates. Full host source verification and exact closed guest membership remain mandatory afterward.
+
+The [result](../acceptance/r2c-release-native.md#release-menu-attempt-without-import) does not reach
+import confirmation or a menu key sequence. Text input is not visible; pointer navigation reaches
+the generated directory. Optional input stops before its cutoff, but normal retirement starts
+late and consumes part of the intended reserve. Preserve that pacing failure. Normal app/VM exit,
+guest source preservation and all 10516 host source checks pass within the 900-second parent.
+The required imported-membership check fails against the correctly empty cancelled-picker catalog;
+no functional variant is accepted. Charge the full reservation through 4949 minutes. Do not repeat
+this preparation/input sequence unchanged; revise pacing and retirement admission before another
+Release focus attempt. Unchanged product source needs no new build or Daily for this record.
+
 #### C01 owned-thread observation calibration
 
 While actual input is unavailable, reserve 40 active minutes: 15 for a process-scoped sampler,
