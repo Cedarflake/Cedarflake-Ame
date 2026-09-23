@@ -86,7 +86,9 @@ parent run retains an exit-time evidence failure; complete lifetime and candidat
 [process-lifecycle record](acceptance/r2c-process-lifecycle.md) verifies selected pending-call close,
 actual paused-checkpoint restoration, explicit continuation and recovery after raw-batch and
 executing-lease process loss, including natural lease expiry, and selected native exhaustion/restart
-with continued peer publication. Failed attempts remain explicit. C13's exhausted-recovery
+with continued peer publication. The combined paused-feedback/portable-notice/Continue path also
+has selected native functional and normal-lifetime evidence, with its aggregate parser failure
+retained separately from offline input verification. Failed attempts remain explicit. C13's exhausted-recovery
 notification has an owning policy correction and focused/selected native evidence; final-source
 and Release feedback acceptance remain open.
 The [input-control record](acceptance/r2c-input-controls.md) retains the focused pending-pause Cancel

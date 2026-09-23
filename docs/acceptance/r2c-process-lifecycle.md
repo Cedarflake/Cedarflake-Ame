@@ -455,3 +455,85 @@ The combined records establish selected real exhaustion/restart/peer-publication
 feedback and source/lifetime boundaries. C13 has focused and selected native correction evidence;
 final-source acceptance remains open. Exact source read counts, Release, complete UX-07C,
 C01/C02, C11/C12, final candidate gates and external acceptance remain open.
+
+## Combined paused restoration and portable capability
+
+The 2026-09-23 method uses product source `fbfc600b0f795f479b07f1db26ff40c9441d59d6`, the unchanged
+10000-image mixed-size/historical corpus and an existing 12-image generated baseline, with a fresh
+derived catalog. It adds no product behavior or source mutation. Seed run
+`58820bee721f4a6491b8e693a900752d`, PID 17320 and parent 34872, starts real synchronization before
+scanning. It publishes and previews the baseline, then pauses the first import with 163 visited
+entries, 151 accepted images and zero issues. Normal close takes 561.7192 ms; the 19537-ms parent
+and all owned resources retire successfully.
+
+Preparation review corrects intent-versus-delivery and same-frame visibility evidence. A native
+pointer intent alone cannot admit scanning: a non-consuming application listener must receive
+down/up at the enabled Continue target. Covered, moved, cancelled or wrong-pointer input fails.
+Because notification history is modal, its open state requires rendered paused feedback and
+current cached pixels with the actual capability text; after dismissal, ten continuous seconds of
+unchanged checkpoint/baseline and an interactable Continue target precede the durable recheck.
+The actual screenshots corroborate the paused title and cached images outside the notification
+panel. Eight focused receipt/delivery/visibility cases and final diagnostic analysis pass.
+
+The successful seed precedes one disclosed diagnostic-kernel change. The transition manifest
+retains exact before/after hashes, identical EXE plus five native DLLs and unchanged product source;
+it is not complete-artifact equality. The final diagnostic build takes 20.5 seconds. An initial
+continuation metadata file incorrectly contains an empty identity list and is not evidence;
+`continue-source-identities.json` contains the corrected 22-file manifest, all rechecked unchanged
+after exit. Preparation syntax/lint failures and an interrupted source precheck remain retained.
+The complete precheck is rerun only after build retirement, serially, and passes in 44.494 seconds.
+
+Continue run `6401c430d757424b80eabf5633a1d3ca`, Ame PID 7716 and parent 42580, restores that exact
+scan identity without implicit continuation. Actual notification-history input displays
+“仅在 Ame 打开时自动更新” and “关闭 Ame 期间发生的变化需要手动更新图库。” together with paused feedback
+and 12 current cached images. After history dismissal, stable readiness is recorded at
+13:29:02.234345 UTC. The actual Continue call begins at 13:32:22.711 UTC; application pointer-up is
+received at 13:32:22.831470 UTC on `library-resume-button`, bound to the same paused checkpoint.
+One native before/after pair succeeds with no Continue input error.
+
+The resumed scan preserves its identity. Complete membership verification reads 32 bounded pages
+at revision 2: 10012 distinct locations, exactly 10000 frozen relative paths and all 12 baseline
+locations. The paused checkpoint retires; healthy portable status and current pixels remain.
+Final ready occurs at application 345988 ms, within the original 300-second bound from input,
+after ten seconds of completed-state stability. The final screenshot shows 10012 images and import
+completion. This establishes complete membership and current visible pixels, not decoding every
+image. The observer records 3240 frames, 3236 with pixels, and no latched Retry failure.
+
+Actual title-bar Close exits zero in 358.6944 ms from application dispatch. The 380545-ms parent
+closes its Job; app and monitor retire with no cleanup failures. The complete 4520-event trace has
+one native stop, one stopped final state and no late running publication. Engine stderr is empty.
+The same-host actual-input-before to exit upper bound is 544.9514 ms.
+After delivered Close, screenshot refresh finds no target; the retained exit receipt independently
+establishes normal shutdown. Memory evidence contains 1427 samples: peak working set 502128640,
+sampled private peak 471212032, kernel peak commit 476508160 and minimum system availability
+7597662208 bytes, preserving the 2-GiB client and system-reserve bounds.
+
+The parent invocation still exits with a diagnostic error at its final input check: it reads
+`name` from a legitimate observation record under StrictMode. Its original failure, runner and
+receipt remain unchanged. A separate offline verifier discriminates record types and checks all
+run identities, exactly one successful Continue pair, independent application delivery, readiness,
+checkpoint equality and timing. It passes the actual mixed record stream and rejects nine malformed
+or mismatched variants. `offline-action-review-6401c430d757424b80eabf5633a1d3ca.json` explicitly
+retains `originalParentOutcome: failed`; it does not turn the original invocation into a pass.
+No native replay supplies replacement evidence.
+
+After owned retirement, all 10000 frozen files / 10921494393 bytes and the 12 baseline files /
+34549397 bytes pass the complete source oracle in 49.730 seconds. The separately frozen baseline
+oracle also verifies exact original creation/modification times. Postcheck receipts are
+`source-integrity-1790170565595479900.json` and `baseline-integrity-1790170565601742600.json`.
+Evidence remains under `build/integration-storage-1e1e2f27e1134bfba2e287d1ce682a3e`; preparation,
+transition and offline-reader source remain under ignored `.build/r2c-paused-capability`.
+
+| Receipt | SHA-256 |
+| --- | --- |
+| Original failed parent | `810F47B87C680DE0F3AC9C638B2A21BC2C08278F99A24DC2D2C06C64186166FE` |
+| Actual Continue delivery | `7378750AE32FEFA432FD51167121AF8351FC596C972302EFDF6EB6AD18869C69` |
+| Complete membership | `F7D7B8BCA9EF12B7626560E38146CCE5E1C1F49854B58CFFD5D6FB8E7DB64615` |
+| Offline action verification | `F03F5E1198DD12CEBA0882C368F597CEA084B2DDAE50C56F4D43B63B360A6A73` |
+
+These records establish the combined selected Debug behavior, source preservation and normal
+lifetime, with the aggregate parser failure retained. They do not establish exact zero source
+enumeration/media opens, Release, C01/C02, final Daily or complete R2c acceptance.
+Independent result review verifies the immutable input, membership, source, artifact, timing and
+retirement records without another blocker. Screenshot visibility is corroborated by the original
+native observations, not independently reacquired by that review.

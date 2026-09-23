@@ -991,6 +991,67 @@ fresh complete Daily, Release or whole-variant acceptance is claimed. Preserve t
 [C13 record](../acceptance/r2c-process-lifecycle.md#correction-and-retained-state-verification)
 and its original failed feedback. Do not replay this completed observation unchanged.
 
+#### Combined paused restoration and portable capability
+
+Reserve 80 active minutes for the remaining combined UX-01C boundary: 20 preparation, ten focused
+evidence checks, 20 native interaction, ten source/result checks, ten independent review and ten
+records. Cumulative reservation becomes 6484 minutes. Serial build and full source-oracle wall time
+remain separate. Reuse the frozen 10000-image mixed-size/historical corpus and the existing
+12-image generated baseline without source mutation; create only fresh isolated derived storage.
+Earlier paused-restoration and continuation results remain valid selected evidence, but did not
+observe the portable capability message in that same native lifetime.
+
+Admit one seed process and one interactive process with identical artifacts. The seed starts the
+real synchronization lifecycle, publishes the baseline, materializes its previews and pauses an
+actual first import after a nonzero checkpoint. The interactive process must restore that exact
+checkpoint without scanning. Observe real cached pixels, healthy baseline `liveOnly` status and
+the actual notice explaining the closed-process limitation together with paused feedback. Require
+ten seconds of unchanged checkpoint and baseline before admitting the actual Continue input.
+Continue must use the retained scan identity, publish all 10012 exact locations, retire the paused
+checkpoint and retain truthful portable feedback and current pixels. Preserve the 300-second
+completion bound from actual input; neither controlled status snapshots nor a programmatic resume
+substitute for this observation.
+
+Keep 900-second per-process parents, six-second normal close, 4 GiB launch availability, 2 GiB
+client and system-reserve bounds, create-new receipts, full source pre/post checks and complete
+owned-process/monitor retirement. The interactive phase cannot begin without successful seed exit
+and artifact equality. Preserve a failed method and stop it for a causal checkpoint; do not replay
+the completed earlier StartClose/PollClose, menu/viewer or full gate workloads. UX-01A's exact
+zero-enumeration/media-open/inventory counters, Release, C01/C02 and final acceptance remain distinct.
+
+Preparation review rejects using input intent as delivery and combining unrelated visible frames.
+The observer now requires an actual application pointer down/up on the enabled Continue target,
+with successful matching native-tool delivery checked by the parent. Capability history uses a
+modal route while the paused task suppresses the ordinary toast. Therefore observe its actual
+limitation text together with the retained paused state, rendered task title and cached pixels,
+then close history and prove ten seconds of unchanged checkpoint/baseline with an interactable
+Continue target. Test hit visibility at the actual input position; revalidate current state after
+each awaited durable read. The native screenshot must corroborate the rendered-title evidence.
+
+The seed already passed before this final observer correction: 163 visited, 151 staged images,
+zero issues, normal exit 561.7192 ms. Preserve and reuse it; do not reseed. Permit one documented
+diagnostic-kernel transition before Continue, with exact before/after hashes and identical EXE,
+native DLLs and production source. This replaces the initially specified kernel equality only;
+the original same-catalog, input, source, deadline and memory requirements remain. Keep preparation
+failures and the seed receipt. This correction stays inside the 80-minute reservation.
+
+The interactive process restores the same checkpoint, visibly combines the portable notice with
+paused feedback and cached pixels, then receives one actual Continue click after stable readiness.
+The same scan completes exact 10012-location membership over 32 pages; current pixels and normal
+358.6944 ms close pass. Full source checks pass before and after, including separately frozen exact
+baseline creation/modification times. All 22 prepared diagnostic source identities still match.
+
+The parent nevertheless fails its last input-log check: StrictMode reads `name` on a legitimate
+observation record that has no action fields. Preserve this failed parent and the original runner.
+Within the source/result allocation, admit only a separate offline reader of the immutable records:
+discriminate observation from action, reject malformed or mismatched records, require one successful
+Continue pair and its independent application delivery, and retain the failed parent outcome.
+One positive and nine rejecting fixtures pass; no native lifetime is repeated or original receipt
+rewritten. The [result record](../acceptance/r2c-process-lifecycle.md#combined-paused-restoration-and-portable-capability)
+separates functional/source/lifetime evidence from that failed aggregate script. Charge the
+80-minute reservation in full. Release, exact no-source-read startup, C01/C02 and candidate gates
+remain separate; do not replay this completed functional observation to repair its parser result.
+
 #### Native viewer replacement while previous-page loading remains pending
 
 Reserve 60 active minutes for the remaining UX-05B native boundary: 30 for the diagnostic owner,
