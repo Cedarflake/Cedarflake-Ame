@@ -997,6 +997,61 @@ This verifies a generated native Debug identity workflow; Release, C11, C01/C02,
 separately authorized external acceptance remain independent. Missing Release memory does not
 waive its existing seven-GiB entry requirement or block this independent frozen variant.
 
+The first native lifetime stops before reveal or source mutation: fixture seeding awaits a scan
+before starting the production synchronization lifecycle. First-import enumeration requires that
+runtime's healthy durable capture boundary, so the setup cannot satisfy its own dependency. Retain
+the failed registration and its unaccepted viewer/source-change workflow; source and process checks
+remain separate. Charge the 120-minute reservation in full through 6034 minutes.
+
+Reserve one changed 60-minute method, cumulative 6094 minutes: 20 preparation and focused checks,
+ten native execution, ten source/catalog checks, ten independent review and ten records. Use a fresh
+GUID fixture and unchanged source workload, bounds and assertions. Start and await the existing
+production synchronization lifecycle before the fixture-only seed scan; register its teardown and
+retain the exact failure code/message for any rejected seed. Never weaken the first-import guard,
+manually insert catalog rows, alter the failed fixture or change product startup to accommodate a
+diagnostic. Reuse the completed source-safe mutation and evidence observers. A repeated or new
+unexplained failure ends this revised method for a causal checkpoint, not another unchanged launch.
+
+That lifetime completes first import and same-path original-pixel replacement, but stops after
+rename intent. A strict UTF-8 decoder rejects the child error stream before the retirement record;
+the original rename exception is unavailable. Preserve this failure and the missing shutdown audit,
+without inferring a product rename defect or a shutdown cause. Complete source/catalog post-checks
+pass separately. Charge the changed 60-minute reservation through 6094 minutes.
+
+Reserve 45 minutes for one changed causal method, cumulative 6139: 15 for raw child-output and
+operation-stage evidence, ten focused checks, ten native execution, five integrity checks and five
+review/records. First prove that nonzero exits, non-UTF-8 output and failed mutations retain exact
+error and retirement evidence in small CLI/Flutter tests. Use a fresh GUID fixture, explicit UTF-8
+child output, independently retained raw bytes/exit code, mutation-stage and shutdown-step records.
+Keep the same operations, source safety, pixels, identities, assertions and resource/time bounds;
+add no file-operation retry or product change. This run must identify the failing boundary or prove
+the unchanged complete workflow. A further unexplained failure stops native replay for a new
+root-cause decision; failure reporting alone is not UX-05C acceptance.
+
+The causal run records `rename-system-call` returning Win32 sharing violation 32; original pixels
+arrive before the same location's current preview completion. A later read-only probe can open
+read/write/delete access, with no Restart Manager owner, so it establishes neither a persistent
+leak nor the earlier owner's identity. Preserve the rejected mutation. The missing shutdown result
+is now traced to the diagnostic observer removing its pointer route twice during failure cleanup;
+normal process retirement remains separate. Charge the 45-minute method through 6139 minutes.
+
+Reserve one 45-minute settled-source method, cumulative 6184: ten preparation, ten focused
+verification, ten native execution, five source checks and ten review/records. Make diagnostic
+observer retirement idempotent. Before admitting the next one-shot generated-file operation,
+require current original pixels, a Ready preview and the real materialize call's completed return
+for the exact current source identity. Catalog Ready alone may precede guard release; reject it
+without that return, and reject pending/failed or old-generation/revision evidence. Include readiness in the existing
+30-second convergence bound, retaining every source, identity, natural-close and final-pixel
+assertion. Verify the existing native preview publication guard independently; do not relax it,
+add arbitrary sleeps, retry file mutations or infer that the prior lock owner has been identified.
+A new unexplained failure stops this method for a recorded cause decision.
+
+The settled-source lifetime meets the selected identity/pixel, natural-return, source and normal-exit
+assertions. Charge its reservation in full through 6184 minutes. Preserve all prior failures and
+register the 74-byte graphics stderr message as C12/S2 for the final minor-repair batch; selected
+functional evidence does not accept that unresolved warning or the complete variant/Release gates.
+Continue the frozen functional queue before C11/C12 and final candidate verification.
+
 #### Native reversal while a time request remains pending
 
 Reserve 75 active minutes for the outstanding UX-08A race: 25 for the scoped observer and boundary

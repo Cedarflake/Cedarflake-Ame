@@ -105,6 +105,9 @@ its one-pixel loading-row movement is registered as C11/S2 for the final minor-r
 with the failed stability requirement retained. Native viewer close/reopen during pending paging
 and an admitted source-copy future now preserves the new selection and original pixels through
 old-work retirement and normal exit; remaining Release boundaries stay open. The
+selected source rewrite/rename/removal path now has native Debug identity, current-pixel and natural
+viewer-return evidence after source reads retire. C12's graphics diagnostic joins the final minor
+repair batch; warning-free final acceptance remains open. The
 [isolated Release record](acceptance/r2c-release-native.md) adds actual optimized-client decoding,
 rail navigation, viewer return and a complete normal lifetime, while retaining the earlier failed
 host retirement. Native keyboard sort return now passes on current Release source; layout return,

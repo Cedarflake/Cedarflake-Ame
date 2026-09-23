@@ -658,3 +658,96 @@ Independent result review confirms the event ordering, source/member receipts, n
 three retained hashes and those evidence limits. Final direct lint and whitespace checks pass;
 116 local document targets and the unique new evidence anchor resolve, and the captured product,
 test and diagnostic source hashes still match the verified native build.
+
+## Native viewer identity across source changes
+
+The [UX-05C method](../plans/r2c-closeout.md#native-viewer-identity-across-source-rewrite-rename-and-removal)
+uses unchanged product source `b0d1bda4cf9f950de2567099a6a7245195411fbc` at documentation head
+`d230f8155fa567fa08d2944770889c53f06b6984`. Each attempt has a fresh derived catalog and two new
+generated PNGs beside the immutable 10000/512/2/2 fixture roots. Only the new GUID-owned sources
+are mutable. The selected PNG is 4096 by 1024; the retained portrait is 1024 by 4096. The rewrite
+changes red to blue while preserving file identity, byte length and modification time. A pinned
+directory, exact child checks and before/after fingerprints constrain the one-shot mutations.
+
+### Retained setup and observation failures
+
+| Run | Result and evidence boundary |
+| --- | --- |
+| `a2d3e065614c4b4ca8a1280c5f864256` | Seed registration fails before window reveal, input or source mutation. The diagnostic starts synchronization after awaiting first import, while production first-import capture needs the runtime first. The failed scan visits/accepts zero entries over 15004 ms; its original code/message was not retained. The unpublished extra root makes the original membership oracle fail; a separate safety audit confirms unchanged sources and original members. This is not viewer acceptance. |
+| `464c0d73776847e29a5978a696446380` | Runtime-first setup succeeds and actual input displays red then current blue original pixels, generation 14619 to 14620. Rename intent exists without completion. Strict UTF-8 decoding discards the child's original error; no specific original system error can be recovered. Normal app exit is zero and all processes retire, but the final audit is absent and the parent fails. |
+| `0023cbee20444d35bac1a11b83fffb79` | Raw output and structured stages identify `rename-system-call`, `PermissionError`, WinError 32. The same location's thumbnail completion follows the rejected mutation; the failure-time owner is not identified. A later read-only open/share probe and Restart Manager query find no remaining lock. Failure cleanup then removes the diagnostic pointer observer twice, causing the explicitly traced missing audit. App exit is zero in 283.3563 ms; the parent remains failed. |
+
+The failed fixtures remain respectively under `build/integration-storage-955b7698f4754b16b756b07e7d8b831d`,
+`build/integration-storage-4d299a6e7b6a44ab815e2a745fbe5a3d` and
+`build/integration-storage-bda726e6490e4fe3a3a09e90e6333e10`. The latter two source/catalog post-checks
+confirm only the admitted rewrite, no rename/removal, and exact 2/2/2/512/10000 membership.
+Complete immutable-source post-checks pass separately. Failure-after-X pointer messages describe
+cleanup input, not additional functional navigation. None of these attempts becomes a pass.
+
+### Settled-source native result
+
+Ignored `.build/r2c-viewer-identity-settled/` corrects only diagnostic lifetime/admission: `stop()` is
+idempotent, raw child output and exit code are independent, and the next mutation waits for both
+current original pixels and the actual Rust preview materialize return for that exact
+root/location/scan/generation/revision/path. Catalog Ready alone cannot establish released read
+authority. The bounded observer records real returns without delaying or replacing them. Each
+file operation still occurs once, without retry or an arbitrary sleep, within the original
+30-second convergence bound. Product preview/source protection remains unchanged.
+
+The focused checks pass: six source-operation cases, five child-output/exit cases, four exact-source
+readiness cases and the existing native Rust preview-publication guard test. The earlier viewer
+image/position cases (3/20), pixel cases (2), stability cases (4), lifecycle cases (3) and complete
+lint remain applicable to unchanged product source. Diagnostic analysis has zero issues; the final
+Debug build takes 25.8 seconds. These focused results do not replace final Daily or Release gates.
+
+Run **`e87ce9fd93be49c2b0db0f3fc7e9f933`** performs actual root and tile clicks, followed by these
+production watcher results without rescan or further navigation:
+
+| Application milestone | Elapsed ms | Observed result |
+| --- | ---: | --- |
+| Original | 52037 | Red original pixels, generation 14619; actual preview request retired |
+| Same-path rewrite | 53356 | Blue original pixels, same asset/location/file identity, generation 14620 and new source revision |
+| Rename | 54574 | Same asset and file identity, new location/path `renamed.png`, generation 14621 and current blue original pixels |
+| Removal | 55489 | A current-query lookup authoritatively returns absence for the selected asset/preferred location; viewer closes naturally and the one remaining portrait is decoded |
+| Stable final gallery | 65645 | More than ten continuous seconds of current gallery pixels, no stale viewer resurrection or diagnostic failure |
+
+The application records 631 observed frames, three stable-asset lookups, one actual selected-tile
+click and no UI error/Retry feedback. The source helper exits zero and confirms its directory handle
+closed. Normal title-bar Close reaches native exit **321.4469 ms** after application close dispatch;
+the native-input-before to exit upper bound is **657.7229 ms**. The parent lasts **98312 ms**,
+exits zero and retires the app, helper, observer and Job without cleanup failures. Across 364 memory
+samples, peak working set is 513904640 bytes, sampled private memory is 459689984, kernel peak
+commitment is 520458240 and minimum host availability is 6490320896.
+
+The final new-source/catalog check confirms rewrite, rename and removal, unchanged remaining source,
+and exact 1/2/2/512/10000 membership. The full immutable-source post-check takes 50.084 seconds and
+preserves all 10516 source identities, bytes and timestamps, including 10921494393 bytes in the
+10000-image corpus and 704936782 in the retained 512-image root. Its receipt is
+`source-integrity-1790162446067816000.json` under the retained recovery fixture.
+
+The passing fixture `build/integration-storage-57961b842eeb41578b6a1d2bc1ef7353/` retains:
+
+| Receipt | SHA-256 |
+| --- | --- |
+| Native stdout | `023C560D8DA46C9B7BB297BD75E1BCA38C208908697DED28522383A841B4EE3A` |
+| Application result | `6FDDEDBE0E2F17D3257BD13D68D91DA6F15F6CE05DE153ECAC6D5735FDBBFF04` |
+| Parent result | `6755223ECC1BB309E1898C5CC8D2D8F882634C7CB8075526706E5179CC61C1DC` |
+| Source helper result | `25931C64519688F03D993E67EBF256CA79910EA3EDD81E0C29142C91699069AD` |
+
+### C12 graphics diagnostic remains open
+
+Native stderr is **not empty**: it contains the 74-byte line
+`GrBackendTextureImageGenerator: Trying to use texture on two GrContexts!`. Register **R2C-C12 / S2**
+for the final minor-repair batch: no corresponding UI failure is observed in this selected lifetime,
+but the cause and product-versus-pixel-observer ownership are unproved. Preserve the message and
+investigate its emitting boundary before final acceptance; do not suppress it or call this a clean
+engine result. The warning-free final gate remains open.
+
+Independent result review confirms actual materialize-return ordering, stable asset and changed
+location identity, current-revision absence, continuous final pixels, normal retirement and source
+post-checks. All 23 diagnostic file hashes match; the graphics diagnostic and remaining acceptance
+boundaries remain open.
+
+Charge the successive admitted methods conservatively through **6184 active minutes**. This adds
+selected native Debug functional evidence for UX-05C after source reads retire. It does not accept
+mutation during active reads, Release, C11/C12, C01/C02, complete Daily or external R2c acceptance.
