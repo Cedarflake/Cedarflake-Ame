@@ -825,3 +825,179 @@ The bounded independent review checks implementation, unchanged native assertion
 source/lifetime evidence. Charge the 90-minute reservation conservatively in full through 6574
 active minutes. C11's selected native Debug correction is verified; final-source, Release, C12,
 C01/C02, complete Daily and external R2c acceptance remain separate obligations.
+
+## C12 standalone pixel-context non-reproduction
+
+The pinned Flutter 3.44.9 `image_encoding_skia.cc` attempts I/O-context raster readback before its
+raster-thread fallback; `picture.cc` and `snapshot_controller_skia.cc` perform picture snapshots on
+the raster thread. Ignored `.build/r2c-pixel-context/sdk-evidence.json` retains the inspected source
+hashes and SDK identity. The exact Skia DEPS revision is unavailable through the attempted source
+fetches; an older official source explains the warning wording but cannot establish the running
+binary's cause. No product `lib` code calls `toByteData`; the original native observer does.
+
+The one standalone engine probe uses the retained generated green image, 120 ordinary displayed
+frames, eight direct readbacks and eight raster-owned one-pixel snapshots. All 16 samples equal
+`[48, 200, 96, 255]`. The three stderr-marked phases each contain **zero warnings**. Run
+`bf9282f03c9340bb88e10808d65234f3` therefore **does not reproduce C12**; it does not justify replacing
+the observer or claiming the original warning was harmless. Product, SDK and renderer are unchanged.
+
+The process completes in 2925 ms, exit zero, and owned Job/monitor retirement and source hash,
+length, creation and modification checks pass. Four memory samples report peak working set
+314462208 bytes, sampled private memory 332718080, kernel peak commitment 335400960 and minimum
+host availability 8604827648. These are engine-probe observations, not normal Ame user-close evidence.
+Receipts remain in `build/integration-storage-aba854dc080345e78ec9e6a9458545ad/`.
+
+Three focused sampler cases verify the center of a multicolor image, transparent evidence and
+the unchanged original-size limit. Analysis and the 21.1-second Debug build pass. Method review
+identifies a repeated-admission terminal-overwrite risk in the new diagnostic parent; preflight,
+exclusive admission ownership and create-new terminal publication correct it before execution.
+Both existing-receipt and existing-admission rejection checks preserve their original hashes.
+The final reviewed sources are recorded in `probe-source-final.json`; the earlier preparation
+manifest predates those parent corrections. Charge the 90-minute reservation through 6664 minutes.
+The changed contextual method remains separate, and C12 stays open.
+
+### Contextual attempt stopped before viewer input
+
+Run `19c09e389ca345cc90b9f13c3ac0b316` on `a1c165b` fails during setup, before any
+tile click or pixel sampling. The copied Dart child launcher still names the older
+`r2c-viewer-identity-settled` helper. That helper reads its older fixture configuration,
+opens and closes its source-directory handle, then fails with `WinError 183` when linking
+an already existing diagnostic receipt. No rewrite, rename or removal was admitted. The
+older fixture retains two new `.tmp` diagnostic drafts; existing receipts are preserved.
+This is a test binding defect, not evidence about C12's graphics cause.
+
+Computer Use then returns `failed to activate captured window` on close, including one
+fresh window-selection retry. No normal-close dispatch is proved. After confirming the
+executable and parent identity, the owned app is terminated; the parent fails with exit 1
+after 174785 ms. Its Job, process and monitor retire with no cleanup failures. The 654
+memory samples record peak working set 399306752 bytes and minimum system availability
+8317407232 bytes. Normal-close timing is unavailable.
+
+Both mutable fixtures pass their full identity/content/timestamp and catalog checks. The
+new fixture remains unchanged with counts `2/2/2/512/10000`; the older fixture retains its
+previously verified final state. Complete background postcheck
+`source-integrity-1790187229520564500.json` passes all 10516 files in 48.227 seconds.
+The failed parent receipt has SHA-256
+`a8fbeaf07422d759684812f2c44292fbd869ce973e420ba8d59df41d375cbf55`.
+Preserve this failed lifetime, charge the 60-minute reservation through 6724 minutes,
+and correct child admission before any further source stimulus. Selected workflow,
+graphics attribution and normal-lifetime acceptance remain unproved by this attempt.
+
+### Fixture-bound helper verification and activation failure
+
+The next ignored harness binds its configured helper, fixture and parent run identity before
+source access or receipt publication. Its loader compares the admitted configuration snapshot
+before resolving any path. Dependency imports restore Python's search path so another diagnostic
+directory cannot supply the `stimulus` module. The initial combined test run exposed that import
+collision; the corrected nine Python boundary/deadline tests and six Flutter command/pixel tests
+pass. All 18 diagnostic Dart files pass analysis. Independent review identifies the initial
+snapshot-order gap and confirms its focused correction. Product source is unchanged.
+
+The new command/admission owners are 33 Dart and 34 Python lines; their dedicated tests are 58
+and 70 lines, with no inline tests. The child lifecycle remains 75 lines and fixture preparation
+136 lines. The 28-file source manifest and 22.8-second Debug build identify this harness separately
+from both earlier executions.
+
+Run `93e64ada298446a7b9f3435cd6d20996` reaches the matching helper's `wait-original` stage.
+Computer Use `26.917.51856` returns `failed to activate captured window` on explicit activation
+and again after fresh selection. No click, source mutation or pixel sample is attempted. The
+verified owned app is terminated; its parent records exit 1 after 96654 ms, with process, Job and
+monitor retired and no cleanup failure. Normal-close timing remains unavailable. Across 359
+samples, peak working set is 403881984 bytes and minimum available system memory 7868035072 bytes.
+
+The mutable sources and exact `2/2/2/512/10000` catalog membership pass postcheck. Complete
+background receipt `source-integrity-1790188482002976500.json` passes all 10516 files in
+50.149 seconds. The postcheck command's observation handle is lost during a tool update; its
+completed receipt and absence of its process are subsequently verified, without repeating it.
+Charge the 60-minute reservation through 6784 minutes. This establishes the helper repair only;
+C12 attribution, native input, normal close and broader R2c acceptance remain open.
+
+### Restored input and direct-readback attribution
+
+After Computer Use updates to `26.917.62051`, a fresh supported session activates an owned
+Calculator window and displays `1` after an actual click from baseline `0`. A close click returns;
+the immediate window listing still contains it, while the subsequent listing confirms retirement.
+This transport check is separate from Ame acceptance and charges the reservation through 6799.
+
+Run `d66ed1d774f04a8989ba85dc60fc5f01` reuses the verified Debug artifact and 28 unchanged helper
+sources with a new GUID fixture. Ame activation and the actual image-opening input now work.
+The input sequence, however, skips selection of the required source root and opens the image
+from the global gallery. The observer correctly rejects `Viewer opened before observed source
+readiness`; the selected-root click counter stays zero. No source operation is admitted. This
+is a failed test-entry sequence, not a passing synchronization workflow or product failure.
+
+The current displayed `4096x1024` original still supplies one direct/raster pair. On the same
+stderr stream, the exact `GrContexts` warning occurs after the flushed direct begin at
+18:43:09.762499 UTC and before direct end at 18:43:09.810741. The subsequent raster interval ends
+at 18:43:09.816742 with no warning. Execution reaches the readiness assertion after the pair's
+equality check, so the two center samples agree; expected-color acceptance is not reached.
+Together with the pinned engine's direct-readback path, this identifies the ignored observer's
+diagnostic trigger. It does not prove the interrupted functional scenario or a globally clean
+graphics engine. Raw stderr SHA-256 is
+`80f78a3f9aeba3a921be046625d35940075617d3464d4bb1d5398f7cc28ce8c8`.
+
+Normal close reaches exit 0 in 324.2523 ms; the parent fails its missing-readiness event assertion
+after 86776 ms. Job, process and monitor retire without cleanup failures. Peak working set is
+454098944 bytes and minimum available memory 6148149248 bytes across 322 samples. Mutable source
+and exact catalog postchecks pass unchanged; complete background receipt
+`source-integrity-1790189176990384800.json` checks all 10516 files in 48.316 seconds. Preserve the
+failed application result and parent receipt; charge through 6829 minutes. The admitted correction
+changes only the ignored sampling and pre-input readiness boundary, with all original observer
+assertions retained for its separate complete workflow.
+
+### C12 raster observer and complete source-identity result
+
+The corrected ignored observer snapshots the exact displayed image's center pixel on the raster
+thread. It preserves clone/source identity, the 4194304-pixel limit, generation admission, exact
+expected RGBA and disposal; it neither decodes the source again nor suppresses stderr. The
+33-line sampler and 51-line original-image owner remain separate from the 429-line lifecycle
+observer. Product source stays at `a1c165b2cb11c380ef4a8ee3f2f47c0af139b2b6`.
+
+The native input boundary now completes its asynchronous before-action log, then checks the
+current run/fixture/root/asset readiness and failure receipts immediately before dispatch. There
+is no asynchronous I/O between that decision and the click call. Seven Node cases include failure
+arriving during logging (zero clicks) and valid admission (exactly one). Three Flutter sampler
+cases pass, all 18 diagnostic Dart files pass analysis, and the Debug build completes in 24.3
+seconds. Scoped independent review and its recheck verify these boundaries. All 31 hashes in
+`.build/r2c-viewer-raster-guarded/final-source-manifest.json` still match after the run.
+
+Run **`3d0dce0974a543309bc5c2eabfa3f09e`** selects the actual fixture root and opens the observed
+image through one admitted native click. It then completes the unchanged source workflow:
+
+| Observation | Elapsed time | Result |
+| --- | ---: | --- |
+| Original displayed image | 63075 ms | Current red pixels `[220, 32, 48, 255]` |
+| Same-path rewrite | 64446 ms | Same asset/location, next generation, blue pixels `[32, 144, 224, 255]` |
+| Authoritative rename | 65651 ms | Same asset, new location at `renamed.png`, current blue pixels |
+| Authoritative removal | 66358 ms | Natural viewer return, one surviving green portrait |
+| Stable gallery ready | 76473 ms | More than ten continuous seconds stable, no extra input |
+
+The final application result passes with 686 observed frames, three stable identity lookups,
+no Retry feedback and stimulus exit zero. Stderr is **empty**. The previous direct-readback
+warning and failed entry remain preserved above; this result verifies the corrected observer and
+selected Debug workflow, not a globally warning-free engine or complete Release acceptance.
+
+Actual title-bar Close reaches exit zero within **401.0953 ms** of the recorded native input
+start; application close dispatch to exit is **293.4143 ms**. The parent passes in **109722 ms**.
+Its process, Job and monitor retire without cleanup failures. The closing-window capture reports
+an unusable window; no second close is sent. Across 408 samples, peak working set is 474914816
+bytes, sampled private memory 449249280, kernel peak commitment 499998720 and minimum host
+availability 7361097728. The source helper closes its handle and completes in 63.206 seconds.
+
+The mutable-source postcheck proves the intended rewrite/rename/removal and exact catalog counts
+`1/2/2/512/10000`. Full background postcheck `source-integrity-1790189837450454900.json` passes all
+10516 source identities, contents and timestamps in 48.665 seconds; its SHA-256 is
+`58c2dbe44ecd2e6183227820dc6cb7a5912c0f1e64f80ae23352ba67446f7df0`.
+No real library is accessed. Receipts remain under
+`build/integration-storage-4cc7ae89adea43cfb587d2a384f9beab/`:
+
+| Receipt | SHA-256 |
+| --- | --- |
+| Application result | `ffdcfd986d80dcbeda23e8fb4eeb4594613c7bfa88caa44609523e3bd1f466cf` |
+| Parent result | `81f8aaa74bad1166a55acc6436c3ab153457147e9d7730cb8f7851fe7d6b1911` |
+| Native input record | `2ce431f9193b668f8dc76942d10c5298f83d7694d26baa252d1f17a32625b645` |
+| Stimulus completion | `af7df4e7ffbbc1be67a38b47ff0a7c6f1d44a50face228fe5e972e33460fe3b7` |
+
+Charge the 45-minute reservation conservatively in full through 6874 active minutes. C12's
+selected diagnostic correction is verified; final-source, Release, C01/C02, complete Daily and
+external R2c acceptance remain open.

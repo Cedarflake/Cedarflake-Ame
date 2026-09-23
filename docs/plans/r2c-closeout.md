@@ -1305,6 +1305,188 @@ cases, complete lint, source/catalog post-checks and normal native retirement pa
 review verifies the same boundaries. Charge the 90-minute reservation in full through 6574 minutes.
 This closes the selected C11 Debug correction, not complete Daily, Release or remaining R2c duties.
 
+#### C12 pixel-observer context attribution
+
+After C11, reserve 90 active minutes for the retained Skia diagnostic: ten source ownership,
+15 bounded native attribution, 15 observer correction, ten boundary checks, 15 one affected native
+workflow, 15 independent review and ten records. Cumulative reservation becomes 6664 minutes;
+serial build and full integrity-oracle wall time remain separate. Product source, SDK, renderer
+selection and source-read policy stay unchanged unless direct evidence establishes a product cause.
+
+Trace the exact warning against the pinned engine and Skia sources. First use one bounded Windows
+engine diagnostic with a retained generated image, ordinary displayed frames, then fixed direct
+readback and raster-thread snapshot phases. Preserve phase boundaries on the same stderr stream
+as the warning. Cap each readback mode at eight samples, retain exact expected pixel assertions,
+and close the owned diagnostic within 120 seconds. A warning-free run alone does not prove the
+previous cause. This is engine attribution, not a replacement for the Ame user workflow.
+
+If direct sampling reproduces the warning and the raster-owned sample preserves the exact current
+pixel without it, correct only the ignored pixel observer. Preserve image/source/generation checks,
+late-result retirement, fixture-size bounds and disposal, and add positive/negative pixel tests.
+Do not suppress stderr, re-decode a source file as display evidence, replace sampling with widget
+presence, or change product behavior to accommodate the observer. Review the changed measurement
+boundary before one current-source viewer rewrite/rename/removal lifetime with the original full
+10000/512/2/2 background and fresh GUID-owned mutable images. Keep source/read retirement,
+30-second convergence, exact membership, current pixels, natural viewer return, ten-second final
+stability, 600-second parent and six-second normal-close assertions. Maintain 4 GiB entry,
+2 GiB client/system reserves and complete source pre/post checks. Preserve the earlier warning.
+
+An unreproduced or contradictory attribution stops this method without a clean-engine claim.
+An affected workflow failure remains failed and requires a changed causal method before another
+attempt. This scope does not accept final Release, C01/C02, complete Daily or external R2c duties.
+
+The standalone probe completes 120 displayed frames and eight samples per mode with identical
+expected pixels, source preservation and owned retirement. It records zero warnings in all three
+phases, so the causal requirement is not met. Stop that standalone method; no observer correction
+or clean-engine conclusion follows. Preserve this non-reproduction and charge the 90-minute
+reservation in full through 6664 minutes. The prepared corrected-workflow copy remains unrun.
+
+#### C12 attribution in the original viewer workflow
+
+The standalone readback does not recreate the original source-provider, image-stream replacement
+and viewer lifetime. Reserve one changed 60-minute method, cumulative 6724 minutes: 15 preparation,
+five focused checks, 15 native interaction, ten independent review and 15 records. Use at most one
+instrumented original workflow and, only after causal attribution, one corrected-observer workflow.
+Keep the preceding failure/non-reproduction and every source, identity, pixel, process and resource
+condition from the C12 method above. Do not run another standalone sampling probe.
+
+In the original native rewrite/rename/removal observer, mark each direct readback and subsequent
+raster snapshot on the same stderr stream. Both samples use the same displayed-image clone and
+must agree before the unchanged source/generation and expected-color policy may accept them.
+Retain the actual tile click, complete generated background and source operation order. Require
+the warning to occur inside a direct-read interval and no warning in the paired raster intervals;
+unattributed, contradictory or absent warnings end this method without changing the observer.
+
+Only a proved direct-read cause permits replacing that ignored observer's readback with the tested
+raster-owned sampler. One fresh current-source native workflow must then preserve all previous
+assertions with empty stderr, complete source/catalog oracles and normal retirement. This corrects
+the measurement boundary, not Ame product behavior, and cannot substitute for final Release or
+other outstanding R2c acceptance.
+
+The contextual attempt fails before input because its copied launcher invokes the prior
+fixture's helper. The source postchecks pass, but two draft diagnostics are left in the old
+derived fixture. Window activation also fails after fresh selection; owned retirement is forced,
+not normal. Preserve the [failed setup](../acceptance/r2c-query-interactions.md#contextual-attempt-stopped-before-viewer-input)
+and charge this reservation through 6724 minutes. No C12 attribution follows.
+
+#### C12 child binding correction and explicit window activation
+
+Reserve one changed 60-minute block, cumulative 6784 minutes: 20 for the fixture-bound child
+admission and rejecting tests, ten for source/build preparation, 15 for one native lifetime,
+five for independent review and ten for recording. Keep the executed harness and receipts
+immutable. A fresh ignored harness owns its helper path; the child receives the expected fixture
+and run identity and rejects stale helper/configuration/admission before opening any source or
+writing a receipt. Cover current admission, wrong fixture, wrong helper and stale run. Do not add
+product behavior or relax source-handle, pixel, deadline, workload or memory checks.
+
+After current window discovery, explicitly activate the returned window and observe it before
+the first input. Confirm the first actual action against the application trace. A capture or
+activation failure permits only the documented fresh-selection recovery; otherwise retire the
+owned lifetime and stop this method. Discovery is not delivered-input evidence. Keep the C12
+paired-sampling causal requirement and original 600-second parent / six-second normal-close
+bounds. An absent warning remains non-reproduction; no further C12 native run or sampler change
+is admitted by this block without a newly recorded causal method. Continue independent frozen
+functional work after recording an unresolved result.
+
+The child boundary passes focused checks and scoped independent review, but both explicit
+activation attempts fail before input. Sources and catalog postchecks pass after owned forced
+retirement. Preserve the [result](../acceptance/r2c-query-interactions.md#fixture-bound-helper-verification-and-activation-failure)
+and charge the reservation through 6784 minutes. Stop this C12 native method.
+
+#### Updated Computer Use transport check
+
+Computer Use changes from `26.917.51856` to `26.917.62051` after the failed lifetime. Reserve
+15 active minutes, cumulative 6799, to initialize a fresh supported JavaScript session and test
+one ordinary pre-existing Calculator window. Discover the current window, explicitly activate,
+observe, issue one observed digit input and check the displayed result, then close it. This
+separates transport availability from another Ame/catalog lifetime. Preserve any existing user
+window; do not change permissions, security, helper internals or app settings. Only one documented
+fresh-selection recovery is allowed. Failure stops desktop-dependent tests; independent work
+continues. Success proves only this transport check, and any resumed Ame method must retain its
+own original assertions and identify the changed tool version. No C12 replay is implicit here.
+
+The fresh `26.917.62051` session activates Calculator, delivers an observed digit click and
+displays `1` from baseline `0`. Normal close returns and subsequent discovery confirms the owned
+window is absent; the immediate post-click list still contains it. This establishes transport
+availability only. Charge the 15-minute block through 6799 minutes.
+
+#### Ame resumption after verified transport recovery
+
+Reserve 30 active minutes, cumulative 6829: five for fresh fixture and artifact binding, ten for
+the unchanged native workflow, five for complete postchecks and ten for evidence. Reuse the
+unchanged built diagnostic and its reviewed child-admission source, with a fresh GUID fixture and
+single-use parent configuration. Its configured helper path binds the new fixture; do not rebuild
+unchanged source or reuse consumed receipts. The complete background postcheck may serve as the
+fresh precheck only while still inside the original 30-minute admission and with no intervening
+source mutation; verify the newly generated mutable pair separately.
+
+Use the newly verified transport and preserve all paired pixel, real input, source retirement,
+membership, convergence, resource and normal-close assertions. Permit one resumed Ame lifetime.
+A further input failure stops native work; an absent or unattributed graphics warning ends this
+method without a C12 repair claim. This invocation is admitted by the changed tool version plus
+verified input, not an unexplained replay of the prior failures.
+
+The resumed run restores actual Ame activation/input and normal process exit, but the operator
+opens the image from the global gallery before selecting the required root. The original readiness
+assertion rejects it; retain that functional failure and charge the block through 6829 minutes.
+One matched current-display sample emits the exact graphics warning inside its flushed direct
+readback interval and none in the paired raster interval; both pixel values agree. This locates
+the diagnostic trigger, but does not accept the source-mutation workflow.
+
+#### C12 raster sampling with guarded viewer entry
+
+Reserve 45 active minutes, cumulative 6874: ten for the sampling correction, five for input
+admission, five focused checks, ten one native lifetime, five independent review and ten evidence.
+Correct only the ignored observer to read the current displayed image through the tested raster
+snapshot path. Preserve clone identity, dimensions, generation admission, expected exact color,
+read retirement and disposal; do not suppress engine stderr or read the source again as evidence.
+
+Before dispatching the single selected-image click, the input helper must require the matching
+current run's gallery-ready and seed receipts, with the same root/asset identity and no latched
+failure. Missing/foreign/mismatched readiness must reject before any UI call. Select the actual
+root through the observed sidebar and then observe the image before this guarded click. Keep the
+original observer assertions as independent checks. Run one complete fresh rewrite/rename/removal
+lifetime with empty stderr, all source/catalog checks and the unchanged time/resource/close bounds.
+Any failure stops this corrected method; no additional replay is included.
+
+The corrected lifetime passes original/rewrite/rename/removal pixels and identities, natural
+viewer return, ten-second stability, empty stderr and normal process retirement. Mutable and
+complete 10516-file background postchecks pass. The [result and preserved failures](../acceptance/r2c-query-interactions.md#c12-raster-observer-and-complete-source-identity-result)
+own the exact evidence. Charge the 45-minute reservation in full through 6874 active minutes;
+return to the frozen functional queue, without another C12 diagnostic run. Final-source and
+Release obligations remain separate.
+
+#### Current Release gallery stability and remaining menu return
+
+Reserve 90 active minutes, cumulative 6964: 20 preparation, ten focused admission checks, 15 one
+native lifetime, 15 source/catalog/retirement checks, ten independent method/result review and
+20 records. This is the applicable Release workload after C11's viewport-composition correction;
+it is not an unchanged menu-only replay. First run the canonical unsigned Windows gate for the
+current product source, preserving the preceding artifact evidence. Reuse the reviewed guest
+and native input helpers unchanged in a fresh single-use fixture; record their matching hashes.
+
+Use the complete 10000-file, 10921494393-byte mixed-size/historical corpus on ordinary guest NTFS
+and normal production Known Folders storage. Retain seven-GiB host entry, 3072-MiB guest, two-GiB
+client ceiling/host reserve, import confirmation before 240 seconds, 300-second import convergence,
+540-second optional-input cutoff, 900-second parent and six-second normal application close.
+Finish history/tool/helper/exit preparation before launch and bind the returned Sandbox window
+during copying. Every action still requires a fresh inspected screenshot; no batched blind keys,
+direct focus manipulation or product command injection is admitted.
+
+After exact import and visible decoding, select nonzero historical rail targets in both directions
+without a wheel input. Observe current thumbnails and stable settled gallery/rail position for ten
+seconds, retaining loading observations where available. This provides native optimized-client
+behavior; point screenshots cannot replace C11's Debug frame-level pending-result and geometry
+oracle. Prioritize the remaining layout and more-menu Enter/Escape/Enter sequences using ordinary
+observed Tab or Shift+Tab traversal, then dismiss normally. No pointer refocus may occur within
+either return sequence. Sort need not be repeated. Unreached or timed-out variants stay open.
+
+Close normally by the optional-input boundary, then require exact closed-catalog membership,
+full guest source hash/date checks, all 10516 host source checks and process/Job/Sandbox retirement.
+Use one lifetime only. A failed admission, unknown input or failed assertion retains its evidence
+and ends this method; it does not authorize another unchanged run. No real roots, source mutations,
+signing, service installation, new dependency or product behavior is included.
+
 #### Release keyboard menu return
 
 Reserve 50 active minutes for the remaining Release input boundary: five for fresh admission,
