@@ -410,3 +410,118 @@ Independent result review verifies the original receipts and finds no additional
 It supports committing these focused and selected native functional corrections while retaining
 the failed parent lifetime and both missing time fields. Other tile sizes, enlarged text and keyboard
 activation remain focused-test evidence, not additional native cases from this run.
+
+## Native reversal while an older result is pending
+
+The UX-08A generated Debug lifetime `38132fb25e9f4cb890b058235bb7b8fb` uses a fresh derived
+backup with exact 10000/512/2/2 membership. Five diagnostic boundary tests and the current build
+pass before launch. Independent method review corrects rail-value normalization, late-success
+deadline admission, exact native-target ownership and startup revision capture. No product source,
+source media, release payload or external service is changed by this observation.
+
+Native input selects the older target at 48143 ms. Its real 160-item catalog result for ordinal
+9132 is held at 48316 ms. The second actual click arrives at 75491 ms while that result remains
+held. The rendered newer target is recorded at 75922 ms: logical value 0.21475875118259222,
+target ordinal 2186 and query-wide row start 2185. The old result is released at 75927 ms;
+publication observation rejects obsolete ownership, and the next real read returns the exact
+newer row at 76041 ms. No wheel input or controller-driven navigation joins this lifetime.
+
+All 15 exposed thumbnails show current decoded pixels at 83008 ms, 7080 ms after release. The
+loaded window has prefetched back to ordinal 1685 while retaining the selected 2021-12 anchor.
+At 83034 ms the strict position-stability assertion fails. The original observer records only
+the first offset, 91214, and not the changed offset or tile rectangles. Consequently this is a
+**failed stability interaction**: neither a stale-request rollback, user-visible jump nor harmless
+layout correction has a proved cause. The ten-second stability requirement is not accepted.
+
+Normal native Close occurs at 119906 ms. The app exits zero, its Job and observer retire, and the
+parent finishes in 121372 ms without cleanup failures. The failed parent has a null close-duration
+field because the missing ready event precedes that calculation. A separate, non-overwriting
+receipt derives **418.3737 ms** from the already-recorded same-host close dispatch and the
+parent-observed exit timestamp; unlike the earlier unavailable helper timestamp, both endpoints
+exist. This establishes only normal-close timing, not a passing functional or aggregate run.
+
+Across 450 resource samples, peak working set is 447627264 bytes, sampled private/kernel peak
+commit are both 411508736 bytes, and minimum available host memory is 6274441216 bytes. Complete
+source checks pass in 67.944 seconds before and 59.259 seconds after; all 10516 generated files
+and exact catalog members remain unchanged. The post-source receipt is
+`source-integrity-1790144909188279300.json` under the retained recovery fixture.
+
+Ignored `.build/r2c-navigation-reversal/` owns the method; the new
+`build/integration-storage-da5de01740324e02ac7186c918a109f5/` retains these hashes:
+
+| Receipt | SHA-256 |
+| --- | --- |
+| Native stdout | `FF93524A0E17906EE2503F430592DAA0A9BABC55C1A23FDAAF398FE8402C54C3` |
+| Failed application result | `0004FA8158F86FCA5489AABDB26D54D0A07D3B21FEAA2445790B214D57E3C124` |
+| Failed parent result | `66E24607B5898BE39CD42C3175B40914316CCBD5A8802520443C64719E3F4FC4` |
+| Independent close-time derivation | `275EE9A55E4894B2153836D17E455053D08F83CC83A88A0058FDA65F811989E5` |
+
+Charge the 75-minute reservation in full through 5344 minutes. The changed causal observation
+records bounded frame geometry and scroll-change stacks without relaxing the original assertions
+or converting a latched failure into success. Release, C01/C02 and final/external gates stay open.
+
+### C11 loading-row geometry during pending reversal
+
+The changed causal lifetime `31e7def52ed44f4abe0f62f5dce9593b` preserves the same real inputs,
+query, 160-item old result, exact newer row, resource limits and strict stability assertion. It
+adds only read-only frame geometry and bounded scroll observation after release. Independent
+method review corrects unconditional failure-frame retirement and reserves trace capacity for
+the relevant phase. Seven diagnostic files pass analysis; the final build takes 22.8 seconds.
+The previous 59.259-second complete post-check is reused as the fresh pre-check of these same
+unchanged sources; a new derived backup preserves exact 10000/512/2/2 membership.
+
+Both actual clicks again deliver the required pending reversal. The old row 9132 remains held
+through the second native input; release occurs at 58215 ms and the real replacement row 2185
+returns at 58333 ms. The frozen logical target remains ordinal 2186 at value
+0.21475875118259222. All 15 visible images decode at 65904 ms, 7689 ms after release. Obsolete
+page/anchor admission is never observed. The same stability assertion fails at 65930 ms.
+
+The added evidence resolves the size and owning geometry of that failure:
+
+| Rendered transition | Wall top / height | Scroll offset | Selected tile top |
+| --- | --- | --- | --- |
+| Loading row present | 170 / 542.8 | 91214 | 170 |
+| Loading row removed, before resize correction | 168 / 544.8 | 91214 | 168 |
+| Following corrected frame | 168 / 544.8 | 91213 | 169 |
+
+These are logical pixels. The manifest identity, layout-metrics identity, 420632 content extent,
+query revision and selected source stay unchanged. The transition repeats when detail prefetch
+temporarily restores the loading row. `unified_library_screen.dart` conditionally inserts the
+two-pixel `LinearProgressIndicator` into the gallery's Column. The query-wide wall retains its
+viewport-center anchor when viewport extent changes; `LibraryExactExtentSliver` applies the
+corresponding correction during layout. The measured one-pixel offset correction matches half
+of the two-pixel viewport change. No scroll-listener call stack is emitted for this layout
+correction; the conclusion uses the recorded frame geometry and the existing source boundary,
+not a claimed captured `jumpTo` call.
+
+Register **R2C-C11 / S2**, localized loading-row layout movement, for the final minor-repair batch.
+It preserves target identity, current pixels and browsing authority, but the failed stability
+assertion remains open; severity does not waive the gate. Do not attribute the original large
+blank-wall or disappearing-rail reports to this one-pixel observation. A future correction must
+own stable loading-feedback geometry without changing query, retry, source or scroll authority.
+The causal method is now closed; another unchanged native replay is not admitted.
+
+Normal Close and the parent-observed exit give 374.1722 ms. The app exits zero; the owned Job
+and observer retire without cleanup failures. The parent ends in 113214 ms while retaining its
+failed interaction result. Across 419 resource samples, peak working set is 444551168 bytes,
+sampled private memory is 398868480, kernel peak commitment is 416079872 and minimum available
+host memory is 6104199168 bytes. Complete source post-checks pass in 56.667 seconds, with all
+10516 files and exact catalog members unchanged. The final source receipt is
+`source-integrity-1790145743813149000.json` under the retained recovery fixture.
+
+Ignored `.build/r2c-navigation-reversal-trace/` owns this observation; the new
+`build/integration-storage-5c5352616ffd441694af27177fe409d8/` retains these hashes:
+
+| Receipt | SHA-256 |
+| --- | --- |
+| Native stdout | `FD201FF58A46C9EFA40647146EEF4ED91FAF5A4BC0662AD3DC670B9EE9A23B8B` |
+| Failed application result | `E794E2B6CEDC4979605BEA40A88D285B3D105CA7CCE54504F4F949F8CCDFBD41` |
+| Failed parent result | `6D7166DF6C64CB8BF31B62BE58FF4F8A9673AD0FC3E21A57181E0D20398B17CA` |
+
+Charge the changed 40-minute observation in full through 5384 minutes. Pending-query ownership,
+exact final-target read and current pixels have selected native evidence. Complete UX-08A
+stability, Release, C01/C02 and the remaining final/external duties remain open.
+
+Independent result review confirms the frame/source causal interpretation, S2 classification,
+both retained failures, exact close times and complete source post-checks. It explicitly preserves
+the distinction between pending-request ownership evidence and the unaccepted stability lifetime.

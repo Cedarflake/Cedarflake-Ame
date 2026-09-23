@@ -98,6 +98,9 @@ search/sort/root/folder/window interaction during publication, folder-window rep
 the corrected continuous search input, committed-removal display Retry and focused sidebar position
 continuity, including native position retention across replacement and append. Complete native
 lifetime timing and remaining final-source gates remain open. The
+pending time-rail reversal now has exact current-target and stale-result retirement evidence;
+its one-pixel loading-row movement is registered as C11/S2 for the final minor-repair batch,
+with the failed stability requirement retained. The
 [isolated Release record](acceptance/r2c-release-native.md) adds actual optimized-client decoding,
 rail navigation, viewer return and a complete normal lifetime, while retaining the earlier failed
 host retirement. Menu focus return and remaining Release variants retain their frozen duties. C01's mixed-load recovery

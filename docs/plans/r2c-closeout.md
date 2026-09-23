@@ -773,6 +773,60 @@ timing evidence independently, and cover an outstanding frozen interaction; do n
 complete workload merely to obtain a green parent receipt. Candidate gates and the original
 C01/C02/Release/external obligations remain separate.
 
+#### Native reversal while a time request remains pending
+
+Reserve 75 active minutes for the outstanding UX-08A race: 25 for the scoped observer and boundary
+checks, ten for one native lifetime, 15 for complete source/catalog/process checks, 15 for one
+independent method/result review, and ten for records. Cumulative reservation becomes 5344 minutes;
+serial build and full-source integrity wall time remain separate. This is a changed frozen
+interaction, not a replay of the C09/C10 lifetime or the stopped Release-menu method series.
+
+Clone only the closed generated catalog with exact 10000/512/2/2 membership into a fresh isolated
+Debug storage root. Keep every source immutable and use in-memory presentation preferences. A
+catalog-port wrapper may retain the first real historical-page result for at most 120 seconds.
+Native input must choose a distant older rail position, then a substantially newer position while
+the first result remains held. A read-only pointer/frame observer records both inputs and the
+new painted rail target before releasing the old result; it cannot invoke a controller, seek,
+scroll, focus, or widget callback. Preserve the actual production query results and their ordering.
+
+Require the obsolete page and anchor never to publish after the second input, a subsequent real
+read for the newer target, cleared loading, coherent page/layout/source identity, all exposed
+tiles decoded at the final target without wheel input, and ten seconds of stable final position.
+The 30-second result/pixel bound starts when the controlled hold is released, not at first input;
+the hold proves a race rather than ordinary latency. Fail on extra navigation, unexpected source
+feedback, missing overlap or an expired hold. Retain all failing evidence without unchanged replay.
+
+Keep a 600-second owned parent, six-second normal app-close bound, 4 GiB entry availability,
+2 GiB client ceiling/system reserve, and complete pre/post source/catalog oracles. Retain every
+observed process handle before exit and reject missing exit timestamps; no helper self-receipt
+substitutes for parent-observed retirement. This admission creates no source-mutating helper.
+Focused boundary tests and one independent method review precede launch. Preserve the separate
+Release race, complete final gate, C01/C02 and external acceptance duties.
+
+The first lifetime delivers both native inputs while the old result is held, rejects the obsolete
+page, reads the exact newer row and decodes all 15 exposed tiles in 7080 ms after release. Its
+position-stability assertion fails 26 ms after that first decoded frame; the observer did not retain
+the changed offset or tile rectangles. Preserve this failed interaction and charge the 75-minute
+reservation in full. Normal process exit and complete source/catalog post-checks pass separately.
+Neither a user-visible jump nor a harmless layout correction has a proved cause from this receipt.
+
+Reserve one changed 40-minute causal observation, cumulative 5384 minutes: ten preparation, ten for
+one native lifetime, five integrity/result checks, five scoped review, and ten records. Keep all
+original data, inputs, deadlines, rejection and stability assertions. Add bounded read-only frame
+snapshots of scroll offset/activity, rendered loading indicator, gallery/target-tile bounds and
+layout identity, plus a scroll-change call stack. After a stability failure retain at most 20 more
+frames solely for causality; the original failure remains latched and cannot become a pass. No
+product change or tolerance relaxation is admitted. Review the measured owning cause before any
+further replay or repair; an unexplained result ends this causal method.
+
+The changed observation identifies the two-pixel loading-row viewport change and following
+one-pixel center-anchor correction, with the selected target, manifest and current pixels intact.
+Both strict stability failures remain. Register C11 as S2 and defer its owning feedback-geometry
+correction until the final minor-repair batch, following the functional-first direction. Complete
+source/catalog post-checks and normal 374.1722 ms close pass separately. Charge the 40-minute
+reservation in full through 5384 minutes and stop this causal method. Continue remaining core
+workflow variants; C11 cannot be waived when their final stability/readiness gates are evaluated.
+
 #### Release keyboard menu return
 
 Reserve 50 active minutes for the remaining Release input boundary: five for fresh admission,
