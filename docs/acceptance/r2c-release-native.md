@@ -654,5 +654,22 @@ acceptance still requires the fresh lifetime.
 
 The immutable manifest is `.build/r2c-release-bulk-pipelined/reviewed-source-manifest.json`, SHA-256
 `59F318CF084A593365C550E1A99A6799921BAB712C2C10E8235A557D96AC69D5`, with 33 source and 40 input files.
-Preparation and review are complete. Native launch remains pending the retained seven-GiB host
-entry requirement; no host-start or runtime result is present for this fixture yet.
+Preparation and review are complete. The preliminary memory check reaches the entry threshold,
+but the final guard rejects this configuration before writing `host-start.json` or launching the
+VM. Its host result records `Release Sandbox requires seven GiB available at entry`, 419 ms,
+`processBoundaryPassed=false`, no guest and no remaining Sandbox process. The guest output directory
+is empty; no application, source preparation or stimulus has run. The minimum-memory field is the
+unobserved sentinel, not an actual memory measurement.
+
+The failed `host-result.json` under `build/integration-storage-2952b5cb20ce48caaf46d7387e1bdb7d`
+has SHA-256 `E18906C9EAF940560706B78C6D256C8CEA35AA393E81A69D1140C7B8FA6E283A`.
+Preserve it and its single-use configuration. This entry rejection supplies no native functional
+evidence; a fresh configuration with the unchanged reviewed closure still requires live resources
+and one complete admitted lifetime. No product gate or resource threshold is relaxed.
+
+Replacement configuration `8b398bce286d4509a47b91bd81d31049` is prepared with the same verified
+payload and 33 byte-identical reviewed source files. Its 40 input files are frozen in
+`.build/r2c-release-bulk-admitted/reviewed-source-manifest.json`, SHA-256
+`E22F0E3E718038FB543AE79A444A6CA95FF3551223BDB6799BE75607B12E9B78`.
+It has no host admission or runtime result yet. The focused method checks remain applicable to
+the unchanged helpers; they do not supply the outstanding native result.

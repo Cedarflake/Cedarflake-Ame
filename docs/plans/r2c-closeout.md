@@ -1703,6 +1703,14 @@ background readiness. Freeze one fresh configuration/closure after review. Run t
 or timing reserve ends the run normally; no unchanged replay or further deadline growth follows.
 All final catalog/preview ownership, full guest/host source postchecks and retirement duties remain.
 
+The first configuration is rejected by the final seven-GiB entry guard before host admission or
+VM launch: availability briefly satisfies the preliminary check, then falls below the bound.
+Preserve its failed receipt and consume neither a guest lifetime nor a functional passing result.
+Prepare a new single-use configuration with the identical reviewed source closure, within this
+reservation. Resume only after renewed live memory evidence; seek practical headroom before
+launch rather than repeatedly consuming configurations at the threshold. The final entry guard,
+all original limits and the one admitted native lifetime remain unchanged.
+
 #### Current Release gallery stability and remaining menu return
 
 Reserve 90 active minutes, cumulative 6964: 20 preparation, ten focused admission checks, 15 one
