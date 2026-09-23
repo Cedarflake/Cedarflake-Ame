@@ -700,6 +700,79 @@ actions do not establish a named trigger; stop there without claiming the comple
 Normal close and exact source/catalog checks pass. Charge 30 minutes through 5069 minutes; no
 further menu lifetime is admitted by this result or inferred product focus repair is required.
 
+#### Registered sidebar and narrow-preview feedback correction
+
+The menu-method series has ended without complete input acceptance. Select the already registered
+C09/C10 S2 correction pass while the remaining functional/client methods retain their frozen duties;
+this selection does not reclassify either finding as S1 or close an unfinished native variant.
+Reserve 120 active minutes: 25 for causal regressions, 40 for repair, 25 for focused/client checks,
+20 for one independent review and scoped recheck, and ten for records. Cumulative reservation becomes
+5189 minutes; serial gate/build/oracle wall time remains separate. Work only on `codex/r2c`.
+
+C09 must keep the visible folder window during a replacement read without reusing an invalidated
+cursor, appending across revisions, accepting a late request, or turning a failed refresh into
+success. Cover delayed replacement, failure/retry, peer branches, legitimate shrink/empty results
+and stale completion, including the actual navigation scroll position. Retain the framework ListView;
+do not restore a saved pixel offset after hiding the underlying transient empty state.
+
+C10 must keep Retry and retry-in-progress feedback usable at the observed 48-pixel width, wide/short
+tiles and enlarged text. Compose installed Material controls and the shared tooltip/semantics owner;
+keep full action/status labels available and keep retry/source-generation authority in its existing
+owner. Extract only feedback layout from the photo tile. Do not resize the gallery, shrink user text,
+add retry attempts, or change source/cache admission to solve a layout defect.
+
+Prove each cause with a failing boundary regression before repair, then run the affected suites,
+format/lint and applicable Daily components serially. Retain C01/C02 and the complete final Daily
+obligation; an unchanged failed workload is not renewed by this presentation pass. Prepare at most
+one 900-second generated-only native check of affected interactions with the existing full corpus,
+30-second visible feedback bound, six-second normal close, 2 GiB client ceiling/host reserve and
+complete source/catalog oracles. Retain failures and change the method before extending; no other
+issue family, real root, installed service or release publication is admitted by this allowance.
+
+The single native method combines the retained 10000/512 catalog with 201 generated child folders
+and one admitted added folder. One child contains the same 64-by-256 generated portrait shape used
+for narrow feedback. Before the addition, require an observed sidebar position beyond 8000 pixels.
+The first post-change Show More must replace the 200-item window without moving that position;
+the next append, selective search and child selection retain their original exact membership checks.
+For the portrait, a manifest-verified read-only exclusive handle must produce the real native sharing
+failure, followed by one observed pointer Retry and current decoded pixels. Two bounded 350-ms holds
+after real results expose replacement/progress frames; they do not represent natural read latency.
+Accept feedback only inside the actual current gallery viewport. Publish cross-process receipts
+atomically, and bind the helper and client to owned Jobs with one parent deadline and fail-safe cleanup.
+
+The first native lifetime is consumed by a method assertion: the selected portrait appears in a
+justified full row, whose width can exceed the 48-pixel minimum. The helper times out waiting for the
+rejected visibility receipt; both owned Jobs retire. No native correction pass follows from it.
+Charge the 120-minute correction reservation in full. Admit one changed 40-minute method supplement:
+ten preparation, 15 native observation, five review, five integrity/result checks and five records;
+cumulative reservation becomes 5229 minutes, with serial build/oracle wall time separate. Use a fresh
+derived catalog and generated child set. Before importing, enter `200` through the actual search
+control so the portrait occupies a sparse historical-date row. Assert this query at first preview
+admission, retain the exact 48-pixel check, original 900/30/6-second limits and all C09/source/cleanup
+obligations. This changes only the observed layout setup, not the production layout or passing bound.
+No unchanged replay, extra native lifetime or additional issue family follows from a failure.
+
+The sparse-row lifetime also fails its method: `200` matches 1126 retained assets, and the portrait
+is prefetched outside the viewport. The sharing failure is real, but the 30-second visible-feedback
+receipt never arrives. Both Jobs retire; the 40-minute reservation is charged in full. Admit one
+changed 40-minute method block, with the same allocation and cumulative reservation of 5269 minutes.
+Before any import, actual input must establish `base-200` and the production query must prove zero
+retained matches. After publication it must prove exactly one matching current portrait before the
+exclusive-source request is admitted. Keep the full corpus, exact width, input and source guards,
+original deadlines and helper lifecycle. After feedback recovery, native input returns to `200`
+for the original folder-specific search/selection assertions. Record both failed lifetimes, and
+stop this method on any failed prerequisite or acceptance assertion rather than replaying it.
+
+The exact-query run passes all selected native functional assertions, but its aggregate parent
+fails because the exited helper's `ExitTime` is unavailable without retaining its process handle.
+Both Jobs retire and complete source/catalog oracles pass; the original timing fields stay missing.
+Charge this 40-minute block in full. The hidden-helper calibration proves the handle prerequisite;
+it does not renew the media lifetime. Preserve these functional results while packaging the two
+corrections. The next native method must retain and verify helper handles before exit, validate
+timing evidence independently, and cover an outstanding frozen interaction; do not repeat this
+complete workload merely to obtain a green parent receipt. Candidate gates and the original
+C01/C02/Release/external obligations remain separate.
+
 #### Release keyboard menu return
 
 Reserve 50 active minutes for the remaining Release input boundary: five for fresh admission,

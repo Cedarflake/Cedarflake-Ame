@@ -278,3 +278,135 @@ retain their separate duties. No product-code correction is made by this verific
 Independent method and result review accepts these exact boundaries, including the disclosed focus
 observation mismatch and C08 Daily receipt limitation. Charge the 80-minute reservation in full,
 bringing the cumulative reservation to 4224 minutes.
+
+## C09: retained folder windows during revision replacement
+
+The registered S2 correction starts from the original native Show More jump above. A connected
+controller/navigation regression reproduces the cause on the preceding product code: while the new
+first window is pending, revision invalidation clears the tree and the real ListView clamps its
+offset from 9284 to zero. Correct returned membership alone had not covered that intermediate frame.
+
+`LibraryFolderTreeState` now retains the displayed snapshot while its request authority is
+invalidated. A new revision starts from `after=null`, and a coherent result replaces the window
+atomically. Only an actual same-revision cursor can admit append. Failure keeps the old window and
+offers the existing folder Retry action. A genuine empty result may shrink/clamp the list after
+publication; the correction does not invent a pixel-offset restoration layer.
+
+Independent review identifies two necessary retention boundaries: a refreshed leaf must retire its
+expanded descendants, and a removed root must retire cached/pending windows. The extracted tree owner
+implements both. An incomplete first page does not prove an unseen child absent; complete membership
+does. A newer published child survives an older parent's absence claim. Exact pending-window identity
+and request revision exclude late success/failure after retirement; disposal also rejects completion.
+The navigation drops retired expansion intent and a leaf no longer renders an old subtree.
+
+Focused application evidence covers delayed replacement, failure/retry/empty publication, peer
+retention with fresh read admission, obsolete success/failure, root/descendant retirement and disposal.
+Four connected navigation cases cover replacement, visible failure followed by actual Retry, genuine
+empty publication and expanded subtree becoming a leaf then recovering. Position and the visible
+last-folder coordinates remain unchanged while replacement is pending and after compatible results.
+The existing navigation semantics, preview synchronization and 42-case unified-screen suite also pass.
+
+Physical review sizes include imports, comments and blank lines; no production owner has inline tests:
+
+| Owner | Before / after production lines | Dedicated test lines |
+| --- | ---: | ---: |
+| Folder controller / extracted tree | 215 / 143 + 171 | Controller 784; retirement 255 |
+| Navigation | 436 / 452 | New connected folder continuity 322; existing semantics suite retained |
+
+Complete lint passes in 111.103 seconds. The first lint attempt is retained as an outer PowerShell
+5.1 redirection failure on ordinary Cargo stderr; the second rejects a constructor's initializing
+formal style. The final unredirected canonical command passes format, Clippy and Dart analysis after
+that local style correction. The complete Flutter Daily component passes in 576.649 seconds.
+The applicable Windows accessibility gate passes in 77.898 seconds: both integration tests, all ten
+ordered native UIA phases, no AXTree rejection, normal primary exit and owned Job cleanup. These
+component results do not replace the outstanding complete accumulated Daily or close C01/C02.
+Receipts are retained under `.build/r2c-c09-c10-*`.
+
+The fresh combined C09/C10 native method reuses the full retained corpus and exact membership/source
+oracles. Pre-launch method review finds incomplete cross-process receipt publication, acceptance of
+overscan feedback as visible and an unowned helper failure path. Atomic receipt publication, actual
+viewport admission and a parent-owned helper Job address those findings before launch. Preparation
+also retains rejected nullable/style diagnostics; final diagnostic analysis has no issues. This is
+preparation evidence, not fresh native C09 or whole-candidate acceptance. The original failed
+observation, C01/C02, Release and remaining frozen variants stay open.
+
+The first combined lifetime `7c80cdca7b144e978dda1881ae355c70` does not pass. A real exclusive-source
+failure occurs at 124611 ms; the following frame rejects the hard-coded 48-pixel tile assumption.
+The normal justified layout scales a complete row, so a minimum-width portrait is not necessarily
+exactly 48 pixels in that row. The visible compact button is not accepted as a completed Retry path.
+The helper expires after the unchanged 30-second receipt bound and the parent retires both Jobs at
+155984 ms with no cleanup failure. A subsequent UI close attempt finds the already retired window;
+it is not evidence of normal close. Full before/after integrity passes in 60.300/54.430 seconds for
+10000 frozen, 512 retained and 201 generated files. No added-folder action or C09 position proof was
+reached. Preserve this method failure and its ignored fixture; the admitted supplement first selects
+a sparse row through actual search input, retaining the exact-width assertion and all other gates.
+
+The sparse-row lifetime `e2ffc4493408471780661400ae4b5472` also does not pass. Actual native key
+input establishes `200`, but that query matches 1126 retained assets before import and 1127 after.
+The selected portrait is requested outside the visible viewport; its real sharing failure at
+385879 ms cannot establish visible Retry. The helper expires and both owned Jobs retire at
+417233 ms without cleanup failure. The failed close attempt observes the already retired window,
+not a normal exit. Full pre/post source integrity passes in 57.190/57.394 seconds, preserving all
+10000/512/201 source files. Memory stays within the original bounds. No addition or sidebar position
+proof occurs. The next method requires observed zero/one production-query membership before failure
+admission; changing a search string alone is not evidence that its layout premise holds.
+
+### Native correction interactions and retained lifetime gap
+
+Run `9dbe9b8709d94e22a7f5acdc0f637484`, app 33152 and parent 42692, proves the corrected interaction
+boundaries. The actual search field establishes `base-200`; the real catalog query proves zero
+retained matches at 137899 ms and exactly one current portrait after import at 216738 ms. The new
+diagnostic query owner records a failed prerequisite permanently before rethrowing. Five boundary
+tests cover valid zero/one admission, a broad-match failure followed by success, missing baseline,
+wrong single asset and receipt-publication failure. Diagnostic formatting, fatal analysis and the
+22.3-second Debug build pass; an earlier missing-import analysis error is retained.
+
+| Native boundary | Trace time (ms) | Observed result |
+| --- | ---: | --- |
+| Real read-only exclusive-source failure | 216969 | Native `preview_source_open_failed` |
+| Visible compact Retry | 216998 | 48-by-138 tile, 48-by-48 action, complete Retry label |
+| Pointer Retry admission | 240682 | Exactly one forced request with unchanged source authority |
+| Retry progress / current pixels | 240696 / 241119 | Live progress label, then decoded current image; unchanged tile geometry |
+| Revised folder window published | 435185 | First 200 paths replaced, new cursor ends at `folder-198` |
+| Remaining folder append / selective search | 462396 / 462401 | Exact 202 folders; root search `200` returns the one current portrait |
+| Actual final-child selection | 491865 | `folder-200` selected through the sidebar with current decoded pixels |
+
+The first post-change request uses no retired cursor. The actual ListView offset is 9307.2 before
+replacement, during all 50 observed pending frames, and after publication. The three real folder
+reads preserve exact replacement/append membership and revision authority. The 350-ms diagnostic
+result holds expose intermediate frames; they are not natural latency measurements. Final observer
+state records 12563 frames, 2403 with current gallery pixels, two selected preview requests, and all
+selected interaction assertions passing. Empty-query and other transition frames are not claimed
+to contain gallery pixels.
+
+The aggregate native lifetime still **fails**. Actual titlebar Close dispatches at 506176 ms and
+application shutdown audit passes at 506251 ms. The parent observes exit zero, then fails while
+reading `helperProcess.ExitTime`: no process handle was retained while that helper was alive, so
+Windows PowerShell returns null. Both owned Jobs and processes retire, with no cleanup errors, at
+507824 ms; `closeToExitMs` and `helperExitBeforeCloseMs` remain null. Neither successful application
+shutdown nor a helper's own completion receipt substitutes for those missing native timing fields.
+A separate two-case, 500-ms hidden-helper calibration reproduces null without the retained handle
+and a real DateTime with it. This identifies the runner defect without replaying the media workload;
+it does not retrospectively pass the failed lifetime or authorize an unchanged replay.
+
+Full pre/post source integrity passes in 54.600/55.553 seconds: all 10000 frozen and 512 retained
+files remain unchanged, the 201 baseline sources plus the one admitted addition are intact, and
+exact active catalog membership is 10000/512/202. The 1909 memory samples record 723300352-byte peak
+working set, 641679360-byte sampled private peak, 656023552-byte kernel peak commit and
+6113730560-byte minimum system availability. No real source root participates.
+
+The EXE hash is `2A24C91530C05D88B29ACC4E6FCF73199C237DEB04159B232A9FD7E43BD98DCE`, diagnostic
+kernel `E4CDAF44C46C4A0BAAA5E9BB072C43F32347B457EB701AFD835DEF49A06D3AA7`, and Rust DLL
+`77B193EA7CA1B5CEEC033038E3806490890E5DBB3E818AAD72B062D0A46F50C2`. The stdout hash is
+`105706731774CD0786F3C23ECA39F11A5E965A3A96DA8E58E127C0C0FA11AAB6`; passing application result
+`CE4BFF1113E788A43727A6CBE211A4E1DA8D2FF4508661B5F02CFD668EE4BD7C` is retained alongside failed
+parent receipt `40724AB7CE6458359D92F03E566FEFF7025200D5F6E325E042A39FBA58040C68`.
+
+C09/C10 therefore have focused and selected native functional evidence. Complete lifetime timing,
+accumulated final-source gates, C01/C02 and the other frozen variants remain open. Charge the
+40-minute revised-method reservation in full; cumulative reservation is 5269 minutes.
+
+Independent result review verifies the original receipts and finds no additional functional blocker.
+It supports committing these focused and selected native functional corrections while retaining
+the failed parent lifetime and both missing time fields. Other tile sizes, enlarged text and keyboard
+activation remain focused-test evidence, not additional native cases from this run.

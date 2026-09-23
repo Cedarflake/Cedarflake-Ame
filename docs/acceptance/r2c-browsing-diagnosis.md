@@ -716,10 +716,46 @@ Independent result review verifies the corrected method, native request/input/co
 exact source/catalog receipts and owned retirement without a blocking finding. The full reserved
 120 minutes are charged in the execution plan, bringing cumulative reservation to 4344 minutes.
 
-### Deferred narrow-thumbnail feedback finding
+### C10: narrow-thumbnail feedback
 
 C10 is a reproduced S2 presentation issue: in the 48-pixel-wide portrait tile, Retry and retrying
 text wrap vertically and are difficult to read. The enabled target and one-click recovery above
-work; no blocked operation, stale result or data loss is observed. Preserve the narrow-tile case
-for the later S2 correction pass alongside C09. Do not change preview admission, enlarge this
-verification slice or claim the feedback presentation corrected from its functional pass.
+work; no blocked operation, stale result or data loss is observed. The original result is a
+functional pass with a presentation finding, not evidence that the feedback layout was correct.
+
+The registered correction first reproduces narrow text wrapping at 48 by 240 logical pixels and
+28-pixel RenderFlex overflow at 240 by 48 and at 160 by 120 with three-times text scaling. Feedback
+layout now has one owner shared by failed assets and decoded-artifact failures. It measures the
+current text scale and available width/height. A full label is retained when it fits; otherwise the
+existing Material IconButton provides Retry with a 48-pixel target and complete tooltip/semantics,
+and CircularProgressIndicator carries a live status label. Update-required guidance remains available
+on the compact action, including keyboard focus. Gallery geometry and retry/source authority do not
+change. Text is not scaled down, and no extra retry or image request is introduced.
+
+Component provenance is the official [M3 icon-button](https://m3.material.io/components/icon-buttons/overview)
+and [progress](https://m3.material.io/components/progress-indicators/overview) catalog, with actual
+capabilities checked in installed Flutter 3.44.9 `icon_button.dart` and existing progress usage.
+The SDK supplies icon-button sizing, focus, activation and semantics; the existing `AmeTooltip`
+retains its Windows overlay boundary. The missing product behavior is fitting feedback within an
+already constrained thumbnail, addressed by composition rather than a custom input control. The
+live M3 page requires JavaScript and the browser documentation tool times out, so no successful
+rendered-site inspection is claimed; installed implementation and Flutter API evidence remain explicit.
+
+Three connected photo-tile regressions cover compact sizes/scaling, immediate progress, exactly one
+request on repeated activation and no accidental viewer opening. Three feedback tests cover actual
+Tab/Enter with complete Windows update guidance, resize/progress semantics and twenty failure-layout
+size/scale combinations. Existing large-tile guidance, corrupt-preview repair, source supersession
+and late-result retirement tests pass. Initial test-harness failures from end-of-test semantics and
+platform-override cleanup are retained; both are corrected with `finally` cleanup, without weakening
+the product assertions.
+
+Physical sizes are 476 to 415 production lines for the photo tile and 194 for the new feedback owner,
+with zero inline tests; dedicated photo-tile tests are 690 lines and feedback tests 135 lines.
+This establishes focused layout and interaction evidence. The shared
+[current correction gate record](r2c-query-interactions.md#c09-retained-folder-windows-during-revision-replacement)
+also records passing complete lint, the full Flutter Daily component and all ten native accessibility
+phases. The subsequent [native correction interaction record](r2c-query-interactions.md#native-correction-interactions-and-retained-lifetime-gap)
+proves a real exclusive-source failure, visible 48-pixel Retry, actual pointer activation, immediate
+progress and current decoded pixels with unchanged geometry. It preserves two earlier method
+failures and a later parent-script exit-time error. C10's native functional assertions pass; that
+failed aggregate lifetime, the complete accumulated Daily and the rest of R2c remain open.

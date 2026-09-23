@@ -80,8 +80,9 @@ browsing workload and transient Retry feedback checks now pass; remaining client
 gates stay open.** Preview demand, recovered dates and missing-source request retirement have
 owning-layer corrections. The [C05 record](acceptance/r2c-browsing-diagnosis.md) retains the failed
 lifetimes, observer correction, combined pixel/rail/viewer/feedback evidence and selected native
-replacement/exclusive-source Retry verification. Deferred sidebar and narrow-thumbnail feedback
-findings remain in the S2 correction pass. The
+replacement/exclusive-source Retry verification. The selected S2 sidebar and narrow-thumbnail feedback
+corrections have focused lifecycle/layout and selected native functional evidence. Their combined
+parent run retains an exit-time evidence failure; complete lifetime and candidate gates remain open. The
 [process-lifecycle record](acceptance/r2c-process-lifecycle.md) verifies selected pending-call close,
 actual paused-checkpoint restoration and explicit continuation while preserving failed attempts.
 The [input-control record](acceptance/r2c-input-controls.md) retains the focused pending-pause Cancel
@@ -94,8 +95,9 @@ directory-loss recovery during a peer update;
 this generated-client result does not establish complete synchronization acceptance. The
 [query interaction record](acceptance/r2c-query-interactions.md) verifies selected native Debug
 search/sort/root/folder/window interaction during publication, folder-window replacement/append,
-the corrected continuous search input and committed-removal display Retry. Sidebar position
-continuity and remaining client/final-source gates remain open. The
+the corrected continuous search input, committed-removal display Retry and focused sidebar position
+continuity, including native position retention across replacement and append. Complete native
+lifetime timing and remaining final-source gates remain open. The
 [isolated Release record](acceptance/r2c-release-native.md) adds actual optimized-client decoding,
 rail navigation, viewer return and a complete normal lifetime, while retaining the earlier failed
 host retirement. Menu focus return and remaining Release variants retain their frozen duties. C01's mixed-load recovery

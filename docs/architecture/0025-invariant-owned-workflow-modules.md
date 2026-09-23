@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-09-06
-- Last amended: 2026-09-22
+- Last amended: 2026-09-23
 
 ## Context
 
@@ -294,6 +294,17 @@ persistence layers.
   The queue owns active-location exclusion, demand/source validity, bounded execution and result
   acceptance; selection order cannot confer publication authority. `LibraryState` separately
   projects explicit removal, query-refresh and primary-scan precedence without owning execution.
+- `library_folder_tree.dart` owns published folder windows and their cache lifetime. Query revision
+  invalidation retires loading authority without hiding retained windows; an accepted page replaces
+  or appends atomically. A parent proving a leaf or complete child absence retires corresponding
+  descendants, while incomplete paging cannot prove absence and an older parent cannot disprove a
+  newer child window. Configured-root removal retires all of that root's branches. The folder read
+  controller checks root membership, revision, scope, cursor and the exact pending branch slot;
+  superseded, retired or disposed reads cannot republish or clear a newer loading state.
+- `library_preview_feedback.dart` owns constrained preview-failure and retry-progress layout. It
+  measures labels with the current text scale and composes Material buttons/progress with the shared
+  tooltip and semantics boundary. Source identity, retry admission, cache eviction and result
+  acceptance remain with the existing photo tile and preview application owners.
 - `library_preview_failure.dart` distinguishes failed materialization commands from failed
   artifacts. A command exception cannot revoke an existing ready artifact; a source-authorized
   failed asset can. Queue completion still reports the command outcome and validates publication
