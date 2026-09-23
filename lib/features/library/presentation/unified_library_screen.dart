@@ -32,6 +32,7 @@ import "widgets/annotated_time_rail.dart";
 import "widgets/library_asset_information_sheet.dart";
 import "widgets/library_gallery_header.dart";
 import "widgets/library_gallery_layout.dart";
+import "widgets/library_gallery_loading_region.dart";
 import "widgets/library_gallery_states.dart";
 import "widgets/library_gallery_wall.dart";
 import "widgets/library_global_bar.dart";
@@ -1142,21 +1143,19 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                                       ),
                                     ),
                             ),
-                          if (state.isRefreshingQuery ||
-                              state.isLoadingPage ||
-                              state.isLoadingPreviousPage ||
-                              state.isLoadingTimeAnchor ||
-                              state.isLoadingVisibleRange)
-                            const LinearProgressIndicator(
-                              key: Key("library-top-loading"),
-                              minHeight: 2,
-                              semanticsLabel: "正在加载图片",
-                            ),
                           Expanded(
-                            child: _buildGalleryBody(
-                              state,
-                              controller,
-                              layoutManifest,
+                            child: LibraryGalleryLoadingRegion(
+                              isLoading:
+                                  state.isRefreshingQuery ||
+                                  state.isLoadingPage ||
+                                  state.isLoadingPreviousPage ||
+                                  state.isLoadingTimeAnchor ||
+                                  state.isLoadingVisibleRange,
+                              child: _buildGalleryBody(
+                                state,
+                                controller,
+                                layoutManifest,
+                              ),
                             ),
                           ),
                         ],

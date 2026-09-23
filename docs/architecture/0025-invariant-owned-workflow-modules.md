@@ -367,6 +367,10 @@ persistence layers.
   changing source admission, cancellation or the copy-completion release boundary.
 - Menus, loading feedback, task live regions, and startup orchestration use repository-owned shared
   components so one defect fix does not create a second interaction contract.
+- `library_gallery_loading_region.dart` owns stable gallery loading-feedback geometry. It composes
+  the existing Material linear indicator above the unchanged child viewport with framework Stack
+  layout and pointer passthrough. The screen supplies the existing loading projection; neither
+  owner changes scroll position, query authority or asynchronous loading lifetime to hide movement.
 - `library_synchronization_feedback.dart` owns the immutable message, detail, severity and existing
   manual-action projection of synchronization status. First-import and explicit-manual decisions
   remain distinct; blocked recovery takes precedence over automatic-progress explanations. A

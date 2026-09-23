@@ -350,7 +350,8 @@ position when possible.
   immediately shows static placeholders in its final equal-height rectangles, never a generic
   square grid or a blank substitute view.
 - Scroll-triggered detail paging uses one thin linear progress indicator at the top of the gallery.
-  It does not add circular loaders to the photo wall or its boundaries.
+  It overlays the gallery without resizing its viewport or intercepting gallery input. It does not
+  add circular loaders to the photo wall or its boundaries.
 - Slider drag writes the exact manifest-backed position at most once per rendered frame. Detail
   requests are latest-wins, bounded, cancellable or generation-guarded, and issued at a measured
   cadence outside the pointer-to-scroll critical path. Release promotes the final target, but it is

@@ -1269,6 +1269,42 @@ source/catalog post-checks and normal 374.1722 ms close pass separately. Charge 
 reservation in full through 5384 minutes and stop this causal method. Continue remaining core
 workflow variants; C11 cannot be waived when their final stability/readiness gates are evaluated.
 
+#### C11 stable gallery loading geometry
+
+After the combined paused/capability observation, select the registered C11 correction because its
+known viewport mutation still blocks UX-08A's strict stability exit. This begins the bounded minor
+repair work without accepting the remaining Release, exact warm-start, C01/C02 or external duties.
+Reserve 90 active minutes: ten ownership/component checks, 25 repair and regression, 15 focused
+verification, 15 one native observation, 15 independent review and ten records. Cumulative
+reservation becomes 6574 minutes; serial lint/build and full source-oracle wall time remain separate.
+
+Keep the existing Material linear progress indicator, visibility conditions and accessible label.
+Extract only the gallery loading-region composition into a small presentation owner: loading
+feedback must not change the child viewport's constraints, position or scroll identity. Preserve
+the idle gallery rectangle and let pointer input reach the existing gallery; do not reserve a new
+permanent gap or change query, navigation, source, prefetch, retry or scroll-anchor policy. Inspect
+the official Material component and pinned Flutter implementation before selecting composition.
+Record the affected production, inline-test and dedicated-test sizes.
+
+First prove a connected idle/loading/idle gallery regression fails on the current layout, then
+check repeated loading transitions with a middle scroll anchor, current tile rectangles, indicator
+semantics and pointer delivery. Run focused gallery/navigation tests and canonical lint serially.
+Use one corrected-product native pending reversal with the original generated 10000/512/2/2 roots,
+exact newer target, old-result retirement, full source/catalog oracles and the unchanged strict
+stability assertion. Preserve the 600-second parent, six-second normal close, 4 GiB entry and 2 GiB
+client/system-reserve bounds. Reuse the causal observer; do not replay unrelated import/viewer/menu
+work or weaken pixel-position equality. A failed corrected observation ends this method for causal
+review. Final complete Daily remains subject to the retained C01/C02 causal-remedy boundary; a
+cosmetic correction does not authorize an unchanged failed-gate replay or establish candidate pass.
+
+The [corrected observation](../acceptance/r2c-query-interactions.md#c11-stable-loading-region-verification)
+passes the original native pending-reversal and ten-second stability assertions. The loading line
+no longer changes the gallery rectangle or viewport dimension; the exact replacement target has
+16 current visible images, with no extra wheel input. Both preceding failures remain. All 61 focused
+cases, complete lint, source/catalog post-checks and normal native retirement pass; scoped independent
+review verifies the same boundaries. Charge the 90-minute reservation in full through 6574 minutes.
+This closes the selected C11 Debug correction, not complete Daily, Release or remaining R2c duties.
+
 #### Release keyboard menu return
 
 Reserve 50 active minutes for the remaining Release input boundary: five for fresh admission,

@@ -751,3 +751,77 @@ boundaries remain open.
 Charge the successive admitted methods conservatively through **6184 active minutes**. This adds
 selected native Debug functional evidence for UX-05C after source reads retire. It does not accept
 mutation during active reads, Release, C11/C12, C01/C02, complete Daily or external R2c acceptance.
+
+## C11 stable loading-region verification
+
+The correction moves the existing loading line into `LibraryGalleryLoadingRegion`, a presentation
+owner that overlays the unchanged gallery child. It preserves all five loading conditions, the
+existing Material indicator, key and accessible label. `Stack`, `Positioned` and `IgnorePointer`
+keep the indicator out of child layout and pass pointer input to the gallery. Query generations,
+scroll anchoring, preview demand and loading lifetimes are unchanged. This fixes the measured
+geometry cause; it does not attribute earlier blank-wall or missing-preview reports to C11.
+
+The component review consults the official
+[Material progress indicator](https://m3.material.io/components/progress-indicators/overview) and
+[Flutter LinearProgressIndicator API](https://api.flutter.dev/flutter/material/LinearProgressIndicator-class.html),
+then checks the installed Flutter 3.44.9 implementation (`progress_indicator.dart`, framework
+`6b182d2c7585eba26d4edce0f97630effd256c33`). The SDK already supplies the two-pixel indeterminate
+indicator and semantic label. The product gap is stable composition around the existing viewport;
+no custom drawing, scrolling or accessibility control is introduced. The screen contains 2187
+physical lines, the new owner 35, and the dedicated tests 153 and 52; all have zero inline tests.
+
+The connected regression first fails on the original product with gallery top 168 becoming 170.
+After correction, query refresh, next/previous paging, time-anchor and visible-range loading each
+preserve the middle scroll offset, viewport dimension, current tile rectangle and ScrollPosition
+identity across idle/loading/idle. The component boundary also verifies the actual semantic label,
+two-pixel top alignment and pointer delivery through the loading line. Two new cases and the
+existing publication/navigation/screen cases pass: **61 focused cases** in total. Canonical complete
+lint passes with no analysis issues. Diagnostic Dart analysis passes and the Debug build takes
+25.3 seconds. These checks do not replace the unresolved complete Daily and Release gates.
+
+The one corrected native lifetime uses base `61d522aa24934cc785bc65c182273e9aecdf2216` plus this
+change, the original generated 10000/512/2/2 roots and the unchanged causal observer/assertions.
+Ignored `.build/r2c-loading-geometry/preparation-evidence.json` records 21 source/diagnostic hashes;
+admission records the executable, kernel, DLL and source-integrity identities. All 21 hashes still
+match after verification. No fixture, tolerance, source authority or timing relaxation is used.
+
+Run **`41b95244b9bb437bbba54bd0c4013b72`** records two actual time-rail clicks. The first holds the
+real 160-item result at offset 8697; the second reverses while that result remains held. Obsolete
+publication is rejected and the exact replacement row at offset 1912 is read. All **16 visible
+images decode 2802 ms after release**, without a wheel input. The original strict scroll/rail
+stability assertion then passes for ten continuous seconds. The final application audit covers
+1945 observed frames, six state publications and two reads, with no latched failure.
+
+| Loading transition | Viewport height | Gallery rectangle | Scroll offset |
+| --- | ---: | --- | ---: |
+| Loading visible, 47755 ms | 544.8 | `[260, 168, 927.2, 544.8]` | 80146 |
+| Loading retired, 47876 ms | 544.8 | `[260, 168, 927.2, 544.8]` | 80146 |
+
+The target, manifest and layout identities remain current and the causal observer records no
+scroll correction. Both preceding failed stability attempts remain historical failures; this
+corrected run supplies the missing selected Debug stability evidence.
+
+Actual title-bar Close reaches exit zero **335.8272 ms** after application dispatch. The parent
+passes in **83414 ms**; app, Job and monitor retire without cleanup failures. The post-click window
+capture reports that the already closing window is unusable; input is not repeated, and retained
+process handles independently prove normal exit. Stderr is empty. Across 307 memory samples,
+peak working set is 585928704 bytes, sampled private memory is 550789120, kernel peak commitment
+is 551321600 and minimum host availability is 7188504576.
+
+Full source pre/post checks take 55.126/53.042 seconds and preserve all 10516 generated source
+identities, contents and timestamps; exact catalog membership remains 10000/512/2/2. The post
+receipt is `source-integrity-1790172489947945700.json` in the retained recovery fixture. No real
+library is accessed. The passing fixture `build/integration-storage-41e61cb07ab34e3190b7c5c0501a1414/`
+retains:
+
+| Receipt | SHA-256 |
+| --- | --- |
+| Native stdout | `A837ABE56A43162B5DF8A0F0D53FABFED592D9532BA8E9C9DA324173071C84E4` |
+| Application result | `6732D137855D86B7DA22E072279B787DEFD9CAF6BBC409A01555D854D4148704` |
+| Parent result | `1D457137755C4EBAAE1E93ED3AAA51E3AC93817B1AE3269F3D680AA3C187D1E5` |
+| Native input record | `333958D921C80EDFDEFF0F517FC688379A0EB8A4BB2139B8F80FBE6BC5B2CC03` |
+
+The bounded independent review checks implementation, unchanged native assertions, result and
+source/lifetime evidence. Charge the 90-minute reservation conservatively in full through 6574
+active minutes. C11's selected native Debug correction is verified; final-source, Release, C12,
+C01/C02, complete Daily and external R2c acceptance remain separate obligations.

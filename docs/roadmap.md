@@ -104,9 +104,10 @@ search/sort/root/folder/window interaction during publication, folder-window rep
 the corrected continuous search input, committed-removal display Retry and focused sidebar position
 continuity, including native position retention across replacement and append. Complete native
 lifetime timing and remaining final-source gates remain open. The
-pending time-rail reversal now has exact current-target and stale-result retirement evidence;
-its one-pixel loading-row movement is registered as C11/S2 for the final minor-repair batch,
-with the failed stability requirement retained. Native viewer close/reopen during pending paging
+pending time-rail reversal now has exact current-target and stale-result retirement evidence.
+C11's loading-feedback composition preserves the viewport, with focused and selected native Debug
+position-stability evidence; preceding failures and final-source/Release duties remain explicit.
+Native viewer close/reopen during pending paging
 and an admitted source-copy future now preserves the new selection and original pixels through
 old-work retirement and normal exit; remaining Release boundaries stay open. The
 selected source rewrite/rename/removal path now has native Debug identity, current-pixel and natural
