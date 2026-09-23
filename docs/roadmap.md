@@ -85,8 +85,9 @@ corrections have focused lifecycle/layout and selected native functional evidenc
 parent run retains an exit-time evidence failure; complete lifetime and candidate gates remain open. The
 [process-lifecycle record](acceptance/r2c-process-lifecycle.md) verifies selected pending-call close,
 actual paused-checkpoint restoration, explicit continuation and recovery after raw-batch and
-executing-lease process loss, including natural lease expiry. Failed attempts and the separate
-combined exhaustion boundary remain explicit.
+executing-lease process loss, including natural lease expiry, and selected native exhaustion/restart
+with continued peer publication. Failed attempts remain explicit; C13's exhausted-recovery
+notification is the immediate S1 correction in item 3 and still prevents complete feedback acceptance.
 The [input-control record](acceptance/r2c-input-controls.md) retains the focused pending-pause Cancel
 correction, primary committed-refresh admission correction and the selected native picker,
 focused Enter Retry and pre-registration Pause-Cancel pass. Remaining focus-return variants,

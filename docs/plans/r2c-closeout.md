@@ -889,6 +889,95 @@ retirement. The final 20516-file source oracle and independent result review pas
 exhaustion, C01/C02, Release and final
 candidate duties. Do not repeat this completed leased-crash pair to satisfy another variant.
 
+#### Native exhausted recovery with an eligible peer
+
+Reserve 120 active minutes for the remaining UX-07C exhaustion boundary: 40 for fixture and
+observation, 20 for focused admission checks, 20 for one native close/restart pair, 15 for source
+and catalog post-checks, 15 for one independent method/result review and ten for records.
+Cumulative reservation becomes 6304 minutes after the 6184-minute source-identity checkpoint.
+Complete source-oracle and serial build wall time remain separately recorded. Do not replay the
+completed raw-batch or executing-lease crashes.
+
+Use a fresh derived backup with the immutable 10000/512/2/2 generated roots. Add two small,
+GUID-owned image roots through the real scanner after synchronization starts. The failure root
+has a cached baseline and one generated child directory held by an exact read-denial handle owner;
+the peer root receives exactly one new generated image during failure and one after restart.
+First calibrate that the held directory blocks enumeration while root metadata stays readable,
+and that release preserves identity, bytes and timestamps.
+If that real filesystem fault cannot reach recovery without changing product guards, stop before
+native launch and record a changed method; do not inject a fake UI state or edit queue SQL.
+
+The first two CLI calibrations prove child enumeration fails with WinError 32 and root metadata
+remains readable, but parent rename fails with WinError 5 both without sharing and with delete
+sharing alone. Both handles retire and both sources remain unchanged; no native lifetime starts.
+An ordinary file lock is also insufficient evidence because metadata inventory may retain a file
+without its temporarily unavailable identity. Keep these preparation results and change ordering
+within this reservation: restore the parent before acquiring the child handle, once. A lost race
+or wrong P2 boundary fails the method rather than authorizing another acquisition attempt.
+
+Move only the admitted generated failure root to its verified sibling, observe actual unavailable
+state, restore the same directory identity and immediately acquire the exact child-directory read
+denial. Cleanup releases that child before any required parent restoration. Require a real
+availability-gap recovery authority and the original eight-attempt production retry policy,
+including its actual deadlines. Within 300 seconds of restoration, observe terminal retry wait,
+no next retry, retained change/run/authority lineage and truthful blocked/degraded feedback. The
+cached baseline must remain usable and the peer's watched addition must publish independently.
+Do not accept a P0-only failure as the required P2 recovery boundary or treat a failed partial
+inventory as an authoritative empty catalog.
+
+Release the owned source handle after exhaustion, close normally, then start the same catalog in another actual
+Ame process. Require the exact exhausted record and failure to survive, no automatic new lease or
+full scan for it, and a second peer addition to publish with usable current pixels. Observe the
+unchanged exhausted identity over ten continuous seconds after that publication. Keep 600-second
+per-lifetime parents, six-second normal close, 4 GiB entry availability, 2 GiB client/system-reserve
+limits, complete source/catalog pre/post checks and owned process/helper/Job retirement. Helpers
+must restore the moved directory and close their exact handles in failure cleanup.
+
+No retry shortening, forced attempt count, clock change, queue mutation, new bridge/test seam or
+real-library input is admitted. One unexplained or failed native pair ends this method for causal
+diagnosis. Selected Debug evidence cannot close C01/C02, Release, C11/C12, final Daily or external
+acceptance; those obligations keep their existing queue position and failed-run limits.
+
+The single native pair completes its instrumented exhaustion, same-catalog restart, peer-pixel,
+source and normal-lifetime checks. All eight actual attempts retain the production backoff;
+exhaustion takes 129.974887 seconds, and the exact terminal scheduling state survives restart.
+The two native peer selections show three then four current images, each with continuous ten-second
+pixel/control evidence. Normal exits take 277.574 and 280.309 ms; all owned resources retire.
+The complete 10516-file background oracle and six-root membership postcheck pass. The
+[result record](../acceptance/r2c-process-lifecycle.md#native-exhausted-recovery-and-an-eligible-peer)
+retains receipts and preparation failures. Charge the 120-minute reservation in full.
+Independent review confirms the selected result and classifies the incorrect automatic-checking
+promise as C13/S1. Prioritize its bounded feedback correction below. This pair does not accept
+complete truthful feedback or the whole UX-07C.
+Do not replay the completed pair merely to obtain another successful lifetime.
+
+#### C13 truthful blocked-recovery feedback
+
+Reserve 100 active minutes: 15 for status/notification ownership, 25 for the narrow correction and
+boundary regressions, 20 for focused checks and one native retained-state lifetime, 15 for result
+and source checks, 15 for independent review and ten for records. Cumulative reservation becomes
+6404 minutes. Serial build, lint and complete source-oracle wall time remain separately recorded.
+This S1 interrupts the remaining functional roster because it tells someone to wait for recovery
+that has no scheduled retry. It does not reopen C01/C02's failed experiment allowances.
+
+Extract the affected immutable synchronization-feedback policy from the screen before changing it.
+The first-import and existing explicit-manual cases retain precedence and action admission.
+`recoveryBlocked` must prevent automatic-progress or scheduled-retry promises, including when an
+unrecognized issue otherwise falls back to evidence-gap text. A retry-wait count alone is not a
+count of scheduled attempts. Keep the issue code available in details and preserve notification
+deduplication, root/generation action checks, ordinary-error action exclusions and scan admission.
+Do not change the retry budget, queue, persistence, generated bridge or source-access policy.
+
+Prove blocked filesystem and persistence errors, unrecognized issue/cause combinations, active
+retry, first import and both existing manual-recovery cases. The connected test must show current
+blocked text without starting a scan; ordinary storage errors must not become scan authorization.
+One new native process may use the retained exhausted catalog to verify actual current feedback,
+usable cached/peer pixels, unchanged failed scheduling/scan identity and normal exit. No second
+directory fault or eight-attempt replay is needed. Retain the 600-second parent, six-second normal
+exit, 4 GiB entry and 2 GiB client/system-reserve bounds, complete generated-source checks and
+owned retirement. If this fails, preserve the first failure and stop this method for a causal
+checkpoint. Focused/native success still leaves final Daily, Release and candidate gates open.
+
 #### Native viewer replacement while previous-page loading remains pending
 
 Reserve 60 active minutes for the remaining UX-05B native boundary: 30 for the diagnostic owner,

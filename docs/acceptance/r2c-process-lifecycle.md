@@ -318,3 +318,86 @@ This closes the selected actual-process crash, natural executing-lease expiry an
 recovery boundary. It does not establish combined retry exhaustion, exact source read counts,
 physical spool reclamation, Release, interactive scrolling, complete UX-07C or R2c. C01/C02, final
 candidate gates and separately authorized external acceptance remain open.
+
+## Native exhausted recovery and an eligible peer
+
+The [bounded exhaustion method](../plans/r2c-closeout.md#native-exhausted-recovery-with-an-eligible-peer)
+uses documentation head `2404874adb2e573686bacfccedbe9c0e5ce4b09a` and unchanged product source
+`b0d1bda4cf9f950de2567099a6a7245195411fbc`. A fresh derived backup retains the immutable
+10000/512/2/2 generated roots. The real scanner adds two generated two-image roots after real
+synchronization starts. Only the admitted failure directory is temporarily moved and restored;
+its child then receives an identity-checked read-denial handle. No queue SQL, clock, attempt count,
+retry delay, bridge contract or production guard is changed.
+
+Two retained CLI preparations reject moving the parent while its child is held, including with
+delete sharing. Both release their handles and preserve their sources. The admitted native ordering
+restores the parent before opening the child, once. Eight diagnostic boundary tests pass, including
+missing retry observations, shortened backoff, changed ownership, invalid absence authority and a
+sampling gap crossing the ten-second boundary. Dart analysis, PowerShell parsing and the diagnostic
+Debug build pass. These checks do not replace product Daily or Release gates.
+
+Exhaust run `9fea8c9404bd4b0496a758d09247f813` owns Ame PID 33672 and parent 42216. Actual unavailable
+state retains two current cached images. After restoration, all eight production attempts fail with
+`directory_unreadable`; their scheduled delays are 1/2/4/8/16/32/64 seconds. Exhaustion is observed
+129.974887 seconds after restoration. Control 6528 retains root generation 1, lease generation 9
+and authority/run `watcher-gap-promotion-6528`; it is `retry_wait` with no lease or next retry.
+The inventory remains `running` with enumeration and absence authority both false. That retained
+frontier is not successful recovery or authority to remove absent catalog rows. Gap 6527's consumed
+claim means the P0-to-P2 handoff occurred, not that P2 completed.
+
+The first watched peer addition occurs during retry. Actual pointer selection shows three current
+peer images at application 164361 ms while the failure root remains visibly blocked. Native ready
+occurs at 174536 ms after continuous current-pixel and unchanged-control observation. There are 101
+database samples across 10.075791 seconds; gaps over one second reset this interval. The source
+handle is released immediately after exhaustion, before normal Close. Close dispatch to process
+exit takes 277.574 ms; native-input-before to exit is bounded by 391.324 ms. Exit is zero and the
+200552-ms parent and owned helper/Job retire without failure.
+
+Resume run `f000cba4e3cd42b9b3d42fa2d4bf037b` uses another actual Ame process, PID 11644, parent 27996,
+the same catalog and identical EXE/kernel/DLL hashes. The exact exhausted control, error, updated
+timestamp, lease generation, run and claim survive. All eleven scan records retain their
+`id`/`root_id`/`status` projection; no new full scan supplies recovery. A second watched peer addition
+publishes independently. Actual selection displays four current images at 40184 ms, followed by
+native ready at 50519 ms and 101 matching database samples over 10.077759 seconds. Close dispatch
+to exit takes 280.309 ms; native-input-before to exit is bounded by 403.830 ms. Exit is zero and the
+complete parent lasts 96331 ms. Both lifetimes have empty engine stderr
+and no latched instrumented failure. Closed-window screenshot refresh fails after each delivered
+Close; retained process handles and separate close-dispatch receipts establish actual normal exit.
+
+| Lifetime | Pixel frames | Memory samples | Peak working set bytes | Sampled peak private bytes | Kernel peak commit bytes | Minimum system available bytes |
+| --- | --- | --- | --- | --- | --- | --- |
+| Exhaust | 862 | 748 | 402640896 | 337522688 | 355749888 | 6001827840 |
+| Resume | 425 | 356 | 421552128 | 331403264 | 372555776 | 6179647488 |
+
+The generated-root postchecks pass after both exits, with final exact membership
+10000/512/4/2/2/2. The independent 10516-file background oracle passes before the pair in 56.495
+seconds and after it in 52.296 seconds, preserving identity, bytes, timestamps and membership.
+The final own receipt is `integrity-1790165595093438100.json`; the background receipt is
+`source-integrity-1790165652988423700.json`. Raw evidence remains under
+`build/integration-storage-08f1ff1dc02848979c2c2edd0a01e568`; diagnostic source hashes and counts
+are retained in ignored `.build/r2c-exhaustion-native/preparation-evidence.json`.
+Independent result review verifies the selected state, pixel, source and lifetime claims and the
+four hashes below; it identifies C13 as an S1 truthful-feedback blocker.
+
+| Receipt | SHA-256 |
+| --- | --- |
+| Exhaust parent | `D9732471C6BE3E9CFC7EA4B14681D6B681849943880AE1B614A66B20C00746EA` |
+| Resume parent | `D21993C41E8037499039F46A4347B4EEFC8FEFDA3A46808EE620AC2F362DC26D` |
+| Eight actual retry waits | `EE1B47506B47ED1644F825C532E39A5F7A9513AAFFF96C493FA41AAC5A7580A5` |
+| Resumed control stability | `054FE3E383487B31DD7220D5241A4F13D81AB0FC5B1324D818EA301C976A9750` |
+
+### C13 exhausted recovery notification
+
+Both native lifetimes show the correct blocked sidebar and retained cached images, but the
+notification still says Ame is automatically checking the directory and one item is awaiting retry.
+The durable row has no next retry and restart preserves that state. C13 is S1 because this message
+can leave someone waiting for recovery that will not occur. The message therefore cannot
+establish truthful recovery feedback, despite the instrumented functional/lifetime pass.
+`_synchronizationNotificationMessage` falls back from the unrecognized `directory_unreadable`
+issue to the generic evidence-gap message, while detail formatting calls every retry-wait item
+awaiting retry. The affected responsibility is synchronization feedback policy and its scheduling
+evidence; a longer timeout or new automatic retry is not a correction.
+
+This result establishes the selected real exhaustion/restart/peer-publication and source/lifetime
+boundaries. C13 remains an explicit feedback acceptance gap. Exact source read counts, Release,
+complete UX-07C, C01/C02, C11/C12, final candidate gates and external acceptance remain open.
