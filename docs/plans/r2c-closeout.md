@@ -773,6 +773,40 @@ timing evidence independently, and cover an outstanding frozen interaction; do n
 complete workload merely to obtain a green parent receipt. Candidate gates and the original
 C01/C02/Release/external obligations remain separate.
 
+#### Native viewer replacement while previous-page loading remains pending
+
+Reserve 60 active minutes for the remaining UX-05B native boundary: 30 for the diagnostic owner,
+ten for one actual-input lifetime, ten for integrity/result checks, five for independent review,
+and five for records. Cumulative reservation becomes 5444 minutes. Build and complete source-oracle
+wall time remain separately recorded. This does not repeat the closed UX-08A method or waive C11.
+
+Use a fresh derived backup with exact 10000/512/2/2 membership and unchanged generated originals.
+At a native-selected historical rail position, retain the first real previous-page result for at
+most 180 seconds. Do not alter its rows, cursor, production window size or ordering. Open the first
+asset of the current window with actual pointer input, press Left while the previous page remains
+held, then Escape and open a different displayed asset. A read-only frame/input observer must prove
+the initial boundary navigation is pending, the old viewer is closed, and the new selection exists
+before releasing the real page. It cannot call navigation, focus, scroll, widget or controller actions.
+
+Require the old page to settle without navigating or reporting an error in the new viewer, actual
+original-image pixels for that new selection within 30 seconds of release, ten seconds of stable
+selection, and a second native Escape returning to the same valid gallery anchor with current
+pixels. This proves actual input and original I/O for the paging race; it does not claim a held native
+source-copy race, Release evidence, UX-07 crash recovery, or complete candidate acceptance.
+
+Retain the 600-second owned parent, six-second normal close, 4 GiB entry availability, 2 GiB app
+ceiling/system reserve, retained process handles and complete pre/post source/catalog oracles.
+Latch any failure, preserve its receipts and perform normal retirement where possible. Validate
+the observer's late-success, wrong-selection, missing-native-input and missing-pending-overlap
+rejections before launch and review the method once. A failed lifetime ends this method pending
+causal analysis; no unchanged replay or automatic additional repair follows.
+
+The single lifetime passes native pending-page close/reopen, retirement of old navigation and
+error publication, current 3840-by-2160 original pixels, ten-second selection stability, valid
+gallery return and 408.23 ms normal exit. Method review corrects request admission, exception
+latching and notification observation before launch. Charge the 60-minute reservation in full;
+the source-copy, Release, crash, C11 and candidate boundaries remain separate.
+
 #### Native reversal while a time request remains pending
 
 Reserve 75 active minutes for the outstanding UX-08A race: 25 for the scoped observer and boundary

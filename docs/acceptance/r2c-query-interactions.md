@@ -525,3 +525,60 @@ stability, Release, C01/C02 and the remaining final/external duties remain open.
 Independent result review confirms the frame/source causal interpretation, S2 classification,
 both retained failures, exact close times and complete source post-checks. It explicitly preserves
 the distinction between pending-request ownership evidence and the unaccepted stability lifetime.
+
+## Native viewer replacement during pending paging
+
+Generated Debug lifetime `0ea51080fe674b68a31cc461422ab378` runs against product source
+`704b2d2c0ab15823eeba01335b8f292276a022c8` and a fresh derived backup with exact 10000/512/2/2
+membership. The method preserves real catalog rows, page sizes, original-file reads and application
+owners. Its only scheduling control holds the first real previous-page result until a different
+viewer has actually opened. It does not inject widget, controller, scroll or focus actions.
+
+Independent method review requires request admission to be frozen before awaiting catalog results,
+all diagnostic exceptions to remain latched even when the application retires an obsolete request,
+and observation of the actual navigation-error notification channel. These corrections precede
+launch. Six boundary tests and six-file analysis pass; the final build takes 22.7 seconds.
+The initial diagnostic analyzer's nine missing-brace findings are corrected before native execution.
+
+| Actual transition | Application time |
+| --- | --- |
+| Native historical rail input, real 160-item window beginning at ordinal 2224 | 41528 / 41663 ms |
+| Real 500-item previous page retained | 48268 ms |
+| First tile opened; native Left down/up; pending boundary navigation observed | 68845 / 81385 / 81446 / 81464 ms |
+| Native Escape closes the old viewer while the page remains held | 94839 / 94860 ms |
+| Different tile opened; replacement viewer exists while still held | 109794 / 109881 ms |
+| Previous page released and naturally returned | 109887 / 109889 ms |
+| Current replacement original image decoded at 3840 by 2160 | 110043 ms |
+| Ten seconds of stable current selection and original pixels observed | 120120 ms |
+| Second native Escape; both selected identities again have current gallery pixels | 141186 / 141267 ms |
+
+The recorded pixel interval is **155 ms** after release. Source-provider location, scan, generation
+and revision match the current selected asset; a decoded original image with the matching label and
+dimensions establishes more than a preview fallback. The old page cannot change the new selection
+or emit a navigation error during the observation. The notification listener remains active through
+normal shutdown; its one observed update contains no error. The gallery return proves valid visible
+identities and current pixels, not exact pixel-position stability; C11 remains a separate failed gate.
+
+Application and parent receipts pass. The native title-bar Close leads to parent-observed exit in
+**408.23 ms**, exit zero, owned Job and monitor retirement, and no cleanup failure. The complete
+parent lifetime is 156440 ms. Across 582 samples, peak working set is 527474688 bytes, sampled
+private memory is 494268416, kernel peak commitment is 555569152 and minimum host availability
+is 6140067840 bytes. The complete source pre-check passes in 56.427 seconds; the new catalog's
+post-check retains exact 10000/512/2/2 membership. The complete source post-check passes in
+58.706 seconds, preserving identity, bytes and timestamps for all 10516 generated files. Its
+receipt is `source-integrity-1790147392646481300.json` under the retained recovery fixture.
+
+Ignored `.build/r2c-viewer-pending/` owns the method. Its fresh
+`build/integration-storage-05b60a0517cf46b3bf9a83da7b2d6815/` retains these hashes:
+
+| Receipt | SHA-256 |
+| --- | --- |
+| Native stdout | `D965BA84A8D5A47B6D5F763CD896AE75B89F1B0F6371237F7874EAA1DAB51E40` |
+| Passing application result | `3C5E1F7309272282F0167464B95DA61693EBD79CC3021CF92D6096C55DB5F619` |
+| Passing parent result | `14E1DF5845E4B69B8A5D3ED4DFF1CA5C0351A1BC4699F657E0D67D77F6EF39BF` |
+
+Charge the 60-minute reservation conservatively in full through 5444 minutes. This is selected
+native Debug paging/input/original-I/O evidence. A held native source-buffer-copy race, Release,
+UX-07 crash recovery, C01/C02 and remaining final/external gates are not accepted by this lifetime.
+Independent result review verifies the raw interaction, normal retirement and complete post-check
+receipts and confirms those same evidence limits.
