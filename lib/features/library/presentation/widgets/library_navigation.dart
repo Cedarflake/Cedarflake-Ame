@@ -92,6 +92,12 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
   void didUpdateWidget(covariant LibraryNavigation oldWidget) {
     super.didUpdateWidget(oldWidget);
     final currentRootIds = widget.roots.map((root) => root.id).toSet();
+    _expandedBranches.removeWhere(
+      (key) =>
+          !currentRootIds.contains(key.rootId) ||
+          (oldWidget.folderTree.branches.containsKey(key) &&
+              !widget.folderTree.branches.containsKey(key)),
+    );
     final removedRootIds = oldWidget.roots
         .map((root) => root.id)
         .where((rootId) => !currentRootIds.contains(rootId))
@@ -375,13 +381,21 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
           onOpen: () => widget.onOpenFolder(root, folder),
         ),
       );
-      if (isExpanded) {
+      if (isExpanded && folder.hasChildFolders) {
         children.addAll(
           _buildFolderBranch(root, folder.relativePath, depth + 1),
         );
       }
     }
-    if (branch.hasMore) {
+    if (branch.errorMessage != null) {
+      children.add(
+        LibraryFolderErrorTile(
+          depth: depth,
+          onRetry: () =>
+              unawaited(widget.onLoadMoreFolders(root.id, parentRelativePath)),
+        ),
+      );
+    } else if (branch.hasMore) {
       children.add(
         LoadMoreLibraryFoldersTile(
           depth: depth,
@@ -390,6 +404,8 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
               unawaited(widget.onLoadMoreFolders(root.id, parentRelativePath)),
         ),
       );
+    } else if (branch.isLoading) {
+      children.add(LibraryFolderLoadingTile(depth: depth));
     }
     return children;
   }
