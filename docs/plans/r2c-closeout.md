@@ -773,6 +773,65 @@ timing evidence independently, and cover an outstanding frozen interaction; do n
 complete workload merely to obtain a green parent receipt. Candidate gates and the original
 C01/C02/Release/external obligations remain separate.
 
+#### Native process loss during a persisted recovery lease
+
+Reserve 120 active minutes for UX-07C's actual-process boundary: 55 for the diagnostic
+fixture/observer, 20 for one crash/restart pair, 20 for integrity and result checks, 15 for one
+independent method/result review, and ten for records. Cumulative reservation becomes 5564
+minutes; serial build and complete source-oracle wall time remain separate. Do not repeat the
+closed pending-viewer or time-rail methods.
+
+Keep the existing 10000/512/2/2 generated originals immutable in a fresh derived catalog backup.
+Create exactly 10000 small valid PNGs under a new fixture-owned source directory and register
+that additional root through the real scanner after starting production synchronization. This
+setup is not picker acceptance. Move only that generated directory to its verified sibling,
+observe genuine unavailable-root state, and restore the same directory identity. Use a read-only
+catalog observer to identify an actual leased P2 control with a nonterminal inventory execution.
+The owned parent terminates only its retained Ame process handle. After exit, require the exact
+captured change, lease generation, inventory run and authority still to be nonterminal; if the
+worker won the race, record a failed method rather than claiming crash coverage or replaying it.
+
+Reopen the same catalog in a new actual Ame process without SQL edits, clock changes, shortened
+leases or implicit full scans. Within 300 seconds of restart, require exact final membership,
+unchanged scan baseline, consumed live-gap lineage, retired recovery authority/candidates and
+honest synchronized state. Observe usable current gallery pixels. Keep exhausted-retry and peer
+eligibility controlled evidence separate; this pair cannot establish Release, installed-service,
+Journal, Cloud Files, source-copy or complete R2c acceptance.
+
+Each owned lifetime retains a 600-second parent deadline, 4 GiB entry availability and 2 GiB
+client ceiling/system reserve. The resumed app must close normally within six seconds; the
+intentional first crash is recorded as such. Retain process/helper handles, phase/run-unique
+create-new receipts, artifact hashes and full pre/post source/catalog checks. The generated
+directory helper restores its source in fail-safe cleanup and every Job must retire. Before
+launch, check rejection of wrong identities, completed leases and changed generations, and
+review the method once. A failed pair ends this method pending a causal checkpoint; no unchanged
+replay, additional defect family or weakening of an original gate is admitted.
+
+The first crash captures control 6528 at lease generation 1, but the worker yields after one
+128-entry raw batch before termination reaches it. The persisted control is `pending`, its
+attempt is refunded, and the same inventory/spool remains incomplete with exactly 128 raw entries.
+The exact-leased assertion correctly fails; both Jobs and all processes retire, and the source
+directory is restored. Preserve this failed lifetime and charge 120 minutes in full.
+
+Admit a changed 45-minute continuation of this existing crashed catalog, cumulative 5609 minutes:
+ten preparation, ten for one resumed lifetime, ten integrity checks, five review and ten records.
+Do not generate or crash another root. Require the precise yielded control, same generation/run/
+authority, `metadata_inventory_required`, zero charged attempts and the 128-entry incomplete spool
+before restart. Keep the original lease-expiry assertion intact for its still-open boundary;
+this continuation proves only real process loss between raw batches. Reuse the exact executable,
+kernel and DLLs, and require a successor generation, complete 10000-entry inventory, exact final
+membership, no new full scan, retired authority/spool, usable pixels and normal exit under the
+original 300/600/6-second and resource limits. Distinct receipts must retain the original failure.
+No simulated expiry, SQL write, unchanged crash replay or complete UX-07C claim follows.
+
+The changed continuation passes: 108090 ms to synchronized state/current pixels, exact 10000-entry
+inventory and all five root memberships, successor generation 89, retained gap lineage, retired
+authority/spool and no new scan identity. Normal exit is 443.3918 ms; process/Job/helper retirement
+and the complete 20516-file final oracle pass. Independent result review confirms only this
+raw-batch boundary. Charge the 45-minute reservation in full. Preserve the exact-leased failure
+and separate exhaustion, Release, C01/C02 and candidate obligations; do not replay this completed
+continuation to obtain a different claim.
+
 #### Native viewer replacement while previous-page loading remains pending
 
 Reserve 60 active minutes for the remaining UX-05B native boundary: 30 for the diagnostic owner,

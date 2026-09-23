@@ -1,6 +1,6 @@
 # R2c process lifecycle verification
 
-Status: **Selected pending-call close, real-input checkpoint restoration and explicit continuation verified**.
+Status: **Selected native close, checkpoint continuation and interrupted raw-inventory recovery verified**.
 
 This record covers the 2026-09-22 generated-only method in the
 [active execution plan](../plans/r2c-closeout.md#remaining-process-lifecycle-and-input-method).
@@ -160,3 +160,87 @@ the concurrent hosted failure and focused follow-up. Its test-only changes do no
 native production artifacts. Hosted run `35701651170` on `16c215e` passes all ten required jobs and
 its aggregate gate. Complete local Daily, C01/C02 and externally gated acceptance remain separate
 obligations; that hosted success does not erase their retained local failures.
+
+## Native restart after an incomplete raw inventory batch
+
+The 2026-09-23 [process-loss method](../plans/r2c-closeout.md#native-process-loss-during-a-persisted-recovery-lease)
+uses production source `2f20a65ad4779b0b6332265cc488c120e9054bff`, an actual Debug Ame EXE,
+production synchronization/scanning and marked isolated derived storage. The retained generated
+10000/512/2/2 roots stay unchanged. A fifth root contains exactly 10000 new, valid 8-by-8 PNGs;
+its initial real scan is setup, not picker or large-image decoding evidence. The original mixed-size,
+historical-date corpus remains the visible gallery. No real-root, service, Journal or cloud run occurs.
+
+The diagnostic's initial Dart validation finds an unused import and an unbraced conditional;
+both are corrected before launch. A focused Python test catches a same-name module import cycle,
+also corrected before launch. The final three Dart sources analyze cleanly and the Debug build
+passes in 26.3 seconds. Four initial ownership tests and actual-catalog SQL/import checks pass;
+the changed continuation adds a fifth test distinguishing a yielded batch from an executing lease.
+Method review adds successor-generation, natural-expiry, exact authority/run and spool-retirement
+assertions. These are diagnostic corrections, not production defects or a new product gate.
+
+### Preserved exact-lease capture failure
+
+Run `3d1dd31356fb4b54ae62f422eb035d77` imports all 10000 new images, observes the new directory
+unavailable while retained pixels remain usable, and restores that same generated directory identity.
+A read-only observer captures P2 control 6528, generation 1, and inventory/authority
+`watcher-gap-promotion-6528` while leased. The owned parent terminates only its retained Ame handle
+(PID 16592, parent 17776). Exit is intentionally abnormal, code -1, within a 65459-ms parent lifetime.
+
+The post-exit exact-leased assertion fails. Before termination reaches the worker, it commits one
+128-entry raw batch and returns control 6528 to `pending`, refunds the attempt to zero and records
+`metadata_inventory_required`. Generation 1, the original run and authority remain intact; the
+spool/directory are `enumerating`, with zero published staged entries and exactly 128 provisional
+raw entries. This is bounded continuation rather than lost work. The original observer error and
+aggregate failure remain unchanged. The source directory is restored; both Jobs and owned
+processes retire without cleanup failure. The failed helper's exit timestamp was not retained;
+this is not a successful exact-lease or complete normal-lifetime result.
+
+### Changed continuation of the retained crash
+
+After a separate admission of only this persisted `Yielded128` state, run
+`592aa4a0576d486895afda4595f8c1f2` starts a different actual Ame process (PID 5624, parent 41528).
+It uses exactly the same EXE, kernel and DLL hashes. It does not repeat the crash, modify SQL,
+reset the catalog, shorten leases or change clocks. The first observed successor is generation 2;
+that observation time is not a precise lease-acquisition timestamp.
+
+The read-only terminal oracle passes 107.987 seconds after its observer starts. At application
+108090 ms, the production state is synchronized with `liveOnly` capability, and 12 current gallery
+tiles have decoded pixels. The same control completes at generation 89, catalog revision 788;
+all 10000 entries are staged, the original gap 6527 retains its consumed claim to control 6528,
+the recovery authority is retired and the captured spool is logically `retired`. Exact final
+membership is 10000/10000/512/2/2. The `id`, `root_id` and `status` projection of all ten scan
+records—nine retained plus the explicit initial setup scan—is unchanged across restart, so no
+new full scan supplies the result. This is not a comparison of every scan-record column.
+
+Actual window observation shows usable retained images while the fifth root displays updating.
+A subsequent native wheel action displays the next dated rows with decoded images; that action
+occurs after convergence and is not evidence of input overlapping unfinished recovery. The real
+title-bar Close exits zero in 443.3918 ms. The complete resumed parent lasts 173066 ms, with 1050
+observed pixel frames and no latched application or cleanup error. Both Jobs, the observer and
+the memory monitor retire; the observer exit timestamp is retained.
+
+| Lifetime | Memory samples | Peak working set bytes | Sampled peak private bytes | Kernel peak commit bytes | Minimum system available bytes |
+| --- | --- | --- | --- | --- | --- |
+| Failed exact-lease capture | 239 | 398086144 | 350666752 | 362921984 | 6040629248 |
+| Yielded-batch restart | 645 | 775090176 | 718376960 | 728723456 | 5497733120 |
+
+The full 20516-file pre-crash source oracle passes in 83.047 seconds. The complete post-crash /
+pre-restart oracle passes in 75.218 seconds. The final post-restart oracle passes in 82.084 seconds
+(`integrity-1790150136800018600.json`), including exact identities, bytes, timestamps and all five
+catalog memberships. Independent result review confirms this bounded result and its retained
+limitations. Raw admissions, failures, process/memory/source receipts and the unchanged original
+crash remain under
+`build/integration-storage-564c1792d10d494eb328fd22a2914c72`; diagnostic owners are in ignored
+`.build/r2c-crash-native`. Receipt SHA-256 values are:
+
+| Receipt | SHA-256 |
+| --- | --- |
+| Failed crash parent | `DBC4EE90505732DD52365FE0855CE26EA749EE24A0BD8D3F2A10D01321F18264` |
+| Resumed parent | `7E5F4E8A8F7116A3F7FE9B00BE8003291BEA0A8C92ACA93B531C48DE3E44461F` |
+| Recovery terminal oracle | `6CC64EF319632E91EF971AD4AC07210839505462824F0FAF1AFF7D23517461DC` |
+
+This establishes recovery of the selected incomplete raw inventory after real process loss.
+It does not establish executing-lease expiry, exhausted retries in this same lifetime, exact source
+read counts, continuation from entry 129 without rereading, physical spool reclamation, Release,
+complete UX-07C or R2c. Controlled exhaustion/peer-eligibility cases retain their separate evidence;
+C01/C02, final candidate gates and external acceptance remain open.
