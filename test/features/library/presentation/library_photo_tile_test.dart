@@ -19,6 +19,96 @@ import "package:flutter_test/flutter_test.dart";
 import "../support/library_query_snapshot_fixture.dart";
 
 void main() {
+  for (final sample in [
+    (size: const Size(48, 240), textScale: 1.0),
+    (size: const Size(240, 48), textScale: 1.0),
+    (size: const Size(160, 120), textScale: 3.0),
+  ]) {
+    testWidgets(
+      "compact retry feedback fits ${sample.size} at ${sample.textScale}x text",
+      (tester) async {
+        final semantics = tester.ensureSemantics();
+        try {
+          final asset = _failedAsset();
+          final snapshot = LibrarySnapshot(
+            catalogPath: "C:\\AmeData\\ame.sqlite3",
+            revision: BigInt.one,
+            queryId: "query-1",
+            roots: const [],
+            assets: [asset],
+          );
+          final previewer = _ControlledRetryPreviewer();
+          var opens = 0;
+          await tester.pumpWidget(
+            ProviderScope(
+              overrides: [
+                initialLibraryStateProvider.overrideWithValue(
+                  LibraryState.fromSnapshot(snapshot),
+                ),
+                libraryCatalogProvider.overrideWithValue(
+                  _FakeCatalog(snapshot),
+                ),
+                libraryScannerProvider.overrideWithValue(const _FakeScanner()),
+                libraryPreviewerProvider.overrideWithValue(previewer),
+              ],
+              child: MaterialApp(
+                builder: (context, child) => MediaQuery(
+                  data: MediaQuery.of(
+                    context,
+                  ).copyWith(textScaler: TextScaler.linear(sample.textScale)),
+                  child: child!,
+                ),
+                home: Scaffold(
+                  body: LibraryPhotoTile(
+                    asset: asset,
+                    width: sample.size.width,
+                    height: sample.size.height,
+                    isSelecting: false,
+                    isSelected: false,
+                    onOpen: (_) => opens++,
+                    onToggleSelection: (_) {},
+                    onViewInformation: (_) {},
+                    onCopyPath: (_) {},
+                    onRevealFile: (_) {},
+                  ),
+                ),
+              ),
+            ),
+          );
+          await tester.pump();
+          expect(tester.takeException(), isNull);
+          final retry = find.byKey(const Key("preview-retry-location-failed"));
+          expect(tester.getSize(retry).shortestSide, greaterThanOrEqualTo(48));
+          expect(find.text(LibraryStrings.retryPreview), findsNothing);
+          expect(
+            find.bySemanticsLabel(RegExp(LibraryStrings.retryPreview)),
+            findsWidgets,
+          );
+          await tester.tap(retry);
+          await tester.tap(retry);
+          await tester.pump();
+          expect(previewer.requests, [asset.locationId]);
+          expect(opens, 0);
+          expect(find.text(LibraryStrings.retryingPreview), findsNothing);
+          expect(
+            find.bySemanticsLabel(LibraryStrings.retryingPreview),
+            findsOneWidget,
+          );
+          expect(tester.takeException(), isNull);
+
+          previewer.complete(asset);
+          await tester.pump();
+          await tester.pump();
+          expect(retry, findsOneWidget);
+          expect(tester.getSize(find.byType(LibraryPhotoTile)), sample.size);
+          expect(tester.takeException(), isNull);
+        } finally {
+          semantics.dispose();
+        }
+      },
+    );
+  }
+
   test("buckets preview decode widths across small layout changes", () {
     expect(libraryPreviewDecodeWidth(40, 1), 128);
     expect(libraryPreviewDecodeWidth(127, 1), 128);

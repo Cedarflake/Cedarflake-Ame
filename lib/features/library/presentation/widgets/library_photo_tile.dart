@@ -13,6 +13,7 @@ import "../../application/library_preview_queue.dart";
 import "../../application/library_preview_store.dart";
 import "../../domain/library_models.dart";
 import "../library_strings.dart";
+import "library_preview_feedback.dart";
 
 int libraryPreviewDecodeWidth(double logicalWidth, double devicePixelRatio) {
   final requestedWidth = (logicalWidth * devicePixelRatio).round().clamp(
@@ -203,52 +204,20 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
 
   Widget _buildPreviewAsset(BuildContext context, LibraryAsset asset) {
     if (_isRetrying) {
-      return Semantics(
-        container: true,
-        liveRegion: true,
-        label: LibraryStrings.retryingPreview,
-        child: ExcludeSemantics(
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox.square(
-                  key: ValueKey("preview-retry-progress-${asset.locationId}"),
-                  dimension: 24,
-                  child: const CircularProgressIndicator(strokeWidth: 2.5),
-                ),
-                const SizedBox(height: 8),
-                const Text(LibraryStrings.retryingPreview),
-              ],
-            ),
-          ),
-        ),
-      );
+      return LibraryPreviewFeedback.retrying(locationId: asset.locationId);
     }
     return switch (asset.previewStatus) {
       LibraryPreviewStatus.pending => const SizedBox.expand(
         key: Key("library-preview-pending"),
       ),
-      LibraryPreviewStatus.failed => Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Symbols.broken_image_rounded),
-            const SizedBox(height: 4),
-            if (_isPreviewUpdateRequired ||
-                asset.previewIssueCode == "preview_root_identity_unproven") ...[
-              _buildPreviewUpdateRequiredMessage(),
-              const SizedBox(height: 4),
-            ],
-            TextButton(
-              key: Key("preview-retry-${asset.locationId}"),
-              onPressed: () => _startPreviewRetry(
-                asset,
-                previewEdge: _requestedPreviewEdge(context),
-              ),
-              child: const Text(LibraryStrings.retryPreview),
-            ),
-          ],
+      LibraryPreviewStatus.failed => LibraryPreviewFeedback.failed(
+        locationId: asset.locationId,
+        updateRequired:
+            _isPreviewUpdateRequired ||
+            asset.previewIssueCode == "preview_root_identity_unproven",
+        onRetry: () => _startPreviewRetry(
+          asset,
+          previewEdge: _requestedPreviewEdge(context),
         ),
       ),
       LibraryPreviewStatus.ready => _buildReadyPreview(context, asset),
@@ -269,49 +238,19 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
       filterQuality: FilterQuality.low,
       errorBuilder: (context, error, stackTrace) {
         _schedulePreviewRepair(asset, cacheWidth, previewEdge);
-        return Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Symbols.broken_image_rounded),
-              const SizedBox(height: 4),
-              if (_isPreviewUpdateRequired) ...[
-                _buildPreviewUpdateRequiredMessage(),
-                const SizedBox(height: 4),
-              ],
-              TextButton(
-                key: Key("preview-retry-${asset.locationId}"),
-                onPressed: () {
-                  _previewRepairSource = null;
-                  _startPreviewRetry(
-                    asset,
-                    cacheWidth: cacheWidth,
-                    previewEdge: previewEdge,
-                  );
-                },
-                child: const Text(LibraryStrings.retryPreview),
-              ),
-            ],
-          ),
+        return LibraryPreviewFeedback.failed(
+          locationId: asset.locationId,
+          updateRequired: _isPreviewUpdateRequired,
+          onRetry: () {
+            _previewRepairSource = null;
+            _startPreviewRetry(
+              asset,
+              cacheWidth: cacheWidth,
+              previewEdge: previewEdge,
+            );
+          },
         );
       },
-    );
-  }
-
-  Widget _buildPreviewUpdateRequiredMessage() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Semantics(
-        container: true,
-        liveRegion: true,
-        label: LibraryStrings.previewUpdateRequired,
-        child: const ExcludeSemantics(
-          child: Text(
-            LibraryStrings.previewUpdateRequired,
-            textAlign: TextAlign.center,
-          ),
-        ),
-      ),
     );
   }
 
