@@ -1541,6 +1541,58 @@ retains the first failure, all 10518 source postchecks and exact passing evidenc
 correction reservation through 7189 minutes; preserve Release and final-source duties instead of
 replaying this boundary.
 
+#### Native cold/warm preview ownership
+
+Reserve 90 active minutes, cumulative 7279: 25 for the narrow native observer and source/cache
+oracle, 15 for focused checks and one Debug build, 15 for one actual client lifetime, ten for
+complete postchecks, ten for independent method/result review and 15 for records. The preceding
+viewer lifetime proves source-slot retirement; its closed catalog has source-bound preview rows
+but does not by itself prove a second materialization reuses the artifact.
+
+Use a fresh isolated copy of the same 10516-source generated background and two newly generated
+portrait/landscape images. Retain the real one-time scan into a fresh cache and production preview
+bridge, preserving source identity and generation. Wait for the selected root's UI preview calls
+to retire, then bind each actual rendered preview path. Decode only its bounded cache file to
+identify the real size bucket; fixed 512-edge requests cannot represent every gallery demand.
+Observe current decoded gallery pixels through the existing raster observer after actual root
+selection, then issue one matching, non-forced warm request per image for that observed bucket.
+Require the same source version, cache path, bounded file bytes and modification timestamp, then
+observe the same current decoded thumbnails for ten seconds. This is a controlled native cache
+probe alongside real rendering; it does not claim a user gesture requested each backend probe.
+
+After normal exit, query only the closed derived catalog and check each selected artifact's active
+location ownership, source identity/revision/generation, size bucket, algorithm/version and actual
+file size against the observed paths. Preserve exact root membership and complete source pre/post
+checks. Keep four-GiB host admission, two-GiB client/reserve, 600-second parent, 480-second input
+cutoff and six-second native-close bound. Reuse unchanged input/lifetime guardrails, preserving
+their hashes and prior results. Test mismatched source/path, changed cache bytes/date and failed
+warm materialization before launch. One failure ends this method with its cause and evidence;
+no real root, source mutation, cache deletion, forced regeneration, production API or dependency
+change is admitted. Global zero source I/O, Release ownership and final gates remain separate.
+
+The single native lifetime completes cold/warm pixels, source/path/byte reuse, ten-second stability
+and normal retirement. Its closed-catalog oracle then fails at the timestamp comparison. Preserve
+that failure and the full 90-minute reservation; no second client lifetime follows. The retained
+native timestamps have whole-second precision, while Python exposes fractional NTFS timestamps.
+Read-only calibration with the installed Dart SDK reproduces the original whole-second values
+for both artifacts through `File.stat` and `lastModified`; API units did not establish precision.
+
+Reserve 15 active minutes for closed-evidence correction, cumulative 7294: five for the calibrated
+timestamp comparison and rejecting cases, four for closed-catalog/source reconciliation, three
+for independent result review and three for recording. Keep original native receipts and the
+reviewed-source manifest unchanged. Compare at the demonstrated whole-second precision, require
+the calibration and raw filesystem timestamp to agree, and retain exact bytes, source versions,
+active ownership and every other assertion. Report that subsecond timestamp continuity was not
+measured; do not label this as nanosecond or millisecond proof. No new build, client lifetime,
+source/cache write or unrelated product change is admitted by this correction.
+
+The corrected closed oracle and rejecting cases pass on the retained lifetime. Both displayed
+artifacts have exact active-source ownership and unchanged captured bytes; all 10518 source
+postchecks and normal owned retirement pass. The [cache record](../acceptance/r2c-closeout-cycle.md#native-coldwarm-preview-ownership)
+retains the original timestamp failure, calibration, precision limitation and exact receipts.
+Charge the correction reservation through 7294 minutes; no product change or native replay follows.
+Release ownership and final-candidate duties remain queued independently.
+
 #### Current Release gallery stability and remaining menu return
 
 Reserve 90 active minutes, cumulative 6964: 20 preparation, ten focused admission checks, 15 one

@@ -788,7 +788,7 @@ their actual passing output and unchanged source; the final complete Daily remai
 | UX-03A | Switch root/search/sort and cross a page while publication proceeds; latest query owns coherent page/count/timeline | [Controlled query/page ownership cases pass](#startup-query-folder-and-recovery-evidence); [selected native Debug combined interaction passes](r2c-query-interactions.md#complete-selected-native-lifetime); [continuous native search after C08 correction passes](r2c-query-interactions.md#native-continuous-search-result); final-source and Release gates remain open |
 | UX-03B | Expand a folder, change revision, load another folder page; replace obsolete window and append only at the same revision | [Original folder-controller cases pass](#startup-query-folder-and-recovery-evidence); [native replacement/append](r2c-query-interactions.md#native-folder-window-across-publication) and [C09 native position continuity](r2c-query-interactions.md#native-correction-interactions-and-retained-lifetime-gap) have functional evidence. The combined parent timing failure, final-source gates and Release input remain open |
 | UX-03C | Fail display after committed removal/update, replace query and explicitly retry; retain page, settle loading and never repeat source action | [Controlled query/removal transitions pass](#controlled-query-source-and-viewer-evidence); [native committed-removal focused Enter Retry and subsequent browsing pass](r2c-query-interactions.md#native-committed-removal-display-retry); update/query supersession remains controlled and Release stays open |
-| UX-04A | Materialize cold then warm actual media previews; verify pixels, source version, cache ownership and unchanged source | Preview store/media adapters and existing seven-format acceptance; [selected cold/warm Release pixels, source integrity and normal lifetime verified](r2c-release-native.md), cache/source ownership acceptance remains open |
+| UX-04A | Materialize cold then warm actual media previews; verify pixels, source version, cache ownership and unchanged source | Preview store/media adapters and existing seven-format acceptance; [selected cold/warm Release pixels, source integrity and normal lifetime verified](r2c-release-native.md); [selected native Debug source-bound cache reuse passes at calibrated timestamp precision](#native-coldwarm-preview-ownership); Release ownership and final-source acceptance remain open |
 | UX-04B | Rewrite fixture with identical size/ID/mtime while the old request is pending; reconcile one path and show new pixels, reject old publication | [Post-decode same-metadata replacement passes](#controlled-query-source-and-viewer-evidence); [native watcher publication, stale Dart result retirement and current decoded color pass](r2c-browsing-diagnosis.md#native-replacement-and-exclusive-source-recovery); Release remains open |
 | UX-04C | Hold source exclusively or present corrupt bytes, then recover; preserve precise failure, valid source retries and no stale ready publication | [Controlled exclusive-open, corruption and newer-source recovery pass](#controlled-query-source-and-viewer-evidence); [native exclusive-open recovery](r2c-browsing-diagnosis.md#native-replacement-and-exclusive-source-recovery) and [C10 native compact feedback](r2c-query-interactions.md#native-correction-interactions-and-retained-lifetime-gap) have functional evidence. The combined parent timing failure, final-source gates and Release remain open |
 | UX-05A | Open original, navigate both ways and return; actual decode, correct anchor and released source slots | Viewer/source reader and controlled position cases; [Release decode, Left/Right, observed return anchor and normal lifetime verified](r2c-release-native.md); [selected native Debug decode, return anchor and source-slot retirement pass](#native-original-viewer-source-slot-evidence); final-source and Release slot boundaries remain open |
@@ -955,6 +955,65 @@ not global zero file activity, Release slot capacity or final-candidate acceptan
 Independent result review matches the structured result, query order, delivered inputs, retirement,
 source postchecks and five listed hashes. Its timing-origin clarification is incorporated above;
 it does not independently repeat the visual observations or all source-manifest comparisons.
+
+### Native cold/warm preview ownership
+
+Run `d3d07ef6d95e4523b6a81fbfb326b37b` uses unchanged product source `a1c165b` at documentation
+HEAD `0117a70`, diagnostic sources in `.build/r2c-preview-cache-native/`, and generated fixture
+`integration-storage-e4b3b7269f2440898e43eb0d364c97c4`. The one-time real scan adds two differently
+sized PNGs beside the retained 10516-source background in an isolated derived catalog/cache.
+Preparation corrects a Python helper-name collision and the independent review's missing UI-error
+latch before launch. Nine focused Dart cases and five initial Python ownership cases pass; all
+12 Dart files analyze cleanly and the Debug build takes 22.8 seconds. No product source changes.
+
+Actual pointer selection reaches the two-image root. After its two UI preview calls retire, the
+observer binds each current rendered source version and artifact, samples real decoded pixels,
+and sends one non-forced production warm request for each actual bucket. The green portrait uses
+bucket 256 and 1076 encoded bytes; the red landscape uses bucket 512 and 2421 bytes. Warm results
+retain the exact source identities/generations, paths and encoded bytes. Cold and warm RGBA are
+respectively `[49,200,97,255]` and `[220,32,47,255]`, within the original JPEG tolerance of three
+channel values. Ten seconds of current gallery stability complete with a one-second maximum
+observation gap. The warm requests are controlled native probes, not additional user gestures.
+
+Native Close is delivered once. The application, parent, monitor and Job retire normally, with
+empty application/monitor stderr. Same-host native-input-to-exit is at most 416.9755 ms;
+application close-dispatch-to-exit is 308.7555 ms and parent lifetime is 73133 ms. The subsequent
+capture reports the already-closed window. Peak sampled private bytes are 340447232, kernel peak
+commitment is 375066624 and minimum sampled available host bytes are 7594160128; resource bounds hold.
+
+The first closed oracle fails because it assumes millisecond timestamp precision from Dart's
+API units. The retained native baseline is `1790196936000000` microseconds for both artifacts,
+while Python reports fractional NTFS times. Read-only calibration with the installed Dart 3.12.2
+reproduces those whole-second values through both `File.stat` and `lastModified`. The corrected
+offline oracle requires the native baseline, calibration and raw filesystem timestamp to agree
+at that demonstrated precision. Six Python cases now pass, including rejection of a changed
+second, a mismatched calibration and an unsupported fractional baseline. Subsecond timestamp
+continuity was not measured. The initial failure and reviewed-source manifest remain unchanged;
+only the offline oracle and its test change among the manifest's 21 files. No second client run occurs.
+
+The closed, read-only catalog passes `quick_check` and exact active-location/artifact ownership,
+source identity/revision/generation, algorithm v3, orientation, bucket, encoded dimensions and byte
+size checks. Both cache files still exactly match their cold byte captures. The two new source
+fingerprints and five-root membership `2,2,2,512,10000` pass their postcheck. The full 10516-source
+background oracle passes in 46.803 seconds. This closes the selected native Debug cache boundary
+at the recorded precision; global zero source I/O, Release ownership and final-source duties remain.
+
+| Retained receipt | SHA-256 |
+| --- | --- |
+| `reviewed-source-manifest.json` | `EA18B2648E50DCBC64E8731C0A106230CB0808A9D09C4BCAB16E0F76395D929D` |
+| `native-admission.json` | `27E07E8F02352BBC7C383615CAC111FFF664B7D9DAB3540A92F8EF9A6C907E6D` |
+| `result-d3d07ef6d95e4523b6a81fbfb326b37b.json` | `8708621C46A47DC65EB4CEFD4A78A21CA00401B6B4A8207B2EB0657474AFF721` |
+| `d3d07ef6d95e4523b6a81fbfb326b37b.process.json` | `D63071038D6F80C4A42357B82CA92FF1C7C75161C93194754E1D92AEB50A662D` |
+| `preview-ownership-initial-failure.json` | `CBB6B1B4F308933616063DC12A616914B4543EEF504124436071AA1EF3DC70BD` |
+| `file-stat-calibration.jsonl` | `E7F841FD4619DB9A2EE0BE91FA4ACB8FCC06A1497B970B7EF2696A71E4FE15A6` |
+| `preview-ownership.json` | `7F4EE99E19E2EF29D95583CDDBE1CE003DABF86FD45D8FD2BC85FF418F0D4AC4` |
+| `source-integrity-1790197117689038700.json` | `283C0CC78C43398F483686ECA471C7512D0DD2E089285401E7BE4C7C7A91DB6D` |
+
+The manifest, admission and calibration are in the diagnostic directory; run receipts are in its
+fixture. The full background receipt remains under `integration-storage-e84f07c4443e4008b0c71381991477a4`.
+Independent result review confirms the source-bound artifacts, pixels, timing endpoints, source
+postchecks, hashes and limited timestamp conclusion. It does not establish subsecond continuity,
+absence of every possible rewrite, or zero source I/O.
 
 ### Controlled query, source and viewer evidence
 
